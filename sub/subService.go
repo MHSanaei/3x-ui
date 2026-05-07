@@ -46,6 +46,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 	var result []string
 	var traffic xray.ClientTraffic
 	var lastOnline int64
+	var hasEnabledClient bool
 	var clientTraffics []xray.ClientTraffic
 	inbounds, err := s.getInboundsBySubId(subId)
 	if err != nil {
@@ -77,7 +78,10 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 			}
 		}
 		for _, client := range clients {
-			if client.Enable && client.SubID == subId {
+			if client.SubID == subId {
+				if client.Enable {
+					hasEnabledClient = true
+				}
 				link := s.getLink(inbound, client.Email)
 				result = append(result, link)
 				ct := s.getClientTraffics(inbound.ClientStats, client.Email)
@@ -111,6 +115,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 			}
 		}
 	}
+	traffic.Enable = hasEnabledClient
 	return result, lastOnline, traffic, nil
 }
 
@@ -1304,6 +1309,7 @@ type PageData struct {
 	Host         string
 	BasePath     string
 	SId          string
+	Enabled      bool
 	Download     string
 	Upload       string
 	Total        string
@@ -1453,6 +1459,7 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		Host:         hostHeader,
 		BasePath:     basePath,
 		SId:          subId,
+		Enabled:      traffic.Enable,
 		Download:     download,
 		Upload:       upload,
 		Total:        total,

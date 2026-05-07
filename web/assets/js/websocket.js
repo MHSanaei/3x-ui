@@ -1,150 +1,212 @@
 /**
- * WebSocket client for real-time updates
+ * WebSocket client for real-time panel updates.
+ *
+ * Public API (kept stable for index.html / inbounds.html / xray.html):
+ *   - connect()                     — open the connection (idempotent)
+ *   - disconnect()                  — close and stop reconnecting
+ *   - on(event, callback)           — subscribe to event
+ *   - off(event, callback)          — unsubscribe
+ *   - send(data)                    — send JSON to the server
+ *   - isConnected                   — boolean, current state
+ *   - reconnectAttempts             — number, attempts since last success
+ *   - maxReconnectAttempts          — number, give-up threshold
+ *
+ * Built-in events:
+ *   'connected', 'disconnected', 'error', 'message',
+ *   plus any server-emitted message type (status, traffic, client_stats, ...).
  */
 class WebSocketClient {
+  static #MAX_PAYLOAD_BYTES = 10 * 1024 * 1024; // 10 MB, mirrors hub maxMessageSize.
+  static #BASE_RECONNECT_MS = 1000;
+  static #MAX_RECONNECT_MS = 30_000;
+  // After exhausting maxReconnectAttempts we switch to a polite slow-retry
+  // cadence rather than giving up forever — a panel that recovers an hour
+  // later should reconnect without a manual page reload.
+  static #SLOW_RETRY_MS = 60_000;
+
   constructor(basePath = '') {
     this.basePath = basePath;
-    this.ws = null;
-    this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 10;
-    this.reconnectDelay = 1000;
-    this.listeners = new Map();
+    this.reconnectAttempts = 0;
     this.isConnected = false;
+
+    this.ws = null;
     this.shouldReconnect = true;
+    this.reconnectTimer = null;
+    this.listeners = new Map(); // event → Set<callback>
   }
 
+  // Open the connection. Safe to call repeatedly — no-op if already
+  // open/connecting. Re-enables reconnects if previously disabled. Cancels
+  // any pending reconnect timer so an external connect() can't race a
+  // delayed retry into spawning a second socket.
   connect() {
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       return;
     }
-
     this.shouldReconnect = true;
-
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Ensure basePath ends with '/' for proper URL construction
-    let basePath = this.basePath || '';
-    if (basePath && !basePath.endsWith('/')) {
-      basePath += '/';
-    }
-    const wsUrl = `${protocol}//${window.location.host}${basePath}ws`;
-    
-    console.log('WebSocket connecting to:', wsUrl, 'basePath:', this.basePath);
-    
-    try {
-      this.ws = new WebSocket(wsUrl);
-      
-      this.ws.onopen = () => {
-        console.log('WebSocket connected');
-        this.isConnected = true;
-        this.reconnectAttempts = 0;
-        this.emit('connected');
-      };
-
-      this.ws.onmessage = (event) => {
-        try {
-          // Validate message size (prevent memory issues)
-          const maxMessageSize = 10 * 1024 * 1024; // 10MB
-          if (event.data && event.data.length > maxMessageSize) {
-            console.error('WebSocket message too large:', event.data.length, 'bytes');
-            this.ws.close();
-            return;
-          }
-          
-          const message = JSON.parse(event.data);
-          if (!message || typeof message !== 'object') {
-            console.error('Invalid WebSocket message format');
-            return;
-          }
-          
-          this.handleMessage(message);
-        } catch (e) {
-          console.error('Failed to parse WebSocket message:', e);
-        }
-      };
-
-      this.ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        this.emit('error', error);
-      };
-
-      this.ws.onclose = () => {
-        console.log('WebSocket disconnected');
-        this.isConnected = false;
-        this.emit('disconnected');
-        
-        if (this.shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
-          this.reconnectAttempts++;
-          const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-          console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-          setTimeout(() => this.connect(), delay);
-        }
-      };
-    } catch (e) {
-      console.error('Failed to create WebSocket connection:', e);
-      this.emit('error', e);
-    }
+    this.#cancelReconnect();
+    this.#openSocket();
   }
 
-  handleMessage(message) {
-    const { type, payload, time } = message;
-    
-    // Emit to specific type listeners
-    this.emit(type, payload, time);
-    
-    // Emit to all listeners
-    this.emit('message', { type, payload, time });
-  }
-
-  on(event, callback) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, []);
-    }
-    const callbacks = this.listeners.get(event);
-    if (!callbacks.includes(callback)) {
-      callbacks.push(callback);
-    }
-  }
-
-  off(event, callback) {
-    if (!this.listeners.has(event)) {
-      return;
-    }
-    const callbacks = this.listeners.get(event);
-    const index = callbacks.indexOf(callback);
-    if (index > -1) {
-      callbacks.splice(index, 1);
-    }
-  }
-
-  emit(event, ...args) {
-    if (this.listeners.has(event)) {
-      this.listeners.get(event).forEach(callback => {
-        try {
-          callback(...args);
-        } catch (e) {
-          console.error('Error in WebSocket event handler:', e);
-        }
-      });
-    }
-  }
-
+  // Close the connection and stop any pending reconnect attempt. Resets the
+  // attempt counter so a future connect() starts fresh from the small backoff.
   disconnect() {
     this.shouldReconnect = false;
+    this.#cancelReconnect();
+    this.reconnectAttempts = 0;
     if (this.ws) {
-      this.ws.close();
+      try { this.ws.close(1000, 'client disconnect'); } catch { /* ignore */ }
       this.ws = null;
     }
+    this.isConnected = false;
   }
 
+  // Subscribe to an event. Re-subscribing the same callback is a no-op.
+  on(event, callback) {
+    if (typeof callback !== 'function') return;
+    let set = this.listeners.get(event);
+    if (!set) {
+      set = new Set();
+      this.listeners.set(event, set);
+    }
+    set.add(callback);
+  }
+
+  // Unsubscribe from an event.
+  off(event, callback) {
+    const set = this.listeners.get(event);
+    if (!set) return;
+    set.delete(callback);
+    if (set.size === 0) this.listeners.delete(event);
+  }
+
+  // Send JSON to the server. Drops silently if not connected — callers
+  // should rely on connect()/server pushes rather than client-initiated sends.
   send(data) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data));
+    }
+  }
+
+  // ───── internals ─────
+
+  #openSocket() {
+    const url = this.#buildUrl();
+    let socket;
+    try {
+      socket = new WebSocket(url);
+    } catch (err) {
+      console.error('WebSocket: failed to construct connection', err);
+      this.#emit('error', err);
+      this.#scheduleReconnect();
+      return;
+    }
+    this.ws = socket;
+
+    socket.addEventListener('open', () => {
+      this.isConnected = true;
+      this.reconnectAttempts = 0;
+      this.#emit('connected');
+    });
+
+    socket.addEventListener('message', (event) => this.#onMessage(event));
+
+    socket.addEventListener('error', (event) => {
+      // Browsers fire 'error' before 'close' on failure. We surface it for
+      // consumers (so polling fallbacks can engage) but don't log every blip
+      // — bad networks would flood the console otherwise.
+      this.#emit('error', event);
+    });
+
+    socket.addEventListener('close', () => {
+      this.isConnected = false;
+      this.ws = null;
+      this.#emit('disconnected');
+      if (this.shouldReconnect) this.#scheduleReconnect();
+    });
+  }
+
+  #buildUrl() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    let basePath = this.basePath || '';
+    if (basePath && !basePath.endsWith('/')) basePath += '/';
+    return `${protocol}//${window.location.host}${basePath}ws`;
+  }
+
+  #onMessage(event) {
+    const data = event.data;
+    // Reject oversized payloads up front. We compare actual UTF-8 byte
+    // length (via Blob.size) against the limit — string.length counts
+    // UTF-16 code units, which can undercount real bytes by up to 4× for
+    // payloads with non-ASCII characters and bypass the cap.
+    if (typeof data === 'string') {
+      const byteLen = new Blob([data]).size;
+      if (byteLen > WebSocketClient.#MAX_PAYLOAD_BYTES) {
+        console.error(`WebSocket: payload too large (${byteLen} bytes), closing`);
+        try { this.ws?.close(1009, 'message too big'); } catch { /* ignore */ }
+        return;
+      }
+    }
+    let message;
+    try {
+      message = JSON.parse(data);
+    } catch (err) {
+      console.error('WebSocket: invalid JSON message', err);
+      return;
+    }
+    if (!message || typeof message !== 'object' || typeof message.type !== 'string') {
+      console.error('WebSocket: malformed message envelope');
+      return;
+    }
+    this.#emit(message.type, message.payload, message.time);
+    this.#emit('message', message);
+  }
+
+  #emit(event, ...args) {
+    const set = this.listeners.get(event);
+    if (!set) return;
+    for (const callback of set) {
+      try {
+        callback(...args);
+      } catch (err) {
+        console.error(`WebSocket: handler for "${event}" threw`, err);
+      }
+    }
+  }
+
+  #scheduleReconnect() {
+    if (!this.shouldReconnect) return;
+    this.#cancelReconnect();
+
+    let base;
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts += 1;
+      // Exponential backoff inside the active window.
+      const exp = WebSocketClient.#BASE_RECONNECT_MS * 2 ** (this.reconnectAttempts - 1);
+      base = Math.min(WebSocketClient.#MAX_RECONNECT_MS, exp);
     } else {
-      console.warn('WebSocket is not connected');
+      // Active window exhausted — keep trying once a minute. The page-level
+      // polling fallback runs in parallel; this just brings WS back when the
+      // network recovers.
+      base = WebSocketClient.#SLOW_RETRY_MS;
+    }
+    // ±25% jitter so reloads after a panel restart don't reconnect in lockstep.
+    const delay = base * (0.75 + Math.random() * 0.5);
+
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.#openSocket();
+    }, delay);
+  }
+
+  #cancelReconnect() {
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
   }
 }
 
-// Create global WebSocket client instance
-// Safely get basePath from global scope (defined in page.html)
+// Global instance — basePath is set by page.html before this script loads.
 window.wsClient = new WebSocketClient(typeof basePath !== 'undefined' ? basePath : '');

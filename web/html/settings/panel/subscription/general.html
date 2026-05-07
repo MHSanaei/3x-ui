@@ -46,8 +46,7 @@
             <template #description>{{ i18n
                 "pages.settings.subPortDesc"}}</template>
             <template #control>
-                <a-input-number v-model="allSetting.subPort" :min="1"
-                    :min="65535"
+                <a-input-number v-model="allSetting.subPort" :min="1" :min="65535"
                     :style="{ width: '100%' }"></a-input-number>
             </template>
         </a-setting-list-item>
@@ -67,8 +66,7 @@
             <template #description>{{ i18n
                 "pages.settings.subURIDesc"}}</template>
             <template #control>
-                <a-input type="text"
-                    placeholder="(http|https)://domain[:port]/path/"
+                <a-input type="text" placeholder="(http|https)://domain[:port]/path/"
                     v-model="allSetting.subURI"></a-input>
             </template>
         </a-setting-list-item>
@@ -104,8 +102,7 @@
             <template #description>{{ i18n
                 "pages.settings.subSupportUrlDesc"}}</template>
             <template #control>
-                <a-input type="text" v-model="allSetting.subSupportUrl"
-                    placeholder="https://example.com"></a-input>
+                <a-input type="text" v-model="allSetting.subSupportUrl" placeholder="https://example.com"></a-input>
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
@@ -113,8 +110,7 @@
             <template #description>{{ i18n
                 "pages.settings.subProfileUrlDesc"}}</template>
             <template #control>
-                <a-input type="text" v-model="allSetting.subProfileUrl"
-                    placeholder="https://example.com"></a-input>
+                <a-input type="text" v-model="allSetting.subProfileUrl" placeholder="https://example.com"></a-input>
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
@@ -141,8 +137,7 @@
             <template #description>{{ i18n
                 "pages.settings.subRoutingRulesDesc"}}</template>
             <template #control>
-                <a-textarea v-model="allSetting.subRoutingRules"
-                    placeholder="happ://routing/add/..."></a-textarea>
+                <a-textarea v-model="allSetting.subRoutingRules" placeholder="happ://routing/add/..."></a-textarea>
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
@@ -170,8 +165,7 @@
             <template #description>{{ i18n
                 "pages.settings.subUpdatesDesc"}}</template>
             <template #control>
-                <a-input-number :min="1" v-model="allSetting.subUpdates"
-                    :style="{ width: '100%' }"></a-input-number>
+                <a-input-number :min="1" v-model="allSetting.subUpdates" :style="{ width: '100%' }"></a-input-number>
             </template>
         </a-setting-list-item>
     </a-collapse-panel>

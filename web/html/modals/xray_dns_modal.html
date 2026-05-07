@@ -75,15 +75,19 @@
     okText: '{{ i18n "confirm" }}',
     isEdit: false,
     confirm: null,
-    dnsServer: { ...defaultDnsObject },
+    dnsServer: {
+      ...defaultDnsObject
+    },
     ok() {
-      ObjectUtil.execute(dnsModal.confirm, { ...dnsModal.dnsServer });
+      ObjectUtil.execute(dnsModal.confirm, {
+        ...dnsModal.dnsServer
+      });
     },
     show({
       title = '',
       okText = '{{ i18n "confirm" }}',
       dnsServer,
-      confirm = (dnsServer) => { },
+      confirm = (dnsServer) => {},
       isEdit = false
     }) {
       this.title = title;
@@ -95,7 +99,9 @@
       if (isEdit) {
         switch (typeof dnsServer) {
           case 'string':
-            const dnsObj = { ...defaultDnsObject };
+            const dnsObj = {
+              ...defaultDnsObject
+            };
 
             dnsObj.address = dnsServer;
 
@@ -106,7 +112,9 @@
             break;
         }
       } else {
-        this.dnsServer = { ...defaultDnsObject };
+        this.dnsServer = {
+          ...defaultDnsObject
+        };
 
         this.dnsServer.domains = [];
         this.dnsServer.expectIPs = [];
