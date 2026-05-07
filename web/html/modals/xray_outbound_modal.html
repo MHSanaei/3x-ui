@@ -104,6 +104,17 @@
                 return outModal.outbound;
             },
         },
+        watch: {
+            // xray-core's SplitHTTPConfig.Build() rejects "GET" as
+            // uplinkHTTPMethod outside packet-up mode. Clear the field
+            // instead of carrying an invalid combination through.
+            "outModal.outbound.stream.xhttp.mode"(newMode) {
+                const xhttp = outModal.outbound.stream && outModal.outbound.stream.xhttp;
+                if (xhttp && xhttp.uplinkHTTPMethod === "GET" && newMode !== "packet-up") {
+                    xhttp.uplinkHTTPMethod = "";
+                }
+            },
+        },
         methods: {
             streamNetworkChange() {
                 if (this.outModal.outbound.protocol == Protocols.VLESS && !outModal.outbound

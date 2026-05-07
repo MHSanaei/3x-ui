@@ -402,11 +402,35 @@ class HttpUpgradeStreamSettings extends CommonClass {
     }
 }
 
+// Mirrors the outbound (client-side) view of Xray-core's SplitHTTPConfig
+// (infra/conf/transport_internet.go). Only fields the client actually
+// reads at runtime, plus the bidirectional fields the client must match
+// against the server, live here. Server-only fields (noSSEHeader,
+// scMaxBufferedPosts, scStreamUpServerSecs, serverMaxHeaderBytes) belong
+// on the inbound class instead.
 class xHTTPStreamSettings extends CommonClass {
     constructor(
+        // Bidirectional — must match the inbound side
         path = '/',
         host = '',
         mode = '',
+        xPaddingBytes = "100-1000",
+        xPaddingObfsMode = false,
+        xPaddingKey = '',
+        xPaddingHeader = '',
+        xPaddingPlacement = '',
+        xPaddingMethod = '',
+        sessionPlacement = '',
+        sessionKey = '',
+        seqPlacement = '',
+        seqKey = '',
+        uplinkDataPlacement = '',
+        uplinkDataKey = '',
+        scMaxEachPostBytes = "1000000",
+        // Client-side only
+        headers = [],
+        uplinkHTTPMethod = '',
+        uplinkChunkSize = 0,
         noGRPCHeader = false,
         scMinPostsIntervalMs = "30",
         xmux = {
@@ -417,32 +441,112 @@ class xHTTPStreamSettings extends CommonClass {
             hMaxReusableSecs: "1800-3000",
             hKeepAlivePeriod: 0,
         },
+        // UI-only toggle — controls whether the XMUX block is expanded in
+        // the form (mirrors the QUIC Params switch in stream_finalmask).
+        // Never serialized; toJson() only emits the xmux block itself.
+        enableXmux = false,
     ) {
         super();
         this.path = path;
         this.host = host;
         this.mode = mode;
+        this.xPaddingBytes = xPaddingBytes;
+        this.xPaddingObfsMode = xPaddingObfsMode;
+        this.xPaddingKey = xPaddingKey;
+        this.xPaddingHeader = xPaddingHeader;
+        this.xPaddingPlacement = xPaddingPlacement;
+        this.xPaddingMethod = xPaddingMethod;
+        this.sessionPlacement = sessionPlacement;
+        this.sessionKey = sessionKey;
+        this.seqPlacement = seqPlacement;
+        this.seqKey = seqKey;
+        this.uplinkDataPlacement = uplinkDataPlacement;
+        this.uplinkDataKey = uplinkDataKey;
+        this.scMaxEachPostBytes = scMaxEachPostBytes;
+        this.headers = headers;
+        this.uplinkHTTPMethod = uplinkHTTPMethod;
+        this.uplinkChunkSize = uplinkChunkSize;
         this.noGRPCHeader = noGRPCHeader;
         this.scMinPostsIntervalMs = scMinPostsIntervalMs;
         this.xmux = xmux;
+        this.enableXmux = enableXmux;
+    }
+
+    addHeader(name, value) {
+        this.headers.push({ name: name, value: value });
+    }
+
+    removeHeader(index) {
+        this.headers.splice(index, 1);
     }
 
     static fromJson(json = {}) {
+        const headersInput = json.headers;
+        let headers = [];
+        if (Array.isArray(headersInput)) {
+            headers = headersInput;
+        } else if (headersInput && typeof headersInput === 'object') {
+            // Upstream uses a {name: value} map; convert to the panel's [{name, value}] form.
+            headers = Object.entries(headersInput).map(([name, value]) => ({ name, value }));
+        }
         return new xHTTPStreamSettings(
             json.path,
             json.host,
             json.mode,
+            json.xPaddingBytes,
+            json.xPaddingObfsMode,
+            json.xPaddingKey,
+            json.xPaddingHeader,
+            json.xPaddingPlacement,
+            json.xPaddingMethod,
+            json.sessionPlacement,
+            json.sessionKey,
+            json.seqPlacement,
+            json.seqKey,
+            json.uplinkDataPlacement,
+            json.uplinkDataKey,
+            json.scMaxEachPostBytes,
+            headers,
+            json.uplinkHTTPMethod,
+            json.uplinkChunkSize,
             json.noGRPCHeader,
             json.scMinPostsIntervalMs,
-            json.xmux
+            json.xmux,
+            // Auto-toggle the XMUX switch on when an existing outbound has
+            // the xmux key saved, so users editing such configs see their
+            // values immediately.
+            json.xmux !== undefined,
         );
     }
 
     toJson() {
+        // Upstream expects headers as a {name: value} map, not a list of entries.
+        const headersMap = {};
+        if (Array.isArray(this.headers)) {
+            for (const h of this.headers) {
+                if (h && h.name) headersMap[h.name] = h.value || '';
+            }
+        }
         return {
             path: this.path,
             host: this.host,
             mode: this.mode,
+            xPaddingBytes: this.xPaddingBytes,
+            xPaddingObfsMode: this.xPaddingObfsMode,
+            xPaddingKey: this.xPaddingKey,
+            xPaddingHeader: this.xPaddingHeader,
+            xPaddingPlacement: this.xPaddingPlacement,
+            xPaddingMethod: this.xPaddingMethod,
+            sessionPlacement: this.sessionPlacement,
+            sessionKey: this.sessionKey,
+            seqPlacement: this.seqPlacement,
+            seqKey: this.seqKey,
+            uplinkDataPlacement: this.uplinkDataPlacement,
+            uplinkDataKey: this.uplinkDataKey,
+            scMaxEachPostBytes: this.scMaxEachPostBytes,
+            headers: headersMap,
+            uplinkHTTPMethod: this.uplinkHTTPMethod,
+            uplinkChunkSize: this.uplinkChunkSize,
             noGRPCHeader: this.noGRPCHeader,
             scMinPostsIntervalMs: this.scMinPostsIntervalMs,
             xmux: {

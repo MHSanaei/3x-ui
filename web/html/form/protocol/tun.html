@@ -18,14 +18,11 @@
         <template slot="title">
           <span>{{ i18n "pages.xray.tun.mtuDesc" }}</span>
         </template>
-        MTU IPv4
+        MTU
         <a-icon type="question-circle"></a-icon>
       </a-tooltip>
     </template>
-    <a-input-number v-model.number="inbound.settings.mtu[0]" :min="1" :max="9000" placeholder="1500"></a-input-number>
-  </a-form-item>
-  <a-form-item label="MTU IPv6">
-    <a-input-number v-model.number="inbound.settings.mtu[1]" :min="1" :max="9000" placeholder="1280"></a-input-number>
+    <a-input-number v-model.number="inbound.settings.mtu" :min="1" :max="9000" placeholder="1500"></a-input-number>
   </a-form-item>
   <a-form-item label="Gateway">
     <a-select mode="tags" v-model="inbound.settings.gateway" :style="{ width: '100%' }" :token-separators="[',']"

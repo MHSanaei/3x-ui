@@ -566,36 +566,150 @@
           <a-form-item label='{{ i18n "path" }}'>
             <a-input v-model.trim="outbound.stream.xhttp.path"></a-input>
           </a-form-item>
+          <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestHeader" }}'>
+            <a-button icon="plus" size="small" @click="outbound.stream.xhttp.addHeader('', '')"></a-button>
+          </a-form-item>
+          <a-form-item :wrapper-col="{span:24}">
+            <a-input-group compact v-for="(header, index) in outbound.stream.xhttp.headers">
+              <a-input :style="{ width: '50%' }" v-model.trim="header.name"
+                placeholder='{{ i18n "pages.inbounds.stream.general.name"}}'>
+                <template slot="addonBefore">[[ index+1 ]]</template>
+              </a-input>
+              <a-input :style="{ width: '50%' }" v-model.trim="header.value"
+                placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
+                <a-button icon="minus" slot="addonAfter" size="small"
+                  @click="outbound.stream.xhttp.removeHeader(index)"></a-button>
+              </a-input>
+            </a-input-group>
+          </a-form-item>
           <a-form-item label="Mode">
             <a-select v-model="outbound.stream.xhttp.mode" :dropdown-class-name="themeSwitcher.currentTheme">
               <a-select-option v-for="key in MODE_OPTION" :value="key">[[ key ]]</a-select-option>
             </a-select>
           </a-form-item>
-          <a-form-item label="No gRPC Header"
-            v-if="outbound.stream.xhttp.mode === 'stream-up' || outbound.stream.xhttp.mode === 'stream-one'">
-            <a-switch v-model="outbound.stream.xhttp.noGRPCHeader"></a-switch>
+          <a-form-item label="Max Upload Size (Byte)" v-if="outbound.stream.xhttp.mode === 'packet-up'">
+            <a-input v-model.trim="outbound.stream.xhttp.scMaxEachPostBytes"></a-input>
           </a-form-item>
           <a-form-item label="Min Upload Interval (Ms)" v-if="outbound.stream.xhttp.mode === 'packet-up'">
             <a-input v-model.trim="outbound.stream.xhttp.scMinPostsIntervalMs"></a-input>
           </a-form-item>
-          <a-form-item label="Max Concurrency" v-if="!outbound.stream.xhttp.xmux.maxConnections">
-            <a-input v-model="outbound.stream.xhttp.xmux.maxConcurrency"></a-input>
+          <a-form-item label="Padding Bytes">
+            <a-input v-model.trim="outbound.stream.xhttp.xPaddingBytes"></a-input>
           </a-form-item>
-          <a-form-item label="Max Connections" v-if="!outbound.stream.xhttp.xmux.maxConcurrency">
-            <a-input v-model="outbound.stream.xhttp.xmux.maxConnections"></a-input>
+          <a-form-item label="Padding Obfs Mode">
+            <a-switch v-model="outbound.stream.xhttp.xPaddingObfsMode"></a-switch>
           </a-form-item>
-          <a-form-item label="Max Reuse Times">
-            <a-input v-model="outbound.stream.xhttp.xmux.cMaxReuseTimes"></a-input>
+          <template v-if="outbound.stream.xhttp.xPaddingObfsMode">
+            <a-form-item label="Padding Key">
+              <a-input v-model.trim="outbound.stream.xhttp.xPaddingKey" placeholder="x_padding"></a-input>
+            </a-form-item>
+            <a-form-item label="Padding Header">
+              <a-input v-model.trim="outbound.stream.xhttp.xPaddingHeader" placeholder="X-Padding"></a-input>
+            </a-form-item>
+            <a-form-item label="Padding Placement">
+              <a-select v-model="outbound.stream.xhttp.xPaddingPlacement"
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value>Default (queryInHeader)</a-select-option>
+                <a-select-option value="queryInHeader">queryInHeader</a-select-option>
+                <a-select-option value="header">header</a-select-option>
+                <a-select-option value="cookie">cookie</a-select-option>
+                <a-select-option value="query">query</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="Padding Method">
+              <a-select v-model="outbound.stream.xhttp.xPaddingMethod"
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value>Default (repeat-x)</a-select-option>
+                <a-select-option value="repeat-x">repeat-x</a-select-option>
+                <a-select-option value="tokenish">tokenish</a-select-option>
+              </a-select>
+            </a-form-item>
+          </template>
+          <a-form-item label="Uplink HTTP Method">
+            <a-select v-model="outbound.stream.xhttp.uplinkHTTPMethod"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value>Default (POST)</a-select-option>
+              <a-select-option value="POST">POST</a-select-option>
+              <a-select-option value="PUT">PUT</a-select-option>
+              <a-select-option value="GET" :disabled="outbound.stream.xhttp.mode !== 'packet-up'">
+                GET (packet-up only)
+              </a-select-option>
+            </a-select>
           </a-form-item>
-          <a-form-item label="Max Request Times">
-            <a-input v-model="outbound.stream.xhttp.xmux.hMaxRequestTimes"></a-input>
+          <a-form-item label="Session Placement">
+            <a-select v-model="outbound.stream.xhttp.sessionPlacement"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value>Default (path)</a-select-option>
+              <a-select-option value="path">path</a-select-option>
+              <a-select-option value="header">header</a-select-option>
+              <a-select-option value="cookie">cookie</a-select-option>
+              <a-select-option value="query">query</a-select-option>
+            </a-select>
           </a-form-item>
-          <a-form-item label="Max Reusable Secs">
-            <a-input v-model="outbound.stream.xhttp.xmux.hMaxReusableSecs"></a-input>
+          <a-form-item label="Session Key"
+            v-if="outbound.stream.xhttp.sessionPlacement && outbound.stream.xhttp.sessionPlacement !== 'path'">
+            <a-input v-model.trim="outbound.stream.xhttp.sessionKey" placeholder="x_session"></a-input>
           </a-form-item>
-          <a-form-item label="Keep Alive Period">
-            <a-input-number v-model.number="outbound.stream.xhttp.xmux.hKeepAlivePeriod"></a-input-number>
+          <a-form-item label="Sequence Placement">
+            <a-select v-model="outbound.stream.xhttp.seqPlacement"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value>Default (path)</a-select-option>
+              <a-select-option value="path">path</a-select-option>
+              <a-select-option value="header">header</a-select-option>
+              <a-select-option value="cookie">cookie</a-select-option>
+              <a-select-option value="query">query</a-select-option>
+            </a-select>
           </a-form-item>
+          <a-form-item label="Sequence Key"
+            v-if="outbound.stream.xhttp.seqPlacement && outbound.stream.xhttp.seqPlacement !== 'path'">
+            <a-input v-model.trim="outbound.stream.xhttp.seqKey" placeholder="x_seq"></a-input>
+          </a-form-item>
+          <a-form-item label="Uplink Data Placement" v-if="outbound.stream.xhttp.mode === 'packet-up'">
+            <a-select v-model="outbound.stream.xhttp.uplinkDataPlacement"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value>Default (body)</a-select-option>
+              <a-select-option value="body">body</a-select-option>
+              <a-select-option value="header">header</a-select-option>
+              <a-select-option value="cookie">cookie</a-select-option>
+              <a-select-option value="query">query</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="Uplink Data Key"
+            v-if="outbound.stream.xhttp.mode === 'packet-up' && outbound.stream.xhttp.uplinkDataPlacement && outbound.stream.xhttp.uplinkDataPlacement !== 'body'">
+            <a-input v-model.trim="outbound.stream.xhttp.uplinkDataKey" placeholder="x_data"></a-input>
+          </a-form-item>
+          <a-form-item label="Uplink Chunk Size"
+            v-if="outbound.stream.xhttp.mode === 'packet-up' && outbound.stream.xhttp.uplinkDataPlacement && outbound.stream.xhttp.uplinkDataPlacement !== 'body'">
+            <a-input-number v-model.number="outbound.stream.xhttp.uplinkChunkSize" :min="0"
+              placeholder="0 (unlimited)"></a-input-number>
+          </a-form-item>
+          <a-form-item label="No gRPC Header"
+            v-if="outbound.stream.xhttp.mode === 'stream-up' || outbound.stream.xhttp.mode === 'stream-one'">
+            <a-switch v-model="outbound.stream.xhttp.noGRPCHeader"></a-switch>
+          </a-form-item>
+          <a-form-item label="XMUX">
+            <a-switch v-model="outbound.stream.xhttp.enableXmux"></a-switch>
+          </a-form-item>
+          <template v-if="outbound.stream.xhttp.enableXmux">
+            <a-form-item label="Max Concurrency" v-if="!outbound.stream.xhttp.xmux.maxConnections">
+              <a-input v-model="outbound.stream.xhttp.xmux.maxConcurrency"></a-input>
+            </a-form-item>
+            <a-form-item label="Max Connections" v-if="!outbound.stream.xhttp.xmux.maxConcurrency">
+              <a-input v-model="outbound.stream.xhttp.xmux.maxConnections"></a-input>
+            </a-form-item>
+            <a-form-item label="Max Reuse Times">
+              <a-input v-model="outbound.stream.xhttp.xmux.cMaxReuseTimes"></a-input>
+            </a-form-item>
+            <a-form-item label="Max Request Times">
+              <a-input v-model="outbound.stream.xhttp.xmux.hMaxRequestTimes"></a-input>
+            </a-form-item>
+            <a-form-item label="Max Reusable Secs">
+              <a-input v-model="outbound.stream.xhttp.xmux.hMaxReusableSecs"></a-input>
+            </a-form-item>
+            <a-form-item label="Keep Alive Period">
+              <a-input-number v-model.number="outbound.stream.xhttp.xmux.hKeepAlivePeriod"></a-input-number>
+            </a-form-item>
+          </template>
         </template>
 
         <!-- hysteria -->

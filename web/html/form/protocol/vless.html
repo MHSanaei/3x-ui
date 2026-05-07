@@ -42,35 +42,7 @@
   <a-divider :style="{ margin: '5px 0' }"></a-divider>
 </template>
 <template v-if="inbound.isTcp && (!inbound.settings.encryption || inbound.settings.encryption === 'none')">
-  <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-    <a-form-item label="Fallbacks">
-      <a-button icon="plus" type="primary" size="small" @click="inbound.settings.addFallback()"></a-button>
-    </a-form-item>
-  </a-form>
-
-  <!-- vless fallbacks -->
-  <a-form v-for="(fallback, index) in inbound.settings.fallbacks" :colon="false" :label-col="{ md: {span:8} }"
-    :wrapper-col="{ md: {span:14} }">
-    <a-divider :style="{ margin: '0' }"> Fallback [[ index + 1 ]] <a-icon type="delete"
-        @click="() => inbound.settings.delFallback(index)"
-        :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
-    </a-divider>
-    <a-form-item label='SNI'>
-      <a-input v-model="fallback.name"></a-input>
-    </a-form-item>
-    <a-form-item label='ALPN'>
-      <a-input v-model="fallback.alpn"></a-input>
-    </a-form-item>
-    <a-form-item label='Path'>
-      <a-input v-model="fallback.path"></a-input>
-    </a-form-item>
-    <a-form-item label='Dest'>
-      <a-input v-model="fallback.dest"></a-input>
-    </a-form-item>
-    <a-form-item label='xVer'>
-      <a-input-number v-model.number="fallback.xver" :min="0" :max="2"></a-input-number>
-    </a-form-item>
-  </a-form>
+  {{template "form/fallbacks" .}}
   <a-divider :style="{ margin: '5px 0' }"></a-divider>
 </template>
 <template v-if="inbound.canEnableVisionSeed()">
