@@ -765,7 +765,7 @@
 "traffic" = "🚦 Lưu lượng: {{ .Total }} (↑{{ .Upload }},↓{{ .Download }})\r\n"
 "xrayStatus" = "ℹ️ Trạng thái Xray: {{ .State }}\r\n"
 "username" = "👤 Tên người dùng: {{ .Username }}\r\n"
-"password" = "👤 Mật khẩu: {{ .Password }}\r\n"
+"reason" = "❗️ Lý do: {{ .Reason }}\r\n"
 "time" = "⏰ Thời gian: {{ .Time }}\r\n"
 "inbound" = "📍 Inbound: {{ .Remark }}\r\n"
 "port" = "🔌 Cổng: {{ .Port }}\r\n"

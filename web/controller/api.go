@@ -53,7 +53,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup, customGeo *service.Custom
 	NewCustomGeoController(api.Group("/custom-geo"), customGeo)
 
 	// Extra routes
-	api.POST("/backuptotgbot", a.BackuptoTgbot)
+	api.GET("/backuptotgbot", a.BackuptoTgbot)
 }
 
 // BackuptoTgbot sends a backup of the panel data to Telegram bot admins.

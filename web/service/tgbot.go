@@ -2803,7 +2803,7 @@ func (t *Tgbot) UserLoginNotify(attempt LoginAttempt) {
 		msg += t.I18nBot("tgbot.messages.loginFailed")
 		msg += t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
 		if attempt.Reason != "" {
-			msg += fmt.Sprintf("Reason: %s\r\n", attempt.Reason)
+			msg += t.I18nBot("tgbot.messages.reason", "Reason=="+attempt.Reason)
 		}
 	}
 	msg += t.I18nBot("tgbot.messages.username", "Username=="+attempt.Username)

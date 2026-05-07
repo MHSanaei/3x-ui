@@ -765,7 +765,7 @@
 "traffic" = "🚦 Traffic: {{ .Total }} (↑{{ .Upload }},↓{{ .Download }})\r\n"
 "xrayStatus" = "ℹ️ Status: {{ .State }}\r\n"
 "username" = "👤 Username: {{ .Username }}\r\n"
-"password" = "👤 Password: {{ .Password }}\r\n"
+"reason" = "❗️ Reason: {{ .Reason }}\r\n"
 "time" = "⏰ Time: {{ .Time }}\r\n"
 "inbound" = "📍 Inbound: {{ .Remark }}\r\n"
 "port" = "🔌 Port: {{ .Port }}\r\n"
