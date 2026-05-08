@@ -332,7 +332,6 @@ function clearMldsa65() {
 }
 
 // Reality target/SNI randomizer — only available if the helper is loaded
-// (legacy script ships getRandomRealityTarget(); SPA loads it via legacy.js).
 function randomizeRealityTarget() {
   if (!inbound.value?.stream?.reality) return;
   if (typeof window.getRandomRealityTarget !== 'function') return;

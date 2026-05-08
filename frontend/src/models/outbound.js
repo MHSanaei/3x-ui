@@ -1,4 +1,4 @@
-import { ObjectUtil, Base64, Wireguard } from '../utils/legacy.js';
+import { ObjectUtil, Base64, Wireguard } from '@/utils';
 
 export const Protocols = {
     Freedom: "freedom",
