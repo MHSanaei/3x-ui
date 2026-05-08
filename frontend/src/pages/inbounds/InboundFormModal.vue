@@ -29,6 +29,7 @@ import {
   MODE_OPTION,
 } from '@/models/inbound.js';
 import { DBInbound } from '@/models/dbinbound.js';
+import FinalMaskForm from '@/components/FinalMaskForm.vue';
 
 const { t } = useI18n();
 
@@ -1509,6 +1510,9 @@ watch(
             </a-form-item>
           </template>
         </a-form>
+
+        <!-- ====== FinalMask (TCP/UDP masks + QUIC params) ====== -->
+        <FinalMaskForm :stream="inbound.stream" :protocol="protocol" />
       </a-tab-pane>
 
       <!-- ============================== SNIFFING ============================== -->
@@ -1557,7 +1561,7 @@ watch(
         <a-alert
           type="info"
           show-icon
-          message="Edit raw stream JSON to access KCP / XHTTP / finalmask transports we don't yet have dedicated UI for."
+          message="Edit raw stream JSON to access advanced fields we don't yet expose through the form."
           class="mb-12"
         />
         <a-form layout="vertical">

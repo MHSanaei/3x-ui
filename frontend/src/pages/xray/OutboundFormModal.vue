@@ -20,6 +20,7 @@ import {
   MODE_OPTION,
   DNSRuleActions,
 } from '@/models/outbound.js';
+import FinalMaskForm from '@/components/FinalMaskForm.vue';
 
 const { t } = useI18n();
 
@@ -27,7 +28,7 @@ const { t } = useI18n();
 // web/html/form/outbound.html. Covers every protocol + transport
 // combination the legacy panel exposes; the JSON tab still lets
 // power-users hand-edit fields the structured form doesn't surface
-// (deep finalmask/quic tuning, reverse-sniffing, etc.).
+// (reverse-sniffing, exotic outbound DNS rules, etc.).
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -740,6 +741,9 @@ function regenerateWgKeys() {
             </template>
           </template>
         </a-form>
+
+        <!-- ============== FinalMask (TCP/UDP masks + QUIC params) ============== -->
+        <FinalMaskForm v-if="outbound.stream" :stream="outbound.stream" :protocol="proto" />
       </a-tab-pane>
 
       <!-- ============================== JSON ============================== -->
