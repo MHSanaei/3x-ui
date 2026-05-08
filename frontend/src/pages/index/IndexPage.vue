@@ -1,7 +1,10 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { theme as antdTheme } from 'ant-design-vue';
 import { BarsOutlined, CloudServerOutlined, CloudDownloadOutlined } from '@ant-design/icons-vue';
+
+const { t } = useI18n();
 
 import { HttpUtil } from '@/utils';
 import { theme as themeState } from '@/composables/useTheme.js';
@@ -104,29 +107,31 @@ function openVersionSwitch() { versionOpen.value = true; }
               </a-col>
 
               <a-col :sm="24" :lg="12">
-                <a-card title="Quick actions" hoverable>
+                <a-card :title="t('menu.link')" hoverable>
                   <template v-if="panelUpdateInfo.updateAvailable" #extra>
-                    <a-tooltip :title="`Update panel: ${panelUpdateInfo.latestVersion}`">
+                    <a-tooltip :title="`${t('pages.index.updatePanel')}: ${panelUpdateInfo.latestVersion}`">
                       <a-tag color="orange" class="update-tag" @click="panelUpdateOpen = true">
                         <CloudDownloadOutlined />
                         {{ panelUpdateInfo.latestVersion }}
-                        <span v-if="!isMobile">Update</span>
+                        <span v-if="!isMobile">{{ t('update') }}</span>
                       </a-tag>
                     </a-tooltip>
                   </template>
                   <template #actions>
                     <a-space class="action" @click="logsOpen = true">
                       <BarsOutlined />
-                      <span v-if="!isMobile">Logs</span>
+                      <span v-if="!isMobile">{{ t('pages.index.logs') }}</span>
                     </a-space>
                     <a-space class="action" @click="backupOpen = true">
                       <CloudServerOutlined />
-                      <span v-if="!isMobile">Backup</span>
+                      <span v-if="!isMobile">{{ t('pages.index.backupTitle') }}</span>
                     </a-space>
                     <a-space class="action" @click="panelUpdateOpen = true">
                       <CloudDownloadOutlined />
                       <span v-if="!isMobile">
-                        {{ panelUpdateInfo.updateAvailable ? `Update → ${panelUpdateInfo.latestVersion}` : 'Up to date' }}
+                        {{ panelUpdateInfo.updateAvailable
+                          ? `${t('update')} → ${panelUpdateInfo.latestVersion}`
+                          : t('pages.index.panelUpToDate') }}
                       </span>
                     </a-space>
                   </template>

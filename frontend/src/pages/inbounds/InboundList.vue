@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   PlusOutlined,
   MenuOutlined,
@@ -28,6 +29,8 @@ import { HttpUtil, ObjectUtil, SizeFormatter, IntlUtil, ColorUtils } from '@/uti
 import { DBInbound } from '@/models/dbinbound.js';
 import { Inbound } from '@/models/inbound.js';
 import ClientRowTable from './ClientRowTable.vue';
+
+const { t } = useI18n();
 
 const props = defineProps({
   dbInbounds: { type: Array, required: true },
@@ -136,26 +139,27 @@ const visibleInbounds = computed(() => {
 
 // ============ Columns =================================================
 // `key`-driven so we can render via the body-cell slot below. AD-Vue 4's
-// `responsive` array still works on column defs.
-const desktopColumns = [
+// `responsive` array still works on column defs. Computed so column
+// labels react to live locale switches.
+const desktopColumns = computed(() => [
   { title: 'ID', dataIndex: 'id', key: 'id', align: 'right', width: 30, responsive: ['xs'] },
-  { title: 'Action', key: 'action', align: 'center', width: 30 },
-  { title: 'Enable', key: 'enable', align: 'center', width: 35 },
-  { title: 'Remark', dataIndex: 'remark', key: 'remark', align: 'center', width: 60 },
-  { title: 'Port', dataIndex: 'port', key: 'port', align: 'center', width: 40 },
-  { title: 'Protocol', key: 'protocol', align: 'left', width: 70 },
-  { title: 'Clients', key: 'clients', align: 'left', width: 50 },
-  { title: 'Traffic', key: 'traffic', align: 'center', width: 90 },
-  { title: 'All-time', key: 'allTimeInbound', align: 'center', width: 60 },
-  { title: 'Expiry', key: 'expiryTime', align: 'center', width: 40 },
-];
-const mobileColumns = [
+  { title: t('pages.inbounds.operate'), key: 'action', align: 'center', width: 30 },
+  { title: t('pages.inbounds.enable'), key: 'enable', align: 'center', width: 35 },
+  { title: t('pages.inbounds.remark'), dataIndex: 'remark', key: 'remark', align: 'center', width: 60 },
+  { title: t('pages.inbounds.port'), dataIndex: 'port', key: 'port', align: 'center', width: 40 },
+  { title: t('pages.inbounds.protocol'), key: 'protocol', align: 'left', width: 70 },
+  { title: t('clients'), key: 'clients', align: 'left', width: 50 },
+  { title: t('pages.inbounds.traffic'), key: 'traffic', align: 'center', width: 90 },
+  { title: t('pages.inbounds.allTimeTraffic'), key: 'allTimeInbound', align: 'center', width: 60 },
+  { title: t('pages.inbounds.expireDate'), key: 'expiryTime', align: 'center', width: 40 },
+]);
+const mobileColumns = computed(() => [
   { title: 'ID', dataIndex: 'id', key: 'id', align: 'right', width: 10, responsive: ['s'] },
-  { title: 'Action', key: 'action', align: 'center', width: 25 },
-  { title: 'Remark', dataIndex: 'remark', key: 'remark', align: 'left', width: 70 },
-  { title: 'Info', key: 'info', align: 'center', width: 10 },
-];
-const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns));
+  { title: t('pages.inbounds.operate'), key: 'action', align: 'center', width: 25 },
+  { title: t('pages.inbounds.remark'), dataIndex: 'remark', key: 'remark', align: 'left', width: 70 },
+  { title: t('info'), key: 'info', align: 'center', width: 10 },
+]);
+const columns = computed(() => (props.isMobile ? mobileColumns.value : desktopColumns.value));
 
 // ============ Pagination ============================================
 function paginationFor(rows) {
@@ -208,32 +212,32 @@ function showQrCodeMenu(dbInbound) {
       <a-space direction="horizontal">
         <a-button type="primary" @click="emit('add-inbound')">
           <template #icon><PlusOutlined /></template>
-          <template v-if="!isMobile">Add inbound</template>
+          <template v-if="!isMobile">{{ t('pages.inbounds.addInbound') }}</template>
         </a-button>
         <a-dropdown :trigger="['click']">
           <a-button type="primary">
             <template #icon><MenuOutlined /></template>
-            <template v-if="!isMobile">General actions</template>
+            <template v-if="!isMobile">{{ t('pages.inbounds.generalActions') }}</template>
           </a-button>
           <template #overlay>
             <a-menu @click="(a) => emit('general-action', a.key)">
               <a-menu-item key="import">
-                <ImportOutlined /> Import inbound
+                <ImportOutlined /> {{ t('pages.inbounds.importInbound') }}
               </a-menu-item>
               <a-menu-item key="export">
-                <ExportOutlined /> Export
+                <ExportOutlined /> {{ t('pages.inbounds.export') }}
               </a-menu-item>
               <a-menu-item v-if="subEnable" key="subs">
-                <ExportOutlined /> Export — Subscription
+                <ExportOutlined /> {{ t('pages.inbounds.export') }} — {{ t('pages.settings.subSettings') }}
               </a-menu-item>
               <a-menu-item key="resetInbounds">
-                <ReloadOutlined /> Reset all traffic
+                <ReloadOutlined /> {{ t('pages.inbounds.resetAllTraffic') }}
               </a-menu-item>
               <a-menu-item key="resetClients">
-                <FileDoneOutlined /> Reset all client traffic
+                <FileDoneOutlined /> {{ t('pages.inbounds.resetAllClientTraffics') }}
               </a-menu-item>
               <a-menu-item key="delDepletedClients" class="danger-item">
-                <RestOutlined /> Delete depleted clients
+                <RestOutlined /> {{ t('pages.inbounds.delDepletedClients') }}
               </a-menu-item>
             </a-menu>
           </template>
@@ -250,12 +254,12 @@ function showQrCodeMenu(dbInbound) {
           <template #title>
             <div class="auto-refresh-title">
               <a-switch v-model:checked="isRefreshEnabled" size="small" />
-              <span>Auto refresh</span>
+              <span>{{ t('pages.inbounds.autoRefresh') }}</span>
             </div>
           </template>
           <template #content>
             <a-space direction="vertical">
-              <span>Auto-refresh interval</span>
+              <span>{{ t('pages.inbounds.autoRefreshInterval') }}</span>
               <a-select
                 v-model:value="refreshIntervalMs"
                 :disabled="!isRefreshEnabled"
@@ -284,7 +288,7 @@ function showQrCodeMenu(dbInbound) {
         <a-input
           v-if="!enableFilter"
           v-model:value="searchKey"
-          placeholder="Search"
+          :placeholder="t('search')"
           autofocus
           :size="isMobile ? 'small' : 'middle'"
           :style="{ maxWidth: '300px' }"
@@ -295,12 +299,12 @@ function showQrCodeMenu(dbInbound) {
           button-style="solid"
           :size="isMobile ? 'small' : 'middle'"
         >
-          <a-radio-button value="">None</a-radio-button>
-          <a-radio-button value="active">Active</a-radio-button>
-          <a-radio-button value="deactive">Disabled</a-radio-button>
-          <a-radio-button value="depleted">Depleted</a-radio-button>
-          <a-radio-button value="expiring">Depleting</a-radio-button>
-          <a-radio-button value="online">Online</a-radio-button>
+          <a-radio-button value="">{{ t('none') }}</a-radio-button>
+          <a-radio-button value="active">{{ t('subscription.active') }}</a-radio-button>
+          <a-radio-button value="deactive">{{ t('disabled') }}</a-radio-button>
+          <a-radio-button value="depleted">{{ t('depleted') }}</a-radio-button>
+          <a-radio-button value="expiring">{{ t('depletingSoon') }}</a-radio-button>
+          <a-radio-button value="online">{{ t('online') }}</a-radio-button>
         </a-radio-group>
       </div>
 
@@ -343,31 +347,31 @@ function showQrCodeMenu(dbInbound) {
               <MoreOutlined class="row-action-trigger" @click.prevent />
               <template #overlay>
                 <a-menu @click="(a) => emit('row-action', { key: a.key, dbInbound: record })">
-                  <a-menu-item key="edit"><EditOutlined /> Edit</a-menu-item>
+                  <a-menu-item key="edit"><EditOutlined /> {{ t('edit') }}</a-menu-item>
                   <a-menu-item v-if="showQrCodeMenu(record)" key="qrcode">
-                    <QrcodeOutlined /> QR code
+                    <QrcodeOutlined /> {{ t('qrCode') }}
                   </a-menu-item>
                   <template v-if="record.isMultiUser()">
-                    <a-menu-item key="addClient"><UserAddOutlined /> Add client</a-menu-item>
-                    <a-menu-item key="addBulkClient"><UsergroupAddOutlined /> Add bulk clients</a-menu-item>
-                    <a-menu-item key="copyClients"><CopyOutlined /> Copy clients from inbound</a-menu-item>
-                    <a-menu-item key="resetClients"><FileDoneOutlined /> Reset client traffic</a-menu-item>
-                    <a-menu-item key="export"><ExportOutlined /> Export</a-menu-item>
+                    <a-menu-item key="addClient"><UserAddOutlined /> {{ t('pages.client.add') }}</a-menu-item>
+                    <a-menu-item key="addBulkClient"><UsergroupAddOutlined /> {{ t('pages.client.bulk') }}</a-menu-item>
+                    <a-menu-item key="copyClients"><CopyOutlined /> {{ t('pages.client.copyFromInbound') }}</a-menu-item>
+                    <a-menu-item key="resetClients"><FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}</a-menu-item>
+                    <a-menu-item key="export"><ExportOutlined /> {{ t('pages.inbounds.export') }}</a-menu-item>
                     <a-menu-item v-if="subEnable" key="subs">
-                      <ExportOutlined /> Export — Subscription
+                      <ExportOutlined /> {{ t('pages.inbounds.export') }} — {{ t('pages.settings.subSettings') }}
                     </a-menu-item>
                     <a-menu-item key="delDepletedClients" class="danger-item">
-                      <RestOutlined /> Delete depleted clients
+                      <RestOutlined /> {{ t('pages.inbounds.delDepletedClients') }}
                     </a-menu-item>
                   </template>
                   <template v-else>
-                    <a-menu-item key="showInfo"><InfoCircleOutlined /> Info</a-menu-item>
+                    <a-menu-item key="showInfo"><InfoCircleOutlined /> {{ t('info') }}</a-menu-item>
                   </template>
-                  <a-menu-item key="clipboard"><CopyOutlined /> Export inbound</a-menu-item>
-                  <a-menu-item key="resetTraffic"><RetweetOutlined /> Reset traffic</a-menu-item>
-                  <a-menu-item key="clone"><BlockOutlined /> Clone</a-menu-item>
+                  <a-menu-item key="clipboard"><CopyOutlined /> {{ t('pages.inbounds.exportInbound') }}</a-menu-item>
+                  <a-menu-item key="resetTraffic"><RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') }}</a-menu-item>
+                  <a-menu-item key="clone"><BlockOutlined /> {{ t('pages.inbounds.clone') }}</a-menu-item>
                   <a-menu-item key="delete" class="danger-item">
-                    <DeleteOutlined /> Delete
+                    <DeleteOutlined /> {{ t('delete') }}
                   </a-menu-item>
                 </a-menu>
               </template>
@@ -398,25 +402,25 @@ function showQrCodeMenu(dbInbound) {
           <template v-else-if="column.key === 'clients'">
             <template v-if="clientCount[record.id]">
               <a-tag color="green" style="margin: 0">{{ clientCount[record.id].clients }}</a-tag>
-              <a-popover v-if="clientCount[record.id].deactive.length" title="Disabled">
+              <a-popover v-if="clientCount[record.id].deactive.length" :title="t('disabled')">
                 <template #content>
                   <div v-for="email in clientCount[record.id].deactive" :key="email">{{ email }}</div>
                 </template>
                 <a-tag style="margin: 0; padding: 0 2px">{{ clientCount[record.id].deactive.length }}</a-tag>
               </a-popover>
-              <a-popover v-if="clientCount[record.id].depleted.length" title="Depleted">
+              <a-popover v-if="clientCount[record.id].depleted.length" :title="t('depleted')">
                 <template #content>
                   <div v-for="email in clientCount[record.id].depleted" :key="email">{{ email }}</div>
                 </template>
                 <a-tag color="red" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].depleted.length }}</a-tag>
               </a-popover>
-              <a-popover v-if="clientCount[record.id].expiring.length" title="Depleting soon">
+              <a-popover v-if="clientCount[record.id].expiring.length" :title="t('depletingSoon')">
                 <template #content>
                   <div v-for="email in clientCount[record.id].expiring" :key="email">{{ email }}</div>
                 </template>
                 <a-tag color="orange" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].expiring.length }}</a-tag>
               </a-popover>
-              <a-popover v-if="clientCount[record.id].online.length" title="Online">
+              <a-popover v-if="clientCount[record.id].online.length" :title="t('online')">
                 <template #content>
                   <div v-for="email in clientCount[record.id].online" :key="email">{{ email }}</div>
                 </template>
@@ -436,7 +440,7 @@ function showQrCodeMenu(dbInbound) {
                       <td>↓ {{ SizeFormatter.sizeFormat(record.down) }}</td>
                     </tr>
                     <tr v-if="record.total > 0 && record.up + record.down < record.total">
-                      <td>Remaining</td>
+                      <td>{{ t('remained') }}</td>
                       <td>{{ SizeFormatter.sizeFormat(record.total - record.up - record.down) }}</td>
                     </tr>
                   </tbody>
@@ -476,19 +480,19 @@ function showQrCodeMenu(dbInbound) {
                 <table cellpadding="2">
                   <tbody>
                     <tr>
-                      <td>Protocol</td>
+                      <td>{{ t('pages.inbounds.protocol') }}</td>
                       <td><a-tag color="purple">{{ record.protocol }}</a-tag></td>
                     </tr>
                     <tr>
-                      <td>Port</td>
+                      <td>{{ t('pages.inbounds.port') }}</td>
                       <td><a-tag>{{ record.port }}</a-tag></td>
                     </tr>
                     <tr v-if="clientCount[record.id]">
-                      <td>Clients</td>
+                      <td>{{ t('clients') }}</td>
                       <td><a-tag color="blue">{{ clientCount[record.id].clients }}</a-tag></td>
                     </tr>
                     <tr>
-                      <td>Traffic</td>
+                      <td>{{ t('pages.inbounds.traffic') }}</td>
                       <td>
                         <a-tag>
                           {{ SizeFormatter.sizeFormat(record.up + record.down) }} /
@@ -498,7 +502,7 @@ function showQrCodeMenu(dbInbound) {
                       </td>
                     </tr>
                     <tr>
-                      <td>Expiry</td>
+                      <td>{{ t('pages.inbounds.expireDate') }}</td>
                       <td>
                         <a-tag v-if="record.expiryTime > 0">{{ IntlUtil.formatRelativeTime(record.expiryTime) }}</a-tag>
                         <a-tag v-else color="purple">∞</a-tag>

@@ -1,7 +1,10 @@
 <script setup>
+import { useI18n } from 'vue-i18n';
 import { AreaChartOutlined, HistoryOutlined } from '@ant-design/icons-vue';
 
 import { CPUFormatter, SizeFormatter } from '@/utils';
+
+const { t } = useI18n();
 
 defineProps({
   status: { type: Object, required: true },
@@ -25,16 +28,16 @@ defineEmits(['open-cpu-history']);
               :percent="status.cpu.percent"
             />
             <div>
-              <b>CPU:</b> {{ CPUFormatter.cpuCoreFormat(status.cpuCores) }}
+              <b>{{ t('pages.index.cpu') }}:</b> {{ CPUFormatter.cpuCoreFormat(status.cpuCores) }}
               <a-tooltip>
                 <template #title>
-                  <div><b>Logical processors:</b> {{ status.logicalPro }}</div>
-                  <div><b>Frequency:</b> {{ CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz) }}</div>
+                  <div><b>{{ t('pages.index.logicalProcessors') }}:</b> {{ status.logicalPro }}</div>
+                  <div><b>{{ t('pages.index.frequency') }}:</b> {{ CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz) }}</div>
                 </template>
                 <AreaChartOutlined />
               </a-tooltip>
               <a-tooltip>
-                <template #title>CPU history</template>
+                <template #title>{{ t('pages.index.cpu') }}</template>
                 <a-button size="small" shape="circle" class="ml-8" @click="$emit('open-cpu-history')">
                   <template #icon><HistoryOutlined /></template>
                 </a-button>
@@ -50,7 +53,7 @@ defineEmits(['open-cpu-history']);
               :percent="status.mem.percent"
             />
             <div>
-              <b>Memory:</b> {{ SizeFormatter.sizeFormat(status.mem.current) }} /
+              <b>{{ t('pages.index.memory') }}:</b> {{ SizeFormatter.sizeFormat(status.mem.current) }} /
               {{ SizeFormatter.sizeFormat(status.mem.total) }}
             </div>
           </a-col>
@@ -68,7 +71,7 @@ defineEmits(['open-cpu-history']);
               :percent="status.swap.percent"
             />
             <div>
-              <b>Swap:</b> {{ SizeFormatter.sizeFormat(status.swap.current) }} /
+              <b>{{ t('pages.index.swap') }}:</b> {{ SizeFormatter.sizeFormat(status.swap.current) }} /
               {{ SizeFormatter.sizeFormat(status.swap.total) }}
             </div>
           </a-col>
@@ -81,7 +84,7 @@ defineEmits(['open-cpu-history']);
               :percent="status.disk.percent"
             />
             <div>
-              <b>Storage:</b> {{ SizeFormatter.sizeFormat(status.disk.current) }} /
+              <b>{{ t('pages.index.storage') }}:</b> {{ SizeFormatter.sizeFormat(status.disk.current) }} /
               {{ SizeFormatter.sizeFormat(status.disk.total) }}
             </div>
           </a-col>

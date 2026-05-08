@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { theme as antdTheme, Modal } from 'ant-design-vue';
 import {
   SettingOutlined,
@@ -23,6 +24,8 @@ import DnsTab from './DnsTab.vue';
 import WarpModal from './WarpModal.vue';
 import NordModal from './NordModal.vue';
 import { useXraySetting } from './useXraySetting.js';
+
+const { t } = useI18n();
 
 // Phase 6-i: scaffold + advanced JSON tab. Other tabs (Basics, Routing,
 // Outbounds, Balancers, DNS) land in subsequent 6-ii…vi commits — they
@@ -161,10 +164,10 @@ function confirmRestart() {
                       <a-col :xs="24" :sm="14" class="header-actions">
                         <a-space direction="horizontal">
                           <a-button type="primary" :disabled="saveDisabled" @click="saveAll">
-                            Save
+                            {{ t('pages.xray.save') }}
                           </a-button>
                           <a-button type="primary" danger :disabled="!saveDisabled" @click="confirmRestart">
-                            Restart xray
+                            {{ t('pages.xray.restart') }}
                           </a-button>
                           <a-popover v-if="restartResult" placement="rightTop">
                             <template #title>Xray restart output</template>
@@ -180,7 +183,7 @@ function confirmRestart() {
                         <a-alert
                           type="warning"
                           show-icon
-                          message="Save before restarting — unsaved changes are dropped on restart."
+                          :message="t('pages.settings.infoDesc')"
                         />
                       </a-col>
                     </a-row>
@@ -192,7 +195,7 @@ function confirmRestart() {
                   <a-tabs default-active-key="tpl-basic">
                     <a-tab-pane key="tpl-basic" class="tab-pane">
                       <template #tab>
-                        <SettingOutlined /> <span>Basic template</span>
+                        <SettingOutlined /> <span>{{ t('pages.xray.basicTemplate') }}</span>
                       </template>
                       <BasicsTab
                         :template-settings="templateSettings"
@@ -207,7 +210,7 @@ function confirmRestart() {
 
                     <a-tab-pane key="tpl-routing" class="tab-pane">
                       <template #tab>
-                        <SwapOutlined /> <span>Routing</span>
+                        <SwapOutlined /> <span>{{ t('pages.xray.Routings') }}</span>
                       </template>
                       <RoutingTab
                         :template-settings="templateSettings"
@@ -219,7 +222,7 @@ function confirmRestart() {
 
                     <a-tab-pane key="tpl-outbound" class="tab-pane">
                       <template #tab>
-                        <UploadOutlined /> <span>Outbounds</span>
+                        <UploadOutlined /> <span>{{ t('pages.xray.Outbounds') }}</span>
                       </template>
                       <OutboundsTab
                         :template-settings="templateSettings"
@@ -236,7 +239,7 @@ function confirmRestart() {
 
                     <a-tab-pane key="tpl-balancer" class="tab-pane">
                       <template #tab>
-                        <ClusterOutlined /> <span>Balancers</span>
+                        <ClusterOutlined /> <span>{{ t('pages.xray.Balancers') }}</span>
                       </template>
                       <BalancersTab :template-settings="templateSettings" />
                     </a-tab-pane>
@@ -250,7 +253,7 @@ function confirmRestart() {
 
                     <a-tab-pane key="tpl-advanced" class="tab-pane">
                       <template #tab>
-                        <CodeOutlined /> <span>Advanced (JSON)</span>
+                        <CodeOutlined /> <span>{{ t('pages.xray.advancedTemplate') }}</span>
                       </template>
                       <a-form layout="vertical">
                         <a-form-item label="Outbound test URL">

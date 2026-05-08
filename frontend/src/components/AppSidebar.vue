@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   DashboardOutlined,
   UserOutlined,
@@ -12,6 +13,8 @@ import {
 
 import { currentTheme } from '@/composables/useTheme.js';
 import ThemeSwitch from '@/components/ThemeSwitch.vue';
+
+const { t } = useI18n();
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
 
@@ -42,13 +45,15 @@ const iconByName = {
 // would turn /panel/settings + 'panel/...' into /panel/panel/...).
 const prefix = props.basePath?.startsWith('/') ? props.basePath : `/${props.basePath || ''}`;
 
-const tabs = [
-  { key: `${prefix}panel/`,         icon: 'dashboard', title: 'Dashboard' },
-  { key: `${prefix}panel/inbounds`, icon: 'user',      title: 'Inbounds' },
-  { key: `${prefix}panel/settings`, icon: 'setting',   title: 'Settings' },
-  { key: `${prefix}panel/xray`,     icon: 'tool',      title: 'Xray' },
-  { key: `${prefix}logout/`,        icon: 'logout',    title: 'Logout' },
-];
+// Labels are i18n-driven so the sidebar matches the locale picked
+// in panel settings without a page reload of the sidebar component.
+const tabs = computed(() => [
+  { key: `${prefix}panel/`,         icon: 'dashboard', title: t('menu.dashboard') },
+  { key: `${prefix}panel/inbounds`, icon: 'user',      title: t('menu.inbounds') },
+  { key: `${prefix}panel/settings`, icon: 'setting',   title: t('menu.settings') },
+  { key: `${prefix}panel/xray`,     icon: 'tool',      title: t('menu.xray') },
+  { key: `${prefix}logout/`,        icon: 'logout',    title: t('logout') },
+]);
 
 const activeTab = ref([props.requestUri]);
 

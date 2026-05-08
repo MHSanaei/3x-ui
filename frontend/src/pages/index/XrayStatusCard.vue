@@ -1,10 +1,13 @@
 <script setup>
+import { useI18n } from 'vue-i18n';
 import {
   BarsOutlined,
   PoweroffOutlined,
   ReloadOutlined,
   ToolOutlined,
 } from '@ant-design/icons-vue';
+
+const { t } = useI18n();
 
 defineProps({
   status: { type: Object, required: true },
@@ -30,7 +33,7 @@ function badgeAnimationClass(color) {
   <a-card hoverable>
     <template #title>
       <a-space direction="horizontal">
-        <span>Xray status</span>
+        <span>{{ t('pages.index.xrayStatus') }}</span>
         <a-tag v-if="isMobile && status.xray.version && status.xray.version !== 'Unknown'" color="green">
           v{{ status.xray.version }}
         </a-tag>
@@ -50,7 +53,7 @@ function badgeAnimationClass(color) {
         <a-popover>
           <template #title>
             <a-row type="flex" align="middle" justify="space-between">
-              <a-col><span>Xray error</span></a-col>
+              <a-col><span>{{ t('pages.index.xrayStatusError') }}</span></a-col>
               <a-col>
                 <BarsOutlined class="cursor-pointer" @click="$emit('open-logs')" />
               </a-col>
@@ -74,22 +77,22 @@ function badgeAnimationClass(color) {
     <template #actions>
       <a-space v-if="ipLimitEnable" direction="horizontal" class="action" @click="$emit('open-xray-logs')">
         <BarsOutlined />
-        <span v-if="!isMobile">Logs</span>
+        <span v-if="!isMobile">{{ t('pages.index.logs') }}</span>
       </a-space>
       <a-space direction="horizontal" class="action" @click="$emit('stop-xray')">
         <PoweroffOutlined />
-        <span v-if="!isMobile">Stop xray</span>
+        <span v-if="!isMobile">{{ t('pages.index.stopXray') }}</span>
       </a-space>
       <a-space direction="horizontal" class="action" @click="$emit('restart-xray')">
         <ReloadOutlined />
-        <span v-if="!isMobile">Restart xray</span>
+        <span v-if="!isMobile">{{ t('pages.index.restartXray') }}</span>
       </a-space>
       <a-space direction="horizontal" class="action" @click="$emit('open-version-switch')">
         <ToolOutlined />
         <span v-if="!isMobile">
           {{ status.xray.version && status.xray.version !== 'Unknown'
             ? `v${status.xray.version}`
-            : 'Switch xray' }}
+            : t('pages.index.xraySwitch') }}
         </span>
       </a-space>
     </template>

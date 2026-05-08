@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { theme as antdTheme, Modal } from 'ant-design-vue';
 import {
   SettingOutlined,
@@ -19,6 +20,8 @@ import SecurityTab from './SecurityTab.vue';
 import TelegramTab from './TelegramTab.vue';
 import SubscriptionGeneralTab from './SubscriptionGeneralTab.vue';
 import SubscriptionFormatsTab from './SubscriptionFormatsTab.vue';
+
+const { t } = useI18n();
 
 const antdThemeConfig = computed(() => ({
   algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -185,10 +188,10 @@ const alertVisible = ref(true);
                       <a-col :xs="24" :sm="10" class="header-actions">
                         <a-space direction="horizontal">
                           <a-button type="primary" :disabled="saveDisabled" @click="saveAll">
-                            Save
+                            {{ t('pages.settings.save') }}
                           </a-button>
                           <a-button type="primary" danger :disabled="!saveDisabled" @click="restartPanel">
-                            Restart panel
+                            {{ t('pages.settings.restartPanel') }}
                           </a-button>
                         </a-space>
                       </a-col>
@@ -197,7 +200,7 @@ const alertVisible = ref(true);
                         <a-alert
                           type="warning"
                           show-icon
-                          message="Save before restarting — unsaved changes are dropped on restart."
+                          :message="t('pages.settings.infoDesc')"
                         />
                       </a-col>
                     </a-row>
@@ -209,28 +212,28 @@ const alertVisible = ref(true);
                     <a-tab-pane key="1" class="tab-pane">
                       <template #tab>
                         <SettingOutlined />
-                        <span>Panel</span>
+                        <span>{{ t('pages.settings.panelSettings') }}</span>
                       </template>
                       <GeneralTab :all-setting="allSetting" />
                     </a-tab-pane>
                     <a-tab-pane key="2" class="tab-pane">
                       <template #tab>
                         <SafetyOutlined />
-                        <span>Security</span>
+                        <span>{{ t('pages.settings.securitySettings') }}</span>
                       </template>
                       <SecurityTab :all-setting="allSetting" />
                     </a-tab-pane>
                     <a-tab-pane key="3" class="tab-pane">
                       <template #tab>
                         <MessageOutlined />
-                        <span>Telegram</span>
+                        <span>{{ t('pages.settings.TGBotSettings') }}</span>
                       </template>
                       <TelegramTab :all-setting="allSetting" />
                     </a-tab-pane>
                     <a-tab-pane key="4" class="tab-pane">
                       <template #tab>
                         <CloudServerOutlined />
-                        <span>Subscription</span>
+                        <span>{{ t('pages.settings.subSettings') }}</span>
                       </template>
                       <SubscriptionGeneralTab :all-setting="allSetting" />
                     </a-tab-pane>
@@ -241,7 +244,7 @@ const alertVisible = ref(true);
                     >
                       <template #tab>
                         <CodeOutlined />
-                        <span>Subscription (Formats)</span>
+                        <span>{{ t('pages.settings.subSettings') }} (Formats)</span>
                       </template>
                       <SubscriptionFormatsTab :all-setting="allSetting" />
                     </a-tab-pane>

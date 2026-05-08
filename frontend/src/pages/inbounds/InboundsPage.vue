@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { theme as antdTheme, Modal, message } from 'ant-design-vue';
 import {
   SwapOutlined,
@@ -24,6 +25,8 @@ import QrCodeModal from './QrCodeModal.vue';
 import TextModal from '@/components/TextModal.vue';
 import PromptModal from '@/components/PromptModal.vue';
 import { useInbounds } from './useInbounds.js';
+
+const { t } = useI18n();
 
 const antdThemeConfig = computed(() => ({
   algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -531,7 +534,7 @@ function onRowAction({ key, dbInbound }) {
                   <a-row :gutter="[16, 12]">
                     <a-col :sm="12" :md="5">
                       <CustomStatistic
-                        title="Total ↑ / ↓"
+                        :title="t('pages.inbounds.totalDownUp')"
                         :value="`${SizeFormatter.sizeFormat(totals.up)} / ${SizeFormatter.sizeFormat(totals.down)}`"
                       >
                         <template #prefix><SwapOutlined /></template>
@@ -539,7 +542,7 @@ function onRowAction({ key, dbInbound }) {
                     </a-col>
                     <a-col :sm="12" :md="5">
                       <CustomStatistic
-                        title="Total usage"
+                        :title="t('pages.inbounds.totalUsage')"
                         :value="SizeFormatter.sizeFormat(totals.up + totals.down)"
                       >
                         <template #prefix><PieChartOutlined /></template>
@@ -547,19 +550,19 @@ function onRowAction({ key, dbInbound }) {
                     </a-col>
                     <a-col :sm="12" :md="5">
                       <CustomStatistic
-                        title="All-time traffic"
+                        :title="t('pages.inbounds.allTimeTrafficUsage')"
                         :value="SizeFormatter.sizeFormat(totals.allTime)"
                       >
                         <template #prefix><HistoryOutlined /></template>
                       </CustomStatistic>
                     </a-col>
                     <a-col :sm="12" :md="5">
-                      <CustomStatistic title="Inbounds" :value="String(dbInbounds.length)">
+                      <CustomStatistic :title="t('pages.inbounds.inboundCount')" :value="String(dbInbounds.length)">
                         <template #prefix><BarsOutlined /></template>
                       </CustomStatistic>
                     </a-col>
                     <a-col :sm="24" :md="4">
-                      <CustomStatistic title="Clients" value=" ">
+                      <CustomStatistic :title="t('clients')" value=" ">
                         <template #prefix>
                           <a-space direction="horizontal">
                             <TeamOutlined />
