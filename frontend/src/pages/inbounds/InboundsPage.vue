@@ -21,6 +21,8 @@ import ClientFormModal from './ClientFormModal.vue';
 import ClientBulkModal from './ClientBulkModal.vue';
 import InboundInfoModal from './InboundInfoModal.vue';
 import QrCodeModal from './QrCodeModal.vue';
+import TextModal from '@/components/TextModal.vue';
+import PromptModal from '@/components/PromptModal.vue';
 import { useInbounds } from './useInbounds.js';
 
 const antdThemeConfig = computed(() => ({
@@ -76,6 +78,127 @@ const infoClientIndex = ref(0);
 
 const qrOpen = ref(false);
 const qrDbInbound = ref(null);
+
+// === Shared text + prompt modal state =================================
+const textOpen = ref(false);
+const textTitle = ref('');
+const textContent = ref('');
+const textFileName = ref('');
+
+const promptOpen = ref(false);
+const promptTitle = ref('');
+const promptOkText = ref('OK');
+const promptType = ref('textarea');
+const promptInitial = ref('');
+const promptLoading = ref(false);
+let promptHandler = null;
+
+function openText({ title, content, fileName = '' }) {
+  textTitle.value = title;
+  textContent.value = content;
+  textFileName.value = fileName;
+  textOpen.value = true;
+}
+
+function openPrompt({ title, okText, type = 'textarea', value = '', confirm }) {
+  promptTitle.value = title;
+  promptOkText.value = okText || 'OK';
+  promptType.value = type;
+  promptInitial.value = value;
+  promptHandler = confirm;
+  promptOpen.value = true;
+}
+
+async function onPromptConfirm(value) {
+  if (!promptHandler) { promptOpen.value = false; return; }
+  promptLoading.value = true;
+  try {
+    const ok = await promptHandler(value);
+    if (ok !== false) promptOpen.value = false;
+  } finally {
+    promptLoading.value = false;
+  }
+}
+
+// === Export helpers — mirror legacy txtModal call sites ==============
+function exportInboundLinks(dbInbound) {
+  const projected = checkFallback(dbInbound);
+  openText({
+    title: 'Export inbound links',
+    content: projected.genInboundLinks(remarkModel.value),
+    fileName: projected.remark || 'inbound',
+  });
+}
+
+function exportInboundClipboard(dbInbound) {
+  openText({
+    title: 'Inbound JSON',
+    content: JSON.stringify(dbInbound, null, 2),
+  });
+}
+
+function exportInboundSubs(dbInbound) {
+  const inbound = dbInbound.toInbound();
+  const clients = inbound?.clients || [];
+  const subLinks = [];
+  for (const c of clients) {
+    if (c.subId && subSettings.value.subURI) {
+      subLinks.push(subSettings.value.subURI + c.subId);
+    }
+  }
+  openText({
+    title: 'Export subscription links',
+    content: [...new Set(subLinks)].join('\n'),
+    fileName: `${dbInbound.remark || 'inbound'}-Subs`,
+  });
+}
+
+function exportAllLinks() {
+  const out = [];
+  for (const ib of dbInbounds.value) {
+    out.push(ib.genInboundLinks(remarkModel.value));
+  }
+  openText({
+    title: 'Export all inbound links',
+    content: out.join('\r\n'),
+    fileName: 'All-Inbounds',
+  });
+}
+
+function exportAllSubs() {
+  const out = [];
+  for (const ib of dbInbounds.value) {
+    const inbound = ib.toInbound();
+    const clients = inbound?.clients || [];
+    for (const c of clients) {
+      if (c.subId && subSettings.value.subURI) {
+        out.push(subSettings.value.subURI + c.subId);
+      }
+    }
+  }
+  openText({
+    title: 'Export all subscription links',
+    content: [...new Set(out)].join('\r\n'),
+    fileName: 'All-Inbounds-Subs',
+  });
+}
+
+function importInbound() {
+  openPrompt({
+    title: 'Import inbound',
+    okText: 'Import',
+    type: 'textarea',
+    value: '',
+    confirm: async (value) => {
+      const msg = await HttpUtil.post('/panel/api/inbounds/import', { data: value });
+      if (msg?.success) {
+        await refresh();
+        return true;
+      }
+      return false;
+    },
+  });
+}
 
 // `checkFallback` mirrors the legacy helper: when an inbound listens
 // on a unix-socket fallback (`@<name>`), point the link generator at
@@ -285,6 +408,15 @@ function confirmClone(dbInbound) {
 
 function onGeneralAction(key) {
   switch (key) {
+    case 'import':
+      importInbound();
+      break;
+    case 'export':
+      exportAllLinks();
+      break;
+    case 'subs':
+      exportAllSubs();
+      break;
     case 'resetInbounds':
       Modal.confirm({
         title: 'Reset all inbound traffic?',
@@ -334,6 +466,21 @@ function onRowAction({ key, dbInbound }) {
     case 'qrcode':
       qrDbInbound.value = checkFallback(dbInbound);
       qrOpen.value = true;
+      break;
+    case 'export':
+      exportInboundLinks(dbInbound);
+      break;
+    case 'subs':
+      exportInboundSubs(dbInbound);
+      break;
+    case 'clipboard':
+      exportInboundClipboard(dbInbound);
+      break;
+    case 'copyClients':
+      // Copy-clients-from-inbound is a tiny dedicated modal in legacy
+      // (lets you tick clients to copy across inbounds). Defer to a
+      // future commit — surface a friendly message for now.
+      message.info('Copy clients across inbounds — coming soon');
       break;
     case 'delete':
       confirmDelete(dbInbound);
@@ -500,6 +647,22 @@ function onRowAction({ key, dbInbound }) {
         v-model:open="qrOpen"
         :db-inbound="qrDbInbound"
         :remark-model="remarkModel"
+      />
+
+      <TextModal
+        v-model:open="textOpen"
+        :title="textTitle"
+        :content="textContent"
+        :file-name="textFileName"
+      />
+      <PromptModal
+        v-model:open="promptOpen"
+        :title="promptTitle"
+        :ok-text="promptOkText"
+        :type="promptType"
+        :initial-value="promptInitial"
+        :loading="promptLoading"
+        @confirm="onPromptConfirm"
       />
     </a-layout>
   </a-config-provider>
