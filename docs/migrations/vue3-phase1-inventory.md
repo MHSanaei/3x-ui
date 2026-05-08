@@ -105,7 +105,26 @@ Order chosen so that breakage is contained and we always have a working panel:
 - ✅ Phase 1 — inventory (this document)
 - ✅ Phase 2 — Vite + Vue 3 + AD-Vue 4 scaffold under `frontend/`
 - ✅ Phase 3 — utils + models + websocket ported as ES modules
-- ⏳ Phase 4 — first real page (login.html)
+- ✅ Phase 4 — first real page (login.html) ported
+- ⏳ Phase 5 — medium pages + modals
+
+### Phase 4 notes
+
+- Vite 6 → Vite 8.0.11 (released March 2026). Requires Node 20.19+ or 22.12+. `@vitejs/plugin-vue` bumped to ^6.0.6 which lists vite ^8 as a peer.
+- Multi-page Vite: each migrated page = its own entry. `frontend/login.html` registered alongside `frontend/index.html` in `rollupOptions.input`. Same approach for the rest of the migration.
+- New page lives at `frontend/src/pages/login/LoginPage.vue` with a thin entrypoint at `frontend/src/login.js` that calls `setupAxios()`, installs Antd, and mounts.
+- **Three legacy features deferred** to keep Phase 4 small:
+  - **i18n** — strings hardcoded in English. Phase 7 wires up vue-i18n with the existing TOML files.
+  - **Theme switcher** — `<a-theme-switch-login>` was a custom component referencing a global `themeSwitcher`. Deferred to Phase 5 with the rest of the shared components.
+  - **Headline word-cycling animation** — purely aesthetic, not migrated.
+  - **Password-manager DOM observer** — the `pm_*` script that strips inline styles from autofilled inputs. Niche workaround, easy to add back if needed.
+- **Vue 3 / AD-Vue 4 syntax changes applied:**
+  - `<template slot="X">` → `<template #X>` (Vue 3 slot syntax)
+  - `<a-icon slot="prefix" type="user">` → `<template #prefix><UserOutlined /></template>` with explicit imports from `@ant-design/icons-vue`. **AD-Vue 4 removed the generic `<a-icon>` — every icon must be imported individually.**
+  - `v-model.trim` on `a-input` → `v-model:value` (AD-Vue 4 uses named v-model on inputs). The `.trim` modifier is dropped; trim manually if needed.
+  - `new Vue({ el: '#app', delimiters, data, methods })` → `createApp(LoginPage).use(Antd).mount('#app')` with `<script setup>` and Composition API.
+  - `mounted()` → `onMounted()`.
+  - `el: '#app', delimiters: ['[[', ']]']` is gone — SFCs use the standard `{{ }}`.
 
 ### Phase 3 notes
 
