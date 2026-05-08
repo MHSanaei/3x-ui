@@ -56,7 +56,7 @@ async function login() {
 
 <template>
   <a-config-provider :theme="antdThemeConfig">
-  <a-layout class="login-app" :class="{ 'is-dark': themeState.isDark }">
+  <a-layout class="login-app" :class="{ 'is-dark': themeState.isDark, 'is-ultra': themeState.isUltra }">
     <a-layout-content class="login-content">
       <div class="waves-header">
         <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -152,19 +152,42 @@ async function login() {
 </template>
 
 <style scoped>
+/* Page palette comes straight from the legacy panel's CSS variables
+ * (web/assets/css/custom.min.css). Driving everything off CSS vars
+ * means the .is-dark / .is-ultra class swap is a one-liner. */
 .login-app {
+  --bg-page: #c7ebe2;
+  --bg-card: #ffffff;
+  --color-title: #008771;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.09);
+
   min-height: 100vh;
-  background: #f0f2f5;
+  background: var(--bg-page);
 }
+
 .login-app.is-dark {
-  background: #141a26;
+  --bg-page: #222d42;
+  --bg-card: #151f31;
+  --color-title: rgba(255, 255, 255, 0.92);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.45);
 }
-.login-app.is-dark :deep(.login-card) {
-  background: #1f2937;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+
+.login-app.is-dark.is-ultra {
+  --bg-page: #0f2d32;
+  --bg-card: #0c0e12;
 }
-.login-app.is-dark :deep(.login-title) {
-  color: #2dd4bf;
+
+.login-app :deep(.ant-layout-content) {
+  background: var(--bg-page);
+}
+
+.login-card {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+.login-title {
+  color: var(--color-title);
 }
 
 .login-settings {
@@ -183,10 +206,9 @@ async function login() {
 }
 
 .login-card {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  padding: 40px 32px;
+  border-radius: 2rem;
+  padding: 4rem 3rem;
+  transition: background 0.3s, box-shadow 0.3s;
 }
 
 .login-loading {
@@ -197,8 +219,7 @@ async function login() {
 .login-title {
   text-align: center;
   margin-bottom: 32px;
-  color: #008771;
-  font-size: 24px;
+  font-size: 2rem;
   font-weight: 500;
 }
 
