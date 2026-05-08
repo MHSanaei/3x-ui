@@ -5,10 +5,20 @@
 // printed for the textarea; tabs that want a parsed view can JSON.parse
 // it themselves.
 
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { HttpUtil, PromiseUtil } from '@/utils';
 
 const DIRTY_POLL_MS = 1000;
+
+// Hoists the parsed `templateSettings` alongside the JSON string so
+// structured tabs (Basics/Routing/Outbounds/etc.) can mutate fields
+// directly while the Advanced (JSON) tab edits the same data as text.
+// We keep both in sync with two cooperating watches:
+//   • mutating templateSettings re-stringifies into xraySetting;
+//   • editing the JSON text re-parses into templateSettings (only on
+//     valid JSON — invalid edits leave templateSettings untouched
+//     so the structured tabs don't blow up while the user types).
+let syncing = false;
 
 export function useXraySetting() {
   const fetched = ref(false);
@@ -17,6 +27,9 @@ export function useXraySetting() {
 
   const xraySetting = ref('');
   const oldXraySetting = ref('');
+
+  // Parsed mirror — null until first successful fetch / parse.
+  const templateSettings = ref(null);
 
   const outboundTestUrl = ref('https://www.google.com/generate_204');
   const oldOutboundTestUrl = ref('');
@@ -30,8 +43,11 @@ export function useXraySetting() {
     if (!msg?.success) return;
     const obj = JSON.parse(msg.obj);
     const pretty = JSON.stringify(obj.xraySetting, null, 2);
+    syncing = true;
     xraySetting.value = pretty;
     oldXraySetting.value = pretty;
+    templateSettings.value = obj.xraySetting;
+    syncing = false;
     inboundTags.value = obj.inboundTags || [];
     clientReverseTags.value = obj.clientReverseTags || [];
     outboundTestUrl.value = obj.outboundTestUrl || 'https://www.google.com/generate_204';
@@ -39,6 +55,37 @@ export function useXraySetting() {
     fetched.value = true;
     saveDisabled.value = true;
   }
+
+  // Structured tabs mutate templateSettings deeply. Re-stringify on
+  // change so the Advanced JSON view + the dirty-poll see the edits.
+  watch(
+    templateSettings,
+    (next) => {
+      if (syncing || !next) return;
+      syncing = true;
+      try {
+        xraySetting.value = JSON.stringify(next, null, 2);
+      } finally {
+        syncing = false;
+      }
+    },
+    { deep: true },
+  );
+
+  // Advanced JSON edits — only refresh templateSettings when the text
+  // parses, so structured tabs stay readable mid-edit.
+  watch(xraySetting, (next) => {
+    if (syncing) return;
+    try {
+      const parsed = JSON.parse(next);
+      syncing = true;
+      try {
+        templateSettings.value = parsed;
+      } finally {
+        syncing = false;
+      }
+    } catch (_e) { /* ignore — wait for user to finish */ }
+  });
 
   async function saveAll() {
     spinning.value = true;
@@ -98,6 +145,7 @@ export function useXraySetting() {
     spinning,
     saveDisabled,
     xraySetting,
+    templateSettings,
     outboundTestUrl,
     inboundTags,
     clientReverseTags,

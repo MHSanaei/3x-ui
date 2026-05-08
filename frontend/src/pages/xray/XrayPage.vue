@@ -13,7 +13,9 @@ import {
 
 import { theme as themeState } from '@/composables/useTheme.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
+import { message } from 'ant-design-vue';
 import AppSidebar from '@/components/AppSidebar.vue';
+import BasicsTab from './BasicsTab.vue';
 import { useXraySetting } from './useXraySetting.js';
 
 // Phase 6-i: scaffold + advanced JSON tab. Other tabs (Basics, Routing,
@@ -32,11 +34,26 @@ const {
   spinning,
   saveDisabled,
   xraySetting,
+  templateSettings,
   outboundTestUrl,
   restartResult,
   saveAll,
   restartXray,
 } = useXraySetting();
+
+// `WarpExist` / `NordExist` derive from the parsed templateSettings —
+// the Basics tab gates its WARP / NordVPN domain selectors on whether
+// the matching outbound is provisioned, falling back to a "configure"
+// button that today just toasts (the modals land in 6-v).
+const warpExist = computed(
+  () => !!templateSettings.value?.outbounds?.find((o) => o?.tag === 'warp'),
+);
+const nordExist = computed(
+  () => !!templateSettings.value?.outbounds?.find((o) => o?.tag?.startsWith?.('nord-')),
+);
+
+function showWarp() { message.info('WARP outbound modal — coming in 6-v'); }
+function showNord() { message.info('NordVPN outbound modal — coming in 6-v'); }
 const { isMobile } = useMediaQuery();
 
 const basePath = window.__X_UI_BASE_PATH__ || '';
@@ -103,12 +120,20 @@ function confirmRestart() {
 
                 <!-- Tabs -->
                 <a-col :span="24">
-                  <a-tabs default-active-key="tpl-advanced">
+                  <a-tabs default-active-key="tpl-basic">
                     <a-tab-pane key="tpl-basic" class="tab-pane">
                       <template #tab>
                         <SettingOutlined /> <span>Basic template</span>
                       </template>
-                      <a-empty description="Basic template — coming in 6-ii. Use the Advanced (JSON) tab to edit log/dns/api/policy directly for now." />
+                      <BasicsTab
+                        :template-settings="templateSettings"
+                        :outbound-test-url="outboundTestUrl"
+                        :warp-exist="warpExist"
+                        :nord-exist="nordExist"
+                        @update:outbound-test-url="(v) => (outboundTestUrl = v)"
+                        @show-warp="showWarp"
+                        @show-nord="showNord"
+                      />
                     </a-tab-pane>
 
                     <a-tab-pane key="tpl-routing" class="tab-pane">
