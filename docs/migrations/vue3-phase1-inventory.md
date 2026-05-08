@@ -99,3 +99,22 @@ Order chosen so that breakage is contained and we always have a working panel:
 - ✅ Introduce Vite build step (npm acceptable)
 - ✅ Work on a long-running `vue3-migration` branch
 - ⏸ i18n strategy — to be decided in Phase 7
+
+## Phase progress
+
+- ✅ Phase 1 — inventory (this document)
+- ✅ Phase 2 — Vite + Vue 3 + AD-Vue 4 scaffold under `frontend/`
+- ✅ Phase 3 — utils + models + websocket ported as ES modules
+- ⏳ Phase 4 — first real page (login.html)
+
+### Phase 3 notes
+
+- `web/assets/js/util/index.js` (927 lines, 21 classes) → `frontend/src/utils/legacy.js`. All classes prefixed with `export`. Barrel `frontend/src/utils/index.js` re-exports for cleaner consumer imports.
+- `Vue.prototype.$message[...]` inside `HttpUtil._handleMsg` was replaced with a direct `import { message } from 'ant-design-vue'`. Vue 3 has no `Vue.prototype`.
+- `RandomUtil.randomShadowsocksPassword` previously defaulted to `SSMethods.BLAKE3_AES_256_GCM` from inbound.js, which would create a circular import. Replaced with the literal string default `'2022-blake3-aes-256-gcm'`.
+- `MediaQueryMixin` removed from utils. Replaced by `frontend/src/composables/useMediaQuery.js`, a Vue 3 composable returning a reactive `isMobile`.
+- `web/assets/js/axios-init.js` was an imperative side-effect script. Wrapped as `setupAxios()` which the app calls once at startup. `Qs` global → `import qs from 'qs'`.
+- `web/assets/js/websocket.js` exported as `WebSocketClient`. The bottom `window.wsClient = ...` line was removed; pages instantiate the client themselves with the basePath they need.
+- Models (`inbound`, `outbound`, `dbinbound`, `setting`, `reality_targets`) copied verbatim with `export` added and the imports they need from utils/legacy.js wired up.
+- `subscription.js` deferred to Phase 5 — it's a Vue 2 mount, not a util.
+- Smoke test added to `frontend/src/App.vue` exercising `SizeFormatter`, `RandomUtil`, `Wireguard`, and `useMediaQuery`. If `npm run dev` renders it correctly, Phase 3 is verified.
