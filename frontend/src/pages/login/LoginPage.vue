@@ -1,11 +1,14 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { UserOutlined, LockOutlined, KeyOutlined, SettingOutlined } from '@ant-design/icons-vue';
 import { theme as antdTheme } from 'ant-design-vue';
 
 import { HttpUtil } from '@/utils';
 import { currentTheme, theme as themeState } from '@/composables/useTheme.js';
 import ThemeSwitchLogin from '@/components/ThemeSwitchLogin.vue';
+
+const { t } = useI18n();
 
 // Drive AD-Vue 4's built-in dark algorithm from our useTheme state.
 // This re-themes every AD-Vue component without depending on the
@@ -31,10 +34,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (headlineTimer != null) window.clearInterval(headlineTimer);
 });
-
-// Phase 4 ships this page in English only. Translations come back in
-// Phase 7 (vue-i18n) once we decide how the new build pipeline reads
-// the existing TOML translation files.
 
 const fetched = ref(false);
 const submitting = ref(false);
@@ -100,7 +99,7 @@ async function login() {
 
           <div v-else>
             <div class="login-settings">
-              <a-popover :overlay-class-name="currentTheme" title="Settings" placement="bottomRight" trigger="click">
+              <a-popover :overlay-class-name="currentTheme" :title="t('menu.settings')" placement="bottomRight" trigger="click">
                 <template #content>
                   <ThemeSwitchLogin />
                 </template>
@@ -126,7 +125,7 @@ async function login() {
                   v-model:value="user.username"
                   autocomplete="username"
                   name="username"
-                  placeholder="Username"
+                  :placeholder="t('username')"
                   autofocus
                   required
                 >
@@ -139,7 +138,7 @@ async function login() {
                   v-model:value="user.password"
                   autocomplete="current-password"
                   name="password"
-                  placeholder="Password"
+                  :placeholder="t('password')"
                   required
                 >
                   <template #prefix><LockOutlined /></template>
@@ -151,7 +150,7 @@ async function login() {
                   v-model:value="user.twoFactorCode"
                   autocomplete="one-time-code"
                   name="twoFactorCode"
-                  placeholder="Two-factor code"
+                  :placeholder="t('twoFactorCode')"
                   required
                 >
                   <template #prefix><KeyOutlined /></template>
@@ -161,7 +160,7 @@ async function login() {
               <a-form-item>
                 <a-row justify="center">
                   <a-button type="primary" html-type="submit" :loading="submitting" block>
-                    {{ submitting ? '' : 'Login' }}
+                    {{ submitting ? '' : t('login') }}
                   </a-button>
                 </a-row>
               </a-form-item>

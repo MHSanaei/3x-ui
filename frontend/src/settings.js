@@ -6,6 +6,7 @@ import { setupAxios } from '@/api/axios-init.js';
 // Importing useTheme triggers the boot side-effect that applies the
 // stored theme to <body>/<html> before Vue mounts.
 import '@/composables/useTheme.js';
+import { i18n } from '@/i18n/index.js';
 import SettingsPage from '@/pages/settings/SettingsPage.vue';
 
 setupAxios();
@@ -15,4 +16,4 @@ if (messageContainer) {
   message.config({ getContainer: () => messageContainer });
 }
 
-createApp(SettingsPage).use(Antd).mount('#app');
+createApp(SettingsPage).use(Antd).use(i18n).mount('#app');
