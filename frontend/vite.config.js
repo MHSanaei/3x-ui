@@ -32,10 +32,11 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       // Proxy API calls during `npm run dev` to the local Go panel.
-      '/panel': 'http://localhost:2053',
-      '/server': 'http://localhost:2053',
-      '/login': 'http://localhost:2053',
-      '/logout': 'http://localhost:2053',
+      // Patterns are anchored regex so /login.html and /index.html
+      // (which Vite serves itself) are NOT forwarded — only the bare
+      // backend paths and their sub-routes.
+      '^/(login|logout|getTwoFactorEnable)$': 'http://localhost:2053',
+      '^/(panel|server)(/|$)': 'http://localhost:2053',
     },
   },
 });
