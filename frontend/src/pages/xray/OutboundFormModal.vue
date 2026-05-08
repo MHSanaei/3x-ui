@@ -154,29 +154,23 @@ function onOk() {
 }
 
 // ============== Link → outbound ==============
-// The legacy "convert link" button takes a vmess://, vless://, ss://,
-// trojan:// or hysteria2:// share-link string and rebuilds the
-// outbound from it. The Outbound class doesn't have a native parser —
-// we only support a friendly URL parse for the common shapes.
+// Mirrors the legacy convertLink: dispatches into Outbound.fromLink,
+// which handles vmess:// (base64 JSON), vless://, trojan://, ss://
+// (param-link form), and hysteria(2)://. Anything else returns null
+// from the model and we surface "Wrong Link!" the same as legacy.
 function convertLink() {
   const link = linkInput.value.trim();
   if (!link) return;
   try {
-    if (link.startsWith('vmess://')) {
-      const data = JSON.parse(atob(link.replace(/^vmess:\/\//, '')));
-      const ob = new Outbound(data.ps || 'vmess', Protocols.VMess);
-      ob.settings.address = data.add;
-      ob.settings.port = Number(data.port) || 443;
-      ob.settings.id = data.id;
-      ob.settings.security = data.scy || USERS_SECURITY.AUTO;
-      ob.stream.network = data.net || 'tcp';
-      if (data.tls === 'tls') ob.stream.security = 'tls';
-      outbound.value = ob;
-      message.success(t('copySuccess'));
-      activeKey.value = '1';
-    } else {
-      message.warning('Only vmess:// links are supported by the quick converter for now — paste full JSON in the editor instead.');
+    const next = Outbound.fromLink(link);
+    if (!next) {
+      message.error('Wrong Link!');
+      return;
     }
+    outbound.value = next;
+    linkInput.value = '';
+    message.success('Link imported successfully...');
+    activeKey.value = '1';
   } catch (e) {
     message.error(`Link parse: ${e.message}`);
   }

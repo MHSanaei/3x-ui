@@ -1338,7 +1338,7 @@ export class Outbound extends CommonClass {
     }
 
     static fromLink(link) {
-        data = link.split('://');
+        const data = link.split('://');
         if (data.length != 2) return null;
         switch (data[0].toLowerCase()) {
             case Protocols.VMess:

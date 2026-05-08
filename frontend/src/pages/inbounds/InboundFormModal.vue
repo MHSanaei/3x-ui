@@ -579,7 +579,10 @@ watch(
       </a-tab-pane>
 
       <!-- ============================== PROTOCOL ============================== -->
-      <a-tab-pane key="protocol" :tab="t('pages.inbounds.protocol')">
+      <!-- TUN has no per-protocol form yet (interface/mtu/gateway live in
+           settings JSON), so the tab would render empty — hide it until
+           a TUN form is added. -->
+      <a-tab-pane v-if="protocol !== Protocols.TUN" key="protocol" :tab="t('pages.inbounds.protocol')">
         <!-- Multi-user inbounds: in add mode embed the first client form,
              in edit mode show a count summary. -->
         <template v-if="isMultiUser">
@@ -641,6 +644,10 @@ watch(
                     <a-select-option value="">none</a-select-option>
                     <a-select-option v-for="k in FLOW_OPTIONS" :key="k" :value="k">{{ k }}</a-select-option>
                   </a-select>
+                </a-form-item>
+
+                <a-form-item v-if="protocol === Protocols.VLESS" label="Reverse tag">
+                  <a-input v-model:value="firstClient.reverseTag" placeholder="Optional reverse tag" />
                 </a-form-item>
 
                 <a-form-item label="Subscription">

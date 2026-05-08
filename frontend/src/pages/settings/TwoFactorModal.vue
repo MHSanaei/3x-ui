@@ -34,6 +34,25 @@ const qrCanvas = ref(null);
 
 let totp = null;
 
+// Byte-mode capacities (level L) for QR versions 1..40 — used to pick
+// the matrix width up front so the canvas size is an exact multiple of
+// pixelSize. Without this, QRious renders at floor(size/matrix) and
+// centers, leaving a white margin around the QR.
+const QR_L_BYTE_CAPACITY = [
+  17, 32, 53, 78, 106, 134, 154, 192, 230, 271,
+  321, 367, 425, 458, 520, 586, 644, 718, 792, 858,
+  929, 1003, 1091, 1171, 1273, 1367, 1465, 1528, 1628, 1732,
+  1840, 1952, 2068, 2188, 2303, 2431, 2563, 2699, 2809, 2953,
+];
+
+function pickQrMatrixWidth(value) {
+  const byteLen = new TextEncoder().encode(value).length;
+  for (let i = 0; i < QR_L_BYTE_CAPACITY.length; i++) {
+    if (byteLen <= QR_L_BYTE_CAPACITY[i]) return 17 + 4 * (i + 1);
+  }
+  return 17 + 4 * 40;
+}
+
 function buildTotp() {
   totp = new OTPAuth.TOTP({
     issuer: '3x-ui',
@@ -48,16 +67,19 @@ function buildTotp() {
 async function paintQr() {
   await nextTick();
   if (!qrCanvas.value || !totp) return;
-  // QRious draws into a <canvas>; we don't need a wrapping div.
+  const value = totp.toString();
+  const matrixWidth = pickQrMatrixWidth(value);
+  const pixelSize = Math.max(1, Math.floor(200 / matrixWidth));
+  const exactSize = matrixWidth * pixelSize;
   // eslint-disable-next-line no-new
   new QRious({
     element: qrCanvas.value,
-    size: 200,
-    value: totp.toString(),
+    size: exactSize,
+    value,
     background: 'white',
-    backgroundAlpha: 0,
+    backgroundAlpha: 1,
     foreground: 'black',
-    padding: 2,
+    padding: 0,
     level: 'L',
   });
 }
@@ -145,6 +167,10 @@ async function copyToken() {
   cursor: pointer;
   width: 100% !important;
   height: 100% !important;
+  /* Drawing buffer is matrix-snapped (smaller than display size); scale
+   * up crisply so the QR fills the box without blurring. */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 .qr-token {

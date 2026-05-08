@@ -366,72 +366,96 @@ const showSubscriptionTab = computed(
           </table>
 
           <!-- Tunnel -->
-          <table v-if="inbound.protocol === Protocols.TUNNEL" class="info-table protocol-table">
-            <thead>
-              <tr>
-                <th>{{ t('pages.inbounds.targetAddress') }}</th>
-                <th>{{ t('pages.inbounds.destinationPort') }}</th>
-                <th>{{ t('pages.inbounds.network') }}</th>
-                <th>FollowRedirect</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><a-tag color="green">{{ inbound.settings.address }}</a-tag></td>
-                <td><a-tag color="green">{{ inbound.settings.port }}</a-tag></td>
-                <td><a-tag color="green">{{ inbound.settings.network }}</a-tag></td>
-                <td><a-tag color="green">{{ inbound.settings.followRedirect }}</a-tag></td>
-              </tr>
-            </tbody>
-          </table>
+          <dl v-if="inbound.protocol === Protocols.TUNNEL" class="info-list info-list-block">
+            <div class="info-row">
+              <dt>{{ t('pages.inbounds.targetAddress') }}</dt>
+              <dd><a-tag color="green" class="value-tag">{{ inbound.settings.address }}</a-tag></dd>
+            </div>
+            <div class="info-row">
+              <dt>{{ t('pages.inbounds.destinationPort') }}</dt>
+              <dd><a-tag color="green">{{ inbound.settings.port }}</a-tag></dd>
+            </div>
+            <div class="info-row">
+              <dt>{{ t('pages.inbounds.network') }}</dt>
+              <dd><a-tag color="green">{{ inbound.settings.network }}</a-tag></dd>
+            </div>
+            <div class="info-row">
+              <dt>FollowRedirect</dt>
+              <dd>
+                <a-tag :color="inbound.settings.followRedirect ? 'green' : 'red'">
+                  {{ inbound.settings.followRedirect ? t('enabled') : t('disabled') }}
+                </a-tag>
+              </dd>
+            </div>
+          </dl>
 
           <!-- Mixed -->
-          <table v-if="dbInbound.isMixed" class="info-table protocol-table">
-            <thead>
-              <tr>
-                <th>Auth</th>
-                <th>UDP</th>
-                <th>IP</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><a-tag color="green">{{ inbound.settings.auth }}</a-tag></td>
-                <td><a-tag color="green">{{ inbound.settings.udp }}</a-tag></td>
-                <td><a-tag color="green">{{ inbound.settings.ip }}</a-tag></td>
-              </tr>
-              <template v-if="inbound.settings.auth === 'password'">
-                <tr>
-                  <td></td>
-                  <td>{{ t('username') }}</td>
-                  <td>{{ t('password') }}</td>
-                </tr>
-                <tr v-for="(account, idx) in inbound.settings.accounts" :key="idx">
-                  <td>{{ idx }}</td>
-                  <td><a-tag color="green">{{ account.user }}</a-tag></td>
-                  <td><a-tag color="green">{{ account.pass }}</a-tag></td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
+          <dl v-if="dbInbound.isMixed" class="info-list info-list-block">
+            <div class="info-row">
+              <dt>Auth</dt>
+              <dd>
+                <a-tag :color="inbound.settings.auth === 'password' ? 'green' : 'orange'">
+                  {{ inbound.settings.auth }}
+                </a-tag>
+              </dd>
+            </div>
+            <div class="info-row">
+              <dt>UDP</dt>
+              <dd>
+                <a-tag :color="inbound.settings.udp ? 'green' : 'red'">
+                  {{ inbound.settings.udp ? t('enabled') : t('disabled') }}
+                </a-tag>
+              </dd>
+            </div>
+            <div v-if="inbound.settings.ip" class="info-row">
+              <dt>IP</dt>
+              <dd><a-tag class="value-tag">{{ inbound.settings.ip }}</a-tag></dd>
+            </div>
+            <template v-if="inbound.settings.auth === 'password' && inbound.settings.accounts?.length">
+              <div
+                v-for="(account, idx) in inbound.settings.accounts"
+                :key="idx"
+                class="info-row"
+              >
+                <dt>{{ t('username') }} #{{ idx + 1 }}</dt>
+                <dd class="account-row">
+                  <a-tag color="green" class="value-tag">{{ account.user }}</a-tag>
+                  <span class="account-sep">:</span>
+                  <a-tag class="value-tag">{{ account.pass }}</a-tag>
+                  <a-tooltip :title="t('copy')">
+                    <a-button size="small" @click="copyText(`${account.user}:${account.pass}`)">
+                      <template #icon>
+                        <CopyOutlined />
+                      </template>
+                    </a-button>
+                  </a-tooltip>
+                </dd>
+              </div>
+            </template>
+          </dl>
 
           <!-- HTTP accounts -->
-          <table v-if="dbInbound.isHTTP" class="info-table protocol-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th>{{ t('username') }}</th>
-                <th>{{ t('password') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(account, idx) in inbound.settings.accounts" :key="idx">
-                <td>{{ idx }}</td>
-                <td><a-tag color="green">{{ account.user }}</a-tag></td>
-                <td><a-tag color="green">{{ account.pass }}</a-tag></td>
-              </tr>
-            </tbody>
-          </table>
+          <dl v-if="dbInbound.isHTTP && inbound.settings.accounts?.length" class="info-list info-list-block">
+            <div
+              v-for="(account, idx) in inbound.settings.accounts"
+              :key="idx"
+              class="info-row"
+            >
+              <dt>{{ t('username') }} #{{ idx + 1 }}</dt>
+              <dd class="account-row">
+                <a-tag color="green" class="value-tag">{{ account.user }}</a-tag>
+                <span class="account-sep">:</span>
+                <a-tag class="value-tag">{{ account.pass }}</a-tag>
+                <a-tooltip :title="t('copy')">
+                  <a-button size="small" @click="copyText(`${account.user}:${account.pass}`)">
+                    <template #icon>
+                      <CopyOutlined />
+                    </template>
+                  </a-button>
+                </a-tooltip>
+              </dd>
+            </div>
+          </dl>
 
           <!-- WireGuard server config + peers -->
           <table v-if="dbInbound.isWireguard" class="info-table protocol-table wg-table">
@@ -797,6 +821,25 @@ const showSubscriptionTab = computed(
 
 .info-row:last-child {
   border-bottom: none;
+}
+
+/* When info-list is rendered as a second block (e.g. protocol details
+ * after the top transport/security block), give it a small top spacing
+ * so the two groups read as separate. */
+.info-list-block {
+  margin-top: 10px;
+}
+
+.account-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.account-sep {
+  opacity: 0.55;
+  font-weight: 600;
 }
 
 .info-row dt {
