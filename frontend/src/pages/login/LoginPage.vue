@@ -179,9 +179,9 @@ async function login() {
 }
 
 .login-app.is-dark {
-  --bg-page: #151f31;
-  --bg-wave-header: #0a2227;
-  --bg-card: #151f31;
+  --bg-page: #222d42;        /* legacy .dark .under  */
+  --bg-wave-header: #0a2227; /* legacy --dark-color-login-background */
+  --bg-card: #151f31;        /* legacy --dark-color-surface-100 */
   --color-title: rgba(255, 255, 255, 0.92);
   --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.45);
   --wave-fill: #222d42;
@@ -277,17 +277,19 @@ async function login() {
 }
 
 /* Wave fills are CSS-driven so they switch with the theme; legacy used
- * inline fill="..." on each <use> which made them lock to one palette. */
+ * inline fill="..." on each <use> which made them lock to one palette.
+ * Animation durations match the legacy (4s/7s/10s/13s) so the bottom
+ * wave actually visibly moves in dark mode where contrast is low. */
 .parallax > use {
   fill: var(--wave-fill);
   animation: move-forever 25s cubic-bezier(0.55, 0.5, 0.45, 0.5) infinite;
 }
-.parallax > use:nth-child(1) { animation-delay: -2s; animation-duration: 7s;  opacity: 0.2; }
-.parallax > use:nth-child(2) { animation-delay: -3s; animation-duration: 10s; opacity: 0.4; }
-.parallax > use:nth-child(3) { animation-delay: -4s; animation-duration: 13s; opacity: 0.6; }
+.parallax > use:nth-child(1) { animation-delay: -2s; animation-duration: 4s;  opacity: 0.2; }
+.parallax > use:nth-child(2) { animation-delay: -3s; animation-duration: 7s;  opacity: 0.4; }
+.parallax > use:nth-child(3) { animation-delay: -4s; animation-duration: 10s; opacity: 0.6; }
 .parallax > use:nth-child(4) {
   animation-delay: -5s;
-  animation-duration: 20s;
+  animation-duration: 13s;
   fill: var(--wave-fill-bottom);
   opacity: 1;
 }
