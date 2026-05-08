@@ -12,6 +12,7 @@ import {
   ClipboardManager,
 } from '@/utils';
 import { Inbound, Protocols } from '@/models/inbound.js';
+import InfinityIcon from '@/components/InfinityIcon.vue';
 import QrPanel from './QrPanel.vue';
 
 const { t } = useI18n();
@@ -489,7 +490,7 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
                   v-if="clientSettings.totalGB > 0"
                   :color="clientStats ? statsColor(clientStats) : 'default'"
                 >{{ SizeFormatter.sizeFormat(clientSettings.totalGB) }}</a-tag>
-                <a-tag v-else color="purple">∞</a-tag>
+                <a-tag v-else color="purple"><InfinityIcon /></a-tag>
               </td>
               <td>
                 <a-tag
@@ -499,7 +500,7 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
                 <a-tag v-else-if="clientSettings.expiryTime < 0" color="green">
                   {{ clientSettings.expiryTime / -86400000 }} {{ t('day') }}
                 </a-tag>
-                <a-tag v-else color="purple">∞</a-tag>
+                <a-tag v-else color="purple"><InfinityIcon /></a-tag>
               </td>
             </tr>
           </tbody>

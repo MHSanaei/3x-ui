@@ -28,6 +28,7 @@ import {
 import { HttpUtil, ObjectUtil, SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
 import { DBInbound } from '@/models/dbinbound.js';
 import { Inbound } from '@/models/inbound.js';
+import InfinityIcon from '@/components/InfinityIcon.vue';
 import ClientRowTable from './ClientRowTable.vue';
 
 const { t } = useI18n();
@@ -453,7 +454,7 @@ function showQrCodeMenu(dbInbound) {
               <a-tag :color="ColorUtils.usageColor(record.up + record.down, trafficDiff, record.total)">
                 {{ SizeFormatter.sizeFormat(record.up + record.down) }} /
                 <template v-if="record.total > 0">{{ SizeFormatter.sizeFormat(record.total) }}</template>
-                <template v-else>∞</template>
+                <InfinityIcon v-else />
               </a-tag>
             </a-popover>
           </template>
@@ -474,7 +475,7 @@ function showQrCodeMenu(dbInbound) {
                 {{ IntlUtil.formatRelativeTime(record.expiryTime) }}
               </a-tag>
             </a-popover>
-            <a-tag v-else color="purple">∞</a-tag>
+            <a-tag v-else color="purple"><InfinityIcon /></a-tag>
           </template>
 
           <!-- ============== Mobile info popover ============== -->
@@ -501,7 +502,7 @@ function showQrCodeMenu(dbInbound) {
                         <a-tag>
                           {{ SizeFormatter.sizeFormat(record.up + record.down) }} /
                           <template v-if="record.total > 0">{{ SizeFormatter.sizeFormat(record.total) }}</template>
-                          <template v-else>∞</template>
+                          <InfinityIcon v-else />
                         </a-tag>
                       </td>
                     </tr>
@@ -509,7 +510,7 @@ function showQrCodeMenu(dbInbound) {
                       <td>{{ t('pages.inbounds.expireDate') }}</td>
                       <td>
                         <a-tag v-if="record.expiryTime > 0">{{ IntlUtil.formatRelativeTime(record.expiryTime) }}</a-tag>
-                        <a-tag v-else color="purple">∞</a-tag>
+                        <a-tag v-else color="purple"><InfinityIcon /></a-tag>
                       </td>
                     </tr>
                   </tbody>

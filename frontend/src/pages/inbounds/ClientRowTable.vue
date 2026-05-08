@@ -12,17 +12,13 @@ import {
 import { Modal } from 'ant-design-vue';
 
 import { SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
+import InfinityIcon from '@/components/InfinityIcon.vue';
 
 const { t } = useI18n();
 
-// Per-inbound expand-row table. Rendered inside the inbound list's
-// a-table#expandedRowRender slot for any inbound where
-// `dbInbound.isMultiUser()` returns true. Mirrors the legacy
-// component/aClientTable layout.
-//
-// The component itself does no API calls — it emits typed events the
-// parent routes back to the existing modals/handlers (edit, qr, info,
-// reset traffic, delete, toggle-enable).
+// Per-inbound expand-row content. CSS-grid layout (not a nested
+// <a-table>) so it sits flush inside the parent's expanded cell.
+// No API calls here — events bubble to the parent's modals.
 
 const props = defineProps({
   dbInbound: { type: Object, required: true },
@@ -43,17 +39,10 @@ const emit = defineEmits([
   'toggle-enable-client',
 ]);
 
-// Surface the parsed Inbound so we can read its clients array
-// directly. legacy used dbInbound.toInbound().clients via a
-// `getInboundClients` helper; the parsed cache is invalidated on
-// every refresh by useInbounds.setInbounds.
 const inbound = computed(() => props.dbInbound.toInbound());
 const clients = computed(() => inbound.value?.clients || []);
 
 // === Per-client stats lookup =======================================
-// Mirrors the legacy lazy-built email->stats Map cached on the
-// dbInbound; recomputed when the underlying clientStats array is
-// replaced by a refresh.
 const statsMap = computed(() => {
   const m = new Map();
   for (const cs of (props.dbInbound.clientStats || [])) m.set(cs.email, cs);
@@ -116,33 +105,35 @@ function clientStatsColor(email) {
   return ColorUtils.clientUsageColor(statsFor(email), props.trafficDiff);
 }
 function statsExpColor(email) {
-  if (!email) return '#7a316f';
+  // AD-Vue 4 semantic palette mirrors ColorUtils.* so the badge dot
+  // matches the row's traffic/expiry tags.
+  const PURPLE = '#722ed1', SUCCESS = '#52c41a', WARN = '#faad14', DANGER = '#ff4d4f';
+  if (!email) return PURPLE;
   const s = statsFor(email);
-  if (!s) return '#7a316f';
+  if (!s) return PURPLE;
   const a = ColorUtils.usageColor(s.down + s.up, props.trafficDiff, s.total);
   const b = ColorUtils.usageColor(Date.now(), props.expireDiff, s.expiryTime);
-  if (a === 'red' || b === 'red') return '#cf3c3c';
-  if (a === 'orange' || b === 'orange') return '#f37b24';
-  if (a === 'green' || b === 'green') return '#008771';
-  return '#7a316f';
+  if (a === 'red' || b === 'red') return DANGER;
+  if (a === 'orange' || b === 'orange') return WARN;
+  if (a === 'green' || b === 'green') return SUCCESS;
+  return PURPLE;
 }
 
-// === Helpers ========================================================
 const isRemovable = computed(() => clients.value.length > 1);
 
 function totalGbDisplay(client) {
-  if (!client.totalGB || client.totalGB <= 0) return '∞';
-  // The model class exposes ._totalGB as bytes->GB for the form, but
-  // the table shows a coarser rounding. Match legacy: tail with 'GB'.
+  if (!client.totalGB || client.totalGB <= 0) return '';
   return `${Math.round((client.totalGB / 1073741824) * 100) / 100} GB`;
 }
+
+const isUnlimitedTotal = (client) => !client.totalGB || client.totalGB <= 0;
 
 function statusBadgeColor(client) {
   if (!client.enable) return props.isDarkTheme ? '#2c3950' : '#bcbcbc';
   return statsExpColor(client.email);
 }
 
-// === Action confirms (mounted on the row, not a modal) ==============
+// === Action confirms ==============================================
 function confirmReset(client) {
   Modal.confirm({
     title: `${t('pages.inbounds.resetTraffic')} — ${client.email}`,
@@ -163,238 +154,203 @@ function confirmDelete(client) {
   });
 }
 
-// === Columns ========================================================
-// Two layouts: desktop has icon-row actions across; mobile collapses
-// the per-row actions into a single dropdown + an info popover.
-// Computed so column titles re-render after a locale swap.
-const desktopColumns = computed(() => [
-  { title: t('pages.settings.actions'), key: 'actions', width: 140 },
-  { title: t('enable'), key: 'enable', width: 60 },
-  { title: t('online'), key: 'online', width: 80 },
-  { title: t('pages.inbounds.client'), key: 'client', width: 160 },
-  { title: t('pages.inbounds.traffic'), key: 'traffic', align: 'center', width: 200 },
-  { title: t('pages.inbounds.allTimeTraffic'), key: 'allTime', align: 'center', width: 110 },
-  { title: t('pages.inbounds.expireDate'), key: 'expiryTime', align: 'center', width: 180 },
-]);
-const mobileColumns = computed(() => [
-  { title: t('pages.settings.actions'), key: 'actionMenu', align: 'center', width: 10 },
-  { title: t('pages.inbounds.client'), key: 'client', align: 'left', width: 90 },
-  { title: t('info'), key: 'info', align: 'center', width: 10 },
-]);
-
-const columns = computed(() => (props.isMobile ? mobileColumns.value : desktopColumns.value));
+// Stable row key for v-for — falls back through email/id/password
+// because not every protocol fills the same field.
+function rowKey(client) {
+  return client.email || client.id || client.password || JSON.stringify(client);
+}
 </script>
 
 <template>
-  <a-table
-    :columns="columns"
-    :data-source="clients"
-    :row-key="(c) => c.email || c.id || c.password"
-    :pagination="false"
-    :scroll="isMobile ? {} : { x: 'max-content' }"
-    size="small"
-    class="client-row-table"
-  >
-    <template #bodyCell="{ column, record }">
-      <!-- ============== Desktop action icons ============== -->
-      <template v-if="column.key === 'actions'">
-        <a-space :size="6">
+  <div class="client-list" :class="{ 'is-mobile': isMobile, 'is-dark': isDarkTheme }">
+    <!-- ============== Header (desktop only) ============== -->
+    <div v-if="!isMobile" class="client-row client-list-header">
+      <div class="cell cell-actions">{{ t('pages.settings.actions') }}</div>
+      <div class="cell cell-enable">{{ t('enable') }}</div>
+      <div class="cell cell-online">{{ t('online') }}</div>
+      <div class="cell cell-client">{{ t('pages.inbounds.client') }}</div>
+      <div class="cell cell-traffic">{{ t('pages.inbounds.traffic') }}</div>
+      <div class="cell cell-alltime">{{ t('pages.inbounds.allTimeTraffic') }}</div>
+      <div class="cell cell-expiry">{{ t('pages.inbounds.expireDate') }}</div>
+    </div>
+
+    <!-- ============== Body rows ============== -->
+    <div v-for="client in clients" :key="rowKey(client)" class="client-row">
+      <!-- Desktop: action icon row | Mobile: dropdown menu -->
+      <div class="cell cell-actions">
+        <template v-if="!isMobile">
           <a-tooltip v-if="dbInbound.hasLink()" :title="t('qrCode')">
-            <QrcodeOutlined
-              class="row-icon"
-              @click="emit('qrcode-client', { dbInbound, client: record })"
-            />
+            <QrcodeOutlined class="row-icon" @click="emit('qrcode-client', { dbInbound, client })" />
           </a-tooltip>
           <a-tooltip :title="t('edit')">
-            <EditOutlined
-              class="row-icon"
-              @click="emit('edit-client', { dbInbound, client: record })"
-            />
+            <EditOutlined class="row-icon" @click="emit('edit-client', { dbInbound, client })" />
           </a-tooltip>
           <a-tooltip :title="t('info')">
-            <InfoCircleOutlined
-              class="row-icon"
-              @click="emit('info-client', { dbInbound, client: record })"
-            />
+            <InfoCircleOutlined class="row-icon" @click="emit('info-client', { dbInbound, client })" />
           </a-tooltip>
-          <a-tooltip v-if="record.email" :title="t('pages.inbounds.resetTraffic')">
-            <RetweetOutlined class="row-icon" @click="confirmReset(record)" />
+          <a-tooltip v-if="client.email" :title="t('pages.inbounds.resetTraffic')">
+            <RetweetOutlined class="row-icon" @click="confirmReset(client)" />
           </a-tooltip>
           <a-tooltip v-if="isRemovable" :title="t('delete')">
-            <DeleteOutlined class="row-icon danger" @click="confirmDelete(record)" />
+            <DeleteOutlined class="row-icon danger" @click="confirmDelete(client)" />
           </a-tooltip>
-        </a-space>
-      </template>
-
-      <!-- ============== Enable switch ============== -->
-      <template v-else-if="column.key === 'enable'">
-        <a-switch
-          :checked="record.enable"
-          @change="(next) => emit('toggle-enable-client', { dbInbound, client: record, next })"
-        />
-      </template>
-
-      <!-- ============== Online tag ============== -->
-      <template v-else-if="column.key === 'online'">
-        <a-popover>
-          <template #content>{{ t('lastOnline') }}: {{ lastOnlineLabel(record.email) }}</template>
-          <a-tag v-if="record.enable && isClientOnline(record.email)" color="green">{{ t('online') }}</a-tag>
-          <a-tag v-else>{{ t('offline') }}</a-tag>
-        </a-popover>
-      </template>
-
-      <!-- ============== Client identity (status dot + email + comment) ============== -->
-      <template v-else-if="column.key === 'client'">
-        <a-space :size="2" class="client-id-cell" :style="{ flexWrap: 'nowrap' }">
-          <a-tooltip>
-            <template #title>
-              <template v-if="isClientDepleted(record.email)">{{ t('depleted') }}</template>
-              <template v-else-if="!record.enable">{{ t('disabled') }}</template>
-              <template v-else-if="isClientOnline(record.email)">{{ t('online') }}</template>
-              <template v-else>{{ t('offline') }}</template>
-            </template>
-            <a-badge :color="statusBadgeColor(record)" />
-          </a-tooltip>
-          <a-space direction="vertical" :size="2" class="client-id-stack">
-            <a-tooltip :title="record.email">
-              <span class="client-email">{{ record.email }}</span>
-            </a-tooltip>
-            <span v-if="record.comment && record.comment.trim()" class="client-comment">
-              {{ record.comment.length > 50 ? record.comment.substring(0, 47) + '…' : record.comment }}
-            </span>
-          </a-space>
-        </a-space>
-      </template>
-
-      <!-- ============== Traffic with progress bar ============== -->
-      <template v-else-if="column.key === 'traffic'">
-        <a-popover>
-          <template v-if="record.email" #content>
-            <table cellpadding="2">
-              <tbody>
-                <tr>
-                  <td>↑ {{ SizeFormatter.sizeFormat(getUp(record.email)) }}</td>
-                  <td>↓ {{ SizeFormatter.sizeFormat(getDown(record.email)) }}</td>
-                </tr>
-                <tr v-if="record.totalGB > 0">
-                  <td>{{ t('remained') }}</td>
-                  <td>{{ SizeFormatter.sizeFormat(getRem(record.email)) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </template>
-          <div class="traffic-cell">
-            <div class="traffic-text">{{ SizeFormatter.sizeFormat(getSum(record.email)) }}</div>
-            <div class="traffic-bar" v-if="!record.enable">
-              <a-progress
-                :stroke-color="isDarkTheme ? 'rgb(72,84,105)' : '#bcbcbc'"
-                :show-info="false"
-                :percent="statsProgress(record.email)"
-              />
-            </div>
-            <div class="traffic-bar" v-else-if="record.totalGB > 0">
-              <a-progress
-                :stroke-color="clientStatsColor(record.email)"
-                :show-info="false"
-                :status="isClientDepleted(record.email) ? 'exception' : ''"
-                :percent="statsProgress(record.email)"
-              />
-            </div>
-            <div class="traffic-bar infinite" v-else>
-              <a-progress :show-info="false" :percent="100" />
-            </div>
-            <div class="traffic-text">{{ totalGbDisplay(record) }}</div>
-          </div>
-        </a-popover>
-      </template>
-
-      <!-- ============== All-time ============== -->
-      <template v-else-if="column.key === 'allTime'">
-        <a-tag>{{ SizeFormatter.sizeFormat(getAllTime(record.email)) }}</a-tag>
-      </template>
-
-      <!-- ============== Expiry ============== -->
-      <template v-else-if="column.key === 'expiryTime'">
-        <template v-if="record.expiryTime !== 0 && record.reset > 0">
-          <a-popover>
-            <template #content>
-              <span v-if="record.expiryTime < 0">{{ t('pages.client.delayedStart') }}</span>
-              <span v-else>{{ IntlUtil.formatDate(record.expiryTime) }}</span>
-            </template>
-            <div class="traffic-cell">
-              <div class="traffic-text">{{ IntlUtil.formatRelativeTime(record.expiryTime) }}</div>
-              <div class="traffic-bar infinite">
-                <a-progress
-                  :show-info="false"
-                  :status="isClientDepleted(record.email) ? 'exception' : ''"
-                  :percent="expireProgress(record.expiryTime, record.reset)"
-                />
-              </div>
-              <div class="traffic-text">{{ record.reset }}d</div>
-            </div>
-          </a-popover>
         </template>
-        <template v-else>
-          <a-popover v-if="record.expiryTime !== 0">
-            <template #content>
-              <span v-if="record.expiryTime < 0">{{ t('pages.client.delayedStart') }}</span>
-              <span v-else>{{ IntlUtil.formatDate(record.expiryTime) }}</span>
-            </template>
-            <a-tag
-              :style="{ minWidth: '50px', border: 'none' }"
-              :color="ColorUtils.userExpiryColor(expireDiff, record, isDarkTheme)"
-            >
-              {{ IntlUtil.formatRelativeTime(record.expiryTime) }}
-            </a-tag>
-          </a-popover>
-          <a-tag
-            v-else
-            :color="ColorUtils.userExpiryColor(expireDiff, record, isDarkTheme)"
-            :style="{ border: 'none' }"
-          >
-            ∞
-          </a-tag>
-        </template>
-      </template>
-
-      <!-- ============== Mobile-only action menu ============== -->
-      <template v-else-if="column.key === 'actionMenu'">
-        <a-dropdown :trigger="['click']">
+        <a-dropdown v-else :trigger="['click']">
           <EllipsisOutlined class="row-icon" @click.prevent />
           <template #overlay>
             <a-menu>
-              <a-menu-item
-                v-if="dbInbound.hasLink()"
-                @click="emit('qrcode-client', { dbInbound, client: record })"
-              ><QrcodeOutlined /> {{ t('qrCode') }}</a-menu-item>
-              <a-menu-item @click="emit('edit-client', { dbInbound, client: record })">
+              <a-menu-item v-if="dbInbound.hasLink()" @click="emit('qrcode-client', { dbInbound, client })">
+                <QrcodeOutlined /> {{ t('qrCode') }}
+              </a-menu-item>
+              <a-menu-item @click="emit('edit-client', { dbInbound, client })">
                 <EditOutlined /> {{ t('edit') }}
               </a-menu-item>
-              <a-menu-item @click="emit('info-client', { dbInbound, client: record })">
+              <a-menu-item @click="emit('info-client', { dbInbound, client })">
                 <InfoCircleOutlined /> {{ t('info') }}
               </a-menu-item>
-              <a-menu-item v-if="record.email" @click="confirmReset(record)">
+              <a-menu-item v-if="client.email" @click="confirmReset(client)">
                 <RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') }}
               </a-menu-item>
-              <a-menu-item v-if="isRemovable" @click="confirmDelete(record)">
+              <a-menu-item v-if="isRemovable" @click="confirmDelete(client)">
                 <DeleteOutlined /> <span class="danger">{{ t('delete') }}</span>
-              </a-menu-item>
-              <a-menu-item>
-                <a-switch
-                  size="small"
-                  :checked="record.enable"
-                  @change="(next) => emit('toggle-enable-client', { dbInbound, client: record, next })"
-                />
-                {{ t('enable') }}
               </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
-      </template>
+      </div>
 
-      <!-- ============== Mobile info popover ============== -->
-      <template v-else-if="column.key === 'info'">
-        <a-popover :placement="isMobile ? 'bottomLeft' : 'bottomRight'" trigger="click">
+      <!-- Enable switch (hidden on mobile, lives in dropdown) -->
+      <div v-if="!isMobile" class="cell cell-enable">
+        <a-switch
+          :checked="client.enable"
+          size="small"
+          @change="(next) => emit('toggle-enable-client', { dbInbound, client, next })"
+        />
+      </div>
+
+      <!-- Online tag (desktop only) -->
+      <div v-if="!isMobile" class="cell cell-online">
+        <a-popover>
+          <template #content>{{ t('lastOnline') }}: {{ lastOnlineLabel(client.email) }}</template>
+          <a-tag v-if="client.enable && isClientOnline(client.email)" color="green">{{ t('online') }}</a-tag>
+          <a-tag v-else>{{ t('offline') }}</a-tag>
+        </a-popover>
+      </div>
+
+      <!-- Client identity: status dot + email + comment -->
+      <div class="cell cell-client">
+        <a-tooltip>
+          <template #title>
+            <template v-if="isClientDepleted(client.email)">{{ t('depleted') }}</template>
+            <template v-else-if="!client.enable">{{ t('disabled') }}</template>
+            <template v-else-if="isClientOnline(client.email)">{{ t('online') }}</template>
+            <template v-else>{{ t('offline') }}</template>
+          </template>
+          <a-badge :color="statusBadgeColor(client)" />
+        </a-tooltip>
+        <div class="client-id-stack">
+          <a-tooltip :title="client.email">
+            <span class="client-email">{{ client.email }}</span>
+          </a-tooltip>
+          <span v-if="client.comment && client.comment.trim()" class="client-comment">
+            {{ client.comment.length > 50 ? client.comment.substring(0, 47) + '…' : client.comment }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Traffic with progress bar (desktop only) -->
+      <div v-if="!isMobile" class="cell cell-traffic">
+        <a-popover>
+          <template v-if="client.email" #content>
+            <table cellpadding="2">
+              <tbody>
+                <tr>
+                  <td>↑ {{ SizeFormatter.sizeFormat(getUp(client.email)) }}</td>
+                  <td>↓ {{ SizeFormatter.sizeFormat(getDown(client.email)) }}</td>
+                </tr>
+                <tr v-if="client.totalGB > 0">
+                  <td>{{ t('remained') }}</td>
+                  <td>{{ SizeFormatter.sizeFormat(getRem(client.email)) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </template>
+          <div class="usage-bar">
+            <span class="usage-text">{{ SizeFormatter.sizeFormat(getSum(client.email)) }}</span>
+            <a-progress
+              v-if="!client.enable"
+              :stroke-color="isDarkTheme ? 'rgb(72,84,105)' : '#bcbcbc'"
+              :show-info="false"
+              :percent="statsProgress(client.email)"
+              size="small"
+            />
+            <a-progress
+              v-else-if="client.totalGB > 0"
+              :stroke-color="clientStatsColor(client.email)"
+              :show-info="false"
+              :status="isClientDepleted(client.email) ? 'exception' : ''"
+              :percent="statsProgress(client.email)"
+              size="small"
+            />
+            <a-progress v-else :show-info="false" :percent="100" stroke-color="#722ed1" size="small" />
+            <span class="usage-text">
+              <InfinityIcon v-if="isUnlimitedTotal(client)" />
+              <template v-else>{{ totalGbDisplay(client) }}</template>
+            </span>
+          </div>
+        </a-popover>
+      </div>
+
+      <!-- All-time traffic (desktop only) -->
+      <div v-if="!isMobile" class="cell cell-alltime">
+        <a-tag>{{ SizeFormatter.sizeFormat(getAllTime(client.email)) }}</a-tag>
+      </div>
+
+      <!-- Expiry (desktop only) -->
+      <div v-if="!isMobile" class="cell cell-expiry">
+        <template v-if="client.expiryTime !== 0 && client.reset > 0">
+          <a-popover>
+            <template #content>
+              <span v-if="client.expiryTime < 0">{{ t('pages.client.delayedStart') }}</span>
+              <span v-else>{{ IntlUtil.formatDate(client.expiryTime) }}</span>
+            </template>
+            <div class="usage-bar">
+              <span class="usage-text">{{ IntlUtil.formatRelativeTime(client.expiryTime) }}</span>
+              <a-progress
+                :show-info="false"
+                :status="isClientDepleted(client.email) ? 'exception' : ''"
+                :percent="expireProgress(client.expiryTime, client.reset)"
+                size="small"
+              />
+              <span class="usage-text">{{ client.reset }}d</span>
+            </div>
+          </a-popover>
+        </template>
+        <a-popover v-else-if="client.expiryTime !== 0">
+          <template #content>
+            <span v-if="client.expiryTime < 0">{{ t('pages.client.delayedStart') }}</span>
+            <span v-else>{{ IntlUtil.formatDate(client.expiryTime) }}</span>
+          </template>
+          <a-tag
+            :style="{ minWidth: '50px', border: 'none' }"
+            :color="ColorUtils.userExpiryColor(expireDiff, client, isDarkTheme)"
+          >
+            {{ IntlUtil.formatRelativeTime(client.expiryTime) }}
+          </a-tag>
+        </a-popover>
+        <a-tag
+          v-else
+          :color="ColorUtils.userExpiryColor(expireDiff, client, isDarkTheme)"
+          :style="{ border: 'none' }"
+          class="infinite-tag"
+        >
+          <InfinityIcon />
+        </a-tag>
+      </div>
+
+      <!-- Mobile-only summary popover (collapses traffic + expiry) -->
+      <div v-if="isMobile" class="cell cell-mobile-info">
+        <a-popover placement="bottomLeft" trigger="click">
           <template #content>
             <table cellpadding="2">
               <tbody>
@@ -402,10 +358,11 @@ const columns = computed(() => (props.isMobile ? mobileColumns.value : desktopCo
                   <td colspan="2" class="text-center">{{ t('pages.inbounds.traffic') }}</td>
                 </tr>
                 <tr>
+                  <td class="num-cell">{{ SizeFormatter.sizeFormat(getSum(client.email)) }}</td>
                   <td class="num-cell">
-                    {{ SizeFormatter.sizeFormat(getSum(record.email)) }}
+                    <InfinityIcon v-if="isUnlimitedTotal(client)" />
+                    <template v-else>{{ totalGbDisplay(client) }}</template>
                   </td>
-                  <td class="num-cell">{{ totalGbDisplay(record) }}</td>
                 </tr>
                 <tr>
                   <td colspan="2" class="text-center">
@@ -415,13 +372,13 @@ const columns = computed(() => (props.isMobile ? mobileColumns.value : desktopCo
                 </tr>
                 <tr>
                   <td colspan="2" class="text-center">
-                    <a-tag v-if="record.expiryTime > 0">
-                      {{ IntlUtil.formatRelativeTime(record.expiryTime) }}
+                    <a-tag v-if="client.expiryTime > 0">
+                      {{ IntlUtil.formatRelativeTime(client.expiryTime) }}
                     </a-tag>
-                    <a-tag v-else-if="record.expiryTime < 0" color="green">
-                      {{ -record.expiryTime / 86400000 }}d ({{ t('pages.client.delayedStart') }})
+                    <a-tag v-else-if="client.expiryTime < 0" color="green">
+                      {{ -client.expiryTime / 86400000 }}d ({{ t('pages.client.delayedStart') }})
                     </a-tag>
-                    <a-tag v-else color="purple">∞</a-tag>
+                    <a-tag v-else color="purple"><InfinityIcon /></a-tag>
                   </td>
                 </tr>
               </tbody>
@@ -431,36 +388,109 @@ const columns = computed(() => (props.isMobile ? mobileColumns.value : desktopCo
             <InfoCircleOutlined />
           </a-button>
         </a-popover>
-      </template>
-    </template>
-  </a-table>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.client-row-table {
-  margin: -10px 22px -21px;
+.client-list {
+  margin: -8px 0;
+  font-size: 13px;
 }
-:deep(.client-row-table .ant-table-tbody > tr > td) {
+
+.client-row {
+  display: grid;
+  grid-template-columns:
+    140px              /* actions */
+    60px               /* enable */
+    80px               /* online */
+    minmax(160px, 2fr) /* client identity */
+    minmax(160px, 2fr) /* traffic */
+    90px               /* all-time */
+    140px;             /* expiry */
+  gap: 12px;
+  align-items: center;
+  padding: 8px 16px;
+  border-top: 1px solid rgba(128, 128, 128, 0.12);
+}
+.client-row:last-child {
+  border-bottom: 1px solid rgba(128, 128, 128, 0.12);
+}
+.client-list-header {
+  font-weight: 500;
+  font-size: 12px;
+  opacity: 0.65;
   padding-top: 6px;
   padding-bottom: 6px;
+  border-top: none;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
-.row-icon {
-  font-size: 18px;
-  cursor: pointer;
-  padding: 0 4px;
-}
-.row-icon.danger,
-.danger {
-  color: #ff4d4f;
+/* Mobile collapses to a 3-column row: action menu, client info, info popover. */
+.client-list.is-mobile .client-row {
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  padding: 8px 12px;
 }
 
-.client-id-cell {
+.cell {
+  min-width: 0; /* allow grid children to shrink instead of overflowing */
+}
+.cell-actions,
+.cell-enable,
+.cell-online,
+.cell-alltime,
+.cell-mobile-info {
+  text-align: center;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cell-actions {
+  justify-content: flex-start;
+}
+.cell-client {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
 }
+.cell-traffic,
+.cell-expiry {
+  text-align: center;
+}
+.client-list-header .cell {
+  text-align: center;
+}
+.client-list-header .cell-actions,
+.client-list-header .cell-client {
+  text-align: left;
+}
+
+/* Action icons */
+.row-icon {
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+  color: inherit;
+  transition: color 120ms ease;
+}
+.row-icon:hover {
+  color: var(--ant-color-primary, #1677ff);
+}
+.row-icon.danger {
+  color: #ff4d4f;
+}
+.danger { color: #ff4d4f; }
+
+/* Client identity stack (badge + email + comment) */
 .client-id-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
   overflow: hidden;
 }
@@ -469,7 +499,6 @@ const columns = computed(() => (props.isMobile ? mobileColumns.value : desktopCo
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px;
   display: inline-block;
 }
 .client-comment {
@@ -478,28 +507,39 @@ const columns = computed(() => (props.isMobile ? mobileColumns.value : desktopCo
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px;
   display: inline-block;
 }
 
-.traffic-cell {
+/* Traffic / expiry inline bar:  text  |  progress  |  text */
+.usage-bar {
   display: grid;
-  grid-template-columns: minmax(60px, auto) 1fr minmax(50px, auto);
+  grid-template-columns: minmax(50px, auto) minmax(40px, 1fr) minmax(40px, auto);
   align-items: center;
   gap: 6px;
-  min-width: 180px;
 }
-.traffic-text {
+.usage-text {
   font-size: 12px;
   white-space: nowrap;
 }
-.traffic-bar {
-  min-width: 40px;
-}
-.traffic-bar.infinite :deep(.ant-progress-inner) {
-  background: rgba(122, 49, 111, 0.15);
+.usage-bar :deep(.ant-progress) {
+  margin: 0;
+  line-height: 1;
 }
 
+.infinite-tag {
+  min-width: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mobile popover content table */
 .text-center { text-align: center; }
 .num-cell { text-align: right; font-size: 12px; padding: 2px 6px; }
+
+/* Strip AD-Vue's default expanded-cell padding so the grid sits
+ * flush against the inbound row's left/right edges. */
+:deep(.ant-table-expanded-row > .ant-table-cell) {
+  padding: 0 !important;
+}
 </style>

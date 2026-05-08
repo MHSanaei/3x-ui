@@ -670,6 +670,17 @@ export class CookieManager {
     }
 }
 
+// AD-Vue 4 semantic palette — kept in one place so the client/inbound
+// rows match the rest of the panel. Purple is reserved for the
+// "no quota / no expiry / unlimited" sentinel since the AD-Vue green
+// would otherwise read as "healthy / under limit".
+const COLORS = {
+    success: '#52c41a', // AD-Vue success — within quota
+    warning: '#faad14', // AD-Vue gold — close to quota / about to expire
+    danger: '#ff4d4f',  // AD-Vue red — depleted / expired
+    purple: '#722ed1',  // AD-Vue purple — unlimited / no expiry
+};
+
 export class ColorUtils {
     static usageColor(data, threshold, total) {
         switch (true) {
@@ -684,10 +695,10 @@ export class ColorUtils {
 
     static clientUsageColor(clientStats, trafficDiff) {
         switch (true) {
-            case !clientStats || clientStats.total == 0: return "#7a316f";
-            case clientStats.up + clientStats.down < clientStats.total - trafficDiff: return "#008771";
-            case clientStats.up + clientStats.down < clientStats.total: return "#f37b24";
-            default: return "#cf3c3c";
+            case !clientStats || clientStats.total == 0: return COLORS.purple;
+            case clientStats.up + clientStats.down < clientStats.total - trafficDiff: return COLORS.success;
+            case clientStats.up + clientStats.down < clientStats.total: return COLORS.warning;
+            default: return COLORS.danger;
         }
     }
 
@@ -695,12 +706,12 @@ export class ColorUtils {
         if (!client.enable) return isDark ? '#2c3950' : '#bcbcbc';
         let now = new Date().getTime(), expiry = client.expiryTime;
         switch (true) {
-            case expiry === null: return "#7a316f";
-            case expiry < 0: return "#008771";
-            case expiry == 0: return "#7a316f";
-            case now < expiry - threshold: return "#008771";
-            case now < expiry: return "#f37b24";
-            default: return "#cf3c3c";
+            case expiry === null: return COLORS.purple;
+            case expiry < 0: return COLORS.success;
+            case expiry == 0: return COLORS.purple;
+            case now < expiry - threshold: return COLORS.success;
+            case now < expiry: return COLORS.warning;
+            default: return COLORS.danger;
         }
     }
 }
