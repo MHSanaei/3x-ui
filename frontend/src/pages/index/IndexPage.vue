@@ -1,29 +1,72 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { theme as antdTheme } from 'ant-design-vue';
 
+import { HttpUtil } from '@/utils';
 import { theme as themeState } from '@/composables/useTheme.js';
 import { useStatus } from '@/composables/useStatus.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
 import StatusCard from './StatusCard.vue';
+import XrayStatusCard from './XrayStatusCard.vue';
 
 // Drive AD-Vue 4's built-in dark algorithm from our reactive theme.
 const antdThemeConfig = computed(() => ({
   algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
 }));
 
-const { status, fetched } = useStatus();
+const { status, fetched, refresh } = useStatus();
 const { isMobile } = useMediaQuery();
+
+// `/panel/setting/defaultSettings` returns ipLimitEnable; the xray
+// card hides its log button when access logs are off.
+const ipLimitEnable = ref(false);
+HttpUtil.post('/panel/setting/defaultSettings').then((msg) => {
+  if (msg?.success && msg.obj) ipLimitEnable.value = !!msg.obj.ipLimitEnable;
+});
 
 // In production the Go panel injects basePath + requestUri into the
 // served HTML; during `npm run dev` we infer them from window.location.
 const basePath = window.__X_UI_BASE_PATH__ || '';
 const requestUri = window.location.pathname;
 
+const busy = ref(false);
+
+async function stopXray() {
+  busy.value = true;
+  try {
+    await HttpUtil.post('/panel/api/server/stopXrayService');
+    await refresh();
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function restartXray() {
+  busy.value = true;
+  try {
+    await HttpUtil.post('/panel/api/server/restartXrayService');
+    await refresh();
+  } finally {
+    busy.value = false;
+  }
+}
+
 function onOpenCpuHistory() {
-  // CPU-history modal is part of Phase 5c-iv. Leaving the emit wired
-  // so the button isn't dead-clickable; no-op until then.
+  // CPU-history modal is part of Phase 5c-iv. Wired emit so the
+  // button isn't dead-clickable; no-op until that phase ships.
+}
+
+function onOpenLogs() {
+  // Panel-logs modal — Phase 5c-iv.
+}
+
+function onOpenXrayLogs() {
+  // Xray-logs modal — Phase 5c-iv.
+}
+
+function onOpenVersionSwitch() {
+  // Xray version-picker modal — Phase 5c-iv.
 }
 </script>
 
@@ -41,14 +84,26 @@ function onOpenCpuHistory() {
               <a-col :span="24">
                 <StatusCard :status="status" :is-mobile="isMobile" @open-cpu-history="onOpenCpuHistory" />
               </a-col>
-              <a-col :span="24">
+              <a-col :sm="24" :lg="12">
+                <XrayStatusCard
+                  :status="status"
+                  :is-mobile="isMobile"
+                  :ip-limit-enable="ipLimitEnable"
+                  @stop-xray="stopXray"
+                  @restart-xray="restartXray"
+                  @open-xray-logs="onOpenXrayLogs"
+                  @open-logs="onOpenLogs"
+                  @open-version-switch="onOpenVersionSwitch"
+                />
+              </a-col>
+              <a-col :sm="24" :lg="12">
                 <a-card hoverable>
                   <a-space direction="vertical" :size="8" style="width: 100%">
                     <h3 style="margin: 0">Dashboard scaffold</h3>
                     <p style="margin: 0; opacity: 0.7">
-                      Phase 5c-ii adds the live status cards above (CPU / memory / swap / disk).
-                      Xray status, panel update modal, logs, and the custom-geo section
-                      arrive in 5c-iii through 5c-v.
+                      Phase 5c-iii wires the xray status card on the left.
+                      Panel update modal, logs / xray-logs / backup, and the
+                      custom-geo section arrive in 5c-iv and 5c-v.
                     </p>
                   </a-space>
                 </a-card>

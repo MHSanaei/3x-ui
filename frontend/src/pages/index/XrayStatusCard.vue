@@ -1,0 +1,136 @@
+<script setup>
+import {
+  BarsOutlined,
+  PoweroffOutlined,
+  ReloadOutlined,
+  ToolOutlined,
+} from '@ant-design/icons-vue';
+
+defineProps({
+  status: { type: Object, required: true },
+  isMobile: { type: Boolean, default: false },
+  ipLimitEnable: { type: Boolean, default: false },
+});
+
+defineEmits(['stop-xray', 'restart-xray', 'open-xray-logs', 'open-version-switch']);
+
+// Map xray.color → which animation class to apply on the badge dot.
+// The legacy .xray-*-animation classes only override the badge ring
+// color; the actual pulsing comes from .xray-processing-animation
+// (which animates .ant-badge-status-dot via @keyframes runningAnimation).
+function badgeAnimationClass(color) {
+  if (color === 'green') return 'xray-running-animation';
+  if (color === 'orange') return 'xray-stop-animation';
+  if (color === 'red') return 'xray-error-animation';
+  return 'xray-processing-animation';
+}
+</script>
+
+<template>
+  <a-card hoverable>
+    <template #title>
+      <a-space direction="horizontal">
+        <span>Xray status</span>
+        <a-tag v-if="isMobile && status.xray.version && status.xray.version !== 'Unknown'" color="green">
+          v{{ status.xray.version }}
+        </a-tag>
+      </a-space>
+    </template>
+
+    <template #extra>
+      <template v-if="status.xray.state !== 'error'">
+        <a-badge
+          status="processing"
+          :class="['xray-processing-animation', badgeAnimationClass(status.xray.color)]"
+          :text="status.xray.stateMsg"
+          :color="status.xray.color"
+        />
+      </template>
+      <template v-else>
+        <a-popover>
+          <template #title>
+            <a-row type="flex" align="middle" justify="space-between">
+              <a-col><span>Xray error</span></a-col>
+              <a-col>
+                <BarsOutlined class="cursor-pointer" @click="$emit('open-logs')" />
+              </a-col>
+            </a-row>
+          </template>
+          <template #content>
+            <span v-for="(line, i) in (status.xray.errorMsg || '').split('\n')" :key="i" class="error-line">
+              {{ line }}
+            </span>
+          </template>
+          <a-badge
+            status="processing"
+            :text="status.xray.stateMsg"
+            :color="status.xray.color"
+            :class="['xray-processing-animation', 'xray-error-animation']"
+          />
+        </a-popover>
+      </template>
+    </template>
+
+    <template #actions>
+      <a-space v-if="ipLimitEnable" direction="horizontal" class="action" @click="$emit('open-xray-logs')">
+        <BarsOutlined />
+        <span v-if="!isMobile">Logs</span>
+      </a-space>
+      <a-space direction="horizontal" class="action" @click="$emit('stop-xray')">
+        <PoweroffOutlined />
+        <span v-if="!isMobile">Stop xray</span>
+      </a-space>
+      <a-space direction="horizontal" class="action" @click="$emit('restart-xray')">
+        <ReloadOutlined />
+        <span v-if="!isMobile">Restart xray</span>
+      </a-space>
+      <a-space direction="horizontal" class="action" @click="$emit('open-version-switch')">
+        <ToolOutlined />
+        <span v-if="!isMobile">
+          {{ status.xray.version && status.xray.version !== 'Unknown'
+            ? `v${status.xray.version}`
+            : 'Switch xray' }}
+        </span>
+      </a-space>
+    </template>
+  </a-card>
+</template>
+
+<style scoped>
+.action {
+  cursor: pointer;
+  justify-content: center;
+}
+
+.error-line {
+  display: block;
+  max-width: 400px;
+  white-space: pre-wrap;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+</style>
+
+<style>
+/* Legacy xray-*-animation classes — they need to be global so they
+ * pierce the AD-Vue badge's internal DOM (.ant-badge-status-*). */
+.xray-processing-animation .ant-badge-status-dot {
+  animation: xray-pulse 1.2s linear infinite;
+}
+.xray-running-animation .ant-badge-status-processing::after {
+  border-color: var(--color-primary-100, #008771);
+}
+.xray-stop-animation .ant-badge-status-processing::after {
+  border-color: #fa8c16;
+}
+.xray-error-animation .ant-badge-status-processing::after {
+  border-color: #f5222d;
+}
+
+@keyframes xray-pulse {
+  0%, 50%, 100% { transform: scale(1); opacity: 1; }
+  10% { transform: scale(1.5); opacity: 0.2; }
+}
+</style>
