@@ -1,7 +1,6 @@
 import { createApp } from 'vue';
 import Antd, { message } from 'ant-design-vue';
 import 'ant-design-vue/dist/reset.css';
-import '@/styles/legacy.css';
 
 import { setupAxios } from '@/api/axios-init.js';
 import '@/composables/useTheme.js';

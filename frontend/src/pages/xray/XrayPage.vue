@@ -1,7 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { theme as antdTheme, Modal } from 'ant-design-vue';
+import { Modal, message } from 'ant-design-vue';
 import {
   SettingOutlined,
   SwapOutlined,
@@ -12,9 +12,8 @@ import {
   QuestionCircleOutlined,
 } from '@ant-design/icons-vue';
 
-import { theme as themeState } from '@/composables/useTheme.js';
+import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
-import { message } from 'ant-design-vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import BasicsTab from './BasicsTab.vue';
 import RoutingTab from './RoutingTab.vue';
@@ -26,17 +25,6 @@ import NordModal from './NordModal.vue';
 import { useXraySetting } from './useXraySetting.js';
 
 const { t } = useI18n();
-
-// Phase 6-i: scaffold + advanced JSON tab. Other tabs (Basics, Routing,
-// Outbounds, Balancers, DNS) land in subsequent 6-ii…vi commits — they
-// each need their own tree of structured forms or a dedicated modal.
-// For now they show an a-empty placeholder so the navigation is
-// stable and users can still edit the full config via the Advanced
-// (JSON) tab.
-
-const antdThemeConfig = computed(() => ({
-  algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-}));
 
 const {
   fetched,

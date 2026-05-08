@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { theme as antdTheme } from 'ant-design-vue';
 import {
   BarsOutlined,
   ControlOutlined,
@@ -19,7 +18,7 @@ import {
 const { t } = useI18n();
 
 import { HttpUtil, SizeFormatter, TimeFormatter } from '@/utils';
-import { theme as themeState } from '@/composables/useTheme.js';
+import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
 import { useStatus } from '@/composables/useStatus.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
@@ -33,11 +32,6 @@ import BackupModal from './BackupModal.vue';
 import CpuHistoryModal from './CpuHistoryModal.vue';
 import XrayLogModal from './XrayLogModal.vue';
 import VersionModal from './VersionModal.vue';
-
-// Drive AD-Vue 4's built-in dark algorithm from our reactive theme.
-const antdThemeConfig = computed(() => ({
-  algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-}));
 
 const { status, fetched, refresh } = useStatus();
 const { isMobile } = useMediaQuery();

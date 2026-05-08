@@ -1,7 +1,7 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { theme as antdTheme, Modal } from 'ant-design-vue';
+import { Modal } from 'ant-design-vue';
 import {
   SettingOutlined,
   SafetyOutlined,
@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons-vue';
 
 import { HttpUtil, PromiseUtil } from '@/utils';
-import { theme as themeState } from '@/composables/useTheme.js';
+import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
 import { useAllSetting } from './useAllSetting.js';
@@ -22,10 +22,6 @@ import SubscriptionGeneralTab from './SubscriptionGeneralTab.vue';
 import SubscriptionFormatsTab from './SubscriptionFormatsTab.vue';
 
 const { t } = useI18n();
-
-const antdThemeConfig = computed(() => ({
-  algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-}));
 
 const { fetched, spinning, saveDisabled, allSetting, fetchAll, saveAll } = useAllSetting();
 const { isMobile } = useMediaQuery();

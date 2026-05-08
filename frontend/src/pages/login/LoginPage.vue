@@ -1,21 +1,17 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { UserOutlined, LockOutlined, KeyOutlined, SettingOutlined } from '@ant-design/icons-vue';
-import { theme as antdTheme } from 'ant-design-vue';
 
 import { HttpUtil } from '@/utils';
-import { currentTheme, theme as themeState } from '@/composables/useTheme.js';
+import {
+  antdThemeConfig,
+  currentTheme,
+  theme as themeState,
+} from '@/composables/useTheme.js';
 import ThemeSwitchLogin from '@/components/ThemeSwitchLogin.vue';
 
 const { t } = useI18n();
-
-// Drive AD-Vue 4's built-in dark algorithm from our useTheme state.
-// This re-themes every AD-Vue component without depending on the
-// legacy panel's custom.min.css.
-const antdThemeConfig = computed(() => ({
-  algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-}));
 
 // Cycle the title between "Hello" and "Welcome" — matches the legacy
 // panel's Vue 2 .is-visible / .is-hidden DOM-class swap, but driven

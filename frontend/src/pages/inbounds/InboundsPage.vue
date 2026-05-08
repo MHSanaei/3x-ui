@@ -1,7 +1,7 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { theme as antdTheme, Modal, message } from 'ant-design-vue';
+import { Modal, message } from 'ant-design-vue';
 import {
   SwapOutlined,
   PieChartOutlined,
@@ -12,7 +12,7 @@ import {
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
 import { Inbound } from '@/models/inbound.js';
-import { theme as themeState } from '@/composables/useTheme.js';
+import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
 import CustomStatistic from '@/components/CustomStatistic.vue';
@@ -27,10 +27,6 @@ import PromptModal from '@/components/PromptModal.vue';
 import { useInbounds } from './useInbounds.js';
 
 const { t } = useI18n();
-
-const antdThemeConfig = computed(() => ({
-  algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-}));
 
 const {
   fetched,

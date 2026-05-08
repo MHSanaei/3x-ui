@@ -1,4 +1,5 @@
 import { reactive, computed, watchEffect } from 'vue';
+import { theme as antdTheme } from 'ant-design-vue';
 
 // Single shared theme state. `import { theme } from '@/composables/useTheme.js'`
 // from any component to read/toggle. Boot side-effects (apply current
@@ -23,6 +24,27 @@ export const theme = reactive({
 });
 
 export const currentTheme = computed(() => (theme.isDark ? 'dark' : 'light'));
+
+// AD-Vue 4 theme config consumed by every page's <a-config-provider>.
+// Three modes — light / dark / ultra-dark — all share AD-Vue's vanilla
+// blue primary. Ultra-dark layers deeper background tokens on top of
+// darkAlgorithm so layouts/cards/popups all darken together.
+const ULTRA_DARK_TOKENS = {
+  colorBgBase: '#000',
+  colorBgLayout: '#000',
+  colorBgContainer: '#0a0a0a',
+  colorBgElevated: '#141414',
+};
+
+export const antdThemeConfig = computed(() => {
+  if (!theme.isDark) {
+    return { algorithm: antdTheme.defaultAlgorithm };
+  }
+  return {
+    algorithm: antdTheme.darkAlgorithm,
+    token: theme.isUltra ? ULTRA_DARK_TOKENS : undefined,
+  };
+});
 
 export function toggleTheme() {
   theme.isDark = !theme.isDark;
