@@ -15,6 +15,7 @@ const { t } = useI18n();
 const props = defineProps({
   open: { type: Boolean, default: false },
   dbInbound: { type: Object, default: null },
+  client: { type: Object, default: null },
   remarkModel: { type: String, default: '-ieo' },
 });
 
@@ -28,13 +29,16 @@ watch(() => props.open, (next) => {
   if (!next || !props.dbInbound) return;
   const inbound = props.dbInbound.toInbound();
   if (inbound.protocol === Protocols.WIREGUARD) {
-    wireguardConfigs.value = inbound.genWireguardConfigs(props.dbInbound.remark).split('\r\n');
-    wireguardLinks.value = inbound.genWireguardLinks(props.dbInbound.remark).split('\r\n');
+    const peerRemark = props.client?.email
+      ? `${props.dbInbound.remark}-${props.client.email}`
+      : props.dbInbound.remark;
+    wireguardConfigs.value = inbound.genWireguardConfigs(peerRemark).split('\r\n');
+    wireguardLinks.value = inbound.genWireguardLinks(peerRemark).split('\r\n');
     links.value = [];
   } else {
-    // SS single-user — pass null client; genAllLinks falls back to
-    // the inbound's settings.
-    links.value = inbound.genAllLinks(props.dbInbound.remark, props.remarkModel, null);
+    // When a client is provided we generate per-client share links;
+    // otherwise (single-user SS) fall back to the inbound's settings.
+    links.value = inbound.genAllLinks(props.dbInbound.remark, props.remarkModel, props.client);
     wireguardConfigs.value = [];
     wireguardLinks.value = [];
   }

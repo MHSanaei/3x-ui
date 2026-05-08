@@ -140,6 +140,25 @@ const canEnableTls = computed(() => inbound.value?.canEnableTls?.() === true);
 const canEnableReality = computed(() => inbound.value?.canEnableReality?.() === true);
 const canEnableTlsFlow = computed(() => inbound.value?.canEnableTlsFlow?.() === true);
 
+// VLESS/Trojan TLS fallbacks — surfaced in the protocol tab when the
+// inbound is on TCP and (for VLESS) using no Xray-side encryption.
+const showFallbacks = computed(() => {
+  if (!inbound.value) return false;
+  if (inbound.value.stream?.network !== 'tcp') return false;
+  if (inbound.value.protocol === Protocols.VLESS) {
+    const enc = inbound.value.settings?.encryption;
+    return !enc || enc === 'none';
+  }
+  return inbound.value.protocol === Protocols.TROJAN;
+});
+
+function addFallback() {
+  inbound.value?.settings?.addFallback?.();
+}
+function delFallback(idx) {
+  inbound.value?.settings?.delFallback?.(idx);
+}
+
 // Date / GB bridges (legacy used moment via _expiryTime; we go direct).
 const expiryDate = computed({
   get: () => (dbForm.value?.expiryTime > 0 ? dayjs(dbForm.value.expiryTime) : null),
@@ -867,6 +886,107 @@ watch(
             </a-form-item>
           </div>
         </a-form>
+
+        <!-- ============== Fallbacks (VLESS/Trojan over TCP) ============== -->
+        <template v-if="showFallbacks">
+          <a-divider style="margin: 12px 0" />
+          <div class="fallbacks-header">
+            <a-tooltip
+              title="Route incoming TLS traffic to a backend when it doesn't match a valid VLESS/Trojan handshake. Match by SNI, ALPN, and HTTP path; the most precise rule wins. Fallbacks require TCP+TLS transport."
+            >
+              <span class="fallbacks-title">
+                Fallbacks ({{ inbound.settings.fallbacks.length }})
+              </span>
+            </a-tooltip>
+            <a-button type="primary" size="small" @click="addFallback">
+              <template #icon><PlusOutlined /></template>
+              Add
+            </a-button>
+          </div>
+
+          <a-form
+            v-for="(fallback, idx) in inbound.settings.fallbacks"
+            :key="idx"
+            :colon="false"
+            :label-col="{ md: { span: 8 } }"
+            :wrapper-col="{ md: { span: 14 } }"
+          >
+            <a-divider style="margin: 0">
+              Fallback {{ idx + 1 }}
+              <DeleteOutlined class="danger-icon" @click="delFallback(idx)" />
+            </a-divider>
+
+            <a-form-item>
+              <template #label>
+                <a-tooltip title="Match TLS SNI (server name). Leave empty to match any SNI.">
+                  SNI
+                </a-tooltip>
+              </template>
+              <a-input v-model:value.trim="fallback.name" placeholder="any (leave empty)" />
+            </a-form-item>
+
+            <a-form-item>
+              <template #label>
+                <a-tooltip
+                  title="Match TLS ALPN. 'any' = no ALPN constraint. Use h2/http/1.1 split when the inbound advertises both."
+                >
+                  ALPN
+                </a-tooltip>
+              </template>
+              <a-select v-model:value="fallback.alpn">
+                <a-select-option value="">any</a-select-option>
+                <a-select-option value="h2">h2</a-select-option>
+                <a-select-option value="http/1.1">http/1.1</a-select-option>
+              </a-select>
+            </a-form-item>
+
+            <a-form-item
+              :validate-status="fallback.path && !fallback.path.startsWith('/') ? 'error' : ''"
+              :help="fallback.path && !fallback.path.startsWith('/') ? 'Path must start with /' : ''"
+            >
+              <template #label>
+                <a-tooltip
+                  title="Match the HTTP request path of the first packet. Must start with '/'. Leave empty to match any."
+                >
+                  Path
+                </a-tooltip>
+              </template>
+              <a-input v-model:value.trim="fallback.path" placeholder="any (leave empty) or /ws" />
+            </a-form-item>
+
+            <a-form-item
+              :validate-status="!fallback.dest ? 'error' : ''"
+              :help="!fallback.dest ? 'Destination is required' : ''"
+            >
+              <template #label>
+                <a-tooltip
+                  title="Where matching traffic is forwarded. Accepts a port number (80), an addr:port (127.0.0.1:8080), or a Unix socket path (/dev/shm/x.sock or @abstract)."
+                >
+                  Destination
+                </a-tooltip>
+              </template>
+              <a-input
+                v-model:value.trim="fallback.dest"
+                placeholder="80 | 127.0.0.1:8080 | /dev/shm/x.sock"
+              />
+            </a-form-item>
+
+            <a-form-item>
+              <template #label>
+                <a-tooltip
+                  title="PROXY protocol version sent to the destination. Off (0) for plain TCP; v1/v2 to preserve client IP if the backend supports it."
+                >
+                  PROXY
+                </a-tooltip>
+              </template>
+              <a-select v-model:value="fallback.xver">
+                <a-select-option :value="0">Off</a-select-option>
+                <a-select-option :value="1">v1</a-select-option>
+                <a-select-option :value="2">v2</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-form>
+        </template>
       </a-tab-pane>
 
       <!-- ============================== STREAM ============================== -->
@@ -1621,6 +1741,17 @@ watch(
   padding: 4px 8px;
   text-align: left;
   border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+}
+
+.fallbacks-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+.fallbacks-title {
+  font-weight: 500;
+  flex: 1;
 }
 
 .wg-peer {

@@ -77,6 +77,7 @@ const infoClientIndex = ref(0);
 
 const qrOpen = ref(false);
 const qrDbInbound = ref(null);
+const qrClient = ref(null);
 
 // === Shared text + prompt modal state =================================
 const textOpen = ref(false);
@@ -266,11 +267,9 @@ function onEditClient({ dbInbound, client }) {
 }
 
 function onQrcodeClient({ dbInbound, client }) {
-  // Reuse the inbound info modal focused on the chosen client — that's
-  // where per-client share links and the per-link QRs live.
-  infoDbInbound.value = checkFallback(dbInbound);
-  infoClientIndex.value = findClientIndex(dbInbound, client);
-  infoOpen.value = true;
+  qrDbInbound.value = checkFallback(dbInbound);
+  qrClient.value = client || null;
+  qrOpen.value = true;
 }
 
 function onInfoClient({ dbInbound, client }) {
@@ -464,6 +463,7 @@ function onRowAction({ key, dbInbound }) {
       break;
     case 'qrcode':
       qrDbInbound.value = checkFallback(dbInbound);
+      qrClient.value = null;
       qrOpen.value = true;
       break;
     case 'export':
@@ -645,6 +645,7 @@ function onRowAction({ key, dbInbound }) {
       <QrCodeModal
         v-model:open="qrOpen"
         :db-inbound="qrDbInbound"
+        :client="qrClient"
         :remark-model="remarkModel"
       />
 

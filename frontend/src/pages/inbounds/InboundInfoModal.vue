@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CopyOutlined, SyncOutlined, DeleteOutlined } from '@ant-design/icons-vue';
+import { CopyOutlined, SyncOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 
 import {
@@ -10,10 +10,10 @@ import {
   SizeFormatter,
   ColorUtils,
   ClipboardManager,
+  FileManager,
 } from '@/utils';
 import { Inbound, Protocols } from '@/models/inbound.js';
 import InfinityIcon from '@/components/InfinityIcon.vue';
-import QrPanel from './QrPanel.vue';
 
 const { t } = useI18n();
 
@@ -168,6 +168,13 @@ async function copyText(value) {
   if (ok) message.success(t('copied'));
 }
 
+function downloadText(content, filename) {
+  FileManager.downloadTextFile(content, filename);
+}
+
+// Active tab in the 3-pane layout. Reset on each open below.
+const activeTab = ref('inbound');
+
 // === Build state on open ===========================================
 function genSubLink(subId) {
   return (props.subSettings.subURI || '') + subId;
@@ -180,6 +187,7 @@ watch(() => props.open, (next) => {
   if (!next) return;
   if (!props.dbInbound) return;
 
+  activeTab.value = 'inbound';
   dbInbound.value = props.dbInbound;
   inbound.value = props.dbInbound.toInbound();
 
@@ -242,6 +250,12 @@ const securityLabel = computed(() => inbound.value?.stream?.security || 'none');
 const securityColor = computed(() => (securityLabel.value === 'none' ? 'red' : 'green'));
 const encryptionLabel = computed(() => inbound.value?.settings?.encryption || '');
 const serverNameLabel = computed(() => inbound.value?.serverName || '');
+
+// === Tab visibility =================================================
+const showClientTab = computed(() => !!clientSettings.value);
+const showSubscriptionTab = computed(
+  () => !!(props.subSettings.enable && clientSettings.value?.subId),
+);
 </script>
 
 <template>
@@ -253,442 +267,496 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
     @cancel="close"
   >
     <template v-if="dbInbound && inbound">
-      <!-- ============== Inbound summary ============== -->
-      <a-row :gutter="[12, 12]">
-        <a-col :xs="24" :md="12">
-          <table class="info-table">
+      <a-tabs v-model:active-key="activeTab">
+        <!-- ============================================================
+             TAB 1 — Inbound: protocol, transport, security, per-protocol
+        ============================================================== -->
+        <a-tab-pane key="inbound" :tab="t('pages.xray.rules.inbound')">
+          <dl class="info-list">
+            <div class="info-row">
+              <dt>{{ t('pages.inbounds.protocol') }}</dt>
+              <dd><a-tag color="purple">{{ dbInbound.protocol }}</a-tag></dd>
+            </div>
+            <div class="info-row">
+              <dt>{{ t('pages.inbounds.address') }}</dt>
+              <dd><a-tag class="value-tag">{{ dbInbound.address }}</a-tag></dd>
+            </div>
+            <div class="info-row">
+              <dt>{{ t('pages.inbounds.port') }}</dt>
+              <dd><a-tag>{{ dbInbound.port }}</a-tag></dd>
+            </div>
+
+            <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
+              <div class="info-row">
+                <dt>{{ t('transmission') }}</dt>
+                <dd><a-tag color="green">{{ networkLabel }}</a-tag></dd>
+              </div>
+              <template v-if="inbound.isTcp || inbound.isWs || inbound.isHttpupgrade || inbound.isXHTTP">
+                <div class="info-row">
+                  <dt>{{ t('host') }}</dt>
+                  <dd>
+                    <a-tag v-if="inbound.host" class="value-tag">{{ inbound.host }}</a-tag>
+                    <a-tag v-else color="orange">{{ t('none') }}</a-tag>
+                  </dd>
+                </div>
+                <div class="info-row">
+                  <dt>{{ t('path') }}</dt>
+                  <dd>
+                    <a-tag v-if="inbound.path" class="value-tag">{{ inbound.path }}</a-tag>
+                    <a-tag v-else color="orange">{{ t('none') }}</a-tag>
+                  </dd>
+                </div>
+              </template>
+              <template v-if="inbound.isXHTTP">
+                <div class="info-row">
+                  <dt>Mode</dt>
+                  <dd><a-tag>{{ inbound.stream.xhttp.mode }}</a-tag></dd>
+                </div>
+              </template>
+              <template v-if="inbound.isGrpc">
+                <div class="info-row">
+                  <dt>grpc serviceName</dt>
+                  <dd><a-tag class="value-tag">{{ inbound.serviceName }}</a-tag></dd>
+                </div>
+                <div class="info-row">
+                  <dt>grpc multiMode</dt>
+                  <dd><a-tag>{{ inbound.stream.grpc.multiMode }}</a-tag></dd>
+                </div>
+              </template>
+            </template>
+
+            <template v-if="dbInbound.hasLink()">
+              <div class="info-row">
+                <dt>{{ t('security') }}</dt>
+                <dd><a-tag :color="securityColor">{{ securityLabel }}</a-tag></dd>
+              </div>
+              <div v-if="encryptionLabel" class="info-row">
+                <dt>{{ t('encryption') }}</dt>
+                <dd class="value-block">
+                  <code class="value-code">{{ encryptionLabel }}</code>
+                  <a-tooltip :title="t('copy')">
+                    <a-button size="small" class="value-copy" @click="copyText(encryptionLabel)">
+                      <template #icon><CopyOutlined /></template>
+                    </a-button>
+                  </a-tooltip>
+                </dd>
+              </div>
+              <div v-if="securityLabel !== 'none'" class="info-row">
+                <dt>{{ t('domainName') }}</dt>
+                <dd>
+                  <a-tag v-if="serverNameLabel" color="green" class="value-tag">{{ serverNameLabel }}</a-tag>
+                  <a-tag v-else color="orange">{{ t('none') }}</a-tag>
+                </dd>
+              </div>
+            </template>
+          </dl>
+
+          <!-- Shadowsocks single-user details -->
+          <table v-if="dbInbound.isSS" class="info-table block">
             <tbody>
               <tr>
-                <td>{{ t('pages.inbounds.protocol') }}</td>
-                <td><a-tag color="purple">{{ dbInbound.protocol }}</a-tag></td>
+                <td>{{ t('encryption') }}</td>
+                <td><a-tag color="green">{{ inbound.settings.method }}</a-tag></td>
+              </tr>
+              <tr v-if="inbound.isSS2022">
+                <td>{{ t('password') }}</td>
+                <td><a-tag class="info-large-tag">{{ inbound.settings.password }}</a-tag></td>
               </tr>
               <tr>
-                <td>{{ t('pages.inbounds.address') }}</td>
-                <td>
-                  <a-tooltip :title="dbInbound.address">
-                    <a-tag class="info-large-tag">{{ dbInbound.address }}</a-tag>
-                  </a-tooltip>
-                </td>
-              </tr>
-              <tr>
-                <td>{{ t('pages.inbounds.port') }}</td>
-                <td><a-tag>{{ dbInbound.port }}</a-tag></td>
+                <td>{{ t('pages.inbounds.network') }}</td>
+                <td><a-tag color="green">{{ inbound.settings.network }}</a-tag></td>
               </tr>
             </tbody>
           </table>
-        </a-col>
 
-        <a-col :xs="24" :md="12">
-          <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
-            <table class="info-table">
-              <tbody>
+          <!-- Tunnel -->
+          <table v-if="inbound.protocol === Protocols.TUNNEL" class="info-table protocol-table">
+            <thead>
+              <tr>
+                <th>{{ t('pages.inbounds.targetAddress') }}</th>
+                <th>{{ t('pages.inbounds.destinationPort') }}</th>
+                <th>{{ t('pages.inbounds.network') }}</th>
+                <th>FollowRedirect</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><a-tag color="green">{{ inbound.settings.address }}</a-tag></td>
+                <td><a-tag color="green">{{ inbound.settings.port }}</a-tag></td>
+                <td><a-tag color="green">{{ inbound.settings.network }}</a-tag></td>
+                <td><a-tag color="green">{{ inbound.settings.followRedirect }}</a-tag></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Mixed -->
+          <table v-if="dbInbound.isMixed" class="info-table protocol-table">
+            <thead>
+              <tr>
+                <th>Auth</th>
+                <th>UDP</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><a-tag color="green">{{ inbound.settings.auth }}</a-tag></td>
+                <td><a-tag color="green">{{ inbound.settings.udp }}</a-tag></td>
+                <td><a-tag color="green">{{ inbound.settings.ip }}</a-tag></td>
+              </tr>
+              <template v-if="inbound.settings.auth === 'password'">
                 <tr>
-                  <td>{{ t('transmission') }}</td>
-                  <td><a-tag color="green">{{ networkLabel }}</a-tag></td>
+                  <td></td>
+                  <td>{{ t('username') }}</td>
+                  <td>{{ t('password') }}</td>
                 </tr>
-                <template v-if="inbound.isTcp || inbound.isWs || inbound.isHttpupgrade || inbound.isXHTTP">
-                  <tr>
-                    <td>{{ t('host') }}</td>
-                    <td>
-                      <a-tag v-if="inbound.host" class="info-large-tag">{{ inbound.host }}</a-tag>
-                      <a-tag v-else color="orange">{{ t('none') }}</a-tag>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>{{ t('path') }}</td>
-                    <td>
-                      <a-tag v-if="inbound.path" class="info-large-tag">{{ inbound.path }}</a-tag>
-                      <a-tag v-else color="orange">{{ t('none') }}</a-tag>
-                    </td>
-                  </tr>
-                </template>
-                <template v-if="inbound.isXHTTP">
-                  <tr>
-                    <td>Mode</td>
-                    <td><a-tag>{{ inbound.stream.xhttp.mode }}</a-tag></td>
-                  </tr>
-                </template>
-                <template v-if="inbound.isGrpc">
-                  <tr>
-                    <td>grpc serviceName</td>
-                    <td><a-tag class="info-large-tag">{{ inbound.serviceName }}</a-tag></td>
-                  </tr>
-                  <tr>
-                    <td>grpc multiMode</td>
-                    <td><a-tag>{{ inbound.stream.grpc.multiMode }}</a-tag></td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
+                <tr v-for="(account, idx) in inbound.settings.accounts" :key="idx">
+                  <td>{{ idx }}</td>
+                  <td><a-tag color="green">{{ account.user }}</a-tag></td>
+                  <td><a-tag color="green">{{ account.pass }}</a-tag></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+
+          <!-- HTTP accounts -->
+          <table v-if="dbInbound.isHTTP" class="info-table protocol-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>{{ t('username') }}</th>
+                <th>{{ t('password') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(account, idx) in inbound.settings.accounts" :key="idx">
+                <td>{{ idx }}</td>
+                <td><a-tag color="green">{{ account.user }}</a-tag></td>
+                <td><a-tag color="green">{{ account.pass }}</a-tag></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- WireGuard server config + peers -->
+          <table v-if="dbInbound.isWireguard" class="info-table protocol-table wg-table">
+            <tbody>
+              <tr>
+                <td>Secret key</td>
+                <td>{{ inbound.settings.secretKey }}</td>
+              </tr>
+              <tr>
+                <td>Public key</td>
+                <td>{{ inbound.settings.pubKey }}</td>
+              </tr>
+              <tr>
+                <td>MTU</td>
+                <td>{{ inbound.settings.mtu }}</td>
+              </tr>
+              <tr>
+                <td>No-kernel TUN</td>
+                <td>{{ inbound.settings.noKernelTun }}</td>
+              </tr>
+              <template v-for="(peer, idx) in inbound.settings.peers" :key="idx">
+                <tr>
+                  <td colspan="2"><a-divider>Peer {{ idx + 1 }}</a-divider></td>
+                </tr>
+                <tr>
+                  <td>Secret key</td>
+                  <td>{{ peer.privateKey }}</td>
+                </tr>
+                <tr>
+                  <td>Public key</td>
+                  <td>{{ peer.publicKey }}</td>
+                </tr>
+                <tr>
+                  <td>PSK</td>
+                  <td>{{ peer.psk }}</td>
+                </tr>
+                <tr>
+                  <td>Allowed IPs</td>
+                  <td>{{ (peer.allowedIPs || []).join(',') }}</td>
+                </tr>
+                <tr>
+                  <td>Keep alive</td>
+                  <td>{{ peer.keepAlive }}</td>
+                </tr>
+                <tr v-if="wireguardConfigs[idx]">
+                  <td colspan="2">
+                    <div class="link-panel">
+                      <div class="link-panel-header">
+                        <a-tag color="green">Peer {{ idx + 1 }} config</a-tag>
+                        <a-tooltip :title="t('copy')">
+                          <a-button size="small" @click="copyText(wireguardConfigs[idx])">
+                            <template #icon><CopyOutlined /></template>
+                          </a-button>
+                        </a-tooltip>
+                        <a-tooltip :title="t('download')">
+                          <a-button
+                            size="small"
+                            @click="downloadText(wireguardConfigs[idx], `peer-${idx + 1}.conf`)"
+                          >
+                            <template #icon><DownloadOutlined /></template>
+                          </a-button>
+                        </a-tooltip>
+                      </div>
+                      <code class="link-panel-text">{{ wireguardConfigs[idx] }}</code>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="wireguardLinks[idx]">
+                  <td colspan="2">
+                    <div class="link-panel">
+                      <div class="link-panel-header">
+                        <a-tag color="green">Peer {{ idx + 1 }} link</a-tag>
+                        <a-tooltip :title="t('copy')">
+                          <a-button size="small" @click="copyText(wireguardLinks[idx])">
+                            <template #icon><CopyOutlined /></template>
+                          </a-button>
+                        </a-tooltip>
+                      </div>
+                      <code class="link-panel-text">{{ wireguardLinks[idx] }}</code>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+
+          <!-- Single-user SS share link (no QR) -->
+          <template v-if="dbInbound.isSS && !inbound.isSSMultiUser && links.length > 0">
+            <a-divider>{{ t('pages.inbounds.copyLink') }}</a-divider>
+            <div
+              v-for="(link, idx) in links"
+              :key="idx"
+              class="link-panel"
+            >
+              <div class="link-panel-header">
+                <a-tag color="green">{{ link.remark || `Link ${idx + 1}` }}</a-tag>
+                <a-tooltip :title="t('copy')">
+                  <a-button size="small" @click="copyText(link.link)">
+                    <template #icon><CopyOutlined /></template>
+                  </a-button>
+                </a-tooltip>
+              </div>
+              <code class="link-panel-text">{{ link.link }}</code>
+            </div>
           </template>
-        </a-col>
-      </a-row>
+        </a-tab-pane>
 
-      <!-- ============== Security / encryption / SNI ============== -->
-      <div v-if="dbInbound.hasLink()" class="security-line">
-        <span>{{ t('security') }}</span>
-        <a-tag :color="securityColor">{{ securityLabel }}</a-tag>
-        <span v-if="encryptionLabel">{{ t('encryption') }}</span>
-        <a-tag
-          v-if="encryptionLabel"
-          class="info-large-tag"
-          :color="encryptionLabel !== 'none' ? 'green' : 'red'"
-        >
-          {{ encryptionLabel }}
-        </a-tag>
-        <a-tooltip v-if="encryptionLabel" :title="t('copy')">
-          <a-button size="small" @click="copyText(encryptionLabel)">
-            <template #icon><CopyOutlined /></template>
-          </a-button>
-        </a-tooltip>
-        <template v-if="securityLabel !== 'none'">
-          <span>{{ t('domainName') }}</span>
-          <a-tag v-if="serverNameLabel" color="green">{{ serverNameLabel }}</a-tag>
-          <a-tag v-else color="orange">{{ t('none') }}</a-tag>
-        </template>
-      </div>
-
-      <!-- ============== Shadowsocks single-user details ============== -->
-      <table v-if="dbInbound.isSS" class="info-table block">
-        <tbody>
-          <tr>
-            <td>{{ t('encryption') }}</td>
-            <td><a-tag color="green">{{ inbound.settings.method }}</a-tag></td>
-          </tr>
-          <tr v-if="inbound.isSS2022">
-            <td>{{ t('password') }}</td>
-            <td><a-tag class="info-large-tag">{{ inbound.settings.password }}</a-tag></td>
-          </tr>
-          <tr>
-            <td>{{ t('pages.inbounds.network') }}</td>
-            <td><a-tag color="green">{{ inbound.settings.network }}</a-tag></td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- ============== Per-client info (multi-user) ============== -->
-      <template v-if="clientSettings">
-        <a-divider>{{ t('pages.inbounds.client') }}</a-divider>
-        <table class="info-table block">
-          <tbody>
-            <tr>
-              <td>{{ t('pages.inbounds.email') }}</td>
-              <td>
-                <a-tag v-if="clientSettings.email" color="green">{{ clientSettings.email }}</a-tag>
-                <a-tag v-else color="red">{{ t('none') }}</a-tag>
-              </td>
-            </tr>
-            <tr v-if="clientSettings.id">
-              <td>ID</td>
-              <td><a-tag>{{ clientSettings.id }}</a-tag></td>
-            </tr>
-            <tr v-if="dbInbound.isVMess">
-              <td>{{ t('security') }}</td>
-              <td><a-tag>{{ clientSettings.security }}</a-tag></td>
-            </tr>
-            <tr v-if="inbound.canEnableTlsFlow()">
-              <td>Flow</td>
-              <td>
-                <a-tag v-if="clientSettings.flow">{{ clientSettings.flow }}</a-tag>
-                <a-tag v-else color="orange">{{ t('none') }}</a-tag>
-              </td>
-            </tr>
-            <tr v-if="clientSettings.password">
-              <td>{{ t('password') }}</td>
-              <td><a-tag class="info-large-tag">{{ clientSettings.password }}</a-tag></td>
-            </tr>
-            <tr>
-              <td>{{ t('status') }}</td>
-              <td>
-                <a-tag v-if="isDepleted" color="red">{{ t('depleted') }}</a-tag>
-                <a-tag v-else-if="isEnable" color="green">{{ t('enabled') }}</a-tag>
-                <a-tag v-else>{{ t('disabled') }}</a-tag>
-              </td>
-            </tr>
-            <tr v-if="clientStats">
-              <td>{{ t('usage') }}</td>
-              <td>
-                <a-tag color="green">
-                  {{ SizeFormatter.sizeFormat(clientStats.up + clientStats.down) }}
-                </a-tag>
-                <a-tag>
-                  ↑ {{ SizeFormatter.sizeFormat(clientStats.up) }} /
-                  {{ SizeFormatter.sizeFormat(clientStats.down) }} ↓
-                </a-tag>
-              </td>
-            </tr>
-            <tr>
-              <td>{{ t('pages.inbounds.createdAt') }}</td>
-              <td>
-                <a-tag v-if="clientSettings.created_at">{{ IntlUtil.formatDate(clientSettings.created_at) }}</a-tag>
-                <a-tag v-else>-</a-tag>
-              </td>
-            </tr>
-            <tr>
-              <td>{{ t('pages.inbounds.updatedAt') }}</td>
-              <td>
-                <a-tag v-if="clientSettings.updated_at">{{ IntlUtil.formatDate(clientSettings.updated_at) }}</a-tag>
-                <a-tag v-else>-</a-tag>
-              </td>
-            </tr>
-            <tr>
-              <td>{{ t('lastOnline') }}</td>
-              <td><a-tag>{{ formatLastOnline(clientSettings.email || '') }}</a-tag></td>
-            </tr>
-            <tr v-if="clientSettings.comment">
-              <td>{{ t('comment') }}</td>
-              <td><a-tag class="info-large-tag">{{ clientSettings.comment }}</a-tag></td>
-            </tr>
-            <tr v-if="ipLimitEnable">
-              <td>{{ t('pages.inbounds.IPLimit') }}</td>
-              <td><a-tag>{{ clientSettings.limitIp }}</a-tag></td>
-            </tr>
-            <tr v-if="ipLimitEnable && clientSettings.limitIp > 0">
-              <td>{{ t('pages.inbounds.IPLimitlog') }}</td>
-              <td>
-                <div class="ip-log">
-                  <div v-if="clientIpsArray.length > 0">
-                    <a-tag
-                      v-for="(item, idx) in clientIpsArray"
-                      :key="idx"
-                      color="blue"
-                      class="ip-log-row"
-                    >{{ item }}</a-tag>
+        <!-- ============================================================
+             TAB 2 — Client: per-client info + share links (no QR)
+        ============================================================== -->
+        <a-tab-pane v-if="showClientTab" key="client" :tab="t('pages.inbounds.client')">
+          <table class="info-table block">
+            <tbody>
+              <tr>
+                <td>{{ t('pages.inbounds.email') }}</td>
+                <td>
+                  <a-tag v-if="clientSettings.email" color="green">{{ clientSettings.email }}</a-tag>
+                  <a-tag v-else color="red">{{ t('none') }}</a-tag>
+                </td>
+              </tr>
+              <tr v-if="clientSettings.id">
+                <td>ID</td>
+                <td><a-tag>{{ clientSettings.id }}</a-tag></td>
+              </tr>
+              <tr v-if="dbInbound.isVMess">
+                <td>{{ t('security') }}</td>
+                <td><a-tag>{{ clientSettings.security }}</a-tag></td>
+              </tr>
+              <tr v-if="inbound.canEnableTlsFlow()">
+                <td>Flow</td>
+                <td>
+                  <a-tag v-if="clientSettings.flow">{{ clientSettings.flow }}</a-tag>
+                  <a-tag v-else color="orange">{{ t('none') }}</a-tag>
+                </td>
+              </tr>
+              <tr v-if="clientSettings.password">
+                <td>{{ t('password') }}</td>
+                <td><a-tag class="info-large-tag">{{ clientSettings.password }}</a-tag></td>
+              </tr>
+              <tr>
+                <td>{{ t('status') }}</td>
+                <td>
+                  <a-tag v-if="isDepleted" color="red">{{ t('depleted') }}</a-tag>
+                  <a-tag v-else-if="isEnable" color="green">{{ t('enabled') }}</a-tag>
+                  <a-tag v-else>{{ t('disabled') }}</a-tag>
+                </td>
+              </tr>
+              <tr v-if="clientStats">
+                <td>{{ t('usage') }}</td>
+                <td>
+                  <a-tag color="green">
+                    {{ SizeFormatter.sizeFormat(clientStats.up + clientStats.down) }}
+                  </a-tag>
+                  <a-tag>
+                    ↑ {{ SizeFormatter.sizeFormat(clientStats.up) }} /
+                    {{ SizeFormatter.sizeFormat(clientStats.down) }} ↓
+                  </a-tag>
+                </td>
+              </tr>
+              <tr>
+                <td>{{ t('pages.inbounds.createdAt') }}</td>
+                <td>
+                  <a-tag v-if="clientSettings.created_at">{{ IntlUtil.formatDate(clientSettings.created_at) }}</a-tag>
+                  <a-tag v-else>-</a-tag>
+                </td>
+              </tr>
+              <tr>
+                <td>{{ t('pages.inbounds.updatedAt') }}</td>
+                <td>
+                  <a-tag v-if="clientSettings.updated_at">{{ IntlUtil.formatDate(clientSettings.updated_at) }}</a-tag>
+                  <a-tag v-else>-</a-tag>
+                </td>
+              </tr>
+              <tr>
+                <td>{{ t('lastOnline') }}</td>
+                <td><a-tag>{{ formatLastOnline(clientSettings.email || '') }}</a-tag></td>
+              </tr>
+              <tr v-if="clientSettings.comment">
+                <td>{{ t('comment') }}</td>
+                <td><a-tag class="info-large-tag">{{ clientSettings.comment }}</a-tag></td>
+              </tr>
+              <tr v-if="ipLimitEnable">
+                <td>{{ t('pages.inbounds.IPLimit') }}</td>
+                <td><a-tag>{{ clientSettings.limitIp }}</a-tag></td>
+              </tr>
+              <tr v-if="ipLimitEnable && clientSettings.limitIp > 0">
+                <td>{{ t('pages.inbounds.IPLimitlog') }}</td>
+                <td>
+                  <div class="ip-log">
+                    <div v-if="clientIpsArray.length > 0">
+                      <a-tag
+                        v-for="(item, idx) in clientIpsArray"
+                        :key="idx"
+                        color="blue"
+                        class="ip-log-row"
+                      >{{ item }}</a-tag>
+                    </div>
+                    <a-tag v-else>{{ clientIpsText || t('tgbot.noIpRecord') }}</a-tag>
                   </div>
-                  <a-tag v-else>{{ clientIpsText || t('tgbot.noIpRecord') }}</a-tag>
-                </div>
-                <div class="ip-log-actions">
-                  <SyncOutlined :spin="refreshing" @click="loadClientIps" />
-                  <a-tooltip :title="t('pages.inbounds.IPLimitlogclear')">
-                    <DeleteOutlined @click="clearClientIps" />
-                  </a-tooltip>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  <div class="ip-log-actions">
+                    <SyncOutlined :spin="refreshing" @click="loadClientIps" />
+                    <a-tooltip :title="t('pages.inbounds.IPLimitlogclear')">
+                      <DeleteOutlined @click="clearClientIps" />
+                    </a-tooltip>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-        <!-- ============== Remaining / total / expiry ============== -->
-        <table class="info-table summary-table">
-          <thead>
-            <tr>
-              <th>{{ t('remained') }}</th>
-              <th>{{ t('pages.inbounds.totalUsage') }}</th>
-              <th>{{ t('pages.inbounds.expireDate') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>
-                <a-tag
-                  v-if="clientStats && clientSettings.totalGB > 0"
-                  :color="statsColor(clientStats)"
-                >{{ getRemainingStats() }}</a-tag>
-              </td>
-              <td>
-                <a-tag
-                  v-if="clientSettings.totalGB > 0"
-                  :color="clientStats ? statsColor(clientStats) : 'default'"
-                >{{ SizeFormatter.sizeFormat(clientSettings.totalGB) }}</a-tag>
-                <a-tag v-else color="purple"><InfinityIcon /></a-tag>
-              </td>
-              <td>
-                <a-tag
-                  v-if="clientSettings.expiryTime > 0"
-                  :color="ColorUtils.usageColor(Date.now(), expireDiff, clientSettings.expiryTime)"
-                >{{ IntlUtil.formatDate(clientSettings.expiryTime) }}</a-tag>
-                <a-tag v-else-if="clientSettings.expiryTime < 0" color="green">
-                  {{ clientSettings.expiryTime / -86400000 }} {{ t('day') }}
-                </a-tag>
-                <a-tag v-else color="purple"><InfinityIcon /></a-tag>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+          <!-- Remaining / total / expiry -->
+          <table class="info-table summary-table">
+            <thead>
+              <tr>
+                <th>{{ t('remained') }}</th>
+                <th>{{ t('pages.inbounds.totalUsage') }}</th>
+                <th>{{ t('pages.inbounds.expireDate') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <a-tag
+                    v-if="clientStats && clientSettings.totalGB > 0"
+                    :color="statsColor(clientStats)"
+                  >{{ getRemainingStats() }}</a-tag>
+                </td>
+                <td>
+                  <a-tag
+                    v-if="clientSettings.totalGB > 0"
+                    :color="clientStats ? statsColor(clientStats) : 'default'"
+                  >{{ SizeFormatter.sizeFormat(clientSettings.totalGB) }}</a-tag>
+                  <a-tag v-else color="purple"><InfinityIcon /></a-tag>
+                </td>
+                <td>
+                  <a-tag
+                    v-if="clientSettings.expiryTime > 0"
+                    :color="ColorUtils.usageColor(Date.now(), expireDiff, clientSettings.expiryTime)"
+                  >{{ IntlUtil.formatDate(clientSettings.expiryTime) }}</a-tag>
+                  <a-tag v-else-if="clientSettings.expiryTime < 0" color="green">
+                    {{ clientSettings.expiryTime / -86400000 }} {{ t('day') }}
+                  </a-tag>
+                  <a-tag v-else color="purple"><InfinityIcon /></a-tag>
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-        <!-- ============== Subscription URLs ============== -->
-        <template v-if="subSettings.enable && clientSettings.subId">
-          <a-divider>{{ t('subscription.title') }}</a-divider>
-          <QrPanel
-            :value="subLink"
-            :remark="t('subscription.title')"
-            :show-qr="false"
-          />
-          <QrPanel
-            v-if="subSettings.subJsonEnable && subJsonLink"
-            :value="subJsonLink"
-            remark="JSON"
-            :show-qr="false"
-          />
-        </template>
+          <!-- Telegram chat id -->
+          <template v-if="tgBotEnable && clientSettings.tgId">
+            <a-divider>Telegram</a-divider>
+            <div class="tg-row">
+              <a-tag color="blue">{{ clientSettings.tgId }}</a-tag>
+              <a-tooltip :title="t('copy')">
+                <a-button size="small" @click="copyText(clientSettings.tgId)">
+                  <template #icon><CopyOutlined /></template>
+                </a-button>
+              </a-tooltip>
+            </div>
+          </template>
 
-        <!-- ============== Telegram chat id ============== -->
-        <template v-if="tgBotEnable && clientSettings.tgId">
-          <a-divider>Telegram</a-divider>
-          <div class="tg-row">
-            <a-tag color="blue">{{ clientSettings.tgId }}</a-tag>
-            <a-tooltip :title="t('copy')">
-              <a-button size="small" @click="copyText(clientSettings.tgId)">
-                <template #icon><CopyOutlined /></template>
-              </a-button>
-            </a-tooltip>
+          <!-- Per-client share links (no QR) -->
+          <template v-if="dbInbound.hasLink() && links.length > 0">
+            <a-divider>{{ t('pages.inbounds.copyLink') }}</a-divider>
+            <div
+              v-for="(link, idx) in links"
+              :key="idx"
+              class="link-panel"
+            >
+              <div class="link-panel-header">
+                <a-tag color="green">{{ link.remark || `Link ${idx + 1}` }}</a-tag>
+                <a-tooltip :title="t('copy')">
+                  <a-button size="small" @click="copyText(link.link)">
+                    <template #icon><CopyOutlined /></template>
+                  </a-button>
+                </a-tooltip>
+              </div>
+              <code class="link-panel-text">{{ link.link }}</code>
+            </div>
+          </template>
+        </a-tab-pane>
+
+        <!-- ============================================================
+             TAB 3 — Subscription: clickable subscription URLs
+        ============================================================== -->
+        <a-tab-pane v-if="showSubscriptionTab" key="subscription" :tab="t('subscription.title')">
+          <div class="link-panel">
+            <div class="link-panel-header">
+              <a-tag color="green">{{ t('subscription.title') }}</a-tag>
+              <a-tooltip :title="t('copy')">
+                <a-button size="small" @click="copyText(subLink)">
+                  <template #icon><CopyOutlined /></template>
+                </a-button>
+              </a-tooltip>
+            </div>
+            <a
+              :href="subLink"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="link-panel-anchor"
+            >{{ subLink }}</a>
           </div>
-        </template>
 
-        <!-- ============== Share links + QR codes ============== -->
-        <template v-if="dbInbound.hasLink() && links.length > 0">
-          <a-divider>{{ t('pages.inbounds.copyLink') }}</a-divider>
-          <QrPanel
-            v-for="(link, idx) in links"
-            :key="idx"
-            :value="link.link"
-            :remark="link.remark || `Link ${idx + 1}`"
-          />
-        </template>
-      </template>
-
-      <!-- ============== Single-user SS share link ============== -->
-      <template v-else-if="dbInbound.isSS && !inbound.isSSMultiUser && links.length > 0">
-        <a-divider>{{ t('pages.inbounds.copyLink') }}</a-divider>
-        <QrPanel
-          v-for="(link, idx) in links"
-          :key="idx"
-          :value="link.link"
-          :remark="link.remark || `Link ${idx + 1}`"
-        />
-      </template>
-
-      <!-- ============== Tunnel ============== -->
-      <table v-if="inbound.protocol === Protocols.TUNNEL" class="info-table protocol-table">
-        <thead>
-          <tr>
-            <th>{{ t('pages.inbounds.targetAddress') }}</th>
-            <th>{{ t('pages.inbounds.destinationPort') }}</th>
-            <th>{{ t('pages.inbounds.network') }}</th>
-            <th>FollowRedirect</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><a-tag color="green">{{ inbound.settings.address }}</a-tag></td>
-            <td><a-tag color="green">{{ inbound.settings.port }}</a-tag></td>
-            <td><a-tag color="green">{{ inbound.settings.network }}</a-tag></td>
-            <td><a-tag color="green">{{ inbound.settings.followRedirect }}</a-tag></td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- ============== Mixed ============== -->
-      <table v-if="dbInbound.isMixed" class="info-table protocol-table">
-        <thead>
-          <tr>
-            <th>Auth</th>
-            <th>UDP</th>
-            <th>IP</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><a-tag color="green">{{ inbound.settings.auth }}</a-tag></td>
-            <td><a-tag color="green">{{ inbound.settings.udp }}</a-tag></td>
-            <td><a-tag color="green">{{ inbound.settings.ip }}</a-tag></td>
-          </tr>
-          <template v-if="inbound.settings.auth === 'password'">
-            <tr>
-              <td></td>
-              <td>{{ t('username') }}</td>
-              <td>{{ t('password') }}</td>
-            </tr>
-            <tr v-for="(account, idx) in inbound.settings.accounts" :key="idx">
-              <td>{{ idx }}</td>
-              <td><a-tag color="green">{{ account.user }}</a-tag></td>
-              <td><a-tag color="green">{{ account.pass }}</a-tag></td>
-            </tr>
-          </template>
-        </tbody>
-      </table>
-
-      <!-- ============== HTTP accounts ============== -->
-      <table v-if="dbInbound.isHTTP" class="info-table protocol-table">
-        <thead>
-          <tr>
-            <th></th>
-            <th>{{ t('username') }}</th>
-            <th>{{ t('password') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(account, idx) in inbound.settings.accounts" :key="idx">
-            <td>{{ idx }}</td>
-            <td><a-tag color="green">{{ account.user }}</a-tag></td>
-            <td><a-tag color="green">{{ account.pass }}</a-tag></td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- ============== WireGuard ============== -->
-      <table v-if="dbInbound.isWireguard" class="info-table protocol-table wg-table">
-        <tbody>
-          <tr>
-            <td>Secret key</td>
-            <td>{{ inbound.settings.secretKey }}</td>
-          </tr>
-          <tr>
-            <td>Public key</td>
-            <td>{{ inbound.settings.pubKey }}</td>
-          </tr>
-          <tr>
-            <td>MTU</td>
-            <td>{{ inbound.settings.mtu }}</td>
-          </tr>
-          <tr>
-            <td>No-kernel TUN</td>
-            <td>{{ inbound.settings.noKernelTun }}</td>
-          </tr>
-          <template v-for="(peer, idx) in inbound.settings.peers" :key="idx">
-            <tr>
-              <td colspan="2"><a-divider>Peer {{ idx + 1 }}</a-divider></td>
-            </tr>
-            <tr>
-              <td>Secret key</td>
-              <td>{{ peer.privateKey }}</td>
-            </tr>
-            <tr>
-              <td>Public key</td>
-              <td>{{ peer.publicKey }}</td>
-            </tr>
-            <tr>
-              <td>PSK</td>
-              <td>{{ peer.psk }}</td>
-            </tr>
-            <tr>
-              <td>Allowed IPs</td>
-              <td>{{ (peer.allowedIPs || []).join(',') }}</td>
-            </tr>
-            <tr>
-              <td>Keep alive</td>
-              <td>{{ peer.keepAlive }}</td>
-            </tr>
-            <tr v-if="wireguardConfigs[idx]">
-              <td colspan="2">
-                <QrPanel
-                  :value="wireguardConfigs[idx]"
-                  :remark="`Peer ${idx + 1} config`"
-                  :download-name="`peer-${idx + 1}.conf`"
-                />
-              </td>
-            </tr>
-            <tr v-if="wireguardLinks[idx]">
-              <td colspan="2">
-                <QrPanel
-                  :value="wireguardLinks[idx]"
-                  remark="Link"
-                />
-              </td>
-            </tr>
-          </template>
-        </tbody>
-      </table>
+          <div v-if="subSettings.subJsonEnable && subJsonLink" class="link-panel">
+            <div class="link-panel-header">
+              <a-tag color="green">JSON</a-tag>
+              <a-tooltip :title="t('copy')">
+                <a-button size="small" @click="copyText(subJsonLink)">
+                  <template #icon><CopyOutlined /></template>
+                </a-button>
+              </a-tooltip>
+            </div>
+            <a
+              :href="subJsonLink"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="link-panel-anchor"
+            >{{ subJsonLink }}</a>
+          </div>
+        </a-tab-pane>
+      </a-tabs>
     </template>
   </a-modal>
 </template>
@@ -717,6 +785,65 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
+}
+
+/* Stacked label/value list — one row per field. Long values wrap
+ * (or fall through to a code block) so they never blow out the modal. */
+.info-list {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.info-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.12);
+}
+.info-row:last-child {
+  border-bottom: none;
+}
+.info-row dt {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.75;
+}
+.info-row dd {
+  margin: 0;
+  min-width: 0;
+}
+.value-tag {
+  max-width: 100%;
+  white-space: normal;
+  word-break: break-all;
+  display: inline-block;
+}
+.value-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+.value-code {
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+  white-space: pre-wrap;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  user-select: all;
+  min-width: 0;
+}
+:global(body.dark) .value-code {
+  background: rgba(255, 255, 255, 0.05);
+}
+.value-copy {
+  flex-shrink: 0;
 }
 
 .security-line {
@@ -768,5 +895,57 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
 
 .wg-table td {
   word-break: break-all;
+}
+
+/* Reusable copy/link panel that replaces QrPanel for the no-QR design. */
+.link-panel {
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.link-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.link-panel-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  word-break: break-all;
+  white-space: pre-wrap;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  user-select: all;
+}
+:global(body.dark) .link-panel-text {
+  background: rgba(255, 255, 255, 0.05);
+}
+.link-panel-anchor {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  word-break: break-all;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  color: var(--ant-color-primary, #1677ff);
+  text-decoration: underline;
+  text-decoration-color: rgba(22, 119, 255, 0.4);
+  transition: background 120ms ease, text-decoration-color 120ms ease;
+}
+.link-panel-anchor:hover {
+  background: rgba(22, 119, 255, 0.08);
+  text-decoration-color: var(--ant-color-primary, #1677ff);
+}
+:global(body.dark) .link-panel-anchor {
+  background: rgba(255, 255, 255, 0.05);
+}
+:global(body.dark) .link-panel-anchor:hover {
+  background: rgba(22, 119, 255, 0.16);
 }
 </style>

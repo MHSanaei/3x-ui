@@ -407,7 +407,7 @@ function rowKey(client) {
     80px               /* online */
     minmax(160px, 2fr) /* client identity */
     minmax(160px, 2fr) /* traffic */
-    90px               /* all-time */
+    130px              /* all-time */
     140px;             /* expiry */
   gap: 12px;
   align-items: center;

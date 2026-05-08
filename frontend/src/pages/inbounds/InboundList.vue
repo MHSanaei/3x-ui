@@ -152,10 +152,10 @@ const desktopColumns = computed(() => [
   { title: t('pages.inbounds.enable'), key: 'enable', align: 'center', width: 35 },
   { title: t('pages.inbounds.remark'), dataIndex: 'remark', key: 'remark', align: 'center', width: 60 },
   { title: t('pages.inbounds.port'), dataIndex: 'port', key: 'port', align: 'center', width: 40 },
-  { title: t('pages.inbounds.protocol'), key: 'protocol', align: 'left', width: 70 },
+  { title: t('pages.inbounds.protocol'), key: 'protocol', align: 'left', width: 130 },
   { title: t('clients'), key: 'clients', align: 'left', width: 50 },
   { title: t('pages.inbounds.traffic'), key: 'traffic', align: 'center', width: 90 },
-  { title: t('pages.inbounds.allTimeTraffic'), key: 'allTimeInbound', align: 'center', width: 60 },
+  { title: t('pages.inbounds.allTimeTraffic'), key: 'allTimeInbound', align: 'center', width: 95 },
   { title: t('pages.inbounds.expireDate'), key: 'expiryTime', align: 'center', width: 40 },
 ]);
 const mobileColumns = computed(() => [
