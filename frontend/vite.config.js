@@ -80,6 +80,7 @@ export default defineConfig({
         settings: path.resolve(__dirname, 'settings.html'),
         inbounds: path.resolve(__dirname, 'inbounds.html'),
         xray: path.resolve(__dirname, 'xray.html'),
+        subpage: path.resolve(__dirname, 'subpage.html'),
       },
     },
   },

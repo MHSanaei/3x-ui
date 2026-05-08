@@ -1,12 +1,15 @@
 package sub
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v2/config"
+	webpkg "github.com/mhsanaei/3x-ui/v2/web"
 
 	"github.com/gin-gonic/gin"
 )
@@ -110,7 +113,6 @@ func (a *SUBController) subs(c *gin.Context) {
 		// If the request expects HTML (e.g., browser) or explicitly asked (?html=1 or ?view=html), render the info page here
 		accept := c.GetHeader("Accept")
 		if strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html") {
-			// Build page data in service
 			subURL, subJsonURL, subClashURL := a.subService.BuildURLs(scheme, hostWithPort, a.subPath, a.subJsonPath, a.subClashPath, subId)
 			if !a.jsonEnabled {
 				subJsonURL = ""
@@ -118,43 +120,13 @@ func (a *SUBController) subs(c *gin.Context) {
 			if !a.clashEnabled {
 				subClashURL = ""
 			}
-			// Get base_path from context (set by middleware)
 			basePath, exists := c.Get("base_path")
 			if !exists {
 				basePath = "/"
 			}
-			// Add subId to base_path for asset URLs
 			basePathStr := basePath.(string)
-			if basePathStr == "/" {
-				basePathStr = "/" + subId + "/"
-			} else {
-				// Remove trailing slash if exists, add subId, then add trailing slash
-				basePathStr = strings.TrimRight(basePathStr, "/") + "/" + subId + "/"
-			}
 			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, subURL, subJsonURL, subClashURL, basePathStr)
-			c.HTML(200, "subpage.html", gin.H{
-				"title":        "subscription.title",
-				"cur_ver":      config.GetVersion(),
-				"host":         page.Host,
-				"base_path":    page.BasePath,
-				"sId":          page.SId,
-				"enabled":      page.Enabled,
-				"download":     page.Download,
-				"upload":       page.Upload,
-				"total":        page.Total,
-				"used":         page.Used,
-				"remained":     page.Remained,
-				"expire":       page.Expire,
-				"lastOnline":   page.LastOnline,
-				"datepicker":   page.Datepicker,
-				"downloadByte": page.DownloadByte,
-				"uploadByte":   page.UploadByte,
-				"totalByte":    page.TotalByte,
-				"subUrl":       page.SubUrl,
-				"subJsonUrl":   page.SubJsonUrl,
-				"subClashUrl":  page.SubClashUrl,
-				"result":       page.Result,
-			})
+			a.serveSubPage(c, basePathStr, page)
 			return
 		}
 
@@ -172,6 +144,78 @@ func (a *SUBController) subs(c *gin.Context) {
 			c.String(200, result)
 		}
 	}
+}
+
+// serveSubPage renders web/dist/subpage.html for the current subscription
+// request. The Vite-built SPA reads window.__SUB_PAGE_DATA__ on mount —
+// we inject that here, along with window.__X_UI_BASE_PATH__ so the
+// page's static asset references resolve correctly when the panel runs
+// behind a URL prefix.
+func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageData) {
+	dist := webpkg.EmbeddedDist()
+	body, err := dist.ReadFile("dist/subpage.html")
+	if err != nil {
+		c.String(http.StatusInternalServerError, "missing embedded subpage")
+		return
+	}
+
+	// Vite emits absolute asset URLs (`/assets/...`); when the panel is
+	// installed under a custom URL prefix, rewrite them so the bundle
+	// loads from `<basePath>assets/...` where the static handler is
+	// actually mounted.
+	if basePath != "/" && basePath != "" {
+		body = bytes.ReplaceAll(body, []byte(`src="/assets/`), []byte(`src="`+basePath+`assets/`))
+		body = bytes.ReplaceAll(body, []byte(`href="/assets/`), []byte(`href="`+basePath+`assets/`))
+	}
+
+	// JSON-marshal the view-model so the SPA can read it as a plain
+	// object on mount. PageData fields are already in the shape the Vue
+	// component expects, plus a `links` array carrying the rendered
+	// share URLs.
+	subData := map[string]any{
+		"sId":          page.SId,
+		"enabled":      page.Enabled,
+		"download":     page.Download,
+		"upload":       page.Upload,
+		"total":        page.Total,
+		"used":         page.Used,
+		"remained":     page.Remained,
+		"expire":       page.Expire,
+		"lastOnline":   page.LastOnline,
+		"downloadByte": page.DownloadByte,
+		"uploadByte":   page.UploadByte,
+		"totalByte":    page.TotalByte,
+		"subUrl":       page.SubUrl,
+		"subJsonUrl":   page.SubJsonUrl,
+		"subClashUrl":  page.SubClashUrl,
+		"links":        page.Result,
+	}
+	subDataJSON, err := json.Marshal(subData)
+	if err != nil {
+		subDataJSON = []byte("{}")
+	}
+
+	// Defense-in-depth string-escape for the basePath embed — admin-
+	// controlled but cheap to harden.
+	jsEscape := strings.NewReplacer(
+		`\`, `\\`,
+		`"`, `\"`,
+		"\n", `\n`,
+		"\r", `\r`,
+		"<", `<`,
+		">", `>`,
+		"&", `&`,
+	)
+	escapedBase := jsEscape.Replace(basePath)
+
+	inject := []byte(`<script>window.__X_UI_BASE_PATH__="` + escapedBase + `";` +
+		`window.__SUB_PAGE_DATA__=` + string(subDataJSON) + `;</script></head>`)
+	out := bytes.Replace(body, []byte("</head>"), inject, 1)
+
+	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Header("Pragma", "no-cache")
+	c.Header("Expires", "0")
+	c.Data(http.StatusOK, "text/html; charset=utf-8", out)
 }
 
 // subJsons handles HTTP requests for JSON subscription configurations.
