@@ -4,6 +4,7 @@ package locale
 
 import (
 	"embed"
+	"encoding/json"
 	"io/fs"
 	"os"
 	"strings"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
-	"github.com/pelletier/go-toml/v2"
 	"golang.org/x/text/language"
 )
 
@@ -39,7 +39,7 @@ type SettingService interface {
 func InitLocalizer(i18nFS embed.FS, settingService SettingService) error {
 	// set default bundle to English
 	i18nBundle = i18n.NewBundle(language.MustParse("en-US"))
-	i18nBundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
+	i18nBundle.RegisterUnmarshalFunc("json", json.Unmarshal)
 
 	// parse files
 	if err := parseTranslationFiles(i18nFS, i18nBundle); err != nil {
@@ -125,7 +125,7 @@ func LocalizerMiddleware() gin.HandlerFunc {
 		// Ensure bundle is initialized so creating a Localizer won't panic
 		if i18nBundle == nil {
 			i18nBundle = i18n.NewBundle(language.MustParse("en-US"))
-			i18nBundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
+			i18nBundle.RegisterUnmarshalFunc("json", json.Unmarshal)
 			// Try lazy-load from disk when running sub server without InitLocalizer
 			if err := loadTranslationsFromDisk(i18nBundle); err != nil {
 				logger.Warning("i18n lazy load failed:", err)

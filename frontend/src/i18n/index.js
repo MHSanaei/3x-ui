@@ -1,5 +1,6 @@
-// vue-i18n setup. Locale files are generated from web/translation/*.toml
-// by `npm run i18n:sync` (run automatically as a pre-build step).
+// vue-i18n setup. Locale files live in web/translation/*.json — the same
+// directory the Go binary embeds, so SPA + Telegram bot + subscription
+// page all read from a single source.
 //
 // Usage in a component:
 //   import { useI18n } from 'vue-i18n';
@@ -28,11 +29,11 @@ import { LanguageManager } from '@/utils';
 // "lazy" here effectively means "load only what this page needs for
 // its lifetime."
 const FALLBACK = 'en-US';
-const lazyModules = import.meta.glob('../locales/*.json');
-const eagerModules = import.meta.glob('../locales/*.json', { eager: true });
+const lazyModules = import.meta.glob('../../../web/translation/*.json');
+const eagerModules = import.meta.glob('../../../web/translation/*.json', { eager: true });
 
 function moduleKeyFor(code) {
-  return `../locales/${code}.json`;
+  return `../../../web/translation/${code}.json`;
 }
 
 // Resolve the active locale via LanguageManager so the cookie set on
@@ -59,10 +60,8 @@ export const i18n = createI18n({
   globalInjection: true,
   locale: active,
   fallbackLocale: FALLBACK,
-  // Existing TOML keys contain `.` for nested-path lookups, which is
-  // exactly what vue-i18n's default `pathDelimiter` does. Keep the
-  // delimiter and let lookups like `t('pages.inbounds.email')` walk
-  // the nested object the sync script wrote.
+  // Locale JSON is nested by namespace ({pages: {inbounds: {email: ...}}})
+  // so vue-i18n's default `.`-delimited lookups walk straight into it.
   messages,
   // The Go side sometimes interpolates `#variable#` into translated
   // strings (e.g. xraySwitchVersionDialogDesc). vue-i18n's default
@@ -84,7 +83,7 @@ export function t(key, params) {
 // vue-i18n. Pages that switch language at runtime (rather than via
 // LanguageManager's reload) can call this to swap strings live.
 export async function loadLocale(code) {
-  const key = `../locales/${code}.json`;
+  const key = moduleKeyFor(code);
   const loader = lazyModules[key];
   if (!loader) return false;
   const mod = await loader();
