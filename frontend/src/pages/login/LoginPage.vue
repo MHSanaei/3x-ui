@@ -1,8 +1,10 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
-import { UserOutlined, LockOutlined, KeyOutlined } from '@ant-design/icons-vue';
+import { UserOutlined, LockOutlined, KeyOutlined, SettingOutlined } from '@ant-design/icons-vue';
 
 import { HttpUtil } from '@/utils';
+import { currentTheme } from '@/composables/useTheme.js';
+import ThemeSwitchLogin from '@/components/ThemeSwitchLogin.vue';
 
 // Phase 4 ships this page in English only. Translations come back in
 // Phase 7 (vue-i18n) once we decide how the new build pipeline reads
@@ -69,6 +71,17 @@ async function login() {
           </div>
 
           <div v-else>
+            <div class="login-settings">
+              <a-popover :overlay-class-name="currentTheme" title="Settings" placement="bottomRight" trigger="click">
+                <template #content>
+                  <ThemeSwitchLogin />
+                </template>
+                <a-button shape="circle">
+                  <template #icon><SettingOutlined /></template>
+                </a-button>
+              </a-popover>
+            </div>
+
             <a-row justify="center">
               <a-col :span="24">
                 <h2 class="login-title">Welcome to 3x-ui</h2>
@@ -132,6 +145,12 @@ async function login() {
 .login-app {
   min-height: 100vh;
   background: #f0f2f5;
+}
+
+.login-settings {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
 
 .login-content {

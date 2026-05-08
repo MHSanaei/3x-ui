@@ -107,6 +107,22 @@ Order chosen so that breakage is contained and we always have a working panel:
 - ✅ Phase 3 — utils + models + websocket ported as ES modules
 - ✅ Phase 4 — first real page (login.html) ported
 - ⏳ Phase 5 — medium pages + modals
+  - ✅ 5a — theme system (composable + ThemeSwitch / ThemeSwitchLogin); wired into login
+  - ⏳ 5b — remaining custom components
+
+### Phase 5a notes
+
+- `aThemeSwitch.html` had two near-identical components (full menu version + login popover version) plus a `themeSwitcher` global object. Refactored into:
+  - `composables/useTheme.js` — single reactive `theme` state, `toggleTheme/toggleUltra`, and a `pauseAnimationsUntilLeave` helper. Boot side-effects (apply stored theme + persist on change) run via `watchEffect`. Importing the module is enough to apply the right theme before mount.
+  - `components/ThemeSwitch.vue` — full menu version (used in the main panel sidebar).
+  - `components/ThemeSwitchLogin.vue` — login popover version.
+- AD-Vue 4 dropped `<a-icon>`. The `BulbFilled` / `BulbOutlined` swap is done via `<component :is="BulbIcon">`.
+- `Vue.component('a-theme-switch', { ... })` global registration → per-page imports.
+- `this.$message.config(...)` (Vue 2 instance method) → `message.config(...)` from `ant-design-vue`, called once at app boot in `login.js`.
+- vue-i18n bumped 10 → 11.1.4 (npm warned that v9/v10 are EOL).
+- Vite 8.0.11 build verified — `npm run build` succeeds, outputs `web/dist/login.html` + chunked JS/CSS. AD-Vue with `app.use(Antd)` produces a 1.5 MB chunk; we'll switch to per-component imports in a later cleanup pass.
+
+**Known gap:** the legacy `web/assets/css/custom.min.css` styles `body.dark` / `body.light` / `[data-theme="ultra-dark"]`. The new login page doesn't import that CSS, so toggling theme switches AD-Vue's own components but not the panel chrome (e.g. card backgrounds). The composable still toggles the body class so behavior is correct — visual fidelity is restored when we either port custom.css to the new build or import it directly.
 
 ### Phase 4 notes
 
