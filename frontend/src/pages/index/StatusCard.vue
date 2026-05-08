@@ -15,9 +15,14 @@ const props = defineProps({
 defineEmits(['open-cpu-history']);
 
 // AD-Vue's default 120px dashboard renders the percent text at ~36px
-// which dwarfs the rest of the card. 90 (or 70 on mobile) keeps the
-// proportions sane against the surrounding labels.
-const gaugeSize = computed(() => (props.isMobile ? 70 : 90));
+// which dwarfs the rest of the card. 70 (60 on mobile) plus the
+// :deep(.ant-progress-text) override below keep the gauges compact.
+const gaugeSize = computed(() => (props.isMobile ? 60 : 70));
+
+// AD-Vue's default unfinished trail (rgba(0,0,0,0.06) /
+// rgba(255,255,255,0.08)) is invisible against the light card; a
+// neutral mid-gray reads on both themes.
+const trailColor = 'rgba(128, 128, 128, 0.25)';
 </script>
 
 <template>
@@ -28,7 +33,7 @@ const gaugeSize = computed(() => (props.isMobile ? 70 : 90));
         <a-row>
           <a-col :span="12" class="text-center">
             <a-progress type="dashboard" status="normal" :stroke-color="status.cpu.color"
-              :percent="status.cpu.percent" :width="gaugeSize" />
+              :trail-color="trailColor" :percent="status.cpu.percent" :width="gaugeSize" />
             <div>
               <b>{{ t('pages.index.cpu') }}:</b> {{ CPUFormatter.cpuCoreFormat(status.cpuCores) }}
               <a-tooltip>
@@ -52,7 +57,7 @@ const gaugeSize = computed(() => (props.isMobile ? 70 : 90));
 
           <a-col :span="12" class="text-center">
             <a-progress type="dashboard" status="normal" :stroke-color="status.mem.color"
-              :percent="status.mem.percent" :width="gaugeSize" />
+              :trail-color="trailColor" :percent="status.mem.percent" :width="gaugeSize" />
             <div>
               <b>{{ t('pages.index.memory') }}:</b> {{ SizeFormatter.sizeFormat(status.mem.current) }} /
               {{ SizeFormatter.sizeFormat(status.mem.total) }}
@@ -66,7 +71,7 @@ const gaugeSize = computed(() => (props.isMobile ? 70 : 90));
         <a-row>
           <a-col :span="12" class="text-center">
             <a-progress type="dashboard" status="normal" :stroke-color="status.swap.color"
-              :percent="status.swap.percent" :width="gaugeSize" />
+              :trail-color="trailColor" :percent="status.swap.percent" :width="gaugeSize" />
             <div>
               <b>{{ t('pages.index.swap') }}:</b> {{ SizeFormatter.sizeFormat(status.swap.current) }} /
               {{ SizeFormatter.sizeFormat(status.swap.total) }}
@@ -75,7 +80,7 @@ const gaugeSize = computed(() => (props.isMobile ? 70 : 90));
 
           <a-col :span="12" class="text-center">
             <a-progress type="dashboard" status="normal" :stroke-color="status.disk.color"
-              :percent="status.disk.percent" :width="gaugeSize" />
+              :trail-color="trailColor" :percent="status.disk.percent" :width="gaugeSize" />
             <div>
               <b>{{ t('pages.index.storage') }}:</b> {{ SizeFormatter.sizeFormat(status.disk.current) }} /
               {{ SizeFormatter.sizeFormat(status.disk.total) }}
@@ -94,5 +99,12 @@ const gaugeSize = computed(() => (props.isMobile ? 70 : 90));
 
 .ml-8 {
   margin-left: 8px;
+}
+
+/* Pin the percent number to a label-sized 14px — AD-Vue scales it
+ * from the SVG's intrinsic size, so :width alone leaves it too big. */
+:deep(.ant-progress-text) {
+  font-size: 14px !important;
+  font-weight: 500;
 }
 </style>
