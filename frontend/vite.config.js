@@ -19,6 +19,8 @@ const MIGRATED_ROUTES = {
   '/panel/settings/': '/settings.html',
   '/panel/inbounds': '/inbounds.html',
   '/panel/inbounds/': '/inbounds.html',
+  '/panel/xray': '/xray.html',
+  '/panel/xray/': '/xray.html',
 };
 
 // Build a proxy config that suppresses ECONNREFUSED noise when the Go
@@ -72,6 +74,7 @@ export default defineConfig({
         login: path.resolve(__dirname, 'login.html'),
         settings: path.resolve(__dirname, 'settings.html'),
         inbounds: path.resolve(__dirname, 'inbounds.html'),
+        xray: path.resolve(__dirname, 'xray.html'),
       },
     },
   },
