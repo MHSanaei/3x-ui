@@ -17,6 +17,7 @@ import { message } from 'ant-design-vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import BasicsTab from './BasicsTab.vue';
 import RoutingTab from './RoutingTab.vue';
+import OutboundsTab from './OutboundsTab.vue';
 import { useXraySetting } from './useXraySetting.js';
 
 // Phase 6-i: scaffold + advanced JSON tab. Other tabs (Basics, Routing,
@@ -40,9 +41,19 @@ const {
   inboundTags,
   clientReverseTags,
   restartResult,
+  outboundsTraffic,
+  outboundTestStates,
+  fetchOutboundsTraffic,
+  resetOutboundsTraffic,
+  testOutbound,
   saveAll,
   restartXray,
 } = useXraySetting();
+
+async function onTestOutbound(idx) {
+  const outbound = templateSettings.value?.outbounds?.[idx];
+  if (outbound) await testOutbound(idx, outbound);
+}
 
 // `WarpExist` / `NordExist` derive from the parsed templateSettings —
 // the Basics tab gates its WARP / NordVPN domain selectors on whether
@@ -155,7 +166,17 @@ function confirmRestart() {
                       <template #tab>
                         <UploadOutlined /> <span>Outbounds</span>
                       </template>
-                      <a-empty description="Outbounds — coming in 6-iv." />
+                      <OutboundsTab
+                        :template-settings="templateSettings"
+                        :outbounds-traffic="outboundsTraffic"
+                        :outbound-test-states="outboundTestStates"
+                        :is-mobile="isMobile"
+                        @refresh-traffic="fetchOutboundsTraffic"
+                        @reset-traffic="resetOutboundsTraffic"
+                        @test="onTestOutbound"
+                        @show-warp="showWarp"
+                        @show-nord="showNord"
+                      />
                     </a-tab-pane>
 
                     <a-tab-pane key="tpl-balancer" class="tab-pane">

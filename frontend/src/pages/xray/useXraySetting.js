@@ -38,6 +38,13 @@ export function useXraySetting() {
   const clientReverseTags = ref([]);
   const restartResult = ref('');
 
+  // Outbounds tab data — traffic stats + per-row test state. Test
+  // states are keyed by outbound index (sparse object), each entry
+  // is `{ testing, result }` where result is the wire response from
+  // /panel/xray/testOutbound or null while the test is in flight.
+  const outboundsTraffic = ref([]);
+  const outboundTestStates = ref({});
+
   async function fetchAll() {
     const msg = await HttpUtil.post('/panel/xray/');
     if (!msg?.success) return;
@@ -100,6 +107,42 @@ export function useXraySetting() {
     }
   }
 
+  async function fetchOutboundsTraffic() {
+    const msg = await HttpUtil.get('/panel/xray/getOutboundsTraffic');
+    if (msg?.success) outboundsTraffic.value = msg.obj || [];
+  }
+
+  async function resetOutboundsTraffic(tag) {
+    const msg = await HttpUtil.post('/panel/xray/resetOutboundsTraffic', { tag });
+    if (msg?.success) await fetchOutboundsTraffic();
+  }
+
+  async function testOutbound(index, outbound) {
+    if (!outbound) return null;
+    if (!outboundTestStates.value[index]) outboundTestStates.value[index] = {};
+    outboundTestStates.value[index] = { testing: true, result: null };
+    try {
+      const msg = await HttpUtil.post('/panel/xray/testOutbound', {
+        outbound: JSON.stringify(outbound),
+        allOutbounds: JSON.stringify(templateSettings.value?.outbounds || []),
+      });
+      if (msg?.success) {
+        outboundTestStates.value[index] = { testing: false, result: msg.obj };
+        return msg.obj;
+      }
+      outboundTestStates.value[index] = {
+        testing: false,
+        result: { success: false, error: msg?.msg || 'Unknown error' },
+      };
+    } catch (e) {
+      outboundTestStates.value[index] = {
+        testing: false,
+        result: { success: false, error: String(e) },
+      };
+    }
+    return null;
+  }
+
   async function restartXray() {
     spinning.value = true;
     try {
@@ -136,6 +179,7 @@ export function useXraySetting() {
 
   onMounted(() => {
     fetchAll();
+    fetchOutboundsTraffic();
     startDirtyPoll();
   });
   onUnmounted(stopDirtyPoll);
@@ -150,7 +194,12 @@ export function useXraySetting() {
     inboundTags,
     clientReverseTags,
     restartResult,
+    outboundsTraffic,
+    outboundTestStates,
     fetchAll,
+    fetchOutboundsTraffic,
+    resetOutboundsTraffic,
+    testOutbound,
     saveAll,
     restartXray,
   };
