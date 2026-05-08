@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import { Modal } from 'ant-design-vue';
 import { ReloadOutlined } from '@ant-design/icons-vue';
 import { HttpUtil } from '@/utils';
+import CustomGeoSection from './CustomGeoSection.vue';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -112,6 +113,10 @@ watch(() => props.open, (next) => { if (next) fetchVersions(); });
           <div class="actions-row">
             <a-button @click="updateGeofile('')">Update all</a-button>
           </div>
+        </a-collapse-panel>
+
+        <a-collapse-panel key="3" header="Custom geo">
+          <CustomGeoSection :active="activeKey === '3'" />
         </a-collapse-panel>
       </a-collapse>
     </a-spin>
