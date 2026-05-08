@@ -45,24 +45,29 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	a.xraySettingController = NewXraySettingController(g)
 }
 
+// All four panel pages now serve the Vue 3 builds from web/dist/
+// instead of rendering the legacy Go templates. Each handler is a
+// thin wrapper around serveDistPage so the basePath injection +
+// no-cache headers stay centralised.
+
 // index renders the main panel index page.
 func (a *XUIController) index(c *gin.Context) {
-	html(c, "index.html", "pages.index.title", nil)
+	serveDistPage(c, "index.html")
 }
 
 // inbounds renders the inbounds management page.
 func (a *XUIController) inbounds(c *gin.Context) {
-	html(c, "inbounds.html", "pages.inbounds.title", nil)
+	serveDistPage(c, "inbounds.html")
 }
 
 // settings renders the settings management page.
 func (a *XUIController) settings(c *gin.Context) {
-	html(c, "settings.html", "pages.settings.title", nil)
+	serveDistPage(c, "settings.html")
 }
 
 // xraySettings renders the Xray settings page.
 func (a *XUIController) xraySettings(c *gin.Context) {
-	html(c, "xray.html", "pages.xray.title", nil)
+	serveDistPage(c, "xray.html")
 }
 
 // csrfToken returns the session CSRF token to authenticated SPA clients.

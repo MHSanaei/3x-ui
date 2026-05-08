@@ -43,7 +43,34 @@ var htmlFS embed.FS
 //go:embed translation/*
 var i18nFS embed.FS
 
+// distFS embeds the Vite-built frontend (web/dist/). All five user-
+// facing pages are served from here in production; the legacy
+// templates in htmlFS / static asset tree in assetsFS are kept on
+// disk for now so a quick revert is possible, but nothing the
+// binary serves references them after the cutover.
+//
+//go:embed dist/*
+var distFS embed.FS
+
 var startTime = time.Now()
+
+// wrapDistFS adapts the embedded `dist/` directory so it can be mounted
+// as the panel's `/assets/` static route. Vite emits its bundled JS/CSS
+// under `dist/assets/`; serving the FS rooted at `dist/assets` makes
+// `/assets/<hash>.js` URLs resolve directly.
+type wrapDistFS struct {
+	embed.FS
+}
+
+func (f *wrapDistFS) Open(name string) (fs.File, error) {
+	file, err := f.FS.Open("dist/assets/" + name)
+	if err != nil {
+		return nil, err
+	}
+	return &wrapAssetsFile{
+		File: file,
+	}, nil
+}
 
 type wrapAssetsFS struct {
 	embed.FS
@@ -79,6 +106,13 @@ type wrapAssetsFileInfo struct {
 
 func (f *wrapAssetsFileInfo) ModTime() time.Time {
 	return startTime
+}
+
+// EmbeddedDist returns the embedded Vite-built frontend filesystem.
+// Controllers serve their HTML out of this FS via the dist-page handler
+// installed in NewEngine().
+func EmbeddedDist() embed.FS {
+	return distFS
 }
 
 // EmbeddedHTML returns the embedded HTML templates filesystem for reuse by other servers.
@@ -265,7 +299,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		}
 		// Use the registered func map with the loaded templates
 		engine.LoadHTMLFiles(files...)
-		engine.StaticFS(basePath+"assets", http.FS(os.DirFS("web/assets")))
+		// In dev the bundled `web/dist/assets/` directory is served from
+		// disk so the Vite watcher's incremental rebuilds show up
+		// without restarting the binary.
+		engine.StaticFS(basePath+"assets", http.FS(os.DirFS("web/dist/assets")))
 	} else {
 		// for production
 		template, err := s.getHtmlTemplate(funcMap)
@@ -273,11 +310,21 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 			return nil, err
 		}
 		engine.SetHTMLTemplate(template)
-		engine.StaticFS(basePath+"assets", http.FS(&wrapAssetsFS{FS: assetsFS}))
+		// `/assets/` now serves the Vite-built bundle. The legacy
+		// `web/assets/` tree is no longer referenced by any served
+		// page (every user-facing route comes from web/dist/), so
+		// the embedded asset filesystem is rooted at dist/assets/.
+		engine.StaticFS(basePath+"assets", http.FS(&wrapDistFS{FS: distFS}))
 	}
 
 	// Apply the redirect middleware (`/xui` to `/panel`)
 	engine.Use(middleware.RedirectMiddleware(basePath))
+
+	// Hand the embedded `dist/` filesystem to the controller package
+	// before any HTML-serving controller is constructed. Phase 8
+	// cutover: every HTML route reads from web/dist/ instead of
+	// rendering a legacy template.
+	controller.SetDistFS(distFS)
 
 	g := engine.Group(basePath)
 
