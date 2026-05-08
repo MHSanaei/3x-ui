@@ -18,6 +18,8 @@ import AppSidebar from '@/components/AppSidebar.vue';
 import BasicsTab from './BasicsTab.vue';
 import RoutingTab from './RoutingTab.vue';
 import OutboundsTab from './OutboundsTab.vue';
+import BalancersTab from './BalancersTab.vue';
+import DnsTab from './DnsTab.vue';
 import { useXraySetting } from './useXraySetting.js';
 
 // Phase 6-i: scaffold + advanced JSON tab. Other tabs (Basics, Routing,
@@ -183,14 +185,14 @@ function confirmRestart() {
                       <template #tab>
                         <ClusterOutlined /> <span>Balancers</span>
                       </template>
-                      <a-empty description="Balancers — coming in 6-v." />
+                      <BalancersTab :template-settings="templateSettings" />
                     </a-tab-pane>
 
                     <a-tab-pane key="tpl-dns" class="tab-pane">
                       <template #tab>
                         <DatabaseOutlined /> <span>DNS</span>
                       </template>
-                      <a-empty description="DNS — coming in 6-v." />
+                      <DnsTab :template-settings="templateSettings" />
                     </a-tab-pane>
 
                     <a-tab-pane key="tpl-advanced" class="tab-pane">
