@@ -163,7 +163,11 @@ async function login() {
  *   - Together they form a 65vh-tall colored region anchored to the top,
  *     with the form floating centered on top of it. */
 .login-app {
-  --bg-page: #ffffff;
+  /* Light mode mirrors the legacy: the wave-header (top ~65vh) is the
+   * lighter mint #dbf5ed, the rest of the page (--bg-page) is the
+   * slightly darker mint #c7ebe2 — the bottom wave fill is the same
+   * color so the wave reads as a continuation of the page bg. */
+  --bg-page: #c7ebe2;
   --bg-wave-header: #dbf5ed;
   --bg-card: #ffffff;
   --color-title: #008771;
@@ -172,7 +176,6 @@ async function login() {
   --wave-fill-bottom: #c7ebe2;
 
   min-height: 100vh;
-  background: var(--bg-page);
 }
 
 .login-app.is-dark {
@@ -193,7 +196,14 @@ async function login() {
   --wave-fill-bottom: #0f2d32;
 }
 
+/* Both ant-layout and ant-layout-content default to opaque backgrounds.
+ * Force them transparent so the page-bg painted on .login-app shows
+ * through, and so the fixed waves-header isn't covered by the layout. */
+.login-app,
 .login-app :deep(.ant-layout-content) {
+  background: transparent;
+}
+.login-app {
   background: var(--bg-page);
 }
 
@@ -216,7 +226,10 @@ async function login() {
   position: relative;
 }
 
+/* Form sits above the fixed wave-header (which is at z-index: 0). */
 .login-row {
+  position: relative;
+  z-index: 1;
   min-height: 100vh;
   padding: 24px 0;
 }
@@ -243,7 +256,7 @@ async function login() {
   position: fixed;
   inset: 0 0 auto 0;
   width: 100%;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
   background: var(--bg-wave-header);
 }
