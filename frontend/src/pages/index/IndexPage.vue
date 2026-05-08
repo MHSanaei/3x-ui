@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { theme as antdTheme } from 'ant-design-vue';
+import { BarsOutlined, CloudServerOutlined, CloudDownloadOutlined } from '@ant-design/icons-vue';
 
 import { HttpUtil } from '@/utils';
 import { theme as themeState } from '@/composables/useTheme.js';
@@ -9,6 +10,9 @@ import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
 import StatusCard from './StatusCard.vue';
 import XrayStatusCard from './XrayStatusCard.vue';
+import PanelUpdateModal from './PanelUpdateModal.vue';
+import LogModal from './LogModal.vue';
+import BackupModal from './BackupModal.vue';
 
 // Drive AD-Vue 4's built-in dark algorithm from our reactive theme.
 const antdThemeConfig = computed(() => ({
@@ -25,49 +29,46 @@ HttpUtil.post('/panel/setting/defaultSettings').then((msg) => {
   if (msg?.success && msg.obj) ipLimitEnable.value = !!msg.obj.ipLimitEnable;
 });
 
-// In production the Go panel injects basePath + requestUri into the
-// served HTML; during `npm run dev` we infer them from window.location.
+// Panel-update info — fetched once on mount, drives both the badge
+// in QuickActions and the contents of PanelUpdateModal.
+const panelUpdateInfo = ref({ currentVersion: '', latestVersion: '', updateAvailable: false });
+onMounted(() => {
+  HttpUtil.get('/panel/api/server/getPanelUpdateInfo').then((msg) => {
+    if (msg?.success && msg.obj) panelUpdateInfo.value = msg.obj;
+  });
+});
+
 const basePath = window.__X_UI_BASE_PATH__ || '';
 const requestUri = window.location.pathname;
 
-const busy = ref(false);
+// Modal open state.
+const logsOpen = ref(false);
+const backupOpen = ref(false);
+const panelUpdateOpen = ref(false);
 
+// Page-level loading overlay; modals can request it via @busy.
+const loading = ref(false);
+const loadingTip = ref('Loading…');
+function setBusy({ busy, tip }) {
+  loading.value = busy;
+  if (tip) loadingTip.value = tip;
+}
+
+// Xray controls
 async function stopXray() {
-  busy.value = true;
-  try {
-    await HttpUtil.post('/panel/api/server/stopXrayService');
-    await refresh();
-  } finally {
-    busy.value = false;
-  }
+  await HttpUtil.post('/panel/api/server/stopXrayService');
+  await refresh();
 }
-
 async function restartXray() {
-  busy.value = true;
-  try {
-    await HttpUtil.post('/panel/api/server/restartXrayService');
-    await refresh();
-  } finally {
-    busy.value = false;
-  }
+  await HttpUtil.post('/panel/api/server/restartXrayService');
+  await refresh();
 }
 
-function onOpenCpuHistory() {
-  // CPU-history modal is part of Phase 5c-iv. Wired emit so the
-  // button isn't dead-clickable; no-op until that phase ships.
-}
-
-function onOpenLogs() {
-  // Panel-logs modal — Phase 5c-iv.
-}
-
-function onOpenXrayLogs() {
-  // Xray-logs modal — Phase 5c-iv.
-}
-
-function onOpenVersionSwitch() {
-  // Xray version-picker modal — Phase 5c-iv.
-}
+// Modal-button stubs that aren't ported yet — keep wired so buttons
+// don't appear broken; full implementations come in 5c-iv-b / -v.
+function openCpuHistory() { /* CPU history sparkline — 5c-iv-b */ }
+function openXrayLogs() { /* xray-logs viewer — 5c-iv-b */ }
+function openVersionSwitch() { /* xray version picker — 5c-iv-b */ }
 </script>
 
 <template>
@@ -77,13 +78,14 @@ function onOpenVersionSwitch() {
 
       <a-layout class="content-shell">
         <a-layout-content class="content-area">
-          <a-spin :spinning="!fetched" :delay="200" size="large">
+          <a-spin :spinning="loading || !fetched" :delay="200" :tip="loading ? loadingTip : 'Loading…'" size="large">
             <div v-if="!fetched" class="loading-spacer" />
 
             <a-row v-else :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]">
               <a-col :span="24">
-                <StatusCard :status="status" :is-mobile="isMobile" @open-cpu-history="onOpenCpuHistory" />
+                <StatusCard :status="status" :is-mobile="isMobile" @open-cpu-history="openCpuHistory" />
               </a-col>
+
               <a-col :sm="24" :lg="12">
                 <XrayStatusCard
                   :status="status"
@@ -91,27 +93,57 @@ function onOpenVersionSwitch() {
                   :ip-limit-enable="ipLimitEnable"
                   @stop-xray="stopXray"
                   @restart-xray="restartXray"
-                  @open-xray-logs="onOpenXrayLogs"
-                  @open-logs="onOpenLogs"
-                  @open-version-switch="onOpenVersionSwitch"
+                  @open-xray-logs="openXrayLogs"
+                  @open-logs="logsOpen = true"
+                  @open-version-switch="openVersionSwitch"
                 />
               </a-col>
+
               <a-col :sm="24" :lg="12">
-                <a-card hoverable>
-                  <a-space direction="vertical" :size="8" style="width: 100%">
-                    <h3 style="margin: 0">Dashboard scaffold</h3>
-                    <p style="margin: 0; opacity: 0.7">
-                      Phase 5c-iii wires the xray status card on the left.
-                      Panel update modal, logs / xray-logs / backup, and the
-                      custom-geo section arrive in 5c-iv and 5c-v.
-                    </p>
-                  </a-space>
+                <a-card title="Quick actions" hoverable>
+                  <template v-if="panelUpdateInfo.updateAvailable" #extra>
+                    <a-tooltip :title="`Update panel: ${panelUpdateInfo.latestVersion}`">
+                      <a-tag color="orange" class="update-tag" @click="panelUpdateOpen = true">
+                        <CloudDownloadOutlined />
+                        {{ panelUpdateInfo.latestVersion }}
+                        <span v-if="!isMobile">Update</span>
+                      </a-tag>
+                    </a-tooltip>
+                  </template>
+                  <template #actions>
+                    <a-space class="action" @click="logsOpen = true">
+                      <BarsOutlined />
+                      <span v-if="!isMobile">Logs</span>
+                    </a-space>
+                    <a-space class="action" @click="backupOpen = true">
+                      <CloudServerOutlined />
+                      <span v-if="!isMobile">Backup</span>
+                    </a-space>
+                    <a-space class="action" @click="panelUpdateOpen = true">
+                      <CloudDownloadOutlined />
+                      <span v-if="!isMobile">
+                        {{ panelUpdateInfo.updateAvailable ? `Update → ${panelUpdateInfo.latestVersion}` : 'Up to date' }}
+                      </span>
+                    </a-space>
+                  </template>
                 </a-card>
               </a-col>
             </a-row>
           </a-spin>
         </a-layout-content>
       </a-layout>
+
+      <PanelUpdateModal
+        v-model:open="panelUpdateOpen"
+        :info="panelUpdateInfo"
+        @busy="setBusy"
+      />
+      <LogModal v-model:open="logsOpen" />
+      <BackupModal
+        v-model:open="backupOpen"
+        :base-path="basePath"
+        @busy="setBusy"
+      />
     </a-layout>
   </a-config-provider>
 </template>
@@ -140,15 +172,23 @@ function onOpenVersionSwitch() {
   background: transparent;
 }
 
-.content-shell {
-  background: transparent;
-}
-
-.content-area {
-  padding: 24px;
-}
+.content-shell { background: transparent; }
+.content-area { padding: 24px; }
 
 .loading-spacer {
   min-height: calc(100vh - 120px);
+}
+
+.action {
+  cursor: pointer;
+  justify-content: center;
+}
+
+.update-tag {
+  cursor: pointer;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 </style>
