@@ -16,6 +16,7 @@ import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import { message } from 'ant-design-vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import BasicsTab from './BasicsTab.vue';
+import RoutingTab from './RoutingTab.vue';
 import { useXraySetting } from './useXraySetting.js';
 
 // Phase 6-i: scaffold + advanced JSON tab. Other tabs (Basics, Routing,
@@ -36,6 +37,8 @@ const {
   xraySetting,
   templateSettings,
   outboundTestUrl,
+  inboundTags,
+  clientReverseTags,
   restartResult,
   saveAll,
   restartXray,
@@ -140,7 +143,12 @@ function confirmRestart() {
                       <template #tab>
                         <SwapOutlined /> <span>Routing</span>
                       </template>
-                      <a-empty description="Routing rules — coming in 6-iii." />
+                      <RoutingTab
+                        :template-settings="templateSettings"
+                        :inbound-tags="inboundTags"
+                        :client-reverse-tags="clientReverseTags"
+                        :is-mobile="isMobile"
+                      />
                     </a-tab-pane>
 
                     <a-tab-pane key="tpl-outbound" class="tab-pane">
