@@ -13,6 +13,9 @@ import { Modal } from 'ant-design-vue';
 
 import { SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
 import InfinityIcon from '@/components/InfinityIcon.vue';
+import { useDatepicker } from '@/composables/useDatepicker.js';
+
+const { datepicker } = useDatepicker();
 
 const { t } = useI18n();
 
@@ -85,7 +88,7 @@ function isClientOnline(email) {
 function lastOnlineLabel(email) {
   const ts = props.lastOnlineMap[email];
   if (!ts) return '-';
-  return IntlUtil.formatDate(ts);
+  return IntlUtil.formatDate(ts, datepicker.value);
 }
 
 function statsProgress(email) {
@@ -299,7 +302,7 @@ function rowKey(client) {
           <a-popover>
             <template #content>
               <span v-if="client.expiryTime < 0">{{ t('pages.client.delayedStart') }}</span>
-              <span v-else>{{ IntlUtil.formatDate(client.expiryTime) }}</span>
+              <span v-else>{{ IntlUtil.formatDate(client.expiryTime, datepicker) }}</span>
             </template>
             <div class="usage-bar">
               <span class="usage-text">{{ IntlUtil.formatRelativeTime(client.expiryTime) }}</span>

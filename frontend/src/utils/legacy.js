@@ -889,8 +889,16 @@ export class FileManager {
 }
 
 export class IntlUtil {
-    static formatDate(date) {
+    // When `calendar` is "jalalian", append the BCP-47 calendar extension
+    // so Intl renders the date in the Persian (Jalali/Shamsi) calendar
+    // regardless of the UI language. Without it, only locales that
+    // default to Persian (e.g. fa-IR) would show Jalali; en-US/ru/etc.
+    // would keep showing Gregorian.
+    static formatDate(date, calendar = "gregorian") {
         const language = LanguageManager.getLanguage()
+        const locale = calendar === "jalalian"
+            ? `${language}-u-ca-persian`
+            : language
 
         let intlOptions = {
             year: "numeric",
@@ -902,7 +910,7 @@ export class IntlUtil {
         }
 
         const intl = new Intl.DateTimeFormat(
-            language,
+            locale,
             intlOptions
         )
 

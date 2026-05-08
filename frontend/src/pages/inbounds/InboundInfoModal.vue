@@ -14,8 +14,10 @@ import {
 } from '@/utils';
 import { Inbound, Protocols } from '@/models/inbound.js';
 import InfinityIcon from '@/components/InfinityIcon.vue';
+import { useDatepicker } from '@/composables/useDatepicker.js';
 
 const { t } = useI18n();
+const { datepicker } = useDatepicker();
 
 // One modal handles every protocol's info / share view because the
 // legacy template did the same. The big v-if forks at the top decide
@@ -103,7 +105,7 @@ function getRemainingStats() {
 function formatLastOnline(email) {
   const ts = props.lastOnlineMap[email];
   if (!ts) return '-';
-  return IntlUtil.formatDate(ts);
+  return IntlUtil.formatDate(ts, datepicker.value);
 }
 
 // === IP log ========================================================
@@ -619,14 +621,14 @@ const showSubscriptionTab = computed(
               <tr>
                 <td>{{ t('pages.inbounds.createdAt') }}</td>
                 <td>
-                  <a-tag v-if="clientSettings.created_at">{{ IntlUtil.formatDate(clientSettings.created_at) }}</a-tag>
+                  <a-tag v-if="clientSettings.created_at">{{ IntlUtil.formatDate(clientSettings.created_at, datepicker) }}</a-tag>
                   <a-tag v-else>-</a-tag>
                 </td>
               </tr>
               <tr>
                 <td>{{ t('pages.inbounds.updatedAt') }}</td>
                 <td>
-                  <a-tag v-if="clientSettings.updated_at">{{ IntlUtil.formatDate(clientSettings.updated_at) }}</a-tag>
+                  <a-tag v-if="clientSettings.updated_at">{{ IntlUtil.formatDate(clientSettings.updated_at, datepicker) }}</a-tag>
                   <a-tag v-else>-</a-tag>
                 </td>
               </tr>
@@ -688,7 +690,7 @@ const showSubscriptionTab = computed(
                 <td>
                   <a-tag v-if="clientSettings.expiryTime > 0"
                     :color="ColorUtils.usageColor(Date.now(), expireDiff, clientSettings.expiryTime)">{{
-                      IntlUtil.formatDate(clientSettings.expiryTime) }}</a-tag>
+                      IntlUtil.formatDate(clientSettings.expiryTime, datepicker) }}</a-tag>
                   <a-tag v-else-if="clientSettings.expiryTime < 0" color="green">
                     {{ clientSettings.expiryTime / -86400000 }} {{ t('day') }}
                   </a-tag>

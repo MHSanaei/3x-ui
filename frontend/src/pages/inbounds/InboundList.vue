@@ -30,6 +30,9 @@ import { DBInbound } from '@/models/dbinbound.js';
 import { Inbound } from '@/models/inbound.js';
 import InfinityIcon from '@/components/InfinityIcon.vue';
 import ClientRowTable from './ClientRowTable.vue';
+import { useDatepicker } from '@/composables/useDatepicker.js';
+
+const { datepicker } = useDatepicker();
 
 const { t } = useI18n();
 
@@ -469,7 +472,7 @@ function showQrCodeMenu(dbInbound) {
           <!-- ============== Expiry ============== -->
           <template v-else-if="column.key === 'expiryTime'">
             <a-popover v-if="record.expiryTime > 0">
-              <template #content>{{ IntlUtil.formatDate(record.expiryTime) }}</template>
+              <template #content>{{ IntlUtil.formatDate(record.expiryTime, datepicker) }}</template>
               <a-tag :color="ColorUtils.usageColor(Date.now(), expireDiff, record._expiryTime)" style="min-width: 50px">
                 {{ IntlUtil.formatRelativeTime(record.expiryTime) }}
               </a-tag>

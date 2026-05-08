@@ -4,8 +4,10 @@ import { useI18n } from 'vue-i18n';
 import { DownloadOutlined, SyncOutlined } from '@ant-design/icons-vue';
 
 import { HttpUtil, FileManager, IntlUtil, PromiseUtil } from '@/utils';
+import { useDatepicker } from '@/composables/useDatepicker.js';
 
 const { t } = useI18n();
+const { datepicker } = useDatepicker();
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -44,7 +46,7 @@ function formatLogs(lines) {
     const emailCell = log.Email ? `<td>${escapeHtml(log.Email)}</td>` : '<td></td>';
 
     out += `<tr${rowStyle}>`
-      + `<td><b>${escapeHtml(IntlUtil.formatDate(log.DateTime))}</b></td>`
+      + `<td><b>${escapeHtml(IntlUtil.formatDate(log.DateTime, datepicker.value))}</b></td>`
       + `<td>${escapeHtml(log.FromAddress)}</td>`
       + `<td>${escapeHtml(log.ToAddress)}</td>`
       + `<td>${escapeHtml(log.Inbound)}</td>`

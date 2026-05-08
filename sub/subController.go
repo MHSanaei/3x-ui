@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	webpkg "github.com/mhsanaei/3x-ui/v2/web"
+	"github.com/mhsanaei/3x-ui/v2/web/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -33,6 +34,7 @@ type SUBController struct {
 	subService      *SubService
 	subJsonService  *SubJsonService
 	subClashService *SubClashService
+	settingService  service.SettingService
 }
 
 // NewSUBController creates a new subscription controller with the given configuration.
@@ -172,6 +174,14 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 	// object on mount. PageData fields are already in the shape the Vue
 	// component expects, plus a `links` array carrying the rendered
 	// share URLs.
+	// The panel's "Calendar Type" setting decides whether the SubPage
+	// renders dates in Gregorian or Jalali — surface it here so the SPA
+	// can match the rest of the panel without a round-trip.
+	datepicker, _ := a.settingService.GetDatepicker()
+	if datepicker == "" {
+		datepicker = "gregorian"
+	}
+
 	subData := map[string]any{
 		"sId":          page.SId,
 		"enabled":      page.Enabled,
@@ -189,6 +199,7 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 		"subJsonUrl":   page.SubJsonUrl,
 		"subClashUrl":  page.SubClashUrl,
 		"links":        page.Result,
+		"datepicker":   datepicker,
 	}
 	subDataJSON, err := json.Marshal(subData)
 	if err != nil {

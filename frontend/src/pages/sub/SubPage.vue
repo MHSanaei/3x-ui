@@ -39,6 +39,9 @@ const subUrl = subData.subUrl || '';
 const subJsonUrl = subData.subJsonUrl || '';
 const subClashUrl = subData.subClashUrl || '';
 const links = Array.isArray(subData.links) ? subData.links : [];
+// Panel's "Calendar Type" setting; controls whether expiry / lastOnline
+// render in Gregorian or Jalali on this standalone subscription page.
+const datepicker = subData.datepicker || 'gregorian';
 
 // Derived state ===============================================
 const isUnlimited = computed(() => totalByte <= 0 && expireMs === 0);
@@ -239,12 +242,12 @@ const _antdAlgorithm = antdTheme.darkAlgorithm;
                   {{ remained }}
                 </a-descriptions-item>
                 <a-descriptions-item :label="t('lastOnline')">
-                  <template v-if="lastOnlineMs > 0">{{ IntlUtil.formatDate(lastOnlineMs) }}</template>
+                  <template v-if="lastOnlineMs > 0">{{ IntlUtil.formatDate(lastOnlineMs, datepicker) }}</template>
                   <template v-else>-</template>
                 </a-descriptions-item>
                 <a-descriptions-item :label="t('subscription.expiry')">
                   <template v-if="expireMs === 0">{{ t('subscription.noExpiry') }}</template>
-                  <template v-else>{{ IntlUtil.formatDate(expireMs) }}</template>
+                  <template v-else>{{ IntlUtil.formatDate(expireMs, datepicker) }}</template>
                 </a-descriptions-item>
               </a-descriptions>
 
