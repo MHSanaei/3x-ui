@@ -6,6 +6,19 @@ import path from 'node:path';
 // via embed.FS without reaching outside the web/ tree.
 const outDir = path.resolve(__dirname, '../web/dist');
 
+// In production the Go binary serves /panel/<route> from web/dist/<route>.html.
+// In dev the Vue app lives at /index.html, /settings.html, ... while AppSidebar
+// links use the production-style /panel/<route> URLs. Map each migrated route
+// to its Vite entry so the sidebar works without relying on the Go backend
+// for already-ported pages. Unmigrated routes (inbounds, xray) fall through
+// to the proxy.
+const MIGRATED_ROUTES = {
+  '/panel': '/index.html',
+  '/panel/': '/index.html',
+  '/panel/settings': '/settings.html',
+  '/panel/settings/': '/settings.html',
+};
+
 // Build a proxy config that suppresses ECONNREFUSED noise when the Go
 // backend isn't running locally. Real errors (timeouts, 5xx, etc.) still
 // surface in the Vite log.
@@ -15,6 +28,16 @@ function makeBackendProxy(target, patterns) {
     config[pattern] = {
       target,
       changeOrigin: true,
+      // Returning a path from bypass tells Vite to serve that file from
+      // its own dev server instead of forwarding the request — used here
+      // to short-circuit /panel/<route> for pages we've already migrated.
+      bypass(req) {
+        const url = req.url.split('?')[0];
+        if (Object.prototype.hasOwnProperty.call(MIGRATED_ROUTES, url)) {
+          return MIGRATED_ROUTES[url];
+        }
+        return undefined;
+      },
       configure(proxy) {
         proxy.on('error', (err) => {
           if (err.code === 'ECONNREFUSED') return;
