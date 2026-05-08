@@ -116,7 +116,7 @@ function badgeAnimationClass(color) {
 }
 
 .xray-running-animation .ant-badge-status-processing::after {
-  border-color: var(--color-primary-100, #008771);
+  border-color: #1677ff;
 }
 
 .xray-stop-animation .ant-badge-status-processing::after {

@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { AreaChartOutlined, HistoryOutlined } from '@ant-design/icons-vue';
 
@@ -6,12 +7,17 @@ import { CPUFormatter, SizeFormatter } from '@/utils';
 
 const { t } = useI18n();
 
-defineProps({
+const props = defineProps({
   status: { type: Object, required: true },
   isMobile: { type: Boolean, default: false },
 });
 
 defineEmits(['open-cpu-history']);
+
+// AD-Vue's default 120px dashboard renders the percent text at ~36px
+// which dwarfs the rest of the card. 90 (or 70 on mobile) keeps the
+// proportions sane against the surrounding labels.
+const gaugeSize = computed(() => (props.isMobile ? 70 : 90));
 </script>
 
 <template>
@@ -22,7 +28,7 @@ defineEmits(['open-cpu-history']);
         <a-row>
           <a-col :span="12" class="text-center">
             <a-progress type="dashboard" status="normal" :stroke-color="status.cpu.color"
-              :percent="status.cpu.percent" />
+              :percent="status.cpu.percent" :width="gaugeSize" />
             <div>
               <b>{{ t('pages.index.cpu') }}:</b> {{ CPUFormatter.cpuCoreFormat(status.cpuCores) }}
               <a-tooltip>
@@ -46,7 +52,7 @@ defineEmits(['open-cpu-history']);
 
           <a-col :span="12" class="text-center">
             <a-progress type="dashboard" status="normal" :stroke-color="status.mem.color"
-              :percent="status.mem.percent" />
+              :percent="status.mem.percent" :width="gaugeSize" />
             <div>
               <b>{{ t('pages.index.memory') }}:</b> {{ SizeFormatter.sizeFormat(status.mem.current) }} /
               {{ SizeFormatter.sizeFormat(status.mem.total) }}
@@ -60,7 +66,7 @@ defineEmits(['open-cpu-history']);
         <a-row>
           <a-col :span="12" class="text-center">
             <a-progress type="dashboard" status="normal" :stroke-color="status.swap.color"
-              :percent="status.swap.percent" />
+              :percent="status.swap.percent" :width="gaugeSize" />
             <div>
               <b>{{ t('pages.index.swap') }}:</b> {{ SizeFormatter.sizeFormat(status.swap.current) }} /
               {{ SizeFormatter.sizeFormat(status.swap.total) }}
@@ -69,7 +75,7 @@ defineEmits(['open-cpu-history']);
 
           <a-col :span="12" class="text-center">
             <a-progress type="dashboard" status="normal" :stroke-color="status.disk.color"
-              :percent="status.disk.percent" />
+              :percent="status.disk.percent" :width="gaugeSize" />
             <div>
               <b>{{ t('pages.index.storage') }}:</b> {{ SizeFormatter.sizeFormat(status.disk.current) }} /
               {{ SizeFormatter.sizeFormat(status.disk.total) }}

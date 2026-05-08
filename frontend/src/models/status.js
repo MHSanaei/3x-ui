@@ -12,10 +12,12 @@ export class CurTotal {
   }
 
   get color() {
+    // Match AD-Vue 4's semantic palette so the gauges fit the
+    // global blue/gold/red theme instead of the legacy teal/orange.
     const p = this.percent;
-    if (p < 80) return '#008771'; // green
-    if (p < 90) return '#f37b24'; // orange
-    return '#cf3c3c';            // red
+    if (p < 80) return '#1677ff'; // primary
+    if (p < 90) return '#faad14'; // warning
+    return '#ff4d4f';             // danger
   }
 }
 
