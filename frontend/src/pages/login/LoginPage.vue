@@ -214,12 +214,13 @@ async function login() {
   --bg-page: #0f2d32;        /* legacy ultra .under = login-wave override */
   --bg-wave-header: #0a2227; /* legacy ultra --dark-color-login-background */
   --bg-card: #0c0e12;        /* legacy ultra surface-100 */
-  /* Legacy ultra-dark uses #0f2d32 for both wave-fill and bg-page,
-   * which leaves near-zero contrast against #0a2227 and the wave
-   * reads as static. Bump to a noticeably lighter teal so motion is
-   * visible — every other value stays legacy-true. */
+  /* Top three waves use a brighter teal so motion reads against the
+   * dark wave-header bg. Bottom wave keeps the legacy color so its
+   * flat lower edge merges into bg-page without a visible seam — if
+   * we used the brighter color here you'd see a hard line at the
+   * SVG's bottom. */
   --wave-fill: #1f4d52;
-  --wave-fill-bottom: #1f4d52;
+  --wave-fill-bottom: #0f2d32;
 }
 
 /* Both ant-layout and ant-layout-content default to opaque backgrounds.
