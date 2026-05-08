@@ -1,4 +1,9 @@
-import { ObjectUtil } from '../utils/legacy.js';
+// Mirrors web/assets/js/model/setting.js — every field on this class is
+// round-tripped through `/panel/setting/all` and `/panel/setting/update`,
+// so adding a field here without a matching Go-side change will silently
+// drop it on save. Defaults match the legacy panel.
+
+import { ObjectUtil } from '@/utils';
 
 export class AllSetting {
 

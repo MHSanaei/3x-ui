@@ -45,6 +45,7 @@ export default defineConfig({
       input: {
         index: path.resolve(__dirname, 'index.html'),
         login: path.resolve(__dirname, 'login.html'),
+        settings: path.resolve(__dirname, 'settings.html'),
       },
     },
   },
