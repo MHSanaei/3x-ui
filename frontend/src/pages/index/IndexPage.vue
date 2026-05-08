@@ -319,7 +319,7 @@ async function openConfig() {
 
 <style scoped>
 .index-page {
-  --bg-page: #f0f2f5;
+  --bg-page: #e6e8ec;
   --bg-card: #ffffff;
 
   min-height: 100vh;
