@@ -24,6 +24,9 @@ export function useXraySetting() {
   const fetched = ref(false);
   const spinning = ref(false);
   const saveDisabled = ref(true);
+  // Holds a user-facing message when fetchAll fails; lets the page
+  // render an error UI instead of an endless spinner.
+  const fetchError = ref('');
 
   const xraySetting = ref('');
   const oldXraySetting = ref('');
@@ -46,9 +49,22 @@ export function useXraySetting() {
   const outboundTestStates = ref({});
 
   async function fetchAll() {
+    fetchError.value = '';
     const msg = await HttpUtil.post('/panel/xray/');
-    if (!msg?.success) return;
-    const obj = JSON.parse(msg.obj);
+    if (!msg?.success) {
+      fetchError.value = msg?.msg || 'Failed to load xray config';
+      // Mark as fetched so the spinner clears and the error UI renders.
+      fetched.value = true;
+      return;
+    }
+    let obj;
+    try {
+      obj = JSON.parse(msg.obj);
+    } catch (e) {
+      fetchError.value = `Malformed xray config response: ${e?.message || e}`;
+      fetched.value = true;
+      return;
+    }
     const pretty = JSON.stringify(obj.xraySetting, null, 2);
     syncing = true;
     xraySetting.value = pretty;
@@ -188,6 +204,7 @@ export function useXraySetting() {
     fetched,
     spinning,
     saveDisabled,
+    fetchError,
     xraySetting,
     templateSettings,
     outboundTestUrl,

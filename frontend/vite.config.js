@@ -35,7 +35,12 @@ function makeBackendProxy(target, patterns) {
       // Returning a path from bypass tells Vite to serve that file from
       // its own dev server instead of forwarding the request — used here
       // to short-circuit /panel/<route> for pages we've already migrated.
+      //
+      // Only GETs get bypassed: the xray page reuses its page URL
+      // (`POST /panel/xray/`) for data, so a method-blind bypass would
+      // hand HTML back to fetch calls and break the page in dev.
       bypass(req) {
+        if (req.method !== 'GET') return undefined;
         const url = req.url.split('?')[0];
         if (Object.prototype.hasOwnProperty.call(MIGRATED_ROUTES, url)) {
           return MIGRATED_ROUTES[url];
@@ -85,7 +90,7 @@ export default defineConfig({
       // Patterns are anchored regex so /login.html and /index.html
       // (which Vite serves itself) are NOT forwarded — only the bare
       // backend paths and their sub-routes.
-      '^/(login|logout|getTwoFactorEnable)$',
+      '^/(login|logout|getTwoFactorEnable|csrf-token)$',
       '^/(panel|server)(/|$)',
     ]),
   },

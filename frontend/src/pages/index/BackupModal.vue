@@ -67,7 +67,9 @@ function importDb() {
           <template #description>{{ t('pages.index.exportDatabaseDesc') }}</template>
         </a-list-item-meta>
         <a-button type="primary" @click="exportDb">
-          <template #icon><DownloadOutlined /></template>
+          <template #icon>
+            <DownloadOutlined />
+          </template>
         </a-button>
       </a-list-item>
 
@@ -77,7 +79,9 @@ function importDb() {
           <template #description>{{ t('pages.index.importDatabaseDesc') }}</template>
         </a-list-item-meta>
         <a-button type="primary" @click="importDb">
-          <template #icon><UploadOutlined /></template>
+          <template #icon>
+            <UploadOutlined />
+          </template>
         </a-button>
       </a-list-item>
     </a-list>
@@ -85,6 +89,13 @@ function importDb() {
 </template>
 
 <style scoped>
-.backup-list { width: 100%; }
-.backup-item { display: flex; align-items: center; gap: 16px; }
+.backup-list {
+  width: 100%;
+}
+
+.backup-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
 </style>

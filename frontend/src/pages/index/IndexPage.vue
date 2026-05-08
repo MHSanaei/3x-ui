@@ -2,15 +2,29 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { theme as antdTheme } from 'ant-design-vue';
-import { BarsOutlined, CloudServerOutlined, CloudDownloadOutlined } from '@ant-design/icons-vue';
+import {
+  BarsOutlined,
+  ControlOutlined,
+  CloudServerOutlined,
+  CloudDownloadOutlined,
+  CloudUploadOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  GlobalOutlined,
+  SwapOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+} from '@ant-design/icons-vue';
 
 const { t } = useI18n();
 
-import { HttpUtil } from '@/utils';
+import { HttpUtil, SizeFormatter, TimeFormatter } from '@/utils';
 import { theme as themeState } from '@/composables/useTheme.js';
 import { useStatus } from '@/composables/useStatus.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
+import CustomStatistic from '@/components/CustomStatistic.vue';
+import TextModal from '@/components/TextModal.vue';
 import StatusCard from './StatusCard.vue';
 import XrayStatusCard from './XrayStatusCard.vue';
 import PanelUpdateModal from './PanelUpdateModal.vue';
@@ -47,6 +61,16 @@ onMounted(() => {
 const basePath = window.__X_UI_BASE_PATH__ || '';
 const requestUri = window.location.pathname;
 
+// In production, dist.go injects window.__X_UI_CUR_VER__ at serve time.
+// In dev, Vite serves the HTML directly so the global is missing — fall
+// back to currentVersion from the panel-update API once it answers.
+const displayVersion = computed(
+  () => panelUpdateInfo.value?.currentVersion || window.__X_UI_CUR_VER__ || '?',
+);
+
+// Hide/reveal the public IPv4/IPv6 — same pattern as legacy.
+const showIp = ref(false);
+
 // Modal open state.
 const logsOpen = ref(false);
 const backupOpen = ref(false);
@@ -54,6 +78,8 @@ const panelUpdateOpen = ref(false);
 const cpuHistoryOpen = ref(false);
 const xrayLogsOpen = ref(false);
 const versionOpen = ref(false);
+const configTextOpen = ref(false);
+const configText = ref('');
 
 // Page-level loading overlay; modals can request it via @busy.
 const loading = ref(false);
@@ -76,6 +102,20 @@ async function restartXray() {
 function openCpuHistory() { cpuHistoryOpen.value = true; }
 function openXrayLogs() { xrayLogsOpen.value = true; }
 function openVersionSwitch() { versionOpen.value = true; }
+
+// Legacy "Config" action — fetch the rendered xray config and show
+// it as JSON in the shared TextModal (same UX as main).
+async function openConfig() {
+  loading.value = true;
+  try {
+    const msg = await HttpUtil.get('/panel/api/server/getConfigJson');
+    if (!msg?.success) return;
+    configText.value = JSON.stringify(msg.obj, null, 2);
+    configTextOpen.value = true;
+  } finally {
+    loading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -94,47 +134,176 @@ function openVersionSwitch() { versionOpen.value = true; }
               </a-col>
 
               <a-col :sm="24" :lg="12">
-                <XrayStatusCard
-                  :status="status"
-                  :is-mobile="isMobile"
-                  :ip-limit-enable="ipLimitEnable"
-                  @stop-xray="stopXray"
-                  @restart-xray="restartXray"
-                  @open-xray-logs="openXrayLogs"
-                  @open-logs="logsOpen = true"
-                  @open-version-switch="openVersionSwitch"
-                />
+                <XrayStatusCard :status="status" :is-mobile="isMobile" :ip-limit-enable="ipLimitEnable"
+                  @stop-xray="stopXray" @restart-xray="restartXray" @open-xray-logs="openXrayLogs"
+                  @open-logs="logsOpen = true" @open-version-switch="openVersionSwitch" />
               </a-col>
 
               <a-col :sm="24" :lg="12">
                 <a-card :title="t('menu.link')" hoverable>
-                  <template v-if="panelUpdateInfo.updateAvailable" #extra>
-                    <a-tooltip :title="`${t('pages.index.updatePanel')}: ${panelUpdateInfo.latestVersion}`">
-                      <a-tag color="orange" class="update-tag" @click="panelUpdateOpen = true">
-                        <CloudDownloadOutlined />
-                        {{ panelUpdateInfo.latestVersion }}
-                        <span v-if="!isMobile">{{ t('update') }}</span>
-                      </a-tag>
-                    </a-tooltip>
-                  </template>
                   <template #actions>
                     <a-space class="action" @click="logsOpen = true">
                       <BarsOutlined />
                       <span v-if="!isMobile">{{ t('pages.index.logs') }}</span>
                     </a-space>
+                    <a-space class="action" @click="openConfig">
+                      <ControlOutlined />
+                      <span v-if="!isMobile">{{ t('pages.index.config') }}</span>
+                    </a-space>
                     <a-space class="action" @click="backupOpen = true">
                       <CloudServerOutlined />
                       <span v-if="!isMobile">{{ t('pages.index.backupTitle') }}</span>
                     </a-space>
-                    <a-space class="action" @click="panelUpdateOpen = true">
-                      <CloudDownloadOutlined />
-                      <span v-if="!isMobile">
-                        {{ panelUpdateInfo.updateAvailable
-                          ? `${t('update')} → ${panelUpdateInfo.latestVersion}`
-                          : t('pages.index.panelUpToDate') }}
-                      </span>
-                    </a-space>
                   </template>
+                </a-card>
+              </a-col>
+
+              <a-col :sm="24" :lg="12">
+                <a-card title="3X-UI" hoverable>
+                  <template v-if="panelUpdateInfo.updateAvailable" #extra>
+                    <a-tooltip :title="`${t('pages.index.updatePanel')}: ${panelUpdateInfo.latestVersion}`">
+                      <a-tag color="orange" class="update-tag" @click="panelUpdateOpen = true">
+                        <CloudDownloadOutlined />
+                        {{ panelUpdateInfo.latestVersion }}
+                        <span v-if="!isMobile">{{ t('pages.index.updatePanel') }}</span>
+                      </a-tag>
+                    </a-tooltip>
+                  </template>
+                  <a href="https://github.com/MHSanaei/3x-ui/releases" target="_blank" rel="noopener noreferrer">
+                    <a-tag color="green">v{{ displayVersion }}</a-tag>
+                  </a>
+                  <a href="https://t.me/XrayUI" target="_blank" rel="noopener noreferrer">
+                    <a-tag color="green">@XrayUI</a-tag>
+                  </a>
+                  <a href="https://github.com/MHSanaei/3x-ui/wiki" target="_blank" rel="noopener noreferrer">
+                    <a-tag color="purple">{{ t('pages.index.documentation') }}</a-tag>
+                  </a>
+                </a-card>
+              </a-col>
+
+              <a-col :sm="24" :lg="12">
+                <a-card :title="t('pages.index.operationHours')" hoverable>
+                  <a-tag :color="status.xray.color">
+                    Xray: {{ TimeFormatter.formatSecond(status.appStats.uptime) }}
+                  </a-tag>
+                  <a-tag color="green">OS: {{ TimeFormatter.formatSecond(status.uptime) }}</a-tag>
+                </a-card>
+              </a-col>
+
+              <a-col :sm="24" :lg="12">
+                <a-card :title="t('pages.index.systemLoad')" hoverable>
+                  <a-tooltip :title="t('pages.index.systemLoadDesc')">
+                    <a-tag color="green">
+                      {{ status.loads[0] }} | {{ status.loads[1] }} | {{ status.loads[2] }}
+                    </a-tag>
+                  </a-tooltip>
+                </a-card>
+              </a-col>
+
+              <a-col :sm="24" :lg="12">
+                <a-card :title="t('usage')" hoverable>
+                  <a-tag color="green">
+                    {{ t('pages.index.memory') }}: {{ SizeFormatter.sizeFormat(status.appStats.mem) }}
+                  </a-tag>
+                  <a-tag color="green">
+                    {{ t('pages.index.threads') }}: {{ status.appStats.threads }}
+                  </a-tag>
+                </a-card>
+              </a-col>
+
+              <a-col :sm="24" :lg="12">
+                <a-card :title="t('pages.index.overallSpeed')" hoverable>
+                  <a-row :gutter="isMobile ? [8, 8] : 0">
+                    <a-col :span="12">
+                      <CustomStatistic :title="t('pages.index.upload')"
+                        :value="SizeFormatter.sizeFormat(status.netIO.up)">
+                        <template #prefix>
+                          <ArrowUpOutlined />
+                        </template>
+                        <template #suffix>/s</template>
+                      </CustomStatistic>
+                    </a-col>
+                    <a-col :span="12">
+                      <CustomStatistic :title="t('pages.index.download')"
+                        :value="SizeFormatter.sizeFormat(status.netIO.down)">
+                        <template #prefix>
+                          <ArrowDownOutlined />
+                        </template>
+                        <template #suffix>/s</template>
+                      </CustomStatistic>
+                    </a-col>
+                  </a-row>
+                </a-card>
+              </a-col>
+
+              <a-col :sm="24" :lg="12">
+                <a-card :title="t('pages.index.totalData')" hoverable>
+                  <a-row :gutter="isMobile ? [8, 8] : 0">
+                    <a-col :span="12">
+                      <CustomStatistic :title="t('pages.index.sent')"
+                        :value="SizeFormatter.sizeFormat(status.netTraffic.sent)">
+                        <template #prefix>
+                          <CloudUploadOutlined />
+                        </template>
+                      </CustomStatistic>
+                    </a-col>
+                    <a-col :span="12">
+                      <CustomStatistic :title="t('pages.index.received')"
+                        :value="SizeFormatter.sizeFormat(status.netTraffic.recv)">
+                        <template #prefix>
+                          <CloudDownloadOutlined />
+                        </template>
+                      </CustomStatistic>
+                    </a-col>
+                  </a-row>
+                </a-card>
+              </a-col>
+
+              <a-col :sm="24" :lg="12">
+                <a-card :title="t('pages.index.ipAddresses')" hoverable>
+                  <template #extra>
+                    <a-tooltip :title="t('pages.index.toggleIpVisibility')" :placement="isMobile ? 'topRight' : 'top'">
+                      <component :is="showIp ? EyeOutlined : EyeInvisibleOutlined" class="ip-toggle-icon"
+                        @click="showIp = !showIp" />
+                    </a-tooltip>
+                  </template>
+                  <a-row :class="showIp ? 'ip-visible' : 'ip-hidden'" :gutter="isMobile ? [8, 8] : 0">
+                    <a-col :span="isMobile ? 24 : 12">
+                      <CustomStatistic title="IPv4" :value="status.publicIP.ipv4">
+                        <template #prefix>
+                          <GlobalOutlined />
+                        </template>
+                      </CustomStatistic>
+                    </a-col>
+                    <a-col :span="isMobile ? 24 : 12">
+                      <CustomStatistic title="IPv6" :value="status.publicIP.ipv6">
+                        <template #prefix>
+                          <GlobalOutlined />
+                        </template>
+                      </CustomStatistic>
+                    </a-col>
+                  </a-row>
+                </a-card>
+              </a-col>
+
+              <a-col :sm="24" :lg="12">
+                <a-card :title="t('pages.index.connectionCount')" hoverable>
+                  <a-row :gutter="isMobile ? [8, 8] : 0">
+                    <a-col :span="12">
+                      <CustomStatistic title="TCP" :value="status.tcpCount">
+                        <template #prefix>
+                          <SwapOutlined />
+                        </template>
+                      </CustomStatistic>
+                    </a-col>
+                    <a-col :span="12">
+                      <CustomStatistic title="UDP" :value="status.udpCount">
+                        <template #prefix>
+                          <SwapOutlined />
+                        </template>
+                      </CustomStatistic>
+                    </a-col>
+                  </a-row>
                 </a-card>
               </a-col>
             </a-row>
@@ -142,20 +311,14 @@ function openVersionSwitch() { versionOpen.value = true; }
         </a-layout-content>
       </a-layout>
 
-      <PanelUpdateModal
-        v-model:open="panelUpdateOpen"
-        :info="panelUpdateInfo"
-        @busy="setBusy"
-      />
+      <PanelUpdateModal v-model:open="panelUpdateOpen" :info="panelUpdateInfo" @busy="setBusy" />
       <LogModal v-model:open="logsOpen" />
-      <BackupModal
-        v-model:open="backupOpen"
-        :base-path="basePath"
-        @busy="setBusy"
-      />
+      <BackupModal v-model:open="backupOpen" :base-path="basePath" @busy="setBusy" />
       <CpuHistoryModal v-model:open="cpuHistoryOpen" :status="status" />
       <XrayLogModal v-model:open="xrayLogsOpen" />
       <VersionModal v-model:open="versionOpen" :status="status" @busy="setBusy" />
+      <TextModal v-model:open="configTextOpen" :title="t('pages.index.config')" :content="configText"
+        file-name="config.json" />
     </a-layout>
   </a-config-provider>
 </template>
@@ -184,8 +347,13 @@ function openVersionSwitch() { versionOpen.value = true; }
   background: transparent;
 }
 
-.content-shell { background: transparent; }
-.content-area { padding: 24px; }
+.content-shell {
+  background: transparent;
+}
+
+.content-area {
+  padding: 24px;
+}
 
 .loading-spacer {
   min-height: calc(100vh - 120px);
@@ -202,5 +370,19 @@ function openVersionSwitch() { versionOpen.value = true; }
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.ip-toggle-icon {
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.ip-hidden :deep(.ant-statistic-content-value) {
+  filter: blur(6px);
+  transition: filter 0.2s ease;
+}
+
+.ip-visible :deep(.ant-statistic-content-value) {
+  filter: none;
 }
 </style>

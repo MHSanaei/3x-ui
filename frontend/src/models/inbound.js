@@ -1,4 +1,4 @@
-import { ObjectUtil, RandomUtil, Base64 } from '@/utils';
+import { ObjectUtil, RandomUtil, Base64, NumberFormatter, SizeFormatter, Wireguard } from '@/utils';
 
 export const Protocols = {
     VMESS: 'vmess',

@@ -52,7 +52,7 @@ const tabs = computed(() => [
   { key: `${prefix}panel/inbounds`, icon: 'user',      title: t('menu.inbounds') },
   { key: `${prefix}panel/settings`, icon: 'setting',   title: t('menu.settings') },
   { key: `${prefix}panel/xray`,     icon: 'tool',      title: t('menu.xray') },
-  { key: `${prefix}logout/`,        icon: 'logout',    title: t('logout') },
+  { key: `${prefix}logout`,         icon: 'logout',    title: t('logout') },
 ]);
 
 const activeTab = ref([props.requestUri]);

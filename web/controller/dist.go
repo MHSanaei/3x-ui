@@ -3,11 +3,16 @@ package controller
 import (
 	"bytes"
 	"embed"
+	htmlpkg "html"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/mhsanaei/3x-ui/v2/config"
+	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/web/session"
 )
 
 // distFS is filled in once at startup by the web package via SetDistFS.
@@ -72,7 +77,7 @@ func serveDistPage(c *gin.Context, name string) {
 	// Escape just enough that a hostile basePath setting can't break
 	// out of the JS string literal. The setting is admin-controlled
 	// but defense-in-depth costs nothing here.
-	escaped := strings.NewReplacer(
+	jsEscape := strings.NewReplacer(
 		`\`, `\\`,
 		`"`, `\"`,
 		"\n", `\n`,
@@ -80,8 +85,27 @@ func serveDistPage(c *gin.Context, name string) {
 		"<", `<`,
 		">", `>`,
 		"&", `&`,
-	).Replace(basePath)
-	inject := []byte(`<script>window.__X_UI_BASE_PATH__="` + escaped + `";</script></head>`)
+	)
+	escapedBase := jsEscape.Replace(basePath)
+	escapedVer := jsEscape.Replace(config.GetVersion())
+
+	// Embed a CSRF token in the served HTML the same way the legacy
+	// templates did via `<meta name="csrf-token">`. Without this the
+	// SPA login page has no way to acquire a token (the existing
+	// /panel/csrf-token endpoint sits behind checkLogin), and POST
+	// /login is rejected by CSRFMiddleware. EnsureCSRFToken creates
+	// a session token on first call even for anonymous visitors.
+	csrfToken, err := session.EnsureCSRFToken(c)
+	if err != nil {
+		logger.Warning("Unable to mint CSRF token for", name+":", err)
+		csrfToken = ""
+	}
+	csrfMeta := []byte(`<meta name="csrf-token" content="` + htmlpkg.EscapeString(csrfToken) + `">`)
+
+	inject := []byte(`<script>window.__X_UI_BASE_PATH__="` + escapedBase +
+		`";window.__X_UI_CUR_VER__="` + escapedVer + `";</script>`)
+	inject = append(inject, csrfMeta...)
+	inject = append(inject, []byte(`</head>`)...)
 	out := bytes.Replace(body, []byte("</head>"), inject, 1)
 
 	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")

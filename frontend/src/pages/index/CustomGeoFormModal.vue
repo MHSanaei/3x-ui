@@ -84,15 +84,9 @@ async function submit() {
 </script>
 
 <template>
-  <a-modal
-    :open="open"
-    :title="editing ? t('pages.index.customGeoModalEdit') : t('pages.index.customGeoModalAdd')"
-    :confirm-loading="saving"
-    :ok-text="t('pages.index.customGeoModalSave')"
-    :cancel-text="t('close')"
-    @ok="submit"
-    @cancel="close"
-  >
+  <a-modal :open="open" :title="editing ? t('pages.index.customGeoModalEdit') : t('pages.index.customGeoModalAdd')"
+    :confirm-loading="saving" :ok-text="t('pages.index.customGeoModalSave')" :cancel-text="t('close')" @ok="submit"
+    @cancel="close">
     <a-form layout="vertical">
       <a-form-item :label="t('pages.index.customGeoType')">
         <a-select v-model:value="form.type" :disabled="editing">
@@ -101,11 +95,8 @@ async function submit() {
         </a-select>
       </a-form-item>
       <a-form-item :label="t('pages.index.customGeoAlias')">
-        <a-input
-          v-model:value="form.alias"
-          :disabled="editing"
-          :placeholder="t('pages.index.customGeoAliasPlaceholder')"
-        />
+        <a-input v-model:value="form.alias" :disabled="editing"
+          :placeholder="t('pages.index.customGeoAliasPlaceholder')" />
       </a-form-item>
       <a-form-item :label="t('pages.index.customGeoUrl')">
         <a-input v-model:value="form.url" placeholder="https://" />

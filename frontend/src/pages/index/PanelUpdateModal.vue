@@ -61,13 +61,8 @@ function updatePanel() {
 
 <template>
   <a-modal :open="open" :title="t('pages.index.updatePanel')" :closable="true" :footer="null" @cancel="close">
-    <a-alert
-      v-if="info.updateAvailable"
-      type="warning"
-      class="mb-12"
-      :message="t('pages.index.panelUpdateDesc')"
-      show-icon
-    />
+    <a-alert v-if="info.updateAvailable" type="warning" class="mb-12" :message="t('pages.index.panelUpdateDesc')"
+      show-icon />
 
     <a-list bordered class="version-list">
       <a-list-item class="version-list-item">
@@ -86,7 +81,9 @@ function updatePanel() {
 
     <div class="actions-row">
       <a-button type="primary" :disabled="!info.updateAvailable" @click="updatePanel">
-        <template #icon><CloudDownloadOutlined /></template>
+        <template #icon>
+          <CloudDownloadOutlined />
+        </template>
         {{ t('pages.index.updatePanel') }}
       </a-button>
     </div>
@@ -94,8 +91,22 @@ function updatePanel() {
 </template>
 
 <style scoped>
-.mb-12 { margin-bottom: 12px; }
-.version-list { width: 100%; }
-.version-list-item { display: flex; justify-content: space-between; }
-.actions-row { display: flex; justify-content: flex-end; margin-top: 12px; }
+.mb-12 {
+  margin-bottom: 12px;
+}
+
+.version-list {
+  width: 100%;
+}
+
+.version-list-item {
+  display: flex;
+  justify-content: space-between;
+}
+
+.actions-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
 </style>

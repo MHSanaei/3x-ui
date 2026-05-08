@@ -87,19 +87,11 @@ watch(() => props.open, (next) => { if (next) fetchVersions(); });
     <a-spin :spinning="loading">
       <a-collapse v-model:active-key="activeKey" accordion>
         <a-collapse-panel key="1" header="Xray">
-          <a-alert
-            type="warning"
-            class="mb-12"
-            :message="t('pages.index.xraySwitchClickDesk')"
-            show-icon
-          />
+          <a-alert type="warning" class="mb-12" :message="t('pages.index.xraySwitchClickDesk')" show-icon />
           <a-list bordered class="version-list">
             <a-list-item v-for="(version, index) in versions" :key="version" class="version-list-item">
               <a-tag :color="index % 2 === 0 ? 'purple' : 'green'">{{ version }}</a-tag>
-              <a-radio
-                :checked="version === `v${status?.xray?.version}`"
-                @click="switchXrayVersion(version)"
-              />
+              <a-radio :checked="version === `v${status?.xray?.version}`" @click="switchXrayVersion(version)" />
             </a-list-item>
           </a-list>
         </a-collapse-panel>
@@ -127,9 +119,19 @@ watch(() => props.open, (next) => { if (next) fetchVersions(); });
 </template>
 
 <style scoped>
-.mb-12 { margin-bottom: 12px; }
-.version-list { width: 100%; }
-.version-list-item { display: flex; justify-content: space-between; align-items: center; }
+.mb-12 {
+  margin-bottom: 12px;
+}
+
+.version-list {
+  width: 100%;
+}
+
+.version-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
 .reload-icon {
   cursor: pointer;

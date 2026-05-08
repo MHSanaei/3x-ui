@@ -40,6 +40,12 @@ func NewIndexController(g *gin.RouterGroup) *IndexController {
 func (a *IndexController) initRouter(g *gin.RouterGroup) {
 	g.GET("/", a.index)
 	g.GET("/logout", a.logout)
+	// Public CSRF endpoint — the SPA login page (served by Vite in
+	// dev or by serveDistPage in prod) needs a token to POST /login,
+	// but the panel-side /panel/csrf-token sits behind checkLogin.
+	// EnsureCSRFToken creates a session token even for anonymous
+	// callers, so any pre-login flow can bootstrap from here.
+	g.GET("/csrf-token", a.csrfToken)
 
 	g.POST("/login", middleware.CSRFMiddleware(), a.login)
 	g.POST("/getTwoFactorEnable", middleware.CSRFMiddleware(), a.getTwoFactorEnable)
@@ -146,6 +152,17 @@ func (a *IndexController) logout(c *gin.Context) {
 		logger.Warning("Unable to clear session on logout:", err)
 	}
 	c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
+}
+
+// csrfToken returns the session CSRF token. Public — the login page
+// needs a token before authenticating.
+func (a *IndexController) csrfToken(c *gin.Context) {
+	token, err := session.EnsureCSRFToken(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "obj": token})
 }
 
 // getTwoFactorEnable retrieves the current status of two-factor authentication.

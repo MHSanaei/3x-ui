@@ -125,7 +125,9 @@ watch([rows, level, syslog], () => { if (props.open) refresh(); });
       </a-form-item>
       <a-form-item style="margin-left: auto">
         <a-button type="primary" @click="download">
-          <template #icon><DownloadOutlined /></template>
+          <template #icon>
+            <DownloadOutlined />
+          </template>
         </a-button>
       </a-form-item>
     </a-form>

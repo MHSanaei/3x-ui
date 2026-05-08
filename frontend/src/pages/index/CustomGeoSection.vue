@@ -134,34 +134,26 @@ watch(() => props.active, (next) => { if (next) loadList(); }, { immediate: true
 
 <template>
   <div class="custom-geo-section">
-    <a-alert
-      type="info"
-      show-icon
-      class="mb-10"
-      :message="t('pages.index.customGeoRoutingHint')"
-    />
+    <a-alert type="info" show-icon class="mb-10" :message="t('pages.index.customGeoRoutingHint')" />
 
     <div class="toolbar">
       <a-button type="primary" :loading="loading" @click="openAdd">
-        <template #icon><PlusOutlined /></template>
+        <template #icon>
+          <PlusOutlined />
+        </template>
         {{ t('pages.index.customGeoAdd') }}
       </a-button>
       <a-button :loading="updatingAll" :disabled="!list.length" @click="updateAll">
-        <template #icon><ReloadOutlined /></template>
+        <template #icon>
+          <ReloadOutlined />
+        </template>
         {{ t('pages.index.geofilesUpdateAll') }}
       </a-button>
       <span v-if="list.length" class="custom-geo-count">{{ list.length }}</span>
     </div>
 
-    <a-table
-      :columns="columns"
-      :data-source="list"
-      :pagination="false"
-      :row-key="(r) => r.id"
-      :loading="loading"
-      size="small"
-      :scroll="{ x: 760 }"
-    >
+    <a-table :columns="columns" :data-source="list" :pagination="false" :row-key="(r) => r.id" :loading="loading"
+      size="small" :scroll="{ x: 760 }">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'alias'">
           <div class="custom-geo-alias-cell">
@@ -199,22 +191,23 @@ watch(() => props.active, (next) => { if (next) loadList(); }, { immediate: true
           <a-space size="small">
             <a-tooltip :title="t('pages.index.customGeoEdit')">
               <a-button type="link" size="small" @click="openEdit(record)">
-                <template #icon><EditOutlined /></template>
+                <template #icon>
+                  <EditOutlined />
+                </template>
               </a-button>
             </a-tooltip>
             <a-tooltip :title="t('pages.index.customGeoDownload')">
-              <a-button
-                type="link"
-                size="small"
-                :loading="actionId === record.id"
-                @click="downloadOne(record.id)"
-              >
-                <template #icon><ReloadOutlined /></template>
+              <a-button type="link" size="small" :loading="actionId === record.id" @click="downloadOne(record.id)">
+                <template #icon>
+                  <ReloadOutlined />
+                </template>
               </a-button>
             </a-tooltip>
             <a-tooltip :title="t('pages.index.customGeoDelete')">
               <a-button type="link" size="small" danger @click="confirmDelete(record)">
-                <template #icon><DeleteOutlined /></template>
+                <template #icon>
+                  <DeleteOutlined />
+                </template>
               </a-button>
             </a-tooltip>
           </a-space>
@@ -229,16 +222,14 @@ watch(() => props.active, (next) => { if (next) loadList(); }, { immediate: true
       </template>
     </a-table>
 
-    <CustomGeoFormModal
-      v-model:open="formOpen"
-      :record="editingRecord"
-      @saved="loadList"
-    />
+    <CustomGeoFormModal v-model:open="formOpen" :record="editingRecord" @saved="loadList" />
   </div>
 </template>
 
 <style scoped>
-.mb-10 { margin-bottom: 10px; }
+.mb-10 {
+  margin-bottom: 10px;
+}
 
 .toolbar {
   display: flex;
@@ -256,6 +247,7 @@ watch(() => props.active, (next) => { if (next) loadList(); }, { immediate: true
   font-size: 12px;
   opacity: 0.75;
 }
+
 :global(body.dark) .custom-geo-count {
   background: rgba(255, 255, 255, 0.08);
 }
@@ -265,10 +257,12 @@ watch(() => props.active, (next) => { if (next) loadList(); }, { immediate: true
   align-items: center;
   gap: 6px;
 }
+
 .custom-geo-alias {
   font-weight: 500;
   word-break: break-all;
 }
+
 .custom-geo-type-tag {
   margin: 0;
 }
@@ -286,12 +280,15 @@ watch(() => props.active, (next) => { if (next) loadList(); }, { immediate: true
   background: rgba(0, 0, 0, 0.05);
   user-select: all;
 }
+
 .custom-geo-copyable:hover {
   background: rgba(0, 0, 0, 0.1);
 }
+
 :global(body.dark) .custom-geo-ext-code {
   background: rgba(255, 255, 255, 0.08);
 }
+
 :global(body.dark) .custom-geo-copyable:hover {
   background: rgba(255, 255, 255, 0.14);
 }
@@ -305,6 +302,7 @@ watch(() => props.active, (next) => { if (next) loadList(); }, { immediate: true
   padding: 18px 0;
   opacity: 0.6;
 }
+
 .custom-geo-empty-icon {
   font-size: 32px;
   margin-bottom: 6px;

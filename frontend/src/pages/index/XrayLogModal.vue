@@ -129,7 +129,9 @@ watch([rows, showDirect, showBlocked, showProxy], () => { if (props.open) refres
       </a-form-item>
       <a-form-item style="margin-left: auto">
         <a-button type="primary" @click="download">
-          <template #icon><DownloadOutlined /></template>
+          <template #icon>
+            <DownloadOutlined />
+          </template>
         </a-button>
       </a-form-item>
     </a-form>
@@ -170,6 +172,7 @@ watch([rows, showDirect, showBlocked, showProxy], () => { if (props.open) refres
   border-collapse: collapse;
   width: auto;
 }
+
 .xraylog-table td,
 .xraylog-table th {
   padding: 2px 15px;

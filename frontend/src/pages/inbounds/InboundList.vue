@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   PlusOutlined,
@@ -89,6 +89,10 @@ watch(refreshIntervalMs, (next) => {
   localStorage.setItem('refreshInterval', String(next));
   if (isRefreshEnabled.value) startAutoRefresh();
 });
+// Without this, a stale setInterval keeps firing emit('refresh') after
+// the component unmounts, which Vue surfaces as "emitsOptions" /
+// "__asyncLoader" exceptions on the next tick.
+onBeforeUnmount(stopAutoRefresh);
 
 // Toggle the filter mode — flip cleans the other input.
 function onToggleFilter() {

@@ -42,12 +42,8 @@ function badgeAnimationClass(color) {
 
     <template #extra>
       <template v-if="status.xray.state !== 'error'">
-        <a-badge
-          status="processing"
-          :class="['xray-processing-animation', badgeAnimationClass(status.xray.color)]"
-          :text="status.xray.stateMsg"
-          :color="status.xray.color"
-        />
+        <a-badge status="processing" :class="['xray-processing-animation', badgeAnimationClass(status.xray.color)]"
+          :text="status.xray.stateMsg" :color="status.xray.color" />
       </template>
       <template v-else>
         <a-popover>
@@ -64,12 +60,8 @@ function badgeAnimationClass(color) {
               {{ line }}
             </span>
           </template>
-          <a-badge
-            status="processing"
-            :text="status.xray.stateMsg"
-            :color="status.xray.color"
-            :class="['xray-processing-animation', 'xray-error-animation']"
-          />
+          <a-badge status="processing" :text="status.xray.stateMsg" :color="status.xray.color"
+            :class="['xray-processing-animation', 'xray-error-animation']" />
         </a-popover>
       </template>
     </template>
@@ -122,18 +114,31 @@ function badgeAnimationClass(color) {
 .xray-processing-animation .ant-badge-status-dot {
   animation: xray-pulse 1.2s linear infinite;
 }
+
 .xray-running-animation .ant-badge-status-processing::after {
   border-color: var(--color-primary-100, #008771);
 }
+
 .xray-stop-animation .ant-badge-status-processing::after {
   border-color: #fa8c16;
 }
+
 .xray-error-animation .ant-badge-status-processing::after {
   border-color: #f5222d;
 }
 
 @keyframes xray-pulse {
-  0%, 50%, 100% { transform: scale(1); opacity: 1; }
-  10% { transform: scale(1.5); opacity: 0.2; }
+
+  0%,
+  50%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  10% {
+    transform: scale(1.5);
+    opacity: 0.2;
+  }
 }
 </style>
