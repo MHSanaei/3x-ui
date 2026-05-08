@@ -1,10 +1,13 @@
 <script setup>
 import { nextTick, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { message } from 'ant-design-vue';
 import * as OTPAuth from 'otpauth';
 import QRious from 'qrious';
 
 import { ClipboardManager } from '@/utils';
+
+const { t } = useI18n();
 
 // Two flavors of this modal:
 //   • type='set' shows a QR code + manual key + a 6-digit verifier
@@ -79,7 +82,7 @@ function onOk() {
   if (totp.generate() === enteredCode.value) {
     close(true);
   } else {
-    message.error('Invalid code — check your authenticator and try again.');
+    message.error(t('pages.settings.security.twoFactorModalError'));
   }
 }
 
@@ -89,21 +92,16 @@ function onCancel() {
 
 async function copyToken() {
   const ok = await ClipboardManager.copyText(props.token);
-  if (ok) message.success('Copied');
+  if (ok) message.success(t('copied'));
 }
 </script>
 
 <template>
-  <a-modal
-    :open="open"
-    :title="title"
-    :closable="true"
-    @cancel="onCancel"
-  >
+  <a-modal :open="open" :title="title" :closable="true" @cancel="onCancel">
     <template v-if="type === 'set'">
-      <p>Scan the QR code with your authenticator app, then enter the 6-digit code it shows.</p>
+      <p>{{ t('pages.settings.security.twoFactorModalSteps') }}</p>
       <a-divider />
-      <p>Step 1 — Scan the QR code (click to copy the secret).</p>
+      <p>{{ t('pages.settings.security.twoFactorModalFirstStep') }}</p>
       <div class="qr-wrap">
         <div class="qr-bg">
           <canvas ref="qrCanvas" class="qr-cv" @click="copyToken" />
@@ -111,7 +109,7 @@ async function copyToken() {
         <span class="qr-token">{{ token }}</span>
       </div>
       <a-divider />
-      <p>Step 2 — Enter the 6-digit code from your authenticator.</p>
+      <p>{{ t('pages.settings.security.twoFactorModalSecondStep') }}</p>
       <a-input v-model:value="enteredCode" :style="{ width: '100%' }" />
     </template>
 
@@ -121,8 +119,8 @@ async function copyToken() {
     </template>
 
     <template #footer>
-      <a-button @click="onCancel">Cancel</a-button>
-      <a-button type="primary" :disabled="enteredCode.length < 6" @click="onOk">Confirm</a-button>
+      <a-button @click="onCancel">{{ t('cancel') }}</a-button>
+      <a-button type="primary" :disabled="enteredCode.length < 6" @click="onOk">{{ t('confirm') }}</a-button>
     </template>
   </a-modal>
 </template>
@@ -134,6 +132,7 @@ async function copyToken() {
   align-items: center;
   gap: 12px;
 }
+
 .qr-bg {
   width: 180px;
   height: 180px;
@@ -141,11 +140,13 @@ async function copyToken() {
   padding: 4px;
   border-radius: 6px;
 }
+
 .qr-cv {
   cursor: pointer;
   width: 100% !important;
   height: 100% !important;
 }
+
 .qr-token {
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;

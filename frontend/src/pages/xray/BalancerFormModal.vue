@@ -1,5 +1,8 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 // Balancer add/edit modal — mirrors xray_balancer_modal.html.
 // Tag must be unique across other balancers; selector is a tag-mode
@@ -61,27 +64,21 @@ function onOk() {
   emit('confirm', { ...form });
 }
 
-const title = computed(() => (isEdit.value ? 'Edit balancer' : 'Add balancer'));
-const okText = computed(() => (isEdit.value ? 'Update' : 'Add'));
+const title = computed(() =>
+  isEdit.value
+    ? `${t('edit')} ${t('pages.xray.Balancers')}`
+    : `+ ${t('pages.xray.Balancers')}`,
+);
+const okText = computed(() =>
+  isEdit.value ? t('pages.client.submitEdit') : t('create'),
+);
 </script>
 
 <template>
-  <a-modal
-    :open="open"
-    :title="title"
-    :ok-text="okText"
-    cancel-text="Close"
-    :ok-button-props="{ disabled: !isValid }"
-    :mask-closable="false"
-    @ok="onOk"
-    @cancel="close"
-  >
+  <a-modal :open="open" :title="title" :ok-text="okText" :cancel-text="t('close')"
+    :ok-button-props="{ disabled: !isValid }" :mask-closable="false" @ok="onOk" @cancel="close">
     <a-form :colon="false" :label-col="{ md: { span: 8 } }" :wrapper-col="{ md: { span: 14 } }">
-      <a-form-item
-        label="Tag"
-        :validate-status="duplicateTag ? 'warning' : 'success'"
-        has-feedback
-      >
+      <a-form-item label="Tag" :validate-status="duplicateTag ? 'warning' : 'success'" has-feedback>
         <a-input v-model:value="form.tag" placeholder="unique balancer tag" />
       </a-form-item>
 
@@ -91,19 +88,17 @@ const okText = computed(() => (isEdit.value ? 'Update' : 'Add'));
         </a-select>
       </a-form-item>
 
-      <a-form-item
-        label="Selector"
-        :validate-status="emptySelector ? 'warning' : 'success'"
-        has-feedback
-      >
+      <a-form-item label="Selector" :validate-status="emptySelector ? 'warning' : 'success'" has-feedback>
         <a-select v-model:value="form.selector" mode="tags" :token-separators="[',']">
-          <a-select-option v-for="t in outboundTags" :key="t" :value="t">{{ t }}</a-select-option>
+          <a-select-option v-for="tag in outboundTags" :key="tag" :value="tag">{{ tag }}</a-select-option>
         </a-select>
       </a-form-item>
 
       <a-form-item label="Fallback">
         <a-select v-model:value="form.fallbackTag" allow-clear>
-          <a-select-option v-for="t in ['', ...outboundTags]" :key="t || '__empty'" :value="t">{{ t || '(none)' }}</a-select-option>
+          <a-select-option v-for="tag in ['', ...outboundTags]" :key="tag || '__empty'" :value="tag">
+            {{ tag || `(${t('none')})` }}
+          </a-select-option>
         </a-select>
       </a-form-item>
     </a-form>

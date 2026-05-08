@@ -42,6 +42,7 @@ const {
   fetched,
   spinning,
   saveDisabled,
+  fetchError,
   xraySetting,
   templateSettings,
   outboundTestUrl,
@@ -50,6 +51,7 @@ const {
   restartResult,
   outboundsTraffic,
   outboundTestStates,
+  fetchAll,
   fetchOutboundsTraffic,
   resetOutboundsTraffic,
   testOutbound,
@@ -131,6 +133,11 @@ const { isMobile } = useMediaQuery();
 const basePath = window.__X_UI_BASE_PATH__ || '';
 const requestUri = window.location.pathname;
 
+// See SettingsPage scrollTarget — wrap so `document` is in scope.
+function scrollTarget() {
+  return document.getElementById('content-layout');
+}
+
 function confirmRestart() {
   Modal.confirm({
     title: 'Restart xray?',
@@ -154,6 +161,17 @@ function confirmRestart() {
         <a-layout-content id="content-layout" class="content-area">
           <a-spin :spinning="spinning || !fetched" :delay="200" tip="Loading…" size="large">
             <div v-if="!fetched" class="loading-spacer" />
+
+            <a-result
+              v-else-if="fetchError"
+              status="error"
+              :title="t('somethingWentWrong')"
+              :sub-title="fetchError"
+            >
+              <template #extra>
+                <a-button type="primary" @click="fetchAll">{{ t('check') }}</a-button>
+              </template>
+            </a-result>
 
             <template v-else>
               <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]">
@@ -179,7 +197,7 @@ function confirmRestart() {
                         </a-space>
                       </a-col>
                       <a-col :xs="24" :sm="10" class="header-info">
-                        <a-back-top :target="() => document.getElementById('content-layout')" :visibility-height="200" />
+                        <a-back-top :target="scrollTarget" :visibility-height="200" />
                         <a-alert
                           type="warning"
                           show-icon

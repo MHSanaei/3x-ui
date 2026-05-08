@@ -1,10 +1,13 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import QRious from 'qrious';
 import { CopyOutlined, DownloadOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 
 import { ClipboardManager, FileManager } from '@/utils';
+
+const { t } = useI18n();
 
 // Renders a single share-link as a clickable QR code + a copy button
 // + (optional) a download button. Used per-link inside the inbound
@@ -47,7 +50,7 @@ watch(() => props.size, paint);
 
 async function copy() {
   const ok = await ClipboardManager.copyText(props.value);
-  if (ok) message.success('Copied');
+  if (ok) message.success(t('copied'));
 }
 
 function download() {
@@ -60,12 +63,12 @@ function download() {
   <div class="qr-panel">
     <div class="qr-panel-header">
       <a-tag color="green" class="qr-remark">{{ remark }}</a-tag>
-      <a-tooltip title="Copy">
+      <a-tooltip :title="t('copy')">
         <a-button size="small" @click="copy">
           <template #icon><CopyOutlined /></template>
         </a-button>
       </a-tooltip>
-      <a-tooltip v-if="downloadName" title="Download">
+      <a-tooltip v-if="downloadName" :title="t('download')">
         <a-button size="small" @click="download">
           <template #icon><DownloadOutlined /></template>
         </a-button>

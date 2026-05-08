@@ -1,9 +1,12 @@
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ExclamationCircleFilled, CloudOutlined, ApiOutlined } from '@ant-design/icons-vue';
 
 import { OutboundDomainStrategies } from '@/models/outbound.js';
 import SettingListItem from '@/components/SettingListItem.vue';
+
+const { t } = useI18n();
 
 // Phase 6-ii: structured editor for the most-touched fields of the
 // xray template — outbound strategy, routing strategy, log levels,
@@ -223,18 +226,16 @@ const localOutboundTestUrl = computed({
 
 <template>
   <a-collapse default-active-key="1">
-    <a-collapse-panel key="1" header="General">
-      <a-alert
-        type="warning"
-        class="mb-12 hint-alert"
-        message="Editing this template manually is for advanced users only."
-      >
-        <template #icon><ExclamationCircleFilled style="color: #FFA031;" /></template>
+    <a-collapse-panel key="1" :header="t('pages.xray.generalConfigs')">
+      <a-alert type="warning" class="mb-12 hint-alert" :message="t('pages.xray.generalConfigsDesc')">
+        <template #icon>
+          <ExclamationCircleFilled style="color: #FFA031;" />
+        </template>
       </a-alert>
 
       <SettingListItem paddings="small">
-        <template #title>Freedom outbound strategy</template>
-        <template #description>How the direct outbound resolves destinations.</template>
+        <template #title>{{ t('pages.xray.FreedomStrategy') }}</template>
+        <template #description>{{ t('pages.xray.FreedomStrategyDesc') }}</template>
         <template #control>
           <a-select v-model:value="freedomStrategy" :style="{ width: '100%' }">
             <a-select-option v-for="s in OutboundDomainStrategies" :key="s" :value="s">{{ s }}</a-select-option>
@@ -243,8 +244,8 @@ const localOutboundTestUrl = computed({
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Routing strategy</template>
-        <template #description>Domain strategy applied at the routing level.</template>
+        <template #title>{{ t('pages.xray.RoutingStrategy') }}</template>
+        <template #description>{{ t('pages.xray.RoutingStrategyDesc') }}</template>
         <template #control>
           <a-select v-model:value="routingStrategy" :style="{ width: '100%' }">
             <a-select-option v-for="s in ROUTING_DOMAIN_STRATEGIES" :key="s" :value="s">{{ s }}</a-select-option>
@@ -253,25 +254,25 @@ const localOutboundTestUrl = computed({
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Outbound test URL</template>
-        <template #description>HTTP endpoint used for outbound latency tests.</template>
+        <template #title>{{ t('pages.xray.outboundTestUrl') }}</template>
+        <template #description>{{ t('pages.xray.outboundTestUrlDesc') }}</template>
         <template #control>
           <a-input v-model:value="localOutboundTestUrl" placeholder="https://www.google.com/generate_204" />
         </template>
       </SettingListItem>
     </a-collapse-panel>
 
-    <a-collapse-panel key="2" header="Statistics">
+    <a-collapse-panel key="2" :header="t('pages.xray.statistics')">
       <SettingListItem paddings="small">
-        <template #title>Inbound uplink stats</template>
+        <template #title>{{ t('pages.xray.statsInboundUplink') }}</template>
         <template #control><a-switch v-model:checked="statsInboundUplink" /></template>
       </SettingListItem>
       <SettingListItem paddings="small">
-        <template #title>Inbound downlink stats</template>
+        <template #title>{{ t('pages.xray.statsInboundDownlink') }}</template>
         <template #control><a-switch v-model:checked="statsInboundDownlink" /></template>
       </SettingListItem>
       <SettingListItem paddings="small">
-        <template #title>Outbound uplink stats</template>
+        <template #title>{{ t('pages.xray.statsOutboundUplink') }}</template>
         <template #control><a-switch v-model:checked="statsOutboundUplink" /></template>
       </SettingListItem>
       <SettingListItem paddings="small">
@@ -280,17 +281,16 @@ const localOutboundTestUrl = computed({
       </SettingListItem>
     </a-collapse-panel>
 
-    <a-collapse-panel key="3" header="Logs">
-      <a-alert
-        type="warning"
-        class="mb-12 hint-alert"
-        message="Empty access/error log fields disable that log; ./access.log writes to disk."
-      >
-        <template #icon><ExclamationCircleFilled style="color: #FFA031;" /></template>
+    <a-collapse-panel key="3" :header="t('pages.xray.logConfigs')">
+      <a-alert type="warning" class="mb-12 hint-alert" :message="t('pages.xray.logConfigsDesc')">
+        <template #icon>
+          <ExclamationCircleFilled style="color: #FFA031;" />
+        </template>
       </a-alert>
 
       <SettingListItem paddings="small">
-        <template #title>Log level</template>
+        <template #title>{{ t('pages.xray.logLevel') }}</template>
+        <template #description>{{ t('pages.xray.logLevelDesc') }}</template>
         <template #control>
           <a-select v-model:value="logLevel" :style="{ width: '100%' }">
             <a-select-option v-for="s in LOG_LEVELS" :key="s" :value="s">{{ s }}</a-select-option>
@@ -299,165 +299,144 @@ const localOutboundTestUrl = computed({
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Access log</template>
+        <template #title>{{ t('pages.xray.accessLog') }}</template>
+        <template #description>{{ t('pages.xray.accessLogDesc') }}</template>
         <template #control>
           <a-select v-model:value="accessLog" :style="{ width: '100%' }">
-            <a-select-option value="">Empty</a-select-option>
+            <a-select-option value="">{{ t('none') }}</a-select-option>
             <a-select-option v-for="s in ACCESS_LOG" :key="s" :value="s">{{ s }}</a-select-option>
           </a-select>
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Error log</template>
+        <template #title>{{ t('pages.xray.errorLog') }}</template>
+        <template #description>{{ t('pages.xray.errorLogDesc') }}</template>
         <template #control>
           <a-select v-model:value="errorLog" :style="{ width: '100%' }">
-            <a-select-option value="">Empty</a-select-option>
+            <a-select-option value="">{{ t('none') }}</a-select-option>
             <a-select-option v-for="s in ERROR_LOG" :key="s" :value="s">{{ s }}</a-select-option>
           </a-select>
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Mask address</template>
-        <template #description>Truncate IPs in logs.</template>
+        <template #title>{{ t('pages.xray.maskAddress') }}</template>
+        <template #description>{{ t('pages.xray.maskAddressDesc') }}</template>
         <template #control>
           <a-select v-model:value="maskAddressLog" :style="{ width: '100%' }">
-            <a-select-option value="">Empty</a-select-option>
+            <a-select-option value="">{{ t('none') }}</a-select-option>
             <a-select-option v-for="s in MASK_ADDRESS" :key="s" :value="s">{{ s }}</a-select-option>
           </a-select>
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>DNS log</template>
+        <template #title>{{ t('pages.xray.dnsLog') }}</template>
+        <template #description>{{ t('pages.xray.dnsLogDesc') }}</template>
         <template #control><a-switch v-model:checked="dnslog" /></template>
       </SettingListItem>
     </a-collapse-panel>
 
-    <a-collapse-panel key="4" header="Basic routing">
-      <a-alert
-        type="warning"
-        class="mb-12 hint-alert"
-        message="These shortcuts edit the underlying routing rules. Use the Routing tab for full control."
-      >
-        <template #icon><ExclamationCircleFilled style="color: #FFA031;" /></template>
+    <a-collapse-panel key="4" :header="t('pages.xray.basicRouting')">
+      <a-alert type="warning" class="mb-12 hint-alert" :message="t('pages.xray.blockConnectionsConfigsDesc')">
+        <template #icon>
+          <ExclamationCircleFilled style="color: #FFA031;" />
+        </template>
       </a-alert>
 
       <SettingListItem paddings="small">
-        <template #title>Block torrent</template>
+        <template #title>{{ t('pages.xray.Torrent') }}</template>
         <template #control><a-switch v-model:checked="torrentSettings" /></template>
       </SettingListItem>
 
-      <a-alert
-        type="warning"
-        class="mb-12 hint-alert"
-        message="Block lists drop traffic matching these IPs / domains."
-      >
-        <template #icon><ExclamationCircleFilled style="color: #FFA031;" /></template>
-      </a-alert>
-
       <SettingListItem paddings="small">
-        <template #title>Block IPs</template>
+        <template #title>{{ t('pages.xray.blockips') }}</template>
         <template #control>
           <a-select v-model:value="blockedIPs" mode="tags" :style="{ width: '100%' }">
-            <a-select-option v-for="p in IPS_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label }}</a-select-option>
+            <a-select-option v-for="p in IPS_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label
+            }}</a-select-option>
           </a-select>
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Block domains</template>
+        <template #title>{{ t('pages.xray.blockdomains') }}</template>
         <template #control>
           <a-select v-model:value="blockedDomains" mode="tags" :style="{ width: '100%' }">
-            <a-select-option v-for="p in BLOCK_DOMAINS_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label }}</a-select-option>
+            <a-select-option v-for="p in BLOCK_DOMAINS_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{
+              p.label }}</a-select-option>
           </a-select>
         </template>
       </SettingListItem>
 
-      <a-alert
-        type="warning"
-        class="mb-12 hint-alert"
-        message="Direct lists bypass the proxy for matched IPs / domains."
-      >
-        <template #icon><ExclamationCircleFilled style="color: #FFA031;" /></template>
+      <a-alert type="warning" class="mb-12 hint-alert" :message="t('pages.xray.directConnectionsConfigsDesc')">
+        <template #icon>
+          <ExclamationCircleFilled style="color: #FFA031;" />
+        </template>
       </a-alert>
 
       <SettingListItem paddings="small">
-        <template #title>Direct IPs</template>
+        <template #title>{{ t('pages.xray.directips') }}</template>
         <template #control>
           <a-select v-model:value="directIPs" mode="tags" :style="{ width: '100%' }">
-            <a-select-option v-for="p in IPS_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label }}</a-select-option>
+            <a-select-option v-for="p in IPS_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label
+            }}</a-select-option>
           </a-select>
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Direct domains</template>
+        <template #title>{{ t('pages.xray.directdomains') }}</template>
         <template #control>
           <a-select v-model:value="directDomains" mode="tags" :style="{ width: '100%' }">
-            <a-select-option v-for="p in DOMAINS_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label }}</a-select-option>
+            <a-select-option v-for="p in DOMAINS_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label
+            }}</a-select-option>
           </a-select>
         </template>
       </SettingListItem>
 
-      <a-alert
-        type="warning"
-        class="mb-12 hint-alert"
-        message="IPv4 routing forces the listed services through an IPv4-only outbound."
-      >
-        <template #icon><ExclamationCircleFilled style="color: #FFA031;" /></template>
-      </a-alert>
-
       <SettingListItem paddings="small">
-        <template #title>IPv4 forced</template>
+        <template #title>{{ t('pages.xray.ipv4Routing') }}</template>
+        <template #description>{{ t('pages.xray.ipv4RoutingDesc') }}</template>
         <template #control>
           <a-select v-model:value="ipv4Domains" mode="tags" :style="{ width: '100%' }">
-            <a-select-option v-for="p in SERVICES_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label }}</a-select-option>
+            <a-select-option v-for="p in SERVICES_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label
+            }}</a-select-option>
           </a-select>
         </template>
       </SettingListItem>
 
-      <a-alert
-        type="warning"
-        class="mb-12 hint-alert"
-        message="WARP / NordVPN routing requires the matching outbound to exist — use the buttons to provision it."
-      >
-        <template #icon><ExclamationCircleFilled style="color: #FFA031;" /></template>
-      </a-alert>
-
       <SettingListItem paddings="small">
-        <template #title>WARP routing</template>
+        <template #title>{{ t('pages.xray.warpRouting') }}</template>
+        <template #description>{{ t('pages.xray.warpRoutingDesc') }}</template>
         <template #control>
-          <a-select
-            v-if="warpExist"
-            v-model:value="warpDomains"
-            mode="tags"
-            :style="{ width: '100%' }"
-          >
-            <a-select-option v-for="p in SERVICES_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label }}</a-select-option>
+          <a-select v-if="warpExist" v-model:value="warpDomains" mode="tags" :style="{ width: '100%' }">
+            <a-select-option v-for="p in SERVICES_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label
+            }}</a-select-option>
           </a-select>
           <a-button v-else type="primary" @click="emit('show-warp')">
-            <template #icon><CloudOutlined /></template>
-            Configure WARP
+            <template #icon>
+              <CloudOutlined />
+            </template>
+            WARP
           </a-button>
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>NordVPN routing</template>
+        <template #title>{{ t('pages.xray.nordRouting') }}</template>
+        <template #description>{{ t('pages.xray.nordRoutingDesc') }}</template>
         <template #control>
-          <a-select
-            v-if="nordExist"
-            v-model:value="nordDomains"
-            mode="tags"
-            :style="{ width: '100%' }"
-          >
-            <a-select-option v-for="p in SERVICES_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label }}</a-select-option>
+          <a-select v-if="nordExist" v-model:value="nordDomains" mode="tags" :style="{ width: '100%' }">
+            <a-select-option v-for="p in SERVICES_OPTIONS" :key="p.value" :value="p.value" :label="p.label">{{ p.label
+            }}</a-select-option>
           </a-select>
           <a-button v-else type="primary" @click="emit('show-nord')">
-            <template #icon><ApiOutlined /></template>
-            Configure NordVPN
+            <template #icon>
+              <ApiOutlined />
+            </template>
+            NordVPN
           </a-button>
         </template>
       </SettingListItem>
@@ -466,6 +445,11 @@ const localOutboundTestUrl = computed({
 </template>
 
 <style scoped>
-.mb-12 { margin-bottom: 12px; }
-.hint-alert { text-align: center; }
+.mb-12 {
+  margin-bottom: 12px;
+}
+
+.hint-alert {
+  text-align: center;
+}
 </style>

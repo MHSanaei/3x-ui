@@ -33,6 +33,16 @@ const { isMobile } = useMediaQuery();
 const basePath = window.__X_UI_BASE_PATH__ || '';
 const requestUri = window.location.pathname;
 
+// AD-Vue 4's <a-back-top> calls `target()` after mount to find the
+// scrolled element. Inline-arrow `() => document.getElementById(...)`
+// in the template threw "Cannot read properties of undefined (reading
+// 'getElementById')" because of how Vue 3 evaluates the expression
+// outside the script-setup scope — wrap in a regular function so
+// `document` resolves to the window global at call time.
+function scrollTarget() {
+  return document.getElementById('content-layout');
+}
+
 // `entry*` mirrors the URL the user opened the panel with so the page
 // can rebuild it after a restart that may change host/port/scheme.
 const entryHost = ref('');
@@ -129,7 +139,7 @@ const confAlerts = computed(() => {
   if (allSetting.subEnable) {
     let subPath = allSetting.subPath;
     if (allSetting.subURI) {
-      try { subPath = new URL(allSetting.subURI).pathname; } catch (_e) {}
+      try { subPath = new URL(allSetting.subURI).pathname; } catch (_e) { }
     }
     if (subPath === '/sub/') {
       out.push('Default subscription path "/sub/" is well-known — change it.');
@@ -138,7 +148,7 @@ const confAlerts = computed(() => {
   if (allSetting.subJsonEnable) {
     let p = allSetting.subJsonPath;
     if (allSetting.subJsonURI) {
-      try { p = new URL(allSetting.subJsonURI).pathname; } catch (_e) {}
+      try { p = new URL(allSetting.subJsonURI).pathname; } catch (_e) { }
     }
     if (p === '/json/') {
       out.push('Default JSON subscription path "/json/" is well-known — change it.');
@@ -152,10 +162,7 @@ const alertVisible = ref(true);
 
 <template>
   <a-config-provider :theme="antdThemeConfig">
-    <a-layout
-      class="settings-page"
-      :class="{ 'is-dark': themeState.isDark, 'is-ultra': themeState.isUltra }"
-    >
+    <a-layout class="settings-page" :class="{ 'is-dark': themeState.isDark, 'is-ultra': themeState.isUltra }">
       <AppSidebar :base-path="basePath" :request-uri="requestUri" />
 
       <a-layout class="content-shell">
@@ -164,14 +171,8 @@ const alertVisible = ref(true);
             <div v-if="!fetched" class="loading-spacer" />
 
             <template v-else>
-              <a-alert
-                v-if="confAlerts.length > 0 && alertVisible"
-                type="error"
-                show-icon
-                closable
-                class="conf-alert"
-                @close="alertVisible = false"
-              >
+              <a-alert v-if="confAlerts.length > 0 && alertVisible" type="error" show-icon closable class="conf-alert"
+                @close="alertVisible = false">
                 <template #message>Security warnings</template>
                 <template #description>
                   <b>Your panel may be exposed:</b>
@@ -196,12 +197,8 @@ const alertVisible = ref(true);
                         </a-space>
                       </a-col>
                       <a-col :xs="24" :sm="14" class="header-info">
-                        <a-back-top :target="() => document.getElementById('content-layout')" :visibility-height="200" />
-                        <a-alert
-                          type="warning"
-                          show-icon
-                          :message="t('pages.settings.infoDesc')"
-                        />
+                        <a-back-top :target="scrollTarget" :visibility-height="200" />
+                        <a-alert type="warning" show-icon :message="t('pages.settings.infoDesc')" />
                       </a-col>
                     </a-row>
                   </a-card>
@@ -237,11 +234,7 @@ const alertVisible = ref(true);
                       </template>
                       <SubscriptionGeneralTab :all-setting="allSetting" />
                     </a-tab-pane>
-                    <a-tab-pane
-                      v-if="allSetting.subJsonEnable || allSetting.subClashEnable"
-                      key="5"
-                      class="tab-pane"
-                    >
+                    <a-tab-pane v-if="allSetting.subJsonEnable || allSetting.subClashEnable" key="5" class="tab-pane">
                       <template #tab>
                         <CodeOutlined />
                         <span>{{ t('pages.settings.subSettings') }} (Formats)</span>
@@ -283,23 +276,38 @@ const alertVisible = ref(true);
   background: transparent;
 }
 
-.content-shell { background: transparent; }
-.content-area { padding: 24px; }
+.content-shell {
+  background: transparent;
+}
 
-.loading-spacer { min-height: calc(100vh - 120px); }
+.content-area {
+  padding: 24px;
+}
 
-.conf-alert { margin-bottom: 10px; }
+.loading-spacer {
+  min-height: calc(100vh - 120px);
+}
+
+.conf-alert {
+  margin-bottom: 10px;
+}
 
 .header-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
 }
-.header-actions { padding: 4px; }
+
+.header-actions {
+  padding: 4px;
+}
+
 .header-info {
   display: flex;
   justify-content: flex-end;
 }
 
-.tab-pane { padding-top: 20px; }
+.tab-pane {
+  padding-top: 20px;
+}
 </style>

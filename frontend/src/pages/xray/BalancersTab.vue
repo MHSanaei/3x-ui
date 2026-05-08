@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   PlusOutlined,
   MoreOutlined,
@@ -9,6 +10,8 @@ import {
 import { Modal } from 'ant-design-vue';
 
 import BalancerFormModal from './BalancerFormModal.vue';
+
+const { t } = useI18n();
 
 // Balancers tab — list + add/edit/delete over
 // templateSettings.routing.balancers. The legacy panel kept the wire
@@ -111,46 +114,43 @@ function onConfirm(form) {
 
 function confirmDelete(idx) {
   Modal.confirm({
-    title: `Delete balancer #${idx + 1}?`,
-    okText: 'Delete',
+    title: `${t('delete')} ${t('pages.xray.Balancers')} #${idx + 1}?`,
+    okText: t('delete'),
     okType: 'danger',
-    cancelText: 'Cancel',
+    cancelText: t('cancel'),
     onOk: () => props.templateSettings.routing.balancers.splice(idx, 1),
   });
 }
 
-const columns = [
+const columns = computed(() => [
   { title: '#', key: 'action', align: 'center', width: 80 },
   { title: 'Tag', dataIndex: 'tag', key: 'tag', align: 'center', width: 160 },
   { title: 'Strategy', key: 'strategy', align: 'center', width: 140 },
   { title: 'Selector', key: 'selector', align: 'center' },
   { title: 'Fallback', dataIndex: 'fallbackTag', key: 'fallbackTag', align: 'center', width: 160 },
-];
+]);
 </script>
 
 <template>
   <a-space direction="vertical" size="middle" :style="{ width: '100%' }">
-    <a-empty v-if="rows.length === 0" description="No balancers yet">
+    <a-empty v-if="rows.length === 0" :description="t('emptyBalancersDesc')">
       <a-button type="primary" @click="openAdd">
-        <template #icon><PlusOutlined /></template>
-        Add balancer
+        <template #icon>
+          <PlusOutlined />
+        </template>
+        {{ t('pages.xray.Balancers') }}
       </a-button>
     </a-empty>
 
     <template v-else>
       <a-button type="primary" @click="openAdd">
-        <template #icon><PlusOutlined /></template>
-        Add balancer
+        <template #icon>
+          <PlusOutlined />
+        </template>
+        {{ t('pages.xray.Balancers') }}
       </a-button>
 
-      <a-table
-        :columns="columns"
-        :data-source="rows"
-        :row-key="(r) => r.key"
-        :pagination="false"
-        size="small"
-        bordered
-      >
+      <a-table :columns="columns" :data-source="rows" :row-key="(r) => r.key" :pagination="false" size="small" bordered>
         <template #bodyCell="{ column, record, index }">
           <template v-if="column.key === 'action'">
             <span class="row-index">{{ index + 1 }}</span>
@@ -161,10 +161,10 @@ const columns = [
               <template #overlay>
                 <a-menu>
                   <a-menu-item @click="openEdit(index)">
-                    <EditOutlined /> Edit
+                    <EditOutlined /> {{ t('edit') }}
                   </a-menu-item>
                   <a-menu-item class="danger" @click="confirmDelete(index)">
-                    <DeleteOutlined /> Delete
+                    <DeleteOutlined /> {{ t('delete') }}
                   </a-menu-item>
                 </a-menu>
               </template>
@@ -184,13 +184,8 @@ const columns = [
       </a-table>
     </template>
 
-    <BalancerFormModal
-      v-model:open="modalOpen"
-      :balancer="editingBalancer"
-      :outbound-tags="outboundTags"
-      :other-tags="otherTags"
-      @confirm="onConfirm"
-    />
+    <BalancerFormModal v-model:open="modalOpen" :balancer="editingBalancer" :outbound-tags="outboundTags"
+      :other-tags="otherTags" @confirm="onConfirm" />
   </a-space>
 </template>
 
@@ -200,6 +195,12 @@ const columns = [
   opacity: 0.7;
   margin-right: 6px;
 }
-.action-btn { vertical-align: middle; }
-.danger { color: #ff4d4f; }
+
+.action-btn {
+  vertical-align: middle;
+}
+
+.danger {
+  color: #ff4d4f;
+}
 </style>

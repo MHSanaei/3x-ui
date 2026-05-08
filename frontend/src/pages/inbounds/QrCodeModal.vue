@@ -1,8 +1,11 @@
 <script setup>
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { Inbound, Protocols } from '@/models/inbound.js';
 import QrPanel from './QrPanel.vue';
+
+const { t } = useI18n();
 
 // Light QR-only modal — used for the "qrcode" row action on
 // single-user Shadowsocks and WireGuard inbounds. The big info modal
@@ -43,7 +46,7 @@ function close() {
 </script>
 
 <template>
-  <a-modal :open="open" title="QR code" :footer="null" width="420px" @cancel="close">
+  <a-modal :open="open" :title="t('qrCode')" :footer="null" width="420px" @cancel="close">
     <template v-if="dbInbound">
       <QrPanel
         v-for="(link, idx) in links"

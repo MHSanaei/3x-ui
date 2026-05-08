@@ -190,6 +190,10 @@ const hasConfig = computed(() => !ObjectUtil.isEmpty(warpConfig.value));
     :mask-closable="true"
     @cancel="close"
   >
+    <!-- WARP / NordVPN provisioning forms keep technical wire labels in
+         English on purpose: they map directly to API field names users
+         look up in vendor docs. Only the primary action buttons +
+         dialog headers translate. -->
     <!-- Not registered yet → single Create CTA -->
     <template v-if="!hasWarp">
       <a-button type="primary" :loading="loading" @click="register">

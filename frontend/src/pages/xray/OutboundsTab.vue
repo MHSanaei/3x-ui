@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   PlusOutlined,
   CloudOutlined,
@@ -22,6 +23,8 @@ import { Modal } from 'ant-design-vue';
 import { SizeFormatter } from '@/utils';
 import { Protocols } from '@/models/outbound.js';
 import OutboundFormModal from './OutboundFormModal.vue';
+
+const { t } = useI18n();
 
 // Outbounds tab — list + actions over templateSettings.outbounds.
 // Mirrors the legacy outbound table layout (identity / address /
@@ -72,10 +75,10 @@ function onConfirm(outbound) {
 
 function confirmDelete(idx) {
   Modal.confirm({
-    title: `Delete outbound #${idx + 1}?`,
-    okText: 'Delete',
+    title: `${t('delete')} ${t('pages.xray.Outbounds')} #${idx + 1}?`,
+    okText: t('delete'),
     okType: 'danger',
-    cancelText: 'Cancel',
+    cancelText: t('cancel'),
     onOk: () => props.templateSettings.outbounds.splice(idx, 1),
   });
 }
@@ -148,14 +151,15 @@ function showSecurity(security) {
 }
 
 // === Columns ========================================================
-const columns = [
+// Computed so titles re-render after a locale swap.
+const columns = computed(() => [
   { title: '#', key: 'action', align: 'center', width: 70 },
   { title: 'Tag', key: 'identity', align: 'left', width: 220 },
-  { title: 'Address', key: 'address', align: 'left', width: 230 },
-  { title: 'Traffic', key: 'traffic', align: 'left', width: 200 },
-  { title: 'Test result', key: 'testResult', align: 'left', width: 140 },
-  { title: 'Test', key: 'test', align: 'center', width: 80 },
-];
+  { title: t('pages.inbounds.address'), key: 'address', align: 'left', width: 230 },
+  { title: t('pages.inbounds.traffic'), key: 'traffic', align: 'left', width: 200 },
+  { title: t('check'), key: 'testResult', align: 'left', width: 140 },
+  { title: t('check'), key: 'test', align: 'center', width: 80 },
+]);
 
 const rows = computed(() => {
   if (!props.templateSettings?.outbounds) return [];
@@ -171,7 +175,7 @@ const rows = computed(() => {
         <a-space size="small">
           <a-button type="primary" @click="openAdd">
             <template #icon><PlusOutlined /></template>
-            <span v-if="!isMobile">Add outbound</span>
+            <span v-if="!isMobile">{{ t('pages.xray.Outbounds') }}</span>
           </a-button>
           <a-button type="primary" @click="emit('show-warp')">
             <template #icon><CloudOutlined /></template>
@@ -190,9 +194,9 @@ const rows = computed(() => {
           </a-button>
           <a-popconfirm
             placement="topRight"
-            ok-text="Reset"
-            cancel-text="Cancel"
-            title="Reset traffic on every outbound?"
+            :ok-text="t('reset')"
+            :cancel-text="t('cancel')"
+            :title="t('pages.inbounds.resetAllTrafficContent')"
             @confirm="emit('reset-traffic', '-alltags-')"
           >
             <a-button>
@@ -230,16 +234,16 @@ const rows = computed(() => {
             <template #overlay>
               <a-menu>
                 <a-menu-item v-if="index > 0" @click="setFirst(index)">
-                  <VerticalAlignTopOutlined /> Move to top
+                  <VerticalAlignTopOutlined />
                 </a-menu-item>
                 <a-menu-item @click="openEdit(index)">
-                  <EditOutlined /> Edit
+                  <EditOutlined /> {{ t('edit') }}
                 </a-menu-item>
                 <a-menu-item @click="emit('reset-traffic', record.tag || '')">
-                  <RetweetOutlined /> Reset traffic
+                  <RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') }}
                 </a-menu-item>
                 <a-menu-item class="danger" @click="confirmDelete(index)">
-                  <DeleteOutlined /> Delete
+                  <DeleteOutlined /> {{ t('delete') }}
                 </a-menu-item>
               </a-menu>
             </template>
@@ -303,10 +307,10 @@ const rows = computed(() => {
                     <EditOutlined /> Edit
                   </a-menu-item>
                   <a-menu-item :disabled="index === 0" @click="moveUp(index)">
-                    <ArrowUpOutlined /> Move up
+                    <ArrowUpOutlined />
                   </a-menu-item>
                   <a-menu-item :disabled="index === rows.length - 1" @click="moveDown(index)">
-                    <ArrowDownOutlined /> Move down
+                    <ArrowDownOutlined />
                   </a-menu-item>
                   <a-menu-item @click="emit('reset-traffic', record.tag || '')">
                     <RetweetOutlined /> Reset traffic
@@ -368,7 +372,7 @@ const rows = computed(() => {
         </template>
 
         <template v-else-if="column.key === 'test'">
-          <a-tooltip title="Run a latency test through this outbound">
+          <a-tooltip :title="t('check')">
             <a-button
               type="primary"
               shape="circle"

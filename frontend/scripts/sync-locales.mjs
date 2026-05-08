@@ -43,6 +43,21 @@ function unescape(value) {
   });
 }
 
+// vue-i18n's message compiler treats `@` as the start of a linked
+// reference (`@:key` or `@.modifier:key`). When the panel's strings
+// contain a literal `@` (e.g. "@BotFather", "@userinfobot",
+// "@every 1m"), the compiler aborts with "Invalid linked format".
+// vue-i18n's escape syntax is `{'@'}` — that renders a literal `@`.
+// We don't use linked references anywhere in the panel's locales,
+// so a blanket escape is safe and keeps the TOML readable for
+// translators (and for the Go-side template renderer that doesn't
+// need this escape).
+function escapeForVueI18n(value) {
+  // Keep the `{` and `}` characters that vue-i18n already uses for
+  // `{var}` named interpolation working — only `@` needs escaping.
+  return value.replace(/@/g, "{'@'}");
+}
+
 function setNested(target, path, value) {
   let cursor = target;
   for (let i = 0; i < path.length - 1; i++) {
@@ -78,7 +93,7 @@ function parseToml(src) {
       throw new Error(`Unsupported TOML construct at line ${lineNo}: ${rawLine}`);
     }
     const [, key, value] = kvMatch;
-    setNested(tree, [...section, unescape(key)], unescape(value));
+    setNested(tree, [...section, unescape(key)], escapeForVueI18n(unescape(value)));
   }
   return tree;
 }

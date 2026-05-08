@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   EditOutlined,
   InfoCircleOutlined,
@@ -11,6 +12,8 @@ import {
 import { Modal } from 'ant-design-vue';
 
 import { SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
+
+const { t } = useI18n();
 
 // Per-inbound expand-row table. Rendered inside the inbound list's
 // a-table#expandedRowRender slot for any inbound where
@@ -142,20 +145,20 @@ function statusBadgeColor(client) {
 // === Action confirms (mounted on the row, not a modal) ==============
 function confirmReset(client) {
   Modal.confirm({
-    title: `Reset traffic for ${client.email}?`,
-    content: 'Resets up/down counters to 0 for this client.',
-    okText: 'Reset',
-    cancelText: 'Cancel',
+    title: `${t('pages.inbounds.resetTraffic')} — ${client.email}`,
+    content: t('pages.inbounds.resetTrafficContent'),
+    okText: t('reset'),
+    cancelText: t('cancel'),
     onOk: () => emit('reset-traffic-client', { dbInbound: props.dbInbound, client }),
   });
 }
 function confirmDelete(client) {
   Modal.confirm({
-    title: `Delete client ${client.email}?`,
-    content: 'This cannot be undone.',
-    okText: 'Delete',
+    title: `${t('pages.inbounds.deleteClient')} — ${client.email}`,
+    content: t('pages.inbounds.deleteClientContent'),
+    okText: t('delete'),
     okType: 'danger',
-    cancelText: 'Cancel',
+    cancelText: t('cancel'),
     onOk: () => emit('delete-client', { dbInbound: props.dbInbound, client }),
   });
 }
@@ -163,22 +166,23 @@ function confirmDelete(client) {
 // === Columns ========================================================
 // Two layouts: desktop has icon-row actions across; mobile collapses
 // the per-row actions into a single dropdown + an info popover.
-const desktopColumns = [
-  { title: 'Action', key: 'actions', width: 140 },
-  { title: 'Enable', key: 'enable', width: 60 },
-  { title: 'Online', key: 'online', width: 80 },
-  { title: 'Client', key: 'client', width: 160 },
-  { title: 'Traffic', key: 'traffic', align: 'center', width: 200 },
-  { title: 'All-time', key: 'allTime', align: 'center', width: 110 },
-  { title: 'Expiry', key: 'expiryTime', align: 'center', width: 180 },
-];
-const mobileColumns = [
-  { title: 'Action', key: 'actionMenu', align: 'center', width: 10 },
-  { title: 'Client', key: 'client', align: 'left', width: 90 },
-  { title: 'Info', key: 'info', align: 'center', width: 10 },
-];
+// Computed so column titles re-render after a locale swap.
+const desktopColumns = computed(() => [
+  { title: t('pages.settings.actions'), key: 'actions', width: 140 },
+  { title: t('enable'), key: 'enable', width: 60 },
+  { title: t('online'), key: 'online', width: 80 },
+  { title: t('pages.inbounds.client'), key: 'client', width: 160 },
+  { title: t('pages.inbounds.traffic'), key: 'traffic', align: 'center', width: 200 },
+  { title: t('pages.inbounds.allTimeTraffic'), key: 'allTime', align: 'center', width: 110 },
+  { title: t('pages.inbounds.expireDate'), key: 'expiryTime', align: 'center', width: 180 },
+]);
+const mobileColumns = computed(() => [
+  { title: t('pages.settings.actions'), key: 'actionMenu', align: 'center', width: 10 },
+  { title: t('pages.inbounds.client'), key: 'client', align: 'left', width: 90 },
+  { title: t('info'), key: 'info', align: 'center', width: 10 },
+]);
 
-const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns));
+const columns = computed(() => (props.isMobile ? mobileColumns.value : desktopColumns.value));
 </script>
 
 <template>
@@ -195,28 +199,28 @@ const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns)
       <!-- ============== Desktop action icons ============== -->
       <template v-if="column.key === 'actions'">
         <a-space :size="6">
-          <a-tooltip v-if="dbInbound.hasLink()" title="QR code">
+          <a-tooltip v-if="dbInbound.hasLink()" :title="t('qrCode')">
             <QrcodeOutlined
               class="row-icon"
               @click="emit('qrcode-client', { dbInbound, client: record })"
             />
           </a-tooltip>
-          <a-tooltip title="Edit">
+          <a-tooltip :title="t('edit')">
             <EditOutlined
               class="row-icon"
               @click="emit('edit-client', { dbInbound, client: record })"
             />
           </a-tooltip>
-          <a-tooltip title="Info">
+          <a-tooltip :title="t('info')">
             <InfoCircleOutlined
               class="row-icon"
               @click="emit('info-client', { dbInbound, client: record })"
             />
           </a-tooltip>
-          <a-tooltip v-if="record.email" title="Reset traffic">
+          <a-tooltip v-if="record.email" :title="t('pages.inbounds.resetTraffic')">
             <RetweetOutlined class="row-icon" @click="confirmReset(record)" />
           </a-tooltip>
-          <a-tooltip v-if="isRemovable" title="Delete">
+          <a-tooltip v-if="isRemovable" :title="t('delete')">
             <DeleteOutlined class="row-icon danger" @click="confirmDelete(record)" />
           </a-tooltip>
         </a-space>
@@ -233,9 +237,9 @@ const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns)
       <!-- ============== Online tag ============== -->
       <template v-else-if="column.key === 'online'">
         <a-popover>
-          <template #content>Last online: {{ lastOnlineLabel(record.email) }}</template>
-          <a-tag v-if="record.enable && isClientOnline(record.email)" color="green">online</a-tag>
-          <a-tag v-else>offline</a-tag>
+          <template #content>{{ t('lastOnline') }}: {{ lastOnlineLabel(record.email) }}</template>
+          <a-tag v-if="record.enable && isClientOnline(record.email)" color="green">{{ t('online') }}</a-tag>
+          <a-tag v-else>{{ t('offline') }}</a-tag>
         </a-popover>
       </template>
 
@@ -244,10 +248,10 @@ const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns)
         <a-space :size="2" class="client-id-cell" :style="{ flexWrap: 'nowrap' }">
           <a-tooltip>
             <template #title>
-              <template v-if="isClientDepleted(record.email)">depleted</template>
-              <template v-else-if="!record.enable">disabled</template>
-              <template v-else-if="isClientOnline(record.email)">online</template>
-              <template v-else>offline</template>
+              <template v-if="isClientDepleted(record.email)">{{ t('depleted') }}</template>
+              <template v-else-if="!record.enable">{{ t('disabled') }}</template>
+              <template v-else-if="isClientOnline(record.email)">{{ t('online') }}</template>
+              <template v-else>{{ t('offline') }}</template>
             </template>
             <a-badge :color="statusBadgeColor(record)" />
           </a-tooltip>
@@ -273,7 +277,7 @@ const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns)
                   <td>↓ {{ SizeFormatter.sizeFormat(getDown(record.email)) }}</td>
                 </tr>
                 <tr v-if="record.totalGB > 0">
-                  <td>Remaining</td>
+                  <td>{{ t('remained') }}</td>
                   <td>{{ SizeFormatter.sizeFormat(getRem(record.email)) }}</td>
                 </tr>
               </tbody>
@@ -314,7 +318,7 @@ const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns)
         <template v-if="record.expiryTime !== 0 && record.reset > 0">
           <a-popover>
             <template #content>
-              <span v-if="record.expiryTime < 0">Delayed start</span>
+              <span v-if="record.expiryTime < 0">{{ t('pages.client.delayedStart') }}</span>
               <span v-else>{{ IntlUtil.formatDate(record.expiryTime) }}</span>
             </template>
             <div class="traffic-cell">
@@ -333,7 +337,7 @@ const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns)
         <template v-else>
           <a-popover v-if="record.expiryTime !== 0">
             <template #content>
-              <span v-if="record.expiryTime < 0">Delayed start</span>
+              <span v-if="record.expiryTime < 0">{{ t('pages.client.delayedStart') }}</span>
               <span v-else>{{ IntlUtil.formatDate(record.expiryTime) }}</span>
             </template>
             <a-tag
@@ -362,18 +366,18 @@ const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns)
               <a-menu-item
                 v-if="dbInbound.hasLink()"
                 @click="emit('qrcode-client', { dbInbound, client: record })"
-              ><QrcodeOutlined /> QR code</a-menu-item>
+              ><QrcodeOutlined /> {{ t('qrCode') }}</a-menu-item>
               <a-menu-item @click="emit('edit-client', { dbInbound, client: record })">
-                <EditOutlined /> Edit
+                <EditOutlined /> {{ t('edit') }}
               </a-menu-item>
               <a-menu-item @click="emit('info-client', { dbInbound, client: record })">
-                <InfoCircleOutlined /> Info
+                <InfoCircleOutlined /> {{ t('info') }}
               </a-menu-item>
               <a-menu-item v-if="record.email" @click="confirmReset(record)">
-                <RetweetOutlined /> Reset traffic
+                <RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') }}
               </a-menu-item>
               <a-menu-item v-if="isRemovable" @click="confirmDelete(record)">
-                <DeleteOutlined /> <span class="danger">Delete</span>
+                <DeleteOutlined /> <span class="danger">{{ t('delete') }}</span>
               </a-menu-item>
               <a-menu-item>
                 <a-switch
@@ -381,7 +385,7 @@ const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns)
                   :checked="record.enable"
                   @change="(next) => emit('toggle-enable-client', { dbInbound, client: record, next })"
                 />
-                Enable
+                {{ t('enable') }}
               </a-menu-item>
             </a-menu>
           </template>
@@ -395,7 +399,7 @@ const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns)
             <table cellpadding="2">
               <tbody>
                 <tr>
-                  <td colspan="2" class="text-center">Traffic</td>
+                  <td colspan="2" class="text-center">{{ t('pages.inbounds.traffic') }}</td>
                 </tr>
                 <tr>
                   <td class="num-cell">
@@ -406,7 +410,7 @@ const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns)
                 <tr>
                   <td colspan="2" class="text-center">
                     <a-divider style="margin: 0" />
-                    Expiry
+                    {{ t('pages.inbounds.expireDate') }}
                   </td>
                 </tr>
                 <tr>
@@ -415,7 +419,7 @@ const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns)
                       {{ IntlUtil.formatRelativeTime(record.expiryTime) }}
                     </a-tag>
                     <a-tag v-else-if="record.expiryTime < 0" color="green">
-                      {{ -record.expiryTime / 86400000 }} d (delayed)
+                      {{ -record.expiryTime / 86400000 }}d ({{ t('pages.client.delayedStart') }})
                     </a-tag>
                     <a-tag v-else color="purple">∞</a-tag>
                   </td>

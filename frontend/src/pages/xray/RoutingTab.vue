@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   PlusOutlined,
   MoreOutlined,
@@ -13,6 +14,8 @@ import {
 import { Modal } from 'ant-design-vue';
 
 import RuleFormModal from './RuleFormModal.vue';
+
+const { t } = useI18n();
 
 // Routing tab — table over templateSettings.routing.rules with the
 // modernised legacy column layout. Each row is rendered as a single
@@ -122,10 +125,10 @@ function onRuleConfirm(rule) {
 
 function confirmDelete(idx) {
   Modal.confirm({
-    title: `Delete rule #${idx + 1}?`,
-    okText: 'Delete',
+    title: `${t('delete')} ${t('pages.xray.Routings')} #${idx + 1}?`,
+    okText: t('delete'),
     okType: 'danger',
-    cancelText: 'Cancel',
+    cancelText: t('cancel'),
     onOk: () => props.templateSettings.routing.rules.splice(idx, 1),
   });
 }
@@ -142,27 +145,28 @@ function moveDown(idx) {
 }
 
 // === Columns =========================================================
-const desktopColumns = [
+// Computed so titles re-render after a locale swap.
+const desktopColumns = computed(() => [
   { title: '#', align: 'center', width: 70, key: 'action' },
   { title: 'Source', align: 'left', width: 180, key: 'source' },
-  { title: 'Network', align: 'left', width: 180, key: 'network' },
+  { title: t('pages.inbounds.network'), align: 'left', width: 180, key: 'network' },
   { title: 'Destination', align: 'left', key: 'destination' },
-  { title: 'Inbound', align: 'left', width: 180, key: 'inbound' },
-  { title: 'Outbound', align: 'left', width: 170, key: 'target' },
-];
-const mobileColumns = [
+  { title: t('pages.xray.Inbounds'), align: 'left', width: 180, key: 'inbound' },
+  { title: t('pages.xray.Outbounds'), align: 'left', width: 170, key: 'target' },
+]);
+const mobileColumns = computed(() => [
   { title: '#', align: 'center', width: 70, key: 'action' },
-  { title: 'Inbound', align: 'left', key: 'inbound' },
-  { title: 'Outbound', align: 'left', width: 140, key: 'target' },
-];
-const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns));
+  { title: t('pages.xray.Inbounds'), align: 'left', key: 'inbound' },
+  { title: t('pages.xray.Outbounds'), align: 'left', width: 140, key: 'target' },
+]);
+const columns = computed(() => (props.isMobile ? mobileColumns.value : desktopColumns.value));
 </script>
 
 <template>
   <a-space direction="vertical" size="middle" :style="{ width: '100%' }">
     <a-button type="primary" @click="openAdd">
       <template #icon><PlusOutlined /></template>
-      Add rule
+      {{ t('pages.xray.Routings') }}
     </a-button>
 
     <a-table
@@ -186,16 +190,16 @@ const columns = computed(() => (props.isMobile ? mobileColumns : desktopColumns)
               <template #overlay>
                 <a-menu>
                   <a-menu-item @click="openEdit(index)">
-                    <EditOutlined /> Edit
+                    <EditOutlined /> {{ t('edit') }}
                   </a-menu-item>
                   <a-menu-item :disabled="index === 0" @click="moveUp(index)">
-                    <ArrowUpOutlined /> Move up
+                    <ArrowUpOutlined />
                   </a-menu-item>
                   <a-menu-item :disabled="index === rows.length - 1" @click="moveDown(index)">
-                    <ArrowDownOutlined /> Move down
+                    <ArrowDownOutlined />
                   </a-menu-item>
                   <a-menu-item class="danger" @click="confirmDelete(index)">
-                    <DeleteOutlined /> Delete
+                    <DeleteOutlined /> {{ t('delete') }}
                   </a-menu-item>
                 </a-menu>
               </template>

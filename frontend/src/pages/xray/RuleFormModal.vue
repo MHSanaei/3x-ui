@@ -120,8 +120,17 @@ function onOk() {
   emit('confirm', buildResult());
 }
 
-const title = computed(() => (isEdit.value ? 'Edit rule' : 'Add rule'));
-const okText = computed(() => (isEdit.value ? 'Update' : 'Add rule'));
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
+
+const title = computed(() =>
+  isEdit.value
+    ? `${t('edit')} ${t('pages.xray.Routings')}`
+    : `+ ${t('pages.xray.Routings')}`,
+);
+const okText = computed(() =>
+  isEdit.value ? t('pages.client.submitEdit') : t('create'),
+);
 
 const NETWORKS = ['', 'TCP', 'UDP', 'TCP,UDP'];
 const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
@@ -132,7 +141,7 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
     :open="open"
     :title="title"
     :ok-text="okText"
-    cancel-text="Close"
+    :cancel-text="t('close')"
     :mask-closable="false"
     width="640px"
     @ok="onOk"

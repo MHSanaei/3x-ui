@@ -1,8 +1,11 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { HttpUtil, LanguageManager } from '@/utils';
 import SettingListItem from '@/components/SettingListItem.vue';
+
+const { t } = useI18n();
 
 const props = defineProps({
   // Reactive AllSetting instance shared with the parent page.
@@ -91,17 +94,14 @@ onMounted(loadInboundTags);
 
 <template>
   <a-collapse default-active-key="1">
-    <a-collapse-panel key="1" header="General">
+    <a-collapse-panel key="1" :header="t('pages.settings.panelSettings')">
       <SettingListItem paddings="small">
-        <template #title>Remark model</template>
-        <template #description>Sample: <i>#{{ remarkSample }}</i></template>
+        <template #title>{{ t('pages.settings.remarkModel') }}</template>
+        <template #description>{{ t('pages.settings.sampleRemark') }}: <i>#{{ remarkSample }}</i></template>
         <template #control>
           <a-input-group :style="{ width: '100%' }">
-            <a-select
-              v-model:value="remarkModel"
-              mode="multiple"
-              :style="{ paddingRight: '.5rem', minWidth: '80%', width: 'auto' }"
-            >
+            <a-select v-model:value="remarkModel" mode="multiple"
+              :style="{ paddingRight: '.5rem', minWidth: '80%', width: 'auto' }">
               <a-select-option v-for="(label, key) in remarkModels" :key="key" :value="key">
                 {{ label }}
               </a-select-option>
@@ -114,77 +114,59 @@ onMounted(loadInboundTags);
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Panel listen IP</template>
-        <template #description>The IP the panel binds to. Leave empty to listen on all interfaces.</template>
+        <template #title>{{ t('pages.settings.panelListeningIP') }}</template>
+        <template #description>{{ t('pages.settings.panelListeningIPDesc') }}</template>
         <template #control>
           <a-input v-model:value="allSetting.webListen" type="text" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Panel domain</template>
-        <template #description>Optional domain used in URLs and certs.</template>
+        <template #title>{{ t('pages.settings.panelListeningDomain') }}</template>
+        <template #description>{{ t('pages.settings.panelListeningDomainDesc') }}</template>
         <template #control>
           <a-input v-model:value="allSetting.webDomain" type="text" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Panel port</template>
-        <template #description>Restart required after changing.</template>
+        <template #title>{{ t('pages.settings.panelPort') }}</template>
+        <template #description>{{ t('pages.settings.panelPortDesc') }}</template>
         <template #control>
-          <a-input-number
-            v-model:value="allSetting.webPort"
-            :min="1"
-            :max="65535"
-            :style="{ width: '100%' }"
-          />
+          <a-input-number v-model:value="allSetting.webPort" :min="1" :max="65535" :style="{ width: '100%' }" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Panel base path</template>
-        <template #description>The URL prefix the panel is served under. Default is "/".</template>
+        <template #title>{{ t('pages.settings.panelUrlPath') }}</template>
+        <template #description>{{ t('pages.settings.panelUrlPathDesc') }}</template>
         <template #control>
           <a-input v-model:value="allSetting.webBasePath" type="text" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Session max age (minutes)</template>
-        <template #description>Login session lifetime.</template>
+        <template #title>{{ t('pages.settings.sessionMaxAge') }}</template>
+        <template #description>{{ t('pages.settings.sessionMaxAgeDesc') }}</template>
         <template #control>
-          <a-input-number
-            v-model:value="allSetting.sessionMaxAge"
-            :min="60"
-            :style="{ width: '100%' }"
-          />
+          <a-input-number v-model:value="allSetting.sessionMaxAge" :min="60" :style="{ width: '100%' }" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Page size</template>
-        <template #description>Inbounds table page size. 0 disables pagination.</template>
+        <template #title>{{ t('pages.settings.pageSize') }}</template>
+        <template #description>{{ t('pages.settings.pageSizeDesc') }}</template>
         <template #control>
-          <a-input-number
-            v-model:value="allSetting.pageSize"
-            :min="0"
-            :step="5"
-            :style="{ width: '100%' }"
-          />
+          <a-input-number v-model:value="allSetting.pageSize" :min="0" :step="5" :style="{ width: '100%' }" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Language</template>
+        <template #title>{{ t('pages.settings.language') }}</template>
         <template #control>
           <a-select v-model:value="lang" :style="{ width: '100%' }" @change="onLangChange">
-            <a-select-option
-              v-for="l in LanguageManager.supportedLanguages"
-              :key="l.value"
-              :value="l.value"
-              :label="l.value"
-            >
+            <a-select-option v-for="l in LanguageManager.supportedLanguages" :key="l.value" :value="l.value"
+              :label="l.value">
               <span role="img" :aria-label="l.name">{{ l.icon }}</span>
               &nbsp;&nbsp;<span>{{ l.name }}</span>
             </a-select-option>
@@ -193,92 +175,81 @@ onMounted(loadInboundTags);
       </SettingListItem>
     </a-collapse-panel>
 
-    <a-collapse-panel key="2" header="Notifications">
+    <a-collapse-panel key="2" :header="t('pages.settings.notifications')">
       <SettingListItem paddings="small">
-        <template #title>Expiry notification (days)</template>
-        <template #description>Notify before clients expire (0 = disabled).</template>
+        <template #title>{{ t('pages.settings.expireTimeDiff') }}</template>
+        <template #description>{{ t('pages.settings.expireTimeDiffDesc') }}</template>
         <template #control>
-          <a-input-number
-            v-model:value="allSetting.expireDiff"
-            :min="0"
-            :style="{ width: '100%' }"
-          />
+          <a-input-number v-model:value="allSetting.expireDiff" :min="0" :style="{ width: '100%' }" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Traffic notification (GB)</template>
-        <template #description>Notify before clients run out of traffic (0 = disabled).</template>
+        <template #title>{{ t('pages.settings.trafficDiff') }}</template>
+        <template #description>{{ t('pages.settings.trafficDiffDesc') }}</template>
         <template #control>
-          <a-input-number
-            v-model:value="allSetting.trafficDiff"
-            :min="0"
-            :style="{ width: '100%' }"
-          />
+          <a-input-number v-model:value="allSetting.trafficDiff" :min="0" :style="{ width: '100%' }" />
         </template>
       </SettingListItem>
     </a-collapse-panel>
 
-    <a-collapse-panel key="3" header="Certificates">
+    <a-collapse-panel key="3" :header="t('pages.settings.certs')">
       <SettingListItem paddings="small">
-        <template #title>Public key path</template>
-        <template #description>Absolute path to the panel's TLS certificate.</template>
+        <template #title>{{ t('pages.settings.publicKeyPath') }}</template>
+        <template #description>{{ t('pages.settings.publicKeyPathDesc') }}</template>
         <template #control>
           <a-input v-model:value="allSetting.webCertFile" type="text" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Private key path</template>
-        <template #description>Absolute path to the panel's TLS private key.</template>
+        <template #title>{{ t('pages.settings.privateKeyPath') }}</template>
+        <template #description>{{ t('pages.settings.privateKeyPathDesc') }}</template>
         <template #control>
           <a-input v-model:value="allSetting.webKeyFile" type="text" />
         </template>
       </SettingListItem>
     </a-collapse-panel>
 
-    <a-collapse-panel key="4" header="External traffic webhook">
+    <a-collapse-panel key="4" :header="t('pages.settings.externalTraffic')">
       <SettingListItem paddings="small">
-        <template #title>Enable external traffic info</template>
-        <template #description>Push traffic events to an external endpoint.</template>
+        <template #title>{{ t('pages.settings.externalTrafficInformEnable') }}</template>
+        <template #description>{{ t('pages.settings.externalTrafficInformEnableDesc') }}</template>
         <template #control>
           <a-switch v-model:checked="allSetting.externalTrafficInformEnable" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>External traffic URI</template>
-        <template #description>HTTP(S) endpoint that receives traffic events.</template>
+        <template #title>{{ t('pages.settings.externalTrafficInformURI') }}</template>
+        <template #description>{{ t('pages.settings.externalTrafficInformURIDesc') }}</template>
         <template #control>
-          <a-input
-            v-model:value="allSetting.externalTrafficInformURI"
-            placeholder="(http|https)://domain[:port]/path/"
-            type="text"
-          />
+          <a-input v-model:value="allSetting.externalTrafficInformURI" placeholder="(http|https)://domain[:port]/path/"
+            type="text" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Restart xray on client disable</template>
-        <template #description>Apply changes immediately by restarting xray.</template>
+        <template #title>{{ t('pages.settings.restartXrayOnClientDisable') }}</template>
+        <template #description>{{ t('pages.settings.restartXrayOnClientDisableDesc') }}</template>
         <template #control>
           <a-switch v-model:checked="allSetting.restartXrayOnClientDisable" />
         </template>
       </SettingListItem>
     </a-collapse-panel>
 
-    <a-collapse-panel key="5" header="Date and time">
+    <a-collapse-panel key="5" :header="t('pages.settings.dateAndTime')">
       <SettingListItem paddings="small">
-        <template #title>Time location</template>
-        <template #description>IANA timezone, e.g. "Local", "UTC", "Asia/Tehran".</template>
+        <template #title>{{ t('pages.settings.timeZone') }}</template>
+        <template #description>{{ t('pages.settings.timeZoneDesc') }}</template>
         <template #control>
           <a-input v-model:value="allSetting.timeLocation" type="text" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Date picker</template>
-        <template #description>Calendar style used for expiry pickers.</template>
+        <template #title>{{ t('pages.settings.datepicker') }}</template>
+        <template #description>{{ t('pages.settings.datepickerDescription') }}</template>
         <template #control>
           <a-select v-model:value="datepicker" :style="{ width: '100%' }">
             <a-select-option v-for="item in datepickerList" :key="item.value" :value="item.value">
@@ -307,12 +278,7 @@ onMounted(loadInboundTags);
       <SettingListItem paddings="small">
         <template #title>LDAP port</template>
         <template #control>
-          <a-input-number
-            v-model:value="allSetting.ldapPort"
-            :min="1"
-            :max="65535"
-            :style="{ width: '100%' }"
-          />
+          <a-input-number v-model:value="allSetting.ldapPort" :min="1" :max="65535" :style="{ width: '100%' }" />
         </template>
       </SettingListItem>
 
@@ -331,7 +297,7 @@ onMounted(loadInboundTags);
       </SettingListItem>
 
       <SettingListItem paddings="small">
-        <template #title>Password</template>
+        <template #title>{{ t('password') }}</template>
         <template #control>
           <a-input-password v-model:value="allSetting.ldapPassword" />
         </template>
@@ -401,11 +367,7 @@ onMounted(loadInboundTags);
         <template #title>Inbound tags</template>
         <template #description>Inbounds that LDAP sync may auto-create or auto-delete clients on.</template>
         <template #control>
-          <a-select
-            v-model:value="ldapInboundTagList"
-            mode="multiple"
-            :style="{ width: '100%' }"
-          >
+          <a-select v-model:value="ldapInboundTagList" mode="multiple" :style="{ width: '100%' }">
             <a-select-option v-for="opt in inboundOptions" :key="opt.value" :value="opt.value">
               {{ opt.label }}
             </a-select-option>
@@ -433,33 +395,21 @@ onMounted(loadInboundTags);
       <SettingListItem paddings="small">
         <template #title>Default total (GB)</template>
         <template #control>
-          <a-input-number
-            v-model:value="allSetting.ldapDefaultTotalGB"
-            :min="0"
-            :style="{ width: '100%' }"
-          />
+          <a-input-number v-model:value="allSetting.ldapDefaultTotalGB" :min="0" :style="{ width: '100%' }" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
         <template #title>Default expiry (days)</template>
         <template #control>
-          <a-input-number
-            v-model:value="allSetting.ldapDefaultExpiryDays"
-            :min="0"
-            :style="{ width: '100%' }"
-          />
+          <a-input-number v-model:value="allSetting.ldapDefaultExpiryDays" :min="0" :style="{ width: '100%' }" />
         </template>
       </SettingListItem>
 
       <SettingListItem paddings="small">
         <template #title>Default IP limit</template>
         <template #control>
-          <a-input-number
-            v-model:value="allSetting.ldapDefaultLimitIP"
-            :min="0"
-            :style="{ width: '100%' }"
-          />
+          <a-input-number v-model:value="allSetting.ldapDefaultLimitIP" :min="0" :style="{ width: '100%' }" />
         </template>
       </SettingListItem>
     </a-collapse-panel>

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { CopyOutlined, SyncOutlined, DeleteOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 
@@ -12,6 +13,8 @@ import {
 } from '@/utils';
 import { Inbound, Protocols } from '@/models/inbound.js';
 import QrPanel from './QrPanel.vue';
+
+const { t } = useI18n();
 
 // One modal handles every protocol's info / share view because the
 // legacy template did the same. The big v-if forks at the top decide
@@ -143,7 +146,7 @@ async function loadClientIps() {
       clientIpsText.value = arr.join(' | ');
     } else {
       clientIpsArray.value = [];
-      clientIpsText.value = String(ips || 'No IP record');
+      clientIpsText.value = String(ips || t('tgbot.noIpRecord'));
     }
   } finally {
     refreshing.value = false;
@@ -155,13 +158,13 @@ async function clearClientIps() {
   const msg = await HttpUtil.post(`/panel/api/inbounds/clearClientIps/${clientStats.value.email}`);
   if (msg?.success) {
     clientIpsArray.value = [];
-    clientIpsText.value = 'No IP record';
+    clientIpsText.value = t('tgbot.noIpRecord');
   }
 }
 
 async function copyText(value) {
   const ok = await ClipboardManager.copyText(String(value ?? ''));
-  if (ok) message.success('Copied');
+  if (ok) message.success(t('copied'));
 }
 
 // === Build state on open ===========================================
@@ -243,7 +246,7 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
 <template>
   <a-modal
     :open="open"
-    title="Inbound details"
+    :title="t('pages.inbounds.inboundData')"
     :footer="null"
     width="640px"
     @cancel="close"
@@ -255,11 +258,11 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
           <table class="info-table">
             <tbody>
               <tr>
-                <td>Protocol</td>
+                <td>{{ t('pages.inbounds.protocol') }}</td>
                 <td><a-tag color="purple">{{ dbInbound.protocol }}</a-tag></td>
               </tr>
               <tr>
-                <td>Address</td>
+                <td>{{ t('pages.inbounds.address') }}</td>
                 <td>
                   <a-tooltip :title="dbInbound.address">
                     <a-tag class="info-large-tag">{{ dbInbound.address }}</a-tag>
@@ -267,7 +270,7 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
                 </td>
               </tr>
               <tr>
-                <td>Port</td>
+                <td>{{ t('pages.inbounds.port') }}</td>
                 <td><a-tag>{{ dbInbound.port }}</a-tag></td>
               </tr>
             </tbody>
@@ -279,22 +282,22 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
             <table class="info-table">
               <tbody>
                 <tr>
-                  <td>Transmission</td>
+                  <td>{{ t('transmission') }}</td>
                   <td><a-tag color="green">{{ networkLabel }}</a-tag></td>
                 </tr>
                 <template v-if="inbound.isTcp || inbound.isWs || inbound.isHttpupgrade || inbound.isXHTTP">
                   <tr>
-                    <td>Host</td>
+                    <td>{{ t('host') }}</td>
                     <td>
                       <a-tag v-if="inbound.host" class="info-large-tag">{{ inbound.host }}</a-tag>
-                      <a-tag v-else color="orange">none</a-tag>
+                      <a-tag v-else color="orange">{{ t('none') }}</a-tag>
                     </td>
                   </tr>
                   <tr>
-                    <td>Path</td>
+                    <td>{{ t('path') }}</td>
                     <td>
                       <a-tag v-if="inbound.path" class="info-large-tag">{{ inbound.path }}</a-tag>
-                      <a-tag v-else color="orange">none</a-tag>
+                      <a-tag v-else color="orange">{{ t('none') }}</a-tag>
                     </td>
                   </tr>
                 </template>
@@ -322,9 +325,9 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
 
       <!-- ============== Security / encryption / SNI ============== -->
       <div v-if="dbInbound.hasLink()" class="security-line">
-        <span>Security</span>
+        <span>{{ t('security') }}</span>
         <a-tag :color="securityColor">{{ securityLabel }}</a-tag>
-        <span v-if="encryptionLabel">Encryption</span>
+        <span v-if="encryptionLabel">{{ t('encryption') }}</span>
         <a-tag
           v-if="encryptionLabel"
           class="info-large-tag"
@@ -332,15 +335,15 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
         >
           {{ encryptionLabel }}
         </a-tag>
-        <a-tooltip v-if="encryptionLabel" title="Copy">
+        <a-tooltip v-if="encryptionLabel" :title="t('copy')">
           <a-button size="small" @click="copyText(encryptionLabel)">
             <template #icon><CopyOutlined /></template>
           </a-button>
         </a-tooltip>
         <template v-if="securityLabel !== 'none'">
-          <span>Domain</span>
+          <span>{{ t('domainName') }}</span>
           <a-tag v-if="serverNameLabel" color="green">{{ serverNameLabel }}</a-tag>
-          <a-tag v-else color="orange">none</a-tag>
+          <a-tag v-else color="orange">{{ t('none') }}</a-tag>
         </template>
       </div>
 
@@ -348,15 +351,15 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
       <table v-if="dbInbound.isSS" class="info-table block">
         <tbody>
           <tr>
-            <td>Encryption</td>
+            <td>{{ t('encryption') }}</td>
             <td><a-tag color="green">{{ inbound.settings.method }}</a-tag></td>
           </tr>
           <tr v-if="inbound.isSS2022">
-            <td>Password</td>
+            <td>{{ t('password') }}</td>
             <td><a-tag class="info-large-tag">{{ inbound.settings.password }}</a-tag></td>
           </tr>
           <tr>
-            <td>Network</td>
+            <td>{{ t('pages.inbounds.network') }}</td>
             <td><a-tag color="green">{{ inbound.settings.network }}</a-tag></td>
           </tr>
         </tbody>
@@ -364,14 +367,14 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
 
       <!-- ============== Per-client info (multi-user) ============== -->
       <template v-if="clientSettings">
-        <a-divider>Client</a-divider>
+        <a-divider>{{ t('pages.inbounds.client') }}</a-divider>
         <table class="info-table block">
           <tbody>
             <tr>
-              <td>Email</td>
+              <td>{{ t('pages.inbounds.email') }}</td>
               <td>
                 <a-tag v-if="clientSettings.email" color="green">{{ clientSettings.email }}</a-tag>
-                <a-tag v-else color="red">none</a-tag>
+                <a-tag v-else color="red">{{ t('none') }}</a-tag>
               </td>
             </tr>
             <tr v-if="clientSettings.id">
@@ -379,30 +382,30 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
               <td><a-tag>{{ clientSettings.id }}</a-tag></td>
             </tr>
             <tr v-if="dbInbound.isVMess">
-              <td>Security</td>
+              <td>{{ t('security') }}</td>
               <td><a-tag>{{ clientSettings.security }}</a-tag></td>
             </tr>
             <tr v-if="inbound.canEnableTlsFlow()">
               <td>Flow</td>
               <td>
                 <a-tag v-if="clientSettings.flow">{{ clientSettings.flow }}</a-tag>
-                <a-tag v-else color="orange">none</a-tag>
+                <a-tag v-else color="orange">{{ t('none') }}</a-tag>
               </td>
             </tr>
             <tr v-if="clientSettings.password">
-              <td>Password</td>
+              <td>{{ t('password') }}</td>
               <td><a-tag class="info-large-tag">{{ clientSettings.password }}</a-tag></td>
             </tr>
             <tr>
-              <td>Status</td>
+              <td>{{ t('status') }}</td>
               <td>
-                <a-tag v-if="isDepleted" color="red">depleted</a-tag>
-                <a-tag v-else-if="isEnable" color="green">enabled</a-tag>
-                <a-tag v-else>disabled</a-tag>
+                <a-tag v-if="isDepleted" color="red">{{ t('depleted') }}</a-tag>
+                <a-tag v-else-if="isEnable" color="green">{{ t('enabled') }}</a-tag>
+                <a-tag v-else>{{ t('disabled') }}</a-tag>
               </td>
             </tr>
             <tr v-if="clientStats">
-              <td>Usage</td>
+              <td>{{ t('usage') }}</td>
               <td>
                 <a-tag color="green">
                   {{ SizeFormatter.sizeFormat(clientStats.up + clientStats.down) }}
@@ -414,33 +417,33 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
               </td>
             </tr>
             <tr>
-              <td>Created</td>
+              <td>{{ t('pages.inbounds.createdAt') }}</td>
               <td>
                 <a-tag v-if="clientSettings.created_at">{{ IntlUtil.formatDate(clientSettings.created_at) }}</a-tag>
                 <a-tag v-else>-</a-tag>
               </td>
             </tr>
             <tr>
-              <td>Updated</td>
+              <td>{{ t('pages.inbounds.updatedAt') }}</td>
               <td>
                 <a-tag v-if="clientSettings.updated_at">{{ IntlUtil.formatDate(clientSettings.updated_at) }}</a-tag>
                 <a-tag v-else>-</a-tag>
               </td>
             </tr>
             <tr>
-              <td>Last online</td>
+              <td>{{ t('lastOnline') }}</td>
               <td><a-tag>{{ formatLastOnline(clientSettings.email || '') }}</a-tag></td>
             </tr>
             <tr v-if="clientSettings.comment">
-              <td>Comment</td>
+              <td>{{ t('comment') }}</td>
               <td><a-tag class="info-large-tag">{{ clientSettings.comment }}</a-tag></td>
             </tr>
             <tr v-if="ipLimitEnable">
-              <td>IP limit</td>
+              <td>{{ t('pages.inbounds.IPLimit') }}</td>
               <td><a-tag>{{ clientSettings.limitIp }}</a-tag></td>
             </tr>
             <tr v-if="ipLimitEnable && clientSettings.limitIp > 0">
-              <td>IP log</td>
+              <td>{{ t('pages.inbounds.IPLimitlog') }}</td>
               <td>
                 <div class="ip-log">
                   <div v-if="clientIpsArray.length > 0">
@@ -451,11 +454,11 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
                       class="ip-log-row"
                     >{{ item }}</a-tag>
                   </div>
-                  <a-tag v-else>{{ clientIpsText || 'No IP record' }}</a-tag>
+                  <a-tag v-else>{{ clientIpsText || t('tgbot.noIpRecord') }}</a-tag>
                 </div>
                 <div class="ip-log-actions">
                   <SyncOutlined :spin="refreshing" @click="loadClientIps" />
-                  <a-tooltip title="Clear IP log">
+                  <a-tooltip :title="t('pages.inbounds.IPLimitlogclear')">
                     <DeleteOutlined @click="clearClientIps" />
                   </a-tooltip>
                 </div>
@@ -468,9 +471,9 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
         <table class="info-table summary-table">
           <thead>
             <tr>
-              <th>Remaining</th>
-              <th>Total</th>
-              <th>Expiry</th>
+              <th>{{ t('remained') }}</th>
+              <th>{{ t('pages.inbounds.totalUsage') }}</th>
+              <th>{{ t('pages.inbounds.expireDate') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -494,7 +497,7 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
                   :color="ColorUtils.usageColor(Date.now(), expireDiff, clientSettings.expiryTime)"
                 >{{ IntlUtil.formatDate(clientSettings.expiryTime) }}</a-tag>
                 <a-tag v-else-if="clientSettings.expiryTime < 0" color="green">
-                  {{ clientSettings.expiryTime / -86400000 }} days
+                  {{ clientSettings.expiryTime / -86400000 }} {{ t('day') }}
                 </a-tag>
                 <a-tag v-else color="purple">∞</a-tag>
               </td>
@@ -504,26 +507,26 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
 
         <!-- ============== Subscription URLs ============== -->
         <template v-if="subSettings.enable && clientSettings.subId">
-          <a-divider>Subscription URL</a-divider>
+          <a-divider>{{ t('subscription.title') }}</a-divider>
           <QrPanel
             :value="subLink"
-            remark="Subscription link"
+            :remark="t('subscription.title')"
             :show-qr="false"
           />
           <QrPanel
             v-if="subSettings.subJsonEnable && subJsonLink"
             :value="subJsonLink"
-            remark="JSON link"
+            remark="JSON"
             :show-qr="false"
           />
         </template>
 
         <!-- ============== Telegram chat id ============== -->
         <template v-if="tgBotEnable && clientSettings.tgId">
-          <a-divider>Telegram chat ID</a-divider>
+          <a-divider>Telegram</a-divider>
           <div class="tg-row">
             <a-tag color="blue">{{ clientSettings.tgId }}</a-tag>
-            <a-tooltip title="Copy">
+            <a-tooltip :title="t('copy')">
               <a-button size="small" @click="copyText(clientSettings.tgId)">
                 <template #icon><CopyOutlined /></template>
               </a-button>
@@ -533,7 +536,7 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
 
         <!-- ============== Share links + QR codes ============== -->
         <template v-if="dbInbound.hasLink() && links.length > 0">
-          <a-divider>Share links</a-divider>
+          <a-divider>{{ t('pages.inbounds.copyLink') }}</a-divider>
           <QrPanel
             v-for="(link, idx) in links"
             :key="idx"
@@ -545,7 +548,7 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
 
       <!-- ============== Single-user SS share link ============== -->
       <template v-else-if="dbInbound.isSS && !inbound.isSSMultiUser && links.length > 0">
-        <a-divider>Share link</a-divider>
+        <a-divider>{{ t('pages.inbounds.copyLink') }}</a-divider>
         <QrPanel
           v-for="(link, idx) in links"
           :key="idx"
@@ -558,9 +561,9 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
       <table v-if="inbound.protocol === Protocols.TUNNEL" class="info-table protocol-table">
         <thead>
           <tr>
-            <th>Target address</th>
-            <th>Destination port</th>
-            <th>Network</th>
+            <th>{{ t('pages.inbounds.targetAddress') }}</th>
+            <th>{{ t('pages.inbounds.destinationPort') }}</th>
+            <th>{{ t('pages.inbounds.network') }}</th>
             <th>FollowRedirect</th>
           </tr>
         </thead>
@@ -592,8 +595,8 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
           <template v-if="inbound.settings.auth === 'password'">
             <tr>
               <td></td>
-              <td>Username</td>
-              <td>Password</td>
+              <td>{{ t('username') }}</td>
+              <td>{{ t('password') }}</td>
             </tr>
             <tr v-for="(account, idx) in inbound.settings.accounts" :key="idx">
               <td>{{ idx }}</td>
@@ -609,8 +612,8 @@ const serverNameLabel = computed(() => inbound.value?.serverName || '');
         <thead>
           <tr>
             <th></th>
-            <th>Username</th>
-            <th>Password</th>
+            <th>{{ t('username') }}</th>
+            <th>{{ t('password') }}</th>
           </tr>
         </thead>
         <tbody>

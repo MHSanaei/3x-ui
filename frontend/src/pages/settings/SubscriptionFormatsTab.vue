@@ -1,6 +1,9 @@
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import SettingListItem from '@/components/SettingListItem.vue';
+
+const { t } = useI18n();
 
 const props = defineProps({
   allSetting: { type: Object, required: true },
@@ -207,62 +210,46 @@ const directDomains = computed({
 
 <template>
   <a-collapse default-active-key="1">
-    <a-collapse-panel key="1" header="General">
+    <a-collapse-panel key="1" :header="t('pages.settings.panelSettings')">
       <SettingListItem v-if="allSetting.subJsonEnable" paddings="small">
-        <template #title>JSON path</template>
-        <template #description>URL prefix for JSON subscription endpoints.</template>
+        <template #title>JSON {{ t('pages.settings.subPath') }}</template>
+        <template #description>{{ t('pages.settings.subPathDesc') }}</template>
         <template #control>
-          <a-input
-            v-model:value="subJsonPath"
-            type="text"
-            placeholder="/json/"
-            @blur="normalizePath('subJsonPath')"
-          />
+          <a-input v-model:value="subJsonPath" type="text" placeholder="/json/" @blur="normalizePath('subJsonPath')" />
         </template>
       </SettingListItem>
 
       <SettingListItem v-if="allSetting.subJsonEnable" paddings="small">
-        <template #title>JSON URI override</template>
-        <template #description>Full URL returned to JSON-format clients.</template>
+        <template #title>JSON {{ t('pages.settings.subURI') }}</template>
+        <template #description>{{ t('pages.settings.subURIDesc') }}</template>
         <template #control>
-          <a-input
-            v-model:value="allSetting.subJsonURI"
-            type="text"
-            placeholder="(http|https)://domain[:port]/path/"
-          />
+          <a-input v-model:value="allSetting.subJsonURI" type="text" placeholder="(http|https)://domain[:port]/path/" />
         </template>
       </SettingListItem>
 
       <SettingListItem v-if="allSetting.subClashEnable" paddings="small">
-        <template #title>Clash path</template>
-        <template #description>URL prefix for Clash/Mihomo subscription endpoints.</template>
+        <template #title>Clash {{ t('pages.settings.subPath') }}</template>
+        <template #description>{{ t('pages.settings.subPathDesc') }}</template>
         <template #control>
-          <a-input
-            v-model:value="subClashPath"
-            type="text"
-            placeholder="/clash/"
-            @blur="normalizePath('subClashPath')"
-          />
+          <a-input v-model:value="subClashPath" type="text" placeholder="/clash/"
+            @blur="normalizePath('subClashPath')" />
         </template>
       </SettingListItem>
 
       <SettingListItem v-if="allSetting.subClashEnable" paddings="small">
-        <template #title>Clash URI override</template>
-        <template #description>Full URL returned to Clash-format clients.</template>
+        <template #title>Clash {{ t('pages.settings.subURI') }}</template>
+        <template #description>{{ t('pages.settings.subURIDesc') }}</template>
         <template #control>
-          <a-input
-            v-model:value="allSetting.subClashURI"
-            type="text"
-            placeholder="(http|https)://domain[:port]/path/"
-          />
+          <a-input v-model:value="allSetting.subClashURI" type="text"
+            placeholder="(http|https)://domain[:port]/path/" />
         </template>
       </SettingListItem>
     </a-collapse-panel>
 
-    <a-collapse-panel key="2" header="Fragment">
+    <a-collapse-panel key="2" :header="t('pages.settings.fragment')">
       <SettingListItem paddings="small">
-        <template #title>Enable fragmentation</template>
-        <template #description>Apply TLS-hello fragmentation to outbound connections.</template>
+        <template #title>{{ t('pages.settings.fragment') }}</template>
+        <template #description>{{ t('pages.settings.fragmentDesc') }}</template>
         <template #control>
           <a-switch v-model:checked="fragment" />
         </template>
@@ -270,7 +257,7 @@ const directDomains = computed({
 
       <a-list-item v-if="fragment" class="nested-block">
         <a-collapse>
-          <a-collapse-panel header="Fragment settings">
+          <a-collapse-panel :header="t('pages.settings.fragmentSett')">
             <SettingListItem paddings="small">
               <template #title>Packets</template>
               <template #control>
@@ -302,8 +289,8 @@ const directDomains = computed({
 
     <a-collapse-panel key="3" header="Noises">
       <SettingListItem paddings="small">
-        <template #title>Enable noises</template>
-        <template #description>Inject noise packets to obfuscate traffic patterns.</template>
+        <template #title>Noises</template>
+        <template #description>{{ t('pages.settings.noisesDesc') }}</template>
         <template #control>
           <a-switch v-model:checked="noises" />
         </template>
@@ -311,19 +298,12 @@ const directDomains = computed({
 
       <a-list-item v-if="noises" class="nested-block">
         <a-collapse>
-          <a-collapse-panel
-            v-for="(noise, index) in noisesArray"
-            :key="index"
-            :header="`Noise №${index + 1}`"
-          >
+          <a-collapse-panel v-for="(noise, index) in noisesArray" :key="index" :header="`Noise №${index + 1}`">
             <SettingListItem paddings="small">
               <template #title>Type</template>
               <template #control>
-                <a-select
-                  :value="noise.type"
-                  :style="{ width: '100%' }"
-                  @change="(v) => updateNoiseField(index, 'type', v)"
-                >
+                <a-select :value="noise.type" :style="{ width: '100%' }"
+                  @change="(v) => updateNoiseField(index, 'type', v)">
                   <a-select-option v-for="p in ['rand', 'base64', 'str', 'hex']" :key="p" :value="p">
                     {{ p }}
                   </a-select-option>
@@ -333,31 +313,22 @@ const directDomains = computed({
             <SettingListItem paddings="small">
               <template #title>Packet</template>
               <template #control>
-                <a-input
-                  :value="noise.packet"
-                  placeholder="5-10"
-                  @input="(e) => updateNoiseField(index, 'packet', e.target.value)"
-                />
+                <a-input :value="noise.packet" placeholder="5-10"
+                  @input="(e) => updateNoiseField(index, 'packet', e.target.value)" />
               </template>
             </SettingListItem>
             <SettingListItem paddings="small">
               <template #title>Delay (ms)</template>
               <template #control>
-                <a-input
-                  :value="noise.delay"
-                  placeholder="10-20"
-                  @input="(e) => updateNoiseField(index, 'delay', e.target.value)"
-                />
+                <a-input :value="noise.delay" placeholder="10-20"
+                  @input="(e) => updateNoiseField(index, 'delay', e.target.value)" />
               </template>
             </SettingListItem>
             <SettingListItem paddings="small">
               <template #title>Apply to</template>
               <template #control>
-                <a-select
-                  :value="noise.applyTo"
-                  :style="{ width: '100%' }"
-                  @change="(v) => updateNoiseField(index, 'applyTo', v)"
-                >
+                <a-select :value="noise.applyTo" :style="{ width: '100%' }"
+                  @change="(v) => updateNoiseField(index, 'applyTo', v)">
                   <a-select-option v-for="p in ['ip', 'ipv4', 'ipv6']" :key="p" :value="p">
                     {{ p }}
                   </a-select-option>
@@ -367,20 +338,20 @@ const directDomains = computed({
 
             <a-space direction="horizontal" :style="{ padding: '10px 20px' }">
               <a-button v-if="noisesArray.length > 1" type="primary" danger @click="removeNoise(index)">
-                Remove
+                {{ t('delete') }}
               </a-button>
             </a-space>
           </a-collapse-panel>
         </a-collapse>
 
-        <a-button type="primary" :style="{ marginTop: '10px' }" @click="addNoise">Add noise</a-button>
+        <a-button type="primary" :style="{ marginTop: '10px' }" @click="addNoise">+ Noise</a-button>
       </a-list-item>
     </a-collapse-panel>
 
-    <a-collapse-panel key="4" header="Mux">
+    <a-collapse-panel key="4" :header="t('pages.settings.mux')">
       <SettingListItem paddings="small">
-        <template #title>Enable mux</template>
-        <template #description>Multiplex multiple streams over a single connection.</template>
+        <template #title>{{ t('pages.settings.mux') }}</template>
+        <template #description>{{ t('pages.settings.muxDesc') }}</template>
         <template #control>
           <a-switch v-model:checked="enableMux" />
         </template>
@@ -388,27 +359,17 @@ const directDomains = computed({
 
       <a-list-item v-if="enableMux" class="nested-block">
         <a-collapse>
-          <a-collapse-panel header="Mux settings">
+          <a-collapse-panel :header="t('pages.settings.muxSett')">
             <SettingListItem paddings="small">
               <template #title>Concurrency</template>
               <template #control>
-                <a-input-number
-                  v-model:value="muxConcurrency"
-                  :min="-1"
-                  :max="1024"
-                  :style="{ width: '100%' }"
-                />
+                <a-input-number v-model:value="muxConcurrency" :min="-1" :max="1024" :style="{ width: '100%' }" />
               </template>
             </SettingListItem>
             <SettingListItem paddings="small">
               <template #title>xudp concurrency</template>
               <template #control>
-                <a-input-number
-                  v-model:value="muxXudpConcurrency"
-                  :min="-1"
-                  :max="1024"
-                  :style="{ width: '100%' }"
-                />
+                <a-input-number v-model:value="muxXudpConcurrency" :min="-1" :max="1024" :style="{ width: '100%' }" />
               </template>
             </SettingListItem>
             <SettingListItem paddings="small">
@@ -426,10 +387,10 @@ const directDomains = computed({
       </a-list-item>
     </a-collapse-panel>
 
-    <a-collapse-panel key="5" header="Direct routing">
+    <a-collapse-panel key="5" :header="t('pages.settings.direct')">
       <SettingListItem paddings="small">
-        <template #title>Enable direct rules</template>
-        <template #description>Bypass the proxy for matched IPs and domains.</template>
+        <template #title>{{ t('pages.settings.direct') }}</template>
+        <template #description>{{ t('pages.settings.directDesc') }}</template>
         <template #control>
           <a-switch v-model:checked="enableDirect" />
         </template>
@@ -437,15 +398,11 @@ const directDomains = computed({
 
       <a-list-item v-if="enableDirect" class="nested-block">
         <a-collapse>
-          <a-collapse-panel header="Direct">
+          <a-collapse-panel :header="t('pages.settings.direct')">
             <SettingListItem paddings="small">
-              <template #title>Direct IPs</template>
+              <template #title>{{ t('pages.settings.direct') }} IPs</template>
               <template #control>
-                <a-select
-                  v-model:value="directIPs"
-                  mode="tags"
-                  :style="{ width: '100%' }"
-                >
+                <a-select v-model:value="directIPs" mode="tags" :style="{ width: '100%' }">
                   <a-select-option v-for="p in directIPsOptions" :key="p.value" :value="p.value" :label="p.label">
                     {{ p.label }}
                   </a-select-option>
@@ -453,13 +410,9 @@ const directDomains = computed({
               </template>
             </SettingListItem>
             <SettingListItem paddings="small">
-              <template #title>Direct domains</template>
+              <template #title>{{ t('pages.settings.direct') }} {{ t('domainName') }}</template>
               <template #control>
-                <a-select
-                  v-model:value="directDomains"
-                  mode="tags"
-                  :style="{ width: '100%' }"
-                >
+                <a-select v-model:value="directDomains" mode="tags" :style="{ width: '100%' }">
                   <a-select-option v-for="p in directDomainsOptions" :key="p.value" :value="p.value" :label="p.label">
                     {{ p.label }}
                   </a-select-option>

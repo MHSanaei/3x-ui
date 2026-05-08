@@ -225,44 +225,35 @@ function close() { emit('update:open', false); }
 </script>
 
 <template>
-  <a-modal
-    :open="open"
-    title="NordVPN NordLynx"
-    :footer="null"
-    :closable="true"
-    :mask-closable="true"
-    @cancel="close"
-  >
+  <a-modal :open="open" title="NordVPN NordLynx" :footer="null" :closable="true" :mask-closable="true" @cancel="close">
+    <!-- WARP / NordVPN provisioning forms keep technical wire labels in
+         English on purpose: they map directly to API field names users
+         look up in vendor docs. Only the primary action buttons +
+         dialog headers translate. -->
     <!-- Not authenticated → tabbed login (token or manual key) -->
     <template v-if="nordData == null">
       <a-tabs default-active-key="token">
         <a-tab-pane key="token" tab="Access token">
-          <a-form
-            :colon="false"
-            :label-col="{ md: { span: 6 } }"
-            :wrapper-col="{ md: { span: 18 } }"
-            class="mt-20"
-          >
+          <a-form :colon="false" :label-col="{ md: { span: 6 } }" :wrapper-col="{ md: { span: 18 } }" class="mt-20">
             <a-form-item label="Access token">
               <a-input v-model:value="token" placeholder="Access token" />
               <a-button type="primary" class="mt-10" :loading="loading" @click="login">
-                <template #icon><LoginOutlined /></template>
+                <template #icon>
+                  <LoginOutlined />
+                </template>
                 Login
               </a-button>
             </a-form-item>
           </a-form>
         </a-tab-pane>
         <a-tab-pane key="key" tab="Private key">
-          <a-form
-            :colon="false"
-            :label-col="{ md: { span: 6 } }"
-            :wrapper-col="{ md: { span: 18 } }"
-            class="mt-20"
-          >
+          <a-form :colon="false" :label-col="{ md: { span: 6 } }" :wrapper-col="{ md: { span: 18 } }" class="mt-20">
             <a-form-item label="Private key">
               <a-input v-model:value="manualKey" placeholder="Private key" />
               <a-button type="primary" class="mt-10" :loading="loading" @click="saveKey">
-                <template #icon><SaveOutlined /></template>
+                <template #icon>
+                  <SaveOutlined />
+                </template>
                 Save
               </a-button>
             </a-form-item>
@@ -290,43 +281,20 @@ function close() { emit('update:open', false); }
 
       <a-divider class="zero-margin">Settings</a-divider>
 
-      <a-form
-        :colon="false"
-        :label-col="{ md: { span: 6 } }"
-        :wrapper-col="{ md: { span: 18 } }"
-        class="mt-10"
-      >
+      <a-form :colon="false" :label-col="{ md: { span: 6 } }" :wrapper-col="{ md: { span: 18 } }" class="mt-10">
         <a-form-item label="Country">
-          <a-select
-            v-model:value="countryId"
-            show-search
-            option-filter-prop="label"
-            @change="fetchServers"
-          >
-            <a-select-option
-              v-for="c in countries"
-              :key="c.id"
-              :value="c.id"
-              :label="c.name"
-            >
+          <a-select v-model:value="countryId" show-search option-filter-prop="label" @change="fetchServers">
+            <a-select-option v-for="c in countries" :key="c.id" :value="c.id" :label="c.name">
               {{ c.name }} ({{ c.code }})
             </a-select-option>
           </a-select>
         </a-form-item>
 
         <a-form-item v-if="cities.length > 0" label="City">
-          <a-select
-            v-model:value="cityId"
-            show-search
-            option-filter-prop="label"
-          >
+          <a-select v-model:value="cityId" show-search option-filter-prop="label">
             <a-select-option :value="null" label="All cities">All cities</a-select-option>
-            <a-select-option
-              v-for="c in cities"
-              :key="c.id"
-              :value="c.id"
-              :label="c.name"
-            >{{ c.name }}</a-select-option>
+            <a-select-option v-for="c in cities" :key="c.id" :value="c.id" :label="c.name">{{ c.name
+            }}</a-select-option>
           </a-select>
         </a-form-item>
 
@@ -349,13 +317,8 @@ function close() { emit('update:open', false); }
       </template>
       <template v-else>
         <a-tag color="orange">Disabled</a-tag>
-        <a-button
-          type="primary"
-          class="ml-8"
-          :disabled="!serverId"
-          :loading="loading"
-          @click="addOutbound"
-        >Add outbound</a-button>
+        <a-button type="primary" class="ml-8" :disabled="!serverId" :loading="loading" @click="addOutbound">Add
+          outbound</a-button>
       </template>
     </template>
   </a-modal>
@@ -367,29 +330,50 @@ function close() { emit('update:open', false); }
   width: 100%;
   border-collapse: collapse;
 }
+
 .nord-data-table td {
   padding: 4px 8px;
   word-break: break-all;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
 }
+
 .nord-data-table td:first-child {
   font-family: inherit;
   font-weight: 500;
   white-space: nowrap;
   width: 130px;
 }
+
 .row-odd {
   background: rgba(0, 0, 0, 0.03);
 }
+
 :global(body.dark) .row-odd {
   background: rgba(255, 255, 255, 0.04);
 }
 
-.zero-margin { margin: 0; }
-.mt-8 { margin-top: 8px; }
-.mt-10 { margin-top: 10px; }
-.mt-20 { margin-top: 20px; }
-.my-10 { margin: 10px 0; }
-.ml-8 { margin-left: 8px; }
+.zero-margin {
+  margin: 0;
+}
+
+.mt-8 {
+  margin-top: 8px;
+}
+
+.mt-10 {
+  margin-top: 10px;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+
+.my-10 {
+  margin: 10px 0;
+}
+
+.ml-8 {
+  margin-left: 8px;
+}
 </style>

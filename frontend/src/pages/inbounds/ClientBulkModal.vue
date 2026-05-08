@@ -1,9 +1,12 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
 import { SyncOutlined } from '@ant-design/icons-vue';
 
 import { HttpUtil, RandomUtil, SizeFormatter } from '@/utils';
+
+const { t } = useI18n();
 import {
   Inbound,
   Protocols,
@@ -171,9 +174,9 @@ async function submit() {
 <template>
   <a-modal
     :open="open"
-    title="Add bulk clients"
-    ok-text="Create"
-    cancel-text="Close"
+    :title="t('pages.client.bulk')"
+    :ok-text="t('create')"
+    :cancel-text="t('close')"
     :confirm-loading="saving"
     :mask-closable="false"
     @ok="submit"
@@ -185,7 +188,7 @@ async function submit() {
       :label-col="{ md: { span: 8 } }"
       :wrapper-col="{ md: { span: 14 } }"
     >
-      <a-form-item label="Email method">
+      <a-form-item :label="t('pages.client.method')">
         <a-select v-model:value="form.emailMethod">
           <a-select-option :value="0">Random</a-select-option>
           <a-select-option :value="1">Random + Prefix</a-select-option>
@@ -195,23 +198,23 @@ async function submit() {
         </a-select>
       </a-form-item>
 
-      <a-form-item v-if="form.emailMethod > 1" label="First number">
+      <a-form-item v-if="form.emailMethod > 1" :label="t('pages.client.first')">
         <a-input-number v-model:value="form.firstNum" :min="1" />
       </a-form-item>
-      <a-form-item v-if="form.emailMethod > 1" label="Last number">
+      <a-form-item v-if="form.emailMethod > 1" :label="t('pages.client.last')">
         <a-input-number v-model:value="form.lastNum" :min="form.firstNum" />
       </a-form-item>
-      <a-form-item v-if="form.emailMethod > 0" label="Prefix">
+      <a-form-item v-if="form.emailMethod > 0" :label="t('pages.client.prefix')">
         <a-input v-model:value="form.emailPrefix" />
       </a-form-item>
-      <a-form-item v-if="form.emailMethod > 2" label="Postfix">
+      <a-form-item v-if="form.emailMethod > 2" :label="t('pages.client.postfix')">
         <a-input v-model:value="form.emailPostfix" />
       </a-form-item>
-      <a-form-item v-if="form.emailMethod < 2" label="Client count">
+      <a-form-item v-if="form.emailMethod < 2" :label="t('pages.client.clientCount')">
         <a-input-number v-model:value="form.quantity" :min="1" :max="500" />
       </a-form-item>
 
-      <a-form-item v-if="inbound.protocol === Protocols.VMESS" label="Security">
+      <a-form-item v-if="inbound.protocol === Protocols.VMESS" :label="t('security')">
         <a-select v-model:value="form.security">
           <a-select-option v-for="key in SECURITY_OPTIONS" :key="key" :value="key">{{ key }}</a-select-option>
         </a-select>
@@ -219,50 +222,48 @@ async function submit() {
 
       <a-form-item v-if="inbound.canEnableTlsFlow()" label="Flow">
         <a-select v-model:value="form.flow">
-          <a-select-option value="">none</a-select-option>
+          <a-select-option value="">{{ t('none') }}</a-select-option>
           <a-select-option v-for="key in FLOW_OPTIONS" :key="key" :value="key">{{ key }}</a-select-option>
         </a-select>
       </a-form-item>
 
       <a-form-item v-if="subEnable">
         <template #label>
-          <a-tooltip title="Same subscription token for every generated client (random when blank)">
-            Subscription
-            <SyncOutlined class="random-icon" @click="form.subId = RandomUtil.randomLowerAndNum(16)" />
-          </a-tooltip>
+          {{ t('subscription.title') }}
+          <SyncOutlined class="random-icon" @click="form.subId = RandomUtil.randomLowerAndNum(16)" />
         </template>
         <a-input v-model:value="form.subId" />
       </a-form-item>
 
-      <a-form-item v-if="tgBotEnable" label="Telegram chat ID">
+      <a-form-item v-if="tgBotEnable" label="Telegram ID">
         <a-input-number v-model:value="form.tgId" :min="0" :style="{ width: '50%' }" />
       </a-form-item>
 
-      <a-form-item v-if="ipLimitEnable" label="IP limit">
+      <a-form-item v-if="ipLimitEnable" :label="t('pages.inbounds.IPLimit')">
         <a-input-number v-model:value="form.limitIp" :min="0" />
       </a-form-item>
 
       <a-form-item>
         <template #label>
-          <a-tooltip title="0 means no limit">Total traffic (GB)</a-tooltip>
+          <a-tooltip :title="t('pages.inbounds.meansNoLimit')">{{ t('pages.inbounds.totalFlow') }}</a-tooltip>
         </template>
         <a-input-number v-model:value="form.totalGB" :min="0" :step="0.1" />
       </a-form-item>
 
-      <a-form-item label="Delayed start">
+      <a-form-item :label="t('pages.client.delayedStart')">
         <a-switch
           v-model:checked="delayedStart"
           @click="form.expiryTime = 0"
         />
       </a-form-item>
 
-      <a-form-item v-if="delayedStart" label="Days from first connection">
+      <a-form-item v-if="delayedStart" :label="t('pages.client.expireDays')">
         <a-input-number v-model:value="delayedExpireDays" :min="0" />
       </a-form-item>
 
       <a-form-item v-else>
         <template #label>
-          <a-tooltip title="Leave blank to never expire">Expiry date</a-tooltip>
+          <a-tooltip :title="t('pages.inbounds.leaveBlankToNeverExpire')">{{ t('pages.inbounds.expireDate') }}</a-tooltip>
         </template>
         <a-date-picker
           v-model:value="expiryDate"
@@ -274,9 +275,7 @@ async function submit() {
 
       <a-form-item v-if="form.expiryTime !== 0">
         <template #label>
-          <a-tooltip title="Days between automatic renewals (0 = no renewal)">
-            Renewal cycle (days)
-          </a-tooltip>
+          <a-tooltip :title="t('pages.client.renewDesc')">{{ t('pages.client.renew') }}</a-tooltip>
         </template>
         <a-input-number v-model:value="form.reset" :min="0" />
       </a-form-item>
