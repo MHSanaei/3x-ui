@@ -14,6 +14,7 @@ import { theme as themeState } from '@/composables/useTheme.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
 import { useAllSetting } from './useAllSetting.js';
+import GeneralTab from './GeneralTab.vue';
 
 const antdThemeConfig = computed(() => ({
   algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -206,7 +207,7 @@ const alertVisible = ref(true);
                         <SettingOutlined />
                         <span>Panel</span>
                       </template>
-                      <a-empty description="General — coming in 5d-ii" />
+                      <GeneralTab :all-setting="allSetting" />
                     </a-tab-pane>
                     <a-tab-pane key="2" class="tab-pane">
                       <template #tab>
