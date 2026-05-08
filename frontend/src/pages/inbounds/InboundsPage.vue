@@ -109,12 +109,82 @@ function checkFallback(dbInbound) {
   return dbInbound;
 }
 
-function findClientIndex(dbInbound) {
-  // For now we always show client 0 — multi-client navigation lives
-  // in the per-inbound expand-row table (5f-vi). A future commit will
-  // route client.email through this helper.
-  void dbInbound;
-  return 0;
+function findClientIndex(dbInbound, client) {
+  if (!client) return 0;
+  const inbound = dbInbound.toInbound();
+  const clients = inbound?.clients || [];
+  const idx = clients.findIndex((c) => {
+    if (!c) return false;
+    switch (dbInbound.protocol) {
+      case 'trojan':
+      case 'shadowsocks':
+        return c.password === client.password && c.email === client.email;
+      default:
+        return c.id === client.id && c.email === client.email;
+    }
+  });
+  return idx >= 0 ? idx : 0;
+}
+
+function getClientId(protocol, client) {
+  switch (protocol) {
+    case 'trojan': return client.password;
+    case 'shadowsocks': return client.email;
+    case 'hysteria': return client.auth;
+    default: return client.id;
+  }
+}
+
+// === Per-client handlers (called from the expand-row table) =========
+function onEditClient({ dbInbound, client }) {
+  clientMode.value = 'edit';
+  clientDbInbound.value = dbInbound;
+  clientIndex.value = findClientIndex(dbInbound, client);
+  clientOpen.value = true;
+}
+
+function onQrcodeClient({ dbInbound, client }) {
+  // Reuse the inbound info modal focused on the chosen client — that's
+  // where per-client share links and the per-link QRs live.
+  infoDbInbound.value = checkFallback(dbInbound);
+  infoClientIndex.value = findClientIndex(dbInbound, client);
+  infoOpen.value = true;
+}
+
+function onInfoClient({ dbInbound, client }) {
+  infoDbInbound.value = checkFallback(dbInbound);
+  infoClientIndex.value = findClientIndex(dbInbound, client);
+  infoOpen.value = true;
+}
+
+async function onResetTrafficClient({ dbInbound, client }) {
+  const msg = await HttpUtil.post(
+    `/panel/api/inbounds/${dbInbound.id}/resetClientTraffic/${client.email}`,
+  );
+  if (msg?.success) await refresh();
+}
+
+async function onDeleteClient({ dbInbound, client }) {
+  const clientId = getClientId(dbInbound.protocol, client);
+  const msg = await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/delClient/${clientId}`);
+  if (msg?.success) await refresh();
+}
+
+async function onToggleEnableClient({ dbInbound, client, next }) {
+  // Mirror legacy: clone the parsed inbound, flip enable on the matching
+  // client, and post the whole client back through updateClient. This
+  // keeps the wire shape identical to the modal save path.
+  const inbound = dbInbound.toInbound();
+  const clients = inbound?.clients || [];
+  const idx = findClientIndex(dbInbound, client);
+  if (idx < 0 || !clients[idx]) return;
+  clients[idx].enable = next;
+  const clientId = getClientId(dbInbound.protocol, clients[idx]);
+  const msg = await HttpUtil.post(`/panel/api/inbounds/updateClient/${clientId}`, {
+    id: dbInbound.id,
+    settings: `{"clients": [${clients[idx].toString()}]}`,
+  });
+  if (msg?.success) await refresh();
 }
 
 function onAddInbound() {
@@ -258,7 +328,7 @@ function onRowAction({ key, dbInbound }) {
       break;
     case 'showInfo':
       infoDbInbound.value = checkFallback(dbInbound);
-      infoClientIndex.value = findClientIndex(dbInbound);
+      infoClientIndex.value = findClientIndex(dbInbound, null);
       infoOpen.value = true;
       break;
     case 'qrcode':
@@ -364,6 +434,8 @@ function onRowAction({ key, dbInbound }) {
                   :db-inbounds="dbInbounds"
                   :client-count="clientCount"
                   :online-clients="onlineClients"
+                  :last-online-map="lastOnlineMap"
+                  :is-dark-theme="themeState.isDark"
                   :refreshing="refreshing"
                   :expire-diff="expireDiff"
                   :traffic-diff="trafficDiff"
@@ -374,6 +446,12 @@ function onRowAction({ key, dbInbound }) {
                   @add-inbound="onAddInbound"
                   @general-action="onGeneralAction"
                   @row-action="onRowAction"
+                  @edit-client="onEditClient"
+                  @qrcode-client="onQrcodeClient"
+                  @info-client="onInfoClient"
+                  @reset-traffic-client="onResetTrafficClient"
+                  @delete-client="onDeleteClient"
+                  @toggle-enable-client="onToggleEnableClient"
                 />
               </a-col>
             </a-row>

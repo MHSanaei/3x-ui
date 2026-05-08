@@ -27,16 +27,19 @@ import {
 import { HttpUtil, ObjectUtil, SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
 import { DBInbound } from '@/models/dbinbound.js';
 import { Inbound } from '@/models/inbound.js';
+import ClientRowTable from './ClientRowTable.vue';
 
 const props = defineProps({
   dbInbounds: { type: Array, required: true },
   clientCount: { type: Object, required: true },
   onlineClients: { type: Array, required: true },
+  lastOnlineMap: { type: Object, default: () => ({}) },
   refreshing: { type: Boolean, default: false },
   expireDiff: { type: Number, default: 0 },
   trafficDiff: { type: Number, default: 0 },
   pageSize: { type: Number, default: 0 },
   isMobile: { type: Boolean, default: false },
+  isDarkTheme: { type: Boolean, default: false },
   subEnable: { type: Boolean, default: false },
 });
 
@@ -45,6 +48,13 @@ const emit = defineEmits([
   'add-inbound',
   'general-action',
   'row-action',
+  // Per-client events surfaced from the expand-row table.
+  'edit-client',
+  'qrcode-client',
+  'info-client',
+  'reset-traffic-client',
+  'delete-client',
+  'toggle-enable-client',
 ]);
 
 // ============ Toolbar / search & filter =============================
@@ -302,7 +312,30 @@ function showQrCodeMenu(dbInbound) {
         :scroll="isMobile ? {} : { x: 1000 }"
         :style="{ marginTop: '10px' }"
         size="small"
+        :row-class-name="(r) => (r.isMultiUser() ? '' : 'hide-expand-icon')"
       >
+        <!-- Per-inbound client list, expanded by clicking the row's
+             default expand chevron. Hidden via row-class-name for
+             non-multi-user inbounds (matches legacy behavior). -->
+        <template #expandedRowRender="{ record }">
+          <ClientRowTable
+            v-if="record.isMultiUser()"
+            :db-inbound="record"
+            :is-mobile="isMobile"
+            :traffic-diff="trafficDiff"
+            :expire-diff="expireDiff"
+            :online-clients="onlineClients"
+            :last-online-map="lastOnlineMap"
+            :is-dark-theme="isDarkTheme"
+            @edit-client="(p) => emit('edit-client', p)"
+            @qrcode-client="(p) => emit('qrcode-client', p)"
+            @info-client="(p) => emit('info-client', p)"
+            @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
+            @delete-client="(p) => emit('delete-client', p)"
+            @toggle-enable-client="(p) => emit('toggle-enable-client', p)"
+          />
+        </template>
+
         <template #bodyCell="{ column, record }">
           <!-- ============== Action dropdown ============== -->
           <template v-if="column.key === 'action'">
@@ -516,5 +549,11 @@ function showQrCodeMenu(dbInbound) {
 
 .danger-item {
   color: #ff4d4f;
+}
+
+/* Hide the expand chevron on rows whose inbound has no client list
+ * (HTTP/Mixed/Tunnel/WireGuard single-config). */
+:deep(.hide-expand-icon .ant-table-row-expand-icon) {
+  visibility: hidden;
 }
 </style>
