@@ -17,6 +17,7 @@ import { useAllSetting } from './useAllSetting.js';
 import GeneralTab from './GeneralTab.vue';
 import SecurityTab from './SecurityTab.vue';
 import TelegramTab from './TelegramTab.vue';
+import SubscriptionGeneralTab from './SubscriptionGeneralTab.vue';
 
 const antdThemeConfig = computed(() => ({
   algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -230,7 +231,7 @@ const alertVisible = ref(true);
                         <CloudServerOutlined />
                         <span>Subscription</span>
                       </template>
-                      <a-empty description="Subscription — coming in 5d-v" />
+                      <SubscriptionGeneralTab :all-setting="allSetting" />
                     </a-tab-pane>
                     <a-tab-pane
                       v-if="allSetting.subJsonEnable || allSetting.subClashEnable"
