@@ -167,7 +167,7 @@
 "logs" = "ログ"
 "config" = "設定"
 "backup" = "バックアップ"
-"backupTitle" = "データベースのバックアップと復元"
+"backupTitle" = "バックアップと復元"
 "exportDatabase" = "バックアップ"
 "exportDatabaseDesc" = "クリックして、現在のデータベースのバックアップを含む .db ファイルをデバイスにダウンロードします。"
 "importDatabase" = "復元"

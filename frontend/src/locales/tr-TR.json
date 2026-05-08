@@ -168,7 +168,7 @@
       "logs": "Günlükler",
       "config": "Yapılandırma",
       "backup": "Yedek",
-      "backupTitle": "Veritabanı Yedekleme & Geri Yükleme",
+      "backupTitle": "Yedekleme & Geri Yükleme",
       "exportDatabase": "Yedekle",
       "exportDatabaseDesc": "Mevcut veritabanınızın yedeğini içeren bir .db dosyasını cihazınıza indirmek için tıklayın.",
       "importDatabase": "Geri Yükle",

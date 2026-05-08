@@ -168,7 +168,7 @@
       "logs": "Log",
       "config": "Konfigurasi",
       "backup": "Cadangan",
-      "backupTitle": "Cadangan & Pulihkan Database",
+      "backupTitle": "Cadangan & Pulihkan",
       "exportDatabase": "Cadangkan",
       "exportDatabaseDesc": "Klik untuk mengunduh file .db yang berisi cadangan dari database Anda saat ini ke perangkat Anda.",
       "importDatabase": "Pulihkan",

@@ -209,7 +209,7 @@
 "logs" = "Logs"
 "config" = "Config"
 "backup" = "Backup"
-"backupTitle" = "Database Backup & Restore"
+"backupTitle" = "Backup & Restore"
 "exportDatabase" = "Back Up"
 "exportDatabaseDesc" = "Click to download a .db file containing a backup of your current database to your device."
 "importDatabase" = "Restore"

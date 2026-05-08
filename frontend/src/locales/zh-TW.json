@@ -168,7 +168,7 @@
       "logs": "日誌",
       "config": "配置",
       "backup": "備份和恢復",
-      "backupTitle": "備份和恢復資料庫",
+      "backupTitle": "備份和恢復",
       "exportDatabase": "備份",
       "exportDatabaseDesc": "點擊下載包含當前資料庫備份的 .db 文件到您的設備。",
       "importDatabase": "恢復",
