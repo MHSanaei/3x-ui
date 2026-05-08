@@ -1,10 +1,18 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { UserOutlined, LockOutlined, KeyOutlined, SettingOutlined } from '@ant-design/icons-vue';
+import { theme as antdTheme } from 'ant-design-vue';
 
 import { HttpUtil } from '@/utils';
-import { currentTheme } from '@/composables/useTheme.js';
+import { currentTheme, theme as themeState } from '@/composables/useTheme.js';
 import ThemeSwitchLogin from '@/components/ThemeSwitchLogin.vue';
+
+// Drive AD-Vue 4's built-in dark algorithm from our useTheme state.
+// This re-themes every AD-Vue component without depending on the
+// legacy panel's custom.min.css.
+const antdThemeConfig = computed(() => ({
+  algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+}));
 
 // Phase 4 ships this page in English only. Translations come back in
 // Phase 7 (vue-i18n) once we decide how the new build pipeline reads
@@ -47,7 +55,8 @@ async function login() {
 </script>
 
 <template>
-  <a-layout class="login-app">
+  <a-config-provider :theme="antdThemeConfig">
+  <a-layout class="login-app" :class="{ 'is-dark': themeState.isDark }">
     <a-layout-content class="login-content">
       <div class="waves-header">
         <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -139,12 +148,23 @@ async function login() {
       </a-row>
     </a-layout-content>
   </a-layout>
+  </a-config-provider>
 </template>
 
 <style scoped>
 .login-app {
   min-height: 100vh;
   background: #f0f2f5;
+}
+.login-app.is-dark {
+  background: #141a26;
+}
+.login-app.is-dark :deep(.login-card) {
+  background: #1f2937;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+.login-app.is-dark :deep(.login-title) {
+  color: #2dd4bf;
 }
 
 .login-settings {
