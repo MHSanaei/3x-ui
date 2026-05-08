@@ -35,12 +35,19 @@ const iconByName = {
   logout: LogoutOutlined,
 };
 
+// basePath comes from Go (`/` by default, `/myprefix/` when configured) so
+// these concatenations land on absolute paths. In dev we synthesize the prop
+// from a window global which can be empty — force a leading slash so the
+// browser doesn't resolve the link relative to the current pathname (which
+// would turn /panel/settings + 'panel/...' into /panel/panel/...).
+const prefix = props.basePath?.startsWith('/') ? props.basePath : `/${props.basePath || ''}`;
+
 const tabs = [
-  { key: `${props.basePath}panel/`,         icon: 'dashboard', title: 'Dashboard' },
-  { key: `${props.basePath}panel/inbounds`, icon: 'user',      title: 'Inbounds' },
-  { key: `${props.basePath}panel/settings`, icon: 'setting',   title: 'Settings' },
-  { key: `${props.basePath}panel/xray`,     icon: 'tool',      title: 'Xray' },
-  { key: `${props.basePath}logout/`,        icon: 'logout',    title: 'Logout' },
+  { key: `${prefix}panel/`,         icon: 'dashboard', title: 'Dashboard' },
+  { key: `${prefix}panel/inbounds`, icon: 'user',      title: 'Inbounds' },
+  { key: `${prefix}panel/settings`, icon: 'setting',   title: 'Settings' },
+  { key: `${prefix}panel/xray`,     icon: 'tool',      title: 'Xray' },
+  { key: `${prefix}logout/`,        icon: 'logout',    title: 'Logout' },
 ];
 
 const activeTab = ref([props.requestUri]);
