@@ -1,4 +1,4 @@
-import { ObjectUtil, RandomUtil, Base64 } from '../utils/legacy.js';
+import { ObjectUtil, RandomUtil, Base64 } from '@/utils';
 
 export const Protocols = {
     VMESS: 'vmess',

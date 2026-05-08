@@ -1,4 +1,4 @@
-import { ObjectUtil, NumberFormatter, SizeFormatter } from '../utils/legacy.js';
+import { ObjectUtil, NumberFormatter, SizeFormatter } from '@/utils';
 import { Inbound, Protocols } from './inbound.js';
 
 export class DBInbound {
