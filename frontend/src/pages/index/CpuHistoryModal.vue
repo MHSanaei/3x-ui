@@ -1,7 +1,10 @@
 <script setup>
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { HttpUtil } from '@/utils';
 import Sparkline from '@/components/Sparkline.vue';
+
+const { t } = useI18n();
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -48,7 +51,7 @@ watch(bucket, () => { if (props.open) fetchBucket(); });
 <template>
   <a-modal :open="open" :closable="true" :footer="null" width="900px" @cancel="close">
     <template #title>
-      CPU history
+      {{ t('pages.index.cpu') }}
       <a-select v-model:value="bucket" size="small" class="bucket-select">
         <a-select-option :value="2">2m</a-select-option>
         <a-select-option :value="30">30m</a-select-option>

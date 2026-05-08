@@ -1,8 +1,11 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { DownloadOutlined, SyncOutlined } from '@ant-design/icons-vue';
 
 import { HttpUtil, FileManager, PromiseUtil } from '@/utils';
+
+const { t } = useI18n();
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -94,7 +97,7 @@ watch([rows, level, syslog], () => { if (props.open) refresh(); });
 <template>
   <a-modal :open="open" :closable="true" :footer="null" width="800px" @cancel="close">
     <template #title>
-      Logs
+      {{ t('pages.index.logs') }}
       <SyncOutlined :spin="loading" class="reload-icon" @click="refresh" />
     </template>
 

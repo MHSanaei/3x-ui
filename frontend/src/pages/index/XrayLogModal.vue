@@ -1,8 +1,11 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { DownloadOutlined, SyncOutlined } from '@ant-design/icons-vue';
 
 import { HttpUtil, FileManager, IntlUtil, PromiseUtil } from '@/utils';
+
+const { t } = useI18n();
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -102,7 +105,7 @@ watch([rows, showDirect, showBlocked, showProxy], () => { if (props.open) refres
 <template>
   <a-modal :open="open" :closable="true" :footer="null" width="80vw" @cancel="close">
     <template #title>
-      Xray logs
+      {{ t('pages.index.logs') }}
       <SyncOutlined :spin="loading" class="reload-icon" @click="refresh" />
     </template>
 
@@ -116,7 +119,7 @@ watch([rows, showDirect, showBlocked, showProxy], () => { if (props.open) refres
           <a-select-option value="500">500</a-select-option>
         </a-select>
       </a-form-item>
-      <a-form-item label="Filter">
+      <a-form-item :label="t('filter')">
         <a-input v-model:value="filter" size="small" @keyup.enter="refresh" />
       </a-form-item>
       <a-form-item>

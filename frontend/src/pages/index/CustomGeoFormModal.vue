@@ -1,7 +1,10 @@
 <script setup>
 import { reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { message } from 'ant-design-vue';
 import { HttpUtil } from '@/utils';
+
+const { t } = useI18n();
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -41,22 +44,22 @@ function close() {
 function validate() {
   // Backend expects a filesystem-safe alias; legacy enforces the same regex.
   if (!/^[a-z0-9_-]+$/.test(form.alias || '')) {
-    message.error('Alias must contain only lowercase letters, digits, dashes or underscores.');
+    message.error(t('pages.index.customGeoValidationAlias'));
     return false;
   }
   const u = (form.url || '').trim();
   if (!/^https?:\/\//i.test(u)) {
-    message.error('URL must start with http:// or https://');
+    message.error(t('pages.index.customGeoValidationUrl'));
     return false;
   }
   try {
     const parsed = new URL(u);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      message.error('URL must start with http:// or https://');
+      message.error(t('pages.index.customGeoValidationUrl'));
       return false;
     }
   } catch (_e) {
-    message.error('URL must start with http:// or https://');
+    message.error(t('pages.index.customGeoValidationUrl'));
     return false;
   }
   return true;
@@ -83,28 +86,28 @@ async function submit() {
 <template>
   <a-modal
     :open="open"
-    :title="editing ? 'Edit custom geo entry' : 'Add custom geo entry'"
+    :title="editing ? t('pages.index.customGeoModalEdit') : t('pages.index.customGeoModalAdd')"
     :confirm-loading="saving"
-    ok-text="Save"
-    cancel-text="Close"
+    :ok-text="t('pages.index.customGeoModalSave')"
+    :cancel-text="t('close')"
     @ok="submit"
     @cancel="close"
   >
     <a-form layout="vertical">
-      <a-form-item label="Type">
+      <a-form-item :label="t('pages.index.customGeoType')">
         <a-select v-model:value="form.type" :disabled="editing">
           <a-select-option value="geosite">geosite</a-select-option>
           <a-select-option value="geoip">geoip</a-select-option>
         </a-select>
       </a-form-item>
-      <a-form-item label="Alias">
+      <a-form-item :label="t('pages.index.customGeoAlias')">
         <a-input
           v-model:value="form.alias"
           :disabled="editing"
-          placeholder="lowercase letters, digits, dashes, underscores"
+          :placeholder="t('pages.index.customGeoAliasPlaceholder')"
         />
       </a-form-item>
-      <a-form-item label="URL">
+      <a-form-item :label="t('pages.index.customGeoUrl')">
         <a-input v-model:value="form.url" placeholder="https://" />
       </a-form-item>
     </a-form>

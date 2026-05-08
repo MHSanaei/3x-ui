@@ -57,7 +57,7 @@ const versionOpen = ref(false);
 
 // Page-level loading overlay; modals can request it via @busy.
 const loading = ref(false);
-const loadingTip = ref('Loading…');
+const loadingTip = ref(t('loading'));
 function setBusy({ busy, tip }) {
   loading.value = busy;
   if (tip) loadingTip.value = tip;
@@ -85,7 +85,7 @@ function openVersionSwitch() { versionOpen.value = true; }
 
       <a-layout class="content-shell">
         <a-layout-content class="content-area">
-          <a-spin :spinning="loading || !fetched" :delay="200" :tip="loading ? loadingTip : 'Loading…'" size="large">
+          <a-spin :spinning="loading || !fetched" :delay="200" :tip="loading ? loadingTip : t('loading')" size="large">
             <div v-if="!fetched" class="loading-spacer" />
 
             <a-row v-else :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]">

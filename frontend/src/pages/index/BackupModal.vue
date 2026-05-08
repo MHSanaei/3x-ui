@@ -1,6 +1,9 @@
 <script setup>
+import { useI18n } from 'vue-i18n';
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons-vue';
 import { HttpUtil, PromiseUtil } from '@/utils';
+
+const { t } = useI18n();
 
 defineProps({
   open: { type: Boolean, default: false },
@@ -32,7 +35,7 @@ function importDb() {
     formData.append('db', dbFile);
 
     close();
-    emit('busy', { busy: true, tip: 'Importing database…' });
+    emit('busy', { busy: true, tip: t('pages.index.importDatabase') + '…' });
 
     const upload = await HttpUtil.post('/panel/api/server/importDB', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -42,7 +45,7 @@ function importDb() {
       return;
     }
 
-    emit('busy', { busy: true, tip: 'Restarting panel…' });
+    emit('busy', { busy: true, tip: t('pages.settings.restartPanel') + '…' });
     const restart = await HttpUtil.post('/panel/setting/restartPanel');
     if (restart?.success) {
       await PromiseUtil.sleep(5000);
@@ -56,12 +59,12 @@ function importDb() {
 </script>
 
 <template>
-  <a-modal :open="open" title="Database backup & restore" :closable="true" :footer="null" @cancel="close">
+  <a-modal :open="open" :title="t('pages.index.backupTitle')" :closable="true" :footer="null" @cancel="close">
     <a-list bordered class="backup-list">
       <a-list-item class="backup-item">
         <a-list-item-meta>
-          <template #title>Back up</template>
-          <template #description>Click to download a .db file containing a backup of your current database to your device.</template>
+          <template #title>{{ t('pages.index.exportDatabase') }}</template>
+          <template #description>{{ t('pages.index.exportDatabaseDesc') }}</template>
         </a-list-item-meta>
         <a-button type="primary" @click="exportDb">
           <template #icon><DownloadOutlined /></template>
@@ -70,8 +73,8 @@ function importDb() {
 
       <a-list-item class="backup-item">
         <a-list-item-meta>
-          <template #title>Restore</template>
-          <template #description>Click to upload a .db file. The panel restarts after restore — your session will reconnect automatically.</template>
+          <template #title>{{ t('pages.index.importDatabase') }}</template>
+          <template #description>{{ t('pages.index.importDatabaseDesc') }}</template>
         </a-list-item-meta>
         <a-button type="primary" @click="importDb">
           <template #icon><UploadOutlined /></template>

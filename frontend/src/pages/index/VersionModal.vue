@@ -1,9 +1,12 @@
 <script setup>
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Modal } from 'ant-design-vue';
 import { ReloadOutlined } from '@ant-design/icons-vue';
 import { HttpUtil } from '@/utils';
 import CustomGeoSection from './CustomGeoSection.vue';
+
+const { t } = useI18n();
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -36,13 +39,13 @@ function close() {
 
 function switchXrayVersion(version) {
   Modal.confirm({
-    title: 'Switch xray version',
-    content: `Are you sure you want to install ${version}? This will restart xray.`,
-    okText: 'Confirm',
-    cancelText: 'Cancel',
+    title: t('pages.index.xraySwitchVersionDialog'),
+    content: t('pages.index.xraySwitchVersionDialogDesc').replace('#version#', version),
+    okText: t('confirm'),
+    cancelText: t('cancel'),
     onOk: async () => {
       close();
-      emit('busy', { busy: true, tip: `Installing ${version}…` });
+      emit('busy', { busy: true, tip: t('pages.index.dontRefresh') });
       try {
         await HttpUtil.post(`/panel/api/server/installXray/${version}`);
       } finally {
@@ -55,15 +58,15 @@ function switchXrayVersion(version) {
 function updateGeofile(fileName) {
   const isSingle = !!fileName;
   Modal.confirm({
-    title: 'Update geofile',
+    title: t('pages.index.geofileUpdateDialog'),
     content: isSingle
-      ? `Update ${fileName}? Xray will restart after the file is replaced.`
-      : 'Update all geofiles? Xray will restart after the files are replaced.',
-    okText: 'Confirm',
-    cancelText: 'Cancel',
+      ? t('pages.index.geofileUpdateDialogDesc').replace('#filename#', fileName)
+      : t('pages.index.geofilesUpdateDialogDesc'),
+    okText: t('confirm'),
+    cancelText: t('cancel'),
     onOk: async () => {
       close();
-      emit('busy', { busy: true, tip: 'Updating geofiles…' });
+      emit('busy', { busy: true, tip: t('pages.index.dontRefresh') });
       const url = isSingle
         ? `/panel/api/server/updateGeofile/${fileName}`
         : '/panel/api/server/updateGeofile';
@@ -80,14 +83,14 @@ watch(() => props.open, (next) => { if (next) fetchVersions(); });
 </script>
 
 <template>
-  <a-modal :open="open" title="Xray updates" :closable="true" :footer="null" @cancel="close">
+  <a-modal :open="open" :title="t('pages.index.xrayUpdates')" :closable="true" :footer="null" @cancel="close">
     <a-spin :spinning="loading">
       <a-collapse v-model:active-key="activeKey" accordion>
         <a-collapse-panel key="1" header="Xray">
           <a-alert
             type="warning"
             class="mb-12"
-            message="Click a version to install it. Xray will restart automatically."
+            :message="t('pages.index.xraySwitchClickDesk')"
             show-icon
           />
           <a-list bordered class="version-list">
@@ -105,17 +108,17 @@ watch(() => props.open, (next) => { if (next) fetchVersions(); });
           <a-list bordered class="version-list">
             <a-list-item v-for="(file, index) in GEOFILES" :key="file" class="version-list-item">
               <a-tag :color="index % 2 === 0 ? 'purple' : 'green'">{{ file }}</a-tag>
-              <a-tooltip title="Update this file">
+              <a-tooltip :title="t('update')">
                 <ReloadOutlined class="reload-icon" @click="updateGeofile(file)" />
               </a-tooltip>
             </a-list-item>
           </a-list>
           <div class="actions-row">
-            <a-button @click="updateGeofile('')">Update all</a-button>
+            <a-button @click="updateGeofile('')">{{ t('pages.index.geofilesUpdateAll') }}</a-button>
           </div>
         </a-collapse-panel>
 
-        <a-collapse-panel key="3" header="Custom geo">
+        <a-collapse-panel key="3" :header="t('pages.index.customGeoTitle')">
           <CustomGeoSection :active="activeKey === '3'" />
         </a-collapse-panel>
       </a-collapse>

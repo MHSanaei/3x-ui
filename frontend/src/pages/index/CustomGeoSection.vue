@@ -1,5 +1,6 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Modal, message } from 'ant-design-vue';
 import {
   PlusOutlined,
@@ -11,6 +12,8 @@ import {
 
 import { HttpUtil, ClipboardManager } from '@/utils';
 import CustomGeoFormModal from './CustomGeoFormModal.vue';
+
+const { t } = useI18n();
 
 const props = defineProps({
   // Re-fetch the list when the parent collapse expands this section.
@@ -25,13 +28,14 @@ const actionId = ref(null);
 const formOpen = ref(false);
 const editingRecord = ref(null);
 
-const columns = [
-  { title: 'Alias', key: 'alias', width: 200 },
-  { title: 'URL', key: 'url', ellipsis: true },
-  { title: 'Ext', key: 'extDat', width: 220 },
-  { title: 'Last updated', key: 'lastUpdatedAt', width: 140 },
-  { title: 'Actions', key: 'action', width: 120 },
-];
+// Computed so column titles re-render after a locale swap.
+const columns = computed(() => [
+  { title: t('pages.index.customGeoAlias'), key: 'alias', width: 200 },
+  { title: t('pages.index.customGeoUrl'), key: 'url', ellipsis: true },
+  { title: t('pages.index.customGeoExtColumn'), key: 'extDat', width: 220 },
+  { title: t('pages.index.customGeoLastUpdated'), key: 'lastUpdatedAt', width: 140 },
+  { title: t('pages.index.customGeoActions'), key: 'action', width: 120 },
+]);
 
 async function loadList() {
   loading.value = true;
@@ -63,7 +67,7 @@ function extDisplay(record) {
 async function copyExt(record) {
   const text = extDisplay(record);
   const ok = await ClipboardManager.copyText(text);
-  if (ok) message.success(`Copied: ${text}`);
+  if (ok) message.success(`${t('copied')}: ${text}`);
 }
 
 function formatTime(ts) {
@@ -87,11 +91,11 @@ function relativeTime(ts) {
 
 function confirmDelete(record) {
   Modal.confirm({
-    title: 'Delete custom geo entry',
-    content: `Delete "${record.alias}"? This cannot be undone.`,
-    okText: 'Delete',
+    title: t('pages.index.customGeoDelete'),
+    content: t('pages.index.customGeoDeleteConfirm'),
+    okText: t('delete'),
     okType: 'danger',
-    cancelText: 'Cancel',
+    cancelText: t('cancel'),
     onOk: async () => {
       const msg = await HttpUtil.post(`/panel/api/custom-geo/delete/${record.id}`);
       if (msg?.success) await loadList();
@@ -134,17 +138,17 @@ watch(() => props.active, (next) => { if (next) loadList(); }, { immediate: true
       type="info"
       show-icon
       class="mb-10"
-      message="Reference custom files in routing rules with ext:&lt;filename&gt;:tag"
+      :message="t('pages.index.customGeoRoutingHint')"
     />
 
     <div class="toolbar">
       <a-button type="primary" :loading="loading" @click="openAdd">
         <template #icon><PlusOutlined /></template>
-        Add
+        {{ t('pages.index.customGeoAdd') }}
       </a-button>
       <a-button :loading="updatingAll" :disabled="!list.length" @click="updateAll">
         <template #icon><ReloadOutlined /></template>
-        Update all
+        {{ t('pages.index.geofilesUpdateAll') }}
       </a-button>
       <span v-if="list.length" class="custom-geo-count">{{ list.length }}</span>
     </div>
@@ -177,7 +181,7 @@ watch(() => props.active, (next) => { if (next) loadList(); }, { immediate: true
         </template>
 
         <template v-else-if="column.key === 'extDat'">
-          <a-tooltip title="Copy">
+          <a-tooltip :title="t('copy')">
             <code class="custom-geo-ext-code custom-geo-copyable" @click="copyExt(record)">
               {{ extDisplay(record) }}
             </code>
@@ -193,12 +197,12 @@ watch(() => props.active, (next) => { if (next) loadList(); }, { immediate: true
 
         <template v-else-if="column.key === 'action'">
           <a-space size="small">
-            <a-tooltip title="Edit">
+            <a-tooltip :title="t('pages.index.customGeoEdit')">
               <a-button type="link" size="small" @click="openEdit(record)">
                 <template #icon><EditOutlined /></template>
               </a-button>
             </a-tooltip>
-            <a-tooltip title="Download">
+            <a-tooltip :title="t('pages.index.customGeoDownload')">
               <a-button
                 type="link"
                 size="small"
@@ -208,7 +212,7 @@ watch(() => props.active, (next) => { if (next) loadList(); }, { immediate: true
                 <template #icon><ReloadOutlined /></template>
               </a-button>
             </a-tooltip>
-            <a-tooltip title="Delete">
+            <a-tooltip :title="t('pages.index.customGeoDelete')">
               <a-button type="link" size="small" danger @click="confirmDelete(record)">
                 <template #icon><DeleteOutlined /></template>
               </a-button>
@@ -220,7 +224,7 @@ watch(() => props.active, (next) => { if (next) loadList(); }, { immediate: true
       <template #emptyText>
         <div class="custom-geo-empty">
           <InboxOutlined class="custom-geo-empty-icon" />
-          <div>No custom geo entries yet</div>
+          <div>{{ t('pages.index.customGeoEmpty') }}</div>
         </div>
       </template>
     </a-table>
