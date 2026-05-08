@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { UserOutlined, LockOutlined, KeyOutlined, SettingOutlined } from '@ant-design/icons-vue';
 import { theme as antdTheme } from 'ant-design-vue';
 
@@ -13,6 +13,24 @@ import ThemeSwitchLogin from '@/components/ThemeSwitchLogin.vue';
 const antdThemeConfig = computed(() => ({
   algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
 }));
+
+// Cycle the title between "Hello" and "Welcome" — matches the legacy
+// panel's Vue 2 .is-visible / .is-hidden DOM-class swap, but driven
+// reactively + with a Vue 3 <Transition> for the fade.
+const HEADLINE_WORDS = ['Hello', 'Welcome'];
+const HEADLINE_INTERVAL_MS = 2000;
+const headlineIndex = ref(0);
+let headlineTimer = null;
+
+onMounted(() => {
+  headlineTimer = window.setInterval(() => {
+    headlineIndex.value = (headlineIndex.value + 1) % HEADLINE_WORDS.length;
+  }, HEADLINE_INTERVAL_MS);
+});
+
+onBeforeUnmount(() => {
+  if (headlineTimer != null) window.clearInterval(headlineTimer);
+});
 
 // Phase 4 ships this page in English only. Translations come back in
 // Phase 7 (vue-i18n) once we decide how the new build pipeline reads
@@ -94,7 +112,11 @@ async function login() {
 
             <a-row justify="center">
               <a-col :span="24">
-                <h2 class="login-title">Welcome to 3x-ui</h2>
+                <h2 class="login-title">
+                  <Transition name="headline" mode="out-in">
+                    <b :key="headlineIndex">{{ HEADLINE_WORDS[headlineIndex] }}</b>
+                  </Transition>
+                </h2>
               </a-col>
             </a-row>
 
@@ -250,6 +272,27 @@ async function login() {
   margin-bottom: 32px;
   font-size: 2rem;
   font-weight: 500;
+  min-height: 2.5rem;
+}
+
+.login-title b {
+  display: inline-block;
+}
+
+/* Cycle word fade — analogous to the legacy .is-visible / .is-hidden
+ * classes, but using Vue 3's <Transition> so we don't have to manage
+ * the DOM by hand. */
+.headline-enter-active,
+.headline-leave-active {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.headline-enter-from {
+  opacity: 0;
+  transform: translateY(-12px);
+}
+.headline-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
 }
 
 .waves-header {
