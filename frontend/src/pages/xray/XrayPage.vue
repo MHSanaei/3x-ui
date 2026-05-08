@@ -274,12 +274,6 @@ function confirmRestart() {
                         <CodeOutlined /> <span>{{ t('pages.xray.advancedTemplate') }}</span>
                       </template>
                       <a-form layout="vertical">
-                        <a-form-item label="Outbound test URL">
-                          <a-input
-                            v-model:value="outboundTestUrl"
-                            placeholder="https://www.google.com/generate_204"
-                          />
-                        </a-form-item>
                         <a-form-item label="xraySetting (full JSON)">
                           <a-textarea
                             v-model:value="xraySetting"
