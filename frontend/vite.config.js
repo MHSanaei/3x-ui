@@ -48,8 +48,30 @@ function makeBackendProxy(target, patterns) {
         return undefined;
       },
       configure(proxy) {
-        proxy.on('error', (err) => {
-          if (err.code === 'ECONNREFUSED') return;
+        let warned = false;
+        proxy.on('error', (err, req) => {
+          // Node wraps connection failures in an AggregateError when DNS
+          // returns multiple addresses (e.g. ::1 + 127.0.0.1) and all
+          // refuse — the code lands on the inner errors, not the outer.
+          const codes = new Set();
+          if (err && err.code) codes.add(err.code);
+          if (err && Array.isArray(err.errors)) {
+            for (const inner of err.errors) {
+              if (inner && inner.code) codes.add(inner.code);
+            }
+          }
+          const offline = codes.has('ECONNREFUSED') || codes.has('ECONNRESET');
+          if (offline) {
+            // Print a single friendly hint the first time, then stay quiet.
+            if (!warned) {
+              warned = true;
+              // eslint-disable-next-line no-console
+              console.warn(
+                `[proxy] backend ${target} is not reachable — start the Go server (e.g. \`go run main.go\`) to forward ${req?.url || 'requests'}.`,
+              );
+            }
+            return;
+          }
           // eslint-disable-next-line no-console
           console.error('[proxy]', err);
         });
@@ -71,6 +93,12 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: true,
     target: 'es2020',
+    // ant-design-vue is intentionally bundled as one chunk (its
+    // components share internals — splitting it breaks Modal/Form/
+    // Select interop). Minified it lands ~1.4MB but gzips to ~410kB,
+    // so the actual transfer is fine and caches across every page.
+    // Bump the warning past that ceiling so the build stays quiet.
+    chunkSizeWarningLimit: 1500,
     // Multiple HTML entries — one per legacy page we migrate.
     // As pages get ported in later phases, add their entrypoints here.
     rollupOptions: {
@@ -81,6 +109,26 @@ export default defineConfig({
         inbounds: path.resolve(__dirname, 'inbounds.html'),
         xray: path.resolve(__dirname, 'xray.html'),
         subpage: path.resolve(__dirname, 'subpage.html'),
+      },
+      output: {
+        // Split vendor deps into stable chunks so each page only pulls
+        // what it needs and the browser caches them across versions.
+        // Without this, ant-design-vue + vue + icons all end up in one
+        // 1.6MB blob attached to whichever page consumed them first.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('ant-design-vue')) return 'vendor-antd';
+          if (id.includes('@ant-design/icons-vue')) return 'vendor-icons';
+          if (id.includes('vue-i18n')) return 'vendor-i18n';
+          if (
+            id.includes('/node_modules/vue/')
+            || id.includes('/node_modules/@vue/')
+          ) return 'vendor-vue';
+          if (id.includes('dayjs')) return 'vendor-dayjs';
+          if (id.includes('qrious')) return 'vendor-qrious';
+          if (id.includes('axios')) return 'vendor-axios';
+          return 'vendor';
+        },
       },
     },
   },

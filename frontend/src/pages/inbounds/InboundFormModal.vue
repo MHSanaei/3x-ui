@@ -570,7 +570,7 @@ watch(
           <a-form-item>
             <template #label>
               <a-tooltip :title="t('pages.inbounds.leaveBlankToNeverExpire')">{{ t('pages.inbounds.expireDate')
-                }}</a-tooltip>
+              }}</a-tooltip>
             </template>
             <a-date-picker v-model:value="expiryDate" :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
               :style="{ width: '100%' }" />
@@ -1023,7 +1023,7 @@ watch(
                   </template>
                 </a-button>
               </a-form-item>
-              <a-form-item :wrapper-col="{ span: 24 }">
+              <a-form-item v-if="inbound.stream.tcp.request.headers.length > 0" :wrapper-col="{ span: 24 }">
                 <a-input-group v-for="(h, idx) in inbound.stream.tcp.request.headers" :key="`tcp-rh-${idx}`" compact
                   class="mb-8">
                   <a-input :style="{ width: '45%' }" v-model:value="h.name"
@@ -1059,7 +1059,7 @@ watch(
                   </template>
                 </a-button>
               </a-form-item>
-              <a-form-item :wrapper-col="{ span: 24 }">
+              <a-form-item v-if="inbound.stream.tcp.response.headers.length > 0" :wrapper-col="{ span: 24 }">
                 <a-input-group v-for="(h, idx) in inbound.stream.tcp.response.headers" :key="`tcp-rsh-${idx}`" compact
                   class="mb-8">
                   <a-input :style="{ width: '45%' }" v-model:value="h.name"
@@ -1121,7 +1121,7 @@ watch(
                 </template>
               </a-button>
             </a-form-item>
-            <a-form-item :wrapper-col="{ span: 24 }">
+            <a-form-item v-if="inbound.stream.ws.headers.length > 0" :wrapper-col="{ span: 24 }">
               <a-input-group v-for="(h, idx) in inbound.stream.ws.headers" :key="`ws-h-${idx}`" compact class="mb-8">
                 <a-input :style="{ width: '45%' }" v-model:value="h.name"
                   :placeholder="t('pages.inbounds.stream.general.name')">
@@ -1169,7 +1169,7 @@ watch(
                 </template>
               </a-button>
             </a-form-item>
-            <a-form-item :wrapper-col="{ span: 24 }">
+            <a-form-item v-if="inbound.stream.httpupgrade.headers.length > 0" :wrapper-col="{ span: 24 }">
               <a-input-group v-for="(h, idx) in inbound.stream.httpupgrade.headers" :key="`hu-h-${idx}`" compact
                 class="mb-8">
                 <a-input :style="{ width: '45%' }" v-model:value="h.name"
@@ -1202,7 +1202,7 @@ watch(
                 </template>
               </a-button>
             </a-form-item>
-            <a-form-item :wrapper-col="{ span: 24 }">
+            <a-form-item v-if="inbound.stream.xhttp.headers.length > 0" :wrapper-col="{ span: 24 }">
               <a-input-group v-for="(h, idx) in inbound.stream.xhttp.headers" :key="`xh-h-${idx}`" compact class="mb-8">
                 <a-input :style="{ width: '45%' }" v-model:value="h.name"
                   :placeholder="t('pages.inbounds.stream.general.name')">
@@ -1312,7 +1312,6 @@ watch(
           </template>
 
           <!-- ====== Security section ====== -->
-          <a-divider>Security</a-divider>
           <a-form-item label="Security">
             <a-select v-model:value="security" :style="{ width: '160px' }" :disabled="!canEnableTls">
               <a-select-option value="none">none</a-select-option>
@@ -1329,7 +1328,7 @@ watch(
               <a-select v-model:value="inbound.stream.tls.cipherSuites">
                 <a-select-option value="">Auto</a-select-option>
                 <a-select-option v-for="[label, val] in CIPHER_SUITES" :key="val" :value="val">{{ label
-                  }}</a-select-option>
+                }}</a-select-option>
               </a-select>
             </a-form-item>
             <a-form-item label="Min/Max Version">
@@ -1364,7 +1363,6 @@ watch(
               <a-switch v-model:checked="inbound.stream.tls.enableSessionResumption" />
             </a-form-item>
 
-            <a-divider :style="{ margin: '3px 0' }" />
 
             <!-- Cert array — file path or inline content per row -->
             <template v-for="(cert, idx) in inbound.stream.tls.certs" :key="`cert-${idx}`">
@@ -1423,7 +1421,6 @@ watch(
               </a-form-item>
             </template>
 
-            <a-divider :style="{ margin: '3px 0' }" />
 
             <!-- ECH (Encrypted Client Hello) -->
             <a-form-item label="ECH key">
@@ -1514,7 +1511,6 @@ watch(
           </template>
 
           <!-- ====== External Proxy ====== -->
-          <a-divider :style="{ margin: '5px 0 0' }" />
           <a-form-item label="External Proxy">
             <a-switch v-model:checked="externalProxy" />
             <a-button v-if="externalProxy" size="small" type="primary" :style="{ marginLeft: '10px' }"
@@ -1547,7 +1543,6 @@ watch(
           </a-form-item>
 
           <!-- ====== Sockopt ====== -->
-          <a-divider :style="{ margin: '5px 0 0' }" />
           <a-form-item label="Sockopt">
             <a-switch v-model:checked="inbound.stream.sockoptSwitch" />
           </a-form-item>
@@ -1746,5 +1741,11 @@ watch(
 
 .wg-peer {
   margin-top: 4px;
+}
+
+.section-heading {
+  font-weight: 500;
+  margin: 12px 0 6px;
+  opacity: 0.85;
 }
 </style>

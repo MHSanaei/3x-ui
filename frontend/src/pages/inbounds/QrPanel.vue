@@ -20,8 +20,12 @@ const props = defineProps({
   remark: { type: String, default: '' },
   // Optional download filename — when set, surfaces a download button.
   downloadName: { type: String, default: '' },
-  // QR pixel size (drawn into a square canvas).
-  size: { type: Number, default: 180 },
+  // Final on-screen QR size in CSS pixels. The canvas drawing buffer
+  // is rounded down to a multiple of the QR matrix width (so the QR
+  // fills it edge-to-edge) and CSS then scales the canvas to exactly
+  // this size — so a denser QR (e.g. WireGuard config) and a sparser
+  // one (its link) display at identical dimensions.
+  size: { type: Number, default: 240 },
   // Toggle the QR rendering off when callers only want the "row of buttons"
   // styling (used when the legacy panel rendered links without QRs).
   showQr: { type: Boolean, default: true },
@@ -104,9 +108,12 @@ function download() {
       </a-tooltip>
     </div>
     <div v-if="showQr" class="qr-panel-canvas">
-      <canvas ref="canvas" @click="copy" />
+      <canvas
+        ref="canvas"
+        :style="{ width: `${size}px`, height: `${size}px` }"
+        @click="copy"
+      />
     </div>
-    <code class="qr-panel-link">{{ value }}</code>
   </div>
 </template>
 
@@ -142,20 +149,11 @@ function download() {
   cursor: pointer;
   display: block;
   border-radius: 4px;
+  /* Drawing buffer is matrix-snapped (smaller than display size for
+   * dense QRs); scale up crisply so dense and sparse QRs share the
+   * same on-screen footprint without blurring. */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
-.qr-panel-link {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11px;
-  word-break: break-all;
-  white-space: pre-wrap;
-  padding: 6px 8px;
-  background: rgba(0, 0, 0, 0.04);
-  border-radius: 4px;
-  user-select: all;
-}
-
-:global(body.dark) .qr-panel-link {
-  background: rgba(255, 255, 255, 0.05);
-}
 </style>
