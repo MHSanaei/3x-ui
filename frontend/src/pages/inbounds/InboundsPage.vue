@@ -1,6 +1,6 @@
 <script setup>
-import { computed, onMounted } from 'vue';
-import { theme as antdTheme, message } from 'ant-design-vue';
+import { computed, onMounted, ref } from 'vue';
+import { theme as antdTheme, Modal, message } from 'ant-design-vue';
 import {
   SwapOutlined,
   PieChartOutlined,
@@ -9,12 +9,14 @@ import {
   TeamOutlined,
 } from '@ant-design/icons-vue';
 
-import { SizeFormatter } from '@/utils';
+import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
+import { Inbound } from '@/models/inbound.js';
 import { theme as themeState } from '@/composables/useTheme.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
 import CustomStatistic from '@/components/CustomStatistic.vue';
 import InboundList from './InboundList.vue';
+import InboundFormModal from './InboundFormModal.vue';
 import { useInbounds } from './useInbounds.js';
 
 const antdThemeConfig = computed(() => ({
@@ -45,17 +47,158 @@ onMounted(async () => {
   await refresh();
 });
 
-// Modal triggers come in 5f-iii…vii. Until then, action handlers are
-// no-op placeholders that surface a "coming soon" toast so the user
-// gets feedback when clicking through the menu items.
+// === Add/Edit modal ===================================================
+const formOpen = ref(false);
+const formMode = ref('add');
+const formDbInbound = ref(null);
+
 function onAddInbound() {
-  message.info('Inbound add/edit modal — coming in 5f-iii');
+  formMode.value = 'add';
+  formDbInbound.value = null;
+  formOpen.value = true;
 }
+
+function openEdit(dbInbound) {
+  formMode.value = 'edit';
+  formDbInbound.value = dbInbound;
+  formOpen.value = true;
+}
+
+// Per-row destructive actions go through Modal.confirm (matches legacy).
+function confirmDelete(dbInbound) {
+  Modal.confirm({
+    title: `Delete inbound "${dbInbound.remark}"?`,
+    content: 'This removes the inbound and all its clients. This cannot be undone.',
+    okText: 'Delete',
+    okType: 'danger',
+    cancelText: 'Cancel',
+    onOk: async () => {
+      const msg = await HttpUtil.post(`/panel/api/inbounds/del/${dbInbound.id}`);
+      if (msg?.success) await refresh();
+    },
+  });
+}
+
+function confirmResetTraffic(dbInbound) {
+  Modal.confirm({
+    title: `Reset traffic for "${dbInbound.remark}"?`,
+    content: 'Resets up/down counters to 0 for this inbound.',
+    okText: 'Reset',
+    cancelText: 'Cancel',
+    onOk: async () => {
+      const msg = await HttpUtil.post(`/panel/api/inbounds/resetAllTraffics`);
+      if (msg?.success) await refresh();
+    },
+  });
+}
+
+function confirmDelDepleted(dbInboundId) {
+  Modal.confirm({
+    title: 'Delete depleted clients?',
+    content: 'Removes every client whose traffic is exhausted or whose expiry has passed.',
+    okText: 'Delete',
+    okType: 'danger',
+    cancelText: 'Cancel',
+    onOk: async () => {
+      const msg = await HttpUtil.post(`/panel/api/inbounds/delDepletedClients/${dbInboundId}`);
+      if (msg?.success) await refresh();
+    },
+  });
+}
+
+// Clone — adds a new inbound with the same protocol+stream+sniffing
+// but a fresh remark/port and an empty client list.
+function confirmClone(dbInbound) {
+  Modal.confirm({
+    title: `Clone inbound "${dbInbound.remark}"?`,
+    content: 'Creates a copy with a new port and an empty client list.',
+    okText: 'Clone',
+    cancelText: 'Cancel',
+    onOk: async () => {
+      const baseInbound = dbInbound.toInbound();
+      const data = {
+        up: 0,
+        down: 0,
+        total: 0,
+        remark: `${dbInbound.remark} (clone)`,
+        enable: false,
+        expiryTime: 0,
+        listen: '',
+        port: RandomUtil.randomInteger(10000, 60000),
+        protocol: baseInbound.protocol,
+        settings: Inbound.Settings.getSettings(baseInbound.protocol).toString(),
+        streamSettings: baseInbound.stream.toString(),
+        sniffing: baseInbound.sniffing.toString(),
+      };
+      const msg = await HttpUtil.post('/panel/api/inbounds/add', data);
+      if (msg?.success) await refresh();
+    },
+  });
+}
+
 function onGeneralAction(key) {
-  message.info(`General action "${key}" — coming in a later 5f subphase`);
+  switch (key) {
+    case 'resetInbounds':
+      Modal.confirm({
+        title: 'Reset all inbound traffic?',
+        okText: 'Reset',
+        cancelText: 'Cancel',
+        onOk: async () => {
+          const msg = await HttpUtil.post('/panel/api/inbounds/resetAllTraffics');
+          if (msg?.success) await refresh();
+        },
+      });
+      break;
+    case 'resetClients':
+      Modal.confirm({
+        title: 'Reset all client traffic across all inbounds?',
+        okText: 'Reset',
+        cancelText: 'Cancel',
+        onOk: async () => {
+          const msg = await HttpUtil.post('/panel/api/inbounds/resetAllClientTraffics/-1');
+          if (msg?.success) await refresh();
+        },
+      });
+      break;
+    case 'delDepletedClients':
+      confirmDelDepleted(-1);
+      break;
+    default:
+      message.info(`General action "${key}" — coming in a later 5f subphase`);
+  }
 }
-function onRowAction({ key }) {
-  message.info(`Row action "${key}" — coming in a later 5f subphase`);
+
+function onRowAction({ key, dbInbound }) {
+  switch (key) {
+    case 'edit':
+      openEdit(dbInbound);
+      break;
+    case 'delete':
+      confirmDelete(dbInbound);
+      break;
+    case 'resetTraffic':
+      confirmResetTraffic(dbInbound);
+      break;
+    case 'clone':
+      confirmClone(dbInbound);
+      break;
+    case 'resetClients':
+      Modal.confirm({
+        title: `Reset client traffic on "${dbInbound.remark}"?`,
+        okText: 'Reset',
+        cancelText: 'Cancel',
+        onOk: async () => {
+          const msg = await HttpUtil.post(`/panel/api/inbounds/resetAllClientTraffics/${dbInbound.id}`);
+          if (msg?.success) await refresh();
+        },
+      });
+      break;
+    case 'delDepletedClients':
+      confirmDelDepleted(dbInbound.id);
+      break;
+    default:
+      message.info(`Action "${key}" — coming in a later 5f subphase`);
+  }
 }
 </script>
 
@@ -145,6 +288,13 @@ function onRowAction({ key }) {
           </a-spin>
         </a-layout-content>
       </a-layout>
+
+      <InboundFormModal
+        v-model:open="formOpen"
+        :mode="formMode"
+        :db-inbound="formDbInbound"
+        @saved="refresh"
+      />
     </a-layout>
   </a-config-provider>
 </template>
