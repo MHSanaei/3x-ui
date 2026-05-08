@@ -1,9 +1,9 @@
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { UserOutlined, LockOutlined, KeyOutlined, SettingOutlined } from '@ant-design/icons-vue';
 
-import { HttpUtil } from '@/utils';
+import { HttpUtil, LanguageManager } from '@/utils';
 import {
   antdThemeConfig,
   currentTheme,
@@ -13,17 +13,14 @@ import ThemeSwitchLogin from '@/components/ThemeSwitchLogin.vue';
 
 const { t } = useI18n();
 
-// Cycle the title between "Hello" and "Welcome" — matches the legacy
-// panel's Vue 2 .is-visible / .is-hidden DOM-class swap, but driven
-// reactively + with a Vue 3 <Transition> for the fade.
-const HEADLINE_WORDS = ['Hello', 'Welcome'];
+const headlineWords = computed(() => [t('pages.login.hello'), t('pages.login.title')]);
 const HEADLINE_INTERVAL_MS = 2000;
 const headlineIndex = ref(0);
 let headlineTimer = null;
 
 onMounted(() => {
   headlineTimer = window.setInterval(() => {
-    headlineIndex.value = (headlineIndex.value + 1) % HEADLINE_WORDS.length;
+    headlineIndex.value = (headlineIndex.value + 1) % headlineWords.value.length;
   }, HEADLINE_INTERVAL_MS);
 });
 
@@ -41,9 +38,6 @@ const user = reactive({
   twoFactorCode: '',
 });
 
-// In production the Go panel will inject a base path; during `npm run dev`
-// we hit Vite's dev server and the configured proxy routes /login, /panel,
-// etc. to the local Go backend.
 const basePath = window.__X_UI_BASE_PATH__ || '';
 
 onMounted(async () => {
@@ -64,6 +58,11 @@ async function login() {
   } finally {
     submitting.value = false;
   }
+}
+
+const lang = ref(LanguageManager.getLanguage());
+function onLangChange(next) {
+  LanguageManager.setLanguage(next);
 }
 </script>
 
@@ -88,7 +87,7 @@ async function login() {
         </div>
 
         <a-row type="flex" justify="center" align="middle" class="login-row">
-          <a-col :xs="22" :sm="14" :md="10" :lg="8" :xl="6" class="login-card">
+          <a-col class="login-card">
             <div v-if="!fetched" class="login-loading">
               <a-spin size="large" />
             </div>
@@ -98,7 +97,17 @@ async function login() {
                 <a-popover :overlay-class-name="currentTheme" :title="t('menu.settings')" placement="bottomRight"
                   trigger="click">
                   <template #content>
-                    <ThemeSwitchLogin />
+                    <a-space direction="vertical" :size="10" class="settings-popover">
+                      <ThemeSwitchLogin />
+                      <span>{{ t('pages.settings.language') }}</span>
+                      <a-select v-model:value="lang" class="lang-select" @change="onLangChange">
+                        <a-select-option v-for="l in LanguageManager.supportedLanguages" :key="l.value"
+                          :value="l.value">
+                          <span :aria-label="l.name">{{ l.icon }}</span>
+                          &nbsp;&nbsp;<span>{{ l.name }}</span>
+                        </a-select-option>
+                      </a-select>
+                    </a-space>
                   </template>
                   <a-button shape="circle">
                     <template #icon>
@@ -112,7 +121,7 @@ async function login() {
                 <a-col :span="24">
                   <h2 class="login-title">
                     <Transition name="headline" mode="out-in">
-                      <b :key="headlineIndex">{{ HEADLINE_WORDS[headlineIndex] }}</b>
+                      <b :key="headlineIndex">{{ headlineWords[headlineIndex] }}</b>
                     </Transition>
                   </h2>
                 </a-col>
@@ -163,20 +172,7 @@ async function login() {
 </template>
 
 <style scoped>
-/* Page palette comes straight from the legacy panel's CSS variables
- * (web/assets/css/custom.min.css). Driving everything off CSS vars
- * means the .is-dark / .is-ultra class swap is a one-liner.
- *
- * Wave layout, faithfully matching the legacy:
- *   - .waves-inner-header: 50vh of solid color
- *   - .waves SVG: 15vh of animated wave below it
- *   - Together they form a 65vh-tall colored region anchored to the top,
- *     with the form floating centered on top of it. */
 .login-app {
-  /* Light mode mirrors the legacy: the wave-header (top ~65vh) is the
-   * lighter mint #dbf5ed, the rest of the page (--bg-page) is the
-   * slightly darker mint #c7ebe2 — the bottom wave fill is the same
-   * color so the wave reads as a continuation of the page bg. */
   --bg-page: #c7ebe2;
   --bg-wave-header: #dbf5ed;
   --bg-card: #ffffff;
@@ -190,11 +186,8 @@ async function login() {
 
 .login-app.is-dark {
   --bg-page: #222d42;
-  /* legacy .dark .under = surface-200 */
   --bg-wave-header: #0a1222;
-  /* legacy --dark-color-background (login-bg defaults to this) */
   --bg-card: #151f31;
-  /* legacy surface-100 */
   --color-title: rgba(255, 255, 255, 0.92);
   --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.45);
   --wave-fill: #222d42;
@@ -203,23 +196,12 @@ async function login() {
 
 .login-app.is-dark.is-ultra {
   --bg-page: #0f2d32;
-  /* legacy ultra .under = login-wave override */
   --bg-wave-header: #0a2227;
-  /* legacy ultra --dark-color-login-background */
   --bg-card: #0c0e12;
-  /* legacy ultra surface-100 */
-  /* Top three waves use a brighter teal so motion reads against the
-   * dark wave-header bg. Bottom wave keeps the legacy color so its
-   * flat lower edge merges into bg-page without a visible seam — if
-   * we used the brighter color here you'd see a hard line at the
-   * SVG's bottom. */
   --wave-fill: #1f4d52;
   --wave-fill-bottom: #0f2d32;
 }
 
-/* Both ant-layout and ant-layout-content default to opaque backgrounds.
- * Force them transparent so the page-bg painted on .login-app shows
- * through, and so the fixed waves-header isn't covered by the layout. */
 .login-app,
 .login-app :deep(.ant-layout-content) {
   background: transparent;
@@ -244,11 +226,18 @@ async function login() {
   margin-bottom: 8px;
 }
 
+.settings-popover {
+  min-width: 220px;
+}
+
+.lang-select {
+  width: 100%;
+}
+
 .login-content {
   position: relative;
 }
 
-/* Form sits above the fixed wave-header (which is at z-index: 0). */
 .login-row {
   position: relative;
   z-index: 1;
@@ -257,8 +246,9 @@ async function login() {
 }
 
 .login-card {
+  width: clamp(280px, 90vw, 300px);
   border-radius: 2rem;
-  padding: 4rem 3rem;
+  padding: clamp(2rem, 5vw, 4rem) 1.5rem;
   transition: background 0.3s, box-shadow 0.3s;
 }
 
@@ -279,9 +269,6 @@ async function login() {
   display: inline-block;
 }
 
-/* Cycle word fade — analogous to the legacy .is-visible / .is-hidden
- * classes, but using Vue 3's <Transition> so we don't have to manage
- * the DOM by hand. */
 .headline-enter-active,
 .headline-leave-active {
   transition: opacity 0.4s ease, transform 0.4s ease;
@@ -321,10 +308,6 @@ async function login() {
   margin-bottom: -8px;
 }
 
-/* Wave fills are CSS-driven so they switch with the theme; legacy used
- * inline fill="..." on each <use> which made them lock to one palette.
- * Animation durations match the legacy (4s/7s/10s/13s) so the bottom
- * wave actually visibly moves in dark mode where contrast is low. */
 .parallax>use {
   fill: var(--wave-fill);
   animation: move-forever 25s cubic-bezier(0.55, 0.5, 0.45, 0.5) infinite;
