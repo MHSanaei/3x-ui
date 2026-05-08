@@ -13,6 +13,9 @@ import XrayStatusCard from './XrayStatusCard.vue';
 import PanelUpdateModal from './PanelUpdateModal.vue';
 import LogModal from './LogModal.vue';
 import BackupModal from './BackupModal.vue';
+import CpuHistoryModal from './CpuHistoryModal.vue';
+import XrayLogModal from './XrayLogModal.vue';
+import VersionModal from './VersionModal.vue';
 
 // Drive AD-Vue 4's built-in dark algorithm from our reactive theme.
 const antdThemeConfig = computed(() => ({
@@ -45,6 +48,9 @@ const requestUri = window.location.pathname;
 const logsOpen = ref(false);
 const backupOpen = ref(false);
 const panelUpdateOpen = ref(false);
+const cpuHistoryOpen = ref(false);
+const xrayLogsOpen = ref(false);
+const versionOpen = ref(false);
 
 // Page-level loading overlay; modals can request it via @busy.
 const loading = ref(false);
@@ -64,11 +70,9 @@ async function restartXray() {
   await refresh();
 }
 
-// Modal-button stubs that aren't ported yet — keep wired so buttons
-// don't appear broken; full implementations come in 5c-iv-b / -v.
-function openCpuHistory() { /* CPU history sparkline — 5c-iv-b */ }
-function openXrayLogs() { /* xray-logs viewer — 5c-iv-b */ }
-function openVersionSwitch() { /* xray version picker — 5c-iv-b */ }
+function openCpuHistory() { cpuHistoryOpen.value = true; }
+function openXrayLogs() { xrayLogsOpen.value = true; }
+function openVersionSwitch() { versionOpen.value = true; }
 </script>
 
 <template>
@@ -144,6 +148,9 @@ function openVersionSwitch() { /* xray version picker — 5c-iv-b */ }
         :base-path="basePath"
         @busy="setBusy"
       />
+      <CpuHistoryModal v-model:open="cpuHistoryOpen" :status="status" />
+      <XrayLogModal v-model:open="xrayLogsOpen" />
+      <VersionModal v-model:open="versionOpen" :status="status" @busy="setBusy" />
     </a-layout>
   </a-config-provider>
 </template>
