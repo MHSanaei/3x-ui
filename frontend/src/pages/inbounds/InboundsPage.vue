@@ -17,6 +17,8 @@ import AppSidebar from '@/components/AppSidebar.vue';
 import CustomStatistic from '@/components/CustomStatistic.vue';
 import InboundList from './InboundList.vue';
 import InboundFormModal from './InboundFormModal.vue';
+import ClientFormModal from './ClientFormModal.vue';
+import ClientBulkModal from './ClientBulkModal.vue';
 import { useInbounds } from './useInbounds.js';
 
 const antdThemeConfig = computed(() => ({
@@ -34,6 +36,8 @@ const {
   trafficDiff,
   pageSize,
   subSettings,
+  tgBotEnable,
+  ipLimitEnable,
   refresh,
   fetchDefaultSettings,
 } = useInbounds();
@@ -52,6 +56,15 @@ const formOpen = ref(false);
 const formMode = ref('add');
 const formDbInbound = ref(null);
 
+// === Client modal (single + bulk) =====================================
+const clientOpen = ref(false);
+const clientMode = ref('add');
+const clientDbInbound = ref(null);
+const clientIndex = ref(null);
+
+const bulkOpen = ref(false);
+const bulkDbInbound = ref(null);
+
 function onAddInbound() {
   formMode.value = 'add';
   formDbInbound.value = null;
@@ -62,6 +75,18 @@ function openEdit(dbInbound) {
   formMode.value = 'edit';
   formDbInbound.value = dbInbound;
   formOpen.value = true;
+}
+
+function openAddClient(dbInbound) {
+  clientMode.value = 'add';
+  clientDbInbound.value = dbInbound;
+  clientIndex.value = null;
+  clientOpen.value = true;
+}
+
+function openAddBulkClient(dbInbound) {
+  bulkDbInbound.value = dbInbound;
+  bulkOpen.value = true;
 }
 
 // Per-row destructive actions go through Modal.confirm (matches legacy).
@@ -172,6 +197,12 @@ function onRowAction({ key, dbInbound }) {
   switch (key) {
     case 'edit':
       openEdit(dbInbound);
+      break;
+    case 'addClient':
+      openAddClient(dbInbound);
+      break;
+    case 'addBulkClient':
+      openAddBulkClient(dbInbound);
       break;
     case 'delete':
       confirmDelete(dbInbound);
@@ -293,6 +324,25 @@ function onRowAction({ key, dbInbound }) {
         v-model:open="formOpen"
         :mode="formMode"
         :db-inbound="formDbInbound"
+        @saved="refresh"
+      />
+      <ClientFormModal
+        v-model:open="clientOpen"
+        :mode="clientMode"
+        :db-inbound="clientDbInbound"
+        :client-index="clientIndex"
+        :sub-enable="subSettings.enable"
+        :tg-bot-enable="tgBotEnable"
+        :ip-limit-enable="ipLimitEnable"
+        :traffic-diff="trafficDiff"
+        @saved="refresh"
+      />
+      <ClientBulkModal
+        v-model:open="bulkOpen"
+        :db-inbound="bulkDbInbound"
+        :sub-enable="subSettings.enable"
+        :tg-bot-enable="tgBotEnable"
+        :ip-limit-enable="ipLimitEnable"
         @saved="refresh"
       />
     </a-layout>
