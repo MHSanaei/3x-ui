@@ -574,6 +574,17 @@ function showQrCodeMenu(dbInbound) {
   visibility: hidden;
 }
 
+/* Push the expand chevron away from the table's left edge so it has
+ * a little breathing room instead of being flush against the corner. */
+:deep(.ant-table-tbody .ant-table-cell-with-append) {
+  padding-left: 12px;
+}
+
+:deep(.ant-table-row-expand-icon) {
+  margin-inline-end: 10px;
+  margin-inline-start: 4px;
+}
+
 /* Round the table's outer corners — AD-Vue gives .ant-table the radius
  * token, but the inner header strip and footer touch the edges, so clip
  * them here. */

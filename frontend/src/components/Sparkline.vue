@@ -184,7 +184,7 @@ const gradId = `spkGrad-${Math.random().toString(36).slice(2, 9)}`;
         :key="'x' + i"
         class="cpu-grid-x-text"
         :x="t.x"
-        :y="paddingTop + drawHeight + 22"
+        :y="paddingTop + drawHeight + 14"
         text-anchor="middle"
         font-size="10"
       >{{ t.label }}</text>
@@ -233,20 +233,37 @@ const gradId = `spkGrad-${Math.random().toString(36).slice(2, 9)}`;
   display: block;
   width: 100%;
 }
+</style>
 
-.cpu-grid-y-text,
-.cpu-grid-x-text {
-  fill: rgba(0, 0, 0, 0.45);
-}
-.cpu-grid-text {
-  fill: rgba(0, 0, 0, 0.8);
+<!-- Axis labels live on SVG <text> elements; Vue's scoped CSS doesn't
+     reliably hash-attribute SVG descendants, so the dark-mode overrides
+     have to live in a non-scoped block to actually take effect. The
+     numbers are also small, so the dark-theme fills run at ~85% opacity
+     for legibility (the previous 55% was washed out on navy backgrounds). -->
+<style>
+.sparkline-svg .cpu-grid-y-text,
+.sparkline-svg .cpu-grid-x-text {
+  fill: rgba(0, 0, 0, 0.65);
 }
 
-:global(body.dark) .sparkline-svg .cpu-grid-y-text,
-:global(body.dark) .sparkline-svg .cpu-grid-x-text {
-  fill: rgba(255, 255, 255, 0.55);
+.sparkline-svg .cpu-grid-text {
+  fill: rgba(0, 0, 0, 0.88);
 }
-:global(body.dark) .sparkline-svg .cpu-grid-text {
+
+body.dark .sparkline-svg .cpu-grid-y-text,
+body.dark .sparkline-svg .cpu-grid-x-text {
   fill: rgba(255, 255, 255, 0.85);
+}
+
+body.dark .sparkline-svg .cpu-grid-text {
+  fill: rgba(255, 255, 255, 0.95);
+}
+
+body.dark .sparkline-svg .cpu-grid-line {
+  stroke: rgba(255, 255, 255, 0.12);
+}
+
+body.dark .sparkline-svg .cpu-grid-h-line {
+  stroke: rgba(255, 255, 255, 0.35);
 }
 </style>

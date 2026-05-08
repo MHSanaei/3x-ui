@@ -63,12 +63,12 @@ watch(bucket, () => { if (props.open) fetchBucket(); });
     </template>
 
     <div class="cpu-chart-wrap">
-      <Sparkline :data="points" :labels="labels" :vb-width="840" :height="220" :stroke="status?.cpu?.color || '#008771'"
-        :stroke-width="2.2" :show-grid="true" :show-axes="true" :tick-count-x="5" :max-points="points.length || 1"
-        :fill-opacity="0.18" :marker-radius="3.2" :show-tooltip="true" />
       <div class="cpu-chart-meta">
         Timeframe: {{ bucket }} sec per point (total {{ points.length }} points)
       </div>
+      <Sparkline :data="points" :labels="labels" :vb-width="840" :height="220" :stroke="status?.cpu?.color || '#008771'"
+        :stroke-width="2.2" :show-grid="true" :show-axes="true" :tick-count-x="5" :max-points="points.length || 1"
+        :fill-opacity="0.18" :marker-radius="3.2" :show-tooltip="true" />
     </div>
   </a-modal>
 </template>
@@ -84,7 +84,7 @@ watch(bucket, () => { if (props.open) fetchBucket(); });
 }
 
 .cpu-chart-meta {
-  margin-top: 4px;
+  margin-bottom: 10px;
   font-size: 11px;
   opacity: 0.65;
 }
