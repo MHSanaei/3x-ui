@@ -52,23 +52,11 @@ function close() {
 <template>
   <a-modal :open="open" :title="t('qrCode')" :footer="null" width="420px" @cancel="close">
     <template v-if="dbInbound">
-      <QrPanel
-        v-for="(link, idx) in links"
-        :key="`l${idx}`"
-        :value="link.link"
-        :remark="link.remark || `Link ${idx + 1}`"
-      />
+      <QrPanel v-for="(link, idx) in links" :key="`l${idx}`" :value="link.link"
+        :remark="link.remark || `Link ${idx + 1}`" />
       <template v-for="(cfg, idx) in wireguardConfigs" :key="`w${idx}`">
-        <QrPanel
-          :value="cfg"
-          :remark="`Peer ${idx + 1} config`"
-          :download-name="`peer-${idx + 1}.conf`"
-        />
-        <QrPanel
-          v-if="wireguardLinks[idx]"
-          :value="wireguardLinks[idx]"
-          :remark="`Peer ${idx + 1} link`"
-        />
+        <QrPanel :value="cfg" :remark="`Peer ${idx + 1} config`" :download-name="`peer-${idx + 1}.conf`" />
+        <QrPanel v-if="wireguardLinks[idx]" :value="wireguardLinks[idx]" :remark="`Peer ${idx + 1} link`" />
       </template>
     </template>
   </a-modal>

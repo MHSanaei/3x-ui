@@ -259,13 +259,7 @@ const showSubscriptionTab = computed(
 </script>
 
 <template>
-  <a-modal
-    :open="open"
-    :title="t('pages.inbounds.inboundData')"
-    :footer="null"
-    width="640px"
-    @cancel="close"
-  >
+  <a-modal :open="open" :title="t('pages.inbounds.inboundData')" :footer="null" width="640px" @cancel="close">
     <template v-if="dbInbound && inbound">
       <a-tabs v-model:active-key="activeTab">
         <!-- ============================================================
@@ -336,7 +330,9 @@ const showSubscriptionTab = computed(
                   <code class="value-code">{{ encryptionLabel }}</code>
                   <a-tooltip :title="t('copy')">
                     <a-button size="small" class="value-copy" @click="copyText(encryptionLabel)">
-                      <template #icon><CopyOutlined /></template>
+                      <template #icon>
+                        <CopyOutlined />
+                      </template>
                     </a-button>
                   </a-tooltip>
                 </dd>
@@ -487,15 +483,16 @@ const showSubscriptionTab = computed(
                         <a-tag color="green">Peer {{ idx + 1 }} config</a-tag>
                         <a-tooltip :title="t('copy')">
                           <a-button size="small" @click="copyText(wireguardConfigs[idx])">
-                            <template #icon><CopyOutlined /></template>
+                            <template #icon>
+                              <CopyOutlined />
+                            </template>
                           </a-button>
                         </a-tooltip>
                         <a-tooltip :title="t('download')">
-                          <a-button
-                            size="small"
-                            @click="downloadText(wireguardConfigs[idx], `peer-${idx + 1}.conf`)"
-                          >
-                            <template #icon><DownloadOutlined /></template>
+                          <a-button size="small" @click="downloadText(wireguardConfigs[idx], `peer-${idx + 1}.conf`)">
+                            <template #icon>
+                              <DownloadOutlined />
+                            </template>
                           </a-button>
                         </a-tooltip>
                       </div>
@@ -510,7 +507,9 @@ const showSubscriptionTab = computed(
                         <a-tag color="green">Peer {{ idx + 1 }} link</a-tag>
                         <a-tooltip :title="t('copy')">
                           <a-button size="small" @click="copyText(wireguardLinks[idx])">
-                            <template #icon><CopyOutlined /></template>
+                            <template #icon>
+                              <CopyOutlined />
+                            </template>
                           </a-button>
                         </a-tooltip>
                       </div>
@@ -525,16 +524,14 @@ const showSubscriptionTab = computed(
           <!-- Single-user SS share link (no QR) -->
           <template v-if="dbInbound.isSS && !inbound.isSSMultiUser && links.length > 0">
             <a-divider>{{ t('pages.inbounds.copyLink') }}</a-divider>
-            <div
-              v-for="(link, idx) in links"
-              :key="idx"
-              class="link-panel"
-            >
+            <div v-for="(link, idx) in links" :key="idx" class="link-panel">
               <div class="link-panel-header">
                 <a-tag color="green">{{ link.remark || `Link ${idx + 1}` }}</a-tag>
                 <a-tooltip :title="t('copy')">
                   <a-button size="small" @click="copyText(link.link)">
-                    <template #icon><CopyOutlined /></template>
+                    <template #icon>
+                      <CopyOutlined />
+                    </template>
                   </a-button>
                 </a-tooltip>
               </div>
@@ -626,12 +623,8 @@ const showSubscriptionTab = computed(
                 <td>
                   <div class="ip-log">
                     <div v-if="clientIpsArray.length > 0">
-                      <a-tag
-                        v-for="(item, idx) in clientIpsArray"
-                        :key="idx"
-                        color="blue"
-                        class="ip-log-row"
-                      >{{ item }}</a-tag>
+                      <a-tag v-for="(item, idx) in clientIpsArray" :key="idx" color="blue" class="ip-log-row">{{ item
+                        }}</a-tag>
                     </div>
                     <a-tag v-else>{{ clientIpsText || t('tgbot.noIpRecord') }}</a-tag>
                   </div>
@@ -658,27 +651,26 @@ const showSubscriptionTab = computed(
             <tbody>
               <tr>
                 <td>
-                  <a-tag
-                    v-if="clientStats && clientSettings.totalGB > 0"
-                    :color="statsColor(clientStats)"
-                  >{{ getRemainingStats() }}</a-tag>
+                  <a-tag v-if="clientStats && clientSettings.totalGB > 0" :color="statsColor(clientStats)">{{
+                    getRemainingStats() }}</a-tag>
                 </td>
                 <td>
-                  <a-tag
-                    v-if="clientSettings.totalGB > 0"
-                    :color="clientStats ? statsColor(clientStats) : 'default'"
-                  >{{ SizeFormatter.sizeFormat(clientSettings.totalGB) }}</a-tag>
-                  <a-tag v-else color="purple"><InfinityIcon /></a-tag>
+                  <a-tag v-if="clientSettings.totalGB > 0" :color="clientStats ? statsColor(clientStats) : 'default'">{{
+                    SizeFormatter.sizeFormat(clientSettings.totalGB) }}</a-tag>
+                  <a-tag v-else color="purple">
+                    <InfinityIcon />
+                  </a-tag>
                 </td>
                 <td>
-                  <a-tag
-                    v-if="clientSettings.expiryTime > 0"
-                    :color="ColorUtils.usageColor(Date.now(), expireDiff, clientSettings.expiryTime)"
-                  >{{ IntlUtil.formatDate(clientSettings.expiryTime) }}</a-tag>
+                  <a-tag v-if="clientSettings.expiryTime > 0"
+                    :color="ColorUtils.usageColor(Date.now(), expireDiff, clientSettings.expiryTime)">{{
+                      IntlUtil.formatDate(clientSettings.expiryTime) }}</a-tag>
                   <a-tag v-else-if="clientSettings.expiryTime < 0" color="green">
                     {{ clientSettings.expiryTime / -86400000 }} {{ t('day') }}
                   </a-tag>
-                  <a-tag v-else color="purple"><InfinityIcon /></a-tag>
+                  <a-tag v-else color="purple">
+                    <InfinityIcon />
+                  </a-tag>
                 </td>
               </tr>
             </tbody>
@@ -691,7 +683,9 @@ const showSubscriptionTab = computed(
               <a-tag color="blue">{{ clientSettings.tgId }}</a-tag>
               <a-tooltip :title="t('copy')">
                 <a-button size="small" @click="copyText(clientSettings.tgId)">
-                  <template #icon><CopyOutlined /></template>
+                  <template #icon>
+                    <CopyOutlined />
+                  </template>
                 </a-button>
               </a-tooltip>
             </div>
@@ -700,16 +694,14 @@ const showSubscriptionTab = computed(
           <!-- Per-client share links (no QR) -->
           <template v-if="dbInbound.hasLink() && links.length > 0">
             <a-divider>{{ t('pages.inbounds.copyLink') }}</a-divider>
-            <div
-              v-for="(link, idx) in links"
-              :key="idx"
-              class="link-panel"
-            >
+            <div v-for="(link, idx) in links" :key="idx" class="link-panel">
               <div class="link-panel-header">
                 <a-tag color="green">{{ link.remark || `Link ${idx + 1}` }}</a-tag>
                 <a-tooltip :title="t('copy')">
                   <a-button size="small" @click="copyText(link.link)">
-                    <template #icon><CopyOutlined /></template>
+                    <template #icon>
+                      <CopyOutlined />
+                    </template>
                   </a-button>
                 </a-tooltip>
               </div>
@@ -727,16 +719,13 @@ const showSubscriptionTab = computed(
               <a-tag color="green">{{ t('subscription.title') }}</a-tag>
               <a-tooltip :title="t('copy')">
                 <a-button size="small" @click="copyText(subLink)">
-                  <template #icon><CopyOutlined /></template>
+                  <template #icon>
+                    <CopyOutlined />
+                  </template>
                 </a-button>
               </a-tooltip>
             </div>
-            <a
-              :href="subLink"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="link-panel-anchor"
-            >{{ subLink }}</a>
+            <a :href="subLink" target="_blank" rel="noopener noreferrer" class="link-panel-anchor">{{ subLink }}</a>
           </div>
 
           <div v-if="subSettings.subJsonEnable && subJsonLink" class="link-panel">
@@ -744,16 +733,14 @@ const showSubscriptionTab = computed(
               <a-tag color="green">JSON</a-tag>
               <a-tooltip :title="t('copy')">
                 <a-button size="small" @click="copyText(subJsonLink)">
-                  <template #icon><CopyOutlined /></template>
+                  <template #icon>
+                    <CopyOutlined />
+                  </template>
                 </a-button>
               </a-tooltip>
             </div>
-            <a
-              :href="subJsonLink"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="link-panel-anchor"
-            >{{ subJsonLink }}</a>
+            <a :href="subJsonLink" target="_blank" rel="noopener noreferrer" class="link-panel-anchor">{{ subJsonLink
+              }}</a>
           </div>
         </a-tab-pane>
       </a-tabs>
@@ -766,14 +753,17 @@ const showSubscriptionTab = computed(
   width: 100%;
   border-collapse: collapse;
 }
+
 .info-table.block {
   margin-bottom: 10px;
 }
+
 .info-table td,
 .info-table th {
   padding: 4px 8px;
   vertical-align: top;
 }
+
 .info-table th {
   text-align: center;
   font-weight: 500;
@@ -795,6 +785,7 @@ const showSubscriptionTab = computed(
   display: flex;
   flex-direction: column;
 }
+
 .info-row {
   display: grid;
   grid-template-columns: 140px minmax(0, 1fr);
@@ -803,30 +794,36 @@ const showSubscriptionTab = computed(
   padding: 6px 0;
   border-bottom: 1px solid rgba(128, 128, 128, 0.12);
 }
+
 .info-row:last-child {
   border-bottom: none;
 }
+
 .info-row dt {
   margin: 0;
   font-size: 13px;
   opacity: 0.75;
 }
+
 .info-row dd {
   margin: 0;
   min-width: 0;
 }
+
 .value-tag {
   max-width: 100%;
   white-space: normal;
   word-break: break-all;
   display: inline-block;
 }
+
 .value-block {
   display: flex;
   align-items: flex-start;
   gap: 6px;
   min-width: 0;
 }
+
 .value-code {
   flex: 1;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -839,9 +836,11 @@ const showSubscriptionTab = computed(
   user-select: all;
   min-width: 0;
 }
+
 :global(body.dark) .value-code {
   background: rgba(255, 255, 255, 0.05);
 }
+
 .value-copy {
   flex-shrink: 0;
 }
@@ -853,6 +852,7 @@ const showSubscriptionTab = computed(
   gap: 6px;
   margin: 8px 0;
 }
+
 .security-line span {
   font-size: 13px;
   opacity: 0.75;
@@ -875,12 +875,14 @@ const showSubscriptionTab = computed(
   overflow-y: auto;
   text-align: left;
 }
+
 .ip-log-row {
   display: block;
   margin: 2px 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
 }
+
 .ip-log-actions {
   display: flex;
   gap: 12px;
@@ -907,12 +909,14 @@ const showSubscriptionTab = computed(
   flex-direction: column;
   gap: 6px;
 }
+
 .link-panel-header {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
 }
+
 .link-panel-text {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
@@ -923,9 +927,11 @@ const showSubscriptionTab = computed(
   border-radius: 4px;
   user-select: all;
 }
+
 :global(body.dark) .link-panel-text {
   background: rgba(255, 255, 255, 0.05);
 }
+
 .link-panel-anchor {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
@@ -938,13 +944,16 @@ const showSubscriptionTab = computed(
   text-decoration-color: rgba(22, 119, 255, 0.4);
   transition: background 120ms ease, text-decoration-color 120ms ease;
 }
+
 .link-panel-anchor:hover {
   background: rgba(22, 119, 255, 0.08);
   text-decoration-color: var(--ant-color-primary, #1677ff);
 }
+
 :global(body.dark) .link-panel-anchor {
   background: rgba(255, 255, 255, 0.05);
 }
+
 :global(body.dark) .link-panel-anchor:hover {
   background: rgba(22, 119, 255, 0.16);
 }

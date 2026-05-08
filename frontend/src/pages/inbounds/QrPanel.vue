@@ -65,12 +65,16 @@ function download() {
       <a-tag color="green" class="qr-remark">{{ remark }}</a-tag>
       <a-tooltip :title="t('copy')">
         <a-button size="small" @click="copy">
-          <template #icon><CopyOutlined /></template>
+          <template #icon>
+            <CopyOutlined />
+          </template>
         </a-button>
       </a-tooltip>
       <a-tooltip v-if="downloadName" :title="t('download')">
         <a-button size="small" @click="download">
-          <template #icon><DownloadOutlined /></template>
+          <template #icon>
+            <DownloadOutlined />
+          </template>
         </a-button>
       </a-tooltip>
     </div>
@@ -108,6 +112,7 @@ function download() {
   justify-content: center;
   padding: 6px 0;
 }
+
 .qr-panel-canvas canvas {
   cursor: pointer;
   background: #fff;

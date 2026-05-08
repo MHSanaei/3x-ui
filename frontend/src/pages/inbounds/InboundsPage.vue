@@ -512,10 +512,7 @@ function onRowAction({ key, dbInbound }) {
 
 <template>
   <a-config-provider :theme="antdThemeConfig">
-    <a-layout
-      class="inbounds-page"
-      :class="{ 'is-dark': themeState.isDark, 'is-ultra': themeState.isUltra }"
-    >
+    <a-layout class="inbounds-page" :class="{ 'is-dark': themeState.isDark, 'is-ultra': themeState.isUltra }">
       <AppSidebar :base-path="basePath" :request-uri="requestUri" />
 
       <a-layout class="content-shell">
@@ -529,32 +526,34 @@ function onRowAction({ key, dbInbound }) {
                 <a-card size="small" hoverable class="summary-card">
                   <a-row :gutter="[16, 12]">
                     <a-col :sm="12" :md="5">
-                      <CustomStatistic
-                        :title="t('pages.inbounds.totalDownUp')"
-                        :value="`${SizeFormatter.sizeFormat(totals.up)} / ${SizeFormatter.sizeFormat(totals.down)}`"
-                      >
-                        <template #prefix><SwapOutlined /></template>
+                      <CustomStatistic :title="t('pages.inbounds.totalDownUp')"
+                        :value="`${SizeFormatter.sizeFormat(totals.up)} / ${SizeFormatter.sizeFormat(totals.down)}`">
+                        <template #prefix>
+                          <SwapOutlined />
+                        </template>
                       </CustomStatistic>
                     </a-col>
                     <a-col :sm="12" :md="5">
-                      <CustomStatistic
-                        :title="t('pages.inbounds.totalUsage')"
-                        :value="SizeFormatter.sizeFormat(totals.up + totals.down)"
-                      >
-                        <template #prefix><PieChartOutlined /></template>
+                      <CustomStatistic :title="t('pages.inbounds.totalUsage')"
+                        :value="SizeFormatter.sizeFormat(totals.up + totals.down)">
+                        <template #prefix>
+                          <PieChartOutlined />
+                        </template>
                       </CustomStatistic>
                     </a-col>
                     <a-col :sm="12" :md="5">
-                      <CustomStatistic
-                        :title="t('pages.inbounds.allTimeTrafficUsage')"
-                        :value="SizeFormatter.sizeFormat(totals.allTime)"
-                      >
-                        <template #prefix><HistoryOutlined /></template>
+                      <CustomStatistic :title="t('pages.inbounds.allTimeTrafficUsage')"
+                        :value="SizeFormatter.sizeFormat(totals.allTime)">
+                        <template #prefix>
+                          <HistoryOutlined />
+                        </template>
                       </CustomStatistic>
                     </a-col>
                     <a-col :sm="12" :md="5">
                       <CustomStatistic :title="t('pages.inbounds.inboundCount')" :value="String(dbInbounds.length)">
-                        <template #prefix><BarsOutlined /></template>
+                        <template #prefix>
+                          <BarsOutlined />
+                        </template>
                       </CustomStatistic>
                     </a-col>
                     <a-col :sm="24" :md="4">
@@ -576,94 +575,35 @@ function onRowAction({ key, dbInbound }) {
 
               <!-- Inbound list — toolbar, search/filter, columns, row actions -->
               <a-col :span="24">
-                <InboundList
-                  :db-inbounds="dbInbounds"
-                  :client-count="clientCount"
-                  :online-clients="onlineClients"
-                  :last-online-map="lastOnlineMap"
-                  :is-dark-theme="themeState.isDark"
-                  :refreshing="refreshing"
-                  :expire-diff="expireDiff"
-                  :traffic-diff="trafficDiff"
-                  :page-size="pageSize"
-                  :is-mobile="isMobile"
-                  :sub-enable="subSettings.enable"
-                  @refresh="refresh"
-                  @add-inbound="onAddInbound"
-                  @general-action="onGeneralAction"
-                  @row-action="onRowAction"
-                  @edit-client="onEditClient"
-                  @qrcode-client="onQrcodeClient"
-                  @info-client="onInfoClient"
-                  @reset-traffic-client="onResetTrafficClient"
-                  @delete-client="onDeleteClient"
-                  @toggle-enable-client="onToggleEnableClient"
-                />
+                <InboundList :db-inbounds="dbInbounds" :client-count="clientCount" :online-clients="onlineClients"
+                  :last-online-map="lastOnlineMap" :is-dark-theme="themeState.isDark" :refreshing="refreshing"
+                  :expire-diff="expireDiff" :traffic-diff="trafficDiff" :page-size="pageSize" :is-mobile="isMobile"
+                  :sub-enable="subSettings.enable" @refresh="refresh" @add-inbound="onAddInbound"
+                  @general-action="onGeneralAction" @row-action="onRowAction" @edit-client="onEditClient"
+                  @qrcode-client="onQrcodeClient" @info-client="onInfoClient"
+                  @reset-traffic-client="onResetTrafficClient" @delete-client="onDeleteClient"
+                  @toggle-enable-client="onToggleEnableClient" />
               </a-col>
             </a-row>
           </a-spin>
         </a-layout-content>
       </a-layout>
 
-      <InboundFormModal
-        v-model:open="formOpen"
-        :mode="formMode"
-        :db-inbound="formDbInbound"
-        @saved="refresh"
-      />
-      <ClientFormModal
-        v-model:open="clientOpen"
-        :mode="clientMode"
-        :db-inbound="clientDbInbound"
-        :client-index="clientIndex"
-        :sub-enable="subSettings.enable"
-        :tg-bot-enable="tgBotEnable"
-        :ip-limit-enable="ipLimitEnable"
-        :traffic-diff="trafficDiff"
-        @saved="refresh"
-      />
-      <ClientBulkModal
-        v-model:open="bulkOpen"
-        :db-inbound="bulkDbInbound"
-        :sub-enable="subSettings.enable"
-        :tg-bot-enable="tgBotEnable"
-        :ip-limit-enable="ipLimitEnable"
-        @saved="refresh"
-      />
-      <InboundInfoModal
-        v-model:open="infoOpen"
-        :db-inbound="infoDbInbound"
-        :client-index="infoClientIndex"
-        :remark-model="remarkModel"
-        :expire-diff="expireDiff"
-        :traffic-diff="trafficDiff"
-        :ip-limit-enable="ipLimitEnable"
-        :tg-bot-enable="tgBotEnable"
-        :sub-settings="subSettings"
-        :last-online-map="lastOnlineMap"
-      />
-      <QrCodeModal
-        v-model:open="qrOpen"
-        :db-inbound="qrDbInbound"
-        :client="qrClient"
-        :remark-model="remarkModel"
-      />
+      <InboundFormModal v-model:open="formOpen" :mode="formMode" :db-inbound="formDbInbound" @saved="refresh" />
+      <ClientFormModal v-model:open="clientOpen" :mode="clientMode" :db-inbound="clientDbInbound"
+        :client-index="clientIndex" :sub-enable="subSettings.enable" :tg-bot-enable="tgBotEnable"
+        :ip-limit-enable="ipLimitEnable" :traffic-diff="trafficDiff" @saved="refresh" />
+      <ClientBulkModal v-model:open="bulkOpen" :db-inbound="bulkDbInbound" :sub-enable="subSettings.enable"
+        :tg-bot-enable="tgBotEnable" :ip-limit-enable="ipLimitEnable" @saved="refresh" />
+      <InboundInfoModal v-model:open="infoOpen" :db-inbound="infoDbInbound" :client-index="infoClientIndex"
+        :remark-model="remarkModel" :expire-diff="expireDiff" :traffic-diff="trafficDiff"
+        :ip-limit-enable="ipLimitEnable" :tg-bot-enable="tgBotEnable" :sub-settings="subSettings"
+        :last-online-map="lastOnlineMap" />
+      <QrCodeModal v-model:open="qrOpen" :db-inbound="qrDbInbound" :client="qrClient" :remark-model="remarkModel" />
 
-      <TextModal
-        v-model:open="textOpen"
-        :title="textTitle"
-        :content="textContent"
-        :file-name="textFileName"
-      />
-      <PromptModal
-        v-model:open="promptOpen"
-        :title="promptTitle"
-        :ok-text="promptOkText"
-        :type="promptType"
-        :initial-value="promptInitial"
-        :loading="promptLoading"
-        @confirm="onPromptConfirm"
-      />
+      <TextModal v-model:open="textOpen" :title="textTitle" :content="textContent" :file-name="textFileName" />
+      <PromptModal v-model:open="promptOpen" :title="promptTitle" :ok-text="promptOkText" :type="promptType"
+        :initial-value="promptInitial" :loading="promptLoading" @confirm="onPromptConfirm" />
     </a-layout>
   </a-config-provider>
 </template>
@@ -692,10 +632,17 @@ function onRowAction({ key, dbInbound }) {
   background: transparent;
 }
 
-.content-shell { background: transparent; }
-.content-area { padding: 24px; }
+.content-shell {
+  background: transparent;
+}
 
-.loading-spacer { min-height: calc(100vh - 120px); }
+.content-area {
+  padding: 24px;
+}
+
+.loading-spacer {
+  min-height: calc(100vh - 120px);
+}
 
 .summary-card {
   padding: 16px;

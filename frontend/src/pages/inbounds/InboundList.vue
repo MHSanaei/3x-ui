@@ -216,12 +216,16 @@ function showQrCodeMenu(dbInbound) {
     <template #title>
       <a-space direction="horizontal">
         <a-button type="primary" @click="emit('add-inbound')">
-          <template #icon><PlusOutlined /></template>
+          <template #icon>
+            <PlusOutlined />
+          </template>
           <template v-if="!isMobile">{{ t('pages.inbounds.addInbound') }}</template>
         </a-button>
         <a-dropdown :trigger="['click']">
           <a-button type="primary">
-            <template #icon><MenuOutlined /></template>
+            <template #icon>
+              <MenuOutlined />
+            </template>
             <template v-if="!isMobile">{{ t('pages.inbounds.generalActions') }}</template>
           </a-button>
           <template #overlay>
@@ -253,7 +257,9 @@ function showQrCodeMenu(dbInbound) {
     <template #extra>
       <a-button-group>
         <a-button :loading="refreshing" @click="emit('refresh')">
-          <template #icon><SyncOutlined /></template>
+          <template #icon>
+            <SyncOutlined />
+          </template>
         </a-button>
         <a-popover placement="bottomRight" trigger="click">
           <template #title>
@@ -265,11 +271,7 @@ function showQrCodeMenu(dbInbound) {
           <template #content>
             <a-space direction="vertical">
               <span>{{ t('pages.inbounds.autoRefreshInterval') }}</span>
-              <a-select
-                v-model:value="refreshIntervalMs"
-                :disabled="!isRefreshEnabled"
-                :style="{ width: '100%' }"
-              >
+              <a-select v-model:value="refreshIntervalMs" :disabled="!isRefreshEnabled" :style="{ width: '100%' }">
                 <a-select-option v-for="key in [5, 10, 30, 60]" :key="key" :value="key * 1000">
                   {{ key }}s
                 </a-select-option>
@@ -277,7 +279,9 @@ function showQrCodeMenu(dbInbound) {
             </a-space>
           </template>
           <a-button>
-            <template #icon><DownOutlined /></template>
+            <template #icon>
+              <DownOutlined />
+            </template>
           </a-button>
         </a-popover>
       </a-button-group>
@@ -287,23 +291,17 @@ function showQrCodeMenu(dbInbound) {
       <!-- Search / filter toolbar -->
       <div :class="isMobile ? 'filter-bar mobile' : 'filter-bar'">
         <a-switch v-model:checked="enableFilter" @change="onToggleFilter">
-          <template #checkedChildren><SearchOutlined /></template>
-          <template #unCheckedChildren><FilterOutlined /></template>
+          <template #checkedChildren>
+            <SearchOutlined />
+          </template>
+          <template #unCheckedChildren>
+            <FilterOutlined />
+          </template>
         </a-switch>
-        <a-input
-          v-if="!enableFilter"
-          v-model:value="searchKey"
-          :placeholder="t('search')"
-          autofocus
-          :size="isMobile ? 'small' : 'middle'"
-          :style="{ maxWidth: '300px' }"
-        />
-        <a-radio-group
-          v-if="enableFilter"
-          v-model:value="filterBy"
-          button-style="solid"
-          :size="isMobile ? 'small' : 'middle'"
-        >
+        <a-input v-if="!enableFilter" v-model:value="searchKey" :placeholder="t('search')" autofocus
+          :size="isMobile ? 'small' : 'middle'" :style="{ maxWidth: '300px' }" />
+        <a-radio-group v-if="enableFilter" v-model:value="filterBy" button-style="solid"
+          :size="isMobile ? 'small' : 'middle'">
           <a-radio-button value="">{{ t('none') }}</a-radio-button>
           <a-radio-button value="active">{{ t('subscription.active') }}</a-radio-button>
           <a-radio-button value="deactive">{{ t('disabled') }}</a-radio-button>
@@ -313,36 +311,21 @@ function showQrCodeMenu(dbInbound) {
         </a-radio-group>
       </div>
 
-      <a-table
-        :columns="columns"
-        :data-source="visibleInbounds"
-        :row-key="(r) => r.id"
-        :pagination="paginationFor(visibleInbounds)"
-        :scroll="isMobile ? {} : { x: 1000 }"
-        :style="{ marginTop: '10px' }"
-        size="small"
-        :row-class-name="(r) => (r.isMultiUser() ? '' : 'hide-expand-icon')"
-      >
+      <a-table :columns="columns" :data-source="visibleInbounds" :row-key="(r) => r.id"
+        :pagination="paginationFor(visibleInbounds)" :scroll="isMobile ? {} : { x: 1000 }"
+        :style="{ marginTop: '10px' }" size="small"
+        :row-class-name="(r) => (r.isMultiUser() ? '' : 'hide-expand-icon')">
         <!-- Per-inbound client list, expanded by clicking the row's
              default expand chevron. Hidden via row-class-name for
              non-multi-user inbounds (matches legacy behavior). -->
         <template #expandedRowRender="{ record }">
-          <ClientRowTable
-            v-if="record.isMultiUser()"
-            :db-inbound="record"
-            :is-mobile="isMobile"
-            :traffic-diff="trafficDiff"
-            :expire-diff="expireDiff"
-            :online-clients="onlineClients"
-            :last-online-map="lastOnlineMap"
-            :is-dark-theme="isDarkTheme"
-            @edit-client="(p) => emit('edit-client', p)"
-            @qrcode-client="(p) => emit('qrcode-client', p)"
-            @info-client="(p) => emit('info-client', p)"
+          <ClientRowTable v-if="record.isMultiUser()" :db-inbound="record" :is-mobile="isMobile"
+            :traffic-diff="trafficDiff" :expire-diff="expireDiff" :online-clients="onlineClients"
+            :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme" @edit-client="(p) => emit('edit-client', p)"
+            @qrcode-client="(p) => emit('qrcode-client', p)" @info-client="(p) => emit('info-client', p)"
             @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
             @delete-client="(p) => emit('delete-client', p)"
-            @toggle-enable-client="(p) => emit('toggle-enable-client', p)"
-          />
+            @toggle-enable-client="(p) => emit('toggle-enable-client', p)" />
         </template>
 
         <template #bodyCell="{ column, record }">
@@ -352,16 +335,28 @@ function showQrCodeMenu(dbInbound) {
               <MoreOutlined class="row-action-trigger" @click.prevent />
               <template #overlay>
                 <a-menu @click="(a) => emit('row-action', { key: a.key, dbInbound: record })">
-                  <a-menu-item key="edit"><EditOutlined /> {{ t('edit') }}</a-menu-item>
+                  <a-menu-item key="edit">
+                    <EditOutlined /> {{ t('edit') }}
+                  </a-menu-item>
                   <a-menu-item v-if="showQrCodeMenu(record)" key="qrcode">
                     <QrcodeOutlined /> {{ t('qrCode') }}
                   </a-menu-item>
                   <template v-if="record.isMultiUser()">
-                    <a-menu-item key="addClient"><UserAddOutlined /> {{ t('pages.client.add') }}</a-menu-item>
-                    <a-menu-item key="addBulkClient"><UsergroupAddOutlined /> {{ t('pages.client.bulk') }}</a-menu-item>
-                    <a-menu-item key="copyClients"><CopyOutlined /> {{ t('pages.client.copyFromInbound') }}</a-menu-item>
-                    <a-menu-item key="resetClients"><FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}</a-menu-item>
-                    <a-menu-item key="export"><ExportOutlined /> {{ t('pages.inbounds.export') }}</a-menu-item>
+                    <a-menu-item key="addClient">
+                      <UserAddOutlined /> {{ t('pages.client.add') }}
+                    </a-menu-item>
+                    <a-menu-item key="addBulkClient">
+                      <UsergroupAddOutlined /> {{ t('pages.client.bulk') }}
+                    </a-menu-item>
+                    <a-menu-item key="copyClients">
+                      <CopyOutlined /> {{ t('pages.client.copyFromInbound') }}
+                    </a-menu-item>
+                    <a-menu-item key="resetClients">
+                      <FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}
+                    </a-menu-item>
+                    <a-menu-item key="export">
+                      <ExportOutlined /> {{ t('pages.inbounds.export') }}
+                    </a-menu-item>
                     <a-menu-item v-if="subEnable" key="subs">
                       <ExportOutlined /> {{ t('pages.inbounds.export') }} — {{ t('pages.settings.subSettings') }}
                     </a-menu-item>
@@ -370,11 +365,19 @@ function showQrCodeMenu(dbInbound) {
                     </a-menu-item>
                   </template>
                   <template v-else>
-                    <a-menu-item key="showInfo"><InfoCircleOutlined /> {{ t('info') }}</a-menu-item>
+                    <a-menu-item key="showInfo">
+                      <InfoCircleOutlined /> {{ t('info') }}
+                    </a-menu-item>
                   </template>
-                  <a-menu-item key="clipboard"><CopyOutlined /> {{ t('pages.inbounds.exportInbound') }}</a-menu-item>
-                  <a-menu-item key="resetTraffic"><RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') }}</a-menu-item>
-                  <a-menu-item key="clone"><BlockOutlined /> {{ t('pages.inbounds.clone') }}</a-menu-item>
+                  <a-menu-item key="clipboard">
+                    <CopyOutlined /> {{ t('pages.inbounds.exportInbound') }}
+                  </a-menu-item>
+                  <a-menu-item key="resetTraffic">
+                    <RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') }}
+                  </a-menu-item>
+                  <a-menu-item key="clone">
+                    <BlockOutlined /> {{ t('pages.inbounds.clone') }}
+                  </a-menu-item>
                   <a-menu-item key="delete" class="danger-item">
                     <DeleteOutlined /> {{ t('delete') }}
                   </a-menu-item>
@@ -385,10 +388,7 @@ function showQrCodeMenu(dbInbound) {
 
           <!-- ============== Enable switch (desktop) ============== -->
           <template v-else-if="column.key === 'enable'">
-            <a-switch
-              :checked="record.enable"
-              @change="(next) => onSwitchEnable(record, next)"
-            />
+            <a-switch :checked="record.enable" @change="(next) => onSwitchEnable(record, next)" />
           </template>
 
           <!-- ============== Protocol tags ============== -->
@@ -417,13 +417,15 @@ function showQrCodeMenu(dbInbound) {
                 <template #content>
                   <div v-for="email in clientCount[record.id].depleted" :key="email">{{ email }}</div>
                 </template>
-                <a-tag color="red" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].depleted.length }}</a-tag>
+                <a-tag color="red" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].depleted.length
+                }}</a-tag>
               </a-popover>
               <a-popover v-if="clientCount[record.id].expiring.length" :title="t('depletingSoon')">
                 <template #content>
                   <div v-for="email in clientCount[record.id].expiring" :key="email">{{ email }}</div>
                 </template>
-                <a-tag color="orange" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].expiring.length }}</a-tag>
+                <a-tag color="orange" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].expiring.length
+                }}</a-tag>
               </a-popover>
               <a-popover v-if="clientCount[record.id].online.length" :title="t('online')">
                 <template #content>
@@ -468,14 +470,13 @@ function showQrCodeMenu(dbInbound) {
           <template v-else-if="column.key === 'expiryTime'">
             <a-popover v-if="record.expiryTime > 0">
               <template #content>{{ IntlUtil.formatDate(record.expiryTime) }}</template>
-              <a-tag
-                :color="ColorUtils.usageColor(Date.now(), expireDiff, record._expiryTime)"
-                style="min-width: 50px"
-              >
+              <a-tag :color="ColorUtils.usageColor(Date.now(), expireDiff, record._expiryTime)" style="min-width: 50px">
                 {{ IntlUtil.formatRelativeTime(record.expiryTime) }}
               </a-tag>
             </a-popover>
-            <a-tag v-else color="purple"><InfinityIcon /></a-tag>
+            <a-tag v-else color="purple">
+              <InfinityIcon />
+            </a-tag>
           </template>
 
           <!-- ============== Mobile info popover ============== -->
@@ -510,7 +511,9 @@ function showQrCodeMenu(dbInbound) {
                       <td>{{ t('pages.inbounds.expireDate') }}</td>
                       <td>
                         <a-tag v-if="record.expiryTime > 0">{{ IntlUtil.formatRelativeTime(record.expiryTime) }}</a-tag>
-                        <a-tag v-else color="purple"><InfinityIcon /></a-tag>
+                        <a-tag v-else color="purple">
+                          <InfinityIcon />
+                        </a-tag>
                       </td>
                     </tr>
                   </tbody>
@@ -537,10 +540,12 @@ function showQrCodeMenu(dbInbound) {
   align-items: center;
   gap: 8px;
 }
+
 .filter-bar.mobile {
   display: block;
 }
-.filter-bar.mobile > * {
+
+.filter-bar.mobile>* {
   margin-bottom: 4px;
 }
 
@@ -564,5 +569,34 @@ function showQrCodeMenu(dbInbound) {
  * (HTTP/Mixed/Tunnel/WireGuard single-config). */
 :deep(.hide-expand-icon .ant-table-row-expand-icon) {
   visibility: hidden;
+}
+
+/* Round the table's outer corners — AD-Vue gives .ant-table the radius
+ * token, but the inner header strip and footer touch the edges, so clip
+ * them here. */
+:deep(.ant-table) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:deep(.ant-table-container) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:deep(.ant-table-thead > tr:first-child > *:first-child) {
+  border-start-start-radius: 8px;
+}
+
+:deep(.ant-table-thead > tr:first-child > *:last-child) {
+  border-start-end-radius: 8px;
+}
+
+:deep(.ant-table-tbody > tr:last-child > *:first-child) {
+  border-end-start-radius: 8px;
+}
+
+:deep(.ant-table-tbody > tr:last-child > *:last-child) {
+  border-end-end-radius: 8px;
 }
 </style>

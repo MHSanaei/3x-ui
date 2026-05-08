@@ -221,11 +221,8 @@ function rowKey(client) {
 
       <!-- Enable switch (hidden on mobile, lives in dropdown) -->
       <div v-if="!isMobile" class="cell cell-enable">
-        <a-switch
-          :checked="client.enable"
-          size="small"
-          @change="(next) => emit('toggle-enable-client', { dbInbound, client, next })"
-        />
+        <a-switch :checked="client.enable" size="small"
+          @change="(next) => emit('toggle-enable-client', { dbInbound, client, next })" />
       </div>
 
       <!-- Online tag (desktop only) -->
@@ -277,21 +274,11 @@ function rowKey(client) {
           </template>
           <div class="usage-bar">
             <span class="usage-text">{{ SizeFormatter.sizeFormat(getSum(client.email)) }}</span>
-            <a-progress
-              v-if="!client.enable"
-              :stroke-color="isDarkTheme ? 'rgb(72,84,105)' : '#bcbcbc'"
-              :show-info="false"
-              :percent="statsProgress(client.email)"
-              size="small"
-            />
-            <a-progress
-              v-else-if="client.totalGB > 0"
-              :stroke-color="clientStatsColor(client.email)"
-              :show-info="false"
-              :status="isClientDepleted(client.email) ? 'exception' : ''"
-              :percent="statsProgress(client.email)"
-              size="small"
-            />
+            <a-progress v-if="!client.enable" :stroke-color="isDarkTheme ? 'rgb(72,84,105)' : '#bcbcbc'"
+              :show-info="false" :percent="statsProgress(client.email)" size="small" />
+            <a-progress v-else-if="client.totalGB > 0" :stroke-color="clientStatsColor(client.email)" :show-info="false"
+              :status="isClientDepleted(client.email) ? 'exception' : ''" :percent="statsProgress(client.email)"
+              size="small" />
             <a-progress v-else :show-info="false" :percent="100" stroke-color="#722ed1" size="small" />
             <span class="usage-text">
               <InfinityIcon v-if="isUnlimitedTotal(client)" />
@@ -316,12 +303,8 @@ function rowKey(client) {
             </template>
             <div class="usage-bar">
               <span class="usage-text">{{ IntlUtil.formatRelativeTime(client.expiryTime) }}</span>
-              <a-progress
-                :show-info="false"
-                :status="isClientDepleted(client.email) ? 'exception' : ''"
-                :percent="expireProgress(client.expiryTime, client.reset)"
-                size="small"
-              />
+              <a-progress :show-info="false" :status="isClientDepleted(client.email) ? 'exception' : ''"
+                :percent="expireProgress(client.expiryTime, client.reset)" size="small" />
               <span class="usage-text">{{ client.reset }}d</span>
             </div>
           </a-popover>
@@ -331,19 +314,13 @@ function rowKey(client) {
             <span v-if="client.expiryTime < 0">{{ t('pages.client.delayedStart') }}</span>
             <span v-else>{{ IntlUtil.formatDate(client.expiryTime) }}</span>
           </template>
-          <a-tag
-            :style="{ minWidth: '50px', border: 'none' }"
-            :color="ColorUtils.userExpiryColor(expireDiff, client, isDarkTheme)"
-          >
+          <a-tag :style="{ minWidth: '50px', border: 'none' }"
+            :color="ColorUtils.userExpiryColor(expireDiff, client, isDarkTheme)">
             {{ IntlUtil.formatRelativeTime(client.expiryTime) }}
           </a-tag>
         </a-popover>
-        <a-tag
-          v-else
-          :color="ColorUtils.userExpiryColor(expireDiff, client, isDarkTheme)"
-          :style="{ border: 'none' }"
-          class="infinite-tag"
-        >
+        <a-tag v-else :color="ColorUtils.userExpiryColor(expireDiff, client, isDarkTheme)" :style="{ border: 'none' }"
+          class="infinite-tag">
           <InfinityIcon />
         </a-tag>
       </div>
@@ -378,7 +355,9 @@ function rowKey(client) {
                     <a-tag v-else-if="client.expiryTime < 0" color="green">
                       {{ -client.expiryTime / 86400000 }}d ({{ t('pages.client.delayedStart') }})
                     </a-tag>
-                    <a-tag v-else color="purple"><InfinityIcon /></a-tag>
+                    <a-tag v-else color="purple">
+                      <InfinityIcon />
+                    </a-tag>
                   </td>
                 </tr>
               </tbody>
@@ -402,21 +381,30 @@ function rowKey(client) {
 .client-row {
   display: grid;
   grid-template-columns:
-    140px              /* actions */
-    60px               /* enable */
-    80px               /* online */
-    minmax(160px, 2fr) /* client identity */
-    minmax(160px, 2fr) /* traffic */
-    130px              /* all-time */
-    140px;             /* expiry */
+    140px
+    /* actions */
+    60px
+    /* enable */
+    80px
+    /* online */
+    minmax(160px, 2fr)
+    /* client identity */
+    minmax(160px, 2fr)
+    /* traffic */
+    130px
+    /* all-time */
+    140px;
+  /* expiry */
   gap: 12px;
   align-items: center;
   padding: 8px 16px;
   border-top: 1px solid rgba(128, 128, 128, 0.12);
 }
+
 .client-row:last-child {
   border-bottom: 1px solid rgba(128, 128, 128, 0.12);
 }
+
 .client-list-header {
   font-weight: 500;
   font-size: 12px;
@@ -435,8 +423,10 @@ function rowKey(client) {
 }
 
 .cell {
-  min-width: 0; /* allow grid children to shrink instead of overflowing */
+  min-width: 0;
+  /* allow grid children to shrink instead of overflowing */
 }
+
 .cell-actions,
 .cell-enable,
 .cell-online,
@@ -449,22 +439,27 @@ function rowKey(client) {
   gap: 6px;
   flex-wrap: wrap;
 }
+
 .cell-actions {
   justify-content: flex-start;
 }
+
 .cell-client {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
 }
+
 .cell-traffic,
 .cell-expiry {
   text-align: center;
 }
+
 .client-list-header .cell {
   text-align: center;
 }
+
 .client-list-header .cell-actions,
 .client-list-header .cell-client {
   text-align: left;
@@ -478,13 +473,18 @@ function rowKey(client) {
   color: inherit;
   transition: color 120ms ease;
 }
+
 .row-icon:hover {
   color: var(--ant-color-primary, #1677ff);
 }
+
 .row-icon.danger {
   color: #ff4d4f;
 }
-.danger { color: #ff4d4f; }
+
+.danger {
+  color: #ff4d4f;
+}
 
 /* Client identity stack (badge + email + comment) */
 .client-id-stack {
@@ -494,6 +494,7 @@ function rowKey(client) {
   min-width: 0;
   overflow: hidden;
 }
+
 .client-email {
   font-weight: 500;
   white-space: nowrap;
@@ -501,6 +502,7 @@ function rowKey(client) {
   text-overflow: ellipsis;
   display: inline-block;
 }
+
 .client-comment {
   font-size: 11px;
   opacity: 0.7;
@@ -517,10 +519,12 @@ function rowKey(client) {
   align-items: center;
   gap: 6px;
 }
+
 .usage-text {
   font-size: 12px;
   white-space: nowrap;
 }
+
 .usage-bar :deep(.ant-progress) {
   margin: 0;
   line-height: 1;
@@ -534,8 +538,15 @@ function rowKey(client) {
 }
 
 /* Mobile popover content table */
-.text-center { text-align: center; }
-.num-cell { text-align: right; font-size: 12px; padding: 2px 6px; }
+.text-center {
+  text-align: center;
+}
+
+.num-cell {
+  text-align: right;
+  font-size: 12px;
+  padding: 2px 6px;
+}
 
 /* Strip AD-Vue's default expanded-cell padding so the grid sits
  * flush against the inbound row's left/right edges. */

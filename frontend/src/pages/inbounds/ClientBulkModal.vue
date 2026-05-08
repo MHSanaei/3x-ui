@@ -172,22 +172,9 @@ async function submit() {
 </script>
 
 <template>
-  <a-modal
-    :open="open"
-    :title="t('pages.client.bulk')"
-    :ok-text="t('create')"
-    :cancel-text="t('close')"
-    :confirm-loading="saving"
-    :mask-closable="false"
-    @ok="submit"
-    @cancel="close"
-  >
-    <a-form
-      v-if="inbound"
-      :colon="false"
-      :label-col="{ md: { span: 8 } }"
-      :wrapper-col="{ md: { span: 14 } }"
-    >
+  <a-modal :open="open" :title="t('pages.client.bulk')" :ok-text="t('create')" :cancel-text="t('close')"
+    :confirm-loading="saving" :mask-closable="false" @ok="submit" @cancel="close">
+    <a-form v-if="inbound" :colon="false" :label-col="{ md: { span: 8 } }" :wrapper-col="{ md: { span: 14 } }">
       <a-form-item :label="t('pages.client.method')">
         <a-select v-model:value="form.emailMethod">
           <a-select-option :value="0">Random</a-select-option>
@@ -251,10 +238,7 @@ async function submit() {
       </a-form-item>
 
       <a-form-item :label="t('pages.client.delayedStart')">
-        <a-switch
-          v-model:checked="delayedStart"
-          @click="form.expiryTime = 0"
-        />
+        <a-switch v-model:checked="delayedStart" @click="form.expiryTime = 0" />
       </a-form-item>
 
       <a-form-item v-if="delayedStart" :label="t('pages.client.expireDays')">
@@ -263,14 +247,11 @@ async function submit() {
 
       <a-form-item v-else>
         <template #label>
-          <a-tooltip :title="t('pages.inbounds.leaveBlankToNeverExpire')">{{ t('pages.inbounds.expireDate') }}</a-tooltip>
+          <a-tooltip :title="t('pages.inbounds.leaveBlankToNeverExpire')">{{ t('pages.inbounds.expireDate')
+          }}</a-tooltip>
         </template>
-        <a-date-picker
-          v-model:value="expiryDate"
-          :show-time="{ format: 'HH:mm:ss' }"
-          format="YYYY-MM-DD HH:mm:ss"
-          :style="{ width: '100%' }"
-        />
+        <a-date-picker v-model:value="expiryDate" :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
+          :style="{ width: '100%' }" />
       </a-form-item>
 
       <a-form-item v-if="form.expiryTime !== 0">

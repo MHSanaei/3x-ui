@@ -234,59 +234,47 @@ const title = computed(() =>
 </script>
 
 <template>
-  <a-modal
-    :open="open"
-    :title="title"
-    :ok-text="mode === 'edit' ? t('pages.client.submitEdit') : t('pages.client.submitAdd')"
-    :cancel-text="t('close')"
-    :confirm-loading="saving"
-    :mask-closable="false"
-    @ok="submit"
-    @cancel="close"
-  >
-    <a-tag
-      v-if="mode === 'edit' && (isExpired || isTrafficExhausted)"
-      color="red"
-      class="status-banner"
-    >
+  <a-modal :open="open" :title="title"
+    :ok-text="mode === 'edit' ? t('pages.client.submitEdit') : t('pages.client.submitAdd')" :cancel-text="t('close')"
+    :confirm-loading="saving" :mask-closable="false" @ok="submit" @cancel="close">
+    <a-tag v-if="mode === 'edit' && (isExpired || isTrafficExhausted)" color="red" class="status-banner">
       {{ t('depleted') }}
     </a-tag>
 
-    <a-form
-      v-if="client && inbound"
-      layout="horizontal"
-      :colon="false"
-      :label-col="{ md: { span: 8 } }"
-      :wrapper-col="{ md: { span: 14 } }"
-    >
+    <a-form v-if="client && inbound" layout="horizontal" :colon="false" :label-col="{ md: { span: 8 } }"
+      :wrapper-col="{ md: { span: 14 } }">
       <a-form-item :label="t('enable')">
         <a-switch v-model:checked="client.enable" />
       </a-form-item>
 
       <a-form-item>
         <template #label>
-          {{ t('pages.inbounds.email') }} <SyncOutlined class="random-icon" @click="randomEmail" />
+          {{ t('pages.inbounds.email') }}
+          <SyncOutlined class="random-icon" @click="randomEmail" />
         </template>
         <a-input v-model:value="client.email" />
       </a-form-item>
 
       <a-form-item v-if="isTrojanOrSS">
         <template #label>
-          {{ t('password') }} <SyncOutlined class="random-icon" @click="randomPassword" />
+          {{ t('password') }}
+          <SyncOutlined class="random-icon" @click="randomPassword" />
         </template>
         <a-input v-model:value="client.password" />
       </a-form-item>
 
       <a-form-item v-if="protocol === Protocols.HYSTERIA">
         <template #label>
-          {{ t('password') }} <SyncOutlined class="random-icon" @click="randomAuth" />
+          {{ t('password') }}
+          <SyncOutlined class="random-icon" @click="randomAuth" />
         </template>
         <a-input v-model:value="client.auth" />
       </a-form-item>
 
       <a-form-item v-if="isVmessOrVless">
         <template #label>
-          ID <SyncOutlined class="random-icon" @click="randomId" />
+          ID
+          <SyncOutlined class="random-icon" @click="randomId" />
         </template>
         <a-input v-model:value="client.id" />
       </a-form-item>
@@ -301,7 +289,8 @@ const title = computed(() =>
 
       <a-form-item v-if="client.email && subEnable">
         <template #label>
-          {{ t('subscription.title') }} <SyncOutlined class="random-icon" @click="randomSubId" />
+          {{ t('subscription.title') }}
+          <SyncOutlined class="random-icon" @click="randomSubId" />
         </template>
         <a-input v-model:value="client.subId" />
       </a-form-item>
@@ -318,19 +307,14 @@ const title = computed(() =>
         <a-input-number v-model:value="client.limitIp" :min="0" />
       </a-form-item>
 
-      <a-form-item
-        v-if="ipLimitEnable && client.limitIp > 0 && client.email && mode === 'edit'"
-        :label="t('pages.inbounds.IPLimitlog')"
-      >
-        <a-textarea
-          v-model:value="clientIpsText"
-          readonly
-          :placeholder="t('pages.inbounds.IPLimitlogDesc')"
-          :auto-size="{ minRows: 3, maxRows: 8 }"
-          @click="loadClientIps"
-        />
+      <a-form-item v-if="ipLimitEnable && client.limitIp > 0 && client.email && mode === 'edit'"
+        :label="t('pages.inbounds.IPLimitlog')">
+        <a-textarea v-model:value="clientIpsText" readonly :placeholder="t('pages.inbounds.IPLimitlogDesc')"
+          :auto-size="{ minRows: 3, maxRows: 8 }" @click="loadClientIps" />
         <a-button type="link" size="small" danger @click="clearClientIps">
-          <template #icon><DeleteOutlined /></template>
+          <template #icon>
+            <DeleteOutlined />
+          </template>
           {{ t('pages.inbounds.IPLimitlogclear') }}
         </a-button>
       </a-form-item>
@@ -367,10 +351,7 @@ const title = computed(() =>
       </a-form-item>
 
       <a-form-item :label="t('pages.client.delayedStart')">
-        <a-switch
-          v-model:checked="delayedStart"
-          @click="client.expiryTime = 0"
-        />
+        <a-switch v-model:checked="delayedStart" @click="client.expiryTime = 0" />
       </a-form-item>
 
       <a-form-item v-if="delayedStart" :label="t('pages.client.expireDays')">
@@ -379,14 +360,11 @@ const title = computed(() =>
 
       <a-form-item v-else>
         <template #label>
-          <a-tooltip :title="t('pages.inbounds.leaveBlankToNeverExpire')">{{ t('pages.inbounds.expireDate') }}</a-tooltip>
+          <a-tooltip :title="t('pages.inbounds.leaveBlankToNeverExpire')">{{ t('pages.inbounds.expireDate')
+            }}</a-tooltip>
         </template>
-        <a-date-picker
-          v-model:value="expiryDate"
-          :show-time="{ format: 'HH:mm:ss' }"
-          format="YYYY-MM-DD HH:mm:ss"
-          :style="{ width: '100%' }"
-        />
+        <a-date-picker v-model:value="expiryDate" :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
+          :style="{ width: '100%' }" />
         <a-tag v-if="mode === 'edit' && isExpired" color="red">{{ t('depleted') }}</a-tag>
       </a-form-item>
 

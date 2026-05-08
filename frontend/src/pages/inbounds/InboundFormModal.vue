@@ -502,17 +502,8 @@ watch(
 </script>
 
 <template>
-  <a-modal
-    :open="open"
-    :title="title"
-    :ok-text="okText"
-    :cancel-text="t('close')"
-    :confirm-loading="saving"
-    :mask-closable="false"
-    width="780px"
-    @ok="submit"
-    @cancel="close"
-  >
+  <a-modal :open="open" :title="title" :ok-text="okText" :cancel-text="t('close')" :confirm-loading="saving"
+    :mask-closable="false" width="780px" @ok="submit" @cancel="close">
     <a-tabs v-if="inbound && dbForm" default-active-key="basic">
       <!-- ============================== BASICS ============================== -->
       <a-tab-pane key="basic" :tab="t('pages.xray.basicTemplate')">
@@ -549,14 +540,11 @@ watch(
           </a-form-item>
           <a-form-item>
             <template #label>
-              <a-tooltip :title="t('pages.inbounds.leaveBlankToNeverExpire')">{{ t('pages.inbounds.expireDate') }}</a-tooltip>
+              <a-tooltip :title="t('pages.inbounds.leaveBlankToNeverExpire')">{{ t('pages.inbounds.expireDate')
+                }}</a-tooltip>
             </template>
-            <a-date-picker
-              v-model:value="expiryDate"
-              :show-time="{ format: 'HH:mm:ss' }"
-              format="YYYY-MM-DD HH:mm:ss"
-              :style="{ width: '100%' }"
-            />
+            <a-date-picker v-model:value="expiryDate" :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
+              :style="{ width: '100%' }" />
           </a-form-item>
         </a-form>
       </a-tab-pane>
@@ -575,7 +563,8 @@ watch(
                 <a-form-item>
                   <template #label>
                     <a-tooltip title="Friendly identifier">
-                      Email <SyncOutlined class="random-icon" @click="randomEmail(firstClient)" />
+                      Email
+                      <SyncOutlined class="random-icon" @click="randomEmail(firstClient)" />
                     </a-tooltip>
                   </template>
                   <a-input v-model:value="firstClient.email" />
@@ -584,7 +573,8 @@ watch(
                 <a-form-item v-if="protocol === Protocols.VMESS || protocol === Protocols.VLESS">
                   <template #label>
                     <a-tooltip title="Reset to a fresh UUID">
-                      ID <SyncOutlined class="random-icon" @click="randomUuid(firstClient)" />
+                      ID
+                      <SyncOutlined class="random-icon" @click="randomUuid(firstClient)" />
                     </a-tooltip>
                   </template>
                   <a-input v-model:value="firstClient.id" />
@@ -600,16 +590,9 @@ watch(
                   <template #label>
                     <a-tooltip title="Reset to a fresh random value">
                       Password
-                      <SyncOutlined
-                        v-if="protocol === Protocols.SHADOWSOCKS"
-                        class="random-icon"
-                        @click="randomSSPassword(firstClient)"
-                      />
-                      <SyncOutlined
-                        v-else
-                        class="random-icon"
-                        @click="randomPasswordSeq(firstClient)"
-                      />
+                      <SyncOutlined v-if="protocol === Protocols.SHADOWSOCKS" class="random-icon"
+                        @click="randomSSPassword(firstClient)" />
+                      <SyncOutlined v-else class="random-icon" @click="randomPasswordSeq(firstClient)" />
                     </a-tooltip>
                   </template>
                   <a-input v-model:value="firstClient.password" />
@@ -617,7 +600,9 @@ watch(
 
                 <a-form-item v-if="protocol === Protocols.HYSTERIA">
                   <template #label>
-                    <a-tooltip title="Reset"><span>Auth password</span> <SyncOutlined class="random-icon" @click="randomAuth(firstClient)" /></a-tooltip>
+                    <a-tooltip title="Reset"><span>Auth password</span>
+                      <SyncOutlined class="random-icon" @click="randomAuth(firstClient)" />
+                    </a-tooltip>
                   </template>
                   <a-input v-model:value="firstClient.auth" />
                 </a-form-item>
@@ -646,27 +631,22 @@ watch(
                 </a-form-item>
 
                 <a-form-item label="Expiry">
-                  <a-date-picker
-                    v-model:value="clientExpiryDate"
-                    :show-time="{ format: 'HH:mm:ss' }"
-                    format="YYYY-MM-DD HH:mm:ss"
-                    :style="{ width: '100%' }"
-                  />
+                  <a-date-picker v-model:value="clientExpiryDate" :show-time="{ format: 'HH:mm:ss' }"
+                    format="YYYY-MM-DD HH:mm:ss" :style="{ width: '100%' }" />
                 </a-form-item>
               </a-form>
             </a-collapse-panel>
           </a-collapse>
 
           <a-collapse v-else>
-            <a-collapse-panel
-              key="summary"
-              :header="`Clients: ${clientsArray.length}`"
-            >
+            <a-collapse-panel key="summary" :header="`Clients: ${clientsArray.length}`">
               <table class="client-summary">
                 <thead>
                   <tr>
                     <th>Email</th>
-                    <th>{{ protocol === Protocols.TROJAN || protocol === Protocols.SHADOWSOCKS ? 'Password' : (protocol === Protocols.HYSTERIA ? 'Auth' : 'ID') }}</th>
+                    <th>{{ protocol === Protocols.TROJAN || protocol === Protocols.SHADOWSOCKS ? 'Password' : (protocol
+                      ===
+                      Protocols.HYSTERIA ? 'Auth' : 'ID') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -681,13 +661,8 @@ watch(
         </template>
 
         <!-- VLess decryption / encryption -->
-        <a-form
-          v-if="protocol === Protocols.VLESS"
-          :colon="false"
-          :label-col="{ md: { span: 8 } }"
-          :wrapper-col="{ md: { span: 14 } }"
-          class="mt-12"
-        >
+        <a-form v-if="protocol === Protocols.VLESS" :colon="false" :label-col="{ md: { span: 8 } }"
+          :wrapper-col="{ md: { span: 14 } }" class="mt-12">
           <a-form-item label="Decryption">
             <a-input v-model:value="inbound.settings.decryption" />
           </a-form-item>
@@ -708,13 +683,8 @@ watch(
         </a-form>
 
         <!-- Shadowsocks shared fields (method/network/ivCheck) -->
-        <a-form
-          v-if="protocol === Protocols.SHADOWSOCKS"
-          :colon="false"
-          :label-col="{ md: { span: 8 } }"
-          :wrapper-col="{ md: { span: 14 } }"
-          class="mt-12"
-        >
+        <a-form v-if="protocol === Protocols.SHADOWSOCKS" :colon="false" :label-col="{ md: { span: 8 } }"
+          :wrapper-col="{ md: { span: 14 } }" class="mt-12">
           <a-form-item label="Encryption method">
             <a-select v-model:value="inbound.settings.method" @change="onSSMethodChange">
               <a-select-option v-for="(m, k) in SSMethods" :key="k" :value="m">{{ k }}</a-select-option>
@@ -740,21 +710,15 @@ watch(
         </a-form>
 
         <!-- HTTP / Mixed accounts -->
-        <a-form
-          v-if="protocol === Protocols.HTTP || protocol === Protocols.MIXED"
-          :colon="false"
-          :label-col="{ md: { span: 8 } }"
-          :wrapper-col="{ md: { span: 14 } }"
-          class="mt-12"
-        >
+        <a-form v-if="protocol === Protocols.HTTP || protocol === Protocols.MIXED" :colon="false"
+          :label-col="{ md: { span: 8 } }" :wrapper-col="{ md: { span: 14 } }" class="mt-12">
           <a-form-item label="Accounts">
-            <a-button
-              size="small"
-              @click="protocol === Protocols.HTTP
-                ? inbound.settings.addAccount(new Inbound.HttpSettings.HttpAccount())
-                : inbound.settings.addAccount(new Inbound.MixedSettings.SocksAccount())"
-            >
-              <template #icon><PlusOutlined /></template>
+            <a-button size="small" @click="protocol === Protocols.HTTP
+              ? inbound.settings.addAccount(new Inbound.HttpSettings.HttpAccount())
+              : inbound.settings.addAccount(new Inbound.MixedSettings.SocksAccount())">
+              <template #icon>
+                <PlusOutlined />
+              </template>
               Add
             </a-button>
           </a-form-item>
@@ -765,7 +729,9 @@ watch(
               </a-input>
               <a-input :style="{ width: '45%' }" v-model:value="account.pass" placeholder="Password" />
               <a-button @click="inbound.settings.delAccount(idx)">
-                <template #icon><MinusOutlined /></template>
+                <template #icon>
+                  <MinusOutlined />
+                </template>
               </a-button>
             </a-input-group>
           </a-form-item>
@@ -789,13 +755,8 @@ watch(
         </a-form>
 
         <!-- Tunnel -->
-        <a-form
-          v-if="protocol === Protocols.TUNNEL"
-          :colon="false"
-          :label-col="{ md: { span: 8 } }"
-          :wrapper-col="{ md: { span: 14 } }"
-          class="mt-12"
-        >
+        <a-form v-if="protocol === Protocols.TUNNEL" :colon="false" :label-col="{ md: { span: 8 } }"
+          :wrapper-col="{ md: { span: 14 } }" class="mt-12">
           <a-form-item label="Address">
             <a-input v-model:value="inbound.settings.address" />
           </a-form-item>
@@ -815,16 +776,12 @@ watch(
         </a-form>
 
         <!-- WireGuard -->
-        <a-form
-          v-if="protocol === Protocols.WIREGUARD"
-          :colon="false"
-          :label-col="{ md: { span: 8 } }"
-          :wrapper-col="{ md: { span: 14 } }"
-          class="mt-12"
-        >
+        <a-form v-if="protocol === Protocols.WIREGUARD" :colon="false" :label-col="{ md: { span: 8 } }"
+          :wrapper-col="{ md: { span: 14 } }" class="mt-12">
           <a-form-item>
             <template #label>
-              Secret key <SyncOutlined class="random-icon" @click="regenInboundWg" />
+              Secret key
+              <SyncOutlined class="random-icon" @click="regenInboundWg" />
             </template>
             <a-input v-model:value="inbound.settings.secretKey" />
           </a-form-item>
@@ -839,22 +796,22 @@ watch(
           </a-form-item>
           <a-form-item label="Peers">
             <a-button size="small" @click="inbound.settings.addPeer()">
-              <template #icon><PlusOutlined /></template>
+              <template #icon>
+                <PlusOutlined />
+              </template>
               Add peer
             </a-button>
           </a-form-item>
           <div v-for="(peer, idx) in inbound.settings.peers" :key="idx" class="wg-peer">
             <a-divider style="margin: 8px 0">
               Peer {{ idx + 1 }}
-              <DeleteOutlined
-                v-if="inbound.settings.peers.length > 1"
-                class="danger-icon"
-                @click="inbound.settings.delPeer(idx)"
-              />
+              <DeleteOutlined v-if="inbound.settings.peers.length > 1" class="danger-icon"
+                @click="inbound.settings.delPeer(idx)" />
             </a-divider>
             <a-form-item>
               <template #label>
-                Secret key <SyncOutlined class="random-icon" @click="regenWgKeypair(peer)" />
+                Secret key
+                <SyncOutlined class="random-icon" @click="regenWgKeypair(peer)" />
               </template>
               <a-input v-model:value="peer.privateKey" />
             </a-form-item>
@@ -866,17 +823,16 @@ watch(
             </a-form-item>
             <a-form-item label="Allowed IPs">
               <a-button size="small" @click="peer.allowedIPs.push('')">
-                <template #icon><PlusOutlined /></template>
+                <template #icon>
+                  <PlusOutlined />
+                </template>
               </a-button>
-              <a-input
-                v-for="(_ip, j) in peer.allowedIPs"
-                :key="j"
-                v-model:value="peer.allowedIPs[j]"
-                class="mt-4"
-              >
+              <a-input v-for="(_ip, j) in peer.allowedIPs" :key="j" v-model:value="peer.allowedIPs[j]" class="mt-4">
                 <template #addonAfter>
                   <a-button v-if="peer.allowedIPs.length > 1" size="small" @click="peer.allowedIPs.splice(j, 1)">
-                    <template #icon><MinusOutlined /></template>
+                    <template #icon>
+                      <MinusOutlined />
+                    </template>
                   </a-button>
                 </template>
               </a-input>
@@ -892,25 +848,21 @@ watch(
           <a-divider style="margin: 12px 0" />
           <div class="fallbacks-header">
             <a-tooltip
-              title="Route incoming TLS traffic to a backend when it doesn't match a valid VLESS/Trojan handshake. Match by SNI, ALPN, and HTTP path; the most precise rule wins. Fallbacks require TCP+TLS transport."
-            >
+              title="Route incoming TLS traffic to a backend when it doesn't match a valid VLESS/Trojan handshake. Match by SNI, ALPN, and HTTP path; the most precise rule wins. Fallbacks require TCP+TLS transport.">
               <span class="fallbacks-title">
                 Fallbacks ({{ inbound.settings.fallbacks.length }})
               </span>
             </a-tooltip>
             <a-button type="primary" size="small" @click="addFallback">
-              <template #icon><PlusOutlined /></template>
+              <template #icon>
+                <PlusOutlined />
+              </template>
               Add
             </a-button>
           </div>
 
-          <a-form
-            v-for="(fallback, idx) in inbound.settings.fallbacks"
-            :key="idx"
-            :colon="false"
-            :label-col="{ md: { span: 8 } }"
-            :wrapper-col="{ md: { span: 14 } }"
-          >
+          <a-form v-for="(fallback, idx) in inbound.settings.fallbacks" :key="idx" :colon="false"
+            :label-col="{ md: { span: 8 } }" :wrapper-col="{ md: { span: 14 } }">
             <a-divider style="margin: 0">
               Fallback {{ idx + 1 }}
               <DeleteOutlined class="danger-icon" @click="delFallback(idx)" />
@@ -928,8 +880,7 @@ watch(
             <a-form-item>
               <template #label>
                 <a-tooltip
-                  title="Match TLS ALPN. 'any' = no ALPN constraint. Use h2/http/1.1 split when the inbound advertises both."
-                >
+                  title="Match TLS ALPN. 'any' = no ALPN constraint. Use h2/http/1.1 split when the inbound advertises both.">
                   ALPN
                 </a-tooltip>
               </template>
@@ -940,42 +891,32 @@ watch(
               </a-select>
             </a-form-item>
 
-            <a-form-item
-              :validate-status="fallback.path && !fallback.path.startsWith('/') ? 'error' : ''"
-              :help="fallback.path && !fallback.path.startsWith('/') ? 'Path must start with /' : ''"
-            >
+            <a-form-item :validate-status="fallback.path && !fallback.path.startsWith('/') ? 'error' : ''"
+              :help="fallback.path && !fallback.path.startsWith('/') ? 'Path must start with /' : ''">
               <template #label>
                 <a-tooltip
-                  title="Match the HTTP request path of the first packet. Must start with '/'. Leave empty to match any."
-                >
+                  title="Match the HTTP request path of the first packet. Must start with '/'. Leave empty to match any.">
                   Path
                 </a-tooltip>
               </template>
               <a-input v-model:value.trim="fallback.path" placeholder="any (leave empty) or /ws" />
             </a-form-item>
 
-            <a-form-item
-              :validate-status="!fallback.dest ? 'error' : ''"
-              :help="!fallback.dest ? 'Destination is required' : ''"
-            >
+            <a-form-item :validate-status="!fallback.dest ? 'error' : ''"
+              :help="!fallback.dest ? 'Destination is required' : ''">
               <template #label>
                 <a-tooltip
-                  title="Where matching traffic is forwarded. Accepts a port number (80), an addr:port (127.0.0.1:8080), or a Unix socket path (/dev/shm/x.sock or @abstract)."
-                >
+                  title="Where matching traffic is forwarded. Accepts a port number (80), an addr:port (127.0.0.1:8080), or a Unix socket path (/dev/shm/x.sock or @abstract).">
                   Destination
                 </a-tooltip>
               </template>
-              <a-input
-                v-model:value.trim="fallback.dest"
-                placeholder="80 | 127.0.0.1:8080 | /dev/shm/x.sock"
-              />
+              <a-input v-model:value.trim="fallback.dest" placeholder="80 | 127.0.0.1:8080 | /dev/shm/x.sock" />
             </a-form-item>
 
             <a-form-item>
               <template #label>
                 <a-tooltip
-                  title="PROXY protocol version sent to the destination. Off (0) for plain TCP; v1/v2 to preserve client IP if the backend supports it."
-                >
+                  title="PROXY protocol version sent to the destination. Off (0) for plain TCP; v1/v2 to preserve client IP if the backend supports it.">
                   PROXY
                 </a-tooltip>
               </template>
@@ -990,8 +931,8 @@ watch(
       </a-tab-pane>
 
       <!-- ============================== STREAM ============================== -->
-      <a-tab-pane v-if="canEnableStream" key="stream" tab="Stream"
-        ><!-- "Stream" stays literal — it's a wire-format identifier -->
+      <a-tab-pane v-if="canEnableStream" key="stream"
+        tab="Stream"><!-- "Stream" stays literal — it's a wire-format identifier -->
         <a-form :colon="false" :label-col="{ md: { span: 8 } }" :wrapper-col="{ md: { span: 14 } }">
           <a-form-item v-if="protocol !== Protocols.HYSTERIA" label="Transmission">
             <a-select v-model:value="network" :style="{ width: '75%' }">
@@ -1010,10 +951,8 @@ watch(
               <a-switch v-model:checked="inbound.stream.tcp.acceptProxyProtocol" />
             </a-form-item>
             <a-form-item :label="`HTTP ${t('camouflage')}`">
-              <a-switch
-                :checked="inbound.stream.tcp.type === 'http'"
-                @change="(v) => (inbound.stream.tcp.type = v ? 'http' : 'none')"
-              />
+              <a-switch :checked="inbound.stream.tcp.type === 'http'"
+                @change="(v) => (inbound.stream.tcp.type = v ? 'http' : 'none')" />
             </a-form-item>
 
             <template v-if="inbound.stream.tcp.type === 'http'">
@@ -1028,19 +967,21 @@ watch(
               <a-form-item>
                 <template #label>
                   {{ t('pages.inbounds.stream.tcp.path') }}
-                  <a-button size="small" :style="{ marginLeft: '6px' }" @click="inbound.stream.tcp.request.addPath('/')">
-                    <template #icon><PlusOutlined /></template>
+                  <a-button size="small" :style="{ marginLeft: '6px' }"
+                    @click="inbound.stream.tcp.request.addPath('/')">
+                    <template #icon>
+                      <PlusOutlined />
+                    </template>
                   </a-button>
                 </template>
                 <template v-for="(_p, idx) in inbound.stream.tcp.request.path" :key="`tcp-path-${idx}`">
                   <a-input v-model:value="inbound.stream.tcp.request.path[idx]" class="mb-4">
                     <template #addonAfter>
-                      <a-button
-                        v-if="inbound.stream.tcp.request.path.length > 1"
-                        size="small"
-                        @click="inbound.stream.tcp.request.removePath(idx)"
-                      >
-                        <template #icon><MinusOutlined /></template>
+                      <a-button v-if="inbound.stream.tcp.request.path.length > 1" size="small"
+                        @click="inbound.stream.tcp.request.removePath(idx)">
+                        <template #icon>
+                          <MinusOutlined />
+                        </template>
                       </a-button>
                     </template>
                   </a-input>
@@ -1048,17 +989,24 @@ watch(
               </a-form-item>
               <a-form-item :label="t('pages.inbounds.stream.tcp.requestHeader')">
                 <a-button size="small" @click="inbound.stream.tcp.request.addHeader('Host', '')">
-                  <template #icon><PlusOutlined /></template>
+                  <template #icon>
+                    <PlusOutlined />
+                  </template>
                 </a-button>
               </a-form-item>
               <a-form-item :wrapper-col="{ span: 24 }">
-                <a-input-group v-for="(h, idx) in inbound.stream.tcp.request.headers" :key="`tcp-rh-${idx}`" compact class="mb-8">
-                  <a-input :style="{ width: '45%' }" v-model:value="h.name" :placeholder="t('pages.inbounds.stream.general.name')">
+                <a-input-group v-for="(h, idx) in inbound.stream.tcp.request.headers" :key="`tcp-rh-${idx}`" compact
+                  class="mb-8">
+                  <a-input :style="{ width: '45%' }" v-model:value="h.name"
+                    :placeholder="t('pages.inbounds.stream.general.name')">
                     <template #addonBefore>{{ idx + 1 }}</template>
                   </a-input>
-                  <a-input :style="{ width: '45%' }" v-model:value="h.value" :placeholder="t('pages.inbounds.stream.general.value')" />
+                  <a-input :style="{ width: '45%' }" v-model:value="h.value"
+                    :placeholder="t('pages.inbounds.stream.general.value')" />
                   <a-button @click="inbound.stream.tcp.request.removeHeader(idx)">
-                    <template #icon><MinusOutlined /></template>
+                    <template #icon>
+                      <MinusOutlined />
+                    </template>
                   </a-button>
                 </a-input-group>
               </a-form-item>
@@ -1075,18 +1023,26 @@ watch(
                 <a-input v-model:value="inbound.stream.tcp.response.reason" />
               </a-form-item>
               <a-form-item :label="t('pages.inbounds.stream.tcp.responseHeader')">
-                <a-button size="small" @click="inbound.stream.tcp.response.addHeader('Content-Type', 'application/octet-stream')">
-                  <template #icon><PlusOutlined /></template>
+                <a-button size="small"
+                  @click="inbound.stream.tcp.response.addHeader('Content-Type', 'application/octet-stream')">
+                  <template #icon>
+                    <PlusOutlined />
+                  </template>
                 </a-button>
               </a-form-item>
               <a-form-item :wrapper-col="{ span: 24 }">
-                <a-input-group v-for="(h, idx) in inbound.stream.tcp.response.headers" :key="`tcp-rsh-${idx}`" compact class="mb-8">
-                  <a-input :style="{ width: '45%' }" v-model:value="h.name" :placeholder="t('pages.inbounds.stream.general.name')">
+                <a-input-group v-for="(h, idx) in inbound.stream.tcp.response.headers" :key="`tcp-rsh-${idx}`" compact
+                  class="mb-8">
+                  <a-input :style="{ width: '45%' }" v-model:value="h.name"
+                    :placeholder="t('pages.inbounds.stream.general.name')">
                     <template #addonBefore>{{ idx + 1 }}</template>
                   </a-input>
-                  <a-input :style="{ width: '45%' }" v-model:value="h.value" :placeholder="t('pages.inbounds.stream.general.value')" />
+                  <a-input :style="{ width: '45%' }" v-model:value="h.value"
+                    :placeholder="t('pages.inbounds.stream.general.value')" />
                   <a-button @click="inbound.stream.tcp.response.removeHeader(idx)">
-                    <template #icon><MinusOutlined /></template>
+                    <template #icon>
+                      <MinusOutlined />
+                    </template>
                   </a-button>
                 </a-input-group>
               </a-form-item>
@@ -1131,17 +1087,23 @@ watch(
             </a-form-item>
             <a-form-item :label="t('pages.inbounds.stream.tcp.requestHeader')">
               <a-button size="small" @click="inbound.stream.ws.addHeader('', '')">
-                <template #icon><PlusOutlined /></template>
+                <template #icon>
+                  <PlusOutlined />
+                </template>
               </a-button>
             </a-form-item>
             <a-form-item :wrapper-col="{ span: 24 }">
               <a-input-group v-for="(h, idx) in inbound.stream.ws.headers" :key="`ws-h-${idx}`" compact class="mb-8">
-                <a-input :style="{ width: '45%' }" v-model:value="h.name" :placeholder="t('pages.inbounds.stream.general.name')">
+                <a-input :style="{ width: '45%' }" v-model:value="h.name"
+                  :placeholder="t('pages.inbounds.stream.general.name')">
                   <template #addonBefore>{{ idx + 1 }}</template>
                 </a-input>
-                <a-input :style="{ width: '45%' }" v-model:value="h.value" :placeholder="t('pages.inbounds.stream.general.value')" />
+                <a-input :style="{ width: '45%' }" v-model:value="h.value"
+                  :placeholder="t('pages.inbounds.stream.general.value')" />
                 <a-button @click="inbound.stream.ws.removeHeader(idx)">
-                  <template #icon><MinusOutlined /></template>
+                  <template #icon>
+                    <MinusOutlined />
+                  </template>
                 </a-button>
               </a-input-group>
             </a-form-item>
@@ -1173,17 +1135,24 @@ watch(
             </a-form-item>
             <a-form-item :label="t('pages.inbounds.stream.tcp.requestHeader')">
               <a-button size="small" @click="inbound.stream.httpupgrade.addHeader('', '')">
-                <template #icon><PlusOutlined /></template>
+                <template #icon>
+                  <PlusOutlined />
+                </template>
               </a-button>
             </a-form-item>
             <a-form-item :wrapper-col="{ span: 24 }">
-              <a-input-group v-for="(h, idx) in inbound.stream.httpupgrade.headers" :key="`hu-h-${idx}`" compact class="mb-8">
-                <a-input :style="{ width: '45%' }" v-model:value="h.name" :placeholder="t('pages.inbounds.stream.general.name')">
+              <a-input-group v-for="(h, idx) in inbound.stream.httpupgrade.headers" :key="`hu-h-${idx}`" compact
+                class="mb-8">
+                <a-input :style="{ width: '45%' }" v-model:value="h.name"
+                  :placeholder="t('pages.inbounds.stream.general.name')">
                   <template #addonBefore>{{ idx + 1 }}</template>
                 </a-input>
-                <a-input :style="{ width: '45%' }" v-model:value="h.value" :placeholder="t('pages.inbounds.stream.general.value')" />
+                <a-input :style="{ width: '45%' }" v-model:value="h.value"
+                  :placeholder="t('pages.inbounds.stream.general.value')" />
                 <a-button @click="inbound.stream.httpupgrade.removeHeader(idx)">
-                  <template #icon><MinusOutlined /></template>
+                  <template #icon>
+                    <MinusOutlined />
+                  </template>
                 </a-button>
               </a-input-group>
             </a-form-item>
@@ -1199,17 +1168,23 @@ watch(
             </a-form-item>
             <a-form-item :label="t('pages.inbounds.stream.tcp.requestHeader')">
               <a-button size="small" @click="inbound.stream.xhttp.addHeader('', '')">
-                <template #icon><PlusOutlined /></template>
+                <template #icon>
+                  <PlusOutlined />
+                </template>
               </a-button>
             </a-form-item>
             <a-form-item :wrapper-col="{ span: 24 }">
               <a-input-group v-for="(h, idx) in inbound.stream.xhttp.headers" :key="`xh-h-${idx}`" compact class="mb-8">
-                <a-input :style="{ width: '45%' }" v-model:value="h.name" :placeholder="t('pages.inbounds.stream.general.name')">
+                <a-input :style="{ width: '45%' }" v-model:value="h.name"
+                  :placeholder="t('pages.inbounds.stream.general.name')">
                   <template #addonBefore>{{ idx + 1 }}</template>
                 </a-input>
-                <a-input :style="{ width: '45%' }" v-model:value="h.value" :placeholder="t('pages.inbounds.stream.general.value')" />
+                <a-input :style="{ width: '45%' }" v-model:value="h.value"
+                  :placeholder="t('pages.inbounds.stream.general.value')" />
                 <a-button @click="inbound.stream.xhttp.removeHeader(idx)">
-                  <template #icon><MinusOutlined /></template>
+                  <template #icon>
+                    <MinusOutlined />
+                  </template>
                 </a-button>
               </a-input-group>
             </a-form-item>
@@ -1228,7 +1203,8 @@ watch(
               <a-input v-model:value="inbound.stream.xhttp.scStreamUpServerSecs" />
             </a-form-item>
             <a-form-item label="Server Max Header Bytes">
-              <a-input-number v-model:value="inbound.stream.xhttp.serverMaxHeaderBytes" :min="0" placeholder="0 (default)" />
+              <a-input-number v-model:value="inbound.stream.xhttp.serverMaxHeaderBytes" :min="0"
+                placeholder="0 (default)" />
             </a-form-item>
             <a-form-item label="Padding Bytes">
               <a-input v-model:value="inbound.stream.xhttp.xPaddingBytes" />
@@ -1271,8 +1247,7 @@ watch(
             </a-form-item>
             <a-form-item
               v-if="inbound.stream.xhttp.sessionPlacement && inbound.stream.xhttp.sessionPlacement !== 'path'"
-              label="Session Key"
-            >
+              label="Session Key">
               <a-input v-model:value="inbound.stream.xhttp.sessionKey" placeholder="x_session" />
             </a-form-item>
             <a-form-item label="Sequence Placement">
@@ -1284,10 +1259,8 @@ watch(
                 <a-select-option value="query">query</a-select-option>
               </a-select>
             </a-form-item>
-            <a-form-item
-              v-if="inbound.stream.xhttp.seqPlacement && inbound.stream.xhttp.seqPlacement !== 'path'"
-              label="Sequence Key"
-            >
+            <a-form-item v-if="inbound.stream.xhttp.seqPlacement && inbound.stream.xhttp.seqPlacement !== 'path'"
+              label="Sequence Key">
               <a-input v-model:value="inbound.stream.xhttp.seqKey" placeholder="x_seq" />
             </a-form-item>
             <a-form-item v-if="inbound.stream.xhttp.mode === 'packet-up'" label="Uplink Data Placement">
@@ -1301,8 +1274,7 @@ watch(
             </a-form-item>
             <a-form-item
               v-if="inbound.stream.xhttp.mode === 'packet-up' && inbound.stream.xhttp.uplinkDataPlacement && inbound.stream.xhttp.uplinkDataPlacement !== 'body'"
-              label="Uplink Data Key"
-            >
+              label="Uplink Data Key">
               <a-input v-model:value="inbound.stream.xhttp.uplinkDataKey" placeholder="x_data" />
             </a-form-item>
             <a-form-item label="No SSE Header">
@@ -1327,7 +1299,8 @@ watch(
             <a-form-item label="Cipher Suites">
               <a-select v-model:value="inbound.stream.tls.cipherSuites">
                 <a-select-option value="">Auto</a-select-option>
-                <a-select-option v-for="[label, val] in CIPHER_SUITES" :key="val" :value="val">{{ label }}</a-select-option>
+                <a-select-option v-for="[label, val] in CIPHER_SUITES" :key="val" :value="val">{{ label
+                  }}</a-select-option>
               </a-select>
             </a-form-item>
             <a-form-item label="Min/Max Version">
@@ -1347,12 +1320,8 @@ watch(
               </a-select>
             </a-form-item>
             <a-form-item label="ALPN">
-              <a-select
-                v-model:value="inbound.stream.tls.alpn"
-                mode="multiple"
-                :style="{ width: '100%' }"
-                :token-separators="[',']"
-              >
+              <a-select v-model:value="inbound.stream.tls.alpn" mode="multiple" :style="{ width: '100%' }"
+                :token-separators="[',']">
                 <a-select-option v-for="a in ALPNS" :key="a" :value="a">{{ a }}</a-select-option>
               </a-select>
             </a-form-item>
@@ -1379,15 +1348,15 @@ watch(
               <a-form-item label=" ">
                 <a-space>
                   <a-button v-if="idx === 0" type="primary" size="small" @click="inbound.stream.tls.addCert()">
-                    <template #icon><PlusOutlined /></template>
+                    <template #icon>
+                      <PlusOutlined />
+                    </template>
                   </a-button>
-                  <a-button
-                    v-if="inbound.stream.tls.certs.length > 1"
-                    type="primary"
-                    size="small"
-                    @click="inbound.stream.tls.removeCert(idx)"
-                  >
-                    <template #icon><MinusOutlined /></template>
+                  <a-button v-if="inbound.stream.tls.certs.length > 1" type="primary" size="small"
+                    @click="inbound.stream.tls.removeCert(idx)">
+                    <template #icon>
+                      <MinusOutlined />
+                    </template>
                   </a-button>
                 </a-space>
               </a-form-item>
@@ -1488,7 +1457,8 @@ watch(
               <a-input v-model:value="inbound.stream.reality.settings.spiderX" />
             </a-form-item>
             <a-form-item :label="t('pages.inbounds.publicKey')">
-              <a-textarea v-model:value="inbound.stream.reality.settings.publicKey" :auto-size="{ minRows: 1, maxRows: 4 }" />
+              <a-textarea v-model:value="inbound.stream.reality.settings.publicKey"
+                :auto-size="{ minRows: 1, maxRows: 4 }" />
             </a-form-item>
             <a-form-item :label="t('pages.inbounds.privatekey')">
               <a-textarea v-model:value="inbound.stream.reality.privateKey" :auto-size="{ minRows: 1, maxRows: 4 }" />
@@ -1503,7 +1473,8 @@ watch(
               <a-textarea v-model:value="inbound.stream.reality.mldsa65Seed" :auto-size="{ minRows: 2, maxRows: 6 }" />
             </a-form-item>
             <a-form-item label="mldsa65 Verify">
-              <a-textarea v-model:value="inbound.stream.reality.settings.mldsa65Verify" :auto-size="{ minRows: 2, maxRows: 6 }" />
+              <a-textarea v-model:value="inbound.stream.reality.settings.mldsa65Verify"
+                :auto-size="{ minRows: 2, maxRows: 6 }" />
             </a-form-item>
             <a-form-item label=" ">
               <a-space>
@@ -1517,23 +1488,16 @@ watch(
           <a-divider :style="{ margin: '5px 0 0' }" />
           <a-form-item label="External Proxy">
             <a-switch v-model:checked="externalProxy" />
-            <a-button
-              v-if="externalProxy"
-              size="small"
-              type="primary"
-              :style="{ marginLeft: '10px' }"
-              @click="inbound.stream.externalProxy.push({ forceTls: 'same', dest: '', port: 443, remark: '' })"
-            >
-              <template #icon><PlusOutlined /></template>
+            <a-button v-if="externalProxy" size="small" type="primary" :style="{ marginLeft: '10px' }"
+              @click="inbound.stream.externalProxy.push({ forceTls: 'same', dest: '', port: 443, remark: '' })">
+              <template #icon>
+                <PlusOutlined />
+              </template>
             </a-button>
           </a-form-item>
           <a-form-item v-if="externalProxy" :wrapper-col="{ span: 24 }">
-            <a-input-group
-              v-for="(row, idx) in inbound.stream.externalProxy"
-              :key="`ep-${idx}`"
-              compact
-              :style="{ margin: '8px 0' }"
-            >
+            <a-input-group v-for="(row, idx) in inbound.stream.externalProxy" :key="`ep-${idx}`" compact
+              :style="{ margin: '8px 0' }">
               <a-tooltip title="Force TLS">
                 <a-select v-model:value="row.forceTls" :style="{ width: '20%' }">
                   <a-select-option value="same">{{ t('pages.inbounds.same') }}</a-select-option>
@@ -1616,12 +1580,8 @@ watch(
               <a-input v-model:value="inbound.stream.sockopt.interfaceName" />
             </a-form-item>
             <a-form-item label="Trusted X-Forwarded-For">
-              <a-select
-                v-model:value="inbound.stream.sockopt.trustedXForwardedFor"
-                mode="tags"
-                :style="{ width: '100%' }"
-                :token-separators="[',']"
-              >
+              <a-select v-model:value="inbound.stream.sockopt.trustedXForwardedFor" mode="tags"
+                :style="{ width: '100%' }" :token-separators="[',']">
                 <a-select-option value="CF-Connecting-IP">CF-Connecting-IP</a-select-option>
                 <a-select-option value="X-Real-IP">X-Real-IP</a-select-option>
                 <a-select-option value="True-Client-IP">True-Client-IP</a-select-option>
@@ -1636,8 +1596,7 @@ watch(
       </a-tab-pane>
 
       <!-- ============================== SNIFFING ============================== -->
-      <a-tab-pane key="sniffing" tab="Sniffing"
-        ><!-- "Sniffing" stays literal — xray config term -->
+      <a-tab-pane key="sniffing" tab="Sniffing"><!-- "Sniffing" stays literal — xray config term -->
         <a-form :colon="false" :label-col="{ md: { span: 8 } }" :wrapper-col="{ md: { span: 14 } }">
           <a-form-item label="Enabled">
             <a-switch v-model:checked="inbound.sniffing.enabled" />
@@ -1655,22 +1614,12 @@ watch(
               <a-switch v-model:checked="inbound.sniffing.routeOnly" />
             </a-form-item>
             <a-form-item label="IPs excluded">
-              <a-select
-                v-model:value="inbound.sniffing.ipsExcluded"
-                mode="tags"
-                :token-separators="[',']"
-                placeholder="IP/CIDR/geoip:*/ext:*"
-                :style="{ width: '100%' }"
-              />
+              <a-select v-model:value="inbound.sniffing.ipsExcluded" mode="tags" :token-separators="[',']"
+                placeholder="IP/CIDR/geoip:*/ext:*" :style="{ width: '100%' }" />
             </a-form-item>
             <a-form-item label="Domains excluded">
-              <a-select
-                v-model:value="inbound.sniffing.domainsExcluded"
-                mode="tags"
-                :token-separators="[',']"
-                placeholder="domain:*/ext:*"
-                :style="{ width: '100%' }"
-              />
+              <a-select v-model:value="inbound.sniffing.domainsExcluded" mode="tags" :token-separators="[',']"
+                placeholder="domain:*/ext:*" :style="{ width: '100%' }" />
             </a-form-item>
           </template>
         </a-form>
@@ -1678,28 +1627,17 @@ watch(
 
       <!-- ============================== ADVANCED ============================== -->
       <a-tab-pane key="advanced" :tab="t('pages.xray.advancedTemplate')">
-        <a-alert
-          type="info"
-          show-icon
+        <a-alert type="info" show-icon
           message="Edit raw stream JSON to access advanced fields we don't yet expose through the form."
-          class="mb-12"
-        />
+          class="mb-12" />
         <a-form layout="vertical">
           <a-form-item label="streamSettings">
-            <a-textarea
-              v-model:value="advancedJson.stream"
-              :auto-size="{ minRows: 10, maxRows: 24 }"
-              spellcheck="false"
-              class="json-editor"
-            />
+            <a-textarea v-model:value="advancedJson.stream" :auto-size="{ minRows: 10, maxRows: 24 }" spellcheck="false"
+              class="json-editor" />
           </a-form-item>
           <a-form-item label="sniffing (overrides the Sniffing tab when set)">
-            <a-textarea
-              v-model:value="advancedJson.sniffing"
-              :auto-size="{ minRows: 6, maxRows: 16 }"
-              spellcheck="false"
-              class="json-editor"
-            />
+            <a-textarea v-model:value="advancedJson.sniffing" :auto-size="{ minRows: 6, maxRows: 16 }"
+              spellcheck="false" class="json-editor" />
           </a-form-item>
         </a-form>
       </a-tab-pane>
@@ -1708,12 +1646,29 @@ watch(
 </template>
 
 <style scoped>
-.mt-4 { margin-top: 4px; }
-.mt-8 { margin-top: 8px; }
-.mt-12 { margin-top: 12px; }
-.mb-4 { margin-bottom: 4px; }
-.mb-8 { margin-bottom: 8px; }
-.mb-12 { margin-bottom: 12px; }
+.mt-4 {
+  margin-top: 4px;
+}
+
+.mt-8 {
+  margin-top: 8px;
+}
+
+.mt-12 {
+  margin-top: 12px;
+}
+
+.mb-4 {
+  margin-bottom: 4px;
+}
+
+.mb-8 {
+  margin-bottom: 8px;
+}
+
+.mb-12 {
+  margin-bottom: 12px;
+}
 
 .random-icon {
   margin-left: 4px;
@@ -1736,6 +1691,7 @@ watch(
   width: 100%;
   border-collapse: collapse;
 }
+
 .client-summary th,
 .client-summary td {
   padding: 4px 8px;
@@ -1749,6 +1705,7 @@ watch(
   gap: 8px;
   margin: 8px 0;
 }
+
 .fallbacks-title {
   font-weight: 500;
   flex: 1;
