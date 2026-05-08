@@ -19,6 +19,10 @@
   <a-form-item label='MTU'>
     <a-input-number v-model.number="inbound.settings.mtu"></a-input-number>
   </a-form-item>
+  <a-form-item label='DNS'>
+    <a-input v-model.trim="inbound.settings.DNS" placeholder="1.1.1.1, 1.0.0.1">
+    </a-input>
+  </a-form-item>
   <a-form-item label='No Kernel Tun'>
     <a-switch v-model="inbound.settings.noKernelTun"></a-switch>
   </a-form-item>
