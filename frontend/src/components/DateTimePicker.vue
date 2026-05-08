@@ -142,107 +142,110 @@ function onAntChange(next) {
   background: transparent;
 }
 
-.vpd-main .vpd-content {
+/* Width is exactly 316px so the 7-day grid (7 × 40px + 36px padding)
+ * fits flush. Don't add `border` here — box-sizing: border-box would
+ * eat 2px from the content width and the 7th day-cell of each row
+ * wraps. Use box-shadow + a wider radius for the visual edge instead. */
+.vpd-wrapper .vpd-content {
   background: #fff;
   color: rgba(0, 0, 0, 0.88);
   box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
               0 3px 6px -4px rgba(0, 0, 0, 0.12),
               0 9px 28px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(5, 5, 5, 0.06);
   border-radius: 8px;
   overflow: hidden;
 }
 
-.vpd-main .vpd-header {
+.vpd-wrapper .vpd-header {
   background: #1677ff;
   color: #fff;
   border-radius: 8px 8px 0 0;
 }
 
-.vpd-main .vpd-header .vpd-year-label,
-.vpd-main .vpd-header .vpd-date,
-.vpd-main .vpd-header .vpd-locales li {
+.vpd-wrapper .vpd-header .vpd-year-label,
+.vpd-wrapper .vpd-header .vpd-date,
+.vpd-wrapper .vpd-header .vpd-locales li {
   color: #fff;
 }
 
-.vpd-main .vpd-body {
+.vpd-wrapper .vpd-body {
   background: #fff;
   color: rgba(0, 0, 0, 0.88);
 }
 
-.vpd-main .vpd-body .vpd-month-label,
-.vpd-main .vpd-body .vpd-month-label > span {
+.vpd-wrapper .vpd-body .vpd-month-label,
+.vpd-wrapper .vpd-body .vpd-month-label > span {
   color: rgba(0, 0, 0, 0.88);
 }
 
-.vpd-main .vpd-body .vpd-week,
-.vpd-main .vpd-body .vpd-weekday {
+.vpd-wrapper .vpd-body .vpd-week,
+.vpd-wrapper .vpd-body .vpd-weekday {
   color: rgba(0, 0, 0, 0.55);
 }
 
-.vpd-main .vpd-body .vpd-controls .vpd-next,
-.vpd-main .vpd-body .vpd-controls .vpd-prev {
+.vpd-wrapper .vpd-body .vpd-controls .vpd-next,
+.vpd-wrapper .vpd-body .vpd-controls .vpd-prev {
   color: rgba(0, 0, 0, 0.65);
 }
 
 /* The picker's <arrow> component renders an inline SVG with a hardcoded
  * `fill="#000"` attribute. Override the path fill via CSS so the arrow
  * is visible in every theme. */
-.vpd-main .vpd-next svg path,
-.vpd-main .vpd-prev svg path {
+.vpd-wrapper .vpd-next svg path,
+.vpd-wrapper .vpd-prev svg path {
   fill: rgba(0, 0, 0, 0.65);
 }
 
-.vpd-main .vpd-body .vpd-controls .vpd-next:hover svg path,
-.vpd-main .vpd-body .vpd-controls .vpd-prev:hover svg path {
+.vpd-wrapper .vpd-body .vpd-controls .vpd-next:hover svg path,
+.vpd-wrapper .vpd-body .vpd-controls .vpd-prev:hover svg path {
   fill: #1677ff;
 }
 
 /* The picker paints disabled days as `darken(#fff, 20%)` (~#cccccc) which
  * is invisible on white and dark themes alike. Reset the day text color
  * across all states so days are always readable. */
-.vpd-main .vpd-day,
-.vpd-main .vpd-day .vpd-day-text {
+.vpd-wrapper .vpd-day,
+.vpd-wrapper .vpd-day .vpd-day-text {
   color: rgba(0, 0, 0, 0.88) !important;
 }
 
-.vpd-main .vpd-day[disabled='true'],
-.vpd-main .vpd-day[disabled='true'] .vpd-day-text {
+.vpd-wrapper .vpd-day[disabled='true'],
+.vpd-wrapper .vpd-day[disabled='true'] .vpd-day-text {
   color: rgba(0, 0, 0, 0.25) !important;
 }
 
-.vpd-main .vpd-day:not([disabled='true']):hover .vpd-day-text,
-.vpd-main .vpd-day.vpd-selected .vpd-day-text {
+.vpd-wrapper .vpd-day:not([disabled='true']):hover .vpd-day-text,
+.vpd-wrapper .vpd-day.vpd-selected .vpd-day-text {
   color: #fff !important;
 }
 
-.vpd-main .vpd-actions button {
+.vpd-wrapper .vpd-actions button {
   color: rgba(0, 0, 0, 0.88);
   background: transparent;
 }
 
-.vpd-main .vpd-actions button:hover {
+.vpd-wrapper .vpd-actions button:hover {
   background: rgba(0, 0, 0, 0.04);
   color: #1677ff;
 }
 
-.vpd-main .vpd-addon-list,
-.vpd-main .vpd-addon-list-content {
+.vpd-wrapper .vpd-addon-list,
+.vpd-wrapper .vpd-addon-list-content {
   background: #fff;
   color: rgba(0, 0, 0, 0.88);
 }
 
-.vpd-main .vpd-addon-list-item {
+.vpd-wrapper .vpd-addon-list-item {
   color: rgba(0, 0, 0, 0.88);
   border-color: #fff;
 }
 
-.vpd-main .vpd-addon-list-item.vpd-selected,
-.vpd-main .vpd-addon-list-item:hover {
+.vpd-wrapper .vpd-addon-list-item.vpd-selected,
+.vpd-wrapper .vpd-addon-list-item:hover {
   background: rgba(0, 0, 0, 0.04);
 }
 
-.vpd-main .vpd-close-addon {
+.vpd-wrapper .vpd-close-addon {
   color: rgba(0, 0, 0, 0.65);
   background: rgba(0, 0, 0, 0.06);
 }
@@ -272,80 +275,79 @@ body.dark .vpd-main .vpd-icon-btn {
   color: rgba(255, 255, 255, 0.75) !important;
 }
 
-body.dark .vpd-main .vpd-content {
+body.dark .vpd-wrapper .vpd-content {
   background: #1a2c4d;
   color: rgba(255, 255, 255, 0.88);
-  border-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.32),
               0 3px 6px -4px rgba(0, 0, 0, 0.48),
               0 9px 28px 8px rgba(0, 0, 0, 0.2);
 }
 
-body.dark .vpd-main .vpd-body {
+body.dark .vpd-wrapper .vpd-body {
   background: #1a2c4d;
   color: rgba(255, 255, 255, 0.88);
 }
 
-body.dark .vpd-main .vpd-body .vpd-month-label,
-body.dark .vpd-main .vpd-body .vpd-month-label > span {
+body.dark .vpd-wrapper .vpd-body .vpd-month-label,
+body.dark .vpd-wrapper .vpd-body .vpd-month-label > span {
   color: rgba(255, 255, 255, 0.88);
 }
 
-body.dark .vpd-main .vpd-body .vpd-week,
-body.dark .vpd-main .vpd-body .vpd-weekday {
+body.dark .vpd-wrapper .vpd-body .vpd-week,
+body.dark .vpd-wrapper .vpd-body .vpd-weekday {
   color: rgba(255, 255, 255, 0.55);
 }
 
-body.dark .vpd-main .vpd-body .vpd-controls .vpd-next,
-body.dark .vpd-main .vpd-body .vpd-controls .vpd-prev {
+body.dark .vpd-wrapper .vpd-body .vpd-controls .vpd-next,
+body.dark .vpd-wrapper .vpd-body .vpd-controls .vpd-prev {
   color: rgba(255, 255, 255, 0.65);
 }
 
-body.dark .vpd-main .vpd-next svg path,
-body.dark .vpd-main .vpd-prev svg path {
+body.dark .vpd-wrapper .vpd-next svg path,
+body.dark .vpd-wrapper .vpd-prev svg path {
   fill: rgba(255, 255, 255, 0.75);
 }
 
-body.dark .vpd-main .vpd-body .vpd-controls .vpd-next:hover svg path,
-body.dark .vpd-main .vpd-body .vpd-controls .vpd-prev:hover svg path {
+body.dark .vpd-wrapper .vpd-body .vpd-controls .vpd-next:hover svg path,
+body.dark .vpd-wrapper .vpd-body .vpd-controls .vpd-prev:hover svg path {
   fill: #4096ff;
 }
 
-body.dark .vpd-main .vpd-day,
-body.dark .vpd-main .vpd-day .vpd-day-text {
+body.dark .vpd-wrapper .vpd-day,
+body.dark .vpd-wrapper .vpd-day .vpd-day-text {
   color: rgba(255, 255, 255, 0.88) !important;
 }
 
-body.dark .vpd-main .vpd-day[disabled='true'],
-body.dark .vpd-main .vpd-day[disabled='true'] .vpd-day-text {
+body.dark .vpd-wrapper .vpd-day[disabled='true'],
+body.dark .vpd-wrapper .vpd-day[disabled='true'] .vpd-day-text {
   color: rgba(255, 255, 255, 0.25) !important;
 }
 
-body.dark .vpd-main .vpd-actions button {
+body.dark .vpd-wrapper .vpd-actions button {
   color: rgba(255, 255, 255, 0.88);
 }
 
-body.dark .vpd-main .vpd-actions button:hover {
+body.dark .vpd-wrapper .vpd-actions button:hover {
   background: rgba(255, 255, 255, 0.06);
 }
 
-body.dark .vpd-main .vpd-addon-list,
-body.dark .vpd-main .vpd-addon-list-content {
+body.dark .vpd-wrapper .vpd-addon-list,
+body.dark .vpd-wrapper .vpd-addon-list-content {
   background: #1a2c4d;
   color: rgba(255, 255, 255, 0.88);
 }
 
-body.dark .vpd-main .vpd-addon-list-item {
+body.dark .vpd-wrapper .vpd-addon-list-item {
   color: rgba(255, 255, 255, 0.88);
   border-color: transparent;
 }
 
-body.dark .vpd-main .vpd-addon-list-item.vpd-selected,
-body.dark .vpd-main .vpd-addon-list-item:hover {
+body.dark .vpd-wrapper .vpd-addon-list-item.vpd-selected,
+body.dark .vpd-wrapper .vpd-addon-list-item:hover {
   background: rgba(255, 255, 255, 0.06);
 }
 
-body.dark .vpd-main .vpd-close-addon {
+body.dark .vpd-wrapper .vpd-close-addon {
   color: rgba(255, 255, 255, 0.65);
   background: rgba(255, 255, 255, 0.08);
 }
@@ -366,18 +368,17 @@ html[data-theme='ultra-dark'] .vpd-main .vpd-icon-btn {
   color: rgba(255, 255, 255, 0.75) !important;
 }
 
-html[data-theme='ultra-dark'] .vpd-main .vpd-content {
+html[data-theme='ultra-dark'] .vpd-wrapper .vpd-content {
   background: #141414;
   color: rgba(255, 255, 255, 0.88);
-  border-color: rgba(255, 255, 255, 0.08);
 }
 
-html[data-theme='ultra-dark'] .vpd-main .vpd-body {
+html[data-theme='ultra-dark'] .vpd-wrapper .vpd-body {
   background: #141414;
 }
 
-html[data-theme='ultra-dark'] .vpd-main .vpd-addon-list,
-html[data-theme='ultra-dark'] .vpd-main .vpd-addon-list-content {
+html[data-theme='ultra-dark'] .vpd-wrapper .vpd-addon-list,
+html[data-theme='ultra-dark'] .vpd-wrapper .vpd-addon-list-content {
   background: #141414;
 }
 </style>
