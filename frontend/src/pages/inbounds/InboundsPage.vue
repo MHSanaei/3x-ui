@@ -19,6 +19,8 @@ import InboundList from './InboundList.vue';
 import InboundFormModal from './InboundFormModal.vue';
 import ClientFormModal from './ClientFormModal.vue';
 import ClientBulkModal from './ClientBulkModal.vue';
+import InboundInfoModal from './InboundInfoModal.vue';
+import QrCodeModal from './QrCodeModal.vue';
 import { useInbounds } from './useInbounds.js';
 
 const antdThemeConfig = computed(() => ({
@@ -38,6 +40,8 @@ const {
   subSettings,
   tgBotEnable,
   ipLimitEnable,
+  remarkModel,
+  lastOnlineMap,
   refresh,
   fetchDefaultSettings,
 } = useInbounds();
@@ -64,6 +68,54 @@ const clientIndex = ref(null);
 
 const bulkOpen = ref(false);
 const bulkDbInbound = ref(null);
+
+// === Info / QR-code modals ===========================================
+const infoOpen = ref(false);
+const infoDbInbound = ref(null);
+const infoClientIndex = ref(0);
+
+const qrOpen = ref(false);
+const qrDbInbound = ref(null);
+
+// `checkFallback` mirrors the legacy helper: when an inbound listens
+// on a unix-socket fallback (`@<name>`), point the link generator at
+// the root inbound that owns the listen address so QRs/links carry
+// the externally-reachable host:port and the right TLS state.
+function checkFallback(dbInbound) {
+  // We don't keep parsed Inbounds in state right now (the page works
+  // off DBInbounds); compute on the fly.
+  if (!dbInbound.listen?.startsWith?.('@')) return dbInbound;
+  for (const candidate of dbInbounds.value) {
+    if (candidate.id === dbInbound.id) continue;
+    const parsed = candidate.toInbound();
+    if (!parsed.isTcp) continue;
+    if (!['trojan', 'vless'].includes(parsed.protocol)) continue;
+    const fallbacks = parsed.settings.fallbacks || [];
+    if (!fallbacks.find((f) => f.dest === dbInbound.listen)) continue;
+    // Build a one-off DBInbound copy with the parent's listen/port +
+    // copied stream so the link gen sees the public endpoint.
+    const projected = JSON.parse(JSON.stringify(dbInbound));
+    projected.listen = candidate.listen;
+    projected.port = candidate.port;
+    const inheritedStream = parsed.stream;
+    const ownInbound = dbInbound.toInbound();
+    ownInbound.stream.security = inheritedStream.security;
+    ownInbound.stream.tls = inheritedStream.tls;
+    ownInbound.stream.externalProxy = inheritedStream.externalProxy;
+    projected.streamSettings = ownInbound.stream.toString();
+    // Re-wrap so callers get the same DBInbound shape they had.
+    return new dbInbound.constructor(projected);
+  }
+  return dbInbound;
+}
+
+function findClientIndex(dbInbound) {
+  // For now we always show client 0 — multi-client navigation lives
+  // in the per-inbound expand-row table (5f-vi). A future commit will
+  // route client.email through this helper.
+  void dbInbound;
+  return 0;
+}
 
 function onAddInbound() {
   formMode.value = 'add';
@@ -203,6 +255,15 @@ function onRowAction({ key, dbInbound }) {
       break;
     case 'addBulkClient':
       openAddBulkClient(dbInbound);
+      break;
+    case 'showInfo':
+      infoDbInbound.value = checkFallback(dbInbound);
+      infoClientIndex.value = findClientIndex(dbInbound);
+      infoOpen.value = true;
+      break;
+    case 'qrcode':
+      qrDbInbound.value = checkFallback(dbInbound);
+      qrOpen.value = true;
       break;
     case 'delete':
       confirmDelete(dbInbound);
@@ -344,6 +405,23 @@ function onRowAction({ key, dbInbound }) {
         :tg-bot-enable="tgBotEnable"
         :ip-limit-enable="ipLimitEnable"
         @saved="refresh"
+      />
+      <InboundInfoModal
+        v-model:open="infoOpen"
+        :db-inbound="infoDbInbound"
+        :client-index="infoClientIndex"
+        :remark-model="remarkModel"
+        :expire-diff="expireDiff"
+        :traffic-diff="trafficDiff"
+        :ip-limit-enable="ipLimitEnable"
+        :tg-bot-enable="tgBotEnable"
+        :sub-settings="subSettings"
+        :last-online-map="lastOnlineMap"
+      />
+      <QrCodeModal
+        v-model:open="qrOpen"
+        :db-inbound="qrDbInbound"
+        :remark-model="remarkModel"
       />
     </a-layout>
   </a-config-provider>
