@@ -201,9 +201,9 @@ async function login() {
 }
 
 .login-app.is-dark {
-  --bg-page: #222d42;        /* legacy .dark .under  */
-  --bg-wave-header: #0a2227; /* legacy --dark-color-login-background */
-  --bg-card: #151f31;        /* legacy --dark-color-surface-100 */
+  --bg-page: #222d42;        /* legacy .dark .under = surface-200 */
+  --bg-wave-header: #0a1222; /* legacy --dark-color-background (login-bg defaults to this) */
+  --bg-card: #151f31;        /* legacy surface-100 */
   --color-title: rgba(255, 255, 255, 0.92);
   --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.45);
   --wave-fill: #222d42;
@@ -211,11 +211,15 @@ async function login() {
 }
 
 .login-app.is-dark.is-ultra {
-  --bg-page: #0c0e12;
-  --bg-wave-header: #0a2227;
-  --bg-card: #0c0e12;
-  --wave-fill: #0f2d32;
-  --wave-fill-bottom: #0f2d32;
+  --bg-page: #0f2d32;        /* legacy ultra .under = login-wave override */
+  --bg-wave-header: #0a2227; /* legacy ultra --dark-color-login-background */
+  --bg-card: #0c0e12;        /* legacy ultra surface-100 */
+  /* Legacy ultra-dark uses #0f2d32 for both wave-fill and bg-page,
+   * which leaves near-zero contrast against #0a2227 and the wave
+   * reads as static. Bump to a noticeably lighter teal so motion is
+   * visible — every other value stays legacy-true. */
+  --wave-fill: #1f4d52;
+  --wave-fill-bottom: #1f4d52;
 }
 
 /* Both ant-layout and ant-layout-content default to opaque backgrounds.
