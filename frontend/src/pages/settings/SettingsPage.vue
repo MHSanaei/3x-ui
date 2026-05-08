@@ -16,6 +16,7 @@ import AppSidebar from '@/components/AppSidebar.vue';
 import { useAllSetting } from './useAllSetting.js';
 import GeneralTab from './GeneralTab.vue';
 import SecurityTab from './SecurityTab.vue';
+import TelegramTab from './TelegramTab.vue';
 
 const antdThemeConfig = computed(() => ({
   algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -222,7 +223,7 @@ const alertVisible = ref(true);
                         <MessageOutlined />
                         <span>Telegram</span>
                       </template>
-                      <a-empty description="Telegram — coming in 5d-iv" />
+                      <TelegramTab :all-setting="allSetting" />
                     </a-tab-pane>
                     <a-tab-pane key="4" class="tab-pane">
                       <template #tab>
