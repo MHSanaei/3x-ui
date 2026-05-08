@@ -1,26 +1,30 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { theme as antdTheme } from 'ant-design-vue';
 
 import { theme as themeState } from '@/composables/useTheme.js';
+import { useStatus } from '@/composables/useStatus.js';
+import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
+import StatusCard from './StatusCard.vue';
 
 // Drive AD-Vue 4's built-in dark algorithm from our reactive theme.
 const antdThemeConfig = computed(() => ({
   algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
 }));
 
-// Phase 5c-i ships the page shell only — sidebar, layout, theme.
-// Real content (CPU/mem/swap/disk cards, Xray status card, panel
-// update modal, logs, custom-geo section) follows in 5c-ii through
-// 5c-iv. Loading state is currently a placeholder true so the shell
-// renders; it will be wired to the real /server/status fetch later.
-const fetched = ref(true);
+const { status, fetched } = useStatus();
+const { isMobile } = useMediaQuery();
 
 // In production the Go panel injects basePath + requestUri into the
 // served HTML; during `npm run dev` we infer them from window.location.
 const basePath = window.__X_UI_BASE_PATH__ || '';
 const requestUri = window.location.pathname;
+
+function onOpenCpuHistory() {
+  // CPU-history modal is part of Phase 5c-iv. Leaving the emit wired
+  // so the button isn't dead-clickable; no-op until then.
+}
 </script>
 
 <template>
@@ -33,18 +37,23 @@ const requestUri = window.location.pathname;
           <a-spin :spinning="!fetched" :delay="200" size="large">
             <div v-if="!fetched" class="loading-spacer" />
 
-            <div v-else class="page-body">
-              <a-card hoverable>
-                <a-space direction="vertical" :size="12" style="width: 100%">
-                  <h2 style="margin: 0">Dashboard (vue3-migration shell)</h2>
-                  <p style="margin: 0; opacity: 0.7">
-                    Phase 5c-i: layout, sidebar, and theme switching wired up.
-                    Status cards, xray controls, and custom-geo arrive in
-                    follow-up commits.
-                  </p>
-                </a-space>
-              </a-card>
-            </div>
+            <a-row v-else :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]">
+              <a-col :span="24">
+                <StatusCard :status="status" :is-mobile="isMobile" @open-cpu-history="onOpenCpuHistory" />
+              </a-col>
+              <a-col :span="24">
+                <a-card hoverable>
+                  <a-space direction="vertical" :size="8" style="width: 100%">
+                    <h3 style="margin: 0">Dashboard scaffold</h3>
+                    <p style="margin: 0; opacity: 0.7">
+                      Phase 5c-ii adds the live status cards above (CPU / memory / swap / disk).
+                      Xray status, panel update modal, logs, and the custom-geo section
+                      arrive in 5c-iii through 5c-v.
+                    </p>
+                  </a-space>
+                </a-card>
+              </a-col>
+            </a-row>
           </a-spin>
         </a-layout-content>
       </a-layout>
@@ -54,7 +63,6 @@ const requestUri = window.location.pathname;
 
 <style scoped>
 .index-page {
-  /* Same legacy palette source as the login page. */
   --bg-page: #f0f2f5;
   --bg-card: #ffffff;
 
@@ -63,13 +71,13 @@ const requestUri = window.location.pathname;
 }
 
 .index-page.is-dark {
-  --bg-page: #0a1222;  /* legacy --dark-color-background */
-  --bg-card: #151f31;  /* legacy --dark-color-surface-100 */
+  --bg-page: #0a1222;
+  --bg-card: #151f31;
 }
 
 .index-page.is-dark.is-ultra {
-  --bg-page: #21242a;  /* legacy ultra --dark-color-background */
-  --bg-card: #0c0e12;  /* legacy ultra surface-100 */
+  --bg-page: #21242a;
+  --bg-card: #0c0e12;
 }
 
 .index-page :deep(.ant-layout),
@@ -87,9 +95,5 @@ const requestUri = window.location.pathname;
 
 .loading-spacer {
   min-height: calc(100vh - 120px);
-}
-
-.page-body :deep(.ant-card) {
-  background: var(--bg-card);
 }
 </style>
