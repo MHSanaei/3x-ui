@@ -72,8 +72,6 @@ function newNoiseItem() {
     :label-col="{ md: { span: 8 } }"
     :wrapper-col="{ md: { span: 14 } }"
   >
-    <a-divider :style="{ margin: '5px 0 0' }" />
-
     <!-- ============================== TCP MASKS ============================== -->
     <template v-if="showTcp">
       <a-form-item label="TCP Masks">

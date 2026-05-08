@@ -930,7 +930,14 @@ function regenerateWgKeys() {
         </a-form>
 
         <!-- ============== FinalMask (TCP/UDP masks + QUIC params) ============== -->
-        <FinalMaskForm v-if="outbound.stream" :stream="outbound.stream" :protocol="proto" />
+        <!-- Gated by canEnableStream() so TCP masks don't leak into
+             Freedom / Blackhole / DNS / Socks / HTTP / Wireguard outbounds
+             (they don't have a stream config at all). Matches legacy. -->
+        <FinalMaskForm
+          v-if="outbound.stream && outbound.canEnableStream()"
+          :stream="outbound.stream"
+          :protocol="proto"
+        />
       </a-tab-pane>
 
       <!-- ============================== JSON ============================== -->

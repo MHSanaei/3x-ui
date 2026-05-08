@@ -53,6 +53,60 @@ async function onTestOutbound(idx) {
   if (outbound) await testOutbound(idx, outbound);
 }
 
+// === Advanced tab — radio-driven view ==============================
+// Mirrors the legacy advanced page: a 4-way radio toggles which slice
+// of the xray config the textarea edits — the full config, just the
+// inbounds, just the outbounds, or just the routing rules. Each slice
+// reads/writes through templateSettings so edits propagate to the
+// dirty-poll and structured tabs.
+const advSettings = ref('xraySetting');
+
+const advancedText = computed({
+  get: () => {
+    if (advSettings.value === 'xraySetting') return xraySetting.value;
+    const t = templateSettings.value;
+    if (!t) return '';
+    try {
+      switch (advSettings.value) {
+        case 'inboundSettings':
+          return JSON.stringify(t.inbounds || [], null, 2);
+        case 'outboundSettings':
+          return JSON.stringify(t.outbounds || [], null, 2);
+        case 'routingRuleSettings':
+          return JSON.stringify(t.routing?.rules || [], null, 2);
+        default:
+          return '';
+      }
+    } catch (_e) {
+      return '';
+    }
+  },
+  set: (next) => {
+    if (advSettings.value === 'xraySetting') {
+      xraySetting.value = next;
+      return;
+    }
+    // Slice edits: parse-then-merge into templateSettings so the
+    // structured tabs and the dirty-poll re-stringify it cleanly.
+    let parsed;
+    try { parsed = JSON.parse(next); } catch (_e) { return; }
+    const t = templateSettings.value;
+    if (!t) return;
+    switch (advSettings.value) {
+      case 'inboundSettings':
+        t.inbounds = parsed;
+        break;
+      case 'outboundSettings':
+        t.outbounds = parsed;
+        break;
+      case 'routingRuleSettings':
+        if (!t.routing) t.routing = {};
+        t.routing.rules = parsed;
+        break;
+    }
+  },
+});
+
 // `WarpExist` / `NordExist` derive from the parsed templateSettings —
 // the Basics tab gates its WARP / NordVPN domain selectors on whether
 // the matching outbound is provisioned, falling back to a "configure"
@@ -263,16 +317,27 @@ function confirmRestart() {
                       <template #tab>
                         <CodeOutlined /> <span>{{ t('pages.xray.advancedTemplate') }}</span>
                       </template>
-                      <a-form layout="vertical">
-                        <a-form-item label="xraySetting (full JSON)">
-                          <a-textarea
-                            v-model:value="xraySetting"
-                            :auto-size="{ minRows: 18, maxRows: 40 }"
-                            spellcheck="false"
-                            class="json-editor"
-                          />
-                        </a-form-item>
-                      </a-form>
+                      <a-list-item-meta
+                        :title="t('pages.xray.Template')"
+                        :description="t('pages.xray.TemplateDesc')"
+                      />
+                      <a-radio-group
+                        v-model:value="advSettings"
+                        button-style="solid"
+                        :size="isMobile ? 'small' : 'middle'"
+                        :style="{ margin: '12px 0' }"
+                      >
+                        <a-radio-button value="xraySetting">{{ t('pages.xray.completeTemplate') }}</a-radio-button>
+                        <a-radio-button value="inboundSettings">{{ t('pages.xray.Inbounds') }}</a-radio-button>
+                        <a-radio-button value="outboundSettings">{{ t('pages.xray.Outbounds') }}</a-radio-button>
+                        <a-radio-button value="routingRuleSettings">{{ t('pages.xray.Routings') }}</a-radio-button>
+                      </a-radio-group>
+                      <a-textarea
+                        v-model:value="advancedText"
+                        :auto-size="{ minRows: 18, maxRows: 40 }"
+                        spellcheck="false"
+                        class="json-editor"
+                      />
                     </a-tab-pane>
                   </a-tabs>
                 </a-col>
