@@ -15,6 +15,7 @@ import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
 import { useAllSetting } from './useAllSetting.js';
 import GeneralTab from './GeneralTab.vue';
+import SecurityTab from './SecurityTab.vue';
 
 const antdThemeConfig = computed(() => ({
   algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -214,7 +215,7 @@ const alertVisible = ref(true);
                         <SafetyOutlined />
                         <span>Security</span>
                       </template>
-                      <a-empty description="Security — coming in 5d-iii" />
+                      <SecurityTab :all-setting="allSetting" />
                     </a-tab-pane>
                     <a-tab-pane key="3" class="tab-pane">
                       <template #tab>

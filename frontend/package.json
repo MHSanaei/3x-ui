@@ -11,10 +11,11 @@
     "lint": "eslint src --ext .js,.vue"
   },
   "dependencies": {
-    "ant-design-vue": "^4.2.6",
     "@ant-design/icons-vue": "^7.0.1",
+    "ant-design-vue": "^4.2.6",
     "axios": "^1.7.9",
     "moment": "^2.30.1",
+    "otpauth": "^9.5.1",
     "qrious": "^4.0.2",
     "qs": "^6.13.1",
     "vue": "^3.5.13",

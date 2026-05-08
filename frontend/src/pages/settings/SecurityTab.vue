@@ -1,0 +1,166 @@
+<script setup>
+import { reactive, ref } from 'vue';
+import { message } from 'ant-design-vue';
+
+import { HttpUtil, RandomUtil } from '@/utils';
+import SettingListItem from '@/components/SettingListItem.vue';
+import TwoFactorModal from './TwoFactorModal.vue';
+
+const props = defineProps({
+  allSetting: { type: Object, required: true },
+});
+
+// 2FA modal state — both the "set" (enabling) and "confirm" (changing
+// password / disabling) flows route through the same component.
+const tfa = reactive({
+  open: false,
+  title: '',
+  description: '',
+  token: '',
+  type: 'set',
+  // resolveConfirm is called by the modal's @confirm with the success bool;
+  // it then routes the value back to whichever flow opened the modal.
+  resolveConfirm: (_success) => {},
+});
+
+function openTfa({ title, description = '', token = '', type, onConfirm }) {
+  tfa.title = title;
+  tfa.description = description;
+  tfa.token = token;
+  tfa.type = type;
+  tfa.resolveConfirm = onConfirm;
+  tfa.open = true;
+}
+
+function onTfaConfirm(success) {
+  tfa.resolveConfirm(success);
+}
+
+const user = reactive({
+  oldUsername: '',
+  oldPassword: '',
+  newUsername: '',
+  newPassword: '',
+});
+const updating = ref(false);
+
+async function sendUpdateUser() {
+  updating.value = true;
+  try {
+    const msg = await HttpUtil.post('/panel/setting/updateUser', user);
+    if (msg?.success) {
+      // Force re-login at the standard logout path; basePath is handled
+      // by the Go router so a relative redirect is correct here.
+      const basePath = window.__X_UI_BASE_PATH__ || '';
+      window.location.replace(`${basePath}logout`);
+    }
+  } finally {
+    updating.value = false;
+  }
+}
+
+function updateUser() {
+  if (props.allSetting.twoFactorEnable) {
+    openTfa({
+      title: 'Confirm with 2FA',
+      description: 'Enter the current 6-digit code to change credentials.',
+      token: props.allSetting.twoFactorToken,
+      type: 'confirm',
+      onConfirm: (ok) => { if (ok) sendUpdateUser(); },
+    });
+  } else {
+    sendUpdateUser();
+  }
+}
+
+function toggleTwoFactor() {
+  // Switch read-only — the actual flip happens after the modal succeeds.
+  if (!props.allSetting.twoFactorEnable) {
+    const newToken = RandomUtil.randomBase32String();
+    openTfa({
+      title: 'Enable two-factor authentication',
+      token: newToken,
+      type: 'set',
+      onConfirm: (ok) => {
+        if (ok) {
+          message.success('Two-factor authentication enabled.');
+          props.allSetting.twoFactorToken = newToken;
+        }
+        props.allSetting.twoFactorEnable = ok;
+      },
+    });
+  } else {
+    openTfa({
+      title: 'Disable two-factor authentication',
+      description: 'Enter the current 6-digit code to disable 2FA.',
+      token: props.allSetting.twoFactorToken,
+      type: 'confirm',
+      onConfirm: (ok) => {
+        if (!ok) return;
+        message.success('Two-factor authentication disabled.');
+        props.allSetting.twoFactorEnable = false;
+        props.allSetting.twoFactorToken = '';
+      },
+    });
+  }
+}
+</script>
+
+<template>
+  <a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header="Admin">
+      <SettingListItem paddings="small">
+        <template #title>Current username</template>
+        <template #control>
+          <a-input v-model:value="user.oldUsername" autocomplete="username" />
+        </template>
+      </SettingListItem>
+
+      <SettingListItem paddings="small">
+        <template #title>Current password</template>
+        <template #control>
+          <a-input-password v-model:value="user.oldPassword" autocomplete="current-password" />
+        </template>
+      </SettingListItem>
+
+      <SettingListItem paddings="small">
+        <template #title>New username</template>
+        <template #control>
+          <a-input v-model:value="user.newUsername" />
+        </template>
+      </SettingListItem>
+
+      <SettingListItem paddings="small">
+        <template #title>New password</template>
+        <template #control>
+          <a-input-password v-model:value="user.newPassword" autocomplete="new-password" />
+        </template>
+      </SettingListItem>
+
+      <a-list-item>
+        <a-space direction="horizontal" :style="{ padding: '0 20px' }">
+          <a-button type="primary" :loading="updating" @click="updateUser">Confirm</a-button>
+        </a-space>
+      </a-list-item>
+    </a-collapse-panel>
+
+    <a-collapse-panel key="2" header="Two-factor authentication">
+      <SettingListItem paddings="small">
+        <template #title>Enable 2FA</template>
+        <template #description>Require a 6-digit TOTP code on every panel login.</template>
+        <template #control>
+          <a-switch :checked="allSetting.twoFactorEnable" @click="toggleTwoFactor" />
+        </template>
+      </SettingListItem>
+    </a-collapse-panel>
+  </a-collapse>
+
+  <TwoFactorModal
+    v-model:open="tfa.open"
+    :title="tfa.title"
+    :description="tfa.description"
+    :token="tfa.token"
+    :type="tfa.type"
+    @confirm="onTfaConfirm"
+  />
+</template>
