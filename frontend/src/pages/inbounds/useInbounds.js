@@ -9,6 +9,7 @@ import { computed, ref, shallowRef } from 'vue';
 import { HttpUtil, ObjectUtil } from '@/utils';
 import { DBInbound } from '@/models/dbinbound.js';
 import { Protocols } from '@/models/inbound.js';
+import { setDatepicker } from '@/composables/useDatepicker.js';
 
 const ONLINE_GRACE_MS = 60_000;
 
@@ -146,6 +147,9 @@ export function useInbounds() {
     pageSize.value = s.pageSize ?? 0;
     remarkModel.value = s.remarkModel || '-ieo';
     datepicker.value = s.datepicker || 'gregorian';
+    // Mirror into the global composable so date-pickers in modals can
+    // pick the right calendar without re-fetching the settings.
+    setDatepicker(datepicker.value);
     ipLimitEnable.value = !!s.ipLimitEnable;
   }
 

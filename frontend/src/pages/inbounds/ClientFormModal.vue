@@ -11,6 +11,7 @@ import {
   ColorUtils,
 } from '@/utils';
 import { Inbound, Protocols, USERS_SECURITY, TLS_FLOW_CONTROL } from '@/models/inbound.js';
+import DateTimePicker from '@/components/DateTimePicker.vue';
 
 const { t } = useI18n();
 
@@ -363,8 +364,7 @@ const title = computed(() =>
           <a-tooltip :title="t('pages.inbounds.leaveBlankToNeverExpire')">{{ t('pages.inbounds.expireDate')
             }}</a-tooltip>
         </template>
-        <a-date-picker v-model:value="expiryDate" :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-          :style="{ width: '100%' }" />
+        <DateTimePicker v-model:value="expiryDate" />
         <a-tag v-if="mode === 'edit' && isExpired" color="red">{{ t('depleted') }}</a-tag>
       </a-form-item>
 

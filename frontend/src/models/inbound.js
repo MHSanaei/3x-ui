@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { ObjectUtil, RandomUtil, Base64, NumberFormatter, SizeFormatter, Wireguard } from '@/utils';
 
 export const Protocols = {
@@ -2523,7 +2524,7 @@ Inbound.ClientBase = class extends XrayCommonClass {
         if (this.expiryTime < 0) {
             return this.expiryTime / -86400000;
         }
-        return moment(this.expiryTime);
+        return dayjs(this.expiryTime);
     }
 
     set _expiryTime(t) {

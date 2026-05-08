@@ -13,6 +13,7 @@ import {
   USERS_SECURITY,
   TLS_FLOW_CONTROL,
 } from '@/models/inbound.js';
+import DateTimePicker from '@/components/DateTimePicker.vue';
 
 // Bulk-add up to 500 clients in one go. The legacy panel offers five
 // generation modes — this component preserves them all:
@@ -250,8 +251,7 @@ async function submit() {
           <a-tooltip :title="t('pages.inbounds.leaveBlankToNeverExpire')">{{ t('pages.inbounds.expireDate')
           }}</a-tooltip>
         </template>
-        <a-date-picker v-model:value="expiryDate" :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-          :style="{ width: '100%' }" />
+        <DateTimePicker v-model:value="expiryDate" />
       </a-form-item>
 
       <a-form-item v-if="form.expiryTime !== 0">

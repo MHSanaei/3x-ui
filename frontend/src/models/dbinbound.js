@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { ObjectUtil, NumberFormatter, SizeFormatter } from '@/utils';
 import { Inbound, Protocols } from './inbound.js';
 
@@ -78,7 +79,7 @@ export class DBInbound {
         if (this.expiryTime === 0) {
             return null;
         }
-        return moment(this.expiryTime);
+        return dayjs(this.expiryTime);
     }
 
     set _expiryTime(t) {

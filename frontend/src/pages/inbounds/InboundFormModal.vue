@@ -30,6 +30,7 @@ import {
 } from '@/models/inbound.js';
 import { DBInbound } from '@/models/dbinbound.js';
 import FinalMaskForm from '@/components/FinalMaskForm.vue';
+import DateTimePicker from '@/components/DateTimePicker.vue';
 
 const { t } = useI18n();
 
@@ -572,8 +573,7 @@ watch(
               <a-tooltip :title="t('pages.inbounds.leaveBlankToNeverExpire')">{{ t('pages.inbounds.expireDate')
               }}</a-tooltip>
             </template>
-            <a-date-picker v-model:value="expiryDate" :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-              :style="{ width: '100%' }" />
+            <DateTimePicker v-model:value="expiryDate" />
           </a-form-item>
         </a-form>
       </a-tab-pane>
@@ -667,8 +667,7 @@ watch(
                 </a-form-item>
 
                 <a-form-item label="Expiry">
-                  <a-date-picker v-model:value="clientExpiryDate" :show-time="{ format: 'HH:mm:ss' }"
-                    format="YYYY-MM-DD HH:mm:ss" :style="{ width: '100%' }" />
+                  <DateTimePicker v-model:value="clientExpiryDate" />
                 </a-form-item>
               </a-form>
             </a-collapse-panel>

@@ -127,6 +127,14 @@ export default defineConfig({
           if (id.includes('dayjs')) return 'vendor-dayjs';
           if (id.includes('qrious')) return 'vendor-qrious';
           if (id.includes('axios')) return 'vendor-axios';
+          // The persian datepicker pulls in moment + moment-jalaali; bundle
+          // the trio together so unrelated pages don't pay the cost.
+          if (
+            id.includes('vue3-persian-datetime-picker')
+            || id.includes('moment-jalaali')
+            || id.includes('jalaali-js')
+            || id.includes('/node_modules/moment/')
+          ) return 'vendor-jalali';
           return 'vendor';
         },
       },
