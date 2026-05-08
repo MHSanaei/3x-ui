@@ -88,7 +88,6 @@
                     <a-button @click="addOutbound" :loading="warpModal.confirmLoading"
                         type="primary">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
                 </template>
-                </a-form-item>
             </a-form>
         </template>
     </template>
@@ -131,26 +130,27 @@
         },
         methods: {
             collectConfig() {
-                config = warpModal.warpConfig.config;
-                peer = config.peers[0];
-                if (config) {
-                    warpModal.warpOutbound = Outbound.fromJson({
-                        tag: 'warp',
-                        protocol: Protocols.Wireguard,
-                        settings: {
-                            mtu: 1420,
-                            secretKey: warpModal.warpData.private_key,
-                            address: this.getAddresses(config.interface.addresses),
-                            reserved: this.getResolved(config.client_id),
-                            domainStrategy: 'ForceIP',
-                            peers: [{
-                                publicKey: peer.public_key,
-                                endpoint: peer.endpoint.host,
-                            }],
-                            noKernelTun: false,
-                        }
-                    });
+                const config = warpModal.warpConfig && warpModal.warpConfig.config;
+                if (!config || !config.peers || !config.peers.length) {
+                    return;
                 }
+                const peer = config.peers[0];
+                warpModal.warpOutbound = Outbound.fromJson({
+                    tag: 'warp',
+                    protocol: Protocols.Wireguard,
+                    settings: {
+                        mtu: 1420,
+                        secretKey: warpModal.warpData.private_key,
+                        address: this.getAddresses(config.interface.addresses),
+                        reserved: this.getReserved(config.client_id),
+                        domainStrategy: 'ForceIP',
+                        peers: [{
+                            publicKey: peer.public_key,
+                            endpoint: peer.endpoint.host,
+                        }],
+                        noKernelTun: false,
+                    }
+                });
             },
             getAddresses(addrs) {
                 let addresses = [];
@@ -158,7 +158,7 @@
                 if (addrs.v6) addresses.push(addrs.v6 + "/128");
                 return addresses;
             },
-            getResolved(client_id) {
+            getReserved(client_id) {
                 let reserved = [];
                 let decoded = atob(client_id);
                 let hexString = '';
@@ -218,11 +218,13 @@
                 }
             },
             addOutbound() {
+                if (!warpModal.warpOutbound) return;
                 app.templateSettings.outbounds.push(warpModal.warpOutbound.toJson());
                 app.outboundSettings = JSON.stringify(app.templateSettings.outbounds);
                 warpModal.close();
             },
             resetOutbound() {
+                if (!warpModal.warpOutbound) return;
                 app.templateSettings.outbounds[this.warpOutboundIndex] = warpModal.warpOutbound.toJson();
                 app.outboundSettings = JSON.stringify(app.templateSettings.outbounds);
                 warpModal.close();

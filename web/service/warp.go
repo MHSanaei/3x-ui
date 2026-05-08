@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
 )
 
@@ -18,148 +18,147 @@ type WarpService struct {
 	SettingService
 }
 
+const (
+	warpAPIBase   = "https://api.cloudflareclient.com/v0a4005"
+	warpClientVer = "a-6.30-3596"
+)
+
+var warpHTTPClient = &http.Client{Timeout: 15 * time.Second}
+
 func (s *WarpService) GetWarpData() (string, error) {
-	warp, err := s.SettingService.GetWarp()
-	if err != nil {
-		return "", err
-	}
-	return warp, nil
+	return s.SettingService.GetWarp()
 }
 
 func (s *WarpService) DelWarpData() error {
-	err := s.SettingService.SetWarp("")
-	if err != nil {
-		return err
-	}
-	return nil
+	return s.SettingService.SetWarp("")
 }
 
 func (s *WarpService) GetWarpConfig() (string, error) {
-	var warpData map[string]string
-	warp, err := s.SettingService.GetWarp()
-	if err != nil {
-		return "", err
-	}
-	err = json.Unmarshal([]byte(warp), &warpData)
+	warpData, err := s.loadWarpCreds()
 	if err != nil {
 		return "", err
 	}
 
-	url := fmt.Sprintf("https://api.cloudflareclient.com/v0a2158/reg/%s", warpData["device_id"])
-
-	req, err := http.NewRequest("GET", url, nil)
+	url := fmt.Sprintf("%s/reg/%s", warpAPIBase, warpData["device_id"])
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+warpData["access_token"])
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	body, err := doWarpRequest(req)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
-	buffer := &bytes.Buffer{}
-	_, err = buffer.ReadFrom(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return buffer.String(), nil
+	return string(body), nil
 }
 
 func (s *WarpService) RegWarp(secretKey string, publicKey string) (string, error) {
-	tos := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 	hostName, _ := os.Hostname()
-	data := fmt.Sprintf(`{"key":"%s","tos":"%s","type": "PC","model": "x-ui", "name": "%s"}`, publicKey, tos, hostName)
-
-	url := "https://api.cloudflareclient.com/v0a2158/reg"
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(data)))
+	reqBody, err := json.Marshal(map[string]any{
+		"key":   publicKey,
+		"tos":   time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),
+		"type":  "PC",
+		"model": "x-ui",
+		"name":  hostName,
+	})
 	if err != nil {
 		return "", err
 	}
 
-	req.Header.Add("CF-Client-Version", "a-7.21-0721")
-	req.Header.Add("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	req, err := http.NewRequest(http.MethodPost, warpAPIBase+"/reg", bytes.NewReader(reqBody))
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
-	buffer := &bytes.Buffer{}
-	_, err = buffer.ReadFrom(resp.Body)
-	if err != nil {
-		return "", err
-	}
+	req.Header.Set("CF-Client-Version", warpClientVer)
+	req.Header.Set("Content-Type", "application/json")
 
-	var rspData map[string]any
-	err = json.Unmarshal(buffer.Bytes(), &rspData)
+	body, err := doWarpRequest(req)
 	if err != nil {
 		return "", err
 	}
 
-	deviceId := rspData["id"].(string)
-	token := rspData["token"].(string)
-	license, ok := rspData["account"].(map[string]any)["license"].(string)
+	var rsp map[string]any
+	if err := json.Unmarshal(body, &rsp); err != nil {
+		return "", err
+	}
+
+	deviceID, ok := rsp["id"].(string)
 	if !ok {
-		logger.Debug("Error accessing license value.")
+		return "", common.NewError("warp register: missing 'id' in response")
+	}
+	token, ok := rsp["token"].(string)
+	if !ok {
+		return "", common.NewError("warp register: missing 'token' in response")
+	}
+	account, ok := rsp["account"].(map[string]any)
+	if !ok {
+		return "", common.NewError("warp register: missing 'account' in response")
+	}
+	license, ok := account["license"].(string)
+	if !ok {
+		return "", common.NewError("warp register: missing 'account.license' in response")
+	}
+
+	warpData := map[string]string{
+		"access_token": token,
+		"device_id":    deviceID,
+		"license_key":  license,
+		"private_key":  secretKey,
+	}
+	warpJSON, err := json.MarshalIndent(warpData, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	if err := s.SettingService.SetWarp(string(warpJSON)); err != nil {
 		return "", err
 	}
 
-	warpData := fmt.Sprintf("{\n  \"access_token\": \"%s\",\n  \"device_id\": \"%s\",", token, deviceId)
-	warpData += fmt.Sprintf("\n  \"license_key\": \"%s\",\n  \"private_key\": \"%s\"\n}", license, secretKey)
-
-	s.SettingService.SetWarp(warpData)
-
-	result := fmt.Sprintf("{\n  \"data\": %s,\n  \"config\": %s\n}", warpData, buffer.String())
-
-	return result, nil
+	result, err := json.MarshalIndent(map[string]any{
+		"data":   warpData,
+		"config": json.RawMessage(body),
+	}, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(result), nil
 }
 
 func (s *WarpService) SetWarpLicense(license string) (string, error) {
-	var warpData map[string]string
-	warp, err := s.SettingService.GetWarp()
-	if err != nil {
-		return "", err
-	}
-	err = json.Unmarshal([]byte(warp), &warpData)
+	warpData, err := s.loadWarpCreds()
 	if err != nil {
 		return "", err
 	}
 
-	url := fmt.Sprintf("https://api.cloudflareclient.com/v0a2158/reg/%s/account", warpData["device_id"])
-	data := fmt.Sprintf(`{"license": "%s"}`, license)
+	url := fmt.Sprintf("%s/reg/%s/account", warpAPIBase, warpData["device_id"])
+	reqBody, err := json.Marshal(map[string]string{"license": license})
+	if err != nil {
+		return "", err
+	}
 
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer([]byte(data)))
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewReader(reqBody))
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+warpData["access_token"])
+	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	buffer := &bytes.Buffer{}
-	_, err = buffer.ReadFrom(resp.Body)
+	body, err := doWarpRequest(req)
 	if err != nil {
 		return "", err
 	}
 
 	var response map[string]any
-	err = json.Unmarshal(buffer.Bytes(), &response)
-	if err != nil {
+	if err := json.Unmarshal(body, &response); err != nil {
 		return "", err
 	}
-	if response["success"] == false {
-		errorArr, _ := response["errors"].([]any)
-		errorObj := errorArr[0].(map[string]any)
-		return "", common.NewError(errorObj["code"], errorObj["message"])
+	if success, _ := response["success"].(bool); !success {
+		if errorArr, ok := response["errors"].([]any); ok && len(errorArr) > 0 {
+			if errorObj, ok := errorArr[0].(map[string]any); ok {
+				return "", common.NewError(errorObj["code"], errorObj["message"])
+			}
+		}
+		return "", common.NewError("warp set license failed: unknown error")
 	}
 
 	warpData["license_key"] = license
@@ -167,7 +166,44 @@ func (s *WarpService) SetWarpLicense(license string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	s.SettingService.SetWarp(string(newWarpData))
-
+	if err := s.SettingService.SetWarp(string(newWarpData)); err != nil {
+		return "", err
+	}
 	return string(newWarpData), nil
+}
+
+// loadWarpCreds reads the stored warp JSON and ensures access_token + device_id are set.
+func (s *WarpService) loadWarpCreds() (map[string]string, error) {
+	warp, err := s.SettingService.GetWarp()
+	if err != nil {
+		return nil, err
+	}
+	var data map[string]string
+	if err := json.Unmarshal([]byte(warp), &data); err != nil {
+		return nil, err
+	}
+	if data["access_token"] == "" || data["device_id"] == "" {
+		return nil, common.NewError("warp not registered: missing access_token or device_id")
+	}
+	return data, nil
+}
+
+// doWarpRequest sends the request and returns the response body on 2xx.
+// Non-2xx responses are returned as errors including the status code and body.
+func doWarpRequest(req *http.Request) ([]byte, error) {
+	resp, err := warpHTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, common.NewErrorf("warp api %s %s returned status %d: %s",
+			req.Method, req.URL.Path, resp.StatusCode, string(body))
+	}
+	return body, nil
 }
