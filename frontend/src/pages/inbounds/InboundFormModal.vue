@@ -59,7 +59,7 @@ const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const inbound = ref(null);
 const dbForm = ref(null);
 const saving = ref(false);
-const advancedJson = ref({ stream: '', sniffing: '' });
+const advancedJson = ref({ stream: '', sniffing: '', settings: '' });
 // Cached default cert/key paths from /panel/setting/defaultSettings —
 // powers the "Set default cert" button on the TLS form.
 const defaultCert = ref('');
@@ -211,8 +211,15 @@ function freshDbForm() {
 
 function primeAdvancedJson() {
   if (!inbound.value) return;
-  advancedJson.value.stream = JSON.stringify(JSON.parse(inbound.value.stream.toString()), null, 2);
-  advancedJson.value.sniffing = JSON.stringify(JSON.parse(inbound.value.sniffing.toString()), null, 2);
+  try {
+    advancedJson.value.stream = JSON.stringify(JSON.parse(inbound.value.stream.toString()), null, 2);
+  } catch (_e) { /* keep prior text */ }
+  try {
+    advancedJson.value.sniffing = JSON.stringify(JSON.parse(inbound.value.sniffing.toString()), null, 2);
+  } catch (_e) { /* keep prior text */ }
+  try {
+    advancedJson.value.settings = JSON.stringify(JSON.parse(inbound.value.settings.toString()), null, 2);
+  } catch (_e) { /* keep prior text */ }
 }
 
 watch(() => props.open, (next) => {
@@ -431,6 +438,7 @@ async function submit() {
     // transports — both go to wire as serialized JSON.
     let streamSettings;
     let sniffing;
+    let settings;
     try {
       streamSettings = canEnableStream.value
         ? JSON.stringify(JSON.parse(advancedJson.value.stream))
@@ -441,6 +449,9 @@ async function submit() {
     try {
       sniffing = JSON.stringify(JSON.parse(advancedJson.value.sniffing || inbound.value.sniffing.toString()));
     } catch (e) { message.error(`Sniffing JSON invalid: ${e.message}`); return; }
+    try {
+      settings = JSON.stringify(JSON.parse(advancedJson.value.settings || inbound.value.settings.toString()));
+    } catch (e) { message.error(`Settings JSON invalid: ${e.message}`); return; }
 
     // The structured form mutates `inbound.stream` directly when the
     // user edits TCP/WS/gRPC/HTTPUpgrade fields, but if they touched
@@ -459,7 +470,7 @@ async function submit() {
       listen: inbound.value.listen,
       port: inbound.value.port,
       protocol: inbound.value.protocol,
-      settings: inbound.value.settings.toString(),
+      settings: settings,
       streamSettings: streamSettings,
       sniffing: sniffing,
     };
@@ -486,17 +497,35 @@ const okText = computed(() =>
   props.mode === 'edit' ? t('pages.client.submitEdit') : t('create'),
 );
 
-// Whenever the structured stream form mutates the model, refresh the
-// Advanced JSON tab so it reflects the latest state. Use a deep watch
-// on the parsed JSON of the stream.
+// Whenever the structured form mutates stream / sniffing / settings,
+// refresh the matching slice of the Advanced JSON tab so the user
+// always sees the live state — flipping a switch in Sniffing or
+// editing encryption in Protocol now reflects in Advanced.
 watch(
   () => inbound.value && JSON.stringify(inbound.value.stream?.toJson?.() || {}),
-  (next) => {
-    if (next) {
-      try {
-        advancedJson.value.stream = JSON.stringify(JSON.parse(inbound.value.stream.toString()), null, 2);
-      } catch (_e) { /* leave as is */ }
-    }
+  () => {
+    if (!inbound.value?.stream) return;
+    try {
+      advancedJson.value.stream = JSON.stringify(JSON.parse(inbound.value.stream.toString()), null, 2);
+    } catch (_e) { /* leave as is */ }
+  },
+);
+watch(
+  () => inbound.value && JSON.stringify(inbound.value.sniffing?.toJson?.() || {}),
+  () => {
+    if (!inbound.value?.sniffing) return;
+    try {
+      advancedJson.value.sniffing = JSON.stringify(JSON.parse(inbound.value.sniffing.toString()), null, 2);
+    } catch (_e) { /* leave as is */ }
+  },
+);
+watch(
+  () => inbound.value && JSON.stringify(inbound.value.settings?.toJson?.() || {}),
+  () => {
+    if (!inbound.value?.settings) return;
+    try {
+      advancedJson.value.settings = JSON.stringify(JSON.parse(inbound.value.settings.toString()), null, 2);
+    } catch (_e) { /* leave as is */ }
   },
 );
 </script>
@@ -1631,6 +1660,10 @@ watch(
           message="Edit raw stream JSON to access advanced fields we don't yet expose through the form."
           class="mb-12" />
         <a-form layout="vertical">
+          <a-form-item label="settings (clients, encryption, fallbacks, …)">
+            <a-textarea v-model:value="advancedJson.settings" :auto-size="{ minRows: 10, maxRows: 24 }"
+              spellcheck="false" class="json-editor" />
+          </a-form-item>
           <a-form-item label="streamSettings">
             <a-textarea v-model:value="advancedJson.stream" :auto-size="{ minRows: 10, maxRows: 24 }" spellcheck="false"
               class="json-editor" />

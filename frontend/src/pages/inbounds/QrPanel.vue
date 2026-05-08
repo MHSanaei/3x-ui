@@ -29,17 +29,42 @@ const props = defineProps({
 
 const canvas = ref(null);
 
+// Byte-mode capacities (level M) for QR versions 1..40 — used to pick
+// the matrix width up front so we can size the canvas as a multiple
+// of pixelSize. Without this, QRious renders at floor(size/matrix)
+// and centers, leaving a white margin whenever size isn't divisible.
+const QR_M_BYTE_CAPACITY = [
+  14, 26, 42, 62, 84, 106, 122, 152, 180, 213,
+  251, 287, 331, 362, 412, 450, 504, 560, 624, 666,
+  711, 779, 857, 911, 997, 1059, 1125, 1190, 1264, 1370,
+  1452, 1538, 1628, 1722, 1809, 1911, 1989, 2099, 2213, 2331,
+];
+
+function pickQrMatrixWidth(value) {
+  const byteLen = new TextEncoder().encode(value).length;
+  for (let i = 0; i < QR_M_BYTE_CAPACITY.length; i++) {
+    if (byteLen <= QR_M_BYTE_CAPACITY[i]) return 17 + 4 * (i + 1);
+  }
+  return 17 + 4 * 40; // version 40 (177 modules)
+}
+
 function paint() {
   if (!props.showQr || !canvas.value || !props.value) return;
+  // Canvas size = matrixWidth × pixelSize, so the QR fills it edge-to-
+  // edge. pixelSize is floored against the requested size so the QR
+  // never grows past the host's expected box.
+  const matrixWidth = pickQrMatrixWidth(props.value);
+  const pixelSize = Math.max(1, Math.floor(props.size / matrixWidth));
+  const exactSize = matrixWidth * pixelSize;
   // eslint-disable-next-line no-new
   new QRious({
     element: canvas.value,
-    size: props.size,
+    size: exactSize,
     value: props.value,
     background: 'white',
     backgroundAlpha: 1,
     foreground: 'black',
-    padding: 2,
+    padding: 0,
     level: 'M',
   });
 }
@@ -115,7 +140,7 @@ function download() {
 
 .qr-panel-canvas canvas {
   cursor: pointer;
-  background: #fff;
+  display: block;
   border-radius: 4px;
 }
 
