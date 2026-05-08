@@ -57,9 +57,6 @@ func (a *IndexController) index(c *gin.Context) {
 		c.Redirect(http.StatusTemporaryRedirect, "panel/")
 		return
 	}
-	// Phase 8 cutover — serve the Vite-built login page directly.
-	// The legacy template still exists in web/html/login.html but is
-	// no longer referenced by any served route.
 	serveDistPage(c, "login.html")
 }
 

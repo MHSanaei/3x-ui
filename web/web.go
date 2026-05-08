@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/tls"
 	"embed"
-	"html/template"
 	"io"
 	"io/fs"
 	"net"
@@ -34,20 +33,12 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-//go:embed assets
-var assetsFS embed.FS
-
-//go:embed html/*
-var htmlFS embed.FS
-
 //go:embed translation/*
 var i18nFS embed.FS
 
-// distFS embeds the Vite-built frontend (web/dist/). All five user-
-// facing pages are served from here in production; the legacy
-// templates in htmlFS / static asset tree in assetsFS are kept on
-// disk for now so a quick revert is possible, but nothing the
-// binary serves references them after the cutover.
+// distFS embeds the Vite-built frontend (web/dist/). Every user-facing
+// HTML route is served straight out of this FS — the legacy Go
+// templates and `web/assets/` tree are gone post-Phase 8.
 //
 //go:embed dist/*
 var distFS embed.FS
@@ -64,20 +55,6 @@ type wrapDistFS struct {
 
 func (f *wrapDistFS) Open(name string) (fs.File, error) {
 	file, err := f.FS.Open("dist/assets/" + name)
-	if err != nil {
-		return nil, err
-	}
-	return &wrapAssetsFile{
-		File: file,
-	}, nil
-}
-
-type wrapAssetsFS struct {
-	embed.FS
-}
-
-func (f *wrapAssetsFS) Open(name string) (fs.File, error) {
-	file, err := f.FS.Open("assets/" + name)
 	if err != nil {
 		return nil, err
 	}
@@ -115,16 +92,6 @@ func EmbeddedDist() embed.FS {
 	return distFS
 }
 
-// EmbeddedHTML returns the embedded HTML templates filesystem for reuse by other servers.
-func EmbeddedHTML() embed.FS {
-	return htmlFS
-}
-
-// EmbeddedAssets returns the embedded assets filesystem for reuse by other servers.
-func EmbeddedAssets() embed.FS {
-	return assetsFS
-}
-
 // Server represents the main web server for the 3x-ui panel with controllers, services, and scheduled jobs.
 type Server struct {
 	httpServer *http.Server
@@ -155,53 +122,6 @@ func NewServer() *Server {
 		ctx:    ctx,
 		cancel: cancel,
 	}
-}
-
-// getHtmlFiles walks the local `web/html` directory and returns a list of
-// template file paths. Used only in debug/development mode.
-func (s *Server) getHtmlFiles() ([]string, error) {
-	files := make([]string, 0)
-	dir, _ := os.Getwd()
-	err := fs.WalkDir(os.DirFS(dir), "web/html", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-		files = append(files, path)
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return files, nil
-}
-
-// getHtmlTemplate parses embedded HTML templates from the bundled `htmlFS`
-// using the provided template function map and returns the resulting
-// template set for production usage.
-func (s *Server) getHtmlTemplate(funcMap template.FuncMap) (*template.Template, error) {
-	t := template.New("").Funcs(funcMap)
-	err := fs.WalkDir(htmlFS, "html", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if d.IsDir() {
-			newT, err := t.ParseFS(htmlFS, path+"/*.html")
-			if err != nil {
-				// ignore
-				return nil
-			}
-			t = newT
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return t, nil
 }
 
 func (s *Server) isDirectHTTPSConfigured() bool {
@@ -273,47 +193,22 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		}
 	})
 
-	// init i18n
+	// init i18n — still used by backend strings (errors, log messages,
+	// SubPage menu entries) even though the Go template engine is gone.
 	err = locale.InitLocalizer(i18nFS, &s.settingService)
 	if err != nil {
 		return nil, err
 	}
 
-	// Apply locale middleware for i18n
-	i18nWebFunc := func(key string, params ...string) string {
-		return locale.I18n(locale.Web, key, params...)
-	}
-	// Register template functions before loading templates
-	funcMap := template.FuncMap{
-		"i18n": i18nWebFunc,
-	}
-	engine.SetFuncMap(funcMap)
 	engine.Use(locale.LocalizerMiddleware())
 
-	// set static files and template
+	// `/assets/` serves the Vite-built bundle. In dev we pull from disk
+	// so the Vite watcher's incremental rebuilds show up without
+	// restarting the binary; in prod we serve the embedded dist FS
+	// rooted at `dist/assets/`.
 	if config.IsDebug() {
-		// for development
-		files, err := s.getHtmlFiles()
-		if err != nil {
-			return nil, err
-		}
-		// Use the registered func map with the loaded templates
-		engine.LoadHTMLFiles(files...)
-		// In dev the bundled `web/dist/assets/` directory is served from
-		// disk so the Vite watcher's incremental rebuilds show up
-		// without restarting the binary.
 		engine.StaticFS(basePath+"assets", http.FS(os.DirFS("web/dist/assets")))
 	} else {
-		// for production
-		template, err := s.getHtmlTemplate(funcMap)
-		if err != nil {
-			return nil, err
-		}
-		engine.SetHTMLTemplate(template)
-		// `/assets/` now serves the Vite-built bundle. The legacy
-		// `web/assets/` tree is no longer referenced by any served
-		// page (every user-facing route comes from web/dist/), so
-		// the embedded asset filesystem is rooted at dist/assets/.
 		engine.StaticFS(basePath+"assets", http.FS(&wrapDistFS{FS: distFS}))
 	}
 
