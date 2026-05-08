@@ -3,12 +3,98 @@
 
 {{ template "page/body_start" .}}
 <style>
+  .custom-geo-section code.custom-geo-ext-code {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .custom-geo-copyable {
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .custom-geo-copyable:hover {
+    background: rgba(24, 144, 255, 0.12);
+    border-color: rgba(24, 144, 255, 0.45);
+  }
+
+  .custom-geo-alias-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .custom-geo-alias {
+    font-weight: 500;
+  }
+
+  .custom-geo-type-tag {
+    margin-right: 0;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.4px;
+  }
+
+  .custom-geo-url {
+    display: inline-block;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+
+  .custom-geo-muted {
+    color: rgba(0, 0, 0, 0.35);
+  }
+
+  .custom-geo-count {
+    background: rgba(0, 0, 0, 0.06);
+    color: rgba(0, 0, 0, 0.55);
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 12px;
+  }
+
+  .custom-geo-empty {
+    padding: 24px 0;
+    color: rgba(0, 0, 0, 0.45);
+    text-align: center;
+  }
+
+  .custom-geo-empty-icon {
+    font-size: 32px;
+    color: rgba(0, 0, 0, 0.25);
+    display: block;
+    margin: 0 auto 8px;
+  }
+
   body.dark .custom-geo-section code.custom-geo-ext-code {
     color: var(--dark-color-text-primary, rgba(255, 255, 255, 0.85));
     background: var(--dark-color-surface-200, #222d42);
     border: 1px solid var(--dark-color-stroke, #2c3950);
-    padding: 2px 6px;
-    border-radius: 3px;
+  }
+
+  body.dark .custom-geo-copyable:hover {
+    background: rgba(24, 144, 255, 0.18);
+    border-color: rgba(64, 169, 255, 0.55);
+  }
+
+  body.dark .custom-geo-muted,
+  body.dark .custom-geo-empty {
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  body.dark .custom-geo-empty-icon {
+    color: rgba(255, 255, 255, 0.25);
+  }
+
+  body.dark .custom-geo-count {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
   }
 
   html[data-theme="ultra-dark"] body.dark .custom-geo-section code.custom-geo-ext-code {
@@ -383,21 +469,43 @@
         <div class="custom-geo-section">
           <a-alert type="info" show-icon class="mb-10"
             message='{{ i18n "pages.index.customGeoRoutingHint" }}'></a-alert>
-          <div class="mb-10">
+          <div class="mb-10 d-flex align-center" style="flex-wrap: wrap; gap: 8px;">
             <a-button type="primary" icon="plus" @click="openCustomGeoModal(null)" :loading="customGeoLoading">
               {{ i18n "pages.index.customGeoAdd" }}
             </a-button>
-            <a-button class="ml-8" icon="reload" @click="updateAllCustomGeo" :loading="customGeoUpdatingAll">{{ i18n
-            "pages.index.geofilesUpdateAll" }}</a-button>
+            <a-button icon="reload" @click="updateAllCustomGeo" :loading="customGeoUpdatingAll"
+              :disabled="!customGeoList.length">{{ i18n "pages.index.geofilesUpdateAll" }}</a-button>
+            <span v-if="customGeoList.length" class="custom-geo-count">[[ customGeoList.length ]]</span>
           </div>
           <a-table :columns="customGeoColumns" :data-source="customGeoList" :pagination="false" :row-key="r => r.id"
-            :loading="customGeoLoading" size="small" :scroll="{ x: 520 }">
+            :loading="customGeoLoading" size="small" :scroll="{ x: 760 }">
+            <template slot="alias" slot-scope="text, record">
+              <div class="custom-geo-alias-cell">
+                <a-tag :color="record.type === 'geoip' ? 'cyan' : 'purple'"
+                  class="custom-geo-type-tag">[[ record.type ]]</a-tag>
+                <span class="custom-geo-alias">[[ record.alias ]]</span>
+              </div>
+            </template>
+            <template slot="url" slot-scope="text, record">
+              <a-tooltip :overlay-class-name="themeSwitcher.currentTheme" placement="topLeft">
+                <template slot="title">[[ record.url ]]</template>
+                <a :href="record.url" target="_blank" rel="noopener noreferrer"
+                  class="custom-geo-url">[[ record.url ]]</a>
+              </a-tooltip>
+            </template>
             <template slot="extDat" slot-scope="text, record">
-              <code class="custom-geo-ext-code">[[ customGeoExtDisplay(record) ]]</code>
+              <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                <template slot="title">{{ i18n "copy" }}</template>
+                <code class="custom-geo-ext-code custom-geo-copyable"
+                  @click="copyCustomGeoExt(record)">[[ customGeoExtDisplay(record) ]]</code>
+              </a-tooltip>
             </template>
             <template slot="lastUpdatedAt" slot-scope="text, record">
-              <span v-if="record.lastUpdatedAt">[[ customGeoFormatTime(record.lastUpdatedAt) ]]</span>
-              <span v-else>—</span>
+              <a-tooltip v-if="record.lastUpdatedAt" :overlay-class-name="themeSwitcher.currentTheme">
+                <template slot="title">[[ customGeoFormatTime(record.lastUpdatedAt) ]]</template>
+                <span>[[ customGeoRelativeTime(record.lastUpdatedAt) ]]</span>
+              </a-tooltip>
+              <span v-else class="custom-geo-muted">—</span>
             </template>
             <template slot="action" slot-scope="text, record">
               <a-space size="small">
@@ -415,6 +523,12 @@
                   <a-button type="link" size="small" icon="delete" @click="confirmDeleteCustomGeo(record)"></a-button>
                 </a-tooltip>
               </a-space>
+            </template>
+            <template slot="emptyText">
+              <div class="custom-geo-empty">
+                <a-icon type="inbox" class="custom-geo-empty-icon"></a-icon>
+                <div>{{ i18n "pages.index.customGeoEmpty" }}</div>
+              </div>
             </template>
           </a-table>
         </div>
@@ -1111,29 +1225,34 @@
   };
 
   const customGeoColumns = [{
+      title: '{{ i18n "pages.index.customGeoAlias" }}',
+      key: 'alias',
+      scopedSlots: { customRender: 'alias' },
+      width: 200
+    },
+    {
+      title: '{{ i18n "pages.index.customGeoUrl" }}',
+      key: 'url',
+      scopedSlots: { customRender: 'url' },
+      ellipsis: true
+    },
+    {
       title: '{{ i18n "pages.index.customGeoExtColumn" }}',
       key: 'extDat',
-      scopedSlots: {
-        customRender: 'extDat'
-      },
-      ellipsis: true
+      scopedSlots: { customRender: 'extDat' },
+      width: 220
     },
     {
       title: '{{ i18n "pages.index.customGeoLastUpdated" }}',
       key: 'lastUpdatedAt',
-      scopedSlots: {
-        customRender: 'lastUpdatedAt'
-      },
-      width: 160
+      scopedSlots: { customRender: 'lastUpdatedAt' },
+      width: 140
     },
     {
       title: '{{ i18n "pages.index.customGeoActions" }}',
       key: 'action',
-      scopedSlots: {
-        customRender: 'action'
-      },
+      scopedSlots: { customRender: 'action' },
       width: 120,
-      fixed: 'right'
     },
   ];
 
@@ -1266,11 +1385,28 @@
         if (!ts) return '';
         return typeof moment !== 'undefined' ? moment(ts * 1000).format('YYYY-MM-DD HH:mm') : String(ts);
       },
+      customGeoRelativeTime(ts) {
+        if (!ts) return '';
+        if (typeof moment === 'undefined') return String(ts);
+        return moment(ts * 1000).fromNow();
+      },
       customGeoExtDisplay(record) {
         const fn = record.type === 'geoip' ?
           `geoip_${record.alias}.dat` :
           `geosite_${record.alias}.dat`;
         return `ext:${fn}:tag`;
+      },
+      copyCustomGeoExt(record) {
+        const text = this.customGeoExtDisplay(record);
+        if (typeof ClipboardManager !== 'undefined' && ClipboardManager.copyText) {
+          ClipboardManager.copyText(text).then(ok => {
+            if (ok) this.$message.success(`{{ i18n "copy" }}: ${text}`);
+          });
+        } else if (navigator.clipboard) {
+          navigator.clipboard.writeText(text).then(() => {
+            this.$message.success(`{{ i18n "copy" }}: ${text}`);
+          });
+        }
       },
       async loadCustomGeo() {
         this.customGeoLoading = true;
@@ -1376,8 +1512,13 @@
         this.customGeoUpdatingAll = true;
         try {
           const msg = await HttpUtil.post('/panel/api/custom-geo/update-all');
-          if (msg.success || (msg.obj && Array.isArray(msg.obj.succeeded) && msg.obj.succeeded.length > 0)) {
+          const ok = (msg && msg.obj && Array.isArray(msg.obj.succeeded)) ? msg.obj.succeeded.length : 0;
+          const failed = (msg && msg.obj && Array.isArray(msg.obj.failed)) ? msg.obj.failed.length : 0;
+          if (msg.success || ok > 0) {
             await this.loadCustomGeo();
+            if (failed > 0) {
+              this.$message.warning(`Updated ${ok}, failed ${failed}`);
+            }
           }
         } finally {
           this.customGeoUpdatingAll = false;

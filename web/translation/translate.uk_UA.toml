@@ -218,6 +218,7 @@
 "customGeoErrNotFound" = "Джерело geo не знайдено"
 "customGeoErrDownload" = "Помилка завантаження"
 "customGeoErrUpdateAllIncomplete" = "Не вдалося оновити один або кілька користувацьких джерел"
+"customGeoEmpty" = "Користувацьких джерел geo поки немає — натисніть «Додати», щоб створити"
 
 [pages.inbounds]
 "allTimeTraffic" = "Загальний трафік"

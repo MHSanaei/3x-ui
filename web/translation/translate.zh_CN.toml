@@ -218,6 +218,7 @@
 "customGeoErrNotFound" = "未找到自定义 geo 源"
 "customGeoErrDownload" = "下载失败"
 "customGeoErrUpdateAllIncomplete" = "有一个或多个自定义 geo 源更新失败"
+"customGeoEmpty" = "暂无自定义 geo 源 — 点击「添加」以创建"
 
 [pages.inbounds]
 "allTimeTraffic" = "累计总流量"

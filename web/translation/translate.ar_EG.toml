@@ -218,6 +218,7 @@
 "customGeoErrNotFound" = "مصدر geo المخصص غير موجود"
 "customGeoErrDownload" = "فشل التنزيل"
 "customGeoErrUpdateAllIncomplete" = "تعذر تحديث مصدر واحد أو أكثر من مصادر geo المخصصة"
+"customGeoEmpty" = "لا توجد مصادر geo مخصصة بعد — انقر على «إضافة» لإنشاء واحد"
 
 [pages.inbounds]
 "allTimeTraffic" = "إجمالي حركة المرور"

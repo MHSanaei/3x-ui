@@ -218,6 +218,7 @@
 "customGeoErrNotFound" = "Fuente geo personalizada no encontrada"
 "customGeoErrDownload" = "Error de descarga"
 "customGeoErrUpdateAllIncomplete" = "No se pudieron actualizar una o más fuentes geo personalizadas"
+"customGeoEmpty" = "Aún no hay fuentes geo personalizadas — haz clic en Añadir para crear una"
 
 [pages.inbounds]
 "allTimeTraffic" = "Tráfico Total"

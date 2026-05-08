@@ -204,6 +204,7 @@
 "customGeoErrNotFound" = "Custom geo source not found"
 "customGeoErrDownload" = "Download failed"
 "customGeoErrUpdateAllIncomplete" = "One or more custom geo sources failed to update"
+"customGeoEmpty" = "No custom geo sources yet — click Add to create one"
 "dontRefresh" = "Installation is in progress, please do not refresh this page"
 "logs" = "Logs"
 "config" = "Config"

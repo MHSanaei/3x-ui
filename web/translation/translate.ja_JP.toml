@@ -218,6 +218,7 @@
 "customGeoErrNotFound" = "カスタム geo ソースが見つかりません"
 "customGeoErrDownload" = "ダウンロードに失敗しました"
 "customGeoErrUpdateAllIncomplete" = "カスタム geo ソースの 1 件以上を更新できませんでした"
+"customGeoEmpty" = "カスタム geo ソースはまだありません — 「追加」をクリックして作成してください"
 
 [pages.inbounds]
 "allTimeTraffic" = "総トラフィック"

@@ -218,6 +218,7 @@
 "customGeoErrNotFound" = "منبع geo سفارشی یافت نشد"
 "customGeoErrDownload" = "بارگیری ناموفق بود"
 "customGeoErrUpdateAllIncomplete" = "به‌روزرسانی یک یا چند منبع geo سفارشی ناموفق بود"
+"customGeoEmpty" = "هنوز منبع geo سفارشی‌ای ثبت نشده — برای ایجاد روی «افزودن» کلیک کنید"
 
 [pages.inbounds]
 "allTimeTraffic" = "کل ترافیک"

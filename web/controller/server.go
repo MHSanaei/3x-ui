@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/web/entity"
 	"github.com/mhsanaei/3x-ui/v2/web/global"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 	"github.com/mhsanaei/3x-ui/v2/web/websocket"
@@ -135,10 +137,17 @@ func (a *ServerController) getXrayVersion(c *gin.Context) {
 }
 
 // getPanelUpdateInfo retrieves the current and latest panel version.
+// Network failures (e.g. no internet, GitHub blocked) are logged at debug
+// level only — the panel keeps working offline and we don't want to spam
+// WARN every time a user opens the page.
 func (a *ServerController) getPanelUpdateInfo(c *gin.Context) {
 	info, err := a.panelService.GetUpdateInfo()
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.index.panelUpdateCheckPopover"), err)
+		logger.Debug("panel update check failed:", err)
+		c.JSON(http.StatusOK, entity.Msg{
+			Success: false,
+			Msg:     I18nWeb(c, "pages.index.panelUpdateCheckPopover"),
+		})
 		return
 	}
 	jsonObj(c, info, nil)

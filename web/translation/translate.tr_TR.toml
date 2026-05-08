@@ -218,6 +218,7 @@
 "customGeoErrNotFound" = "Özel geo kaynağı bulunamadı"
 "customGeoErrDownload" = "İndirme başarısız"
 "customGeoErrUpdateAllIncomplete" = "Bir veya daha fazla özel geo kaynağı güncellenemedi"
+"customGeoEmpty" = "Henüz özel geo kaynağı yok — oluşturmak için Ekle'ye tıklayın"
 
 [pages.inbounds]
 "allTimeTraffic" = "Toplam Trafik"

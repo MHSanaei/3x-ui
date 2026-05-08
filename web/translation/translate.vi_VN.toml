@@ -218,6 +218,7 @@
 "customGeoErrNotFound" = "Không tìm thấy nguồn geo tùy chỉnh"
 "customGeoErrDownload" = "Tải xuống thất bại"
 "customGeoErrUpdateAllIncomplete" = "Một hoặc nhiều nguồn geo tùy chỉnh không cập nhật được"
+"customGeoEmpty" = "Chưa có nguồn geo tùy chỉnh nào — nhấp Thêm để tạo"
 
 [pages.inbounds]
 "allTimeTraffic" = "Tổng Lưu Lượng"

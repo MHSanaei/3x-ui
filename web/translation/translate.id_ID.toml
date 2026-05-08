@@ -218,6 +218,7 @@
 "customGeoErrNotFound" = "Sumber geo kustom tidak ditemukan"
 "customGeoErrDownload" = "Unduh gagal"
 "customGeoErrUpdateAllIncomplete" = "Satu atau lebih sumber geo kustom gagal diperbarui"
+"customGeoEmpty" = "Belum ada sumber geo kustom — klik Tambah untuk membuatnya"
 
 [pages.inbounds]
 "allTimeTraffic" = "Total Lalu Lintas"
