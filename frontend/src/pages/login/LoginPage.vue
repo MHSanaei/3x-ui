@@ -59,16 +59,17 @@ async function login() {
   <a-layout class="login-app" :class="{ 'is-dark': themeState.isDark, 'is-ultra': themeState.isUltra }">
     <a-layout-content class="login-content">
       <div class="waves-header">
+        <div class="waves-inner-header"></div>
         <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
           viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto">
           <defs>
             <path id="gentle-wave" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z" />
           </defs>
           <g class="parallax">
-            <use xlink:href="#gentle-wave" x="48" y="0" fill="rgba(0, 135, 113, 0.08)" />
-            <use xlink:href="#gentle-wave" x="48" y="3" fill="rgba(0, 135, 113, 0.08)" />
-            <use xlink:href="#gentle-wave" x="48" y="5" fill="rgba(0, 135, 113, 0.08)" />
-            <use xlink:href="#gentle-wave" x="48" y="7" fill="#c7ebe2" />
+            <use xlink:href="#gentle-wave" x="48" y="0" />
+            <use xlink:href="#gentle-wave" x="48" y="3" />
+            <use xlink:href="#gentle-wave" x="48" y="5" />
+            <use xlink:href="#gentle-wave" x="48" y="7" />
           </g>
         </svg>
       </div>
@@ -154,27 +155,42 @@ async function login() {
 <style scoped>
 /* Page palette comes straight from the legacy panel's CSS variables
  * (web/assets/css/custom.min.css). Driving everything off CSS vars
- * means the .is-dark / .is-ultra class swap is a one-liner. */
+ * means the .is-dark / .is-ultra class swap is a one-liner.
+ *
+ * Wave layout, faithfully matching the legacy:
+ *   - .waves-inner-header: 50vh of solid color
+ *   - .waves SVG: 15vh of animated wave below it
+ *   - Together they form a 65vh-tall colored region anchored to the top,
+ *     with the form floating centered on top of it. */
 .login-app {
-  --bg-page: #c7ebe2;
+  --bg-page: #ffffff;
+  --bg-wave-header: #dbf5ed;
   --bg-card: #ffffff;
   --color-title: #008771;
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.09);
+  --wave-fill: rgba(0, 135, 113, 0.12);
+  --wave-fill-bottom: #c7ebe2;
 
   min-height: 100vh;
   background: var(--bg-page);
 }
 
 .login-app.is-dark {
-  --bg-page: #222d42;
+  --bg-page: #151f31;
+  --bg-wave-header: #0a2227;
   --bg-card: #151f31;
   --color-title: rgba(255, 255, 255, 0.92);
   --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --wave-fill: #222d42;
+  --wave-fill-bottom: #222d42;
 }
 
 .login-app.is-dark.is-ultra {
-  --bg-page: #0f2d32;
+  --bg-page: #0c0e12;
+  --bg-wave-header: #0a2227;
   --bg-card: #0c0e12;
+  --wave-fill: #0f2d32;
+  --wave-fill-bottom: #0f2d32;
 }
 
 .login-app :deep(.ant-layout-content) {
@@ -224,29 +240,44 @@ async function login() {
 }
 
 .waves-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: fixed;
+  inset: 0 0 auto 0;
+  width: 100%;
+  z-index: -1;
   pointer-events: none;
-  overflow: hidden;
-  height: 200px;
+  background: var(--bg-wave-header);
+}
+
+.waves-inner-header {
+  height: 50vh;
+  width: 100%;
 }
 
 .waves {
-  width: 100%;
-  height: 100%;
+  position: relative;
   display: block;
+  width: 100%;
+  height: 15vh;
+  min-height: 100px;
+  max-height: 150px;
+  margin-bottom: -8px;
 }
 
+/* Wave fills are CSS-driven so they switch with the theme; legacy used
+ * inline fill="..." on each <use> which made them lock to one palette. */
 .parallax > use {
-  animation: move-forever 15s cubic-bezier(0.55, 0.5, 0.45, 0.5) infinite;
+  fill: var(--wave-fill);
+  animation: move-forever 25s cubic-bezier(0.55, 0.5, 0.45, 0.5) infinite;
 }
-
-.parallax > use:nth-child(1) { animation-delay: -2s; animation-duration: 7s; }
-.parallax > use:nth-child(2) { animation-delay: -3s; animation-duration: 10s; }
-.parallax > use:nth-child(3) { animation-delay: -4s; animation-duration: 13s; }
-.parallax > use:nth-child(4) { animation-delay: -5s; animation-duration: 20s; }
+.parallax > use:nth-child(1) { animation-delay: -2s; animation-duration: 7s;  opacity: 0.2; }
+.parallax > use:nth-child(2) { animation-delay: -3s; animation-duration: 10s; opacity: 0.4; }
+.parallax > use:nth-child(3) { animation-delay: -4s; animation-duration: 13s; opacity: 0.6; }
+.parallax > use:nth-child(4) {
+  animation-delay: -5s;
+  animation-duration: 20s;
+  fill: var(--wave-fill-bottom);
+  opacity: 1;
+}
 
 @keyframes move-forever {
   0% { transform: translate3d(-90px, 0, 0); }
