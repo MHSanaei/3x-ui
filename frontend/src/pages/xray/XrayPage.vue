@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { theme as antdTheme, Modal } from 'ant-design-vue';
 import {
   SettingOutlined,
@@ -20,6 +20,8 @@ import RoutingTab from './RoutingTab.vue';
 import OutboundsTab from './OutboundsTab.vue';
 import BalancersTab from './BalancersTab.vue';
 import DnsTab from './DnsTab.vue';
+import WarpModal from './WarpModal.vue';
+import NordModal from './NordModal.vue';
 import { useXraySetting } from './useXraySetting.js';
 
 // Phase 6-i: scaffold + advanced JSON tab. Other tabs (Basics, Routing,
@@ -68,8 +70,59 @@ const nordExist = computed(
   () => !!templateSettings.value?.outbounds?.find((o) => o?.tag?.startsWith?.('nord-')),
 );
 
-function showWarp() { message.info('WARP outbound modal — coming in 6-v'); }
-function showNord() { message.info('NordVPN outbound modal — coming in 6-v'); }
+// === WARP / NordVPN provisioning modals ============================
+const warpOpen = ref(false);
+const nordOpen = ref(false);
+
+function showWarp() { warpOpen.value = true; }
+function showNord() { nordOpen.value = true; }
+
+function ensureOutbounds() {
+  if (!templateSettings.value) return null;
+  if (!Array.isArray(templateSettings.value.outbounds)) {
+    templateSettings.value.outbounds = [];
+  }
+  return templateSettings.value.outbounds;
+}
+
+function onAddOutbound(outbound) {
+  const list = ensureOutbounds();
+  if (list) list.push(outbound);
+}
+function onResetOutbound({ index, outbound, oldTag, newTag }) {
+  const list = ensureOutbounds();
+  if (!list || index < 0) return;
+  list[index] = outbound;
+  // Tag rename across routing rules — preserves Nord's
+  // server-switch flow without dangling references.
+  if (oldTag && newTag && oldTag !== newTag) {
+    const rules = templateSettings.value?.routing?.rules || [];
+    for (const r of rules) {
+      if (r?.outboundTag === oldTag) r.outboundTag = newTag;
+    }
+  }
+}
+function onRemoveOutboundByTag(tag) {
+  const list = ensureOutbounds();
+  if (!list) return;
+  const idx = list.findIndex((o) => o?.tag === tag);
+  if (idx >= 0) list.splice(idx, 1);
+}
+function onRemoveOutboundByIndex(index) {
+  const list = ensureOutbounds();
+  if (list && index >= 0) list.splice(index, 1);
+}
+function onRemoveRoutingRules({ prefix }) {
+  const rules = templateSettings.value?.routing?.rules;
+  if (!Array.isArray(rules)) return;
+  templateSettings.value.routing.rules = rules.filter(
+    (r) => !r?.outboundTag?.startsWith?.(prefix),
+  );
+}
+
+// `message` is used by some of the in-progress UX flows (kept around
+// because future provisioning errors will surface through it).
+void message;
 const { isMobile } = useMediaQuery();
 
 const basePath = window.__X_UI_BASE_PATH__ || '';
@@ -223,6 +276,22 @@ function confirmRestart() {
           </a-spin>
         </a-layout-content>
       </a-layout>
+
+      <WarpModal
+        v-model:open="warpOpen"
+        :template-settings="templateSettings"
+        @add-outbound="onAddOutbound"
+        @reset-outbound="onResetOutbound"
+        @remove-outbound="onRemoveOutboundByTag"
+      />
+      <NordModal
+        v-model:open="nordOpen"
+        :template-settings="templateSettings"
+        @add-outbound="onAddOutbound"
+        @reset-outbound="onResetOutbound"
+        @remove-outbound="onRemoveOutboundByIndex"
+        @remove-routing-rules="onRemoveRoutingRules"
+      />
     </a-layout>
   </a-config-provider>
 </template>
