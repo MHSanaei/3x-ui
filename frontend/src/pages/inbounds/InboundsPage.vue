@@ -1,13 +1,12 @@
 <script setup>
 import { computed, onMounted } from 'vue';
-import { theme as antdTheme } from 'ant-design-vue';
+import { theme as antdTheme, message } from 'ant-design-vue';
 import {
   SwapOutlined,
   PieChartOutlined,
   HistoryOutlined,
   BarsOutlined,
   TeamOutlined,
-  SyncOutlined,
 } from '@ant-design/icons-vue';
 
 import { SizeFormatter } from '@/utils';
@@ -15,6 +14,7 @@ import { theme as themeState } from '@/composables/useTheme.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
 import CustomStatistic from '@/components/CustomStatistic.vue';
+import InboundList from './InboundList.vue';
 import { useInbounds } from './useInbounds.js';
 
 const antdThemeConfig = computed(() => ({
@@ -25,7 +25,13 @@ const {
   fetched,
   refreshing,
   dbInbounds,
+  clientCount,
+  onlineClients,
   totals,
+  expireDiff,
+  trafficDiff,
+  pageSize,
+  subSettings,
   refresh,
   fetchDefaultSettings,
 } = useInbounds();
@@ -38,6 +44,19 @@ onMounted(async () => {
   await fetchDefaultSettings();
   await refresh();
 });
+
+// Modal triggers come in 5f-iii…vii. Until then, action handlers are
+// no-op placeholders that surface a "coming soon" toast so the user
+// gets feedback when clicking through the menu items.
+function onAddInbound() {
+  message.info('Inbound add/edit modal — coming in 5f-iii');
+}
+function onGeneralAction(key) {
+  message.info(`General action "${key}" — coming in a later 5f subphase`);
+}
+function onRowAction({ key }) {
+  message.info(`Row action "${key}" — coming in a later 5f subphase`);
+}
 </script>
 
 <template>
@@ -104,57 +123,23 @@ onMounted(async () => {
                 </a-card>
               </a-col>
 
-              <!-- Inbound list (basic columns; row actions/modals come in later subphases) -->
+              <!-- Inbound list — toolbar, search/filter, columns, row actions -->
               <a-col :span="24">
-                <a-card hoverable>
-                  <template #title>
-                    <span>Inbounds</span>
-                  </template>
-                  <template #extra>
-                    <a-button :loading="refreshing" @click="refresh">
-                      <template #icon><SyncOutlined /></template>
-                    </a-button>
-                  </template>
-
-                  <a-table
-                    :columns="[
-                      { title: 'Enable', dataIndex: 'enable', key: 'enable', width: 80 },
-                      { title: 'Remark', dataIndex: 'remark', key: 'remark' },
-                      { title: 'Port', dataIndex: 'port', key: 'port', width: 100 },
-                      { title: 'Protocol', dataIndex: 'protocol', key: 'protocol', width: 130 },
-                      { title: 'Traffic', key: 'traffic', width: 200 },
-                      { title: 'Expiry', key: 'expiry', width: 140 },
-                    ]"
-                    :data-source="dbInbounds"
-                    :row-key="(r) => r.id"
-                    :pagination="false"
-                    size="small"
-                  >
-                    <template #bodyCell="{ column, record }">
-                      <template v-if="column.key === 'enable'">
-                        <a-switch :checked="record.enable" disabled />
-                      </template>
-                      <template v-else-if="column.key === 'protocol'">
-                        <a-tag color="purple">{{ record.protocol }}</a-tag>
-                      </template>
-                      <template v-else-if="column.key === 'traffic'">
-                        <a-tag>
-                          {{ SizeFormatter.sizeFormat(record.up + record.down) }}
-                          <template v-if="record.total > 0">
-                            / {{ SizeFormatter.sizeFormat(record.total) }}
-                          </template>
-                          <template v-else>/ ∞</template>
-                        </a-tag>
-                      </template>
-                      <template v-else-if="column.key === 'expiry'">
-                        <a-tag v-if="record.expiryTime > 0">
-                          {{ new Date(record.expiryTime).toLocaleDateString() }}
-                        </a-tag>
-                        <a-tag v-else color="purple">∞</a-tag>
-                      </template>
-                    </template>
-                  </a-table>
-                </a-card>
+                <InboundList
+                  :db-inbounds="dbInbounds"
+                  :client-count="clientCount"
+                  :online-clients="onlineClients"
+                  :refreshing="refreshing"
+                  :expire-diff="expireDiff"
+                  :traffic-diff="trafficDiff"
+                  :page-size="pageSize"
+                  :is-mobile="isMobile"
+                  :sub-enable="subSettings.enable"
+                  @refresh="refresh"
+                  @add-inbound="onAddInbound"
+                  @general-action="onGeneralAction"
+                  @row-action="onRowAction"
+                />
               </a-col>
             </a-row>
           </a-spin>
