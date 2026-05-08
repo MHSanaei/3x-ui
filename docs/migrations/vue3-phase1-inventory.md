@@ -108,7 +108,8 @@ Order chosen so that breakage is contained and we always have a working panel:
 - ✅ Phase 4 — first real page (login.html) ported
 - ⏳ Phase 5 — medium pages + modals
   - ✅ 5a — theme system (composable + ThemeSwitch / ThemeSwitchLogin); wired into login
-  - ⏳ 5b — remaining custom components
+  - ✅ 5b — CustomStatistic, SettingListItem, AppSidebar, TableSortable
+  - ⏳ 5c — index.html dashboard
 
 ### Phase 5a notes
 
@@ -123,6 +124,30 @@ Order chosen so that breakage is contained and we always have a working panel:
 - Vite 8.0.11 build verified — `npm run build` succeeds, outputs `web/dist/login.html` + chunked JS/CSS. AD-Vue with `app.use(Antd)` produces a 1.5 MB chunk; we'll switch to per-component imports in a later cleanup pass.
 
 **Known gap:** the legacy `web/assets/css/custom.min.css` styles `body.dark` / `body.light` / `[data-theme="ultra-dark"]`. The new login page doesn't import that CSS, so toggling theme switches AD-Vue's own components but not the panel chrome (e.g. card backgrounds). The composable still toggles the body class so behavior is correct — visual fidelity is restored when we either port custom.css to the new build or import it directly.
+
+### Phase 5b notes
+
+Migrated four components into `frontend/src/components/`:
+
+- **`CustomStatistic.vue`** — wraps `<a-statistic>` with prefix/suffix slots. Trivial port; only change is `Vue.component(...)` → SFC.
+- **`SettingListItem.vue`** — wraps `<a-list-item>` with title/description/control slots and a `paddings` prop. Trivial port.
+- **`AppSidebar.vue`** — main panel sidebar. Surfaces tabs (Dashboard / Inbounds / Settings / Xray / Logout) with icons and the theme switcher. Two key changes from the legacy:
+  - AD-Vue 4 dropped `<a-icon :type="dynamic">`. Replaced with a name→component map (`{ dashboard: DashboardOutlined, ... }`) rendered via `<component :is="...">`.
+  - `<a-drawer>` `slot="handle"` (a non-standard prop in legacy AD-Vue 1) was replaced with a fixed-position toggle button rendered as a sibling. The drawer's `:visible` was renamed to `:open` per AD-Vue 4 conventions.
+  - Tab `key` paths and `requestUri` are passed in as props (parent page knows the basePath); the legacy embedded `{{ .base_path }}` directly via Go templating.
+- **`TableSortable.vue`** — drag-to-reorder a-table wrapper. The biggest single Vue 3 / AD-Vue 4 rewrite in this phase:
+  - `$listeners` (Vue 2) is gone — replaced by `inheritAttrs: false` + `v-bind="$attrs"` style forwarding via the `attrs` setup return.
+  - `scopedSlots: this.$scopedSlots` → Vue 3 unifies all slots; just iterate `Object.keys(this.slots)` and forward.
+  - Render-function shape changed: Vue 2's `h(tag, { props, on, scopedSlots }, children)` → Vue 3's `h(tag, { ...props, ...on }, slotsObject)` where slot fns are passed as the third arg.
+  - `'a-table'` as a plain string → `resolveComponent('a-table')` so `app.use(Antd)` registration is honored.
+  - `inject: ['sortable']` (Options API) inside child component swapped for `inject('sortable', null)` (Composition API) since the trigger now uses `setup()`.
+  - `beforeDestroy` → `beforeUnmount` (Vue 3 lifecycle rename).
+  - `customRow`'s return shape flattened: Vue 2 nested `attrs/on/class` is now a flat object of attrs + listeners + class.
+
+**Skipped in 5b:**
+
+- **`aClientTable.html`** — *not actually a component*. It's a fragment of `<template slot="X" slot-scope="...">` blocks pulled into pages that use it. It depends on outer-scope variables (`record`, `app`, `themeSwitcher`, etc.) and only makes sense inlined into its consumer. Will migrate as part of `inbounds.html`.
+- **`aPersianDatepicker.html`** — wraps a Persian-only third-party datepicker that isn't in the critical path. Defer until `settings.html` migrates and we know whether to keep the legacy lib, replace with a Vue 3 wrapper, or fall back to a native HTML5 date input.
 
 ### Phase 4 notes
 
