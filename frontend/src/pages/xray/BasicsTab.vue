@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ExclamationCircleFilled, CloudOutlined, ApiOutlined } from '@ant-design/icons-vue';
+import { Modal } from 'ant-design-vue';
 
 import { OutboundDomainStrategies } from '@/models/outbound.js';
 import SettingListItem from '@/components/SettingListItem.vue';
@@ -25,7 +26,17 @@ const props = defineProps({
   nordExist: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:outbound-test-url', 'show-warp', 'show-nord']);
+const emit = defineEmits(['update:outbound-test-url', 'show-warp', 'show-nord', 'reset-default']);
+
+function confirmResetDefault() {
+  Modal.confirm({
+    title: t('pages.settings.resetDefaultConfig'),
+    okText: t('reset'),
+    okType: 'danger',
+    cancelText: t('cancel'),
+    onOk: () => { emit('reset-default'); },
+  });
+}
 
 // === Static option lists (mirror legacy) =============================
 const ROUTING_DOMAIN_STRATEGIES = ['AsIs', 'IPIfNonMatch', 'IPOnDemand'];
@@ -35,35 +46,61 @@ const ERROR_LOG = ['none', './error.log'];
 const MASK_ADDRESS = ['quarter', 'half', 'full'];
 const BITTORRENT_PROTOCOLS = ['bittorrent'];
 
-// Country lists copied from the legacy template's settingsData. Keep
-// them alphabetised by ISO code so additions stay obvious in diffs.
+// Country / service lists mirror the legacy panel's settingsData
+// (web/html/xray.html on main). Keep additions in sync with that file
+// so Vue 3 + legacy stay swappable while the migration finishes.
 const IPS_OPTIONS = [
   { label: 'Private IPs', value: 'geoip:private' },
   { label: '🇮🇷 Iran', value: 'ext:geoip_IR.dat:ir' },
   { label: '🇨🇳 China', value: 'geoip:cn' },
   { label: '🇷🇺 Russia', value: 'ext:geoip_RU.dat:ru' },
-];
-const BLOCK_DOMAINS_OPTIONS = [
-  { label: 'Ads (Iran)', value: 'ext:geosite_IR.dat:category-ads-all' },
-  { label: 'Ads', value: 'geosite:category-ads-all' },
-  { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:category-ir' },
-  { label: '🇨🇳 China', value: 'geosite:cn' },
-  { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:category-ru' },
+  { label: '🇻🇳 Vietnam', value: 'geoip:vn' },
+  { label: '🇪🇸 Spain', value: 'geoip:es' },
+  { label: '🇮🇩 Indonesia', value: 'geoip:id' },
+  { label: '🇺🇦 Ukraine', value: 'geoip:ua' },
+  { label: '🇹🇷 Türkiye', value: 'geoip:tr' },
+  { label: '🇧🇷 Brazil', value: 'geoip:br' },
 ];
 const DOMAINS_OPTIONS = [
-  { label: 'Private DNS', value: 'geosite:private' },
-  { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:category-ir' },
+  { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
+  { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
+  { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
   { label: '🇨🇳 China', value: 'geosite:cn' },
-  { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:category-ru' },
+  { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
+  { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:ru-available-only-inside' },
+  { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru$' },
+  { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
+  { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },
+  { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
+];
+const BLOCK_DOMAINS_OPTIONS = [
+  { label: 'Ads All', value: 'geosite:category-ads-all' },
+  { label: 'Ads IR 🇮🇷', value: 'ext:geosite_IR.dat:category-ads-all' },
+  { label: 'Ads RU 🇷🇺', value: 'ext:geosite_RU.dat:category-ads-all' },
+  { label: 'Malware 🇮🇷', value: 'ext:geosite_IR.dat:malware' },
+  { label: 'Phishing 🇮🇷', value: 'ext:geosite_IR.dat:phishing' },
+  { label: 'Cryptominers 🇮🇷', value: 'ext:geosite_IR.dat:cryptominers' },
+  { label: 'Adult +18', value: 'geosite:category-porn' },
+  { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
+  { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
+  { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
+  { label: '🇨🇳 China', value: 'geosite:cn' },
+  { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
+  { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:ru-available-only-inside' },
+  { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru$' },
+  { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
+  { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },
+  { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
 ];
 const SERVICES_OPTIONS = [
-  { label: 'Google', value: 'geosite:google' },
   { label: 'Apple', value: 'geosite:apple' },
   { label: 'Meta', value: 'geosite:meta' },
-  { label: 'Microsoft', value: 'geosite:microsoft' },
-  { label: 'Netflix', value: 'geosite:netflix' },
+  { label: 'Google', value: 'geosite:google' },
   { label: 'OpenAI', value: 'geosite:openai' },
   { label: 'Spotify', value: 'geosite:spotify' },
+  { label: 'Netflix', value: 'geosite:netflix' },
+  { label: 'Reddit', value: 'geosite:reddit' },
+  { label: 'Speedtest', value: 'geosite:speedtest' },
 ];
 
 // === Routing-rule helpers (matches legacy templateRule{Getter,Setter}) ==
@@ -440,6 +477,14 @@ const localOutboundTestUrl = computed({
           </a-button>
         </template>
       </SettingListItem>
+    </a-collapse-panel>
+
+    <a-collapse-panel key="reset" :header="t('pages.settings.resetDefaultConfig')">
+      <a-space direction="horizontal" :style="{ padding: '0 20px' }">
+        <a-button danger @click="confirmResetDefault">
+          {{ t('pages.settings.resetDefaultConfig') }}
+        </a-button>
+      </a-space>
     </a-collapse-panel>
   </a-collapse>
 </template>

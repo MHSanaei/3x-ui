@@ -112,6 +112,20 @@ const duplicateTag = computed(() => {
   return (props.existingTags || []).includes(myTag);
 });
 
+const tagEmpty = computed(() => !outbound.value?.tag?.trim());
+
+const tagValidateStatus = computed(() => {
+  if (tagEmpty.value) return 'error';
+  if (duplicateTag.value) return 'warning';
+  return 'success';
+});
+
+const tagHelp = computed(() => {
+  if (tagEmpty.value) return 'Tag is required';
+  if (duplicateTag.value) return 'Tag already used by another outbound';
+  return '';
+});
+
 // ============== Submit ==============
 function onOk() {
   if (!outbound.value) return;
@@ -215,7 +229,7 @@ function regenerateWgKeys() {
           </a-form-item>
 
           <!-- Tag -->
-          <a-form-item label="Tag" :validate-status="duplicateTag ? 'warning' : 'success'" has-feedback>
+          <a-form-item label="Tag" :validate-status="tagValidateStatus" :help="tagHelp" has-feedback>
             <a-input v-model:value="outbound.tag" placeholder="unique-tag" />
           </a-form-item>
 
@@ -235,7 +249,6 @@ function regenerateWgKeys() {
               <a-input v-model:value="outbound.settings.redirect" />
             </a-form-item>
 
-            <a-divider :style="{ margin: '4px 0' }">Fragment</a-divider>
             <a-form-item label="Fragment">
               <a-switch :checked="!!outbound.settings.fragment && Object.keys(outbound.settings.fragment).length > 0"
                 @change="(checked) => outbound.settings.fragment = checked ? { packets: 'tlshello', length: '100-200', interval: '10-20', maxSplit: '300-400' } : {}" />
@@ -257,7 +270,6 @@ function regenerateWgKeys() {
               </a-form-item>
             </template>
 
-            <a-divider :style="{ margin: '4px 0' }">Noises</a-divider>
             <a-form-item label="Noises">
               <a-switch :checked="(outbound.settings.noises || []).length > 0"
                 @change="(checked) => outbound.settings.noises = checked ? [{ type: 'rand', packet: '10-20', delay: '10-16', applyTo: 'ip' }] : []" />
@@ -270,15 +282,15 @@ function regenerateWgKeys() {
               </a-button>
             </a-form-item>
             <template v-for="(noise, index) in outbound.settings.noises || []" :key="index">
-              <a-divider :style="{ margin: '4px 0' }">
-                Noise {{ index + 1 }}
+              <div class="item-heading">
+                <span>Noise {{ index + 1 }}</span>
                 <DeleteOutlined v-if="outbound.settings.noises.length > 1" class="danger-icon"
                   @click="outbound.settings.noises.splice(index, 1)" />
-              </a-divider>
+              </div>
               <a-form-item label="Type">
                 <a-select v-model:value="noise.type">
                   <a-select-option v-for="x in ['rand', 'base64', 'str', 'hex']" :key="x" :value="x">{{ x
-                    }}</a-select-option>
+                  }}</a-select-option>
                 </a-select>
               </a-form-item>
               <a-form-item label="Packet">
@@ -300,7 +312,7 @@ function regenerateWgKeys() {
             <a-form-item label="Response Type">
               <a-select v-model:value="outbound.settings.type">
                 <a-select-option v-for="x in ['', 'none', 'http']" :key="x" :value="x">{{ x || '(empty)'
-                  }}</a-select-option>
+                }}</a-select-option>
               </a-select>
             </a-form-item>
           </template>
@@ -321,10 +333,10 @@ function regenerateWgKeys() {
               </a-button>
             </a-form-item>
             <template v-for="(rule, index) in outbound.settings.rules || []" :key="index">
-              <a-divider :style="{ margin: '4px 0' }">
-                Rule {{ index + 1 }}
+              <div class="item-heading">
+                <span>Rule {{ index + 1 }}</span>
                 <DeleteOutlined class="danger-icon" @click="outbound.settings.rules.splice(index, 1)" />
-              </a-divider>
+              </div>
               <a-form-item label="Action">
                 <a-select v-model:value="rule.action">
                   <a-select-option v-for="a in DNSRuleActions" :key="a" :value="a">{{ a }}</a-select-option>
@@ -382,11 +394,11 @@ function regenerateWgKeys() {
               </a-button>
             </a-form-item>
             <template v-for="(peer, index) in outbound.settings.peers || []" :key="index">
-              <a-divider :style="{ margin: '4px 0' }">
-                Peer {{ index + 1 }}
+              <div class="item-heading">
+                <span>Peer {{ index + 1 }}</span>
                 <DeleteOutlined v-if="outbound.settings.peers.length > 1" class="danger-icon"
                   @click="outbound.settings.peers.splice(index, 1)" />
-              </a-divider>
+              </div>
               <a-form-item label="Endpoint">
                 <a-input v-model:value="peer.endpoint" />
               </a-form-item>
@@ -442,6 +454,41 @@ function regenerateWgKeys() {
             <a-form-item v-if="isVLESS" label="Reverse tag">
               <a-input v-model:value="outbound.settings.reverseTag" placeholder="optional" />
             </a-form-item>
+
+            <!-- Reverse-Sniffing — surfaced only when a reverse tag is set,
+                 mirroring the legacy form. Defaults populated by the model
+                 so the toggle/checkboxes always have a backing field. -->
+            <template v-if="isVLESS && outbound.settings.reverseTag">
+              <a-form-item label="Reverse Sniffing">
+                <a-switch v-model:checked="outbound.settings.reverseSniffing.enabled" />
+              </a-form-item>
+              <template v-if="outbound.settings.reverseSniffing.enabled">
+                <!-- Align the checkbox row with the input fields above —
+                     same span as wrapper-col (14), offset by label-col (8)
+                     so the row starts where Reverse Tag's input starts. -->
+                <a-form-item :wrapper-col="{ md: { span: 14, offset: 8 } }">
+                  <a-checkbox-group v-model:value="outbound.settings.reverseSniffing.destOverride"
+                    class="sniffing-options">
+                    <a-checkbox v-for="(value, label) in SNIFFING_OPTION" :key="value" :value="value">{{ label
+                    }}</a-checkbox>
+                  </a-checkbox-group>
+                </a-form-item>
+                <a-form-item label="Metadata Only">
+                  <a-switch v-model:checked="outbound.settings.reverseSniffing.metadataOnly" />
+                </a-form-item>
+                <a-form-item label="Route Only">
+                  <a-switch v-model:checked="outbound.settings.reverseSniffing.routeOnly" />
+                </a-form-item>
+                <a-form-item label="IPs Excluded">
+                  <a-select v-model:value="outbound.settings.reverseSniffing.ipsExcluded" mode="tags"
+                    :token-separators="[',']" placeholder="IP/CIDR/geoip:*/ext:*" :style="{ width: '100%' }" />
+                </a-form-item>
+                <a-form-item label="Domains Excluded">
+                  <a-select v-model:value="outbound.settings.reverseSniffing.domainsExcluded" mode="tags"
+                    :token-separators="[',']" placeholder="domain:*/ext:*" :style="{ width: '100%' }" />
+                </a-form-item>
+              </template>
+            </template>
             <a-form-item v-if="outbound.canEnableTlsFlow()" label="Flow">
               <a-select v-model:value="outbound.settings.flow">
                 <a-select-option value="">{{ t('none') }}</a-select-option>
@@ -489,7 +536,6 @@ function regenerateWgKeys() {
 
           <!-- ============== Stream settings ============== -->
           <template v-if="outbound.canEnableStream()">
-            <a-divider :style="{ margin: '4px 0' }">{{ t('transmission') }}</a-divider>
             <a-form-item :label="t('transmission')">
               <a-select :value="outbound.stream.network" @change="streamNetworkChange">
                 <a-select-option v-for="net in (isHysteria ? [...NETWORKS, 'hysteria'] : NETWORKS)" :key="net"
@@ -573,7 +619,8 @@ function regenerateWgKeys() {
               </a-form-item>
             </template>
 
-            <!-- XHTTP -->
+            <!-- XHTTP — full parity with legacy outbound form. The model
+                 already carries every field below; we just surface them. -->
             <template v-if="outbound.stream.network === 'xhttp'">
               <a-form-item :label="t('host')">
                 <a-input v-model:value="outbound.stream.xhttp.host" />
@@ -581,17 +628,160 @@ function regenerateWgKeys() {
               <a-form-item :label="t('path')">
                 <a-input v-model:value="outbound.stream.xhttp.path" />
               </a-form-item>
+
+              <a-form-item :label="t('pages.inbounds.stream.tcp.requestHeader')">
+                <a-button size="small" @click="outbound.stream.xhttp.addHeader('', '')">
+                  <template #icon>
+                    <PlusOutlined />
+                  </template>
+                </a-button>
+              </a-form-item>
+              <a-form-item :wrapper-col="{ span: 24 }">
+                <a-input-group v-for="(header, idx) in outbound.stream.xhttp.headers" :key="idx" compact class="mb-8">
+                  <a-input v-model:value="header.name" :style="{ width: '45%' }" placeholder="Name">
+                    <template #addonBefore>{{ idx + 1 }}</template>
+                  </a-input>
+                  <a-input v-model:value="header.value" :style="{ width: '45%' }" placeholder="Value" />
+                  <a-button @click="outbound.stream.xhttp.removeHeader(idx)">
+                    <template #icon>
+                      <MinusOutlined />
+                    </template>
+                  </a-button>
+                </a-input-group>
+              </a-form-item>
+
               <a-form-item label="Mode">
                 <a-select v-model:value="outbound.stream.xhttp.mode">
                   <a-select-option v-for="m in Object.values(MODE_OPTION)" :key="m" :value="m">{{ m }}</a-select-option>
                 </a-select>
               </a-form-item>
-              <a-form-item label="Padding bytes">
+              <a-form-item v-if="outbound.stream.xhttp.mode === 'packet-up'" label="Max Upload Size (Byte)">
+                <a-input v-model:value="outbound.stream.xhttp.scMaxEachPostBytes" />
+              </a-form-item>
+              <a-form-item v-if="outbound.stream.xhttp.mode === 'packet-up'" label="Min Upload Interval (Ms)">
+                <a-input v-model:value="outbound.stream.xhttp.scMinPostsIntervalMs" />
+              </a-form-item>
+
+              <a-form-item label="Padding Bytes">
                 <a-input v-model:value="outbound.stream.xhttp.xPaddingBytes" />
               </a-form-item>
+              <a-form-item label="Padding Obfs Mode">
+                <a-switch v-model:checked="outbound.stream.xhttp.xPaddingObfsMode" />
+              </a-form-item>
+              <template v-if="outbound.stream.xhttp.xPaddingObfsMode">
+                <a-form-item label="Padding Key">
+                  <a-input v-model:value="outbound.stream.xhttp.xPaddingKey" placeholder="x_padding" />
+                </a-form-item>
+                <a-form-item label="Padding Header">
+                  <a-input v-model:value="outbound.stream.xhttp.xPaddingHeader" placeholder="X-Padding" />
+                </a-form-item>
+                <a-form-item label="Padding Placement">
+                  <a-select v-model:value="outbound.stream.xhttp.xPaddingPlacement">
+                    <a-select-option value="">Default (queryInHeader)</a-select-option>
+                    <a-select-option value="queryInHeader">queryInHeader</a-select-option>
+                    <a-select-option value="header">header</a-select-option>
+                    <a-select-option value="cookie">cookie</a-select-option>
+                    <a-select-option value="query">query</a-select-option>
+                  </a-select>
+                </a-form-item>
+                <a-form-item label="Padding Method">
+                  <a-select v-model:value="outbound.stream.xhttp.xPaddingMethod">
+                    <a-select-option value="">Default (repeat-x)</a-select-option>
+                    <a-select-option value="repeat-x">repeat-x</a-select-option>
+                    <a-select-option value="tokenish">tokenish</a-select-option>
+                  </a-select>
+                </a-form-item>
+              </template>
+
+              <a-form-item label="Uplink HTTP Method">
+                <a-select v-model:value="outbound.stream.xhttp.uplinkHTTPMethod">
+                  <a-select-option value="">Default (POST)</a-select-option>
+                  <a-select-option value="POST">POST</a-select-option>
+                  <a-select-option value="PUT">PUT</a-select-option>
+                  <a-select-option value="GET" :disabled="outbound.stream.xhttp.mode !== 'packet-up'">GET (packet-up
+                    only)</a-select-option>
+                </a-select>
+              </a-form-item>
+
+              <a-form-item label="Session Placement">
+                <a-select v-model:value="outbound.stream.xhttp.sessionPlacement">
+                  <a-select-option value="">Default (path)</a-select-option>
+                  <a-select-option value="path">path</a-select-option>
+                  <a-select-option value="header">header</a-select-option>
+                  <a-select-option value="cookie">cookie</a-select-option>
+                  <a-select-option value="query">query</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item
+                v-if="outbound.stream.xhttp.sessionPlacement && outbound.stream.xhttp.sessionPlacement !== 'path'"
+                label="Session Key">
+                <a-input v-model:value="outbound.stream.xhttp.sessionKey" placeholder="x_session" />
+              </a-form-item>
+
+              <a-form-item label="Sequence Placement">
+                <a-select v-model:value="outbound.stream.xhttp.seqPlacement">
+                  <a-select-option value="">Default (path)</a-select-option>
+                  <a-select-option value="path">path</a-select-option>
+                  <a-select-option value="header">header</a-select-option>
+                  <a-select-option value="cookie">cookie</a-select-option>
+                  <a-select-option value="query">query</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item v-if="outbound.stream.xhttp.seqPlacement && outbound.stream.xhttp.seqPlacement !== 'path'"
+                label="Sequence Key">
+                <a-input v-model:value="outbound.stream.xhttp.seqKey" placeholder="x_seq" />
+              </a-form-item>
+
+              <a-form-item v-if="outbound.stream.xhttp.mode === 'packet-up'" label="Uplink Data Placement">
+                <a-select v-model:value="outbound.stream.xhttp.uplinkDataPlacement">
+                  <a-select-option value="">Default (body)</a-select-option>
+                  <a-select-option value="body">body</a-select-option>
+                  <a-select-option value="header">header</a-select-option>
+                  <a-select-option value="cookie">cookie</a-select-option>
+                  <a-select-option value="query">query</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item v-if="outbound.stream.xhttp.mode === 'packet-up'
+                && outbound.stream.xhttp.uplinkDataPlacement
+                && outbound.stream.xhttp.uplinkDataPlacement !== 'body'" label="Uplink Data Key">
+                <a-input v-model:value="outbound.stream.xhttp.uplinkDataKey" placeholder="x_data" />
+              </a-form-item>
+              <a-form-item v-if="outbound.stream.xhttp.mode === 'packet-up'
+                && outbound.stream.xhttp.uplinkDataPlacement
+                && outbound.stream.xhttp.uplinkDataPlacement !== 'body'" label="Uplink Chunk Size">
+                <a-input-number v-model:value="outbound.stream.xhttp.uplinkChunkSize" :min="0"
+                  placeholder="0 (unlimited)" />
+              </a-form-item>
+
+              <a-form-item
+                v-if="outbound.stream.xhttp.mode === 'stream-up' || outbound.stream.xhttp.mode === 'stream-one'"
+                label="No gRPC Header">
+                <a-switch v-model:checked="outbound.stream.xhttp.noGRPCHeader" />
+              </a-form-item>
+
               <a-form-item label="XMUX">
                 <a-switch v-model:checked="outbound.stream.xhttp.enableXmux" />
               </a-form-item>
+              <template v-if="outbound.stream.xhttp.enableXmux">
+                <a-form-item v-if="!outbound.stream.xhttp.xmux.maxConnections" label="Max Concurrency">
+                  <a-input v-model:value="outbound.stream.xhttp.xmux.maxConcurrency" />
+                </a-form-item>
+                <a-form-item v-if="!outbound.stream.xhttp.xmux.maxConcurrency" label="Max Connections">
+                  <a-input v-model:value="outbound.stream.xhttp.xmux.maxConnections" />
+                </a-form-item>
+                <a-form-item label="Max Reuse Times">
+                  <a-input v-model:value="outbound.stream.xhttp.xmux.cMaxReuseTimes" />
+                </a-form-item>
+                <a-form-item label="Max Request Times">
+                  <a-input v-model:value="outbound.stream.xhttp.xmux.hMaxRequestTimes" />
+                </a-form-item>
+                <a-form-item label="Max Reusable Secs">
+                  <a-input v-model:value="outbound.stream.xhttp.xmux.hMaxReusableSecs" />
+                </a-form-item>
+                <a-form-item label="Keep Alive Period">
+                  <a-input-number v-model:value="outbound.stream.xhttp.xmux.hKeepAlivePeriod" :min="0" />
+                </a-form-item>
+              </template>
             </template>
 
             <!-- Hysteria transport -->
@@ -628,7 +818,6 @@ function regenerateWgKeys() {
 
           <!-- ============== TLS / Reality ============== -->
           <template v-if="outbound.canEnableTls()">
-            <a-divider :style="{ margin: '4px 0' }">{{ t('security') }}</a-divider>
             <a-form-item :label="t('security')">
               <a-radio-group v-model:value="outbound.stream.security" button-style="solid">
                 <a-radio-button value="none">{{ t('none') }}</a-radio-button>
@@ -689,7 +878,6 @@ function regenerateWgKeys() {
 
           <!-- ============== sockopt ============== -->
           <template v-if="outbound.stream">
-            <a-divider :style="{ margin: '4px 0' }">Sockopts</a-divider>
             <a-form-item label="Sockopts">
               <a-switch v-model:checked="outbound.stream.sockoptSwitch" />
             </a-form-item>
@@ -721,7 +909,6 @@ function regenerateWgKeys() {
 
           <!-- ============== Mux ============== -->
           <template v-if="outbound.canEnableMux()">
-            <a-divider :style="{ margin: '4px 0' }">{{ t('pages.settings.mux') }}</a-divider>
             <a-form-item :label="t('pages.settings.mux')">
               <a-switch v-model:checked="outbound.mux.enabled" />
             </a-form-item>
@@ -735,7 +922,7 @@ function regenerateWgKeys() {
               <a-form-item label="xudp UDP 443">
                 <a-select v-model:value="outbound.mux.xudpProxyUDP443">
                   <a-select-option v-for="x in ['reject', 'allow', 'skip']" :key="x" :value="x">{{ x
-                    }}</a-select-option>
+                  }}</a-select-option>
                 </a-select>
               </a-form-item>
             </template>
@@ -780,8 +967,40 @@ function regenerateWgKeys() {
   margin-left: 8px;
 }
 
+.mb-8 {
+  margin-bottom: 8px;
+}
+
+.section-heading {
+  font-weight: 500;
+  margin: 12px 0 6px;
+  opacity: 0.85;
+}
+
+.item-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  margin: 8px 0 4px;
+  opacity: 0.85;
+}
+
 .json-editor {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
+}
+
+/* AD-Vue 4 renders a-checkbox children inside a-checkbox-group as
+ * inline-block, but inside a narrow form wrapper they can wrap
+ * inconsistently. Force a clean horizontal row with even gaps. */
+.sniffing-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.sniffing-options :deep(.ant-checkbox-wrapper) {
+  margin-inline-start: 0;
 }
 </style>

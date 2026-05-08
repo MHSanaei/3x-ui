@@ -79,7 +79,7 @@ function confirmDelete(idx) {
     okText: t('delete'),
     okType: 'danger',
     cancelText: t('cancel'),
-    onOk: () => props.templateSettings.outbounds.splice(idx, 1),
+    onOk: () => { props.templateSettings.outbounds.splice(idx, 1); },
   });
 }
 function setFirst(idx) {

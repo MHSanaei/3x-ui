@@ -118,7 +118,11 @@ function confirmDelete(idx) {
     okText: t('delete'),
     okType: 'danger',
     cancelText: t('cancel'),
-    onOk: () => props.templateSettings.routing.balancers.splice(idx, 1),
+    // Wrap in a block so we discard splice's return value — AD-Vue
+    // 4 leaves the modal open if onOk returns a truthy non-thenable
+    // (it expects a Promise to await), and splice() returns the array
+    // of removed items.
+    onOk: () => { props.templateSettings.routing.balancers.splice(idx, 1); },
   });
 }
 

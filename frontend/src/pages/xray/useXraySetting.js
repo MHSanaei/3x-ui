@@ -159,6 +159,20 @@ export function useXraySetting() {
     return null;
   }
 
+  async function resetToDefault() {
+    spinning.value = true;
+    try {
+      const msg = await HttpUtil.get('/panel/setting/getDefaultJsonConfig');
+      if (msg?.success) {
+        // Mutate templateSettings — the watch above re-stringifies into
+        // xraySetting so the Advanced JSON tab and dirty-poll see it.
+        templateSettings.value = JSON.parse(JSON.stringify(msg.obj));
+      }
+    } finally {
+      spinning.value = false;
+    }
+  }
+
   async function restartXray() {
     spinning.value = true;
     try {
@@ -218,6 +232,7 @@ export function useXraySetting() {
     resetOutboundsTraffic,
     testOutbound,
     saveAll,
+    resetToDefault,
     restartXray,
   };
 }

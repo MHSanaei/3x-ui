@@ -52,11 +52,28 @@ watch(() => props.open, (next) => {
   }
 });
 
+const tagEmpty = computed(() => !form.tag?.trim());
 const duplicateTag = computed(
-  () => !form.tag || props.otherTags.includes(form.tag),
+  () => !!form.tag && props.otherTags.includes(form.tag.trim()),
 );
 const emptySelector = computed(() => form.selector.length === 0);
-const isValid = computed(() => !duplicateTag.value && !emptySelector.value);
+const isValid = computed(
+  () => !tagEmpty.value && !duplicateTag.value && !emptySelector.value,
+);
+
+const tagValidateStatus = computed(() => {
+  if (tagEmpty.value) return 'error';
+  if (duplicateTag.value) return 'warning';
+  return 'success';
+});
+const tagHelp = computed(() => {
+  if (tagEmpty.value) return 'Tag is required';
+  if (duplicateTag.value) return 'Tag already used by another balancer';
+  return '';
+});
+
+const selectorValidateStatus = computed(() => (emptySelector.value ? 'error' : 'success'));
+const selectorHelp = computed(() => (emptySelector.value ? 'Pick at least one outbound' : ''));
 
 function close() { emit('update:open', false); }
 function onOk() {
@@ -78,7 +95,12 @@ const okText = computed(() =>
   <a-modal :open="open" :title="title" :ok-text="okText" :cancel-text="t('close')"
     :ok-button-props="{ disabled: !isValid }" :mask-closable="false" @ok="onOk" @cancel="close">
     <a-form :colon="false" :label-col="{ md: { span: 8 } }" :wrapper-col="{ md: { span: 14 } }">
-      <a-form-item label="Tag" :validate-status="duplicateTag ? 'warning' : 'success'" has-feedback>
+      <a-form-item
+        label="Tag"
+        :validate-status="tagValidateStatus"
+        :help="tagHelp"
+        has-feedback
+      >
         <a-input v-model:value="form.tag" placeholder="unique balancer tag" />
       </a-form-item>
 
@@ -88,7 +110,12 @@ const okText = computed(() =>
         </a-select>
       </a-form-item>
 
-      <a-form-item label="Selector" :validate-status="emptySelector ? 'warning' : 'success'" has-feedback>
+      <a-form-item
+        label="Selector"
+        :validate-status="selectorValidateStatus"
+        :help="selectorHelp"
+        has-feedback
+      >
         <a-select v-model:value="form.selector" mode="tags" :token-separators="[',']">
           <a-select-option v-for="tag in outboundTags" :key="tag" :value="tag">{{ tag }}</a-select-option>
         </a-select>

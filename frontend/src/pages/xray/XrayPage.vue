@@ -44,6 +44,7 @@ const {
   resetOutboundsTraffic,
   testOutbound,
   saveAll,
+  resetToDefault,
   restartXray,
 } = useXraySetting();
 
@@ -211,6 +212,7 @@ function confirmRestart() {
                         @update:outbound-test-url="(v) => (outboundTestUrl = v)"
                         @show-warp="showWarp"
                         @show-nord="showNord"
+                        @reset-default="resetToDefault"
                       />
                     </a-tab-pane>
 
