@@ -18,6 +18,7 @@ import GeneralTab from './GeneralTab.vue';
 import SecurityTab from './SecurityTab.vue';
 import TelegramTab from './TelegramTab.vue';
 import SubscriptionGeneralTab from './SubscriptionGeneralTab.vue';
+import SubscriptionFormatsTab from './SubscriptionFormatsTab.vue';
 
 const antdThemeConfig = computed(() => ({
   algorithm: themeState.isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -242,7 +243,7 @@ const alertVisible = ref(true);
                         <CodeOutlined />
                         <span>Subscription (Formats)</span>
                       </template>
-                      <a-empty description="Subscription formats — coming in 5d-vi" />
+                      <SubscriptionFormatsTab :all-setting="allSetting" />
                     </a-tab-pane>
                   </a-tabs>
                 </a-col>
