@@ -602,4 +602,57 @@ function showQrCodeMenu(dbInbound) {
 :deep(.ant-table-tbody > tr:last-child > *:last-child) {
   border-end-end-radius: 8px;
 }
+
+/* ===== Mobile-tightening ============================================
+ * Below 768px the inbound list is on a tiny viewport — squeeze the
+ * card chrome and table cell padding so the actual rows have room. */
+@media (max-width: 768px) {
+  /* Card header/body breathe less on mobile */
+  :deep(.ant-card-head) {
+    padding: 0 12px;
+    min-height: 44px;
+  }
+
+  :deep(.ant-card-head-title),
+  :deep(.ant-card-extra) {
+    padding: 8px 0;
+  }
+
+  :deep(.ant-card-body) {
+    padding: 8px;
+  }
+
+  /* Filter bar wraps cleanly without forcing block layout (which made
+   * the input + radio group stack on separate full-width lines). */
+  .filter-bar.mobile {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .filter-bar.mobile > * {
+    margin-bottom: 0;
+  }
+
+  /* Tighten table cell padding so the 3 visible columns get room. */
+  :deep(.ant-table-thead > tr > th),
+  :deep(.ant-table-tbody > tr > td) {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  /* Slightly bigger expand chevron (touch target). */
+  :deep(.ant-table-row-expand-icon) {
+    width: 20px;
+    height: 20px;
+    line-height: 18px;
+  }
+
+  /* The action / info icons are the row's primary touch targets. */
+  .row-action-trigger,
+  .row-info-trigger {
+    font-size: 22px;
+    padding: 4px;
+  }
+}
 </style>

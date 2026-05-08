@@ -164,5 +164,20 @@ function closeDrawer() {
   .drawer-handle {
     display: inline-flex;
   }
+
+  /* On mobile the drawer is the menu — hide the inline sider's content
+   * + the collapse trigger so the sider stops taking layout space and
+   * leaves no remnant button next to the page. */
+  .ant-sidebar > .ant-layout-sider :deep(.ant-layout-sider-children),
+  .ant-sidebar > .ant-layout-sider :deep(.ant-layout-sider-trigger) {
+    display: none;
+  }
+
+  .ant-sidebar > .ant-layout-sider {
+    flex: 0 0 0 !important;
+    max-width: 0 !important;
+    min-width: 0 !important;
+    width: 0 !important;
+  }
 }
 </style>

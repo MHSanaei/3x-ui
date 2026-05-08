@@ -324,7 +324,7 @@ const _antdAlgorithm = antdTheme.darkAlgorithm;
   --bg-card: #151f31;
 }
 .subscription-page.is-dark.is-ultra {
-  --bg-page: #21242a;
+  --bg-page: #050505;
   --bg-card: #0c0e12;
 }
 .subscription-page :deep(.ant-layout),

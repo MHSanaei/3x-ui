@@ -623,7 +623,7 @@ function onRowAction({ key, dbInbound }) {
 }
 
 .inbounds-page.is-dark.is-ultra {
-  --bg-page: #21242a;
+  --bg-page: #050505;
   --bg-card: #0c0e12;
 }
 
@@ -640,11 +640,23 @@ function onRowAction({ key, dbInbound }) {
   padding: 24px;
 }
 
+@media (max-width: 768px) {
+  .content-area {
+    padding: 8px;
+  }
+}
+
 .loading-spacer {
   min-height: calc(100vh - 120px);
 }
 
 .summary-card {
   padding: 16px;
+}
+
+@media (max-width: 768px) {
+  .summary-card {
+    padding: 8px;
+  }
 }
 </style>

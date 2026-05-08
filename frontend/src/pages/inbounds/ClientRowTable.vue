@@ -556,4 +556,55 @@ function rowKey(client) {
 :deep(.ant-table-expanded-row > .ant-table-cell) {
   padding: 0 !important;
 }
+
+/* ===== Mobile polish ===============================================
+ * On phones the row collapses to [actions][client][info]. Give those
+ * cells room and bump the touch targets so the per-client action
+ * dropdown + info popover are easier to hit with a thumb. */
+@media (max-width: 768px) {
+  .client-list.is-mobile .client-row {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    gap: 8px;
+    padding: 10px 10px;
+  }
+
+  .client-list.is-mobile .row-icon {
+    font-size: 20px;
+    padding: 6px;
+  }
+
+  .client-list.is-mobile .cell-mobile-info .ant-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Make the email more readable; the comment can stay smaller. */
+  .client-list.is-mobile .client-email {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .client-list.is-mobile .client-comment {
+    font-size: 11px;
+  }
+
+  /* Bigger status badge so depleted/online state is visible at a glance. */
+  .client-list.is-mobile .cell-client :deep(.ant-badge-status-dot) {
+    width: 9px;
+    height: 9px;
+  }
+
+  /* Row separators feel cleaner with a slight surface tint per row
+   * — easier to scan than a hairline border on dark backgrounds. */
+  .client-list.is-mobile .client-row:not(.client-list-header) {
+    background: rgba(128, 128, 128, 0.04);
+    border-radius: 8px;
+    margin: 4px 8px;
+    border: none !important;
+  }
+
+  .client-list.is-mobile .client-row:not(.client-list-header):last-child {
+    border: none !important;
+  }
+}
 </style>
