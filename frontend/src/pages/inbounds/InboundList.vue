@@ -397,14 +397,16 @@ function showQrCodeMenu(dbInbound) {
             <a-popover>
               <template #content>
                 <table cellpadding="2">
-                  <tr>
-                    <td>↑ {{ SizeFormatter.sizeFormat(record.up) }}</td>
-                    <td>↓ {{ SizeFormatter.sizeFormat(record.down) }}</td>
-                  </tr>
-                  <tr v-if="record.total > 0 && record.up + record.down < record.total">
-                    <td>Remaining</td>
-                    <td>{{ SizeFormatter.sizeFormat(record.total - record.up - record.down) }}</td>
-                  </tr>
+                  <tbody>
+                    <tr>
+                      <td>↑ {{ SizeFormatter.sizeFormat(record.up) }}</td>
+                      <td>↓ {{ SizeFormatter.sizeFormat(record.down) }}</td>
+                    </tr>
+                    <tr v-if="record.total > 0 && record.up + record.down < record.total">
+                      <td>Remaining</td>
+                      <td>{{ SizeFormatter.sizeFormat(record.total - record.up - record.down) }}</td>
+                    </tr>
+                  </tbody>
                 </table>
               </template>
               <a-tag :color="ColorUtils.usageColor(record.up + record.down, trafficDiff, record.total)">
@@ -439,35 +441,37 @@ function showQrCodeMenu(dbInbound) {
             <a-popover placement="bottomRight" trigger="click">
               <template #content>
                 <table cellpadding="2">
-                  <tr>
-                    <td>Protocol</td>
-                    <td><a-tag color="purple">{{ record.protocol }}</a-tag></td>
-                  </tr>
-                  <tr>
-                    <td>Port</td>
-                    <td><a-tag>{{ record.port }}</a-tag></td>
-                  </tr>
-                  <tr v-if="clientCount[record.id]">
-                    <td>Clients</td>
-                    <td><a-tag color="blue">{{ clientCount[record.id].clients }}</a-tag></td>
-                  </tr>
-                  <tr>
-                    <td>Traffic</td>
-                    <td>
-                      <a-tag>
-                        {{ SizeFormatter.sizeFormat(record.up + record.down) }} /
-                        <template v-if="record.total > 0">{{ SizeFormatter.sizeFormat(record.total) }}</template>
-                        <template v-else>∞</template>
-                      </a-tag>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Expiry</td>
-                    <td>
-                      <a-tag v-if="record.expiryTime > 0">{{ IntlUtil.formatRelativeTime(record.expiryTime) }}</a-tag>
-                      <a-tag v-else color="purple">∞</a-tag>
-                    </td>
-                  </tr>
+                  <tbody>
+                    <tr>
+                      <td>Protocol</td>
+                      <td><a-tag color="purple">{{ record.protocol }}</a-tag></td>
+                    </tr>
+                    <tr>
+                      <td>Port</td>
+                      <td><a-tag>{{ record.port }}</a-tag></td>
+                    </tr>
+                    <tr v-if="clientCount[record.id]">
+                      <td>Clients</td>
+                      <td><a-tag color="blue">{{ clientCount[record.id].clients }}</a-tag></td>
+                    </tr>
+                    <tr>
+                      <td>Traffic</td>
+                      <td>
+                        <a-tag>
+                          {{ SizeFormatter.sizeFormat(record.up + record.down) }} /
+                          <template v-if="record.total > 0">{{ SizeFormatter.sizeFormat(record.total) }}</template>
+                          <template v-else>∞</template>
+                        </a-tag>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Expiry</td>
+                      <td>
+                        <a-tag v-if="record.expiryTime > 0">{{ IntlUtil.formatRelativeTime(record.expiryTime) }}</a-tag>
+                        <a-tag v-else color="purple">∞</a-tag>
+                      </td>
+                    </tr>
+                  </tbody>
                 </table>
               </template>
               <InfoCircleOutlined class="row-info-trigger" />
