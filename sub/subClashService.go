@@ -38,6 +38,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	var clientTraffics []xray.ClientTraffic
 	var proxies []map[string]any
 
+	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
 		clients, err := s.inboundService.GetClients(inbound)
 		if err != nil {
@@ -56,7 +57,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		}
 		for _, client := range clients {
 			if client.SubID == subId {
-				clientTraffics = append(clientTraffics, s.SubService.getClientTraffics(inbound.ClientStats, client.Email))
+				_, clientTraffics = s.SubService.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
 				proxies = append(proxies, s.getProxies(inbound, client, host)...)
 			}
 		}

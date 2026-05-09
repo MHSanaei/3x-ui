@@ -97,6 +97,7 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	var clientTraffics []xray.ClientTraffic
 	var configArray []json_util.RawMessage
 
+	seenEmails := make(map[string]struct{})
 	// Prepare Inbounds
 	for _, inbound := range inbounds {
 		clients, err := s.inboundService.GetClients(inbound)
@@ -117,9 +118,8 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 
 		for _, client := range clients {
 			if client.SubID == subId {
-				clientTraffics = append(clientTraffics, s.SubService.getClientTraffics(inbound.ClientStats, client.Email))
-				newConfigs := s.getConfig(inbound, client, host)
-				configArray = append(configArray, newConfigs...)
+				_, clientTraffics = s.SubService.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
+				configArray = append(configArray, s.getConfig(inbound, client, host)...)
 			}
 		}
 	}

@@ -61,6 +61,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 	if err != nil {
 		s.datepicker = "gregorian"
 	}
+	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
 		clients, err := s.inboundService.GetClients(inbound)
 		if err != nil {
@@ -82,10 +83,9 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 				if client.Enable {
 					hasEnabledClient = true
 				}
-				link := s.getLink(inbound, client.Email)
-				result = append(result, link)
-				ct := s.getClientTraffics(inbound.ClientStats, client.Email)
-				clientTraffics = append(clientTraffics, ct)
+				result = append(result, s.getLink(inbound, client.Email))
+				var ct xray.ClientTraffic
+				ct, clientTraffics = s.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
 				if ct.LastOnline > lastOnline {
 					lastOnline = ct.LastOnline
 				}
@@ -136,6 +136,19 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		return nil, err
 	}
 	return inbounds, nil
+}
+
+// appendUniqueTraffic resolves the traffic stats for email and appends them
+// to acc only the first time email is seen. Shared-email mode lets one
+// client_traffics row underpin several inbounds, so without dedupe its
+// quota and usage would be counted once per inbound.
+func (s *SubService) appendUniqueTraffic(seen map[string]struct{}, acc []xray.ClientTraffic, stats []xray.ClientTraffic, email string) (xray.ClientTraffic, []xray.ClientTraffic) {
+	ct := s.getClientTraffics(stats, email)
+	if _, dup := seen[email]; !dup {
+		seen[email] = struct{}{}
+		acc = append(acc, ct)
+	}
+	return ct, acc
 }
 
 func (s *SubService) getClientTraffics(traffics []xray.ClientTraffic, email string) xray.ClientTraffic {
