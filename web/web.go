@@ -41,7 +41,13 @@ var i18nFS embed.FS
 // HTML route is served straight out of this FS — the legacy Go
 // templates and `web/assets/` tree are gone post-Phase 8.
 //
-//go:embed dist/*
+// `all:` is required so files whose names start with `_` are NOT
+// silently excluded by go:embed's default rules. Vite/rolldown emits
+// `_plugin-vue_export-helper-<hash>.js` for the @vitejs/plugin-vue
+// runtime; without `all:` the chunk would be missing from the binary
+// at runtime → 404 → blank-page boot failure.
+//
+//go:embed all:dist
 var distFS embed.FS
 
 var startTime = time.Now()
