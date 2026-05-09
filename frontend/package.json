@@ -1,7 +1,7 @@
 {
   "name": "3x-ui-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "description": "3x-ui panel frontend (Vue 3 + Ant Design Vue 4 + Vite 8).",
   "scripts": {
@@ -31,5 +31,8 @@
     "globals": "^17.6.0",
     "vite": "^8.0.11",
     "vue-eslint-parser": "^10.4.0"
+  },
+  "overrides": {
+    "moment-jalaali": "^0.10.4"
   }
 }
