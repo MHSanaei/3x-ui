@@ -182,8 +182,11 @@
                     <a-input v-if="!enableFilter" v-model.lazy="searchKey" placeholder='{{ i18n "search" }}' autofocus
                       :style="{ maxWidth: '300px' }" :size="isMobile ? 'small' : ''"></a-input>
                     <a-radio-group v-if="enableFilter" v-model="filterBy" @change="filterInbounds" button-style="solid"
+                      class="mobile-filter-group"
                       :size="isMobile ? 'small' : ''">
                       <a-radio-button value>{{ i18n "none" }}</a-radio-button>
+                      <a-radio-button value="active">{{ i18n "subscription.active"
+                        }}</a-radio-button>
                       <a-radio-button value="deactive">{{ i18n "disabled"
                         }}</a-radio-button>
                       <a-radio-button value="depleted">{{ i18n "depleted"
@@ -280,16 +283,15 @@
                       </a-dropdown>
                     </template>
                     <template slot="protocol" slot-scope="text, dbInbound">
-                      <a-tag :style="{ margin: '0' }" color="purple">[[
-                        dbInbound.protocol ]]</a-tag>
-                      <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
-                        <a-tag :style="{ margin: '0' }" color="green">[[
-                          dbInbound.toInbound().stream.network ]]</a-tag>
-                        <a-tag :style="{ margin: '0' }" v-if="dbInbound.toInbound().stream.isTls"
-                          color="blue">TLS</a-tag>
-                        <a-tag :style="{ margin: '0' }" v-if="dbInbound.toInbound().stream.isReality"
-                          color="blue">Reality</a-tag>
-                      </template>
+                      <div class="protocol-tags">
+                        <a-tag color="purple">[[ dbInbound.protocol ]]</a-tag>
+                        <template
+                          v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
+                          <a-tag color="green">[[ dbInbound.toInbound().stream.network ]]</a-tag>
+                          <a-tag v-if="dbInbound.toInbound().stream.isTls" color="blue">TLS</a-tag>
+                          <a-tag v-if="dbInbound.toInbound().stream.isReality" color="blue">Reality</a-tag>
+                        </template>
+                      </div>
                     </template>
                     <template slot="clients" slot-scope="text, dbInbound">
                       <template v-if="clientCount[dbInbound.id]">
@@ -642,9 +644,12 @@
                       </a-popover>
                     </template>
                     <template slot="expandedRowRender" slot-scope="record">
-                      <a-table :row-key="client => client.id" :columns="isMobile ? innerMobileColumns : innerColumns"
-                        :data-source="getInboundClients(record)" :pagination=pagination(getInboundClients(record))
-                        :style="{ margin: `-10px ${isMobile ? '2px' : '22px'} -11px` }">
+                      <a-table :row-key="client => client.id"
+                        :columns="isMobile ? innerMobileColumns : innerColumns"
+                        :data-source="getInboundClients(record)"
+                        :pagination=pagination(getInboundClients(record))
+                        :scroll="isMobile ? {} : { x: 'max-content' }"
+                        :style="{ margin: `-10px ${isMobile ? '2px' : '22px'} -21px` }">
                         {{template "component/aClientTable" .}}
                       </a-table>
                     </template>
@@ -984,58 +989,14 @@
     },
   }];
 
-  const innerColumns = [{
-      title: '{{ i18n "pages.inbounds.operate" }}',
-      width: 70,
-      scopedSlots: {
-        customRender: 'actions'
-      }
-    },
-    {
-      title: '{{ i18n "pages.inbounds.enable" }}',
-      width: 30,
-      scopedSlots: {
-        customRender: 'enable'
-      }
-    },
-    {
-      title: '{{ i18n "online" }}',
-      width: 32,
-      scopedSlots: {
-        customRender: 'online'
-      }
-    },
-    {
-      title: '{{ i18n "pages.inbounds.client" }}',
-      width: 80,
-      scopedSlots: {
-        customRender: 'client'
-      }
-    },
-    {
-      title: '{{ i18n "pages.inbounds.traffic" }}',
-      width: 80,
-      align: 'center',
-      scopedSlots: {
-        customRender: 'traffic'
-      }
-    },
-    {
-      title: '{{ i18n "pages.inbounds.allTimeTraffic" }}',
-      width: 60,
-      align: 'center',
-      scopedSlots: {
-        customRender: 'allTime'
-      }
-    },
-    {
-      title: '{{ i18n "pages.inbounds.expireDate" }}',
-      width: 80,
-      align: 'center',
-      scopedSlots: {
-        customRender: 'expiryTime'
-      }
-    },
+  const innerColumns = [
+    { title: '{{ i18n "pages.inbounds.operate" }}', width: 140, scopedSlots: { customRender: 'actions' } },
+    { title: '{{ i18n "pages.inbounds.enable" }}', width: 60, scopedSlots: { customRender: 'enable' } },
+    { title: '{{ i18n "online" }}', width: 80, scopedSlots: { customRender: 'online' } },
+    { title: '{{ i18n "pages.inbounds.client" }}', width: 160, scopedSlots: { customRender: 'client' } },
+    { title: '{{ i18n "pages.inbounds.traffic" }}', width: 200, align: 'center', scopedSlots: { customRender: 'traffic' } },
+    { title: '{{ i18n "pages.inbounds.allTimeTraffic" }}', width: 110, align: 'center', scopedSlots: { customRender: 'allTime' } },
+    { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 180, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
   ];
 
   const innerMobileColumns = [{
@@ -1085,7 +1046,7 @@
       trafficDiff: 0,
       defaultCert: '',
       defaultKey: '',
-      clientCount: [],
+      clientCount: {},
       onlineClients: [],
       lastOnlineMap: {},
       isRefreshEnabled: localStorage.getItem("isRefreshEnabled") === "true" ? true : false,
@@ -1108,6 +1069,71 @@
     methods: {
       loading(spinning = true) {
         this.loadingStates.spinning = spinning;
+      },
+      // applyClientStatsDelta updates client traffic counters and inbound totals
+      // in-place from a WebSocket delta payload. Avoids full-list re-fetch and
+      // re-render — critical at 10k+ client scale.
+      applyClientStatsDelta(payload) {
+        if (!payload || typeof payload !== 'object') return;
+
+        const inboundsById = new Map();
+        this.dbInbounds.forEach(ib => inboundsById.set(ib.id, ib));
+        const touched = new Set();
+
+        if (Array.isArray(payload.clients) && payload.clients.length > 0) {
+          for (const stat of payload.clients) {
+            const dbInbound = inboundsById.get(stat.inboundId);
+            if (!dbInbound || !Array.isArray(dbInbound.clientStats)) continue;
+            const cs = this.getClientStats(dbInbound, stat.email);
+            if (!cs) continue;
+            cs.up = stat.up;
+            cs.down = stat.down;
+            // allTime is the cumulative-historical counter shown in the
+            // "Общий трафик" column. The previous handler updated up/down/
+            // total but skipped allTime, so that column stayed frozen at
+            // its initial-page-load value until a manual refresh.
+            if (stat.allTime !== undefined) cs.allTime = stat.allTime;
+            if (stat.total !== undefined) cs.total = stat.total;
+            if (stat.expiryTime !== undefined) cs.expiryTime = stat.expiryTime;
+            if (stat.lastOnline !== undefined) cs.lastOnline = stat.lastOnline;
+            if (stat.enable !== undefined) cs.enable = stat.enable;
+            touched.add(stat.inboundId);
+          }
+        }
+
+        if (Array.isArray(payload.inbounds) && payload.inbounds.length > 0) {
+          for (const summary of payload.inbounds) {
+            const dbInbound = inboundsById.get(summary.id);
+            if (!dbInbound) continue;
+            dbInbound.up = summary.up;
+            dbInbound.down = summary.down;
+            if (summary.total !== undefined) dbInbound.total = summary.total;
+            if (summary.allTime !== undefined) dbInbound.allTime = summary.allTime;
+            if (summary.enable !== undefined) dbInbound.enable = summary.enable;
+          }
+        }
+
+        // Recompute clientCount for inbounds whose stats changed. The cached
+        // parsed Inbound is fetched via dbInbound.toInbound() — earlier
+        // versions used `this.inbounds.find(ib => ib.id === id)` which
+        // ALWAYS returned undefined (the Inbound class has no id field), so
+        // this branch silently never ran and depleted/expiring/online filters
+        // never refreshed from delta updates.
+        if (touched.size > 0) {
+          for (const id of touched) {
+            const dbInbound = inboundsById.get(id);
+            if (dbInbound) {
+              this.$set(this.clientCount, id, this.getClientCounts(dbInbound, dbInbound.toInbound()));
+            }
+          }
+        }
+
+        // Re-run filter/search so the displayed slice picks up updated values.
+        if (this.enableFilter) {
+          this.filterInbounds();
+        } else {
+          this.searchInbounds(this.searchKey);
+        }
       },
       async getDBInbounds() {
         this.refreshing = true;
@@ -1163,7 +1189,11 @@
       setInbounds(dbInbounds) {
         this.inbounds.splice(0);
         this.dbInbounds.splice(0);
-        this.clientCount.splice(0);
+        // Drop every existing key — Vue.delete keeps it reactive so any
+        // template expression watching clientCount[id] re-renders cleanly.
+        for (const key of Object.keys(this.clientCount)) {
+          this.$delete(this.clientCount, key);
+        }
         for (const inbound of dbInbounds) {
           const dbInbound = new DBInbound(inbound);
           to_inbound = dbInbound.toInbound()
@@ -1174,7 +1204,9 @@
             if (dbInbound.isSS && (!to_inbound.isSSMultiUser)) {
               continue;
             }
-            this.clientCount[inbound.id] = this.getClientCounts(inbound, to_inbound);
+            // Reactive add — direct assignment on the map would not trigger
+            // template updates in Vue 2.
+            this.$set(this.clientCount, inbound.id, this.getClientCounts(inbound, to_inbound));
           }
         }
         if (!this.loadingStates.fetched) {
@@ -1679,39 +1711,29 @@
         newDbInbound = this.checkFallback(dbInbound);
         infoModal.show(newDbInbound, index);
       },
-      switchEnable(dbInboundId, state) {
-        let dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+      // switchEnable toggles inbound.enable through a dedicated lightweight
+      // endpoint. The previous implementation re-submitted the entire
+      // inbound settings JSON (every client) just to flip a boolean — on a
+      // 7000+ client inbound that meant a multi-MB request, an O(N) traffic
+      // diff and a full xray-config rebuild for every click of the switch.
+      async switchEnable(dbInboundId, state) {
+        const dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
         if (!dbInbound) return;
-        dbInbound.enable = state;
-        let inbound = dbInbound.toInbound();
-        const data = {
-          up: dbInbound.up,
-          down: dbInbound.down,
-          total: dbInbound.total,
-          remark: dbInbound.remark,
-          enable: dbInbound.enable,
-          expiryTime: dbInbound.expiryTime,
-          trafficReset: dbInbound.trafficReset,
-          lastTrafficResetTime: dbInbound.lastTrafficResetTime,
 
-          listen: inbound.listen,
-          port: inbound.port,
-          protocol: inbound.protocol,
-          settings: inbound.settings.toString(),
-        };
-        if (inbound.canEnableStream()) {
-          data.streamSettings = inbound.stream.toString();
-        } else if (inbound.stream?.sockopt) {
-          data.streamSettings = JSON.stringify({
-            sockopt: inbound.stream.sockopt.toJson()
-          }, null, 2);
-        }
-        data.sniffing = inbound.sniffing.toString();
+        const previous = dbInbound.enable;
+        dbInbound.enable = state; // optimistic: UI reflects the click immediately
 
         const formData = new FormData();
-        Object.keys(data).forEach(key => formData.append(key, data[key]));
+        formData.append('enable', String(state));
 
-        this.submit(`/panel/api/inbounds/update/${dbInboundId}`, formData);
+        try {
+          const msg = await HttpUtil.post(`/panel/api/inbounds/setEnable/${dbInboundId}`, formData);
+          if (!msg || !msg.success) {
+            dbInbound.enable = previous;
+          }
+        } catch (e) {
+          dbInbound.enable = previous;
+        }
       },
       async switchEnableClient(dbInboundId, client, state) {
         this.loading();
@@ -1794,15 +1816,18 @@
       isExpiry(dbInbound, index) {
         return dbInbound.toInbound().isExpiry(index);
       },
+      // getClientStats returns the cached email→clientStat lookup for an
+      // inbound, building it lazily. The cache is invalidated when the
+      // underlying clientStats array reference changes (full re-fetch),
+      // so delta updates and post-refetch lookups never see stale entries.
+      // This is the single source of truth — applyClientStatsDelta uses it too.
       getClientStats(dbInbound, email) {
-        if (!dbInbound) return null;
-        if (!dbInbound._clientStatsMap) {
-          dbInbound._clientStatsMap = new Map();
-          if (dbInbound.clientStats && Array.isArray(dbInbound.clientStats)) {
-            for (const stats of dbInbound.clientStats) {
-              dbInbound._clientStatsMap.set(stats.email, stats);
-            }
-          }
+        if (!dbInbound || !Array.isArray(dbInbound.clientStats)) return null;
+        if (!dbInbound._clientStatsMap || dbInbound._clientStatsMapSrc !== dbInbound.clientStats) {
+          const map = new Map();
+          for (const cs of dbInbound.clientStats) map.set(cs.email, cs);
+          dbInbound._clientStatsMap = map;
+          dbInbound._clientStatsMapSrc = dbInbound.clientStats;
         }
         return dbInbound._clientStatsMap.get(email);
       },
@@ -1823,9 +1848,15 @@
       },
       getAllTimeClient(dbInbound, email) {
         if (!email || email.length == 0) return 0;
-        let clientStats = this.getClientStats(dbInbound, email);
+        const clientStats = this.getClientStats(dbInbound, email);
         if (!clientStats) return 0;
-        return clientStats.allTime || (clientStats.up + clientStats.down);
+        // allTime represents cumulative historical usage and must never
+        // appear smaller than the currently-tracked counters. If a stale
+        // row drifts below up+down (manual edits, partial migrations) we
+        // surface the live total instead of the misleading historical one.
+        const current = (clientStats.up || 0) + (clientStats.down || 0);
+        const allTime = clientStats.allTime || 0;
+        return allTime > current ? allTime : current;
       },
       getRemStats(dbInbound, email) {
         if (!email || email.length == 0) return 0;
@@ -2037,13 +2068,18 @@
       this.loading();
       this.getDefaultSettings();
 
-      // Initial data fetch
+      // Bootstrap from REST first, then attach WebSocket subscriptions.
+      // Doing this in order eliminates a race where an early `inbounds` push
+      // fires getClientCounts() before this.onlineClients is populated,
+      // leaving online[] empty for every inbound and breaking the filter.
       this.getDBInbounds().then(() => {
         this.loading(false);
-      });
 
-      // Setup WebSocket for real-time updates
-      if (window.wsClient) {
+        if (!window.wsClient) {
+          // Fallback to polling if WebSocket is not available
+          if (this.isRefreshEnabled) this.startDataRefreshLoop();
+          return;
+        }
         window.wsClient.connect();
 
         // Listen for inbounds updates
@@ -2054,12 +2090,13 @@
           }
         });
 
-        // Listen for invalidate signals (sent when payload is too large for WebSocket)
-        // The server sends a lightweight notification and we re-fetch via REST API
+        // Listen for invalidate signals — last-resort safety only.
+        // Under normal operation the server pushes 'client_stats' deltas
+        // instead, so this fires only when an admin mutation produces an
+        // oversized full-list payload.
         let invalidateTimer = null;
         window.wsClient.on('invalidate', (payload) => {
           if (payload && (payload.type === 'inbounds' || payload.type === 'traffic')) {
-            // Debounce to avoid flooding the REST API with multiple invalidate signals
             if (invalidateTimer) clearTimeout(invalidateTimer);
             invalidateTimer = setTimeout(() => {
               invalidateTimer = null;
@@ -2068,15 +2105,36 @@
           }
         });
 
-        // Listen for traffic updates
-        window.wsClient.on('traffic', (payload) => {
-          // Note: Do NOT update total consumed traffic (stats.up, stats.down) from this event
-          // because clientTraffics contains delta/incremental values, not total accumulated values.
-          // Total traffic is updated via the 'inbounds' WebSocket event (or 'invalidate' fallback for large panels).
+        // Real-time delta updates: per-client absolute counters + inbound
+        // totals applied in-place. Replaces the periodic full-list refresh
+        // and scales to 10k+ clients without REST fallback.
+        window.wsClient.on('client_stats', (payload) => {
+          if (!payload) return;
+          this.applyClientStatsDelta(payload);
+        });
 
-          // Update online clients list in real-time
-          if (payload && Array.isArray(payload.onlineClients)) {
-            const nextOnlineClients = payload.onlineClients;
+        // Listen for traffic updates.
+        // Note: clientTraffics contains DELTA values (incremental since last
+        // tick), not absolute totals. Absolute counters are updated through
+        // the 'client_stats' event in applyClientStatsDelta.
+        window.wsClient.on('traffic', (payload) => {
+          if (!payload || typeof payload !== 'object') return;
+
+          // Normalize onlineClients: server marshals a nil []string slice as
+          // JSON null when nobody is online. Treat null/undefined/missing as
+          // an empty array so the "everyone went offline" transition still
+          // updates the UI — without this fix, the last set of online users
+          // stayed visible (and the online filter kept showing them) until
+          // someone came back online.
+          const hasOnlinePayload =
+            'onlineClients' in payload &&
+            (Array.isArray(payload.onlineClients) || payload.onlineClients == null);
+          if (hasOnlinePayload) {
+            const nextOnlineClients = Array.isArray(payload.onlineClients)
+              ? payload.onlineClients
+              : [];
+
+            // Detect change in either direction: length differs OR sets differ.
             let onlineChanged = this.onlineClients.length !== nextOnlineClients.length;
             if (!onlineChanged) {
               const prevSet = new Set(this.onlineClients);
@@ -2087,18 +2145,24 @@
                 }
               }
             }
+
             this.onlineClients = nextOnlineClients;
             if (onlineChanged) {
-              // Recalculate client counts to update online status
-              // Use $set for Vue 2 reactivity — direct array index assignment is not reactive
+              // Recompute clientCount for every inbound whose stats can host
+              // online clients. `dbInbound.toInbound()` returns the cached
+              // parsed Inbound (with the .clients array) — using it directly
+              // avoids a brittle `this.inbounds.find(ib => ib.id === ...)`
+              // lookup that ALWAYS failed because the Inbound class has no
+              // `id` field. That silent failure was the real cause of the
+              // online filter showing an empty list while a client was
+              // clearly online elsewhere on the page.
               this.dbInbounds.forEach(dbInbound => {
-                const inbound = this.inbounds.find(ib => ib.id === dbInbound.id);
-                if (inbound && this.clientCount[dbInbound.id]) {
-                  this.$set(this.clientCount, dbInbound.id, this.getClientCounts(dbInbound, inbound));
-                }
+                const inbound = dbInbound.toInbound();
+                this.$set(this.clientCount, dbInbound.id, this.getClientCounts(dbInbound, inbound));
               });
 
-              // Always trigger UI refresh — not just when filter is enabled
+              // Re-run filter/search so the UI reflects the new state — both
+              // when clients come online and when they go offline.
               if (this.enableFilter) {
                 this.filterInbounds();
               } else {
@@ -2107,9 +2171,9 @@
             }
           }
 
-          // Update last online map in real-time
-          // Replace entirely (server sends the full map) to avoid unbounded growth from deleted clients
-          if (payload && payload.lastOnlineMap && typeof payload.lastOnlineMap === 'object') {
+          // Update last-online map. Server sends the full map (not delta) so
+          // we can replace entirely without growing unbounded from deleted clients.
+          if (payload.lastOnlineMap && typeof payload.lastOnlineMap === 'object') {
             this.lastOnlineMap = payload.lastOnlineMap;
           }
         });
@@ -2130,12 +2194,7 @@
             }
           }
         });
-      } else {
-        // Fallback to polling if WebSocket is not available
-        if (this.isRefreshEnabled) {
-          this.startDataRefreshLoop();
-        }
-      }
+      });
     },
     computed: {
       total() {
@@ -2183,6 +2242,115 @@
     #content-layout>.ant-layout-content>.ant-spin-nested-loading>div>.ant-spin {
       left: 50vw !important;
     }
+
+    /* Keep filter choices in a single horizontal line on phones. */
+    .inbounds-page .mobile-filter-group {
+      display: flex;
+      flex-wrap: nowrap;
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 2px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+    .inbounds-page .mobile-filter-group .ant-radio-button-wrapper {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
+    /* Prevent mobile row content from splitting across multiple lines. */
+    .inbounds-page .ant-table-tbody > tr > td {
+      white-space: nowrap;
+    }
+    .inbounds-page .ant-table-tbody > tr > td:nth-child(3) {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  /* Protocol cell — wrap tags into a flex grid with consistent gap so
+     vless/xhttp/Reality line up cleanly instead of stacking awkwardly. */
+  .inbounds-page .protocol-tags {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    max-width: 100%;
+  }
+  .inbounds-page .protocol-tags .ant-tag {
+    margin: 0;
+    line-height: 20px;
+  }
+
+  /* Traffic / expiry cell — flex layout:
+     - Side text (.tr-table-rt / .tr-table-lt) sizes to content.
+     - Progress bar (.tr-table-bar) takes whatever's left and is allowed to
+       shrink (min-width: 0) so the cell never visually overflows its column,
+       no matter how long the surrounding values are ("999.99 GB", "365d").
+     A flex <div> replaces the previous <table>/<tr>/<td> hack — table layout
+     ignored width: 100% on the row, so the row grew to its content width and
+     pushed past the a-table column boundary. */
+  .inbounds-page .tr-table-box {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 2px 10px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+  /* Fixed widths so the bar starts/ends at the same X position across all
+     rows — without this, "126.45 MB" and "0 B" pushed the bar to different
+     spots, which read as misalignment in the column. */
+  .inbounds-page .tr-table-rt,
+  .inbounds-page .tr-table-lt {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .inbounds-page .tr-table-rt {
+    text-align: end;
+    flex-basis: 70px;
+    min-width: 70px;
+  }
+  .inbounds-page .tr-table-lt {
+    text-align: start;
+    flex-basis: 28px;
+    min-width: 28px;
+  }
+  .inbounds-page .tr-table-bar {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    display: block;
+  }
+
+  /* Make the progress widget fill its flex cell, and align the inner fill
+     pill with the outer track pill (the "two pills" drift was caused by
+     box-sizing: content-box plus a 1px border on .ant-progress-bg). */
+  .inbounds-page .tr-table-bar .ant-progress,
+  .inbounds-page .tr-table-bar .ant-progress-outer,
+  .inbounds-page .tr-table-bar .ant-progress-inner {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  .inbounds-page .infinite-bar .ant-progress-inner,
+  .inbounds-page .tr-table-bar .ant-progress-inner {
+    box-sizing: border-box;
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .inbounds-page .infinite-bar .ant-progress-inner .ant-progress-bg,
+  .inbounds-page .tr-table-bar .ant-progress-inner .ant-progress-bg {
+    box-sizing: border-box;
+    border: 0 !important;
   }
 </style>
 {{ template "page/body_end" .}}

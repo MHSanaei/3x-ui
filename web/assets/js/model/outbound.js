@@ -50,6 +50,13 @@ const ALPN_OPTION = {
     HTTP1: "http/1.1",
 };
 
+const SNIFFING_OPTION = {
+    HTTP: "http",
+    TLS: "tls",
+    QUIC: "quic",
+    FAKEDNS: "fakedns"
+};
+
 const OutboundDomainStrategies = [
     "AsIs",
     "UseIP",
@@ -170,6 +177,7 @@ Object.freeze(SSMethods);
 Object.freeze(TLS_FLOW_CONTROL);
 Object.freeze(UTLS_FINGERPRINT);
 Object.freeze(ALPN_OPTION);
+Object.freeze(SNIFFING_OPTION);
 Object.freeze(OutboundDomainStrategies);
 Object.freeze(WireguardDomainStrategy);
 Object.freeze(USERS_SECURITY);
@@ -193,6 +201,50 @@ class CommonClass {
 
     toString(format = true) {
         return format ? JSON.stringify(this.toJson(), null, 2) : JSON.stringify(this.toJson());
+    }
+}
+
+class ReverseSniffing extends CommonClass {
+    constructor(
+        enabled = false,
+        destOverride = ['http', 'tls', 'quic', 'fakedns'],
+        metadataOnly = false,
+        routeOnly = false,
+        ipsExcluded = [],
+        domainsExcluded = [],
+    ) {
+        super();
+        this.enabled = enabled;
+        this.destOverride = Array.isArray(destOverride) && destOverride.length > 0 ? destOverride : ['http', 'tls', 'quic', 'fakedns'];
+        this.metadataOnly = metadataOnly;
+        this.routeOnly = routeOnly;
+        this.ipsExcluded = Array.isArray(ipsExcluded) ? ipsExcluded : [];
+        this.domainsExcluded = Array.isArray(domainsExcluded) ? domainsExcluded : [];
+    }
+
+    static fromJson(json = {}) {
+        if (!json || Object.keys(json).length === 0) {
+            return new ReverseSniffing();
+        }
+        return new ReverseSniffing(
+            !!json.enabled,
+            json.destOverride,
+            json.metadataOnly,
+            json.routeOnly,
+            json.ipsExcluded || [],
+            json.domainsExcluded || [],
+        );
+    }
+
+    toJson() {
+        return {
+            enabled: this.enabled,
+            destOverride: this.destOverride,
+            metadataOnly: this.metadataOnly,
+            routeOnly: this.routeOnly,
+            ipsExcluded: this.ipsExcluded.length > 0 ? this.ipsExcluded : undefined,
+            domainsExcluded: this.domainsExcluded.length > 0 ? this.domainsExcluded : undefined,
+        };
     }
 }
 
@@ -350,11 +402,35 @@ class HttpUpgradeStreamSettings extends CommonClass {
     }
 }
 
+// Mirrors the outbound (client-side) view of Xray-core's SplitHTTPConfig
+// (infra/conf/transport_internet.go). Only fields the client actually
+// reads at runtime, plus the bidirectional fields the client must match
+// against the server, live here. Server-only fields (noSSEHeader,
+// scMaxBufferedPosts, scStreamUpServerSecs, serverMaxHeaderBytes) belong
+// on the inbound class instead.
 class xHTTPStreamSettings extends CommonClass {
     constructor(
+        // Bidirectional — must match the inbound side
         path = '/',
         host = '',
         mode = '',
+        xPaddingBytes = "100-1000",
+        xPaddingObfsMode = false,
+        xPaddingKey = '',
+        xPaddingHeader = '',
+        xPaddingPlacement = '',
+        xPaddingMethod = '',
+        sessionPlacement = '',
+        sessionKey = '',
+        seqPlacement = '',
+        seqKey = '',
+        uplinkDataPlacement = '',
+        uplinkDataKey = '',
+        scMaxEachPostBytes = "1000000",
+        // Client-side only
+        headers = [],
+        uplinkHTTPMethod = '',
+        uplinkChunkSize = 0,
         noGRPCHeader = false,
         scMinPostsIntervalMs = "30",
         xmux = {
@@ -365,32 +441,112 @@ class xHTTPStreamSettings extends CommonClass {
             hMaxReusableSecs: "1800-3000",
             hKeepAlivePeriod: 0,
         },
+        // UI-only toggle — controls whether the XMUX block is expanded in
+        // the form (mirrors the QUIC Params switch in stream_finalmask).
+        // Never serialized; toJson() only emits the xmux block itself.
+        enableXmux = false,
     ) {
         super();
         this.path = path;
         this.host = host;
         this.mode = mode;
+        this.xPaddingBytes = xPaddingBytes;
+        this.xPaddingObfsMode = xPaddingObfsMode;
+        this.xPaddingKey = xPaddingKey;
+        this.xPaddingHeader = xPaddingHeader;
+        this.xPaddingPlacement = xPaddingPlacement;
+        this.xPaddingMethod = xPaddingMethod;
+        this.sessionPlacement = sessionPlacement;
+        this.sessionKey = sessionKey;
+        this.seqPlacement = seqPlacement;
+        this.seqKey = seqKey;
+        this.uplinkDataPlacement = uplinkDataPlacement;
+        this.uplinkDataKey = uplinkDataKey;
+        this.scMaxEachPostBytes = scMaxEachPostBytes;
+        this.headers = headers;
+        this.uplinkHTTPMethod = uplinkHTTPMethod;
+        this.uplinkChunkSize = uplinkChunkSize;
         this.noGRPCHeader = noGRPCHeader;
         this.scMinPostsIntervalMs = scMinPostsIntervalMs;
         this.xmux = xmux;
+        this.enableXmux = enableXmux;
+    }
+
+    addHeader(name, value) {
+        this.headers.push({ name: name, value: value });
+    }
+
+    removeHeader(index) {
+        this.headers.splice(index, 1);
     }
 
     static fromJson(json = {}) {
+        const headersInput = json.headers;
+        let headers = [];
+        if (Array.isArray(headersInput)) {
+            headers = headersInput;
+        } else if (headersInput && typeof headersInput === 'object') {
+            // Upstream uses a {name: value} map; convert to the panel's [{name, value}] form.
+            headers = Object.entries(headersInput).map(([name, value]) => ({ name, value }));
+        }
         return new xHTTPStreamSettings(
             json.path,
             json.host,
             json.mode,
+            json.xPaddingBytes,
+            json.xPaddingObfsMode,
+            json.xPaddingKey,
+            json.xPaddingHeader,
+            json.xPaddingPlacement,
+            json.xPaddingMethod,
+            json.sessionPlacement,
+            json.sessionKey,
+            json.seqPlacement,
+            json.seqKey,
+            json.uplinkDataPlacement,
+            json.uplinkDataKey,
+            json.scMaxEachPostBytes,
+            headers,
+            json.uplinkHTTPMethod,
+            json.uplinkChunkSize,
             json.noGRPCHeader,
             json.scMinPostsIntervalMs,
-            json.xmux
+            json.xmux,
+            // Auto-toggle the XMUX switch on when an existing outbound has
+            // the xmux key saved, so users editing such configs see their
+            // values immediately.
+            json.xmux !== undefined,
         );
     }
 
     toJson() {
+        // Upstream expects headers as a {name: value} map, not a list of entries.
+        const headersMap = {};
+        if (Array.isArray(this.headers)) {
+            for (const h of this.headers) {
+                if (h && h.name) headersMap[h.name] = h.value || '';
+            }
+        }
         return {
             path: this.path,
             host: this.host,
             mode: this.mode,
+            xPaddingBytes: this.xPaddingBytes,
+            xPaddingObfsMode: this.xPaddingObfsMode,
+            xPaddingKey: this.xPaddingKey,
+            xPaddingHeader: this.xPaddingHeader,
+            xPaddingPlacement: this.xPaddingPlacement,
+            xPaddingMethod: this.xPaddingMethod,
+            sessionPlacement: this.sessionPlacement,
+            sessionKey: this.sessionKey,
+            seqPlacement: this.seqPlacement,
+            seqKey: this.seqKey,
+            uplinkDataPlacement: this.uplinkDataPlacement,
+            uplinkDataKey: this.uplinkDataKey,
+            scMaxEachPostBytes: this.scMaxEachPostBytes,
+            headers: headersMap,
+            uplinkHTTPMethod: this.uplinkHTTPMethod,
+            uplinkChunkSize: this.uplinkChunkSize,
             noGRPCHeader: this.noGRPCHeader,
             scMinPostsIntervalMs: this.scMinPostsIntervalMs,
             xmux: {
@@ -1087,11 +1243,11 @@ class Outbound extends CommonClass {
         return false;
     }
 
-    // Vision seed applies only when vision flow is selected
+    // Vision seed applies only when the XTLS Vision (TCP/TLS) flow is selected.
+    // Excludes the UDP variant per spec.
     canEnableVisionSeed() {
         if (!this.canEnableTlsFlow()) return false;
-        const flow = this.settings?.flow;
-        return flow === TLS_FLOW_CONTROL.VISION || flow === TLS_FLOW_CONTROL.VISION_UDP443;
+        return this.settings?.flow === TLS_FLOW_CONTROL.VISION;
     }
 
     canEnableReality() {
@@ -1747,27 +1903,37 @@ Outbound.VmessSettings = class extends CommonClass {
     }
 };
 Outbound.VLESSSettings = class extends CommonClass {
-    constructor(address, port, id, flow, encryption, testpre = 0, testseed = [900, 500, 900, 256]) {
+    constructor(address, port, id, flow, encryption, reverseTag = '', reverseSniffing = new ReverseSniffing(), testpre = 0, testseed = []) {
         super();
         this.address = address;
         this.port = port;
         this.id = id;
         this.flow = flow;
         this.encryption = encryption;
+        this.reverseTag = reverseTag;
+        this.reverseSniffing = reverseSniffing;
         this.testpre = testpre;
         this.testseed = testseed;
     }
 
     static fromJson(json = {}) {
         if (ObjectUtil.isEmpty(json.address) || ObjectUtil.isEmpty(json.port)) return new Outbound.VLESSSettings();
+        const saved = json.testseed;
+        const testseed = (Array.isArray(saved)
+            && saved.length === 4
+            && saved.every(v => Number.isInteger(v) && v > 0))
+            ? saved
+            : [];
         return new Outbound.VLESSSettings(
             json.address,
             json.port,
             json.id,
             json.flow,
             json.encryption,
+            json.reverse?.tag || '',
+            ReverseSniffing.fromJson(json.reverse?.sniffing || {}),
             json.testpre || 0,
-            json.testseed && json.testseed.length >= 4 ? json.testseed : [900, 500, 900, 256]
+            testseed,
         );
     }
 
@@ -1779,12 +1945,22 @@ Outbound.VLESSSettings = class extends CommonClass {
             flow: this.flow,
             encryption: this.encryption,
         };
-        // Only include Vision settings when flow is set
-        if (this.flow && this.flow !== '') {
+        if (!ObjectUtil.isEmpty(this.reverseTag)) {
+            const reverseSniffing = this.reverseSniffing ? this.reverseSniffing.toJson() : {};
+            const defaultReverseSniffing = new ReverseSniffing().toJson();
+            result.reverse = {
+                tag: this.reverseTag,
+                sniffing: JSON.stringify(reverseSniffing) === JSON.stringify(defaultReverseSniffing) ? {} : reverseSniffing,
+            };
+        }
+        // Vision-specific knobs are only meaningful for the exact xtls-rprx-vision flow.
+        if (this.flow === TLS_FLOW_CONTROL.VISION) {
             if (this.testpre > 0) {
                 result.testpre = this.testpre;
             }
-            if (this.testseed && this.testseed.length >= 4) {
+            if (Array.isArray(this.testseed)
+                && this.testseed.length === 4
+                && this.testseed.every(v => Number.isInteger(v) && v > 0)) {
                 result.testseed = this.testseed;
             }
         }

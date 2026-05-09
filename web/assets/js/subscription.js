@@ -7,6 +7,7 @@
 
   const data = {
     sId: el.getAttribute('data-sid') || '',
+    enabled: (el.getAttribute('data-enabled') || '').toLowerCase() === 'true',
     subUrl: el.getAttribute('data-sub-url') || '',
     subJsonUrl: el.getAttribute('data-subjson-url') || '',
     subClashUrl: el.getAttribute('data-subclash-url') || '',
@@ -128,13 +129,15 @@
       },
       isActive() {
         const now = Date.now();
+        const enabledOk = this.app.enabled;
         const expiryOk = !this.app.expireMs || this.app.expireMs >= now;
         const trafficOk = !this.app.totalByte || (this.app.uploadByte + this.app.downloadByte) <= this.app.totalByte;
-        return expiryOk && trafficOk;
+        return enabledOk && expiryOk && trafficOk;
       },
       shadowrocketUrl() {
-        const rawUrl = this.app.subUrl + '?flag=shadowrocket';
-        const base64Url = btoa(rawUrl);
+        const separator = this.app.subUrl.includes('?') ? '&' : '?';
+        const rawUrl = this.app.subUrl + separator + 'flag=shadowrocket';
+        const base64Url = encodeURIComponent(btoa(rawUrl));
         const remark = encodeURIComponent(this.app.sId || 'Subscription');
         return `shadowrocket://add/sub/${base64Url}?remark=${remark}`;
       },

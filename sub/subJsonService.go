@@ -44,7 +44,7 @@ func NewSubJsonService(fragment string, noises string, mux string, rules string,
 	fragmentOrNoises := false
 	if fragment != "" || noises != "" {
 		fragmentOrNoises = true
-		defaultOutboundsSettings := map[string]interface{}{
+		defaultOutboundsSettings := map[string]any{
 			"domainStrategy": "UseIP",
 			"redirect":       "",
 		}
@@ -57,7 +57,7 @@ func NewSubJsonService(fragment string, noises string, mux string, rules string,
 			defaultOutboundsSettings["noises"] = json_util.RawMessage(noises)
 		}
 
-		defaultDirectOutbound := map[string]interface{}{
+		defaultDirectOutbound := map[string]any{
 			"protocol": "freedom",
 			"settings": defaultOutboundsSettings,
 			"tag":      "direct_out",
@@ -116,7 +116,7 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 		}
 
 		for _, client := range clients {
-			if client.Enable && client.SubID == subId {
+			if client.SubID == subId {
 				clientTraffics = append(clientTraffics, s.SubService.getClientTraffics(inbound.ClientStats, client.Email))
 				newConfigs := s.getConfig(inbound, client, host)
 				configArray = append(configArray, newConfigs...)

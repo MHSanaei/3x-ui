@@ -129,6 +129,10 @@ type CustomGeoResource struct {
 	UpdatedAt     int64  `json:"updatedAt" gorm:"autoUpdateTime;column:updated_at"`
 }
 
+type ClientReverse struct {
+	Tag string `json:"tag"`
+}
+
 // Client represents a client configuration for Xray inbounds with traffic limits and settings.
 type Client struct {
 	ID         			string `json:"id,omitempty"`                 // Unique client identifier

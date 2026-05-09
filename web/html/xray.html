@@ -81,13 +81,6 @@
                   </template>
                   {{ template "settings/xray/outbounds" . }}
                 </a-tab-pane>
-                <a-tab-pane key="tpl-reverse" :style="{ paddingTop: '20px' }" force-render="true">
-                  <template #tab>
-                    <a-icon type="import"></a-icon>
-                    <span>{{ i18n "pages.xray.outbound.reverse"}}</span>
-                  </template>
-                  {{ template "settings/xray/reverse" . }}
-                </a-tab-pane>
                 <a-tab-pane key="tpl-balancer" :style="{ paddingTop: '20px' }" force-render="true">
                   <template #tab>
                     <a-icon type="cluster"></a-icon>
@@ -135,7 +128,6 @@
 {{template "component/aSettingListItem" .}}
 {{template "modals/ruleModal" .}}
 {{template "modals/outModal" .}}
-{{template "modals/reverseModal" .}}
 {{template "modals/balancerModal" .}}
 {{template "modals/dnsModal" .}}
 {{template "modals/dnsPresetsModal" .}}
@@ -143,239 +135,45 @@
 {{template "modals/warpModal" .}}
 {{template "modals/nordModal" .}}
 <script>
-  const rulesColumns = [{
-      title: "#",
-      align: 'center',
-      width: 15,
-      scopedSlots: {
-        customRender: 'action'
-      }
-    },
-    {
-      title: '{{ i18n "pages.xray.rules.source"}}',
-      children: [{
-          title: 'IP',
-          dataIndex: "sourceIP",
-          align: 'center',
-          width: 20,
-          ellipsis: true
-        },
-        {
-          title: '{{ i18n "pages.inbounds.port" }}',
-          dataIndex: 'sourcePort',
-          align: 'center',
-          width: 10,
-          ellipsis: true
-        },
-        {
-          title: 'VLESS Route',
-          dataIndex: 'vlessRoute',
-          align: 'center',
-          width: 15,
-          ellipsis: true
-        }
-      ]
-    },
-    {
-      title: '{{ i18n "pages.inbounds.network"}}',
-      children: [{
-          title: 'L4',
-          dataIndex: 'network',
-          align: 'center',
-          width: 10
-        },
-        {
-          title: '{{ i18n "protocol" }}',
-          dataIndex: 'protocol',
-          align: 'center',
-          width: 15,
-          ellipsis: true
-        },
-        {
-          title: 'Attrs',
-          dataIndex: 'attrs',
-          align: 'center',
-          width: 10,
-          ellipsis: true
-        }
-      ]
-    },
-    {
-      title: '{{ i18n "pages.xray.rules.dest"}}',
-      children: [{
-          title: 'IP',
-          dataIndex: 'ip',
-          align: 'center',
-          width: 20,
-          ellipsis: true
-        },
-        {
-          title: '{{ i18n "pages.xray.outbound.domain" }}',
-          dataIndex: 'domain',
-          align: 'center',
-          width: 20,
-          ellipsis: true
-        },
-        {
-          title: '{{ i18n "pages.inbounds.port" }}',
-          dataIndex: 'port',
-          align: 'center',
-          width: 10,
-          ellipsis: true
-        }
-      ]
-    },
-    {
-      title: '{{ i18n "pages.xray.rules.inbound"}}',
-      children: [{
-          title: '{{ i18n "pages.xray.outbound.tag" }}',
-          dataIndex: 'inboundTag',
-          align: 'center',
-          width: 15,
-          ellipsis: true
-        },
-        {
-          title: '{{ i18n "pages.inbounds.client" }}',
-          dataIndex: 'user',
-          align: 'center',
-          width: 20,
-          ellipsis: true
-        }
-      ]
-    },
-    {
-      title: '{{ i18n "pages.xray.rules.outbound"}}',
-      dataIndex: 'outboundTag',
-      align: 'center',
-      width: 17
-    },
-    {
-      title: '{{ i18n "pages.xray.rules.balancer"}}',
-      dataIndex: 'balancerTag',
-      align: 'center',
-      width: 15
-    },
+  // Modernised rules layout — 6 cells (#, source, network, destination,
+  // inbound, target). Each criterion renders as a single self-labelled
+  // pill that shows the first value plus a "+N" remainder badge for the
+  // rest; the full list is surfaced via tooltip on hover. The destination
+  // column has no fixed width and absorbs leftover horizontal space so the
+  // table fits typical viewports without a horizontal scrollbar.
+  const rulesColumns = [
+    { title: '#', align: 'center', width: 70, scopedSlots: { customRender: 'action' } },
+    { title: '{{ i18n "pages.xray.rules.source"}}',   align: 'left', width: 180, scopedSlots: { customRender: 'source' } },
+    { title: '{{ i18n "pages.inbounds.network"}}',    align: 'left', width: 180, scopedSlots: { customRender: 'network' } },
+    { title: '{{ i18n "pages.xray.rules.dest"}}',     align: 'left',              scopedSlots: { customRender: 'destination' } },
+    { title: '{{ i18n "pages.xray.rules.inbound"}}',  align: 'left', width: 180, scopedSlots: { customRender: 'inbound' } },
+    { title: '{{ i18n "pages.xray.rules.outbound"}}', align: 'left', width: 170, scopedSlots: { customRender: 'target' } },
   ];
 
-  const rulesMobileColumns = [{
-      title: "#",
-      align: 'center',
-      width: 20,
-      scopedSlots: {
-        customRender: 'action'
-      }
-    },
-    {
-      title: '{{ i18n "pages.xray.rules.inbound"}}',
-      align: 'center',
-      width: 50,
-      ellipsis: true,
-      scopedSlots: {
-        customRender: 'inbound'
-      }
-    },
-    {
-      title: '{{ i18n "pages.xray.rules.outbound"}}',
-      align: 'center',
-      width: 50,
-      ellipsis: true,
-      scopedSlots: {
-        customRender: 'outbound'
-      }
-    },
-    {
-      title: '{{ i18n "pages.xray.rules.info"}}',
-      align: 'center',
-      width: 50,
-      ellipsis: true,
-      scopedSlots: {
-        customRender: 'info'
-      }
-    },
+  // Mobile: 3-column table — #, Inbound, Outbound. Source / Network /
+  // Destination criteria are dropped to keep the table readable on
+  // narrow viewports. Users see the rule's identity (Inbound) and
+  // what it does (Outbound) at a glance; full criteria are accessible
+  // by tapping Edit in the actions menu.
+  // # column is wider than desktop (110 vs 70) to fit the touch-friendly
+  // drag handle (padding: 6px → ~28px) alongside the index and dropdown.
+  const rulesMobileColumns = [
+    { title: '#', align: 'center', width: 110, scopedSlots: { customRender: 'action' } },
+    { title: '{{ i18n "pages.xray.rules.inbound"}}',  align: 'left',              scopedSlots: { customRender: 'inbound' } },
+    { title: '{{ i18n "pages.xray.rules.outbound"}}', align: 'left', width: 140, scopedSlots: { customRender: 'target' } },
   ];
 
-  const outboundColumns = [{
-      title: "#",
-      align: 'center',
-      width: 60,
-      scopedSlots: {
-        customRender: 'action'
-      }
-    },
-    {
-      title: '{{ i18n "pages.xray.outbound.tag"}}',
-      dataIndex: 'tag',
-      align: 'center',
-      width: 50
-    },
-    {
-      title: '{{ i18n "protocol"}}',
-      align: 'center',
-      width: 50,
-      scopedSlots: {
-        customRender: 'protocol'
-      }
-    },
-    {
-      title: '{{ i18n "pages.xray.outbound.address"}}',
-      align: 'center',
-      width: 50,
-      scopedSlots: {
-        customRender: 'address'
-      }
-    },
-    {
-      title: '{{ i18n "pages.inbounds.traffic" }}',
-      align: 'center',
-      width: 50,
-      scopedSlots: {
-        customRender: 'traffic'
-      }
-    },
-    {
-      title: '{{ i18n "pages.xray.outbound.testResult" }}',
-      align: 'center',
-      width: 120,
-      scopedSlots: {
-        customRender: 'testResult'
-      }
-    },
-    {
-      title: '{{ i18n "pages.xray.outbound.test" }}',
-      align: 'center',
-      width: 60,
-      scopedSlots: {
-        customRender: 'test'
-      }
-    },
-  ];
-
-  const reverseColumns = [{
-      title: "#",
-      align: 'center',
-      width: 20,
-      scopedSlots: {
-        customRender: 'action'
-      }
-    },
-    {
-      title: '{{ i18n "pages.xray.outbound.type"}}',
-      dataIndex: 'type',
-      align: 'center',
-      width: 50
-    },
-    {
-      title: '{{ i18n "pages.xray.outbound.tag"}}',
-      dataIndex: 'tag',
-      align: 'center',
-      width: 50
-    },
-    {
-      title: '{{ i18n "pages.xray.outbound.domain"}}',
-      dataIndex: 'domain',
-      align: 'center',
-      width: 50
-    },
+  const outboundColumns = [
+    { title: '#', align: 'center', width: 70, scopedSlots: { customRender: 'action' } },
+    // Combined "Tag / Protocol" — saves a column. Tag stays on top, protocol +
+    // network + security pills sit underneath it. Width chosen so the three
+    // longest tonal pills (e.g. vless + httpupgrade + reality) fit on a
+    // single line without wrapping.
+    { title: '{{ i18n "pages.xray.outbound.tag"}}', align: 'left', width: 190, scopedSlots: { customRender: 'identity' } },
+    { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'left', width: 230, scopedSlots: { customRender: 'address' } },
+    { title: '{{ i18n "pages.inbounds.traffic" }}', align: 'left', width: 190, scopedSlots: { customRender: 'traffic' } },
+    { title: '{{ i18n "pages.xray.outbound.testResult" }}', align: 'left', width: 130, scopedSlots: { customRender: 'testResult' } },
+    { title: '{{ i18n "pages.xray.outbound.test" }}', align: 'center', width: 70, scopedSlots: { customRender: 'test' } },
   ];
 
   const balancerColumns = [{
@@ -482,6 +280,7 @@
       outboundTestUrl: 'https://www.google.com/generate_204',
       oldOutboundTestUrl: 'https://www.google.com/generate_204',
       inboundTags: [],
+      clientReverseTags: [],
       outboundsTraffic: [],
       outboundTestStates: {}, // Track testing state and results for each outbound
       saveBtnDisable: true,
@@ -761,6 +560,7 @@
           this.oldXraySetting = xs;
           this.xraySetting = xs;
           this.inboundTags = result.inboundTags;
+          this.clientReverseTags = result.clientReverseTags || [];
           this.outboundTestUrl = result.outboundTestUrl || 'https://www.google.com/generate_204';
           this.oldOutboundTestUrl = this.outboundTestUrl;
           this.saveBtnDisable = true;
@@ -923,13 +723,64 @@
         }
         return true;
       },
-      findOutboundTraffic(o) {
-        for (const otraffic of this.outboundsTraffic) {
-          if (otraffic.tag == o.tag) {
-            return `↑ ${SizeFormatter.sizeFormat(otraffic.up)} / ${SizeFormatter.sizeFormat(otraffic.down)} ↓`
-          }
-        }
-        return `${SizeFormatter.sizeFormat(0)} / ${SizeFormatter.sizeFormat(0)}`
+      // outboundTrafficFor returns {up, down} for an outbound by tag,
+      // defaulting to zeros when no traffic row has been reported yet.
+      // Templates use the up/down accessors below — keeping the lookup in
+      // one place avoids drift if the data shape changes.
+      outboundTrafficFor(o) {
+        const t = this.outboundsTraffic.find(t => t.tag == o.tag);
+        return { up: t ? t.up : 0, down: t ? t.down : 0 };
+      },
+      findOutboundUp(o)   { return this.outboundTrafficFor(o).up; },
+      findOutboundDown(o) { return this.outboundTrafficFor(o).down; },
+      // One tone per category instead of per-value. Adding a new protocol or
+      // transport inherits the category colour — no styling work required.
+      // Hierarchy: emerald (protocol — primary identity, matches brand) →
+      // slate (network — transport is plumbing, sits back) → violet (security —
+      // accent, only rendered for tls/reality so a stand-out hue is earned).
+      outboundProtocolTone() { return 'tone-emerald'; },
+      outboundNetworkTone()  { return 'tone-slate'; },
+      outboundSecurityTone() { return 'tone-violet'; },
+      // Whether the security label is one we render as a pill in the table.
+      isOutboundSecurityVisible(security) {
+        return security === 'tls' || security === 'reality';
+      },
+      // Null-safe accessor for the address list — collapses null/undefined
+      // returns from findOutboundAddress() into an empty array so the template
+      // can rely on .length and v-for without extra guards.
+      outboundAddresses(o) {
+        return this.findOutboundAddress(o) || [];
+      },
+      // Test-state accessors — sparse arrays + per-row state make raw checks
+      // verbose; these helpers keep the template readable and consistent.
+      isOutboundTesting(index) {
+        const s = this.outboundTestStates[index];
+        return !!(s && s.testing);
+      },
+      outboundTestResult(index) {
+        const s = this.outboundTestStates[index];
+        return s ? s.result : null;
+      },
+      isOutboundUntestable(outbound) {
+        return outbound.protocol === 'blackhole' || outbound.tag === 'blocked';
+      },
+      // csv splits a comma-separated rule field into trimmed non-empty values.
+      // Routing rule data uses CSV strings for multi-value criteria (e.g.
+      // sourceIP "1.2.3.0/24,4.5.6.0/24"); the modern table renders each
+      // criterion as a single summary pill, so values are normally re-joined
+      // via joinCsv() but this helper is kept for callers that need an array.
+      csv(value) {
+        if (!value) return [];
+        return String(value)
+          .split(',')
+          .map(v => v.trim())
+          .filter(v => v.length > 0);
+      },
+      // joinCsv normalises a CSV-style rule field into a single comma-space
+      // separated string suitable for tooltips. Returns '' for empty inputs
+      // so v-if guards can short-circuit on the raw rule field.
+      joinCsv(value) {
+        return this.csv(value).join(', ');
       },
       findOutboundAddress(o) {
         serverObj = null;
@@ -1059,110 +910,6 @@
           });
           Vue.prototype.$message.error('{{ i18n "pages.xray.outbound.testError" }}: ' + error.message);
         }
-      },
-      addReverse() {
-        reverseModal.show({
-          title: '{{ i18n "pages.xray.outbound.addReverse"}}',
-          okText: '{{ i18n "pages.xray.outbound.addReverse" }}',
-          confirm: (reverse, rules) => {
-            reverseModal.loading();
-            if (reverse.tag.length > 0) {
-              newTemplateSettings = this.templateSettings;
-              if (newTemplateSettings.reverse == undefined) newTemplateSettings.reverse = {};
-              if (newTemplateSettings.reverse[reverse.type + 's'] == undefined) newTemplateSettings.reverse[
-                reverse.type + 's'] = [];
-              newTemplateSettings.reverse[reverse.type + 's'].push({
-                tag: reverse.tag,
-                domain: reverse.domain
-              });
-              this.templateSettings = newTemplateSettings;
-
-              // Add related rules
-              this.templateSettings.routing.rules.push(...rules);
-              this.routingRuleSettings = JSON.stringify(this.templateSettings.routing.rules);
-            }
-            reverseModal.close();
-          },
-          isEdit: false
-        });
-      },
-      editReverse(index) {
-        if (this.reverseData[index].type == "bridge") {
-          oldRules = this.templateSettings.routing.rules.filter(r => r.inboundTag && r.inboundTag[0] == this
-            .reverseData[index].tag);
-        } else {
-          oldRules = this.templateSettings.routing.rules.filter(r => r.outboundTag && r.outboundTag == this
-            .reverseData[index].tag);
-        }
-        reverseModal.show({
-          title: '{{ i18n "pages.xray.outbound.editReverse"}} ' + (index + 1),
-          reverse: this.reverseData[index],
-          rules: oldRules,
-          confirm: (reverse, rules) => {
-            reverseModal.loading();
-            if (reverse.tag.length > 0) {
-              oldData = this.reverseData[index];
-              newTemplateSettings = this.templateSettings;
-              oldReverseIndex = newTemplateSettings.reverse[oldData.type + 's'].findIndex(rs => rs.tag ==
-                oldData.tag);
-              oldRuleIndex0 = oldRules.length > 0 ? newTemplateSettings.routing.rules.findIndex(r => JSON
-                .stringify(r) == JSON.stringify(oldRules[0])) : -1;
-              oldRuleIndex1 = oldRules.length == 2 ? newTemplateSettings.routing.rules.findIndex(r => JSON
-                .stringify(r) == JSON.stringify(oldRules[1])) : -1;
-              if (oldData.type == reverse.type) {
-                newTemplateSettings.reverse[oldData.type + 's'][oldReverseIndex] = {
-                  tag: reverse.tag,
-                  domain: reverse.domain
-                };
-              } else {
-                newTemplateSettings.reverse[oldData.type + 's'].splice(oldReverseIndex, 1);
-                // delete empty object
-                if (newTemplateSettings.reverse[oldData.type + 's'].length == 0) Reflect.deleteProperty(
-                  newTemplateSettings.reverse, oldData.type + 's');
-                // add other type of reverse if it is not exist
-                if (!newTemplateSettings.reverse[reverse.type + 's']) newTemplateSettings.reverse[reverse
-                  .type + 's'] = [];
-                newTemplateSettings.reverse[reverse.type + 's'].push({
-                  tag: reverse.tag,
-                  domain: reverse.domain
-                });
-              }
-              this.templateSettings = newTemplateSettings;
-
-              // Adjust Rules
-              newRules = this.templateSettings.routing.rules;
-              oldRuleIndex0 != -1 ? newRules[oldRuleIndex0] = rules[0] : newRules.push(rules[0]);
-              oldRuleIndex1 != -1 ? newRules[oldRuleIndex1] = rules[1] : newRules.push(rules[1]);
-              this.routingRuleSettings = JSON.stringify(newRules);
-            }
-            reverseModal.close();
-          },
-          isEdit: true
-        });
-      },
-      deleteReverse(index) {
-        oldData = this.reverseData[index];
-        newTemplateSettings = this.templateSettings;
-        reverseTypeObj = newTemplateSettings.reverse[oldData.type + 's'];
-        realIndex = reverseTypeObj.findIndex(r => r.tag == oldData.tag && r.domain == oldData.domain);
-        newTemplateSettings.reverse[oldData.type + 's'].splice(realIndex, 1);
-
-        // delete empty objects
-        if (reverseTypeObj.length == 0) Reflect.deleteProperty(newTemplateSettings.reverse, oldData.type + 's');
-        if (Object.keys(newTemplateSettings.reverse).length === 0) Reflect.deleteProperty(newTemplateSettings,
-          'reverse');
-
-        // delete related routing rules
-        newRules = newTemplateSettings.routing.rules;
-        if (oldData.type == "bridge") {
-          newRules = newTemplateSettings.routing.rules.filter(r => !(r.inboundTag && r.inboundTag.length == 1 && r
-            .inboundTag[0] == oldData.tag));
-        } else if (oldData.type == "portal") {
-          newRules = newTemplateSettings.routing.rules.filter(r => r.outboundTag != oldData.tag);
-        }
-        newTemplateSettings.routing.rules = newRules;
-
-        this.templateSettings = newTemplateSettings;
       },
       async refreshOutboundTraffic() {
         if (!this.refreshing) {
@@ -1568,32 +1315,6 @@
                 ...o
               });
             });
-          }
-          return data;
-        },
-      },
-      reverseData: {
-        get: function() {
-          data = []
-          if (this.templateSettings != null && this.templateSettings.reverse != null) {
-            if (this.templateSettings.reverse.bridges) {
-              this.templateSettings.reverse.bridges.forEach((o, index) => {
-                data.push({
-                  'key': index,
-                  'type': 'bridge',
-                  ...o
-                });
-              });
-            }
-            if (this.templateSettings.reverse.portals) {
-              this.templateSettings.reverse.portals.forEach((o, index) => {
-                data.push({
-                  'key': index,
-                  'type': 'portal',
-                  ...o
-                });
-              });
-            }
           }
           return data;
         },
@@ -2136,4 +1857,505 @@
     },
   });
 </script>
+<style>
+  /* ───────── Modern outbounds table ─────────
+     Visual goals:
+       • flat surface, no inner cell borders, only subtle row dividers
+       • rounded pill badges for protocol / tag / addresses
+       • dual-arrow traffic widget that aligns across rows
+       • consistent hover/loading/result states
+     Scoped under .xray-page .outbounds-modern so it doesn't bleed into other tables. */
+
+  .xray-page .outbounds-modern { width: 100%; }
+  .xray-page .outbounds-toolbar-right { text-align: right; }
+
+  /* Table chrome */
+  .xray-page .outbounds-table .ant-table {
+    background: transparent;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .xray-page .outbounds-table .ant-table-thead > tr > th {
+    background: rgba(255, 255, 255, 0.025);
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 14px 18px;
+  }
+  .light .xray-page .outbounds-table .ant-table-thead > tr > th {
+    background: rgba(0, 0, 0, 0.02);
+    color: rgba(0, 0, 0, 0.55);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  .xray-page .outbounds-table .ant-table-tbody > tr > td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 16px 18px;
+    transition: background-color 0.15s ease;
+    vertical-align: middle;
+  }
+  /* Force every cell to honour its column width — long content (especially
+     long tags) must clip via cell-level ellipsis instead of pushing the row
+     taller. */
+  .xray-page .outbounds-table .ant-table-tbody > tr > td,
+  .xray-page .outbounds-table .ant-table-thead > tr > th {
+    overflow: hidden;
+  }
+  .light .xray-page .outbounds-table .ant-table-tbody > tr > td {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  }
+  .xray-page .outbounds-table .ant-table-tbody > tr:last-child > td {
+    border-bottom: none;
+  }
+  .xray-page .outbounds-table .ant-table-tbody > tr:hover > td {
+    background: rgba(255, 255, 255, 0.035) !important;
+  }
+  .light .xray-page .outbounds-table .ant-table-tbody > tr:hover > td {
+    background: rgba(0, 0, 0, 0.025) !important;
+  }
+
+  /* Index + actions column */
+  .xray-page .outbound-action-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .xray-page .outbound-index {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    font-variant-numeric: tabular-nums;
+    min-width: 18px;
+    text-align: end;
+  }
+  .light .xray-page .outbound-index { color: rgba(0, 0, 0, 0.7); }
+  .xray-page .outbound-action-btn {
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.75);
+    transition: background 0.15s ease;
+  }
+  .xray-page .outbound-action-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+  .light .xray-page .outbound-action-btn {
+    background: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.75);
+  }
+  .light .xray-page .outbound-action-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #000;
+  }
+
+  /* Identity cell — tag on top, protocol/network/security pills underneath.
+     Combining the two columns lets the table fit common viewports without
+     a horizontal scrollbar. */
+  .xray-page .outbound-identity-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+  /* Tag — inherits the table's font for visual parity, single line with
+     ellipsis on overflow. A long tag (e.g. "vless_jphttp-ksjpnggl") would
+     otherwise wrap and inflate the row's height; the inline tooltip surfaces
+     the full value on hover. */
+  .xray-page .outbound-tag {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.92);
+    font-weight: 500;
+    display: block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .light .xray-page .outbound-tag { color: rgba(0, 0, 0, 0.85); }
+
+  /* Address pills (monospace, monoline) */
+  .xray-page .outbound-address-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  .xray-page .outbound-address-pill {
+    font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.045);
+    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.5;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    display: inline-block;
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .light .xray-page .outbound-address-pill {
+    background: rgba(0, 0, 0, 0.035);
+    color: rgba(0, 0, 0, 0.78);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  .xray-page .outbound-address-empty {
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+  }
+
+  /* Protocol/network/tls pills — shared "outbound-pill" with tonal modifiers.
+     The pill row stays on a single line; if the column is somehow too narrow
+     for all pills it overflows out of view (rare — column width is sized to
+     fit the worst case) but never pushes the row taller. */
+  .xray-page .outbound-protocol-cell {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    align-items: center;
+    overflow: hidden;
+  }
+  .xray-page .outbound-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 2px 9px;
+    border-radius: 11px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  /* Outbound pill tones: emerald = protocol, slate = network, violet = security.
+     tone-emerald and tone-violet are also consumed by routing.html for the
+     outboundTag / balancerTag pills. */
+  .xray-page .outbound-pill.tone-emerald { background: rgba(0, 191, 165, 0.14);   color: #4dd4be; border-color: rgba(0, 191, 165, 0.28); }
+  .xray-page .outbound-pill.tone-slate   { background: rgba(160, 174, 192, 0.14); color: #b8c2d0; border-color: rgba(160, 174, 192, 0.26); }
+  .xray-page .outbound-pill.tone-violet  { background: rgba(155, 89, 219, 0.16);  color: #b489e8; border-color: rgba(155, 89, 219, 0.32); }
+
+  /* Traffic — dual arrow widget, fixed columns so all rows align */
+  .xray-page .outbound-traffic-cell {
+    display: inline-grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 12px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.04);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    min-width: 0;
+  }
+  .light .xray-page .outbound-traffic-cell {
+    background: rgba(0, 0, 0, 0.035);
+  }
+  .xray-page .outbound-traffic-up,
+  .xray-page .outbound-traffic-down {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .xray-page .outbound-traffic-up   { justify-content: flex-end;  color: #4dd4be; }
+  .xray-page .outbound-traffic-down { justify-content: flex-start; color: #82a7ee; }
+  .xray-page .outbound-traffic-up .anticon,
+  .xray-page .outbound-traffic-down .anticon { font-size: 11px; }
+  .xray-page .outbound-traffic-sep {
+    width: 1px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 1px;
+  }
+  .light .xray-page .outbound-traffic-sep { background: rgba(0, 0, 0, 0.12); }
+
+  /* Test result pills */
+  .xray-page .outbound-result-cell { display: inline-flex; }
+  .xray-page .outbound-result-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .xray-page .outbound-result-pill .anticon { font-size: 12px; }
+  .xray-page .outbound-result-ok {
+    background: rgba(0, 191, 165, 0.14);
+    color: #4dd4be;
+    border-color: rgba(0, 191, 165, 0.28);
+  }
+  .xray-page .outbound-result-fail {
+    background: rgba(255, 77, 79, 0.14);
+    color: #ff7a7c;
+    border-color: rgba(255, 77, 79, 0.32);
+  }
+  .xray-page .outbound-result-status { opacity: 0.75; }
+  .xray-page .outbound-result-loading,
+  .xray-page .outbound-result-idle {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 13px;
+  }
+  .light .xray-page .outbound-result-loading,
+  .light .xray-page .outbound-result-idle { color: rgba(0, 0, 0, 0.4); }
+
+  /* Test button — sleek circular with subtle glow */
+  .xray-page .outbound-test-btn {
+    box-shadow: 0 2px 8px rgba(0, 191, 165, 0.18);
+    transition: transform 0.12s ease, box-shadow 0.18s ease;
+  }
+  .xray-page .outbound-test-btn:hover:not([disabled]) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 191, 165, 0.32);
+  }
+  .xray-page .outbound-test-btn[disabled] {
+    box-shadow: none;
+    opacity: 0.45;
+  }
+
+  /* ───────── Modern routing-rules table ─────────
+     Reuses the .outbound-pill tonal primitive (identical visual) so the
+     routing tab feels like the same panel as outbounds. Each cell groups
+     a routing criterion (Source / Network / Destination / Inbound) and
+     shows its values as labelled pills. */
+  .xray-page .routing-modern { width: 100%; }
+  .xray-page .routing-table .ant-table {
+    background: transparent;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .xray-page .routing-table .ant-table-thead > tr > th {
+    background: rgba(255, 255, 255, 0.025);
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 14px 18px;
+  }
+  .light .xray-page .routing-table .ant-table-thead > tr > th {
+    background: rgba(0, 0, 0, 0.02);
+    color: rgba(0, 0, 0, 0.55);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  .xray-page .routing-table .ant-table-tbody > tr > td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 16px 18px;
+    transition: background-color 0.15s ease;
+    vertical-align: top;
+  }
+  .light .xray-page .routing-table .ant-table-tbody > tr > td {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  }
+  .xray-page .routing-table .ant-table-tbody > tr:last-child > td {
+    border-bottom: none;
+  }
+  .xray-page .routing-table .ant-table-tbody > tr:hover > td {
+    background: rgba(255, 255, 255, 0.035) !important;
+  }
+  .light .xray-page .routing-table .ant-table-tbody > tr:hover > td {
+    background: rgba(0, 0, 0, 0.025) !important;
+  }
+
+  /* Sort handle / # / actions */
+  .xray-page .routing-action-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .xray-page .routing-index {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    font-variant-numeric: tabular-nums;
+    min-width: 18px;
+    text-align: end;
+  }
+  .light .xray-page .routing-index { color: rgba(0, 0, 0, 0.7); }
+  .xray-page .routing-action-btn {
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.75);
+    transition: background 0.15s ease;
+  }
+  .xray-page .routing-action-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+  .light .xray-page .routing-action-btn {
+    background: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.75);
+  }
+  .light .xray-page .routing-action-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #000;
+  }
+
+  /* Plain-text criterion rows — replaces pill primitives in condition
+     columns. Each criterion is a row of "label value (+N)" with form-label
+     styling on the label. No bg, no border, no color tones — keeps cells
+     light and lets the column header carry the type semantic. The cell's
+     visual weight is now proportional only to the data length, not to
+     decoration. The single colored pill in Outbound/Balancer remains as
+     the row's focal point. */
+  .xray-page .criterion-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .xray-page .criterion-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .xray-page .criterion-label {
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.42);
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .light .xray-page .criterion-label { color: rgba(0, 0, 0, 0.45); }
+  .xray-page .criterion-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .light .xray-page .criterion-value { color: rgba(0, 0, 0, 0.85); }
+  .xray-page .criterion-more {
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.42);
+    font-weight: 500;
+  }
+  .light .xray-page .criterion-more { color: rgba(0, 0, 0, 0.45); }
+
+  .xray-page .routing-criteria-empty {
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+  }
+  .light .xray-page .routing-criteria-empty { color: rgba(0, 0, 0, 0.3); }
+
+  /* Target cell (outbound / balancer) — vertically stacked rows of icon + pill */
+  .xray-page .routing-target-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .xray-page .routing-target-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .xray-page .routing-target-icon {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 13px;
+  }
+  .light .xray-page .routing-target-icon { color: rgba(0, 0, 0, 0.45); }
+
+  /* ───────── Mobile outbound cards ───────── */
+  @media (max-width: 768px) {
+    .xray-page .outbounds-toolbar-right { text-align: left; }
+
+    .xray-page .outbound-card-empty {
+      text-align: center;
+      padding: 24px;
+      color: rgba(255, 255, 255, 0.35);
+      font-style: italic;
+    }
+    .light .xray-page .outbound-card-empty { color: rgba(0, 0, 0, 0.35); }
+
+    .xray-page .outbound-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: background 0.15s ease;
+    }
+    .light .xray-page .outbound-card {
+      background: rgba(0, 0, 0, 0.025);
+      border-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .xray-page .outbound-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .xray-page .outbound-card-identity {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .xray-page .outbound-card-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .xray-page .outbound-card-num {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.35);
+      font-variant-numeric: tabular-nums;
+      flex: 0 0 auto;
+    }
+    .light .xray-page .outbound-card-num { color: rgba(0, 0, 0, 0.35); }
+
+    .xray-page .outbound-card .outbound-tag { font-size: 14px; }
+
+    .xray-page .outbound-card .outbound-protocol-cell { flex-wrap: wrap; }
+
+    .xray-page .outbound-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .xray-page .outbound-card .outbound-traffic-cell {
+      font-size: 12px;
+      padding: 4px 10px;
+      gap: 8px;
+    }
+
+    .xray-page .outbound-card-test {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+  }
+
+</style>
 {{ template "page/body_end" .}}

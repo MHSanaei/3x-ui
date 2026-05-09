@@ -153,7 +153,10 @@
                                     app.sId
                                     ]]</a-descriptions-item>
                                 <a-descriptions-item label='{{ i18n "subscription.status" }}'>
-                                    <template v-if="isUnlimited">
+                                    <template v-if="!app.enabled">
+                                        <a-tag color="red">{{ i18n "subscription.inactive" }}</a-tag>
+                                    </template>
+                                    <template v-else-if="isUnlimited">
                                         <a-tag color="purple">{{ i18n
                                             "subscription.unlimited" }}</a-tag>
                                     </template>
@@ -275,7 +278,7 @@
     data-subclash-url="{{ .subClashUrl }}" data-download="{{ .download }}" data-upload="{{ .upload }}"
     data-used="{{ .used }}" data-total="{{ .total }}" data-remained="{{ .remained }}" data-expire="{{ .expire }}"
     data-lastonline="{{ .lastOnline }}" data-downloadbyte="{{ .downloadByte }}" data-uploadbyte="{{ .uploadByte }}"
-    data-totalbyte="{{ .totalByte }}" data-datepicker="{{ .datepicker }}"></template>
+    data-totalbyte="{{ .totalByte }}" data-datepicker="{{ .datepicker }}" data-enabled="{{ .enabled }}"></template>
 <textarea id="subscription-links" style="display:none">{{ range .result }}{{ . }}
 {{ end }}</textarea>
 

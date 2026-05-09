@@ -3,6 +3,12 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 axios.interceptors.request.use(
     (config) => {
+        config.headers = config.headers || {};
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const method = (config.method || 'get').toUpperCase();
+        if (csrfToken && !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method)) {
+            config.headers['X-CSRF-Token'] = csrfToken;
+        }
         if (config.data instanceof FormData) {
             config.headers['Content-Type'] = 'multipart/form-data';
         } else {

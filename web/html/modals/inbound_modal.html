@@ -16,6 +16,16 @@
         inbound: new Inbound(),
         dbInbound: new DBInbound(),
         ok() {
+            // Block submit when Vision Seed is XRV-gated and partially/invalidly filled.
+            const seedErr = inModal.testseedError();
+            if (seedErr) {
+                if (typeof Vue !== "undefined" && Vue.prototype && Vue.prototype.$message) {
+                    Vue.prototype.$message.error(seedErr);
+                } else {
+                    alert(seedErr);
+                }
+                return;
+            }
             ObjectUtil.execute(inModal.confirm, inModal.inbound, inModal.dbInbound);
         },
         show({
@@ -33,16 +43,12 @@
             } else {
                 this.inbound = new Inbound();
             }
-            // Always ensure testseed is initialized for VLESS protocol (even if vision flow is not set yet)
-            // This ensures Vue reactivity works properly
+            // Ensure VLESS settings has a testseed array reference for Vue reactivity,
+            // but leave it empty so we don't auto-emit defaults — user must explicitly
+            // fill all four fields, or leave blank to fall back to backend defaults.
             if (this.inbound.protocol === Protocols.VLESS && this.inbound.settings) {
-                if (
-                    !this.inbound.settings.testseed ||
-                    !Array.isArray(this.inbound.settings.testseed) ||
-                    this.inbound.settings.testseed.length < 4
-                ) {
-                    // Create a new array to ensure Vue reactivity
-                    this.inbound.settings.testseed = [900, 500, 900, 256].slice();
+                if (!Array.isArray(this.inbound.settings.testseed)) {
+                    this.inbound.settings.testseed = [];
                 }
             }
             if (dbInbound) {
@@ -61,48 +67,50 @@
         loading(loading = true) {
             inModal.confirmLoading = loading;
         },
-        // Vision Seed methods - always available regardless of Vue context
+        // Returns an error string when the current testseed state would be rejected,
+        // or "" when it's valid (empty == use defaults; full 4 positive ints == custom).
+        testseedError() {
+            if (!inModal.inbound || inModal.inbound.protocol !== Protocols.VLESS) return "";
+            if (typeof inModal.inbound.canEnableVisionSeed === "function"
+                && !inModal.inbound.canEnableVisionSeed()) return "";
+            const seed = inModal.inbound.settings && inModal.inbound.settings.testseed;
+            if (!Array.isArray(seed) || seed.length === 0) return "";
+            const filled = seed.filter(v => v !== null && v !== undefined && v !== "");
+            if (filled.length === 0) return "";
+            if (seed.length !== 4 || filled.length !== 4 ||
+                !seed.every(v => Number.isInteger(v) && v > 0)) {
+                return "Provide exactly 4 positive integers or leave empty to use defaults.";
+            }
+            return "";
+        },
+        // Vision Seed helpers — always available regardless of Vue context
         updateTestseed(index, value) {
-            // Use inModal.inbound explicitly to ensure correct context
             if (!inModal.inbound || !inModal.inbound.settings) return;
-            // Ensure testseed is initialized
-            if (
-                !inModal.inbound.settings.testseed ||
-                !Array.isArray(inModal.inbound.settings.testseed)
-            ) {
-                inModal.inbound.settings.testseed = [900, 500, 900, 256];
+            if (!Array.isArray(inModal.inbound.settings.testseed)) {
+                inModal.inbound.settings.testseed = [];
             }
-            // Ensure array has enough elements
-            while (inModal.inbound.settings.testseed.length <= index) {
-                inModal.inbound.settings.testseed.push(0);
+            const seed = inModal.inbound.settings.testseed;
+            while (seed.length <= index) seed.push(null);
+            seed[index] = value;
+            // If user cleared every slot, collapse back to empty so we omit testseed entirely.
+            if (seed.every(v => v === null || v === undefined || v === "")) {
+                inModal.inbound.settings.testseed = [];
             }
-            // Update value
-            inModal.inbound.settings.testseed[index] = value;
         },
         setRandomTestseed() {
-            // Use inModal.inbound explicitly to ensure correct context
             if (!inModal.inbound || !inModal.inbound.settings) return;
-            // Ensure testseed is initialized
-            if (
-                !inModal.inbound.settings.testseed ||
-                !Array.isArray(inModal.inbound.settings.testseed) ||
-                inModal.inbound.settings.testseed.length < 4
-            ) {
-                inModal.inbound.settings.testseed = [900, 500, 900, 256].slice();
-            }
-            // Create new array with random values
+            // Positive integers only (>=1) so the array passes validation and gets emitted.
             inModal.inbound.settings.testseed = [
-                Math.floor(Math.random() * 1000),
-                Math.floor(Math.random() * 1000),
-                Math.floor(Math.random() * 1000),
-                Math.floor(Math.random() * 1000),
+                Math.floor(Math.random() * 999) + 1,
+                Math.floor(Math.random() * 999) + 1,
+                Math.floor(Math.random() * 999) + 1,
+                Math.floor(Math.random() * 999) + 1,
             ];
         },
         resetTestseed() {
-            // Use inModal.inbound explicitly to ensure correct context
             if (!inModal.inbound || !inModal.inbound.settings) return;
-            // Reset testseed to default values
-            inModal.inbound.settings.testseed = [900, 500, 900, 256].slice();
+            // Empty == "use server defaults [900, 500, 900, 256]"; placeholders show in the form.
+            inModal.inbound.settings.testseed = [];
         },
     });
 
@@ -170,27 +178,17 @@
                     });
                 }
             },
-            // Ensure testseed is always initialized when vision flow is enabled
+            // Keep testseed as a valid array reference for Vue reactivity while the user
+            // toggles flows — but do NOT auto-fill defaults. Empty means "use server defaults"
+            // and is the only way the form omits testseed from the outbound JSON.
             "inModal.inbound.settings.vlesses": {
                 handler() {
                     if (
                         inModal.inbound.protocol === Protocols.VLESS &&
                         inModal.inbound.settings &&
-                        inModal.inbound.settings.vlesses
+                        !Array.isArray(inModal.inbound.settings.testseed)
                     ) {
-                        const hasVisionFlow = inModal.inbound.settings.vlesses.some(
-                            (c) =>
-                            c.flow === "xtls-rprx-vision" ||
-                            c.flow === "xtls-rprx-vision-udp443",
-                        );
-                        if (
-                            hasVisionFlow &&
-                            (!inModal.inbound.settings.testseed ||
-                                !Array.isArray(inModal.inbound.settings.testseed) ||
-                                inModal.inbound.settings.testseed.length < 4)
-                        ) {
-                            inModal.inbound.settings.testseed = [900, 500, 900, 256];
-                        }
+                        inModal.inbound.settings.testseed = [];
                     }
                 },
                 deep: true,
@@ -304,12 +302,11 @@
                 this.inbound.stream.tls.echServerKeys = "";
                 this.inbound.stream.tls.settings.echConfigList = "";
             },
-            async getNewVlessEnc() {
-                const selected = inModal.inbound.settings.selectedAuth;
-                if (!selected) {
-                    this.clearVlessEnc();
-                    return;
-                }
+            // Pulls the requested auth block from `xray vlessenc` (which always returns
+            // both X25519 and ML-KEM-768 variants) and applies it to the inbound's
+            // decryption/encryption strings. The auth mode is implied by the resulting
+            async getNewVlessEnc(authLabel) {
+                if (!authLabel) return;
 
                 inModal.loading(true);
                 const msg = await HttpUtil.get("/panel/api/server/getNewVlessEnc");
@@ -320,10 +317,10 @@
                 }
 
                 const auths = msg.obj.auths || [];
-                const block = auths.find((a) => a.label === selected);
+                const block = auths.find((a) => a.label === authLabel);
 
                 if (!block) {
-                    console.error("No auth block for", selected);
+                    console.error("No auth block for", authLabel);
                     return;
                 }
 
@@ -333,37 +330,37 @@
             clearVlessEnc() {
                 this.inbound.settings.decryption = "none";
                 this.inbound.settings.encryption = "none";
-                this.inbound.settings.selectedAuth = undefined;
             },
-            // Vision Seed methods - must be in Vue methods for proper binding
+            // Vision Seed methods - must be in Vue methods for proper template binding.
+            // Mirror the inModal helpers but use Vue.set so the form re-renders.
             updateTestseed(index, value) {
-                // Ensure testseed is initialized
-                if (
-                    !this.inbound.settings.testseed ||
-                    !Array.isArray(this.inbound.settings.testseed)
-                ) {
-                    this.$set(this.inbound.settings, "testseed", [900, 500, 900, 256]);
+                if (!Array.isArray(this.inbound.settings.testseed)) {
+                    this.$set(this.inbound.settings, "testseed", []);
                 }
-                // Ensure array has enough elements
-                while (this.inbound.settings.testseed.length <= index) {
-                    this.inbound.settings.testseed.push(0);
+                const seed = this.inbound.settings.testseed;
+                while (seed.length <= index) seed.push(null);
+                this.$set(seed, index, value);
+                // Collapse to empty when every slot is cleared so testseed is omitted from JSON.
+                if (seed.every(v => v === null || v === undefined || v === "")) {
+                    this.$set(this.inbound.settings, "testseed", []);
                 }
-                // Update value using Vue.set for reactivity
-                this.$set(this.inbound.settings.testseed, index, value);
             },
             setRandomTestseed() {
-                // Create new array with random values and use Vue.set for reactivity
+                // Positive integers only (>=1) so the resulting array passes validation.
                 const newSeed = [
-                    Math.floor(Math.random() * 1000),
-                    Math.floor(Math.random() * 1000),
-                    Math.floor(Math.random() * 1000),
-                    Math.floor(Math.random() * 1000),
+                    Math.floor(Math.random() * 999) + 1,
+                    Math.floor(Math.random() * 999) + 1,
+                    Math.floor(Math.random() * 999) + 1,
+                    Math.floor(Math.random() * 999) + 1,
                 ];
                 this.$set(this.inbound.settings, "testseed", newSeed);
             },
             resetTestseed() {
-                // Reset testseed to default values using Vue.set for reactivity
-                this.$set(this.inbound.settings, "testseed", [900, 500, 900, 256]);
+                // Empty == "use server defaults [900, 500, 900, 256]". Placeholders will show in the form.
+                this.$set(this.inbound.settings, "testseed", []);
+            },
+            testseedError() {
+                return inModal.testseedError();
             },
         },
     });

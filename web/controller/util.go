@@ -10,6 +10,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/config"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/web/entity"
+	"github.com/mhsanaei/3x-ui/v2/web/session"
 
 	"github.com/gin-gonic/gin"
 )
@@ -121,6 +122,12 @@ func html(c *gin.Context, name string, title string, data gin.H) {
 		data = gin.H{}
 	}
 	data["title"] = title
+	csrfToken, err := session.EnsureCSRFToken(c)
+	if err != nil {
+		logger.Warning("Unable to create CSRF token:", err)
+	} else {
+		data["csrf_token"] = csrfToken
+	}
 	host := c.GetHeader("X-Forwarded-Host")
 	if host == "" {
 		host = c.GetHeader("X-Real-IP")
