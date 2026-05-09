@@ -29,6 +29,8 @@ func NewSubClashService(subService *SubService) *SubClashService {
 }
 
 func (s *SubClashService) GetClash(subId string, host string) (string, string, error) {
+	// Set per-request state so resolveInboundAddress sees the node map.
+	s.SubService.PrepareForRequest(host)
 	inbounds, err := s.SubService.getInboundsBySubId(subId)
 	if err != nil || len(inbounds) == 0 {
 		return "", "", err
@@ -118,11 +120,18 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 
 func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client, host string) []map[string]any {
 	stream := s.streamData(inbound.StreamSettings)
+	// For node-managed inbounds the Clash proxy "server" must be the
+	// node's address, not the request host. resolveInboundAddress handles
+	// the node→listen→request-host fallback chain.
+	defaultDest := s.SubService.resolveInboundAddress(inbound)
+	if defaultDest == "" {
+		defaultDest = host
+	}
 	externalProxies, ok := stream["externalProxy"].([]any)
 	if !ok || len(externalProxies) == 0 {
 		externalProxies = []any{map[string]any{
 			"forceTls": "same",
-			"dest":     host,
+			"dest":     defaultDest,
 			"port":     float64(inbound.Port),
 			"remark":   "",
 		}}

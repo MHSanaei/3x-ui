@@ -2296,8 +2296,20 @@ export class Inbound extends XrayCommonClass {
         return url.toString();
     }
 
-    genWireguardLinks(remark = '', remarkModel = '-ieo') {
-        const addr = !ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0" ? this.listen : location.hostname;
+    // resolveAddr picks the host that goes into share/sub links. Order:
+    //   1. hostOverride (caller supplies node address for node-managed inbounds)
+    //   2. inbound's bind listen (when explicit, not 0.0.0.0)
+    //   3. browser's location.hostname (single-panel default)
+    // Centralised so genAllLinks/genInboundLinks/genWireguard*
+    // all share the same chain — pre-Phase 3 we had four duplicated lines.
+    _resolveAddr(hostOverride = '') {
+        if (hostOverride) return hostOverride;
+        if (!ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0") return this.listen;
+        return location.hostname;
+    }
+
+    genWireguardLinks(remark = '', remarkModel = '-ieo', hostOverride = '') {
+        const addr = this._resolveAddr(hostOverride);
         const separationChar = remarkModel.charAt(0);
         let links = [];
         this.settings.peers.forEach((p, index) => {
@@ -2306,8 +2318,8 @@ export class Inbound extends XrayCommonClass {
         return links.join('\r\n');
     }
 
-    genWireguardConfigs(remark = '', remarkModel = '-ieo') {
-        const addr = !ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0" ? this.listen : location.hostname;
+    genWireguardConfigs(remark = '', remarkModel = '-ieo', hostOverride = '') {
+        const addr = this._resolveAddr(hostOverride);
         const separationChar = remarkModel.charAt(0);
         let links = [];
         this.settings.peers.forEach((p, index) => {
@@ -2332,10 +2344,10 @@ export class Inbound extends XrayCommonClass {
         }
     }
 
-    genAllLinks(remark = '', remarkModel = '-ieo', client) {
+    genAllLinks(remark = '', remarkModel = '-ieo', client, hostOverride = '') {
         let result = [];
         let email = client ? client.email : '';
-        let addr = !ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0" ? this.listen : location.hostname;
+        let addr = this._resolveAddr(hostOverride);
         let port = this.port;
         const separationChar = remarkModel.charAt(0);
         const orderChars = remarkModel.slice(1);
@@ -2363,12 +2375,12 @@ export class Inbound extends XrayCommonClass {
         return result;
     }
 
-    genInboundLinks(remark = '', remarkModel = '-ieo') {
-        let addr = !ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0" ? this.listen : location.hostname;
+    genInboundLinks(remark = '', remarkModel = '-ieo', hostOverride = '') {
+        let addr = this._resolveAddr(hostOverride);
         if (this.clients) {
             let links = [];
             this.clients.forEach((client) => {
-                this.genAllLinks(remark, remarkModel, client).forEach(l => {
+                this.genAllLinks(remark, remarkModel, client, hostOverride).forEach(l => {
                     links.push(l.link);
                 })
             });
@@ -2376,7 +2388,7 @@ export class Inbound extends XrayCommonClass {
         } else {
             if (this.protocol == Protocols.SHADOWSOCKS && !this.isSSMultiUser) return this.genSSLink(addr, this.port, 'same', remark);
             if (this.protocol == Protocols.WIREGUARD) {
-                return this.genWireguardConfigs(remark, remarkModel);
+                return this.genWireguardConfigs(remark, remarkModel, hostOverride);
             }
             return '';
         }

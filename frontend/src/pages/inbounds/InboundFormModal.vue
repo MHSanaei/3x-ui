@@ -31,8 +31,16 @@ import {
 import { DBInbound } from '@/models/dbinbound.js';
 import FinalMaskForm from '@/components/FinalMaskForm.vue';
 import DateTimePicker from '@/components/DateTimePicker.vue';
+import { useNodeList } from '@/composables/useNodeList.js';
 
 const { t } = useI18n();
+
+// Node selector — Phase 1 multi-node deployment. Shows all enabled
+// nodes regardless of online state so the form is usable while a node
+// is briefly offline; the backend's fail-fast path will surface the
+// real error when the user submits.
+const { nodes: availableNodes } = useNodeList();
+const selectableNodes = computed(() => (availableNodes.value || []).filter((n) => n.enable));
 
 // Phase 5f-iii-b: structured per-protocol/per-transport forms instead
 // of raw JSON textareas. Edits a deeply-reactive Inbound + DBInbound
@@ -474,6 +482,14 @@ async function submit() {
       streamSettings: streamSettings,
       sniffing: sniffing,
     };
+    // Multi-node deployment: only include nodeId when the user picked a
+    // remote node. Sending nodeId=null over qs.stringify becomes an
+    // empty form value, which Go's form binding for *int parses as 0
+    // — not nil — and we'd then try to look up node id 0 and fail with
+    // "record not found". Omitting the key entirely keeps NodeID nil.
+    if (dbForm.value.nodeId != null) {
+      payload.nodeId = dbForm.value.nodeId;
+    }
 
     const url = props.mode === 'edit'
       ? `/panel/api/inbounds/update/${props.dbInbound.id}`
@@ -542,6 +558,24 @@ watch(
           </a-form-item>
           <a-form-item :label="t('pages.inbounds.remark')">
             <a-input v-model:value="dbForm.remark" />
+          </a-form-item>
+          <a-form-item :label="t('pages.inbounds.deployTo')">
+            <a-select
+              v-model:value="dbForm.nodeId"
+              :disabled="mode === 'edit'"
+              :placeholder="t('pages.inbounds.localPanel')"
+              allow-clear
+            >
+              <a-select-option :value="null">{{ t('pages.inbounds.localPanel') }}</a-select-option>
+              <a-select-option
+                v-for="n in selectableNodes"
+                :key="n.id"
+                :value="n.id"
+                :disabled="n.status === 'offline'"
+              >
+                {{ n.name }}{{ n.status === 'offline' ? ' (offline)' : '' }}
+              </a-select-option>
+            </a-select>
           </a-form-item>
           <a-form-item :label="t('pages.inbounds.protocol')">
             <a-select :value="protocol" :disabled="mode === 'edit'" @change="onProtocolChange">

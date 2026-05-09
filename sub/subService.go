@@ -30,6 +30,11 @@ type SubService struct {
 	datepicker     string
 	inboundService service.InboundService
 	settingService service.SettingService
+	// nodesByID is populated per request from the Node table so
+	// resolveInboundAddress can return the node's address for any
+	// inbound whose NodeID is set. Keeps the per-link host derivation
+	// O(1) instead of O(N) DB hits.
+	nodesByID map[int]*model.Node
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -40,9 +45,19 @@ func NewSubService(showInfo bool, remarkModel string) *SubService {
 	}
 }
 
+// PrepareForRequest sets per-request state (host + nodes map) on the
+// shared SubService. Called by every entry point — GetSubs, GetJson,
+// GetClash — so resolveInboundAddress sees the right host and the
+// freshly-loaded node map regardless of which sub flavour the client
+// hit.
+func (s *SubService) PrepareForRequest(host string) {
+	s.address = host
+	s.loadNodes()
+}
+
 // GetSubs retrieves subscription links for a given subscription ID and host.
 func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.ClientTraffic, error) {
-	s.address = host
+	s.PrepareForRequest(host)
 	var result []string
 	var traffic xray.ClientTraffic
 	var lastOnline int64
@@ -522,7 +537,39 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 	return url.String()
 }
 
+// loadNodes refreshes nodesByID from the DB. Called once per request so
+// the per-inbound resolveInboundAddress lookups are pure map reads.
+// We filter to address != '' so a half-configured node row doesn't
+// accidentally produce a useless host like "https://:2053".
+func (s *SubService) loadNodes() {
+	db := database.GetDB()
+	var nodes []*model.Node
+	if err := db.Model(&model.Node{}).Where("address != ''").Find(&nodes).Error; err != nil {
+		logger.Warning("subscription: load nodes failed:", err)
+		s.nodesByID = nil
+		return
+	}
+	m := make(map[int]*model.Node, len(nodes))
+	for _, n := range nodes {
+		m[n.Id] = n
+	}
+	s.nodesByID = m
+}
+
+// resolveInboundAddress picks the host an external client should
+// connect to. Order:
+//  1. If the inbound is node-managed and the node has an address, use
+//     the node's address — central panel's hostname doesn't speak xray
+//     for that inbound.
+//  2. If the inbound binds to a non-wildcard listen address, use it.
+//  3. Otherwise fall back to the request's host (whatever the client
+//     subscribed against).
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
+	if inbound.NodeID != nil && s.nodesByID != nil {
+		if n, ok := s.nodesByID[*inbound.NodeID]; ok && n.Address != "" {
+			return n.Address
+		}
+	}
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
 		return s.address
 	}

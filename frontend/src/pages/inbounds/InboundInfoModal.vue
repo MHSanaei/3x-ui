@@ -45,6 +45,10 @@ const props = defineProps({
   trafficDiff: { type: Number, default: 0 },
   ipLimitEnable: { type: Boolean, default: false },
   tgBotEnable: { type: Boolean, default: false },
+  // Address of the node hosting this inbound; '' for local. Wired
+  // through to share/QR link generation so node-managed inbounds
+  // produce links that connect to the node, not the central panel.
+  nodeAddress: { type: String, default: '' },
   subSettings: {
     type: Object,
     default: () => ({ enable: false, subURI: '', subJsonURI: '', subJsonEnable: false }),
@@ -208,14 +212,15 @@ watch(() => props.open, (next) => {
   // Generate links per protocol — WireGuard has its own .conf body
   // path; everything else flows through genAllLinks.
   if (inbound.value.protocol === Protocols.WIREGUARD) {
-    wireguardConfigs.value = inbound.value.genWireguardConfigs(props.dbInbound.remark).split('\r\n');
-    wireguardLinks.value = inbound.value.genWireguardLinks(props.dbInbound.remark).split('\r\n');
+    wireguardConfigs.value = inbound.value.genWireguardConfigs(props.dbInbound.remark, '-ieo', props.nodeAddress).split('\r\n');
+    wireguardLinks.value = inbound.value.genWireguardLinks(props.dbInbound.remark, '-ieo', props.nodeAddress).split('\r\n');
     links.value = [];
   } else {
     links.value = inbound.value.genAllLinks(
       props.dbInbound.remark,
       props.remarkModel,
       clientSettings.value,
+      props.nodeAddress,
     );
     wireguardConfigs.value = [];
     wireguardLinks.value = [];

@@ -48,6 +48,9 @@ const props = defineProps({
   isMobile: { type: Boolean, default: false },
   isDarkTheme: { type: Boolean, default: false },
   subEnable: { type: Boolean, default: false },
+  // Map node id -> node row, supplied by the parent page so each
+  // inbound row can render its node name without an extra fetch.
+  nodesById: { type: Map, default: () => new Map() },
 });
 
 const emit = defineEmits([
@@ -154,6 +157,7 @@ const desktopColumns = computed(() => [
   { title: t('pages.inbounds.operate'), key: 'action', align: 'center', width: 30 },
   { title: t('pages.inbounds.enable'), key: 'enable', align: 'center', width: 35 },
   { title: t('pages.inbounds.remark'), dataIndex: 'remark', key: 'remark', align: 'center', width: 60 },
+  { title: t('pages.inbounds.node'), key: 'node', align: 'center', width: 60 },
   { title: t('pages.inbounds.port'), dataIndex: 'port', key: 'port', align: 'center', width: 40 },
   { title: t('pages.inbounds.protocol'), key: 'protocol', align: 'left', width: 130 },
   { title: t('clients'), key: 'clients', align: 'left', width: 50 },
@@ -388,6 +392,22 @@ function showQrCodeMenu(dbInbound) {
           <!-- ============== Enable switch (desktop) ============== -->
           <template v-else-if="column.key === 'enable'">
             <a-switch :checked="record.enable" @change="(next) => onSwitchEnable(record, next)" />
+          </template>
+
+          <!-- ============== Node deployment tag ============== -->
+          <template v-else-if="column.key === 'node'">
+            <template v-if="record.nodeId == null">
+              <a-tag color="default">{{ t('pages.inbounds.localPanel') }}</a-tag>
+            </template>
+            <template v-else-if="nodesById.get(record.nodeId)">
+              <a-tag :color="nodesById.get(record.nodeId).status === 'online' ? 'blue' : 'red'">
+                {{ nodesById.get(record.nodeId).name }}
+              </a-tag>
+            </template>
+            <template v-else>
+              <!-- Node row was deleted but inbound still references it. -->
+              <a-tag color="orange">node #{{ record.nodeId }}</a-tag>
+            </template>
           </template>
 
           <!-- ============== Protocol tags ============== -->

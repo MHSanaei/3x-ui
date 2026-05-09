@@ -1,7 +1,7 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { message } from 'ant-design-vue';
+import { Modal, message } from 'ant-design-vue';
 
 import { HttpUtil, RandomUtil } from '@/utils';
 import SettingListItem from '@/components/SettingListItem.vue';
@@ -75,6 +75,65 @@ function updateUser() {
     sendUpdateUser();
   }
 }
+
+// === API Token =========================================================
+// Surfaces the panel's API token so a remote central panel can register
+// this instance as a node. Lazy-loaded on tab mount; rotation requires
+// confirmation since it invalidates any cached value upstream.
+const apiToken = ref('');
+const apiTokenLoading = ref(false);
+const apiTokenRotating = ref(false);
+
+async function loadApiToken() {
+  apiTokenLoading.value = true;
+  try {
+    const msg = await HttpUtil.get('/panel/setting/getApiToken');
+    if (msg?.success) apiToken.value = msg.obj || '';
+  } finally {
+    apiTokenLoading.value = false;
+  }
+}
+
+async function copyApiToken() {
+  if (!apiToken.value) return;
+  try {
+    await navigator.clipboard.writeText(apiToken.value);
+    message.success(t('copySuccess'));
+  } catch (_e) {
+    // navigator.clipboard can be undefined on http:// — fall back to
+    // a transient input + execCommand path.
+    const ta = document.createElement('textarea');
+    ta.value = apiToken.value;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    message.success(t('copySuccess'));
+  }
+}
+
+function regenerateApiToken() {
+  Modal.confirm({
+    title: t('pages.nodes.regenerateConfirm'),
+    okText: t('confirm'),
+    cancelText: t('cancel'),
+    okType: 'danger',
+    onOk: async () => {
+      apiTokenRotating.value = true;
+      try {
+        const msg = await HttpUtil.post('/panel/setting/regenerateApiToken');
+        if (msg?.success) {
+          apiToken.value = msg.obj || '';
+          message.success(t('success'));
+        }
+      } finally {
+        apiTokenRotating.value = false;
+      }
+    },
+  });
+}
+
+onMounted(loadApiToken);
 
 function toggleTwoFactor() {
   // Switch read-only — the actual flip happens after the modal succeeds.
@@ -155,6 +214,29 @@ function toggleTwoFactor() {
           <a-switch :checked="allSetting.twoFactorEnable" @click="toggleTwoFactor" />
         </template>
       </SettingListItem>
+    </a-collapse-panel>
+
+    <a-collapse-panel key="3" :header="t('pages.nodes.apiToken')">
+      <SettingListItem paddings="small">
+        <template #title>{{ t('pages.nodes.apiToken') }}</template>
+        <template #description>{{ t('pages.nodes.apiTokenHint') }}</template>
+        <template #control>
+          <a-input-password
+            :value="apiToken"
+            readonly
+            :loading="apiTokenLoading"
+            style="min-width: 240px"
+          />
+        </template>
+      </SettingListItem>
+      <a-list-item>
+        <a-space direction="horizontal" :style="{ padding: '0 20px' }">
+          <a-button :disabled="!apiToken" @click="copyApiToken">{{ t('copy') }}</a-button>
+          <a-button danger :loading="apiTokenRotating" @click="regenerateApiToken">
+            {{ t('pages.nodes.regenerate') }}
+          </a-button>
+        </a-space>
+      </a-list-item>
     </a-collapse-panel>
   </a-collapse>
 

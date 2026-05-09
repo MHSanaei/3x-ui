@@ -3,6 +3,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -15,6 +16,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v2/web/runtime"
 	"github.com/mhsanaei/3x-ui/v2/xray"
 
 	"gorm.io/gorm"
@@ -25,7 +27,27 @@ import (
 // It handles CRUD operations for inbounds, client management, traffic monitoring,
 // and integration with the Xray API for real-time updates.
 type InboundService struct {
+	// xrayApi is retained for backwards compatibility with bulk paths
+	// that still talk to the local engine directly (e.g. traffic-reset
+	// jobs that scope to NodeID IS NULL inbounds anyway). New code paths
+	// route through runtimeFor() instead so they can target remote nodes.
 	xrayApi xray.XrayAPI
+}
+
+// runtimeFor returns the Runtime adapter for an inbound's destination
+// engine. Returns the local runtime when the inbound has no NodeID
+// (legacy/local inbounds); otherwise the cached Remote for that node.
+//
+// nil is returned only when the runtime Manager hasn't been wired yet
+// (extremely early bootstrap). Callers treat nil as a transient error
+// and either fall back to needRestart=true or surface "panel still
+// starting" upstream.
+func (s *InboundService) runtimeFor(ib *model.Inbound) (runtime.Runtime, error) {
+	mgr := runtime.GetManager()
+	if mgr == nil {
+		return nil, fmt.Errorf("runtime manager not initialised")
+	}
+	return mgr.RuntimeFor(ib.NodeID)
 }
 
 type CopyClientsResult struct {
@@ -375,20 +397,28 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 
 	needRestart := false
 	if inbound.Enable {
-		s.xrayApi.Init(p.GetAPIPort())
-		inboundJson, err1 := json.MarshalIndent(inbound.GenXrayInboundConfig(), "", "  ")
-		if err1 != nil {
-			logger.Debug("Unable to marshal inbound config:", err1)
+		rt, rterr := s.runtimeFor(inbound)
+		if rterr != nil {
+			// Fail-fast on remote routing errors. Assign to the named
+			// `err` so the deferred tx handler rolls back the central
+			// DB row that tx.Save just inserted — otherwise we'd leave
+			// an orphan that the user sees succeed despite the toast.
+			err = rterr
+			return inbound, false, err
 		}
-
-		err1 = s.xrayApi.AddInbound(inboundJson)
-		if err1 == nil {
-			logger.Debug("New inbound added by api:", inbound.Tag)
+		if err1 := rt.AddInbound(context.Background(), inbound); err1 == nil {
+			logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
 		} else {
-			logger.Debug("Unable to add inbound by api:", err1)
+			logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
+			if inbound.NodeID != nil {
+				// Remote add failed — roll back so central + node stay
+				// in sync (no row on either side).
+				err = err1
+				return inbound, false, err
+			}
+			// Local: keep the existing fall-through-to-restart behaviour.
 			needRestart = true
 		}
-		s.xrayApi.Close()
 	}
 
 	return inbound, needRestart, err
@@ -400,21 +430,35 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 func (s *InboundService) DelInbound(id int) (bool, error) {
 	db := database.GetDB()
 
-	var tag string
 	needRestart := false
-	result := db.Model(model.Inbound{}).Select("tag").Where("id = ? and enable = ?", id, true).First(&tag)
-	if result.Error == nil {
-		s.xrayApi.Init(p.GetAPIPort())
-		err1 := s.xrayApi.DelInbound(tag)
-		if err1 == nil {
-			logger.Debug("Inbound deleted by api:", tag)
+	// Load the full inbound (not just the tag) so we know its NodeID and
+	// can route the runtime call to the right engine. Skip-on-not-found
+	// preserves the old "no-op when DB row doesn't exist" behaviour.
+	var ib model.Inbound
+	loadErr := db.Model(model.Inbound{}).Where("id = ? and enable = ?", id, true).First(&ib).Error
+	if loadErr == nil {
+		// Delete is best-effort on the runtime side: the user's intent is
+		// to get rid of the inbound, so a missing node row, an offline
+		// node, or a remote-side "already gone" should NEVER block the
+		// central DB cleanup. Worst case the remote keeps an orphan that
+		// the user can clean up manually — far less painful than the row
+		// being stuck on central.
+		rt, rterr := s.runtimeFor(&ib)
+		if rterr != nil {
+			logger.Warning("DelInbound: runtime lookup failed, deleting central row anyway:", rterr)
+			if ib.NodeID == nil {
+				needRestart = true
+			}
+		} else if err1 := rt.DelInbound(context.Background(), &ib); err1 == nil {
+			logger.Debug("Inbound deleted on", rt.Name(), ":", ib.Tag)
 		} else {
-			logger.Debug("Unable to delete inbound by api:", err1)
-			needRestart = true
+			logger.Warning("DelInbound on", rt.Name(), "failed, deleting central row anyway:", err1)
+			if ib.NodeID == nil {
+				needRestart = true
+			}
 		}
-		s.xrayApi.Close()
 	} else {
-		logger.Debug("No enabled inbound founded to removing by api", tag)
+		logger.Debug("No enabled inbound found to remove by api, id:", id)
 	}
 
 	// Delete client traffics of inbounds
@@ -487,36 +531,43 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	}
 	inbound.Enable = enable
 
-	// Sync xray runtime: drop the live inbound, add it back if we're enabling.
-	// "User not found"-style errors from DelInbound mean the inbound was
-	// already absent from the live config — that's fine. Any other error
-	// means the live config and DB diverged, so we ask the caller to
-	// schedule a restart.
+	// Sync xray runtime via the Runtime adapter. For local inbounds we
+	// also rebuild the runtime config (drops clients flagged as disabled
+	// in ClientTraffic) so the live xray sees the same filtered view it
+	// did pre-refactor. Remote runtimes ship the unfiltered inbound —
+	// the remote panel does its own filtering before pushing to its xray.
 	needRestart := false
-	s.xrayApi.Init(p.GetAPIPort())
-	defer s.xrayApi.Close()
+	rt, rterr := s.runtimeFor(inbound)
+	if rterr != nil {
+		if inbound.NodeID != nil {
+			return false, rterr
+		}
+		return true, nil
+	}
 
-	if err := s.xrayApi.DelInbound(inbound.Tag); err != nil &&
+	if err := rt.DelInbound(context.Background(), inbound); err != nil &&
 		!strings.Contains(err.Error(), "not found") {
-		logger.Debug("SetInboundEnable: DelInbound via api failed:", err)
+		logger.Debug("SetInboundEnable: DelInbound on", rt.Name(), "failed:", err)
 		needRestart = true
 	}
 	if !enable {
 		return needRestart, nil
 	}
 
-	runtimeInbound, err := s.buildRuntimeInboundForAPI(db, inbound)
-	if err != nil {
-		logger.Debug("SetInboundEnable: build runtime config failed:", err)
-		return true, nil
+	addTarget := inbound
+	if inbound.NodeID == nil {
+		runtimeInbound, err := s.buildRuntimeInboundForAPI(db, inbound)
+		if err != nil {
+			logger.Debug("SetInboundEnable: build runtime config failed:", err)
+			return true, nil
+		}
+		addTarget = runtimeInbound
 	}
-	inboundJson, err := json.MarshalIndent(runtimeInbound.GenXrayInboundConfig(), "", "  ")
-	if err != nil {
-		logger.Debug("SetInboundEnable: marshal runtime config failed:", err)
-		return true, nil
-	}
-	if err := s.xrayApi.AddInbound(inboundJson); err != nil {
-		logger.Debug("SetInboundEnable: AddInbound via api failed:", err)
+	if err := rt.AddInbound(context.Background(), addTarget); err != nil {
+		logger.Debug("SetInboundEnable: AddInbound on", rt.Name(), "failed:", err)
+		if inbound.NodeID != nil {
+			return false, err
+		}
 		needRestart = true
 	}
 	return needRestart, nil
@@ -637,32 +688,52 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	}
 
 	needRestart := false
-	s.xrayApi.Init(p.GetAPIPort())
-	if s.xrayApi.DelInbound(tag) == nil {
-		logger.Debug("Old inbound deleted by api:", tag)
-	}
-	if inbound.Enable {
-		runtimeInbound, err2 := s.buildRuntimeInboundForAPI(tx, oldInbound)
-		if err2 != nil {
-			logger.Debug("Unable to prepare runtime inbound config:", err2)
-			needRestart = true
-		} else {
-			inboundJson, err2 := json.MarshalIndent(runtimeInbound.GenXrayInboundConfig(), "", "  ")
-			if err2 != nil {
-				logger.Debug("Unable to marshal updated inbound config:", err2)
-				needRestart = true
-			} else {
-				err2 = s.xrayApi.AddInbound(inboundJson)
-				if err2 == nil {
-					logger.Debug("Updated inbound added by api:", oldInbound.Tag)
+	rt, rterr := s.runtimeFor(oldInbound)
+	if rterr != nil {
+		if oldInbound.NodeID != nil {
+			err = rterr
+			return inbound, false, err
+		}
+		needRestart = true
+	} else {
+		// Use a snapshot of the OLD tag so the remote can resolve its
+		// remote-id even when the new tag has changed (port/listen edit).
+		oldSnapshot := *oldInbound
+		oldSnapshot.Tag = tag
+		if oldInbound.NodeID == nil {
+			// Local: keep the old del-then-add-filtered behaviour to
+			// preserve runtime client filtering.
+			if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 == nil {
+				logger.Debug("Old inbound deleted on", rt.Name(), ":", tag)
+			}
+			if inbound.Enable {
+				runtimeInbound, err2 := s.buildRuntimeInboundForAPI(tx, oldInbound)
+				if err2 != nil {
+					logger.Debug("Unable to prepare runtime inbound config:", err2)
+					needRestart = true
+				} else if err2 := rt.AddInbound(context.Background(), runtimeInbound); err2 == nil {
+					logger.Debug("Updated inbound added on", rt.Name(), ":", oldInbound.Tag)
 				} else {
-					logger.Debug("Unable to update inbound by api:", err2)
+					logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
 					needRestart = true
 				}
 			}
+		} else {
+			// Remote: a single UpdateInbound call (the Remote adapter
+			// resolves remote-id by old tag, then POSTs /update/{id}).
+			// Assign to the outer `err` on failure so the deferred tx
+			// handler rolls back the central DB write.
+			if !inbound.Enable {
+				if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 != nil {
+					err = err2
+					return inbound, false, err
+				}
+			} else if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, oldInbound); err2 != nil {
+				err = err2
+				return inbound, false, err
+			}
 		}
 	}
-	s.xrayApi.Close()
 
 	return inbound, needRestart, tx.Save(oldInbound).Error
 }
@@ -885,36 +956,62 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 	}()
 
 	needRestart := false
-	s.xrayApi.Init(p.GetAPIPort())
-	for _, client := range clients {
-		if len(client.Email) > 0 {
-			s.AddClientStat(tx, data.Id, &client)
-			if client.Enable {
-				cipher := ""
-				if oldInbound.Protocol == "shadowsocks" {
-					cipher = oldSettings["method"].(string)
-				}
-				err1 := s.xrayApi.AddUser(string(oldInbound.Protocol), oldInbound.Tag, map[string]any{
-					"email":    client.Email,
-					"id":       client.ID,
-					"auth":     client.Auth,
-					"security": client.Security,
-					"flow":     client.Flow,
-					"password": client.Password,
-					"cipher":   cipher,
-				})
-				if err1 == nil {
-					logger.Debug("Client added by api:", client.Email)
-				} else {
-					logger.Debug("Error in adding client by api:", err1)
-					needRestart = true
-				}
+	rt, rterr := s.runtimeFor(oldInbound)
+	if rterr != nil {
+		if oldInbound.NodeID != nil {
+			err = rterr
+			return false, err
+		}
+		needRestart = true
+	} else if oldInbound.NodeID == nil {
+		// Local: per-client AddUser keeps existing connections alive
+		// (incremental hot-add). Walk every new client; on any failure
+		// fall back to needRestart so cron rebuilds from scratch.
+		for _, client := range clients {
+			if len(client.Email) == 0 {
+				needRestart = true
+				continue
 			}
-		} else {
-			needRestart = true
+			s.AddClientStat(tx, data.Id, &client)
+			if !client.Enable {
+				continue
+			}
+			cipher := ""
+			if oldInbound.Protocol == "shadowsocks" {
+				cipher = oldSettings["method"].(string)
+			}
+			err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
+				"email":    client.Email,
+				"id":       client.ID,
+				"auth":     client.Auth,
+				"security": client.Security,
+				"flow":     client.Flow,
+				"password": client.Password,
+				"cipher":   cipher,
+			})
+			if err1 == nil {
+				logger.Debug("Client added on", rt.Name(), ":", client.Email)
+			} else {
+				logger.Debug("Error in adding client on", rt.Name(), ":", err1)
+				needRestart = true
+			}
+		}
+	} else {
+		// Remote: a single UpdateInbound ships the new clients in one
+		// HTTP round-trip rather than N. Settings are already mutated
+		// in-memory (oldInbound.Settings) so the remote sees the final
+		// state. Per-client ClientStat rows still need the central DB
+		// update so the loop runs that branch first.
+		for _, client := range clients {
+			if len(client.Email) > 0 {
+				s.AddClientStat(tx, data.Id, &client)
+			}
+		}
+		if err1 := rt.UpdateInbound(context.Background(), oldInbound, oldInbound); err1 != nil {
+			err = err1
+			return false, err
 		}
 	}
-	s.xrayApi.Close()
 
 	return needRestart, tx.Save(oldInbound).Error
 }
@@ -1203,20 +1300,30 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 			}
 		}
 		if needApiDel && notDepleted {
-			s.xrayApi.Init(p.GetAPIPort())
-			err1 := s.xrayApi.RemoveUser(oldInbound.Tag, email)
-			if err1 == nil {
-				logger.Debug("Client deleted by api:", email)
-				needRestart = false
-			} else {
-				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+			rt, rterr := s.runtimeFor(oldInbound)
+			if rterr != nil {
+				if oldInbound.NodeID != nil {
+					return false, rterr
+				}
+				needRestart = true
+			} else if oldInbound.NodeID == nil {
+				err1 := rt.RemoveUser(context.Background(), oldInbound, email)
+				if err1 == nil {
+					logger.Debug("Client deleted on", rt.Name(), ":", email)
+					needRestart = false
+				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
 					logger.Debug("User is already deleted. Nothing to do more...")
 				} else {
-					logger.Debug("Error in deleting client by api:", err1)
+					logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
 					needRestart = true
 				}
+			} else {
+				// Remote: settings already mutated above; one UpdateInbound
+				// ships the post-deletion state to the node.
+				if err1 := rt.UpdateInbound(context.Background(), oldInbound, oldInbound); err1 != nil {
+					return false, err1
+				}
 			}
-			s.xrayApi.Close()
 		}
 	}
 	return needRestart, db.Save(oldInbound).Error
@@ -1415,47 +1522,194 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 	}
 	needRestart := false
 	if len(oldEmail) > 0 {
-		s.xrayApi.Init(p.GetAPIPort())
-		if oldClients[clientIndex].Enable {
-			err1 := s.xrayApi.RemoveUser(oldInbound.Tag, oldEmail)
-			if err1 == nil {
-				logger.Debug("Old client deleted by api:", oldEmail)
-			} else {
-				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", oldEmail)) {
+		rt, rterr := s.runtimeFor(oldInbound)
+		if rterr != nil {
+			if oldInbound.NodeID != nil {
+				err = rterr
+				return false, err
+			}
+			needRestart = true
+		} else if oldInbound.NodeID == nil {
+			// Local: paired Remove+Add on the live xray, keeping other
+			// clients online (full-restart fallback on partial failure).
+			if oldClients[clientIndex].Enable {
+				err1 := rt.RemoveUser(context.Background(), oldInbound, oldEmail)
+				if err1 == nil {
+					logger.Debug("Old client deleted on", rt.Name(), ":", oldEmail)
+				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", oldEmail)) {
 					logger.Debug("User is already deleted. Nothing to do more...")
 				} else {
-					logger.Debug("Error in deleting client by api:", err1)
+					logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
 					needRestart = true
 				}
 			}
-		}
-		if clients[0].Enable {
-			cipher := ""
-			if oldInbound.Protocol == "shadowsocks" {
-				cipher = oldSettings["method"].(string)
+			if clients[0].Enable {
+				cipher := ""
+				if oldInbound.Protocol == "shadowsocks" {
+					cipher = oldSettings["method"].(string)
+				}
+				err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
+					"email":    clients[0].Email,
+					"id":       clients[0].ID,
+					"security": clients[0].Security,
+					"flow":     clients[0].Flow,
+					"auth":     clients[0].Auth,
+					"password": clients[0].Password,
+					"cipher":   cipher,
+				})
+				if err1 == nil {
+					logger.Debug("Client edited on", rt.Name(), ":", clients[0].Email)
+				} else {
+					logger.Debug("Error in adding client on", rt.Name(), ":", err1)
+					needRestart = true
+				}
 			}
-			err1 := s.xrayApi.AddUser(string(oldInbound.Protocol), oldInbound.Tag, map[string]any{
-				"email":    clients[0].Email,
-				"id":       clients[0].ID,
-				"security": clients[0].Security,
-				"flow":     clients[0].Flow,
-				"auth":     clients[0].Auth,
-				"password": clients[0].Password,
-				"cipher":   cipher,
-			})
-			if err1 == nil {
-				logger.Debug("Client edited by api:", clients[0].Email)
-			} else {
-				logger.Debug("Error in adding client by api:", err1)
-				needRestart = true
+		} else {
+			// Remote: settings already mutated; one UpdateInbound suffices.
+			if err1 := rt.UpdateInbound(context.Background(), oldInbound, oldInbound); err1 != nil {
+				err = err1
+				return false, err
 			}
 		}
-		s.xrayApi.Close()
 	} else {
 		logger.Debug("Client old email not found")
 		needRestart = true
 	}
 	return needRestart, tx.Save(oldInbound).Error
+}
+
+// resetGracePeriodMs is the window after a reset during which incoming
+// traffic snapshots from the node are ignored if they would resurrect
+// non-zero counters. Three sync ticks (10s each) is enough headroom for
+// the central → node reset HTTP call to land before the next pull.
+const resetGracePeriodMs int64 = 30000
+
+// SetRemoteTraffic merges absolute counters from a remote node into the
+// central DB. Unlike AddTraffic, which adds deltas pulled from the local
+// xray gRPC stats endpoint, this SETs the values — the node already has
+// the canonical absolute value and we just mirror it.
+//
+// Rows in the post-reset grace window are skipped if the snapshot would
+// regress them, so a user-initiated reset survives until the propagation
+// HTTP call has completed on the node. After the grace window expires
+// the snapshot wins regardless (the node is authoritative for the
+// inbounds it hosts).
+func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot) error {
+	if snap == nil || nodeID <= 0 {
+		return nil
+	}
+	db := database.GetDB()
+	now := time.Now().UnixMilli()
+
+	// Load central inbounds for this node so we can resolve tag→id and
+	// honour the per-inbound grace window. One query covers every row
+	// touched in this tick.
+	var central []model.Inbound
+	if err := db.Model(model.Inbound{}).
+		Where("node_id = ?", nodeID).
+		Find(&central).Error; err != nil {
+		return err
+	}
+	tagToCentral := make(map[string]*model.Inbound, len(central))
+	for i := range central {
+		tagToCentral[central[i].Tag] = &central[i]
+	}
+
+	tx := db.Begin()
+	committed := false
+	defer func() {
+		if !committed {
+			tx.Rollback()
+		}
+	}()
+
+	// Per-inbound counter merge. Skip rows whose central allTime is
+	// suspiciously lower than the snapshot AND we're inside the grace
+	// window — that's the "reset hit central but not the node yet"
+	// pattern we want to defer until next tick.
+	for _, snapIb := range snap.Inbounds {
+		if snapIb == nil {
+			continue
+		}
+		c, ok := tagToCentral[snapIb.Tag]
+		if !ok {
+			continue // node has an inbound the central doesn't know about — ignore
+		}
+		snapAllTime := snapIb.AllTime
+		if snapAllTime == 0 {
+			snapAllTime = snapIb.Up + snapIb.Down
+		}
+		inGrace := c.LastTrafficResetTime > 0 && now-c.LastTrafficResetTime < resetGracePeriodMs
+		if inGrace && snapAllTime > c.AllTime {
+			logger.Debug("SetRemoteTraffic: skipping inbound", c.Id, "in reset grace window")
+			continue
+		}
+		if err := tx.Model(model.Inbound{}).
+			Where("id = ?", c.Id).
+			Updates(map[string]any{
+				"up":       snapIb.Up,
+				"down":     snapIb.Down,
+				"all_time": snapAllTime,
+			}).Error; err != nil {
+			return err
+		}
+	}
+
+	// Per-client merge. The snapshot's ClientStats are nested under
+	// each Inbound, so flatten before walking. Each client_traffics row
+	// is keyed by (inbound_id, email) — we resolve inbound_id from the
+	// central inbound row matched above.
+	for _, snapIb := range snap.Inbounds {
+		if snapIb == nil {
+			continue
+		}
+		c, ok := tagToCentral[snapIb.Tag]
+		if !ok {
+			continue
+		}
+		// Honour the same grace window for client rows: if the parent
+		// inbound was just reset, leave its clients alone too.
+		inGrace := c.LastTrafficResetTime > 0 && now-c.LastTrafficResetTime < resetGracePeriodMs
+		for _, cs := range snapIb.ClientStats {
+			snapAllTime := cs.AllTime
+			if snapAllTime == 0 {
+				snapAllTime = cs.Up + cs.Down
+			}
+			if inGrace {
+				// Skip client rows whose snapshot would push counters
+				// back up; allow rows that are zero on the node side
+				// (those are normal — node was reset alongside central).
+				if snapAllTime > 0 {
+					continue
+				}
+			}
+			// MAX(last_online, ?) so a momentary clock skew on the node
+			// can't regress the central row's last-seen timestamp.
+			if err := tx.Exec(
+				`UPDATE client_traffics
+				 SET up = ?, down = ?, all_time = ?, last_online = MAX(last_online, ?)
+				 WHERE inbound_id = ? AND email = ?`,
+				cs.Up, cs.Down, snapAllTime, cs.LastOnline, c.Id, cs.Email,
+			).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
+	committed = true
+
+	// Push the node's online-clients contribution into xray.Process so
+	// GetOnlineClients returns the union of local + every node. Empty
+	// list still calls Set so a node that just had everyone disconnect
+	// updates promptly.
+	if p != nil {
+		p.SetNodeOnlineClients(nodeID, snap.OnlineEmails)
+	}
+
+	return nil
 }
 
 func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (bool, bool, error) {
@@ -2524,7 +2778,14 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 		}
 		for _, client := range clients {
 			if client.Email == clientEmail && client.Enable {
-				s.xrayApi.Init(p.GetAPIPort())
+				rt, rterr := s.runtimeFor(inbound)
+				if rterr != nil {
+					if inbound.NodeID != nil {
+						return false, rterr
+					}
+					needRestart = true
+					break
+				}
 				cipher := ""
 				if string(inbound.Protocol) == "shadowsocks" {
 					var oldSettings map[string]any
@@ -2534,7 +2795,7 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 					}
 					cipher = oldSettings["method"].(string)
 				}
-				err1 := s.xrayApi.AddUser(string(inbound.Protocol), inbound.Tag, map[string]any{
+				err1 := rt.AddUser(context.Background(), inbound, map[string]any{
 					"email":    client.Email,
 					"id":       client.ID,
 					"auth":     client.Auth,
@@ -2544,12 +2805,11 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 					"cipher":   cipher,
 				})
 				if err1 == nil {
-					logger.Debug("Client enabled due to reset traffic:", clientEmail)
+					logger.Debug("Client enabled on", rt.Name(), "due to reset traffic:", clientEmail)
 				} else {
-					logger.Debug("Error in enabling client by api:", err1)
+					logger.Debug("Error in enabling client on", rt.Name(), ":", err1)
 					needRestart = true
 				}
-				s.xrayApi.Close()
 				break
 			}
 		}
@@ -2565,6 +2825,29 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 		return false, err
 	}
 
+	// Stamp last_traffic_reset_time on the parent inbound so the next
+	// NodeTrafficSyncJob tick honours the grace window and doesn't pull
+	// the pre-reset absolute back from the node.
+	now := time.Now().UnixMilli()
+	_ = db.Model(model.Inbound{}).
+		Where("id = ?", id).
+		Update("last_traffic_reset_time", now).Error
+
+	// Propagate to the remote node if this inbound is node-managed.
+	// Best-effort: an offline node shouldn't block a user-driven reset
+	// — the central DB is already zeroed and the next successful sync
+	// (within the grace window) will re-pull whatever the node has.
+	inbound, err := s.GetInbound(id)
+	if err == nil && inbound != nil && inbound.NodeID != nil {
+		if rt, rterr := s.runtimeFor(inbound); rterr == nil {
+			if e := rt.ResetClientTraffic(context.Background(), inbound, clientEmail); e != nil {
+				logger.Warning("ResetClientTraffic: remote propagation to", rt.Name(), "failed:", e)
+			}
+		} else {
+			logger.Warning("ResetClientTraffic: runtime lookup failed:", rterr)
+		}
+	}
+
 	return needRestart, nil
 }
 
@@ -2572,7 +2855,7 @@ func (s *InboundService) ResetAllClientTraffics(id int) error {
 	db := database.GetDB()
 	now := time.Now().Unix() * 1000
 
-	return db.Transaction(func(tx *gorm.DB) error {
+	if err := db.Transaction(func(tx *gorm.DB) error {
 		whereText := "inbound_id "
 		if id == -1 {
 			whereText += " > ?"
@@ -2602,18 +2885,77 @@ func (s *InboundService) ResetAllClientTraffics(id int) error {
 			Update("last_traffic_reset_time", now)
 
 		return result.Error
-	})
+	}); err != nil {
+		return err
+	}
+
+	// Propagate to remote nodes after the central DB is settled. Single
+	// inbound: one rt.ResetInboundClientTraffics call. id == -1 (all
+	// inbounds across panel): walk every node-managed inbound and call
+	// the per-inbound endpoint — there's no panel-wide endpoint that
+	// only resets clients without zeroing inbound counters.
+	var inbounds []model.Inbound
+	q := db.Model(model.Inbound{}).Where("node_id IS NOT NULL")
+	if id != -1 {
+		q = q.Where("id = ?", id)
+	}
+	if err := q.Find(&inbounds).Error; err != nil {
+		// Failed to discover which inbounds to propagate to — central
+		// DB is already correct, log and move on.
+		logger.Warning("ResetAllClientTraffics: discover node inbounds failed:", err)
+		return nil
+	}
+	for i := range inbounds {
+		ib := &inbounds[i]
+		rt, rterr := s.runtimeFor(ib)
+		if rterr != nil {
+			logger.Warning("ResetAllClientTraffics: runtime lookup for inbound", ib.Id, "failed:", rterr)
+			continue
+		}
+		if e := rt.ResetInboundClientTraffics(context.Background(), ib); e != nil {
+			logger.Warning("ResetAllClientTraffics: remote propagation to", rt.Name(), "failed:", e)
+		}
+	}
+	return nil
 }
 
 func (s *InboundService) ResetAllTraffics() error {
 	db := database.GetDB()
+	now := time.Now().UnixMilli()
 
-	result := db.Model(model.Inbound{}).
+	if err := db.Model(model.Inbound{}).
 		Where("user_id > ?", 0).
-		Updates(map[string]any{"up": 0, "down": 0})
+		Updates(map[string]any{
+			"up":                      0,
+			"down":                    0,
+			"last_traffic_reset_time": now,
+		}).Error; err != nil {
+		return err
+	}
 
-	err := result.Error
-	return err
+	// Propagate to every node that has at least one inbound on this
+	// panel. We can't blanket-call rt.ResetAllTraffics because that
+	// would also zero traffic for inbounds the node hosts but the
+	// central panel doesn't know about — instead reset per inbound.
+	var inbounds []model.Inbound
+	if err := db.Model(model.Inbound{}).
+		Where("node_id IS NOT NULL").
+		Find(&inbounds).Error; err != nil {
+		logger.Warning("ResetAllTraffics: discover node inbounds failed:", err)
+		return nil
+	}
+	for i := range inbounds {
+		ib := &inbounds[i]
+		rt, rterr := s.runtimeFor(ib)
+		if rterr != nil {
+			logger.Warning("ResetAllTraffics: runtime lookup for inbound", ib.Id, "failed:", rterr)
+			continue
+		}
+		if e := rt.ResetInboundClientTraffics(context.Background(), ib); e != nil {
+			logger.Warning("ResetAllTraffics: remote propagation to", rt.Name(), "failed:", e)
+		}
+	}
+	return nil
 }
 
 func (s *InboundService) ResetInboundTraffic(id int) error {
@@ -3300,6 +3642,24 @@ func (s *InboundService) GetOnlineClients() []string {
 	return p.GetOnlineClients()
 }
 
+// SetNodeOnlineClients records a remote node's online-clients list on
+// the panel-wide xray.Process so GetOnlineClients returns the union of
+// local + every node's contribution. Called by NodeTrafficSyncJob.
+func (s *InboundService) SetNodeOnlineClients(nodeID int, emails []string) {
+	if p != nil {
+		p.SetNodeOnlineClients(nodeID, emails)
+	}
+}
+
+// ClearNodeOnlineClients drops one node's contribution to the online
+// set. Used when the per-node sync probe fails so a downed node
+// doesn't keep its clients listed as online forever.
+func (s *InboundService) ClearNodeOnlineClients(nodeID int) {
+	if p != nil {
+		p.ClearNodeOnlineClients(nodeID)
+	}
+}
+
 func (s *InboundService) GetClientsLastOnline() (map[string]int64, error) {
 	db := database.GetDB()
 	var rows []xray.ClientTraffic
@@ -3434,19 +3794,27 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 		}
 
 		if needApiDel {
-			s.xrayApi.Init(p.GetAPIPort())
-			if err1 := s.xrayApi.RemoveUser(oldInbound.Tag, email); err1 == nil {
-				logger.Debug("Client deleted by api:", email)
-				needRestart = false
-			} else {
-				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+			rt, rterr := s.runtimeFor(oldInbound)
+			if rterr != nil {
+				if oldInbound.NodeID != nil {
+					return false, rterr
+				}
+				needRestart = true
+			} else if oldInbound.NodeID == nil {
+				if err1 := rt.RemoveUser(context.Background(), oldInbound, email); err1 == nil {
+					logger.Debug("Client deleted on", rt.Name(), ":", email)
+					needRestart = false
+				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
 					logger.Debug("User is already deleted. Nothing to do more...")
 				} else {
-					logger.Debug("Error in deleting client by api:", err1)
+					logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
 					needRestart = true
 				}
+			} else {
+				if err1 := rt.UpdateInbound(context.Background(), oldInbound, oldInbound); err1 != nil {
+					return false, err1
+				}
 			}
-			s.xrayApi.Close()
 		}
 	}
 

@@ -66,6 +66,12 @@ type Inbound struct {
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
+
+	// NodeID points at the remote panel (Node) where this inbound's xray
+	// actually runs. NULL means the inbound runs on the local xray (the
+	// pre-multi-node behaviour). Existing rows migrate to NULL with no
+	// backfill.
+	NodeID *int `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
 }
 
 // OutboundTraffics tracks traffic statistics for Xray outbound connections.
@@ -115,6 +121,37 @@ type Setting struct {
 	Id    int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
 	Key   string `json:"key" form:"key"`
 	Value string `json:"value" form:"value"`
+}
+
+// Node represents a remote 3x-ui panel registered with the central panel.
+// The central panel polls each node's existing /panel/api/server/status
+// endpoint over HTTP using the per-node ApiToken to populate the runtime
+// status fields below.
+type Node struct {
+	Id       int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name     string `json:"name" gorm:"uniqueIndex"`
+	Remark   string `json:"remark"`
+	Scheme   string `json:"scheme"`   // "https" | "http"
+	Address  string `json:"address"`  // host or IP
+	Port     int    `json:"port"`
+	BasePath string `json:"basePath"` // "/" or "/myprefix/"
+	ApiToken string `json:"apiToken"` // plaintext, matches existing tg/ldap pattern
+	Enable   bool   `json:"enable" gorm:"default:true"`
+
+	// Heartbeat-updated fields. UpdatedAt advances on every probe even when
+	// the row is otherwise unchanged so the UI's "last seen" tooltip is
+	// truthful without us having to read LastHeartbeat separately.
+	Status        string  `json:"status" gorm:"default:unknown"` // online|offline|unknown
+	LastHeartbeat int64   `json:"lastHeartbeat"`                  // unix seconds, 0 = never
+	LatencyMs     int     `json:"latencyMs"`
+	XrayVersion   string  `json:"xrayVersion"`
+	CpuPct        float64 `json:"cpuPct"`
+	MemPct        float64 `json:"memPct"`
+	UptimeSecs    uint64  `json:"uptimeSecs"`
+	LastError     string  `json:"lastError"`
+
+	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime"`
+	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime"`
 }
 
 type CustomGeoResource struct {

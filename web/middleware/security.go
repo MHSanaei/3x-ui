@@ -23,8 +23,15 @@ func SecurityHeadersMiddleware(directHTTPS bool) gin.HandlerFunc {
 }
 
 // CSRFMiddleware rejects unsafe requests that do not include the session CSRF token.
+// Bearer-token-authenticated callers (api_authed flag set by APIController.checkAPIAuth)
+// short-circuit the CSRF check — they are not browser sessions, so the
+// cross-site request forgery threat model doesn't apply to them.
 func CSRFMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if c.GetBool("api_authed") {
+			c.Next()
+			return
+		}
 		if isSafeMethod(c.Request.Method) {
 			c.Next()
 			return

@@ -44,6 +44,8 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateUser", a.updateUser)
 	g.POST("/restartPanel", a.restartPanel)
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
+	g.GET("/getApiToken", a.getApiToken)
+	g.POST("/regenerateApiToken", a.regenerateApiToken)
 }
 
 // getAllSetting retrieves all current settings.
@@ -120,4 +122,28 @@ func (a *SettingController) getDefaultXrayConfig(c *gin.Context) {
 		return
 	}
 	jsonObj(c, defaultJsonConfig, nil)
+}
+
+// getApiToken returns the panel's API token used by remote central
+// panels to authenticate as Bearer tokens. The token is auto-generated
+// on first read so existing installs upgrade transparently.
+func (a *SettingController) getApiToken(c *gin.Context) {
+	tok, err := a.settingService.GetApiToken()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
+		return
+	}
+	jsonObj(c, tok, nil)
+}
+
+// regenerateApiToken rotates the API token. Any central panel that had
+// the old value cached will start failing heartbeats until it is updated
+// with the new token — that's intentional, it's the whole point of rotation.
+func (a *SettingController) regenerateApiToken(c *gin.Context) {
+	tok, err := a.settingService.RegenerateApiToken()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	jsonObj(c, tok, nil)
 }

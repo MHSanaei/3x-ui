@@ -23,6 +23,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/web/locale"
 	"github.com/mhsanaei/3x-ui/v2/web/middleware"
 	"github.com/mhsanaei/3x-ui/v2/web/network"
+	"github.com/mhsanaei/3x-ui/v2/web/runtime"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 	"github.com/mhsanaei/3x-ui/v2/web/websocket"
 
@@ -280,6 +281,13 @@ func (s *Server) startTask() {
 	// check client ips from log file every 10 sec
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
 
+	// Probe every enabled remote node every 10 sec
+	s.cron.AddJob("@every 10s", job.NewNodeHeartbeatJob())
+
+	// Pull traffic + online-clients from every online node every 10 sec
+	// and merge absolute counters into the central DB.
+	s.cron.AddJob("@every 10s", job.NewNodeTrafficSyncJob())
+
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
 
@@ -351,6 +359,15 @@ func (s *Server) Start() (err error) {
 	}
 	s.cron = cron.New(cron.WithLocation(loc), cron.WithSeconds())
 	s.cron.Start()
+
+	// Wire the inbound-runtime manager once so InboundService can route
+	// add/update/delete to either the local xray or a remote node panel.
+	// The closures bridge into XrayService (which owns the running xray
+	// process state) without forcing the runtime package to import service.
+	runtime.SetManager(runtime.NewManager(runtime.LocalDeps{
+		APIPort:        func() int { return s.xrayService.GetXrayAPIPort() },
+		SetNeedRestart: func() { s.xrayService.SetToNeedRestart() },
+	}))
 
 	s.customGeoService = service.NewCustomGeoService()
 

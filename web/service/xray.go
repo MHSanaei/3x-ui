@@ -267,6 +267,18 @@ func (s *XrayService) SetToNeedRestart() {
 	isNeedXrayRestart.Store(true)
 }
 
+// GetXrayAPIPort returns the port the local xray process is listening on
+// for its gRPC HandlerService, or 0 when xray isn't currently running.
+// Exposed for the runtime package's LocalRuntime adapter — runtime can't
+// reach into the package-level `p` directly without a service-package
+// import cycle.
+func (s *XrayService) GetXrayAPIPort() int {
+	if p == nil || !p.IsRunning() {
+		return 0
+	}
+	return p.GetAPIPort()
+}
+
 // IsNeedRestartAndSetFalse checks if restart is needed and resets the flag to false.
 func (s *XrayService) IsNeedRestartAndSetFalse() bool {
 	return isNeedXrayRestart.CompareAndSwap(true, false)

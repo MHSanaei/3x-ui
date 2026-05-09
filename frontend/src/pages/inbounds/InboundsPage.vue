@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Modal, message } from 'ant-design-vue';
 import {
@@ -16,6 +16,7 @@ import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js'
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
 import CustomStatistic from '@/components/CustomStatistic.vue';
+import { useNodeList } from '@/composables/useNodeList.js';
 import InboundList from './InboundList.vue';
 import InboundFormModal from './InboundFormModal.vue';
 import ClientFormModal from './ClientFormModal.vue';
@@ -47,6 +48,9 @@ const {
   fetchDefaultSettings,
 } = useInbounds();
 const { isMobile } = useMediaQuery();
+// Node list lives on the central panel; the Inbounds page consumes
+// the id→node map for the new "Node" column. Fetched once on mount.
+const { byId: nodesById } = useNodeList();
 
 const basePath = window.__X_UI_BASE_PATH__ || '';
 const requestUri = window.location.pathname;
@@ -78,6 +82,18 @@ const infoClientIndex = ref(0);
 const qrOpen = ref(false);
 const qrDbInbound = ref(null);
 const qrClient = ref(null);
+
+// hostOverrideFor returns the node's address for a node-managed inbound,
+// or '' when the inbound runs locally. Wired into the QR / Info modals
+// and into export-all-links functions so generated share links point at
+// the node, not the central panel.
+function hostOverrideFor(dbInbound) {
+  if (!dbInbound || dbInbound.nodeId == null) return '';
+  return nodesById.value.get(dbInbound.nodeId)?.address || '';
+}
+
+const infoNodeAddress = computed(() => hostOverrideFor(infoDbInbound.value));
+const qrNodeAddress = computed(() => hostOverrideFor(qrDbInbound.value));
 
 // === Shared text + prompt modal state =================================
 const textOpen = ref(false);
@@ -125,7 +141,7 @@ function exportInboundLinks(dbInbound) {
   const projected = checkFallback(dbInbound);
   openText({
     title: 'Export inbound links',
-    content: projected.genInboundLinks(remarkModel.value),
+    content: projected.genInboundLinks(remarkModel.value, hostOverrideFor(dbInbound)),
     fileName: projected.remark || 'inbound',
   });
 }
@@ -156,7 +172,7 @@ function exportInboundSubs(dbInbound) {
 function exportAllLinks() {
   const out = [];
   for (const ib of dbInbounds.value) {
-    out.push(ib.genInboundLinks(remarkModel.value));
+    out.push(ib.genInboundLinks(remarkModel.value, hostOverrideFor(ib)));
   }
   openText({
     title: 'Export all inbound links',
@@ -578,7 +594,7 @@ function onRowAction({ key, dbInbound }) {
                 <InboundList :db-inbounds="dbInbounds" :client-count="clientCount" :online-clients="onlineClients"
                   :last-online-map="lastOnlineMap" :is-dark-theme="themeState.isDark" :refreshing="refreshing"
                   :expire-diff="expireDiff" :traffic-diff="trafficDiff" :page-size="pageSize" :is-mobile="isMobile"
-                  :sub-enable="subSettings.enable" @refresh="refresh" @add-inbound="onAddInbound"
+                  :sub-enable="subSettings.enable" :nodes-by-id="nodesById" @refresh="refresh" @add-inbound="onAddInbound"
                   @general-action="onGeneralAction" @row-action="onRowAction" @edit-client="onEditClient"
                   @qrcode-client="onQrcodeClient" @info-client="onInfoClient"
                   @reset-traffic-client="onResetTrafficClient" @delete-client="onDeleteClient"
@@ -598,8 +614,9 @@ function onRowAction({ key, dbInbound }) {
       <InboundInfoModal v-model:open="infoOpen" :db-inbound="infoDbInbound" :client-index="infoClientIndex"
         :remark-model="remarkModel" :expire-diff="expireDiff" :traffic-diff="trafficDiff"
         :ip-limit-enable="ipLimitEnable" :tg-bot-enable="tgBotEnable" :sub-settings="subSettings"
-        :last-online-map="lastOnlineMap" />
-      <QrCodeModal v-model:open="qrOpen" :db-inbound="qrDbInbound" :client="qrClient" :remark-model="remarkModel" />
+        :last-online-map="lastOnlineMap" :node-address="infoNodeAddress" />
+      <QrCodeModal v-model:open="qrOpen" :db-inbound="qrDbInbound" :client="qrClient" :remark-model="remarkModel"
+        :node-address="qrNodeAddress" />
 
       <TextModal v-model:open="textOpen" :title="textTitle" :content="textContent" :file-name="textFileName" />
       <PromptModal v-model:open="promptOpen" :title="promptTitle" :ok-text="promptOkText" :type="promptType"

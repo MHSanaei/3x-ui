@@ -15,6 +15,14 @@ import (
 
 const (
 	loginUserKey = "LOGIN_USER"
+	// apiAuthUserKey is the gin-context key under which checkAPIAuth
+	// stashes a fallback user for Bearer-token-authenticated callers.
+	// Bearer requests don't carry a session cookie, so handlers that
+	// scope writes by user.Id (e.g. InboundController.addInbound) would
+	// otherwise nil-deref. Keeping the override in the gin context
+	// (not the cookie session) means the fallback never leaks into a
+	// browser request.
+	apiAuthUserKey = "api_auth_user"
 )
 
 func init() {
@@ -33,9 +41,25 @@ func SetLoginUser(c *gin.Context, user *model.User) error {
 	return s.Save()
 }
 
+// SetAPIAuthUser stashes a fallback user on the gin context for the
+// lifetime of a single bearer-authed request. checkAPIAuth calls this
+// after a successful token match so downstream handlers that read
+// GetLoginUser don't see nil.
+func SetAPIAuthUser(c *gin.Context, user *model.User) {
+	if user == nil {
+		return
+	}
+	c.Set(apiAuthUserKey, user)
+}
+
 // GetLoginUser retrieves the authenticated user from the session.
 // Returns nil if no user is logged in or if the session data is invalid.
 func GetLoginUser(c *gin.Context) *model.User {
+	if v, ok := c.Get(apiAuthUserKey); ok {
+		if u, ok2 := v.(*model.User); ok2 {
+			return u
+		}
+	}
 	s := sessions.Default(c)
 	obj := s.Get(loginUserKey)
 	if obj == nil {

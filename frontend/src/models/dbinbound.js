@@ -25,6 +25,9 @@ export class DBInbound {
         this.tag = "";
         this.sniffing = "";
         this.clientStats = ""
+        // Optional FK to web/runtime registered Node. null/undefined =
+        // local panel; otherwise the inbound lives on the named node.
+        this.nodeId = null;
         if (data == null) {
             return;
         }
@@ -173,8 +176,8 @@ export class DBInbound {
         }
     }
 
-    genInboundLinks(remarkModel) {
+    genInboundLinks(remarkModel, hostOverride = '') {
         const inbound = this.toInbound();
-        return inbound.genInboundLinks(this.remark, remarkModel);
+        return inbound.genInboundLinks(this.remark, remarkModel, hostOverride);
     }
 }
