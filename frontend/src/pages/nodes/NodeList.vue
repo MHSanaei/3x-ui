@@ -9,6 +9,7 @@ import {
   ThunderboltOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons-vue';
+import NodeHistoryPanel from './NodeHistoryPanel.vue';
 
 const props = defineProps({
   nodes: { type: Array, default: () => [] },
@@ -96,6 +97,9 @@ function formatPct(p) {
       size="middle"
       row-key="id"
     >
+      <template #expandedRowRender="{ record }">
+        <NodeHistoryPanel :node="record" />
+      </template>
       <a-table-column :title="t('pages.nodes.name')" data-index="name" :ellipsis="true">
         <template #default="{ record }">
           <div class="name-cell">

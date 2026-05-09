@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"slices"
 	"strconv"
 	"time"
 
@@ -41,6 +43,9 @@ func (a *NodeController) initRouter(g *gin.RouterGroup) {
 	// /probe/:id triggers a synchronous probe of an already-saved node
 	// without waiting for the next 10s heartbeat tick.
 	g.POST("/probe/:id", a.probe)
+	// /history/:id/:metric/:bucket returns up to 60 averaged buckets of
+	// the per-node CPU or Mem time series collected by the heartbeat job.
+	g.GET("/history/:id/:metric/:bucket", a.history)
 }
 
 func (a *NodeController) list(c *gin.Context) {
@@ -181,4 +186,26 @@ func (a *NodeController) probe(c *gin.Context) {
 	}
 	_ = a.nodeService.UpdateHeartbeat(id, patch)
 	jsonObj(c, patch.ToUI(probeErr == nil), nil)
+}
+
+// history returns averaged buckets of the per-node CPU/Mem time-series.
+// Mirrors the system-level /panel/api/server/history/:metric/:bucket
+// endpoint so the frontend can reuse the same fetch logic.
+func (a *NodeController) history(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	metric := c.Param("metric")
+	if !slices.Contains(service.NodeMetricKeys, metric) {
+		jsonMsg(c, "invalid metric", fmt.Errorf("unknown metric"))
+		return
+	}
+	bucket, err := strconv.Atoi(c.Param("bucket"))
+	if err != nil || bucket <= 0 || !allowedHistoryBuckets[bucket] {
+		jsonMsg(c, "invalid bucket", fmt.Errorf("unsupported bucket"))
+		return
+	}
+	jsonObj(c, a.nodeService.AggregateNodeMetric(id, metric, bucket, 60), nil)
 }

@@ -141,6 +141,8 @@
       "xrayStatusError": "خطا",
       "xrayErrorPopoverTitle": "خطا در هنگام اجرای Xray رخ داد",
       "operationHours": "مدت‌کارکرد",
+      "systemHistoryTitle": "تاریخچه سیستم",
+      "trendLast2Min": "۲ دقیقه اخیر",
       "systemLoad": "بارسیستم",
       "systemLoadDesc": "میانگین بار سیستم برای 1، 5 و 15 دقیقه گذشته",
       "connectionCount": "تعداد کانکشن ها",

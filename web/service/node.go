@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -140,6 +141,10 @@ func (s *NodeService) Delete(id int) error {
 	if mgr := runtime.GetManager(); mgr != nil {
 		mgr.InvalidateNode(id)
 	}
+	// Drop in-memory series so a freshly created node with the same id
+	// doesn't inherit stale points (sqlite reuses ids freely).
+	nodeMetrics.drop(nodeMetricKey(id, "cpu"))
+	nodeMetrics.drop(nodeMetricKey(id, "mem"))
 	return nil
 }
 
@@ -163,7 +168,32 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 		"uptime_secs":    p.UptimeSecs,
 		"last_error":     p.LastError,
 	}
-	return db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error
+	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		return err
+	}
+	// Only record online ticks. Offline probes carry zeroed cpu/mem and
+	// would draw a misleading dip on the chart; the gap on the x-axis is
+	// the truthful representation of "we couldn't reach the node".
+	if p.Status == "online" {
+		now := time.Unix(p.LastHeartbeat, 0)
+		nodeMetrics.append(nodeMetricKey(id, "cpu"), now, p.CpuPct)
+		nodeMetrics.append(nodeMetricKey(id, "mem"), now, p.MemPct)
+	}
+	return nil
+}
+
+// nodeMetricKey is the namespacing used inside the singleton ring buffer
+// so per-node metrics don't collide with each other or with the system
+// metrics in the sibling singleton.
+func nodeMetricKey(id int, metric string) string {
+	return "node:" + strconv.Itoa(id) + ":" + metric
+}
+
+// AggregateNodeMetric returns up to maxPoints averaged buckets for one
+// node's metric (currently "cpu" or "mem"). Output shape matches
+// AggregateSystemMetric: {"t": unixSec, "v": value}.
+func (s *NodeService) AggregateNodeMetric(id int, metric string, bucketSeconds int, maxPoints int) []map[string]any {
+	return nodeMetrics.aggregate(nodeMetricKey(id, metric), bucketSeconds, maxPoints)
 }
 
 // Probe issues a single GET to the node's /panel/api/server/status and

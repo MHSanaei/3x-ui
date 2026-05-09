@@ -22,6 +22,16 @@ const props = defineProps({
   paddingTop: { type: Number, default: 6 },
   paddingBottom: { type: Number, default: 20 },
   showTooltip: { type: Boolean, default: false },
+  // Value-range customization. When valueMax is null the chart auto-scales
+  // to the running max of the data (useful for unbounded series like
+  // network throughput or online clients). Defaults preserve the legacy
+  // 0..100 percent behavior so existing callers don't need to change.
+  valueMin: { type: Number, default: 0 },
+  valueMax: { type: [Number, null], default: 100 },
+  // Y-axis tick formatter. Receives the raw value, returns the label.
+  // tooltipFormatter formats the hover-readout; falls back to yFormatter.
+  yFormatter: { type: Function, default: (v) => `${Math.round(v)}%` },
+  tooltipFormatter: { type: Function, default: null },
 });
 
 const hoverIdx = ref(-1);
@@ -44,17 +54,40 @@ const labelsSlice = computed(() => {
   return props.labels.slice(start);
 });
 
+// Resolved domain. When valueMax is null we auto-scale; pad the upper
+// bound by 10% so the line never touches the top edge — looks more
+// natural and gives the axis a sane ceiling. Floor the dynamic range
+// at 1 to avoid divide-by-zero on flat-line data (e.g. all zeros).
+const yDomain = computed(() => {
+  const min = props.valueMin;
+  if (props.valueMax != null) return { min, max: props.valueMax };
+  let max = min;
+  for (const v of dataSlice.value) {
+    const n = Number(v);
+    if (Number.isFinite(n) && n > max) max = n;
+  }
+  if (max <= min) max = min + 1;
+  return { min, max: max * 1.1 };
+});
+
+function project(v) {
+  const { min, max } = yDomain.value;
+  const span = max - min;
+  if (span <= 0) return props.paddingTop + drawHeight.value;
+  const clipped = Math.max(min, Math.min(max, Number(v) || 0));
+  const ratio = (clipped - min) / span;
+  return Math.round(props.paddingTop + (drawHeight.value - ratio * drawHeight.value));
+}
+
 const pointsArr = computed(() => {
   const n = nPoints.value;
   if (n === 0) return [];
   const slice = dataSlice.value;
   const w = drawWidth.value;
-  const h = drawHeight.value;
   const dx = n > 1 ? w / (n - 1) : 0;
   return slice.map((v, i) => {
     const x = Math.round(props.paddingLeft + i * dx);
-    const y = Math.round(props.paddingTop + (h - (Math.max(0, Math.min(100, v)) / 100) * h));
-    return [x, y];
+    return [x, project(v)];
   });
 });
 
@@ -84,13 +117,27 @@ const lastPoint = computed(() => {
   return pointsArr.value[pointsArr.value.length - 1];
 });
 
+// Y-axis tick rendering. We pick a small number of evenly spaced values
+// inside the resolved domain and run them through yFormatter — that's
+// what makes "MB/s" / "clients" / "%" all render correctly without the
+// caller having to subclass the component.
 const yTicks = computed(() => {
   if (!props.showAxes) return [];
-  const step = Math.max(1, props.yTickStep);
+  const { min, max } = yDomain.value;
   const out = [];
-  for (let p = 0; p <= 100; p += step) {
-    const y = Math.round(props.paddingTop + (drawHeight.value - (p / 100) * drawHeight.value));
-    out.push({ y, label: `${p}%` });
+  // For percent-style domains keep the legacy fixed step; otherwise
+  // default to 4 evenly spaced ticks (5 lines including the bottom).
+  if (props.valueMax === 100 && props.valueMin === 0 && props.yTickStep > 0) {
+    for (let p = min; p <= max; p += props.yTickStep) {
+      const y = project(p);
+      out.push({ y, label: props.yFormatter(p) });
+    }
+    return out;
+  }
+  const ticks = 5;
+  for (let i = 0; i < ticks; i++) {
+    const v = min + ((max - min) * i) / (ticks - 1);
+    out.push({ y: project(v), label: props.yFormatter(v) });
   }
   return out;
 });
@@ -131,10 +178,11 @@ function onMouseLeave() {
 function fmtHoverText() {
   const idx = hoverIdx.value;
   if (idx < 0 || idx >= dataSlice.value.length) return '';
-  const raw = Math.max(0, Math.min(100, Number(dataSlice.value[idx] || 0)));
-  const val = Number.isFinite(raw) ? raw.toFixed(2) : raw;
+  const raw = Number(dataSlice.value[idx] || 0);
+  const fmt = props.tooltipFormatter || props.yFormatter;
+  const val = fmt(Number.isFinite(raw) ? raw : 0);
   const lab = labelsSlice.value[idx] != null ? labelsSlice.value[idx] : '';
-  return `${val}%${lab ? ' • ' + lab : ''}`;
+  return `${val}${lab ? ' • ' + lab : ''}`;
 }
 
 // Stable per-instance gradient id so multiple sparklines on a page

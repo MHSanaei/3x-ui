@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { AreaChartOutlined, HistoryOutlined } from '@ant-design/icons-vue';
+import { AreaChartOutlined } from '@ant-design/icons-vue';
 
 import { CPUFormatter, SizeFormatter } from '@/utils';
 
@@ -11,8 +11,6 @@ const props = defineProps({
   status: { type: Object, required: true },
   isMobile: { type: Boolean, default: false },
 });
-
-defineEmits(['open-cpu-history']);
 
 // AD-Vue's default 120px dashboard renders the percent text at ~36px
 // which dwarfs the rest of the card. 70 (60 on mobile) plus the
@@ -43,14 +41,6 @@ const trailColor = 'rgba(128, 128, 128, 0.25)';
                   </div>
                 </template>
                 <AreaChartOutlined />
-              </a-tooltip>
-              <a-tooltip>
-                <template #title>{{ t('pages.index.cpu') }}</template>
-                <a-button size="small" shape="circle" class="ml-8" @click="$emit('open-cpu-history')">
-                  <template #icon>
-                    <HistoryOutlined />
-                  </template>
-                </a-button>
               </a-tooltip>
             </div>
           </a-col>
@@ -95,10 +85,6 @@ const trailColor = 'rgba(128, 128, 128, 0.25)';
 <style scoped>
 .text-center {
   text-align: center;
-}
-
-.ml-8 {
-  margin-left: 8px;
 }
 
 /* Pin the percent number to a label-sized 14px — AD-Vue scales it

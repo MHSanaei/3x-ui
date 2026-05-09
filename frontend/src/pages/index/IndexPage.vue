@@ -9,6 +9,7 @@ import {
   CloudUploadOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
+  AreaChartOutlined,
   GlobalOutlined,
   SwapOutlined,
   EyeOutlined,
@@ -29,7 +30,7 @@ import XrayStatusCard from './XrayStatusCard.vue';
 import PanelUpdateModal from './PanelUpdateModal.vue';
 import LogModal from './LogModal.vue';
 import BackupModal from './BackupModal.vue';
-import CpuHistoryModal from './CpuHistoryModal.vue';
+import SystemHistoryModal from './SystemHistoryModal.vue';
 import XrayLogModal from './XrayLogModal.vue';
 import VersionModal from './VersionModal.vue';
 
@@ -69,7 +70,7 @@ const showIp = ref(false);
 const logsOpen = ref(false);
 const backupOpen = ref(false);
 const panelUpdateOpen = ref(false);
-const cpuHistoryOpen = ref(false);
+const sysHistoryOpen = ref(false);
 const xrayLogsOpen = ref(false);
 const versionOpen = ref(false);
 const configTextOpen = ref(false);
@@ -93,7 +94,7 @@ async function restartXray() {
   await refresh();
 }
 
-function openCpuHistory() { cpuHistoryOpen.value = true; }
+function openSystemHistory() { sysHistoryOpen.value = true; }
 function openXrayLogs() { xrayLogsOpen.value = true; }
 function openVersionSwitch() { versionOpen.value = true; }
 
@@ -124,7 +125,7 @@ async function openConfig() {
 
             <a-row v-else :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]">
               <a-col :span="24">
-                <StatusCard :status="status" :is-mobile="isMobile" @open-cpu-history="openCpuHistory" />
+                <StatusCard :status="status" :is-mobile="isMobile" />
               </a-col>
 
               <a-col :sm="24" :lg="12">
@@ -172,6 +173,10 @@ async function openConfig() {
                   <a href="https://github.com/MHSanaei/3x-ui/wiki" target="_blank" rel="noopener noreferrer">
                     <a-tag color="purple">{{ t('pages.index.documentation') }}</a-tag>
                   </a>
+                  <a-tag color="blue" class="history-tag" @click="openSystemHistory">
+                    <AreaChartOutlined />
+                    {{ t('pages.index.systemHistoryTitle') }}
+                  </a-tag>
                 </a-card>
               </a-col>
 
@@ -308,7 +313,7 @@ async function openConfig() {
       <PanelUpdateModal v-model:open="panelUpdateOpen" :info="panelUpdateInfo" @busy="setBusy" />
       <LogModal v-model:open="logsOpen" />
       <BackupModal v-model:open="backupOpen" :base-path="basePath" @busy="setBusy" />
-      <CpuHistoryModal v-model:open="cpuHistoryOpen" :status="status" />
+      <SystemHistoryModal v-model:open="sysHistoryOpen" :status="status" />
       <XrayLogModal v-model:open="xrayLogsOpen" />
       <VersionModal v-model:open="versionOpen" :status="status" @busy="setBusy" />
       <TextModal v-model:open="configTextOpen" :title="t('pages.index.config')" :content="configText"
@@ -361,6 +366,13 @@ async function openConfig() {
 .update-tag {
   cursor: pointer;
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.history-tag {
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 4px;
