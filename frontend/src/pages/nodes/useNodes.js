@@ -1,19 +1,14 @@
 // Loads the node list and runs CRUD/probe actions against the
-// /panel/api/nodes/* endpoints. Polls every 5s while the page is
-// visible so heartbeat status stays fresh without a WebSocket.
+// /panel/api/nodes/* endpoints. Live updates arrive over WebSocket
+// (pushed by NodeHeartbeatJob every 10s) so we don't poll.
 
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
+import { computed, onMounted, ref, shallowRef } from 'vue';
 import { HttpUtil } from '@/utils';
-
-const POLL_INTERVAL_MS = 5000;
 
 export function useNodes() {
   const nodes = shallowRef([]);
   const loading = ref(false);
   const fetched = ref(false);
-
-  let pollTimer = null;
-  let pageVisible = true;
 
   async function refresh() {
     loading.value = true;
@@ -25,6 +20,16 @@ export function useNodes() {
       fetched.value = true;
     } finally {
       loading.value = false;
+    }
+  }
+
+  // Replaces the local list with the snapshot pushed by the heartbeat job.
+  // shallowRef means a fresh assignment is enough to retrigger reactivity;
+  // we always assign a new array so Vue notices.
+  function applyNodesEvent(payload) {
+    if (Array.isArray(payload)) {
+      nodes.value = payload;
+      if (!fetched.value) fetched.value = true;
     }
   }
 
@@ -66,8 +71,8 @@ export function useNodes() {
     return msg;
   }
 
-  // Aggregate cards on the dashboard. Computed off the live list so
-  // a refresh picks up new totals automatically.
+  // Aggregate cards on the dashboard. Computed off the live list so a
+  // refresh (or a WS push) picks up new totals automatically.
   const totals = computed(() => {
     const list = nodes.value;
     let online = 0;
@@ -94,35 +99,9 @@ export function useNodes() {
     };
   });
 
-  function startPolling() {
-    if (pollTimer) return;
-    pollTimer = setInterval(() => {
-      if (pageVisible) refresh();
-    }, POLL_INTERVAL_MS);
-  }
-
-  function stopPolling() {
-    if (pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
-  }
-
-  function onVisibilityChange() {
-    pageVisible = !document.hidden;
-    if (pageVisible) refresh();
-  }
-
-  onMounted(() => {
-    refresh();
-    startPolling();
-    document.addEventListener('visibilitychange', onVisibilityChange);
-  });
-
-  onBeforeUnmount(() => {
-    stopPolling();
-    document.removeEventListener('visibilitychange', onVisibilityChange);
-  });
+  // Initial fetch — WebSocket takes over after the first heartbeat tick
+  // (~10s) but the page should populate immediately on mount.
+  onMounted(refresh);
 
   return {
     nodes,
@@ -130,6 +109,7 @@ export function useNodes() {
     fetched,
     totals,
     refresh,
+    applyNodesEvent,
     create,
     update,
     remove,

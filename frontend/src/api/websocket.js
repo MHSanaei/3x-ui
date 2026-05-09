@@ -140,8 +140,14 @@ export class WebSocketClient {
 
   #buildUrl() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    let basePath = this.basePath || '';
-    if (basePath && !basePath.endsWith('/')) basePath += '/';
+    // basePath comes from window.__X_UI_BASE_PATH__ which is only injected
+    // by the Go binary in production. In dev (Vite serves directly) the
+    // global is missing and basePath would be '' — without the fallback to
+    // '/' we'd build `ws://host:portws` (no separator) and the WebSocket
+    // constructor throws a SyntaxError.
+    let basePath = this.basePath || '/';
+    if (!basePath.startsWith('/')) basePath = '/' + basePath;
+    if (!basePath.endsWith('/')) basePath += '/';
     return `${protocol}//${window.location.host}${basePath}ws`;
   }
 

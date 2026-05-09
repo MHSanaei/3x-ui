@@ -35,8 +35,6 @@ const form = reactive(defaultForm());
 const submitting = ref(false);
 const testing = ref(false);
 const testResult = ref(null); // { status, latencyMs, xrayVersion, error }
-const tokenVisible = ref(false);
-
 // Reset the form whenever the modal is opened. In edit mode we copy
 // the existing node into the form fields; in add mode we wipe back
 // to defaults so a previous edit doesn't leak through.
@@ -175,7 +173,6 @@ async function onSave() {
       <a-form-item :label="t('pages.nodes.apiToken')" required>
         <a-input-password
           v-model:value="form.apiToken"
-          :visibility-toggle="{ visible: tokenVisible, 'onUpdate:visible': (v) => (tokenVisible = v) }"
           :placeholder="t('pages.nodes.apiTokenPlaceholder')"
         />
         <div class="hint">{{ t('pages.nodes.apiTokenHint') }}</div>

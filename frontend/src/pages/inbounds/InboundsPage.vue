@@ -26,12 +26,12 @@ import QrCodeModal from './QrCodeModal.vue';
 import TextModal from '@/components/TextModal.vue';
 import PromptModal from '@/components/PromptModal.vue';
 import { useInbounds } from './useInbounds.js';
+import { useWebSocket } from '@/composables/useWebSocket.js';
 
 const { t } = useI18n();
 
 const {
   fetched,
-  refreshing,
   dbInbounds,
   clientCount,
   onlineClients,
@@ -46,7 +46,20 @@ const {
   lastOnlineMap,
   refresh,
   fetchDefaultSettings,
+  applyTrafficEvent,
+  applyClientStatsEvent,
+  applyInvalidate,
 } = useInbounds();
+
+// Live updates over WebSocket — replaces the old 5s polling loop.
+// The backend pushes traffic + per-client deltas every ~10s; we merge
+// them into the local refs in-place so counters and online badges
+// update without re-fetching the whole list.
+useWebSocket({
+  traffic: applyTrafficEvent,
+  client_stats: applyClientStatsEvent,
+  invalidate: applyInvalidate,
+});
 const { isMobile } = useMediaQuery();
 // Node list lives on the central panel; the Inbounds page consumes
 // the id→node map for the new "Node" column. Fetched once on mount.
@@ -592,7 +605,7 @@ function onRowAction({ key, dbInbound }) {
               <!-- Inbound list — toolbar, search/filter, columns, row actions -->
               <a-col :span="24">
                 <InboundList :db-inbounds="dbInbounds" :client-count="clientCount" :online-clients="onlineClients"
-                  :last-online-map="lastOnlineMap" :is-dark-theme="themeState.isDark" :refreshing="refreshing"
+                  :last-online-map="lastOnlineMap" :is-dark-theme="themeState.isDark"
                   :expire-diff="expireDiff" :traffic-diff="trafficDiff" :page-size="pageSize" :is-mobile="isMobile"
                   :sub-enable="subSettings.enable" :nodes-by-id="nodesById" @refresh="refresh" @add-inbound="onAddInbound"
                   @general-action="onGeneralAction" @row-action="onRowAction" @edit-client="onEditClient"

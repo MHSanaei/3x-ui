@@ -145,12 +145,23 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    proxy: makeBackendProxy('http://localhost:2053', [
-      // Patterns are anchored regex so /login.html and /index.html
-      // (which Vite serves itself) are NOT forwarded — only the bare
-      // backend paths and their sub-routes.
-      '^/(login|logout|getTwoFactorEnable|csrf-token)$',
-      '^/(panel|server)(/|$)',
-    ]),
+    proxy: {
+      ...makeBackendProxy('http://localhost:2053', [
+        // Patterns are anchored regex so /login.html and /index.html
+        // (which Vite serves itself) are NOT forwarded — only the bare
+        // backend paths and their sub-routes.
+        '^/(login|logout|getTwoFactorEnable|csrf-token)$',
+        '^/(panel|server)(/|$)',
+      ]),
+      // The panel mounts the live-update WebSocket at /ws (basePath +
+      // "/ws"). Vite needs `ws: true` to forward the HTTP Upgrade to the
+      // Go backend; without it the dev server would 404 the upgrade and
+      // the page falls back to the no-data state.
+      '/ws': {
+        target: 'ws://localhost:2053',
+        ws: true,
+        changeOrigin: true,
+      },
+    },
   },
 });

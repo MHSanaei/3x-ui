@@ -16,6 +16,7 @@ import CustomStatistic from '@/components/CustomStatistic.vue';
 import NodeList from './NodeList.vue';
 import NodeFormModal from './NodeFormModal.vue';
 import { useNodes } from './useNodes.js';
+import { useWebSocket } from '@/composables/useWebSocket.js';
 
 const { t } = useI18n();
 
@@ -24,7 +25,7 @@ const {
   loading,
   fetched,
   totals,
-  refresh,
+  applyNodesEvent,
   create,
   update,
   remove,
@@ -32,6 +33,9 @@ const {
   testConnection,
   probe,
 } = useNodes();
+
+// Live updates — NodeHeartbeatJob pushes the fresh list every 10s.
+useWebSocket({ nodes: applyNodesEvent });
 
 const { isMobile } = useMediaQuery();
 
@@ -167,7 +171,6 @@ async function onToggleEnable(node, next) {
                   @delete="onDelete"
                   @probe="onProbe"
                   @toggle-enable="onToggleEnable"
-                  @refresh="refresh"
                 />
               </a-col>
             </a-row>

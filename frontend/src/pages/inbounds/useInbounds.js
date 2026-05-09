@@ -2,8 +2,10 @@
 // last-online-map, default settings) and computes the per-inbound client
 // roll-ups the legacy panel surfaces in the popovers.
 //
-// 5f-i scope: plain GET on mount + a manual refresh; auto-refresh and the
-// WebSocket delta path are deferred to a later subphase.
+// Live-update model: initial GET on mount, then the WebSocket delta path
+// keeps the table fresh — the page subscribes to the server's `traffic`,
+// `client_stats`, and `invalidate` events and merges them into local
+// refs in-place. The manual refresh button is kept as a fallback.
 
 import { computed, ref, shallowRef } from 'vue';
 import { HttpUtil, ObjectUtil } from '@/utils';
@@ -151,6 +153,107 @@ export function useInbounds() {
     ipLimitEnable.value = !!s.ipLimitEnable;
   }
 
+  // ============ WebSocket live-update merge ===========================
+  // The xray traffic job and the node traffic sync job each broadcast
+  // a `traffic` payload every ~10s. We merge it into onlineClients +
+  // lastOnlineMap; per-inbound counters arrive in the parallel
+  // client_stats event below.
+  function applyTrafficEvent(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    if (Array.isArray(payload.onlineClients)) {
+      onlineClients.value = payload.onlineClients;
+    }
+    if (payload.lastOnlineMap && typeof payload.lastOnlineMap === 'object') {
+      // Merge so a subsequent payload that drops a quiet client doesn't
+      // wipe their last-seen timestamp.
+      lastOnlineMap.value = { ...lastOnlineMap.value, ...payload.lastOnlineMap };
+    }
+    // Recompute per-inbound rollups so the "online" badges in the
+    // expand-row table flip without waiting for a full refresh.
+    rebuildClientCount();
+  }
+
+  // The client_stats payload carries absolute traffic counters for the
+  // clients that had activity in the latest window plus per-inbound
+  // totals. Both are absolute (not deltas), so we overwrite in place.
+  function applyClientStatsEvent(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    let touched = false;
+
+    if (Array.isArray(payload.inbounds) && payload.inbounds.length > 0) {
+      const byId = new Map();
+      for (const row of payload.inbounds) {
+        if (row && row.id != null) byId.set(row.id, row);
+      }
+      for (const ib of dbInbounds.value) {
+        const upd = byId.get(ib.id);
+        if (!upd) continue;
+        if (typeof upd.up === 'number') ib.up = upd.up;
+        if (typeof upd.down === 'number') ib.down = upd.down;
+        if (typeof upd.allTime === 'number') ib.allTime = upd.allTime;
+        touched = true;
+      }
+    }
+
+    if (Array.isArray(payload.clients) && payload.clients.length > 0) {
+      const byEmail = new Map();
+      for (const row of payload.clients) {
+        if (row && row.email) byEmail.set(row.email, row);
+      }
+      for (const ib of dbInbounds.value) {
+        if (!Array.isArray(ib.clientStats)) continue;
+        for (let i = 0; i < ib.clientStats.length; i++) {
+          const stat = ib.clientStats[i];
+          const upd = byEmail.get(stat.email);
+          if (!upd) continue;
+          if (typeof upd.up === 'number') stat.up = upd.up;
+          if (typeof upd.down === 'number') stat.down = upd.down;
+          if (typeof upd.total === 'number') stat.total = upd.total;
+          if (typeof upd.expiryTime === 'number') stat.expiryTime = upd.expiryTime;
+          touched = true;
+        }
+      }
+    }
+
+    if (touched) {
+      // shallowRef → trigger reactivity by reassigning the same array.
+      dbInbounds.value = [...dbInbounds.value];
+      rebuildClientCount();
+    }
+  }
+
+  // The hub may decide a payload is too large to push directly and emit
+  // an `invalidate` event with the affected dataType instead. For the
+  // inbounds page that means "the inbound list changed elsewhere — go
+  // re-fetch via REST".
+  function applyInvalidate(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    if (payload.dataType === 'inbounds') {
+      refresh();
+    }
+  }
+
+  // Recompute the per-inbound roll-up after any in-place mutation.
+  // Cheap because rollupClients only iterates a single inbound's
+  // clients + clientStats arrays.
+  function rebuildClientCount() {
+    const counts = {};
+    const tracked = [
+      Protocols.VMESS,
+      Protocols.VLESS,
+      Protocols.TROJAN,
+      Protocols.SHADOWSOCKS,
+      Protocols.HYSTERIA,
+    ];
+    for (const dbInbound of dbInbounds.value) {
+      const parsed = dbInbound.toInbound();
+      if (!tracked.includes(dbInbound.protocol)) continue;
+      if (dbInbound.isSS && !parsed.isSSMultiUser) continue;
+      counts[dbInbound.id] = rollupClients(dbInbound, parsed);
+    }
+    clientCount.value = counts;
+  }
+
   async function refresh() {
     refreshing.value = true;
     try {
@@ -213,5 +316,8 @@ export function useInbounds() {
     pageSize,
     refresh,
     fetchDefaultSettings,
+    applyTrafficEvent,
+    applyClientStatsEvent,
+    applyInvalidate,
   };
 }

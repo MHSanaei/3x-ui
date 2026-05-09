@@ -5,7 +5,6 @@ import {
   PlusOutlined,
   CloudOutlined,
   ApiOutlined,
-  SyncOutlined,
   RetweetOutlined,
   MoreOutlined,
   EditOutlined,
@@ -39,9 +38,7 @@ const props = defineProps({
   isMobile: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['refresh-traffic', 'reset-traffic', 'test', 'show-warp', 'show-nord']);
-
-const refreshing = ref(false);
+const emit = defineEmits(['reset-traffic', 'test', 'show-warp', 'show-nord']);
 
 // === Modal state ====================================================
 const modalOpen = ref(false);
@@ -95,12 +92,6 @@ function moveDown(idx) {
   const arr = props.templateSettings.outbounds;
   if (idx >= arr.length - 1) return;
   [arr[idx + 1], arr[idx]] = [arr[idx], arr[idx + 1]];
-}
-
-async function onRefresh() {
-  refreshing.value = true;
-  try { emit('refresh-traffic'); }
-  finally { setTimeout(() => { refreshing.value = false; }, 500); }
 }
 
 // === Per-row helpers ================================================
@@ -188,22 +179,17 @@ const rows = computed(() => {
         </a-space>
       </a-col>
       <a-col :xs="24" :sm="10" class="toolbar-right">
-        <a-button-group>
-          <a-button :loading="refreshing" @click="onRefresh">
-            <template #icon><SyncOutlined /></template>
+        <a-popconfirm
+          placement="topRight"
+          :ok-text="t('reset')"
+          :cancel-text="t('cancel')"
+          :title="t('pages.inbounds.resetAllTrafficContent')"
+          @confirm="emit('reset-traffic', '-alltags-')"
+        >
+          <a-button>
+            <template #icon><RetweetOutlined /></template>
           </a-button>
-          <a-popconfirm
-            placement="topRight"
-            :ok-text="t('reset')"
-            :cancel-text="t('cancel')"
-            :title="t('pages.inbounds.resetAllTrafficContent')"
-            @confirm="emit('reset-traffic', '-alltags-')"
-          >
-            <a-button>
-              <template #icon><RetweetOutlined /></template>
-            </a-button>
-          </a-popconfirm>
-        </a-button-group>
+        </a-popconfirm>
       </a-col>
     </a-row>
 

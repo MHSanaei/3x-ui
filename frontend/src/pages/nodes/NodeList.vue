@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n';
 import {
   EditOutlined,
   DeleteOutlined,
-  ReloadOutlined,
   PlusOutlined,
   ThunderboltOutlined,
   ExclamationCircleOutlined,
@@ -23,7 +22,6 @@ const emit = defineEmits([
   'delete',
   'probe',
   'toggle-enable',
-  'refresh',
 ]);
 
 const { t } = useI18n();
@@ -77,16 +75,10 @@ function formatPct(p) {
 <template>
   <a-card size="small" hoverable>
     <div class="toolbar">
-      <a-space>
-        <a-button type="primary" @click="emit('add')">
-          <template #icon><PlusOutlined /></template>
-          {{ t('pages.nodes.addNode') }}
-        </a-button>
-        <a-button :loading="loading" @click="emit('refresh')">
-          <template #icon><ReloadOutlined /></template>
-          {{ t('pages.nodes.refresh') }}
-        </a-button>
-      </a-space>
+      <a-button type="primary" @click="emit('add')">
+        <template #icon><PlusOutlined /></template>
+        {{ t('pages.nodes.addNode') }}
+      </a-button>
     </div>
 
     <a-table

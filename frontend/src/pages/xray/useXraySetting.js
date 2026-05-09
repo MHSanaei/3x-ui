@@ -133,6 +133,13 @@ export function useXraySetting() {
     if (msg?.success) await fetchOutboundsTraffic();
   }
 
+  // Merges a WebSocket `outbounds` event into outboundsTraffic in place.
+  // The xray traffic job pushes the full snapshot every ~10s so the user
+  // doesn't have to click the (now-removed) refresh button.
+  function applyOutboundsEvent(payload) {
+    if (Array.isArray(payload)) outboundsTraffic.value = payload;
+  }
+
   async function testOutbound(index, outbound) {
     if (!outbound) return null;
     if (!outboundTestStates.value[index]) outboundTestStates.value[index] = {};
@@ -230,6 +237,7 @@ export function useXraySetting() {
     fetchAll,
     fetchOutboundsTraffic,
     resetOutboundsTraffic,
+    applyOutboundsEvent,
     testOutbound,
     saveAll,
     resetToDefault,

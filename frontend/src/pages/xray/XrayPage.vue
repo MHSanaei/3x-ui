@@ -23,6 +23,7 @@ import DnsTab from './DnsTab.vue';
 import WarpModal from './WarpModal.vue';
 import NordModal from './NordModal.vue';
 import { useXraySetting } from './useXraySetting.js';
+import { useWebSocket } from '@/composables/useWebSocket.js';
 
 const { t } = useI18n();
 
@@ -40,13 +41,16 @@ const {
   outboundsTraffic,
   outboundTestStates,
   fetchAll,
-  fetchOutboundsTraffic,
   resetOutboundsTraffic,
   testOutbound,
   saveAll,
   resetToDefault,
   restartXray,
+  applyOutboundsEvent,
 } = useXraySetting();
+
+// Live outbounds traffic — pushed by xray_traffic_job every ~10s.
+useWebSocket({ outbounds: applyOutboundsEvent });
 
 async function onTestOutbound(idx) {
   const outbound = templateSettings.value?.outbounds?.[idx];
@@ -291,7 +295,6 @@ function confirmRestart() {
                         :outbounds-traffic="outboundsTraffic"
                         :outbound-test-states="outboundTestStates"
                         :is-mobile="isMobile"
-                        @refresh-traffic="fetchOutboundsTraffic"
                         @reset-traffic="resetOutboundsTraffic"
                         @test="onTestOutbound"
                         @show-warp="showWarp"

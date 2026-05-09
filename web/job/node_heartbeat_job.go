@@ -8,6 +8,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
+	"github.com/mhsanaei/3x-ui/v2/web/websocket"
 )
 
 // nodeHeartbeatConcurrency caps how many remote panels we probe at once.
@@ -69,6 +70,20 @@ func (j *NodeHeartbeatJob) Run() {
 		}(n)
 	}
 	wg.Wait()
+
+	// Push the fresh list to any open Nodes page over WebSocket so the
+	// status / latency / cpu / mem cells update without the user clicking
+	// refresh. Skip the DB read entirely when no browser is connected —
+	// matches the gating pattern in xray_traffic_job.
+	if !websocket.HasClients() {
+		return
+	}
+	updated, err := j.nodeService.GetAll()
+	if err != nil {
+		logger.Warning("node heartbeat: load nodes for broadcast failed:", err)
+		return
+	}
+	websocket.BroadcastNodes(updated)
 }
 
 // probeOne runs a single probe and persists the result. We deliberately

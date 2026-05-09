@@ -1,11 +1,9 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   PlusOutlined,
   MenuOutlined,
-  SyncOutlined,
-  DownOutlined,
   SearchOutlined,
   FilterOutlined,
   MoreOutlined,
@@ -41,7 +39,6 @@ const props = defineProps({
   clientCount: { type: Object, required: true },
   onlineClients: { type: Array, required: true },
   lastOnlineMap: { type: Object, default: () => ({}) },
-  refreshing: { type: Boolean, default: false },
   expireDiff: { type: Number, default: 0 },
   trafficDiff: { type: Number, default: 0 },
   pageSize: { type: Number, default: 0 },
@@ -71,35 +68,6 @@ const emit = defineEmits([
 const enableFilter = ref(false);
 const searchKey = ref('');
 const filterBy = ref('');
-
-// Auto-refresh — same defaults as legacy (5s, opt-in via switch).
-const isRefreshEnabled = ref(localStorage.getItem('isRefreshEnabled') === 'true');
-const refreshIntervalMs = ref(Number(localStorage.getItem('refreshInterval')) || 5000);
-
-let timer = null;
-function startAutoRefresh() {
-  stopAutoRefresh();
-  timer = setInterval(() => emit('refresh'), refreshIntervalMs.value);
-}
-function stopAutoRefresh() {
-  if (timer != null) {
-    clearInterval(timer);
-    timer = null;
-  }
-}
-watch(isRefreshEnabled, (next) => {
-  localStorage.setItem('isRefreshEnabled', String(next));
-  if (next) startAutoRefresh();
-  else stopAutoRefresh();
-}, { immediate: true });
-watch(refreshIntervalMs, (next) => {
-  localStorage.setItem('refreshInterval', String(next));
-  if (isRefreshEnabled.value) startAutoRefresh();
-});
-// Without this, a stale setInterval keeps firing emit('refresh') after
-// the component unmounts, which Vue surfaces as "emitsOptions" /
-// "__asyncLoader" exceptions on the next tick.
-onBeforeUnmount(stopAutoRefresh);
 
 // Toggle the filter mode — flip cleans the other input.
 function onToggleFilter() {
@@ -255,39 +223,6 @@ function showQrCodeMenu(dbInbound) {
           </template>
         </a-dropdown>
       </a-space>
-    </template>
-
-    <template #extra>
-      <a-button-group>
-        <a-button :loading="refreshing" @click="emit('refresh')">
-          <template #icon>
-            <SyncOutlined />
-          </template>
-        </a-button>
-        <a-popover placement="bottomRight" trigger="click">
-          <template #title>
-            <div class="auto-refresh-title">
-              <a-switch v-model:checked="isRefreshEnabled" size="small" />
-              <span>{{ t('pages.inbounds.autoRefresh') }}</span>
-            </div>
-          </template>
-          <template #content>
-            <a-space direction="vertical">
-              <span>{{ t('pages.inbounds.autoRefreshInterval') }}</span>
-              <a-select v-model:value="refreshIntervalMs" :disabled="!isRefreshEnabled" :style="{ width: '100%' }">
-                <a-select-option v-for="key in [5, 10, 30, 60]" :key="key" :value="key * 1000">
-                  {{ key }}s
-                </a-select-option>
-              </a-select>
-            </a-space>
-          </template>
-          <a-button>
-            <template #icon>
-              <DownOutlined />
-            </template>
-          </a-button>
-        </a-popover>
-      </a-button-group>
     </template>
 
     <a-space direction="vertical" :style="{ width: '100%' }">
@@ -548,12 +483,6 @@ function showQrCodeMenu(dbInbound) {
 </template>
 
 <style scoped>
-.auto-refresh-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .filter-bar {
   display: flex;
   align-items: center;
