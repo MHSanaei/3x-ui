@@ -135,21 +135,22 @@ type ClientReverse struct {
 
 // Client represents a client configuration for Xray inbounds with traffic limits and settings.
 type Client struct {
-	ID         string         `json:"id,omitempty"`                 // Unique client identifier
-	Security   string         `json:"security"`                     // Security method (e.g., "auto", "aes-128-gcm")
-	Password   string         `json:"password,omitempty"`           // Client password
-	Flow       string         `json:"flow,omitempty"`               // Flow control (XTLS)
-	Reverse    *ClientReverse `json:"reverse,omitempty"`            // VLESS simple reverse proxy settings
-	Auth       string         `json:"auth,omitempty"`               // Auth password (Hysteria)
-	Email      string         `json:"email"`                        // Client email identifier
-	LimitIP    int            `json:"limitIp"`                      // IP limit for this client
-	TotalGB    int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
-	ExpiryTime int64          `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
-	Enable     bool           `json:"enable" form:"enable"`         // Whether the client is enabled
-	TgID       int64          `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
-	SubID      string         `json:"subId" form:"subId"`           // Subscription identifier
-	Comment    string         `json:"comment" form:"comment"`       // Client comment
-	Reset      int            `json:"reset" form:"reset"`           // Reset period in days
-	CreatedAt  int64          `json:"created_at,omitempty"`         // Creation timestamp
-	UpdatedAt  int64          `json:"updated_at,omitempty"`         // Last update timestamp
+	ID         			string `json:"id,omitempty"`                 // Unique client identifier
+	Security   			string `json:"security"`                     // Security method (e.g., "auto", "aes-128-gcm")
+	Password   			string `json:"password,omitempty"`           // Client password
+	Flow       			string `json:"flow,omitempty"`               // Flow control (XTLS)
+	Auth       			string `json:"auth,omitempty"`               // Auth password (Hysteria)
+	Email      			string `json:"email"`                        // Client email identifier
+	LimitIP    			int    `json:"limitIp"`                      // IP limit for this client
+	UploadSpeedLimit   	int64  `json:"uploadSpeedLimit" form:"uploadSpeedLimit"`       // Upload speed limit in bytes/sec
+	DownloadSpeedLimit 	int64  `json:"downloadSpeedLimit" form:"downloadSpeedLimit"`   // Download speed limit in bytes/sec
+	TotalGB    			int64  `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
+	ExpiryTime 			int64  `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
+	Enable     			bool   `json:"enable" form:"enable"`         // Whether the client is enabled
+	TgID       			int64  `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
+	SubID      			string `json:"subId" form:"subId"`           // Subscription identifier
+	Comment    			string `json:"comment" form:"comment"`       // Client comment
+	Reset      			int    `json:"reset" form:"reset"`           // Reset period in days
+	CreatedAt  			int64  `json:"created_at,omitempty"`         // Creation timestamp
+	UpdatedAt  			int64  `json:"updated_at,omitempty"`         // Last update timestamp
 }

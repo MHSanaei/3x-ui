@@ -99,6 +99,35 @@
     </template>
     <a-input-number v-model.number="client.limitIp" min="0"></a-input-number>
   </a-form-item>
+  <a-form-item v-if="client.email">
+    <template slot="label">
+      <a-tooltip>
+        <template slot="title">
+          0 <span>{{ i18n "pages.inbounds.meansNoLimitMB" }}</span>
+        </template>
+        {{ i18n "pages.inbounds.uploadSpeedLimit" }}
+        <a-icon type="question-circle"></a-icon>
+      </a-tooltip>
+    </template>
+    <a-input-number v-model.number="client._uploadSpeedLimitMB" :min="0"></a-input-number>
+    <span style="margin-left: 8px;">MB/s</span>
+  </a-form-item>
+  <a-form-item v-if="client.email">
+    <template slot="label">
+      <a-tooltip>
+        <template slot="title">
+          0 <span>{{ i18n "pages.inbounds.meansNoLimitMB" }}</span>
+        </template>
+        {{ i18n "pages.inbounds.downloadSpeedLimit" }}
+        <a-icon type="question-circle"></a-icon>
+      </a-tooltip>
+    </template>
+    <a-input-number v-model.number="client._downloadSpeedLimitMB" :min="0"></a-input-number>
+    <span style="margin-left: 8px;">MB/s</span>
+  </a-form-item>
+  <a-form-item
+    v-if="app.ipLimitEnable && client.limitIp > 0 && client.email && isEdit"
+  >
   <a-form-item v-if="app.ipLimitEnable && client.limitIp > 0 && client.email && isEdit">
     <template slot="label">
       <a-tooltip>

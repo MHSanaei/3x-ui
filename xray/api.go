@@ -65,6 +65,28 @@ func getOptionalUserString(user map[string]any, key string) (string, error) {
 	return strValue, nil
 }
 
+func getOptionalUserInt64(user map[string]any, key string) (int64, error) {
+	value, ok := user[key]
+	if !ok || value == nil {
+		return 0, nil
+	}
+
+	switch v := value.(type) {
+	case int:
+		return int64(v), nil
+	case int32:
+		return int64(v), nil
+	case int64:
+		return v, nil
+	case float64:
+		return int64(v), nil
+	case json.Number:
+		return v.Int64()
+	default:
+		return 0, fmt.Errorf("invalid type for user field %q: %T", key, value)
+	}
+}
+
 // Init connects to the Xray API server and initializes handler and stats service clients.
 func (x *XrayAPI) Init(apiPort int) error {
 	if apiPort <= 0 || apiPort > math.MaxUint16 {
@@ -133,6 +155,14 @@ func (x *XrayAPI) DelInbound(tag string) error {
 // AddUser adds a user to an inbound in the Xray core using the specified protocol and user data.
 func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]any) error {
 	userEmail, err := getRequiredUserString(user, "email")
+	if err != nil {
+		return err
+	}
+	uploadSpeedLimit, err := getOptionalUserInt64(user, "uploadSpeedLimit")
+	if err != nil {
+		return err
+	}
+	downloadSpeedLimit, err := getOptionalUserInt64(user, "downloadSpeedLimit")
 	if err != nil {
 		return err
 	}
@@ -241,14 +271,17 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 	}
 
 	client := *x.HandlerServiceClient
+	protocolUser := &protocol.User{
+		Email:              userEmail,
+		Account:            account,
+		UplinkSpeedLimit:   uint64(uploadSpeedLimit),
+		DownlinkSpeedLimit: uint64(downloadSpeedLimit),
+	}
 
 	_, err = client.AlterInbound(context.Background(), &command.AlterInboundRequest{
 		Tag: inboundTag,
 		Operation: serial.ToTypedMessage(&command.AddUserOperation{
-			User: &protocol.User{
-				Email:   userEmail,
-				Account: account,
-			},
+			User: protocolUser,
 		}),
 	})
 	return err
