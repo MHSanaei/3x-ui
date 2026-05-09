@@ -114,7 +114,7 @@ function trafficFor(o) {
 // the outbound has no externally-visible endpoint (Freedom, Blackhole,
 // DNS without an explicit address, etc.).
 function outboundAddresses(o) {
-  let serverObj = null;
+  let serverObj;
   switch (o.protocol) {
     case Protocols.VMess:
       serverObj = o.settings?.vnext;

@@ -12,7 +12,7 @@ import {
   ClipboardManager,
   FileManager,
 } from '@/utils';
-import { Inbound, Protocols } from '@/models/inbound.js';
+import { Protocols } from '@/models/inbound.js';
 import InfinityIcon from '@/components/InfinityIcon.vue';
 import { useDatepicker } from '@/composables/useDatepicker.js';
 
@@ -56,7 +56,9 @@ const props = defineProps({
 const emit = defineEmits(['update:open']);
 
 // Cloned state on open so cancel doesn't leak edits onto the row's
-// parsed-cache copy.
+// parsed-cache copy. The local ref intentionally shadows the prop —
+// templates read this ref's frozen-on-open value, not props.dbInbound.
+// eslint-disable-next-line vue/no-dupe-keys
 const dbInbound = ref(null);
 const inbound = ref(null);
 const clientSettings = ref(null);

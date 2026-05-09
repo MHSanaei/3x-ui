@@ -234,13 +234,13 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
 
       <a-form-item label="Inbound tags">
         <a-select v-model:value="form.inboundTag" mode="multiple">
-          <a-select-option v-for="t in inboundTags" :key="t" :value="t">{{ t }}</a-select-option>
+          <a-select-option v-for="tag in inboundTags" :key="tag" :value="tag">{{ tag }}</a-select-option>
         </a-select>
       </a-form-item>
 
       <a-form-item label="Outbound tag">
         <a-select v-model:value="form.outboundTag">
-          <a-select-option v-for="t in outboundTags" :key="t || '__empty'" :value="t">{{ t || '(none)' }}</a-select-option>
+          <a-select-option v-for="tag in outboundTags" :key="tag || '__empty'" :value="tag">{{ tag || '(none)' }}</a-select-option>
         </a-select>
       </a-form-item>
 
@@ -251,7 +251,7 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
           </a-tooltip>
         </template>
         <a-select v-model:value="form.balancerTag">
-          <a-select-option v-for="t in balancerTags" :key="t || '__empty'" :value="t">{{ t || '(none)' }}</a-select-option>
+          <a-select-option v-for="tag in balancerTags" :key="tag || '__empty'" :value="tag">{{ tag || '(none)' }}</a-select-option>
         </a-select>
       </a-form-item>
     </a-form>

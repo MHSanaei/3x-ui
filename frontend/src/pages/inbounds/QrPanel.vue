@@ -60,7 +60,6 @@ function paint() {
   const matrixWidth = pickQrMatrixWidth(props.value);
   const pixelSize = Math.max(1, Math.floor(props.size / matrixWidth));
   const exactSize = matrixWidth * pixelSize;
-  // eslint-disable-next-line no-new
   new QRious({
     element: canvas.value,
     size: exactSize,

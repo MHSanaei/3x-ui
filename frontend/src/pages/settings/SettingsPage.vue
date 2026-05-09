@@ -23,7 +23,7 @@ import SubscriptionFormatsTab from './SubscriptionFormatsTab.vue';
 
 const { t } = useI18n();
 
-const { fetched, spinning, saveDisabled, allSetting, fetchAll, saveAll } = useAllSetting();
+const { fetched, spinning, saveDisabled, allSetting, saveAll } = useAllSetting();
 const { isMobile } = useMediaQuery();
 
 const basePath = window.__X_UI_BASE_PATH__ || '';

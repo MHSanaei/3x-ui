@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { message } from 'ant-design-vue';
 import { SyncOutlined, PlusOutlined, MinusOutlined, DeleteOutlined } from '@ant-design/icons-vue';
@@ -54,6 +54,8 @@ const NETWORK_LABELS = {
 };
 
 // Reactive draft — Outbound instance built from the prop on open.
+// Intentionally shadows the prop name; the template reads the draft.
+// eslint-disable-next-line vue/no-dupe-keys
 const outbound = ref(null);
 const isEdit = ref(false);
 const activeKey = ref('1');
@@ -192,8 +194,6 @@ const isVLESS = computed(() => proto.value === Protocols.VLESS);
 const isVMessOrVLess = computed(() => isVMess.value || isVLESS.value);
 const isTrojan = computed(() => proto.value === Protocols.Trojan);
 const isShadowsocks = computed(() => proto.value === Protocols.Shadowsocks);
-const isSocks = computed(() => proto.value === Protocols.Socks);
-const isHTTP = computed(() => proto.value === Protocols.HTTP);
 const isFreedom = computed(() => proto.value === Protocols.Freedom);
 const isBlackhole = computed(() => proto.value === Protocols.Blackhole);
 const isDNS = computed(() => proto.value === Protocols.DNS);

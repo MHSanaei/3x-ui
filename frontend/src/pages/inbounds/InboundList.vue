@@ -111,7 +111,7 @@ function onToggleFilter() {
 // to that bucket.
 function projectInbound(dbInbound, predicate) {
   const next = new DBInbound(dbInbound);
-  let settings = {};
+  let settings;
   try {
     settings = JSON.parse(dbInbound.settings || '{}');
   } catch (_e) {
@@ -194,10 +194,6 @@ async function onSwitchEnable(dbInbound, next) {
 }
 
 // ============ Helpers shared with the templates =====================
-function isClientOnline(email) {
-  return props.onlineClients.includes(email);
-}
-
 // Whether to show the "Switch xray" / qrcode menu entry — same predicate
 // as legacy: SS single-user inbounds and WireGuard inbounds expose
 // inbound-wide QR codes.

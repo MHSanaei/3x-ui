@@ -15,7 +15,7 @@ defineProps({
   ipLimitEnable: { type: Boolean, default: false },
 });
 
-defineEmits(['stop-xray', 'restart-xray', 'open-xray-logs', 'open-version-switch']);
+defineEmits(['stop-xray', 'restart-xray', 'open-logs', 'open-xray-logs', 'open-version-switch']);
 
 // Map xray.color → which animation class to apply on the badge dot.
 // The legacy .xray-*-animation classes only override the badge ring

@@ -71,7 +71,6 @@ async function paintQr() {
   const matrixWidth = pickQrMatrixWidth(value);
   const pixelSize = Math.max(1, Math.floor(200 / matrixWidth));
   const exactSize = matrixWidth * pixelSize;
-  // eslint-disable-next-line no-new
   new QRious({
     element: qrCanvas.value,
     size: exactSize,

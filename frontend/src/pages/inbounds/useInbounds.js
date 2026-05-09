@@ -11,8 +11,6 @@ import { DBInbound } from '@/models/dbinbound.js';
 import { Protocols } from '@/models/inbound.js';
 import { setDatepicker } from '@/composables/useDatepicker.js';
 
-const ONLINE_GRACE_MS = 60_000;
-
 export function useInbounds() {
   const fetched = ref(false);
   const refreshing = ref(false);

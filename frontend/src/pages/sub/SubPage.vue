@@ -8,7 +8,7 @@ import {
   DownOutlined,
   CopyOutlined,
 } from '@ant-design/icons-vue';
-import { theme as antdTheme, message } from 'ant-design-vue';
+import { message } from 'ant-design-vue';
 import QRious from 'qrious';
 
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
@@ -80,7 +80,6 @@ const subClashQr = ref(null);
 
 function paintQr(canvas, value) {
   if (!canvas || !value) return;
-  // eslint-disable-next-line no-new
   new QRious({
     element: canvas,
     size: 220,
@@ -142,10 +141,6 @@ const themeClass = computed(() => ({
   'is-ultra': themeState.isUltra,
 }));
 
-// Pull the AD-Vue theme algorithm in case anything in this file
-// references it directly (a-config-provider does).
-// eslint-disable-next-line no-unused-vars
-const _antdAlgorithm = antdTheme.darkAlgorithm;
 </script>
 
 <template>
