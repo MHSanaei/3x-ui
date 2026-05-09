@@ -36,8 +36,8 @@ func SetDistFS(fs embed.FS) {
 // GETs can hit the 304 path on repeat loads.
 var distPageBuildTime = time.Now()
 
-// serveDistPage reads `dist/html/<name>` from the embedded FS and writes
-// it to the response. Two transforms run before send:
+// serveDistPage reads `dist/<name>` from the embedded FS and writes it
+// to the response. Two transforms run before send:
 //
 //  1. `<script>window.__X_UI_BASE_PATH__ = "..."</script>` is injected
 //     just before </head> so the AppSidebar's link generator sees the
@@ -51,7 +51,7 @@ var distPageBuildTime = time.Now()
 // reaches users on the next reload; the long-hashed JS/CSS files
 // under /assets/ stay cacheable indefinitely.
 func serveDistPage(c *gin.Context, name string) {
-	body, err := distFS.ReadFile("dist/html/" + name)
+	body, err := distFS.ReadFile("dist/" + name)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "missing embedded page: %s", name)
 		return

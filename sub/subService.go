@@ -1350,7 +1350,7 @@ func searchHost(headers any) string {
 	return ""
 }
 
-// PageData is a view model for html/subpage.html
+// PageData is a view model for subpage.html
 // PageData contains data for rendering the subscription information page.
 type PageData struct {
 	Host         string

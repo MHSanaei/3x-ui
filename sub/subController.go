@@ -148,14 +148,14 @@ func (a *SUBController) subs(c *gin.Context) {
 	}
 }
 
-// serveSubPage renders web/dist/html/subpage.html for the current subscription
+// serveSubPage renders web/dist/subpage.html for the current subscription
 // request. The Vite-built SPA reads window.__SUB_PAGE_DATA__ on mount —
 // we inject that here, along with window.__X_UI_BASE_PATH__ so the
 // page's static asset references resolve correctly when the panel runs
 // behind a URL prefix.
 func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageData) {
 	dist := webpkg.EmbeddedDist()
-	body, err := dist.ReadFile("dist/html/subpage.html")
+	body, err := dist.ReadFile("dist/subpage.html")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "missing embedded subpage")
 		return

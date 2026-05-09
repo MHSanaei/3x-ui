@@ -6,20 +6,20 @@ import path from 'node:path';
 // via embed.FS without reaching outside the web/ tree.
 const outDir = path.resolve(__dirname, '../web/dist');
 
-// In production the Go binary serves /panel/<route> from web/dist/html/<route>.html.
-// In dev the Vue app lives at /html/index.html, /html/settings.html, ... while
-// AppSidebar links use the production-style /panel/<route> URLs. Map each
-// migrated route to its Vite entry so the sidebar works without relying on
-// the Go backend for already-ported pages.
+// In production the Go binary serves /panel/<route> from web/dist/<route>.html.
+// In dev the Vue app lives at /index.html, /settings.html, ... while AppSidebar
+// links use the production-style /panel/<route> URLs. Map each migrated route
+// to its Vite entry so the sidebar works without relying on the Go backend
+// for already-ported pages.
 const MIGRATED_ROUTES = {
-  '/panel': '/html/index.html',
-  '/panel/': '/html/index.html',
-  '/panel/settings': '/html/settings.html',
-  '/panel/settings/': '/html/settings.html',
-  '/panel/inbounds': '/html/inbounds.html',
-  '/panel/inbounds/': '/html/inbounds.html',
-  '/panel/xray': '/html/xray.html',
-  '/panel/xray/': '/html/xray.html',
+  '/panel': '/index.html',
+  '/panel/': '/index.html',
+  '/panel/settings': '/settings.html',
+  '/panel/settings/': '/settings.html',
+  '/panel/inbounds': '/inbounds.html',
+  '/panel/inbounds/': '/inbounds.html',
+  '/panel/xray': '/xray.html',
+  '/panel/xray/': '/xray.html',
 };
 
 // Build a proxy config that suppresses ECONNREFUSED noise when the Go
@@ -102,12 +102,12 @@ export default defineConfig({
     // As pages get ported in later phases, add their entrypoints here.
     rollupOptions: {
       input: {
-        index: path.resolve(__dirname, 'html/index.html'),
-        login: path.resolve(__dirname, 'html/login.html'),
-        settings: path.resolve(__dirname, 'html/settings.html'),
-        inbounds: path.resolve(__dirname, 'html/inbounds.html'),
-        xray: path.resolve(__dirname, 'html/xray.html'),
-        subpage: path.resolve(__dirname, 'html/subpage.html'),
+        index: path.resolve(__dirname, 'index.html'),
+        login: path.resolve(__dirname, 'login.html'),
+        settings: path.resolve(__dirname, 'settings.html'),
+        inbounds: path.resolve(__dirname, 'inbounds.html'),
+        xray: path.resolve(__dirname, 'xray.html'),
+        subpage: path.resolve(__dirname, 'subpage.html'),
       },
       output: {
         // Split vendor deps into stable chunks so each page only pulls
@@ -143,9 +143,9 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: makeBackendProxy('http://localhost:2053', [
-      // Patterns are anchored regex so /html/login.html, /html/index.html
-      // etc. (which Vite serves itself) are NOT forwarded — only the
-      // bare backend paths and their sub-routes.
+      // Patterns are anchored regex so /login.html and /index.html
+      // (which Vite serves itself) are NOT forwarded — only the bare
+      // backend paths and their sub-routes.
       '^/(login|logout|getTwoFactorEnable|csrf-token)$',
       '^/(panel|server)(/|$)',
     ]),
