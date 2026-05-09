@@ -120,19 +120,26 @@ const visibleInbounds = computed(() => {
 // `key`-driven so we can render via the body-cell slot below. AD-Vue 4's
 // `responsive` array still works on column defs. Computed so column
 // labels react to live locale switches.
-const desktopColumns = computed(() => [
-  { title: 'ID', dataIndex: 'id', key: 'id', align: 'right', width: 30, responsive: ['xs'] },
-  { title: t('pages.inbounds.operate'), key: 'action', align: 'center', width: 30 },
-  { title: t('pages.inbounds.enable'), key: 'enable', align: 'center', width: 35 },
-  { title: t('pages.inbounds.remark'), dataIndex: 'remark', key: 'remark', align: 'center', width: 60 },
-  { title: t('pages.inbounds.node'), key: 'node', align: 'center', width: 60 },
-  { title: t('pages.inbounds.port'), dataIndex: 'port', key: 'port', align: 'center', width: 40 },
-  { title: t('pages.inbounds.protocol'), key: 'protocol', align: 'left', width: 130 },
-  { title: t('clients'), key: 'clients', align: 'left', width: 50 },
-  { title: t('pages.inbounds.traffic'), key: 'traffic', align: 'center', width: 90 },
-  { title: t('pages.inbounds.allTimeTraffic'), key: 'allTimeInbound', align: 'center', width: 95 },
-  { title: t('pages.inbounds.expireDate'), key: 'expiryTime', align: 'center', width: 40 },
-]);
+const desktopColumns = computed(() => {
+  const cols = [
+    { title: 'ID', dataIndex: 'id', key: 'id', align: 'right', width: 30, responsive: ['xs'] },
+    { title: t('pages.inbounds.operate'), key: 'action', align: 'center', width: 30 },
+    { title: t('pages.inbounds.enable'), key: 'enable', align: 'center', width: 35 },
+    { title: t('pages.inbounds.remark'), dataIndex: 'remark', key: 'remark', align: 'center', width: 60 },
+  ];
+  if (props.nodesById.size > 0) {
+    cols.push({ title: t('pages.inbounds.node'), key: 'node', align: 'center', width: 60 });
+  }
+  cols.push(
+    { title: t('pages.inbounds.port'), dataIndex: 'port', key: 'port', align: 'center', width: 40 },
+    { title: t('pages.inbounds.protocol'), key: 'protocol', align: 'left', width: 130 },
+    { title: t('clients'), key: 'clients', align: 'left', width: 50 },
+    { title: t('pages.inbounds.traffic'), key: 'traffic', align: 'center', width: 90 },
+    { title: t('pages.inbounds.allTimeTraffic'), key: 'allTimeInbound', align: 'center', width: 95 },
+    { title: t('pages.inbounds.expireDate'), key: 'expiryTime', align: 'center', width: 40 },
+  );
+  return cols;
+});
 const mobileColumns = computed(() => [
   { title: 'ID', dataIndex: 'id', key: 'id', align: 'right', width: 10, responsive: ['s'] },
   { title: t('pages.inbounds.operate'), key: 'action', align: 'center', width: 25 },
