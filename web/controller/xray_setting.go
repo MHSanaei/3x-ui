@@ -104,7 +104,10 @@ func (a *XraySettingController) updateSetting(c *gin.Context) {
 	if outboundTestUrl == "" {
 		outboundTestUrl = "https://www.google.com/generate_204"
 	}
-	_ = a.SettingService.SetXrayOutboundTestUrl(outboundTestUrl)
+	if err := a.SettingService.SetXrayOutboundTestUrl(outboundTestUrl); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), nil)
 }
 
