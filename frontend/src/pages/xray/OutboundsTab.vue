@@ -48,7 +48,7 @@ const inboundTagOptions = computed(() => {
   return [...out];
 });
 
-const emit = defineEmits(['reset-traffic', 'test', 'show-warp', 'show-nord']);
+const emit = defineEmits(['reset-traffic', 'test', 'show-warp', 'show-nord', 'delete']);
 
 // === Modal state ====================================================
 const modalOpen = ref(false);
@@ -86,7 +86,7 @@ function confirmDelete(idx) {
     okText: t('delete'),
     okType: 'danger',
     cancelText: t('cancel'),
-    onOk: () => { props.templateSettings.outbounds.splice(idx, 1); },
+    onOk: () => { emit('delete', idx); },
   });
 }
 function setFirst(idx) {

@@ -57,6 +57,15 @@ async function onTestOutbound(idx) {
   if (outbound) await testOutbound(idx, outbound);
 }
 
+function onDeleteOutbound(idx) {
+  templateSettings.value.outbounds.splice(idx, 1);
+  outboundTestStates.value = Object.fromEntries(
+    Object.entries(outboundTestStates.value)
+      .filter(([k]) => Number(k) !== idx)
+      .map(([k, v]) => [Number(k) > idx ? Number(k) - 1 : Number(k), v]),
+  );
+}
+
 // === Advanced tab — radio-driven view ==============================
 // Mirrors the legacy advanced page: a 4-way radio toggles which slice
 // of the xray config the textarea edits — the full config, just the
@@ -298,6 +307,7 @@ function confirmRestart() {
                         :is-mobile="isMobile"
                         @reset-traffic="resetOutboundsTraffic"
                         @test="onTestOutbound"
+                        @delete="onDeleteOutbound"
                         @show-warp="showWarp"
                         @show-nord="showNord"
                       />
