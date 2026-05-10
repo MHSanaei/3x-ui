@@ -20,7 +20,7 @@ function exportDb() {
   // The Go endpoint streams x-ui.db as a download. Setting
   // window.location triggers a browser download without leaving
   // the page (the Go side responds with Content-Disposition: attachment).
-  window.location = '/panel/api/server/getDb';
+  window.location = window.__X_UI_BASE_PATH__+'panel/api/server/getDb';
 }
 
 function importDb() {
