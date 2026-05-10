@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/fs"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -660,7 +659,7 @@ func (s *ServerService) UpdateXray(version string) error {
 		defer zipFile.Close()
 		os.MkdirAll(filepath.Dir(fileName), 0755)
 		os.Remove(fileName)
-		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, fs.ModePerm)
+		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
 		if err != nil {
 			return err
 		}
