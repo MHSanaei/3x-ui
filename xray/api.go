@@ -35,6 +35,7 @@ type XrayAPI struct {
 	StatsServiceClient   *statsService.StatsServiceClient
 	grpcClient           *grpc.ClientConn
 	isConnected          bool
+	StatsLastValues      map[string]int64
 }
 
 func getRequiredUserString(user map[string]any, key string) (string, error) {
@@ -79,6 +80,9 @@ func (x *XrayAPI) Init(apiPort int) error {
 
 	x.grpcClient = conn
 	x.isConnected = true
+	if x.StatsLastValues == nil {
+		x.StatsLastValues = make(map[string]int64)
+	}
 
 	hsClient := command.NewHandlerServiceClient(conn)
 	ssClient := statsService.NewStatsServiceClient(conn)
@@ -274,7 +278,7 @@ func (x *XrayAPI) RemoveUser(inboundTag, email string) error {
 }
 
 // GetTraffic queries traffic statistics from the Xray core, optionally resetting counters.
-func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
+func (x *XrayAPI) GetTraffic() ([]*Traffic, []*ClientTraffic, error) {
 	if x.grpcClient == nil {
 		return nil, nil, common.NewError("xray api is not initialized")
 	}
@@ -289,7 +293,7 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 		return nil, nil, common.NewError("xray StatusServiceClient is not initialized")
 	}
 
-	resp, err := (*x.StatsServiceClient).QueryStats(ctx, &statsService.QueryStatsRequest{Reset_: reset})
+	resp, err := (*x.StatsServiceClient).QueryStats(ctx, &statsService.QueryStatsRequest{Reset_: false})
 	if err != nil {
 		logger.Debug("Failed to query Xray stats:", err)
 		return nil, nil, err
@@ -299,10 +303,17 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 	emailTrafficMap := make(map[string]*ClientTraffic)
 
 	for _, stat := range resp.GetStat() {
+		lastValue, ok := x.StatsLastValues[stat.Name]
+		x.StatsLastValues[stat.Name] = stat.Value
+		if !ok || stat.Value < lastValue {
+			// skip first time of seen stat
+			continue
+		}
+		value := stat.Value - lastValue
 		if matches := trafficRegex.FindStringSubmatch(stat.Name); len(matches) == 4 {
-			processTraffic(matches, stat.Value, tagTrafficMap)
+			processTraffic(matches, value, tagTrafficMap)
 		} else if matches := clientTrafficRegex.FindStringSubmatch(stat.Name); len(matches) == 3 {
-			processClientTraffic(matches, stat.Value, emailTrafficMap)
+			processClientTraffic(matches, value, emailTrafficMap)
 		}
 	}
 	return mapToSlice(tagTrafficMap), mapToSlice(emailTrafficMap), nil
