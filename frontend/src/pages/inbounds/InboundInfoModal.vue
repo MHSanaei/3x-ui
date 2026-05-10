@@ -327,14 +327,16 @@ const showSubscriptionTab = computed(
               <tr>
                 <td>{{ t('pages.inbounds.createdAt') }}</td>
                 <td>
-                  <a-tag v-if="clientSettings.created_at">{{ IntlUtil.formatDate(clientSettings.created_at, datepicker) }}</a-tag>
+                  <a-tag v-if="clientSettings.created_at">{{ IntlUtil.formatDate(clientSettings.created_at, datepicker)
+                  }}</a-tag>
                   <a-tag v-else>-</a-tag>
                 </td>
               </tr>
               <tr>
                 <td>{{ t('pages.inbounds.updatedAt') }}</td>
                 <td>
-                  <a-tag v-if="clientSettings.updated_at">{{ IntlUtil.formatDate(clientSettings.updated_at, datepicker) }}</a-tag>
+                  <a-tag v-if="clientSettings.updated_at">{{ IntlUtil.formatDate(clientSettings.updated_at, datepicker)
+                  }}</a-tag>
                   <a-tag v-else>-</a-tag>
                 </td>
               </tr>
@@ -356,7 +358,7 @@ const showSubscriptionTab = computed(
                   <div class="ip-log">
                     <div v-if="clientIpsArray.length > 0">
                       <a-tag v-for="(item, idx) in clientIpsArray" :key="idx" color="blue" class="ip-log-row">{{ item
-                        }}</a-tag>
+                      }}</a-tag>
                     </div>
                     <a-tag v-else>{{ clientIpsText || t('tgbot.noIpRecord') }}</a-tag>
                   </div>
@@ -472,7 +474,7 @@ const showSubscriptionTab = computed(
                 </a-tooltip>
               </div>
               <a :href="subJsonLink" target="_blank" rel="noopener noreferrer" class="link-panel-anchor">{{ subJsonLink
-                }}</a>
+              }}</a>
             </div>
           </template>
         </a-tab-pane>
@@ -627,11 +629,7 @@ const showSubscriptionTab = computed(
               <dd><a-tag class="value-tag">{{ inbound.settings.ip }}</a-tag></dd>
             </div>
             <template v-if="inbound.settings.auth === 'password' && inbound.settings.accounts?.length">
-              <div
-                v-for="(account, idx) in inbound.settings.accounts"
-                :key="idx"
-                class="info-row"
-              >
+              <div v-for="(account, idx) in inbound.settings.accounts" :key="idx" class="info-row">
                 <dt>{{ t('username') }} #{{ idx + 1 }}</dt>
                 <dd class="account-row">
                   <a-tag color="green" class="value-tag">{{ account.user }}</a-tag>
@@ -651,11 +649,7 @@ const showSubscriptionTab = computed(
 
           <!-- HTTP accounts -->
           <dl v-if="dbInbound.isHTTP && inbound.settings.accounts?.length" class="info-list info-list-block">
-            <div
-              v-for="(account, idx) in inbound.settings.accounts"
-              :key="idx"
-              class="info-row"
-            >
+            <div v-for="(account, idx) in inbound.settings.accounts" :key="idx" class="info-row">
               <dt>{{ t('username') }} #{{ idx + 1 }}</dt>
               <dd class="account-row">
                 <a-tag color="green" class="value-tag">{{ account.user }}</a-tag>

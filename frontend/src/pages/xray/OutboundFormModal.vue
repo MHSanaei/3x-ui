@@ -343,8 +343,7 @@ function regenerateWgKeys() {
               <a-input-number v-model:value="outbound.settings.userLevel" :min="0" :style="{ width: '100%' }" />
             </a-form-item>
             <a-form-item label="Rules">
-              <a-button size="small" type="primary"
-                @click="outbound.settings.rules.push(new Outbound.DNSRule())">
+              <a-button size="small" type="primary" @click="outbound.settings.rules.push(new Outbound.DNSRule())">
                 <template #icon>
                   <PlusOutlined />
                 </template>
@@ -955,11 +954,8 @@ function regenerateWgKeys() {
         <!-- Gated by canEnableStream() so TCP masks don't leak into
              Freedom / Blackhole / DNS / Socks / HTTP / Wireguard outbounds
              (they don't have a stream config at all). Matches legacy. -->
-        <FinalMaskForm
-          v-if="outbound.stream && outbound.canEnableStream()"
-          :stream="outbound.stream"
-          :protocol="proto"
-        />
+        <FinalMaskForm v-if="outbound.stream && outbound.canEnableStream()" :stream="outbound.stream"
+          :protocol="proto" />
       </a-tab-pane>
 
       <!-- ============================== JSON ============================== -->

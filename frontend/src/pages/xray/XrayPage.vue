@@ -207,10 +207,7 @@ function confirmRestart() {
 
 <template>
   <a-config-provider :theme="antdThemeConfig">
-    <a-layout
-      class="xray-page"
-      :class="{ 'is-dark': themeState.isDark, 'is-ultra': themeState.isUltra }"
-    >
+    <a-layout class="xray-page" :class="{ 'is-dark': themeState.isDark, 'is-ultra': themeState.isUltra }">
       <AppSidebar :base-path="basePath" :request-uri="requestUri" />
 
       <a-layout class="content-shell">
@@ -218,12 +215,7 @@ function confirmRestart() {
           <a-spin :spinning="spinning || !fetched" :delay="200" tip="Loading…" size="large">
             <div v-if="!fetched" class="loading-spacer" />
 
-            <a-result
-              v-else-if="fetchError"
-              status="error"
-              :title="t('somethingWentWrong')"
-              :sub-title="fetchError"
-            >
+            <a-result v-else-if="fetchError" status="error" :title="t('somethingWentWrong')" :sub-title="fetchError">
               <template #extra>
                 <a-button type="primary" @click="fetchAll">{{ t('check') }}</a-button>
               </template>
@@ -254,11 +246,7 @@ function confirmRestart() {
                       </a-col>
                       <a-col :xs="24" :sm="10" class="header-info">
                         <a-back-top :target="scrollTarget" :visibility-height="200" />
-                        <a-alert
-                          type="warning"
-                          show-icon
-                          :message="t('pages.settings.infoDesc')"
-                        />
+                        <a-alert type="warning" show-icon :message="t('pages.settings.infoDesc')" />
                       </a-col>
                     </a-row>
                   </a-card>
@@ -271,56 +259,35 @@ function confirmRestart() {
                       <template #tab>
                         <SettingOutlined /> <span>{{ t('pages.xray.basicTemplate') }}</span>
                       </template>
-                      <BasicsTab
-                        :template-settings="templateSettings"
-                        :outbound-test-url="outboundTestUrl"
-                        :warp-exist="warpExist"
-                        :nord-exist="nordExist"
-                        @update:outbound-test-url="(v) => (outboundTestUrl = v)"
-                        @show-warp="showWarp"
-                        @show-nord="showNord"
-                        @reset-default="resetToDefault"
-                      />
+                      <BasicsTab :template-settings="templateSettings" :outbound-test-url="outboundTestUrl"
+                        :warp-exist="warpExist" :nord-exist="nordExist"
+                        @update:outbound-test-url="(v) => (outboundTestUrl = v)" @show-warp="showWarp"
+                        @show-nord="showNord" @reset-default="resetToDefault" />
                     </a-tab-pane>
 
                     <a-tab-pane key="tpl-routing" class="tab-pane">
                       <template #tab>
                         <SwapOutlined /> <span>{{ t('pages.xray.Routings') }}</span>
                       </template>
-                      <RoutingTab
-                        :template-settings="templateSettings"
-                        :inbound-tags="inboundTags"
-                        :client-reverse-tags="clientReverseTags"
-                        :is-mobile="isMobile"
-                      />
+                      <RoutingTab :template-settings="templateSettings" :inbound-tags="inboundTags"
+                        :client-reverse-tags="clientReverseTags" :is-mobile="isMobile" />
                     </a-tab-pane>
 
                     <a-tab-pane key="tpl-outbound" class="tab-pane">
                       <template #tab>
                         <UploadOutlined /> <span>{{ t('pages.xray.Outbounds') }}</span>
                       </template>
-                      <OutboundsTab
-                        :template-settings="templateSettings"
-                        :outbounds-traffic="outboundsTraffic"
-                        :outbound-test-states="outboundTestStates"
-                        :inbound-tags="inboundTags"
-                        :is-mobile="isMobile"
-                        @reset-traffic="resetOutboundsTraffic"
-                        @test="onTestOutbound"
-                        @delete="onDeleteOutbound"
-                        @show-warp="showWarp"
-                        @show-nord="showNord"
-                      />
+                      <OutboundsTab :template-settings="templateSettings" :outbounds-traffic="outboundsTraffic"
+                        :outbound-test-states="outboundTestStates" :inbound-tags="inboundTags" :is-mobile="isMobile"
+                        @reset-traffic="resetOutboundsTraffic" @test="onTestOutbound" @delete="onDeleteOutbound"
+                        @show-warp="showWarp" @show-nord="showNord" />
                     </a-tab-pane>
 
                     <a-tab-pane key="tpl-balancer" class="tab-pane">
                       <template #tab>
                         <ClusterOutlined /> <span>{{ t('pages.xray.Balancers') }}</span>
                       </template>
-                      <BalancersTab
-                        :template-settings="templateSettings"
-                        :client-reverse-tags="clientReverseTags"
-                      />
+                      <BalancersTab :template-settings="templateSettings" :client-reverse-tags="clientReverseTags" />
                     </a-tab-pane>
 
                     <a-tab-pane key="tpl-dns" class="tab-pane">
@@ -334,27 +301,16 @@ function confirmRestart() {
                       <template #tab>
                         <CodeOutlined /> <span>{{ t('pages.xray.advancedTemplate') }}</span>
                       </template>
-                      <a-list-item-meta
-                        :title="t('pages.xray.Template')"
-                        :description="t('pages.xray.TemplateDesc')"
-                      />
-                      <a-radio-group
-                        v-model:value="advSettings"
-                        button-style="solid"
-                        :size="isMobile ? 'small' : 'middle'"
-                        :style="{ margin: '12px 0' }"
-                      >
+                      <a-list-item-meta :title="t('pages.xray.Template')" :description="t('pages.xray.TemplateDesc')" />
+                      <a-radio-group v-model:value="advSettings" button-style="solid"
+                        :size="isMobile ? 'small' : 'middle'" :style="{ margin: '12px 0' }">
                         <a-radio-button value="xraySetting">{{ t('pages.xray.completeTemplate') }}</a-radio-button>
                         <a-radio-button value="inboundSettings">{{ t('pages.xray.Inbounds') }}</a-radio-button>
                         <a-radio-button value="outboundSettings">{{ t('pages.xray.Outbounds') }}</a-radio-button>
                         <a-radio-button value="routingRuleSettings">{{ t('pages.xray.Routings') }}</a-radio-button>
                       </a-radio-group>
-                      <a-textarea
-                        v-model:value="advancedText"
-                        :auto-size="{ minRows: 18, maxRows: 40 }"
-                        spellcheck="false"
-                        class="json-editor"
-                      />
+                      <a-textarea v-model:value="advancedText" :auto-size="{ minRows: 18, maxRows: 40 }"
+                        spellcheck="false" class="json-editor" />
                     </a-tab-pane>
                   </a-tabs>
                 </a-col>
@@ -364,21 +320,11 @@ function confirmRestart() {
         </a-layout-content>
       </a-layout>
 
-      <WarpModal
-        v-model:open="warpOpen"
-        :template-settings="templateSettings"
-        @add-outbound="onAddOutbound"
-        @reset-outbound="onResetOutbound"
-        @remove-outbound="onRemoveOutboundByTag"
-      />
-      <NordModal
-        v-model:open="nordOpen"
-        :template-settings="templateSettings"
-        @add-outbound="onAddOutbound"
-        @reset-outbound="onResetOutbound"
-        @remove-outbound="onRemoveOutboundByIndex"
-        @remove-routing-rules="onRemoveRoutingRules"
-      />
+      <WarpModal v-model:open="warpOpen" :template-settings="templateSettings" @add-outbound="onAddOutbound"
+        @reset-outbound="onResetOutbound" @remove-outbound="onRemoveOutboundByTag" />
+      <NordModal v-model:open="nordOpen" :template-settings="templateSettings" @add-outbound="onAddOutbound"
+        @reset-outbound="onResetOutbound" @remove-outbound="onRemoveOutboundByIndex"
+        @remove-routing-rules="onRemoveRoutingRules" />
     </a-layout>
   </a-config-provider>
 </template>
@@ -407,23 +353,36 @@ function confirmRestart() {
   background: transparent;
 }
 
-.content-shell { background: transparent; }
-.content-area { padding: 24px; }
+.content-shell {
+  background: transparent;
+}
 
-.loading-spacer { min-height: calc(100vh - 120px); }
+.content-area {
+  padding: 24px;
+}
+
+.loading-spacer {
+  min-height: calc(100vh - 120px);
+}
 
 .header-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
 }
-.header-actions { padding: 4px; }
+
+.header-actions {
+  padding: 4px;
+}
+
 .header-info {
   display: flex;
   justify-content: flex-end;
 }
 
-.tab-pane { padding-top: 20px; }
+.tab-pane {
+  padding-top: 20px;
+}
 
 .restart-icon {
   font-size: 16px;

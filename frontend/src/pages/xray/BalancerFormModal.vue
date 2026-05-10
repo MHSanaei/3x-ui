@@ -95,12 +95,7 @@ const okText = computed(() =>
   <a-modal :open="open" :title="title" :ok-text="okText" :cancel-text="t('close')"
     :ok-button-props="{ disabled: !isValid }" :mask-closable="false" @ok="onOk" @cancel="close">
     <a-form :colon="false" :label-col="{ md: { span: 8 } }" :wrapper-col="{ md: { span: 14 } }">
-      <a-form-item
-        label="Tag"
-        :validate-status="tagValidateStatus"
-        :help="tagHelp"
-        has-feedback
-      >
+      <a-form-item label="Tag" :validate-status="tagValidateStatus" :help="tagHelp" has-feedback>
         <a-input v-model:value="form.tag" placeholder="unique balancer tag" />
       </a-form-item>
 
@@ -110,12 +105,7 @@ const okText = computed(() =>
         </a-select>
       </a-form-item>
 
-      <a-form-item
-        label="Selector"
-        :validate-status="selectorValidateStatus"
-        :help="selectorHelp"
-        has-feedback
-      >
+      <a-form-item label="Selector" :validate-status="selectorValidateStatus" :help="selectorHelp" has-feedback>
         <a-select v-model:value="form.selector" mode="tags" :token-separators="[',']">
           <a-select-option v-for="tag in outboundTags" :key="tag" :value="tag">{{ tag }}</a-select-option>
         </a-select>

@@ -7,8 +7,12 @@ defineProps({
 
 <template>
   <a-statistic :title="title" :value="value">
-    <template #prefix><slot name="prefix" /></template>
-    <template #suffix><slot name="suffix" /></template>
+    <template #prefix>
+      <slot name="prefix" />
+    </template>
+    <template #suffix>
+      <slot name="suffix" />
+    </template>
   </a-statistic>
 </template>
 

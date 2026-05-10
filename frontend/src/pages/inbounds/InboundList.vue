@@ -276,8 +276,7 @@ function showQrCodeMenu(dbInbound) {
             <span class="card-id">#{{ record.id }}</span>
             <span class="tag-name">{{ record.remark }}</span>
             <div class="card-actions" @click.stop>
-              <a-switch :checked="record.enable" size="small"
-                @change="(next) => onSwitchEnable(record, next)" />
+              <a-switch :checked="record.enable" size="small" @change="(next) => onSwitchEnable(record, next)" />
               <a-dropdown :trigger="['click']" placement="bottomRight">
                 <MoreOutlined class="row-action-trigger" @click.prevent />
                 <template #overlay>
@@ -391,17 +390,17 @@ function showQrCodeMenu(dbInbound) {
                 :color="ColorUtils.usageColor(Date.now(), expireDiff, record._expiryTime)">
                 {{ IntlUtil.formatRelativeTime(record.expiryTime) }}
               </a-tag>
-              <a-tag v-else color="purple"><InfinityIcon /></a-tag>
+              <a-tag v-else color="purple">
+                <InfinityIcon />
+              </a-tag>
             </div>
           </div>
 
           <!-- Expanded client list (multi-user only) -->
           <div v-if="record.isMultiUser() && isExpanded(record.id)" class="card-clients">
-            <ClientRowTable :db-inbound="record" :is-mobile="true"
-              :traffic-diff="trafficDiff" :expire-diff="expireDiff" :online-clients="onlineClients"
-              :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme"
-              @edit-client="(p) => emit('edit-client', p)"
-              @qrcode-client="(p) => emit('qrcode-client', p)"
+            <ClientRowTable :db-inbound="record" :is-mobile="true" :traffic-diff="trafficDiff" :expire-diff="expireDiff"
+              :online-clients="onlineClients" :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme"
+              @edit-client="(p) => emit('edit-client', p)" @qrcode-client="(p) => emit('qrcode-client', p)"
               @info-client="(p) => emit('info-client', p)"
               @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
               @delete-client="(p) => emit('delete-client', p)"
@@ -412,8 +411,7 @@ function showQrCodeMenu(dbInbound) {
 
       <!-- ====================== Desktop: a-table ======================== -->
       <a-table v-else :columns="columns" :data-source="visibleInbounds" :row-key="(r) => r.id"
-        :pagination="paginationFor(visibleInbounds)" :scroll="{ x: 1000 }"
-        :style="{ marginTop: '10px' }" size="small"
+        :pagination="paginationFor(visibleInbounds)" :scroll="{ x: 1000 }" :style="{ marginTop: '10px' }" size="small"
         :row-class-name="(r) => (r.isMultiUser() ? '' : 'hide-expand-icon')">
         <!-- Per-inbound client list, expanded by clicking the row's
              default expand chevron. Hidden via row-class-name for
@@ -697,6 +695,7 @@ function showQrCodeMenu(dbInbound) {
   flex-direction: column;
   gap: 8px;
 }
+
 :global(body.dark) .inbound-card {
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.1);
@@ -709,10 +708,12 @@ function showQrCodeMenu(dbInbound) {
   cursor: pointer;
   user-select: none;
 }
+
 .card-id {
   font-size: 11px;
   opacity: 0.6;
 }
+
 .tag-name {
   font-weight: 600;
   flex: 1;
@@ -721,18 +722,21 @@ function showQrCodeMenu(dbInbound) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .card-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
+
 .card-expand {
   font-size: 12px;
   opacity: 0.6;
   transition: transform 150ms ease;
   flex-shrink: 0;
 }
+
 .card-expand.is-expanded {
   transform: rotate(90deg);
 }
@@ -742,12 +746,14 @@ function showQrCodeMenu(dbInbound) {
   flex-direction: column;
   gap: 6px;
 }
+
 .stat-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
 }
+
 .stat-label {
   font-size: 10px;
   text-transform: uppercase;
@@ -756,6 +762,7 @@ function showQrCodeMenu(dbInbound) {
   min-width: 96px;
   flex-shrink: 0;
 }
+
 .card-stats :deep(.ant-tag) {
   margin: 0;
 }
@@ -777,10 +784,12 @@ function showQrCodeMenu(dbInbound) {
     padding: 0 12px;
     min-height: 44px;
   }
+
   :deep(.ant-card-head-title),
   :deep(.ant-card-extra) {
     padding: 8px 0;
   }
+
   :deep(.ant-card-body) {
     padding: 8px;
   }
@@ -790,7 +799,8 @@ function showQrCodeMenu(dbInbound) {
     flex-wrap: wrap;
     gap: 6px;
   }
-  .filter-bar.mobile > * {
+
+  .filter-bar.mobile>* {
     margin-bottom: 0;
   }
 

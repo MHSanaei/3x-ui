@@ -19,8 +19,12 @@ const padding = computed(() =>
     <a-row :gutter="[8, 16]">
       <a-col :xs="24" :lg="12">
         <a-list-item-meta>
-          <template #title><slot name="title" /></template>
-          <template #description><slot name="description" /></template>
+          <template #title>
+            <slot name="title" />
+          </template>
+          <template #description>
+            <slot name="description" />
+          </template>
         </a-list-item-meta>
       </a-col>
       <a-col :xs="24" :lg="12">

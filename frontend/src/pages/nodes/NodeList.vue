@@ -76,19 +76,15 @@ function formatPct(p) {
   <a-card size="small" hoverable>
     <div class="toolbar">
       <a-button type="primary" @click="emit('add')">
-        <template #icon><PlusOutlined /></template>
+        <template #icon>
+          <PlusOutlined />
+        </template>
         {{ t('pages.nodes.addNode') }}
       </a-button>
     </div>
 
-    <a-table
-      :data-source="dataSource"
-      :pagination="false"
-      :loading="loading"
-      :scroll="{ x: 'max-content' }"
-      size="middle"
-      row-key="id"
-    >
+    <a-table :data-source="dataSource" :pagination="false" :loading="loading" :scroll="{ x: 'max-content' }"
+      size="middle" row-key="id">
       <template #expandedRowRender="{ record }">
         <NodeHistoryPanel :node="record" />
       </template>
@@ -110,7 +106,8 @@ function formatPct(p) {
       <a-table-column :title="t('pages.nodes.status')" data-index="status" align="center">
         <template #default="{ record }">
           <a-space :size="4">
-            <a-badge :status="statusColor(record.status) === 'green' ? 'success' : (statusColor(record.status) === 'red' ? 'error' : 'default')" />
+            <a-badge
+              :status="statusColor(record.status) === 'green' ? 'success' : (statusColor(record.status) === 'red' ? 'error' : 'default')" />
             <span>{{ t(`pages.nodes.statusValues.${record.status || 'unknown'}`) }}</span>
             <a-tooltip v-if="record.lastError" :title="record.lastError">
               <ExclamationCircleOutlined style="color: #faad14" />
@@ -150,11 +147,7 @@ function formatPct(p) {
 
       <a-table-column :title="t('pages.nodes.enable')" data-index="enable" align="center" :width="80">
         <template #default="{ record }">
-          <a-switch
-            :checked="record.enable"
-            size="small"
-            @change="(v) => emit('toggle-enable', record, v)"
-          />
+          <a-switch :checked="record.enable" size="small" @change="(v) => emit('toggle-enable', record, v)" />
         </template>
       </a-table-column>
 
@@ -163,17 +156,23 @@ function formatPct(p) {
           <a-space>
             <a-tooltip :title="t('pages.nodes.probe')">
               <a-button type="text" size="small" @click="emit('probe', record)">
-                <template #icon><ThunderboltOutlined /></template>
+                <template #icon>
+                  <ThunderboltOutlined />
+                </template>
               </a-button>
             </a-tooltip>
             <a-tooltip :title="t('edit')">
               <a-button type="text" size="small" @click="emit('edit', record)">
-                <template #icon><EditOutlined /></template>
+                <template #icon>
+                  <EditOutlined />
+                </template>
               </a-button>
             </a-tooltip>
             <a-tooltip :title="t('delete')">
               <a-button type="text" size="small" danger @click="emit('delete', record)">
-                <template #icon><DeleteOutlined /></template>
+                <template #icon>
+                  <DeleteOutlined />
+                </template>
               </a-button>
             </a-tooltip>
           </a-space>

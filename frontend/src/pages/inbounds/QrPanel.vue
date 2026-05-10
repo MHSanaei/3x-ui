@@ -107,11 +107,7 @@ function download() {
       </a-tooltip>
     </div>
     <div v-if="showQr" class="qr-panel-canvas">
-      <canvas
-        ref="canvas"
-        :style="{ width: `${size}px`, height: `${size}px` }"
-        @click="copy"
-      />
+      <canvas ref="canvas" :style="{ width: `${size}px`, height: `${size}px` }" @click="copy" />
     </div>
   </div>
 </template>
@@ -154,5 +150,4 @@ function download() {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
-
 </style>

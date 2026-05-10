@@ -39,19 +39,18 @@ function download(content, name) {
 
 <template>
   <a-modal :open="open" :title="title" :closable="true" @cancel="close">
-    <a-textarea
-      :value="content"
-      readonly
-      :auto-size="{ minRows: 10, maxRows: 20 }"
-      class="text-modal-content"
-    />
+    <a-textarea :value="content" readonly :auto-size="{ minRows: 10, maxRows: 20 }" class="text-modal-content" />
     <template #footer>
       <a-button v-if="fileName" @click="download(content, fileName)">
-        <template #icon><DownloadOutlined /></template>
+        <template #icon>
+          <DownloadOutlined />
+        </template>
         {{ fileName }}
       </a-button>
       <a-button type="primary" @click="copy(content)">
-        <template #icon><CopyOutlined /></template>
+        <template #icon>
+          <CopyOutlined />
+        </template>
         Copy
       </a-button>
     </template>

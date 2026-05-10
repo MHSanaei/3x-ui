@@ -754,7 +754,22 @@
         "useSystemHostsDesc": "使用已安装系统的hosts文件",
         "usePreset": "使用模板",
         "dnsPresetTitle": "DNS模板",
-        "dnsPresetFamily": "家庭"
+        "dnsPresetFamily": "家庭",
+        "serveStale": "提供过期结果",
+        "serveStaleDesc": "在后台刷新时返回过期的缓存结果",
+        "serveExpiredTTL": "过期TTL",
+        "serveExpiredTTLDesc": "过期缓存条目的有效期（秒）；0 = 永不过期",
+        "timeoutMs": "超时 (毫秒)",
+        "skipFallback": "跳过回退",
+        "finalQuery": "最终查询",
+        "hosts": "Hosts",
+        "hostsAdd": "添加 Host",
+        "hostsEmpty": "未定义任何 Host",
+        "hostsDomain": "域名 (例如 domain:example.com)",
+        "hostsValues": "IP 或域名 — 输入后按 Enter",
+        "clearAll": "删除全部",
+        "clearAllTitle": "删除所有 DNS 服务器？",
+        "clearAllConfirm": "此操作将从列表中删除所有 DNS 服务器，且无法撤销。"
       },
       "fakedns": {
         "add": "添加假 DNS",

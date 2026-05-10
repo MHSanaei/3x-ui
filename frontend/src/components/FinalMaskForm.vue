@@ -66,27 +66,23 @@ function newNoiseItem() {
 </script>
 
 <template>
-  <a-form
-    v-if="showTcp || showUdp || showQuic"
-    :colon="false"
-    :label-col="{ md: { span: 8 } }"
-    :wrapper-col="{ md: { span: 14 } }"
-  >
+  <a-form v-if="showTcp || showUdp || showQuic" :colon="false" :label-col="{ md: { span: 8 } }"
+    :wrapper-col="{ md: { span: 14 } }">
     <!-- ============================== TCP MASKS ============================== -->
     <template v-if="showTcp">
       <a-form-item label="TCP Masks">
         <a-button type="primary" size="small" @click="stream.addTcpMask('fragment')">
-          <template #icon><PlusOutlined /></template>
+          <template #icon>
+            <PlusOutlined />
+          </template>
         </a-button>
       </a-form-item>
 
       <template v-for="(mask, mIdx) in (stream.finalmask.tcp || [])" :key="`tcp-${mIdx}`">
         <a-divider :style="{ margin: '0' }">
           TCP Mask {{ mIdx + 1 }}
-          <DeleteOutlined
-            :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
-            @click="stream.delTcpMask(mIdx)"
-          />
+          <DeleteOutlined :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
+            @click="stream.delTcpMask(mIdx)" />
         </a-divider>
 
         <a-form-item label="Type">
@@ -144,16 +140,16 @@ function newNoiseItem() {
           <!-- Clients -->
           <a-form-item label="Clients">
             <a-button type="primary" size="small" @click="mask.settings.clients.push([newClientServerItem()])">
-              <template #icon><PlusOutlined /></template>
+              <template #icon>
+                <PlusOutlined />
+              </template>
             </a-button>
           </a-form-item>
           <template v-for="(group, gi) in mask.settings.clients" :key="`tcp-cg-${mIdx}-${gi}`">
             <a-divider :style="{ margin: '0' }">
               Clients Group {{ gi + 1 }}
-              <DeleteOutlined
-                :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
-                @click="mask.settings.clients.splice(gi, 1)"
-              />
+              <DeleteOutlined :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
+                @click="mask.settings.clients.splice(gi, 1)" />
             </a-divider>
             <template v-for="(item, ii) in group" :key="`tcp-ci-${mIdx}-${gi}-${ii}`">
               <a-form-item label="Type">
@@ -177,13 +173,12 @@ function newNoiseItem() {
               </template>
               <a-form-item v-else label="Packet">
                 <a-input-group v-if="item.type === 'base64'" compact>
-                  <a-input
-                    v-model:value="item.packet"
-                    placeholder="binary data"
-                    :style="{ width: 'calc(100% - 32px)' }"
-                  />
+                  <a-input v-model:value="item.packet" placeholder="binary data"
+                    :style="{ width: 'calc(100% - 32px)' }" />
                   <a-button @click="item.packet = RandomUtil.randomBase64()">
-                    <template #icon><ReloadOutlined /></template>
+                    <template #icon>
+                      <ReloadOutlined />
+                    </template>
                   </a-button>
                 </a-input-group>
                 <a-input v-else v-model:value="item.packet" placeholder="binary data" />
@@ -194,16 +189,16 @@ function newNoiseItem() {
           <!-- Servers -->
           <a-form-item label="Servers">
             <a-button type="primary" size="small" @click="mask.settings.servers.push([newClientServerItem()])">
-              <template #icon><PlusOutlined /></template>
+              <template #icon>
+                <PlusOutlined />
+              </template>
             </a-button>
           </a-form-item>
           <template v-for="(group, gi) in mask.settings.servers" :key="`tcp-sg-${mIdx}-${gi}`">
             <a-divider :style="{ margin: '0' }">
               Servers Group {{ gi + 1 }}
-              <DeleteOutlined
-                :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
-                @click="mask.settings.servers.splice(gi, 1)"
-              />
+              <DeleteOutlined :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
+                @click="mask.settings.servers.splice(gi, 1)" />
             </a-divider>
             <template v-for="(item, ii) in group" :key="`tcp-si-${mIdx}-${gi}-${ii}`">
               <a-form-item label="Type">
@@ -227,13 +222,12 @@ function newNoiseItem() {
               </template>
               <a-form-item v-else label="Packet">
                 <a-input-group v-if="item.type === 'base64'" compact>
-                  <a-input
-                    v-model:value="item.packet"
-                    placeholder="binary data"
-                    :style="{ width: 'calc(100% - 32px)' }"
-                  />
+                  <a-input v-model:value="item.packet" placeholder="binary data"
+                    :style="{ width: 'calc(100% - 32px)' }" />
                   <a-button @click="item.packet = RandomUtil.randomBase64()">
-                    <template #icon><ReloadOutlined /></template>
+                    <template #icon>
+                      <ReloadOutlined />
+                    </template>
                   </a-button>
                 </a-input-group>
                 <a-input v-else v-model:value="item.packet" placeholder="binary data" />
@@ -248,17 +242,17 @@ function newNoiseItem() {
     <template v-if="showUdp">
       <a-form-item label="UDP Masks">
         <a-button type="primary" size="small" @click="addUdpMaskWithDefault">
-          <template #icon><PlusOutlined /></template>
+          <template #icon>
+            <PlusOutlined />
+          </template>
         </a-button>
       </a-form-item>
 
       <template v-for="(mask, mIdx) in (stream.finalmask.udp || [])" :key="`udp-${mIdx}`">
         <a-divider :style="{ margin: '0' }">
           UDP Mask {{ mIdx + 1 }}
-          <DeleteOutlined
-            :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
-            @click="stream.delUdpMask(mIdx)"
-          />
+          <DeleteOutlined :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
+            @click="stream.delUdpMask(mIdx)" />
         </a-divider>
 
         <a-form-item label="Type">
@@ -290,13 +284,8 @@ function newNoiseItem() {
           <a-input v-model:value="mask.settings.domain" placeholder="e.g., www.example.com" />
         </a-form-item>
         <a-form-item v-if="mask.type === 'xdns'" label="Domains">
-          <a-select
-            v-model:value="mask.settings.domains"
-            mode="tags"
-            :style="{ width: '100%' }"
-            :token-separators="[',']"
-            placeholder="e.g., www.example.com"
-          />
+          <a-select v-model:value="mask.settings.domains" mode="tags" :style="{ width: '100%' }"
+            :token-separators="[',']" placeholder="e.g., www.example.com" />
         </a-form-item>
 
         <!-- Noise -->
@@ -306,16 +295,16 @@ function newNoiseItem() {
           </a-form-item>
           <a-form-item label="Noise">
             <a-button type="primary" size="small" @click="mask.settings.noise.push(newNoiseItem())">
-              <template #icon><PlusOutlined /></template>
+              <template #icon>
+                <PlusOutlined />
+              </template>
             </a-button>
           </a-form-item>
           <template v-for="(n, ni) in mask.settings.noise" :key="`udp-noise-${mIdx}-${ni}`">
             <a-divider :style="{ margin: '0' }">
               Noise {{ ni + 1 }}
-              <DeleteOutlined
-                :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
-                @click="mask.settings.noise.splice(ni, 1)"
-              />
+              <DeleteOutlined :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
+                @click="mask.settings.noise.splice(ni, 1)" />
             </a-divider>
             <a-form-item label="Type">
               <a-select :value="n.type" @change="(t) => changeItemType(n, t)">
@@ -335,13 +324,11 @@ function newNoiseItem() {
             </template>
             <a-form-item v-else label="Packet">
               <a-input-group v-if="n.type === 'base64'" compact>
-                <a-input
-                  v-model:value="n.packet"
-                  placeholder="binary data"
-                  :style="{ width: 'calc(100% - 32px)' }"
-                />
+                <a-input v-model:value="n.packet" placeholder="binary data" :style="{ width: 'calc(100% - 32px)' }" />
                 <a-button @click="n.packet = RandomUtil.randomBase64()">
-                  <template #icon><ReloadOutlined /></template>
+                  <template #icon>
+                    <ReloadOutlined />
+                  </template>
                 </a-button>
               </a-input-group>
               <a-input v-else v-model:value="n.packet" placeholder="binary data" />
@@ -356,16 +343,16 @@ function newNoiseItem() {
         <template v-if="mask.type === 'header-custom'">
           <a-form-item label="Client">
             <a-button type="primary" size="small" @click="mask.settings.client.push(newUdpClientServerItem())">
-              <template #icon><PlusOutlined /></template>
+              <template #icon>
+                <PlusOutlined />
+              </template>
             </a-button>
           </a-form-item>
           <template v-for="(c, ci) in mask.settings.client" :key="`udp-c-${mIdx}-${ci}`">
             <a-divider :style="{ margin: '0' }">
               Client {{ ci + 1 }}
-              <DeleteOutlined
-                :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
-                @click="mask.settings.client.splice(ci, 1)"
-              />
+              <DeleteOutlined :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
+                @click="mask.settings.client.splice(ci, 1)" />
             </a-divider>
             <a-form-item label="Type">
               <a-select :value="c.type" @change="(t) => changeItemType(c, t)">
@@ -385,13 +372,11 @@ function newNoiseItem() {
             </template>
             <a-form-item v-else label="Packet">
               <a-input-group v-if="c.type === 'base64'" compact>
-                <a-input
-                  v-model:value="c.packet"
-                  placeholder="binary data"
-                  :style="{ width: 'calc(100% - 32px)' }"
-                />
+                <a-input v-model:value="c.packet" placeholder="binary data" :style="{ width: 'calc(100% - 32px)' }" />
                 <a-button @click="c.packet = RandomUtil.randomBase64()">
-                  <template #icon><ReloadOutlined /></template>
+                  <template #icon>
+                    <ReloadOutlined />
+                  </template>
                 </a-button>
               </a-input-group>
               <a-input v-else v-model:value="c.packet" placeholder="binary data" />
@@ -401,16 +386,16 @@ function newNoiseItem() {
           <a-divider :style="{ margin: '0' }" />
           <a-form-item label="Server">
             <a-button type="primary" size="small" @click="mask.settings.server.push(newUdpClientServerItem())">
-              <template #icon><PlusOutlined /></template>
+              <template #icon>
+                <PlusOutlined />
+              </template>
             </a-button>
           </a-form-item>
           <template v-for="(s, si) in mask.settings.server" :key="`udp-s-${mIdx}-${si}`">
             <a-divider :style="{ margin: '0' }">
               Server {{ si + 1 }}
-              <DeleteOutlined
-                :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
-                @click="mask.settings.server.splice(si, 1)"
-              />
+              <DeleteOutlined :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
+                @click="mask.settings.server.splice(si, 1)" />
             </a-divider>
             <a-form-item label="Type">
               <a-select :value="s.type" @change="(t) => changeItemType(s, t)">
@@ -430,13 +415,11 @@ function newNoiseItem() {
             </template>
             <a-form-item v-else label="Packet">
               <a-input-group v-if="s.type === 'base64'" compact>
-                <a-input
-                  v-model:value="s.packet"
-                  placeholder="binary data"
-                  :style="{ width: 'calc(100% - 32px)' }"
-                />
+                <a-input v-model:value="s.packet" placeholder="binary data" :style="{ width: 'calc(100% - 32px)' }" />
                 <a-button @click="s.packet = RandomUtil.randomBase64()">
-                  <template #icon><ReloadOutlined /></template>
+                  <template #icon>
+                    <ReloadOutlined />
+                  </template>
                 </a-button>
               </a-input-group>
               <a-input v-else v-model:value="s.packet" placeholder="binary data" />
@@ -502,39 +485,24 @@ function newNoiseItem() {
           <a-switch v-model:checked="stream.finalmask.quicParams.disablePathMTUDiscovery" />
         </a-form-item>
         <a-form-item label="Max Incoming Streams">
-          <a-input-number
-            v-model:value="stream.finalmask.quicParams.maxIncomingStreams"
-            :min="8"
-            placeholder="1024 = default"
-          />
+          <a-input-number v-model:value="stream.finalmask.quicParams.maxIncomingStreams" :min="8"
+            placeholder="1024 = default" />
         </a-form-item>
         <a-form-item label="Init Stream Window">
-          <a-input-number
-            v-model:value="stream.finalmask.quicParams.initStreamReceiveWindow"
-            :min="16384"
-            placeholder="8388608 = default"
-          />
+          <a-input-number v-model:value="stream.finalmask.quicParams.initStreamReceiveWindow" :min="16384"
+            placeholder="8388608 = default" />
         </a-form-item>
         <a-form-item label="Max Stream Window">
-          <a-input-number
-            v-model:value="stream.finalmask.quicParams.maxStreamReceiveWindow"
-            :min="16384"
-            placeholder="8388608 = default"
-          />
+          <a-input-number v-model:value="stream.finalmask.quicParams.maxStreamReceiveWindow" :min="16384"
+            placeholder="8388608 = default" />
         </a-form-item>
         <a-form-item label="Init Conn Window">
-          <a-input-number
-            v-model:value="stream.finalmask.quicParams.initConnectionReceiveWindow"
-            :min="16384"
-            placeholder="20971520 = default"
-          />
+          <a-input-number v-model:value="stream.finalmask.quicParams.initConnectionReceiveWindow" :min="16384"
+            placeholder="20971520 = default" />
         </a-form-item>
         <a-form-item label="Max Conn Window">
-          <a-input-number
-            v-model:value="stream.finalmask.quicParams.maxConnectionReceiveWindow"
-            :min="16384"
-            placeholder="20971520 = default"
-          />
+          <a-input-number v-model:value="stream.finalmask.quicParams.maxConnectionReceiveWindow" :min="16384"
+            placeholder="20971520 = default" />
         </a-form-item>
       </template>
     </template>

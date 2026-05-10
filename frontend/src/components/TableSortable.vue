@@ -266,33 +266,44 @@ export default defineComponent({
   user-select: none;
   touch-action: none;
 }
+
 .sortable-icon:hover {
   color: rgba(255, 255, 255, 0.85);
   background: rgba(255, 255, 255, 0.06);
 }
-.sortable-icon:active { cursor: grabbing; }
+
+.sortable-icon:active {
+  cursor: grabbing;
+}
+
 .sortable-icon:focus-visible {
   outline: 2px solid #008771;
   outline-offset: 2px;
 }
 
-.light .sortable-icon { color: rgba(0, 0, 0, 0.45); }
+.light .sortable-icon {
+  color: rgba(0, 0, 0, 0.45);
+}
+
 .light .sortable-icon:hover {
   color: rgba(0, 0, 0, 0.85);
   background: rgba(0, 0, 0, 0.05);
 }
 
-.sortable-table-dragging .sortable-source-row > td {
+.sortable-table-dragging .sortable-source-row>td {
   background: rgba(0, 135, 113, 0.10) !important;
   transition: background-color 0.18s ease;
 }
+
 .sortable-table-dragging .sortable-source-row .routing-index,
 .sortable-table-dragging .sortable-source-row .outbound-index {
   opacity: 0.45;
 }
-.sortable-table-dragging .sortable-row > td {
+
+.sortable-table-dragging .sortable-row>td {
   transition: background-color 0.18s ease;
 }
+
 .sortable-table-dragging,
 .sortable-table-dragging * {
   user-select: none;

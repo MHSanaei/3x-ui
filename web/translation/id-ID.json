@@ -754,7 +754,22 @@
         "useSystemHostsDesc": "Gunakan file hosts dari sistem yang terinstal",
         "usePreset": "Gunakan templat",
         "dnsPresetTitle": "Templat DNS",
-        "dnsPresetFamily": "Keluarga"
+        "dnsPresetFamily": "Keluarga",
+        "serveStale": "Sajikan Kedaluwarsa",
+        "serveStaleDesc": "Mengembalikan hasil cache yang kedaluwarsa saat memperbarui di latar belakang",
+        "serveExpiredTTL": "TTL Kedaluwarsa",
+        "serveExpiredTTLDesc": "Masa berlaku (detik) entri cache kedaluwarsa; 0 = tidak pernah kedaluwarsa",
+        "timeoutMs": "Batas waktu (ms)",
+        "skipFallback": "Lewati Fallback",
+        "finalQuery": "Kueri Akhir",
+        "hosts": "Hosts",
+        "hostsAdd": "Tambah Host",
+        "hostsEmpty": "Tidak ada Host yang ditentukan",
+        "hostsDomain": "Domain (mis. domain:example.com)",
+        "hostsValues": "IP atau domain — ketik dan tekan Enter",
+        "clearAll": "Hapus Semua",
+        "clearAllTitle": "Hapus semua server DNS?",
+        "clearAllConfirm": "Ini akan menghapus semua server DNS dari daftar. Tidak dapat dibatalkan."
       },
       "fakedns": {
         "add": "Tambahkan DNS Palsu",

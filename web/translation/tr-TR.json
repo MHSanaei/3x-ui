@@ -754,7 +754,22 @@
         "useSystemHostsDesc": "Yüklü bir sistemden hosts dosyasını kullan",
         "usePreset": "Şablon kullan",
         "dnsPresetTitle": "DNS Şablonları",
-        "dnsPresetFamily": "Aile"
+        "dnsPresetFamily": "Aile",
+        "serveStale": "Süresi Dolmuş Sonuçları Sun",
+        "serveStaleDesc": "Arka planda yenilenirken süresi dolmuş önbellek sonuçlarını döndür",
+        "serveExpiredTTL": "Süresi Dolmuş TTL",
+        "serveExpiredTTLDesc": "Süresi dolmuş önbellek girdilerinin geçerlilik süresi (saniye); 0 = asla",
+        "timeoutMs": "Zaman aşımı (ms)",
+        "skipFallback": "Yedekleri Atla",
+        "finalQuery": "Son Sorgu",
+        "hosts": "Hosts",
+        "hostsAdd": "Host Ekle",
+        "hostsEmpty": "Tanımlı Host yok",
+        "hostsDomain": "Alan adı (ör. domain:example.com)",
+        "hostsValues": "IP veya alan adı — yazıp Enter'a basın",
+        "clearAll": "Tümünü Sil",
+        "clearAllTitle": "Tüm DNS sunucularını sil?",
+        "clearAllConfirm": "Bu, tüm DNS sunucularını listeden kaldırır. Geri alınamaz."
       },
       "fakedns": {
         "add": "Sahte DNS Ekle",

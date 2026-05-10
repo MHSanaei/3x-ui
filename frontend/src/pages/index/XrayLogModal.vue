@@ -161,7 +161,12 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '80vw'));
       <table v-else class="xraylog-table">
         <thead>
           <tr>
-            <th>Date</th><th>From</th><th>To</th><th>Inbound</th><th>Outbound</th><th>Email</th>
+            <th>Date</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Inbound</th>
+            <th>Outbound</th>
+            <th>Email</th>
           </tr>
         </thead>
         <tbody>
@@ -190,9 +195,11 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '80vw'));
   flex-wrap: wrap;
   row-gap: 8px;
 }
+
 .log-toolbar .filter-item {
   flex: 1 1 160px;
 }
+
 .log-toolbar .download-item {
   margin-left: auto;
 }
@@ -201,7 +208,7 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '80vw'));
   /* Per-theme palette — overridden in body.dark / [data-theme="ultra-dark"]
      below so blocked/proxy rows keep ≥4.5:1 contrast on darker surfaces. */
   --log-blocked: #e04141;
-  --log-proxy:   #3c89e8;
+  --log-proxy: #3c89e8;
   --log-divider: rgba(128, 128, 128, 0.18);
 
   margin-top: 12px;
@@ -215,6 +222,7 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '80vw'));
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.04);
 }
+
 .log-container-mobile {
   padding: 8px;
   font-size: 12px;
@@ -231,7 +239,10 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '80vw'));
   border-bottom: 1px solid var(--log-divider);
   padding: 8px 0;
 }
-.log-card:last-child { border-bottom: 0; }
+
+.log-card:last-child {
+  border-bottom: 0;
+}
 
 .log-card-head {
   display: flex;
@@ -240,11 +251,13 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '80vw'));
   gap: 8px;
   margin-bottom: 4px;
 }
+
 .log-time {
   font-weight: 600;
   font-size: 12px;
   letter-spacing: 0.02em;
 }
+
 .log-event-tag {
   margin: 0;
   font-size: 10px;
@@ -260,9 +273,11 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '80vw'));
   font-size: 12px;
   margin-bottom: 4px;
 }
+
 .log-addr {
   word-break: break-all;
 }
+
 .log-arrow {
   opacity: 0.5;
 }
@@ -274,12 +289,14 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '80vw'));
   font-size: 11px;
   opacity: 0.75;
 }
+
 .log-meta-pair {
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
   word-break: break-all;
 }
+
 .log-meta-key {
   font-size: 10px;
   text-transform: uppercase;
@@ -293,13 +310,13 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '80vw'));
   color: rgba(255, 255, 255, 0.88);
 
   --log-blocked: #ff7575;
-  --log-proxy:   #6aa6ee;
+  --log-proxy: #6aa6ee;
   --log-divider: rgba(255, 255, 255, 0.1);
 }
 
 :global([data-theme="ultra-dark"]) .log-container {
   --log-blocked: #ff8a8a;
-  --log-proxy:   #7fb6f1;
+  --log-proxy: #7fb6f1;
   --log-divider: rgba(255, 255, 255, 0.12);
 }
 
@@ -309,10 +326,12 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '80vw'));
   padding-bottom: 0 !important;
   max-width: 100vw !important;
 }
+
 :global(.xraylog-modal-mobile .ant-modal-content) {
   border-radius: 0;
   height: 100vh;
 }
+
 :global(.xraylog-modal-mobile .ant-modal-body) {
   padding: 12px;
 }
@@ -321,11 +340,18 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '80vw'));
   border-collapse: collapse;
   width: 100%;
 }
+
 .xraylog-table td,
 .xraylog-table th {
   padding: 2px 15px;
   text-align: left;
 }
-.xraylog-table .log-row-1 { color: var(--log-blocked); }
-.xraylog-table .log-row-2 { color: var(--log-proxy); }
+
+.xraylog-table .log-row-1 {
+  color: var(--log-blocked);
+}
+
+.xraylog-table .log-row-2 {
+  color: var(--log-proxy);
+}
 </style>

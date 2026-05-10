@@ -79,33 +79,15 @@ watch(() => props.node?.id, (a, b) => {
   <div class="node-history-panel">
     <div class="series">
       <div class="series-title">{{ t('pages.nodes.cpu') }}</div>
-      <Sparkline
-        :data="cpuPoints"
-        :labels="cpuLabels"
-        :vb-width="640" :height="120"
-        stroke="#008771"
-        :show-grid="true" :show-axes="true"
-        :tick-count-x="4"
-        :max-points="cpuPoints.length || 1"
-        :fill-opacity="0.18"
-        :marker-radius="2.6"
-        :show-tooltip="true"
-      />
+      <Sparkline :data="cpuPoints" :labels="cpuLabels" :vb-width="640" :height="120" stroke="#008771" :show-grid="true"
+        :show-axes="true" :tick-count-x="4" :max-points="cpuPoints.length || 1" :fill-opacity="0.18"
+        :marker-radius="2.6" :show-tooltip="true" />
     </div>
     <div class="series">
       <div class="series-title">{{ t('pages.nodes.mem') }}</div>
-      <Sparkline
-        :data="memPoints"
-        :labels="memLabels"
-        :vb-width="640" :height="120"
-        stroke="#7c4dff"
-        :show-grid="true" :show-axes="true"
-        :tick-count-x="4"
-        :max-points="memPoints.length || 1"
-        :fill-opacity="0.18"
-        :marker-radius="2.6"
-        :show-tooltip="true"
-      />
+      <Sparkline :data="memPoints" :labels="memLabels" :vb-width="640" :height="120" stroke="#7c4dff" :show-grid="true"
+        :show-axes="true" :tick-count-x="4" :max-points="memPoints.length || 1" :fill-opacity="0.18"
+        :marker-radius="2.6" :show-tooltip="true" />
     </div>
   </div>
 </template>

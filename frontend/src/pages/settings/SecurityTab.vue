@@ -221,12 +221,7 @@ function toggleTwoFactor() {
         <template #title>{{ t('pages.nodes.apiToken') }}</template>
         <template #description>{{ t('pages.nodes.apiTokenHint') }}</template>
         <template #control>
-          <a-input-password
-            :value="apiToken"
-            readonly
-            :loading="apiTokenLoading"
-            style="min-width: 240px"
-          />
+          <a-input-password :value="apiToken" readonly :loading="apiTokenLoading" style="min-width: 240px" />
         </template>
       </SettingListItem>
       <a-list-item>

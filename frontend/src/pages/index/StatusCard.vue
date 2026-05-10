@@ -30,8 +30,8 @@ const trailColor = 'rgba(128, 128, 128, 0.25)';
       <a-col :xs="24" :md="12">
         <a-row>
           <a-col :span="12" class="text-center">
-            <a-progress type="dashboard" status="normal" :stroke-color="status.cpu.color"
-              :trail-color="trailColor" :percent="status.cpu.percent" :width="gaugeSize" />
+            <a-progress type="dashboard" status="normal" :stroke-color="status.cpu.color" :trail-color="trailColor"
+              :percent="status.cpu.percent" :width="gaugeSize" />
             <div>
               <b>{{ t('pages.index.cpu') }}:</b> {{ CPUFormatter.cpuCoreFormat(status.cpuCores) }}
               <a-tooltip>
@@ -46,8 +46,8 @@ const trailColor = 'rgba(128, 128, 128, 0.25)';
           </a-col>
 
           <a-col :span="12" class="text-center">
-            <a-progress type="dashboard" status="normal" :stroke-color="status.mem.color"
-              :trail-color="trailColor" :percent="status.mem.percent" :width="gaugeSize" />
+            <a-progress type="dashboard" status="normal" :stroke-color="status.mem.color" :trail-color="trailColor"
+              :percent="status.mem.percent" :width="gaugeSize" />
             <div>
               <b>{{ t('pages.index.memory') }}:</b> {{ SizeFormatter.sizeFormat(status.mem.current) }} /
               {{ SizeFormatter.sizeFormat(status.mem.total) }}
@@ -60,8 +60,8 @@ const trailColor = 'rgba(128, 128, 128, 0.25)';
       <a-col :xs="24" :md="12">
         <a-row>
           <a-col :span="12" class="text-center">
-            <a-progress type="dashboard" status="normal" :stroke-color="status.swap.color"
-              :trail-color="trailColor" :percent="status.swap.percent" :width="gaugeSize" />
+            <a-progress type="dashboard" status="normal" :stroke-color="status.swap.color" :trail-color="trailColor"
+              :percent="status.swap.percent" :width="gaugeSize" />
             <div>
               <b>{{ t('pages.index.swap') }}:</b> {{ SizeFormatter.sizeFormat(status.swap.current) }} /
               {{ SizeFormatter.sizeFormat(status.swap.total) }}
@@ -69,8 +69,8 @@ const trailColor = 'rgba(128, 128, 128, 0.25)';
           </a-col>
 
           <a-col :span="12" class="text-center">
-            <a-progress type="dashboard" status="normal" :stroke-color="status.disk.color"
-              :trail-color="trailColor" :percent="status.disk.percent" :width="gaugeSize" />
+            <a-progress type="dashboard" status="normal" :stroke-color="status.disk.color" :trail-color="trailColor"
+              :percent="status.disk.percent" :width="gaugeSize" />
             <div>
               <b>{{ t('pages.index.storage') }}:</b> {{ SizeFormatter.sizeFormat(status.disk.current) }} /
               {{ SizeFormatter.sizeFormat(status.disk.total) }}

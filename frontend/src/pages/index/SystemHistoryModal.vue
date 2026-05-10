@@ -130,12 +130,9 @@ watch([activeKey, bucket], () => {
       <div class="cpu-chart-meta">
         Timeframe: {{ bucket }} sec per point (total {{ points.length }} points)
       </div>
-      <Sparkline :data="points" :labels="labels" :vb-width="840" :height="220"
-        :stroke="strokeColor" :stroke-width="2.2"
-        :show-grid="true" :show-axes="true" :tick-count-x="5"
-        :max-points="points.length || 1"
-        :fill-opacity="0.18" :marker-radius="3.2" :show-tooltip="true"
-        :value-min="0" :value-max="activeMetric?.valueMax ?? null"
+      <Sparkline :data="points" :labels="labels" :vb-width="840" :height="220" :stroke="strokeColor" :stroke-width="2.2"
+        :show-grid="true" :show-axes="true" :tick-count-x="5" :max-points="points.length || 1" :fill-opacity="0.18"
+        :marker-radius="3.2" :show-tooltip="true" :value-min="0" :value-max="activeMetric?.valueMax ?? null"
         :y-formatter="yFormatter" />
     </div>
   </a-modal>

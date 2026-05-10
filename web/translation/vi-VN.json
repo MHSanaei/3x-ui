@@ -754,7 +754,22 @@
         "useSystemHostsDesc": "Sử dụng file hosts từ hệ thống đã cài đặt",
         "usePreset": "Dùng mẫu",
         "dnsPresetTitle": "Mẫu DNS",
-        "dnsPresetFamily": "Gia đình"
+        "dnsPresetFamily": "Gia đình",
+        "serveStale": "Phục vụ kết quả hết hạn",
+        "serveStaleDesc": "Trả về kết quả cache đã hết hạn trong khi làm mới ở chế độ nền",
+        "serveExpiredTTL": "TTL hết hạn",
+        "serveExpiredTTLDesc": "Thời gian hiệu lực (giây) của các mục cache hết hạn; 0 = không bao giờ hết hạn",
+        "timeoutMs": "Thời gian chờ (ms)",
+        "skipFallback": "Bỏ qua Fallback",
+        "finalQuery": "Truy vấn cuối",
+        "hosts": "Hosts",
+        "hostsAdd": "Thêm Host",
+        "hostsEmpty": "Chưa có Host nào",
+        "hostsDomain": "Tên miền (vd. domain:example.com)",
+        "hostsValues": "IP hoặc tên miền — nhập và nhấn Enter",
+        "clearAll": "Xóa tất cả",
+        "clearAllTitle": "Xóa tất cả máy chủ DNS?",
+        "clearAllConfirm": "Thao tác này sẽ xóa toàn bộ máy chủ DNS khỏi danh sách. Không thể hoàn tác."
       },
       "fakedns": {
         "add": "Thêm DNS giả",

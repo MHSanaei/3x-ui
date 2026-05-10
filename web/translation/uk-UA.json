@@ -754,7 +754,22 @@
         "useSystemHostsDesc": "Використовувати файл hosts з встановленої системи",
         "usePreset": "Використати шаблон",
         "dnsPresetTitle": "Шаблони DNS",
-        "dnsPresetFamily": "Сімейний"
+        "dnsPresetFamily": "Сімейний",
+        "serveStale": "Видавати застарілі",
+        "serveStaleDesc": "Повертати застарілі результати з кешу під час фонового оновлення",
+        "serveExpiredTTL": "TTL застарілих",
+        "serveExpiredTTLDesc": "Термін дії (секунди) застарілих записів кешу; 0 = ніколи",
+        "timeoutMs": "Тайм-аут (мс)",
+        "skipFallback": "Пропустити Fallback",
+        "finalQuery": "Фінальний запит",
+        "hosts": "Hosts",
+        "hostsAdd": "Додати Host",
+        "hostsEmpty": "Host не визначено",
+        "hostsDomain": "Домен (напр. domain:example.com)",
+        "hostsValues": "IP або домен — введіть і натисніть Enter",
+        "clearAll": "Видалити всі",
+        "clearAllTitle": "Видалити всі DNS-сервери?",
+        "clearAllConfirm": "Усі DNS-сервери буде видалено зі списку. Дію не можна скасувати."
       },
       "fakedns": {
         "add": "Додати підроблений DNS",

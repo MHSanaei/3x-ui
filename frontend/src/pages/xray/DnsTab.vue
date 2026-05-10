@@ -1,23 +1,20 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Modal } from 'ant-design-vue';
 import {
   PlusOutlined,
   MoreOutlined,
   EditOutlined,
   DeleteOutlined,
+  MenuOutlined,
 } from '@ant-design/icons-vue';
 
 import SettingListItem from '@/components/SettingListItem.vue';
 import DnsServerModal from './DnsServerModal.vue';
+import DnsPresetsModal from './DnsPresetsModal.vue';
 
 const { t } = useI18n();
-
-// Structured DNS editor — mirrors web/html/settings/xray/dns.html.
-// Master enable switch + general DNS options + per-server table with
-// add/edit/delete (modal flow), plus a Fake DNS table. Both lists
-// flow through templateSettings.dns / .fakedns reactively so the
-// useXraySetting composable picks every edit up via its deep watch.
 
 const props = defineProps({
   templateSettings: { type: Object, default: null },
@@ -25,7 +22,6 @@ const props = defineProps({
 
 const STRATEGIES = ['UseSystem', 'UseIP', 'UseIPv4', 'UseIPv6'];
 
-// ============== Master toggle ==============
 const enableDNS = computed({
   get: () => !!props.templateSettings?.dns,
   set: (next) => {
@@ -40,6 +36,9 @@ const enableDNS = computed({
         disableFallbackIfMatch: false,
         useSystemHosts: false,
         enableParallelQuery: false,
+        serveStale: false,
+        serveExpiredTTL: 0,
+        hosts: {},
         servers: [],
       };
       props.templateSettings.fakedns = null;
@@ -50,7 +49,6 @@ const enableDNS = computed({
   },
 });
 
-// ============== Field bridges ==============
 function dnsField(field, fallback) {
   return computed({
     get: () => props.templateSettings?.dns?.[field] ?? fallback,
@@ -68,8 +66,53 @@ const dnsDisableFallback = dnsField('disableFallback', false);
 const dnsDisableFallbackIfMatch = dnsField('disableFallbackIfMatch', false);
 const dnsEnableParallelQuery = dnsField('enableParallelQuery', false);
 const dnsUseSystemHosts = dnsField('useSystemHosts', false);
+const dnsServeStale = dnsField('serveStale', false);
+const dnsServeExpiredTTL = dnsField('serveExpiredTTL', 0);
 
-// ============== DNS server table ==============
+const hostsList = ref([]);
+
+function hydrateHostsFromBackend() {
+  const src = props.templateSettings?.dns?.hosts || {};
+  hostsList.value = Object.entries(src).map(([domain, val]) => ({
+    domain,
+    values: Array.isArray(val) ? [...val] : [String(val)],
+  }));
+}
+
+function syncHostsToBackend() {
+  if (!props.templateSettings?.dns) return;
+  const obj = {};
+  for (const row of hostsList.value) {
+    if (!row.domain) continue;
+    const vals = (row.values || []).filter(Boolean);
+    if (vals.length === 0) continue;
+    obj[row.domain] = vals.length === 1 ? vals[0] : vals;
+  }
+  if (Object.keys(obj).length > 0) {
+    props.templateSettings.dns.hosts = obj;
+  } else if ('hosts' in props.templateSettings.dns) {
+    delete props.templateSettings.dns.hosts;
+  }
+}
+
+watch(
+  () => !!props.templateSettings?.dns,
+  (enabled) => {
+    if (enabled) hydrateHostsFromBackend();
+    else hostsList.value = [];
+  },
+  { immediate: true },
+);
+
+watch(hostsList, syncHostsToBackend, { deep: true });
+
+function addHost() {
+  hostsList.value.push({ domain: '', values: [] });
+}
+function deleteHost(idx) {
+  hostsList.value.splice(idx, 1);
+}
+
 const dnsServers = computed(() => {
   const list = props.templateSettings?.dns?.servers || [];
   return list.map((s, idx) => ({ key: idx, server: s }));
@@ -79,7 +122,7 @@ const dnsColumns = computed(() => [
   { title: '#', key: 'action', align: 'center', width: 60 },
   { title: t('pages.inbounds.address'), key: 'address', align: 'left' },
   { title: t('pages.xray.dns.domains'), key: 'domains', align: 'left' },
-  { title: t('pages.xray.dns.expectIPs'), key: 'expectIPs', align: 'left' },
+  { title: t('pages.xray.dns.expectIPs'), key: 'expectedIPs', align: 'left' },
 ]);
 
 function addrFor(server) {
@@ -88,8 +131,10 @@ function addrFor(server) {
 function domainsFor(server) {
   return typeof server === 'object' ? (server.domains || []).join(',') : '';
 }
-function expectIPsFor(server) {
-  return typeof server === 'object' ? (server.expectIPs || []).join(',') : '';
+function expectedIPsFor(server) {
+  if (typeof server !== 'object' || !server) return '';
+  const list = server.expectedIPs || server.expectIPs || [];
+  return Array.isArray(list) ? list.join(',') : '';
 }
 
 // ============== Server modal ==============
@@ -121,6 +166,27 @@ function onServerConfirm(value) {
 }
 function deleteServer(idx) {
   props.templateSettings.dns.servers.splice(idx, 1);
+}
+function clearAllServers() {
+  if (!props.templateSettings?.dns) return;
+  Modal.confirm({
+    title: t('pages.xray.dns.clearAllTitle'),
+    content: t('pages.xray.dns.clearAllConfirm'),
+    okText: t('delete'),
+    okButtonProps: { danger: true },
+    cancelText: t('cancel'),
+    onOk() {
+      props.templateSettings.dns.servers = [];
+    },
+  });
+}
+
+const presetsModalOpen = ref(false);
+function openPresets() { presetsModalOpen.value = true; }
+function onPresetInstall(serverList) {
+  if (!props.templateSettings?.dns) return;
+  props.templateSettings.dns.servers = serverList;
+  presetsModalOpen.value = false;
 }
 
 // ============== Fake DNS table ==============
@@ -239,32 +305,102 @@ function updateFakednsField(idx, field, value) {
             <a-switch v-model:checked="dnsUseSystemHosts" />
           </template>
         </SettingListItem>
+
+        <SettingListItem paddings="small">
+          <template #title>{{ t('pages.xray.dns.serveStale') }}</template>
+          <template #description>{{ t('pages.xray.dns.serveStaleDesc') }}</template>
+          <template #control>
+            <a-switch v-model:checked="dnsServeStale" />
+          </template>
+        </SettingListItem>
+
+        <SettingListItem paddings="small">
+          <template #title>{{ t('pages.xray.dns.serveExpiredTTL') }}</template>
+          <template #description>{{ t('pages.xray.dns.serveExpiredTTLDesc') }}</template>
+          <template #control>
+            <a-input-number v-model:value="dnsServeExpiredTTL" :min="0" :step="60" :style="{ width: '100%' }" />
+          </template>
+        </SettingListItem>
+      </template>
+    </a-collapse-panel>
+
+    <!-- ============== Hosts ============== -->
+    <a-collapse-panel v-if="enableDNS" key="hosts" :header="t('pages.xray.dns.hosts')">
+      <a-empty v-if="hostsList.length === 0" :description="t('pages.xray.dns.hostsEmpty')">
+        <a-button type="primary" @click="addHost">
+          <template #icon>
+            <PlusOutlined />
+          </template>
+          {{ t('pages.xray.dns.hostsAdd') }}
+        </a-button>
+      </a-empty>
+
+      <template v-else>
+        <a-space direction="vertical" size="middle" :style="{ width: '100%' }">
+          <a-button type="primary" @click="addHost">
+            <template #icon>
+              <PlusOutlined />
+            </template>
+            {{ t('pages.xray.dns.hostsAdd') }}
+          </a-button>
+          <div v-for="(row, idx) in hostsList" :key="`h${idx}`" class="hosts-row">
+            <a-input v-model:value="row.domain" :placeholder="t('pages.xray.dns.hostsDomain')"
+              :style="{ flex: '1 1 220px' }" />
+            <a-select v-model:value="row.values" mode="tags" :placeholder="t('pages.xray.dns.hostsValues')"
+              :style="{ flex: '2 1 320px' }" :token-separators="[',', ' ']" />
+            <a-button danger @click="deleteHost(idx)">
+              <template #icon>
+                <DeleteOutlined />
+              </template>
+            </a-button>
+          </div>
+        </a-space>
       </template>
     </a-collapse-panel>
 
     <!-- ============== DNS servers ============== -->
     <a-collapse-panel v-if="enableDNS" key="2" header="DNS">
       <a-empty v-if="dnsServers.length === 0" :description="t('emptyDnsDesc')">
-        <a-button type="primary" @click="openAddServer">
-          <template #icon><PlusOutlined /></template>
-          {{ t('pages.xray.dns.add') }}
-        </a-button>
+        <a-space>
+          <a-button type="primary" @click="openAddServer">
+            <template #icon>
+              <PlusOutlined />
+            </template>
+            {{ t('pages.xray.dns.add') }}
+          </a-button>
+          <a-button @click="openPresets">
+            <template #icon>
+              <MenuOutlined />
+            </template>
+            {{ t('pages.xray.dns.usePreset') }}
+          </a-button>
+        </a-space>
       </a-empty>
 
       <template v-else>
         <a-space direction="vertical" size="middle" :style="{ width: '100%' }">
-          <a-button type="primary" @click="openAddServer">
-            <template #icon><PlusOutlined /></template>
-            {{ t('pages.xray.dns.add') }}
-          </a-button>
-          <a-table
-            :columns="dnsColumns"
-            :data-source="dnsServers"
-            :row-key="(r) => r.key"
-            :pagination="false"
-            size="small"
-            bordered
-          >
+          <a-space wrap>
+            <a-button type="primary" @click="openAddServer">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+              {{ t('pages.xray.dns.add') }}
+            </a-button>
+            <a-button @click="openPresets">
+              <template #icon>
+                <MenuOutlined />
+              </template>
+              {{ t('pages.xray.dns.usePreset') }}
+            </a-button>
+            <a-button danger @click="clearAllServers">
+              <template #icon>
+                <DeleteOutlined />
+              </template>
+              {{ t('pages.xray.dns.clearAll') }}
+            </a-button>
+          </a-space>
+          <a-table :columns="dnsColumns" :data-source="dnsServers" :row-key="(r) => r.key" :pagination="false"
+            size="small" bordered>
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.key === 'action'">
                 <a-space :size="6">
@@ -292,8 +428,8 @@ function updateFakednsField(idx, field, value) {
               <template v-else-if="column.key === 'domains'">
                 <span class="muted">{{ domainsFor(record.server) }}</span>
               </template>
-              <template v-else-if="column.key === 'expectIPs'">
-                <span class="muted">{{ expectIPsFor(record.server) }}</span>
+              <template v-else-if="column.key === 'expectedIPs'">
+                <span class="muted">{{ expectedIPsFor(record.server) }}</span>
               </template>
             </template>
           </a-table>
@@ -305,7 +441,9 @@ function updateFakednsField(idx, field, value) {
     <a-collapse-panel v-if="enableDNS" key="3" header="Fake DNS">
       <a-empty v-if="fakeDnsList.length === 0" :description="t('emptyFakeDnsDesc')">
         <a-button type="primary" @click="addFakedns">
-          <template #icon><PlusOutlined /></template>
+          <template #icon>
+            <PlusOutlined />
+          </template>
           {{ t('pages.xray.fakedns.add') }}
         </a-button>
       </a-empty>
@@ -313,17 +451,13 @@ function updateFakednsField(idx, field, value) {
       <template v-else>
         <a-space direction="vertical" size="middle" :style="{ width: '100%' }">
           <a-button type="primary" @click="addFakedns">
-            <template #icon><PlusOutlined /></template>
+            <template #icon>
+              <PlusOutlined />
+            </template>
             {{ t('pages.xray.fakedns.add') }}
           </a-button>
-          <a-table
-            :columns="fakednsColumns"
-            :data-source="fakeDnsList"
-            :row-key="(r) => r.key"
-            :pagination="false"
-            size="small"
-            bordered
-          >
+          <a-table :columns="fakednsColumns" :data-source="fakeDnsList" :row-key="(r) => r.key" :pagination="false"
+            size="small" bordered>
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.key === 'action'">
                 <a-space :size="6">
@@ -334,19 +468,12 @@ function updateFakednsField(idx, field, value) {
                 </a-space>
               </template>
               <template v-else-if="column.key === 'ipPool'">
-                <a-input
-                  :value="record.ipPool"
-                  size="small"
-                  @change="(e) => updateFakednsField(index, 'ipPool', e.target.value)"
-                />
+                <a-input :value="record.ipPool" size="small"
+                  @change="(e) => updateFakednsField(index, 'ipPool', e.target.value)" />
               </template>
               <template v-else-if="column.key === 'poolSize'">
-                <a-input-number
-                  :value="record.poolSize"
-                  :min="1"
-                  size="small"
-                  @change="(v) => updateFakednsField(index, 'poolSize', v)"
-                />
+                <a-input-number :value="record.poolSize" :min="1" size="small"
+                  @change="(v) => updateFakednsField(index, 'poolSize', v)" />
               </template>
             </template>
           </a-table>
@@ -355,12 +482,9 @@ function updateFakednsField(idx, field, value) {
     </a-collapse-panel>
   </a-collapse>
 
-  <DnsServerModal
-    v-model:open="serverModalOpen"
-    :server="editingServer"
-    :is-edit="editingIndex != null"
-    @confirm="onServerConfirm"
-  />
+  <DnsServerModal v-model:open="serverModalOpen" :server="editingServer" :is-edit="editingIndex != null"
+    @confirm="onServerConfirm" />
+  <DnsPresetsModal v-model:open="presetsModalOpen" @install="onPresetInstall" />
 </template>
 
 <style scoped>
@@ -368,6 +492,20 @@ function updateFakednsField(idx, field, value) {
   font-weight: 500;
   opacity: 0.7;
 }
-.muted { opacity: 0.7; word-break: break-all; }
-.danger { color: #ff4d4f; }
+
+.muted {
+  opacity: 0.7;
+  word-break: break-all;
+}
+
+.danger {
+  color: #ff4d4f;
+}
+
+.hosts-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
 </style>

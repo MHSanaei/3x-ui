@@ -89,8 +89,8 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '800px'));
 </script>
 
 <template>
-  <a-modal :open="open" :closable="true" :footer="null" :width="modalWidth"
-    :class="{ 'logmodal-mobile': isMobile }" @cancel="close">
+  <a-modal :open="open" :closable="true" :footer="null" :width="modalWidth" :class="{ 'logmodal-mobile': isMobile }"
+    @cancel="close">
     <template #title>
       {{ t('pages.index.logs') }}
       <SyncOutlined :spin="loading" class="reload-icon" @click="refresh" />
@@ -178,6 +178,7 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '800px'));
   flex-wrap: wrap;
   row-gap: 8px;
 }
+
 .log-toolbar .download-item {
   margin-left: auto;
 }
@@ -185,12 +186,12 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '800px'));
 .log-container {
   /* Per-theme palette — overridden in body.dark / [data-theme="ultra-dark"]
      below so each level keeps ≥4.5:1 contrast against the container. */
-  --log-stamp:   #3c89e8;
-  --log-debug:   #3c89e8;
-  --log-info:    #008771;
-  --log-notice:  #008771;
+  --log-stamp: #3c89e8;
+  --log-debug: #3c89e8;
+  --log-info: #008771;
+  --log-notice: #008771;
   --log-warning: #f37b24;
-  --log-error:   #e04141;
+  --log-error: #e04141;
   --log-unknown: #595959;
   --log-divider: rgba(128, 128, 128, 0.18);
 
@@ -208,14 +209,37 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '800px'));
   background: rgba(0, 0, 0, 0.04);
 }
 
-.log-stamp { color: var(--log-stamp); }
-.log-level { margin-left: 4px; }
-.level-debug   { color: var(--log-debug); }
-.level-info    { color: var(--log-info); }
-.level-notice  { color: var(--log-notice); }
-.level-warning { color: var(--log-warning); }
-.level-error   { color: var(--log-error); }
-.level-unknown { color: var(--log-unknown); }
+.log-stamp {
+  color: var(--log-stamp);
+}
+
+.log-level {
+  margin-left: 4px;
+}
+
+.level-debug {
+  color: var(--log-debug);
+}
+
+.level-info {
+  color: var(--log-info);
+}
+
+.level-notice {
+  color: var(--log-notice);
+}
+
+.level-warning {
+  color: var(--log-warning);
+}
+
+.level-error {
+  color: var(--log-error);
+}
+
+.level-unknown {
+  color: var(--log-unknown);
+}
 
 .log-container-mobile {
   padding: 8px;
@@ -229,7 +253,7 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '800px'));
   padding: 20px 0;
 }
 
-.log-line + .log-line {
+.log-line+.log-line {
   margin-top: 2px;
 }
 
@@ -237,7 +261,11 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '800px'));
   border-bottom: 1px solid var(--log-divider);
   padding: 8px 0;
 }
-.log-card:last-child { border-bottom: 0; }
+
+.log-card:last-child {
+  border-bottom: 0;
+}
+
 .log-card-head {
   display: flex;
   align-items: center;
@@ -245,6 +273,7 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '800px'));
   gap: 8px;
   margin-bottom: 4px;
 }
+
 .log-time {
   display: inline-flex;
   align-items: baseline;
@@ -253,11 +282,13 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '800px'));
   font-size: 12px;
   letter-spacing: 0.02em;
 }
+
 .log-date {
   font-size: 10px;
   font-weight: 500;
   opacity: 0.55;
 }
+
 .log-level-badge {
   display: inline-block;
   font-size: 10px;
@@ -270,10 +301,12 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '800px'));
   white-space: nowrap;
   background: color-mix(in srgb, currentColor 14%, transparent);
 }
+
 .log-body {
   font-size: 12px;
   word-break: break-word;
 }
+
 .log-body-text {
   margin-left: 4px;
 }
@@ -283,23 +316,23 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '800px'));
   border-color: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.88);
 
-  --log-stamp:   #6aa6ee;
-  --log-debug:   #6aa6ee;
-  --log-info:    #4ed3a6;
-  --log-notice:  #4ed3a6;
+  --log-stamp: #6aa6ee;
+  --log-debug: #6aa6ee;
+  --log-info: #4ed3a6;
+  --log-notice: #4ed3a6;
   --log-warning: #ffb872;
-  --log-error:   #ff7575;
+  --log-error: #ff7575;
   --log-unknown: #b5b5b5;
   --log-divider: rgba(255, 255, 255, 0.1);
 }
 
 :global([data-theme="ultra-dark"]) .log-container {
-  --log-stamp:   #7fb6f1;
-  --log-debug:   #7fb6f1;
-  --log-info:    #5fd9b0;
-  --log-notice:  #5fd9b0;
+  --log-stamp: #7fb6f1;
+  --log-debug: #7fb6f1;
+  --log-info: #5fd9b0;
+  --log-notice: #5fd9b0;
   --log-warning: #ffcc88;
-  --log-error:   #ff8a8a;
+  --log-error: #ff8a8a;
   --log-unknown: #c4c4c4;
   --log-divider: rgba(255, 255, 255, 0.12);
 }
@@ -310,10 +343,12 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '800px'));
   padding-bottom: 0 !important;
   max-width: 100vw !important;
 }
+
 :global(.logmodal-mobile .ant-modal-content) {
   border-radius: 0;
   height: 100vh;
 }
+
 :global(.logmodal-mobile .ant-modal-body) {
   padding: 12px;
 }

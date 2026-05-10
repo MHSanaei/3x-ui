@@ -291,8 +291,8 @@ function rowKey(client) {
               {{ IntlUtil.formatRelativeTime(client.expiryTime) }}
             </a-tag>
           </a-popover>
-          <a-tag v-else :color="ColorUtils.userExpiryColor(expireDiff, client, isDarkTheme)"
-            :style="{ border: 'none' }" class="infinite-tag">
+          <a-tag v-else :color="ColorUtils.userExpiryColor(expireDiff, client, isDarkTheme)" :style="{ border: 'none' }"
+            class="infinite-tag">
             <InfinityIcon />
           </a-tag>
         </div>
@@ -373,7 +373,9 @@ function rowKey(client) {
             <a-tag v-else-if="client.expiryTime < 0" color="green">
               {{ -client.expiryTime / 86400000 }}d ({{ t('pages.client.delayedStart') }})
             </a-tag>
-            <a-tag v-else color="purple"><InfinityIcon /></a-tag>
+            <a-tag v-else color="purple">
+              <InfinityIcon />
+            </a-tag>
           </div>
         </div>
       </div>
@@ -561,6 +563,7 @@ function rowKey(client) {
   flex-direction: column;
   gap: 6px;
 }
+
 :global(body.dark) .client-card {
   border-color: rgba(255, 255, 255, 0.1);
 }
@@ -571,6 +574,7 @@ function rowKey(client) {
   gap: 8px;
   min-width: 0;
 }
+
 .client-card-head .client-email {
   flex: 1;
   min-width: 0;
@@ -580,6 +584,7 @@ function rowKey(client) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .client-card-actions {
   margin-left: auto;
   display: flex;
@@ -587,6 +592,7 @@ function rowKey(client) {
   gap: 8px;
   flex-shrink: 0;
 }
+
 .client-card-actions .row-icon {
   font-size: 20px;
   padding: 4px;
@@ -605,12 +611,14 @@ function rowKey(client) {
   flex-direction: column;
   gap: 4px;
 }
+
 .client-card-foot .stat-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
 }
+
 .client-card-foot .stat-label {
   font-size: 10px;
   text-transform: uppercase;
@@ -619,6 +627,7 @@ function rowKey(client) {
   min-width: 96px;
   flex-shrink: 0;
 }
+
 .client-card-foot :deep(.ant-tag) {
   margin: 0;
 }

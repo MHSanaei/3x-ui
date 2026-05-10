@@ -362,7 +362,7 @@ const title = computed(() =>
       <a-form-item v-else>
         <template #label>
           <a-tooltip :title="t('pages.inbounds.leaveBlankToNeverExpire')">{{ t('pages.inbounds.expireDate')
-            }}</a-tooltip>
+          }}</a-tooltip>
         </template>
         <DateTimePicker v-model:value="expiryDate" />
         <a-tag v-if="mode === 'edit' && isExpired" color="red">{{ t('depleted') }}</a-tag>

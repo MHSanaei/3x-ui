@@ -137,21 +137,14 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
 </script>
 
 <template>
-  <a-modal
-    :open="open"
-    :title="title"
-    :ok-text="okText"
-    :cancel-text="t('close')"
-    :mask-closable="false"
-    width="640px"
-    @ok="onOk"
-    @cancel="close"
-  >
+  <a-modal :open="open" :title="title" :ok-text="okText" :cancel-text="t('close')" :mask-closable="false" width="640px"
+    @ok="onOk" @cancel="close">
     <a-form :colon="false" :label-col="{ md: { span: 8 } }" :wrapper-col="{ md: { span: 14 } }">
       <a-form-item>
         <template #label>
           <a-tooltip title="Comma-separated list">
-            Source IPs <QuestionCircleOutlined />
+            Source IPs
+            <QuestionCircleOutlined />
           </a-tooltip>
         </template>
         <a-input v-model:value="form.sourceIP" placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
@@ -160,7 +153,8 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
       <a-form-item>
         <template #label>
           <a-tooltip title="Comma-separated list">
-            Source port <QuestionCircleOutlined />
+            Source port
+            <QuestionCircleOutlined />
           </a-tooltip>
         </template>
         <a-input v-model:value="form.sourcePort" placeholder="53,443,1000-2000" />
@@ -169,7 +163,8 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
       <a-form-item>
         <template #label>
           <a-tooltip title="Comma-separated list">
-            VLESS route <QuestionCircleOutlined />
+            VLESS route
+            <QuestionCircleOutlined />
           </a-tooltip>
         </template>
         <a-input v-model:value="form.vlessRoute" placeholder="53,443,1000-2000" />
@@ -189,7 +184,9 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
 
       <a-form-item label="Attributes">
         <a-button size="small" @click="form.attrs.push(['', ''])">
-          <template #icon><PlusOutlined /></template>
+          <template #icon>
+            <PlusOutlined />
+          </template>
         </a-button>
       </a-form-item>
       <a-form-item :wrapper-col="{ span: 24 }">
@@ -199,35 +196,45 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
           </a-input>
           <a-input :style="{ width: '45%' }" v-model:value="attr[1]" placeholder="Value" />
           <a-button @click="form.attrs.splice(idx, 1)">
-            <template #icon><MinusOutlined /></template>
+            <template #icon>
+              <MinusOutlined />
+            </template>
           </a-button>
         </a-input-group>
       </a-form-item>
 
       <a-form-item>
         <template #label>
-          <a-tooltip title="Comma-separated list">IP <QuestionCircleOutlined /></a-tooltip>
+          <a-tooltip title="Comma-separated list">IP
+            <QuestionCircleOutlined />
+          </a-tooltip>
         </template>
         <a-input v-model:value="form.ip" placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
       </a-form-item>
 
       <a-form-item>
         <template #label>
-          <a-tooltip title="Comma-separated list">Domain <QuestionCircleOutlined /></a-tooltip>
+          <a-tooltip title="Comma-separated list">Domain
+            <QuestionCircleOutlined />
+          </a-tooltip>
         </template>
         <a-input v-model:value="form.domain" placeholder="google.com, geosite:cn" />
       </a-form-item>
 
       <a-form-item>
         <template #label>
-          <a-tooltip title="Comma-separated list">User <QuestionCircleOutlined /></a-tooltip>
+          <a-tooltip title="Comma-separated list">User
+            <QuestionCircleOutlined />
+          </a-tooltip>
         </template>
         <a-input v-model:value="form.user" placeholder="email address" />
       </a-form-item>
 
       <a-form-item>
         <template #label>
-          <a-tooltip title="Comma-separated list">Port <QuestionCircleOutlined /></a-tooltip>
+          <a-tooltip title="Comma-separated list">Port
+            <QuestionCircleOutlined />
+          </a-tooltip>
         </template>
         <a-input v-model:value="form.port" placeholder="53,443,1000-2000" />
       </a-form-item>
@@ -240,18 +247,21 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
 
       <a-form-item label="Outbound tag">
         <a-select v-model:value="form.outboundTag">
-          <a-select-option v-for="tag in outboundTags" :key="tag || '__empty'" :value="tag">{{ tag || '(none)' }}</a-select-option>
+          <a-select-option v-for="tag in outboundTags" :key="tag || '__empty'" :value="tag">{{ tag || '(none)'
+            }}</a-select-option>
         </a-select>
       </a-form-item>
 
       <a-form-item>
         <template #label>
           <a-tooltip title="Routes traffic through one of the configured load balancers">
-            Balancer tag <QuestionCircleOutlined />
+            Balancer tag
+            <QuestionCircleOutlined />
           </a-tooltip>
         </template>
         <a-select v-model:value="form.balancerTag">
-          <a-select-option v-for="tag in balancerTags" :key="tag || '__empty'" :value="tag">{{ tag || '(none)' }}</a-select-option>
+          <a-select-option v-for="tag in balancerTags" :key="tag || '__empty'" :value="tag">{{ tag || '(none)'
+            }}</a-select-option>
         </a-select>
       </a-form-item>
     </a-form>
@@ -259,5 +269,7 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
 </template>
 
 <style scoped>
-.mb-8 { margin-bottom: 8px; }
+.mb-8 {
+  margin-bottom: 8px;
+}
 </style>

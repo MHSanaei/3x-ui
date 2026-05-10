@@ -754,7 +754,22 @@
         "useSystemHostsDesc": "インストール済みシステムのhostsファイルを使用する",
         "usePreset": "テンプレートを使用",
         "dnsPresetTitle": "DNSテンプレート",
-        "dnsPresetFamily": "ファミリー"
+        "dnsPresetFamily": "ファミリー",
+        "serveStale": "期限切れキャッシュを使用",
+        "serveStaleDesc": "バックグラウンドで更新中に期限切れキャッシュ結果を返す",
+        "serveExpiredTTL": "期限切れTTL",
+        "serveExpiredTTLDesc": "期限切れキャッシュエントリの有効期間（秒）。0 = 無期限",
+        "timeoutMs": "タイムアウト (ms)",
+        "skipFallback": "フォールバックをスキップ",
+        "finalQuery": "最終クエリ",
+        "hosts": "Hosts",
+        "hostsAdd": "Host を追加",
+        "hostsEmpty": "Host が定義されていません",
+        "hostsDomain": "ドメイン (例: domain:example.com)",
+        "hostsValues": "IP またはドメイン — 入力して Enter",
+        "clearAll": "すべて削除",
+        "clearAllTitle": "すべての DNS サーバを削除しますか？",
+        "clearAllConfirm": "リストからすべての DNS サーバが削除されます。この操作は元に戻せません。"
       },
       "fakedns": {
         "add": "フェイクDNS追加",

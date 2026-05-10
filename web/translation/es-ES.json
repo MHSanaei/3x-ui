@@ -754,7 +754,22 @@
         "useSystemHostsDesc": "Usar el archivo hosts de un sistema instalado",
         "usePreset": "Usar plantilla",
         "dnsPresetTitle": "Plantillas DNS",
-        "dnsPresetFamily": "Familiar"
+        "dnsPresetFamily": "Familiar",
+        "serveStale": "Servir caducados",
+        "serveStaleDesc": "Devolver resultados caducados de la caché mientras se actualiza en segundo plano",
+        "serveExpiredTTL": "TTL de caducados",
+        "serveExpiredTTLDesc": "Validez (segundos) de las entradas caducadas en la caché; 0 = nunca caduca",
+        "timeoutMs": "Tiempo de espera (ms)",
+        "skipFallback": "Omitir respaldo",
+        "finalQuery": "Consulta final",
+        "hosts": "Hosts",
+        "hostsAdd": "Agregar Host",
+        "hostsEmpty": "No hay Hosts definidos",
+        "hostsDomain": "Dominio (ej. domain:example.com)",
+        "hostsValues": "IP o dominio — escribe y presiona Enter",
+        "clearAll": "Eliminar todos",
+        "clearAllTitle": "¿Eliminar todos los servidores DNS?",
+        "clearAllConfirm": "Esto eliminará todos los servidores DNS de la lista. No se puede deshacer."
       },
       "fakedns": {
         "add": "Agregar DNS Falso",

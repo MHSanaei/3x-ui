@@ -754,7 +754,22 @@
         "useSystemHostsDesc": "Usar o arquivo hosts de um sistema instalado",
         "usePreset": "Usar modelo",
         "dnsPresetTitle": "Modelos DNS",
-        "dnsPresetFamily": "Familiar"
+        "dnsPresetFamily": "Familiar",
+        "serveStale": "Servir Expirados",
+        "serveStaleDesc": "Retornar resultados expirados do cache enquanto atualiza em segundo plano",
+        "serveExpiredTTL": "TTL de Expirados",
+        "serveExpiredTTLDesc": "Validade (segundos) das entradas expiradas no cache; 0 = nunca expira",
+        "timeoutMs": "Tempo limite (ms)",
+        "skipFallback": "Ignorar Fallback",
+        "finalQuery": "Consulta Final",
+        "hosts": "Hosts",
+        "hostsAdd": "Adicionar Host",
+        "hostsEmpty": "Nenhum Host definido",
+        "hostsDomain": "Domínio (ex. domain:example.com)",
+        "hostsValues": "IP ou domínio — digite e pressione Enter",
+        "clearAll": "Remover Todos",
+        "clearAllTitle": "Remover todos os servidores DNS?",
+        "clearAllConfirm": "Isso remove todos os servidores DNS da lista. Não pode ser desfeito."
       },
       "fakedns": {
         "add": "Adicionar Fake DNS",

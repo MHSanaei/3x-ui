@@ -111,17 +111,8 @@ async function onSave() {
 </script>
 
 <template>
-  <a-modal
-    :open="open"
-    :title="title"
-    :confirm-loading="submitting"
-    :ok-text="t('save')"
-    :cancel-text="t('cancel')"
-    :mask-closable="false"
-    width="640px"
-    @ok="onSave"
-    @cancel="close"
-  >
+  <a-modal :open="open" :title="title" :confirm-loading="submitting" :ok-text="t('save')" :cancel-text="t('cancel')"
+    :mask-closable="false" width="640px" @ok="onSave" @cancel="close">
     <a-form layout="vertical" :model="form">
       <a-row :gutter="16">
         <a-col :span="12">
@@ -171,10 +162,7 @@ async function onSave() {
       </a-row>
 
       <a-form-item :label="t('pages.nodes.apiToken')" required>
-        <a-input-password
-          v-model:value="form.apiToken"
-          :placeholder="t('pages.nodes.apiTokenPlaceholder')"
-        />
+        <a-input-password v-model:value="form.apiToken" :placeholder="t('pages.nodes.apiTokenPlaceholder')" />
         <div class="hint">{{ t('pages.nodes.apiTokenHint') }}</div>
       </a-form-item>
 
@@ -183,20 +171,11 @@ async function onSave() {
           {{ t('pages.nodes.testConnection') }}
         </a-button>
         <div v-if="testResult" class="test-result">
-          <a-alert
-            v-if="testResult.status === 'online'"
-            type="success"
-            show-icon
+          <a-alert v-if="testResult.status === 'online'" type="success" show-icon
             :message="t('pages.nodes.connectionOk', { ms: testResult.latencyMs })"
-            :description="testResult.xrayVersion ? `Xray ${testResult.xrayVersion}` : undefined"
-          />
-          <a-alert
-            v-else
-            type="error"
-            show-icon
-            :message="t('pages.nodes.connectionFailed')"
-            :description="testResult.error"
-          />
+            :description="testResult.xrayVersion ? `Xray ${testResult.xrayVersion}` : undefined" />
+          <a-alert v-else type="error" show-icon :message="t('pages.nodes.connectionFailed')"
+            :description="testResult.error" />
         </div>
       </div>
     </a-form>

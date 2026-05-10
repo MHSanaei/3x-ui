@@ -560,19 +560,11 @@ watch(
             <a-input v-model:value="dbForm.remark" />
           </a-form-item>
           <a-form-item :label="t('pages.inbounds.deployTo')">
-            <a-select
-              v-model:value="dbForm.nodeId"
-              :disabled="mode === 'edit'"
-              :placeholder="t('pages.inbounds.localPanel')"
-              allow-clear
-            >
+            <a-select v-model:value="dbForm.nodeId" :disabled="mode === 'edit'"
+              :placeholder="t('pages.inbounds.localPanel')" allow-clear>
               <a-select-option :value="null">{{ t('pages.inbounds.localPanel') }}</a-select-option>
-              <a-select-option
-                v-for="n in selectableNodes"
-                :key="n.id"
-                :value="n.id"
-                :disabled="n.status === 'offline'"
-              >
+              <a-select-option v-for="n in selectableNodes" :key="n.id" :value="n.id"
+                :disabled="n.status === 'offline'">
                 {{ n.name }}{{ n.status === 'offline' ? ' (offline)' : '' }}
               </a-select-option>
             </a-select>

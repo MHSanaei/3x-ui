@@ -51,29 +51,11 @@ function onAntChange(next) {
 </script>
 
 <template>
-  <PersianDatePicker
-    v-if="isJalali"
-    v-model="stringValue"
-    :format="ISO_FORMAT"
-    :display-format="persianDisplayFormat"
-    :placeholder="placeholder"
-    :disabled="disabled"
-    color="#1677ff"
-    auto-submit
-    append-to="body"
-    input-class="ant-input persian-datepicker-input"
-    class="jalali-datepicker"
-  />
-  <a-date-picker
-    v-else
-    :value="value"
-    :show-time="showTime ? { format: 'HH:mm:ss' } : false"
-    :format="format"
-    :placeholder="placeholder"
-    :disabled="disabled"
-    :style="{ width: '100%' }"
-    @update:value="onAntChange"
-  />
+  <PersianDatePicker v-if="isJalali" v-model="stringValue" :format="ISO_FORMAT" :display-format="persianDisplayFormat"
+    :placeholder="placeholder" :disabled="disabled" color="#1677ff" auto-submit append-to="body"
+    input-class="ant-input persian-datepicker-input" class="jalali-datepicker" />
+  <a-date-picker v-else :value="value" :show-time="showTime ? { format: 'HH:mm:ss' } : false" :format="format"
+    :placeholder="placeholder" :disabled="disabled" :style="{ width: '100%' }" @update:value="onAntChange" />
 </template>
 
 <style scoped>
@@ -142,8 +124,8 @@ function onAntChange(next) {
   background: #fff;
   color: rgba(0, 0, 0, 0.88);
   box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
-              0 3px 6px -4px rgba(0, 0, 0, 0.12),
-              0 9px 28px 8px rgba(0, 0, 0, 0.05);
+    0 3px 6px -4px rgba(0, 0, 0, 0.12),
+    0 9px 28px 8px rgba(0, 0, 0, 0.05);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -166,7 +148,7 @@ function onAntChange(next) {
 }
 
 .vpd-wrapper .vpd-body .vpd-month-label,
-.vpd-wrapper .vpd-body .vpd-month-label > span {
+.vpd-wrapper .vpd-body .vpd-month-label>span {
   color: rgba(0, 0, 0, 0.88);
 }
 
@@ -271,8 +253,8 @@ body.dark .vpd-wrapper .vpd-content {
   background: #1a2c4d;
   color: rgba(255, 255, 255, 0.88);
   box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.32),
-              0 3px 6px -4px rgba(0, 0, 0, 0.48),
-              0 9px 28px 8px rgba(0, 0, 0, 0.2);
+    0 3px 6px -4px rgba(0, 0, 0, 0.48),
+    0 9px 28px 8px rgba(0, 0, 0, 0.2);
 }
 
 body.dark .vpd-wrapper .vpd-body {
@@ -281,7 +263,7 @@ body.dark .vpd-wrapper .vpd-body {
 }
 
 body.dark .vpd-wrapper .vpd-body .vpd-month-label,
-body.dark .vpd-wrapper .vpd-body .vpd-month-label > span {
+body.dark .vpd-wrapper .vpd-body .vpd-month-label>span {
   color: rgba(255, 255, 255, 0.88);
 }
 

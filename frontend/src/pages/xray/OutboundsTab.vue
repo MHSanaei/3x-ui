@@ -180,29 +180,32 @@ const rows = computed(() => {
       <a-col :xs="24" :sm="14">
         <a-space size="small">
           <a-button type="primary" @click="openAdd">
-            <template #icon><PlusOutlined /></template>
+            <template #icon>
+              <PlusOutlined />
+            </template>
             <span v-if="!isMobile">{{ t('pages.xray.Outbounds') }}</span>
           </a-button>
           <a-button type="primary" @click="emit('show-warp')">
-            <template #icon><CloudOutlined /></template>
+            <template #icon>
+              <CloudOutlined />
+            </template>
             WARP
           </a-button>
           <a-button type="primary" @click="emit('show-nord')">
-            <template #icon><ApiOutlined /></template>
+            <template #icon>
+              <ApiOutlined />
+            </template>
             NordVPN
           </a-button>
         </a-space>
       </a-col>
       <a-col :xs="24" :sm="10" class="toolbar-right">
-        <a-popconfirm
-          placement="topRight"
-          :ok-text="t('reset')"
-          :cancel-text="t('cancel')"
-          :title="t('pages.inbounds.resetAllTrafficContent')"
-          @confirm="emit('reset-traffic', '-alltags-')"
-        >
+        <a-popconfirm placement="topRight" :ok-text="t('reset')" :cancel-text="t('cancel')"
+          :title="t('pages.inbounds.resetAllTrafficContent')" @confirm="emit('reset-traffic', '-alltags-')">
           <a-button>
-            <template #icon><RetweetOutlined /></template>
+            <template #icon>
+              <RetweetOutlined />
+            </template>
           </a-button>
         </a-popconfirm>
       </a-col>
@@ -220,8 +223,7 @@ const rows = computed(() => {
             </a-tooltip>
             <a-tag color="green">{{ record.protocol }}</a-tag>
             <template
-              v-if="[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(record.protocol)"
-            >
+              v-if="[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(record.protocol)">
               <a-tag>{{ record.streamSettings?.network }}</a-tag>
               <a-tag v-if="showSecurity(record.streamSettings?.security)" color="purple">
                 {{ record.streamSettings.security }}
@@ -267,15 +269,11 @@ const rows = computed(() => {
               <span v-else>failed</span>
             </span>
             <LoadingOutlined v-else-if="isTesting(index)" />
-            <a-button
-              type="primary"
-              shape="circle"
-              size="small"
-              :loading="isTesting(index)"
-              :disabled="isUntestable(record) || isTesting(index)"
-              @click="emit('test', index)"
-            >
-              <template #icon><ThunderboltOutlined /></template>
+            <a-button type="primary" shape="circle" size="small" :loading="isTesting(index)"
+              :disabled="isUntestable(record) || isTesting(index)" @click="emit('test', index)">
+              <template #icon>
+                <ThunderboltOutlined />
+              </template>
             </a-button>
           </span>
         </div>
@@ -283,14 +281,7 @@ const rows = computed(() => {
     </template>
 
     <!-- Desktop: table -->
-    <a-table
-      v-else
-      :columns="columns"
-      :data-source="rows"
-      :row-key="(r) => r.key"
-      :pagination="false"
-      size="small"
-    >
+    <a-table v-else :columns="columns" :data-source="rows" :row-key="(r) => r.key" :pagination="false" size="small">
       <template #bodyCell="{ column, record, index }">
         <template v-if="column.key === 'action'">
           <div class="action-cell">
@@ -333,8 +324,7 @@ const rows = computed(() => {
             <div class="protocol-line">
               <a-tag color="green">{{ record.protocol }}</a-tag>
               <template
-                v-if="[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(record.protocol)"
-              >
+                v-if="[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(record.protocol)">
                 <a-tag>{{ record.streamSettings?.network }}</a-tag>
                 <a-tag v-if="showSecurity(record.streamSettings?.security)" color="purple">
                   {{ record.streamSettings.security }}
@@ -374,38 +364,34 @@ const rows = computed(() => {
 
         <template v-else-if="column.key === 'test'">
           <a-tooltip :title="t('check')">
-            <a-button
-              type="primary"
-              shape="circle"
-              :loading="isTesting(index)"
-              :disabled="isUntestable(record) || isTesting(index)"
-              @click="emit('test', index)"
-            >
-              <template #icon><ThunderboltOutlined /></template>
+            <a-button type="primary" shape="circle" :loading="isTesting(index)"
+              :disabled="isUntestable(record) || isTesting(index)" @click="emit('test', index)">
+              <template #icon>
+                <ThunderboltOutlined />
+              </template>
             </a-button>
           </a-tooltip>
         </template>
       </template>
     </a-table>
 
-    <OutboundFormModal
-      v-model:open="modalOpen"
-      :outbound="editingOutbound"
-      :existing-tags="existingTags"
-      :inbound-tags="inboundTagOptions"
-      @confirm="onConfirm"
-    />
+    <OutboundFormModal v-model:open="modalOpen" :outbound="editingOutbound" :existing-tags="existingTags"
+      :inbound-tags="inboundTagOptions" @confirm="onConfirm" />
   </a-space>
 </template>
 
 <style scoped>
-.toolbar-right { display: flex; justify-content: flex-end; }
+.toolbar-right {
+  display: flex;
+  justify-content: flex-end;
+}
 
 .card-empty {
   text-align: center;
   opacity: 0.4;
   padding: 16px 0;
 }
+
 .outbound-card {
   border: 1px solid rgba(128, 128, 128, 0.2);
   border-radius: 8px;
@@ -415,24 +401,28 @@ const rows = computed(() => {
   flex-direction: column;
   gap: 8px;
 }
+
 .card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
 }
+
 .card-identity {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
+
 .card-num {
   font-weight: 500;
   opacity: 0.7;
   min-width: 18px;
   text-align: right;
 }
+
 .tag-name {
   font-weight: 500;
   max-width: 200px;
@@ -441,6 +431,7 @@ const rows = computed(() => {
   white-space: nowrap;
   display: inline-block;
 }
+
 .protocol-line {
   display: inline-flex;
   flex-wrap: wrap;
@@ -452,12 +443,14 @@ const rows = computed(() => {
   flex-wrap: wrap;
   gap: 4px;
 }
+
 .address-pill {
   font-size: 11px;
   padding: 2px 6px;
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.05);
 }
+
 :global(body.dark) .address-pill {
   background: rgba(255, 255, 255, 0.06);
 }
@@ -467,6 +460,7 @@ const rows = computed(() => {
   align-items: center;
   gap: 6px;
 }
+
 .row-index {
   font-weight: 500;
   opacity: 0.7;
@@ -487,6 +481,7 @@ const rows = computed(() => {
   gap: 12px;
   flex-wrap: wrap;
 }
+
 .card-test {
   margin-left: auto;
   display: inline-flex;
@@ -494,9 +489,20 @@ const rows = computed(() => {
   gap: 8px;
 }
 
-.traffic-up { color: #008771; font-size: 12px; }
-.traffic-down { color: #3c89e8; font-size: 12px; }
-.traffic-sep { display: inline-block; width: 4px; }
+.traffic-up {
+  color: #008771;
+  font-size: 12px;
+}
+
+.traffic-down {
+  color: #3c89e8;
+  font-size: 12px;
+}
+
+.traffic-sep {
+  display: inline-block;
+  width: 4px;
+}
 
 .pill-ok,
 .pill-fail {
@@ -507,9 +513,22 @@ const rows = computed(() => {
   border-radius: 12px;
   font-size: 12px;
 }
-.pill-ok { color: #008771; background: rgba(0, 135, 113, 0.12); }
-.pill-fail { color: #e04141; background: rgba(224, 65, 65, 0.12); }
 
-.empty { opacity: 0.4; }
-.danger { color: #ff4d4f; }
+.pill-ok {
+  color: #008771;
+  background: rgba(0, 135, 113, 0.12);
+}
+
+.pill-fail {
+  color: #e04141;
+  background: rgba(224, 65, 65, 0.12);
+}
+
+.empty {
+  opacity: 0.4;
+}
+
+.danger {
+  color: #ff4d4f;
+}
 </style>

@@ -50,12 +50,12 @@ const prefix = props.basePath?.startsWith('/') ? props.basePath : `/${props.base
 // Labels are i18n-driven so the sidebar matches the locale picked
 // in panel settings without a page reload of the sidebar component.
 const tabs = computed(() => [
-  { key: `${prefix}panel/`,         icon: 'dashboard', title: t('menu.dashboard') },
-  { key: `${prefix}panel/inbounds`, icon: 'user',      title: t('menu.inbounds') },
-  { key: `${prefix}panel/nodes`,    icon: 'cluster',   title: t('menu.nodes') },
-  { key: `${prefix}panel/settings`, icon: 'setting',   title: t('menu.settings') },
-  { key: `${prefix}panel/xray`,     icon: 'tool',      title: t('menu.xray') },
-  { key: `${prefix}logout`,         icon: 'logout',    title: t('logout') },
+  { key: `${prefix}panel/`, icon: 'dashboard', title: t('menu.dashboard') },
+  { key: `${prefix}panel/inbounds`, icon: 'user', title: t('menu.inbounds') },
+  { key: `${prefix}panel/nodes`, icon: 'cluster', title: t('menu.nodes') },
+  { key: `${prefix}panel/settings`, icon: 'setting', title: t('menu.settings') },
+  { key: `${prefix}panel/xray`, icon: 'tool', title: t('menu.xray') },
+  { key: `${prefix}logout`, icon: 'logout', title: t('logout') },
 ]);
 
 const activeTab = ref([props.requestUri]);
@@ -90,20 +90,9 @@ function closeDrawer() {
 
 <template>
   <div class="ant-sidebar">
-    <a-layout-sider
-      :theme="currentTheme"
-      collapsible
-      :collapsed="collapsed"
-      breakpoint="md"
-      @collapse="onCollapse"
-    >
+    <a-layout-sider :theme="currentTheme" collapsible :collapsed="collapsed" breakpoint="md" @collapse="onCollapse">
       <ThemeSwitch />
-      <a-menu
-        :theme="currentTheme"
-        mode="inline"
-        :selected-keys="activeTab"
-        @click="({ key }) => openLink(key)"
-      >
+      <a-menu :theme="currentTheme" mode="inline" :selected-keys="activeTab" @click="({ key }) => openLink(key)">
         <a-menu-item v-for="tab in tabs" :key="tab.key">
           <component :is="iconByName[tab.icon]" />
           <span>{{ tab.title }}</span>
@@ -111,22 +100,10 @@ function closeDrawer() {
       </a-menu>
     </a-layout-sider>
 
-    <a-drawer
-      placement="left"
-      :closable="false"
-      :open="drawerOpen"
-      :wrap-class-name="currentTheme"
-      :wrap-style="{ padding: 0 }"
-      :style="{ height: '100%' }"
-      @close="closeDrawer"
-    >
+    <a-drawer placement="left" :closable="false" :open="drawerOpen" :wrap-class-name="currentTheme"
+      :wrap-style="{ padding: 0 }" :style="{ height: '100%' }" @close="closeDrawer">
       <ThemeSwitch />
-      <a-menu
-        :theme="currentTheme"
-        mode="inline"
-        :selected-keys="activeTab"
-        @click="({ key }) => openLink(key)"
-      >
+      <a-menu :theme="currentTheme" mode="inline" :selected-keys="activeTab" @click="({ key }) => openLink(key)">
         <a-menu-item v-for="tab in tabs" :key="tab.key">
           <component :is="iconByName[tab.icon]" />
           <span>{{ tab.title }}</span>
@@ -142,7 +119,7 @@ function closeDrawer() {
 </template>
 
 <style scoped>
-.ant-sidebar > .ant-layout-sider {
+.ant-sidebar>.ant-layout-sider {
   height: 100%;
 }
 
@@ -171,12 +148,12 @@ function closeDrawer() {
   /* On mobile the drawer is the menu — hide the inline sider's content
    * + the collapse trigger so the sider stops taking layout space and
    * leaves no remnant button next to the page. */
-  .ant-sidebar > .ant-layout-sider :deep(.ant-layout-sider-children),
-  .ant-sidebar > .ant-layout-sider :deep(.ant-layout-sider-trigger) {
+  .ant-sidebar>.ant-layout-sider :deep(.ant-layout-sider-children),
+  .ant-sidebar>.ant-layout-sider :deep(.ant-layout-sider-trigger) {
     display: none;
   }
 
-  .ant-sidebar > .ant-layout-sider {
+  .ant-sidebar>.ant-layout-sider {
     flex: 0 0 0 !important;
     max-width: 0 !important;
     min-width: 0 !important;

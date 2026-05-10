@@ -5,11 +5,6 @@ import { PlusOutlined, MinusOutlined } from '@ant-design/icons-vue';
 
 const { t } = useI18n();
 
-// DNS server add/edit modal — mirrors web/html/modals/xray_dns_modal.html.
-// The legacy panel allowed both string-form ("8.8.8.8") and object-form
-// servers; we always edit as an object and the parent can decide
-// whether to collapse to a string when nothing besides address is set.
-
 const props = defineProps({
   open: { type: Boolean, default: false },
   server: { type: [Object, String, null], default: null },
@@ -22,12 +17,17 @@ const DEFAULT_SERVER = () => ({
   address: 'localhost',
   port: 53,
   domains: [],
-  expectIPs: [],
+  expectedIPs: [],
   unexpectedIPs: [],
   queryStrategy: 'UseIP',
-  skipFallback: true,
+  skipFallback: false,
   disableCache: false,
   finalQuery: false,
+  tag: '',
+  clientIP: '',
+  serveStale: false,
+  serveExpiredTTL: 0,
+  timeoutMs: 4000,
 });
 
 const STRATEGIES = ['UseSystem', 'UseIP', 'UseIPv4', 'UseIPv6'];
@@ -42,45 +42,53 @@ watch(() => props.open, (next) => {
     form.address = props.server;
     return;
   }
-  // Object — copy fields, defaulting missing arrays to empty.
+  const incoming = props.server;
   Object.assign(form, {
     ...DEFAULT_SERVER(),
-    ...props.server,
-    domains: [...(props.server.domains || [])],
-    expectIPs: [...(props.server.expectIPs || [])],
-    unexpectedIPs: [...(props.server.unexpectedIPs || [])],
+    ...incoming,
+    domains: [...(incoming.domains || [])],
+    expectedIPs: [...(incoming.expectedIPs || incoming.expectIPs || [])],
+    unexpectedIPs: [...(incoming.unexpectedIPs || [])],
   });
 });
 
 function close() { emit('update:open', false); }
 
 function onOk() {
-  // If the user only set an address (everything else default), emit a
-  // bare string — that's the wire shape the legacy panel uses for
-  // servers like "8.8.8.8" and keeps the JSON tidy.
   const isPlain = form.domains.length === 0
-    && form.expectIPs.length === 0
+    && form.expectedIPs.length === 0
     && form.unexpectedIPs.length === 0
     && form.port === 53
     && form.queryStrategy === 'UseIP'
-    && form.skipFallback === true
+    && form.skipFallback === false
     && form.disableCache === false
-    && form.finalQuery === false;
+    && form.finalQuery === false
+    && !form.tag
+    && !form.clientIP
+    && form.serveStale === false
+    && form.serveExpiredTTL === 0
+    && form.timeoutMs === 4000;
   if (isPlain) {
     emit('confirm', form.address);
-  } else {
-    emit('confirm', {
-      address: form.address,
-      port: form.port,
-      domains: [...form.domains].filter(Boolean),
-      expectIPs: [...form.expectIPs].filter(Boolean),
-      unexpectedIPs: [...form.unexpectedIPs].filter(Boolean),
-      queryStrategy: form.queryStrategy,
-      skipFallback: form.skipFallback,
-      disableCache: form.disableCache,
-      finalQuery: form.finalQuery,
-    });
+    return;
   }
+  const out = {
+    address: form.address,
+    port: form.port,
+    domains: [...form.domains].filter(Boolean),
+    expectedIPs: [...form.expectedIPs].filter(Boolean),
+    unexpectedIPs: [...form.unexpectedIPs].filter(Boolean),
+    queryStrategy: form.queryStrategy,
+    skipFallback: form.skipFallback,
+    disableCache: form.disableCache,
+    finalQuery: form.finalQuery,
+    serveStale: form.serveStale,
+    serveExpiredTTL: form.serveExpiredTTL,
+    timeoutMs: form.timeoutMs,
+  };
+  if (form.tag) out.tag = form.tag;
+  if (form.clientIP) out.clientIP = form.clientIP;
+  emit('confirm', out);
 }
 
 const title = computed(() =>
@@ -89,15 +97,8 @@ const title = computed(() =>
 </script>
 
 <template>
-  <a-modal
-    :open="open"
-    :title="title"
-    :ok-text="t('confirm')"
-    :cancel-text="t('close')"
-    :mask-closable="false"
-    @ok="onOk"
-    @cancel="close"
-  >
+  <a-modal :open="open" :title="title" :ok-text="t('confirm')" :cancel-text="t('close')" :mask-closable="false"
+    @ok="onOk" @cancel="close">
     <a-form :colon="false" :label-col="{ md: { span: 8 } }" :wrapper-col="{ md: { span: 14 } }">
       <a-form-item :label="t('pages.inbounds.address')">
         <a-input v-model:value="form.address" />
@@ -105,17 +106,28 @@ const title = computed(() =>
       <a-form-item :label="t('pages.inbounds.port')">
         <a-input-number v-model:value="form.port" :min="1" :max="65535" />
       </a-form-item>
+      <a-form-item :label="t('pages.xray.dns.tag')">
+        <a-input v-model:value="form.tag" />
+      </a-form-item>
+      <a-form-item :label="t('pages.xray.dns.clientIp')">
+        <a-input v-model:value="form.clientIP" />
+      </a-form-item>
       <a-form-item :label="t('pages.xray.dns.strategy')">
         <a-select v-model:value="form.queryStrategy" :style="{ width: '100%' }">
           <a-select-option v-for="s in STRATEGIES" :key="s" :value="s">{{ s }}</a-select-option>
         </a-select>
+      </a-form-item>
+      <a-form-item :label="t('pages.xray.dns.timeoutMs')">
+        <a-input-number v-model:value="form.timeoutMs" :min="0" :step="500" />
       </a-form-item>
 
       <a-divider :style="{ margin: '5px 0' }" />
 
       <a-form-item :label="t('pages.xray.dns.domains')">
         <a-button size="small" type="primary" @click="form.domains.push('')">
-          <template #icon><PlusOutlined /></template>
+          <template #icon>
+            <PlusOutlined />
+          </template>
         </a-button>
         <template v-for="(_, idx) in form.domains" :key="`d${idx}`">
           <a-input v-model:value="form.domains[idx]" :style="{ marginTop: '4px' }">
@@ -127,13 +139,15 @@ const title = computed(() =>
       </a-form-item>
 
       <a-form-item :label="t('pages.xray.dns.expectIPs')">
-        <a-button size="small" type="primary" @click="form.expectIPs.push('')">
-          <template #icon><PlusOutlined /></template>
+        <a-button size="small" type="primary" @click="form.expectedIPs.push('')">
+          <template #icon>
+            <PlusOutlined />
+          </template>
         </a-button>
-        <template v-for="(_, idx) in form.expectIPs" :key="`e${idx}`">
-          <a-input v-model:value="form.expectIPs[idx]" :style="{ marginTop: '4px' }">
+        <template v-for="(_, idx) in form.expectedIPs" :key="`e${idx}`">
+          <a-input v-model:value="form.expectedIPs[idx]" :style="{ marginTop: '4px' }">
             <template #addonAfter>
-              <MinusOutlined @click="form.expectIPs.splice(idx, 1)" />
+              <MinusOutlined @click="form.expectedIPs.splice(idx, 1)" />
             </template>
           </a-input>
         </template>
@@ -141,7 +155,9 @@ const title = computed(() =>
 
       <a-form-item :label="t('pages.xray.dns.unexpectIPs')">
         <a-button size="small" type="primary" @click="form.unexpectedIPs.push('')">
-          <template #icon><PlusOutlined /></template>
+          <template #icon>
+            <PlusOutlined />
+          </template>
         </a-button>
         <template v-for="(_, idx) in form.unexpectedIPs" :key="`u${idx}`">
           <a-input v-model:value="form.unexpectedIPs[idx]" :style="{ marginTop: '4px' }">
@@ -154,14 +170,20 @@ const title = computed(() =>
 
       <a-divider :style="{ margin: '5px 0' }" />
 
-      <a-form-item label="Skip fallback">
+      <a-form-item :label="t('pages.xray.dns.skipFallback')">
         <a-switch v-model:checked="form.skipFallback" />
+      </a-form-item>
+      <a-form-item :label="t('pages.xray.dns.finalQuery')">
+        <a-switch v-model:checked="form.finalQuery" />
       </a-form-item>
       <a-form-item :label="t('pages.xray.dns.disableCache')">
         <a-switch v-model:checked="form.disableCache" />
       </a-form-item>
-      <a-form-item label="Final query">
-        <a-switch v-model:checked="form.finalQuery" />
+      <a-form-item :label="t('pages.xray.dns.serveStale')">
+        <a-switch v-model:checked="form.serveStale" />
+      </a-form-item>
+      <a-form-item :label="t('pages.xray.dns.serveExpiredTTL')">
+        <a-input-number v-model:value="form.serveExpiredTTL" :min="0" :step="60" />
       </a-form-item>
     </a-form>
   </a-modal>

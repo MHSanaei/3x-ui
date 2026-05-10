@@ -608,11 +608,11 @@ function onRowAction({ key, dbInbound }) {
               <!-- Inbound list — toolbar, search/filter, columns, row actions -->
               <a-col :span="24">
                 <InboundList :db-inbounds="dbInbounds" :client-count="clientCount" :online-clients="onlineClients"
-                  :last-online-map="lastOnlineMap" :is-dark-theme="themeState.isDark"
-                  :expire-diff="expireDiff" :traffic-diff="trafficDiff" :page-size="pageSize" :is-mobile="isMobile"
-                  :sub-enable="subSettings.enable" :nodes-by-id="nodesById" @refresh="refresh" @add-inbound="onAddInbound"
-                  @general-action="onGeneralAction" @row-action="onRowAction" @edit-client="onEditClient"
-                  @qrcode-client="onQrcodeClient" @info-client="onInfoClient"
+                  :last-online-map="lastOnlineMap" :is-dark-theme="themeState.isDark" :expire-diff="expireDiff"
+                  :traffic-diff="trafficDiff" :page-size="pageSize" :is-mobile="isMobile"
+                  :sub-enable="subSettings.enable" :nodes-by-id="nodesById" @refresh="refresh"
+                  @add-inbound="onAddInbound" @general-action="onGeneralAction" @row-action="onRowAction"
+                  @edit-client="onEditClient" @qrcode-client="onQrcodeClient" @info-client="onInfoClient"
                   @reset-traffic-client="onResetTrafficClient" @delete-client="onDeleteClient"
                   @toggle-enable-client="onToggleEnableClient" />
               </a-col>

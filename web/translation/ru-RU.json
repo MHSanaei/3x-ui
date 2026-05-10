@@ -754,7 +754,22 @@
         "useSystemHostsDesc": "Использовать файл hosts из установленной системы",
         "usePreset": "Использовать шаблон",
         "dnsPresetTitle": "Шаблоны DNS",
-        "dnsPresetFamily": "Семейный"
+        "dnsPresetFamily": "Семейный",
+        "serveStale": "Использовать устаревшие",
+        "serveStaleDesc": "Возвращать устаревшие результаты из кэша во время обновления в фоне",
+        "serveExpiredTTL": "TTL устаревших",
+        "serveExpiredTTLDesc": "Срок действия (секунды) устаревших записей кэша; 0 = бессрочно",
+        "timeoutMs": "Тайм-аут (мс)",
+        "skipFallback": "Пропустить Fallback",
+        "finalQuery": "Финальный запрос",
+        "hosts": "Hosts",
+        "hostsAdd": "Добавить Host",
+        "hostsEmpty": "Host не определены",
+        "hostsDomain": "Домен (напр. domain:example.com)",
+        "hostsValues": "IP или домен — введите и нажмите Enter",
+        "clearAll": "Удалить все",
+        "clearAllTitle": "Удалить все DNS-серверы?",
+        "clearAllConfirm": "Все DNS-серверы будут удалены из списка. Это действие нельзя отменить."
       },
       "fakedns": {
         "add": "Создать Fake DNS",

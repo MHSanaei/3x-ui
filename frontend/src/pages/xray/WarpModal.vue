@@ -182,14 +182,7 @@ const hasConfig = computed(() => !ObjectUtil.isEmpty(warpConfig.value));
 </script>
 
 <template>
-  <a-modal
-    :open="open"
-    title="Cloudflare WARP"
-    :footer="null"
-    :closable="true"
-    :mask-closable="true"
-    @cancel="close"
-  >
+  <a-modal :open="open" title="Cloudflare WARP" :footer="null" :closable="true" :mask-closable="true" @cancel="close">
     <!-- WARP / NordVPN provisioning forms keep technical wire labels in
          English on purpose: they map directly to API field names users
          look up in vendor docs. Only the primary action buttons +
@@ -197,7 +190,9 @@ const hasConfig = computed(() => !ObjectUtil.isEmpty(warpConfig.value));
     <!-- Not registered yet → single Create CTA -->
     <template v-if="!hasWarp">
       <a-button type="primary" :loading="loading" @click="register">
-        <template #icon><ApiOutlined /></template>
+        <template #icon>
+          <ApiOutlined />
+        </template>
         Create WARP account
       </a-button>
     </template>
@@ -226,7 +221,9 @@ const hasConfig = computed(() => !ObjectUtil.isEmpty(warpConfig.value));
       </table>
 
       <a-button :loading="loading" type="primary" danger class="mt-8" @click="delConfig">
-        <template #icon><DeleteOutlined /></template>
+        <template #icon>
+          <DeleteOutlined />
+        </template>
         Delete account
       </a-button>
 
@@ -237,13 +234,8 @@ const hasConfig = computed(() => !ObjectUtil.isEmpty(warpConfig.value));
           <a-form :colon="false" :label-col="{ md: { span: 6 } }" :wrapper-col="{ md: { span: 14 } }">
             <a-form-item label="Key">
               <a-input v-model:value="warpPlus" placeholder="26-char WARP+ key" />
-              <a-button
-                type="primary"
-                class="mt-8"
-                :disabled="warpPlus.length < 26"
-                :loading="loading"
-                @click="updateLicense"
-              >Update</a-button>
+              <a-button type="primary" class="mt-8" :disabled="warpPlus.length < 26" :loading="loading"
+                @click="updateLicense">Update</a-button>
             </a-form-item>
           </a-form>
         </a-collapse-panel>
@@ -251,7 +243,9 @@ const hasConfig = computed(() => !ObjectUtil.isEmpty(warpConfig.value));
 
       <a-divider class="zero-margin">Account info</a-divider>
       <a-button class="my-8" :loading="loading" type="primary" @click="getConfig">
-        <template #icon><SyncOutlined /></template>
+        <template #icon>
+          <SyncOutlined />
+        </template>
         Refresh
       </a-button>
 
@@ -305,7 +299,9 @@ const hasConfig = computed(() => !ObjectUtil.isEmpty(warpConfig.value));
         <template v-else>
           <a-tag color="orange">Disabled</a-tag>
           <a-button type="primary" :loading="loading" class="ml-8" @click="addOutbound">
-            <template #icon><PlusOutlined /></template>
+            <template #icon>
+              <PlusOutlined />
+            </template>
             Add outbound
           </a-button>
         </template>
@@ -320,28 +316,46 @@ const hasConfig = computed(() => !ObjectUtil.isEmpty(warpConfig.value));
   width: 100%;
   border-collapse: collapse;
 }
+
 .warp-data-table td {
   padding: 4px 8px;
   word-break: break-all;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
 }
+
 .warp-data-table td:first-child {
   font-family: inherit;
   font-weight: 500;
   white-space: nowrap;
   width: 130px;
 }
+
 .row-odd {
   background: rgba(0, 0, 0, 0.03);
 }
+
 :global(body.dark) .row-odd {
   background: rgba(255, 255, 255, 0.04);
 }
 
-.zero-margin { margin: 0; }
-.my-8 { margin: 8px 0; }
-.mt-8 { margin-top: 8px; }
-.my-10 { margin: 10px 0; }
-.ml-8 { margin-left: 8px; }
+.zero-margin {
+  margin: 0;
+}
+
+.my-8 {
+  margin: 8px 0;
+}
+
+.mt-8 {
+  margin-top: 8px;
+}
+
+.my-10 {
+  margin: 10px 0;
+}
+
+.ml-8 {
+  margin-left: 8px;
+}
 </style>

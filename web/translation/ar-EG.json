@@ -754,7 +754,22 @@
         "useSystemHostsDesc": "استخدام ملف hosts من نظام مثبت",
         "usePreset": "استخدام النموذج",
         "dnsPresetTitle": "قوالب DNS",
-        "dnsPresetFamily": "العائلي"
+        "dnsPresetFamily": "العائلي",
+        "serveStale": "تقديم النتائج المنتهية",
+        "serveStaleDesc": "إرجاع نتائج الكاش المنتهية الصلاحية أثناء التحديث في الخلفية",
+        "serveExpiredTTL": "مدة صلاحية النتائج المنتهية",
+        "serveExpiredTTLDesc": "مدة صلاحية إدخالات الكاش المنتهية بالثواني؛ 0 = لا تنتهي أبدًا",
+        "timeoutMs": "المهلة (مللي ثانية)",
+        "skipFallback": "تخطي الاحتياطي",
+        "finalQuery": "الاستعلام النهائي",
+        "hosts": "Hosts",
+        "hostsAdd": "إضافة Host",
+        "hostsEmpty": "لم يتم تعريف أي Host",
+        "hostsDomain": "النطاق (مثل domain:example.com)",
+        "hostsValues": "عنوان IP أو نطاق — اكتب واضغط Enter",
+        "clearAll": "حذف الكل",
+        "clearAllTitle": "حذف جميع خوادم DNS؟",
+        "clearAllConfirm": "سيؤدي هذا إلى إزالة جميع خوادم DNS من القائمة. لا يمكن التراجع عن هذا الإجراء."
       },
       "fakedns": {
         "add": "أضف Fake DNS",
