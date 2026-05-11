@@ -259,11 +259,13 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
 // jobs) which the panel relies on for periodic maintenance and monitoring.
-func (s *Server) startTask() {
+func (s *Server) startTask(restartXray bool) {
 	s.customGeoService.EnsureOnStartup()
-	err := s.xrayService.RestartXray(true)
-	if err != nil {
-		logger.Warning("start xray failed:", err)
+	if restartXray {
+		err := s.xrayService.RestartXray(true)
+		if err != nil {
+			logger.Warning("start xray failed:", err)
+		}
 	}
 	// Check whether xray is running every second
 	s.cron.AddJob("@every 1s", job.NewCheckXrayRunningJob())
@@ -348,6 +350,15 @@ func (s *Server) startTask() {
 
 // Start initializes and starts the web server with configured settings, routes, and background jobs.
 func (s *Server) Start() (err error) {
+	return s.start(true, true)
+}
+
+// StartPanelOnly initializes the panel during an in-process panel restart without cycling Xray.
+func (s *Server) StartPanelOnly() (err error) {
+	return s.start(false, false)
+}
+
+func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	// This is an anonymous function, no function name
 	defer func() {
 		if err != nil {
@@ -427,12 +438,14 @@ func (s *Server) Start() (err error) {
 		s.httpServer.Serve(listener)
 	}()
 
-	s.startTask()
+	s.startTask(restartXray)
 
-	isTgbotenabled, err := s.settingService.GetTgbotEnabled()
-	if (err == nil) && (isTgbotenabled) {
-		tgBot := s.tgbotService.NewTgbot()
-		tgBot.Start(i18nFS)
+	if startTgBot {
+		isTgbotenabled, err := s.settingService.GetTgbotEnabled()
+		if (err == nil) && (isTgbotenabled) {
+			tgBot := s.tgbotService.NewTgbot()
+			tgBot.Start(i18nFS)
+		}
 	}
 
 	return nil
@@ -440,13 +453,26 @@ func (s *Server) Start() (err error) {
 
 // Stop gracefully shuts down the web server, stops Xray, cron jobs, and Telegram bot.
 func (s *Server) Stop() error {
+	return s.stop(true, true)
+}
+
+// StopPanelOnly stops only panel-owned HTTP/background resources for an in-process panel restart.
+func (s *Server) StopPanelOnly() error {
+	return s.stop(false, false)
+}
+
+func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	s.cancel()
-	s.xrayService.StopXray()
+	if stopXray {
+		s.xrayService.StopXray()
+	}
 	if s.cron != nil {
 		s.cron.Stop()
 	}
-	service.StopTrafficWriter()
-	if s.tgbotService.IsRunning() {
+	if stopXray {
+		service.StopTrafficWriter()
+	}
+	if stopTgBot && s.tgbotService.IsRunning() {
 		s.tgbotService.Stop()
 	}
 	// Gracefully stop WebSocket hub
