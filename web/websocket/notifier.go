@@ -2,8 +2,8 @@
 package websocket
 
 import (
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/web/global"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/web/global"
 )
 
 // GetHub returns the global WebSocket hub instance.
@@ -59,6 +59,15 @@ func BroadcastClientStats(stats any) {
 func BroadcastInbounds(inbounds any) {
 	if hub := GetHub(); hub != nil {
 		hub.Broadcast(MessageTypeInbounds, inbounds)
+	}
+}
+
+// BroadcastNodes broadcasts the fresh node list to all connected clients.
+// Pushed by NodeHeartbeatJob at the end of each 10s tick so the Nodes page
+// reflects status / latency / cpu / mem updates without polling.
+func BroadcastNodes(nodes any) {
+	if hub := GetHub(); hub != nil {
+		hub.Broadcast(MessageTypeNodes, nodes)
 	}
 }
 

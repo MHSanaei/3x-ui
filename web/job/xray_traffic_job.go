@@ -3,10 +3,10 @@ package job
 import (
 	"encoding/json"
 
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/web/service"
-	"github.com/mhsanaei/3x-ui/v2/web/websocket"
-	"github.com/mhsanaei/3x-ui/v2/xray"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/websocket"
+	"github.com/mhsanaei/3x-ui/v3/xray"
 
 	"github.com/valyala/fasthttp"
 )
@@ -54,6 +54,7 @@ func (j *XrayTrafficJob) Run() {
 				j.xrayService.SetToNeedRestart()
 			}
 		}
+		websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
 	}
 	if ExternalTrafficInformEnable, err := j.settingService.GetExternalTrafficInformEnable(); ExternalTrafficInformEnable {
 		j.informTrafficToExternalAPI(traffics, clientTraffics)

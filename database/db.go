@@ -6,16 +6,16 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"io/fs"
 	"log"
 	"os"
 	"path"
 	"slices"
+	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/config"
-	"github.com/mhsanaei/3x-ui/v2/database/model"
-	"github.com/mhsanaei/3x-ui/v2/util/crypto"
-	"github.com/mhsanaei/3x-ui/v2/xray"
+	"github.com/mhsanaei/3x-ui/v3/config"
+	"github.com/mhsanaei/3x-ui/v3/database/model"
+	"github.com/mhsanaei/3x-ui/v3/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/xray"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -39,6 +39,7 @@ func initModels() error {
 		&xray.ClientTraffic{},
 		&model.HistoryOfSeeders{},
 		&model.CustomGeoResource{},
+		&model.Node{},
 	}
 	for _, model := range models {
 		if err := db.AutoMigrate(model); err != nil {
@@ -88,11 +89,17 @@ func runSeeders(isUsersEmpty bool) error {
 		return db.Create(hashSeeder).Error
 	} else {
 		var seedersHistory []string
-		db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &seedersHistory)
+		if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &seedersHistory).Error; err != nil {
+			log.Printf("Error fetching seeder history: %v", err)
+			return err
+		}
 
 		if !slices.Contains(seedersHistory, "UserPasswordHash") && !isUsersEmpty {
 			var users []model.User
-			db.Find(&users)
+			if err := db.Find(&users).Error; err != nil {
+				log.Printf("Error fetching users for password migration: %v", err)
+				return err
+			}
 
 			for _, user := range users {
 				hashedPassword, err := crypto.HashPasswordAsBcrypt(user.Password)
@@ -100,7 +107,10 @@ func runSeeders(isUsersEmpty bool) error {
 					log.Printf("Error hashing password for user '%s': %v", user.Username, err)
 					return err
 				}
-				db.Model(&user).Update("password", hashedPassword)
+				if err := db.Model(&user).Update("password", hashedPassword).Error; err != nil {
+					log.Printf("Error updating password for user '%s': %v", user.Username, err)
+					return err
+				}
 			}
 
 			hashSeeder := &model.HistoryOfSeeders{
@@ -123,7 +133,7 @@ func isTableEmpty(tableName string) (bool, error) {
 // InitDB sets up the database connection, migrates models, and runs seeders.
 func InitDB(dbPath string) error {
 	dir := path.Dir(dbPath)
-	err := os.MkdirAll(dir, fs.ModePerm)
+	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		return err
 	}
@@ -139,10 +149,28 @@ func InitDB(dbPath string) error {
 	c := &gorm.Config{
 		Logger: gormLogger,
 	}
-	db, err = gorm.Open(sqlite.Open(dbPath), c)
+	dsn := dbPath + "?_journal_mode=WAL&_busy_timeout=10000&_synchronous=NORMAL&_txlock=immediate"
+	db, err = gorm.Open(sqlite.Open(dsn), c)
 	if err != nil {
 		return err
 	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	if _, err := sqlDB.Exec("PRAGMA journal_mode=WAL"); err != nil {
+		return err
+	}
+	if _, err := sqlDB.Exec("PRAGMA busy_timeout=10000"); err != nil {
+		return err
+	}
+	if _, err := sqlDB.Exec("PRAGMA synchronous=NORMAL"); err != nil {
+		return err
+	}
+	sqlDB.SetMaxOpenConns(8)
+	sqlDB.SetMaxIdleConns(4)
+	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	if err := initModels(); err != nil {
 		return err

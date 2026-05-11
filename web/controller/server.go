@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"strconv"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/web/global"
-	"github.com/mhsanaei/3x-ui/v2/web/service"
-	"github.com/mhsanaei/3x-ui/v2/web/websocket"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/web/entity"
+	"github.com/mhsanaei/3x-ui/v3/web/global"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/websocket"
 
 	"github.com/gin-gonic/gin"
 )
@@ -43,6 +46,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 
 	g.GET("/status", a.status)
 	g.GET("/cpuHistory/:bucket", a.getCpuHistoryBucket)
+	g.GET("/history/:metric/:bucket", a.getMetricHistoryBucket)
 	g.GET("/getXrayVersion", a.getXrayVersion)
 	g.GET("/getPanelUpdateInfo", a.getPanelUpdateInfo)
 	g.GET("/getConfigJson", a.getConfigJson)
@@ -65,12 +69,13 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/getNewEchCert", a.getNewEchCert)
 }
 
-// refreshStatus updates the cached server status and collects CPU history.
+// refreshStatus updates the cached server status and collects time-series
+// metrics. CPU/Mem/Net/Online/Load are all written in one call so the
+// SystemHistoryModal's tabs share an identical x-axis.
 func (a *ServerController) refreshStatus() {
 	a.lastStatus = a.serverService.GetStatus(a.lastStatus)
-	// collect cpu history when status is fresh
 	if a.lastStatus != nil {
-		a.serverService.AppendCpuSample(time.Now(), a.lastStatus.Cpu)
+		a.serverService.AppendStatusSample(time.Now(), a.lastStatus)
 		// Broadcast status update via WebSocket
 		websocket.BroadcastStatus(a.lastStatus)
 	}
@@ -90,7 +95,22 @@ func (a *ServerController) startTask() {
 // status returns the current server status information.
 func (a *ServerController) status(c *gin.Context) { jsonObj(c, a.lastStatus, nil) }
 
+// allowedHistoryBuckets is the bucket-second whitelist shared by both
+// /cpuHistory/:bucket and /history/:metric/:bucket. Restricting it
+// prevents callers from triggering arbitrary aggregation work and keeps
+// the front-end's bucket selector self-documenting.
+var allowedHistoryBuckets = map[int]bool{
+	2:   true, // Real-time view
+	30:  true, // 30s intervals
+	60:  true, // 1m intervals
+	120: true, // 2m intervals
+	180: true, // 3m intervals
+	300: true, // 5m intervals
+}
+
 // getCpuHistoryBucket retrieves aggregated CPU usage history based on the specified time bucket.
+// Kept for back-compat; new callers should use /history/cpu/:bucket which
+// returns {"t","v"} (uniform across all metrics) instead of {"t","cpu"}.
 func (a *ServerController) getCpuHistoryBucket(c *gin.Context) {
 	bucketStr := c.Param("bucket")
 	bucket, err := strconv.Atoi(bucketStr)
@@ -98,15 +118,7 @@ func (a *ServerController) getCpuHistoryBucket(c *gin.Context) {
 		jsonMsg(c, "invalid bucket", fmt.Errorf("bad bucket"))
 		return
 	}
-	allowed := map[int]bool{
-		2:   true, // Real-time view
-		30:  true, // 30s intervals
-		60:  true, // 1m intervals
-		120: true, // 2m intervals
-		180: true, // 3m intervals
-		300: true, // 5m intervals
-	}
-	if !allowed[bucket] {
+	if !allowedHistoryBuckets[bucket] {
 		jsonMsg(c, "invalid bucket", fmt.Errorf("unsupported bucket"))
 		return
 	}
@@ -114,16 +126,39 @@ func (a *ServerController) getCpuHistoryBucket(c *gin.Context) {
 	jsonObj(c, points, nil)
 }
 
-// getXrayVersion retrieves available Xray versions, with caching for 1 minute.
+// getMetricHistoryBucket returns up to 60 buckets of history for a single
+// system metric (cpu, mem, netUp, netDown, online, load1/5/15). The
+// SystemHistoryModal calls one endpoint per active tab.
+func (a *ServerController) getMetricHistoryBucket(c *gin.Context) {
+	metric := c.Param("metric")
+	if !slices.Contains(service.SystemMetricKeys, metric) {
+		jsonMsg(c, "invalid metric", fmt.Errorf("unknown metric"))
+		return
+	}
+	bucket, err := strconv.Atoi(c.Param("bucket"))
+	if err != nil || bucket <= 0 || !allowedHistoryBuckets[bucket] {
+		jsonMsg(c, "invalid bucket", fmt.Errorf("unsupported bucket"))
+		return
+	}
+	jsonObj(c, a.serverService.AggregateSystemMetric(metric, bucket, 60), nil)
+}
+
 func (a *ServerController) getXrayVersion(c *gin.Context) {
+	const cacheTTLSeconds = 15 * 60
+
 	now := time.Now().Unix()
-	if now-a.lastGetVersionsTime <= 60 { // 1 minute cache
+	if a.lastVersions != nil && now-a.lastGetVersionsTime <= cacheTTLSeconds {
 		jsonObj(c, a.lastVersions, nil)
 		return
 	}
 
 	versions, err := a.serverService.GetXrayVersions()
 	if err != nil {
+		if a.lastVersions != nil {
+			logger.Warning("getXrayVersion failed; serving cached list:", err)
+			jsonObj(c, a.lastVersions, nil)
+			return
+		}
 		jsonMsg(c, I18nWeb(c, "getVersion"), err)
 		return
 	}
@@ -138,7 +173,8 @@ func (a *ServerController) getXrayVersion(c *gin.Context) {
 func (a *ServerController) getPanelUpdateInfo(c *gin.Context) {
 	info, err := a.panelService.GetUpdateInfo()
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.index.panelUpdateCheckPopover"), err)
+		logger.Debug("panel update check failed:", err)
+		c.JSON(http.StatusOK, entity.Msg{Success: false})
 		return
 	}
 	jsonObj(c, info, nil)

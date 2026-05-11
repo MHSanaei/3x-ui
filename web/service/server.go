@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/fs"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -20,12 +19,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/config"
-	"github.com/mhsanaei/3x-ui/v2/database"
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/util/common"
-	"github.com/mhsanaei/3x-ui/v2/util/sys"
-	"github.com/mhsanaei/3x-ui/v2/xray"
+	"github.com/mhsanaei/3x-ui/v3/config"
+	"github.com/mhsanaei/3x-ui/v3/database"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/util/common"
+	"github.com/mhsanaei/3x-ui/v3/util/sys"
+	"github.com/mhsanaei/3x-ui/v3/xray"
 
 	"github.com/google/uuid"
 	"github.com/shirou/gopsutil/v4/cpu"
@@ -112,75 +111,27 @@ type ServerService struct {
 	hasLastCPUSample   bool
 	hasNativeCPUSample bool
 	emaCPU             float64
-	cpuHistory         []CPUSample
 	cachedCpuSpeedMhz  float64
 	lastCpuInfoAttempt time.Time
 }
 
-// AggregateCpuHistory returns up to maxPoints averaged buckets of size bucketSeconds over recent data.
+// AggregateCpuHistory returns up to maxPoints averaged buckets of size bucketSeconds.
+// Kept for back-compat with the original /panel/api/server/cpuHistory/:bucket route;
+// the response key is "cpu" (not "v") so legacy consumers parse unchanged.
 func (s *ServerService) AggregateCpuHistory(bucketSeconds int, maxPoints int) []map[string]any {
-	if bucketSeconds <= 0 || maxPoints <= 0 {
-		return nil
-	}
-	cutoff := time.Now().Add(-time.Duration(bucketSeconds*maxPoints) * time.Second).Unix()
-	s.mu.Lock()
-	// find start index (history sorted ascending)
-	hist := s.cpuHistory
-	// binary-ish scan (simple linear from end since size capped ~10800 is fine)
-	startIdx := 0
-	for i := len(hist) - 1; i >= 0; i-- {
-		if hist[i].T < cutoff {
-			startIdx = i + 1
-			break
-		}
-	}
-	if startIdx >= len(hist) {
-		s.mu.Unlock()
-		return []map[string]any{}
-	}
-	slice := hist[startIdx:]
-	// copy for unlock
-	tmp := make([]CPUSample, len(slice))
-	copy(tmp, slice)
-	s.mu.Unlock()
-	if len(tmp) == 0 {
-		return []map[string]any{}
-	}
-	var out []map[string]any
-	var acc []float64
-	bSize := int64(bucketSeconds)
-	curBucket := (tmp[0].T / bSize) * bSize
-	flush := func(ts int64) {
-		if len(acc) == 0 {
-			return
-		}
-		sum := 0.0
-		for _, v := range acc {
-			sum += v
-		}
-		avg := sum / float64(len(acc))
-		out = append(out, map[string]any{"t": ts, "cpu": avg})
-		acc = acc[:0]
-	}
-	for _, p := range tmp {
-		b := (p.T / bSize) * bSize
-		if b != curBucket {
-			flush(curBucket)
-			curBucket = b
-		}
-		acc = append(acc, p.Cpu)
-	}
-	flush(curBucket)
-	if len(out) > maxPoints {
-		out = out[len(out)-maxPoints:]
+	out := systemMetrics.aggregate("cpu", bucketSeconds, maxPoints)
+	for _, p := range out {
+		p["cpu"] = p["v"]
+		delete(p, "v")
 	}
 	return out
 }
 
-// CPUSample single CPU utilization sample
-type CPUSample struct {
-	T   int64   `json:"t"`   // unix seconds
-	Cpu float64 `json:"cpu"` // percent 0..100
+// AggregateSystemMetric returns up to maxPoints averaged buckets for any
+// known system metric (see SystemMetricKeys). Output points have keys
+// {"t": unixSec, "v": value}; the caller decides how to format the value.
+func (s *ServerService) AggregateSystemMetric(metric string, bucketSeconds int, maxPoints int) []map[string]any {
+	return systemMetrics.aggregate(metric, bucketSeconds, maxPoints)
 }
 
 type LogEntry struct {
@@ -315,13 +266,21 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	}
 
 	// Network stats
-	ioStats, err := net.IOCounters(false)
+	ioStats, err := net.IOCounters(true)
 	if err != nil {
 		logger.Warning("get io counters failed:", err)
-	} else if len(ioStats) > 0 {
-		ioStat := ioStats[0]
-		status.NetTraffic.Sent = ioStat.BytesSent
-		status.NetTraffic.Recv = ioStat.BytesRecv
+	} else {
+		var totalSent, totalRecv uint64
+		for _, iface := range ioStats {
+			name := strings.ToLower(iface.Name)
+			if isVirtualInterface(name) {
+				continue
+			}
+			totalSent += iface.BytesSent
+			totalRecv += iface.BytesRecv
+		}
+		status.NetTraffic.Sent = totalSent
+		status.NetTraffic.Recv = totalRecv
 
 		if lastStatus != nil {
 			duration := now.Sub(lastStatus.T)
@@ -331,8 +290,6 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 			status.NetIO.Up = up
 			status.NetIO.Down = down
 		}
-	} else {
-		logger.Warning("can not find io counters")
 	}
 
 	// TCP/UDP connections
@@ -417,18 +374,35 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	return status
 }
 
+// AppendCpuSample is preserved for callers that only have the CPU number.
+// New callers should prefer AppendStatusSample which writes the full set.
 func (s *ServerService) AppendCpuSample(t time.Time, v float64) {
-	const capacity = 9000 // ~5 hours @ 2s interval
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	p := CPUSample{T: t.Unix(), Cpu: v}
-	if n := len(s.cpuHistory); n > 0 && s.cpuHistory[n-1].T == p.T {
-		s.cpuHistory[n-1] = p
-	} else {
-		s.cpuHistory = append(s.cpuHistory, p)
+	systemMetrics.append("cpu", t, v)
+}
+
+// AppendStatusSample writes one tick of every metric we keep — CPU, memory
+// percent, network throughput (bytes/s), online client count, and the three
+// load averages. Called by ServerController.refreshStatus on the same @2s
+// cadence as AppendCpuSample, so all series stay aligned.
+func (s *ServerService) AppendStatusSample(t time.Time, status *Status) {
+	if status == nil {
+		return
 	}
-	if len(s.cpuHistory) > capacity {
-		s.cpuHistory = s.cpuHistory[len(s.cpuHistory)-capacity:]
+	systemMetrics.append("cpu", t, status.Cpu)
+	if status.Mem.Total > 0 {
+		systemMetrics.append("mem", t, float64(status.Mem.Current)*100.0/float64(status.Mem.Total))
+	}
+	systemMetrics.append("netUp", t, float64(status.NetIO.Up))
+	systemMetrics.append("netDown", t, float64(status.NetIO.Down))
+	online := 0
+	if p != nil && p.IsRunning() {
+		online = len(p.GetOnlineClients())
+	}
+	systemMetrics.append("online", t, float64(online))
+	if len(status.Loads) >= 3 {
+		systemMetrics.append("load1", t, status.Loads[0])
+		systemMetrics.append("load5", t, status.Loads[1])
+		systemMetrics.append("load15", t, status.Loads[2])
 	}
 }
 
@@ -517,13 +491,15 @@ func (s *ServerService) sampleCPUUtilization() (float64, error) {
 	return s.emaCPU, nil
 }
 
+var xrayVersionsClient = &http.Client{Timeout: 10 * time.Second}
+
 func (s *ServerService) GetXrayVersions() ([]string, error) {
 	const (
 		XrayURL    = "https://api.github.com/repos/XTLS/Xray-core/releases"
 		bufferSize = 8192
 	)
 
-	resp, err := http.Get(XrayURL)
+	resp, err := xrayVersionsClient.Get(XrayURL)
 	if err != nil {
 		return nil, err
 	}
@@ -555,6 +531,9 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 	var versions []string
 	for _, release := range releases {
 		tagVersion := strings.TrimPrefix(release.TagName, "v")
+		if tagVersion == "26.5.3" {
+			continue
+		}
 		tagParts := strings.Split(tagVersion, ".")
 		if len(tagParts) != 3 {
 			continue
@@ -567,7 +546,7 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 			continue
 		}
 
-		if major > 26 || (major == 26 && minor > 3) || (major == 26 && minor == 3 && patch >= 10) {
+		if major > 26 || (major == 26 && minor > 4) || (major == 26 && minor == 4 && patch >= 25) {
 			versions = append(versions, release.TagName)
 		}
 	}
@@ -680,7 +659,7 @@ func (s *ServerService) UpdateXray(version string) error {
 		defer zipFile.Close()
 		os.MkdirAll(filepath.Dir(fileName), 0755)
 		os.Remove(fileName)
-		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, fs.ModePerm)
+		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
 		if err != nil {
 			return err
 		}
@@ -856,6 +835,34 @@ func (s *ServerService) GetXrayLogs(
 	}
 
 	return entries
+}
+
+// isVirtualInterface returns true for loopback and virtual/tunnel interfaces
+// that should be excluded from network traffic statistics.
+func isVirtualInterface(name string) bool {
+	// Exact matches
+	if name == "lo" || name == "lo0" {
+		return true
+	}
+	// Prefix matches for virtual/tunnel interfaces
+	virtualPrefixes := []string{
+		"loopback",
+		"docker",
+		"br-",
+		"veth",
+		"virbr",
+		"tun",
+		"tap",
+		"wg",
+		"tailscale",
+		"zt",
+	}
+	for _, prefix := range virtualPrefixes {
+		if strings.HasPrefix(name, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func logEntryContains(line string, suffixes []string) bool {

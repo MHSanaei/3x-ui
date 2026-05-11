@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/database/model"
-	"github.com/mhsanaei/3x-ui/v2/web/service"
-	"github.com/mhsanaei/3x-ui/v2/web/session"
-	"github.com/mhsanaei/3x-ui/v2/web/websocket"
+	"github.com/mhsanaei/3x-ui/v3/database/model"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/session"
+	"github.com/mhsanaei/3x-ui/v3/web/websocket"
 
 	"github.com/gin-gonic/gin"
 )
@@ -155,10 +155,23 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	}
 	user := session.GetLoginUser(c)
 	inbound.UserId = user.Id
-	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
-	} else {
-		inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
+	// Treat NodeID=0 as "no node" — gin's *int form binding can land on
+	// 0 when the field is absent or empty, and 0 is never a valid Node
+	// row id. Without this normalization the runtime layer would try to
+	// load Node id=0 and surface "record not found".
+	if inbound.NodeID != nil && *inbound.NodeID == 0 {
+		inbound.NodeID = nil
+	}
+	// When the central panel deploys an inbound to a remote node, it sends
+	// the Tag pre-computed (so both DBs agree on the identifier). Local
+	// UI submits don't include a Tag — we compute one from listen+port
+	// using the original collision-avoiding scheme.
+	if inbound.Tag == "" {
+		if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+			inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
+		} else {
+			inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
+		}
 	}
 
 	inbound, needRestart, err := a.inboundService.AddInbound(inbound)
@@ -209,6 +222,13 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
 		return
+	}
+	// Same NodeID=0 → nil normalisation as addInbound. UpdateInbound
+	// loads the existing row's NodeID from DB anyway (Phase 1 doesn't
+	// support migrating an inbound between nodes), but normalising here
+	// keeps the wire shape consistent.
+	if inbound.NodeID != nil && *inbound.NodeID == 0 {
+		inbound.NodeID = nil
 	}
 	inbound, needRestart, err := a.inboundService.UpdateInbound(inbound)
 	if err != nil {
@@ -469,10 +489,12 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	inbound.Id = 0
 	inbound.UserId = user.Id
-	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
-	} else {
-		inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
+	if inbound.Tag == "" {
+		if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+			inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
+		} else {
+			inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
+		}
 	}
 
 	for index := range inbound.ClientStats {
