@@ -20,19 +20,19 @@
 
 **منبع رسمی:**
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/ruyawwj/3x-ui/main/install.sh)
 ```
 
 **شتاب‌دهی GitHub (برای کاربران چینی توصیه می‌شود):**
 
 روش اول (استفاده از آدرس شتاب پیش‌فرض):
 ```bash
-bash <(curl -Ls https://gh.kejilion.pro/https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://gh.kejilion.pro/https://raw.githubusercontent.com/ruyawwj/3x-ui/main/install.sh)
 ```
 
 روش دوم (استفاده از آدرس شتاب سفارشی):
 ```bash
-bash <(curl -Ls https://آدرس-آینه-سفارشی.com/https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://آدرس-آینه-سفارشی.com/https://raw.githubusercontent.com/ruyawwj/3x-ui/main/install.sh)
 ```
 
 برای مستندات کامل، لطفاً به [ویکی پروژه](https://github.com/MHSanaei/3x-ui/wiki) مراجعه کنید.

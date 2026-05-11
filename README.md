@@ -20,19 +20,19 @@ As an enhanced version of the original X-UI project, 3X-UI provides better stabi
 
 **Official Source:**
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/ruyawwj/3x-ui/main/install.sh)
 ```
 
 **GitHub Acceleration (Recommended for users in China):**
 
 Method 1 (Using default acceleration address):
 ```bash
-bash <(curl -Ls https://gh.kejilion.pro/https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://gh.kejilion.pro/https://raw.githubusercontent.com/ruyawwj/3x-ui/main/install.sh)
 ```
 
 Method 2 (Using custom acceleration address):
 ```bash
-bash <(curl -Ls https://your-custom-mirror.com/https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://your-custom-mirror.com/https://raw.githubusercontent.com/ruyawwj/3x-ui/main/install.sh)
 ```
 
 For full documentation, please visit the [project Wiki](https://github.com/MHSanaei/3x-ui/wiki).

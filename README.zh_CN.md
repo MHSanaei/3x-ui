@@ -20,19 +20,19 @@
 
 **官方源安装：**
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/ruyawwj/3x-ui/main/install.sh)
 ```
 
 **GitHub 加速安装（推荐国内用户）：**
 
 方式一（使用默认加速地址）：
 ```bash
-bash <(curl -Ls https://gh.kejilion.pro/https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://gh.kejilion.pro/https://raw.githubusercontent.com/ruyawwj/3x-ui/main/install.sh)
 ```
 
 方式二（使用自定义加速地址）：
 ```bash
-bash <(curl -Ls https://your-custom-mirror.com/https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://your-custom-mirror.com/https://raw.githubusercontent.com/ruyawwj/3x-ui/main/install.sh)
 ```
 
 完整文档请参阅 [项目Wiki](https://github.com/MHSanaei/3x-ui/wiki)。

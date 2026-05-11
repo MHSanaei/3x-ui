@@ -20,19 +20,19 @@
 
 **Официальный источник:**
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/ruyawwj/3x-ui/main/install.sh)
 ```
 
 **Ускорение GitHub (рекомендуется для пользователей из Китая):**
 
 Способ 1 (Использование адреса ускорения по умолчанию):
 ```bash
-bash <(curl -Ls https://gh.kejilion.pro/https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://gh.kejilion.pro/https://raw.githubusercontent.com/ruyawwj/3x-ui/main/install.sh)
 ```
 
 Способ 2 (Использование пользовательского адреса ускорения):
 ```bash
-bash <(curl -Ls https://ваш-адрес-зеркала.com/https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://ваш-адрес-зеркала.com/https://raw.githubusercontent.com/ruyawwj/3x-ui/main/install.sh)
 ```
 
 Полную документацию смотрите в [Wiki проекта](https://github.com/MHSanaei/3x-ui/wiki).
