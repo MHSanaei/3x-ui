@@ -1926,13 +1926,13 @@ Outbound.VmessSettings = class extends CommonClass {
     }
 };
 Outbound.VLESSSettings = class extends CommonClass {
-    constructor(address, port, id, flow, encryption, reverseTag = '', reverseSniffing = new ReverseSniffing(), testpre = 0, testseed = []) {
+    constructor(address, port, id, flow, encryption = 'none', reverseTag = '', reverseSniffing = new ReverseSniffing(), testpre = 0, testseed = []) {
         super();
         this.address = address;
         this.port = port;
         this.id = id;
         this.flow = flow;
-        this.encryption = encryption;
+        this.encryption = encryption || 'none';
         this.reverseTag = reverseTag;
         this.reverseSniffing = reverseSniffing;
         this.testpre = testpre;
@@ -1966,7 +1966,7 @@ Outbound.VLESSSettings = class extends CommonClass {
             port: this.port,
             id: this.id,
             flow: this.flow,
-            encryption: this.encryption,
+            encryption: this.encryption || 'none',
         };
         if (!ObjectUtil.isEmpty(this.reverseTag)) {
             const reverseSniffing = this.reverseSniffing ? this.reverseSniffing.toJson() : {};

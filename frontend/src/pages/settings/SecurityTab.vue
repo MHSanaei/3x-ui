@@ -54,7 +54,7 @@ async function sendUpdateUser() {
     if (msg?.success) {
       // Force re-login at the standard logout path; basePath is handled
       // by the Go router so a relative redirect is correct here.
-      const basePath = window.__X_UI_BASE_PATH__ || '';
+      const basePath = window.X_UI_BASE_PATH || '';
       window.location.replace(`${basePath}logout`);
     }
   } finally {

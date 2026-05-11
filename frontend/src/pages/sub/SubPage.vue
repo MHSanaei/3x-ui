@@ -9,14 +9,15 @@ import {
   CopyOutlined,
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
-import QRious from 'qrious';
 
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
 import {
   theme as themeState,
   antdThemeConfig,
+  toggleTheme,
+  toggleUltra,
+  pauseAnimationsUntilLeave,
 } from '@/composables/useTheme.js';
-import ThemeSwitchLogin from '@/components/ThemeSwitchLogin.vue';
 
 const { t } = useI18n();
 
@@ -38,6 +39,8 @@ const lastOnlineMs = Number(subData.lastOnline || 0);
 const subUrl = subData.subUrl || '';
 const subJsonUrl = subData.subJsonUrl || '';
 const subClashUrl = subData.subClashUrl || '';
+const subTitle = subData.subTitle || '';
+const subSupportUrl = subData.subSupportUrl || '';
 const links = Array.isArray(subData.links) ? subData.links : [];
 // Panel's "Calendar Type" setting; controls whether expiry / lastOnline
 // render in Gregorian or Jalali on this standalone subscription page.
@@ -71,32 +74,23 @@ function onLangChange(next) {
   LanguageManager.setLanguage(next);
 }
 
-// QR code rendering ===========================================
-// Each ref points at a canvas element we paint after mount; QRious
-// sizes itself from the element's `size` attribute.
-const subQr = ref(null);
-const subJsonQr = ref(null);
-const subClashQr = ref(null);
-
-function paintQr(canvas, value) {
-  if (!canvas || !value) return;
-  new QRious({
-    element: canvas,
-    size: 220,
-    value,
-    background: 'white',
-    backgroundAlpha: 1,
-    foreground: 'black',
-    padding: 4,
-    level: 'M',
-  });
+/* Same Light -> Dark -> Ultra Dark -> Light cycle the panel sidebar
+ * uses, so the standalone subscription page offers a one-click theme
+ * toggle without the popover ceremony. */
+function cycleTheme() {
+  pauseAnimationsUntilLeave('sub-theme-cycle');
+  if (!themeState.isDark) {
+    toggleTheme();
+    if (themeState.isUltra) toggleUltra();
+  } else if (!themeState.isUltra) {
+    toggleUltra();
+  } else {
+    toggleUltra();
+    toggleTheme();
+  }
 }
 
-onMounted(() => {
-  paintQr(subQr.value, subUrl);
-  paintQr(subJsonQr.value, subJsonUrl);
-  paintQr(subClashQr.value, subClashUrl);
-});
+const QR_SIZE = 240;
 
 // Actions =====================================================
 async function copy(value) {
@@ -128,7 +122,14 @@ function linkName(link, idx) {
 
 // iOS deep links — taken verbatim from the legacy subpage. Each
 // client expects the sub URL in a slightly different param name.
-const shadowrocketUrl = computed(() => `sub://${btoa(subUrl)}`);
+const shadowrocketUrl = computed(() => {
+  if (!subUrl) return '';
+  const separator = subUrl.includes('?') ? '&' : '?';
+  const rawUrl = subUrl + separator + 'flag=shadowrocket';
+  const base64Url = encodeURIComponent(btoa(rawUrl));
+  const remark = encodeURIComponent(subTitle || sId || 'Subscription');
+  return `shadowrocket://add/sub/${base64Url}?remark=${remark}`;
+});
 const v2boxUrl = computed(() => `v2box://install-sub?url=${encodeURIComponent(subUrl)}&name=${encodeURIComponent(sId)}`);
 const streisandUrl = computed(() => `streisand://import/${encodeURIComponent(subUrl)}`);
 const v2raytunUrl = computed(() => subUrl);
@@ -157,26 +158,45 @@ const themeClass = computed(() => ({
                 </a-space>
               </template>
               <template #extra>
-                <a-popover :title="t('menu.settings')" placement="bottomRight" trigger="click">
-                  <template #content>
-                    <a-space direction="vertical" :size="10" class="settings-popover">
-                      <ThemeSwitchLogin />
-                      <span>{{ t('pages.settings.language') }}</span>
-                      <a-select v-model:value="lang" class="lang-select" @change="onLangChange">
-                        <a-select-option v-for="l in LanguageManager.supportedLanguages" :key="l.value"
-                          :value="l.value">
-                          <span :aria-label="l.name">{{ l.icon }}</span>
-                          &nbsp;&nbsp;<span>{{ l.name }}</span>
-                        </a-select-option>
-                      </a-select>
-                    </a-space>
-                  </template>
-                  <a-button shape="circle">
-                    <template #icon>
-                      <SettingOutlined />
+                <a-space :size="8" align="center">
+                  <button type="button" class="theme-cycle" :aria-label="t('menu.theme')" :title="t('menu.theme')"
+                    @click="cycleTheme">
+                    <svg v-if="!themeState.isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="4" />
+                      <path
+                        d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                    </svg>
+                    <svg v-else-if="!themeState.isUltra" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"
+                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                      <path fill="none" d="M19 3l0.7 1.4 1.4 0.7-1.4 0.7L19 7.2l-0.7-1.4-1.4-0.7 1.4-0.7z" />
+                    </svg>
+                  </button>
+
+                  <a-popover :title="t('pages.settings.language')" placement="bottomRight" trigger="click">
+                    <template #content>
+                      <a-space direction="vertical" :size="10" class="settings-popover">
+                        <a-select v-model:value="lang" class="lang-select" @change="onLangChange">
+                          <a-select-option v-for="l in LanguageManager.supportedLanguages" :key="l.value"
+                            :value="l.value">
+                            <span :aria-label="l.name">{{ l.icon }}</span>
+                            &nbsp;&nbsp;<span>{{ l.name }}</span>
+                          </a-select-option>
+                        </a-select>
+                      </a-space>
                     </template>
-                  </a-button>
-                </a-popover>
+                    <a-button shape="circle">
+                      <template #icon>
+                        <SettingOutlined />
+                      </template>
+                    </a-button>
+                  </a-popover>
+                </a-space>
               </template>
 
               <!-- ============== QR codes ============== -->
@@ -184,7 +204,8 @@ const themeClass = computed(() => ({
                 <a-col :xs="24" :sm="subJsonUrl || subClashUrl ? 12 : 24" class="qr-col">
                   <div class="qr-box">
                     <a-tag color="purple" class="qr-tag">{{ t('pages.settings.subSettings') }}</a-tag>
-                    <canvas ref="subQr" class="qr-canvas" :title="t('copy')" @click="copy(subUrl)" />
+                    <a-qrcode class="qr-code" :value="subUrl" :size="QR_SIZE" type="svg" :bordered="false"
+                      :title="t('copy')" @click="copy(subUrl)" />
                   </div>
                 </a-col>
                 <a-col v-if="subJsonUrl" :xs="24" :sm="12" class="qr-col">
@@ -192,13 +213,15 @@ const themeClass = computed(() => ({
                     <a-tag color="purple" class="qr-tag">
                       {{ t('pages.settings.subSettings') }} JSON
                     </a-tag>
-                    <canvas ref="subJsonQr" class="qr-canvas" :title="t('copy')" @click="copy(subJsonUrl)" />
+                    <a-qrcode class="qr-code" :value="subJsonUrl" :size="QR_SIZE" type="svg" :bordered="false"
+                      :title="t('copy')" @click="copy(subJsonUrl)" />
                   </div>
                 </a-col>
                 <a-col v-if="subClashUrl" :xs="24" :sm="12" class="qr-col">
                   <div class="qr-box">
                     <a-tag color="purple" class="qr-tag">Clash / Mihomo</a-tag>
-                    <canvas ref="subClashQr" class="qr-canvas" :title="t('copy')" @click="copy(subClashUrl)" />
+                    <a-qrcode class="qr-code" :value="subClashUrl" :size="QR_SIZE" type="svg" :bordered="false"
+                      :title="t('copy')" @click="copy(subClashUrl)" />
                   </div>
                 </a-col>
               </a-row>
@@ -299,8 +322,8 @@ const themeClass = computed(() => ({
 }
 
 .subscription-page.is-dark {
-  --bg-page: #0a1222;
-  --bg-card: #151f31;
+  --bg-page: #1e1e1e;
+  --bg-card: #252526;
 }
 
 .subscription-page.is-dark.is-ultra {
@@ -336,7 +359,7 @@ const themeClass = computed(() => ({
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  width: 220px;
+  width: 240px;
 }
 
 .qr-tag {
@@ -345,8 +368,9 @@ const themeClass = computed(() => ({
   margin: 0;
 }
 
-.qr-canvas {
+.qr-code {
   cursor: pointer;
+  padding: 0 !important;
   background: #fff;
   border-radius: 4px;
 }
@@ -461,6 +485,45 @@ const themeClass = computed(() => ({
 
 .settings-popover {
   min-width: 220px;
+}
+
+.theme-cycle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--bg-card);
+  color: rgba(0, 0, 0, 0.65);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.2s, transform 0.15s, color 0.2s;
+}
+
+.theme-cycle:hover,
+.theme-cycle:focus-visible {
+  background-color: rgba(64, 150, 255, 0.1);
+  color: #4096ff;
+  transform: scale(1.05);
+  outline: none;
+}
+
+.theme-cycle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.is-dark .theme-cycle {
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.is-dark .theme-cycle:hover,
+.is-dark .theme-cycle:focus-visible {
+  background-color: rgba(64, 150, 255, 0.1);
+  color: #4096ff;
 }
 
 .lang-select {

@@ -53,6 +53,7 @@ const form = reactive({
   flow: '',
   subId: '',
   tgId: 0,
+  comment: '',
   limitIp: 0,
   totalGB: 0,
   expiryTime: 0, // ms epoch; negative => delayed start days
@@ -85,6 +86,7 @@ watch(() => props.open, (next) => {
   form.flow = '';
   form.subId = '';
   form.tgId = 0;
+  form.comment = '';
   form.limitIp = 0;
   form.totalGB = 0;
   form.expiryTime = 0;
@@ -135,6 +137,7 @@ function buildClients() {
 
     if (form.subId.length > 0) c.subId = form.subId;
     c.tgId = form.tgId;
+    if (form.comment.length > 0) c.comment = form.comment;
     c.security = form.security;
     c.limitIp = form.limitIp;
     // Use the clien's totalGB setter (ms epoch and bytes already handled
@@ -225,6 +228,10 @@ async function submit() {
 
       <a-form-item v-if="tgBotEnable" label="Telegram ID">
         <a-input-number v-model:value="form.tgId" :min="0" :style="{ width: '50%' }" />
+      </a-form-item>
+
+      <a-form-item :label="t('comment')">
+        <a-input v-model:value="form.comment" />
       </a-form-item>
 
       <a-form-item v-if="ipLimitEnable" :label="t('pages.inbounds.IPLimit')">

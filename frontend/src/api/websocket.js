@@ -140,7 +140,7 @@ export class WebSocketClient {
 
   #buildUrl() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // basePath comes from window.__X_UI_BASE_PATH__ which is only injected
+    // basePath comes from window.X_UI_BASE_PATH which is only injected
     // by the Go binary in production. In dev (Vite serves directly) the
     // global is missing and basePath would be '' — without the fallback to
     // '/' we'd build `ws://host:portws` (no separator) and the WebSocket

@@ -67,7 +67,7 @@ const { isMobile } = useMediaQuery();
 // the id→node map for the new "Node" column. Fetched once on mount.
 const { byId: nodesById } = useNodeList();
 
-const basePath = window.__X_UI_BASE_PATH__ || '';
+const basePath = window.X_UI_BASE_PATH || '';
 const requestUri = window.location.pathname;
 
 onMounted(async () => {
@@ -320,6 +320,14 @@ async function onDeleteClient({ dbInbound, client }) {
   const clientId = getClientId(dbInbound.protocol, client);
   const msg = await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/delClient/${clientId}`);
   if (msg?.success) await refresh();
+}
+
+async function onDeleteClients({ dbInbound, clients }) {
+  for (const client of clients) {
+    const clientId = getClientId(dbInbound.protocol, client);
+    await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/delClient/${clientId}`);
+  }
+  await refresh();
 }
 
 async function onToggleEnableClient({ dbInbound, client, next }) {
@@ -593,9 +601,38 @@ function onRowAction({ key, dbInbound }) {
                           <a-space direction="horizontal">
                             <TeamOutlined />
                             <a-tag color="green">{{ totals.clients }}</a-tag>
-                            <a-tag v-if="totals.deactive.length">{{ totals.deactive.length }}</a-tag>
-                            <a-tag v-if="totals.depleted.length" color="red">{{ totals.depleted.length }}</a-tag>
-                            <a-tag v-if="totals.expiring.length" color="orange">{{ totals.expiring.length }}</a-tag>
+                            <a-popover v-if="totals.deactive.length" :title="t('disabled')">
+                              <template #content>
+                                <div class="client-email-list">
+                                  <div v-for="email in totals.deactive" :key="email">{{ email }}</div>
+                                </div>
+                              </template>
+                              <a-tag>{{ totals.deactive.length }}</a-tag>
+                            </a-popover>
+                            <a-popover v-if="totals.depleted.length" :title="t('depleted')">
+                              <template #content>
+                                <div class="client-email-list">
+                                  <div v-for="email in totals.depleted" :key="email">{{ email }}</div>
+                                </div>
+                              </template>
+                              <a-tag color="red">{{ totals.depleted.length }}</a-tag>
+                            </a-popover>
+                            <a-popover v-if="totals.expiring.length" :title="t('depletingSoon')">
+                              <template #content>
+                                <div class="client-email-list">
+                                  <div v-for="email in totals.expiring" :key="email">{{ email }}</div>
+                                </div>
+                              </template>
+                              <a-tag color="orange">{{ totals.expiring.length }}</a-tag>
+                            </a-popover>
+                            <a-popover v-if="totals.online.length" :title="t('online')">
+                              <template #content>
+                                <div class="client-email-list">
+                                  <div v-for="email in totals.online" :key="email">{{ email }}</div>
+                                </div>
+                              </template>
+                              <a-tag color="blue">{{ totals.online.length }}</a-tag>
+                            </a-popover>
                           </a-space>
                         </template>
                       </CustomStatistic>
@@ -613,7 +650,7 @@ function onRowAction({ key, dbInbound }) {
                   @add-inbound="onAddInbound" @general-action="onGeneralAction" @row-action="onRowAction"
                   @edit-client="onEditClient" @qrcode-client="onQrcodeClient" @info-client="onInfoClient"
                   @reset-traffic-client="onResetTrafficClient" @delete-client="onDeleteClient"
-                  @toggle-enable-client="onToggleEnableClient" />
+                  @delete-clients="onDeleteClients" @toggle-enable-client="onToggleEnableClient" />
               </a-col>
             </a-row>
           </a-spin>
@@ -631,7 +668,7 @@ function onRowAction({ key, dbInbound }) {
         :ip-limit-enable="ipLimitEnable" :tg-bot-enable="tgBotEnable" :sub-settings="subSettings"
         :last-online-map="lastOnlineMap" :node-address="infoNodeAddress" />
       <QrCodeModal v-model:open="qrOpen" :db-inbound="qrDbInbound" :client="qrClient" :remark-model="remarkModel"
-        :node-address="qrNodeAddress" />
+        :node-address="qrNodeAddress" :sub-settings="subSettings" />
 
       <TextModal v-model:open="textOpen" :title="textTitle" :content="textContent" :file-name="textFileName" />
       <PromptModal v-model:open="promptOpen" :title="promptTitle" :ok-text="promptOkText" :type="promptType"
@@ -650,8 +687,8 @@ function onRowAction({ key, dbInbound }) {
 }
 
 .inbounds-page.is-dark {
-  --bg-page: #0a1222;
-  --bg-card: #151f31;
+  --bg-page: #1e1e1e;
+  --bg-card: #252526;
 }
 
 .inbounds-page.is-dark.is-ultra {
@@ -690,5 +727,22 @@ function onRowAction({ key, dbInbound }) {
   .summary-card {
     padding: 8px;
   }
+}
+</style>
+
+<style>
+/* AD-Vue popovers teleport their content to <body>, so scoped styles
+   don't reach them — this block has to be unscoped. */
+.client-email-list {
+  max-height: 280px;
+  min-width: 160px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.client-email-list > div {
+  padding: 2px 0;
+  font-size: 12px;
+  white-space: nowrap;
 }
 </style>

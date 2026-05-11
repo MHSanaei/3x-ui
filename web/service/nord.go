@@ -25,6 +25,9 @@ func (s *NordService) GetCountries() (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", common.NewErrorf("NordVPN API error: %s", resp.Status)
+	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 	if err != nil {
 		return "", err
@@ -45,6 +48,9 @@ func (s *NordService) GetServers(countryId string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", common.NewErrorf("NordVPN API error: %s", resp.Status)
+	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 	if err != nil {
 		return "", err
@@ -97,8 +103,7 @@ func (s *NordService) GetCredentials(token string) (string, error) {
 	}
 	req.SetBasicAuth("token", token)
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := nordHTTPClient.Do(req)
 	if err != nil {
 		return "", err
 	}

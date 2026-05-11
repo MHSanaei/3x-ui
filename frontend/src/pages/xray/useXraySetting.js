@@ -1,50 +1,24 @@
-// Drives the xray page's fetch / dirty / save lifecycle. The Go side
-// returns the live xraySetting (the full JSON config), the inboundTags
-// list, and a few sidecar values (clientReverseTags, outboundTestUrl)
-// the structured tabs need. We keep the JSON as a string here — pretty-
-// printed for the textarea; tabs that want a parsed view can JSON.parse
-// it themselves.
 
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { HttpUtil, PromiseUtil } from '@/utils';
 
 const DIRTY_POLL_MS = 1000;
 
-// Hoists the parsed `templateSettings` alongside the JSON string so
-// structured tabs (Basics/Routing/Outbounds/etc.) can mutate fields
-// directly while the Advanced (JSON) tab edits the same data as text.
-// We keep both in sync with two cooperating watches:
-//   • mutating templateSettings re-stringifies into xraySetting;
-//   • editing the JSON text re-parses into templateSettings (only on
-//     valid JSON — invalid edits leave templateSettings untouched
-//     so the structured tabs don't blow up while the user types).
 let syncing = false;
 
 export function useXraySetting() {
   const fetched = ref(false);
   const spinning = ref(false);
   const saveDisabled = ref(true);
-  // Holds a user-facing message when fetchAll fails; lets the page
-  // render an error UI instead of an endless spinner.
   const fetchError = ref('');
-
   const xraySetting = ref('');
   const oldXraySetting = ref('');
-
-  // Parsed mirror — null until first successful fetch / parse.
   const templateSettings = ref(null);
-
   const outboundTestUrl = ref('https://www.google.com/generate_204');
   const oldOutboundTestUrl = ref('');
-
   const inboundTags = ref([]);
   const clientReverseTags = ref([]);
   const restartResult = ref('');
-
-  // Outbounds tab data — traffic stats + per-row test state. Test
-  // states are keyed by outbound index (sparse object), each entry
-  // is `{ testing, result }` where result is the wire response from
-  // /panel/xray/testOutbound or null while the test is in flight.
   const outboundsTraffic = ref([]);
   const outboundTestStates = ref({});
 
@@ -53,7 +27,6 @@ export function useXraySetting() {
     const msg = await HttpUtil.post('/panel/xray/');
     if (!msg?.success) {
       fetchError.value = msg?.msg || 'Failed to load xray config';
-      // Mark as fetched so the spinner clears and the error UI renders.
       fetched.value = true;
       return;
     }
@@ -79,8 +52,7 @@ export function useXraySetting() {
     saveDisabled.value = true;
   }
 
-  // Structured tabs mutate templateSettings deeply. Re-stringify on
-  // change so the Advanced JSON view + the dirty-poll see the edits.
+
   watch(
     templateSettings,
     (next) => {
@@ -95,8 +67,6 @@ export function useXraySetting() {
     { deep: true },
   );
 
-  // Advanced JSON edits — only refresh templateSettings when the text
-  // parses, so structured tabs stay readable mid-edit.
   watch(xraySetting, (next) => {
     if (syncing) return;
     try {
@@ -133,21 +103,19 @@ export function useXraySetting() {
     if (msg?.success) await fetchOutboundsTraffic();
   }
 
-  // Merges a WebSocket `outbounds` event into outboundsTraffic in place.
-  // The xray traffic job pushes the full snapshot every ~10s so the user
-  // doesn't have to click the (now-removed) refresh button.
   function applyOutboundsEvent(payload) {
     if (Array.isArray(payload)) outboundsTraffic.value = payload;
   }
 
-  async function testOutbound(index, outbound) {
+  async function testOutbound(index, outbound, mode = 'tcp') {
     if (!outbound) return null;
     if (!outboundTestStates.value[index]) outboundTestStates.value[index] = {};
-    outboundTestStates.value[index] = { testing: true, result: null };
+    outboundTestStates.value[index] = { testing: true, result: null, mode };
     try {
       const msg = await HttpUtil.post('/panel/xray/testOutbound', {
         outbound: JSON.stringify(outbound),
         allOutbounds: JSON.stringify(templateSettings.value?.outbounds || []),
+        mode,
       });
       if (msg?.success) {
         outboundTestStates.value[index] = { testing: false, result: msg.obj };
@@ -155,15 +123,45 @@ export function useXraySetting() {
       }
       outboundTestStates.value[index] = {
         testing: false,
-        result: { success: false, error: msg?.msg || 'Unknown error' },
+        result: { success: false, error: msg?.msg || 'Unknown error', mode },
       };
     } catch (e) {
       outboundTestStates.value[index] = {
         testing: false,
-        result: { success: false, error: String(e) },
+        result: { success: false, error: String(e), mode },
       };
     }
     return null;
+  }
+
+  const testingAll = ref(false);
+  async function testAllOutbounds(mode = 'tcp') {
+    const list = templateSettings.value?.outbounds || [];
+    if (list.length === 0 || testingAll.value) return;
+    testingAll.value = true;
+    try {
+      const concurrency = mode === 'tcp' ? 8 : 1;
+      const queue = list
+        .map((ob, i) => ({ index: i, outbound: ob }))
+        .filter(({ outbound }) => {
+          const tag = outbound?.tag;
+          const proto = outbound?.protocol;
+          if (proto === 'blackhole' || proto === 'loopback' || tag === 'blocked') return false;
+          if (mode === 'tcp' && (proto === 'freedom' || proto === 'dns')) return false;
+          return true;
+        });
+      async function worker() {
+        while (queue.length > 0) {
+          const item = queue.shift();
+          if (!item) break;
+          await testOutbound(item.index, item.outbound, mode);
+        }
+      }
+      const workers = Array.from({ length: Math.min(concurrency, queue.length) }, () => worker());
+      await Promise.all(workers);
+    } finally {
+      testingAll.value = false;
+    }
   }
 
   async function resetToDefault() {
@@ -171,8 +169,7 @@ export function useXraySetting() {
     try {
       const msg = await HttpUtil.get('/panel/setting/getDefaultJsonConfig');
       if (msg?.success) {
-        // Mutate templateSettings — the watch above re-stringifies into
-        // xraySetting so the Advanced JSON tab and dirty-poll see it.
+
         templateSettings.value = JSON.parse(JSON.stringify(msg.obj));
       }
     } finally {
@@ -234,11 +231,13 @@ export function useXraySetting() {
     restartResult,
     outboundsTraffic,
     outboundTestStates,
+    testingAll,
     fetchAll,
     fetchOutboundsTraffic,
     resetOutboundsTraffic,
     applyOutboundsEvent,
     testOutbound,
+    testAllOutbounds,
     saveAll,
     resetToDefault,
     restartXray,

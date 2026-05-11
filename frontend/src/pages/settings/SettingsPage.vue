@@ -26,7 +26,7 @@ const { t } = useI18n();
 const { fetched, spinning, saveDisabled, allSetting, saveAll } = useAllSetting();
 const { isMobile } = useMediaQuery();
 
-const basePath = window.__X_UI_BASE_PATH__ || '';
+const basePath = window.X_UI_BASE_PATH || '';
 const requestUri = window.location.pathname;
 
 // AD-Vue 4's <a-back-top> calls `target()` after mount to find the
@@ -256,8 +256,8 @@ const alertVisible = ref(true);
 }
 
 .settings-page.is-dark {
-  --bg-page: #0a1222;
-  --bg-card: #151f31;
+  --bg-page: #1e1e1e;
+  --bg-card: #252526;
 }
 
 .settings-page.is-dark.is-ultra {

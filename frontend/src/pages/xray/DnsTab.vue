@@ -22,6 +22,14 @@ const props = defineProps({
 
 const STRATEGIES = ['UseSystem', 'UseIP', 'UseIPv4', 'UseIPv6'];
 
+const dnsFieldOmit = Object.freeze(Object.create(null));
+
+function dnsValueEmptyForOmit(v) {
+  if (v === undefined || v === null) return true;
+  if (typeof v === 'string') return v.trim() === '';
+  return false;
+}
+
 const enableDNS = computed({
   get: () => !!props.templateSettings?.dns,
   set: (next) => {
@@ -29,7 +37,6 @@ const enableDNS = computed({
     if (next) {
       props.templateSettings.dns = {
         tag: 'dns_inbound',
-        clientIp: '',
         queryStrategy: 'UseIP',
         disableCache: false,
         disableFallback: false,
@@ -50,16 +57,30 @@ const enableDNS = computed({
 });
 
 function dnsField(field, fallback) {
+  const omitWhenUnset = fallback === dnsFieldOmit;
   return computed({
-    get: () => props.templateSettings?.dns?.[field] ?? fallback,
+    get: () => {
+      const raw = props.templateSettings?.dns?.[field];
+      if (fallback === dnsFieldOmit) return raw ?? '';
+      return raw ?? fallback;
+    },
     set: (v) => {
-      if (props.templateSettings?.dns) props.templateSettings.dns[field] = v;
+      if (!props.templateSettings?.dns) return;
+      if (omitWhenUnset) {
+        if (dnsValueEmptyForOmit(v)) {
+          if (field in props.templateSettings.dns) delete props.templateSettings.dns[field];
+        } else {
+          props.templateSettings.dns[field] = v;
+        }
+      } else {
+        props.templateSettings.dns[field] = v;
+      }
     },
   });
 }
 
 const dnsTag = dnsField('tag', 'dns_inbound');
-const dnsClientIp = dnsField('clientIp', '');
+const dnsClientIp = dnsField('clientIp', dnsFieldOmit);
 const dnsStrategy = dnsField('queryStrategy', 'UseIP');
 const dnsDisableCache = dnsField('disableCache', false);
 const dnsDisableFallback = dnsField('disableFallback', false);

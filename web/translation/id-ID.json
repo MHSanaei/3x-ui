@@ -97,6 +97,7 @@
     "nodes": "Node",
     "settings": "Pengaturan Panel",
     "xray": "Konfigurasi Xray",
+    "apiDocs": "API Docs",
     "logout": "Keluar",
     "link": "Kelola"
   },

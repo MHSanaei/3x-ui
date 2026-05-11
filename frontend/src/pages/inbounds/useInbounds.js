@@ -287,6 +287,7 @@ export function useInbounds() {
     const deactive = [];
     const depleted = [];
     const expiring = [];
+    const online = [];
     for (const ib of dbInbounds.value) {
       up += ib.up || 0;
       down += ib.down || 0;
@@ -297,9 +298,10 @@ export function useInbounds() {
         deactive.push(...c.deactive);
         depleted.push(...c.depleted);
         expiring.push(...c.expiring);
+        online.push(...c.online);
       }
     }
-    return { up, down, allTime, clients, deactive, depleted, expiring };
+    return { up, down, allTime, clients, deactive, depleted, expiring, online };
   });
 
   // ObjectUtil reference is wired at module load — keeping a no-op import

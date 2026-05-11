@@ -27,14 +27,15 @@ export const currentTheme = computed(() => (theme.isDark ? 'dark' : 'light'));
 
 // AD-Vue 4 theme config consumed by every page's <a-config-provider>.
 // Three modes — light / dark / ultra-dark — all share AD-Vue's vanilla
-// blue primary. Dark uses a navy palette across page/cards/modals so
-// the sidebar blends with the rest of the surface; ultra-dark stays
-// neutral black on top of darkAlgorithm.
+// blue primary. Dark uses a neutral grey palette modelled on VS Code's
+// Dark+ chrome (`#1e1e1e` editor, `#252526` sidebar, `#2d2d30` panel),
+// so the panel reads as a familiar modern IDE rather than the older
+// navy shade. Ultra-dark stays pure-black on darkAlgorithm.
 const DARK_TOKENS = {
-  colorBgBase: '#0a1426',
-  colorBgLayout: '#0a1426',
-  colorBgContainer: '#142340',
-  colorBgElevated: '#1a2c4d',
+  colorBgBase: '#1e1e1e',
+  colorBgLayout: '#1e1e1e',
+  colorBgContainer: '#252526',
+  colorBgElevated: '#2d2d30',
 };
 const ULTRA_DARK_TOKENS = {
   colorBgBase: '#000',
@@ -47,13 +48,12 @@ const ULTRA_DARK_TOKENS = {
 // + trigger backgrounds and `#001529` / `#000c17` as the dark Menu item
 // backgrounds (see node_modules/ant-design-vue/es/{layout,menu}/style/
 // index.js). Override at the component-token level so the sider blends
-// with darkAlgorithm's neutral surfaces.
-// Dark theme uses a refined navy for the sidebar — distinct from the
-// neutral ultra-dark and warmer than AD-Vue's stock #001529.
+// with darkAlgorithm's neutral surfaces. Sider/trigger use the same
+// `#252526` / `#333333` tones VS Code does for its activity bar.
 const DARK_LAYOUT_TOKENS = {
-  colorBgHeader: '#0d1d33',
-  colorBgTrigger: '#15294a',
-  colorBgBody: '#000',
+  colorBgHeader: '#252526',
+  colorBgTrigger: '#333333',
+  colorBgBody: '#1e1e1e',
 };
 const ULTRA_DARK_LAYOUT_TOKENS = {
   colorBgHeader: '#0a0a0a',
@@ -61,9 +61,9 @@ const ULTRA_DARK_LAYOUT_TOKENS = {
   colorBgBody: '#000',
 };
 const DARK_MENU_TOKENS = {
-  colorItemBg: '#0d1d33',
-  colorSubItemBg: '#08142a',
-  menuSubMenuBg: '#0d1d33',
+  colorItemBg: '#252526',
+  colorSubItemBg: '#1e1e1e',
+  menuSubMenuBg: '#252526',
 };
 const ULTRA_DARK_MENU_TOKENS = {
   colorItemBg: '#0a0a0a',

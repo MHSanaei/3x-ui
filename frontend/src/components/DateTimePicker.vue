@@ -235,8 +235,8 @@ function onAntChange(next) {
 /* ===== Dark (navy) ======================================================= */
 
 body.dark .persian-datepicker-input {
-  background: #142340;
-  border-color: #1f3358;
+  background: #252526;
+  border-color: #3c3c3c;
   color: rgba(255, 255, 255, 0.88);
 }
 
@@ -251,14 +251,14 @@ body.dark .persian-datepicker-input:focus {
 
 body.dark .vpd-main .vpd-icon-btn {
   background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid #1f3358 !important;
+  border: 1px solid #3c3c3c !important;
   border-right: none !important;
   border-radius: 6px 0 0 6px !important;
   color: rgba(255, 255, 255, 0.75) !important;
 }
 
 body.dark .vpd-wrapper .vpd-content {
-  background: #1a2c4d;
+  background: #2d2d30;
   color: rgba(255, 255, 255, 0.88);
   box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.32),
     0 3px 6px -4px rgba(0, 0, 0, 0.48),
@@ -266,7 +266,7 @@ body.dark .vpd-wrapper .vpd-content {
 }
 
 body.dark .vpd-wrapper .vpd-body {
-  background: #1a2c4d;
+  background: #2d2d30;
   color: rgba(255, 255, 255, 0.88);
 }
 
@@ -315,7 +315,7 @@ body.dark .vpd-wrapper .vpd-actions button:hover {
 
 body.dark .vpd-wrapper .vpd-addon-list,
 body.dark .vpd-wrapper .vpd-addon-list-content {
-  background: #1a2c4d;
+  background: #2d2d30;
   color: rgba(255, 255, 255, 0.88);
 }
 

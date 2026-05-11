@@ -199,9 +199,12 @@ func (a *XraySettingController) resetOutboundsTraffic(c *gin.Context) {
 
 // testOutbound tests an outbound configuration and returns the delay/response time.
 // Optional form "allOutbounds": JSON array of all outbounds; used to resolve sockopt.dialerProxy dependencies.
+// Optional form "mode": "tcp" for a fast dial-only probe (parallel-safe),
+// anything else (default) for a full HTTP probe through a temp xray instance.
 func (a *XraySettingController) testOutbound(c *gin.Context) {
 	outboundJSON := c.PostForm("outbound")
 	allOutboundsJSON := c.PostForm("allOutbounds")
+	mode := c.PostForm("mode")
 
 	if outboundJSON == "" {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewError("outbound parameter is required"))
@@ -211,7 +214,7 @@ func (a *XraySettingController) testOutbound(c *gin.Context) {
 	// Load the test URL from server settings to prevent SSRF via user-controlled URLs
 	testURL, _ := a.SettingService.GetXrayOutboundTestUrl()
 
-	result, err := a.OutboundService.TestOutbound(outboundJSON, testURL, allOutboundsJSON)
+	result, err := a.OutboundService.TestOutbound(outboundJSON, testURL, allOutboundsJSON, mode)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return

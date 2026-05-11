@@ -13,6 +13,6 @@ start_pre(){
 }
 reload() {
   ebegin "Reloading ${RC_SVCNAME}"
-  kill -USR1  $pidfile
+  kill -USR1 $(cat $pidfile)
   eend $?
 }

@@ -65,18 +65,32 @@ const editingRule = ref(null);
 const editingIndex = ref(null);
 
 const inboundTagOptions = computed(() => {
-  const out = new Set();
+  const seen = new Set();
+  const out = [];
+
+  function pushUnique(tag) {
+    if (!tag) return;
+    if (seen.has(tag)) return;
+    seen.add(tag);
+    out.push(tag);
+  }
+
   for (const ib of props.templateSettings?.inbounds || []) {
-    if (ib.tag) out.add(ib.tag);
+    pushUnique(ib.tag);
   }
-  for (const t of props.inboundTags || []) out.add(t);
+  for (const t of props.inboundTags || []) {
+    pushUnique(t);
+  }
   for (const ob of props.templateSettings?.outbounds || []) {
-    const rt = ob?.reverse?.tag || ob?.settings?.reverse?.tag;
-    if (rt) out.add(rt);
+    const rt = ob?.reverse?.tag || ob?.settings?.reverse?.tag || ob?.settings?.inboundTag;
+    pushUnique(rt);
   }
-  // dnsTag if DNS is configured.
-  const dt = props.templateSettings?.dns?.tag;
-  if (dt) out.add(dt);
+  pushUnique(props.templateSettings?.dns?.tag);
+
+  for (const s of props.templateSettings?.dns?.servers || []) {
+    if (typeof s === 'object' && s?.tag) pushUnique(s.tag);
+  }
+
   return [...out];
 });
 

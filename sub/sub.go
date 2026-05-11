@@ -12,10 +12,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/util/common"
-	webpkg "github.com/mhsanaei/3x-ui/v3/web"
 	"github.com/mhsanaei/3x-ui/v3/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/web/network"
@@ -188,7 +188,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	var assetsFS http.FileSystem
 	if _, err := os.Stat("web/dist/assets"); err == nil {
 		assetsFS = http.FS(os.DirFS("web/dist/assets"))
-	} else if subFS, err := fs.Sub(webpkg.EmbeddedDist(), "dist/assets"); err == nil {
+	} else if subFS, err := fs.Sub(distFS, "dist/assets"); err == nil {
 		assetsFS = http.FS(subFS)
 	} else {
 		logger.Error("sub: failed to mount embedded dist assets:", err)
@@ -313,7 +313,9 @@ func (s *Server) Stop() error {
 	var err1 error
 	var err2 error
 	if s.httpServer != nil {
-		err1 = s.httpServer.Shutdown(s.ctx)
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+		err1 = s.httpServer.Shutdown(shutdownCtx)
 	}
 	if s.listener != nil {
 		err2 = s.listener.Close()
