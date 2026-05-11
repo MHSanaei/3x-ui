@@ -29,6 +29,7 @@ import { LanguageManager } from '@/utils';
 // "lazy" here effectively means "load only what this page needs for
 // its lifetime."
 const FALLBACK = 'en-US';
+const DEFAULT_LOCALE = 'zh-CN';
 const lazyModules = import.meta.glob('../../../web/translation/*.json');
 const eagerModules = import.meta.glob('../../../web/translation/*.json', { eager: true });
 
@@ -38,10 +39,10 @@ function moduleKeyFor(code) {
 
 // Resolve the active locale via LanguageManager so the cookie set on
 // the legacy panel keeps working after a user upgrades. Falls back
-// to en-US when the cookie names a language we don't have.
+// to zh-CN (default) when the cookie names a language we don't have.
 let active = LanguageManager.getLanguage();
 if (!Object.prototype.hasOwnProperty.call(lazyModules, moduleKeyFor(active))) {
-  active = FALLBACK;
+  active = DEFAULT_LOCALE;
 }
 
 const messages = {};

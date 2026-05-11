@@ -6,7 +6,9 @@ blue='\033[0;34m'
 yellow='\033[0;33m'
 plain='\033[0m'
 
-#Add some basic function here
+GITHUB_MIRROR_DEFAULT="https://gh.kejilion.pro"
+GITHUB_RAW_DEFAULT="https://raw.githubusercontent.com"
+
 function LOGD() {
     echo -e "${yellow}[DEG] $* ${plain}"
 }
@@ -19,7 +21,33 @@ function LOGI() {
     echo -e "${green}[INF] $* ${plain}"
 }
 
-# Port helpers: detect listener and owning process (best effort)
+get_github_mirror() {
+    local custom_mirror="${GITHUB_MIRROR:-}"
+    if [[ -n "$custom_mirror" ]]; then
+        echo "$custom_mirror"
+    else
+        echo "$GITHUB_MIRROR_DEFAULT"
+    fi
+}
+
+get_github_raw() {
+    local mirror=$(get_github_mirror)
+    if [[ "$mirror" == "$GITHUB_MIRROR_DEFAULT" ]]; then
+        echo "$GITHUB_RAW_DEFAULT"
+    else
+        echo "$mirror"
+    fi
+}
+
+get_github_download_url() {
+    local mirror=$(get_github_mirror)
+    if [[ "$mirror" == "$GITHUB_MIRROR_DEFAULT" ]]; then
+        echo "https://github.com"
+    else
+        echo "$mirror"
+    fi
+}
+
 is_port_in_use() {
     local port="$1"
     if command -v ss > /dev/null 2>&1; then
@@ -36,7 +64,6 @@ is_port_in_use() {
     return 1
 }
 
-# Simple helpers for domain/IP validation
 is_ipv4() {
     [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1
 }
@@ -50,10 +77,8 @@ is_domain() {
     [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+(xn--[a-z0-9]{2,}|[A-Za-z]{2,})$ ]] && return 0 || return 1
 }
 
-# check root
 [[ $EUID -ne 0 ]] && LOGE "ERROR: You must be root to run this script! \n" && exit 1
 
-# Check OS and set release variable
 if [[ -f /etc/os-release ]]; then
     source /etc/os-release
     release=$ID
@@ -69,13 +94,15 @@ echo "The OS release is: $release"
 os_version=""
 os_version=$(grep "^VERSION_ID" /etc/os-release | cut -d '=' -f2 | tr -d '"' | tr -d '.')
 
-# Declare Variables
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 log_folder="${XUI_LOG_FOLDER:=/var/log/x-ui}"
 mkdir -p "${log_folder}"
 iplimit_log_path="${log_folder}/3xipl.log"
 iplimit_banned_log_path="${log_folder}/3xipl-banned.log"
+
+REPO_OWNER="mhsanaei"
+REPO_NAME="3x-ui"
 
 confirm() {
     if [[ $# > 1 ]]; then
@@ -108,7 +135,8 @@ before_show_menu() {
 }
 
 install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
+    local github_raw=$(get_github_raw)
+    bash <(curl -Ls ${github_raw}/${REPO_OWNER}/${REPO_NAME}/main/install.sh)
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -127,7 +155,8 @@ update() {
         fi
         return 0
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh)
+    local github_raw=$(get_github_raw)
+    bash <(curl -Ls ${github_raw}/${REPO_OWNER}/${REPO_NAME}/main/update.sh)
     if [[ $? == 0 ]]; then
         LOGI "Update is complete, Panel has automatically restarted "
         before_show_menu
@@ -145,7 +174,8 @@ update_menu() {
         return 0
     fi
 
-    curl -fLRo /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+    local github_raw=$(get_github_raw)
+    curl -fLRo /usr/bin/x-ui ${github_raw}/${REPO_OWNER}/${REPO_NAME}/main/x-ui.sh
     chmod +x ${xui_folder}/x-ui.sh
     chmod +x /usr/bin/x-ui
 
@@ -166,16 +196,14 @@ legacy_version() {
         echo "Panel version cannot be empty. Exiting."
         exit 1
     fi
-    # Use the entered panel version in the download link
-    install_command="bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/v$tag_version/install.sh") v$tag_version"
+    local install_command="bash <(curl -Ls ${github_raw}/${REPO_OWNER}/${REPO_NAME}/v$tag_version/install.sh) v$tag_version"
 
     echo "Downloading and installing panel version $tag_version..."
     eval $install_command
 }
 
-# Function to handle the deletion of the script file
 delete_script() {
-    rm "$0" # Remove the script file itself
+    rm "$0"
     exit 1
 }
 
@@ -206,9 +234,9 @@ uninstall() {
     echo ""
     echo -e "Uninstalled Successfully.\n"
     echo "If you need to install this panel again, you can use below command:"
-    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)${plain}"
+    local github_raw=$(get_github_raw)
+    echo -e "${green}bash <(curl -Ls ${github_raw}/${REPO_OWNER}/${REPO_NAME}/main/install.sh)${plain}"
     echo ""
-    # Trap the SIGTERM signal
     trap delete_script SIGTERM
     delete_script
 }
@@ -259,7 +287,6 @@ reset_webbasepath() {
 
     config_webBasePath=$(gen_random_string 18)
 
-    # Apply the new web base path setting
     ${xui_folder}/x-ui setting -webBasePath "${config_webBasePath}" > /dev/null 2>&1
 
     echo -e "Web base path has been reset to: ${green}${config_webBasePath}${plain}"
@@ -340,7 +367,6 @@ check_config() {
             ssl_cert_issue_for_ip
             if [[ $? -eq 0 ]]; then
                 echo -e "${green}Access URL: https://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
-                # ssl_cert_issue_for_ip already restarts the panel, but ensure it's running
                 start 0 > /dev/null 2>&1
             else
                 LOGE "IP certificate setup failed."
@@ -579,7 +605,6 @@ disable_bbr() {
         rm /etc/sysctl.d/99-bbr-x-ui.conf
         sysctl --system
     else
-        # Replace BBR with CUBIC configurations
         if [ -f "/etc/sysctl.conf" ]; then
             sed -i 's/net.core.default_qdisc=fq/net.core.default_qdisc=pfifo_fast/' /etc/sysctl.conf
             sed -i 's/net.ipv4.tcp_congestion_control=bbr/net.ipv4.tcp_congestion_control=cubic/' /etc/sysctl.conf
@@ -600,7 +625,6 @@ enable_bbr() {
         before_show_menu
     fi
 
-    # Enable BBR
     if [ -d "/etc/sysctl.d/" ]; then
         {
             echo "#$(sysctl -n net.core.default_qdisc):$(sysctl -n net.ipv4.tcp_congestion_control)"
@@ -608,7 +632,6 @@ enable_bbr() {
             echo "net.ipv4.tcp_congestion_control = bbr"
         } > "/etc/sysctl.d/99-bbr-x-ui.conf"
         if [ -f "/etc/sysctl.conf" ]; then
-            # Backup old settings from sysctl.conf, if any
             sed -i 's/^net.core.default_qdisc/# &/' /etc/sysctl.conf
             sed -i 's/^net.ipv4.tcp_congestion_control/# &/' /etc/sysctl.conf
         fi
@@ -621,7 +644,6 @@ enable_bbr() {
         sysctl -p
     fi
 
-    # Verify that BBR is enabled
     if [[ $(sysctl -n net.ipv4.tcp_congestion_control) == "bbr" ]]; then
         echo -e "${green}BBR has been enabled successfully.${plain}"
     else
@@ -630,7 +652,9 @@ enable_bbr() {
 }
 
 update_shell() {
-    curl -fLRo /usr/bin/x-ui -z /usr/bin/x-ui https://github.com/MHSanaei/3x-ui/raw/main/x-ui.sh
+    local github_raw=$(get_github_raw)
+    local github_download=$(get_github_download_url)
+    curl -fLRo /usr/bin/x-ui -z /usr/bin/x-ui ${github_raw}/${REPO_OWNER}/${REPO_NAME}/main/x-ui.sh
     if [[ $? != 0 ]]; then
         echo ""
         LOGE "Failed to download script, Please check whether the machine can connect Github"
@@ -642,7 +666,6 @@ update_shell() {
     fi
 }
 
-# 0: running, 1: not running, 2: not installed
 check_status() {
     if [[ $release == "alpine" ]]; then
         if [[ ! -f /etc/init.d/x-ui ]]; then
@@ -814,130 +837,103 @@ install_firewall() {
         echo "ufw firewall is already installed"
     fi
 
-    # Check if the firewall is inactive
     if ufw status | grep -q "Status: active"; then
         echo "Firewall is already active"
     else
         echo "Activating firewall..."
-        # Open the necessary ports
         ufw allow ssh
         ufw allow http
         ufw allow https
-        ufw allow 2053/tcp #webPort
-        ufw allow 2096/tcp #subport
+        ufw allow 2053/tcp
+        ufw allow 2096/tcp
 
-        # Enable the firewall
         ufw --force enable
     fi
 }
 
 open_ports() {
-    # Prompt the user to enter the ports they want to open
     read -rp "Enter the ports you want to open (e.g. 80,443,2053 or range 400-500): " ports
 
-    # Check if the input is valid
     if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
         echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2
         exit 1
     fi
 
-    # Open the specified ports using ufw
     IFS=',' read -ra PORT_LIST <<< "$ports"
     for port in "${PORT_LIST[@]}"; do
         if [[ $port == *-* ]]; then
-            # Split the range into start and end ports
             start_port=$(echo $port | cut -d'-' -f1)
             end_port=$(echo $port | cut -d'-' -f2)
-            # Open the port range
             ufw allow $start_port:$end_port/tcp
             ufw allow $start_port:$end_port/udp
         else
-            # Open the single port
             ufw allow "$port"
         fi
     done
 
-    # Confirm that the ports are opened
     echo "Opened the specified ports:"
     for port in "${PORT_LIST[@]}"; do
         if [[ $port == *-* ]]; then
             start_port=$(echo $port | cut -d'-' -f1)
             end_port=$(echo $port | cut -d'-' -f2)
-            # Check if the port range has been successfully opened
             (ufw status | grep -q "$start_port:$end_port") && echo "$start_port-$end_port"
         else
-            # Check if the individual port has been successfully opened
             (ufw status | grep -q "$port") && echo "$port"
         fi
     done
 }
 
 delete_ports() {
-    # Display current rules with numbers
     echo "Current UFW rules:"
     ufw status numbered
 
-    # Ask the user how they want to delete rules
     echo "Do you want to delete rules by:"
     echo "1) Rule numbers"
     echo "2) Ports"
     read -rp "Enter your choice (1 or 2): " choice
 
     if [[ $choice -eq 1 ]]; then
-        # Deleting by rule numbers
         read -rp "Enter the rule numbers you want to delete (1, 2, etc.): " rule_numbers
 
-        # Validate the input
         if ! [[ $rule_numbers =~ ^([0-9]+)(,[0-9]+)*$ ]]; then
             echo "Error: Invalid input. Please enter a comma-separated list of rule numbers." >&2
             exit 1
         fi
 
-        # Split numbers into an array
         IFS=',' read -ra RULE_NUMBERS <<< "$rule_numbers"
         for rule_number in "${RULE_NUMBERS[@]}"; do
-            # Delete the rule by number
             ufw delete "$rule_number" || echo "Failed to delete rule number $rule_number"
         done
 
         echo "Selected rules have been deleted."
 
     elif [[ $choice -eq 2 ]]; then
-        # Deleting by ports
         read -rp "Enter the ports you want to delete (e.g. 80,443,2053 or range 400-500): " ports
 
-        # Validate the input
         if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
             echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2
             exit 1
         fi
 
-        # Split ports into an array
         IFS=',' read -ra PORT_LIST <<< "$ports"
         for port in "${PORT_LIST[@]}"; do
             if [[ $port == *-* ]]; then
-                # Split the port range
                 start_port=$(echo $port | cut -d'-' -f1)
                 end_port=$(echo $port | cut -d'-' -f2)
-                # Delete the port range
                 ufw delete allow $start_port:$end_port/tcp
                 ufw delete allow $start_port:$end_port/udp
             else
-                # Delete a single port
                 ufw delete allow "$port"
             fi
         done
 
-        # Confirmation of deletion
         echo "Deleted the specified ports:"
         for port in "${PORT_LIST[@]}"; do
             if [[ $port == *-* ]]; then
                 start_port=$(echo $port | cut -d'-' -f1)
                 end_port=$(echo $port | cut -d'-' -f2)
-                # Check if the port range has been deleted
                 (ufw status | grep -q "$start_port:$end_port") || echo "$start_port-$end_port"
             else
-                # Check if the individual port has been deleted
                 (ufw status | grep -q "$port") || echo "$port"
             fi
         done
@@ -969,7 +965,6 @@ update_geofiles() {
             ;;
     esac
     for dat in "${dat_files[@]}"; do
-        # Remove suffix for remote filename (e.g., geoip_IR -> geoip)
         remote_file="${dat%%_*}"
         curl -fLRo ${xui_folder}/bin/${dat}.dat -z ${xui_folder}/bin/${dat}.dat \
             https://github.com/${dat_source}/releases/latest/download/${remote_file}.dat
@@ -1018,14 +1013,13 @@ update_geo() {
 }
 
 install_acme() {
-    # Check if acme.sh is already installed
     if command -v ~/.acme.sh/acme.sh &> /dev/null; then
         LOGI "acme.sh is already installed."
         return 0
     fi
 
     LOGI "Installing acme.sh..."
-    cd ~ || return 1 # Ensure you can change to the home directory
+    cd ~ || return 1
 
     curl -s https://get.acme.sh | sh
     if [ $? -ne 0 ]; then
@@ -1164,7 +1158,6 @@ ssl_cert_issue_for_ip() {
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
 
-    # Get server IP
     local URL_lists=(
         "https://api4.ipify.org"
         "https://ipv4.icanhazip.com"
@@ -1198,12 +1191,10 @@ ssl_cert_issue_for_ip() {
 
     LOGI "Server IP detected: ${server_ip}"
 
-    # Ask for optional IPv6
     local ipv6_addr=""
     read -rp "Do you have an IPv6 address to include? (leave empty to skip): " ipv6_addr
-    ipv6_addr="${ipv6_addr// /}" # Trim whitespace
+    ipv6_addr="${ipv6_addr// /}"
 
-    # check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
         LOGI "acme.sh not found, installing..."
         install_acme
@@ -1213,7 +1204,6 @@ ssl_cert_issue_for_ip() {
         fi
     fi
 
-    # install socat
     case "${release}" in
         ubuntu | debian | armbian)
             apt-get update > /dev/null 2>&1 && apt-get install socat -y > /dev/null 2>&1
@@ -1238,22 +1228,18 @@ ssl_cert_issue_for_ip() {
             apk add socat curl openssl > /dev/null 2>&1
             ;;
         *)
-            LOGW "Unsupported OS for automatic socat installation"
             ;;
     esac
 
-    # Create certificate directory
     certPath="/root/cert/ip"
     mkdir -p "$certPath"
 
-    # Build domain arguments
     local domain_args="-d ${server_ip}"
     if [[ -n "$ipv6_addr" ]] && is_ipv6 "$ipv6_addr"; then
         domain_args="${domain_args} -d ${ipv6_addr}"
         LOGI "Including IPv6 address: ${ipv6_addr}"
     fi
 
-    # Choose port for HTTP-01 listener (default 80, allow override)
     local WebPort=""
     read -rp "Port to use for ACME HTTP-01 listener (default 80): " WebPort
     WebPort="${WebPort:-80}"
@@ -1289,10 +1275,8 @@ ssl_cert_issue_for_ip() {
         fi
     done
 
-    # Reload command - restarts panel after renewal
     local reloadCmd="systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null"
 
-    # issue the certificate for IP with shortlived profile
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
     ~/.acme.sh/acme.sh --issue \
         ${domain_args} \
@@ -1306,7 +1290,6 @@ ssl_cert_issue_for_ip() {
     if [ $? -ne 0 ]; then
         LOGE "Failed to issue certificate for IP: ${server_ip}"
         LOGE "Make sure port ${WebPort} is open and the server is accessible from the internet"
-        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
         rm -rf ~/.acme.sh/${server_ip} 2> /dev/null
         [[ -n "$ipv6_addr" ]] && rm -rf ~/.acme.sh/${ipv6_addr} 2> /dev/null
         rm -rf ${certPath} 2> /dev/null
@@ -1315,18 +1298,13 @@ ssl_cert_issue_for_ip() {
         LOGI "Certificate issued successfully for IP: ${server_ip}"
     fi
 
-    # Install the certificate
-    # Note: acme.sh may report "Reload error" and exit non-zero if reloadcmd fails,
-    # but the cert files are still installed. We check for files instead of exit code.
     ~/.acme.sh/acme.sh --installcert -d ${server_ip} \
         --key-file "${certPath}/privkey.pem" \
         --fullchain-file "${certPath}/fullchain.pem" \
         --reloadcmd "${reloadCmd}" 2>&1 || true
 
-    # Verify certificate files exist (don't rely on exit code - reloadcmd failure causes non-zero)
     if [[ ! -f "${certPath}/fullchain.pem" || ! -f "${certPath}/privkey.pem" ]]; then
         LOGE "Certificate files not found after installation"
-        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
         rm -rf ~/.acme.sh/${server_ip} 2> /dev/null
         [[ -n "$ipv6_addr" ]] && rm -rf ~/.acme.sh/${ipv6_addr} 2> /dev/null
         rm -rf ${certPath} 2> /dev/null
@@ -1335,12 +1313,10 @@ ssl_cert_issue_for_ip() {
 
     LOGI "Certificate files installed successfully"
 
-    # enable auto-renew
     ~/.acme.sh/acme.sh --upgrade --auto-upgrade > /dev/null 2>&1
     chmod 600 $certPath/privkey.pem 2> /dev/null
     chmod 644 $certPath/fullchain.pem 2> /dev/null
 
-    # Set certificate paths for the panel
     local webCertFile="${certPath}/fullchain.pem"
     local webKeyFile="${certPath}/privkey.pem"
 
@@ -1363,7 +1339,6 @@ ssl_cert_issue_for_ip() {
 ssl_cert_issue() {
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
-    # check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
         echo "acme.sh could not be found. we will install it"
         install_acme
@@ -1373,7 +1348,6 @@ ssl_cert_issue() {
         fi
     fi
 
-    # install socat
     case "${release}" in
         ubuntu | debian | armbian)
             apt-get update > /dev/null 2>&1 && apt-get install socat -y > /dev/null 2>&1
@@ -1398,7 +1372,6 @@ ssl_cert_issue() {
             apk add socat curl openssl > /dev/null 2>&1
             ;;
         *)
-            LOGW "Unsupported OS for automatic socat installation"
             ;;
     esac
     if [ $? -ne 0 ]; then
@@ -1408,11 +1381,10 @@ ssl_cert_issue() {
         LOGI "install socat succeed..."
     fi
 
-    # get the domain here, and we need to verify it
     local domain=""
     while true; do
         read -rp "Please enter your domain name: " domain
-        domain="${domain// /}" # Trim whitespace
+        domain="${domain// /}"
 
         if [[ -z "$domain" ]]; then
             LOGE "Domain name cannot be empty. Please try again."
@@ -1429,7 +1401,6 @@ ssl_cert_issue() {
     LOGD "Your domain is: ${domain}, checking it..."
     SSL_ISSUED_DOMAIN="${domain}"
 
-    # detect existing certificate and reuse it if present
     local cert_exists=0
     if ~/.acme.sh/acme.sh --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
         cert_exists=1
@@ -1440,7 +1411,6 @@ ssl_cert_issue() {
         LOGI "Your domain is ready for issuing certificates now..."
     fi
 
-    # create a directory for the certificate
     certPath="/root/cert/${domain}"
     if [ ! -d "$certPath" ]; then
         mkdir -p "$certPath"
@@ -1449,7 +1419,6 @@ ssl_cert_issue() {
         mkdir -p "$certPath"
     fi
 
-    # get the port number for the standalone server
     local WebPort=80
     read -rp "Please choose which port to use (default is 80): " WebPort
     if [[ ${WebPort} -gt 65535 || ${WebPort} -lt 1 ]]; then
@@ -1459,7 +1428,6 @@ ssl_cert_issue() {
     LOGI "Will use port: ${WebPort} to issue certificates. Please make sure this port is open."
 
     if [[ ${cert_exists} -eq 0 ]]; then
-        # issue the certificate
         ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
         ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
         if [ $? -ne 0 ]; then
@@ -1499,7 +1467,6 @@ ssl_cert_issue() {
         esac
     fi
 
-    # install the certificate
     local installOutput=""
     installOutput=$(~/.acme.sh/acme.sh --installcert -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
@@ -1522,7 +1489,6 @@ ssl_cert_issue() {
         exit 1
     fi
 
-    # enable auto-renew
     ~/.acme.sh/acme.sh --upgrade --auto-upgrade
     if [ $? -ne 0 ]; then
         LOGE "Auto renew failed, certificate details:"
@@ -1537,7 +1503,6 @@ ssl_cert_issue() {
         chmod 644 $certPath/fullchain.pem
     fi
 
-    # Prompt user to set panel paths after successful certificate installation
     read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel
     if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
         local webCertFile="/root/cert/${domain}/fullchain.pem"
@@ -1572,7 +1537,6 @@ ssl_cert_issue_CF() {
     confirm "Do you confirm the information and wish to proceed? [y/n]" "y"
 
     if [ $? -eq 0 ]; then
-        # Check for acme.sh first
         if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
             echo "acme.sh could not be found. We will install it."
             install_acme
@@ -1588,7 +1552,6 @@ ssl_cert_issue_CF() {
         read -rp "Input your domain here: " CF_Domain
         LOGD "Your domain name is set to: ${CF_Domain}"
 
-        # Set up Cloudflare API details
         CF_GlobalKey=""
         CF_AccountEmail=""
         LOGD "Please set the API key:"
@@ -1599,7 +1562,6 @@ ssl_cert_issue_CF() {
         read -rp "Input your email here: " CF_AccountEmail
         LOGD "Your registered email address is: ${CF_AccountEmail}"
 
-        # Set the default CA to Let's Encrypt
         ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
         if [ $? -ne 0 ]; then
             LOGE "Default CA, Let'sEncrypt fail, script exiting..."
@@ -1609,7 +1571,6 @@ ssl_cert_issue_CF() {
         export CF_Key="${CF_GlobalKey}"
         export CF_Email="${CF_AccountEmail}"
 
-        # Issue the certificate using Cloudflare DNS
         ~/.acme.sh/acme.sh --issue --dns dns_cf -d ${CF_Domain} -d *.${CF_Domain} --log --force
         if [ $? -ne 0 ]; then
             LOGE "Certificate issuance failed, script exiting..."
@@ -1618,7 +1579,6 @@ ssl_cert_issue_CF() {
             LOGI "Certificate issued successfully, Installing..."
         fi
 
-        # Install the certificate
         certPath="/root/cert/${CF_Domain}"
         if [ -d "$certPath" ]; then
             rm -rf ${certPath}
@@ -1666,7 +1626,6 @@ ssl_cert_issue_CF() {
             LOGI "Certificate installed successfully, Turning on automatic updates..."
         fi
 
-        # Enable auto-update
         ~/.acme.sh/acme.sh --upgrade --auto-upgrade
         if [ $? -ne 0 ]; then
             LOGE "Auto update setup failed, script exiting..."
@@ -1678,7 +1637,6 @@ ssl_cert_issue_CF() {
             chmod 644 ${certPath}/fullchain.pem
         fi
 
-        # Prompt user to set panel paths after successful certificate installation
         read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel
         if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
             local webCertFile="${certPath}/fullchain.pem"
@@ -1703,15 +1661,11 @@ ssl_cert_issue_CF() {
 }
 
 run_speedtest() {
-    # Check if Speedtest is already installed
     if ! command -v speedtest &> /dev/null; then
-        # If not installed, determine installation method
         if command -v snap &> /dev/null; then
-            # Use snap to install Speedtest
             echo "Installing Speedtest using snap..."
             snap install speedtest
         else
-            # Fallback to using package managers
             local pkg_manager=""
             local speedtest_install_script=""
 
@@ -1745,7 +1699,7 @@ run_speedtest() {
 
 ip_validation() {
     ipv6_regex="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$"
-    ipv4_regex="^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)$"
+    ipv4_regex="^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|0)\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|0)$"
 }
 
 iplimit_main() {
@@ -1856,14 +1810,6 @@ install_iplimit() {
     if ! command -v fail2ban-client &> /dev/null; then
         echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
 
-        # Install fail2ban together with nftables. Recent fail2ban packages
-        # default to `banaction = nftables-multiport` in /etc/fail2ban/jail.conf,
-        # but the `nftables` package isn't pulled in as a dependency on most
-        # minimal server images (Debian 12+, Ubuntu 24+, fresh RHEL-family).
-        # Without `nft` in PATH the default sshd jail fails to ban with
-        #   stderr: '/bin/sh: 1: nft: not found'
-        # even though our own 3x-ipl jail uses iptables. Bundling the binary
-        # at install time prevents that confusing log spam for new installs.
         case "${release}" in
             ubuntu)
                 apt-get update
@@ -1918,24 +1864,18 @@ install_iplimit() {
 
     echo -e "${green}Configuring IP Limit...${plain}\n"
 
-    # make sure there's no conflict for jail files
     iplimit_remove_conflicts
 
-    # Check if log file exists
     if ! test -f "${iplimit_banned_log_path}"; then
         touch ${iplimit_banned_log_path}
     fi
 
-    # Check if service log file exists so fail2ban won't return error
     if ! test -f "${iplimit_log_path}"; then
         touch ${iplimit_log_path}
     fi
 
-    # Create the iplimit jail files
-    # we didn't pass the bantime here to use the default value
     create_iplimit_jails
 
-    # Launching fail2ban
     if [[ $release == "alpine" ]]; then
         if [[ $(rc-service fail2ban status | grep -F 'status: started' -c) == 0 ]]; then
             rc-service fail2ban start
@@ -2063,13 +2003,10 @@ show_banlog() {
 }
 
 create_iplimit_jails() {
-    # Use default bantime if not passed => 30 minutes
     local bantime="${1:-30}"
 
-    # Uncomment 'allowipv6 = auto' in fail2ban.conf
     sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
 
-    # On Debian 12+ fail2ban's default backend should be changed to systemd
     if [[ "${release}" == "debian" && ${os_version} -ge 12 ]]; then
         sed -i '0,/action =/s/backend = auto/backend = systemd/' /etc/fail2ban/jail.conf
     fi
@@ -2130,7 +2067,6 @@ iplimit_remove_conflicts() {
     )
 
     for file in "${jail_files[@]}"; do
-        # Check for [3x-ipl] config in jail file then remove it
         if test -f "${file}" && grep -qw '3x-ipl' ${file}; then
             sed -i "/\[3x-ipl\]/,/^$/d" ${file}
             echo -e "${yellow}Removing conflicts of [3x-ipl] in jail (${file})!${plain}\n"
@@ -2270,42 +2206,42 @@ show_usage() {
 
 show_menu() {
     echo -e "
-╔────────────────────────────────────────────────╗
-│   ${green}3X-UI Panel Management Script${plain}                │
-│   ${green}0.${plain} Exit Script                               │
-│────────────────────────────────────────────────│
-│   ${green}1.${plain} Install                                   │
-│   ${green}2.${plain} Update                                    │
-│   ${green}3.${plain} Update Menu                               │
-│   ${green}4.${plain} Legacy Version                            │
-│   ${green}5.${plain} Uninstall                                 │
-│────────────────────────────────────────────────│
-│   ${green}6.${plain} Reset Username & Password                 │
-│   ${green}7.${plain} Reset Web Base Path                       │
-│   ${green}8.${plain} Reset Settings                            │
-│   ${green}9.${plain} Change Port                               │
-│  ${green}10.${plain} View Current Settings                     │
-│────────────────────────────────────────────────│
-│  ${green}11.${plain} Start                                     │
-│  ${green}12.${plain} Stop                                      │
-│  ${green}13.${plain} Restart                                   │
-|  ${green}14.${plain} Restart Xray                              │
-│  ${green}15.${plain} Check Status                              │
-│  ${green}16.${plain} Logs Management                           │
-│────────────────────────────────────────────────│
-│  ${green}17.${plain} Enable Autostart                          │
-│  ${green}18.${plain} Disable Autostart                         │
-│────────────────────────────────────────────────│
-│  ${green}19.${plain} SSL Certificate Management                │
-│  ${green}20.${plain} Cloudflare SSL Certificate                │
-│  ${green}21.${plain} IP Limit Management                       │
-│  ${green}22.${plain} Firewall Management                       │
-│  ${green}23.${plain} SSH Port Forwarding Management            │
-│────────────────────────────────────────────────│
-│  ${green}24.${plain} Enable BBR                                │
-│  ${green}25.${plain} Update Geo Files                          │
-│  ${green}26.${plain} Speedtest by Ookla                        │
-╚────────────────────────────────────────────────╝
+╔════════════════════════════════════════════════════╗
+║   ${green}3X-UI Panel Management Script${plain}                    ║
+║   ${green}0.${plain} Exit Script                                       ║
+║──────────────────────────────────────────────────║
+║   ${green}1.${plain} Install                                           ║
+║   ${green}2.${plain} Update                                            ║
+║   ${green}3.${plain} Update Menu                                       ║
+║   ${green}4.${plain} Legacy Version                                    ║
+║   ${green}5.${plain} Uninstall                                         ║
+║──────────────────────────────────────────────────║
+║   ${green}6.${plain} Reset Username & Password                         ║
+║   ${green}7.${plain} Reset Web Base Path                              ║
+║   ${green}8.${plain} Reset Settings                                    ║
+║   ${green}9.${plain} Change Port                                       ║
+║  ${green}10.${plain} View Current Settings                            ║
+║──────────────────────────────────────────────────║
+║  ${green}11.${plain} Start                                            ║
+║  ${green}12.${plain} Stop                                             ║
+║  ${green}13.${plain} Restart                                          ║
+║  ${green}14.${plain} Restart Xray                                     ║
+║  ${green}15.${plain} Check Status                                     ║
+║  ${green}16.${plain} Logs Management                                  ║
+║──────────────────────────────────────────────────║
+║  ${green}17.${plain} Enable Autostart                                 ║
+║  ${green}18.${plain} Disable Autostart                                ║
+║──────────────────────────────────────────────────║
+║  ${green}19.${plain} SSL Certificate Management                       ║
+║  ${green}20.${plain} Cloudflare SSL Certificate                      ║
+║  ${green}21.${plain} IP Limit Management                             ║
+║  ${green}22.${plain} Firewall Management                              ║
+║  ${green}23.${plain} SSH Port Forwarding Management                  ║
+║──────────────────────────────────────────────────║
+║  ${green}24.${plain} Enable BBR                                       ║
+║  ${green}25.${plain} Update Geo Files                                 ║
+║  ${green}26.${plain} Speedtest by Ookla                               ║
+╚════════════════════════════════════════════════════╝
 "
     show_status
     echo && read -rp "Please enter your selection [0-26]: " num
