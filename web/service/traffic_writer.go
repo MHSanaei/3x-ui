@@ -25,71 +25,35 @@ var (
 	twCtx    context.Context
 	twCancel context.CancelFunc
 	twDone   chan struct{}
-	twMu     sync.Mutex
+	twOnce   sync.Once
 )
 
 func StartTrafficWriter() {
-	twMu.Lock()
-	defer twMu.Unlock()
-
-	if twCancel != nil && twDone != nil {
-		select {
-		case <-twDone:
-			clearTrafficWriterState()
-		default:
-			return
-		}
-	}
-
-	queue := make(chan *trafficWriteRequest, trafficWriterQueueSize)
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-
-	twQueue = queue
-	twCtx = ctx
-	twCancel = cancel
-	twDone = done
-
-	go runTrafficWriter(ctx, queue, done)
+	twOnce.Do(func() {
+		twQueue = make(chan *trafficWriteRequest, trafficWriterQueueSize)
+		twCtx, twCancel = context.WithCancel(context.Background())
+		twDone = make(chan struct{})
+		go runTrafficWriter()
+	})
 }
 
 func StopTrafficWriter() {
-	twMu.Lock()
-	cancel := twCancel
-	done := twDone
-	if cancel == nil || done == nil {
-		twMu.Unlock()
-		return
+	if twCancel != nil {
+		twCancel()
+		<-twDone
 	}
-	cancel()
-	twMu.Unlock()
-
-	<-done
-
-	twMu.Lock()
-	if twDone == done {
-		clearTrafficWriterState()
-	}
-	twMu.Unlock()
 }
 
-func clearTrafficWriterState() {
-	twQueue = nil
-	twCtx = nil
-	twCancel = nil
-	twDone = nil
-}
-
-func runTrafficWriter(ctx context.Context, queue chan *trafficWriteRequest, done chan struct{}) {
-	defer close(done)
+func runTrafficWriter() {
+	defer close(twDone)
 	for {
 		select {
-		case req := <-queue:
+		case req := <-twQueue:
 			req.done <- safeApply(req.apply)
-		case <-ctx.Done():
+		case <-twCtx.Done():
 			for {
 				select {
-				case req := <-queue:
+				case req := <-twQueue:
 					req.done <- safeApply(req.apply)
 				default:
 					return
@@ -110,43 +74,14 @@ func safeApply(fn func() error) (err error) {
 }
 
 func submitTrafficWrite(fn func() error) error {
+	if twQueue == nil {
+		return safeApply(fn)
+	}
 	req := &trafficWriteRequest{apply: fn, done: make(chan error, 1)}
-
-	twMu.Lock()
-	queue := twQueue
-	ctx := twCtx
-	done := twDone
-	if queue == nil || ctx == nil || done == nil {
-		twMu.Unlock()
-		return safeApply(fn)
-	}
-
 	select {
-	case <-ctx.Done():
-		twMu.Unlock()
-		return safeApply(fn)
-	default:
-	}
-
-	timer := time.NewTimer(trafficWriterSubmitTimeout)
-	defer timer.Stop()
-	select {
-	case queue <- req:
-		twMu.Unlock()
-	case <-timer.C:
-		twMu.Unlock()
+	case twQueue <- req:
+	case <-time.After(trafficWriterSubmitTimeout):
 		return errors.New("traffic writer queue full")
 	}
-
-	select {
-	case err := <-req.done:
-		return err
-	case <-done:
-		select {
-		case err := <-req.done:
-			return err
-		default:
-			return errors.New("traffic writer stopped before write completed")
-		}
-	}
+	return <-req.done
 }
