@@ -393,16 +393,29 @@ async function fetchDefaultCertSettings() {
 }
 
 // === VLESS encryption helpers =======================================
-// `xray vlessenc` returns both X25519 and ML-KEM-768 variants every
-// call; the user clicks one of two buttons to pick which block goes
-// into decryption/encryption.
-async function getNewVlessEnc(authLabel) {
-  if (!authLabel || !inbound.value?.settings) return;
+// `xray vlessenc` returns both X25519 and ML-KEM-768 auth variants every
+// call; the user clicks one button to pick which block goes into
+// decryption/encryption. Both generated strings share the same hybrid
+// mlkem768x25519plus prefix; the auth choice is the final key block.
+function normalizeVlessAuthLabel(label = '') {
+  return label.toLowerCase().replace(/[-_\s]/g, '');
+}
+
+function matchesVlessAuth(block, authId) {
+  if (block?.id === authId) return true;
+  const label = normalizeVlessAuthLabel(block?.label);
+  if (authId === 'mlkem768') return label.includes('mlkem768');
+  if (authId === 'x25519') return label.includes('x25519');
+  return false;
+}
+
+async function getNewVlessEnc(authId) {
+  if (!authId || !inbound.value?.settings) return;
   saving.value = true;
   try {
     const msg = await HttpUtil.get('/panel/api/server/getNewVlessEnc');
     if (!msg?.success) return;
-    const block = (msg.obj?.auths || []).find((a) => a.label === authLabel);
+    const block = (msg.obj?.auths || []).find((a) => matchesVlessAuth(a, authId));
     if (!block) return;
     inbound.value.settings.decryption = block.decryption;
     inbound.value.settings.encryption = block.encryption;
@@ -416,6 +429,17 @@ function clearVlessEnc() {
   inbound.value.settings.decryption = 'none';
   inbound.value.settings.encryption = 'none';
 }
+
+const selectedVlessAuth = computed(() => {
+  const encryption = inbound.value?.settings?.encryption;
+  if (!encryption || encryption === 'none') return 'None';
+
+  const parts = encryption.split('.').filter(Boolean);
+  const authKey = parts[parts.length - 1] || '';
+  if (!authKey) return 'Custom';
+
+  return authKey.length > 300 ? 'ML-KEM-768 auth' : 'X25519 auth';
+});
 
 // === SS method change tracks legacy semantics =========================
 function onSSMethodChange() {
@@ -731,14 +755,17 @@ watch(
           </a-form-item>
           <a-form-item label=" ">
             <a-space :size="8" wrap>
-              <a-button type="primary" :loading="saving" @click="getNewVlessEnc('X25519, not Post-Quantum')">
-                X25519
+              <a-button type="primary" :loading="saving" @click="getNewVlessEnc('x25519')">
+                X25519 auth
               </a-button>
-              <a-button type="primary" :loading="saving" @click="getNewVlessEnc('ML-KEM-768, Post-Quantum')">
-                ML-KEM-768
+              <a-button type="primary" :loading="saving" @click="getNewVlessEnc('mlkem768')">
+                ML-KEM-768 auth
               </a-button>
               <a-button danger @click="clearVlessEnc">Clear</a-button>
             </a-space>
+            <a-typography-text type="secondary" class="vless-auth-state">
+              Selected: {{ selectedVlessAuth }}
+            </a-typography-text>
           </a-form-item>
         </a-form>
 
@@ -1739,6 +1766,11 @@ watch(
   margin-left: 6px;
   cursor: pointer;
   color: #ff4d4f;
+}
+
+.vless-auth-state {
+  display: block;
+  margin-top: 6px;
 }
 
 .json-editor {
