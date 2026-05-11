@@ -63,6 +63,33 @@ const displayVersion = computed(
   () => panelUpdateInfo.value?.currentVersion || window.X_UI_CUR_VER || '?',
 );
 
+const healthItems = computed(() => {
+  const cpuPercent = Number(status.cpu?.percent || 0);
+  const memPercent = Number(status.mem?.percent || 0);
+  return [
+    {
+      label: 'Xray',
+      value: status.xray.state,
+      color: status.xray.color,
+    },
+    {
+      label: 'CPU',
+      value: `${cpuPercent.toFixed(1)}%`,
+      color: cpuPercent > 85 ? 'red' : cpuPercent > 65 ? 'orange' : 'green',
+    },
+    {
+      label: 'Memory',
+      value: `${memPercent.toFixed(1)}%`,
+      color: memPercent > 85 ? 'red' : 'blue',
+    },
+    {
+      label: 'Update',
+      value: panelUpdateInfo.value.updateAvailable ? panelUpdateInfo.value.latestVersion : 'current',
+      color: panelUpdateInfo.value.updateAvailable ? 'orange' : 'green',
+    },
+  ];
+});
+
 // Hide/reveal the public IPv4/IPv6 — same pattern as legacy.
 const showIp = ref(false);
 
@@ -124,6 +151,25 @@ async function openConfig() {
             <div v-if="!fetched" class="loading-spacer" />
 
             <a-row v-else :gutter="[isMobile ? 8 : 16, 12]">
+              <a-col :span="24">
+                <div class="health-strip">
+                  <div class="health-tags">
+                    <a-tag v-for="item in healthItems" :key="item.label" :color="item.color">
+                      {{ item.label }}: {{ item.value }}
+                    </a-tag>
+                  </div>
+                  <a-space :size="8" wrap class="critical-actions">
+                    <a-button size="small" @click="refresh">{{ t('refresh') }}</a-button>
+                    <a-button size="small" danger @click="restartXray">{{ t('pages.index.restartXray') }}</a-button>
+                    <a-button size="small" @click="openXrayLogs">{{ t('pages.index.logs') }}</a-button>
+                    <a-button v-if="panelUpdateInfo.updateAvailable" size="small" type="primary"
+                      @click="panelUpdateOpen = true">
+                      {{ t('pages.index.updatePanel') }}
+                    </a-button>
+                  </a-space>
+                </div>
+              </a-col>
+
               <a-col :span="24">
                 <StatusCard :status="status" :is-mobile="isMobile" />
               </a-col>
@@ -367,6 +413,36 @@ async function openConfig() {
 
 .loading-spacer {
   min-height: calc(100vh - 120px);
+}
+
+.health-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  background: var(--bg-card);
+}
+
+.health-tags,
+.critical-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.health-tags :deep(.ant-tag) {
+  margin-inline-end: 0;
+}
+
+@media (max-width: 768px) {
+  .health-strip {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 .action {

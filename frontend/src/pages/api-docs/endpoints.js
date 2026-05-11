@@ -19,9 +19,9 @@ export const sections = [
           '{\n  "success": true,\n  "msg": "Logged in successfully"\n}',
       },
       {
-        method: 'GET',
+        method: 'POST',
         path: '/logout',
-        summary: 'Clear the session cookie. Redirects back to the login page; not useful from non-browser clients.',
+        summary: 'Clear the session cookie. Requires the CSRF header for browser sessions.',
       },
       {
         method: 'GET',
@@ -43,7 +43,7 @@ export const sections = [
     id: 'inbounds',
     title: 'Inbounds API',
     description:
-      'Manage inbound configurations and their clients. All endpoints live under /panel/api/inbounds and require a logged-in session or Bearer token. Link-generating endpoints honour X-Forwarded-Host / X-Forwarded-Proto, so callers behind a reverse proxy get the correct external host in returned URLs.',
+      'Manage inbound configurations and their clients. All endpoints live under /panel/api/inbounds and require a logged-in session or Bearer token. Link-generating endpoints honour forwarded headers only when the request comes from a configured trusted proxy.',
     endpoints: [
       {
         method: 'GET',
@@ -531,7 +531,7 @@ export const sections = [
     description: 'Operations that interact with the configured Telegram bot.',
     endpoints: [
       {
-        method: 'GET',
+        method: 'POST',
         path: '/panel/api/backuptotgbot',
         summary: 'Send a fresh DB backup to every Telegram chat configured as an admin recipient. No body, no params.',
       },
