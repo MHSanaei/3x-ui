@@ -35,15 +35,6 @@ const props = defineProps({
   isMobile: { type: Boolean, default: false },
 });
 
-const inboundTagOptions = computed(() => {
-  const out = new Set();
-  for (const ib of props.templateSettings?.inbounds || []) {
-    if (ib.tag) out.add(ib.tag);
-  }
-  for (const t of props.inboundTags || []) out.add(t);
-  return [...out];
-});
-
 const emit = defineEmits(['reset-traffic', 'test', 'test-all', 'show-warp', 'show-nord', 'delete']);
 
 const testMode = ref('tcp');
@@ -443,7 +434,7 @@ const rows = computed(() => {
     </a-table>
 
     <OutboundFormModal v-model:open="modalOpen" :outbound="editingOutbound" :existing-tags="existingTags"
-      :inbound-tags="inboundTagOptions" @confirm="onConfirm" />
+      @confirm="onConfirm" />
   </a-space>
 </template>
 

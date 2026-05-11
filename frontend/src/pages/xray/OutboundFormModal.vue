@@ -34,7 +34,6 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   outbound: { type: Object, default: null },
   existingTags: { type: Array, default: () => [] },
-  inboundTags: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['update:open', 'confirm']);
@@ -318,10 +317,8 @@ function regenerateWgKeys() {
           <!-- ============== Loopback ============== -->
           <template v-if="isLoopback">
             <a-form-item label="Inbound tag">
-              <a-auto-complete v-model:value="outbound.settings.inboundTag"
-                :options="inboundTags.map((tag) => ({ value: tag }))"
-                :filter-option="(input, option) => option.value.toLowerCase().includes(input.toLowerCase())"
-                placeholder="tag of an existing inbound to re-route into" />
+              <a-input v-model:value="outbound.settings.inboundTag"
+                placeholder="inbound tag using in routing rules" />
             </a-form-item>
           </template>
 
