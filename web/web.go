@@ -456,7 +456,9 @@ func (s *Server) Stop() error {
 	var err1 error
 	var err2 error
 	if s.httpServer != nil {
-		err1 = s.httpServer.Shutdown(s.ctx)
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+		err1 = s.httpServer.Shutdown(shutdownCtx)
 	}
 	if s.listener != nil {
 		err2 = s.listener.Close()
