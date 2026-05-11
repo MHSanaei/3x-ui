@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/database"
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
 
@@ -27,7 +28,7 @@ func SetLoginUser(c *gin.Context, user *model.User) error {
 		return nil
 	}
 	s := sessions.Default(c)
-	s.Set(loginUserKey, *user)
+	s.Set(loginUserKey, user.Id)
 	return s.Save()
 }
 
@@ -49,7 +50,7 @@ func GetLoginUser(c *gin.Context) *model.User {
 	if obj == nil {
 		return nil
 	}
-	user, ok := obj.(model.User)
+	userID, ok := sessionUserID(obj)
 	if !ok {
 		s.Delete(loginUserKey)
 		if err := s.Save(); err != nil {
@@ -57,11 +58,75 @@ func GetLoginUser(c *gin.Context) *model.User {
 		}
 		return nil
 	}
-	return &user
+	if legacyUserID, ok := legacySessionUserID(obj); ok {
+		s.Set(loginUserKey, legacyUserID)
+		if err := s.Save(); err != nil {
+			logger.Warning("session: failed to migrate legacy user payload:", err)
+		}
+	}
+	user, err := getUserByID(userID)
+	if err != nil {
+		logger.Warning("session: failed to load user:", err)
+		s.Delete(loginUserKey)
+		if saveErr := s.Save(); saveErr != nil {
+			logger.Warning("session: failed to drop missing user:", saveErr)
+		}
+		return nil
+	}
+	return user
 }
 
 func IsLogin(c *gin.Context) bool {
 	return GetLoginUser(c) != nil
+}
+
+func sessionUserID(obj any) (int, bool) {
+	switch v := obj.(type) {
+	case int:
+		return v, v > 0
+	case int64:
+		return int(v), v > 0
+	case int32:
+		return int(v), v > 0
+	case float64:
+		id := int(v)
+		return id, v == float64(id) && id > 0
+	case model.User:
+		return v.Id, v.Id > 0
+	case *model.User:
+		if v == nil {
+			return 0, false
+		}
+		return v.Id, v.Id > 0
+	default:
+		return 0, false
+	}
+}
+
+func legacySessionUserID(obj any) (int, bool) {
+	switch v := obj.(type) {
+	case model.User:
+		return v.Id, v.Id > 0
+	case *model.User:
+		if v == nil {
+			return 0, false
+		}
+		return v.Id, v.Id > 0
+	default:
+		return 0, false
+	}
+}
+
+func getUserByID(id int) (*model.User, error) {
+	db := database.GetDB()
+	if db == nil {
+		return nil, http.ErrServerClosed
+	}
+	user := &model.User{}
+	if err := db.Model(model.User{}).Where("id = ?", id).First(user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func ClearSession(c *gin.Context) error {
