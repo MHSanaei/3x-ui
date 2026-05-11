@@ -102,6 +102,21 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 	return user, nil
 }
 
+func (s *UserService) VerifyTwoFactorCode(code string) (bool, error) {
+	twoFactorEnable, err := s.settingService.GetTwoFactorEnable()
+	if err != nil {
+		return false, err
+	}
+	if !twoFactorEnable {
+		return true, nil
+	}
+	twoFactorToken, err := s.settingService.GetTwoFactorToken()
+	if err != nil {
+		return false, err
+	}
+	return gotp.NewDefaultTOTP(twoFactorToken).Now() == code, nil
+}
+
 func (s *UserService) UpdateUser(id int, username string, password string) error {
 	db := database.GetDB()
 	hashedPassword, err := crypto.HashPasswordAsBcrypt(password)
