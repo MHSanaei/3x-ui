@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v3/logger"
 )
 
 // MessageType identifies the kind of WebSocket message.
@@ -18,6 +18,7 @@ const (
 	MessageTypeTraffic      MessageType = "traffic"
 	MessageTypeInbounds     MessageType = "inbounds"
 	MessageTypeOutbounds    MessageType = "outbounds"
+	MessageTypeNodes        MessageType = "nodes"
 	MessageTypeNotification MessageType = "notification"
 	MessageTypeXrayState    MessageType = "xray_state"
 	// MessageTypeClientStats carries absolute traffic counters for the clients
@@ -42,8 +43,8 @@ const (
 	// rapid mutations cannot drown the hub. Bursts within the interval are
 	// dropped (not coalesced); the next broadcast outside the window delivers
 	// the latest state. Only message types in throttledMessageTypes are gated —
-	// heartbeat and real-time signals (status, traffic, client_stats,
-	// notification, xray_state, invalidate) bypass this so they are never delayed.
+	// heartbeat and one-shot signals (status, notification, xray_state,
+	// invalidate) bypass this so they are never delayed.
 	minBroadcastInterval = 250 * time.Millisecond
 
 	// hubRestartAttempts caps panic-recovery restarts. After this many
@@ -102,19 +103,13 @@ func NewHub() *Hub {
 	}
 }
 
-// throttledMessageTypes is the explicit allow-list of message types subject to
-// the per-type rate limit. Everything else (status, traffic, client_stats,
-// notification, xray_state, invalidate) is heartbeat- or signal-class and must
-// not be delayed. Keeping the set explicit (vs. an exclusion list) makes the
-// intent obvious when new message types are added — by default they bypass.
 var throttledMessageTypes = map[MessageType]struct{}{
-	MessageTypeInbounds:  {},
-	MessageTypeOutbounds: {},
+	MessageTypeInbounds:    {},
+	MessageTypeOutbounds:   {},
+	MessageTypeTraffic:     {},
+	MessageTypeClientStats: {},
 }
 
-// shouldThrottle returns true if a broadcast of msgType is rate-limited and
-// happened within minBroadcastInterval of the previous one. Only message types
-// in throttledMessageTypes are gated.
 func (h *Hub) shouldThrottle(msgType MessageType) bool {
 	if _, gated := throttledMessageTypes[msgType]; !gated {
 		return false

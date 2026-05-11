@@ -92,9 +92,12 @@ func (a *InboundController) getInbounds(c *gin.Context) {
 - Use `config.GetLogLevel()`, `config.GetDBPath()` helpers
 
 ### Internationalization
-- Translation files: `web/translation/translate.*.toml`
-- Access via `I18nWeb(c, "pages.login.loginAgain")` in controllers
-- Use `locale.I18nType` enum (Web, Api, etc.)
+- Translation files: `web/translation/<lang>.json` (one nested-namespace file per locale,
+  e.g. `en-US.json`). Vue SPA imports these via `import.meta.glob` from `frontend/src/i18n/`,
+  and the Go binary embeds the same files via `web/web.go`'s `//go:embed translation/*`.
+- Access from Go via `locale.I18n(locale.Web, "pages.login.loginAgain")` (see
+  `web/locale/locale.go`); access from Vue via `useI18n()` and `t('pages.login.loginAgain')`.
+- Use `locale.I18nType` enum (Web, Bot).
 
 ## External Dependencies & Integration
 

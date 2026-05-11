@@ -7,10 +7,10 @@ import (
 	"github.com/goccy/go-json"
 	yaml "github.com/goccy/go-yaml"
 
-	"github.com/mhsanaei/3x-ui/v2/database/model"
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/web/service"
-	"github.com/mhsanaei/3x-ui/v2/xray"
+	"github.com/mhsanaei/3x-ui/v3/database/model"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/xray"
 )
 
 type SubClashService struct {
@@ -29,6 +29,8 @@ func NewSubClashService(subService *SubService) *SubClashService {
 }
 
 func (s *SubClashService) GetClash(subId string, host string) (string, string, error) {
+	// Set per-request state so resolveInboundAddress sees the node map.
+	s.SubService.PrepareForRequest(host)
 	inbounds, err := s.SubService.getInboundsBySubId(subId)
 	if err != nil || len(inbounds) == 0 {
 		return "", "", err
@@ -38,6 +40,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	var clientTraffics []xray.ClientTraffic
 	var proxies []map[string]any
 
+	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
 		clients, err := s.inboundService.GetClients(inbound)
 		if err != nil {
@@ -56,7 +59,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		}
 		for _, client := range clients {
 			if client.SubID == subId {
-				clientTraffics = append(clientTraffics, s.SubService.getClientTraffics(inbound.ClientStats, client.Email))
+				_, clientTraffics = s.SubService.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
 				proxies = append(proxies, s.getProxies(inbound, client, host)...)
 			}
 		}
@@ -117,11 +120,18 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 
 func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client, host string) []map[string]any {
 	stream := s.streamData(inbound.StreamSettings)
+	// For node-managed inbounds the Clash proxy "server" must be the
+	// node's address, not the request host. resolveInboundAddress handles
+	// the node→listen→request-host fallback chain.
+	defaultDest := s.SubService.resolveInboundAddress(inbound)
+	if defaultDest == "" {
+		defaultDest = host
+	}
 	externalProxies, ok := stream["externalProxy"].([]any)
 	if !ok || len(externalProxies) == 0 {
 		externalProxies = []any{map[string]any{
 			"forceTls": "same",
-			"dest":     host,
+			"dest":     defaultDest,
 			"port":     float64(inbound.Port),
 			"remark":   "",
 		}}

@@ -13,13 +13,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 
-	"github.com/mhsanaei/3x-ui/v2/database"
-	"github.com/mhsanaei/3x-ui/v2/database/model"
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/util/common"
-	"github.com/mhsanaei/3x-ui/v2/util/random"
-	"github.com/mhsanaei/3x-ui/v2/web/service"
-	"github.com/mhsanaei/3x-ui/v2/xray"
+	"github.com/mhsanaei/3x-ui/v3/database"
+	"github.com/mhsanaei/3x-ui/v3/database/model"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/util/common"
+	"github.com/mhsanaei/3x-ui/v3/util/random"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/xray"
 )
 
 // SubService provides business logic for generating subscription links and managing subscription data.
@@ -30,6 +30,11 @@ type SubService struct {
 	datepicker     string
 	inboundService service.InboundService
 	settingService service.SettingService
+	// nodesByID is populated per request from the Node table so
+	// resolveInboundAddress can return the node's address for any
+	// inbound whose NodeID is set. Keeps the per-link host derivation
+	// O(1) instead of O(N) DB hits.
+	nodesByID map[int]*model.Node
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -40,9 +45,19 @@ func NewSubService(showInfo bool, remarkModel string) *SubService {
 	}
 }
 
+// PrepareForRequest sets per-request state (host + nodes map) on the
+// shared SubService. Called by every entry point — GetSubs, GetJson,
+// GetClash — so resolveInboundAddress sees the right host and the
+// freshly-loaded node map regardless of which sub flavour the client
+// hit.
+func (s *SubService) PrepareForRequest(host string) {
+	s.address = host
+	s.loadNodes()
+}
+
 // GetSubs retrieves subscription links for a given subscription ID and host.
 func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.ClientTraffic, error) {
-	s.address = host
+	s.PrepareForRequest(host)
 	var result []string
 	var traffic xray.ClientTraffic
 	var lastOnline int64
@@ -61,6 +76,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 	if err != nil {
 		s.datepicker = "gregorian"
 	}
+	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
 		clients, err := s.inboundService.GetClients(inbound)
 		if err != nil {
@@ -82,10 +98,9 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 				if client.Enable {
 					hasEnabledClient = true
 				}
-				link := s.getLink(inbound, client.Email)
-				result = append(result, link)
-				ct := s.getClientTraffics(inbound.ClientStats, client.Email)
-				clientTraffics = append(clientTraffics, ct)
+				result = append(result, s.getLink(inbound, client.Email))
+				var ct xray.ClientTraffic
+				ct, clientTraffics = s.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
 				if ct.LastOnline > lastOnline {
 					lastOnline = ct.LastOnline
 				}
@@ -136,6 +151,19 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		return nil, err
 	}
 	return inbounds, nil
+}
+
+// appendUniqueTraffic resolves the traffic stats for email and appends them
+// to acc only the first time email is seen. Shared-email mode lets one
+// client_traffics row underpin several inbounds, so without dedupe its
+// quota and usage would be counted once per inbound.
+func (s *SubService) appendUniqueTraffic(seen map[string]struct{}, acc []xray.ClientTraffic, stats []xray.ClientTraffic, email string) (xray.ClientTraffic, []xray.ClientTraffic) {
+	ct := s.getClientTraffics(stats, email)
+	if _, dup := seen[email]; !dup {
+		seen[email] = struct{}{}
+		acc = append(acc, ct)
+	}
+	return ct, acc
 }
 
 func (s *SubService) getClientTraffics(traffics []xray.ClientTraffic, email string) xray.ClientTraffic {
@@ -509,7 +537,39 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 	return url.String()
 }
 
+// loadNodes refreshes nodesByID from the DB. Called once per request so
+// the per-inbound resolveInboundAddress lookups are pure map reads.
+// We filter to address != ” so a half-configured node row doesn't
+// accidentally produce a useless host like "https://:2053".
+func (s *SubService) loadNodes() {
+	db := database.GetDB()
+	var nodes []*model.Node
+	if err := db.Model(&model.Node{}).Where("address != ''").Find(&nodes).Error; err != nil {
+		logger.Warning("subscription: load nodes failed:", err)
+		s.nodesByID = nil
+		return
+	}
+	m := make(map[int]*model.Node, len(nodes))
+	for _, n := range nodes {
+		m[n.Id] = n
+	}
+	s.nodesByID = m
+}
+
+// resolveInboundAddress picks the host an external client should
+// connect to. Order:
+//  1. If the inbound is node-managed and the node has an address, use
+//     the node's address — central panel's hostname doesn't speak xray
+//     for that inbound.
+//  2. If the inbound binds to a non-wildcard listen address, use it.
+//  3. Otherwise fall back to the request's host (whatever the client
+//     subscribed against).
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
+	if inbound.NodeID != nil && s.nodesByID != nil {
+		if n, ok := s.nodesByID[*inbound.NodeID]; ok && n.Address != "" {
+			return n.Address
+		}
+	}
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
 		return s.address
 	}
@@ -582,28 +642,18 @@ func applyShareNetworkParams(stream map[string]any, streamNetwork string, params
 		applyPathAndHostParams(httpupgrade, params)
 	case "xhttp":
 		xhttp, _ := stream["xhttpSettings"].(map[string]any)
-		applyPathAndHostParams(xhttp, params)
-		params["mode"], _ = xhttp["mode"].(string)
-		applyXhttpPaddingParams(xhttp, params)
+		applyXhttpExtraParams(xhttp, params)
 	}
 }
 
-func applyXhttpPaddingObj(xhttp map[string]any, obj map[string]any) {
-	// VMess base64 JSON supports arbitrary keys; copy the padding
-	// settings through so clients can match the server's xhttp
-	// xPaddingBytes range and, when the admin opted into obfs
-	// mode, the custom key / header / placement / method.
+// applyXhttpExtraObj copies the bidirectional xhttp settings into the
+// VMess base64 JSON link object. VMess supports arbitrary keys, so we
+// flatten the SplitHTTPConfig "extra" fields directly onto obj.
+func applyXhttpExtraObj(xhttp map[string]any, obj map[string]any) {
 	if xpb, ok := xhttp["xPaddingBytes"].(string); ok && len(xpb) > 0 {
 		obj["x_padding_bytes"] = xpb
 	}
-	if obfs, ok := xhttp["xPaddingObfsMode"].(bool); ok && obfs {
-		obj["xPaddingObfsMode"] = true
-		for _, field := range []string{"xPaddingKey", "xPaddingHeader", "xPaddingPlacement", "xPaddingMethod"} {
-			if v, ok := xhttp[field].(string); ok && len(v) > 0 {
-				obj[field] = v
-			}
-		}
-	}
+	maps.Copy(obj, buildXhttpExtra(xhttp))
 }
 
 func applyVmessNetworkParams(stream map[string]any, network string, obj map[string]any) {
@@ -639,8 +689,10 @@ func applyVmessNetworkParams(stream map[string]any, network string, obj map[stri
 	case "xhttp":
 		xhttp, _ := stream["xhttpSettings"].(map[string]any)
 		applyPathAndHostObj(xhttp, obj)
-		obj["mode"], _ = xhttp["mode"].(string)
-		applyXhttpPaddingObj(xhttp, obj)
+		if mode, ok := xhttp["mode"].(string); ok {
+			obj["mode"] = mode
+		}
+		applyXhttpExtraObj(xhttp, obj)
 	}
 }
 
@@ -928,45 +980,33 @@ func searchKey(data any, key string) (any, bool) {
 	return nil, false
 }
 
-// applyXhttpPaddingParams copies the xPadding* fields from an xhttpSettings
-// map into the URL query params of a vless:// / trojan:// / ss:// link.
+// buildXhttpExtra walks an xhttpSettings map and returns the JSON blob
+// that goes into the URL's `extra` param (or, for VMess, the link
+// object). Carries ONLY the bidirectional fields from xray-core's
+// SplitHTTPConfig — i.e. the ones the server enforces and the client
+// must match. Strictly one-sided fields are excluded:
 //
-// Before this helper existed, only path / host / mode were propagated,
-// so a server configured with a non-default xPaddingBytes (e.g. 80-600)
-// or with xPaddingObfsMode=true + custom xPaddingKey / xPaddingHeader
-// would silently diverge from the client: the client kept defaults,
-// hit the server, and was rejected by its padding validation
-// ("invalid padding" in the inbound log) — the client-visible symptom
-// was "xhttp doesn't connect" on OpenWRT / sing-box.
+//   - server-only (noSSEHeader, scMaxBufferedPosts, scStreamUpServerSecs,
+//     serverMaxHeaderBytes) — client wouldn't read them, so emitting
+//     them just bloats the URL.
+//   - client-only (headers, uplinkHTTPMethod, uplinkChunkSize,
+//     noGRPCHeader, scMinPostsIntervalMs, xmux, downloadSettings) — the
+//     inbound config doesn't have them; the client configures them
+//     locally.
 //
-// Two encodings are written so every popular client can read at least one:
-//
-//   - x_padding_bytes=<range>  — flat param, understood by sing-box and its
-//     derivatives (Podkop, OpenWRT sing-box, Karing, NekoBox, …).
-//   - extra=<url-encoded-json> — full xhttp settings blob, which is how
-//     xray-core clients (v2rayNG, Happ, Furious, Exclave, …) pick up the
-//     obfs-mode key / header / placement / method.
-//
-// Anything that doesn't map to a non-empty value is skipped, so simple
-// inbounds (no custom padding) produce exactly the same URL as before.
-func applyXhttpPaddingParams(xhttp map[string]any, params map[string]string) {
+// Truthy-only guards keep default inbounds emitting the same compact URL
+// they did before this helper grew.
+func buildXhttpExtra(xhttp map[string]any) map[string]any {
 	if xhttp == nil {
-		return
+		return nil
 	}
-
-	if xpb, ok := xhttp["xPaddingBytes"].(string); ok && len(xpb) > 0 {
-		params["x_padding_bytes"] = xpb
-	}
-
 	extra := map[string]any{}
+
 	if xpb, ok := xhttp["xPaddingBytes"].(string); ok && len(xpb) > 0 {
 		extra["xPaddingBytes"] = xpb
 	}
 	if obfs, ok := xhttp["xPaddingObfsMode"].(bool); ok && obfs {
 		extra["xPaddingObfsMode"] = true
-		// The obfs-mode-only fields: only populate the ones the admin
-		// actually set, so xray-core falls back to its own defaults for
-		// the rest instead of seeing spurious empty strings.
 		for _, field := range []string{"xPaddingKey", "xPaddingHeader", "xPaddingPlacement", "xPaddingMethod"} {
 			if v, ok := xhttp[field].(string); ok && len(v) > 0 {
 				extra[field] = v
@@ -974,7 +1014,74 @@ func applyXhttpPaddingParams(xhttp map[string]any, params map[string]string) {
 		}
 	}
 
-	if len(extra) > 0 {
+	stringFields := []string{
+		"sessionPlacement", "sessionKey",
+		"seqPlacement", "seqKey",
+		"uplinkDataPlacement", "uplinkDataKey",
+		"scMaxEachPostBytes",
+	}
+	for _, field := range stringFields {
+		if v, ok := xhttp[field].(string); ok && len(v) > 0 {
+			extra[field] = v
+		}
+	}
+
+	// Headers — emitted as the {name: value} map upstream's struct
+	// expects. The server runtime ignores this field, but the client
+	// (consuming the share link) honors it. Drop any "host" entry —
+	// host already wins as a top-level URL param.
+	if rawHeaders, ok := xhttp["headers"].(map[string]any); ok && len(rawHeaders) > 0 {
+		out := map[string]any{}
+		for k, v := range rawHeaders {
+			if strings.EqualFold(k, "host") {
+				continue
+			}
+			out[k] = v
+		}
+		if len(out) > 0 {
+			extra["headers"] = out
+		}
+	}
+
+	if len(extra) == 0 {
+		return nil
+	}
+	return extra
+}
+
+// applyXhttpExtraParams emits the full xhttp config into the URL query
+// params of a vless:// / trojan:// / ss:// link. Sets path/host/mode at
+// top level (xray's Build() always lets these win over `extra`) and packs
+// everything else into a JSON `extra` param. Also writes the flat
+// `x_padding_bytes` param sing-box-family clients understand.
+//
+// Without this, the admin's custom xPaddingBytes / sessionKey / etc. never
+// reach the client and handshakes are silently rejected with
+// `invalid padding (...) length: 0` — the client-visible symptom is
+// "xhttp doesn't connect" on OpenWRT / sing-box.
+//
+// Two encodings are written so every popular client can read at least one:
+//
+//   - x_padding_bytes=<range>  — flat param, understood by sing-box and its
+//     derivatives (Podkop, OpenWRT sing-box, Karing, NekoBox, …).
+//   - extra=<url-encoded-json> — full xhttp settings blob, which is how
+//     xray-core clients (v2rayNG, Happ, Furious, Exclave, …) pick up the
+//     bidirectional fields beyond path/host/mode.
+func applyXhttpExtraParams(xhttp map[string]any, params map[string]string) {
+	if xhttp == nil {
+		return
+	}
+	applyPathAndHostParams(xhttp, params)
+	if mode, ok := xhttp["mode"].(string); ok {
+		params["mode"] = mode
+	}
+
+	if xpb, ok := xhttp["xPaddingBytes"].(string); ok && len(xpb) > 0 {
+		params["x_padding_bytes"] = xpb
+	}
+
+	extra := buildXhttpExtra(xhttp)
+	if extra != nil {
 		if b, err := json.Marshal(extra); err == nil {
 			params["extra"] = string(b)
 		}

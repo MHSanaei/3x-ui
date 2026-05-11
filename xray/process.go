@@ -5,17 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/config"
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v3/config"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/util/common"
 )
 
 // GetBinaryName returns the Xray binary filename for the current OS and architecture.
@@ -126,6 +126,13 @@ type process struct {
 	apiPort int
 
 	onlineClients []string
+	// nodeOnlineClients holds the online-emails list reported by each
+	// remote node, keyed by node id. NodeTrafficSyncJob populates entries
+	// per cron tick and clears them when a node's probe fails. The mutex
+	// guards both this map and onlineClients above so GetOnlineClients
+	// can build the union without a torn read.
+	nodeOnlineClients map[int][]string
+	onlineMu          sync.RWMutex
 
 	config     *Config
 	configPath string // if set, use this path instead of GetConfigPath() and remove on Stop
@@ -190,14 +197,69 @@ func (p *Process) GetConfig() *Config {
 	return p.config
 }
 
-// GetOnlineClients returns the list of online clients for the Xray process.
+// GetOnlineClients returns the union of locally-online clients and
+// node-online clients from every registered remote panel. Dedupes by
+// email so a client connected to both a local and a node-managed inbound
+// surfaces once. Cheap allocation — typical online sets are small and
+// the union is recomputed on demand.
 func (p *Process) GetOnlineClients() []string {
-	return p.onlineClients
+	p.onlineMu.RLock()
+	defer p.onlineMu.RUnlock()
+
+	if len(p.nodeOnlineClients) == 0 {
+		// Hot path for single-panel deployments: avoid the map+dedupe
+		// work entirely and return the local slice as-is.
+		return p.onlineClients
+	}
+
+	seen := make(map[string]struct{}, len(p.onlineClients))
+	out := make([]string, 0, len(p.onlineClients))
+	for _, email := range p.onlineClients {
+		if _, dup := seen[email]; dup {
+			continue
+		}
+		seen[email] = struct{}{}
+		out = append(out, email)
+	}
+	for _, list := range p.nodeOnlineClients {
+		for _, email := range list {
+			if _, dup := seen[email]; dup {
+				continue
+			}
+			seen[email] = struct{}{}
+			out = append(out, email)
+		}
+	}
+	return out
 }
 
-// SetOnlineClients sets the list of online clients for the Xray process.
+// SetOnlineClients sets the locally-online list. Called by the local
+// XrayTrafficJob after each xray gRPC stats poll.
 func (p *Process) SetOnlineClients(users []string) {
+	p.onlineMu.Lock()
 	p.onlineClients = users
+	p.onlineMu.Unlock()
+}
+
+// SetNodeOnlineClients records the online-emails set for one remote
+// node. Replaces any previous entry for that node — NodeTrafficSyncJob
+// always sends the full list per tick.
+func (p *Process) SetNodeOnlineClients(nodeID int, emails []string) {
+	p.onlineMu.Lock()
+	defer p.onlineMu.Unlock()
+	if p.nodeOnlineClients == nil {
+		p.nodeOnlineClients = map[int][]string{}
+	}
+	p.nodeOnlineClients[nodeID] = emails
+}
+
+// ClearNodeOnlineClients drops a node's contribution to the online set.
+// Called when a probe fails so a downed node doesn't keep its clients
+// listed as "online" until the next successful probe.
+func (p *Process) ClearNodeOnlineClients(nodeID int) {
+	p.onlineMu.Lock()
+	defer p.onlineMu.Unlock()
+	delete(p.nodeOnlineClients, nodeID)
 }
 
 // GetUptime returns the uptime of the Xray process in seconds.
@@ -258,7 +320,7 @@ func (p *process) Start() (err error) {
 	if p.configPath != "" {
 		configPath = p.configPath
 	}
-	err = os.WriteFile(configPath, data, fs.ModePerm)
+	err = os.WriteFile(configPath, data, 0644)
 	if err != nil {
 		return common.NewErrorf("Failed to write configuration file: %v", err)
 	}
@@ -318,5 +380,5 @@ func (p *process) Stop() error {
 // writeCrashReport writes a crash report to the binary folder with a timestamped filename.
 func writeCrashReport(m []byte) error {
 	crashReportPath := config.GetBinFolderPath() + "/core_crash_" + time.Now().Format("20060102_150405") + ".log"
-	return os.WriteFile(crashReportPath, m, os.ModePerm)
+	return os.WriteFile(crashReportPath, m, 0644)
 }
