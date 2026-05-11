@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   PlusOutlined,
@@ -29,6 +29,30 @@ const STRATEGY_LABELS = {
   leastLoad: 'Least load',
   leastPing: 'Least ping',
 };
+
+// Observatory defaults — values that the legacy panel seeded when a
+// leastPing balancer first appeared. ProbeURL / interval follow Xray's
+// own docs (https://xtls.github.io/config/observatory.html).
+const DEFAULT_OBSERVATORY = Object.freeze({
+  subjectSelector: [],
+  probeURL: 'https://www.google.com/generate_204',
+  probeInterval: '1m',
+  enableConcurrency: true,
+});
+
+// BurstObservatory defaults — seeded when a leastLoad balancer is
+// configured. Hicloud's generate_204 is the same connectivity probe
+// the legacy panel used (https://xtls.github.io/config/burstobservatory.html).
+const DEFAULT_BURST_OBSERVATORY = Object.freeze({
+  subjectSelector: [],
+  pingConfig: {
+    destination: 'https://www.google.com/generate_204',
+    interval: '1m',
+    connectivity: 'http://connectivitycheck.platform.hicloud.com/generate_204',
+    timeout: '5s',
+    sampling: 2,
+  },
+});
 
 const rows = computed(() => {
   const list = props.templateSettings?.routing?.balancers || [];
@@ -83,6 +107,41 @@ function ensureBalancersArray() {
   return props.templateSettings.routing.balancers;
 }
 
+// Keep observatory / burstObservatory in sync with the configured
+// balancers. leastPing balancers feed Observatory's subjectSelector;
+// leastLoad balancers feed BurstObservatory's. When the matching
+// strategy disappears we drop the observatory entirely so the rendered
+// xray config stays minimal.
+function collectSelectors(list) {
+  const out = new Set();
+  list.forEach((b) => (b.selector || []).forEach((s) => s && out.add(s)));
+  return [...out];
+}
+
+function syncObservatories() {
+  const t = props.templateSettings;
+  if (!t) return;
+  const balancers = t.routing?.balancers || [];
+
+  const leastPings = balancers.filter((b) => b.strategy?.type === 'leastPing');
+  if (leastPings.length > 0) {
+    if (!t.observatory) t.observatory = JSON.parse(JSON.stringify(DEFAULT_OBSERVATORY));
+    t.observatory.subjectSelector = collectSelectors(leastPings);
+  } else {
+    delete t.observatory;
+  }
+
+  const leastLoads = balancers.filter((b) => b.strategy?.type === 'leastLoad');
+  if (leastLoads.length > 0) {
+    if (!t.burstObservatory) {
+      t.burstObservatory = JSON.parse(JSON.stringify(DEFAULT_BURST_OBSERVATORY));
+    }
+    t.burstObservatory.subjectSelector = collectSelectors(leastLoads);
+  } else {
+    delete t.burstObservatory;
+  }
+}
+
 function buildWireBalancer(form) {
   const out = {
     tag: form.tag,
@@ -115,6 +174,7 @@ function onConfirm(form) {
       }
     }
   }
+  syncObservatories();
   modalOpen.value = false;
 }
 
@@ -128,7 +188,10 @@ function confirmDelete(idx) {
     // 4 leaves the modal open if onOk returns a truthy non-thenable
     // (it expects a Promise to await), and splice() returns the array
     // of removed items.
-    onOk: () => { props.templateSettings.routing.balancers.splice(idx, 1); },
+    onOk: () => {
+      props.templateSettings.routing.balancers.splice(idx, 1);
+      syncObservatories();
+    },
   });
 }
 
@@ -139,6 +202,49 @@ const columns = computed(() => [
   { title: 'Selector', key: 'selector', align: 'center' },
   { title: 'Fallback', dataIndex: 'fallbackTag', key: 'fallbackTag', align: 'center', width: 160 },
 ]);
+
+// === Observatory / BurstObservatory inline editor ====================
+// The legacy panel surfaced both top-level observatory blocks here as a
+// raw JSON editor so admins could tune probeURL / interval / sampling
+// without having to drop into the full xray template tab. We keep that
+// affordance but only render it when the matching observatory exists —
+// which is itself driven by syncObservatories() above.
+const hasObservatory = computed(() => !!props.templateSettings?.observatory);
+const hasBurstObservatory = computed(() => !!props.templateSettings?.burstObservatory);
+const showObsEditor = computed(() => hasObservatory.value || hasBurstObservatory.value);
+
+const obsView = ref('observatory');
+
+// Keep the radio selection valid as observatories appear/disappear —
+// e.g. deleting the last leastPing balancer should flip the editor to
+// the burstObservatory pane instead of leaving it pointing at the
+// (now-removed) observatory key.
+watch(showObsEditor, () => {
+  if (obsView.value === 'observatory' && !hasObservatory.value && hasBurstObservatory.value) {
+    obsView.value = 'burstObservatory';
+  } else if (obsView.value === 'burstObservatory' && !hasBurstObservatory.value && hasObservatory.value) {
+    obsView.value = 'observatory';
+  }
+}, { immediate: true });
+
+const obsText = computed({
+  get: () => {
+    const t = props.templateSettings;
+    if (!t) return '';
+    const src = obsView.value === 'observatory' ? t.observatory : t.burstObservatory;
+    return src ? JSON.stringify(src, null, 2) : '';
+  },
+  set: (next) => {
+    let parsed;
+    try { parsed = JSON.parse(next); } catch (_e) { return; }
+    if (!props.templateSettings) return;
+    if (obsView.value === 'observatory') {
+      props.templateSettings.observatory = parsed;
+    } else {
+      props.templateSettings.burstObservatory = parsed;
+    }
+  },
+});
 </script>
 
 <template>
@@ -192,6 +298,16 @@ const columns = computed(() => [
           </template>
         </template>
       </a-table>
+
+      <template v-if="showObsEditor">
+        <a-divider :style="{ margin: '8px 0' }" />
+        <a-radio-group v-model:value="obsView" button-style="solid" size="small">
+          <a-radio-button v-if="hasObservatory" value="observatory">Observatory</a-radio-button>
+          <a-radio-button v-if="hasBurstObservatory" value="burstObservatory">Burst Observatory</a-radio-button>
+        </a-radio-group>
+        <a-textarea v-model:value="obsText" :auto-size="{ minRows: 8, maxRows: 24 }" spellcheck="false"
+          class="json-editor" />
+      </template>
     </template>
 
     <BalancerFormModal v-model:open="modalOpen" :balancer="editingBalancer" :outbound-tags="outboundTags"
@@ -212,5 +328,11 @@ const columns = computed(() => [
 
 .danger {
   color: #ff4d4f;
+}
+
+.json-editor {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  margin-top: 8px;
 }
 </style>

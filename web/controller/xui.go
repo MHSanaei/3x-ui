@@ -36,6 +36,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	g.GET("/nodes", a.nodes)
 	g.GET("/settings", a.settings)
 	g.GET("/xray", a.xraySettings)
+	g.GET("/api-docs", a.apiDocs)
 
 	// SPA pages built by Vite don't have a server-rendered <meta name="csrf-token">,
 	// so they fetch the session token via this endpoint at startup and replay it
@@ -74,6 +75,11 @@ func (a *XUIController) settings(c *gin.Context) {
 // xraySettings renders the Xray settings page.
 func (a *XUIController) xraySettings(c *gin.Context) {
 	serveDistPage(c, "xray.html")
+}
+
+// apiDocs renders the in-panel API documentation page.
+func (a *XUIController) apiDocs(c *gin.Context) {
+	serveDistPage(c, "api-docs.html")
 }
 
 // csrfToken returns the session CSRF token to authenticated SPA clients.

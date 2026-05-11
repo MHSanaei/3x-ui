@@ -1,13 +1,17 @@
 package service
 
 import (
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -15,7 +19,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/database"
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
-	"github.com/mhsanaei/3x-ui/v3/util/common"
 	"github.com/mhsanaei/3x-ui/v3/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/xray"
 
@@ -26,8 +29,10 @@ import (
 // It handles outbound traffic monitoring and statistics.
 type OutboundService struct{}
 
-// testSemaphore limits concurrent outbound tests to prevent resource exhaustion.
-var testSemaphore sync.Mutex
+// httpTestSemaphore serialises HTTP-mode probes (each one spawns a temp xray
+// instance, which is too expensive to run in parallel). TCP-mode probes are
+// dial-only and don't need the semaphore.
+var httpTestSemaphore sync.Mutex
 
 func (s *OutboundService) AddTraffic(traffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool) {
 	var err error
@@ -117,90 +122,230 @@ func (s *OutboundService) ResetOutboundTraffic(tag string) error {
 	return nil
 }
 
-// TestOutboundResult represents the result of testing an outbound
+// TestOutboundResult represents the result of testing an outbound.
+// Delay/timing fields are in milliseconds. Endpoints is only populated for
+// TCP-mode probes; the HTTP-mode timing breakdown lives in DNSMs/ConnectMs/
+// TLSMs/TTFBMs (any of these can be 0 if the underlying step was skipped —
+// e.g. a non-TLS target leaves TLSMs at 0).
 type TestOutboundResult struct {
 	Success    bool   `json:"success"`
-	Delay      int64  `json:"delay"` // Delay in milliseconds
+	Delay      int64  `json:"delay"`
 	Error      string `json:"error,omitempty"`
 	StatusCode int    `json:"statusCode,omitempty"`
+	Mode       string `json:"mode,omitempty"`
+
+	DNSMs     int64 `json:"dnsMs,omitempty"`
+	ConnectMs int64 `json:"connectMs,omitempty"`
+	TLSMs     int64 `json:"tlsMs,omitempty"`
+	TTFBMs    int64 `json:"ttfbMs,omitempty"`
+
+	Endpoints []TestEndpointResult `json:"endpoints,omitempty"`
 }
 
-// TestOutbound tests an outbound by creating a temporary xray instance and measuring response time.
-// allOutboundsJSON must be a JSON array of all outbounds; they are copied into the test config unchanged.
-// Only the test inbound and a route rule (to the tested outbound tag) are added.
-func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string) (*TestOutboundResult, error) {
+// TestEndpointResult is one entry in a TCP-mode probe — the per-endpoint
+// dial outcome for outbounds that expose multiple servers/peers.
+type TestEndpointResult struct {
+	Address string `json:"address"`
+	Success bool   `json:"success"`
+	Delay   int64  `json:"delay"`
+	Error   string `json:"error,omitempty"`
+}
+
+// TestOutbound dispatches to the chosen probe mode:
+//   - mode="tcp": dial the outbound's host:port directly. No xray spin-up,
+//     parallel-safe, ~100ms per endpoint. Doesn't validate the proxy
+//     protocol — only that the remote is reachable on TCP.
+//   - mode="" or "http": spin a temp xray instance, route a real HTTP
+//     request through it, return delay + a DNS/Connect/TLS/TTFB breakdown.
+//     Authoritative but expensive and serialised by httpTestSemaphore.
+//
+// allOutboundsJSON is only consulted in HTTP mode (it backs
+// sockopt.dialerProxy chains during test).
+func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string, mode string) (*TestOutboundResult, error) {
+	if mode == "tcp" {
+		return s.testOutboundTCP(outboundJSON)
+	}
+	return s.testOutboundHTTP(outboundJSON, testURL, allOutboundsJSON)
+}
+
+func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundResult, error) {
+	var ob map[string]any
+	if err := json.Unmarshal([]byte(outboundJSON), &ob); err != nil {
+		return &TestOutboundResult{Mode: "tcp", Success: false, Error: fmt.Sprintf("Invalid outbound JSON: %v", err)}, nil
+	}
+	tag, _ := ob["tag"].(string)
+	protocol, _ := ob["protocol"].(string)
+	if protocol == "blackhole" || protocol == "freedom" || tag == "blocked" {
+		return &TestOutboundResult{Mode: "tcp", Success: false, Error: "Outbound has no testable endpoint"}, nil
+	}
+
+	endpoints := extractOutboundEndpoints(ob)
+	if len(endpoints) == 0 {
+		return &TestOutboundResult{Mode: "tcp", Success: false, Error: "No testable endpoint"}, nil
+	}
+
+	results := make([]TestEndpointResult, len(endpoints))
+	var wg sync.WaitGroup
+	for i := range endpoints {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			results[i] = probeTCPEndpoint(endpoints[i], 5*time.Second)
+		}(i)
+	}
+	wg.Wait()
+
+	var bestDelay int64 = -1
+	var firstErr string
+	for _, r := range results {
+		if r.Success {
+			if bestDelay < 0 || r.Delay < bestDelay {
+				bestDelay = r.Delay
+			}
+		} else if firstErr == "" {
+			firstErr = r.Error
+		}
+	}
+
+	out := &TestOutboundResult{Mode: "tcp", Endpoints: results}
+	if bestDelay >= 0 {
+		out.Success = true
+		out.Delay = bestDelay
+	} else {
+		out.Error = firstErr
+		if out.Error == "" {
+			out.Error = "All endpoints unreachable"
+		}
+	}
+	return out, nil
+}
+
+func probeTCPEndpoint(endpoint string, timeout time.Duration) TestEndpointResult {
+	r := TestEndpointResult{Address: endpoint}
+	start := time.Now()
+	conn, err := net.DialTimeout("tcp", endpoint, timeout)
+	r.Delay = time.Since(start).Milliseconds()
+	if err != nil {
+		r.Error = err.Error()
+		return r
+	}
+	conn.Close()
+	r.Success = true
+	return r
+}
+
+func extractOutboundEndpoints(ob map[string]any) []string {
+	protocol, _ := ob["protocol"].(string)
+	settings, _ := ob["settings"].(map[string]any)
+	if settings == nil {
+		return nil
+	}
+	var out []string
+	addServer := func(addr any, port any) {
+		host, _ := addr.(string)
+		p := numAsInt(port)
+		if host != "" && p > 0 {
+			out = append(out, fmt.Sprintf("%s:%d", host, p))
+		}
+	}
+	switch protocol {
+	case "vmess":
+		if vnext, ok := settings["vnext"].([]any); ok {
+			for _, v := range vnext {
+				if vm, ok := v.(map[string]any); ok {
+					addServer(vm["address"], vm["port"])
+				}
+			}
+		}
+	case "vless":
+		addServer(settings["address"], settings["port"])
+	case "trojan", "shadowsocks", "http", "socks":
+		if servers, ok := settings["servers"].([]any); ok {
+			for _, sv := range servers {
+				if sm, ok := sv.(map[string]any); ok {
+					addServer(sm["address"], sm["port"])
+				}
+			}
+		}
+	case "wireguard":
+		if peers, ok := settings["peers"].([]any); ok {
+			for _, p := range peers {
+				if pm, ok := p.(map[string]any); ok {
+					if ep, _ := pm["endpoint"].(string); ep != "" {
+						out = append(out, ep)
+					}
+				}
+			}
+		}
+	}
+	return out
+}
+
+func numAsInt(v any) int {
+	switch n := v.(type) {
+	case float64:
+		return int(n)
+	case int:
+		return n
+	case int64:
+		return int(n)
+	case string:
+		if i, err := strconv.Atoi(n); err == nil {
+			return i
+		}
+	}
+	return 0
+}
+
+func (s *OutboundService) testOutboundHTTP(outboundJSON string, testURL string, allOutboundsJSON string) (*TestOutboundResult, error) {
 	if testURL == "" {
 		testURL = "https://www.google.com/generate_204"
 	}
 
-	// Limit to one concurrent test at a time
-	if !testSemaphore.TryLock() {
+	if !httpTestSemaphore.TryLock() {
 		return &TestOutboundResult{
+			Mode:    "http",
 			Success: false,
 			Error:   "Another outbound test is already running, please wait",
 		}, nil
 	}
-	defer testSemaphore.Unlock()
+	defer httpTestSemaphore.Unlock()
 
-	// Parse the outbound being tested to get its tag
 	var testOutbound map[string]any
 	if err := json.Unmarshal([]byte(outboundJSON), &testOutbound); err != nil {
-		return &TestOutboundResult{
-			Success: false,
-			Error:   fmt.Sprintf("Invalid outbound JSON: %v", err),
-		}, nil
+		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Invalid outbound JSON: %v", err)}, nil
 	}
 	outboundTag, _ := testOutbound["tag"].(string)
 	if outboundTag == "" {
-		return &TestOutboundResult{
-			Success: false,
-			Error:   "Outbound has no tag",
-		}, nil
+		return &TestOutboundResult{Mode: "http", Success: false, Error: "Outbound has no tag"}, nil
 	}
 	if protocol, _ := testOutbound["protocol"].(string); protocol == "blackhole" || outboundTag == "blocked" {
-		return &TestOutboundResult{
-			Success: false,
-			Error:   "Blocked/blackhole outbound cannot be tested",
-		}, nil
+		return &TestOutboundResult{Mode: "http", Success: false, Error: "Blocked/blackhole outbound cannot be tested"}, nil
 	}
 
-	// Use all outbounds when provided; otherwise fall back to single outbound
 	var allOutbounds []any
 	if allOutboundsJSON != "" {
 		if err := json.Unmarshal([]byte(allOutboundsJSON), &allOutbounds); err != nil {
-			return &TestOutboundResult{
-				Success: false,
-				Error:   fmt.Sprintf("Invalid allOutbounds JSON: %v", err),
-			}, nil
+			return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Invalid allOutbounds JSON: %v", err)}, nil
 		}
 	}
 	if len(allOutbounds) == 0 {
 		allOutbounds = []any{testOutbound}
 	}
 
-	// Find an available port for test inbound
 	testPort, err := findAvailablePort()
 	if err != nil {
-		return &TestOutboundResult{
-			Success: false,
-			Error:   fmt.Sprintf("Failed to find available port: %v", err),
-		}, nil
+		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Failed to find available port: %v", err)}, nil
 	}
 
-	// Copy all outbounds as-is, add only test inbound and route rule
 	testConfig := s.createTestConfig(outboundTag, allOutbounds, testPort)
 
-	// Use a temporary config file so the main config.json is never overwritten
 	testConfigPath, err := createTestConfigPath()
 	if err != nil {
-		return &TestOutboundResult{
-			Success: false,
-			Error:   fmt.Sprintf("Failed to create test config path: %v", err),
-		}, nil
+		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Failed to create test config path: %v", err)}, nil
 	}
-	defer os.Remove(testConfigPath) // ensure temp file is removed even if process is not stopped
+	defer os.Remove(testConfigPath)
 
-	// Create temporary xray process with its own config file
 	testProcess := xray.NewTestProcess(testConfig, testConfigPath)
 	defer func() {
 		if testProcess.IsRunning() {
@@ -208,52 +353,24 @@ func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allO
 		}
 	}()
 
-	// Start the test process
 	if err := testProcess.Start(); err != nil {
-		return &TestOutboundResult{
-			Success: false,
-			Error:   fmt.Sprintf("Failed to start test xray instance: %v", err),
-		}, nil
+		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Failed to start test xray instance: %v", err)}, nil
 	}
 
-	// Wait for xray to start listening on the test port
 	if err := waitForPort(testPort, 3*time.Second); err != nil {
 		if !testProcess.IsRunning() {
 			result := testProcess.GetResult()
-			return &TestOutboundResult{
-				Success: false,
-				Error:   fmt.Sprintf("Xray process exited: %s", result),
-			}, nil
+			return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Xray process exited: %s", result)}, nil
 		}
-		return &TestOutboundResult{
-			Success: false,
-			Error:   fmt.Sprintf("Xray failed to start listening: %v", err),
-		}, nil
+		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Xray failed to start listening: %v", err)}, nil
 	}
 
-	// Check if process is still running
 	if !testProcess.IsRunning() {
 		result := testProcess.GetResult()
-		return &TestOutboundResult{
-			Success: false,
-			Error:   fmt.Sprintf("Xray process exited: %s", result),
-		}, nil
+		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Xray process exited: %s", result)}, nil
 	}
 
-	// Test the connection through proxy
-	delay, statusCode, err := s.testConnection(testPort, testURL)
-	if err != nil {
-		return &TestOutboundResult{
-			Success: false,
-			Error:   err.Error(),
-		}, nil
-	}
-
-	return &TestOutboundResult{
-		Success:    true,
-		Delay:      delay,
-		StatusCode: statusCode,
-	}, nil
+	return s.testConnection(testPort, testURL)
 }
 
 // createTestConfig creates a test config by copying all outbounds unchanged and adding
@@ -329,55 +446,92 @@ func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []an
 	return cfg
 }
 
-// testConnection tests the connection through the proxy and measures delay.
-// It performs a warmup request first to establish the SOCKS connection and populate DNS caches,
-// then measures the second request for a more accurate latency reading.
-func (s *OutboundService) testConnection(proxyPort int, testURL string) (int64, int, error) {
-	// Create SOCKS5 proxy URL
-	proxyURL := fmt.Sprintf("socks5://127.0.0.1:%d", proxyPort)
-
-	// Parse proxy URL
-	proxyURLParsed, err := url.Parse(proxyURL)
+// testConnection runs the actual HTTP probe through the local SOCKS proxy.
+// A warmup request seeds xray's DNS cache / handshake; then a fresh
+// transport runs the measured request so httptrace sees a real cold
+// connection and reports DNS/Connect/TLS/TTFB. Note that DNS and Connect
+// reflect *client → SOCKS-on-loopback*, not the remote target — those
+// happen inside xray and aren't visible to net/http. TLS and TTFB are
+// the meaningful breakdown values for a SOCKS-proxied HTTPS probe.
+func (s *OutboundService) testConnection(proxyPort int, testURL string) (*TestOutboundResult, error) {
+	proxyURLStr := fmt.Sprintf("socks5://127.0.0.1:%d", proxyPort)
+	proxyURLParsed, err := url.Parse(proxyURLStr)
 	if err != nil {
-		return 0, 0, common.NewErrorf("Invalid proxy URL: %v", err)
+		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Invalid proxy URL: %v", err)}, nil
 	}
 
-	// Create HTTP client with proxy and keep-alive for connection reuse
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-		Transport: &http.Transport{
-			Proxy: http.ProxyURL(proxyURLParsed),
-			DialContext: (&net.Dialer{
-				Timeout:   5 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).DialContext,
-			MaxIdleConns:       1,
-			IdleConnTimeout:    10 * time.Second,
-			DisableCompression: true,
-		},
+	mkClient := func() *http.Client {
+		return &http.Client{
+			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				Proxy: http.ProxyURL(proxyURLParsed),
+				DialContext: (&net.Dialer{
+					Timeout:   5 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+				MaxIdleConns:       1,
+				IdleConnTimeout:    1 * time.Second,
+				DisableCompression: true,
+			},
+		}
 	}
 
-	// Warmup request: establishes SOCKS/TLS connection, DNS, and TCP to the target.
-	// This mirrors real-world usage where connections are reused.
-	warmupResp, err := client.Get(testURL)
+	warmup := mkClient()
+	warmupResp, err := warmup.Get(testURL)
 	if err != nil {
-		return 0, 0, common.NewErrorf("Request failed: %v", err)
+		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Request failed: %v", err)}, nil
 	}
 	io.Copy(io.Discard, warmupResp.Body)
 	warmupResp.Body.Close()
+	warmup.CloseIdleConnections()
 
-	// Measure the actual request on the warm connection
-	startTime := time.Now()
-	resp, err := client.Get(testURL)
-	delay := time.Since(startTime).Milliseconds()
+	var dnsStart, dnsDone, connectStart, connectDone, tlsStart, tlsDone, firstByte time.Time
+	trace := &httptrace.ClientTrace{
+		DNSStart:             func(_ httptrace.DNSStartInfo) { dnsStart = time.Now() },
+		DNSDone:              func(_ httptrace.DNSDoneInfo) { dnsDone = time.Now() },
+		ConnectStart:         func(_, _ string) { connectStart = time.Now() },
+		ConnectDone:          func(_, _ string, _ error) { connectDone = time.Now() },
+		TLSHandshakeStart:    func() { tlsStart = time.Now() },
+		TLSHandshakeDone:     func(_ tls.ConnectionState, _ error) { tlsDone = time.Now() },
+		GotFirstResponseByte: func() { firstByte = time.Now() },
+	}
 
+	client := mkClient()
+	defer client.CloseIdleConnections()
+	ctx := httptrace.WithClientTrace(context.Background(), trace)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, testURL, nil)
 	if err != nil {
-		return 0, 0, common.NewErrorf("Request failed: %v", err)
+		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Request build failed: %v", err)}, nil
+	}
+
+	startTime := time.Now()
+	resp, err := client.Do(req)
+	delay := time.Since(startTime).Milliseconds()
+	if err != nil {
+		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Request failed: %v", err)}, nil
 	}
 	io.Copy(io.Discard, resp.Body)
 	resp.Body.Close()
 
-	return delay, resp.StatusCode, nil
+	out := &TestOutboundResult{
+		Mode:       "http",
+		Success:    true,
+		Delay:      delay,
+		StatusCode: resp.StatusCode,
+	}
+	if !dnsStart.IsZero() && !dnsDone.IsZero() {
+		out.DNSMs = dnsDone.Sub(dnsStart).Milliseconds()
+	}
+	if !connectStart.IsZero() && !connectDone.IsZero() {
+		out.ConnectMs = connectDone.Sub(connectStart).Milliseconds()
+	}
+	if !tlsStart.IsZero() && !tlsDone.IsZero() {
+		out.TLSMs = tlsDone.Sub(tlsStart).Milliseconds()
+	}
+	if !firstByte.IsZero() {
+		out.TTFBMs = firstByte.Sub(startTime).Milliseconds()
+	}
+	return out, nil
 }
 
 // waitForPort polls until the given TCP port is accepting connections or the timeout expires.

@@ -22,7 +22,7 @@ function readMetaToken() {
 // recurse through this same interceptor.
 async function fetchCsrfToken() {
   try {
-    const basePath = window.__X_UI_BASE_PATH__;
+    const basePath = window.X_UI_BASE_PATH;
     const url = (typeof basePath === 'string' && basePath !== '' && basePath !== '/'
       ? basePath.replace(/\/$/, '') + CSRF_TOKEN_PATH
       : CSRF_TOKEN_PATH);
@@ -59,7 +59,7 @@ export function setupAxios() {
   axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
   axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-  const basePath = window.__X_UI_BASE_PATH__;
+  const basePath = window.X_UI_BASE_PATH;
   if (typeof basePath === 'string' && basePath !== '' && basePath !== '/') {
     axios.defaults.baseURL = basePath;
   }
@@ -98,7 +98,7 @@ export function setupAxios() {
         // the user right back on the dashboard and the interceptor
         // would loop. Navigate to the dev login entry instead.
         if (import.meta.env.DEV) {
-          const basePath = window.__X_UI_BASE_PATH__ || '/';
+          const basePath = window.X_UI_BASE_PATH || '/';
           window.location.href = `${basePath}login.html`;
         } else {
           window.location.reload();

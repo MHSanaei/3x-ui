@@ -528,21 +528,24 @@ ssl_cert_issue() {
 # Sets global `SSL_HOST` to the chosen domain/IP for Access URL usage
 prompt_and_setup_ssl() {
     local panel_port="$1"
-    local web_base_path="$2" # expected without leading slash
+    local web_base_path="$2"
     local server_ip="$3"
 
     local ssl_choice=""
+    SSL_SCHEME="https"
 
     echo -e "${yellow}Choose SSL certificate setup method:${plain}"
     echo -e "${green}1.${plain} Let's Encrypt for Domain (90-day validity, auto-renews)"
     echo -e "${green}2.${plain} Let's Encrypt for IP Address (6-day validity, auto-renews)"
     echo -e "${green}3.${plain} Custom SSL Certificate (Path to existing files)"
+    echo -e "${green}4.${plain} Skip SSL (advanced — behind reverse proxy / SSH tunnel only)"
     echo -e "${blue}Note:${plain} Options 1 & 2 require port 80 open. Option 3 requires manual paths."
+    echo -e "${blue}Note:${plain} Option 4 serves the panel over plain HTTP — only safe behind nginx/Caddy or an SSH tunnel."
     read -rp "Choose an option (default 2 for IP): " ssl_choice
     ssl_choice="${ssl_choice// /}" # Trim whitespace
 
-    # Default to 2 (IP cert) if input is empty or invalid (not 1 or 3)
-    if [[ "$ssl_choice" != "1" && "$ssl_choice" != "3" ]]; then
+    # Default to 2 (IP cert) if input is empty or invalid (not 1, 3 or 4)
+    if [[ "$ssl_choice" != "1" && "$ssl_choice" != "3" && "$ssl_choice" != "4" ]]; then
         ssl_choice="2"
     fi
 
@@ -653,6 +656,41 @@ prompt_and_setup_ssl() {
 
             systemctl restart x-ui > /dev/null 2>&1 || rc-service x-ui restart > /dev/null 2>&1
             ;;
+        4)
+            echo ""
+            echo -e "${red}⚠ Panel will be installed WITHOUT SSL/TLS.${plain}"
+            echo -e "${yellow}Login credentials and cookies will travel as plain HTTP.${plain}"
+            echo -e "${yellow}Only safe when:${plain}"
+            echo -e "${yellow}  • A reverse proxy (nginx, Caddy, Traefik) terminates TLS for you, or${plain}"
+            echo -e "${yellow}  • You access the panel exclusively via SSH tunnel${plain}"
+            echo ""
+
+            SSL_SCHEME="http"
+            SSL_HOST="${server_ip}"
+
+            local bind_local=""
+            read -rp "Bind the panel to 127.0.0.1 only? (recommended — forces SSH tunnel / reverse-proxy access) [y/N]: " bind_local
+            if [[ "$bind_local" == "y" || "$bind_local" == "Y" ]]; then
+                ${xui_folder}/x-ui setting -listenIP "127.0.0.1" > /dev/null 2>&1
+                SSL_HOST="127.0.0.1"
+                echo -e "${green}✓ Panel bound to 127.0.0.1 only. It is now unreachable from the public internet.${plain}"
+                echo ""
+                echo -e "${green}SSH Port Forwarding — open the panel from your local machine via:${plain}"
+                echo -e "  Standard SSH command:"
+                echo -e "  ${yellow}ssh -L 2222:127.0.0.1:${panel_port} root@${server_ip}${plain}"
+                echo -e "  If using an SSH key:"
+                echo -e "  ${yellow}ssh -i <sshkeypath> -L 2222:127.0.0.1:${panel_port} root@${server_ip}${plain}"
+                echo -e "  Then open in your browser:"
+                echo -e "  ${yellow}http://localhost:2222/${web_base_path}${plain}"
+                echo ""
+                echo -e "${yellow}Alternative: point a reverse proxy (nginx/Caddy) at 127.0.0.1:${panel_port} and let it terminate TLS.${plain}"
+            else
+                echo -e "${yellow}Panel will listen on all interfaces over plain HTTP. Make sure something else is terminating TLS in front of it.${plain}"
+            fi
+
+            systemctl restart x-ui > /dev/null 2>&1 || rc-service x-ui restart > /dev/null 2>&1
+            echo -e "${green}✓ SSL setup skipped.${plain}"
+            ;;
         *)
             echo -e "${red}Invalid option. Skipping SSL setup.${plain}"
             SSL_HOST="${server_ip}"
@@ -716,9 +754,10 @@ config_after_install() {
 
             echo ""
             echo -e "${green}═══════════════════════════════════════════${plain}"
-            echo -e "${green}     SSL Certificate Setup (MANDATORY)     ${plain}"
+            echo -e "${green}     SSL Certificate Setup (RECOMMENDED)   ${plain}"
             echo -e "${green}═══════════════════════════════════════════${plain}"
-            echo -e "${yellow}For security, SSL certificate is required for all panels.${plain}"
+            echo -e "${yellow}SSL is strongly recommended. Skip only if a reverse proxy${plain}"
+            echo -e "${yellow}or SSH tunnel handles TLS for you.${plain}"
             echo -e "${yellow}Let's Encrypt now supports both domains and IP addresses!${plain}"
             echo ""
 
@@ -733,10 +772,14 @@ config_after_install() {
             echo -e "${green}Password:    ${config_password}${plain}"
             echo -e "${green}Port:        ${config_port}${plain}"
             echo -e "${green}WebBasePath: ${config_webBasePath}${plain}"
-            echo -e "${green}Access URL:  https://${SSL_HOST}:${config_port}/${config_webBasePath}${plain}"
+            echo -e "${green}Access URL:  ${SSL_SCHEME}://${SSL_HOST}:${config_port}/${config_webBasePath}${plain}"
             echo -e "${green}═══════════════════════════════════════════${plain}"
             echo -e "${yellow}⚠ IMPORTANT: Save these credentials securely!${plain}"
-            echo -e "${yellow}⚠ SSL Certificate: Enabled and configured${plain}"
+            if [[ "$SSL_SCHEME" == "https" ]]; then
+                echo -e "${yellow}⚠ SSL Certificate: Enabled and configured${plain}"
+            else
+                echo -e "${yellow}⚠ SSL Certificate: Skipped — panel is HTTP-only. Use a reverse proxy or SSH tunnel.${plain}"
+            fi
         else
             local config_webBasePath=$(gen_random_string 18)
             echo -e "${yellow}WebBasePath is missing or too short. Generating a new one...${plain}"
@@ -752,7 +795,7 @@ config_after_install() {
                 echo -e "${yellow}Let's Encrypt now supports both domains and IP addresses!${plain}"
                 echo ""
                 prompt_and_setup_ssl "${existing_port}" "${config_webBasePath}" "${server_ip}"
-                echo -e "${green}Access URL:  https://${SSL_HOST}:${existing_port}/${config_webBasePath}${plain}"
+                echo -e "${green}Access URL:  ${SSL_SCHEME}://${SSL_HOST}:${existing_port}/${config_webBasePath}${plain}"
             else
                 # If a cert already exists, just show the access URL
                 echo -e "${green}Access URL: https://${server_ip}:${existing_port}/${config_webBasePath}${plain}"
@@ -785,7 +828,7 @@ config_after_install() {
             echo -e "${yellow}Let's Encrypt now supports both domains and IP addresses!${plain}"
             echo ""
             prompt_and_setup_ssl "${existing_port}" "${existing_webBasePath}" "${server_ip}"
-            echo -e "${green}Access URL:  https://${SSL_HOST}:${existing_port}/${existing_webBasePath}${plain}"
+            echo -e "${green}Access URL:  ${SSL_SCHEME}://${SSL_HOST}:${existing_port}/${existing_webBasePath}${plain}"
         else
             echo -e "${green}SSL certificate already configured. No action needed.${plain}"
         fi

@@ -3,7 +3,9 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
@@ -69,6 +71,8 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.GET("/get/:id", a.getInbound)
 	g.GET("/getClientTraffics/:email", a.getClientTraffics)
 	g.GET("/getClientTrafficsById/:id", a.getClientTrafficsById)
+	g.GET("/getSubLinks/:subId", a.getSubLinks)
+	g.GET("/getClientLinks/:id/:email", a.getClientLinks)
 
 	g.POST("/add", a.addInbound)
 	g.POST("/del/:id", a.delInbound)
@@ -584,4 +588,56 @@ func (a *InboundController) delInboundClientByEmail(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+}
+
+// resolveHost mirrors what sub.SubService.ResolveRequest does for the host
+// field: prefers X-Forwarded-Host (first entry of any list, port stripped),
+// then X-Real-IP, then the host portion of c.Request.Host. Keeping it in the
+// controller layer means the service interface stays HTTP-agnostic — service
+// methods receive a plain host string instead of a *gin.Context.
+func resolveHost(c *gin.Context) string {
+	if h := strings.TrimSpace(c.GetHeader("X-Forwarded-Host")); h != "" {
+		if i := strings.Index(h, ","); i >= 0 {
+			h = strings.TrimSpace(h[:i])
+		}
+		if hp, _, err := net.SplitHostPort(h); err == nil {
+			return hp
+		}
+		return h
+	}
+	if h := c.GetHeader("X-Real-IP"); h != "" {
+		return h
+	}
+	if h, _, err := net.SplitHostPort(c.Request.Host); err == nil {
+		return h
+	}
+	return c.Request.Host
+}
+
+// getSubLinks returns every protocol URL produced for the given subscription
+// ID — the JSON-array equivalent of /sub/<subId> (no base64 wrap).
+func (a *InboundController) getSubLinks(c *gin.Context) {
+	links, err := a.inboundService.GetSubLinks(resolveHost(c), c.Param("subId"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, links, nil)
+}
+
+// getClientLinks returns the URL(s) for one client on one inbound — the same
+// string the Copy URL button copies in the panel UI. Empty array when the
+// protocol has no URL form, or when the email isn't found on the inbound.
+func (a *InboundController) getClientLinks(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	links, err := a.inboundService.GetClientLinks(resolveHost(c), id, c.Param("email"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, links, nil)
 }

@@ -97,6 +97,7 @@
     "nodes": "节点",
     "settings": "面板设置",
     "xray": "Xray 设置",
+    "apiDocs": "API Docs",
     "logout": "退出登录",
     "link": "管理"
   },

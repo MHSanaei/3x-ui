@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -120,7 +121,8 @@ func NewTestProcess(xrayConfig *Config, configPath string) *Process {
 }
 
 type process struct {
-	cmd *exec.Cmd
+	cmd  *exec.Cmd
+	done chan struct{}
 
 	version string
 	apiPort int
@@ -139,7 +141,14 @@ type process struct {
 	logWriter  *LogWriter
 	exitErr    error
 	startTime  time.Time
+
+	intentionalStop atomic.Bool
 }
+
+var (
+	xrayGracefulStopTimeout = 5 * time.Second
+	xrayForceStopTimeout    = 2 * time.Second
+)
 
 // newProcess creates a new internal process struct for Xray.
 func newProcess(config *Config) *process {
@@ -162,6 +171,13 @@ func newTestProcess(config *Config, configPath string) *process {
 func (p *process) IsRunning() bool {
 	if p.cmd == nil || p.cmd.Process == nil {
 		return false
+	}
+	if p.done != nil {
+		select {
+		case <-p.done:
+			return false
+		default:
+		}
 	}
 	if p.cmd.ProcessState == nil {
 		return true
@@ -326,27 +342,13 @@ func (p *process) Start() (err error) {
 	}
 
 	cmd := exec.Command(GetBinaryPath(), "-c", configPath)
-	p.cmd = cmd
-
 	cmd.Stdout = p.logWriter
 	cmd.Stderr = p.logWriter
 
-	go func() {
-		err := cmd.Run()
-		if err != nil {
-			// On Windows, killing the process results in "exit status 1" which isn't an error for us
-			if runtime.GOOS == "windows" {
-				errStr := strings.ToLower(err.Error())
-				if strings.Contains(errStr, "exit status 1") {
-					// Suppress noisy log on graceful stop
-					p.exitErr = err
-					return
-				}
-			}
-			logger.Error("Failure in running xray-core:", err)
-			p.exitErr = err
-		}
-	}()
+	err = p.startCommand(cmd)
+	if err != nil {
+		return err
+	}
 
 	p.refreshVersion()
 	p.refreshAPIPort()
@@ -354,11 +356,49 @@ func (p *process) Start() (err error) {
 	return nil
 }
 
+func (p *process) startCommand(cmd *exec.Cmd) error {
+	p.cmd = cmd
+	p.done = make(chan struct{})
+	p.exitErr = nil
+	p.intentionalStop.Store(false)
+
+	if err := cmd.Start(); err != nil {
+		close(p.done)
+		p.cmd = nil
+		return err
+	}
+
+	go p.waitForCommand(cmd)
+	return nil
+}
+
+func (p *process) waitForCommand(cmd *exec.Cmd) {
+	defer close(p.done)
+
+	err := cmd.Wait()
+	if err == nil || p.intentionalStop.Load() {
+		return
+	}
+
+	// On Windows, killing the process results in "exit status 1" which isn't an error for us.
+	if runtime.GOOS == "windows" {
+		errStr := strings.ToLower(err.Error())
+		if strings.Contains(errStr, "exit status 1") {
+			p.exitErr = err
+			return
+		}
+	}
+
+	logger.Error("Failure in running xray-core:", err)
+	p.exitErr = err
+}
+
 // Stop terminates the running Xray process.
 func (p *process) Stop() error {
 	if !p.IsRunning() {
 		return errors.New("xray is not running")
 	}
+	p.intentionalStop.Store(true)
 
 	// Remove temporary config file used for test runs so main config is never touched
 	if p.configPath != "" {
@@ -371,9 +411,43 @@ func (p *process) Stop() error {
 	}
 
 	if runtime.GOOS == "windows" {
-		return p.cmd.Process.Kill()
-	} else {
-		return p.cmd.Process.Signal(syscall.SIGTERM)
+		if err := p.cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+			return err
+		}
+		return p.waitForExit(xrayForceStopTimeout)
+	}
+
+	if err := p.cmd.Process.Signal(syscall.SIGTERM); err != nil {
+		if errors.Is(err, os.ErrProcessDone) {
+			return p.waitForExit(xrayForceStopTimeout)
+		}
+		return err
+	}
+
+	if err := p.waitForExit(xrayGracefulStopTimeout); err == nil {
+		return nil
+	}
+
+	logger.Warning("xray-core did not stop after SIGTERM, killing process")
+	if err := p.cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+		return err
+	}
+	return p.waitForExit(xrayForceStopTimeout)
+}
+
+func (p *process) waitForExit(timeout time.Duration) error {
+	if p.done == nil {
+		return nil
+	}
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	select {
+	case <-p.done:
+		return nil
+	case <-timer.C:
+		return common.NewErrorf("timed out waiting for xray-core process to stop after %s", timeout)
 	}
 }
 

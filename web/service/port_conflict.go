@@ -118,15 +118,16 @@ func isAnyListen(s string) bool {
 // port-only check, this one understands that tcp/443 and udp/443 are
 // independent sockets in linux and may coexist on the same address.
 //
+// node scope: inbounds with different NodeID run on different physical
+// machines (local panel xray vs a remote node, or two remote nodes),
+// so their sockets can't collide. only candidates with the same NodeID
+// participate in the listen/transport overlap check.
+//
 // the listen-overlap rule (specific addr conflicts with any-addr on the
 // same port, both directions) is preserved from the previous check.
 func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int) (bool, error) {
 	db := database.GetDB()
 
-	// pull every candidate on this port; we filter by listen-overlap and
-	// transport in go to keep the sql plain. the port column is indexed
-	// in practice by the existing port check, and the candidate set is
-	// tiny (one per coexisting socket family at most).
 	var candidates []*model.Inbound
 	q := db.Model(model.Inbound{}).Where("port = ?", inbound.Port)
 	if ignoreId > 0 {
@@ -138,6 +139,9 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 
 	newBits := inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings)
 	for _, c := range candidates {
+		if !sameNode(c.NodeID, inbound.NodeID) {
+			continue
+		}
 		if !listenOverlaps(c.Listen, inbound.Listen) {
 			continue
 		}
@@ -146,6 +150,21 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 		}
 	}
 	return false, nil
+}
+
+// sameNode reports whether two NodeID pointers refer to the same xray
+// process. nil/nil means both inbounds run on the local panel; non-nil
+// with equal value means they share the same remote node. any mix
+// (local vs remote, remote-A vs remote-B) is "different node" and
+// can't produce a real socket collision.
+func sameNode(a, b *int) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
 }
 
 // baseInboundTag is the historical "inbound-<port>" / "inbound-<listen>:<port>"
@@ -218,6 +237,32 @@ func (s *InboundService) generateInboundTag(inbound *model.Inbound, ignoreId int
 		}
 	}
 	return "", common.NewError("could not pick a unique inbound tag for port:", inbound.Port)
+}
+
+// resolveInboundTag chooses a tag for an Add or Update. when the caller
+// supplied a non-empty Tag (e.g. the central panel pushed its picked
+// tag to a node during a multi-node sync) and that tag is free in the
+// local DB, it's used verbatim so the two panels stay in agreement —
+// otherwise the node would regenerate (often back to bare
+// "inbound-<port>") and the eventual traffic sync-back would try to
+// INSERT a row whose tag already exists, hitting the UNIQUE constraint
+// on inbounds.tag and rolling the node-side row right back out.
+// when Tag is empty (the common UI path) or collides, fall back to the
+// transport-aware generateInboundTag.
+//
+// ignoreId mirrors generateInboundTag: pass 0 on add, the inbound's
+// own id on update so a row doesn't see its own current tag as taken.
+func (s *InboundService) resolveInboundTag(inbound *model.Inbound, ignoreId int) (string, error) {
+	if inbound.Tag != "" {
+		taken, err := s.tagExists(inbound.Tag, ignoreId)
+		if err != nil {
+			return "", err
+		}
+		if !taken {
+			return inbound.Tag, nil
+		}
+	}
+	return s.generateInboundTag(inbound, ignoreId)
 }
 
 func (s *InboundService) tagExists(tag string, ignoreId int) (bool, error) {

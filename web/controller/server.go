@@ -343,10 +343,6 @@ func (a *ServerController) importDB(c *gin.Context) {
 		return
 	}
 	defer file.Close()
-	// Always restart Xray before return
-	defer a.serverService.RestartXrayService()
-	// lastGetStatusTime removed; no longer needed
-	// Import it
 	err = a.serverService.ImportDB(file)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.index.importDatabaseError"), err)

@@ -62,6 +62,7 @@ const emit = defineEmits([
   'info-client',
   'reset-traffic-client',
   'delete-client',
+  'delete-clients',
   'toggle-enable-client',
 ]);
 
@@ -121,13 +122,19 @@ const visibleInbounds = computed(() => {
 // `key`-driven so we can render via the body-cell slot below. AD-Vue 4's
 // `responsive` array still works on column defs. Computed so column
 // labels react to live locale switches.
+const hasAnyRemark = computed(() =>
+  props.dbInbounds.some((i) => typeof i?.remark === 'string' && i.remark.trim() !== ''),
+);
+
 const desktopColumns = computed(() => {
   const cols = [
-    { title: 'ID', dataIndex: 'id', key: 'id', align: 'right', width: 30, responsive: ['xs'] },
+    { title: 'ID', dataIndex: 'id', key: 'id', align: 'right', width: 30 },
     { title: t('pages.inbounds.operate'), key: 'action', align: 'center', width: 30 },
     { title: t('pages.inbounds.enable'), key: 'enable', align: 'center', width: 35 },
-    { title: t('pages.inbounds.remark'), dataIndex: 'remark', key: 'remark', align: 'center', width: 60 },
   ];
+  if (hasAnyRemark.value) {
+    cols.push({ title: t('pages.inbounds.remark'), dataIndex: 'remark', key: 'remark', align: 'center', width: 60 });
+  }
   if (props.nodesById.size > 0) {
     cols.push({ title: t('pages.inbounds.node'), key: 'node', align: 'center', width: 60 });
   }
@@ -400,10 +407,12 @@ function showQrCodeMenu(dbInbound) {
           <div v-if="record.isMultiUser() && isExpanded(record.id)" class="card-clients">
             <ClientRowTable :db-inbound="record" :is-mobile="true" :traffic-diff="trafficDiff" :expire-diff="expireDiff"
               :online-clients="onlineClients" :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme"
+              :page-size="pageSize"
               @edit-client="(p) => emit('edit-client', p)" @qrcode-client="(p) => emit('qrcode-client', p)"
               @info-client="(p) => emit('info-client', p)"
               @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
               @delete-client="(p) => emit('delete-client', p)"
+              @delete-clients="(p) => emit('delete-clients', p)"
               @toggle-enable-client="(p) => emit('toggle-enable-client', p)" />
           </div>
         </div>
@@ -419,10 +428,12 @@ function showQrCodeMenu(dbInbound) {
         <template #expandedRowRender="{ record }">
           <ClientRowTable v-if="record.isMultiUser()" :db-inbound="record" :is-mobile="isMobile"
             :traffic-diff="trafficDiff" :expire-diff="expireDiff" :online-clients="onlineClients"
-            :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme" @edit-client="(p) => emit('edit-client', p)"
+            :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme" :page-size="pageSize"
+            @edit-client="(p) => emit('edit-client', p)"
             @qrcode-client="(p) => emit('qrcode-client', p)" @info-client="(p) => emit('info-client', p)"
             @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
             @delete-client="(p) => emit('delete-client', p)"
+            @delete-clients="(p) => emit('delete-clients', p)"
             @toggle-enable-client="(p) => emit('toggle-enable-client', p)" />
         </template>
 
@@ -523,27 +534,35 @@ function showQrCodeMenu(dbInbound) {
               <a-tag color="green" style="margin: 0">{{ clientCount[record.id].clients }}</a-tag>
               <a-popover v-if="clientCount[record.id].deactive.length" :title="t('disabled')">
                 <template #content>
-                  <div v-for="email in clientCount[record.id].deactive" :key="email">{{ email }}</div>
+                  <div class="client-email-list">
+                    <div v-for="email in clientCount[record.id].deactive" :key="email">{{ email }}</div>
+                  </div>
                 </template>
                 <a-tag style="margin: 0; padding: 0 2px">{{ clientCount[record.id].deactive.length }}</a-tag>
               </a-popover>
               <a-popover v-if="clientCount[record.id].depleted.length" :title="t('depleted')">
                 <template #content>
-                  <div v-for="email in clientCount[record.id].depleted" :key="email">{{ email }}</div>
+                  <div class="client-email-list">
+                    <div v-for="email in clientCount[record.id].depleted" :key="email">{{ email }}</div>
+                  </div>
                 </template>
                 <a-tag color="red" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].depleted.length
                 }}</a-tag>
               </a-popover>
               <a-popover v-if="clientCount[record.id].expiring.length" :title="t('depletingSoon')">
                 <template #content>
-                  <div v-for="email in clientCount[record.id].expiring" :key="email">{{ email }}</div>
+                  <div class="client-email-list">
+                    <div v-for="email in clientCount[record.id].expiring" :key="email">{{ email }}</div>
+                  </div>
                 </template>
                 <a-tag color="orange" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].expiring.length
                 }}</a-tag>
               </a-popover>
               <a-popover v-if="clientCount[record.id].online.length" :title="t('online')">
                 <template #content>
-                  <div v-for="email in clientCount[record.id].online" :key="email">{{ email }}</div>
+                  <div class="client-email-list">
+                    <div v-for="email in clientCount[record.id].online" :key="email">{{ email }}</div>
+                  </div>
                 </template>
                 <a-tag color="blue" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].online.length }}</a-tag>
               </a-popover>

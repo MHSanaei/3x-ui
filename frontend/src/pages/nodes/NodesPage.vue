@@ -39,7 +39,7 @@ useWebSocket({ nodes: applyNodesEvent });
 
 const { isMobile } = useMediaQuery();
 
-const basePath = window.__X_UI_BASE_PATH__ || '';
+const basePath = window.X_UI_BASE_PATH || '';
 const requestUri = window.location.pathname;
 
 // === Form modal state =================================================
@@ -172,8 +172,8 @@ async function onToggleEnable(node, next) {
 }
 
 .nodes-page.is-dark {
-  --bg-page: #0a1222;
-  --bg-card: #151f31;
+  --bg-page: #1e1e1e;
+  --bg-card: #252526;
 }
 
 .nodes-page.is-dark.is-ultra {

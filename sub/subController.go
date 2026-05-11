@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
-	webpkg "github.com/mhsanaei/3x-ui/v3/web"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 
 	"github.com/gin-gonic/gin"
@@ -127,7 +127,7 @@ func (a *SUBController) subs(c *gin.Context) {
 				basePath = "/"
 			}
 			basePathStr := basePath.(string)
-			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, subURL, subJsonURL, subClashURL, basePathStr)
+			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
 			a.serveSubPage(c, basePathStr, page)
 			return
 		}
@@ -150,15 +150,20 @@ func (a *SUBController) subs(c *gin.Context) {
 
 // serveSubPage renders web/dist/subpage.html for the current subscription
 // request. The Vite-built SPA reads window.__SUB_PAGE_DATA__ on mount —
-// we inject that here, along with window.__X_UI_BASE_PATH__ so the
+// we inject that here, along with window.X_UI_BASE_PATH so the
 // page's static asset references resolve correctly when the panel runs
 // behind a URL prefix.
 func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageData) {
-	dist := webpkg.EmbeddedDist()
-	body, err := dist.ReadFile("dist/subpage.html")
-	if err != nil {
-		c.String(http.StatusInternalServerError, "missing embedded subpage")
-		return
+	var body []byte
+	if diskBody, diskErr := os.ReadFile("web/dist/subpage.html"); diskErr == nil {
+		body = diskBody
+	} else {
+		readBody, err := distFS.ReadFile("dist/subpage.html")
+		if err != nil {
+			c.String(http.StatusInternalServerError, "missing embedded subpage")
+			return
+		}
+		body = readBody
 	}
 
 	// Vite emits absolute asset URLs (`/assets/...`); when the panel is
@@ -219,7 +224,7 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 	)
 	escapedBase := jsEscape.Replace(basePath)
 
-	inject := []byte(`<script>window.__X_UI_BASE_PATH__="` + escapedBase + `";` +
+	inject := []byte(`<script>window.X_UI_BASE_PATH="` + escapedBase + `";` +
 		`window.__SUB_PAGE_DATA__=` + string(subDataJSON) + `;</script></head>`)
 	out := bytes.Replace(body, []byte("</head>"), inject, 1)
 

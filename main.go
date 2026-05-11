@@ -61,6 +61,8 @@ func runWebServer() {
 	}
 
 	var subServer *sub.Server
+	sub.SetDistFS(web.EmbeddedDist())
+	service.RegisterSubLinkProvider(sub.NewLinkProvider())
 	subServer = sub.NewServer()
 	global.SetSubServer(subServer)
 	err = subServer.Start()
@@ -101,6 +103,7 @@ func runWebServer() {
 			}
 			log.Println("Web server restarted successfully.")
 
+			sub.SetDistFS(web.EmbeddedDist())
 			subServer = sub.NewServer()
 			global.SetSubServer(subServer)
 			err = subServer.Start()

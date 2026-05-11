@@ -1,23 +1,12 @@
 <script setup>
-import { nextTick, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { message } from 'ant-design-vue';
 import * as OTPAuth from 'otpauth';
-import QRious from 'qrious';
 
 import { ClipboardManager } from '@/utils';
 
 const { t } = useI18n();
-
-// Two flavors of this modal:
-//   • type='set' shows a QR code + manual key + a 6-digit verifier
-//     (used when enabling 2FA the first time);
-//   • type='confirm' shows just the 6-digit verifier (used when
-//     toggling 2FA off and when changing the admin user/password).
-//
-// Either way the parent supplies a `confirm(success: boolean)`
-// callback — we run it with `true` only if the entered code matches
-// the live TOTP value, otherwise `false`.
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -30,28 +19,9 @@ const props = defineProps({
 const emit = defineEmits(['update:open', 'confirm']);
 
 const enteredCode = ref('');
-const qrCanvas = ref(null);
+const qrValue = ref('');
 
 let totp = null;
-
-// Byte-mode capacities (level L) for QR versions 1..40 — used to pick
-// the matrix width up front so the canvas size is an exact multiple of
-// pixelSize. Without this, QRious renders at floor(size/matrix) and
-// centers, leaving a white margin around the QR.
-const QR_L_BYTE_CAPACITY = [
-  17, 32, 53, 78, 106, 134, 154, 192, 230, 271,
-  321, 367, 425, 458, 520, 586, 644, 718, 792, 858,
-  929, 1003, 1091, 1171, 1273, 1367, 1465, 1528, 1628, 1732,
-  1840, 1952, 2068, 2188, 2303, 2431, 2563, 2699, 2809, 2953,
-];
-
-function pickQrMatrixWidth(value) {
-  const byteLen = new TextEncoder().encode(value).length;
-  for (let i = 0; i < QR_L_BYTE_CAPACITY.length; i++) {
-    if (byteLen <= QR_L_BYTE_CAPACITY[i]) return 17 + 4 * (i + 1);
-  }
-  return 17 + 4 * 40;
-}
 
 function buildTotp() {
   totp = new OTPAuth.TOTP({
@@ -62,25 +32,7 @@ function buildTotp() {
     period: 30,
     secret: props.token,
   });
-}
-
-async function paintQr() {
-  await nextTick();
-  if (!qrCanvas.value || !totp) return;
-  const value = totp.toString();
-  const matrixWidth = pickQrMatrixWidth(value);
-  const pixelSize = Math.max(1, Math.floor(200 / matrixWidth));
-  const exactSize = matrixWidth * pixelSize;
-  new QRious({
-    element: qrCanvas.value,
-    size: exactSize,
-    value,
-    background: 'white',
-    backgroundAlpha: 1,
-    foreground: 'black',
-    padding: 0,
-    level: 'L',
-  });
+  qrValue.value = totp.toString();
 }
 
 watch(() => props.open, (next) => {
@@ -88,7 +40,6 @@ watch(() => props.open, (next) => {
   enteredCode.value = '';
   if (props.token) {
     buildTotp();
-    if (props.type === 'set') paintQr();
   }
 });
 
@@ -124,9 +75,8 @@ async function copyToken() {
       <a-divider />
       <p>{{ t('pages.settings.security.twoFactorModalFirstStep') }}</p>
       <div class="qr-wrap">
-        <div class="qr-bg">
-          <canvas ref="qrCanvas" class="qr-cv" @click="copyToken" />
-        </div>
+        <a-qrcode class="qr-code" :value="qrValue" :size="180" type="svg" :bordered="false"
+          error-level="L" :title="t('copy')" @click="copyToken" />
         <span class="qr-token">{{ token }}</span>
       </div>
       <a-divider />
@@ -154,22 +104,11 @@ async function copyToken() {
   gap: 12px;
 }
 
-.qr-bg {
-  width: 180px;
-  height: 180px;
-  background: #fff;
-  padding: 4px;
-  border-radius: 6px;
-}
-
-.qr-cv {
+.qr-code {
   cursor: pointer;
-  width: 100% !important;
-  height: 100% !important;
-  /* Drawing buffer is matrix-snapped (smaller than display size); scale
-   * up crisply so the QR fills the box without blurring. */
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+  padding: 0 !important;
+  background: #fff;
+  border-radius: 6px;
 }
 
 .qr-token {

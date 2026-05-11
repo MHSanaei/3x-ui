@@ -9,7 +9,7 @@ let sharedClient = null;
 
 function getSharedClient() {
   if (sharedClient) return sharedClient;
-  const basePath = (typeof window !== 'undefined' && window.__X_UI_BASE_PATH__) || '';
+  const basePath = (typeof window !== 'undefined' && window.X_UI_BASE_PATH) || '';
   sharedClient = new WebSocketClient(basePath);
   return sharedClient;
 }

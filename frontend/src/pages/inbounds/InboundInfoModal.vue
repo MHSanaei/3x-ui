@@ -387,6 +387,9 @@ const showSubscriptionTab = computed(
                 <td>
                   <a-tag v-if="clientStats && clientSettings.totalGB > 0" :color="statsColor(clientStats)">{{
                     getRemainingStats() }}</a-tag>
+                  <a-tag v-else-if="!clientSettings.totalGB || clientSettings.totalGB <= 0" color="purple">
+                    <InfinityIcon />
+                  </a-tag>
                 </td>
                 <td>
                   <a-tag v-if="clientSettings.totalGB > 0" :color="clientStats ? statsColor(clientStats) : 'default'">{{
