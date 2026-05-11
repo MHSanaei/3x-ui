@@ -101,7 +101,7 @@ mkdir -p "${log_folder}"
 iplimit_log_path="${log_folder}/3xipl.log"
 iplimit_banned_log_path="${log_folder}/3xipl-banned.log"
 
-REPO_OWNER="mhsanaei"
+REPO_OWNER="ruyawwj"
 REPO_NAME="3x-ui"
 
 confirm() {

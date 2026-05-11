@@ -14,6 +14,9 @@ xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 GITHUB_MIRROR_DEFAULT="https://gh.kejilion.pro"
 GITHUB_RAW_DEFAULT="https://raw.githubusercontent.com"
 
+REPO_OWNER="ruyawwj"
+REPO_NAME="3x-ui"
+
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
 
 if [[ -f /etc/os-release ]]; then
@@ -67,13 +70,13 @@ update_x-ui() {
     local github_raw=$(get_github_raw)
 
     if [ $# == 0 ]; then
-        tag_version=$(curl -4 -Ls "https://api.github.com/repos/mhsanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        tag_version=$(curl -4 -Ls "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$tag_version" ]]; then
             echo -e "${yellow}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
             exit 1
         fi
         echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-        curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/mhsanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
+        curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
             exit 1
@@ -88,7 +91,7 @@ update_x-ui() {
             exit 1
         fi
 
-        url="https://github.com/mhsanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
+        url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
         echo -e "Beginning to install x-ui $1"
         curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
@@ -97,7 +100,7 @@ update_x-ui() {
         fi
     fi
 
-    curl -4fLRo /usr/bin/x-ui-temp ${github_raw}/mhsanaei/3x-ui/main/x-ui.sh
+    curl -4fLRo /usr/bin/x-ui-temp ${github_raw}/${REPO_OWNER}/${REPO_NAME}/main/x-ui.sh
     if [[ $? -ne 0 ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
         exit 1
