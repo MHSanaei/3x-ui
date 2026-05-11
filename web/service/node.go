@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -99,14 +100,15 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		return err
 	}
 	updates := map[string]any{
-		"name":      in.Name,
-		"remark":    in.Remark,
-		"scheme":    in.Scheme,
-		"address":   in.Address,
-		"port":      in.Port,
-		"base_path": in.BasePath,
-		"api_token": in.ApiToken,
-		"enable":    in.Enable,
+		"name":                  in.Name,
+		"remark":                in.Remark,
+		"scheme":                in.Scheme,
+		"address":               in.Address,
+		"port":                  in.Port,
+		"base_path":             in.BasePath,
+		"api_token":             in.ApiToken,
+		"enable":                in.Enable,
+		"allow_private_address": in.AllowPrivateAddress,
 	}
 	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
@@ -168,8 +170,13 @@ func (s *NodeService) AggregateNodeMetric(id int, metric string, bucketSeconds i
 
 func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch, error) {
 	patch := HeartbeatPatch{LastHeartbeat: time.Now().Unix()}
-	url := fmt.Sprintf("%s://%s:%d%spanel/api/server/status",
-		n.Scheme, n.Address, n.Port, n.BasePath)
+	hostPort := net.JoinHostPort(n.Address, strconv.Itoa(n.Port))
+	url := fmt.Sprintf("%s://%s%spanel/api/server/status", n.Scheme, hostPort, n.BasePath)
+	url, err := SanitizePublicHTTPURL(url, n.AllowPrivateAddress)
+	if err != nil {
+		patch.LastError = err.Error()
+		return patch, err
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
