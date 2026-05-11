@@ -37,6 +37,8 @@ const lastOnlineMs = Number(subData.lastOnline || 0);
 const subUrl = subData.subUrl || '';
 const subJsonUrl = subData.subJsonUrl || '';
 const subClashUrl = subData.subClashUrl || '';
+const subTitle = subData.subTitle || '';
+const subSupportUrl = subData.subSupportUrl || '';
 const links = Array.isArray(subData.links) ? subData.links : [];
 // Panel's "Calendar Type" setting; controls whether expiry / lastOnline
 // render in Gregorian or Jalali on this standalone subscription page.
@@ -102,7 +104,14 @@ function linkName(link, idx) {
 
 // iOS deep links — taken verbatim from the legacy subpage. Each
 // client expects the sub URL in a slightly different param name.
-const shadowrocketUrl = computed(() => `sub://${btoa(subUrl)}`);
+const shadowrocketUrl = computed(() => {
+  if (!subUrl) return '';
+  const separator = subUrl.includes('?') ? '&' : '?';
+  const rawUrl = subUrl + separator + 'flag=shadowrocket';
+  const base64Url = encodeURIComponent(btoa(rawUrl));
+  const remark = encodeURIComponent(subTitle || sId || 'Subscription');
+  return `shadowrocket://add/sub/${base64Url}?remark=${remark}`;
+});
 const v2boxUrl = computed(() => `v2box://install-sub?url=${encodeURIComponent(subUrl)}&name=${encodeURIComponent(sId)}`);
 const streisandUrl = computed(() => `streisand://import/${encodeURIComponent(subUrl)}`);
 const v2raytunUrl = computed(() => subUrl);

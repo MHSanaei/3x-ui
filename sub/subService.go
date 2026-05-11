@@ -1413,25 +1413,27 @@ func searchHost(headers any) string {
 // PageData is a view model for subpage.html
 // PageData contains data for rendering the subscription information page.
 type PageData struct {
-	Host         string
-	BasePath     string
-	SId          string
-	Enabled      bool
-	Download     string
-	Upload       string
-	Total        string
-	Used         string
-	Remained     string
-	Expire       int64
-	LastOnline   int64
-	Datepicker   string
-	DownloadByte int64
-	UploadByte   int64
-	TotalByte    int64
-	SubUrl       string
-	SubJsonUrl   string
-	SubClashUrl  string
-	Result       []string
+	Host          string
+	BasePath      string
+	SId           string
+	Enabled       bool
+	Download      string
+	Upload        string
+	Total         string
+	Used          string
+	Remained      string
+	Expire        int64
+	LastOnline    int64
+	Datepicker    string
+	DownloadByte  int64
+	UploadByte    int64
+	TotalByte     int64
+	SubUrl        string
+	SubJsonUrl    string
+	SubClashUrl   string
+	SubTitle      string
+	SubSupportUrl string
+	Result        []string
 }
 
 // ResolveRequest extracts scheme and host info from request/headers consistently.
@@ -1545,7 +1547,7 @@ func (s *SubService) joinPathWithID(basePath, subId string) string {
 
 // BuildPageData parses header and prepares the template view model.
 // BuildPageData constructs page data for rendering the subscription information page.
-func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, subURL, subJsonURL, subClashURL string, basePath string) PageData {
+func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, subURL, subJsonURL, subClashURL string, basePath string, subTitle string, subSupportUrl string) PageData {
 	download := common.FormatTraffic(traffic.Down)
 	upload := common.FormatTraffic(traffic.Up)
 	total := "∞"
@@ -1563,25 +1565,27 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 	}
 
 	return PageData{
-		Host:         hostHeader,
-		BasePath:     basePath,
-		SId:          subId,
-		Enabled:      traffic.Enable,
-		Download:     download,
-		Upload:       upload,
-		Total:        total,
-		Used:         used,
-		Remained:     remained,
-		Expire:       traffic.ExpiryTime / 1000,
-		LastOnline:   lastOnline,
-		Datepicker:   datepicker,
-		DownloadByte: traffic.Down,
-		UploadByte:   traffic.Up,
-		TotalByte:    traffic.Total,
-		SubUrl:       subURL,
-		SubJsonUrl:   subJsonURL,
-		SubClashUrl:  subClashURL,
-		Result:       subs,
+		Host:          hostHeader,
+		BasePath:      basePath,
+		SId:           subId,
+		Enabled:       traffic.Enable,
+		Download:      download,
+		Upload:        upload,
+		Total:         total,
+		Used:          used,
+		Remained:      remained,
+		Expire:        traffic.ExpiryTime / 1000,
+		LastOnline:    lastOnline,
+		Datepicker:    datepicker,
+		DownloadByte:  traffic.Down,
+		UploadByte:    traffic.Up,
+		TotalByte:     traffic.Total,
+		SubUrl:        subURL,
+		SubJsonUrl:    subJsonURL,
+		SubClashUrl:   subClashURL,
+		SubTitle:      subTitle,
+		SubSupportUrl: subSupportUrl,
+		Result:        subs,
 	}
 }
 

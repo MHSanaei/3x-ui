@@ -128,7 +128,7 @@ func (a *SUBController) subs(c *gin.Context) {
 				basePath = "/"
 			}
 			basePathStr := basePath.(string)
-			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, subURL, subJsonURL, subClashURL, basePathStr)
+			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
 			a.serveSubPage(c, basePathStr, page)
 			return
 		}
