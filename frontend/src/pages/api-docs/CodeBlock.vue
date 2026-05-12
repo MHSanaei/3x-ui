@@ -121,8 +121,8 @@ async function copyCode() {
 
 <style>
 .json-key { color: #0550ae; }
-.json-string { color: #0a3069; }
-.json-number { color: #0550ae; }
+.json-string { color: #116329; }
+.json-number { color: #9a6700; }
 .json-boolean { color: #cf222e; }
 .json-null { color: #8250df; }
 
@@ -133,8 +133,8 @@ body.dark .code-block {
 }
 
 body.dark .json-key { color: #79c0ff; }
-body.dark .json-string { color: #a5d6ff; }
-body.dark .json-number { color: #79c0ff; }
+body.dark .json-string { color: #7ee787; }
+body.dark .json-number { color: #d29922; }
 body.dark .json-boolean { color: #ff7b72; }
 body.dark .json-null { color: #d2a8ff; }
 
