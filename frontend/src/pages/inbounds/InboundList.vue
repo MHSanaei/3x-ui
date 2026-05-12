@@ -457,7 +457,7 @@ function showQrCodeMenu(dbInbound) {
           <div v-if="record.isMultiUser() && isExpanded(record.id)" class="card-clients">
             <ClientRowTable :db-inbound="record" :is-mobile="true" :traffic-diff="trafficDiff" :expire-diff="expireDiff"
               :online-clients="onlineClients" :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme"
-              :page-size="pageSize"
+              :page-size="pageSize" :total-client-count="clientCount[record.id]?.clients || 0"
               @edit-client="(p) => emit('edit-client', p)" @qrcode-client="(p) => emit('qrcode-client', p)"
               @info-client="(p) => emit('info-client', p)"
               @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
@@ -479,6 +479,7 @@ function showQrCodeMenu(dbInbound) {
           <ClientRowTable v-if="record.isMultiUser()" :db-inbound="record" :is-mobile="isMobile"
             :traffic-diff="trafficDiff" :expire-diff="expireDiff" :online-clients="onlineClients"
             :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme" :page-size="pageSize"
+            :total-client-count="clientCount[record.id]?.clients || 0"
             @edit-client="(p) => emit('edit-client', p)"
             @qrcode-client="(p) => emit('qrcode-client', p)" @info-client="(p) => emit('info-client', p)"
             @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
