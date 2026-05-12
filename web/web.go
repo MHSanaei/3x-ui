@@ -99,6 +99,37 @@ func EmbeddedDist() embed.FS {
 	return distFS
 }
 
+func serveFavicon(c *gin.Context) {
+	var (
+		body []byte
+		err  error
+	)
+	if config.IsDebug() {
+		body, err = os.ReadFile("web/dist/assets/favicon.ico")
+		if err != nil {
+			body, err = os.ReadFile("frontend/public/assets/favicon.ico")
+		}
+	} else {
+		body, err = distFS.ReadFile("dist/assets/favicon.ico")
+	}
+	if err != nil {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	c.Header("Cache-Control", "no-store, max-age=0")
+	c.Data(http.StatusOK, "image/x-icon", body)
+}
+
+func registerFaviconRoutes(engine *gin.Engine, basePath string) {
+	engine.GET("/favicon.ico", serveFavicon)
+	engine.HEAD("/favicon.ico", serveFavicon)
+	if basePath != "/" {
+		baseFaviconPath := strings.TrimRight(basePath, "/") + "/favicon.ico"
+		engine.GET(baseFaviconPath, serveFavicon)
+		engine.HEAD(baseFaviconPath, serveFavicon)
+	}
+}
+
 // Server represents the main web server for the 3x-ui panel with controllers, services, and scheduled jobs.
 type Server struct {
 	httpServer *http.Server
@@ -197,8 +228,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		c.Set("base_path", basePath)
 	})
 	engine.Use(func(c *gin.Context) {
-		uri := c.Request.RequestURI
-		if strings.HasPrefix(uri, assetsBasePath) {
+		uri := c.Request.URL.Path
+		if uri == assetsBasePath+"favicon.ico" {
+			c.Header("Cache-Control", "no-store, max-age=0")
+		} else if strings.HasPrefix(uri, assetsBasePath) {
 			c.Header("Cache-Control", "max-age=31536000")
 		}
 	})
@@ -221,6 +254,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	} else {
 		engine.StaticFS(basePath+"assets", http.FS(&wrapDistFS{FS: distFS}))
 	}
+	registerFaviconRoutes(engine, basePath)
 
 	// Apply the redirect middleware (`/xui` to `/panel`)
 	engine.Use(middleware.RedirectMiddleware(basePath))
