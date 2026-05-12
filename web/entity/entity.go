@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v3/util/common"
 )
 
 // Msg represents a standard API response message with success status, message text, and optional data object.
@@ -71,11 +71,15 @@ type AllSetting struct {
 	SubUpdates                  int    `json:"subUpdates" form:"subUpdates"`                                   // Subscription update interval in minutes
 	ExternalTrafficInformEnable bool   `json:"externalTrafficInformEnable" form:"externalTrafficInformEnable"` // Enable external traffic reporting
 	ExternalTrafficInformURI    string `json:"externalTrafficInformURI" form:"externalTrafficInformURI"`       // URI for external traffic reporting
+	RestartXrayOnClientDisable  bool   `json:"restartXrayOnClientDisable" form:"restartXrayOnClientDisable"`   // Restart Xray when clients are auto-disabled by expiry/traffic limit
 	SubEncrypt                  bool   `json:"subEncrypt" form:"subEncrypt"`                                   // Encrypt subscription responses
 	SubShowInfo                 bool   `json:"subShowInfo" form:"subShowInfo"`                                 // Show client information in subscriptions
 	SubURI                      string `json:"subURI" form:"subURI"`                                           // Subscription server URI
 	SubJsonPath                 string `json:"subJsonPath" form:"subJsonPath"`                                 // Path for JSON subscription endpoint
 	SubJsonURI                  string `json:"subJsonURI" form:"subJsonURI"`                                   // JSON subscription server URI
+	SubClashEnable              bool   `json:"subClashEnable" form:"subClashEnable"`                           // Enable Clash/Mihomo subscription endpoint
+	SubClashPath                string `json:"subClashPath" form:"subClashPath"`                               // Path for Clash/Mihomo subscription endpoint
+	SubClashURI                 string `json:"subClashURI" form:"subClashURI"`                                 // Clash/Mihomo subscription server URI
 	SubJsonFragment             string `json:"subJsonFragment" form:"subJsonFragment"`                         // JSON subscription fragment configuration
 	SubJsonNoises               string `json:"subJsonNoises" form:"subJsonNoises"`                             // JSON subscription noise configuration
 	SubJsonMux                  string `json:"subJsonMux" form:"subJsonMux"`                                   // JSON subscription mux configuration
@@ -166,6 +170,13 @@ func (s *AllSetting) CheckValid() error {
 	}
 	if !strings.HasSuffix(s.SubJsonPath, "/") {
 		s.SubJsonPath += "/"
+	}
+
+	if !strings.HasPrefix(s.SubClashPath, "/") {
+		s.SubClashPath = "/" + s.SubClashPath
+	}
+	if !strings.HasSuffix(s.SubClashPath, "/") {
+		s.SubClashPath += "/"
 	}
 
 	_, err := time.LoadLocation(s.TimeLocation)

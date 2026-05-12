@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/xray"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/xray"
 
 	"go.uber.org/atomic"
 )
@@ -103,7 +103,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		return nil, err
 	}
 
-	s.inboundService.AddTraffic(nil, nil)
+	_, _, _ = s.inboundService.AddTraffic(nil, nil)
 
 	inbounds, err := s.inboundService.GetAllInbounds()
 	if err != nil {
@@ -113,41 +113,48 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if !inbound.Enable {
 			continue
 		}
+		if inbound.NodeID != nil {
+			continue
+		}
 		// get settings clients
 		settings := map[string]any{}
 		json.Unmarshal([]byte(inbound.Settings), &settings)
 		clients, ok := settings["clients"].([]any)
 		if ok {
-			// check users active or not
+			// Fast O(N) lookup map for client traffic enablement
 			clientStats := inbound.ClientStats
+			enableMap := make(map[string]bool, len(clientStats))
 			for _, clientTraffic := range clientStats {
-				indexDecrease := 0
-				for index, client := range clients {
-					c := client.(map[string]any)
-					if c["email"] == clientTraffic.Email {
-						if !clientTraffic.Enable {
-							clients = RemoveIndex(clients, index-indexDecrease)
-							indexDecrease++
-							logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c["email"])
-						}
-					}
-				}
+				enableMap[clientTraffic.Email] = clientTraffic.Enable
 			}
 
-			// clear client config for additional parameters
+			// filter and clean clients
 			var final_clients []any
 			for _, client := range clients {
-				c := client.(map[string]any)
-				if c["enable"] != nil {
-					if enable, ok := c["enable"].(bool); ok && !enable {
-						continue
-					}
+				c, ok := client.(map[string]any)
+				if !ok {
+					continue
 				}
+
+				email, _ := c["email"].(string)
+
+				// check users active or not via stats
+				if enable, exists := enableMap[email]; exists && !enable {
+					logger.Infof("Remove Inbound User %s due to expiration or traffic limit", email)
+					continue
+				}
+
+				// check manual disabled flag
+				if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
+					continue
+				}
+
+				// clear client config for additional parameters
 				for key := range c {
-					if key != "email" && key != "id" && key != "password" && key != "flow" && key != "method" {
+					if key != "email" && key != "id" && key != "password" && key != "flow" && key != "method" && key != "auth" && key != "reverse" {
 						delete(c, key)
 					}
-					if c["flow"] == "xtls-rprx-vision-udp443" {
+					if flow, ok := c["flow"].(string); ok && flow == "xtls-rprx-vision-udp443" {
 						c["flow"] = "xtls-rprx-vision"
 					}
 				}
@@ -202,10 +209,13 @@ func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, 
 		return nil, nil, err
 	}
 	apiPort := p.GetAPIPort()
-	s.xrayAPI.Init(apiPort)
+	if err := s.xrayAPI.Init(apiPort); err != nil {
+		logger.Debug("Failed to initialize Xray API:", err)
+		return nil, nil, err
+	}
 	defer s.xrayAPI.Close()
 
-	traffic, clientTraffic, err := s.xrayAPI.GetTraffic(true)
+	traffic, clientTraffic, err := s.xrayAPI.GetTraffic()
 	if err != nil {
 		logger.Debug("Failed to fetch Xray traffic:", err)
 		return nil, nil, err
@@ -235,6 +245,7 @@ func (s *XrayService) RestartXray(isForce bool) error {
 
 	p = xray.NewProcess(xrayConfig)
 	result = ""
+	s.xrayAPI.StatsLastValues = nil
 	err = p.Start()
 	if err != nil {
 		return err
@@ -258,6 +269,18 @@ func (s *XrayService) StopXray() error {
 // SetToNeedRestart marks that Xray needs to be restarted.
 func (s *XrayService) SetToNeedRestart() {
 	isNeedXrayRestart.Store(true)
+}
+
+// GetXrayAPIPort returns the port the local xray process is listening on
+// for its gRPC HandlerService, or 0 when xray isn't currently running.
+// Exposed for the runtime package's LocalRuntime adapter — runtime can't
+// reach into the package-level `p` directly without a service-package
+// import cycle.
+func (s *XrayService) GetXrayAPIPort() int {
+	if p == nil || !p.IsRunning() {
+		return 0
+	}
+	return p.GetAPIPort()
 }
 
 // IsNeedRestartAndSetFalse checks if restart is needed and resets the flag to false.

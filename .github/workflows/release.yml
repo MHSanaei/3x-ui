@@ -2,24 +2,23 @@ name: Release 3X-UI
 
 on:
   workflow_dispatch:
-  release:
-    types: [published]
   push:
     branches:
-      - main
+      - "**"
     tags:
       - "v*.*.*"
     paths:
-      - '**.js'
-      - '**.css'
-      - '**.html'
-      - '**.sh'
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - 'x-ui.service.debian'
-      - 'x-ui.service.arch'
-      - 'x-ui.service.rhel'
+      - "**.js"
+      - "**.css"
+      - "**.html"
+      - "**.sh"
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - "x-ui.service.debian"
+      - "x-ui.service.arch"
+      - "x-ui.service.rhel"
+  pull_request:
 
 jobs:
   build:
@@ -38,13 +37,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
+
+      # Frontend dist must be built BEFORE go build — Go's //go:embed
+      # all:dist directive in web/web.go requires web/dist/ to exist
+      # at compile time. web/dist/ is .gitignored, so on a fresh CI
+      # checkout it doesn't exist until vite emits it.
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend bundle
+        run: |
+          npm ci
+          npm run build
+        working-directory: frontend
 
       - name: Build 3X-UI
         run: |
@@ -77,7 +93,7 @@ jobs:
           go build -ldflags "-w -s -linkmode external -extldflags '-static'" -o xui-release -v main.go
           file xui-release
           ldd xui-release || echo "Static binary confirmed"
-          
+
           mkdir x-ui
           cp xui-release x-ui/
           cp x-ui.service.debian x-ui/
@@ -87,9 +103,9 @@ jobs:
           mv x-ui/xui-release x-ui/x-ui
           mkdir x-ui/bin
           cd x-ui/bin
-          
+
           # Download dependencies
-          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v26.2.6/"
+          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v26.4.25/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
             wget -q ${Xray_URL}Xray-linux-64.zip
             unzip Xray-linux-64.zip
@@ -128,24 +144,22 @@ jobs:
           wget -q -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
           mv xray xray-linux-${{ matrix.platform }}
           cd ../..
-          
+
       - name: Package
         run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
 
       - name: Upload files to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: x-ui-linux-${{ matrix.platform }}
           path: ./x-ui-linux-${{ matrix.platform }}.tar.gz
 
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
-        if: |
-          (github.event_name == 'release' && github.event.action == 'published') ||
-          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref_name }}
           file: x-ui-linux-${{ matrix.platform }}.tar.gz
           asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
           overwrite: true
@@ -165,13 +179,30 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
+
+      # Frontend dist must be built BEFORE go build — see comment on the
+      # Linux job above. This step is identical except npm runs on the
+      # Windows runner here.
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend bundle
+        shell: pwsh
+        run: |
+          npm ci
+          npm run build
+        working-directory: frontend
 
       - name: Install MSYS2
         uses: msys2/setup-msys2@v2
@@ -206,9 +237,9 @@ jobs:
           Copy-Item xui-release.exe x-ui\x-ui.exe
           mkdir x-ui\bin
           cd x-ui\bin
-          
+
           # Download Xray for Windows
-          $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/v26.2.6/"
+          $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/v26.4.25/"
           Invoke-WebRequest -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip"
           Expand-Archive -Path "Xray-windows-64.zip" -DestinationPath .
           Remove-Item "Xray-windows-64.zip"
@@ -230,19 +261,17 @@ jobs:
           Compress-Archive -Path .\x-ui -DestinationPath "x-ui-windows-amd64.zip"
 
       - name: Upload files to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: x-ui-windows-amd64
           path: ./x-ui-windows-amd64.zip
 
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
-        if: |
-          (github.event_name == 'release' && github.event.action == 'published') ||
-          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref_name }}
           file: x-ui-windows-amd64.zip
           asset_name: x-ui-windows-amd64.zip
           overwrite: true

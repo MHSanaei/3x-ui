@@ -11,14 +11,15 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/util/common"
 
 	"github.com/xtls/xray-core/app/proxyman/command"
 	statsService "github.com/xtls/xray-core/app/stats/command"
 	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/infra/conf"
+	hysteriaAccount "github.com/xtls/xray-core/proxy/hysteria/account"
 	"github.com/xtls/xray-core/proxy/shadowsocks"
 	"github.com/xtls/xray-core/proxy/shadowsocks_2022"
 	"github.com/xtls/xray-core/proxy/trojan"
@@ -34,6 +35,35 @@ type XrayAPI struct {
 	StatsServiceClient   *statsService.StatsServiceClient
 	grpcClient           *grpc.ClientConn
 	isConnected          bool
+	StatsLastValues      map[string]int64
+}
+
+func getRequiredUserString(user map[string]any, key string) (string, error) {
+	value, ok := user[key]
+	if !ok || value == nil {
+		return "", fmt.Errorf("missing required user field %q", key)
+	}
+
+	strValue, ok := value.(string)
+	if !ok {
+		return "", fmt.Errorf("invalid type for user field %q: %T", key, value)
+	}
+
+	return strValue, nil
+}
+
+func getOptionalUserString(user map[string]any, key string) (string, error) {
+	value, ok := user[key]
+	if !ok || value == nil {
+		return "", nil
+	}
+
+	strValue, ok := value.(string)
+	if !ok {
+		return "", fmt.Errorf("invalid type for user field %q: %T", key, value)
+	}
+
+	return strValue, nil
 }
 
 // Init connects to the Xray API server and initializes handler and stats service clients.
@@ -50,6 +80,9 @@ func (x *XrayAPI) Init(apiPort int) error {
 
 	x.grpcClient = conn
 	x.isConnected = true
+	if x.StatsLastValues == nil {
+		x.StatsLastValues = make(map[string]int64)
+	}
 
 	hsClient := command.NewHandlerServiceClient(conn)
 	ssClient := statsService.NewStatsServiceClient(conn)
@@ -103,16 +136,36 @@ func (x *XrayAPI) DelInbound(tag string) error {
 
 // AddUser adds a user to an inbound in the Xray core using the specified protocol and user data.
 func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]any) error {
+	userEmail, err := getRequiredUserString(user, "email")
+	if err != nil {
+		return err
+	}
+
 	var account *serial.TypedMessage
 	switch Protocol {
 	case "vmess":
+		userID, err := getRequiredUserString(user, "id")
+		if err != nil {
+			return err
+		}
+
 		account = serial.ToTypedMessage(&vmess.Account{
-			Id: user["id"].(string),
+			Id: userID,
 		})
 	case "vless":
+		userID, err := getRequiredUserString(user, "id")
+		if err != nil {
+			return err
+		}
+
+		userFlow, err := getOptionalUserString(user, "flow")
+		if err != nil {
+			return err
+		}
+
 		vlessAccount := &vless.Account{
-			Id:   user["id"].(string),
-			Flow: user["flow"].(string),
+			Id:   userID,
+			Flow: userFlow,
 		}
 		// Add testseed if provided
 		if testseedVal, ok := user["testseed"]; ok {
@@ -138,16 +191,27 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 		}
 		account = serial.ToTypedMessage(vlessAccount)
 	case "trojan":
+		password, err := getRequiredUserString(user, "password")
+		if err != nil {
+			return err
+		}
+
 		account = serial.ToTypedMessage(&trojan.Account{
-			Password: user["password"].(string),
+			Password: password,
 		})
 	case "shadowsocks":
+		cipher, err := getOptionalUserString(user, "cipher")
+		if err != nil {
+			return err
+		}
+
+		password, err := getRequiredUserString(user, "password")
+		if err != nil {
+			return err
+		}
+
 		var ssCipherType shadowsocks.CipherType
-		switch user["cipher"].(string) {
-		case "aes-128-gcm":
-			ssCipherType = shadowsocks.CipherType_AES_128_GCM
-		case "aes-256-gcm":
-			ssCipherType = shadowsocks.CipherType_AES_256_GCM
+		switch cipher {
 		case "chacha20-poly1305", "chacha20-ietf-poly1305":
 			ssCipherType = shadowsocks.CipherType_CHACHA20_POLY1305
 		case "xchacha20-poly1305", "xchacha20-ietf-poly1305":
@@ -158,26 +222,35 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 
 		if ssCipherType != shadowsocks.CipherType_NONE {
 			account = serial.ToTypedMessage(&shadowsocks.Account{
-				Password:   user["password"].(string),
+				Password:   password,
 				CipherType: ssCipherType,
 			})
 		} else {
 			account = serial.ToTypedMessage(&shadowsocks_2022.ServerConfig{
-				Key:   user["password"].(string),
-				Email: user["email"].(string),
+				Key:   password,
+				Email: userEmail,
 			})
 		}
+	case "hysteria", "hysteria2":
+		auth, err := getRequiredUserString(user, "auth")
+		if err != nil {
+			return err
+		}
+
+		account = serial.ToTypedMessage(&hysteriaAccount.Account{
+			Auth: auth,
+		})
 	default:
 		return nil
 	}
 
 	client := *x.HandlerServiceClient
 
-	_, err := client.AlterInbound(context.Background(), &command.AlterInboundRequest{
+	_, err = client.AlterInbound(context.Background(), &command.AlterInboundRequest{
 		Tag: inboundTag,
 		Operation: serial.ToTypedMessage(&command.AddUserOperation{
 			User: &protocol.User{
-				Email:   user["email"].(string),
+				Email:   userEmail,
 				Account: account,
 			},
 		}),
@@ -205,7 +278,7 @@ func (x *XrayAPI) RemoveUser(inboundTag, email string) error {
 }
 
 // GetTraffic queries traffic statistics from the Xray core, optionally resetting counters.
-func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
+func (x *XrayAPI) GetTraffic() ([]*Traffic, []*ClientTraffic, error) {
 	if x.grpcClient == nil {
 		return nil, nil, common.NewError("xray api is not initialized")
 	}
@@ -220,7 +293,7 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 		return nil, nil, common.NewError("xray StatusServiceClient is not initialized")
 	}
 
-	resp, err := (*x.StatsServiceClient).QueryStats(ctx, &statsService.QueryStatsRequest{Reset_: reset})
+	resp, err := (*x.StatsServiceClient).QueryStats(ctx, &statsService.QueryStatsRequest{Reset_: false})
 	if err != nil {
 		logger.Debug("Failed to query Xray stats:", err)
 		return nil, nil, err
@@ -230,10 +303,17 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 	emailTrafficMap := make(map[string]*ClientTraffic)
 
 	for _, stat := range resp.GetStat() {
+		lastValue, ok := x.StatsLastValues[stat.Name]
+		x.StatsLastValues[stat.Name] = stat.Value
+		if !ok || stat.Value < lastValue {
+			// skip first time of seen stat
+			continue
+		}
+		value := stat.Value - lastValue
 		if matches := trafficRegex.FindStringSubmatch(stat.Name); len(matches) == 4 {
-			processTraffic(matches, stat.Value, tagTrafficMap)
+			processTraffic(matches, value, tagTrafficMap)
 		} else if matches := clientTrafficRegex.FindStringSubmatch(stat.Name); len(matches) == 3 {
-			processClientTraffic(matches, stat.Value, emailTrafficMap)
+			processClientTraffic(matches, value, emailTrafficMap)
 		}
 	}
 	return mapToSlice(tagTrafficMap), mapToSlice(emailTrafficMap), nil

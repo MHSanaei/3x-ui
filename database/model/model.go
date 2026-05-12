@@ -4,8 +4,8 @@ package model
 import (
 	"fmt"
 
-	"github.com/mhsanaei/3x-ui/v2/util/json_util"
-	"github.com/mhsanaei/3x-ui/v2/xray"
+	"github.com/mhsanaei/3x-ui/v3/util/json_util"
+	"github.com/mhsanaei/3x-ui/v3/xray"
 )
 
 // Protocol represents the protocol type for Xray inbounds.
@@ -21,7 +21,20 @@ const (
 	Shadowsocks Protocol = "shadowsocks"
 	Mixed       Protocol = "mixed"
 	WireGuard   Protocol = "wireguard"
+	// UI stores Hysteria v1 and v2 both as "hysteria" and uses
+	// settings.version to discriminate. Imports from outside the panel
+	// can carry the literal "hysteria2" string, so IsHysteria below
+	// accepts both.
+	Hysteria  Protocol = "hysteria"
+	Hysteria2 Protocol = "hysteria2"
 )
+
+// IsHysteria returns true for both "hysteria" and "hysteria2".
+// Use instead of a bare ==model.Hysteria check: a v2 inbound stored
+// with the literal v2 string would otherwise fall through (#4081).
+func IsHysteria(p Protocol) bool {
+	return p == Hysteria || p == Hysteria2
+}
 
 // User represents a user account in the 3x-ui panel.
 type User struct {
@@ -53,6 +66,12 @@ type Inbound struct {
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
+
+	// NodeID points at the remote panel (Node) where this inbound's xray
+	// actually runs. NULL means the inbound runs on the local xray (the
+	// pre-multi-node behaviour). Existing rows migrate to NULL with no
+	// backfill.
+	NodeID *int `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
 }
 
 // OutboundTraffics tracks traffic statistics for Xray outbound connections.
@@ -104,21 +123,70 @@ type Setting struct {
 	Value string `json:"value" form:"value"`
 }
 
+// Node represents a remote 3x-ui panel registered with the central panel.
+// The central panel polls each node's existing /panel/api/server/status
+// endpoint over HTTP using the per-node ApiToken to populate the runtime
+// status fields below.
+type Node struct {
+	Id       int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Name     string `json:"name" form:"name" gorm:"uniqueIndex"`
+	Remark   string `json:"remark" form:"remark"`
+	Scheme   string `json:"scheme" form:"scheme"`
+	Address  string `json:"address" form:"address"`
+	Port     int    `json:"port" form:"port"`
+	BasePath string `json:"basePath" form:"basePath"`
+	ApiToken string `json:"apiToken" form:"apiToken"`
+	Enable   bool   `json:"enable" form:"enable" gorm:"default:true"`
+
+	// Heartbeat-updated fields. UpdatedAt advances on every probe even when
+	// the row is otherwise unchanged so the UI's "last seen" tooltip is
+	// truthful without us having to read LastHeartbeat separately.
+	Status        string  `json:"status" gorm:"default:unknown"` // online|offline|unknown
+	LastHeartbeat int64   `json:"lastHeartbeat"`                 // unix seconds, 0 = never
+	LatencyMs     int     `json:"latencyMs"`
+	XrayVersion   string  `json:"xrayVersion"`
+	CpuPct        float64 `json:"cpuPct"`
+	MemPct        float64 `json:"memPct"`
+	UptimeSecs    uint64  `json:"uptimeSecs"`
+	LastError     string  `json:"lastError"`
+
+	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime"`
+	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime"`
+}
+
+type CustomGeoResource struct {
+	Id            int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Type          string `json:"type" gorm:"not null;uniqueIndex:idx_custom_geo_type_alias;column:geo_type"`
+	Alias         string `json:"alias" gorm:"not null;uniqueIndex:idx_custom_geo_type_alias"`
+	Url           string `json:"url" gorm:"not null"`
+	LocalPath     string `json:"localPath" gorm:"column:local_path"`
+	LastUpdatedAt int64  `json:"lastUpdatedAt" gorm:"default:0;column:last_updated_at"`
+	LastModified  string `json:"lastModified" gorm:"column:last_modified"`
+	CreatedAt     int64  `json:"createdAt" gorm:"autoCreateTime;column:created_at"`
+	UpdatedAt     int64  `json:"updatedAt" gorm:"autoUpdateTime;column:updated_at"`
+}
+
+type ClientReverse struct {
+	Tag string `json:"tag"`
+}
+
 // Client represents a client configuration for Xray inbounds with traffic limits and settings.
 type Client struct {
-	ID         string `json:"id"`                           // Unique client identifier
-	Security   string `json:"security"`                     // Security method (e.g., "auto", "aes-128-gcm")
-	Password   string `json:"password"`                     // Client password
-	Flow       string `json:"flow"`                         // Flow control (XTLS)
-	Email      string `json:"email"`                        // Client email identifier
-	LimitIP    int    `json:"limitIp"`                      // IP limit for this client
-	TotalGB    int64  `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
-	ExpiryTime int64  `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
-	Enable     bool   `json:"enable" form:"enable"`         // Whether the client is enabled
-	TgID       int64  `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
-	SubID      string `json:"subId" form:"subId"`           // Subscription identifier
-	Comment    string `json:"comment" form:"comment"`       // Client comment
-	Reset      int    `json:"reset" form:"reset"`           // Reset period in days
-	CreatedAt  int64  `json:"created_at,omitempty"`         // Creation timestamp
-	UpdatedAt  int64  `json:"updated_at,omitempty"`         // Last update timestamp
+	ID         string         `json:"id,omitempty"`                 // Unique client identifier
+	Security   string         `json:"security"`                     // Security method (e.g., "auto", "aes-128-gcm")
+	Password   string         `json:"password,omitempty"`           // Client password
+	Flow       string         `json:"flow,omitempty"`               // Flow control (XTLS)
+	Reverse    *ClientReverse `json:"reverse,omitempty"`            // VLESS simple reverse proxy settings
+	Auth       string         `json:"auth,omitempty"`               // Auth password (Hysteria)
+	Email      string         `json:"email"`                        // Client email identifier
+	LimitIP    int            `json:"limitIp"`                      // IP limit for this client
+	TotalGB    int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
+	ExpiryTime int64          `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
+	Enable     bool           `json:"enable" form:"enable"`         // Whether the client is enabled
+	TgID       int64          `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
+	SubID      string         `json:"subId" form:"subId"`           // Subscription identifier
+	Comment    string         `json:"comment" form:"comment"`       // Client comment
+	Reset      int            `json:"reset" form:"reset"`           // Reset period in days
+	CreatedAt  int64          `json:"created_at,omitempty"`         // Creation timestamp
+	UpdatedAt  int64          `json:"updated_at,omitempty"`         // Last update timestamp
 }

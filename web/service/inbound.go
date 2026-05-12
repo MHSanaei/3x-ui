@@ -3,6 +3,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -10,24 +11,116 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/database"
-	"github.com/mhsanaei/3x-ui/v2/database/model"
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/util/common"
-	"github.com/mhsanaei/3x-ui/v2/xray"
+	"github.com/google/uuid"
+	"github.com/mhsanaei/3x-ui/v3/database"
+	"github.com/mhsanaei/3x-ui/v3/database/model"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/util/common"
+	"github.com/mhsanaei/3x-ui/v3/web/runtime"
+	"github.com/mhsanaei/3x-ui/v3/xray"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
-// InboundService provides business logic for managing Xray inbound configurations.
-// It handles CRUD operations for inbounds, client management, traffic monitoring,
-// and integration with the Xray API for real-time updates.
 type InboundService struct {
 	xrayApi xray.XrayAPI
 }
 
-// GetInbounds retrieves all inbounds for a specific user.
-// Returns a slice of inbound models with their associated client statistics.
+func (s *InboundService) runtimeFor(ib *model.Inbound) (runtime.Runtime, error) {
+	mgr := runtime.GetManager()
+	if mgr == nil {
+		return nil, fmt.Errorf("runtime manager not initialised")
+	}
+	return mgr.RuntimeFor(ib.NodeID)
+}
+
+type CopyClientsResult struct {
+	Added   []string `json:"added"`
+	Skipped []string `json:"skipped"`
+	Errors  []string `json:"errors"`
+}
+
+// enrichClientStats parses each inbound's clients once, fills in the
+// UUID/SubId fields on the preloaded ClientStats, and tops up rows owned by
+// a sibling inbound (shared-email mode — the row is keyed on email so it
+// only preloads on its owning inbound).
+func (s *InboundService) enrichClientStats(db *gorm.DB, inbounds []*model.Inbound) {
+	if len(inbounds) == 0 {
+		return
+	}
+	clientsByInbound := make([][]model.Client, len(inbounds))
+	seenByInbound := make([]map[string]struct{}, len(inbounds))
+	missing := make(map[string]struct{})
+	for i, inbound := range inbounds {
+		clients, _ := s.GetClients(inbound)
+		clientsByInbound[i] = clients
+		seen := make(map[string]struct{}, len(inbound.ClientStats))
+		for _, st := range inbound.ClientStats {
+			if st.Email != "" {
+				seen[strings.ToLower(st.Email)] = struct{}{}
+			}
+		}
+		seenByInbound[i] = seen
+		for _, c := range clients {
+			if c.Email == "" {
+				continue
+			}
+			if _, ok := seen[strings.ToLower(c.Email)]; !ok {
+				missing[c.Email] = struct{}{}
+			}
+		}
+	}
+	if len(missing) > 0 {
+		emails := make([]string, 0, len(missing))
+		for e := range missing {
+			emails = append(emails, e)
+		}
+		var extra []xray.ClientTraffic
+		if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", emails).Find(&extra).Error; err != nil {
+			logger.Warning("enrichClientStats:", err)
+		} else {
+			byEmail := make(map[string]xray.ClientTraffic, len(extra))
+			for _, st := range extra {
+				byEmail[strings.ToLower(st.Email)] = st
+			}
+			for i, inbound := range inbounds {
+				for _, c := range clientsByInbound[i] {
+					if c.Email == "" {
+						continue
+					}
+					key := strings.ToLower(c.Email)
+					if _, ok := seenByInbound[i][key]; ok {
+						continue
+					}
+					if st, ok := byEmail[key]; ok {
+						inbound.ClientStats = append(inbound.ClientStats, st)
+						seenByInbound[i][key] = struct{}{}
+					}
+				}
+			}
+		}
+	}
+	for i, inbound := range inbounds {
+		clients := clientsByInbound[i]
+		if len(clients) == 0 || len(inbound.ClientStats) == 0 {
+			continue
+		}
+		cMap := make(map[string]model.Client, len(clients))
+		for _, c := range clients {
+			cMap[strings.ToLower(c.Email)] = c
+		}
+		for j := range inbound.ClientStats {
+			email := strings.ToLower(inbound.ClientStats[j].Email)
+			if c, ok := cMap[email]; ok {
+				inbound.ClientStats[j].UUID = c.ID
+				inbound.ClientStats[j].SubId = c.SubID
+			}
+		}
+	}
+}
+
+// GetInbounds retrieves all inbounds for a specific user with client stats.
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
@@ -35,30 +128,11 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
-	// Enrich client stats with UUID/SubId from inbound settings
-	for _, inbound := range inbounds {
-		clients, _ := s.GetClients(inbound)
-		if len(clients) == 0 || len(inbound.ClientStats) == 0 {
-			continue
-		}
-		// Build a map email -> client
-		cMap := make(map[string]model.Client, len(clients))
-		for _, c := range clients {
-			cMap[strings.ToLower(c.Email)] = c
-		}
-		for i := range inbound.ClientStats {
-			email := strings.ToLower(inbound.ClientStats[i].Email)
-			if c, ok := cMap[email]; ok {
-				inbound.ClientStats[i].UUID = c.ID
-				inbound.ClientStats[i].SubId = c.SubID
-			}
-		}
-	}
+	s.enrichClientStats(db, inbounds)
 	return inbounds, nil
 }
 
-// GetAllInbounds retrieves all inbounds from the database.
-// Returns a slice of all inbound models with their associated client statistics.
+// GetAllInbounds retrieves all inbounds with client stats.
 func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
@@ -66,24 +140,7 @@ func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
-	// Enrich client stats with UUID/SubId from inbound settings
-	for _, inbound := range inbounds {
-		clients, _ := s.GetClients(inbound)
-		if len(clients) == 0 || len(inbound.ClientStats) == 0 {
-			continue
-		}
-		cMap := make(map[string]model.Client, len(clients))
-		for _, c := range clients {
-			cMap[strings.ToLower(c.Email)] = c
-		}
-		for i := range inbound.ClientStats {
-			email := strings.ToLower(inbound.ClientStats[i].Email)
-			if c, ok := cMap[email]; ok {
-				inbound.ClientStats[i].UUID = c.ID
-				inbound.ClientStats[i].SubId = c.SubID
-			}
-		}
-	}
+	s.enrichClientStats(db, inbounds)
 	return inbounds, nil
 }
 
@@ -95,36 +152,6 @@ func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbo
 		return nil, err
 	}
 	return inbounds, nil
-}
-
-func (s *InboundService) checkPortExist(listen string, port int, ignoreId int) (bool, error) {
-	db := database.GetDB()
-	if listen == "" || listen == "0.0.0.0" || listen == "::" || listen == "::0" {
-		db = db.Model(model.Inbound{}).Where("port = ?", port)
-	} else {
-		db = db.Model(model.Inbound{}).
-			Where("port = ?", port).
-			Where(
-				db.Model(model.Inbound{}).Where(
-					"listen = ?", listen,
-				).Or(
-					"listen = \"\"",
-				).Or(
-					"listen = \"0.0.0.0\"",
-				).Or(
-					"listen = \"::\"",
-				).Or(
-					"listen = \"::0\""))
-	}
-	if ignoreId > 0 {
-		db = db.Where("id != ?", ignoreId)
-	}
-	var count int64
-	err := db.Count(&count).Error
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
 }
 
 func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, error) {
@@ -145,7 +172,7 @@ func (s *InboundService) getAllEmails() ([]string, error) {
 	db := database.GetDB()
 	var emails []string
 	err := db.Raw(`
-		SELECT JSON_EXTRACT(client.value, '$.email')
+		SELECT DISTINCT JSON_EXTRACT(client.value, '$.email')
 		FROM inbounds,
 			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
 		`).Scan(&emails).Error
@@ -155,55 +182,97 @@ func (s *InboundService) getAllEmails() ([]string, error) {
 	return emails, nil
 }
 
-func (s *InboundService) contains(slice []string, str string) bool {
-	lowerStr := strings.ToLower(str)
-	for _, s := range slice {
-		if strings.ToLower(s) == lowerStr {
-			return true
-		}
+// getAllEmailSubIDs returns email→subId. An email seen with two different
+// non-empty subIds is locked (mapped to "") so neither identity can claim it.
+func (s *InboundService) getAllEmailSubIDs() (map[string]string, error) {
+	db := database.GetDB()
+	var rows []struct {
+		Email string
+		SubID string
 	}
-	return false
+	err := db.Raw(`
+		SELECT JSON_EXTRACT(client.value, '$.email')  AS email,
+		       JSON_EXTRACT(client.value, '$.subId')  AS sub_id
+		FROM inbounds,
+			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		`).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]string, len(rows))
+	for _, r := range rows {
+		email := strings.ToLower(strings.Trim(r.Email, "\""))
+		if email == "" {
+			continue
+		}
+		subID := strings.Trim(r.SubID, "\"")
+		if existing, ok := result[email]; ok {
+			if existing != subID {
+				result[email] = ""
+			}
+			continue
+		}
+		result[email] = subID
+	}
+	return result, nil
 }
 
+func lowerAll(in []string) []string {
+	out := make([]string, len(in))
+	for i, s := range in {
+		out[i] = strings.ToLower(s)
+	}
+	return out
+}
+
+// emailUsedByOtherInbounds reports whether email lives in any inbound other
+// than exceptInboundId. Empty email returns false.
+func (s *InboundService) emailUsedByOtherInbounds(email string, exceptInboundId int) (bool, error) {
+	if email == "" {
+		return false, nil
+	}
+	db := database.GetDB()
+	var count int64
+	err := db.Raw(`
+		SELECT COUNT(*)
+		FROM inbounds,
+			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		WHERE inbounds.id != ?
+		  AND LOWER(JSON_EXTRACT(client.value, '$.email')) = LOWER(?)
+		`, exceptInboundId, email).Scan(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// checkEmailsExistForClients validates a batch of incoming clients. An email
+// collides only when the existing holder has a different (or empty) subId —
+// matching non-empty subIds let multiple inbounds share one identity.
 func (s *InboundService) checkEmailsExistForClients(clients []model.Client) (string, error) {
-	allEmails, err := s.getAllEmails()
+	emailSubIDs, err := s.getAllEmailSubIDs()
 	if err != nil {
 		return "", err
 	}
-	var emails []string
+	seen := make(map[string]string, len(clients))
 	for _, client := range clients {
-		if client.Email != "" {
-			if s.contains(emails, client.Email) {
-				return client.Email, nil
-			}
-			if s.contains(allEmails, client.Email) {
-				return client.Email, nil
-			}
-			emails = append(emails, client.Email)
+		if client.Email == "" {
+			continue
 		}
-	}
-	return "", nil
-}
-
-func (s *InboundService) checkEmailExistForInbound(inbound *model.Inbound) (string, error) {
-	clients, err := s.GetClients(inbound)
-	if err != nil {
-		return "", err
-	}
-	allEmails, err := s.getAllEmails()
-	if err != nil {
-		return "", err
-	}
-	var emails []string
-	for _, client := range clients {
-		if client.Email != "" {
-			if s.contains(emails, client.Email) {
+		key := strings.ToLower(client.Email)
+		// Within the same payload, the same email must carry the same subId;
+		// otherwise we would silently merge two distinct identities.
+		if prev, ok := seen[key]; ok {
+			if prev != client.SubID || client.SubID == "" {
 				return client.Email, nil
 			}
-			if s.contains(allEmails, client.Email) {
+			continue
+		}
+		seen[key] = client.SubID
+		if existingSub, ok := emailSubIDs[key]; ok {
+			if client.SubID == "" || existingSub == "" || existingSub != client.SubID {
 				return client.Email, nil
 			}
-			emails = append(emails, client.Email)
 		}
 	}
 	return "", nil
@@ -214,7 +283,7 @@ func (s *InboundService) checkEmailExistForInbound(inbound *model.Inbound) (stri
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
-	exist, err := s.checkPortExist(inbound.Listen, inbound.Port, 0)
+	exist, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
 		return inbound, false, err
 	}
@@ -222,17 +291,21 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, common.NewError("Port already exists:", inbound.Port)
 	}
 
-	existEmail, err := s.checkEmailExistForInbound(inbound)
+	inbound.Tag, err = s.resolveInboundTag(inbound, 0)
 	if err != nil {
 		return inbound, false, err
-	}
-	if existEmail != "" {
-		return inbound, false, common.NewError("Duplicate email:", existEmail)
 	}
 
 	clients, err := s.GetClients(inbound)
 	if err != nil {
 		return inbound, false, err
+	}
+	existEmail, err := s.checkEmailsExistForClients(clients)
+	if err != nil {
+		return inbound, false, err
+	}
+	if existEmail != "" {
+		return inbound, false, common.NewError("Duplicate email:", existEmail)
 	}
 
 	// Ensure created_at and updated_at on clients in settings
@@ -270,6 +343,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.Email == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
+		case "hysteria", "hysteria2":
+			if client.Auth == "" {
+				return inbound, false, common.NewError("empty client ID")
+			}
 		default:
 			if client.ID == "" {
 				return inbound, false, common.NewError("empty client ID")
@@ -300,46 +377,49 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 
 	needRestart := false
 	if inbound.Enable {
-		s.xrayApi.Init(p.GetAPIPort())
-		inboundJson, err1 := json.MarshalIndent(inbound.GenXrayInboundConfig(), "", "  ")
-		if err1 != nil {
-			logger.Debug("Unable to marshal inbound config:", err1)
+		rt, rterr := s.runtimeFor(inbound)
+		if rterr != nil {
+			err = rterr
+			return inbound, false, err
 		}
-
-		err1 = s.xrayApi.AddInbound(inboundJson)
-		if err1 == nil {
-			logger.Debug("New inbound added by api:", inbound.Tag)
+		if err1 := rt.AddInbound(context.Background(), inbound); err1 == nil {
+			logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
 		} else {
-			logger.Debug("Unable to add inbound by api:", err1)
+			logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
+			if inbound.NodeID != nil {
+				err = err1
+				return inbound, false, err
+			}
 			needRestart = true
 		}
-		s.xrayApi.Close()
 	}
 
 	return inbound, needRestart, err
 }
 
-// DelInbound deletes an inbound configuration by ID.
-// It removes the inbound from the database and the running Xray instance if active.
-// Returns whether Xray needs restart and any error.
 func (s *InboundService) DelInbound(id int) (bool, error) {
 	db := database.GetDB()
 
-	var tag string
 	needRestart := false
-	result := db.Model(model.Inbound{}).Select("tag").Where("id = ? and enable = ?", id, true).First(&tag)
-	if result.Error == nil {
-		s.xrayApi.Init(p.GetAPIPort())
-		err1 := s.xrayApi.DelInbound(tag)
-		if err1 == nil {
-			logger.Debug("Inbound deleted by api:", tag)
+	var ib model.Inbound
+	loadErr := db.Model(model.Inbound{}).Where("id = ? and enable = ?", id, true).First(&ib).Error
+	if loadErr == nil {
+		rt, rterr := s.runtimeFor(&ib)
+		if rterr != nil {
+			logger.Warning("DelInbound: runtime lookup failed, deleting central row anyway:", rterr)
+			if ib.NodeID == nil {
+				needRestart = true
+			}
+		} else if err1 := rt.DelInbound(context.Background(), &ib); err1 == nil {
+			logger.Debug("Inbound deleted on", rt.Name(), ":", ib.Tag)
 		} else {
-			logger.Debug("Unable to delete inbound by api:", err1)
-			needRestart = true
+			logger.Warning("DelInbound on", rt.Name(), "failed, deleting central row anyway:", err1)
+			if ib.NodeID == nil {
+				needRestart = true
+			}
 		}
-		s.xrayApi.Close()
 	} else {
-		logger.Debug("No enabled inbound founded to removing by api", tag)
+		logger.Debug("No enabled inbound found to remove by api, id:", id)
 	}
 
 	// Delete client traffics of inbounds
@@ -355,10 +435,22 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	for _, client := range clients {
-		err := s.DelClientIPs(db, client.Email)
-		if err != nil {
-			return false, err
+	// Bulk-delete client IPs for every email in this inbound. The previous
+	// per-client loop fired one DELETE per row — at 7k+ clients that meant
+	// thousands of synchronous SQL roundtrips and a multi-second freeze.
+	// Chunked to stay under SQLite's bind-variable limit on huge inbounds.
+	if len(clients) > 0 {
+		emails := make([]string, 0, len(clients))
+		for i := range clients {
+			if clients[i].Email != "" {
+				emails = append(emails, clients[i].Email)
+			}
+		}
+		for _, batch := range chunkStrings(uniqueNonEmptyStrings(emails), sqliteMaxVars) {
+			if err := db.Where("client_email IN ?", batch).
+				Delete(model.InboundClientIps{}).Error; err != nil {
+				return false, err
+			}
 		}
 	}
 
@@ -375,11 +467,70 @@ func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
 	return inbound, nil
 }
 
-// UpdateInbound modifies an existing inbound configuration.
-// It validates changes, updates the database, and syncs with the running Xray instance.
-// Returns the updated inbound, whether Xray needs restart, and any error.
+// SetInboundEnable toggles only the enable flag of an inbound, without
+// rewriting the (potentially multi-MB) settings JSON. Used by the UI's
+// per-row enable switch — for inbounds with thousands of clients the full
+// UpdateInbound path is an order of magnitude too slow for an interactive
+// toggle (parses + reserialises every client, runs O(N) traffic diff).
+//
+// Returns (needRestart, error). needRestart is true when the xray runtime
+// could not be re-synced from the cached config and a full restart is
+// required to pick up the change.
+func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
+	inbound, err := s.GetInbound(id)
+	if err != nil {
+		return false, err
+	}
+	if inbound.Enable == enable {
+		return false, nil
+	}
+
+	db := database.GetDB()
+	if err := db.Model(model.Inbound{}).Where("id = ?", id).
+		Update("enable", enable).Error; err != nil {
+		return false, err
+	}
+	inbound.Enable = enable
+
+	needRestart := false
+	rt, rterr := s.runtimeFor(inbound)
+	if rterr != nil {
+		if inbound.NodeID != nil {
+			return false, rterr
+		}
+		return true, nil
+	}
+
+	if err := rt.DelInbound(context.Background(), inbound); err != nil &&
+		!strings.Contains(err.Error(), "not found") {
+		logger.Debug("SetInboundEnable: DelInbound on", rt.Name(), "failed:", err)
+		needRestart = true
+	}
+	if !enable {
+		return needRestart, nil
+	}
+
+	addTarget := inbound
+	if inbound.NodeID == nil {
+		runtimeInbound, err := s.buildRuntimeInboundForAPI(db, inbound)
+		if err != nil {
+			logger.Debug("SetInboundEnable: build runtime config failed:", err)
+			return true, nil
+		}
+		addTarget = runtimeInbound
+	}
+	if err := rt.AddInbound(context.Background(), addTarget); err != nil {
+		logger.Debug("SetInboundEnable: AddInbound on", rt.Name(), "failed:", err)
+		if inbound.NodeID != nil {
+			return false, err
+		}
+		needRestart = true
+	}
+	return needRestart, nil
+}
+
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
-	exist, err := s.checkPortExist(inbound.Listen, inbound.Port, inbound.Id)
+	exist, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {
 		return inbound, false, err
 	}
@@ -469,8 +620,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		}
 	}
 
-	oldInbound.Up = inbound.Up
-	oldInbound.Down = inbound.Down
 	oldInbound.Total = inbound.Total
 	oldInbound.Remark = inbound.Remark
 	oldInbound.Enable = inbound.Enable
@@ -482,37 +631,118 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.Settings = inbound.Settings
 	oldInbound.StreamSettings = inbound.StreamSettings
 	oldInbound.Sniffing = inbound.Sniffing
-	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		oldInbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
-	} else {
-		oldInbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
+	oldInbound.Tag, err = s.resolveInboundTag(inbound, inbound.Id)
+	if err != nil {
+		return inbound, false, err
 	}
 
 	needRestart := false
-	s.xrayApi.Init(p.GetAPIPort())
-	if s.xrayApi.DelInbound(tag) == nil {
-		logger.Debug("Old inbound deleted by api:", tag)
-	}
-	if inbound.Enable {
-		inboundJson, err2 := json.MarshalIndent(oldInbound.GenXrayInboundConfig(), "", "  ")
-		if err2 != nil {
-			logger.Debug("Unable to marshal updated inbound config:", err2)
-			needRestart = true
+	rt, rterr := s.runtimeFor(oldInbound)
+	if rterr != nil {
+		if oldInbound.NodeID != nil {
+			err = rterr
+			return inbound, false, err
+		}
+		needRestart = true
+	} else {
+		oldSnapshot := *oldInbound
+		oldSnapshot.Tag = tag
+		if oldInbound.NodeID == nil {
+			if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 == nil {
+				logger.Debug("Old inbound deleted on", rt.Name(), ":", tag)
+			}
+			if inbound.Enable {
+				runtimeInbound, err2 := s.buildRuntimeInboundForAPI(tx, oldInbound)
+				if err2 != nil {
+					logger.Debug("Unable to prepare runtime inbound config:", err2)
+					needRestart = true
+				} else if err2 := rt.AddInbound(context.Background(), runtimeInbound); err2 == nil {
+					logger.Debug("Updated inbound added on", rt.Name(), ":", oldInbound.Tag)
+				} else {
+					logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
+					needRestart = true
+				}
+			}
 		} else {
-			err2 = s.xrayApi.AddInbound(inboundJson)
-			if err2 == nil {
-				logger.Debug("Updated inbound added by api:", oldInbound.Tag)
-			} else {
-				logger.Debug("Unable to update inbound by api:", err2)
-				needRestart = true
+			if !inbound.Enable {
+				if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 != nil {
+					err = err2
+					return inbound, false, err
+				}
+			} else if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, oldInbound); err2 != nil {
+				err = err2
+				return inbound, false, err
 			}
 		}
 	}
-	s.xrayApi.Close()
 
 	return inbound, needRestart, tx.Save(oldInbound).Error
 }
 
+func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
+	if inbound == nil {
+		return nil, fmt.Errorf("inbound is nil")
+	}
+
+	runtimeInbound := *inbound
+	settings := map[string]any{}
+	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+		return nil, err
+	}
+
+	clients, ok := settings["clients"].([]any)
+	if !ok {
+		return &runtimeInbound, nil
+	}
+
+	var clientStats []xray.ClientTraffic
+	err := tx.Model(xray.ClientTraffic{}).
+		Where("inbound_id = ?", inbound.Id).
+		Select("email", "enable").
+		Find(&clientStats).Error
+	if err != nil {
+		return nil, err
+	}
+
+	enableMap := make(map[string]bool, len(clientStats))
+	for _, clientTraffic := range clientStats {
+		enableMap[clientTraffic.Email] = clientTraffic.Enable
+	}
+
+	finalClients := make([]any, 0, len(clients))
+	for _, client := range clients {
+		c, ok := client.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		email, _ := c["email"].(string)
+		if enable, exists := enableMap[email]; exists && !enable {
+			continue
+		}
+
+		if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
+			continue
+		}
+
+		finalClients = append(finalClients, c)
+	}
+
+	settings["clients"] = finalClients
+	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	runtimeInbound.Settings = string(modifiedSettings)
+
+	return &runtimeInbound, nil
+}
+
+// updateClientTraffics syncs the ClientTraffic rows with the inbound's clients
+// list: removes rows for emails that disappeared, inserts rows for newly-added
+// emails. Uses sets for O(N) lookup — the previous nested-loop implementation
+// was O(N²) and degraded into multi-second pauses on inbounds with thousands
+// of clients (toggling, saving, or deleting any such inbound felt frozen).
 func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inbound, newInbound *model.Inbound) error {
 	oldClients, err := s.GetClients(oldInbound)
 	if err != nil {
@@ -523,36 +753,58 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		return err
 	}
 
-	var emailExists bool
-
-	for _, oldClient := range oldClients {
-		emailExists = false
-		for _, newClient := range newClients {
-			if oldClient.Email == newClient.Email {
-				emailExists = true
-				break
-			}
+	// Email is the unique key for ClientTraffic rows. Clients without an
+	// email have no stats row to sync — skip them on both sides instead of
+	// risking a unique-constraint hit or accidental delete of an unrelated row.
+	oldEmails := make(map[string]struct{}, len(oldClients))
+	for i := range oldClients {
+		if oldClients[i].Email == "" {
+			continue
 		}
-		if !emailExists {
-			err = s.DelClientStat(tx, oldClient.Email)
-			if err != nil {
-				return err
-			}
+		oldEmails[oldClients[i].Email] = struct{}{}
+	}
+	newEmails := make(map[string]struct{}, len(newClients))
+	for i := range newClients {
+		if newClients[i].Email == "" {
+			continue
+		}
+		newEmails[newClients[i].Email] = struct{}{}
+	}
+
+	// Drop stats rows for removed emails — but not when a sibling inbound
+	// still references the email, since the row is the shared accumulator.
+	for i := range oldClients {
+		email := oldClients[i].Email
+		if email == "" {
+			continue
+		}
+		if _, kept := newEmails[email]; kept {
+			continue
+		}
+		stillUsed, err := s.emailUsedByOtherInbounds(email, oldInbound.Id)
+		if err != nil {
+			return err
+		}
+		if stillUsed {
+			continue
+		}
+		if err := s.DelClientStat(tx, email); err != nil {
+			return err
 		}
 	}
-	for _, newClient := range newClients {
-		emailExists = false
-		for _, oldClient := range oldClients {
-			if newClient.Email == oldClient.Email {
-				emailExists = true
-				break
-			}
+	for i := range newClients {
+		email := newClients[i].Email
+		if email == "" {
+			continue
 		}
-		if !emailExists {
-			err = s.AddClientStat(tx, oldInbound.Id, &newClient)
-			if err != nil {
+		if _, existed := oldEmails[email]; existed {
+			if err := s.UpdateClientStat(tx, email, &newClients[i]); err != nil {
 				return err
 			}
+			continue
+		}
+		if err := s.AddClientStat(tx, oldInbound.Id, &newClients[i]); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -606,6 +858,10 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 			if client.Email == "" {
 				return false, common.NewError("empty client ID")
 			}
+		case "hysteria", "hysteria2":
+			if client.Auth == "" {
+				return false, common.NewError("empty client ID")
+			}
 		default:
 			if client.ID == "" {
 				return false, common.NewError("empty client ID")
@@ -643,37 +899,252 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 	}()
 
 	needRestart := false
-	s.xrayApi.Init(p.GetAPIPort())
-	for _, client := range clients {
-		if len(client.Email) > 0 {
-			s.AddClientStat(tx, data.Id, &client)
-			if client.Enable {
-				cipher := ""
-				if oldInbound.Protocol == "shadowsocks" {
-					cipher = oldSettings["method"].(string)
-				}
-				err1 := s.xrayApi.AddUser(string(oldInbound.Protocol), oldInbound.Tag, map[string]any{
-					"email":    client.Email,
-					"id":       client.ID,
-					"security": client.Security,
-					"flow":     client.Flow,
-					"password": client.Password,
-					"cipher":   cipher,
-				})
-				if err1 == nil {
-					logger.Debug("Client added by api:", client.Email)
-				} else {
-					logger.Debug("Error in adding client by api:", err1)
-					needRestart = true
-				}
+	rt, rterr := s.runtimeFor(oldInbound)
+	if rterr != nil {
+		if oldInbound.NodeID != nil {
+			err = rterr
+			return false, err
+		}
+		needRestart = true
+	} else if oldInbound.NodeID == nil {
+		for _, client := range clients {
+			if len(client.Email) == 0 {
+				needRestart = true
+				continue
 			}
-		} else {
-			needRestart = true
+			s.AddClientStat(tx, data.Id, &client)
+			if !client.Enable {
+				continue
+			}
+			cipher := ""
+			if oldInbound.Protocol == "shadowsocks" {
+				cipher = oldSettings["method"].(string)
+			}
+			err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
+				"email":    client.Email,
+				"id":       client.ID,
+				"auth":     client.Auth,
+				"security": client.Security,
+				"flow":     client.Flow,
+				"password": client.Password,
+				"cipher":   cipher,
+			})
+			if err1 == nil {
+				logger.Debug("Client added on", rt.Name(), ":", client.Email)
+			} else {
+				logger.Debug("Error in adding client on", rt.Name(), ":", err1)
+				needRestart = true
+			}
+		}
+	} else {
+		for _, client := range clients {
+			if len(client.Email) > 0 {
+				s.AddClientStat(tx, data.Id, &client)
+			}
+		}
+		if err1 := rt.UpdateInbound(context.Background(), oldInbound, oldInbound); err1 != nil {
+			err = err1
+			return false, err
 		}
 	}
-	s.xrayApi.Close()
 
 	return needRestart, tx.Save(oldInbound).Error
+}
+
+func (s *InboundService) getClientPrimaryKey(protocol model.Protocol, client model.Client) string {
+	switch protocol {
+	case model.Trojan:
+		return client.Password
+	case model.Shadowsocks:
+		return client.Email
+	case model.Hysteria:
+		return client.Auth
+	default:
+		return client.ID
+	}
+}
+
+func (s *InboundService) writeBackClientSubID(sourceInboundID int, sourceProtocol model.Protocol, client model.Client, subID string) (bool, error) {
+	client.SubID = subID
+	client.UpdatedAt = time.Now().UnixMilli()
+	clientID := s.getClientPrimaryKey(sourceProtocol, client)
+	if clientID == "" {
+		return false, common.NewError("empty client ID")
+	}
+
+	settingsBytes, err := json.Marshal(map[string][]model.Client{
+		"clients": {client},
+	})
+	if err != nil {
+		return false, err
+	}
+
+	updatePayload := &model.Inbound{
+		Id:       sourceInboundID,
+		Settings: string(settingsBytes),
+	}
+	return s.UpdateInboundClient(updatePayload, clientID)
+}
+
+func (s *InboundService) generateRandomCredential(targetProtocol model.Protocol) string {
+	switch targetProtocol {
+	case model.VMESS, model.VLESS:
+		return uuid.NewString()
+	default:
+		return strings.ReplaceAll(uuid.NewString(), "-", "")
+	}
+}
+
+func (s *InboundService) buildTargetClientFromSource(source model.Client, targetProtocol model.Protocol, email string, flow string) (model.Client, error) {
+	nowTs := time.Now().UnixMilli()
+	target := source
+	target.Email = email
+	target.CreatedAt = nowTs
+	target.UpdatedAt = nowTs
+
+	target.ID = ""
+	target.Password = ""
+	target.Auth = ""
+	target.Flow = ""
+
+	switch targetProtocol {
+	case model.VMESS:
+		target.ID = s.generateRandomCredential(targetProtocol)
+	case model.VLESS:
+		target.ID = s.generateRandomCredential(targetProtocol)
+		if flow == "xtls-rprx-vision" || flow == "xtls-rprx-vision-udp443" {
+			target.Flow = flow
+		}
+	case model.Trojan, model.Shadowsocks:
+		target.Password = s.generateRandomCredential(targetProtocol)
+	case model.Hysteria:
+		target.Auth = s.generateRandomCredential(targetProtocol)
+	default:
+		target.ID = s.generateRandomCredential(targetProtocol)
+	}
+
+	return target, nil
+}
+
+func (s *InboundService) nextAvailableCopiedEmail(originalEmail string, targetID int, occupied map[string]struct{}) string {
+	base := fmt.Sprintf("%s_%d", originalEmail, targetID)
+	candidate := base
+	suffix := 0
+	for {
+		if _, exists := occupied[strings.ToLower(candidate)]; !exists {
+			occupied[strings.ToLower(candidate)] = struct{}{}
+			return candidate
+		}
+		suffix++
+		candidate = fmt.Sprintf("%s_%d", base, suffix)
+	}
+}
+
+func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID int, clientEmails []string, flow string) (*CopyClientsResult, bool, error) {
+	result := &CopyClientsResult{
+		Added:   []string{},
+		Skipped: []string{},
+		Errors:  []string{},
+	}
+	if targetInboundID == sourceInboundID {
+		return result, false, common.NewError("source and target inbounds must be different")
+	}
+
+	targetInbound, err := s.GetInbound(targetInboundID)
+	if err != nil {
+		return result, false, err
+	}
+	sourceInbound, err := s.GetInbound(sourceInboundID)
+	if err != nil {
+		return result, false, err
+	}
+
+	sourceClients, err := s.GetClients(sourceInbound)
+	if err != nil {
+		return result, false, err
+	}
+	if len(sourceClients) == 0 {
+		return result, false, nil
+	}
+
+	allowedEmails := map[string]struct{}{}
+	if len(clientEmails) > 0 {
+		for _, email := range clientEmails {
+			allowedEmails[strings.ToLower(strings.TrimSpace(email))] = struct{}{}
+		}
+	}
+
+	occupiedEmails := map[string]struct{}{}
+	allEmails, err := s.getAllEmails()
+	if err != nil {
+		return result, false, err
+	}
+	for _, email := range allEmails {
+		clean := strings.Trim(email, "\"")
+		if clean != "" {
+			occupiedEmails[strings.ToLower(clean)] = struct{}{}
+		}
+	}
+
+	newClients := make([]model.Client, 0)
+	needRestart := false
+	for _, sourceClient := range sourceClients {
+		originalEmail := strings.TrimSpace(sourceClient.Email)
+		if originalEmail == "" {
+			continue
+		}
+		if len(allowedEmails) > 0 {
+			if _, ok := allowedEmails[strings.ToLower(originalEmail)]; !ok {
+				continue
+			}
+		}
+
+		if sourceClient.SubID == "" {
+			newSubID := uuid.NewString()
+			subNeedRestart, subErr := s.writeBackClientSubID(sourceInbound.Id, sourceInbound.Protocol, sourceClient, newSubID)
+			if subErr != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("%s: failed to write source subId: %v", originalEmail, subErr))
+				continue
+			}
+			if subNeedRestart {
+				needRestart = true
+			}
+			sourceClient.SubID = newSubID
+		}
+
+		targetEmail := s.nextAvailableCopiedEmail(originalEmail, targetInboundID, occupiedEmails)
+		targetClient, buildErr := s.buildTargetClientFromSource(sourceClient, targetInbound.Protocol, targetEmail, flow)
+		if buildErr != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", originalEmail, buildErr))
+			continue
+		}
+		newClients = append(newClients, targetClient)
+		result.Added = append(result.Added, targetEmail)
+	}
+
+	if len(newClients) == 0 {
+		return result, needRestart, nil
+	}
+
+	settingsPayload, err := json.Marshal(map[string][]model.Client{
+		"clients": newClients,
+	})
+	if err != nil {
+		return result, needRestart, err
+	}
+
+	addNeedRestart, err := s.AddInboundClient(&model.Inbound{
+		Id:       targetInboundID,
+		Settings: string(settingsPayload),
+	})
+	if err != nil {
+		return result, needRestart, err
+	}
+	if addNeedRestart {
+		needRestart = true
+	}
+
+	return result, needRestart, nil
 }
 
 func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool, error) {
@@ -690,25 +1161,33 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 
 	email := ""
 	client_key := "id"
-	if oldInbound.Protocol == "trojan" {
+	switch oldInbound.Protocol {
+	case "trojan":
 		client_key = "password"
-	}
-	if oldInbound.Protocol == "shadowsocks" {
+	case "shadowsocks":
 		client_key = "email"
+	case "hysteria", "hysteria2":
+		client_key = "auth"
 	}
 
 	interfaceClients := settings["clients"].([]any)
 	var newClients []any
 	needApiDel := false
+	clientFound := false
 	for _, client := range interfaceClients {
 		c := client.(map[string]any)
 		c_id := c[client_key].(string)
 		if c_id == clientId {
+			clientFound = true
 			email, _ = c["email"].(string)
 			needApiDel, _ = c["enable"].(bool)
 		} else {
 			newClients = append(newClients, client)
 		}
+	}
+
+	if !clientFound {
+		return false, common.NewError("Client Not Found In Inbound For ID:", clientId)
 	}
 
 	if len(newClients) == 0 {
@@ -725,10 +1204,19 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 
 	db := database.GetDB()
 
-	err = s.DelClientIPs(db, email)
+	// Keep the client_traffics row and IPs alive when another inbound still
+	// references this email — siblings depend on the shared accounting state.
+	emailShared, err := s.emailUsedByOtherInbounds(email, inboundId)
 	if err != nil {
-		logger.Error("Error in delete client IPs")
 		return false, err
+	}
+
+	if !emailShared {
+		err = s.DelClientIPs(db, email)
+		if err != nil {
+			logger.Error("Error in delete client IPs")
+			return false, err
+		}
 	}
 	needRestart := false
 
@@ -739,26 +1227,36 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 			logger.Error("Get stats error")
 			return false, err
 		}
-		err = s.DelClientStat(db, email)
-		if err != nil {
-			logger.Error("Delete stats Data Error")
-			return false, err
+		if !emailShared {
+			err = s.DelClientStat(db, email)
+			if err != nil {
+				logger.Error("Delete stats Data Error")
+				return false, err
+			}
 		}
 		if needApiDel && notDepleted {
-			s.xrayApi.Init(p.GetAPIPort())
-			err1 := s.xrayApi.RemoveUser(oldInbound.Tag, email)
-			if err1 == nil {
-				logger.Debug("Client deleted by api:", email)
-				needRestart = false
-			} else {
-				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+			rt, rterr := s.runtimeFor(oldInbound)
+			if rterr != nil {
+				if oldInbound.NodeID != nil {
+					return false, rterr
+				}
+				needRestart = true
+			} else if oldInbound.NodeID == nil {
+				err1 := rt.RemoveUser(context.Background(), oldInbound, email)
+				if err1 == nil {
+					logger.Debug("Client deleted on", rt.Name(), ":", email)
+					needRestart = false
+				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
 					logger.Debug("User is already deleted. Nothing to do more...")
 				} else {
-					logger.Debug("Error in deleting client by api:", err1)
+					logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
 					needRestart = true
 				}
+			} else {
+				if err1 := rt.UpdateInbound(context.Background(), oldInbound, oldInbound); err1 != nil {
+					return false, err1
+				}
 			}
-			s.xrayApi.Close()
 		}
 	}
 	return needRestart, db.Save(oldInbound).Error
@@ -801,6 +1299,9 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		case "shadowsocks":
 			oldClientId = oldClient.Email
 			newClientId = clients[0].Email
+		case "hysteria", "hysteria2":
+			oldClientId = oldClient.Auth
+			newClientId = clients[0].Auth
 		default:
 			oldClientId = oldClient.ID
 			newClientId = clients[0].ID
@@ -855,6 +1356,28 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 	settingsClients[clientIndex] = interfaceClients[0]
 	oldSettings["clients"] = settingsClients
 
+	// testseed is only meaningful when at least one VLESS client uses the exact
+	// xtls-rprx-vision flow. The client-edit path only rewrites a single client,
+	// so re-check the flow set here and strip a stale testseed when nothing in the
+	// inbound still warrants it. The full-inbound update path already handles this
+	// on the JS side via VLESSSettings.toJson().
+	if oldInbound.Protocol == model.VLESS {
+		hasVisionFlow := false
+		for _, c := range settingsClients {
+			cm, ok := c.(map[string]any)
+			if !ok {
+				continue
+			}
+			if flow, _ := cm["flow"].(string); flow == "xtls-rprx-vision" {
+				hasVisionFlow = true
+				break
+			}
+		}
+		if !hasVisionFlow {
+			delete(oldSettings, "testseed")
+		}
+	}
+
 	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
 	if err != nil {
 		return false, err
@@ -874,64 +1397,110 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 
 	if len(clients[0].Email) > 0 {
 		if len(oldEmail) > 0 {
-			err = s.UpdateClientStat(tx, oldEmail, &clients[0])
-			if err != nil {
-				return false, err
+			// Repointing onto an email that already has a row would collide on
+			// the unique constraint, so retire the donor and let the surviving
+			// row carry the merged identity.
+			emailUnchanged := strings.EqualFold(oldEmail, clients[0].Email)
+			targetExists := int64(0)
+			if !emailUnchanged {
+				if err = tx.Model(xray.ClientTraffic{}).Where("email = ?", clients[0].Email).Count(&targetExists).Error; err != nil {
+					return false, err
+				}
 			}
-			err = s.UpdateClientIPs(tx, oldEmail, clients[0].Email)
-			if err != nil {
-				return false, err
+			if emailUnchanged || targetExists == 0 {
+				err = s.UpdateClientStat(tx, oldEmail, &clients[0])
+				if err != nil {
+					return false, err
+				}
+				err = s.UpdateClientIPs(tx, oldEmail, clients[0].Email)
+				if err != nil {
+					return false, err
+				}
+			} else {
+				stillUsed, sErr := s.emailUsedByOtherInbounds(oldEmail, data.Id)
+				if sErr != nil {
+					return false, sErr
+				}
+				if !stillUsed {
+					if err = s.DelClientStat(tx, oldEmail); err != nil {
+						return false, err
+					}
+					if err = s.DelClientIPs(tx, oldEmail); err != nil {
+						return false, err
+					}
+				}
+				// Refresh the surviving row with the new client's limits/expiry.
+				if err = s.UpdateClientStat(tx, clients[0].Email, &clients[0]); err != nil {
+					return false, err
+				}
 			}
 		} else {
 			s.AddClientStat(tx, data.Id, &clients[0])
 		}
 	} else {
-		err = s.DelClientStat(tx, oldEmail)
+		stillUsed, err := s.emailUsedByOtherInbounds(oldEmail, data.Id)
 		if err != nil {
 			return false, err
 		}
-		err = s.DelClientIPs(tx, oldEmail)
-		if err != nil {
-			return false, err
+		if !stillUsed {
+			err = s.DelClientStat(tx, oldEmail)
+			if err != nil {
+				return false, err
+			}
+			err = s.DelClientIPs(tx, oldEmail)
+			if err != nil {
+				return false, err
+			}
 		}
 	}
 	needRestart := false
 	if len(oldEmail) > 0 {
-		s.xrayApi.Init(p.GetAPIPort())
-		if oldClients[clientIndex].Enable {
-			err1 := s.xrayApi.RemoveUser(oldInbound.Tag, oldEmail)
-			if err1 == nil {
-				logger.Debug("Old client deleted by api:", oldEmail)
-			} else {
-				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", oldEmail)) {
+		rt, rterr := s.runtimeFor(oldInbound)
+		if rterr != nil {
+			if oldInbound.NodeID != nil {
+				err = rterr
+				return false, err
+			}
+			needRestart = true
+		} else if oldInbound.NodeID == nil {
+			if oldClients[clientIndex].Enable {
+				err1 := rt.RemoveUser(context.Background(), oldInbound, oldEmail)
+				if err1 == nil {
+					logger.Debug("Old client deleted on", rt.Name(), ":", oldEmail)
+				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", oldEmail)) {
 					logger.Debug("User is already deleted. Nothing to do more...")
 				} else {
-					logger.Debug("Error in deleting client by api:", err1)
+					logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
 					needRestart = true
 				}
 			}
-		}
-		if clients[0].Enable {
-			cipher := ""
-			if oldInbound.Protocol == "shadowsocks" {
-				cipher = oldSettings["method"].(string)
+			if clients[0].Enable {
+				cipher := ""
+				if oldInbound.Protocol == "shadowsocks" {
+					cipher = oldSettings["method"].(string)
+				}
+				err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
+					"email":    clients[0].Email,
+					"id":       clients[0].ID,
+					"security": clients[0].Security,
+					"flow":     clients[0].Flow,
+					"auth":     clients[0].Auth,
+					"password": clients[0].Password,
+					"cipher":   cipher,
+				})
+				if err1 == nil {
+					logger.Debug("Client edited on", rt.Name(), ":", clients[0].Email)
+				} else {
+					logger.Debug("Error in adding client on", rt.Name(), ":", err1)
+					needRestart = true
+				}
 			}
-			err1 := s.xrayApi.AddUser(string(oldInbound.Protocol), oldInbound.Tag, map[string]any{
-				"email":    clients[0].Email,
-				"id":       clients[0].ID,
-				"security": clients[0].Security,
-				"flow":     clients[0].Flow,
-				"password": clients[0].Password,
-				"cipher":   cipher,
-			})
-			if err1 == nil {
-				logger.Debug("Client edited by api:", clients[0].Email)
-			} else {
-				logger.Debug("Error in adding client by api:", err1)
-				needRestart = true
+		} else {
+			if err1 := rt.UpdateInbound(context.Background(), oldInbound, oldInbound); err1 != nil {
+				err = err1
+				return false, err
 			}
 		}
-		s.xrayApi.Close()
 	} else {
 		logger.Debug("Client old email not found")
 		needRestart = true
@@ -939,7 +1508,279 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 	return needRestart, tx.Save(oldInbound).Error
 }
 
-func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool) {
+const resetGracePeriodMs int64 = 30000
+
+func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot) (bool, error) {
+	var structuralChange bool
+	err := submitTrafficWrite(func() error {
+		var inner error
+		structuralChange, inner = s.setRemoteTrafficLocked(nodeID, snap)
+		return inner
+	})
+	return structuralChange, err
+}
+
+func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.TrafficSnapshot) (bool, error) {
+	if snap == nil || nodeID <= 0 {
+		return false, nil
+	}
+	db := database.GetDB()
+	now := time.Now().UnixMilli()
+
+	var central []model.Inbound
+	if err := db.Model(model.Inbound{}).
+		Where("node_id = ?", nodeID).
+		Find(&central).Error; err != nil {
+		return false, err
+	}
+	tagToCentral := make(map[string]*model.Inbound, len(central))
+	for i := range central {
+		tagToCentral[central[i].Tag] = &central[i]
+	}
+
+	var centralClientStats []xray.ClientTraffic
+	if len(central) > 0 {
+		ids := make([]int, 0, len(central))
+		for i := range central {
+			ids = append(ids, central[i].Id)
+		}
+		if err := db.Model(xray.ClientTraffic{}).
+			Where("inbound_id IN ?", ids).
+			Find(&centralClientStats).Error; err != nil {
+			return false, err
+		}
+	}
+	type csKey struct {
+		inboundID int
+		email     string
+	}
+	centralCS := make(map[csKey]*xray.ClientTraffic, len(centralClientStats))
+	for i := range centralClientStats {
+		centralCS[csKey{centralClientStats[i].InboundId, centralClientStats[i].Email}] = &centralClientStats[i]
+	}
+
+	var defaultUserId int
+	if len(central) > 0 {
+		defaultUserId = central[0].UserId
+	} else {
+		var u model.User
+		if err := db.Model(model.User{}).Order("id asc").First(&u).Error; err == nil {
+			defaultUserId = u.Id
+		} else {
+			defaultUserId = 1
+		}
+	}
+
+	tx := db.Begin()
+	committed := false
+	defer func() {
+		if !committed {
+			tx.Rollback()
+		}
+	}()
+
+	structuralChange := false
+
+	snapTags := make(map[string]struct{}, len(snap.Inbounds))
+	for _, snapIb := range snap.Inbounds {
+		if snapIb == nil {
+			continue
+		}
+		snapTags[snapIb.Tag] = struct{}{}
+
+		c, ok := tagToCentral[snapIb.Tag]
+		if !ok {
+			newIb := model.Inbound{
+				UserId:         defaultUserId,
+				NodeID:         &nodeID,
+				Tag:            snapIb.Tag,
+				Listen:         snapIb.Listen,
+				Port:           snapIb.Port,
+				Protocol:       snapIb.Protocol,
+				Settings:       snapIb.Settings,
+				StreamSettings: snapIb.StreamSettings,
+				Sniffing:       snapIb.Sniffing,
+				TrafficReset:   snapIb.TrafficReset,
+				Enable:         snapIb.Enable,
+				Remark:         snapIb.Remark,
+				Total:          snapIb.Total,
+				ExpiryTime:     snapIb.ExpiryTime,
+				Up:             snapIb.Up,
+				Down:           snapIb.Down,
+				AllTime:        snapIb.AllTime,
+			}
+			if err := tx.Create(&newIb).Error; err != nil {
+				logger.Warning("setRemoteTraffic: create central inbound for tag", snapIb.Tag, "failed:", err)
+				continue
+			}
+			tagToCentral[snapIb.Tag] = &newIb
+			structuralChange = true
+			continue
+		}
+
+		inGrace := c.LastTrafficResetTime > 0 && now-c.LastTrafficResetTime < resetGracePeriodMs
+
+		updates := map[string]any{
+			"enable":          snapIb.Enable,
+			"remark":          snapIb.Remark,
+			"listen":          snapIb.Listen,
+			"port":            snapIb.Port,
+			"protocol":        snapIb.Protocol,
+			"total":           snapIb.Total,
+			"expiry_time":     snapIb.ExpiryTime,
+			"settings":        snapIb.Settings,
+			"stream_settings": snapIb.StreamSettings,
+			"sniffing":        snapIb.Sniffing,
+			"traffic_reset":   snapIb.TrafficReset,
+		}
+		if !inGrace || (snapIb.Up+snapIb.Down) <= (c.Up+c.Down) {
+			updates["up"] = snapIb.Up
+			updates["down"] = snapIb.Down
+		}
+		if snapIb.AllTime > c.AllTime {
+			updates["all_time"] = snapIb.AllTime
+		}
+
+		if c.Settings != snapIb.Settings ||
+			c.Remark != snapIb.Remark ||
+			c.Listen != snapIb.Listen ||
+			c.Port != snapIb.Port ||
+			c.Total != snapIb.Total ||
+			c.ExpiryTime != snapIb.ExpiryTime ||
+			c.Enable != snapIb.Enable {
+			structuralChange = true
+		}
+
+		if err := tx.Model(model.Inbound{}).
+			Where("id = ?", c.Id).
+			Updates(updates).Error; err != nil {
+			return false, err
+		}
+	}
+
+	for _, c := range central {
+		if _, kept := snapTags[c.Tag]; kept {
+			continue
+		}
+		if err := tx.Where("inbound_id = ?", c.Id).
+			Delete(&xray.ClientTraffic{}).Error; err != nil {
+			return false, err
+		}
+		if err := tx.Where("id = ?", c.Id).
+			Delete(&model.Inbound{}).Error; err != nil {
+			return false, err
+		}
+		delete(tagToCentral, c.Tag)
+		structuralChange = true
+	}
+
+	for _, snapIb := range snap.Inbounds {
+		if snapIb == nil {
+			continue
+		}
+		c, ok := tagToCentral[snapIb.Tag]
+		if !ok {
+			continue
+		}
+		inGrace := c.LastTrafficResetTime > 0 && now-c.LastTrafficResetTime < resetGracePeriodMs
+
+		snapEmails := make(map[string]struct{}, len(snapIb.ClientStats))
+		for _, cs := range snapIb.ClientStats {
+			snapEmails[cs.Email] = struct{}{}
+
+			existing := centralCS[csKey{c.Id, cs.Email}]
+			if existing == nil {
+				if err := tx.Create(&xray.ClientTraffic{
+					InboundId:  c.Id,
+					Email:      cs.Email,
+					Enable:     cs.Enable,
+					Total:      cs.Total,
+					ExpiryTime: cs.ExpiryTime,
+					Reset:      cs.Reset,
+					Up:         cs.Up,
+					Down:       cs.Down,
+					AllTime:    cs.AllTime,
+					LastOnline: cs.LastOnline,
+				}).Error; err != nil {
+					return false, err
+				}
+				structuralChange = true
+				continue
+			}
+
+			if existing.Enable != cs.Enable ||
+				existing.Total != cs.Total ||
+				existing.ExpiryTime != cs.ExpiryTime ||
+				existing.Reset != cs.Reset {
+				structuralChange = true
+			}
+
+			allTime := existing.AllTime
+			if cs.AllTime > allTime {
+				allTime = cs.AllTime
+			}
+
+			if inGrace && cs.Up+cs.Down > 0 {
+				if err := tx.Exec(
+					`UPDATE client_traffics
+					 SET enable = ?, total = ?, expiry_time = ?, reset = ?, all_time = ?
+					 WHERE inbound_id = ? AND email = ?`,
+					cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset, allTime, c.Id, cs.Email,
+				).Error; err != nil {
+					return false, err
+				}
+				continue
+			}
+
+			if err := tx.Exec(
+				`UPDATE client_traffics
+				 SET up = ?, down = ?, enable = ?, total = ?, expiry_time = ?, reset = ?,
+				     all_time = ?, last_online = MAX(last_online, ?)
+				 WHERE inbound_id = ? AND email = ?`,
+				cs.Up, cs.Down, cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset, allTime,
+				cs.LastOnline, c.Id, cs.Email,
+			).Error; err != nil {
+				return false, err
+			}
+		}
+
+		for k, existing := range centralCS {
+			if k.inboundID != c.Id {
+				continue
+			}
+			if _, kept := snapEmails[k.email]; kept {
+				continue
+			}
+			if err := tx.Where("inbound_id = ? AND email = ?", c.Id, existing.Email).
+				Delete(&xray.ClientTraffic{}).Error; err != nil {
+				return false, err
+			}
+			structuralChange = true
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return false, err
+	}
+	committed = true
+
+	if p != nil {
+		p.SetNodeOnlineClients(nodeID, snap.OnlineEmails)
+	}
+
+	return structuralChange, nil
+}
+
+func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (needRestart bool, clientsDisabled bool, err error) {
+	err = submitTrafficWrite(func() error {
+		var inner error
+		needRestart, clientsDisabled, inner = s.addTrafficLocked(inboundTraffics, clientTraffics)
+		return inner
+	})
+	return
+}
+
+func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (bool, bool, error) {
 	var err error
 	db := database.GetDB()
 	tx := db.Begin()
@@ -953,11 +1794,11 @@ func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraff
 	}()
 	err = s.addInboundTraffic(tx, inboundTraffics)
 	if err != nil {
-		return err, false
+		return false, false, err
 	}
 	err = s.addClientTraffic(tx, clientTraffics)
 	if err != nil {
-		return err, false
+		return false, false, err
 	}
 
 	needRestart0, count, err := s.autoRenewClients(tx)
@@ -967,11 +1808,13 @@ func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraff
 		logger.Debugf("%v clients renewed", count)
 	}
 
+	disabledClientsCount := int64(0)
 	needRestart1, count, err := s.disableInvalidClients(tx)
 	if err != nil {
 		logger.Warning("Error in disabling invalid clients:", err)
 	} else if count > 0 {
 		logger.Debugf("%v clients disabled", count)
+		disabledClientsCount = count
 	}
 
 	needRestart2, count, err := s.disableInvalidInbounds(tx)
@@ -980,7 +1823,7 @@ func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraff
 	} else if count > 0 {
 		logger.Debugf("%v inbounds disabled", count)
 	}
-	return nil, (needRestart0 || needRestart1 || needRestart2)
+	return needRestart0 || needRestart1 || needRestart2, disabledClientsCount > 0, nil
 }
 
 func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic) error {
@@ -992,7 +1835,7 @@ func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic
 
 	for _, traffic := range traffics {
 		if traffic.IsInbound {
-			err = tx.Model(&model.Inbound{}).Where("tag = ?", traffic.Tag).
+			err = tx.Model(&model.Inbound{}).Where("tag = ? AND node_id IS NULL", traffic.Tag).
 				Updates(map[string]any{
 					"up":       gorm.Expr("up + ?", traffic.Up),
 					"down":     gorm.Expr("down + ?", traffic.Down),
@@ -1022,7 +1865,10 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		emails = append(emails, traffic.Email)
 	}
 	dbClientTraffics := make([]*xray.ClientTraffic, 0, len(traffics))
-	err = tx.Model(xray.ClientTraffic{}).Where("email IN (?)", emails).Find(&dbClientTraffics).Error
+	err = tx.Model(xray.ClientTraffic{}).
+		Where("email IN (?) AND inbound_id IN (?)", emails,
+			tx.Model(&model.Inbound{}).Select("id").Where("node_id IS NULL")).
+		Find(&dbClientTraffics).Error
 	if err != nil {
 		return err
 	}
@@ -1037,20 +1883,27 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		return err
 	}
 
+	// Index by email for O(N) merge — the previous nested loop was O(N²)
+	// and dominated each cron tick on inbounds with thousands of active
+	// clients (7500 × 7500 = 56M string comparisons every 10 seconds).
+	trafficByEmail := make(map[string]*xray.ClientTraffic, len(traffics))
+	for i := range traffics {
+		if traffics[i] != nil {
+			trafficByEmail[traffics[i].Email] = traffics[i]
+		}
+	}
+	now := time.Now().UnixMilli()
 	for dbTraffic_index := range dbClientTraffics {
-		for traffic_index := range traffics {
-			if dbClientTraffics[dbTraffic_index].Email == traffics[traffic_index].Email {
-				dbClientTraffics[dbTraffic_index].Up += traffics[traffic_index].Up
-				dbClientTraffics[dbTraffic_index].Down += traffics[traffic_index].Down
-				dbClientTraffics[dbTraffic_index].AllTime += (traffics[traffic_index].Up + traffics[traffic_index].Down)
-
-				// Add user in onlineUsers array on traffic
-				if traffics[traffic_index].Up+traffics[traffic_index].Down > 0 {
-					onlineClients = append(onlineClients, traffics[traffic_index].Email)
-					dbClientTraffics[dbTraffic_index].LastOnline = time.Now().UnixMilli()
-				}
-				break
-			}
+		t, ok := trafficByEmail[dbClientTraffics[dbTraffic_index].Email]
+		if !ok {
+			continue
+		}
+		dbClientTraffics[dbTraffic_index].Up += t.Up
+		dbClientTraffics[dbTraffic_index].Down += t.Down
+		dbClientTraffics[dbTraffic_index].AllTime += t.Up + t.Down
+		if t.Up+t.Down > 0 {
+			onlineClients = append(onlineClients, t.Email)
+			dbClientTraffics[dbTraffic_index].LastOnline = now
 		}
 	}
 
@@ -1129,7 +1982,10 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	now := time.Now().Unix() * 1000
 	var err, err1 error
 
-	err = tx.Model(xray.ClientTraffic{}).Where("reset > 0 and expiry_time > 0 and expiry_time <= ?", now).Find(&traffics).Error
+	err = tx.Model(xray.ClientTraffic{}).
+		Where("reset > 0 and expiry_time > 0 and expiry_time <= ?", now).
+		Where("inbound_id IN (?)", tx.Model(&model.Inbound{}).Select("id").Where("node_id IS NULL")).
+		Find(&traffics).Error
 	if err != nil {
 		return false, 0, err
 	}
@@ -1150,9 +2006,17 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	for _, traffic := range traffics {
 		inbound_ids = append(inbound_ids, traffic.InboundId)
 	}
-	err = tx.Model(model.Inbound{}).Where("id IN ?", inbound_ids).Find(&inbounds).Error
-	if err != nil {
-		return false, 0, err
+	// Dedupe so an inbound hosting N expired clients is fetched and saved once
+	// per tick instead of N times across chunk boundaries.
+	inbound_ids = uniqueInts(inbound_ids)
+	// Chunked to stay under SQLite's bind-variable limit when many inbounds
+	// are touched in a single tick.
+	for _, batch := range chunkInts(inbound_ids, sqliteMaxVars) {
+		var page []*model.Inbound
+		if err = tx.Model(model.Inbound{}).Where("id IN ?", batch).Find(&page).Error; err != nil {
+			return false, 0, err
+		}
+		inbounds = append(inbounds, page...)
 	}
 	for inbound_index := range inbounds {
 		settings := map[string]any{}
@@ -1227,7 +2091,7 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error
 		var tags []string
 		err := tx.Table("inbounds").
 			Select("inbounds.tag").
-			Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ?", now, true).
+			Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ? and node_id IS NULL", now, true).
 			Scan(&tags).Error
 		if err != nil {
 			return false, 0, err
@@ -1246,7 +2110,7 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error
 	}
 
 	result := tx.Model(model.Inbound{}).
-		Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ?", now, true).
+		Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ? and node_id IS NULL", now, true).
 		Update("enable", false)
 	err := result.Error
 	count := result.RowsAffected
@@ -1257,46 +2121,188 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 	now := time.Now().Unix() * 1000
 	needRestart := false
 
-	if p != nil {
-		var results []struct {
-			Tag   string
-			Email string
-		}
+	var depletedRows []xray.ClientTraffic
+	err := tx.Model(xray.ClientTraffic{}).
+		Where("((total > 0 AND up + down >= total) OR (expiry_time > 0 AND expiry_time <= ?)) AND enable = ?", now, true).
+		Where("inbound_id IN (?)", tx.Model(&model.Inbound{}).Select("id").Where("node_id IS NULL")).
+		Find(&depletedRows).Error
+	if err != nil {
+		return false, 0, err
+	}
+	if len(depletedRows) == 0 {
+		return false, 0, nil
+	}
 
-		err := tx.Table("inbounds").
-			Select("inbounds.tag, client_traffics.email").
-			Joins("JOIN client_traffics ON inbounds.id = client_traffics.inbound_id").
-			Where("((client_traffics.total > 0 AND client_traffics.up + client_traffics.down >= client_traffics.total) OR (client_traffics.expiry_time > 0 AND client_traffics.expiry_time <= ?)) AND client_traffics.enable = ?", now, true).
-			Scan(&results).Error
+	rowByEmail := make(map[string]*xray.ClientTraffic, len(depletedRows))
+	depletedEmails := make([]string, 0, len(depletedRows))
+	for i := range depletedRows {
+		if depletedRows[i].Email == "" {
+			continue
+		}
+		rowByEmail[strings.ToLower(depletedRows[i].Email)] = &depletedRows[i]
+		depletedEmails = append(depletedEmails, depletedRows[i].Email)
+	}
+
+	// Resolve inbound membership only for the depleted emails — pushing the
+	// filter into SQLite avoids dragging every panel client through Go for
+	// the common case where most clients are healthy.
+	var memberships []struct {
+		InboundId int
+		Tag       string
+		Email     string
+		SubID     string `gorm:"column:sub_id"`
+	}
+	if len(depletedEmails) > 0 {
+		err = tx.Raw(`
+			SELECT inbounds.id  AS inbound_id,
+			       inbounds.tag AS tag,
+			       JSON_EXTRACT(client.value, '$.email') AS email,
+			       JSON_EXTRACT(client.value, '$.subId') AS sub_id
+			FROM inbounds,
+				JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+			WHERE LOWER(JSON_EXTRACT(client.value, '$.email')) IN ?
+			`, lowerAll(depletedEmails)).Scan(&memberships).Error
 		if err != nil {
 			return false, 0, err
 		}
+	}
+
+	// Discover the row holder's subId per email. Only siblings sharing it
+	// get cascaded; legacy data where two identities reuse the same email
+	// stays isolated to the row owner.
+	holderSub := make(map[string]string, len(rowByEmail))
+	for _, m := range memberships {
+		email := strings.ToLower(strings.Trim(m.Email, "\""))
+		row, ok := rowByEmail[email]
+		if !ok || m.InboundId != row.InboundId {
+			continue
+		}
+		holderSub[email] = strings.Trim(m.SubID, "\"")
+	}
+
+	type target struct {
+		InboundId int
+		Tag       string
+		Email     string
+	}
+	var targets []target
+	for _, m := range memberships {
+		email := strings.ToLower(strings.Trim(m.Email, "\""))
+		row, ok := rowByEmail[email]
+		if !ok {
+			continue
+		}
+		expected, hasSub := holderSub[email]
+		mSub := strings.Trim(m.SubID, "\"")
+		switch {
+		case !hasSub || expected == "":
+			if m.InboundId != row.InboundId {
+				continue
+			}
+		case mSub != expected:
+			continue
+		}
+		targets = append(targets, target{
+			InboundId: m.InboundId,
+			Tag:       m.Tag,
+			Email:     strings.Trim(m.Email, "\""),
+		})
+	}
+
+	if p != nil && len(targets) > 0 {
 		s.xrayApi.Init(p.GetAPIPort())
-		for _, result := range results {
-			err1 := s.xrayApi.RemoveUser(result.Tag, result.Email)
+		for _, t := range targets {
+			err1 := s.xrayApi.RemoveUser(t.Tag, t.Email)
 			if err1 == nil {
-				logger.Debug("Client disabled by api:", result.Email)
+				logger.Debug("Client disabled by api:", t.Email)
+			} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", t.Email)) {
+				logger.Debug("User is already disabled. Nothing to do more...")
 			} else {
-				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", result.Email)) {
-					logger.Debug("User is already disabled. Nothing to do more...")
-				} else {
-					if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", result.Email)) {
-						logger.Debug("User is already disabled. Nothing to do more...")
-					} else {
-						logger.Debug("Error in disabling client by api:", err1)
-						needRestart = true
-					}
-				}
+				logger.Debug("Error in disabling client by api:", err1)
+				needRestart = true
 			}
 		}
 		s.xrayApi.Close()
 	}
+
 	result := tx.Model(xray.ClientTraffic{}).
 		Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ?", now, true).
+		Where("inbound_id IN (?)", tx.Model(&model.Inbound{}).Select("id").Where("node_id IS NULL")).
 		Update("enable", false)
-	err := result.Error
+	err = result.Error
 	count := result.RowsAffected
-	return needRestart, count, err
+	if err != nil {
+		return needRestart, count, err
+	}
+
+	if len(targets) == 0 {
+		return needRestart, count, nil
+	}
+
+	inboundEmailMap := make(map[int]map[string]struct{})
+	for _, t := range targets {
+		if inboundEmailMap[t.InboundId] == nil {
+			inboundEmailMap[t.InboundId] = make(map[string]struct{})
+		}
+		inboundEmailMap[t.InboundId][t.Email] = struct{}{}
+	}
+	inboundIds := make([]int, 0, len(inboundEmailMap))
+	for id := range inboundEmailMap {
+		inboundIds = append(inboundIds, id)
+	}
+	var inbounds []*model.Inbound
+	if err = tx.Model(model.Inbound{}).Where("id IN ?", inboundIds).Find(&inbounds).Error; err != nil {
+		logger.Warning("disableInvalidClients fetch inbounds:", err)
+		return needRestart, count, nil
+	}
+	dirty := make([]*model.Inbound, 0, len(inbounds))
+	for _, inbound := range inbounds {
+		settings := map[string]any{}
+		if jsonErr := json.Unmarshal([]byte(inbound.Settings), &settings); jsonErr != nil {
+			continue
+		}
+		clientsRaw, ok := settings["clients"].([]any)
+		if !ok {
+			continue
+		}
+		emailSet := inboundEmailMap[inbound.Id]
+		changed := false
+		for i := range clientsRaw {
+			c, ok := clientsRaw[i].(map[string]any)
+			if !ok {
+				continue
+			}
+			email, _ := c["email"].(string)
+			if _, shouldDisable := emailSet[email]; !shouldDisable {
+				continue
+			}
+			c["enable"] = false
+			if row, ok := rowByEmail[strings.ToLower(email)]; ok {
+				c["totalGB"] = row.Total
+				c["expiryTime"] = row.ExpiryTime
+			}
+			c["updated_at"] = now
+			clientsRaw[i] = c
+			changed = true
+		}
+		if !changed {
+			continue
+		}
+		settings["clients"] = clientsRaw
+		modifiedSettings, jsonErr := json.MarshalIndent(settings, "", "  ")
+		if jsonErr != nil {
+			continue
+		}
+		inbound.Settings = string(modifiedSettings)
+		dirty = append(dirty, inbound)
+	}
+	if len(dirty) > 0 {
+		if err = tx.Save(dirty).Error; err != nil {
+			logger.Warning("disableInvalidClients update inbound settings:", err)
+		}
+	}
+
+	return needRestart, count, nil
 }
 
 func (s *InboundService) GetInboundTags() (string, error) {
@@ -1308,6 +2314,51 @@ func (s *InboundService) GetInboundTags() (string, error) {
 	}
 	tags, _ := json.Marshal(inboundTags)
 	return string(tags), nil
+}
+
+func (s *InboundService) GetClientReverseTags() (string, error) {
+	db := database.GetDB()
+	var inbounds []model.Inbound
+	err := db.Model(model.Inbound{}).Select("settings").Where("protocol = ?", "vless").Find(&inbounds).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return "[]", err
+	}
+
+	tagSet := make(map[string]struct{})
+	for _, inbound := range inbounds {
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+			continue
+		}
+		clients, ok := settings["clients"].([]any)
+		if !ok {
+			continue
+		}
+		for _, client := range clients {
+			clientMap, ok := client.(map[string]any)
+			if !ok {
+				continue
+			}
+			reverse, ok := clientMap["reverse"].(map[string]any)
+			if !ok {
+				continue
+			}
+			tag, _ := reverse["tag"].(string)
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				tagSet[tag] = struct{}{}
+			}
+		}
+	}
+
+	rawTags := make([]string, 0, len(tagSet))
+	for tag := range tagSet {
+		rawTags = append(rawTags, tag)
+	}
+	sort.Strings(rawTags)
+
+	result, _ := json.Marshal(rawTags)
+	return string(result), nil
 }
 
 func (s *InboundService) MigrationRemoveOrphanedTraffics() {
@@ -1322,19 +2373,20 @@ func (s *InboundService) MigrationRemoveOrphanedTraffics() {
 	`)
 }
 
+// AddClientStat inserts a per-client accounting row, no-op on email
+// conflict. Xray reports traffic per email, so the surviving row acts as
+// the shared accumulator for inbounds that re-use the same identity.
 func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model.Client) error {
-	clientTraffic := xray.ClientTraffic{}
-	clientTraffic.InboundId = inboundId
-	clientTraffic.Email = client.Email
-	clientTraffic.Total = client.TotalGB
-	clientTraffic.ExpiryTime = client.ExpiryTime
-	clientTraffic.Enable = client.Enable
-	clientTraffic.Up = 0
-	clientTraffic.Down = 0
-	clientTraffic.Reset = client.Reset
-	result := tx.Create(&clientTraffic)
-	err := result.Error
-	return err
+	clientTraffic := xray.ClientTraffic{
+		InboundId:  inboundId,
+		Email:      client.Email,
+		Total:      client.TotalGB,
+		ExpiryTime: client.ExpiryTime,
+		Enable:     client.Enable,
+		Reset:      client.Reset,
+	}
+	return tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "email"}}, DoNothing: true}).
+		Create(&clientTraffic).Error
 }
 
 func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *model.Client) error {
@@ -1766,22 +2818,24 @@ func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, tota
 }
 
 func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
-	db := database.GetDB()
-
-	// Reset traffic stats in ClientTraffic table
-	result := db.Model(xray.ClientTraffic{}).
-		Where("email = ?", clientEmail).
-		Updates(map[string]any{"enable": true, "up": 0, "down": 0})
-
-	err := result.Error
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return submitTrafficWrite(func() error {
+		db := database.GetDB()
+		return db.Model(xray.ClientTraffic{}).
+			Where("email = ?", clientEmail).
+			Updates(map[string]any{"enable": true, "up": 0, "down": 0}).Error
+	})
 }
 
-func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, error) {
+func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (needRestart bool, err error) {
+	err = submitTrafficWrite(func() error {
+		var inner error
+		needRestart, inner = s.resetClientTrafficLocked(id, clientEmail)
+		return inner
+	})
+	return
+}
+
+func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (bool, error) {
 	needRestart := false
 
 	traffic, err := s.GetClientTrafficByEmail(clientEmail)
@@ -1800,7 +2854,14 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 		}
 		for _, client := range clients {
 			if client.Email == clientEmail && client.Enable {
-				s.xrayApi.Init(p.GetAPIPort())
+				rt, rterr := s.runtimeFor(inbound)
+				if rterr != nil {
+					if inbound.NodeID != nil {
+						return false, rterr
+					}
+					needRestart = true
+					break
+				}
 				cipher := ""
 				if string(inbound.Protocol) == "shadowsocks" {
 					var oldSettings map[string]any
@@ -1810,21 +2871,21 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 					}
 					cipher = oldSettings["method"].(string)
 				}
-				err1 := s.xrayApi.AddUser(string(inbound.Protocol), inbound.Tag, map[string]any{
+				err1 := rt.AddUser(context.Background(), inbound, map[string]any{
 					"email":    client.Email,
 					"id":       client.ID,
+					"auth":     client.Auth,
 					"security": client.Security,
 					"flow":     client.Flow,
 					"password": client.Password,
 					"cipher":   cipher,
 				})
 				if err1 == nil {
-					logger.Debug("Client enabled due to reset traffic:", clientEmail)
+					logger.Debug("Client enabled on", rt.Name(), "due to reset traffic:", clientEmail)
 				} else {
-					logger.Debug("Error in enabling client by api:", err1)
+					logger.Debug("Error in enabling client on", rt.Name(), ":", err1)
 					needRestart = true
 				}
-				s.xrayApi.Close()
 				break
 			}
 		}
@@ -1840,14 +2901,36 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 		return false, err
 	}
 
+	now := time.Now().UnixMilli()
+	_ = db.Model(model.Inbound{}).
+		Where("id = ?", id).
+		Update("last_traffic_reset_time", now).Error
+
+	inbound, err := s.GetInbound(id)
+	if err == nil && inbound != nil && inbound.NodeID != nil {
+		if rt, rterr := s.runtimeFor(inbound); rterr == nil {
+			if e := rt.ResetClientTraffic(context.Background(), inbound, clientEmail); e != nil {
+				logger.Warning("ResetClientTraffic: remote propagation to", rt.Name(), "failed:", e)
+			}
+		} else {
+			logger.Warning("ResetClientTraffic: runtime lookup failed:", rterr)
+		}
+	}
+
 	return needRestart, nil
 }
 
 func (s *InboundService) ResetAllClientTraffics(id int) error {
+	return submitTrafficWrite(func() error {
+		return s.resetAllClientTrafficsLocked(id)
+	})
+}
+
+func (s *InboundService) resetAllClientTrafficsLocked(id int) error {
 	db := database.GetDB()
 	now := time.Now().Unix() * 1000
 
-	return db.Transaction(func(tx *gorm.DB) error {
+	if err := db.Transaction(func(tx *gorm.DB) error {
 		whereText := "inbound_id "
 		if id == -1 {
 			whereText += " > ?"
@@ -1877,18 +2960,81 @@ func (s *InboundService) ResetAllClientTraffics(id int) error {
 			Update("last_traffic_reset_time", now)
 
 		return result.Error
-	})
+	}); err != nil {
+		return err
+	}
+
+	var inbounds []model.Inbound
+	q := db.Model(model.Inbound{}).Where("node_id IS NOT NULL")
+	if id != -1 {
+		q = q.Where("id = ?", id)
+	}
+	if err := q.Find(&inbounds).Error; err != nil {
+		logger.Warning("ResetAllClientTraffics: discover node inbounds failed:", err)
+		return nil
+	}
+	for i := range inbounds {
+		ib := &inbounds[i]
+		rt, rterr := s.runtimeFor(ib)
+		if rterr != nil {
+			logger.Warning("ResetAllClientTraffics: runtime lookup for inbound", ib.Id, "failed:", rterr)
+			continue
+		}
+		if e := rt.ResetInboundClientTraffics(context.Background(), ib); e != nil {
+			logger.Warning("ResetAllClientTraffics: remote propagation to", rt.Name(), "failed:", e)
+		}
+	}
+	return nil
 }
 
 func (s *InboundService) ResetAllTraffics() error {
+	return submitTrafficWrite(func() error {
+		return s.resetAllTrafficsLocked()
+	})
+}
+
+func (s *InboundService) resetAllTrafficsLocked() error {
 	db := database.GetDB()
+	now := time.Now().UnixMilli()
 
-	result := db.Model(model.Inbound{}).
+	if err := db.Model(model.Inbound{}).
 		Where("user_id > ?", 0).
-		Updates(map[string]any{"up": 0, "down": 0})
+		Updates(map[string]any{
+			"up":                      0,
+			"down":                    0,
+			"last_traffic_reset_time": now,
+		}).Error; err != nil {
+		return err
+	}
 
-	err := result.Error
-	return err
+	var inbounds []model.Inbound
+	if err := db.Model(model.Inbound{}).
+		Where("node_id IS NOT NULL").
+		Find(&inbounds).Error; err != nil {
+		logger.Warning("ResetAllTraffics: discover node inbounds failed:", err)
+		return nil
+	}
+	for i := range inbounds {
+		ib := &inbounds[i]
+		rt, rterr := s.runtimeFor(ib)
+		if rterr != nil {
+			logger.Warning("ResetAllTraffics: runtime lookup for inbound", ib.Id, "failed:", rterr)
+			continue
+		}
+		if e := rt.ResetInboundClientTraffics(context.Background(), ib); e != nil {
+			logger.Warning("ResetAllTraffics: remote propagation to", rt.Name(), "failed:", e)
+		}
+	}
+	return nil
+}
+
+func (s *InboundService) ResetInboundTraffic(id int) error {
+	return submitTrafficWrite(func() error {
+		db := database.GetDB()
+		return db.Model(model.Inbound{}).
+			Where("id = ?", id).
+			Updates(map[string]any{"up": 0, "down": 0}).Error
+	})
 }
 
 func (s *InboundService) DelDepletedClients(id int) (err error) {
@@ -1902,77 +3048,117 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 		}
 	}()
 
-	whereText := "reset = 0 and inbound_id "
-	if id < 0 {
-		whereText += "> ?"
-	} else {
-		whereText += "= ?"
-	}
-
-	// Only consider truly depleted clients: expired OR traffic exhausted
+	// Collect depleted emails globally — a shared-email row owned by one
+	// inbound depletes every sibling that lists the email.
 	now := time.Now().Unix() * 1000
-	depletedClients := []xray.ClientTraffic{}
+	depletedClause := "reset = 0 and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))"
+	var depletedRows []xray.ClientTraffic
 	err = db.Model(xray.ClientTraffic{}).
-		Where(whereText+" and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))", id, now).
-		Select("inbound_id, GROUP_CONCAT(email) as email").
-		Group("inbound_id").
-		Find(&depletedClients).Error
+		Where(depletedClause, now).
+		Find(&depletedRows).Error
 	if err != nil {
 		return err
 	}
+	if len(depletedRows) == 0 {
+		return nil
+	}
 
-	for _, depletedClient := range depletedClients {
-		emails := strings.Split(depletedClient.Email, ",")
-		oldInbound, err := s.GetInbound(depletedClient.InboundId)
-		if err != nil {
+	depletedEmails := make(map[string]struct{}, len(depletedRows))
+	for _, r := range depletedRows {
+		if r.Email == "" {
+			continue
+		}
+		depletedEmails[strings.ToLower(r.Email)] = struct{}{}
+	}
+	if len(depletedEmails) == 0 {
+		return nil
+	}
+
+	var inbounds []*model.Inbound
+	inboundQuery := db.Model(model.Inbound{})
+	if id >= 0 {
+		inboundQuery = inboundQuery.Where("id = ?", id)
+	}
+	if err = inboundQuery.Find(&inbounds).Error; err != nil {
+		return err
+	}
+
+	for _, inbound := range inbounds {
+		var settings map[string]any
+		if err = json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
 			return err
 		}
-		var oldSettings map[string]any
-		err = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
-		if err != nil {
-			return err
+		rawClients, ok := settings["clients"].([]any)
+		if !ok {
+			continue
 		}
-
-		oldClients := oldSettings["clients"].([]any)
-		var newClients []any
-		for _, client := range oldClients {
-			deplete := false
-			c := client.(map[string]any)
-			for _, email := range emails {
-				if email == c["email"].(string) {
-					deplete = true
-					break
-				}
-			}
-			if !deplete {
+		newClients := make([]any, 0, len(rawClients))
+		removed := 0
+		for _, client := range rawClients {
+			c, ok := client.(map[string]any)
+			if !ok {
 				newClients = append(newClients, client)
+				continue
 			}
+			email, _ := c["email"].(string)
+			if _, isDepleted := depletedEmails[strings.ToLower(email)]; isDepleted {
+				removed++
+				continue
+			}
+			newClients = append(newClients, client)
 		}
-		if len(newClients) > 0 {
-			oldSettings["clients"] = newClients
-
-			newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
-			if err != nil {
-				return err
-			}
-
-			oldInbound.Settings = string(newSettings)
-			err = tx.Save(oldInbound).Error
-			if err != nil {
-				return err
-			}
-		} else {
-			// Delete inbound if no client remains
-			s.DelInbound(depletedClient.InboundId)
+		if removed == 0 {
+			continue
+		}
+		if len(newClients) == 0 {
+			s.DelInbound(inbound.Id)
+			continue
+		}
+		settings["clients"] = newClients
+		ns, mErr := json.MarshalIndent(settings, "", "  ")
+		if mErr != nil {
+			return mErr
+		}
+		inbound.Settings = string(ns)
+		if err = tx.Save(inbound).Error; err != nil {
+			return err
 		}
 	}
 
-	// Delete stats only for truly depleted clients
-	err = tx.Where(whereText+" and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))", id, now).Delete(xray.ClientTraffic{}).Error
-	if err != nil {
+	// Drop now-orphaned rows. With id >= 0, a row is safe to drop only when
+	// no out-of-scope inbound still references the email.
+	if id < 0 {
+		err = tx.Where(depletedClause, now).Delete(xray.ClientTraffic{}).Error
 		return err
 	}
-
+	emails := make([]string, 0, len(depletedEmails))
+	for e := range depletedEmails {
+		emails = append(emails, e)
+	}
+	var stillReferenced []string
+	if err = tx.Raw(`
+		SELECT DISTINCT LOWER(JSON_EXTRACT(client.value, '$.email'))
+		FROM inbounds,
+			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		WHERE LOWER(JSON_EXTRACT(client.value, '$.email')) IN ?
+		`, emails).Scan(&stillReferenced).Error; err != nil {
+		return err
+	}
+	stillSet := make(map[string]struct{}, len(stillReferenced))
+	for _, e := range stillReferenced {
+		stillSet[e] = struct{}{}
+	}
+	toDelete := make([]string, 0, len(emails))
+	for _, e := range emails {
+		if _, kept := stillSet[e]; !kept {
+			toDelete = append(toDelete, e)
+		}
+	}
+	if len(toDelete) > 0 {
+		if err = tx.Where("LOWER(email) IN ?", toDelete).Delete(xray.ClientTraffic{}).Error; err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -2001,15 +3187,24 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 		}
 	}
 
-	var traffics []*xray.ClientTraffic
-	err = db.Model(xray.ClientTraffic{}).Where("email IN ?", emails).Find(&traffics).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			logger.Warning("No ClientTraffic records found for emails:", emails)
-			return nil, nil
+	// Chunked to stay under SQLite's bind-variable limit when a single Telegram
+	// account owns thousands of clients across inbounds.
+	uniqEmails := uniqueNonEmptyStrings(emails)
+	traffics := make([]*xray.ClientTraffic, 0, len(uniqEmails))
+	for _, batch := range chunkStrings(uniqEmails, sqliteMaxVars) {
+		var page []*xray.ClientTraffic
+		if err = db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				continue
+			}
+			logger.Errorf("Error retrieving ClientTraffic for emails %v: %v", batch, err)
+			return nil, err
 		}
-		logger.Errorf("Error retrieving ClientTraffic for emails %v: %v", emails, err)
-		return nil, err
+		traffics = append(traffics, page...)
+	}
+	if len(traffics) == 0 {
+		logger.Warning("No ClientTraffic records found for emails:", emails)
+		return nil, nil
 	}
 
 	// Populate UUID and other client data for each traffic record
@@ -2024,6 +3219,122 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 	return traffics, nil
 }
 
+// sqliteMaxVars is a safe ceiling for the number of bind parameters in a
+// single SQL statement. SQLite's SQLITE_MAX_VARIABLE_NUMBER is 999 on builds
+// before 3.32 and 32766 after; staying under 999 keeps queries portable
+// across forks/old binaries and also bounds per-query memory on truly large
+// installs (>32k clients) where even modern SQLite would refuse a single IN.
+const sqliteMaxVars = 900
+
+// uniqueNonEmptyStrings returns a deduplicated copy of in with empty strings
+// removed, preserving the order of first occurrence.
+func uniqueNonEmptyStrings(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(in))
+	out := make([]string, 0, len(in))
+	for _, v := range in {
+		if v == "" {
+			continue
+		}
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
+}
+
+// uniqueInts returns a deduplicated copy of in, preserving order of first occurrence.
+func uniqueInts(in []int) []int {
+	if len(in) == 0 {
+		return nil
+	}
+	seen := make(map[int]struct{}, len(in))
+	out := make([]int, 0, len(in))
+	for _, v := range in {
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
+}
+
+// chunkStrings splits s into consecutive sub-slices of at most size elements.
+// Returns nil for an empty input or non-positive size.
+func chunkStrings(s []string, size int) [][]string {
+	if size <= 0 || len(s) == 0 {
+		return nil
+	}
+	out := make([][]string, 0, (len(s)+size-1)/size)
+	for i := 0; i < len(s); i += size {
+		end := i + size
+		if end > len(s) {
+			end = len(s)
+		}
+		out = append(out, s[i:end])
+	}
+	return out
+}
+
+// chunkInts splits s into consecutive sub-slices of at most size elements.
+// Returns nil for an empty input or non-positive size.
+func chunkInts(s []int, size int) [][]int {
+	if size <= 0 || len(s) == 0 {
+		return nil
+	}
+	out := make([][]int, 0, (len(s)+size-1)/size)
+	for i := 0; i < len(s); i += size {
+		end := i + size
+		if end > len(s) {
+			end = len(s)
+		}
+		out = append(out, s[i:end])
+	}
+	return out
+}
+
+func (s *InboundService) GetActiveClientTraffics(emails []string) ([]*xray.ClientTraffic, error) {
+	uniq := uniqueNonEmptyStrings(emails)
+	if len(uniq) == 0 {
+		return nil, nil
+	}
+	db := database.GetDB()
+	traffics := make([]*xray.ClientTraffic, 0, len(uniq))
+	for _, batch := range chunkStrings(uniq, sqliteMaxVars) {
+		var page []*xray.ClientTraffic
+		if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+			return nil, err
+		}
+		traffics = append(traffics, page...)
+	}
+	return traffics, nil
+}
+
+type InboundTrafficSummary struct {
+	Id      int   `json:"id"`
+	Up      int64 `json:"up"`
+	Down    int64 `json:"down"`
+	Total   int64 `json:"total"`
+	AllTime int64 `json:"allTime"`
+	Enable  bool  `json:"enable"`
+}
+
+func (s *InboundService) GetInboundsTrafficSummary() ([]InboundTrafficSummary, error) {
+	db := database.GetDB()
+	var summaries []InboundTrafficSummary
+	if err := db.Model(&model.Inbound{}).
+		Select("id, up, down, total, all_time, enable").
+		Find(&summaries).Error; err != nil {
+		return nil, err
+	}
+	return summaries, nil
+}
+
 func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.ClientTraffic, err error) {
 	// Prefer retrieving along with client to reflect actual enabled state from inbound settings
 	t, client, err := s.GetClientByEmail(email)
@@ -2032,7 +3343,6 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.Cl
 		return nil, err
 	}
 	if t != nil && client != nil {
-		t.Enable = client.Enable
 		t.UUID = client.ID
 		t.SubId = client.SubID
 		return t, nil
@@ -2041,18 +3351,20 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.Cl
 }
 
 func (s *InboundService) UpdateClientTrafficByEmail(email string, upload int64, download int64) error {
-	db := database.GetDB()
-
-	result := db.Model(xray.ClientTraffic{}).
-		Where("email = ?", email).
-		Updates(map[string]any{"up": upload, "down": download})
-
-	err := result.Error
-	if err != nil {
-		logger.Warningf("Error updating ClientTraffic with email %s: %v", email, err)
+	return submitTrafficWrite(func() error {
+		db := database.GetDB()
+		err := db.Model(xray.ClientTraffic{}).
+			Where("email = ?", email).
+			Updates(map[string]any{
+				"up":       upload,
+				"down":     download,
+				"all_time": gorm.Expr("CASE WHEN COALESCE(all_time, 0) < ? THEN ? ELSE all_time END", upload+download, upload+download),
+			}).Error
+		if err != nil {
+			logger.Warningf("Error updating ClientTraffic with email %s: %v", email, err)
+		}
 		return err
-	}
-	return nil
+	})
 }
 
 func (s *InboundService) GetClientTrafficByID(id string) ([]xray.ClientTraffic, error) {
@@ -2251,6 +3563,7 @@ func (s *InboundService) MigrationRequirements() {
 		if ok {
 			// Fix Client configuration problems
 			var newClients []any
+			hasVisionFlow := false
 			for client_index := range clients {
 				c := clients[client_index].(map[string]any)
 
@@ -2276,6 +3589,9 @@ func (s *InboundService) MigrationRequirements() {
 						c["flow"] = ""
 					}
 				}
+				if flow, _ := c["flow"].(string); flow == "xtls-rprx-vision" {
+					hasVisionFlow = true
+				}
 				// Backfill created_at and updated_at
 				if _, ok := c["created_at"]; !ok {
 					c["created_at"] = time.Now().Unix() * 1000
@@ -2284,6 +3600,15 @@ func (s *InboundService) MigrationRequirements() {
 				newClients = append(newClients, any(c))
 			}
 			settings["clients"] = newClients
+
+			// Drop orphaned testseed: VLESS-only field, only meaningful when at least
+			// one client uses the exact xtls-rprx-vision flow. Older versions saved it
+			// for any non-empty flow (including the UDP variant) or kept it after the
+			// flow was cleared from the client modal — clean those up here.
+			if inbounds[inbound_index].Protocol == model.VLESS && !hasVisionFlow {
+				delete(settings, "testseed")
+			}
+
 			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 			if err != nil {
 				return
@@ -2369,6 +3694,18 @@ func (s *InboundService) GetOnlineClients() []string {
 	return p.GetOnlineClients()
 }
 
+func (s *InboundService) SetNodeOnlineClients(nodeID int, emails []string) {
+	if p != nil {
+		p.SetNodeOnlineClients(nodeID, emails)
+	}
+}
+
+func (s *InboundService) ClearNodeOnlineClients(nodeID int) {
+	if p != nil {
+		p.ClearNodeOnlineClients(nodeID)
+	}
+}
+
 func (s *InboundService) GetClientsLastOnline() (map[string]int64, error) {
 	db := database.GetDB()
 	var rows []xray.ClientTraffic
@@ -2386,11 +3723,16 @@ func (s *InboundService) GetClientsLastOnline() (map[string]int64, error) {
 func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, []string, error) {
 	db := database.GetDB()
 
-	// Step 1: Get ClientTraffic records for emails in the input list
-	var clients []xray.ClientTraffic
-	err := db.Where("email IN ?", emails).Find(&clients).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, nil, err
+	// Step 1: Get ClientTraffic records for emails in the input list.
+	// Chunked to stay under SQLite's bind-variable limit on huge inputs.
+	uniqEmails := uniqueNonEmptyStrings(emails)
+	clients := make([]xray.ClientTraffic, 0, len(uniqEmails))
+	for _, batch := range chunkStrings(uniqEmails, sqliteMaxVars) {
+		var page []xray.ClientTraffic
+		if err := db.Where("email IN ?", batch).Find(&page).Error; err != nil && err != gorm.ErrRecordNotFound {
+			return nil, nil, err
+		}
+		clients = append(clients, page...)
 	}
 
 	// Step 2: Sort clients by (Up + Down) descending
@@ -2468,16 +3810,24 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 
 	db := database.GetDB()
 
-	// remove IP bindings
-	if err := s.DelClientIPs(db, email); err != nil {
-		logger.Error("Error in delete client IPs")
+	// Drop the row and IPs only when this was the last inbound referencing
+	// the email — siblings still need the shared accounting state.
+	emailShared, err := s.emailUsedByOtherInbounds(email, inboundId)
+	if err != nil {
 		return false, err
+	}
+
+	if !emailShared {
+		if err := s.DelClientIPs(db, email); err != nil {
+			logger.Error("Error in delete client IPs")
+			return false, err
+		}
 	}
 
 	needRestart := false
 
 	// remove stats too
-	if len(email) > 0 {
+	if len(email) > 0 && !emailShared {
 		traffic, err := s.GetClientTrafficByEmail(email)
 		if err != nil {
 			return false, err
@@ -2490,21 +3840,57 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 		}
 
 		if needApiDel {
-			s.xrayApi.Init(p.GetAPIPort())
-			if err1 := s.xrayApi.RemoveUser(oldInbound.Tag, email); err1 == nil {
-				logger.Debug("Client deleted by api:", email)
-				needRestart = false
-			} else {
-				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+			rt, rterr := s.runtimeFor(oldInbound)
+			if rterr != nil {
+				if oldInbound.NodeID != nil {
+					return false, rterr
+				}
+				needRestart = true
+			} else if oldInbound.NodeID == nil {
+				if err1 := rt.RemoveUser(context.Background(), oldInbound, email); err1 == nil {
+					logger.Debug("Client deleted on", rt.Name(), ":", email)
+					needRestart = false
+				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
 					logger.Debug("User is already deleted. Nothing to do more...")
 				} else {
-					logger.Debug("Error in deleting client by api:", err1)
+					logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
 					needRestart = true
 				}
+			} else {
+				if err1 := rt.UpdateInbound(context.Background(), oldInbound, oldInbound); err1 != nil {
+					return false, err1
+				}
 			}
-			s.xrayApi.Close()
 		}
 	}
 
 	return needRestart, db.Save(oldInbound).Error
+}
+
+type SubLinkProvider interface {
+	SubLinksForSubId(host, subId string) ([]string, error)
+	LinksForClient(host string, inbound *model.Inbound, email string) []string
+}
+
+var registeredSubLinkProvider SubLinkProvider
+
+func RegisterSubLinkProvider(p SubLinkProvider) {
+	registeredSubLinkProvider = p
+}
+
+func (s *InboundService) GetSubLinks(host, subId string) ([]string, error) {
+	if registeredSubLinkProvider == nil {
+		return nil, common.NewError("sub link provider not registered")
+	}
+	return registeredSubLinkProvider.SubLinksForSubId(host, subId)
+}
+func (s *InboundService) GetClientLinks(host string, id int, email string) ([]string, error) {
+	inbound, err := s.GetInbound(id)
+	if err != nil {
+		return nil, err
+	}
+	if registeredSubLinkProvider == nil {
+		return nil, common.NewError("sub link provider not registered")
+	}
+	return registeredSubLinkProvider.LinksForClient(host, inbound, email), nil
 }

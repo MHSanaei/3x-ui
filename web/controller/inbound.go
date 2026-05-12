@@ -3,13 +3,15 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/database/model"
-	"github.com/mhsanaei/3x-ui/v2/web/service"
-	"github.com/mhsanaei/3x-ui/v2/web/session"
-	"github.com/mhsanaei/3x-ui/v2/web/websocket"
+	"github.com/mhsanaei/3x-ui/v3/database/model"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/session"
+	"github.com/mhsanaei/3x-ui/v3/web/websocket"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,6 +29,34 @@ func NewInboundController(g *gin.RouterGroup) *InboundController {
 	return a
 }
 
+// broadcastInboundsUpdateClientLimit is the threshold past which we skip the
+// full-list push over WebSocket and signal the frontend to re-fetch via REST.
+// Mirrors the same heuristic used by the periodic traffic job.
+const broadcastInboundsUpdateClientLimit = 5000
+
+// broadcastInboundsUpdate fetches and broadcasts the inbound list for userId.
+// At scale (10k+ clients) the marshaled JSON exceeds the WS payload ceiling,
+// so we send an invalidate signal instead — frontend re-fetches via REST.
+// Skipped entirely when no WebSocket clients are connected.
+func (a *InboundController) broadcastInboundsUpdate(userId int) {
+	if !websocket.HasClients() {
+		return
+	}
+	inbounds, err := a.inboundService.GetInbounds(userId)
+	if err != nil {
+		return
+	}
+	totalClients := 0
+	for _, ib := range inbounds {
+		totalClients += len(ib.ClientStats)
+	}
+	if totalClients > broadcastInboundsUpdateClientLimit {
+		websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
+		return
+	}
+	websocket.BroadcastInbounds(inbounds)
+}
+
 // initRouter initializes the routes for inbound-related operations.
 func (a *InboundController) initRouter(g *gin.RouterGroup) {
 
@@ -34,13 +64,17 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.GET("/get/:id", a.getInbound)
 	g.GET("/getClientTraffics/:email", a.getClientTraffics)
 	g.GET("/getClientTrafficsById/:id", a.getClientTrafficsById)
+	g.GET("/getSubLinks/:subId", a.getSubLinks)
+	g.GET("/getClientLinks/:id/:email", a.getClientLinks)
 
 	g.POST("/add", a.addInbound)
 	g.POST("/del/:id", a.delInbound)
 	g.POST("/update/:id", a.updateInbound)
+	g.POST("/setEnable/:id", a.setInboundEnable)
 	g.POST("/clientIps/:email", a.getClientIps)
 	g.POST("/clearClientIps/:email", a.clearClientIps)
 	g.POST("/addClient", a.addInboundClient)
+	g.POST("/:id/copyClients", a.copyInboundClients)
 	g.POST("/:id/delClient/:clientId", a.delInboundClient)
 	g.POST("/updateClient/:clientId", a.updateInboundClient)
 	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
@@ -52,6 +86,12 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/lastOnline", a.lastOnline)
 	g.POST("/updateClientTraffic/:email", a.updateClientTraffic)
 	g.POST("/:id/delClientByEmail/:email", a.delInboundClientByEmail)
+}
+
+type CopyInboundClientsRequest struct {
+	SourceInboundID int      `form:"sourceInboundId" json:"sourceInboundId"`
+	ClientEmails    []string `form:"clientEmails" json:"clientEmails"`
+	Flow            string   `form:"flow" json:"flow"`
 }
 
 // getInbounds retrieves the list of inbounds for the logged-in user.
@@ -112,10 +152,23 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	}
 	user := session.GetLoginUser(c)
 	inbound.UserId = user.Id
-	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
-	} else {
-		inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
+	// Treat NodeID=0 as "no node" — gin's *int form binding can land on
+	// 0 when the field is absent or empty, and 0 is never a valid Node
+	// row id. Without this normalization the runtime layer would try to
+	// load Node id=0 and surface "record not found".
+	if inbound.NodeID != nil && *inbound.NodeID == 0 {
+		inbound.NodeID = nil
+	}
+	// When the central panel deploys an inbound to a remote node, it sends
+	// the Tag pre-computed (so both DBs agree on the identifier). Local
+	// UI submits don't include a Tag — we compute one from listen+port
+	// using the original collision-avoiding scheme.
+	if inbound.Tag == "" {
+		if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+			inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
+		} else {
+			inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
+		}
 	}
 
 	inbound, needRestart, err := a.inboundService.AddInbound(inbound)
@@ -127,9 +180,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
-	// Broadcast inbounds update via WebSocket
-	inbounds, _ := a.inboundService.GetInbounds(user.Id)
-	websocket.BroadcastInbounds(inbounds)
+	a.broadcastInboundsUpdate(user.Id)
 }
 
 // delInbound deletes an inbound configuration by its ID.
@@ -148,10 +199,8 @@ func (a *InboundController) delInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
-	// Broadcast inbounds update via WebSocket
 	user := session.GetLoginUser(c)
-	inbounds, _ := a.inboundService.GetInbounds(user.Id)
-	websocket.BroadcastInbounds(inbounds)
+	a.broadcastInboundsUpdate(user.Id)
 }
 
 // updateInbound updates an existing inbound configuration.
@@ -169,6 +218,13 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
 		return
 	}
+	// Same NodeID=0 → nil normalisation as addInbound. UpdateInbound
+	// loads the existing row's NodeID from DB anyway (Phase 1 doesn't
+	// support migrating an inbound between nodes), but normalising here
+	// keeps the wire shape consistent.
+	if inbound.NodeID != nil && *inbound.NodeID == 0 {
+		inbound.NodeID = nil
+	}
 	inbound, needRestart, err := a.inboundService.UpdateInbound(inbound)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -178,10 +234,43 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
-	// Broadcast inbounds update via WebSocket
 	user := session.GetLoginUser(c)
-	inbounds, _ := a.inboundService.GetInbounds(user.Id)
-	websocket.BroadcastInbounds(inbounds)
+	a.broadcastInboundsUpdate(user.Id)
+}
+
+// setInboundEnable flips only the enable flag of an inbound. This is a
+// dedicated endpoint because the regular update path serialises the entire
+// settings JSON (every client) — far too heavy for an interactive switch
+// on inbounds with thousands of clients. Frontend optimistically updates
+// the UI; we just persist + sync xray + nudge other open admin sessions.
+func (a *InboundController) setInboundEnable(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
+		return
+	}
+	type form struct {
+		Enable bool `json:"enable" form:"enable"`
+	}
+	var f form
+	if err := c.ShouldBind(&f); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	needRestart, err := a.inboundService.SetInboundEnable(id, f.Enable)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	// Cross-admin sync: lightweight invalidate signal (a few hundred bytes)
+	// instead of fetching + serialising the whole inbound list. Other open
+	// sessions re-fetch via REST. The toggling admin's own UI already
+	// updated optimistically.
+	websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
 }
 
 // getClientIps retrieves the IP addresses associated with a client by email.
@@ -255,6 +344,36 @@ func (a *InboundController) addInboundClient(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientAddSuccess"), nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+}
+
+// copyInboundClients copies clients from source inbound to target inbound.
+func (a *InboundController) copyInboundClients(c *gin.Context) {
+	targetID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+
+	req := &CopyInboundClientsRequest{}
+	err = c.ShouldBind(req)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if req.SourceInboundID <= 0 {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), fmt.Errorf("invalid source inbound id"))
+		return
+	}
+
+	result, needRestart, err := a.inboundService.CopyInboundClients(targetID, req.SourceInboundID, req.ClientEmails, req.Flow)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, result, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
@@ -363,10 +482,12 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	inbound.Id = 0
 	inbound.UserId = user.Id
-	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
-	} else {
-		inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
+	if inbound.Tag == "" {
+		if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+			inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
+		} else {
+			inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
+		}
 	}
 
 	for index := range inbound.ClientStats {
@@ -453,4 +574,56 @@ func (a *InboundController) delInboundClientByEmail(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+}
+
+// resolveHost mirrors what sub.SubService.ResolveRequest does for the host
+// field: prefers X-Forwarded-Host (first entry of any list, port stripped),
+// then X-Real-IP, then the host portion of c.Request.Host. Keeping it in the
+// controller layer means the service interface stays HTTP-agnostic — service
+// methods receive a plain host string instead of a *gin.Context.
+func resolveHost(c *gin.Context) string {
+	if h := strings.TrimSpace(c.GetHeader("X-Forwarded-Host")); h != "" {
+		if i := strings.Index(h, ","); i >= 0 {
+			h = strings.TrimSpace(h[:i])
+		}
+		if hp, _, err := net.SplitHostPort(h); err == nil {
+			return hp
+		}
+		return h
+	}
+	if h := c.GetHeader("X-Real-IP"); h != "" {
+		return h
+	}
+	if h, _, err := net.SplitHostPort(c.Request.Host); err == nil {
+		return h
+	}
+	return c.Request.Host
+}
+
+// getSubLinks returns every protocol URL produced for the given subscription
+// ID — the JSON-array equivalent of /sub/<subId> (no base64 wrap).
+func (a *InboundController) getSubLinks(c *gin.Context) {
+	links, err := a.inboundService.GetSubLinks(resolveHost(c), c.Param("subId"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, links, nil)
+}
+
+// getClientLinks returns the URL(s) for one client on one inbound — the same
+// string the Copy URL button copies in the panel UI. Empty array when the
+// protocol has no URL form, or when the email isn't found on the inbound.
+func (a *InboundController) getClientLinks(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	links, err := a.inboundService.GetClientLinks(resolveHost(c), id, c.Param("email"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, links, nil)
 }

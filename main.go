@@ -11,15 +11,15 @@ import (
 	"syscall"
 	_ "unsafe"
 
-	"github.com/mhsanaei/3x-ui/v2/config"
-	"github.com/mhsanaei/3x-ui/v2/database"
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/sub"
-	"github.com/mhsanaei/3x-ui/v2/util/crypto"
-	"github.com/mhsanaei/3x-ui/v2/util/sys"
-	"github.com/mhsanaei/3x-ui/v2/web"
-	"github.com/mhsanaei/3x-ui/v2/web/global"
-	"github.com/mhsanaei/3x-ui/v2/web/service"
+	"github.com/mhsanaei/3x-ui/v3/config"
+	"github.com/mhsanaei/3x-ui/v3/database"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/sub"
+	"github.com/mhsanaei/3x-ui/v3/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/util/sys"
+	"github.com/mhsanaei/3x-ui/v3/web"
+	"github.com/mhsanaei/3x-ui/v3/web/global"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
 
 	"github.com/joho/godotenv"
 	"github.com/op/go-logging"
@@ -61,6 +61,8 @@ func runWebServer() {
 	}
 
 	var subServer *sub.Server
+	sub.SetDistFS(web.EmbeddedDist())
+	service.RegisterSubLinkProvider(sub.NewLinkProvider())
 	subServer = sub.NewServer()
 	global.SetSubServer(subServer)
 	err = subServer.Start()
@@ -101,6 +103,7 @@ func runWebServer() {
 			}
 			log.Println("Web server restarted successfully.")
 
+			sub.SetDistFS(web.EmbeddedDist())
 			subServer = sub.NewServer()
 			global.SetSubServer(subServer)
 			err = subServer.Start()
@@ -130,20 +133,22 @@ func runWebServer() {
 }
 
 // resetSetting resets all panel settings to their default values.
-func resetSetting() {
+func resetSetting() error {
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
 		fmt.Println("Failed to initialize database:", err)
-		return
+		return err
 	}
 
 	settingService := service.SettingService{}
 	err = settingService.ResetSettings()
 	if err != nil {
 		fmt.Println("Failed to reset settings:", err)
+		return err
 	} else {
 		fmt.Println("Settings successfully reset.")
 	}
+	return nil
 }
 
 // showSetting displays the current panel settings if show is true.
@@ -255,11 +260,11 @@ func updateTgbotSetting(tgBotToken string, tgBotChatid string, tgBotRuntime stri
 }
 
 // updateSetting updates various panel settings including port, credentials, base path, listen IP, and two-factor authentication.
-func updateSetting(port int, username string, password string, webBasePath string, listenIP string, resetTwoFactor bool) {
+func updateSetting(port int, username string, password string, webBasePath string, listenIP string, resetTwoFactor bool) error {
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
 		fmt.Println("Database initialization failed:", err)
-		return
+		return err
 	}
 
 	settingService := service.SettingService{}
@@ -311,6 +316,8 @@ func updateSetting(port int, username string, password string, webBasePath strin
 			fmt.Printf("listen %v set successfully", listenIP)
 		}
 	}
+
+	return nil
 }
 
 // updateCert updates the SSL certificate files for the panel.
@@ -481,9 +488,13 @@ func main() {
 			return
 		}
 		if reset {
-			resetSetting()
+			if err = resetSetting(); err != nil {
+				return
+			}
 		} else {
-			updateSetting(port, username, password, webBasePath, listenIP, resetTwoFactor)
+			if err = updateSetting(port, username, password, webBasePath, listenIP, resetTwoFactor); err != nil {
+				return
+			}
 		}
 		if show {
 			showSetting(show)

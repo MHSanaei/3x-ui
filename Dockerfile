@@ -1,4 +1,15 @@
 # ========================================================
+# Stage: Frontend (Vite)
+# ========================================================
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend
+WORKDIR /src/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+COPY web/translation /src/web/translation
+RUN npm run build
+
+# ========================================================
 # Stage: Builder
 # ========================================================
 FROM golang:1.26-alpine AS builder
@@ -12,6 +23,7 @@ RUN apk --no-cache --update add \
   unzip
 
 COPY . .
+COPY --from=frontend /src/web/dist ./web/dist
 
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
@@ -36,6 +48,7 @@ RUN apk add --no-cache --update \
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
+COPY --from=builder /app/web/translation /app/web/translation
 
 
 # Configure fail2ban

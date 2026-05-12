@@ -5,17 +5,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/config"
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v3/config"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/util/common"
 )
 
 // GetBinaryName returns the Xray binary filename for the current OS and architecture.
@@ -120,19 +121,34 @@ func NewTestProcess(xrayConfig *Config, configPath string) *Process {
 }
 
 type process struct {
-	cmd *exec.Cmd
+	cmd  *exec.Cmd
+	done chan struct{}
 
 	version string
 	apiPort int
 
 	onlineClients []string
+	// nodeOnlineClients holds the online-emails list reported by each
+	// remote node, keyed by node id. NodeTrafficSyncJob populates entries
+	// per cron tick and clears them when a node's probe fails. The mutex
+	// guards both this map and onlineClients above so GetOnlineClients
+	// can build the union without a torn read.
+	nodeOnlineClients map[int][]string
+	onlineMu          sync.RWMutex
 
 	config     *Config
 	configPath string // if set, use this path instead of GetConfigPath() and remove on Stop
 	logWriter  *LogWriter
 	exitErr    error
 	startTime  time.Time
+
+	intentionalStop atomic.Bool
 }
+
+var (
+	xrayGracefulStopTimeout = 5 * time.Second
+	xrayForceStopTimeout    = 2 * time.Second
+)
 
 // newProcess creates a new internal process struct for Xray.
 func newProcess(config *Config) *process {
@@ -155,6 +171,13 @@ func newTestProcess(config *Config, configPath string) *process {
 func (p *process) IsRunning() bool {
 	if p.cmd == nil || p.cmd.Process == nil {
 		return false
+	}
+	if p.done != nil {
+		select {
+		case <-p.done:
+			return false
+		default:
+		}
 	}
 	if p.cmd.ProcessState == nil {
 		return true
@@ -190,14 +213,69 @@ func (p *Process) GetConfig() *Config {
 	return p.config
 }
 
-// GetOnlineClients returns the list of online clients for the Xray process.
+// GetOnlineClients returns the union of locally-online clients and
+// node-online clients from every registered remote panel. Dedupes by
+// email so a client connected to both a local and a node-managed inbound
+// surfaces once. Cheap allocation — typical online sets are small and
+// the union is recomputed on demand.
 func (p *Process) GetOnlineClients() []string {
-	return p.onlineClients
+	p.onlineMu.RLock()
+	defer p.onlineMu.RUnlock()
+
+	if len(p.nodeOnlineClients) == 0 {
+		// Hot path for single-panel deployments: avoid the map+dedupe
+		// work entirely and return the local slice as-is.
+		return p.onlineClients
+	}
+
+	seen := make(map[string]struct{}, len(p.onlineClients))
+	out := make([]string, 0, len(p.onlineClients))
+	for _, email := range p.onlineClients {
+		if _, dup := seen[email]; dup {
+			continue
+		}
+		seen[email] = struct{}{}
+		out = append(out, email)
+	}
+	for _, list := range p.nodeOnlineClients {
+		for _, email := range list {
+			if _, dup := seen[email]; dup {
+				continue
+			}
+			seen[email] = struct{}{}
+			out = append(out, email)
+		}
+	}
+	return out
 }
 
-// SetOnlineClients sets the list of online clients for the Xray process.
+// SetOnlineClients sets the locally-online list. Called by the local
+// XrayTrafficJob after each xray gRPC stats poll.
 func (p *Process) SetOnlineClients(users []string) {
+	p.onlineMu.Lock()
 	p.onlineClients = users
+	p.onlineMu.Unlock()
+}
+
+// SetNodeOnlineClients records the online-emails set for one remote
+// node. Replaces any previous entry for that node — NodeTrafficSyncJob
+// always sends the full list per tick.
+func (p *Process) SetNodeOnlineClients(nodeID int, emails []string) {
+	p.onlineMu.Lock()
+	defer p.onlineMu.Unlock()
+	if p.nodeOnlineClients == nil {
+		p.nodeOnlineClients = map[int][]string{}
+	}
+	p.nodeOnlineClients[nodeID] = emails
+}
+
+// ClearNodeOnlineClients drops a node's contribution to the online set.
+// Called when a probe fails so a downed node doesn't keep its clients
+// listed as "online" until the next successful probe.
+func (p *Process) ClearNodeOnlineClients(nodeID int) {
+	p.onlineMu.Lock()
+	defer p.onlineMu.Unlock()
+	delete(p.nodeOnlineClients, nodeID)
 }
 
 // GetUptime returns the uptime of the Xray process in seconds.
@@ -258,33 +336,19 @@ func (p *process) Start() (err error) {
 	if p.configPath != "" {
 		configPath = p.configPath
 	}
-	err = os.WriteFile(configPath, data, fs.ModePerm)
+	err = os.WriteFile(configPath, data, 0644)
 	if err != nil {
 		return common.NewErrorf("Failed to write configuration file: %v", err)
 	}
 
 	cmd := exec.Command(GetBinaryPath(), "-c", configPath)
-	p.cmd = cmd
-
 	cmd.Stdout = p.logWriter
 	cmd.Stderr = p.logWriter
 
-	go func() {
-		err := cmd.Run()
-		if err != nil {
-			// On Windows, killing the process results in "exit status 1" which isn't an error for us
-			if runtime.GOOS == "windows" {
-				errStr := strings.ToLower(err.Error())
-				if strings.Contains(errStr, "exit status 1") {
-					// Suppress noisy log on graceful stop
-					p.exitErr = err
-					return
-				}
-			}
-			logger.Error("Failure in running xray-core:", err)
-			p.exitErr = err
-		}
-	}()
+	err = p.startCommand(cmd)
+	if err != nil {
+		return err
+	}
 
 	p.refreshVersion()
 	p.refreshAPIPort()
@@ -292,11 +356,49 @@ func (p *process) Start() (err error) {
 	return nil
 }
 
+func (p *process) startCommand(cmd *exec.Cmd) error {
+	p.cmd = cmd
+	p.done = make(chan struct{})
+	p.exitErr = nil
+	p.intentionalStop.Store(false)
+
+	if err := cmd.Start(); err != nil {
+		close(p.done)
+		p.cmd = nil
+		return err
+	}
+
+	go p.waitForCommand(cmd)
+	return nil
+}
+
+func (p *process) waitForCommand(cmd *exec.Cmd) {
+	defer close(p.done)
+
+	err := cmd.Wait()
+	if err == nil || p.intentionalStop.Load() {
+		return
+	}
+
+	// On Windows, killing the process results in "exit status 1" which isn't an error for us.
+	if runtime.GOOS == "windows" {
+		errStr := strings.ToLower(err.Error())
+		if strings.Contains(errStr, "exit status 1") {
+			p.exitErr = err
+			return
+		}
+	}
+
+	logger.Error("Failure in running xray-core:", err)
+	p.exitErr = err
+}
+
 // Stop terminates the running Xray process.
 func (p *process) Stop() error {
 	if !p.IsRunning() {
 		return errors.New("xray is not running")
 	}
+	p.intentionalStop.Store(true)
 
 	// Remove temporary config file used for test runs so main config is never touched
 	if p.configPath != "" {
@@ -309,14 +411,48 @@ func (p *process) Stop() error {
 	}
 
 	if runtime.GOOS == "windows" {
-		return p.cmd.Process.Kill()
-	} else {
-		return p.cmd.Process.Signal(syscall.SIGTERM)
+		if err := p.cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+			return err
+		}
+		return p.waitForExit(xrayForceStopTimeout)
+	}
+
+	if err := p.cmd.Process.Signal(syscall.SIGTERM); err != nil {
+		if errors.Is(err, os.ErrProcessDone) {
+			return p.waitForExit(xrayForceStopTimeout)
+		}
+		return err
+	}
+
+	if err := p.waitForExit(xrayGracefulStopTimeout); err == nil {
+		return nil
+	}
+
+	logger.Warning("xray-core did not stop after SIGTERM, killing process")
+	if err := p.cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+		return err
+	}
+	return p.waitForExit(xrayForceStopTimeout)
+}
+
+func (p *process) waitForExit(timeout time.Duration) error {
+	if p.done == nil {
+		return nil
+	}
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	select {
+	case <-p.done:
+		return nil
+	case <-timer.C:
+		return common.NewErrorf("timed out waiting for xray-core process to stop after %s", timeout)
 	}
 }
 
 // writeCrashReport writes a crash report to the binary folder with a timestamped filename.
 func writeCrashReport(m []byte) error {
 	crashReportPath := config.GetBinFolderPath() + "/core_crash_" + time.Now().Format("20060102_150405") + ".log"
-	return os.WriteFile(crashReportPath, m, os.ModePerm)
+	return os.WriteFile(crashReportPath, m, 0644)
 }

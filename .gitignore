@@ -1,6 +1,7 @@
 # Ignore editor and IDE settings
 .idea/
 .vscode/
+.claude/
 .cache/
 .sync*
 
@@ -32,6 +33,8 @@ Thumbs.db
 # Ignore Go build files
 *.exe
 x-ui.db
+x-ui.db-shm
+x-ui.db-wal
 
 # Ignore Docker specific files
 docker-compose.override.yml
