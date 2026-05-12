@@ -14,6 +14,10 @@ import {
   SwapOutlined,
   EyeOutlined,
   EyeInvisibleOutlined,
+  ThunderboltOutlined,
+  DesktopOutlined,
+  DatabaseOutlined,
+  ForkOutlined,
 } from '@ant-design/icons-vue';
 
 const { t } = useI18n();
@@ -31,6 +35,7 @@ import PanelUpdateModal from './PanelUpdateModal.vue';
 import LogModal from './LogModal.vue';
 import BackupModal from './BackupModal.vue';
 import SystemHistoryModal from './SystemHistoryModal.vue';
+import XrayMetricsModal from './XrayMetricsModal.vue';
 import XrayLogModal from './XrayLogModal.vue';
 import VersionModal from './VersionModal.vue';
 
@@ -71,6 +76,7 @@ const logsOpen = ref(false);
 const backupOpen = ref(false);
 const panelUpdateOpen = ref(false);
 const sysHistoryOpen = ref(false);
+const xrayMetricsOpen = ref(false);
 const xrayLogsOpen = ref(false);
 const versionOpen = ref(false);
 const configTextOpen = ref(false);
@@ -97,6 +103,18 @@ async function restartXray() {
 function openSystemHistory() { sysHistoryOpen.value = true; }
 function openXrayLogs() { xrayLogsOpen.value = true; }
 function openVersionSwitch() { versionOpen.value = true; }
+
+function openPanelVersion() {
+  if (panelUpdateInfo.value.updateAvailable) {
+    panelUpdateOpen.value = true;
+  } else {
+    window.open('https://github.com/MHSanaei/3x-ui/releases', '_blank', 'noopener,noreferrer');
+  }
+}
+
+function openTelegram() {
+  window.open('https://t.me/XrayUI', '_blank', 'noopener,noreferrer');
+}
 
 // Legacy "Config" action — fetch the rendered xray config and show
 // it as JSON in the shared TextModal (same UX as main).
@@ -155,62 +173,83 @@ async function openConfig() {
 
               <a-col :xs="24" :lg="12">
                 <a-card title="3X-UI" hoverable>
-                  <template v-if="panelUpdateInfo.updateAvailable" #extra>
-                    <a-tooltip :title="`${t('pages.index.updatePanel')}: ${panelUpdateInfo.latestVersion}`">
-                      <a-tag color="orange" class="update-tag" @click="panelUpdateOpen = true">
-                        <CloudDownloadOutlined />
-                        {{ panelUpdateInfo.latestVersion }}
-                        <span v-if="!isMobile">{{ t('pages.index.updatePanel') }}</span>
-                      </a-tag>
-                    </a-tooltip>
+                  <template #actions>
+                    <a-space class="action" @click="openTelegram">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" class="tg-icon"
+                        aria-hidden="true">
+                        <path
+                          d="M21.93 4.34a1.5 1.5 0 0 0-2.05-1.6L2.97 9.6c-.92.36-.91 1.66.02 1.99l4.32 1.53 1.7 5.23a1 1 0 0 0 1.68.36l2.43-2.43 4.36 3.21a1.5 1.5 0 0 0 2.36-.91l3.09-13.86a1.5 1.5 0 0 0 0-.38ZM9.97 14.66l-.55 3.36-1.36-4.2 9.8-7.05-7.89 7.89Z" />
+                      </svg>
+                      <span v-if="!isMobile">@XrayUI</span>
+                    </a-space>
+                    <a-space class="action" :class="{ 'action-update': panelUpdateInfo.updateAvailable }"
+                      @click="openPanelVersion">
+                      <CloudDownloadOutlined />
+                      <span v-if="!isMobile">
+                        {{ panelUpdateInfo.updateAvailable
+                          ? `${t('update')} ${panelUpdateInfo.latestVersion}`
+                          : `v${displayVersion}` }}
+                      </span>
+                    </a-space>
                   </template>
-                  <div class="link-tags">
-                    <a href="https://github.com/MHSanaei/3x-ui/releases" target="_blank" rel="noopener noreferrer">
-                      <a-tag color="green">v{{ displayVersion }}</a-tag>
-                    </a>
-                    <a href="https://t.me/XrayUI" target="_blank" rel="noopener noreferrer">
-                      <a-tag color="green">@XrayUI</a-tag>
-                    </a>
-                    <a href="https://github.com/MHSanaei/3x-ui/wiki" target="_blank" rel="noopener noreferrer">
-                      <a-tag color="purple">{{ t('pages.index.documentation') }}</a-tag>
-                    </a>
-                  </div>
+                </a-card>
+              </a-col>
+
+              <a-col :xs="24" :lg="12">
+                <a-card :title="t('pages.index.charts')" hoverable>
+                  <template #actions>
+                    <a-space class="action" @click="openSystemHistory">
+                      <AreaChartOutlined />
+                      <span v-if="!isMobile">{{ t('pages.index.systemHistoryTitle') }}</span>
+                    </a-space>
+                    <a-space class="action" @click="xrayMetricsOpen = true">
+                      <AreaChartOutlined />
+                      <span v-if="!isMobile">{{ t('pages.index.xrayMetricsTitle') }}</span>
+                    </a-space>
+                  </template>
                 </a-card>
               </a-col>
 
               <a-col :xs="24" :lg="12">
                 <a-card :title="t('pages.index.operationHours')" hoverable>
-                  <a-tag :color="status.xray.color">
-                    Xray: {{ TimeFormatter.formatSecond(status.appStats.uptime) }}
-                  </a-tag>
-                  <a-tag color="green">OS: {{ TimeFormatter.formatSecond(status.uptime) }}</a-tag>
-                </a-card>
-              </a-col>
-
-              <a-col :xs="24" :lg="12">
-                <a-card :title="t('pages.index.systemLoad')" hoverable>
-                  <template #extra>
-                    <a-tag color="blue" class="history-tag" @click="openSystemHistory">
-                      <AreaChartOutlined />
-                      {{ t('pages.index.systemHistoryTitle') }}
-                    </a-tag>
-                  </template>
-                  <a-tooltip :title="t('pages.index.systemLoadDesc')">
-                    <a-tag color="green">
-                      {{ status.loads[0] }} | {{ status.loads[1] }} | {{ status.loads[2] }}
-                    </a-tag>
-                  </a-tooltip>
+                  <a-row :gutter="isMobile ? [8, 8] : 0">
+                    <a-col :span="12">
+                      <CustomStatistic title="Xray" :value="TimeFormatter.formatSecond(status.appStats.uptime)">
+                        <template #prefix>
+                          <ThunderboltOutlined />
+                        </template>
+                      </CustomStatistic>
+                    </a-col>
+                    <a-col :span="12">
+                      <CustomStatistic title="OS" :value="TimeFormatter.formatSecond(status.uptime)">
+                        <template #prefix>
+                          <DesktopOutlined />
+                        </template>
+                      </CustomStatistic>
+                    </a-col>
+                  </a-row>
                 </a-card>
               </a-col>
 
               <a-col :xs="24" :lg="12">
                 <a-card :title="t('usage')" hoverable>
-                  <a-tag color="green">
-                    {{ t('pages.index.memory') }}: {{ SizeFormatter.sizeFormat(status.appStats.mem) }}
-                  </a-tag>
-                  <a-tag color="green">
-                    {{ t('pages.index.threads') }}: {{ status.appStats.threads }}
-                  </a-tag>
+                  <a-row :gutter="isMobile ? [8, 8] : 0">
+                    <a-col :span="12">
+                      <CustomStatistic :title="t('pages.index.memory')"
+                        :value="SizeFormatter.sizeFormat(status.appStats.mem)">
+                        <template #prefix>
+                          <DatabaseOutlined />
+                        </template>
+                      </CustomStatistic>
+                    </a-col>
+                    <a-col :span="12">
+                      <CustomStatistic :title="t('pages.index.threads')" :value="status.appStats.threads">
+                        <template #prefix>
+                          <ForkOutlined />
+                        </template>
+                      </CustomStatistic>
+                    </a-col>
+                  </a-row>
                 </a-card>
               </a-col>
 
@@ -318,6 +357,7 @@ async function openConfig() {
       <LogModal v-model:open="logsOpen" />
       <BackupModal v-model:open="backupOpen" :base-path="basePath" @busy="setBusy" />
       <SystemHistoryModal v-model:open="sysHistoryOpen" :status="status" />
+      <XrayMetricsModal v-model:open="xrayMetricsOpen" />
       <XrayLogModal v-model:open="xrayLogsOpen" />
       <VersionModal v-model:open="versionOpen" :status="status" @busy="setBusy" />
       <TextModal v-model:open="configTextOpen" :title="t('pages.index.config')" :content="configText"
@@ -374,12 +414,13 @@ async function openConfig() {
   justify-content: center;
 }
 
-.update-tag {
-  cursor: pointer;
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.action-update {
+  color: #fa8c16;
+  font-weight: 600;
+}
+
+.action-update :deep(.anticon) {
+  color: #fa8c16;
 }
 
 .history-tag {
@@ -390,18 +431,9 @@ async function openConfig() {
   margin-inline-end: 0;
 }
 
-.link-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.link-tags a {
-  display: inline-flex;
-}
-
-.link-tags :deep(.ant-tag) {
-  margin-inline-end: 0;
+.tg-icon {
+  display: inline-block;
+  vertical-align: -2px;
 }
 
 .ip-toggle-icon {

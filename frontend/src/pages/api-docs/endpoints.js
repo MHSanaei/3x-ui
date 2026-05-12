@@ -325,7 +325,7 @@ export const sections = [
       {
         method: 'GET',
         path: '/panel/api/server/getNewVlessEnc',
-        summary: 'Generate a new VLESS encryption keypair.',
+        summary: 'Generate VLESS encryption auth options. Returns auths with id, label, decryption, and encryption.',
       },
       {
         method: 'POST',

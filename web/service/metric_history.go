@@ -130,6 +130,7 @@ func (h *metricHistory) aggregate(metric string, bucketSeconds int, maxPoints in
 var (
 	systemMetrics = newMetricHistory()
 	nodeMetrics   = newMetricHistory()
+	xrayMetrics   = newMetricHistory()
 )
 
 // SystemMetricKeys lists the metric names ServerService writes on every
@@ -141,3 +142,11 @@ var SystemMetricKeys = []string{
 
 // NodeMetricKeys lists the per-node metric names NodeHeartbeatJob writes.
 var NodeMetricKeys = []string{"cpu", "mem"}
+
+// XrayMetricKeys lists series sourced from xray's /debug/vars expvar
+// endpoint. Populated by XrayMetricsService.Sample on the same 2s cadence
+// as the system metrics, but only when the xray config has a `metrics`
+// block configured.
+var XrayMetricKeys = []string{
+	"xrAlloc", "xrSys", "xrHeapObjects", "xrNumGC", "xrPauseNs",
+}

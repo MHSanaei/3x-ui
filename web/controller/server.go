@@ -23,9 +23,10 @@ var filenameRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-.]+$`)
 type ServerController struct {
 	BaseController
 
-	serverService  service.ServerService
-	settingService service.SettingService
-	panelService   service.PanelService
+	serverService      service.ServerService
+	settingService     service.SettingService
+	panelService       service.PanelService
+	xrayMetricsService service.XrayMetricsService
 
 	lastStatus *service.Status
 
@@ -47,6 +48,10 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/status", a.status)
 	g.GET("/cpuHistory/:bucket", a.getCpuHistoryBucket)
 	g.GET("/history/:metric/:bucket", a.getMetricHistoryBucket)
+	g.GET("/xrayMetricsState", a.getXrayMetricsState)
+	g.GET("/xrayMetricsHistory/:metric/:bucket", a.getXrayMetricsHistoryBucket)
+	g.GET("/xrayObservatory", a.getXrayObservatory)
+	g.GET("/xrayObservatoryHistory/:tag/:bucket", a.getXrayObservatoryHistoryBucket)
 	g.GET("/getXrayVersion", a.getXrayVersion)
 	g.GET("/getPanelUpdateInfo", a.getPanelUpdateInfo)
 	g.GET("/getConfigJson", a.getConfigJson)
@@ -75,7 +80,9 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 func (a *ServerController) refreshStatus() {
 	a.lastStatus = a.serverService.GetStatus(a.lastStatus)
 	if a.lastStatus != nil {
-		a.serverService.AppendStatusSample(time.Now(), a.lastStatus)
+		now := time.Now()
+		a.serverService.AppendStatusSample(now, a.lastStatus)
+		a.xrayMetricsService.Sample(now)
 		// Broadcast status update via WebSocket
 		websocket.BroadcastStatus(a.lastStatus)
 	}
@@ -141,6 +148,42 @@ func (a *ServerController) getMetricHistoryBucket(c *gin.Context) {
 		return
 	}
 	jsonObj(c, a.serverService.AggregateSystemMetric(metric, bucket, 60), nil)
+}
+
+func (a *ServerController) getXrayMetricsState(c *gin.Context) {
+	jsonObj(c, a.xrayMetricsService.State(), nil)
+}
+
+func (a *ServerController) getXrayMetricsHistoryBucket(c *gin.Context) {
+	metric := c.Param("metric")
+	if !slices.Contains(service.XrayMetricKeys, metric) {
+		jsonMsg(c, "invalid metric", fmt.Errorf("unknown metric"))
+		return
+	}
+	bucket, err := strconv.Atoi(c.Param("bucket"))
+	if err != nil || bucket <= 0 || !allowedHistoryBuckets[bucket] {
+		jsonMsg(c, "invalid bucket", fmt.Errorf("unsupported bucket"))
+		return
+	}
+	jsonObj(c, a.xrayMetricsService.AggregateMetric(metric, bucket, 60), nil)
+}
+
+func (a *ServerController) getXrayObservatory(c *gin.Context) {
+	jsonObj(c, a.xrayMetricsService.ObservatorySnapshot(), nil)
+}
+
+func (a *ServerController) getXrayObservatoryHistoryBucket(c *gin.Context) {
+	tag := c.Param("tag")
+	if !a.xrayMetricsService.HasObservatoryTag(tag) {
+		jsonMsg(c, "invalid tag", fmt.Errorf("unknown observatory tag"))
+		return
+	}
+	bucket, err := strconv.Atoi(c.Param("bucket"))
+	if err != nil || bucket <= 0 || !allowedHistoryBuckets[bucket] {
+		jsonMsg(c, "invalid bucket", fmt.Errorf("unsupported bucket"))
+		return
+	}
+	jsonObj(c, a.xrayMetricsService.AggregateObservatory(tag, bucket, 60), nil)
 }
 
 func (a *ServerController) getXrayVersion(c *gin.Context) {
