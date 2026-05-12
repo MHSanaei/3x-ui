@@ -395,8 +395,8 @@ function showQrCodeMenu(dbInbound) {
             <div class="stat-row">
               <span class="stat-label">{{ t('pages.inbounds.protocol') }}</span>
               <a-tag color="purple">{{ record.protocol }}</a-tag>
-              <template v-if="record.isVMess || record.isVLess || record.isTrojan || record.isSS">
-                <a-tag color="green">{{ record.toInbound().stream.network }}</a-tag>
+              <template v-if="record.isVMess || record.isVLess || record.isTrojan || record.isSS || record.isHysteria">
+                <a-tag color="green">{{ record.isHysteria ? 'UDP' : record.toInbound().stream.network }}</a-tag>
                 <a-tag v-if="record.toInbound().stream.isTls" color="blue">TLS</a-tag>
                 <a-tag v-if="record.toInbound().stream.isReality" color="blue">Reality</a-tag>
               </template>
@@ -430,7 +430,7 @@ function showQrCodeMenu(dbInbound) {
             </div>
             <div v-if="clientCount[record.id]" class="stat-row">
               <span class="stat-label">{{ t('clients') }}</span>
-              <a-tag color="green">{{ clientCount[record.id].clients }}</a-tag>
+              <a-tag color="green" class="client-count-tag">{{ clientCount[record.id].clients }}</a-tag>
               <a-tag v-if="clientCount[record.id].online.length" color="blue">
                 {{ clientCount[record.id].online.length }} {{ t('online') }}
               </a-tag>
@@ -570,8 +570,8 @@ function showQrCodeMenu(dbInbound) {
           <template v-else-if="column.key === 'protocol'">
             <div class="protocol-tags">
               <a-tag color="purple">{{ record.protocol }}</a-tag>
-              <template v-if="record.isVMess || record.isVLess || record.isTrojan || record.isSS">
-                <a-tag color="green">{{ record.toInbound().stream.network }}</a-tag>
+              <template v-if="record.isVMess || record.isVLess || record.isTrojan || record.isSS || record.isHysteria">
+                <a-tag color="green">{{ record.isHysteria ? 'UDP' : record.toInbound().stream.network }}</a-tag>
                 <a-tag v-if="record.toInbound().stream.isTls" color="blue">TLS</a-tag>
                 <a-tag v-if="record.toInbound().stream.isReality" color="blue">Reality</a-tag>
               </template>
@@ -581,14 +581,14 @@ function showQrCodeMenu(dbInbound) {
           <!-- ============== Clients tag + popovers ============== -->
           <template v-else-if="column.key === 'clients'">
             <template v-if="clientCount[record.id]">
-              <a-tag color="green" style="margin: 0">{{ clientCount[record.id].clients }}</a-tag>
+              <a-tag color="green" class="client-count-tag" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].clients }}</a-tag>
               <a-popover v-if="clientCount[record.id].deactive.length" :title="t('disabled')">
                 <template #content>
                   <div class="client-email-list">
                     <div v-for="email in clientCount[record.id].deactive" :key="email">{{ email }}</div>
                   </div>
                 </template>
-                <a-tag style="margin: 0; padding: 0 2px">{{ clientCount[record.id].deactive.length }}</a-tag>
+                <a-tag class="client-count-tag" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].deactive.length }}</a-tag>
               </a-popover>
               <a-popover v-if="clientCount[record.id].depleted.length" :title="t('depleted')">
                 <template #content>
@@ -596,7 +596,7 @@ function showQrCodeMenu(dbInbound) {
                     <div v-for="email in clientCount[record.id].depleted" :key="email">{{ email }}</div>
                   </div>
                 </template>
-                <a-tag color="red" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].depleted.length
+                <a-tag color="red" class="client-count-tag" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].depleted.length
                 }}</a-tag>
               </a-popover>
               <a-popover v-if="clientCount[record.id].expiring.length" :title="t('depletingSoon')">
@@ -605,7 +605,7 @@ function showQrCodeMenu(dbInbound) {
                     <div v-for="email in clientCount[record.id].expiring" :key="email">{{ email }}</div>
                   </div>
                 </template>
-                <a-tag color="orange" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].expiring.length
+                <a-tag color="orange" class="client-count-tag" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].expiring.length
                 }}</a-tag>
               </a-popover>
               <a-popover v-if="clientCount[record.id].online.length" :title="t('online')">
@@ -614,7 +614,7 @@ function showQrCodeMenu(dbInbound) {
                     <div v-for="email in clientCount[record.id].online" :key="email">{{ email }}</div>
                   </div>
                 </template>
-                <a-tag color="blue" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].online.length }}</a-tag>
+                <a-tag color="blue" class="client-count-tag" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].online.length }}</a-tag>
               </a-popover>
             </template>
           </template>
@@ -680,13 +680,17 @@ function showQrCodeMenu(dbInbound) {
 }
 
 .filter-bar.mobile>* {
-  margin-bottom: 4px;
+    margin-bottom: 4px;
 }
 
 .protocol-tags {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.client-count-tag {
+  font-variant-numeric: tabular-nums;
 }
 
 .row-action-trigger {
