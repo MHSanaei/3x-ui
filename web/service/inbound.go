@@ -5,6 +5,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -422,11 +423,10 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		logger.Debug("No enabled inbound found to remove by api, id:", id)
 	}
 
-	// Delete client traffics of inbounds
-	err := db.Where("inbound_id = ?", id).Delete(xray.ClientTraffic{}).Error
-	if err != nil {
-		return false, err
-	}
+	// Load the inbound and its clients before touching client_traffics,
+	// so we can check for sibling-inbound sharing before deleting rows
+	// (AddClientStat uses OnConflict{DoNothing: true} on email — two
+	// inbounds with clients sharing the same email share one row).
 	inbound, err := s.GetInbound(id)
 	if err != nil {
 		return false, err
@@ -435,11 +435,31 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	// Bulk-delete client IPs for every email in this inbound. The previous
-	// per-client loop fired one DELETE per row — at 7k+ clients that meant
-	// thousands of synchronous SQL roundtrips and a multi-second freeze.
-	// Chunked to stay under SQLite's bind-variable limit on huge inbounds.
+
+	// Delete client_traffic rows, but only for emails that are NOT
+	// referenced by another inbound. A shared row is "owned" by whichever
+	// inbound was added first — when that owner is deleted the shared row
+	// disappears and the sibling hits "record not found" later.
 	if len(clients) > 0 {
+		for i := range clients {
+			if clients[i].Email == "" {
+				continue
+			}
+			stillUsed, checkErr := s.emailUsedByOtherInbounds(clients[i].Email, id)
+			if checkErr != nil {
+				return false, checkErr
+			}
+			if stillUsed {
+				continue
+			}
+			if err := s.DelClientStat(db, clients[i].Email); err != nil {
+				return false, err
+			}
+		}
+	}
+
+	// Bulk-delete client IPs for every email in this inbound.
+	{
 		emails := make([]string, 0, len(clients))
 		for i := range clients {
 			if clients[i].Email != "" {
@@ -1222,8 +1242,15 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 
 	if len(email) > 0 {
 		notDepleted := true
+		// The client_traffic row may have been deleted already when the
+		// sibling inbound that "owned" it (the one whose AddClientStat
+		// actually created the row) was deleted — AddClientStat uses
+		// OnConflict{DoNothing:true}, so two inbounds with clients
+		// sharing the same email share one row.
 		err = db.Model(xray.ClientTraffic{}).Select("enable").Where("email = ?", email).First(&notDepleted).Error
-		if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			notDepleted = false
+		} else if err != nil {
 			logger.Error("Get stats error")
 			return false, err
 		}
