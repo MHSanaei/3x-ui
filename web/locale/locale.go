@@ -111,9 +111,18 @@ func initTGBotLocalizer(settingService SettingService) error {
 	if err != nil {
 		return err
 	}
+	logger.Infof("Initializing TG Bot localizer with language: %s", botLang)
 
 	LocalizerBot = i18n.NewLocalizer(i18nBundle, botLang)
 	return nil
+}
+
+// UpdateBotLocalizer dynamically updates the bot localizer language.
+func UpdateBotLocalizer(botLang string) {
+	if i18nBundle != nil {
+		logger.Infof("Updating TG Bot localizer with language: %s", botLang)
+		LocalizerBot = i18n.NewLocalizer(i18nBundle, botLang)
+	}
 }
 
 // LocalizerMiddleware returns a Gin middleware that sets up localization for web requests.
@@ -161,7 +170,9 @@ func loadTranslationsFromDisk(bundle *i18n.Bundle) error {
 		if err != nil {
 			return err
 		}
-		_, err = bundle.ParseMessageFileBytes(data, path)
+		filename := d.Name()
+		logger.Infof("Parsing translation file from disk: %s", filename)
+		_, err = bundle.ParseMessageFileBytes(data, filename)
 		return err
 	})
 }
@@ -183,7 +194,9 @@ func parseTranslationFiles(i18nFS embed.FS, i18nBundle *i18n.Bundle) error {
 				return err
 			}
 
-			_, err = i18nBundle.ParseMessageFileBytes(data, path)
+			filename := d.Name()
+			logger.Infof("Parsing translation file from embed: %s (path: %s)", filename, path)
+			_, err = i18nBundle.ParseMessageFileBytes(data, filename)
 			return err
 		})
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/util/crypto"
 	"github.com/mhsanaei/3x-ui/v3/web/entity"
+	"github.com/mhsanaei/3x-ui/v3/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 	"github.com/mhsanaei/3x-ui/v3/web/session"
 
@@ -77,6 +78,9 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 		return
 	}
 	err = a.settingService.UpdateAllSetting(allSetting)
+	if err == nil {
+		locale.UpdateBotLocalizer(allSetting.TgLang)
+	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 }
 
