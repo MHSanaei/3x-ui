@@ -25,7 +25,7 @@ const paramColumns = [
       <code class="endpoint-path">{{ endpoint.path }}</code>
     </div>
 
-    <p v-if="endpoint.summary" class="endpoint-summary">{{ endpoint.summary }}</p>
+    <p v-if="endpoint.summary" class="endpoint-summary" v-html="endpoint.summary"></p>
 
     <div v-if="hasParams" class="endpoint-block">
       <div class="block-label">Parameters</div>
@@ -40,6 +40,11 @@ const paramColumns = [
     <div v-if="endpoint.response" class="endpoint-block">
       <div class="block-label">Response</div>
       <CodeBlock :code="endpoint.response" lang="json" />
+    </div>
+
+    <div v-if="endpoint.errorResponse" class="endpoint-block">
+      <div class="block-label error-label">Error response</div>
+      <CodeBlock :code="endpoint.errorResponse" lang="json" />
     </div>
   </div>
 </template>
@@ -93,6 +98,10 @@ const paramColumns = [
   margin-bottom: 6px;
 }
 
+.error-label {
+  color: #cf222e;
+}
+
 .code-block {
   background: rgba(128, 128, 128, 0.08);
   border: 1px solid rgba(128, 128, 128, 0.15);
@@ -114,6 +123,10 @@ body.dark .endpoint-summary {
 }
 
 body.dark .block-label {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+body.dark .error-label {
   color: rgba(255, 255, 255, 0.55);
 }
 

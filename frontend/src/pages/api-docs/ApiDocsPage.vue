@@ -141,6 +141,7 @@ onMounted(() => {
                 cookie, or with the <code>Authorization: Bearer &lt;token&gt;</code> header below. Every endpoint
                 returns a uniform <code>{ success, msg, obj }</code> envelope unless otherwise noted.
               </p>
+
             </header>
 
             <a-card class="token-card" size="small">

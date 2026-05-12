@@ -17,6 +17,8 @@ export const sections = [
         body: '{\n  "username": "admin",\n  "password": "admin",\n  "twoFactorCode": "123456"\n}',
         response:
           '{\n  "success": true,\n  "msg": "Logged in successfully"\n}',
+        errorResponse:
+          '{\n  "success": false,\n  "msg": "Wrong username or password"\n}',
       },
       {
         method: 'GET',
@@ -84,6 +86,8 @@ export const sections = [
         summary: 'Create a new inbound. Send the full inbound payload (protocol, port, settings JSON, streamSettings JSON, sniffing JSON, remark, expiryTime, total, enable).',
         body:
           '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": "{\\"clients\\":[{\\"id\\":\\"...\\",\\"email\\":\\"user1\\"}],\\"decryption\\":\\"none\\",\\"fallbacks\\":[]}",\n  "streamSettings": "{\\"network\\":\\"tcp\\",\\"security\\":\\"reality\\",\\"realitySettings\\":{...}}",\n  "sniffing": "{\\"enabled\\":true,\\"destOverride\\":[\\"http\\",\\"tls\\"]}"\n}',
+        errorResponse:
+          '{\n  "success": false,\n  "msg": "Port 443 is already in use"\n}',
       },
       {
         method: 'POST',
@@ -371,11 +375,15 @@ export const sections = [
         method: 'POST',
         path: '/panel/api/server/stopXrayService',
         summary: 'Stop the Xray binary. All proxies go offline immediately.',
+        errorResponse:
+          '{\n  "success": false,\n  "msg": "Xray is not running"\n}',
       },
       {
         method: 'POST',
         path: '/panel/api/server/restartXrayService',
         summary: 'Reload Xray with the current config. Typically required after structural inbound or routing changes.',
+        errorResponse:
+          '{\n  "success": false,\n  "msg": "Xray config is invalid: ..."\n}',
       },
       {
         method: 'POST',
@@ -394,6 +402,10 @@ export const sections = [
         method: 'POST',
         path: '/panel/api/server/updateGeofile',
         summary: 'Refresh the default GeoIP / GeoSite data files. Body can include a fileName, or use the /:fileName variant.',
+        params: [
+          { name: 'fileName', in: 'body (form)', type: 'string', desc: 'Filename to update (e.g. geoip.dat, geosite.dat). Omit to update all defaults.' },
+        ],
+        body: 'fileName=geoip.dat',
       },
       {
         method: 'POST',
@@ -419,17 +431,31 @@ export const sections = [
         summary: 'Return the last N lines of the Xray process log.',
         params: [
           { name: 'count', in: 'path', type: 'number', desc: 'Number of trailing log lines.' },
+          { name: 'filter', in: 'body (form)', type: 'string', desc: 'Keyword filter — only lines containing this string.' },
+          { name: 'showDirect', in: 'body (form)', type: 'string', desc: '"true" to include direct (freedom) traffic lines.' },
+          { name: 'showBlocked', in: 'body (form)', type: 'string', desc: '"true" to include blocked (blackhole) traffic lines.' },
+          { name: 'showProxy', in: 'body (form)', type: 'string', desc: '"true" to include proxy traffic lines.' },
         ],
+        body: 'filter=error&showDirect=false&showBlocked=true&showProxy=true',
+        response: '{\n  "success": true,\n  "obj": "2025/01/01 12:00:00 rejected  vless  proxy  example.com  reason: no valid user\\n2025/01/01 12:00:01 direct  freedom  ok"\n}',
       },
       {
         method: 'POST',
         path: '/panel/api/server/importDB',
         summary: 'Restore the panel DB from an uploaded SQLite file (multipart form, field name "db"). The panel restarts after restore. Destructive.',
+        params: [
+          { name: 'db', in: 'body (multipart)', type: 'file', desc: 'SQLite database file to upload.' },
+        ],
       },
       {
         method: 'POST',
         path: '/panel/api/server/getNewEchCert',
-        summary: 'Generate a new ECH (Encrypted Client Hello) keypair. Body picks the algorithm.',
+        summary: 'Generate a new ECH (Encrypted Client Hello) keypair and config list for the given SNI.',
+        params: [
+          { name: 'sni', in: 'body (form)', type: 'string', desc: 'Server Name Indication to generate the ECH config for.' },
+        ],
+        body: 'sni=example.com',
+        response: '{\n  "success": true,\n  "obj": {\n    "echKeySet": "...",\n    "echServerKeys": [...],\n    "echConfigList": "..."\n  }\n}',
       },
     ],
   },
@@ -464,10 +490,11 @@ export const sections = [
       {
         method: 'POST',
         path: '/panel/api/nodes/update/:id',
-        summary: 'Replace a node’s connection details. Same body shape as /add.',
+        summary: 'Replace a node\u2019s connection details. Same body shape as /add.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Node ID.' },
         ],
+        body: '{\n  "name": "de-fra-1",\n  "scheme": "https",\n  "host": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
       },
       {
         method: 'POST',
@@ -490,6 +517,8 @@ export const sections = [
         method: 'POST',
         path: '/panel/api/nodes/test',
         summary: 'Probe a node without saving it. Uses the body as connection details and returns whether the handshake succeeds.',
+        body: '{\n  "scheme": "https",\n  "host": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "status": "online",\n    "cpu": 12.5,\n    "mem": 45.2\n  }\n}',
       },
       {
         method: 'POST',
@@ -725,12 +754,22 @@ export const sections = [
     id: 'subscription',
     title: 'Subscription Server',
     description:
-      'A separate HTTP/HTTPS server that serves proxy subscription links (standard, JSON, and Clash) to clients. The server listens on its own port (default 10882) and is configured in Settings → Subscription. Paths are configurable; defaults are shown below.',
+      'A separate HTTP/HTTPS server that serves proxy subscription links (standard, JSON, and Clash) to clients. The server listens on its own port (default 10882) and is configured in Settings → Subscription. Paths are configurable; defaults are shown below. All subscription endpoints set response headers for client apps to read traffic/expiry info.',
+    subHeader: [
+      { name: 'Subscription-Userinfo', desc: 'Traffic and expiry: <code>upload=N; download=N; total=N; expire=TS</code>' },
+      { name: 'Profile-Title', desc: 'Base64-encoded subscription display name' },
+      { name: 'Profile-Web-Page-Url', desc: 'Link to the subscription info page' },
+      { name: 'Support-Url', desc: 'Support contact URL configured in settings' },
+      { name: 'Profile-Update-Interval', desc: 'Suggested polling interval in minutes (e.g. <code>10</code>)' },
+      { name: 'Announce', desc: 'Base64-encoded announcement string' },
+      { name: 'Routing-Enable', desc: '<code>true</code> or <code>false</code> — whether routing rules are included' },
+      { name: 'Routing', desc: 'Global routing rules for client apps that support them (e.g. Happ)' },
+    ],
     endpoints: [
       {
         method: 'GET',
         path: '/{subPath}:subid',
-        summary: 'Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. Response headers include Subscription-Userinfo (traffic/expiry), Profile-Title, Profile-Web-Page-Url, Support-Url, and Profile-Update-Interval. Default path: /sub/:subid.',
+        summary: 'Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. Default path: /sub/:subid.',
         params: [
           { name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' },
         ],
@@ -758,12 +797,31 @@ export const sections = [
     id: 'websocket',
     title: 'WebSocket',
     description:
-      'Real-time status updates via WebSocket. Connect once to receive a stream of server state without polling.',
+      'Real-time status updates via WebSocket. Connect once at <code>ws://&lt;panel&gt;/ws</code> to receive a stream of JSON messages without polling. Requires an authenticated session cookie (Bearer token auth is not supported). Each message has a <code>type</code> field that identifies the payload shape.',
     endpoints: [
       {
-        method: 'GET',
-        path: '/ws',
-        summary: 'Upgrade an HTTP connection to WebSocket for real-time server status, Xray state, and notification events. Requires an authenticated session cookie (Bearer token auth is not supported for WebSocket). The server pushes JSON messages on every 2-second status tick.',
+        method: 'WS',
+        path: '→ type: status',
+        summary: 'Server health snapshot pushed every 2 seconds. Contains CPU, memory, swap, disk, network IO, load, and Xray state — same shape as <code>GET /panel/api/server/status</code>.',
+        response: '{\n  "type": "status",\n  "data": { "cpu": 12.5, "mem": { "current": 2147483648, "total": 8589934592 }, "xray": { "state": "running" } }\n}',
+      },
+      {
+        method: 'WS',
+        path: '→ type: xrayState',
+        summary: 'Xray process state change. Fired when Xray starts, stops, or encounters an error.',
+        response: '{\n  "type": "xrayState",\n  "data": "running"\n}',
+      },
+      {
+        method: 'WS',
+        path: '→ type: notification',
+        summary: 'In-panel toast notification. Fired on Xray stop/restart, DB import, panel restart, etc.',
+        response: '{\n  "type": "notification",\n  "title": "Xray service restarted",\n  "body": "Xray has been restarted successfully",\n  "severity": "success"\n}',
+      },
+      {
+        method: 'WS',
+        path: '→ type: invalidate',
+        summary: 'Instructs the UI to re-fetch a resource. Fired when another admin session modifies data (e.g. toggling inbound enable).',
+        response: '{\n  "type": "invalidate",\n  "resource": "inbounds"\n}',
       },
     ],
   },
@@ -775,4 +833,5 @@ export const methodColors = {
   PUT: 'orange',
   PATCH: 'orange',
   DELETE: 'red',
+  WS: 'purple',
 };

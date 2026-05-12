@@ -30,7 +30,19 @@ const endpointLabel = computed(() =>
       </div>
       <span class="endpoint-count">{{ endpointLabel }}</span>
     </div>
-    <p v-if="section.description && !collapsed" class="section-description">{{ section.description }}</p>
+    <p v-if="section.description && !collapsed" class="section-description" v-html="section.description"></p>
+
+    <div v-if="section.subHeader && !collapsed" class="sub-header-block">
+      <div class="block-label">Response headers</div>
+      <a-table
+        :columns="[{ title: 'Header', dataIndex: 'name', key: 'name', width: 240 }, { title: 'Description', dataIndex: 'desc', key: 'desc' }]"
+        :data-source="section.subHeader"
+        :pagination="false"
+        size="small"
+        row-key="name"
+      />
+    </div>
+
     <div v-show="!collapsed" class="endpoints">
       <EndpointRow v-for="(endpoint, idx) in section.endpoints" :key="idx" :endpoint="endpoint" />
     </div>
@@ -90,6 +102,19 @@ const endpointLabel = computed(() =>
   line-height: 1.55;
 }
 
+.sub-header-block {
+  margin-bottom: 14px;
+}
+
+.block-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(0, 0, 0, 0.5);
+  margin-bottom: 6px;
+}
+
 .endpoints {
   padding-top: 8px;
   border-top: 1px solid rgba(128, 128, 128, 0.1);
@@ -117,5 +142,9 @@ body.dark .section-title {
 
 body.dark .section-description {
   color: rgba(255, 255, 255, 0.7);
+}
+
+body.dark .block-label {
+  color: rgba(255, 255, 255, 0.55);
 }
 </style>
