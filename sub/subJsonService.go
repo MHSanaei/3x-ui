@@ -447,6 +447,9 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 	if udpIdleTimeout, ok := hyStream["udpIdleTimeout"].(float64); ok {
 		outHyStream["udpIdleTimeout"] = int(udpIdleTimeout)
 	}
+	if masquerade, ok := hyStream["masquerade"].(map[string]any); ok {
+		outHyStream["masquerade"] = masquerade
+	}
 	newStream["hysteriaSettings"] = outHyStream
 
 	if finalmask, ok := hyStream["finalmask"].(map[string]any); ok {
