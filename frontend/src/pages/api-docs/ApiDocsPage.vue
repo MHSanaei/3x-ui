@@ -33,9 +33,9 @@ const tokenVisible = ref(false);
 const searchQuery = ref('');
 const collapsedSections = ref(new Set());
 
-const curlExample = `curl -X GET \
-  -H "Authorization: Bearer YOUR_API_TOKEN" \
-  -H "Accept: application/json" \
+const curlExample = `curl -X GET \\
+  -H "Authorization: Bearer YOUR_API_TOKEN" \\
+  -H "Accept: application/json" \\
   https://your-panel.example.com/panel/api/inbounds/list`;
 
 const sections = computed(() => {

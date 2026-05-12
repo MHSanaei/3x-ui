@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { methodColors } from './endpoints.js';
+import { methodColors, safeInlineHtml } from './endpoints.js';
 import CodeBlock from './CodeBlock.vue';
 
 const props = defineProps({
@@ -25,7 +25,7 @@ const paramColumns = [
       <code class="endpoint-path">{{ endpoint.path }}</code>
     </div>
 
-    <p v-if="endpoint.summary" class="endpoint-summary" v-html="endpoint.summary"></p>
+    <p v-if="endpoint.summary" class="endpoint-summary" v-html="safeInlineHtml(endpoint.summary)"></p>
 
     <div v-if="hasParams" class="endpoint-block">
       <div class="block-label">Parameters</div>
@@ -127,7 +127,7 @@ body.dark .block-label {
 }
 
 body.dark .error-label {
-  color: rgba(255, 255, 255, 0.55);
+  color: #ff7b72;
 }
 
 body.dark .code-block {

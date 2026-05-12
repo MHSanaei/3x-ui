@@ -5,6 +5,7 @@ import {
   RightOutlined,
 } from '@ant-design/icons-vue';
 import EndpointRow from './EndpointRow.vue';
+import { safeInlineHtml } from './endpoints.js';
 
 const props = defineProps({
   section: { type: Object, required: true },
@@ -30,7 +31,7 @@ const endpointLabel = computed(() =>
       </div>
       <span class="endpoint-count">{{ endpointLabel }}</span>
     </div>
-    <p v-if="section.description && !collapsed" class="section-description" v-html="section.description"></p>
+    <p v-if="section.description && !collapsed" class="section-description" v-html="safeInlineHtml(section.description)"></p>
 
     <div v-if="section.subHeader && !collapsed" class="sub-header-block">
       <div class="block-label">Response headers</div>
@@ -40,7 +41,12 @@ const endpointLabel = computed(() =>
         :pagination="false"
         size="small"
         row-key="name"
-      />
+      >
+        <template #bodyCell="{ column, text }">
+          <span v-if="column.dataIndex === 'desc'" v-html="safeInlineHtml(text)"></span>
+          <template v-else>{{ text }}</template>
+        </template>
+      </a-table>
     </div>
 
     <div v-show="!collapsed" class="endpoints">

@@ -1,3 +1,28 @@
+export function safeInlineHtml(input) {
+  if (!input) return '';
+  const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const open = '<code>';
+  const close = '</code>';
+  let out = '';
+  let i = 0;
+  while (i < input.length) {
+    const oIdx = input.indexOf(open, i);
+    if (oIdx === -1) {
+      out += escape(input.slice(i));
+      break;
+    }
+    out += escape(input.slice(i, oIdx));
+    const cIdx = input.indexOf(close, oIdx + open.length);
+    if (cIdx === -1) {
+      out += escape(input.slice(oIdx));
+      break;
+    }
+    out += '<code>' + escape(input.slice(oIdx + open.length, cIdx)) + '</code>';
+    i = cIdx + close.length;
+  }
+  return out;
+}
+
 export const sections = [
   {
     id: 'auth',
@@ -797,8 +822,13 @@ export const sections = [
     id: 'websocket',
     title: 'WebSocket',
     description:
-      'Real-time status updates via WebSocket. Connect once at <code>ws://&lt;panel&gt;/ws</code> to receive a stream of JSON messages without polling. Requires an authenticated session cookie (Bearer token auth is not supported). Each message has a <code>type</code> field that identifies the payload shape.',
+      'Real-time status updates via WebSocket. Connect once at <code>ws://<panel>/ws</code> to receive a stream of JSON messages without polling. Requires an authenticated session cookie (Bearer token auth is not supported). Each message has a <code>type</code> field that identifies the payload shape.',
     endpoints: [
+      {
+        method: 'GET',
+        path: '/ws',
+        summary: 'Upgrade an HTTP connection to a WebSocket. Requires an authenticated session cookie (Bearer token auth is not supported here). Returns 101 Switching Protocols on success. The server then pushes JSON messages described below.',
+      },
       {
         method: 'WS',
         path: '→ type: status',
