@@ -1275,7 +1275,13 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 		return nil, err
 	}
 
-	lines := strings.Split(out.String(), "\n")
+	return map[string]any{
+		"auths": parseVlessEncAuths(out.String()),
+	}, nil
+}
+
+func parseVlessEncAuths(output string) []map[string]string {
+	lines := strings.Split(output, "\n")
 	var auths []map[string]string
 	var current map[string]string
 
@@ -1285,14 +1291,18 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 			if current != nil {
 				auths = append(auths, current)
 			}
+			label := strings.TrimSpace(strings.TrimPrefix(line, "Authentication:"))
 			current = map[string]string{
-				"label": strings.TrimSpace(strings.TrimPrefix(line, "Authentication:")),
+				"id":    vlessEncAuthID(label),
+				"label": label,
 			}
 		} else if strings.HasPrefix(line, `"decryption"`) || strings.HasPrefix(line, `"encryption"`) {
 			parts := strings.SplitN(line, ":", 2)
 			if len(parts) == 2 && current != nil {
 				key := strings.Trim(parts[0], `" `)
-				val := strings.Trim(parts[1], `" `)
+				val := strings.TrimSpace(parts[1])
+				val = strings.TrimSuffix(val, ",")
+				val = strings.Trim(val, `" `)
 				current[key] = val
 			}
 		}
@@ -1302,9 +1312,19 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 		auths = append(auths, current)
 	}
 
-	return map[string]any{
-		"auths": auths,
-	}, nil
+	return auths
+}
+
+func vlessEncAuthID(label string) string {
+	normalized := strings.NewReplacer("-", "", "_", "", " ", "").Replace(strings.ToLower(label))
+	switch {
+	case strings.Contains(normalized, "mlkem768"):
+		return "mlkem768"
+	case strings.Contains(normalized, "x25519"):
+		return "x25519"
+	default:
+		return normalized
+	}
 }
 
 func (s *ServerService) GetNewUUID() (map[string]string, error) {

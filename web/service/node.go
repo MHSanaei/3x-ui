@@ -53,6 +53,20 @@ func (s *NodeService) GetById(id int) (*model.Node, error) {
 	return n, nil
 }
 
+func normalizeBasePath(p string) string {
+	p = strings.TrimSpace(p)
+	if p == "" {
+		return "/"
+	}
+	if !strings.HasPrefix(p, "/") {
+		p = "/" + p
+	}
+	if !strings.HasSuffix(p, "/") {
+		p = p + "/"
+	}
+	return p
+}
+
 func (s *NodeService) normalize(n *model.Node) error {
 	n.Name = strings.TrimSpace(n.Name)
 	n.Address = strings.TrimSpace(n.Address)
@@ -69,15 +83,7 @@ func (s *NodeService) normalize(n *model.Node) error {
 	if n.Scheme != "http" && n.Scheme != "https" {
 		n.Scheme = "https"
 	}
-	if n.BasePath == "" {
-		n.BasePath = "/"
-	}
-	if !strings.HasPrefix(n.BasePath, "/") {
-		n.BasePath = "/" + n.BasePath
-	}
-	if !strings.HasSuffix(n.BasePath, "/") {
-		n.BasePath = n.BasePath + "/"
-	}
+	n.BasePath = normalizeBasePath(n.BasePath)
 	return nil
 }
 
@@ -169,7 +175,7 @@ func (s *NodeService) AggregateNodeMetric(id int, metric string, bucketSeconds i
 func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch, error) {
 	patch := HeartbeatPatch{LastHeartbeat: time.Now().Unix()}
 	url := fmt.Sprintf("%s://%s:%d%spanel/api/server/status",
-		n.Scheme, n.Address, n.Port, n.BasePath)
+		n.Scheme, n.Address, n.Port, normalizeBasePath(n.BasePath))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

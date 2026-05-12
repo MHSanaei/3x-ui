@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   PlusOutlined,
@@ -118,6 +118,56 @@ const visibleInbounds = computed(() => {
   return out;
 });
 
+// ============ Sorting =================================================
+const sortState = ref({ column: null, order: null });
+
+function sortableCol(col, key) {
+  return {
+    ...col,
+    sorter: true,
+    showSorterTooltip: false,
+    sortOrder: sortState.value.column === key ? sortState.value.order : null,
+    sortDirections: ['ascend', 'descend'],
+  };
+}
+
+const sortFns = {
+  id: (a, b) => a.id - b.id,
+  enable: (a, b) => Number(a.enable) - Number(b.enable),
+  remark: (a, b) => (a.remark || '').localeCompare(b.remark || ''),
+  port: (a, b) => a.port - b.port,
+  protocol: (a, b) => a.protocol.localeCompare(b.protocol),
+  traffic: (a, b) => (a.up + a.down) - (b.up + b.down),
+  allTimeInbound: (a, b) => (a.allTime || 0) - (b.allTime || 0),
+  expiryTime: (a, b) => (a.expiryTime || Infinity) - (b.expiryTime || Infinity),
+  node: (a, b) => {
+    const nameA = props.nodesById.get(a.nodeId)?.name ?? (a.nodeId == null ? '\uffff' : `node #${a.nodeId}`);
+    const nameB = props.nodesById.get(b.nodeId)?.name ?? (b.nodeId == null ? '\uffff' : `node #${b.nodeId}`);
+    return nameA.localeCompare(nameB);
+  },
+  clients: (a, b) => (props.clientCount[a.id]?.clients || 0) - (props.clientCount[b.id]?.clients || 0),
+};
+
+const sortedInbounds = computed(() => {
+  const { column, order } = sortState.value;
+  if (!column || !order) return visibleInbounds.value;
+  const fn = sortFns[column];
+  if (!fn) return visibleInbounds.value;
+  const sorted = [...visibleInbounds.value].sort(fn);
+  return order === 'descend' ? sorted.reverse() : sorted;
+});
+
+function onTableChange(_pag, _filters, sorter) {
+  sortState.value = {
+    column: sorter?.columnKey || sorter?.field || null,
+    order: sorter?.order || null,
+  };
+}
+
+watch([searchKey, filterBy], () => {
+  sortState.value = { column: null, order: null };
+});
+
 // ============ Columns =================================================
 // `key`-driven so we can render via the body-cell slot below. AD-Vue 4's
 // `responsive` array still works on column defs. Computed so column
@@ -128,23 +178,23 @@ const hasAnyRemark = computed(() =>
 
 const desktopColumns = computed(() => {
   const cols = [
-    { title: 'ID', dataIndex: 'id', key: 'id', align: 'right', width: 30 },
+    sortableCol({ title: 'ID', dataIndex: 'id', key: 'id', align: 'right', width: 30 }, 'id'),
     { title: t('pages.inbounds.operate'), key: 'action', align: 'center', width: 30 },
-    { title: t('pages.inbounds.enable'), key: 'enable', align: 'center', width: 35 },
+    sortableCol({ title: t('pages.inbounds.enable'), key: 'enable', align: 'center', width: 35 }, 'enable'),
   ];
   if (hasAnyRemark.value) {
-    cols.push({ title: t('pages.inbounds.remark'), dataIndex: 'remark', key: 'remark', align: 'center', width: 60 });
+    cols.push(sortableCol({ title: t('pages.inbounds.remark'), dataIndex: 'remark', key: 'remark', align: 'center', width: 60 }, 'remark'));
   }
   if (props.nodesById.size > 0) {
-    cols.push({ title: t('pages.inbounds.node'), key: 'node', align: 'center', width: 60 });
+    cols.push(sortableCol({ title: t('pages.inbounds.node'), key: 'node', align: 'center', width: 60 }, 'node'));
   }
   cols.push(
-    { title: t('pages.inbounds.port'), dataIndex: 'port', key: 'port', align: 'center', width: 40 },
-    { title: t('pages.inbounds.protocol'), key: 'protocol', align: 'left', width: 130 },
-    { title: t('clients'), key: 'clients', align: 'left', width: 50 },
-    { title: t('pages.inbounds.traffic'), key: 'traffic', align: 'center', width: 90 },
-    { title: t('pages.inbounds.allTimeTraffic'), key: 'allTimeInbound', align: 'center', width: 95 },
-    { title: t('pages.inbounds.expireDate'), key: 'expiryTime', align: 'center', width: 40 },
+    sortableCol({ title: t('pages.inbounds.port'), dataIndex: 'port', key: 'port', align: 'center', width: 40 }, 'port'),
+    sortableCol({ title: t('pages.inbounds.protocol'), key: 'protocol', align: 'left', width: 130 }, 'protocol'),
+    sortableCol({ title: t('clients'), key: 'clients', align: 'left', width: 50 }, 'clients'),
+    sortableCol({ title: t('pages.inbounds.traffic'), key: 'traffic', align: 'center', width: 90 }, 'traffic'),
+    sortableCol({ title: t('pages.inbounds.allTimeTraffic'), key: 'allTimeInbound', align: 'center', width: 95 }, 'allTimeInbound'),
+    sortableCol({ title: t('pages.inbounds.expireDate'), key: 'expiryTime', align: 'center', width: 40 }, 'expiryTime'),
   );
   return cols;
 });
@@ -275,7 +325,7 @@ function showQrCodeMenu(dbInbound) {
       <div v-if="isMobile" class="inbound-cards">
         <div v-if="visibleInbounds.length === 0" class="card-empty">—</div>
 
-        <div v-for="record in visibleInbounds" :key="record.id" class="inbound-card">
+        <div v-for="record in sortedInbounds" :key="record.id" class="inbound-card">
           <!-- Header: chevron (multi-user only) + remark + enable + actions -->
           <div class="card-head" @click="record.isMultiUser() && toggleExpanded(record.id)">
             <RightOutlined v-if="record.isMultiUser()" class="card-expand"
@@ -419,9 +469,9 @@ function showQrCodeMenu(dbInbound) {
       </div>
 
       <!-- ====================== Desktop: a-table ======================== -->
-      <a-table v-else :columns="columns" :data-source="visibleInbounds" :row-key="(r) => r.id"
-        :pagination="paginationFor(visibleInbounds)" :scroll="{ x: 1000 }" :style="{ marginTop: '10px' }" size="small"
-        :row-class-name="(r) => (r.isMultiUser() ? '' : 'hide-expand-icon')">
+      <a-table v-else :columns="columns" :data-source="sortedInbounds" :row-key="(r) => r.id"
+        :pagination="paginationFor(sortedInbounds)" :scroll="{ x: 1000 }" :style="{ marginTop: '10px' }" size="small"
+        :row-class-name="(r) => (r.isMultiUser() ? '' : 'hide-expand-icon')" @change="onTableChange">
         <!-- Per-inbound client list, expanded by clicking the row's
              default expand chevron. Hidden via row-class-name for
              non-multi-user inbounds (matches legacy behavior). -->
