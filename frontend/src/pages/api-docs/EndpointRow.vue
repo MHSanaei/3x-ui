@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { methodColors } from './endpoints.js';
+import CodeBlock from './CodeBlock.vue';
 
 const props = defineProps({
   endpoint: { type: Object, required: true },
@@ -33,16 +34,12 @@ const paramColumns = [
 
     <div v-if="endpoint.body" class="endpoint-block">
       <div class="block-label">Request body</div>
-      <a-typography-paragraph :copyable="{ text: endpoint.body }">
-        <pre class="code-block">{{ endpoint.body }}</pre>
-      </a-typography-paragraph>
+      <CodeBlock :code="endpoint.body" lang="json" />
     </div>
 
     <div v-if="endpoint.response" class="endpoint-block">
       <div class="block-label">Response</div>
-      <a-typography-paragraph :copyable="{ text: endpoint.response }">
-        <pre class="code-block">{{ endpoint.response }}</pre>
-      </a-typography-paragraph>
+      <CodeBlock :code="endpoint.response" lang="json" />
     </div>
   </div>
 </template>

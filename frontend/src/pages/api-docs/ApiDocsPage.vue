@@ -18,6 +18,7 @@ import AppSidebar from '@/components/AppSidebar.vue';
 import { HttpUtil, ClipboardManager } from '@/utils/index.js';
 import { sections as allSections } from './endpoints.js';
 import EndpointSection from './EndpointSection.vue';
+import CodeBlock from './CodeBlock.vue';
 
 const { t } = useI18n();
 
@@ -182,7 +183,7 @@ onMounted(() => {
             </a-card>
 
             <a-card class="curl-card" size="small" title="Quick example">
-              <pre class="code-block">{{ curlExample }}</pre>
+              <CodeBlock :code="curlExample" lang="text" />
             </a-card>
 
             <div class="toolbar">
