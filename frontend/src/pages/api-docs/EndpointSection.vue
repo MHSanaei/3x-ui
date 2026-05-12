@@ -1,16 +1,37 @@
 <script setup>
+import { computed } from 'vue';
+import {
+  DownOutlined,
+  RightOutlined,
+} from '@ant-design/icons-vue';
 import EndpointRow from './EndpointRow.vue';
 
-defineProps({
+const props = defineProps({
   section: { type: Object, required: true },
+  collapsed: { type: Boolean, default: false },
 });
+
+const emit = defineEmits(['toggle']);
+
+const endpointLabel = computed(() =>
+  props.section.endpoints.length === 1
+    ? '1 endpoint'
+    : `${props.section.endpoints.length} endpoints`
+);
 </script>
 
 <template>
   <section :id="section.id" class="api-section">
-    <h2 class="section-title">{{ section.title }}</h2>
-    <p v-if="section.description" class="section-description">{{ section.description }}</p>
-    <div class="endpoints">
+    <div class="section-header" @click="emit('toggle')">
+      <div class="section-header-left">
+        <DownOutlined v-if="!collapsed" class="collapse-icon" />
+        <RightOutlined v-else class="collapse-icon" />
+        <h2 class="section-title">{{ section.title }}</h2>
+      </div>
+      <span class="endpoint-count">{{ endpointLabel }}</span>
+    </div>
+    <p v-if="section.description && !collapsed" class="section-description">{{ section.description }}</p>
+    <div v-show="!collapsed" class="endpoints">
       <EndpointRow v-for="(endpoint, idx) in section.endpoints" :key="idx" :endpoint="endpoint" />
     </div>
   </section>
@@ -21,9 +42,33 @@ defineProps({
   background: #fff;
   border: 1px solid rgba(128, 128, 128, 0.15);
   border-radius: 8px;
-  padding: 20px 24px;
-  margin-bottom: 20px;
+  padding: 16px 24px;
+  margin-bottom: 16px;
   scroll-margin-top: 16px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-header:hover .collapse-icon {
+  color: #1677ff;
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.collapse-icon {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+  transition: color 0.2s;
 }
 
 .section-title {
@@ -33,10 +78,21 @@ defineProps({
   color: rgba(0, 0, 0, 0.88);
 }
 
+.endpoint-count {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+
 .section-description {
-  margin: 6px 0 14px;
+  margin: 10px 0 14px;
   color: rgba(0, 0, 0, 0.65);
   line-height: 1.55;
+}
+
+.endpoints {
+  padding-top: 8px;
+  border-top: 1px solid rgba(128, 128, 128, 0.1);
 }
 
 .endpoints > :first-child {

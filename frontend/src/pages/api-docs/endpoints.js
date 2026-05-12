@@ -67,6 +67,7 @@ export const sections = [
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique across the panel).' },
         ],
+        response: '{\n  "success": true,\n  "obj": {\n    "email": "user1",\n    "up": 1048576,\n    "down": 2097152,\n    "total": 10737418240,\n    "expiryTime": 1735689600000\n  }\n}',
       },
       {
         method: 'GET',
@@ -75,6 +76,7 @@ export const sections = [
         params: [
           { name: 'id', in: 'path', type: 'string', desc: 'Client subId / UUID.' },
         ],
+        response: '{\n  "success": true,\n  "obj": {\n    "email": "user1",\n    "up": 1048576,\n    "down": 2097152,\n    "total": 10737418240,\n    "expiryTime": 1735689600000\n  }\n}',
       },
       {
         method: 'POST',
@@ -209,6 +211,7 @@ export const sections = [
         method: 'POST',
         path: '/panel/api/inbounds/lastOnline',
         summary: 'Map of client email → last-seen unix timestamp.',
+        response: '{\n  "success": true,\n  "obj": [\n    { "email": "user1", "lastOnline": 1700000000 },\n    { "email": "user2", "lastOnline": 1699999000 }\n  ]\n}',
       },
       {
         method: 'GET',
@@ -264,6 +267,7 @@ export const sections = [
         method: 'GET',
         path: '/panel/api/server/status',
         summary: 'Real-time machine snapshot: CPU, memory, swap, disk, network IO, load averages, open connections, Xray state. Cached and refreshed every 2 seconds in the background.',
+        response: '{\n  "success": true,\n  "obj": {\n    "cpu": 12.5,\n    "mem": { "current": 2147483648, "total": 8589934592 },\n    "swap": { "current": 0, "total": 4294967296 },\n    "disk": { "current": 53687091200, "total": 268435456000 },\n    "netIO": { "up": 1073741824, "down": 2147483648 },\n    "xray": { "state": "running", "version": "v25.10.31" },\n    "tcpCount": 42,\n    "load": { "load1": 0.5, "load5": 0.3, "load15": 0.2 }\n  }\n}',
       },
       {
         method: 'GET',
@@ -278,7 +282,36 @@ export const sections = [
         path: '/panel/api/server/history/:metric/:bucket',
         summary: 'Aggregated time-series for one metric. Returns an array of {t, v} samples covering the last ~6 hours.',
         params: [
-          { name: 'metric', in: 'path', type: 'string', desc: 'cpu | mem | swap | netIn | netOut | tcpCount | udpCount | load1 | online.' },
+          { name: 'metric', in: 'path', type: 'string', desc: 'cpu | mem | netUp | netDown | online | load1 | load5 | load15.' },
+          { name: 'bucket', in: 'path', type: 'number', desc: 'Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.' },
+        ],
+        response: '{\n  "success": true,\n  "obj": [\n    { "t": 1700000000, "v": 12.5 },\n    { "t": 1700000002, "v": 13.1 }\n  ]\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/server/xrayMetricsState',
+        summary: 'Xray runtime metrics state — whether the xray config has a `metrics` block, which expvar keys are flowing, and the current snapshot values for each. Returns an empty state when metrics are not configured.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/server/xrayMetricsHistory/:metric/:bucket',
+        summary: 'Time-series history for one Xray runtime metric over the last ~6 hours. Same {t, v} shape as /history/:metric/:bucket.',
+        params: [
+          { name: 'metric', in: 'path', type: 'string', desc: 'xrAlloc | xrSys | xrHeapObjects | xrNumGC | xrPauseNs.' },
+          { name: 'bucket', in: 'path', type: 'number', desc: 'Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.' },
+        ],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/server/xrayObservatory',
+        summary: 'Latest snapshot from the Xray observatory — per-outbound latency, health status, and last-probe time. Only populated when the Xray config has an observatory configured.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/server/xrayObservatoryHistory/:tag/:bucket',
+        summary: 'Time-series of observatory probe results for one outbound tag. Same {t, v} shape as the other history endpoints.',
+        params: [
+          { name: 'tag', in: 'path', type: 'string', desc: 'Outbound tag from the observatory config.' },
           { name: 'bucket', in: 'path', type: 'number', desc: 'Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.' },
         ],
       },
@@ -286,6 +319,7 @@ export const sections = [
         method: 'GET',
         path: '/panel/api/server/getXrayVersion',
         summary: 'List Xray binary versions available for install on this host.',
+        response: '{\n  "success": true,\n  "obj": ["v25.10.31", "v25.9.15", "v25.8.1"]\n}',
       },
       {
         method: 'GET',
@@ -295,7 +329,8 @@ export const sections = [
       {
         method: 'GET',
         path: '/panel/api/server/getConfigJson',
-        summary: 'Return the assembled Xray config that’s currently running on this host.',
+        summary: 'Return the assembled Xray config that\u2019s currently running on this host.',
+        response: '{\n  "success": true,\n  "obj": {\n    "log": { "loglevel": "warning" },\n    "inbounds": [...],\n    "outbounds": [...],\n    "routing": { "rules": [...] }\n  }\n}',
       },
       {
         method: 'GET',
@@ -306,26 +341,31 @@ export const sections = [
         method: 'GET',
         path: '/panel/api/server/getNewUUID',
         summary: 'Generate a fresh UUID v4. Convenience helper for client IDs.',
+        response: '{\n  "success": true,\n  "obj": "550e8400-e29b-41d4-a716-446655440000"\n}',
       },
       {
         method: 'GET',
         path: '/panel/api/server/getNewX25519Cert',
         summary: 'Generate a new X25519 keypair for Reality.',
+        response: '{\n  "success": true,\n  "obj": {\n    "privateKey": "uN9qLfV3zH8w...",\n    "publicKey": "5v8xPqR2sM7k..."\n  }\n}',
       },
       {
         method: 'GET',
         path: '/panel/api/server/getNewmldsa65',
         summary: 'Generate a new ML-DSA-65 keypair (post-quantum signature). Returns {privateKey, publicKey, seed}.',
+        response: '{\n  "success": true,\n  "obj": {\n    "privateKey": "mdsa65priv...",\n    "publicKey": "mdsa65pub...",\n    "seed": "random-seed..."\n  }\n}',
       },
       {
         method: 'GET',
         path: '/panel/api/server/getNewmlkem768',
         summary: 'Generate a new ML-KEM-768 keypair (post-quantum KEM). Returns {clientKey, serverKey}.',
+        response: '{\n  "success": true,\n  "obj": {\n    "clientKey": "mlkem768-client...",\n    "serverKey": "mlkem768-server..."\n  }\n}',
       },
       {
         method: 'GET',
         path: '/panel/api/server/getNewVlessEnc',
-        summary: 'Generate VLESS encryption auth options. Returns auths with id, label, decryption, and encryption.',
+        summary: 'Generate VLESS encryption auth options. Returns an auths array each with id, label, encryption, and decryption fields.',
+        response: '{\n  "success": true,\n  "obj": {\n    "auths": [\n      { "id": 0, "label": "Auth #0", "encryption": "aes-256-gcm", "decryption": "" }\n    ]\n  }\n}',
       },
       {
         method: 'POST',
@@ -366,11 +406,12 @@ export const sections = [
       {
         method: 'POST',
         path: '/panel/api/server/logs/:count',
-        summary: 'Return the last N lines of the panel’s own log.',
+        summary: 'Return the last N lines of the panel\u2019s own log.',
         params: [
           { name: 'count', in: 'path', type: 'number', desc: 'Number of trailing log lines.' },
         ],
         body: '{\n  "level": "info",\n  "syslog": false\n}',
+        response: '{\n  "success": true,\n  "obj": "2025/01/01 12:00:00 [INFO] Server started\\n2025/01/01 12:00:01 [INFO] Xray is running"\n}',
       },
       {
         method: 'POST',
@@ -403,6 +444,7 @@ export const sections = [
         method: 'GET',
         path: '/panel/api/nodes/list',
         summary: 'List every configured node with its connection details, health, and last heartbeat patch.',
+        response: '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "de-fra-1",\n      "scheme": "https",\n      "host": "node1.example.com",\n      "port": 2053,\n      "status": "online",\n      "cpu": 23.5,\n      "mem": 45.1\n    }\n  ]\n}',
       },
       {
         method: 'GET',
@@ -463,8 +505,8 @@ export const sections = [
         summary: 'Aggregated metric history for a node — same shape as /server/history, scoped to one node.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Node ID.' },
-          { name: 'metric', in: 'path', type: 'string', desc: 'Metric key (cpu, mem, netIn, …).' },
-          { name: 'bucket', in: 'path', type: 'number', desc: 'Bucket size in seconds.' },
+          { name: 'metric', in: 'path', type: 'string', desc: 'cpu | mem.' },
+          { name: 'bucket', in: 'path', type: 'number', desc: 'Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.' },
         ],
       },
     ],
@@ -534,6 +576,194 @@ export const sections = [
         method: 'GET',
         path: '/panel/api/backuptotgbot',
         summary: 'Send a fresh DB backup to every Telegram chat configured as an admin recipient. No body, no params.',
+      },
+    ],
+  },
+
+  {
+    id: 'settings',
+    title: 'Settings API',
+    description:
+      'Panel configuration, user credentials, and API token management. All endpoints live under /panel/setting and require a logged-in session or Bearer token.',
+    endpoints: [
+      {
+        method: 'POST',
+        path: '/panel/setting/all',
+        summary: 'Return every panel setting: web server, Telegram bot, subscription, security, LDAP. The full JSON blob that the Settings page edits.',
+        response: '{\n  "success": true,\n  "obj": {\n    "webPort": 2053,\n    "webCertFile": "",\n    "webKeyFile": "",\n    "webBasePath": "/",\n    "subPort": 10882,\n    "subPath": "/sub/",\n    "tgBotEnable": false,\n    "tgBotToken": "",\n    ...\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/setting/defaultSettings',
+        summary: 'Return the computed default settings based on the request host. Useful to preview what a fresh install would use.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/setting/update',
+        summary: 'Persist every setting at once. The body mirrors the shape returned by /all. Invalid values (bad ports, missing cert pairs, etc.) are rejected before write.',
+        body: '{\n  "webPort": 2053,\n  "webBasePath": "/",\n  "subPort": 10882,\n  "subPath": "/sub/",\n  "tgBotEnable": false,\n  ...\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/setting/updateUser',
+        summary: 'Change the panel admin username and password. Requires the current credentials for verification. The session is refreshed with the new values on success.',
+        params: [
+          { name: 'oldUsername', in: 'body', type: 'string', desc: 'Current admin username.' },
+          { name: 'oldPassword', in: 'body', type: 'string', desc: 'Current admin password.' },
+          { name: 'newUsername', in: 'body', type: 'string', desc: 'Desired new username.' },
+          { name: 'newPassword', in: 'body', type: 'string', desc: 'Desired new password.' },
+        ],
+        body: '{\n  "oldUsername": "admin",\n  "oldPassword": "admin",\n  "newUsername": "newadmin",\n  "newPassword": "newpass"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/setting/restartPanel',
+        summary: 'Restart the entire 3x-ui process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/setting/getDefaultJsonConfig',
+        summary: 'Return the built-in default Xray JSON config template that ships with this panel version.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/setting/getApiToken',
+        summary: 'Return the current API Bearer token. The token is auto-generated on first read so existing installs upgrade transparently.',
+        response: '{\n  "success": true,\n  "obj": "abcdef-12345-..."\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/setting/regenerateApiToken',
+        summary: 'Rotate the API Bearer token. Any remote central panel that cached the old value will start failing heartbeats until updated with the new token.',
+        response: '{\n  "success": true,\n  "obj": "new-token-string"\n}',
+      },
+    ],
+  },
+
+  {
+    id: 'xraySettings',
+    title: 'Xray Settings API',
+    description:
+      'Xray configuration template, outbound management, Warp/Nord integration, and config testing. All endpoints under /panel/xray.',
+    endpoints: [
+      {
+        method: 'POST',
+        path: '/panel/xray/',
+        summary: 'Return the Xray config template (JSON string), available inbound tags, client reverse tags, and the configured outbound test URL in one response.',
+        response: '{\n  "success": true,\n  "obj": {\n    "xraySetting": "{...raw xray config...}",\n    "inboundTags": "[\"inbound-443\"]",\n    "clientReverseTags": "[]",\n    "outboundTestUrl": "https://www.google.com/generate_204"\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/xray/getDefaultJsonConfig',
+        summary: 'Return the built-in default Xray config shipped with the panel (identical to /panel/setting/getDefaultJsonConfig).',
+      },
+      {
+        method: 'GET',
+        path: '/panel/xray/getOutboundsTraffic',
+        summary: 'Return traffic statistics for every outbound. Each outbound shows up/down/total counters.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/xray/getXrayResult',
+        summary: 'Return the most recent Xray process stdout/stderr output. Useful to check for startup errors or runtime warnings.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/xray/update',
+        summary: 'Save the Xray JSON config template and optionally the outbound test URL. Both are sent as form fields.',
+        params: [
+          { name: 'xraySetting', in: 'body (form)', type: 'string', desc: 'Full Xray JSON config template.' },
+          { name: 'outboundTestUrl', in: 'body (form)', type: 'string', desc: 'URL used for outbound reachability tests. Defaults to https://www.google.com/generate_204.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/xray/warp/:action',
+        summary: 'Manage Cloudflare Warp integration. The action parameter selects the operation.',
+        params: [
+          { name: 'action', in: 'path', type: 'string', desc: 'data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). license — set a Warp+ license key (sends license).' },
+          { name: 'privateKey', in: 'body (form)', type: 'string', desc: 'Required when action=reg.' },
+          { name: 'publicKey', in: 'body (form)', type: 'string', desc: 'Required when action=reg.' },
+          { name: 'license', in: 'body (form)', type: 'string', desc: 'Required when action=license.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/xray/nord/:action',
+        summary: 'Manage NordVPN integration. The action parameter selects the operation.',
+        params: [
+          { name: 'action', in: 'path', type: 'string', desc: 'countries — list available countries. servers — list servers in a country (sends countryId). reg — get NordVPN credentials (sends token). setKey — store NordVPN API key (sends key). data — return current NordVPN connection data. del — delete NordVPN data.' },
+          { name: 'countryId', in: 'body (form)', type: 'string', desc: 'Required when action=servers.' },
+          { name: 'token', in: 'body (form)', type: 'string', desc: 'Required when action=reg.' },
+          { name: 'key', in: 'body (form)', type: 'string', desc: 'Required when action=setKey.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/xray/resetOutboundsTraffic',
+        summary: 'Reset traffic counters for a specific outbound by tag.',
+        params: [
+          { name: 'tag', in: 'body (form)', type: 'string', desc: 'Outbound tag to reset (e.g. "proxy", "direct").' },
+        ],
+        body: 'tag=proxy',
+      },
+      {
+        method: 'POST',
+        path: '/panel/xray/testOutbound',
+        summary: 'Test an outbound configuration. Sends the outbound JSON (required), optionally all outbounds (to resolve sockopt.dialerProxy dependencies), and a mode flag.',
+        params: [
+          { name: 'outbound', in: 'body (form)', type: 'string', desc: 'JSON-encoded single outbound to test (required).' },
+          { name: 'allOutbounds', in: 'body (form)', type: 'string', desc: 'JSON array of all outbounds — used to resolve dialerProxy chains.' },
+          { name: 'mode', in: 'body (form)', type: 'string', desc: '"tcp" for a fast dial-only probe (parallel-safe). Default/empty uses a full HTTP probe through a temp xray instance.' },
+        ],
+        body: 'outbound={"protocol":"freedom","settings":{}}&mode=tcp',
+      },
+    ],
+  },
+
+  {
+    id: 'subscription',
+    title: 'Subscription Server',
+    description:
+      'A separate HTTP/HTTPS server that serves proxy subscription links (standard, JSON, and Clash) to clients. The server listens on its own port (default 10882) and is configured in Settings → Subscription. Paths are configurable; defaults are shown below.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/{subPath}:subid',
+        summary: 'Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. Response headers include Subscription-Userinfo (traffic/expiry), Profile-Title, Profile-Web-Page-Url, Support-Url, and Profile-Update-Interval. Default path: /sub/:subid.',
+        params: [
+          { name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' },
+        ],
+      },
+      {
+        method: 'GET',
+        path: '/{jsonPath}:subid',
+        summary: 'Return subscription as a JSON array of proxy configs (one per enabled client). Only when JSON subscription is enabled in settings. Default path: /json/:subid.',
+        params: [
+          { name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' },
+        ],
+      },
+      {
+        method: 'GET',
+        path: '/{clashPath}:subid',
+        summary: 'Return subscription as a Clash/Mihomo-compatible YAML config. Only when Clash subscription is enabled in settings. Default path: /clash/:subid.',
+        params: [
+          { name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' },
+        ],
+      },
+    ],
+  },
+
+  {
+    id: 'websocket',
+    title: 'WebSocket',
+    description:
+      'Real-time status updates via WebSocket. Connect once to receive a stream of server state without polling.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/ws',
+        summary: 'Upgrade an HTTP connection to WebSocket for real-time server status, Xray state, and notification events. Requires an authenticated session cookie (Bearer token auth is not supported for WebSocket). The server pushes JSON messages on every 2-second status tick.',
       },
     ],
   },
