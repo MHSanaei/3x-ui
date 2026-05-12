@@ -56,6 +56,7 @@ export class AllSetting {
         this.subUpdates = 12;
         this.subEncrypt = true;
         this.subShowInfo = true;
+        this.subEmailInRemark = true;
         this.subURI = "";
         this.subJsonURI = "";
         this.subClashURI = "";
