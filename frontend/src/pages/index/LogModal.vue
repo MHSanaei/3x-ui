@@ -53,7 +53,9 @@ function parseLogLine(line) {
     service = 'X-UI:';
   }
 
-  return { date, time, levelText, levelClass, service, body };
+  const stamp = [date, time].filter(Boolean).join(' ');
+
+  return { date, time, stamp, levelText, levelClass, service, body };
 }
 
 const parsedLogs = computed(() => logs.value.map(parseLogLine));
@@ -133,33 +135,25 @@ const modalWidth = computed(() => (isMobile.value ? '100vw' : '800px'));
       <template v-else-if="isMobile">
         <div v-for="(log, idx) in parsedLogs" :key="idx" class="log-card">
           <div class="log-card-head">
-            <span v-if="log.date || log.time" class="log-time">
-              <span v-if="log.time">{{ log.time }}</span>
-              <span v-if="log.date" class="log-date">{{ log.date }}</span>
+            <span v-if="log.stamp" class="log-time">
+              <span v-if="log.time">{{ log.time }}</span>{{ log.time && log.date ? ' ' : '' }}<span v-if="log.date" class="log-date">{{ log.date }}</span>
             </span>
             <span v-if="log.levelText" class="log-level-badge" :class="log.levelClass">
               {{ log.levelText }}
             </span>
           </div>
           <div v-if="log.body || log.service" class="log-body">
-            <b v-if="log.service">{{ log.service }}</b>
-            <span v-if="log.body" class="log-body-text">{{ log.body }}</span>
+            <b v-if="log.service">{{ log.service }}</b>{{ log.service && log.body ? ' ' : '' }}<span v-if="log.body" class="log-body-text">{{ log.body }}</span>
           </div>
         </div>
       </template>
 
       <template v-else>
         <div v-for="(log, idx) in parsedLogs" :key="idx" class="log-line">
-          <span v-if="log.date || log.time" class="log-stamp">
-            {{ log.date }}<template v-if="log.date && log.time"> </template>{{ log.time }}
-          </span>
-          <span v-if="log.levelText" class="log-level" :class="log.levelClass">
-            {{ log.levelText }}
-          </span>
+          <span v-if="log.stamp" class="log-stamp">{{ log.stamp }}</span>{{ log.stamp && log.levelText ? ' ' : '' }}<span v-if="log.levelText" class="log-level" :class="log.levelClass">{{ log.levelText }}</span>
           <template v-if="log.body || log.service">
             <span> - </span>
-            <b v-if="log.service">{{ log.service }} </b>
-            <span>{{ log.body }}</span>
+            <b v-if="log.service">{{ log.service }}</b>{{ log.service && log.body ? ' ' : '' }}<span>{{ log.body }}</span>
           </template>
         </div>
       </template>
