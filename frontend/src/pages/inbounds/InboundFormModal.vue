@@ -1673,29 +1673,22 @@ watch(
           </template>
 
           <!-- ====== Hysteria Masquerade ====== -->
+          <!-- Per https://xtls.github.io/config/transports/hysteria.html#masqobject -->
           <template v-if="protocol === Protocols.HYSTERIA">
-            <a-divider :style="{ margin: '12px 0' }">Masquerade</a-divider>
-            <a-form-item label="Enable">
+            <a-form-item label="Masquerade">
               <a-switch v-model:checked="inbound.stream.hysteria.masqueradeSwitch" />
             </a-form-item>
             <template v-if="inbound.stream.hysteria.masqueradeSwitch">
               <a-form-item label="Type">
                 <a-select v-model:value="inbound.stream.hysteria.masquerade.type" :style="{ width: '50%' }">
                   <a-select-option value="proxy">Proxy</a-select-option>
-                  <a-select-option value="http">HTTP</a-select-option>
                   <a-select-option value="file">File</a-select-option>
                   <a-select-option value="string">String</a-select-option>
-                  <a-select-option value="404">404</a-select-option>
                 </a-select>
               </a-form-item>
 
-              <!-- File type -->
-              <a-form-item v-if="inbound.stream.hysteria.masquerade.type === 'file'" label="Directory">
-                <a-input v-model:value="inbound.stream.hysteria.masquerade.dir" placeholder="/path/to/www" />
-              </a-form-item>
-
-              <!-- HTTP type -->
-              <template v-if="inbound.stream.hysteria.masquerade.type === 'http'">
+              <!-- Proxy type: url / rewriteHost / insecure -->
+              <template v-if="inbound.stream.hysteria.masquerade.type === 'proxy'">
                 <a-form-item label="URL">
                   <a-input v-model:value="inbound.stream.hysteria.masquerade.url" placeholder="https://example.com" />
                 </a-form-item>
@@ -1704,6 +1697,19 @@ watch(
                 </a-form-item>
                 <a-form-item label="Insecure">
                   <a-switch v-model:checked="inbound.stream.hysteria.masquerade.insecure" />
+                </a-form-item>
+              </template>
+
+              <!-- File type: dir -->
+              <a-form-item v-if="inbound.stream.hysteria.masquerade.type === 'file'" label="Directory">
+                <a-input v-model:value="inbound.stream.hysteria.masquerade.dir" placeholder="/path/to/www" />
+              </a-form-item>
+
+              <!-- String type: content / statusCode / headers -->
+              <template v-if="inbound.stream.hysteria.masquerade.type === 'string'">
+                <a-form-item label="Content">
+                  <a-textarea v-model:value="inbound.stream.hysteria.masquerade.content"
+                    :auto-size="{ minRows: 2, maxRows: 6 }" />
                 </a-form-item>
                 <a-form-item label="Status Code">
                   <a-input-number v-model:value="inbound.stream.hysteria.masquerade.statusCode" :min="100" :max="599"
@@ -1717,8 +1723,8 @@ watch(
                   </a-button>
                 </a-form-item>
                 <a-form-item v-if="inbound.stream.hysteria.masquerade.headers.length > 0" :wrapper-col="{ span: 24 }">
-                  <a-input-group v-for="(h, idx) in inbound.stream.hysteria.masquerade.headers" :key="`mh-${idx}`" compact
-                    class="mb-8">
+                  <a-input-group v-for="(h, idx) in inbound.stream.hysteria.masquerade.headers" :key="`mh-${idx}`"
+                    compact class="mb-8">
                     <a-input :style="{ width: '45%' }" v-model:value="h.name" placeholder="Name">
                       <template #addonBefore>{{ idx + 1 }}</template>
                     </a-input>
@@ -1731,12 +1737,6 @@ watch(
                   </a-input-group>
                 </a-form-item>
               </template>
-
-              <!-- String type -->
-              <a-form-item v-if="inbound.stream.hysteria.masquerade.type === 'string'" label="Content">
-                <a-textarea v-model:value="inbound.stream.hysteria.masquerade.content"
-                  :auto-size="{ minRows: 2, maxRows: 6 }" />
-              </a-form-item>
             </template>
           </template>
         </a-form>
