@@ -112,7 +112,7 @@ function regenerateApiToken() {
 
 async function copyApiToken() {
   if (!apiToken.value) return;
-  const ok = await ClipboardManager.copy(apiToken.value);
+  const ok = await ClipboardManager.copyText(apiToken.value);
   if (ok) message.success(t('success'));
 }
 
