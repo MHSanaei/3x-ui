@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"path"
 	"slices"
 	"time"
@@ -47,6 +48,58 @@ func initModels() error {
 			return err
 		}
 	}
+	if err := migrateLegacyUniqueConstraints(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// migrateLegacyUniqueConstraints migrates the globally unique constraints
+// that prevent multi-node setups from working correctly.
+//
+// 1. inbounds.tag: was globally UNIQUE, changed to per-node composite
+//    unique index (node_id, tag). Two remote nodes can now each have an
+//    inbound on the same port without hitting a UNIQUE constraint failure
+//    during the traffic-sync mirror step.
+// 2. client_traffics.email: was globally UNIQUE, changed to per-inbound
+//    composite unique index (inbound_id, email). Different nodes can have
+//    clients with the same email address.
+func migrateLegacyUniqueConstraints() error {
+	db := GetDB()
+
+	var createSQL string
+
+	// Migrate inbounds.tag global unique → per-node composite index
+	if err := db.Raw("SELECT sql FROM sqlite_master WHERE type='table' AND name='inbounds'").Scan(&createSQL).Error; err != nil {
+		return err
+	}
+	if strings.Contains(createSQL, " UNIQUE") {
+		if err := db.Migrator().AlterColumn(&model.Inbound{}, "Tag"); err != nil {
+			log.Printf("Error migrating inbounds.tag unique constraint: %v", err)
+			return err
+		}
+		if err := db.AutoMigrate(&model.Inbound{}); err != nil {
+			log.Printf("Error re-creating indexes after tag migration: %v", err)
+			return err
+		}
+	}
+
+	// Migrate client_traffics.email global unique → per-inbound composite index
+	createSQL = ""
+	if err := db.Raw("SELECT sql FROM sqlite_master WHERE type='table' AND name='client_traffics'").Scan(&createSQL).Error; err != nil {
+		return err
+	}
+	if strings.Contains(createSQL, " UNIQUE") {
+		if err := db.Migrator().AlterColumn(&xray.ClientTraffic{}, "Email"); err != nil {
+			log.Printf("Error migrating client_traffics.email unique constraint: %v", err)
+			return err
+		}
+		if err := db.AutoMigrate(&xray.ClientTraffic{}); err != nil {
+			log.Printf("Error re-creating indexes after email migration: %v", err)
+			return err
+		}
+	}
+
 	return nil
 }
 

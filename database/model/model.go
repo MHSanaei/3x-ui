@@ -64,14 +64,14 @@ type Inbound struct {
 	Protocol       Protocol `json:"protocol" form:"protocol"`
 	Settings       string   `json:"settings" form:"settings"`
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
-	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
+	Tag            string   `json:"tag" form:"tag" gorm:"uniqueIndex:idx_node_tag,priority:2"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
 
 	// NodeID points at the remote panel (Node) where this inbound's xray
 	// actually runs. NULL means the inbound runs on the local xray (the
 	// pre-multi-node behaviour). Existing rows migrate to NULL with no
 	// backfill.
-	NodeID *int `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
+	NodeID *int `json:"nodeId,omitempty" form:"nodeId" gorm:"uniqueIndex:idx_node_tag,priority:1;index"`
 }
 
 // OutboundTraffics tracks traffic statistics for Xray outbound connections.

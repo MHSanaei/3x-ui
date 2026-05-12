@@ -205,7 +205,7 @@ func transportTagSuffix(b transportBits) string {
 // as a collision; pass 0 on add.
 func (s *InboundService) generateInboundTag(inbound *model.Inbound, ignoreId int) (string, error) {
 	base := baseInboundTag(inbound.Listen, inbound.Port)
-	exists, err := s.tagExists(base, ignoreId)
+	exists, err := s.tagExists(base, ignoreId, inbound.NodeID)
 	if err != nil {
 		return "", err
 	}
@@ -215,7 +215,7 @@ func (s *InboundService) generateInboundTag(inbound *model.Inbound, ignoreId int
 
 	suffix := transportTagSuffix(inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings))
 	candidate := base + "-" + suffix
-	exists, err = s.tagExists(candidate, ignoreId)
+	exists, err = s.tagExists(candidate, ignoreId, inbound.NodeID)
 	if err != nil {
 		return "", err
 	}
@@ -228,7 +228,7 @@ func (s *InboundService) generateInboundTag(inbound *model.Inbound, ignoreId int
 	// the user as an opaque sqlite error.
 	for i := 2; i < 100; i++ {
 		c := fmt.Sprintf("%s-%d", candidate, i)
-		exists, err = s.tagExists(c, ignoreId)
+		exists, err = s.tagExists(c, ignoreId, inbound.NodeID)
 		if err != nil {
 			return "", err
 		}
@@ -254,7 +254,7 @@ func (s *InboundService) generateInboundTag(inbound *model.Inbound, ignoreId int
 // own id on update so a row doesn't see its own current tag as taken.
 func (s *InboundService) resolveInboundTag(inbound *model.Inbound, ignoreId int) (string, error) {
 	if inbound.Tag != "" {
-		taken, err := s.tagExists(inbound.Tag, ignoreId)
+		taken, err := s.tagExists(inbound.Tag, ignoreId, inbound.NodeID)
 		if err != nil {
 			return "", err
 		}
@@ -265,9 +265,14 @@ func (s *InboundService) resolveInboundTag(inbound *model.Inbound, ignoreId int)
 	return s.generateInboundTag(inbound, ignoreId)
 }
 
-func (s *InboundService) tagExists(tag string, ignoreId int) (bool, error) {
+func (s *InboundService) tagExists(tag string, ignoreId int, nodeID *int) (bool, error) {
 	db := database.GetDB()
 	q := db.Model(model.Inbound{}).Where("tag = ?", tag)
+	if nodeID != nil {
+		q = q.Where("node_id = ?", *nodeID)
+	} else {
+		q = q.Where("node_id IS NULL")
+	}
 	if ignoreId > 0 {
 		q = q.Where("id != ?", ignoreId)
 	}

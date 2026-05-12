@@ -4,9 +4,9 @@ package xray
 // It tracks upload/download usage, expiry times, and online status for inbound clients.
 type ClientTraffic struct {
 	Id         int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	InboundId  int    `json:"inboundId" form:"inboundId"`
+	InboundId  int    `json:"inboundId" form:"inboundId" gorm:"uniqueIndex:idx_ct_inbound_email,priority:1"`
 	Enable     bool   `json:"enable" form:"enable"`
-	Email      string `json:"email" form:"email" gorm:"unique"`
+	Email      string `json:"email" form:"email" gorm:"uniqueIndex:idx_ct_inbound_email,priority:2"`
 	UUID       string `json:"uuid" form:"uuid" gorm:"-"`
 	SubId      string `json:"subId" form:"subId" gorm:"-"`
 	Up         int64  `json:"up" form:"up"`
