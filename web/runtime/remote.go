@@ -311,11 +311,52 @@ func wireInbound(ib *model.Inbound) url.Values {
 	v.Set("port", strconv.Itoa(ib.Port))
 	v.Set("protocol", string(ib.Protocol))
 	v.Set("settings", ib.Settings)
-	v.Set("streamSettings", ib.StreamSettings)
+	v.Set("streamSettings", sanitizeStreamSettingsForRemote(ib.StreamSettings))
 	v.Set("tag", ib.Tag)
 	v.Set("sniffing", ib.Sniffing)
 	if ib.TrafficReset != "" {
 		v.Set("trafficReset", ib.TrafficReset)
 	}
 	return v
+}
+
+// sanitizeStreamSettingsForRemote strips file-based TLS certificate paths
+// from the StreamSettings before sending to a remote node. File paths
+// (certificateFile / keyFile) are local to the main panel's filesystem
+// and will cause Xray on the remote node to crash if they don't exist there.
+// Inline certificate content (certificate / key) is kept intact.
+func sanitizeStreamSettingsForRemote(streamSettings string) string {
+	if streamSettings == "" {
+		return streamSettings
+	}
+
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return streamSettings
+	}
+
+	tlsSettings, ok := stream["tlsSettings"].(map[string]any)
+	if !ok {
+		return streamSettings
+	}
+
+	certificates, ok := tlsSettings["certificates"].([]any)
+	if !ok {
+		return streamSettings
+	}
+
+	for _, cert := range certificates {
+		c, ok := cert.(map[string]any)
+		if !ok {
+			continue
+		}
+		delete(c, "certificateFile")
+		delete(c, "keyFile")
+	}
+
+	out, err := json.Marshal(stream)
+	if err != nil {
+		return streamSettings
+	}
+	return string(out)
 }
