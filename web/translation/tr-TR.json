@@ -547,6 +547,8 @@
       "subEncryptDesc": "Abonelik hizmetinin döndürülen içeriği Base64 ile şifrelenir.",
       "subShowInfo": "Kullanım Bilgisini Göster",
       "subShowInfoDesc": "Kalan trafik ve tarih müşteri uygulamalarında görüntülenir.",
+      "subEmailInRemark": "Ada Email Ekle",
+      "subEmailInRemarkDesc": "Abonelik profil adına istemcinin e-postasını dahil edin.",
       "subURI": "Ters Proxy URI",
       "subURIDesc": "Proxy arkasında kullanılacak abonelik URL'sinin URI yolu.",
       "externalTrafficInformEnable": "Harici Trafik Bilgisi",

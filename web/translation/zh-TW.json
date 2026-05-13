@@ -547,6 +547,8 @@
       "subEncryptDesc": "訂閱服務返回的內容將採用 Base64 編碼",
       "subShowInfo": "顯示使用資訊",
       "subShowInfoDesc": "客戶端應用中將顯示剩餘流量和日期資訊",
+      "subEmailInRemark": "在名稱中包含郵箱",
+      "subEmailInRemarkDesc": "在訂閱配置名稱中包含客戶端郵箱。",
       "subURI": "反向代理 URI",
       "subURIDesc": "用於代理後面的訂閱 URL 的 URI 路徑",
       "externalTrafficInformEnable": "外部交通通知",

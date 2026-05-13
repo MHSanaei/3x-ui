@@ -547,6 +547,8 @@
       "subEncryptDesc": "Konten yang dikembalikan dari layanan langganan akan dienkripsi Base64.",
       "subShowInfo": "Tampilkan Info Penggunaan",
       "subShowInfoDesc": "Sisa traffic dan tanggal akan ditampilkan di aplikasi klien.",
+      "subEmailInRemark": "Sertakan Email dalam Nama",
+      "subEmailInRemarkDesc": "Sertakan email klien dalam nama profil langganan.",
       "subURI": "URI Proxy Terbalik",
       "subURIDesc": "Path URI dari URL langganan untuk digunakan di belakang proxy.",
       "externalTrafficInformEnable": "Informasikan API eksternal pada setiap pembaruan lalu lintas.",

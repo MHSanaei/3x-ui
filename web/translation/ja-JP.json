@@ -547,6 +547,8 @@
       "subEncryptDesc": "サブスクリプションサービスが返す内容をBase64エンコードする",
       "subShowInfo": "利用情報を表示",
       "subShowInfoDesc": "クライアントアプリで残りのトラフィックと日付情報を表示する",
+      "subEmailInRemark": "名前にメールを含める",
+      "subEmailInRemarkDesc": "サブスクリプションプロファイル名にクライアントのメールアドレスを含めます。",
       "subURI": "リバースプロキシURI",
       "subURIDesc": "プロキシ後ろのサブスクリプションURLのURIパスに使用する",
       "externalTrafficInformEnable": "外部トラフィック情報",

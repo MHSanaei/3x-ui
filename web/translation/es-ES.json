@@ -547,6 +547,8 @@
       "subEncryptDesc": "Encriptar las configuraciones devueltas en la suscripción.",
       "subShowInfo": "Mostrar información de uso",
       "subShowInfoDesc": "Mostrar tráfico restante y fecha después del nombre de configuración.",
+      "subEmailInRemark": "Incluir Email en el nombre",
+      "subEmailInRemarkDesc": "Incluir el correo del cliente en el nombre del perfil de suscripción.",
       "subURI": "URI de proxy inverso",
       "externalTrafficInformEnable": "Informe de tráfico externo",
       "externalTrafficInformEnableDesc": "Informar a la API externa sobre cada actualización de tráfico.",

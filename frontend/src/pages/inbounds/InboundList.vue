@@ -49,6 +49,7 @@ const props = defineProps({
   // Map node id -> node row, supplied by the parent page so each
   // inbound row can render its node name without an extra fetch.
   nodesById: { type: Map, default: () => new Map() },
+  hasActiveNode: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -234,7 +235,7 @@ const desktopColumns = computed(() => {
   if (hasAnyRemark.value) {
     cols.push(sortableCol({ title: t('pages.inbounds.remark'), dataIndex: 'remark', key: 'remark', align: 'center', width: 60 }, 'remark'));
   }
-  if (props.nodesById.size > 0) {
+  if (props.hasActiveNode) {
     cols.push(sortableCol({ title: t('pages.inbounds.node'), key: 'node', align: 'center', width: 60 }, 'node'));
   }
   cols.push(
@@ -374,7 +375,7 @@ function showQrCodeMenu(dbInbound) {
             {{ protocol }}
           </a-select-option>
         </a-select>
-        <a-select v-if="nodeOptions.length > 0" v-model:value="nodeFilter" allow-clear
+        <a-select v-if="hasActiveNode && nodeOptions.length > 0" v-model:value="nodeFilter" allow-clear
           :placeholder="t('pages.inbounds.node')" :size="isMobile ? 'small' : 'middle'" :style="{ width: '170px' }">
           <a-select-option v-for="node in nodeOptions" :key="node.value" :value="node.value">
             {{ node.label }}
@@ -466,7 +467,7 @@ function showQrCodeMenu(dbInbound) {
               <span class="stat-label">{{ t('pages.inbounds.port') }}</span>
               <a-tag>{{ record.port }}</a-tag>
             </div>
-            <div v-if="nodesById.size > 0" class="stat-row">
+            <div v-if="hasActiveNode" class="stat-row">
               <span class="stat-label">{{ t('pages.inbounds.node') }}</span>
               <a-tag v-if="record.nodeId == null" color="default">
                 {{ t('pages.inbounds.localPanel') }}

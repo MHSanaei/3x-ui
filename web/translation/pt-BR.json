@@ -547,6 +547,8 @@
       "subEncryptDesc": "O conteúdo retornado pelo serviço de assinatura será codificado em Base64.",
       "subShowInfo": "Mostrar Informações de Uso",
       "subShowInfoDesc": "O tráfego restante e a data serão exibidos nos aplicativos de cliente.",
+      "subEmailInRemark": "Incluir Email no nome",
+      "subEmailInRemarkDesc": "Incluir o email do cliente no nome do perfil de assinatura.",
       "subURI": "URI de Proxy Reverso",
       "subURIDesc": "O caminho URI da URL de assinatura para uso por trás de proxies.",
       "externalTrafficInformEnable": "Informações de tráfego externo",

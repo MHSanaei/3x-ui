@@ -1,4 +1,21 @@
 {
+  "api": {
+    "services": [
+      "HandlerService",
+      "LoggerService",
+      "StatsService"
+    ],
+    "tag": "api"
+  },
+  "inbounds": [{
+    "listen": "127.0.0.1",
+    "port": 62789,
+    "protocol": "tunnel",
+    "settings": {
+      "address": "127.0.0.1"
+    },
+    "tag": "api"
+  }],
   "log": {
     "access": "none",
     "dnsLog": false,
@@ -6,39 +23,21 @@
     "loglevel": "warning",
     "maskAddress": ""
   },
-  "api": {
-    "tag": "api",
-    "services": [
-      "HandlerService",
-      "LoggerService",
-      "StatsService"
-    ]
+  "metrics": {
+    "listen": "127.0.0.1:11111",
+    "tag": "metrics_out"
   },
-  "inbounds": [
-    {
-      "tag": "api",
-      "listen": "127.0.0.1",
-      "port": 62789,
-      "protocol": "tunnel",
-      "settings": {
-        "address": "127.0.0.1"
-      }
-    }
-  ],
-  "outbounds": [
-    {
-      "tag": "direct",
+  "outbounds": [{
       "protocol": "freedom",
       "settings": {
-        "domainStrategy": "AsIs",
-        "redirect": "",
-        "noises": []
-      }
+        "domainStrategy": "AsIs"
+      },
+      "tag": "direct"
     },
     {
-      "tag": "blocked",
       "protocol": "blackhole",
-      "settings": {}
+      "settings": {},
+      "tag": "blocked"
     }
   ],
   "policy": {
@@ -57,33 +56,28 @@
   },
   "routing": {
     "domainStrategy": "AsIs",
-    "rules": [
-      {
-        "type": "field",
+    "rules": [{
         "inboundTag": [
           "api"
         ],
-        "outboundTag": "api"
+        "outboundTag": "api",
+        "type": "field"
       },
       {
-        "type": "field",
-        "outboundTag": "blocked",
         "ip": [
           "geoip:private"
-        ]
+        ],
+        "outboundTag": "blocked",
+        "type": "field"
       },
       {
-        "type": "field",
         "outboundTag": "blocked",
         "protocol": [
           "bittorrent"
-        ]
+        ],
+        "type": "field"
       }
     ]
   },
-  "stats": {},
-  "metrics": {
-    "tag": "metrics_out",
-    "listen": "127.0.0.1:11111"
-  }
+  "stats": {}
 }

@@ -70,6 +70,7 @@ const inbound = ref(null);
 const dbForm = ref(null);
 const saving = ref(false);
 const advancedJson = ref({ stream: '', sniffing: '', settings: '' });
+const activeTabKey = ref('basic');
 // Cached default cert/key paths from /panel/setting/defaultSettings —
 // powers the "Set default cert" button on the TLS form.
 const defaultCert = ref('');
@@ -241,7 +242,58 @@ watch(() => props.open, (next) => {
     dbForm.value = freshDbForm();
     primeAdvancedJson();
   }
+  activeTabKey.value = 'basic';
   fetchDefaultCertSettings();
+});
+
+function applyAdvancedJsonToBasic() {
+  if (!inbound.value) return true;
+  let parsedSettings;
+  let parsedStream;
+  let parsedSniffing;
+  try {
+    parsedSettings = advancedJson.value.settings.trim()
+      ? JSON.parse(advancedJson.value.settings)
+      : inbound.value.settings?.toJson?.();
+  } catch (e) { message.error(`Settings JSON invalid: ${e.message}`); return false; }
+  try {
+    parsedStream = advancedJson.value.stream.trim()
+      ? JSON.parse(advancedJson.value.stream)
+      : inbound.value.stream?.toJson?.();
+  } catch (e) { message.error(`Stream JSON invalid: ${e.message}`); return false; }
+  try {
+    parsedSniffing = advancedJson.value.sniffing.trim()
+      ? JSON.parse(advancedJson.value.sniffing)
+      : inbound.value.sniffing?.toJson?.();
+  } catch (e) { message.error(`Sniffing JSON invalid: ${e.message}`); return false; }
+
+  try {
+    inbound.value = Inbound.fromJson({
+      port: inbound.value.port,
+      listen: inbound.value.listen,
+      protocol: inbound.value.protocol,
+      settings: parsedSettings,
+      streamSettings: parsedStream,
+      tag: inbound.value.tag,
+      sniffing: parsedSniffing,
+      clientStats: inbound.value.clientStats,
+    });
+  } catch (e) {
+    message.error(`Advanced JSON: ${e.message}`);
+    return false;
+  }
+  return true;
+}
+
+let isRevertingTab = false;
+watch(activeTabKey, (next, prev) => {
+  if (isRevertingTab) { isRevertingTab = false; return; }
+  if (prev === 'advanced' && next !== 'advanced') {
+    if (!applyAdvancedJsonToBasic()) {
+      isRevertingTab = true;
+      activeTabKey.value = 'advanced';
+    }
+  }
 });
 
 // In add mode, switching protocol restamps settings + re-syncs port.
@@ -572,7 +624,7 @@ watch(
 <template>
   <a-modal :open="open" :title="title" :ok-text="okText" :cancel-text="t('close')" :confirm-loading="saving"
     :mask-closable="false" width="780px" @ok="submit" @cancel="close">
-    <a-tabs v-if="inbound && dbForm" default-active-key="basic">
+    <a-tabs v-if="inbound && dbForm" v-model:active-key="activeTabKey">
       <!-- ============================== BASICS ============================== -->
       <a-tab-pane key="basic" :tab="t('pages.xray.basicTemplate')">
         <a-form :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
@@ -582,7 +634,7 @@ watch(
           <a-form-item :label="t('pages.inbounds.remark')">
             <a-input v-model:value="dbForm.remark" />
           </a-form-item>
-          <a-form-item :label="t('pages.inbounds.deployTo')">
+          <a-form-item v-if="selectableNodes.length > 0" :label="t('pages.inbounds.deployTo')">
             <a-select v-model:value="dbForm.nodeId" :disabled="mode === 'edit'"
               :placeholder="t('pages.inbounds.localPanel')" allow-clear>
               <a-select-option :value="null">{{ t('pages.inbounds.localPanel') }}</a-select-option>

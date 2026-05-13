@@ -186,9 +186,6 @@ function onRemoveRoutingRules({ prefix }) {
   );
 }
 
-// `message` is used by some of the in-progress UX flows (kept around
-// because future provisioning errors will surface through it).
-void message;
 const { isMobile } = useMediaQuery();
 
 const basePath = window.X_UI_BASE_PATH || '';
@@ -230,6 +227,17 @@ function onTabChange(key) {
   }
 }
 
+function onSaveAll() {
+  try {
+    JSON.parse(xraySetting.value);
+  } catch (e) {
+    message.error(`Advanced JSON: ${e.message}`);
+    activeTabKey.value = 'tpl-advanced';
+    return;
+  }
+  saveAll();
+}
+
 function syncTabFromHash() {
   const key = keyBySlug[window.location.hash.slice(1)];
   if (key) activeTabKey.value = key;
@@ -268,7 +276,7 @@ onBeforeUnmount(() => {
                     <a-row class="header-row">
                       <a-col :xs="24" :sm="14" class="header-actions">
                         <a-space direction="horizontal">
-                          <a-button type="primary" :disabled="saveDisabled" @click="saveAll">
+                          <a-button type="primary" :disabled="saveDisabled" @click="onSaveAll">
                             {{ t('pages.xray.save') }}
                           </a-button>
                           <a-button type="primary" danger :disabled="!saveDisabled" @click="confirmRestart">

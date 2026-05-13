@@ -547,6 +547,8 @@
       "subEncryptDesc": "订阅服务返回的内容将采用 Base64 编码",
       "subShowInfo": "显示使用信息",
       "subShowInfoDesc": "客户端应用中将显示剩余流量和日期信息",
+      "subEmailInRemark": "在名称中包含邮箱",
+      "subEmailInRemarkDesc": "在订阅配置名称中包含客户端邮箱。",
       "subURI": "反向代理 URI",
       "subURIDesc": "用于代理后面的订阅 URL 的 URI 路径",
       "externalTrafficInformEnable": "外部交通通知",

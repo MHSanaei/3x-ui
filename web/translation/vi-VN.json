@@ -547,6 +547,8 @@
       "subEncryptDesc": "Mã hóa các cấu hình được trả về trong gói đăng ký",
       "subShowInfo": "Hiển thị thông tin sử dụng",
       "subShowInfoDesc": "Hiển thị lưu lượng truy cập còn lại và ngày sau tên cấu hình",
+      "subEmailInRemark": "Thêm Email vào tên",
+      "subEmailInRemarkDesc": "Thêm email của client vào tên hồ sơ đăng ký.",
       "subURI": "URI proxy trung gian",
       "subURIDesc": "Thay đổi URI cơ sở của URL gói đăng ký để sử dụng cho proxy trung gian",
       "externalTrafficInformEnable": "Thông báo giao thông bên ngoài",

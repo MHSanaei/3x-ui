@@ -66,7 +66,7 @@ useWebSocket({
 const { isMobile } = useMediaQuery();
 // Node list lives on the central panel; the Inbounds page consumes
 // the id→node map for the new "Node" column. Fetched once on mount.
-const { byId: nodesById } = useNodeList();
+const { byId: nodesById, hasActive: hasActiveNode } = useNodeList();
 
 const basePath = window.X_UI_BASE_PATH || '';
 const requestUri = window.location.pathname;
@@ -647,7 +647,8 @@ function onRowAction({ key, dbInbound }) {
                 <InboundList :db-inbounds="dbInbounds" :client-count="clientCount" :online-clients="onlineClients"
                   :last-online-map="lastOnlineMap" :is-dark-theme="themeState.isDark" :expire-diff="expireDiff"
                   :traffic-diff="trafficDiff" :page-size="pageSize" :is-mobile="isMobile"
-                  :sub-enable="subSettings.enable" :nodes-by-id="nodesById" @refresh="refresh"
+                  :sub-enable="subSettings.enable" :nodes-by-id="nodesById" :has-active-node="hasActiveNode"
+                  @refresh="refresh"
                   @add-inbound="onAddInbound" @general-action="onGeneralAction" @row-action="onRowAction"
                   @edit-client="onEditClient" @qrcode-client="onQrcodeClient" @info-client="onInfoClient"
                   @reset-traffic-client="onResetTrafficClient" @delete-client="onDeleteClient"
