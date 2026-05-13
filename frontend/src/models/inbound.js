@@ -687,8 +687,9 @@ export class HysteriaMasquerade extends XrayCommonClass {
     }
 
     static fromJson(json = {}) {
+        const type = ['proxy', 'file', 'string'].includes(json.type) ? json.type : 'proxy';
         return new HysteriaMasquerade(
-            json.type,
+            type,
             json.dir,
             json.url,
             json.rewriteHost,

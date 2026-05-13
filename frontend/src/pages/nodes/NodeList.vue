@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   EditOutlined,
@@ -7,6 +7,8 @@ import {
   PlusOutlined,
   ThunderboltOutlined,
   ExclamationCircleOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
 } from '@ant-design/icons-vue';
 import NodeHistoryPanel from './NodeHistoryPanel.vue';
 
@@ -26,8 +28,6 @@ const emit = defineEmits([
 
 const { t } = useI18n();
 
-// Render the address column as a clickable URL so admins can jump to
-// the remote panel directly from the list.
 const dataSource = computed(() =>
   props.nodes.map((n) => ({
     ...n,
@@ -35,6 +35,8 @@ const dataSource = computed(() =>
     key: n.id,
   })),
 );
+
+const showAddress = ref(false);
 
 function statusColor(status) {
   switch (status) {
@@ -97,9 +99,19 @@ function formatPct(p) {
         </template>
       </a-table-column>
 
-      <a-table-column :title="t('pages.nodes.address')" data-index="url" :ellipsis="true">
+      <a-table-column data-index="url" :ellipsis="true">
+        <template #title>
+          <span class="address-header">
+            {{ t('pages.nodes.address') }}
+            <a-tooltip :title="t('pages.index.toggleIpVisibility')">
+              <component :is="showAddress ? EyeOutlined : EyeInvisibleOutlined" class="ip-toggle-icon"
+                @click="showAddress = !showAddress" />
+            </a-tooltip>
+          </span>
+        </template>
         <template #default="{ record }">
-          <a :href="record.url" target="_blank" rel="noopener noreferrer">{{ record.url }}</a>
+          <a :href="record.url" target="_blank" rel="noopener noreferrer"
+            :class="showAddress ? 'address-visible' : 'address-hidden'">{{ record.url }}</a>
         </template>
       </a-table-column>
 
@@ -202,5 +214,30 @@ function formatPct(p) {
 .remark {
   font-size: 12px;
   opacity: 0.65;
+}
+
+.address-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ip-toggle-icon {
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.ip-toggle-icon:hover {
+  opacity: 1;
+}
+
+.address-hidden {
+  filter: blur(5px);
+  transition: filter 0.2s ease;
+}
+
+.address-visible {
+  filter: none;
 }
 </style>

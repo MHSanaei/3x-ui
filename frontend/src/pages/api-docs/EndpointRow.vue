@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
-import { methodColors } from './endpoints.js';
+import { methodColors, safeInlineHtml } from './endpoints.js';
+import CodeBlock from './CodeBlock.vue';
 
 const props = defineProps({
   endpoint: { type: Object, required: true },
@@ -24,7 +25,7 @@ const paramColumns = [
       <code class="endpoint-path">{{ endpoint.path }}</code>
     </div>
 
-    <p v-if="endpoint.summary" class="endpoint-summary">{{ endpoint.summary }}</p>
+    <p v-if="endpoint.summary" class="endpoint-summary" v-html="safeInlineHtml(endpoint.summary)"></p>
 
     <div v-if="hasParams" class="endpoint-block">
       <div class="block-label">Parameters</div>
@@ -33,16 +34,17 @@ const paramColumns = [
 
     <div v-if="endpoint.body" class="endpoint-block">
       <div class="block-label">Request body</div>
-      <a-typography-paragraph :copyable="{ text: endpoint.body }">
-        <pre class="code-block">{{ endpoint.body }}</pre>
-      </a-typography-paragraph>
+      <CodeBlock :code="endpoint.body" lang="json" />
     </div>
 
     <div v-if="endpoint.response" class="endpoint-block">
       <div class="block-label">Response</div>
-      <a-typography-paragraph :copyable="{ text: endpoint.response }">
-        <pre class="code-block">{{ endpoint.response }}</pre>
-      </a-typography-paragraph>
+      <CodeBlock :code="endpoint.response" lang="json" />
+    </div>
+
+    <div v-if="endpoint.errorResponse" class="endpoint-block">
+      <div class="block-label error-label">Error response</div>
+      <CodeBlock :code="endpoint.errorResponse" lang="json" />
     </div>
   </div>
 </template>
@@ -96,6 +98,10 @@ const paramColumns = [
   margin-bottom: 6px;
 }
 
+.error-label {
+  color: #cf222e;
+}
+
 .code-block {
   background: rgba(128, 128, 128, 0.08);
   border: 1px solid rgba(128, 128, 128, 0.15);
@@ -118,6 +124,10 @@ body.dark .endpoint-summary {
 
 body.dark .block-label {
   color: rgba(255, 255, 255, 0.55);
+}
+
+body.dark .error-label {
+  color: #ff7b72;
 }
 
 body.dark .code-block {

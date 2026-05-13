@@ -21,6 +21,7 @@ import InboundList from './InboundList.vue';
 import InboundFormModal from './InboundFormModal.vue';
 import ClientFormModal from './ClientFormModal.vue';
 import ClientBulkModal from './ClientBulkModal.vue';
+import CopyClientsModal from './CopyClientsModal.vue';
 import InboundInfoModal from './InboundInfoModal.vue';
 import QrCodeModal from './QrCodeModal.vue';
 import TextModal from '@/components/TextModal.vue';
@@ -88,6 +89,8 @@ const clientIndex = ref(null);
 
 const bulkOpen = ref(false);
 const bulkDbInbound = ref(null);
+const copyOpen = ref(false);
+const copyDbInbound = ref(null);
 
 // === Info / QR-code modals ===========================================
 const infoOpen = ref(false);
@@ -515,10 +518,8 @@ function onRowAction({ key, dbInbound }) {
       exportInboundClipboard(dbInbound);
       break;
     case 'copyClients':
-      // Copy-clients-from-inbound is a tiny dedicated modal in legacy
-      // (lets you tick clients to copy across inbounds). Defer to a
-      // future commit — surface a friendly message for now.
-      message.info('Copy clients across inbounds — coming soon');
+      copyDbInbound.value = dbInbound;
+      copyOpen.value = true;
       break;
     case 'delete':
       confirmDelete(dbInbound);
@@ -663,6 +664,8 @@ function onRowAction({ key, dbInbound }) {
         :ip-limit-enable="ipLimitEnable" :traffic-diff="trafficDiff" @saved="refresh" />
       <ClientBulkModal v-model:open="bulkOpen" :db-inbound="bulkDbInbound" :sub-enable="subSettings.enable"
         :tg-bot-enable="tgBotEnable" :ip-limit-enable="ipLimitEnable" @saved="refresh" />
+      <CopyClientsModal v-model:open="copyOpen" :db-inbound="copyDbInbound" :db-inbounds="dbInbounds"
+        @saved="refresh" />
       <InboundInfoModal v-model:open="infoOpen" :db-inbound="infoDbInbound" :client-index="infoClientIndex"
         :remark-model="remarkModel" :expire-diff="expireDiff" :traffic-diff="trafficDiff"
         :ip-limit-enable="ipLimitEnable" :tg-bot-enable="tgBotEnable" :sub-settings="subSettings"

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Modal, message } from 'ant-design-vue';
 import {
@@ -8,13 +8,17 @@ import {
   CopyOutlined,
   EyeOutlined,
   EyeInvisibleOutlined,
+  SearchOutlined,
+  ExpandOutlined,
+  CompressOutlined,
 } from '@ant-design/icons-vue';
 
 import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
 import AppSidebar from '@/components/AppSidebar.vue';
 import { HttpUtil, ClipboardManager } from '@/utils/index.js';
-import { sections } from './endpoints.js';
+import { sections as allSections } from './endpoints.js';
 import EndpointSection from './EndpointSection.vue';
+import CodeBlock from './CodeBlock.vue';
 
 const { t } = useI18n();
 
@@ -26,10 +30,54 @@ const tokenLoading = ref(false);
 const tokenRotating = ref(false);
 const tokenVisible = ref(false);
 
+const searchQuery = ref('');
+const collapsedSections = ref(new Set());
+
 const curlExample = `curl -X GET \\
   -H "Authorization: Bearer YOUR_API_TOKEN" \\
   -H "Accept: application/json" \\
   https://your-panel.example.com/panel/api/inbounds/list`;
+
+const sections = computed(() => {
+  const q = searchQuery.value.toLowerCase().trim();
+  if (!q) return allSections;
+  return allSections
+    .map(s => {
+      const matching = s.endpoints.filter(e =>
+        e.path.toLowerCase().includes(q) ||
+        e.summary?.toLowerCase().includes(q) ||
+        e.method.toLowerCase().includes(q)
+      );
+      return { ...s, endpoints: matching };
+    })
+    .filter(s => s.endpoints.length > 0);
+});
+
+const endpointCount = computed(() =>
+  allSections.reduce((sum, s) => sum + s.endpoints.length, 0)
+);
+
+const visibleSections = computed(() =>
+  sections.value.reduce((sum, s) => sum + s.endpoints.length, 0)
+);
+
+function isCollapsed(id) {
+  return collapsedSections.value.has(id);
+}
+
+function toggleSection(id) {
+  const s = new Set(collapsedSections.value);
+  if (s.has(id)) s.delete(id); else s.add(id);
+  collapsedSections.value = s;
+}
+
+function expandAll() {
+  collapsedSections.value = new Set();
+}
+
+function collapseAll() {
+  collapsedSections.value = new Set(allSections.map(s => s.id));
+}
 
 async function loadApiToken() {
   tokenLoading.value = true;
@@ -64,7 +112,7 @@ function regenerateApiToken() {
 
 async function copyApiToken() {
   if (!apiToken.value) return;
-  const ok = await ClipboardManager.copy(apiToken.value);
+  const ok = await ClipboardManager.copyText(apiToken.value);
   if (ok) message.success(t('success'));
 }
 
@@ -93,6 +141,7 @@ onMounted(() => {
                 cookie, or with the <code>Authorization: Bearer &lt;token&gt;</code> header below. Every endpoint
                 returns a uniform <code>{ success, msg, obj }</code> envelope unless otherwise noted.
               </p>
+
             </header>
 
             <a-card class="token-card" size="small">
@@ -135,18 +184,48 @@ onMounted(() => {
             </a-card>
 
             <a-card class="curl-card" size="small" title="Quick example">
-              <pre class="code-block">{{ curlExample }}</pre>
+              <CodeBlock :code="curlExample" lang="text" />
             </a-card>
+
+            <div class="toolbar">
+              <a-input-search
+                v-model:value="searchQuery"
+                placeholder="Search endpoints by path, method, or description…"
+                allow-clear
+                class="search-bar"
+              >
+                <template #prefix><SearchOutlined /></template>
+              </a-input-search>
+              <span class="match-count" v-if="searchQuery">
+                {{ visibleSections }} / {{ endpointCount }} endpoints
+              </span>
+              <a-space size="small">
+                <a-button size="small" @click="expandAll">
+                  <template #icon><ExpandOutlined /></template>
+                  Expand all
+                </a-button>
+                <a-button size="small" @click="collapseAll">
+                  <template #icon><CompressOutlined /></template>
+                  Collapse all
+                </a-button>
+              </a-space>
+            </div>
 
             <nav class="toc-nav">
               <span class="toc-label">On this page:</span>
               <a v-for="s in sections" :key="s.id" class="toc-link" :href="`#${s.id}`"
                 @click.prevent="scrollToSection(s.id)">
-                {{ s.title }}
+                {{ s.title }} ({{ s.endpoints.length }})
               </a>
             </nav>
 
-            <EndpointSection v-for="s in sections" :key="s.id" :section="s" />
+            <EndpointSection
+              v-for="s in sections"
+              :key="s.id"
+              :section="s"
+              :collapsed="isCollapsed(s.id)"
+              @toggle="toggleSection(s.id)"
+            />
           </div>
         </a-layout-content>
       </a-layout>
@@ -273,6 +352,26 @@ onMounted(() => {
   white-space: pre-wrap;
   word-break: break-word;
   overflow-x: auto;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.search-bar {
+  flex: 1;
+  min-width: 200px;
+  max-width: 480px;
+}
+
+.match-count {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
 }
 
 .toc-nav {

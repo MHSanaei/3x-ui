@@ -2036,6 +2036,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 					traffics[traffic_index].Up = 0
 					if !traffic.Enable {
 						traffics[traffic_index].Enable = true
+						c["enable"] = true
 						clientsToAdd = append(clientsToAdd,
 							struct {
 								protocol string
