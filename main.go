@@ -391,17 +391,26 @@ func GetListenIP(getListen bool) {
 	}
 }
 
-// GetApiToken displays the current API token if getApiToken is true.
 func GetApiToken(getApiToken bool) {
-	if getApiToken {
-		settingService := service.SettingService{}
-		apiToken, err := settingService.GetApiToken()
-		if err != nil {
-			fmt.Println("get apiToken failed, error info:", err)
-			return
-		}
-		fmt.Println("apiToken:", apiToken)
+	if !getApiToken {
+		return
 	}
+	apiTokenService := service.ApiTokenService{}
+	tokens, err := apiTokenService.List()
+	if err != nil {
+		fmt.Println("get apiToken failed, error info:", err)
+		return
+	}
+	if len(tokens) > 0 {
+		fmt.Println("apiToken:", tokens[0].Token)
+		return
+	}
+	created, err := apiTokenService.Create("install")
+	if err != nil {
+		fmt.Println("create apiToken failed, error info:", err)
+		return
+	}
+	fmt.Println("apiToken:", created.Token)
 }
 
 // migrateDb performs database migration operations for the 3x-ui panel.
