@@ -21,6 +21,7 @@ const { t } = useI18n();
 const props = defineProps({
   templateSettings: { type: Object, default: null },
   clientReverseTags: { type: Array, default: () => [] },
+  isMobile: { type: Boolean, default: false },
 });
 
 const STRATEGY_LABELS = {
@@ -196,7 +197,7 @@ function confirmDelete(idx) {
 }
 
 const columns = computed(() => [
-  { title: '#', key: 'action', align: 'center', width: 80 },
+  { title: '#', key: 'action', align: 'center', width: 100 },
   { title: 'Tag', dataIndex: 'tag', key: 'tag', align: 'center', width: 160 },
   { title: 'Strategy', key: 'strategy', align: 'center', width: 140 },
   { title: 'Selector', key: 'selector', align: 'center' },
@@ -266,25 +267,39 @@ const obsText = computed({
         {{ t('pages.xray.Balancers') }}
       </a-button>
 
-      <a-table :columns="columns" :data-source="rows" :row-key="(r) => r.key" :pagination="false" size="small" bordered>
+      <a-table :columns="columns" :data-source="rows" :row-key="(r) => r.key" :pagination="false"
+        size="small" :scroll="{ x: 400 }">
         <template #bodyCell="{ column, record, index }">
           <template v-if="column.key === 'action'">
-            <span class="row-index">{{ index + 1 }}</span>
-            <a-dropdown :trigger="['click']">
-              <a-button shape="circle" size="small" class="action-btn">
-                <MoreOutlined />
-              </a-button>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item @click="openEdit(index)">
-                    <EditOutlined /> {{ t('edit') }}
-                  </a-menu-item>
-                  <a-menu-item class="danger" @click="confirmDelete(index)">
-                    <DeleteOutlined /> {{ t('delete') }}
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
+            <div class="action-cell">
+              <span class="row-index">{{ index + 1 }}</span>
+
+              <div :class="!isMobile ? 'action-buttons' : ''">
+                <a-button v-if="!isMobile" shape="circle" size="small" @click="openEdit(index)">
+                  <template #icon>
+                    <EditOutlined />
+                  </template>
+                </a-button>
+
+                <a-dropdown :trigger="['click']">
+                  <a-button shape="circle" size="small">
+                    <template #icon>
+                      <MoreOutlined />
+                    </template>
+                  </a-button>
+                  <template #overlay>
+                    <a-menu>
+                      <a-menu-item v-if="isMobile" @click="openEdit(index)">
+                        <EditOutlined /> {{ t('edit') }}
+                      </a-menu-item>
+                      <a-menu-item class="danger" @click="confirmDelete(index)">
+                        <DeleteOutlined /> {{ t('delete') }}
+                      </a-menu-item>
+                    </a-menu>
+                  </template>
+                </a-dropdown>
+              </div>
+            </div>
           </template>
 
           <template v-else-if="column.key === 'strategy'">
@@ -316,14 +331,25 @@ const obsText = computed({
 </template>
 
 <style scoped>
+.action-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .row-index {
   font-weight: 500;
   opacity: 0.7;
-  margin-right: 6px;
+  min-width: 18px;
+  text-align: right;
 }
 
-.action-btn {
-  vertical-align: middle;
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-left: auto;
 }
 
 .danger {

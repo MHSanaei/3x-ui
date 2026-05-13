@@ -336,7 +336,8 @@ onBeforeUnmount(() => {
                       <template #tab>
                         <ClusterOutlined /> <span>{{ t('pages.xray.Balancers') }}</span>
                       </template>
-                      <BalancersTab :template-settings="templateSettings" :client-reverse-tags="clientReverseTags" />
+                      <BalancersTab :template-settings="templateSettings" 
+                      :client-reverse-tags="clientReverseTags" :is-mobile="isMobile" />
                     </a-tab-pane>
 
                     <a-tab-pane key="tpl-dns" class="tab-pane">

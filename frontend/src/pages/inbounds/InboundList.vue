@@ -229,7 +229,7 @@ const hasAnyRemark = computed(() =>
 const desktopColumns = computed(() => {
   const cols = [
     sortableCol({ title: 'ID', dataIndex: 'id', key: 'id', align: 'right', width: 30 }, 'id'),
-    { title: t('pages.inbounds.operate'), key: 'action', align: 'center', width: 30 },
+    { title: t('pages.inbounds.operate'), key: 'action', align: 'center', width: 60 },
     sortableCol({ title: t('pages.inbounds.enable'), key: 'enable', align: 'center', width: 35 }, 'enable'),
   ];
   if (hasAnyRemark.value) {
@@ -568,59 +568,68 @@ function showQrCodeMenu(dbInbound) {
         <template #bodyCell="{ column, record }">
           <!-- ============== Action dropdown ============== -->
           <template v-if="column.key === 'action'">
-            <a-dropdown :trigger="['click']">
-              <MoreOutlined class="row-action-trigger" @click.prevent />
-              <template #overlay>
-                <a-menu @click="(a) => emit('row-action', { key: a.key, dbInbound: record })">
-                  <a-menu-item key="edit">
-                    <EditOutlined /> {{ t('edit') }}
-                  </a-menu-item>
-                  <a-menu-item v-if="showQrCodeMenu(record)" key="qrcode">
-                    <QrcodeOutlined /> {{ t('qrCode') }}
-                  </a-menu-item>
-                  <template v-if="record.isMultiUser()">
-                    <a-menu-item key="addClient">
-                      <UserAddOutlined /> {{ t('pages.client.add') }}
-                    </a-menu-item>
-                    <a-menu-item key="addBulkClient">
-                      <UsergroupAddOutlined /> {{ t('pages.client.bulk') }}
-                    </a-menu-item>
-                    <a-menu-item key="copyClients">
-                      <CopyOutlined /> {{ t('pages.client.copyFromInbound') }}
-                    </a-menu-item>
-                    <a-menu-item key="resetClients">
-                      <FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}
-                    </a-menu-item>
-                    <a-menu-item key="export">
-                      <ExportOutlined /> {{ t('pages.inbounds.export') }}
-                    </a-menu-item>
-                    <a-menu-item v-if="subEnable" key="subs">
-                      <ExportOutlined /> {{ t('pages.inbounds.export') }} — {{ t('pages.settings.subSettings') }}
-                    </a-menu-item>
-                    <a-menu-item key="delDepletedClients" class="danger-item">
-                      <RestOutlined /> {{ t('pages.inbounds.delDepletedClients') }}
-                    </a-menu-item>
+            <div class="action-buttons">
+              <a-button type="text" size="small" @click.prevent="emit('row-action', {key: 'edit', dbInbound: record})">
+                <template #icon>
+                  <EditOutlined />
+                </template>
+              </a-button>
+
+              <a-dropdown :trigger="['click']">
+                <a-button type="text" size="small" @click.prevent>
+                  <template #icon>
+                    <MoreOutlined />
                   </template>
-                  <template v-else>
-                    <a-menu-item key="showInfo">
-                      <InfoCircleOutlined /> {{ t('info') }}
+                </a-button>
+                <template #overlay>
+                  <a-menu @click="(a) => emit('row-action', { key: a.key, dbInbound: record })">
+                    <a-menu-item v-if="showQrCodeMenu(record)" key="qrcode">
+                      <QrcodeOutlined /> {{ t('qrCode') }}
                     </a-menu-item>
-                  </template>
-                  <a-menu-item key="clipboard">
-                    <CopyOutlined /> {{ t('pages.inbounds.exportInbound') }}
-                  </a-menu-item>
-                  <a-menu-item key="resetTraffic">
-                    <RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') }}
-                  </a-menu-item>
-                  <a-menu-item key="clone">
-                    <BlockOutlined /> {{ t('pages.inbounds.clone') }}
-                  </a-menu-item>
-                  <a-menu-item key="delete" class="danger-item">
-                    <DeleteOutlined /> {{ t('delete') }}
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
+                    <template v-if="record.isMultiUser()">
+                      <a-menu-item key="addClient">
+                        <UserAddOutlined /> {{ t('pages.client.add') }}
+                      </a-menu-item>
+                      <a-menu-item key="addBulkClient">
+                        <UsergroupAddOutlined /> {{ t('pages.client.bulk') }}
+                      </a-menu-item>
+                      <a-menu-item key="copyClients">
+                        <CopyOutlined /> {{ t('pages.client.copyFromInbound') }}
+                      </a-menu-item>
+                      <a-menu-item key="resetClients">
+                        <FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}
+                      </a-menu-item>
+                      <a-menu-item key="export">
+                        <ExportOutlined /> {{ t('pages.inbounds.export') }}
+                      </a-menu-item>
+                      <a-menu-item v-if="subEnable" key="subs">
+                        <ExportOutlined /> {{ t('pages.inbounds.export') }} — {{ t('pages.settings.subSettings') }}
+                      </a-menu-item>
+                      <a-menu-item key="delDepletedClients" class="danger-item">
+                        <RestOutlined /> {{ t('pages.inbounds.delDepletedClients') }}
+                      </a-menu-item>
+                    </template>
+                    <template v-else>
+                      <a-menu-item key="showInfo">
+                        <InfoCircleOutlined /> {{ t('info') }}
+                      </a-menu-item>
+                    </template>
+                    <a-menu-item key="clipboard">
+                      <CopyOutlined /> {{ t('pages.inbounds.exportInbound') }}
+                    </a-menu-item>
+                    <a-menu-item key="resetTraffic">
+                      <RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') }}
+                    </a-menu-item>
+                    <a-menu-item key="clone">
+                      <BlockOutlined /> {{ t('pages.inbounds.clone') }}
+                    </a-menu-item>
+                    <a-menu-item key="delete" class="danger-item">
+                      <DeleteOutlined /> {{ t('delete') }}
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
+            </div>
           </template>
 
           <!-- ============== Enable switch (desktop) ============== -->
@@ -759,6 +768,13 @@ function showQrCodeMenu(dbInbound) {
 
 .filter-bar.mobile>* {
     margin-bottom: 4px;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 .protocol-tags {
