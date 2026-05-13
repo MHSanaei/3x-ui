@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "İstemcinin tüm trafiği sıfırlandı",
         "resetAllTrafficSuccess": "Tüm trafik sıfırlandı",
         "resetInboundClientTrafficSuccess": "Trafik sıfırlandı",
+        "resetInboundTrafficSuccess": "Gelen trafik sıfırlandı",
         "trafficGetError": "Trafik bilgisi alınırken hata oluştu",
         "getNewX25519CertError": "X25519 sertifikası alınırken hata oluştu.",
         "getNewmldsa65Error": "mldsa65 sertifikası alınırken hata oluştu.",
@@ -546,6 +547,8 @@
       "subEncryptDesc": "Abonelik hizmetinin döndürülen içeriği Base64 ile şifrelenir.",
       "subShowInfo": "Kullanım Bilgisini Göster",
       "subShowInfoDesc": "Kalan trafik ve tarih müşteri uygulamalarında görüntülenir.",
+      "subEmailInRemark": "Ada Email Ekle",
+      "subEmailInRemarkDesc": "Abonelik profil adına istemcinin e-postasını dahil edin.",
       "subURI": "Ters Proxy URI",
       "subURIDesc": "Proxy arkasında kullanılacak abonelik URL'sinin URI yolu.",
       "externalTrafficInformEnable": "Harici Trafik Bilgisi",
@@ -588,7 +591,15 @@
         "twoFactorModalChangeCredentialsStep": "Yönetici kimlik bilgilerini değiştirmek için uygulamadaki kodu girin.",
         "twoFactorModalSetSuccess": "İki faktörlü kimlik doğrulama başarıyla kuruldu",
         "twoFactorModalDeleteSuccess": "İki faktörlü kimlik doğrulama başarıyla silindi",
-        "twoFactorModalError": "Yanlış kod"
+        "twoFactorModalError": "Yanlış kod",
+        "show": "Göster",
+        "hide": "Gizle",
+        "apiTokenNew": "Yeni token",
+        "apiTokenName": "Ad",
+        "apiTokenNamePlaceholder": "örn. central-panel-a",
+        "apiTokenNameRequired": "Ad zorunludur",
+        "apiTokenEmpty": "Henüz token yok — bot veya uzak panelleri doğrulamak için bir tane oluşturun.",
+        "apiTokenDeleteWarning": "Bu tokenı kullanan tüm istemciler anında kimlik doğrulamasını kaybeder."
       },
       "toasts": {
         "modifySettings": "Parametreler değiştirildi.",

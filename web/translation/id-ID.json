@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "Semua lalu lintas klien telah direset",
         "resetAllTrafficSuccess": "Semua lalu lintas telah direset",
         "resetInboundClientTrafficSuccess": "Lalu lintas telah direset",
+        "resetInboundTrafficSuccess": "Lalu lintas masuk telah direset",
         "trafficGetError": "Gagal mendapatkan data lalu lintas",
         "getNewX25519CertError": "Terjadi kesalahan saat mendapatkan sertifikat X25519.",
         "getNewmldsa65Error": "Terjadi kesalahan saat mendapatkan sertifikat mldsa65.",
@@ -546,6 +547,8 @@
       "subEncryptDesc": "Konten yang dikembalikan dari layanan langganan akan dienkripsi Base64.",
       "subShowInfo": "Tampilkan Info Penggunaan",
       "subShowInfoDesc": "Sisa traffic dan tanggal akan ditampilkan di aplikasi klien.",
+      "subEmailInRemark": "Sertakan Email dalam Nama",
+      "subEmailInRemarkDesc": "Sertakan email klien dalam nama profil langganan.",
       "subURI": "URI Proxy Terbalik",
       "subURIDesc": "Path URI dari URL langganan untuk digunakan di belakang proxy.",
       "externalTrafficInformEnable": "Informasikan API eksternal pada setiap pembaruan lalu lintas.",
@@ -588,7 +591,15 @@
         "twoFactorModalChangeCredentialsStep": "Masukkan kode dari aplikasi untuk mengubah kredensial administrator.",
         "twoFactorModalSetSuccess": "Autentikasi dua faktor telah berhasil dibuat",
         "twoFactorModalDeleteSuccess": "Autentikasi dua faktor telah berhasil dihapus",
-        "twoFactorModalError": "Kode salah"
+        "twoFactorModalError": "Kode salah",
+        "show": "Tampilkan",
+        "hide": "Sembunyikan",
+        "apiTokenNew": "Token baru",
+        "apiTokenName": "Nama",
+        "apiTokenNamePlaceholder": "misalnya central-panel-a",
+        "apiTokenNameRequired": "Nama wajib diisi",
+        "apiTokenEmpty": "Belum ada token — buat satu untuk mengautentikasi bot atau panel jarak jauh.",
+        "apiTokenDeleteWarning": "Setiap pemanggil yang menggunakan token ini akan berhenti terautentikasi segera."
       },
       "toasts": {
         "modifySettings": "Parameter telah diubah.",

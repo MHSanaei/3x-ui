@@ -213,6 +213,11 @@ func (a *XraySettingController) testOutbound(c *gin.Context) {
 
 	// Load the test URL from server settings to prevent SSRF via user-controlled URLs
 	testURL, _ := a.SettingService.GetXrayOutboundTestUrl()
+	testURL, err := service.SanitizePublicHTTPURL(testURL, false)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
 
 	result, err := a.OutboundService.TestOutbound(outboundJSON, testURL, allOutboundsJSON, mode)
 	if err != nil {

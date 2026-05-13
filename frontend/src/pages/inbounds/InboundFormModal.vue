@@ -12,6 +12,7 @@ import {
   SizeFormatter,
   Wireguard,
 } from '@/utils';
+import { getRandomRealityTarget } from '@/models/reality-targets';
 import {
   Inbound,
   Protocols,
@@ -69,6 +70,7 @@ const inbound = ref(null);
 const dbForm = ref(null);
 const saving = ref(false);
 const advancedJson = ref({ stream: '', sniffing: '', settings: '' });
+const activeTabKey = ref('basic');
 // Cached default cert/key paths from /panel/setting/defaultSettings —
 // powers the "Set default cert" button on the TLS form.
 const defaultCert = ref('');
@@ -240,7 +242,58 @@ watch(() => props.open, (next) => {
     dbForm.value = freshDbForm();
     primeAdvancedJson();
   }
+  activeTabKey.value = 'basic';
   fetchDefaultCertSettings();
+});
+
+function applyAdvancedJsonToBasic() {
+  if (!inbound.value) return true;
+  let parsedSettings;
+  let parsedStream;
+  let parsedSniffing;
+  try {
+    parsedSettings = advancedJson.value.settings.trim()
+      ? JSON.parse(advancedJson.value.settings)
+      : inbound.value.settings?.toJson?.();
+  } catch (e) { message.error(`Settings JSON invalid: ${e.message}`); return false; }
+  try {
+    parsedStream = advancedJson.value.stream.trim()
+      ? JSON.parse(advancedJson.value.stream)
+      : inbound.value.stream?.toJson?.();
+  } catch (e) { message.error(`Stream JSON invalid: ${e.message}`); return false; }
+  try {
+    parsedSniffing = advancedJson.value.sniffing.trim()
+      ? JSON.parse(advancedJson.value.sniffing)
+      : inbound.value.sniffing?.toJson?.();
+  } catch (e) { message.error(`Sniffing JSON invalid: ${e.message}`); return false; }
+
+  try {
+    inbound.value = Inbound.fromJson({
+      port: inbound.value.port,
+      listen: inbound.value.listen,
+      protocol: inbound.value.protocol,
+      settings: parsedSettings,
+      streamSettings: parsedStream,
+      tag: inbound.value.tag,
+      sniffing: parsedSniffing,
+      clientStats: inbound.value.clientStats,
+    });
+  } catch (e) {
+    message.error(`Advanced JSON: ${e.message}`);
+    return false;
+  }
+  return true;
+}
+
+let isRevertingTab = false;
+watch(activeTabKey, (next, prev) => {
+  if (isRevertingTab) { isRevertingTab = false; return; }
+  if (prev === 'advanced' && next !== 'advanced') {
+    if (!applyAdvancedJsonToBasic()) {
+      isRevertingTab = true;
+      activeTabKey.value = 'advanced';
+    }
+  }
 });
 
 // In add mode, switching protocol restamps settings + re-syncs port.
@@ -339,11 +392,9 @@ function clearMldsa65() {
   inbound.value.stream.reality.settings.mldsa65Verify = '';
 }
 
-// Reality target/SNI randomizer — only available if the helper is loaded
 function randomizeRealityTarget() {
   if (!inbound.value?.stream?.reality) return;
-  if (typeof window.getRandomRealityTarget !== 'function') return;
-  const t = window.getRandomRealityTarget();
+  const t = getRandomRealityTarget();
   inbound.value.stream.reality.target = t.target;
   inbound.value.stream.reality.serverNames = t.sni;
 }
@@ -573,7 +624,7 @@ watch(
 <template>
   <a-modal :open="open" :title="title" :ok-text="okText" :cancel-text="t('close')" :confirm-loading="saving"
     :mask-closable="false" width="780px" @ok="submit" @cancel="close">
-    <a-tabs v-if="inbound && dbForm" default-active-key="basic">
+    <a-tabs v-if="inbound && dbForm" v-model:active-key="activeTabKey">
       <!-- ============================== BASICS ============================== -->
       <a-tab-pane key="basic" :tab="t('pages.xray.basicTemplate')">
         <a-form :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
@@ -583,7 +634,7 @@ watch(
           <a-form-item :label="t('pages.inbounds.remark')">
             <a-input v-model:value="dbForm.remark" />
           </a-form-item>
-          <a-form-item :label="t('pages.inbounds.deployTo')">
+          <a-form-item v-if="selectableNodes.length > 0" :label="t('pages.inbounds.deployTo')">
             <a-select v-model:value="dbForm.nodeId" :disabled="mode === 'edit'"
               :placeholder="t('pages.inbounds.localPanel')" allow-clear>
               <a-select-option :value="null">{{ t('pages.inbounds.localPanel') }}</a-select-option>
@@ -1670,6 +1721,74 @@ watch(
                 <a-select-option value="X-Client-IP">X-Client-IP</a-select-option>
               </a-select>
             </a-form-item>
+          </template>
+
+          <!-- ====== Hysteria Masquerade ====== -->
+          <!-- Per https://xtls.github.io/config/transports/hysteria.html#masqobject -->
+          <template v-if="protocol === Protocols.HYSTERIA">
+            <a-form-item label="Masquerade">
+              <a-switch v-model:checked="inbound.stream.hysteria.masqueradeSwitch" />
+            </a-form-item>
+            <template v-if="inbound.stream.hysteria.masqueradeSwitch">
+              <a-form-item label="Type">
+                <a-select v-model:value="inbound.stream.hysteria.masquerade.type" :style="{ width: '50%' }">
+                  <a-select-option value="proxy">Proxy</a-select-option>
+                  <a-select-option value="file">File</a-select-option>
+                  <a-select-option value="string">String</a-select-option>
+                </a-select>
+              </a-form-item>
+
+              <!-- Proxy type: url / rewriteHost / insecure -->
+              <template v-if="inbound.stream.hysteria.masquerade.type === 'proxy'">
+                <a-form-item label="URL">
+                  <a-input v-model:value="inbound.stream.hysteria.masquerade.url" placeholder="https://example.com" />
+                </a-form-item>
+                <a-form-item label="Rewrite Host">
+                  <a-switch v-model:checked="inbound.stream.hysteria.masquerade.rewriteHost" />
+                </a-form-item>
+                <a-form-item label="Insecure">
+                  <a-switch v-model:checked="inbound.stream.hysteria.masquerade.insecure" />
+                </a-form-item>
+              </template>
+
+              <!-- File type: dir -->
+              <a-form-item v-if="inbound.stream.hysteria.masquerade.type === 'file'" label="Directory">
+                <a-input v-model:value="inbound.stream.hysteria.masquerade.dir" placeholder="/path/to/www" />
+              </a-form-item>
+
+              <!-- String type: content / statusCode / headers -->
+              <template v-if="inbound.stream.hysteria.masquerade.type === 'string'">
+                <a-form-item label="Content">
+                  <a-textarea v-model:value="inbound.stream.hysteria.masquerade.content"
+                    :auto-size="{ minRows: 2, maxRows: 6 }" />
+                </a-form-item>
+                <a-form-item label="Status Code">
+                  <a-input-number v-model:value="inbound.stream.hysteria.masquerade.statusCode" :min="100" :max="599"
+                    placeholder="200" />
+                </a-form-item>
+                <a-form-item label="Headers">
+                  <a-button size="small" @click="inbound.stream.hysteria.masquerade.addHeader('', '')">
+                    <template #icon>
+                      <PlusOutlined />
+                    </template>
+                  </a-button>
+                </a-form-item>
+                <a-form-item v-if="inbound.stream.hysteria.masquerade.headers.length > 0" :wrapper-col="{ span: 24 }">
+                  <a-input-group v-for="(h, idx) in inbound.stream.hysteria.masquerade.headers" :key="`mh-${idx}`"
+                    compact class="mb-8">
+                    <a-input :style="{ width: '45%' }" v-model:value="h.name" placeholder="Name">
+                      <template #addonBefore>{{ idx + 1 }}</template>
+                    </a-input>
+                    <a-input :style="{ width: '45%' }" v-model:value="h.value" placeholder="Value" />
+                    <a-button @click="inbound.stream.hysteria.masquerade.removeHeader(idx)">
+                      <template #icon>
+                        <MinusOutlined />
+                      </template>
+                    </a-button>
+                  </a-input-group>
+                </a-form-item>
+              </template>
+            </template>
           </template>
         </a-form>
 

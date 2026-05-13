@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "Đã đặt lại toàn bộ lưu lượng client",
         "resetAllTrafficSuccess": "Đã đặt lại toàn bộ lưu lượng",
         "resetInboundClientTrafficSuccess": "Đã đặt lại lưu lượng",
+        "resetInboundTrafficSuccess": "Đã đặt lại lưu lượng Inbound",
         "trafficGetError": "Lỗi khi lấy thông tin lưu lượng",
         "getNewX25519CertError": "Lỗi khi lấy chứng chỉ X25519.",
         "getNewmldsa65Error": "Lỗi khi lấy chứng chỉ mldsa65.",
@@ -546,6 +547,8 @@
       "subEncryptDesc": "Mã hóa các cấu hình được trả về trong gói đăng ký",
       "subShowInfo": "Hiển thị thông tin sử dụng",
       "subShowInfoDesc": "Hiển thị lưu lượng truy cập còn lại và ngày sau tên cấu hình",
+      "subEmailInRemark": "Thêm Email vào tên",
+      "subEmailInRemarkDesc": "Thêm email của client vào tên hồ sơ đăng ký.",
       "subURI": "URI proxy trung gian",
       "subURIDesc": "Thay đổi URI cơ sở của URL gói đăng ký để sử dụng cho proxy trung gian",
       "externalTrafficInformEnable": "Thông báo giao thông bên ngoài",
@@ -588,7 +591,15 @@
         "twoFactorModalChangeCredentialsStep": "Nhập mã từ ứng dụng để thay đổi thông tin xác thực quản trị viên.",
         "twoFactorModalSetSuccess": "Xác thực hai yếu tố đã được thiết lập thành công",
         "twoFactorModalDeleteSuccess": "Xác thực hai yếu tố đã được xóa thành công",
-        "twoFactorModalError": "Mã sai"
+        "twoFactorModalError": "Mã sai",
+        "show": "Hiển thị",
+        "hide": "Ẩn",
+        "apiTokenNew": "Token mới",
+        "apiTokenName": "Tên",
+        "apiTokenNamePlaceholder": "ví dụ: central-panel-a",
+        "apiTokenNameRequired": "Tên là bắt buộc",
+        "apiTokenEmpty": "Chưa có token nào — tạo một token để xác thực bot hoặc panel từ xa.",
+        "apiTokenDeleteWarning": "Mọi client đang dùng token này sẽ ngừng xác thực ngay lập tức."
       },
       "toasts": {
         "modifySettings": "Các tham số đã được thay đổi.",

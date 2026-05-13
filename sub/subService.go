@@ -28,6 +28,7 @@ type SubService struct {
 	showInfo       bool
 	remarkModel    string
 	datepicker     string
+	emailInRemark  bool
 	inboundService service.InboundService
 	settingService service.SettingService
 	// nodesByID is populated per request from the Node table so
@@ -76,6 +77,12 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 	if err != nil {
 		s.datepicker = "gregorian"
 	}
+
+	s.emailInRemark, err = s.settingService.GetSubEmailInRemark()
+	if err != nil {
+		s.emailInRemark = true
+	}
+
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
 		clients, err := s.inboundService.GetClients(inbound)
@@ -886,7 +893,7 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 		'e': "",
 		'o': "",
 	}
-	if len(email) > 0 {
+	if len(email) > 0 && s.emailInRemark {
 		orders['e'] = email
 	}
 	if len(inbound.Remark) > 0 {

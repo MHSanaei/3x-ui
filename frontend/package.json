@@ -4,6 +4,10 @@
   "version": "0.0.2",
   "type": "module",
   "description": "3x-ui panel frontend (Vue 3 + Ant Design Vue 4 + Vite 8).",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

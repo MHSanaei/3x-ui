@@ -7,9 +7,11 @@ import { setupAxios } from '@/api/axios-init.js';
 // stored theme to <body>/<html> before Vue renders anything.
 import '@/composables/useTheme.js';
 import { i18n } from '@/i18n/index.js';
+import { applyDocumentTitle } from '@/utils';
 import LoginPage from '@/pages/login/LoginPage.vue';
 
 setupAxios();
+applyDocumentTitle();
 
 // Toasts attach to a #message div the page provides — keeps theme
 // styling in sync with the rest of the panel.

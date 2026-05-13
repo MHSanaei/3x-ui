@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "تمام ترافیک کلاینت بازنشانی شد",
         "resetAllTrafficSuccess": "تمام ترافیک‌ها بازنشانی شدند",
         "resetInboundClientTrafficSuccess": "ترافیک بازنشانی شد",
+        "resetInboundTrafficSuccess": "ترافیک ورودی بازنشانی شد",
         "trafficGetError": "خطا در دریافت ترافیک‌ها",
         "getNewX25519CertError": "خطا در دریافت گواهی X25519.",
         "getNewmldsa65Error": "خطا در دریافت گواهی mldsa65.",
@@ -546,6 +547,8 @@
       "subEncryptDesc": "کدگذاری خواهدشد Base64 محتوای برگشتی سرویس سابسکریپشن برپایه",
       "subShowInfo": "نمایش اطلاعات مصرف",
       "subShowInfoDesc": "ترافیک و زمان باقی‌مانده را در برنامه‌های کاربری نمایش می‌دهد",
+      "subEmailInRemark": "گنجاندن ایمیل در نام",
+      "subEmailInRemarkDesc": "ایمیل کاربر در نام پروفایل اشتراک گنجانده می‌شود.",
       "subURI": "پروکسی معکوس URI مسیر",
       "subURIDesc": "سابسکریپشن را برای استفاده در پشت پراکسی‌ها تغییر می‌دهد URI مسیر",
       "externalTrafficInformEnable": "اطلاع رسانی خارجی مصرف ترافیک",
@@ -588,7 +591,15 @@
         "twoFactorModalChangeCredentialsStep": "برای تغییر اعتبارنامه‌های مدیر، کد را از برنامه وارد کنید.",
         "twoFactorModalSetSuccess": "احراز هویت دو مرحله‌ای با موفقیت برقرار شد",
         "twoFactorModalDeleteSuccess": "احراز هویت دو مرحله‌ای با موفقیت حذف شد",
-        "twoFactorModalError": "کد نادرست"
+        "twoFactorModalError": "کد نادرست",
+        "show": "نمایش",
+        "hide": "پنهان",
+        "apiTokenNew": "توکن جدید",
+        "apiTokenName": "نام",
+        "apiTokenNamePlaceholder": "مثلاً central-panel-a",
+        "apiTokenNameRequired": "نام الزامی است",
+        "apiTokenEmpty": "هنوز توکنی وجود ندارد — برای احراز هویت ربات‌ها یا پنل‌های راه دور یکی بسازید.",
+        "apiTokenDeleteWarning": "هر کلاینتی که از این توکن استفاده می‌کند بلافاصله احراز هویتش قطع می‌شود."
       },
       "toasts": {
         "modifySettings": "پارامترها تغییر کرده‌اند.",

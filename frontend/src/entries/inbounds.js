@@ -5,9 +5,11 @@ import 'ant-design-vue/dist/reset.css';
 import { setupAxios } from '@/api/axios-init.js';
 import '@/composables/useTheme.js';
 import { i18n } from '@/i18n/index.js';
+import { applyDocumentTitle } from '@/utils';
 import InboundsPage from '@/pages/inbounds/InboundsPage.vue';
 
 setupAxios();
+applyDocumentTitle();
 
 const messageContainer = document.getElementById('message');
 if (messageContainer) {

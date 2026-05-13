@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "تم إعادة تعيين كل حركة المرور من العميل",
         "resetAllTrafficSuccess": "تم إعادة تعيين كل حركة المرور",
         "resetInboundClientTrafficSuccess": "تم إعادة تعيين حركة المرور",
+        "resetInboundTrafficSuccess": "تم إعادة تعيين حركة مرور الداخل",
         "trafficGetError": "خطأ في الحصول على حركات المرور",
         "getNewX25519CertError": "حدث خطأ أثناء الحصول على شهادة X25519.",
         "getNewmldsa65Error": "حدث خطاء في الحصول على mldsa65.",
@@ -546,6 +547,8 @@
       "subEncryptDesc": "المحتوى اللي هيترجع من خدمة الاشتراك هيكون مشفر بـ Base64.",
       "subShowInfo": "اظهر معلومات الاستخدام",
       "subShowInfoDesc": "هيظهر الترافيك المتبقي والتاريخ في تطبيقات العملاء.",
+      "subEmailInRemark": "تضمين البريد الإلكتروني في الاسم",
+      "subEmailInRemarkDesc": "تضمين بريد العميل الإلكتروني في اسم ملف تعريف الاشتراك.",
       "subURI": "مسار البروكسي العكسي",
       "subURIDesc": "مسار URI لرابط الاشتراك عشان تستخدمه ورا البروكسي.",
       "externalTrafficInformEnable": "تنبيه الترافيك الخارجي",
@@ -588,7 +591,15 @@
         "twoFactorModalChangeCredentialsStep": "أدخل الرمز من التطبيق لتغيير بيانات اعتماد المسؤول.",
         "twoFactorModalSetSuccess": "تم إنشاء المصادقة الثنائية بنجاح",
         "twoFactorModalDeleteSuccess": "تم حذف المصادقة الثنائية بنجاح",
-        "twoFactorModalError": "رمز خاطئ"
+        "twoFactorModalError": "رمز خاطئ",
+        "show": "إظهار",
+        "hide": "إخفاء",
+        "apiTokenNew": "رمز جديد",
+        "apiTokenName": "الاسم",
+        "apiTokenNamePlaceholder": "مثل central-panel-a",
+        "apiTokenNameRequired": "الاسم مطلوب",
+        "apiTokenEmpty": "لا توجد رموز بعد — أنشئ واحدًا لمصادقة الروبوتات أو اللوحات البعيدة.",
+        "apiTokenDeleteWarning": "أي عميل يستخدم هذا الرمز سيفقد المصادقة فورًا."
       },
       "toasts": {
         "modifySettings": "تم تغيير المعلمات.",

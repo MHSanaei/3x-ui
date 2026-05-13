@@ -152,6 +152,11 @@ func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traf
 		logger.Warning("get ExternalTrafficInformURI failed:", err)
 		return
 	}
+	informURL, err = service.SanitizePublicHTTPURL(informURL, false)
+	if err != nil {
+		logger.Warning("ExternalTrafficInformURI blocked:", err)
+		return
+	}
 	requestBody, err := json.Marshal(map[string]any{"clientTraffics": clientTraffics, "inboundTraffics": inboundTraffics})
 	if err != nil {
 		logger.Warning("parse client/inbound traffic failed:", err)

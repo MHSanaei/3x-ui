@@ -1,7 +1,6 @@
 package service
 
 import (
-	"crypto/subtle"
 	_ "embed"
 	"encoding/json"
 	"errors"
@@ -36,6 +35,7 @@ var defaultValueMap = map[string]string{
 	"apiToken":                    "",
 	"webBasePath":                 "/",
 	"sessionMaxAge":               "360",
+	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
@@ -70,6 +70,7 @@ var defaultValueMap = map[string]string{
 	"subUpdates":                  "12",
 	"subEncrypt":                  "true",
 	"subShowInfo":                 "true",
+	"subEmailInRemark":            "true",
 	"subURI":                      "",
 	"subJsonPath":                 "/json/",
 	"subJsonURI":                  "",
@@ -199,6 +200,35 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 	return allSetting, nil
 }
 
+func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
+	allSetting, err := s.GetAllSetting()
+	if err != nil {
+		return nil, err
+	}
+	view := &entity.AllSettingView{AllSetting: *allSetting}
+	view.HasTgBotToken = secretConfigured(allSetting.TgBotToken)
+	view.HasTwoFactorToken = secretConfigured(allSetting.TwoFactorToken)
+	view.HasLdapPassword = secretConfigured(allSetting.LdapPassword)
+	view.HasWarpSecret = secretConfigured(mustString(s.GetWarp()))
+	view.HasNordSecret = secretConfigured(mustString(s.GetNord()))
+	var apiTokenCount int64
+	if err := database.GetDB().Model(model.ApiToken{}).Where("enabled = ?", true).Count(&apiTokenCount).Error; err == nil {
+		view.HasApiToken = apiTokenCount > 0
+	}
+	view.TgBotToken = ""
+	view.TwoFactorToken = ""
+	view.LdapPassword = ""
+	return view, nil
+}
+
+func secretConfigured(value string) bool {
+	return strings.TrimSpace(value) != ""
+}
+
+func mustString(value string, _ error) string {
+	return value
+}
+
 func (s *SettingService) ResetSettings() error {
 	db := database.GetDB()
 	err := db.Where("1 = 1").Delete(model.Setting{}).Error
@@ -286,7 +316,11 @@ func (s *SettingService) GetXrayOutboundTestUrl() (string, error) {
 }
 
 func (s *SettingService) SetXrayOutboundTestUrl(url string) error {
-	return s.setString("xrayOutboundTestUrl", url)
+	clean, err := SanitizeHTTPURL(url)
+	if err != nil {
+		return err
+	}
+	return s.setString("xrayOutboundTestUrl", clean)
 }
 
 func (s *SettingService) GetListen() (string, error) {
@@ -417,6 +451,10 @@ func (s *SettingService) GetSessionMaxAge() (int, error) {
 	return s.getInt("sessionMaxAge")
 }
 
+func (s *SettingService) GetTrustedProxyCIDRs() (string, error) {
+	return s.getString("trustedProxyCIDRs")
+}
+
 func (s *SettingService) GetRemarkModel() (string, error) {
 	return s.getString("remarkModel")
 }
@@ -430,48 +468,6 @@ func (s *SettingService) GetSecret() ([]byte, error) {
 		}
 	}
 	return []byte(secret), err
-}
-
-// GetApiToken returns the panel's API token, lazily generating one on
-// first read so existing installs upgrade transparently. The token is
-// stored plaintext to match how the existing tg/ldap secrets are kept.
-func (s *SettingService) GetApiToken() (string, error) {
-	tok, err := s.getString("apiToken")
-	if err != nil {
-		return "", err
-	}
-	if tok == "" {
-		tok = random.Seq(48)
-		if saveErr := s.saveSetting("apiToken", tok); saveErr != nil {
-			logger.Warning("save apiToken failed:", saveErr)
-			return "", saveErr
-		}
-	}
-	return tok, nil
-}
-
-// RegenerateApiToken rotates the API token, invalidating any central
-// panel that has the old value cached.
-func (s *SettingService) RegenerateApiToken() (string, error) {
-	tok := random.Seq(48)
-	if err := s.saveSetting("apiToken", tok); err != nil {
-		return "", err
-	}
-	return tok, nil
-}
-
-// MatchApiToken returns true when the supplied bearer token matches the
-// stored API token. Uses constant-time compare so a remote attacker
-// can't time-attack the token byte-by-byte.
-func (s *SettingService) MatchApiToken(presented string) bool {
-	if presented == "" {
-		return false
-	}
-	stored, err := s.getString("apiToken")
-	if err != nil || stored == "" {
-		return false
-	}
-	return subtle.ConstantTimeCompare([]byte(stored), []byte(presented)) == 1
 }
 
 func (s *SettingService) SetBasePath(basePath string) error {
@@ -595,6 +591,10 @@ func (s *SettingService) GetSubEncrypt() (bool, error) {
 
 func (s *SettingService) GetSubShowInfo() (bool, error) {
 	return s.getBool("subShowInfo")
+}
+
+func (s *SettingService) GetSubEmailInRemark() (bool, error) {
+	return s.getBool("subEmailInRemark")
 }
 
 func (s *SettingService) GetPageSize() (int, error) {
@@ -771,6 +771,12 @@ func (s *SettingService) GetLdapDefaultLimitIP() (int, error) {
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
+	if err := s.preserveRedactedSecrets(allSetting); err != nil {
+		return err
+	}
+	if err := validateSettingsURLs(allSetting); err != nil {
+		return err
+	}
 	if err := allSetting.CheckValid(); err != nil {
 		return err
 	}
@@ -789,6 +795,58 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 		}
 	}
 	return common.Combine(errs...)
+}
+
+func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) error {
+	if strings.TrimSpace(allSetting.TgBotToken) == "" {
+		value, err := s.GetTgBotToken()
+		if err != nil {
+			return err
+		}
+		allSetting.TgBotToken = value
+	}
+	if strings.TrimSpace(allSetting.LdapPassword) == "" {
+		value, err := s.GetLdapPassword()
+		if err != nil {
+			return err
+		}
+		allSetting.LdapPassword = value
+	}
+	if allSetting.TwoFactorEnable && strings.TrimSpace(allSetting.TwoFactorToken) == "" {
+		value, err := s.GetTwoFactorToken()
+		if err != nil {
+			return err
+		}
+		allSetting.TwoFactorToken = value
+	}
+	return nil
+}
+
+func validateSettingsURLs(allSetting *entity.AllSetting) error {
+	if allSetting.ExternalTrafficInformURI != "" {
+		u, err := SanitizeHTTPURL(allSetting.ExternalTrafficInformURI)
+		if err != nil {
+			return common.NewError("external traffic inform URI is invalid:", err)
+		}
+		allSetting.ExternalTrafficInformURI = u
+	}
+	if allSetting.TgBotAPIServer != "" {
+		u, err := SanitizeHTTPURL(allSetting.TgBotAPIServer)
+		if err != nil {
+			return common.NewError("telegram API server URL is invalid:", err)
+		}
+		allSetting.TgBotAPIServer = u
+	}
+	return nil
+}
+
+func (s *SettingService) UpdateSecret(key string, value string) error {
+	switch key {
+	case "tgBotToken", "ldapPassword", "twoFactorToken":
+		return s.saveSetting(key, strings.TrimSpace(value))
+	default:
+		return common.NewError("secret key is not replaceable:", key)
+	}
 }
 
 func (s *SettingService) GetDefaultXrayConfig() (any, error) {

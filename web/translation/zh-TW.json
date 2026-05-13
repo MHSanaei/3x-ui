@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "客戶端所有流量已重置",
         "resetAllTrafficSuccess": "所有流量已重置",
         "resetInboundClientTrafficSuccess": "流量已重置",
+        "resetInboundTrafficSuccess": "入站流量已重置",
         "trafficGetError": "取得流量資料時發生錯誤",
         "getNewX25519CertError": "取得X25519憑證時發生錯誤。",
         "getNewmldsa65Error": "取得mldsa65憑證時發生錯誤。",
@@ -546,6 +547,8 @@
       "subEncryptDesc": "訂閱服務返回的內容將採用 Base64 編碼",
       "subShowInfo": "顯示使用資訊",
       "subShowInfoDesc": "客戶端應用中將顯示剩餘流量和日期資訊",
+      "subEmailInRemark": "在名稱中包含郵箱",
+      "subEmailInRemarkDesc": "在訂閱配置名稱中包含客戶端郵箱。",
       "subURI": "反向代理 URI",
       "subURIDesc": "用於代理後面的訂閱 URL 的 URI 路徑",
       "externalTrafficInformEnable": "外部交通通知",
@@ -588,7 +591,15 @@
         "twoFactorModalChangeCredentialsStep": "輸入應用程式中的代碼以更改管理員憑證。",
         "twoFactorModalSetSuccess": "雙重身份驗證已成功建立",
         "twoFactorModalDeleteSuccess": "雙重身份驗證已成功刪除",
-        "twoFactorModalError": "驗證碼錯誤"
+        "twoFactorModalError": "驗證碼錯誤",
+        "show": "顯示",
+        "hide": "隱藏",
+        "apiTokenNew": "新增令牌",
+        "apiTokenName": "名稱",
+        "apiTokenNamePlaceholder": "例如 central-panel-a",
+        "apiTokenNameRequired": "名稱必填",
+        "apiTokenEmpty": "尚無令牌 — 建立一個以認證機器人或遠端面板。",
+        "apiTokenDeleteWarning": "使用此令牌的任何呼叫方將立即無法認證。"
       },
       "toasts": {
         "modifySettings": "參數已更改。",
