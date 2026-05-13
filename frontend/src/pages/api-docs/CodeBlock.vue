@@ -50,10 +50,13 @@ async function copyCode() {
 
 <template>
   <div class="code-block-wrapper">
-    <button class="copy-btn" :class="{ copied }" @click="copyCode" :title="copied ? 'Copied' : 'Copy'">
-      <CheckOutlined v-if="copied" />
-      <CopyOutlined v-else />
-    </button>
+    <div class="code-toolbar">
+      <span class="lang-badge">{{ lang.toUpperCase() }}</span>
+      <button class="copy-btn" :class="{ copied }" @click="copyCode" :title="copied ? 'Copied' : 'Copy'">
+        <CheckOutlined v-if="copied" />
+        <CopyOutlined v-else />
+      </button>
+    </div>
     <pre class="code-block" :class="`lang-${lang}`"><code v-html="highlighted"></code></pre>
   </div>
 </template>
@@ -63,30 +66,40 @@ async function copyCode() {
   position: relative;
   border-radius: 6px;
   overflow: hidden;
+  border: 1px solid rgba(128, 128, 128, 0.15);
+}
+
+.code-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: rgba(128, 128, 128, 0.06);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+.lang-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: rgba(0, 0, 0, 0.4);
+  text-transform: uppercase;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .copy-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid rgba(128, 128, 128, 0.2);
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(128, 128, 128, 0.15);
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.85);
-  color: rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.7);
+  color: rgba(0, 0, 0, 0.45);
   cursor: pointer;
-  font-size: 13px;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.15s, color 0.15s;
-}
-
-.code-block-wrapper:hover .copy-btn {
-  opacity: 1;
+  font-size: 12px;
+  transition: all 0.15s;
 }
 
 .copy-btn:hover {
@@ -96,27 +109,24 @@ async function copyCode() {
 }
 
 .copy-btn.copied {
-  opacity: 1;
   background: #52c41a;
   color: #fff;
   border-color: #52c41a;
 }
 
 .code-block {
-  background: rgba(128, 128, 128, 0.08);
-  border: 1px solid rgba(128, 128, 128, 0.15);
-  border-radius: 6px;
-  padding: 12px;
+  background: rgba(128, 128, 128, 0.04);
+  padding: 10px 12px;
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12.5px;
-  line-height: 1.55;
+  line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-x: auto;
+  border: none;
+  border-radius: 0;
 }
-
-
 </style>
 
 <style>
@@ -126,9 +136,21 @@ async function copyCode() {
 .json-boolean { color: #cf222e; }
 .json-null { color: #8250df; }
 
-body.dark .code-block {
-  background: rgba(255, 255, 255, 0.04);
+body.dark .code-block-wrapper {
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark .code-toolbar {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+body.dark .lang-badge {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+body.dark .code-block {
+  background: rgba(255, 255, 255, 0.03);
   color: rgba(255, 255, 255, 0.88);
 }
 
@@ -139,13 +161,13 @@ body.dark .json-boolean { color: #ff7b72; }
 body.dark .json-null { color: #d2a8ff; }
 
 body.dark .copy-btn {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.5);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 body.dark .copy-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
   color: #58a6ff;
   border-color: #58a6ff;
 }

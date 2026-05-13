@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Modal, message } from 'ant-design-vue';
 import {
@@ -11,6 +11,16 @@ import {
   SearchOutlined,
   ExpandOutlined,
   CompressOutlined,
+  ApiOutlined,
+  SafetyCertificateOutlined,
+  CloudServerOutlined,
+  ClusterOutlined,
+  GlobalOutlined,
+  SaveOutlined,
+  SettingOutlined,
+  WifiOutlined,
+  LinkOutlined,
+  NodeIndexOutlined,
 } from '@ant-design/icons-vue';
 
 import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
@@ -32,6 +42,20 @@ const tokenVisible = ref(false);
 
 const searchQuery = ref('');
 const collapsedSections = ref(new Set());
+const activeSection = ref('');
+
+const sectionIcons = {
+  auth: SafetyCertificateOutlined,
+  inbounds: NodeIndexOutlined,
+  server: CloudServerOutlined,
+  nodes: ClusterOutlined,
+  customGeo: GlobalOutlined,
+  backup: SaveOutlined,
+  settings: SettingOutlined,
+  xraySettings: WifiOutlined,
+  subscription: LinkOutlined,
+  websocket: ApiOutlined,
+};
 
 const curlExample = `curl -X GET \\
   -H "Authorization: Bearer YOUR_API_TOKEN" \\
@@ -121,8 +145,33 @@ function scrollToSection(id) {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+let scrollObserver = null;
+function onScroll() {
+  const toc = document.querySelector('.toc-nav');
+  const tocHeight = toc ? toc.offsetHeight : 56;
+  let current = '';
+  for (const s of sections.value) {
+    const el = document.getElementById(s.id);
+    if (!el) continue;
+    const rect = el.getBoundingClientRect();
+    if (rect.top <= tocHeight + 20) {
+      current = s.id;
+    }
+  }
+  activeSection.value = current;
+}
+
 onMounted(() => {
   loadApiToken();
+  scrollObserver = onScroll;
+  window.addEventListener('scroll', scrollObserver, { passive: true });
+  onScroll();
+});
+
+onBeforeUnmount(() => {
+  if (scrollObserver) {
+    window.removeEventListener('scroll', scrollObserver);
+  }
 });
 </script>
 
@@ -150,7 +199,7 @@ onMounted(() => {
                   <KeyOutlined />
                   <span>API Token</span>
                 </div>
-                <a-space size="small" wrap>
+                <div class="token-actions">
                   <a-button size="small" @click="tokenVisible = !tokenVisible">
                     <template #icon>
                       <EyeInvisibleOutlined v-if="tokenVisible" />
@@ -170,7 +219,7 @@ onMounted(() => {
                     </template>
                     Regenerate
                   </a-button>
-                </a-space>
+                </div>
               </div>
               <a-spin :spinning="tokenLoading" size="small">
                 <pre
@@ -213,16 +262,27 @@ onMounted(() => {
 
             <nav class="toc-nav">
               <span class="toc-label">On this page:</span>
-              <a v-for="s in sections" :key="s.id" class="toc-link" :href="`#${s.id}`"
-                @click.prevent="scrollToSection(s.id)">
-                {{ s.title }} ({{ s.endpoints.length }})
-              </a>
+              <div class="toc-links">
+                <a
+                  v-for="s in sections"
+                  :key="s.id"
+                  class="toc-link"
+                  :class="{ active: activeSection === s.id }"
+                  :href="`#${s.id}`"
+                  @click.prevent="scrollToSection(s.id)"
+                >
+                  <component :is="sectionIcons[s.id]" class="toc-icon" />
+                  <span class="toc-text">{{ s.title }}</span>
+                  <span class="toc-badge">{{ s.endpoints.length }}</span>
+                </a>
+              </div>
             </nav>
 
             <EndpointSection
               v-for="s in sections"
               :key="s.id"
               :section="s"
+              :icon="sectionIcons[s.id]"
               :collapsed="isCollapsed(s.id)"
               @toggle="toggleSection(s.id)"
             />
@@ -273,20 +333,25 @@ onMounted(() => {
 }
 
 .docs-header {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+  padding: 24px;
+  background: var(--bg-card);
+  border: 1px solid rgba(128, 128, 128, 0.12);
+  border-radius: 10px;
 }
 
 .docs-title {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 800;
   margin: 0 0 8px;
   color: rgba(0, 0, 0, 0.88);
+  letter-spacing: -0.3px;
 }
 
 .docs-lead {
   margin: 0;
   color: rgba(0, 0, 0, 0.65);
-  line-height: 1.6;
+  line-height: 1.65;
   font-size: 14px;
 }
 
@@ -310,7 +375,8 @@ onMounted(() => {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  min-height: 32px;
 }
 
 .token-card-title {
@@ -319,6 +385,13 @@ onMounted(() => {
   gap: 8px;
   font-weight: 600;
   font-size: 14px;
+}
+
+.token-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .token-value {
@@ -377,32 +450,91 @@ onMounted(() => {
 .toc-nav {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 14px;
+  align-items: flex-start;
+  gap: 8px 12px;
   padding: 12px 16px;
-  background: rgba(128, 128, 128, 0.08);
-  border-radius: 6px;
+  background: var(--bg-card);
+  border: 1px solid rgba(128, 128, 128, 0.12);
+  border-radius: 8px;
   margin-bottom: 16px;
 }
 
+.toc-nav.toc-stuck {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
 .toc-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   color: rgba(0, 0, 0, 0.5);
+  padding-top: 3px;
+  flex-shrink: 0;
+}
+
+.toc-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .toc-link {
-  color: #1677ff;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  color: rgba(0, 0, 0, 0.65);
+  background: rgba(128, 128, 128, 0.06);
+  border: 1px solid transparent;
   text-decoration: none;
   cursor: pointer;
-  font-size: 13px;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .toc-link:hover {
-  color: #4096ff;
-  text-decoration: underline;
+  background: rgba(22, 119, 255, 0.08);
+  color: #1677ff;
+  border-color: rgba(22, 119, 255, 0.2);
+}
+
+.toc-link.active {
+  background: rgba(22, 119, 255, 0.12);
+  color: #1677ff;
+  border-color: rgba(22, 119, 255, 0.3);
+  font-weight: 600;
+}
+
+.toc-icon {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.toc-text {
+  font-size: 12.5px;
+}
+
+.toc-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+  background: rgba(22, 119, 255, 0.12);
+  color: #1677ff;
+  line-height: 1;
+}
+
+.toc-link.active .toc-badge {
+  background: #1677ff;
+  color: #fff;
 }
 </style>
 
@@ -411,14 +543,38 @@ body.dark .docs-title {
   color: rgba(255, 255, 255, 0.92);
 }
 
+html[data-theme='ultra-dark'] .docs-title {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+body.dark .docs-header {
+  background: #252526;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='ultra-dark'] .docs-header {
+  background: #0a0a0a;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
 body.dark .docs-lead,
 body.dark .token-hint {
   color: rgba(255, 255, 255, 0.7);
 }
 
+html[data-theme='ultra-dark'] .docs-lead,
+html[data-theme='ultra-dark'] .token-hint {
+  color: rgba(255, 255, 255, 0.75);
+}
+
 body.dark .docs-lead code,
 body.dark .token-hint code {
   background: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme='ultra-dark'] .docs-lead code,
+html[data-theme='ultra-dark'] .token-hint code {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 body.dark .token-value,
@@ -428,11 +584,58 @@ body.dark .code-block {
   color: rgba(255, 255, 255, 0.88);
 }
 
+html[data-theme='ultra-dark'] .token-value,
+html[data-theme='ultra-dark'] .code-block {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
 body.dark .toc-nav {
-  background: rgba(255, 255, 255, 0.04);
+  background: #252526;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='ultra-dark'] .toc-nav {
+  background: #0a0a0a;
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 body.dark .toc-label {
   color: rgba(255, 255, 255, 0.55);
+}
+
+html[data-theme='ultra-dark'] .toc-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+body.dark .toc-link {
+  color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme='ultra-dark'] .toc-link {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.dark .toc-link:hover {
+  background: rgba(88, 166, 255, 0.12);
+  color: #58a6ff;
+  border-color: rgba(88, 166, 255, 0.25);
+}
+
+body.dark .toc-link.active {
+  background: rgba(88, 166, 255, 0.15);
+  color: #58a6ff;
+  border-color: rgba(88, 166, 255, 0.35);
+}
+
+body.dark .toc-badge {
+  background: rgba(88, 166, 255, 0.15);
+  color: #58a6ff;
+}
+
+body.dark .toc-link.active .toc-badge {
+  background: #58a6ff;
+  color: #0d1117;
 }
 </style>

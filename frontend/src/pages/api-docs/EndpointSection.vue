@@ -9,6 +9,7 @@ import { safeInlineHtml } from './endpoints.js';
 
 const props = defineProps({
   section: { type: Object, required: true },
+  icon: { type: Object, default: null },
   collapsed: { type: Boolean, default: false },
 });
 
@@ -27,6 +28,7 @@ const endpointLabel = computed(() =>
       <div class="section-header-left">
         <DownOutlined v-if="!collapsed" class="collapse-icon" />
         <RightOutlined v-else class="collapse-icon" />
+        <component v-if="icon" :is="icon" class="section-icon" />
         <h2 class="section-title">{{ section.title }}</h2>
       </div>
       <span class="endpoint-count">{{ endpointLabel }}</span>
@@ -58,11 +60,15 @@ const endpointLabel = computed(() =>
 <style scoped>
 .api-section {
   background: #fff;
-  border: 1px solid rgba(128, 128, 128, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.12);
   border-radius: 8px;
-  padding: 16px 24px;
+  padding: 20px 24px;
   margin-bottom: 16px;
-  scroll-margin-top: 16px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.api-section:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .section-header {
@@ -73,39 +79,52 @@ const endpointLabel = computed(() =>
   user-select: none;
 }
 
-.section-header:hover .collapse-icon {
+.section-header:hover .collapse-icon,
+.section-header:hover .section-icon {
   color: #1677ff;
 }
 
 .section-header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .collapse-icon {
   font-size: 12px;
+  color: rgba(0, 0, 0, 0.4);
+  transition: color 0.2s;
+}
+
+.section-icon {
+  font-size: 18px;
   color: rgba(0, 0, 0, 0.45);
   transition: color 0.2s;
 }
 
 .section-title {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
   color: rgba(0, 0, 0, 0.88);
 }
 
 .endpoint-count {
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
   color: rgba(0, 0, 0, 0.45);
   white-space: nowrap;
+  background: rgba(128, 128, 128, 0.08);
+  padding: 3px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .section-description {
-  margin: 10px 0 14px;
+  margin: 12px 0 14px;
   color: rgba(0, 0, 0, 0.65);
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
 .sub-header-block {
@@ -134,16 +153,28 @@ const endpointLabel = computed(() =>
 <style>
 body.dark .api-section {
   background: #252526;
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark .api-section:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
 }
 
 html[data-theme='ultra-dark'] .api-section {
   background: #0a0a0a;
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme='ultra-dark'] .api-section:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
 
 body.dark .section-title {
   color: rgba(255, 255, 255, 0.92);
+}
+
+body.dark .section-icon {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 body.dark .section-description {
@@ -152,5 +183,10 @@ body.dark .section-description {
 
 body.dark .block-label {
   color: rgba(255, 255, 255, 0.55);
+}
+
+body.dark .endpoint-count {
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.06);
 }
 </style>

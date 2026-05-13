@@ -68,7 +68,7 @@ export const sections = [
 
   {
     id: 'inbounds',
-    title: 'Inbounds API',
+    title: 'Inbounds',
     description:
       'Manage inbound configurations and their clients. All endpoints live under /panel/api/inbounds and require a logged-in session or Bearer token. Link-generating endpoints honour X-Forwarded-Host / X-Forwarded-Proto, so callers behind a reverse proxy get the correct external host in returned URLs.',
     endpoints: [
@@ -288,7 +288,7 @@ export const sections = [
 
   {
     id: 'server',
-    title: 'Server API',
+    title: 'Server',
     description:
       'System status, log retrieval, certificate generators, Xray binary management, and backup/restore. All under /panel/api/server.',
     endpoints: [
@@ -487,7 +487,7 @@ export const sections = [
 
   {
     id: 'nodes',
-    title: 'Nodes API',
+    title: 'Nodes',
     description:
       'Manage remote 3x-ui panels acting as nodes for a central panel. All endpoints under /panel/api/nodes.',
     endpoints: [
@@ -568,7 +568,7 @@ export const sections = [
 
   {
     id: 'customGeo',
-    title: 'Custom Geo API',
+    title: 'Custom Geo',
     description:
       'Manage user-supplied GeoIP / GeoSite source files. All endpoints under /panel/api/custom-geo.',
     endpoints: [
@@ -636,7 +636,7 @@ export const sections = [
 
   {
     id: 'settings',
-    title: 'Settings API',
+    title: 'Settings',
     description:
       'Panel configuration, user credentials, and API token management. All endpoints live under /panel/setting and require a logged-in session or Bearer token.',
     endpoints: [
@@ -696,7 +696,7 @@ export const sections = [
 
   {
     id: 'xraySettings',
-    title: 'Xray Settings API',
+    title: 'Xray Settings',
     description:
       'Xray configuration template, outbound management, Warp/Nord integration, and config testing. All endpoints under /panel/xray.',
     endpoints: [
