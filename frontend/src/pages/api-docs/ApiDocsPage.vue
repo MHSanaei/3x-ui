@@ -81,7 +81,7 @@ const endpointCount = computed(() =>
   allSections.reduce((sum, s) => sum + s.endpoints.length, 0)
 );
 
-const visibleSections = computed(() =>
+const visibleEndpoints = computed(() =>
   sections.value.reduce((sum, s) => sum + s.endpoints.length, 0)
 );
 
@@ -246,7 +246,7 @@ onBeforeUnmount(() => {
                 <template #prefix><SearchOutlined /></template>
               </a-input-search>
               <span class="match-count" v-if="searchQuery">
-                {{ visibleSections }} / {{ endpointCount }} endpoints
+                {{ visibleEndpoints }} / {{ endpointCount }} endpoints
               </span>
               <a-space size="small">
                 <a-button size="small" @click="expandAll">
@@ -457,10 +457,6 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(128, 128, 128, 0.12);
   border-radius: 8px;
   margin-bottom: 16px;
-}
-
-.toc-nav.toc-stuck {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .toc-label {
