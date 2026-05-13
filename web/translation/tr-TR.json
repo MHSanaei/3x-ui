@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "İstemcinin tüm trafiği sıfırlandı",
         "resetAllTrafficSuccess": "Tüm trafik sıfırlandı",
         "resetInboundClientTrafficSuccess": "Trafik sıfırlandı",
+        "resetInboundTrafficSuccess": "Gelen trafik sıfırlandı",
         "trafficGetError": "Trafik bilgisi alınırken hata oluştu",
         "getNewX25519CertError": "X25519 sertifikası alınırken hata oluştu.",
         "getNewmldsa65Error": "mldsa65 sertifikası alınırken hata oluştu.",

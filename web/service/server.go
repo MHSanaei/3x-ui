@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -493,6 +494,11 @@ func (s *ServerService) sampleCPUUtilization() (float64, error) {
 
 var xrayVersionsClient = &http.Client{Timeout: 10 * time.Second}
 
+const (
+	maxXrayArchiveBytes = 200 << 20
+	maxXrayBinaryBytes  = 200 << 20
+)
+
 func (s *ServerService) GetXrayVersions() ([]string, error) {
 	const (
 		XrayURL    = "https://api.github.com/repos/XTLS/Xray-core/releases"
@@ -601,28 +607,53 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 
 	fileName := fmt.Sprintf("Xray-%s-%s.zip", osName, arch)
 	url := fmt.Sprintf("https://github.com/XTLS/Xray-core/releases/download/%s/%s", version, fileName)
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("download xray: unexpected HTTP %d", resp.StatusCode)
+	}
+	if resp.ContentLength > maxXrayArchiveBytes {
+		return "", fmt.Errorf("download xray: archive exceeds %d bytes", maxXrayArchiveBytes)
+	}
 
-	os.Remove(fileName)
-	file, err := os.Create(fileName)
+	file, err := os.CreateTemp("", "xray-*.zip")
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	path := file.Name()
+	ok := false
+	defer func() {
+		_ = file.Close()
+		if !ok {
+			_ = os.Remove(path)
+		}
+	}()
 
-	_, err = io.Copy(file, resp.Body)
+	n, err := io.Copy(file, io.LimitReader(resp.Body, maxXrayArchiveBytes+1))
 	if err != nil {
 		return "", err
 	}
+	if n > maxXrayArchiveBytes {
+		return "", fmt.Errorf("download xray: archive exceeds %d bytes", maxXrayArchiveBytes)
+	}
 
-	return fileName, nil
+	ok = true
+	return path, nil
 }
 
 func (s *ServerService) UpdateXray(version string) error {
+	versions, err := s.GetXrayVersions()
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(versions, version) {
+		return fmt.Errorf("xray version %q is not in the fetched release list", version)
+	}
+
 	// 1. Stop xray before doing anything
 	if err := s.StopXrayService(); err != nil {
 		logger.Warning("failed to stop xray before update:", err)
@@ -657,15 +688,42 @@ func (s *ServerService) UpdateXray(version string) error {
 			return err
 		}
 		defer zipFile.Close()
-		os.MkdirAll(filepath.Dir(fileName), 0755)
-		os.Remove(fileName)
-		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
+		if err := os.MkdirAll(filepath.Dir(fileName), 0755); err != nil {
+			return err
+		}
+		tmpFile, err := os.CreateTemp(filepath.Dir(fileName), ".xray-*")
 		if err != nil {
 			return err
 		}
-		defer file.Close()
-		_, err = io.Copy(file, zipFile)
-		return err
+		tmpPath := tmpFile.Name()
+		ok := false
+		defer func() {
+			_ = tmpFile.Close()
+			if !ok {
+				_ = os.Remove(tmpPath)
+			}
+		}()
+		n, err := io.Copy(tmpFile, io.LimitReader(zipFile, maxXrayBinaryBytes+1))
+		if err != nil {
+			return err
+		}
+		if n > maxXrayBinaryBytes {
+			return fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
+		}
+		if err := tmpFile.Chmod(0755); err != nil {
+			return err
+		}
+		if err := tmpFile.Close(); err != nil {
+			return err
+		}
+		if runtime.GOOS == "windows" {
+			_ = os.Remove(fileName)
+		}
+		if err := os.Rename(tmpPath, fileName); err != nil {
+			return err
+		}
+		ok = true
+		return nil
 	}
 
 	// 4. Extract correct binary
@@ -1275,7 +1333,13 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 		return nil, err
 	}
 
-	lines := strings.Split(out.String(), "\n")
+	return map[string]any{
+		"auths": parseVlessEncAuths(out.String()),
+	}, nil
+}
+
+func parseVlessEncAuths(output string) []map[string]string {
+	lines := strings.Split(output, "\n")
 	var auths []map[string]string
 	var current map[string]string
 
@@ -1285,14 +1349,18 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 			if current != nil {
 				auths = append(auths, current)
 			}
+			label := strings.TrimSpace(strings.TrimPrefix(line, "Authentication:"))
 			current = map[string]string{
-				"label": strings.TrimSpace(strings.TrimPrefix(line, "Authentication:")),
+				"id":    vlessEncAuthID(label),
+				"label": label,
 			}
 		} else if strings.HasPrefix(line, `"decryption"`) || strings.HasPrefix(line, `"encryption"`) {
 			parts := strings.SplitN(line, ":", 2)
 			if len(parts) == 2 && current != nil {
 				key := strings.Trim(parts[0], `" `)
-				val := strings.Trim(parts[1], `" `)
+				val := strings.TrimSpace(parts[1])
+				val = strings.TrimSuffix(val, ",")
+				val = strings.Trim(val, `" `)
 				current[key] = val
 			}
 		}
@@ -1302,9 +1370,19 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 		auths = append(auths, current)
 	}
 
-	return map[string]any{
-		"auths": auths,
-	}, nil
+	return auths
+}
+
+func vlessEncAuthID(label string) string {
+	normalized := strings.NewReplacer("-", "", "_", "", " ", "").Replace(strings.ToLower(label))
+	switch {
+	case strings.Contains(normalized, "mlkem768"):
+		return "mlkem768"
+	case strings.Contains(normalized, "x25519"):
+		return "x25519"
+	default:
+		return normalized
+	}
 }
 
 func (s *ServerService) GetNewUUID() (map[string]string, error) {

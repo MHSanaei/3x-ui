@@ -52,10 +52,9 @@ async function sendUpdateUser() {
   try {
     const msg = await HttpUtil.post('/panel/setting/updateUser', user);
     if (msg?.success) {
-      // Force re-login at the standard logout path; basePath is handled
-      // by the Go router so a relative redirect is correct here.
-      const basePath = window.X_UI_BASE_PATH || '';
-      window.location.replace(`${basePath}logout`);
+      await HttpUtil.post('/logout');
+      const basePath = window.X_UI_BASE_PATH || '/';
+      window.location.replace(basePath);
     }
   } finally {
     updating.value = false;

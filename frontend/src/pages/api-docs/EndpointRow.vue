@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
-import { methodColors } from './endpoints.js';
+import { methodColors, safeInlineHtml } from './endpoints.js';
+import CodeBlock from './CodeBlock.vue';
 
 const props = defineProps({
   endpoint: { type: Object, required: true },
@@ -24,7 +25,7 @@ const paramColumns = [
       <code class="endpoint-path">{{ endpoint.path }}</code>
     </div>
 
-    <p v-if="endpoint.summary" class="endpoint-summary">{{ endpoint.summary }}</p>
+    <p v-if="endpoint.summary" class="endpoint-summary" v-html="safeInlineHtml(endpoint.summary)"></p>
 
     <div v-if="hasParams" class="endpoint-block">
       <div class="block-label">Parameters</div>
@@ -33,27 +34,39 @@ const paramColumns = [
 
     <div v-if="endpoint.body" class="endpoint-block">
       <div class="block-label">Request body</div>
-      <a-typography-paragraph :copyable="{ text: endpoint.body }">
-        <pre class="code-block">{{ endpoint.body }}</pre>
-      </a-typography-paragraph>
+      <CodeBlock :code="endpoint.body" lang="json" />
     </div>
 
     <div v-if="endpoint.response" class="endpoint-block">
       <div class="block-label">Response</div>
-      <a-typography-paragraph :copyable="{ text: endpoint.response }">
-        <pre class="code-block">{{ endpoint.response }}</pre>
-      </a-typography-paragraph>
+      <CodeBlock :code="endpoint.response" lang="json" />
+    </div>
+
+    <div v-if="endpoint.errorResponse" class="endpoint-block">
+      <div class="block-label error-label">Error response</div>
+      <CodeBlock :code="endpoint.errorResponse" lang="json" />
     </div>
   </div>
 </template>
 
 <style scoped>
 .endpoint-row {
-  padding: 12px 0;
+  padding: 14px 0;
+  margin: 0;
+  transition: background 0.15s;
+  border-radius: 6px;
+  padding-left: 8px;
+  padding-right: 8px;
+  margin-left: -8px;
+  margin-right: -8px;
+}
+
+.endpoint-row:hover {
+  background: rgba(128, 128, 128, 0.03);
 }
 
 .endpoint-row + .endpoint-row {
-  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  border-top: 1px solid rgba(128, 128, 128, 0.1);
 }
 
 .endpoint-header {
@@ -64,36 +77,50 @@ const paramColumns = [
 }
 
 .method-tag {
-  font-weight: 600;
+  font-weight: 700;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
   letter-spacing: 0.5px;
-  min-width: 60px;
+  min-width: 56px;
   text-align: center;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 2px 8px;
+  line-height: 1.6;
 }
 
 .endpoint-path {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
+  font-size: 13.5px;
   word-break: break-all;
+  color: rgba(0, 0, 0, 0.8);
+  background: rgba(128, 128, 128, 0.06);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .endpoint-summary {
   margin: 8px 0 0;
-  color: rgba(0, 0, 0, 0.65);
-  line-height: 1.55;
+  color: rgba(0, 0, 0, 0.6);
+  line-height: 1.6;
+  font-size: 13.5px;
 }
 
 .endpoint-block {
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .block-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.6px;
+  color: rgba(0, 0, 0, 0.45);
   margin-bottom: 6px;
+}
+
+.error-label {
+  color: #cf222e;
 }
 
 .code-block {
@@ -112,12 +139,29 @@ const paramColumns = [
 </style>
 
 <style>
+body.dark .endpoint-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+body.dark .endpoint-row + .endpoint-row {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark .endpoint-path {
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.05);
+}
+
 body.dark .endpoint-summary {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 body.dark .block-label {
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+body.dark .error-label {
+  color: #ff7b72;
 }
 
 body.dark .code-block {

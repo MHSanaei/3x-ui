@@ -40,7 +40,6 @@ const subUrl = subData.subUrl || '';
 const subJsonUrl = subData.subJsonUrl || '';
 const subClashUrl = subData.subClashUrl || '';
 const subTitle = subData.subTitle || '';
-const subSupportUrl = subData.subSupportUrl || '';
 const links = Array.isArray(subData.links) ? subData.links : [];
 // Panel's "Calendar Type" setting; controls whether expiry / lastOnline
 // render in Gregorian or Jalali on this standalone subscription page.

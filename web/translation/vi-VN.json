@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "Đã đặt lại toàn bộ lưu lượng client",
         "resetAllTrafficSuccess": "Đã đặt lại toàn bộ lưu lượng",
         "resetInboundClientTrafficSuccess": "Đã đặt lại lưu lượng",
+        "resetInboundTrafficSuccess": "Đã đặt lại lưu lượng Inbound",
         "trafficGetError": "Lỗi khi lấy thông tin lưu lượng",
         "getNewX25519CertError": "Lỗi khi lấy chứng chỉ X25519.",
         "getNewmldsa65Error": "Lỗi khi lấy chứng chỉ mldsa65.",

@@ -15,6 +15,7 @@ export class AllSetting {
         this.webKeyFile = "";
         this.webBasePath = "/";
         this.sessionMaxAge = 360;
+        this.trustedProxyCIDRs = "127.0.0.1/32,::1/128";
         this.pageSize = 25;
         this.expireDiff = 0;
         this.trafficDiff = 0;
@@ -87,6 +88,12 @@ export class AllSetting {
         this.ldapDefaultTotalGB = 0;
         this.ldapDefaultExpiryDays = 0;
         this.ldapDefaultLimitIP = 0;
+        this.hasTgBotToken = false;
+        this.hasTwoFactorToken = false;
+        this.hasLdapPassword = false;
+        this.hasApiToken = false;
+        this.hasWarpSecret = false;
+        this.hasNordSecret = false;
 
         if (data == null) {
             return

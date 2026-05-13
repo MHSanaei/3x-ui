@@ -29,25 +29,11 @@ func NewAPIController(g *gin.RouterGroup, customGeo *service.CustomGeoService) *
 	return a
 }
 
-// checkAPIAuth is a middleware that returns 404 for unauthenticated API requests
-// to hide the existence of API endpoints from unauthorized users.
-//
-// Two auth paths are accepted:
-//  1. Authorization: Bearer <apiToken> — used by remote central panels
-//     polling this instance as a node. Matches via constant-time compare.
-//     Sets c.Set("api_authed", true) so CSRFMiddleware can short-circuit.
-//  2. Existing session cookie — used by browsers logged into the panel UI.
-//
-// Anything else falls through to a 404 so the API endpoints remain hidden.
 func (a *APIController) checkAPIAuth(c *gin.Context) {
 	auth := c.GetHeader("Authorization")
 	if strings.HasPrefix(auth, "Bearer ") {
 		tok := strings.TrimPrefix(auth, "Bearer ")
 		if a.settingService.MatchApiToken(tok) {
-			// Handlers like InboundController.addInbound assume a logged-in
-			// user (inbound.UserId = user.Id). Bearer callers have no
-			// session, so attach the first user as a fallback. Single-user
-			// panels are the norm here.
 			if u, err := a.userService.GetFirstUser(); err == nil {
 				session.SetAPIAuthUser(c, u)
 			}
@@ -57,7 +43,11 @@ func (a *APIController) checkAPIAuth(c *gin.Context) {
 		}
 	}
 	if !session.IsLogin(c) {
-		c.AbortWithStatus(http.StatusNotFound)
+		if c.GetHeader("X-Requested-With") == "XMLHttpRequest" {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		} else {
+			c.AbortWithStatus(http.StatusNotFound)
+		}
 		return
 	}
 	c.Next()
@@ -85,7 +75,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup, customGeo *service.Custom
 	NewCustomGeoController(api.Group("/custom-geo"), customGeo)
 
 	// Extra routes
-	api.GET("/backuptotgbot", a.BackuptoTgbot)
+	api.POST("/backuptotgbot", a.BackuptoTgbot)
 }
 
 // BackuptoTgbot sends a backup of the panel data to Telegram bot admins.

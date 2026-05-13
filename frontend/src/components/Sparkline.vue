@@ -17,7 +17,7 @@ const props = defineProps({
   showAxes: { type: Boolean, default: false },
   yTickStep: { type: Number, default: 25 },
   tickCountX: { type: Number, default: 4 },
-  paddingLeft: { type: Number, default: 32 },
+  paddingLeft: { type: Number, default: 56 },
   paddingRight: { type: Number, default: 6 },
   paddingTop: { type: Number, default: 6 },
   paddingBottom: { type: Number, default: 20 },

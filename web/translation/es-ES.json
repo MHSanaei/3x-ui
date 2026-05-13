@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "Todo el tráfico del cliente ha sido reiniciado",
         "resetAllTrafficSuccess": "Todo el tráfico ha sido reiniciado",
         "resetInboundClientTrafficSuccess": "El tráfico ha sido reiniciado",
+        "resetInboundTrafficSuccess": "El tráfico de entrada ha sido reiniciado",
         "trafficGetError": "Error al obtener los tráficos",
         "getNewX25519CertError": "Error al obtener el certificado X25519.",
         "getNewmldsa65Error": "Error al obtener el certificado mldsa65.",

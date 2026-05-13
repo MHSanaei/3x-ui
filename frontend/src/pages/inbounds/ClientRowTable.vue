@@ -32,6 +32,7 @@ const props = defineProps({
   lastOnlineMap: { type: Object, default: () => ({}) },
   isDarkTheme: { type: Boolean, default: false },
   pageSize: { type: Number, default: 0 },
+  totalClientCount: { type: Number, default: 0 },
 });
 
 const emit = defineEmits([
@@ -138,7 +139,7 @@ function statsExpColor(email) {
   return PURPLE;
 }
 
-const isRemovable = computed(() => clients.value.length > 1);
+const isRemovable = computed(() => (props.totalClientCount || clients.value.length) > 1);
 
 function totalGbDisplay(client) {
   if (!client.totalGB || client.totalGB <= 0) return '';

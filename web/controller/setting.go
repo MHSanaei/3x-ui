@@ -76,7 +76,13 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 		return
 	}
+	oldTwoFactor, twoFactorErr := a.settingService.GetTwoFactorEnable()
 	err = a.settingService.UpdateAllSetting(allSetting)
+	if err == nil && twoFactorErr == nil && !oldTwoFactor && allSetting.TwoFactorEnable {
+		if bumpErr := a.userService.BumpLoginEpoch(); bumpErr != nil {
+			err = bumpErr
+		}
+	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 }
 

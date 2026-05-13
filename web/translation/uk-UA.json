@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "Весь трафік клієнта скинуто",
         "resetAllTrafficSuccess": "Весь трафік скинуто",
         "resetInboundClientTrafficSuccess": "Трафік скинуто",
+        "resetInboundTrafficSuccess": "Трафік вхідного потоку скинуто",
         "trafficGetError": "Помилка отримання даних про трафік",
         "getNewX25519CertError": "Помилка при отриманні сертифіката X25519.",
         "getNewmldsa65Error": "Помилка при отриманні сертифіката mldsa65.",

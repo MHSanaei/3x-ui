@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "All traffic from the client has been reset.",
         "resetAllTrafficSuccess": "All traffic has been reset.",
         "resetInboundClientTrafficSuccess": "Traffic has been reset.",
+        "resetInboundTrafficSuccess": "Inbound traffic has been reset.",
         "trafficGetError": "Error getting traffics.",
         "getNewX25519CertError": "Error while obtaining the X25519 certificate.",
         "getNewmldsa65Error": "Error while obtaining mldsa65.",
