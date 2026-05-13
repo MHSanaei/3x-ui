@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Modal, message } from 'ant-design-vue';
 import {
@@ -208,6 +208,40 @@ function confirmRestart() {
     onOk: () => restartXray(),
   });
 }
+
+const tabKeys = ['tpl-basic', 'tpl-routing', 'tpl-outbound', 'tpl-balancer', 'tpl-dns', 'tpl-advanced'];
+const slugByKey = {
+  'tpl-basic': 'basic',
+  'tpl-routing': 'routing',
+  'tpl-outbound': 'outbound',
+  'tpl-balancer': 'balancer',
+  'tpl-dns': 'dns',
+  'tpl-advanced': 'advanced',
+};
+const keyBySlug = Object.fromEntries(Object.entries(slugByKey).map(([k, v]) => [v, k]));
+
+const activeTabKey = ref(keyBySlug[window.location.hash.slice(1)] || tabKeys[0]);
+
+function onTabChange(key) {
+  activeTabKey.value = key;
+  const slug = slugByKey[key];
+  if (slug && window.location.hash !== `#${slug}`) {
+    history.replaceState(null, '', `#${slug}`);
+  }
+}
+
+function syncTabFromHash() {
+  const key = keyBySlug[window.location.hash.slice(1)];
+  if (key) activeTabKey.value = key;
+}
+
+onMounted(() => {
+  window.addEventListener('hashchange', syncTabFromHash);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('hashchange', syncTabFromHash);
+});
 </script>
 
 <template>
@@ -259,7 +293,7 @@ function confirmRestart() {
 
                 <!-- Tabs -->
                 <a-col :span="24">
-                  <a-tabs default-active-key="tpl-basic">
+                  <a-tabs :active-key="activeTabKey" @change="onTabChange">
                     <a-tab-pane key="tpl-basic" class="tab-pane">
                       <template #tab>
                         <SettingOutlined /> <span>{{ t('pages.xray.basicTemplate') }}</span>
