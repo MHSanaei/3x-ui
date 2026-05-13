@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "تمام ترافیک کلاینت بازنشانی شد",
         "resetAllTrafficSuccess": "تمام ترافیک‌ها بازنشانی شدند",
         "resetInboundClientTrafficSuccess": "ترافیک بازنشانی شد",
+        "resetInboundTrafficSuccess": "ترافیک ورودی بازنشانی شد",
         "trafficGetError": "خطا در دریافت ترافیک‌ها",
         "getNewX25519CertError": "خطا در دریافت گواهی X25519.",
         "getNewmldsa65Error": "خطا در دریافت گواهی mldsa65.",

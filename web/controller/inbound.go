@@ -77,6 +77,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/:id/copyClients", a.copyInboundClients)
 	g.POST("/:id/delClient/:clientId", a.delInboundClient)
 	g.POST("/updateClient/:clientId", a.updateInboundClient)
+	g.POST("/:id/resetTraffic", a.resetInboundTraffic)
 	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/resetAllClientTraffics/:id", a.resetAllClientTraffics)
@@ -439,6 +440,24 @@ func (a *InboundController) resetClientTraffic(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+}
+
+// resetInboundTraffic resets traffic counters for a specific inbound.
+func (a *InboundController) resetInboundTraffic(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
+		return
+	}
+
+	err = a.inboundService.ResetInboundTraffic(id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	} else {
+		a.xrayService.SetToNeedRestart()
+	}
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.resetInboundTrafficSuccess"), nil)
 }
 
 // resetAllTraffics resets all traffic counters across all inbounds.

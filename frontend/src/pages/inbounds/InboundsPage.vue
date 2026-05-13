@@ -396,7 +396,7 @@ function confirmResetTraffic(dbInbound) {
     okText: 'Reset',
     cancelText: 'Cancel',
     onOk: async () => {
-      const msg = await HttpUtil.post(`/panel/api/inbounds/resetAllTraffics`);
+      const msg = await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/resetTraffic`);
       if (msg?.success) await refresh();
     },
   });

@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "Semua lalu lintas klien telah direset",
         "resetAllTrafficSuccess": "Semua lalu lintas telah direset",
         "resetInboundClientTrafficSuccess": "Lalu lintas telah direset",
+        "resetInboundTrafficSuccess": "Lalu lintas masuk telah direset",
         "trafficGetError": "Gagal mendapatkan data lalu lintas",
         "getNewX25519CertError": "Terjadi kesalahan saat mendapatkan sertifikat X25519.",
         "getNewmldsa65Error": "Terjadi kesalahan saat mendapatkan sertifikat mldsa65.",
