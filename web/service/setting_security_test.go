@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/database"
+	"github.com/mhsanaei/3x-ui/v3/database/model"
 )
 
 func setupSettingTestDB(t *testing.T) {
@@ -31,7 +32,7 @@ func TestGetAllSettingViewRedactsSecrets(t *testing.T) {
 	if err := s.saveSetting("ldapPassword", "ldap-secret"); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.saveSetting("apiToken", "api-secret"); err != nil {
+	if err := database.GetDB().Create(&model.ApiToken{Name: "test", Token: "api-secret", Enabled: true}).Error; err != nil {
 		t.Fatal(err)
 	}
 

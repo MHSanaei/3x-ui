@@ -589,7 +589,15 @@
         "twoFactorModalChangeCredentialsStep": "Yönetici kimlik bilgilerini değiştirmek için uygulamadaki kodu girin.",
         "twoFactorModalSetSuccess": "İki faktörlü kimlik doğrulama başarıyla kuruldu",
         "twoFactorModalDeleteSuccess": "İki faktörlü kimlik doğrulama başarıyla silindi",
-        "twoFactorModalError": "Yanlış kod"
+        "twoFactorModalError": "Yanlış kod",
+        "show": "Göster",
+        "hide": "Gizle",
+        "apiTokenNew": "Yeni token",
+        "apiTokenName": "Ad",
+        "apiTokenNamePlaceholder": "örn. central-panel-a",
+        "apiTokenNameRequired": "Ad zorunludur",
+        "apiTokenEmpty": "Henüz token yok — bot veya uzak panelleri doğrulamak için bir tane oluşturun.",
+        "apiTokenDeleteWarning": "Bu tokenı kullanan tüm istemciler anında kimlik doğrulamasını kaybeder."
       },
       "toasts": {
         "modifySettings": "Parametreler değiştirildi.",

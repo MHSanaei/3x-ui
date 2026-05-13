@@ -589,7 +589,15 @@
         "twoFactorModalChangeCredentialsStep": "管理者の認証情報を変更するには、アプリケーションからコードを入力してください。",
         "twoFactorModalSetSuccess": "二要素認証が正常に設定されました",
         "twoFactorModalDeleteSuccess": "二要素認証が正常に削除されました",
-        "twoFactorModalError": "コードが間違っています"
+        "twoFactorModalError": "コードが間違っています",
+        "show": "表示",
+        "hide": "非表示",
+        "apiTokenNew": "新規トークン",
+        "apiTokenName": "名前",
+        "apiTokenNamePlaceholder": "例: central-panel-a",
+        "apiTokenNameRequired": "名前は必須です",
+        "apiTokenEmpty": "トークンがまだありません — ボットやリモートパネルを認証するために作成してください。",
+        "apiTokenDeleteWarning": "このトークンを使用しているクライアントは直ちに認証できなくなります。"
       },
       "toasts": {
         "modifySettings": "パラメーターが変更されました。",

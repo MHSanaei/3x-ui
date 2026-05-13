@@ -589,7 +589,15 @@
         "twoFactorModalChangeCredentialsStep": "輸入應用程式中的代碼以更改管理員憑證。",
         "twoFactorModalSetSuccess": "雙重身份驗證已成功建立",
         "twoFactorModalDeleteSuccess": "雙重身份驗證已成功刪除",
-        "twoFactorModalError": "驗證碼錯誤"
+        "twoFactorModalError": "驗證碼錯誤",
+        "show": "顯示",
+        "hide": "隱藏",
+        "apiTokenNew": "新增令牌",
+        "apiTokenName": "名稱",
+        "apiTokenNamePlaceholder": "例如 central-panel-a",
+        "apiTokenNameRequired": "名稱必填",
+        "apiTokenEmpty": "尚無令牌 — 建立一個以認證機器人或遠端面板。",
+        "apiTokenDeleteWarning": "使用此令牌的任何呼叫方將立即無法認證。"
       },
       "toasts": {
         "modifySettings": "參數已更改。",

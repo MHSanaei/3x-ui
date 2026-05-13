@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Modal } from 'ant-design-vue';
 import {
@@ -152,6 +152,35 @@ const confAlerts = computed(() => {
 });
 
 const alertVisible = ref(true);
+
+const tabSlugs = ['general', 'security', 'telegram', 'subscription', 'subscription-formats'];
+const slugToKey = (slug) => {
+  const i = tabSlugs.indexOf(slug);
+  return i >= 0 ? String(i + 1) : '1';
+};
+const keyToSlug = (key) => tabSlugs[Number(key) - 1] || tabSlugs[0];
+
+const activeTabKey = ref(slugToKey(window.location.hash.slice(1)));
+
+function onTabChange(key) {
+  activeTabKey.value = key;
+  const slug = keyToSlug(key);
+  if (window.location.hash !== `#${slug}`) {
+    history.replaceState(null, '', `#${slug}`);
+  }
+}
+
+function syncTabFromHash() {
+  activeTabKey.value = slugToKey(window.location.hash.slice(1));
+}
+
+onMounted(() => {
+  window.addEventListener('hashchange', syncTabFromHash);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('hashchange', syncTabFromHash);
+});
 </script>
 
 <template>
@@ -199,7 +228,7 @@ const alertVisible = ref(true);
                 </a-col>
 
                 <a-col :span="24">
-                  <a-tabs default-active-key="1">
+                  <a-tabs :active-key="activeTabKey" @change="onTabChange">
                     <a-tab-pane key="1" class="tab-pane">
                       <template #tab>
                         <SettingOutlined />

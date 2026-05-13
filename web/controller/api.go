@@ -19,6 +19,7 @@ type APIController struct {
 	nodeController    *NodeController
 	settingService    service.SettingService
 	userService       service.UserService
+	apiTokenService   service.ApiTokenService
 	Tgbot             service.Tgbot
 }
 
@@ -33,7 +34,7 @@ func (a *APIController) checkAPIAuth(c *gin.Context) {
 	auth := c.GetHeader("Authorization")
 	if strings.HasPrefix(auth, "Bearer ") {
 		tok := strings.TrimPrefix(auth, "Bearer ")
-		if a.settingService.MatchApiToken(tok) {
+		if a.apiTokenService.Match(tok) {
 			if u, err := a.userService.GetFirstUser(); err == nil {
 				session.SetAPIAuthUser(c, u)
 			}

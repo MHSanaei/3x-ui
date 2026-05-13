@@ -589,7 +589,15 @@
         "twoFactorModalChangeCredentialsStep": "Введите код из приложения, чтобы изменить учетные данные администратора.",
         "twoFactorModalSetSuccess": "Двухфакторная аутентификация была успешно установлена",
         "twoFactorModalDeleteSuccess": "Двухфакторная аутентификация была успешно удалена",
-        "twoFactorModalError": "Неверный код"
+        "twoFactorModalError": "Неверный код",
+        "show": "Показать",
+        "hide": "Скрыть",
+        "apiTokenNew": "Новый токен",
+        "apiTokenName": "Имя",
+        "apiTokenNamePlaceholder": "например, central-panel-a",
+        "apiTokenNameRequired": "Имя обязательно",
+        "apiTokenEmpty": "Токенов пока нет — создайте один для аутентификации ботов или удалённых панелей.",
+        "apiTokenDeleteWarning": "Любой клиент, использующий этот токен, немедленно потеряет аутентификацию."
       },
       "toasts": {
         "modifySettings": "Настройки изменены",

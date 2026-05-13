@@ -589,7 +589,15 @@
         "twoFactorModalChangeCredentialsStep": "Nhập mã từ ứng dụng để thay đổi thông tin xác thực quản trị viên.",
         "twoFactorModalSetSuccess": "Xác thực hai yếu tố đã được thiết lập thành công",
         "twoFactorModalDeleteSuccess": "Xác thực hai yếu tố đã được xóa thành công",
-        "twoFactorModalError": "Mã sai"
+        "twoFactorModalError": "Mã sai",
+        "show": "Hiển thị",
+        "hide": "Ẩn",
+        "apiTokenNew": "Token mới",
+        "apiTokenName": "Tên",
+        "apiTokenNamePlaceholder": "ví dụ: central-panel-a",
+        "apiTokenNameRequired": "Tên là bắt buộc",
+        "apiTokenEmpty": "Chưa có token nào — tạo một token để xác thực bot hoặc panel từ xa.",
+        "apiTokenDeleteWarning": "Mọi client đang dùng token này sẽ ngừng xác thực ngay lập tức."
       },
       "toasts": {
         "modifySettings": "Các tham số đã được thay đổi.",

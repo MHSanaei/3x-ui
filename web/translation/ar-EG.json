@@ -589,7 +589,15 @@
         "twoFactorModalChangeCredentialsStep": "أدخل الرمز من التطبيق لتغيير بيانات اعتماد المسؤول.",
         "twoFactorModalSetSuccess": "تم إنشاء المصادقة الثنائية بنجاح",
         "twoFactorModalDeleteSuccess": "تم حذف المصادقة الثنائية بنجاح",
-        "twoFactorModalError": "رمز خاطئ"
+        "twoFactorModalError": "رمز خاطئ",
+        "show": "إظهار",
+        "hide": "إخفاء",
+        "apiTokenNew": "رمز جديد",
+        "apiTokenName": "الاسم",
+        "apiTokenNamePlaceholder": "مثل central-panel-a",
+        "apiTokenNameRequired": "الاسم مطلوب",
+        "apiTokenEmpty": "لا توجد رموز بعد — أنشئ واحدًا لمصادقة الروبوتات أو اللوحات البعيدة.",
+        "apiTokenDeleteWarning": "أي عميل يستخدم هذا الرمز سيفقد المصادقة فورًا."
       },
       "toasts": {
         "modifySettings": "تم تغيير المعلمات.",

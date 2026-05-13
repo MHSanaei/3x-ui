@@ -589,7 +589,15 @@
         "twoFactorModalChangeCredentialsStep": "Masukkan kode dari aplikasi untuk mengubah kredensial administrator.",
         "twoFactorModalSetSuccess": "Autentikasi dua faktor telah berhasil dibuat",
         "twoFactorModalDeleteSuccess": "Autentikasi dua faktor telah berhasil dihapus",
-        "twoFactorModalError": "Kode salah"
+        "twoFactorModalError": "Kode salah",
+        "show": "Tampilkan",
+        "hide": "Sembunyikan",
+        "apiTokenNew": "Token baru",
+        "apiTokenName": "Nama",
+        "apiTokenNamePlaceholder": "misalnya central-panel-a",
+        "apiTokenNameRequired": "Nama wajib diisi",
+        "apiTokenEmpty": "Belum ada token — buat satu untuk mengautentikasi bot atau panel jarak jauh.",
+        "apiTokenDeleteWarning": "Setiap pemanggil yang menggunakan token ini akan berhenti terautentikasi segera."
       },
       "toasts": {
         "modifySettings": "Parameter telah diubah.",

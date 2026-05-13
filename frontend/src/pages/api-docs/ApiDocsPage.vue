@@ -1,13 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { Modal, message } from 'ant-design-vue';
 import {
   KeyOutlined,
-  ReloadOutlined,
-  CopyOutlined,
-  EyeOutlined,
-  EyeInvisibleOutlined,
   SearchOutlined,
   ExpandOutlined,
   CompressOutlined,
@@ -25,34 +19,28 @@ import {
 
 import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
 import AppSidebar from '@/components/AppSidebar.vue';
-import { HttpUtil, ClipboardManager } from '@/utils/index.js';
 import { sections as allSections } from './endpoints.js';
 import EndpointSection from './EndpointSection.vue';
 import CodeBlock from './CodeBlock.vue';
 
-const { t } = useI18n();
-
 const basePath = window.X_UI_BASE_PATH || '';
 const requestUri = window.location.pathname;
-
-const apiToken = ref('');
-const tokenLoading = ref(false);
-const tokenRotating = ref(false);
-const tokenVisible = ref(false);
+const settingsHref = `${basePath}panel/settings#security`;
 
 const searchQuery = ref('');
 const collapsedSections = ref(new Set());
 const activeSection = ref('');
 
 const sectionIcons = {
-  auth: SafetyCertificateOutlined,
+  authentication: SafetyCertificateOutlined,
   inbounds: NodeIndexOutlined,
   server: CloudServerOutlined,
   nodes: ClusterOutlined,
-  customGeo: GlobalOutlined,
+  'custom-geo': GlobalOutlined,
   backup: SaveOutlined,
   settings: SettingOutlined,
-  xraySettings: WifiOutlined,
+  'api-tokens': KeyOutlined,
+  'xray-settings': WifiOutlined,
   subscription: LinkOutlined,
   websocket: ApiOutlined,
 };
@@ -103,46 +91,20 @@ function collapseAll() {
   collapsedSections.value = new Set(allSections.map(s => s.id));
 }
 
-async function loadApiToken() {
-  tokenLoading.value = true;
-  try {
-    const msg = await HttpUtil.get('/panel/setting/getApiToken');
-    if (msg?.success) apiToken.value = msg.obj || '';
-  } finally {
-    tokenLoading.value = false;
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (window.location.hash !== `#${id}`) {
+    history.replaceState(null, '', `#${id}`);
   }
 }
 
-function regenerateApiToken() {
-  Modal.confirm({
-    title: t('pages.nodes.regenerateConfirm'),
-    okText: t('confirm'),
-    cancelText: t('cancel'),
-    okType: 'danger',
-    onOk: async () => {
-      tokenRotating.value = true;
-      try {
-        const msg = await HttpUtil.post('/panel/setting/regenerateApiToken');
-        if (msg?.success) {
-          apiToken.value = msg.obj || '';
-          message.success(t('success'));
-        }
-      } finally {
-        tokenRotating.value = false;
-      }
-    },
-  });
-}
-
-async function copyApiToken() {
-  if (!apiToken.value) return;
-  const ok = await ClipboardManager.copyText(apiToken.value);
-  if (ok) message.success(t('success'));
-}
-
-function scrollToSection(id) {
+function scrollToHash() {
+  const id = window.location.hash.slice(1);
+  if (!id) return;
   const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
 }
 
 let scrollObserver = null;
@@ -162,16 +124,20 @@ function onScroll() {
 }
 
 onMounted(() => {
-  loadApiToken();
   scrollObserver = onScroll;
   window.addEventListener('scroll', scrollObserver, { passive: true });
-  onScroll();
+  window.addEventListener('hashchange', scrollToHash);
+  requestAnimationFrame(() => {
+    scrollToHash();
+    onScroll();
+  });
 });
 
 onBeforeUnmount(() => {
   if (scrollObserver) {
     window.removeEventListener('scroll', scrollObserver);
   }
+  window.removeEventListener('hashchange', scrollToHash);
 });
 </script>
 
@@ -197,38 +163,17 @@ onBeforeUnmount(() => {
               <div class="token-card-head">
                 <div class="token-card-title">
                   <KeyOutlined />
-                  <span>API Token</span>
+                  <span>API Tokens</span>
                 </div>
-                <div class="token-actions">
-                  <a-button size="small" @click="tokenVisible = !tokenVisible">
-                    <template #icon>
-                      <EyeInvisibleOutlined v-if="tokenVisible" />
-                      <EyeOutlined v-else />
-                    </template>
-                    {{ tokenVisible ? 'Hide' : 'Show' }}
-                  </a-button>
-                  <a-button size="small" :disabled="!apiToken" @click="copyApiToken">
-                    <template #icon>
-                      <CopyOutlined />
-                    </template>
-                    Copy
-                  </a-button>
-                  <a-button size="small" danger :loading="tokenRotating" @click="regenerateApiToken">
-                    <template #icon>
-                      <ReloadOutlined />
-                    </template>
-                    Regenerate
-                  </a-button>
-                </div>
+                <a-button type="primary" size="small" :href="settingsHref">
+                  Manage tokens
+                </a-button>
               </div>
-              <a-spin :spinning="tokenLoading" size="small">
-                <pre
-                  class="token-value">{{ tokenVisible ? (apiToken || '—') : (apiToken ? '••••••••••••••••••••••••••••' : '—') }}</pre>
-              </a-spin>
               <p class="token-hint">
-                Send it on every request as <code>Authorization: Bearer &lt;token&gt;</code>. Token-authenticated
-                callers skip CSRF and don't need a session cookie. Regenerating rotates the secret immediately —
-                running bots will need the new value.
+                Create, enable, or revoke named Bearer tokens in
+                <a :href="settingsHref">Settings → Security</a>. Send each request as
+                <code>Authorization: Bearer &lt;token&gt;</code>. Token-authenticated callers skip CSRF and don't
+                need a session cookie. Deleting a token revokes it immediately — running bots will need a new one.
               </p>
             </a-card>
 
@@ -385,25 +330,6 @@ onBeforeUnmount(() => {
   gap: 8px;
   font-weight: 600;
   font-size: 14px;
-}
-
-.token-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.token-value {
-  background: rgba(128, 128, 128, 0.08);
-  border: 1px solid rgba(128, 128, 128, 0.15);
-  border-radius: 6px;
-  padding: 10px 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
-  margin: 0;
-  word-break: break-all;
-  white-space: pre-wrap;
 }
 
 .token-hint {
@@ -573,14 +499,12 @@ html[data-theme='ultra-dark'] .token-hint code {
   background: rgba(255, 255, 255, 0.12);
 }
 
-body.dark .token-value,
 body.dark .code-block {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.88);
 }
 
-html[data-theme='ultra-dark'] .token-value,
 html[data-theme='ultra-dark'] .code-block {
   background: rgba(255, 255, 255, 0.02);
   border-color: rgba(255, 255, 255, 0.08);

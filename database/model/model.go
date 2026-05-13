@@ -93,6 +93,14 @@ type HistoryOfSeeders struct {
 	SeederName string `json:"seederName"`
 }
 
+type ApiToken struct {
+	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name      string `json:"name" gorm:"uniqueIndex;not null"`
+	Token     string `json:"token" gorm:"not null"`
+	Enabled   bool   `json:"enabled" gorm:"default:true"`
+	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime"`
+}
+
 // GenXrayInboundConfig generates an Xray inbound configuration from the Inbound model.
 func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 	listen := i.Listen

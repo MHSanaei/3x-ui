@@ -589,7 +589,15 @@
         "twoFactorModalChangeCredentialsStep": "برای تغییر اعتبارنامه‌های مدیر، کد را از برنامه وارد کنید.",
         "twoFactorModalSetSuccess": "احراز هویت دو مرحله‌ای با موفقیت برقرار شد",
         "twoFactorModalDeleteSuccess": "احراز هویت دو مرحله‌ای با موفقیت حذف شد",
-        "twoFactorModalError": "کد نادرست"
+        "twoFactorModalError": "کد نادرست",
+        "show": "نمایش",
+        "hide": "پنهان",
+        "apiTokenNew": "توکن جدید",
+        "apiTokenName": "نام",
+        "apiTokenNamePlaceholder": "مثلاً central-panel-a",
+        "apiTokenNameRequired": "نام الزامی است",
+        "apiTokenEmpty": "هنوز توکنی وجود ندارد — برای احراز هویت ربات‌ها یا پنل‌های راه دور یکی بسازید.",
+        "apiTokenDeleteWarning": "هر کلاینتی که از این توکن استفاده می‌کند بلافاصله احراز هویتش قطع می‌شود."
       },
       "toasts": {
         "modifySettings": "پارامترها تغییر کرده‌اند.",

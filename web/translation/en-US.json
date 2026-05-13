@@ -589,7 +589,15 @@
         "twoFactorModalChangeCredentialsStep": "Enter the code from the application to change administrator credentials.",
         "twoFactorModalSetSuccess": "Two-factor authentication has been successfully established",
         "twoFactorModalDeleteSuccess": "Two-factor authentication has been successfully deleted",
-        "twoFactorModalError": "Wrong code"
+        "twoFactorModalError": "Wrong code",
+        "show": "Show",
+        "hide": "Hide",
+        "apiTokenNew": "New token",
+        "apiTokenName": "Name",
+        "apiTokenNamePlaceholder": "e.g. central-panel-a",
+        "apiTokenNameRequired": "Name is required",
+        "apiTokenEmpty": "No tokens yet — create one to authenticate bots or remote panels.",
+        "apiTokenDeleteWarning": "Any caller using this token will stop authenticating immediately."
       },
       "toasts": {
         "modifySettings": "The parameters have been changed.",

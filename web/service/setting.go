@@ -1,7 +1,6 @@
 package service
 
 import (
-	"crypto/subtle"
 	_ "embed"
 	"encoding/json"
 	"errors"
@@ -211,7 +210,10 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 	view.HasLdapPassword = secretConfigured(allSetting.LdapPassword)
 	view.HasWarpSecret = secretConfigured(mustString(s.GetWarp()))
 	view.HasNordSecret = secretConfigured(mustString(s.GetNord()))
-	view.HasApiToken = secretConfigured(mustString(s.getString("apiToken")))
+	var apiTokenCount int64
+	if err := database.GetDB().Model(model.ApiToken{}).Where("enabled = ?", true).Count(&apiTokenCount).Error; err == nil {
+		view.HasApiToken = apiTokenCount > 0
+	}
 	view.TgBotToken = ""
 	view.TwoFactorToken = ""
 	view.LdapPassword = ""
@@ -465,48 +467,6 @@ func (s *SettingService) GetSecret() ([]byte, error) {
 		}
 	}
 	return []byte(secret), err
-}
-
-// GetApiToken returns the panel's API token, lazily generating one on
-// first read so existing installs upgrade transparently. The token is
-// stored plaintext to match how the existing tg/ldap secrets are kept.
-func (s *SettingService) GetApiToken() (string, error) {
-	tok, err := s.getString("apiToken")
-	if err != nil {
-		return "", err
-	}
-	if tok == "" {
-		tok = random.Seq(48)
-		if saveErr := s.saveSetting("apiToken", tok); saveErr != nil {
-			logger.Warning("save apiToken failed:", saveErr)
-			return "", saveErr
-		}
-	}
-	return tok, nil
-}
-
-// RegenerateApiToken rotates the API token, invalidating any central
-// panel that has the old value cached.
-func (s *SettingService) RegenerateApiToken() (string, error) {
-	tok := random.Seq(48)
-	if err := s.saveSetting("apiToken", tok); err != nil {
-		return "", err
-	}
-	return tok, nil
-}
-
-// MatchApiToken returns true when the supplied bearer token matches the
-// stored API token. Uses constant-time compare so a remote attacker
-// can't time-attack the token byte-by-byte.
-func (s *SettingService) MatchApiToken(presented string) bool {
-	if presented == "" {
-		return false
-	}
-	stored, err := s.getString("apiToken")
-	if err != nil || stored == "" {
-		return false
-	}
-	return subtle.ConstantTimeCompare([]byte(stored), []byte(presented)) == 1
 }
 
 func (s *SettingService) SetBasePath(basePath string) error {
@@ -877,7 +837,7 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 
 func (s *SettingService) UpdateSecret(key string, value string) error {
 	switch key {
-	case "tgBotToken", "ldapPassword", "twoFactorToken", "apiToken":
+	case "tgBotToken", "ldapPassword", "twoFactorToken":
 		return s.saveSetting(key, strings.TrimSpace(value))
 	default:
 		return common.NewError("secret key is not replaceable:", key)
