@@ -195,6 +195,14 @@ export const sections = [
       },
       {
         method: 'POST',
+        path: '/panel/api/inbounds/:id/resetTraffic',
+        summary: 'Zero out upload + download counters for a single inbound. Does not touch per-client counters.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' },
+        ],
+      },
+      {
+        method: 'POST',
         path: '/panel/api/inbounds/:id/resetClientTraffic/:email',
         summary: 'Zero out upload + download counters for one client.',
         params: [
