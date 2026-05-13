@@ -24,7 +24,7 @@ func TestStopWaitsForGracefulExit(t *testing.T) {
 	if err := p.Stop(); err != nil {
 		t.Fatalf("Stop: %v", err)
 	}
-	if elapsed := time.Since(start); elapsed < 150*time.Millisecond {
+	if elapsed := time.Since(start); elapsed < 180*time.Millisecond {
 		t.Fatalf("Stop returned before child exited; elapsed=%s", elapsed)
 	}
 	if p.IsRunning() {
@@ -156,7 +156,7 @@ func markProcessHelperReady(t *testing.T) {
 	if readyPath == "" {
 		t.Fatal("XRAY_PROCESS_READY is not set")
 	}
-	if err := os.WriteFile(readyPath, []byte("ready"), 0644); err != nil {
+	if err := os.WriteFile(readyPath, []byte("ready"), 0o644); err != nil {
 		t.Fatalf("write helper ready file: %v", err)
 	}
 }

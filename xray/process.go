@@ -436,10 +436,6 @@ func (p *process) Stop() error {
 }
 
 func (p *process) waitForExit(timeout time.Duration) error {
-	if p.done == nil {
-		return nil
-	}
-
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
