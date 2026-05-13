@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/database"
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/util/common"
+	"github.com/mhsanaei/3x-ui/v3/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/web/runtime"
 )
 
@@ -34,6 +37,7 @@ var nodeHTTPClient = &http.Client{
 		MaxIdleConns:        64,
 		MaxIdleConnsPerHost: 4,
 		IdleConnTimeout:     60 * time.Second,
+		DialContext:         netsafe.SSRFGuardedDialContext,
 	},
 }
 
@@ -69,14 +73,15 @@ func normalizeBasePath(p string) string {
 
 func (s *NodeService) normalize(n *model.Node) error {
 	n.Name = strings.TrimSpace(n.Name)
-	n.Address = strings.TrimSpace(n.Address)
 	n.ApiToken = strings.TrimSpace(n.ApiToken)
 	if n.Name == "" {
 		return common.NewError("node name is required")
 	}
-	if n.Address == "" {
-		return common.NewError("node address is required")
+	addr, err := netsafe.NormalizeHost(n.Address)
+	if err != nil {
+		return common.NewError(err.Error())
 	}
+	n.Address = addr
 	if n.Port <= 0 || n.Port > 65535 {
 		return common.NewError("node port must be 1-65535")
 	}
@@ -105,14 +110,15 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		return err
 	}
 	updates := map[string]any{
-		"name":      in.Name,
-		"remark":    in.Remark,
-		"scheme":    in.Scheme,
-		"address":   in.Address,
-		"port":      in.Port,
-		"base_path": in.BasePath,
-		"api_token": in.ApiToken,
-		"enable":    in.Enable,
+		"name":                  in.Name,
+		"remark":                in.Remark,
+		"scheme":                in.Scheme,
+		"address":               in.Address,
+		"port":                  in.Port,
+		"base_path":             in.BasePath,
+		"api_token":             in.ApiToken,
+		"enable":                in.Enable,
+		"allow_private_address": in.AllowPrivateAddress,
 	}
 	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
@@ -174,10 +180,29 @@ func (s *NodeService) AggregateNodeMetric(id int, metric string, bucketSeconds i
 
 func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch, error) {
 	patch := HeartbeatPatch{LastHeartbeat: time.Now().Unix()}
-	url := fmt.Sprintf("%s://%s:%d%spanel/api/server/status",
-		n.Scheme, n.Address, n.Port, normalizeBasePath(n.BasePath))
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	addr, err := netsafe.NormalizeHost(n.Address)
+	if err != nil {
+		patch.LastError = err.Error()
+		return patch, err
+	}
+	scheme := n.Scheme
+	if scheme != "http" && scheme != "https" {
+		scheme = "https"
+	}
+	if n.Port <= 0 || n.Port > 65535 {
+		patch.LastError = "node port must be 1-65535"
+		return patch, errors.New(patch.LastError)
+	}
+	probeURL := &url.URL{
+		Scheme: scheme,
+		Host:   net.JoinHostPort(addr, strconv.Itoa(n.Port)),
+		Path:   normalizeBasePath(n.BasePath) + "panel/api/server/status",
+	}
+
+	req, err := http.NewRequestWithContext(
+		netsafe.ContextWithAllowPrivate(ctx, n.AllowPrivateAddress),
+		http.MethodGet, probeURL.String(), nil)
 	if err != nil {
 		patch.LastError = err.Error()
 		return patch, err

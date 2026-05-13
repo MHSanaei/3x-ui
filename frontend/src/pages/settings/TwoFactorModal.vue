@@ -38,18 +38,24 @@ function buildTotp() {
 watch(() => props.open, (next) => {
   if (!next) return;
   enteredCode.value = '';
+  totp = null;
+  qrValue.value = '';
   if (props.token) {
     buildTotp();
   }
 });
 
-function close(success) {
-  emit('confirm', success);
+function close(success, code = '') {
+  emit('confirm', success, code);
   emit('update:open', false);
   enteredCode.value = '';
 }
 
 function onOk() {
+  if (props.type === 'confirm' && !props.token) {
+    close(true, enteredCode.value);
+    return;
+  }
   if (!totp) return;
   if (totp.generate() === enteredCode.value) {
     close(true);

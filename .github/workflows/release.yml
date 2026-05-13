@@ -19,6 +19,17 @@ on:
       - "x-ui.service.arch"
       - "x-ui.service.rhel"
   pull_request:
+    paths:
+      - "**.js"
+      - "**.css"
+      - "**.html"
+      - "**.sh"
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - "x-ui.service.debian"
+      - "x-ui.service.arch"
+      - "x-ui.service.rhel"
 
 jobs:
   build:

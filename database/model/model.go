@@ -21,12 +21,8 @@ const (
 	Shadowsocks Protocol = "shadowsocks"
 	Mixed       Protocol = "mixed"
 	WireGuard   Protocol = "wireguard"
-	// UI stores Hysteria v1 and v2 both as "hysteria" and uses
-	// settings.version to discriminate. Imports from outside the panel
-	// can carry the literal "hysteria2" string, so IsHysteria below
-	// accepts both.
-	Hysteria  Protocol = "hysteria"
-	Hysteria2 Protocol = "hysteria2"
+	Hysteria    Protocol = "hysteria"
+	Hysteria2   Protocol = "hysteria2"
 )
 
 // IsHysteria returns true for both "hysteria" and "hysteria2".
@@ -38,9 +34,10 @@ func IsHysteria(p Protocol) bool {
 
 // User represents a user account in the 3x-ui panel.
 type User struct {
-	Id       int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+	LoginEpoch int64  `json:"-" gorm:"default:0"`
 }
 
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.
@@ -66,12 +63,7 @@ type Inbound struct {
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
-
-	// NodeID points at the remote panel (Node) where this inbound's xray
-	// actually runs. NULL means the inbound runs on the local xray (the
-	// pre-multi-node behaviour). Existing rows migrate to NULL with no
-	// backfill.
-	NodeID *int `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
+	NodeID         *int     `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
 }
 
 // OutboundTraffics tracks traffic statistics for Xray outbound connections.
@@ -128,15 +120,16 @@ type Setting struct {
 // endpoint over HTTP using the per-node ApiToken to populate the runtime
 // status fields below.
 type Node struct {
-	Id       int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	Name     string `json:"name" form:"name" gorm:"uniqueIndex"`
-	Remark   string `json:"remark" form:"remark"`
-	Scheme   string `json:"scheme" form:"scheme"`
-	Address  string `json:"address" form:"address"`
-	Port     int    `json:"port" form:"port"`
-	BasePath string `json:"basePath" form:"basePath"`
-	ApiToken string `json:"apiToken" form:"apiToken"`
-	Enable   bool   `json:"enable" form:"enable" gorm:"default:true"`
+	Id                  int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Name                string `json:"name" form:"name" gorm:"uniqueIndex"`
+	Remark              string `json:"remark" form:"remark"`
+	Scheme              string `json:"scheme" form:"scheme"`
+	Address             string `json:"address" form:"address"`
+	Port                int    `json:"port" form:"port"`
+	BasePath            string `json:"basePath" form:"basePath"`
+	ApiToken            string `json:"apiToken" form:"apiToken"`
+	Enable              bool   `json:"enable" form:"enable" gorm:"default:true"`
+	AllowPrivateAddress bool   `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
 
 	// Heartbeat-updated fields. UpdatedAt advances on every probe even when
 	// the row is otherwise unchanged so the UI's "last seen" tooltip is

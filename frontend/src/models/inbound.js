@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { ObjectUtil, RandomUtil, Base64, NumberFormatter, SizeFormatter, Wireguard } from '@/utils';
+import { getRandomRealityTarget } from '@/models/reality-targets';
 
 export const Protocols = {
     VMESS: 'vmess',
@@ -897,9 +898,7 @@ export class RealityStreamSettings extends XrayCommonClass {
         super();
         // If target/serverNames are not provided, use random values
         if (!target && !serverNames) {
-            const randomTarget = typeof getRandomRealityTarget !== 'undefined'
-                ? getRandomRealityTarget()
-                : { target: 'www.amazon.com:443', sni: 'www.amazon.com,amazon.com' };
+            const randomTarget = getRandomRealityTarget();
             target = randomTarget.target;
             serverNames = randomTarget.sni;
         }

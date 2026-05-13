@@ -46,9 +46,10 @@ export const sections = [
           '{\n  "success": false,\n  "msg": "Wrong username or password"\n}',
       },
       {
-        method: 'GET',
+        method: 'POST',
         path: '/logout',
-        summary: 'Clear the session cookie. Redirects back to the login page; not useful from non-browser clients.',
+        summary: 'Clear the session cookie. Requires the CSRF header for browser sessions.',
+        response: '{\n  "success": true\n}',
       },
       {
         method: 'GET',
@@ -70,7 +71,7 @@ export const sections = [
     id: 'inbounds',
     title: 'Inbounds',
     description:
-      'Manage inbound configurations and their clients. All endpoints live under /panel/api/inbounds and require a logged-in session or Bearer token. Link-generating endpoints honour X-Forwarded-Host / X-Forwarded-Proto, so callers behind a reverse proxy get the correct external host in returned URLs.',
+      'Manage inbound configurations and their clients. All endpoints live under /panel/api/inbounds and require a logged-in session or Bearer token. Link-generating endpoints honour forwarded headers only when the request comes from a configured trusted proxy.',
     endpoints: [
       {
         method: 'GET',
@@ -627,7 +628,7 @@ export const sections = [
     description: 'Operations that interact with the configured Telegram bot.',
     endpoints: [
       {
-        method: 'GET',
+        method: 'POST',
         path: '/panel/api/backuptotgbot',
         summary: 'Send a fresh DB backup to every Telegram chat configured as an admin recipient. No body, no params.',
       },
@@ -704,7 +705,7 @@ export const sections = [
         method: 'POST',
         path: '/panel/xray/',
         summary: 'Return the Xray config template (JSON string), available inbound tags, client reverse tags, and the configured outbound test URL in one response.',
-        response: '{\n  "success": true,\n  "obj": {\n    "xraySetting": "{...raw xray config...}",\n    "inboundTags": "[\"inbound-443\"]",\n    "clientReverseTags": "[]",\n    "outboundTestUrl": "https://www.google.com/generate_204"\n  }\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "xraySetting": "{...raw xray config...}",\n    "inboundTags": "[\\"inbound-443\\"]",\n    "clientReverseTags": "[]",\n    "outboundTestUrl": "https://www.google.com/generate_204"\n  }\n}',
       },
       {
         method: 'GET',

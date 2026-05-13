@@ -77,6 +77,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/:id/copyClients", a.copyInboundClients)
 	g.POST("/:id/delClient/:clientId", a.delInboundClient)
 	g.POST("/updateClient/:clientId", a.updateInboundClient)
+	g.POST("/:id/resetTraffic", a.resetInboundTraffic)
 	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/resetAllClientTraffics/:id", a.resetAllClientTraffics)
@@ -441,6 +442,24 @@ func (a *InboundController) resetClientTraffic(c *gin.Context) {
 	}
 }
 
+// resetInboundTraffic resets traffic counters for a specific inbound.
+func (a *InboundController) resetInboundTraffic(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
+		return
+	}
+
+	err = a.inboundService.ResetInboundTraffic(id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	} else {
+		a.xrayService.SetToNeedRestart()
+	}
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.resetInboundTrafficSuccess"), nil)
+}
+
 // resetAllTraffics resets all traffic counters across all inbounds.
 func (a *InboundController) resetAllTraffics(c *gin.Context) {
 	err := a.inboundService.ResetAllTraffics()
@@ -582,17 +601,19 @@ func (a *InboundController) delInboundClientByEmail(c *gin.Context) {
 // controller layer means the service interface stays HTTP-agnostic — service
 // methods receive a plain host string instead of a *gin.Context.
 func resolveHost(c *gin.Context) string {
-	if h := strings.TrimSpace(c.GetHeader("X-Forwarded-Host")); h != "" {
-		if i := strings.Index(h, ","); i >= 0 {
-			h = strings.TrimSpace(h[:i])
+	if isTrustedForwardedRequest(c) {
+		if h := strings.TrimSpace(c.GetHeader("X-Forwarded-Host")); h != "" {
+			if i := strings.Index(h, ","); i >= 0 {
+				h = strings.TrimSpace(h[:i])
+			}
+			if hp, _, err := net.SplitHostPort(h); err == nil {
+				return hp
+			}
+			return h
 		}
-		if hp, _, err := net.SplitHostPort(h); err == nil {
-			return hp
+		if h := c.GetHeader("X-Real-IP"); h != "" {
+			return h
 		}
-		return h
-	}
-	if h := c.GetHeader("X-Real-IP"); h != "" {
-		return h
 	}
 	if h, _, err := net.SplitHostPort(c.Request.Host); err == nil {
 		return h

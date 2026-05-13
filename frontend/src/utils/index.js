@@ -75,6 +75,13 @@ export class HttpUtil {
     }
 }
 
+export function applyDocumentTitle() {
+    const host = window.location.hostname;
+    if (!host) return;
+    const current = document.title.trim();
+    document.title = current ? `${host} - ${current}` : host;
+}
+
 export class PromiseUtil {
     static async sleep(timeout) {
         await new Promise(resolve => {

@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "تم إعادة تعيين كل حركة المرور من العميل",
         "resetAllTrafficSuccess": "تم إعادة تعيين كل حركة المرور",
         "resetInboundClientTrafficSuccess": "تم إعادة تعيين حركة المرور",
+        "resetInboundTrafficSuccess": "تم إعادة تعيين حركة مرور الداخل",
         "trafficGetError": "خطأ في الحصول على حركات المرور",
         "getNewX25519CertError": "حدث خطأ أثناء الحصول على شهادة X25519.",
         "getNewmldsa65Error": "حدث خطاء في الحصول على mldsa65.",

@@ -17,7 +17,7 @@ function escapeHtml(str) {
 function highlightJson(str) {
   const escaped = escapeHtml(str);
   return escaped.replace(
-    /("(?:[^"\\]|\\.)*")\s*(:)|("(?:[^"\\]|\\.)*")|(-?\d+\.?\d*(?:[eE][+-]?\d+)?)\b|(true|false)|(null)|([{}\[\]])/g,
+    /("(?:[^"\\]|\\.)*")\s*(:)|("(?:[^"\\]|\\.)*")|(-?\d+\.?\d*(?:[eE][+-]?\d+)?)\b|(true|false)|(null)|([{}[\]])/g,
     (_m, key, colon, string, number, bool, nil) => {
       if (colon) return `<span class="json-key">${key}</span>${colon}`;
       if (string) return `<span class="json-string">${string}</span>`;

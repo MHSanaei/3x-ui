@@ -57,7 +57,11 @@ func serveDistPage(c *gin.Context, name string) {
 	}
 	csrfMeta := []byte(`<meta name="csrf-token" content="` + htmlpkg.EscapeString(csrfToken) + `">`)
 
-	script := `<script>window.X_UI_BASE_PATH="` + escapedBase + `"`
+	nonceAttr := ""
+	if nonce := c.GetString("csp_nonce"); nonce != "" {
+		nonceAttr = ` nonce="` + htmlpkg.EscapeString(nonce) + `"`
+	}
+	script := `<script` + nonceAttr + `>window.X_UI_BASE_PATH="` + escapedBase + `"`
 	if name != "login.html" {
 		escapedVer := jsEscape.Replace(config.GetVersion())
 		script += `;window.X_UI_CUR_VER="` + escapedVer + `"`

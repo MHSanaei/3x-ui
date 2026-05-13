@@ -32,10 +32,10 @@ type ObsTagSnapshot struct {
 type XrayMetricsService struct {
 	settingService SettingService
 
-	mu        sync.RWMutex
-	state     xrayMetricsState
-	client    *http.Client
-	obsByTag  map[string]ObsTagSnapshot
+	mu       sync.RWMutex
+	state    xrayMetricsState
+	client   *http.Client
+	obsByTag map[string]ObsTagSnapshot
 }
 
 var validObsTag = regexp.MustCompile(`^[a-zA-Z0-9._\-]+$`)

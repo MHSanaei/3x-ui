@@ -341,6 +341,7 @@
         "resetAllClientTrafficSuccess": "クライアントのすべてのトラフィックがリセットされました",
         "resetAllTrafficSuccess": "すべてのトラフィックがリセットされました",
         "resetInboundClientTrafficSuccess": "トラフィックがリセットされました",
+        "resetInboundTrafficSuccess": "受信トラフィックがリセットされました",
         "trafficGetError": "トラフィックの取得中にエラーが発生しました",
         "getNewX25519CertError": "X25519証明書の取得中にエラーが発生しました。",
         "getNewmldsa65Error": "mldsa65証明書の取得中にエラーが発生しました。",
