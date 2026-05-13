@@ -16,8 +16,11 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/theme-one-dark": "^6.1.3",
     "ant-design-vue": "^4.2.6",
     "axios": "^1.7.9",
+    "codemirror": "^6.0.2",
     "dayjs": "^1.11.20",
     "otpauth": "^9.5.1",
     "qs": "^6.13.1",

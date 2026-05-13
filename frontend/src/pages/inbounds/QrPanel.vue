@@ -47,7 +47,7 @@ function download() {
     </div>
     <div v-if="showQr" class="qr-panel-canvas">
       <a-qrcode class="qr-code" :value="value" :size="size" type="svg" :bordered="false"
-        :title="t('copy')" @click="copy" />
+        color="#000000" bg-color="#ffffff" :title="t('copy')" @click="copy" />
     </div>
   </div>
 </template>

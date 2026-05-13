@@ -33,6 +33,7 @@ const props = defineProps({
   isDarkTheme: { type: Boolean, default: false },
   pageSize: { type: Number, default: 0 },
   totalClientCount: { type: Number, default: 0 },
+  statsVersion: { type: Number, default: 0 },
 });
 
 const emit = defineEmits([
@@ -63,7 +64,11 @@ watch([clients, () => props.pageSize], () => {
 });
 
 // === Per-client stats lookup =======================================
+// statsVersion bumps on every ws merge so this computed re-evaluates
+// (DBInbound isn't reactive — the in-place stat mutations alone don't
+// trigger Vue's tracking).
 const statsMap = computed(() => {
+  void props.statsVersion;
   const m = new Map();
   for (const cs of (props.dbInbound.clientStats || [])) m.set(cs.email, cs);
   return m;

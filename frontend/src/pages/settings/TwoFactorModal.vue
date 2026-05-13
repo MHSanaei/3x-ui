@@ -82,7 +82,7 @@ async function copyToken() {
       <p>{{ t('pages.settings.security.twoFactorModalFirstStep') }}</p>
       <div class="qr-wrap">
         <a-qrcode class="qr-code" :value="qrValue" :size="180" type="svg" :bordered="false"
-          error-level="L" :title="t('copy')" @click="copyToken" />
+          color="#000000" bg-color="#ffffff" error-level="L" :title="t('copy')" @click="copyToken" />
         <span class="qr-token">{{ token }}</span>
       </div>
       <a-divider />

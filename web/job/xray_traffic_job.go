@@ -95,18 +95,16 @@ func (j *XrayTrafficJob) Run() {
 		"lastOnlineMap":  lastOnlineMap,
 	})
 
-	// Compact delta payload: per-client absolute counters for clients active
-	// this cycle, plus inbound-level absolute totals. Frontend applies both
-	// in-place — typical payload ~10–50KB even for 10k+ client deployments.
-	// Replaces the old full-inbound-list broadcast that hit WS size limits
-	// (5–10MB) and forced the frontend into a REST refetch.
+	// Full snapshot every cycle: absolute per-client counters and inbound
+	// totals. Frontend overwrites both in place. The previous delta path
+	// (activeEmails -> GetActiveClientTraffics) silently omitted the
+	// clients array whenever nobody moved bytes in the cycle, leaving the
+	// client rows in the UI stuck at stale traffic/remained/all-time.
 	clientStatsPayload := map[string]any{}
-	if activeEmails := activeEmails(clientTraffics); len(activeEmails) > 0 {
-		if stats, err := j.inboundService.GetActiveClientTraffics(activeEmails); err != nil {
-			logger.Warning("get active client traffics for websocket failed:", err)
-		} else if len(stats) > 0 {
-			clientStatsPayload["clients"] = stats
-		}
+	if stats, err := j.inboundService.GetAllClientTraffics(); err != nil {
+		logger.Warning("get all client traffics for websocket failed:", err)
+	} else if len(stats) > 0 {
+		clientStatsPayload["clients"] = stats
 	}
 	if inboundSummary, err := j.inboundService.GetInboundsTrafficSummary(); err != nil {
 		logger.Warning("get inbounds traffic summary for websocket failed:", err)
@@ -124,26 +122,6 @@ func (j *XrayTrafficJob) Run() {
 	} else if err != nil {
 		logger.Warning("get all outbounds for websocket failed:", err)
 	}
-}
-
-// activeEmails returns the set of client emails that had non-zero traffic in
-// the current collection window. Idle clients are skipped — no need to push
-// their (unchanged) counters to the frontend.
-func activeEmails(clientTraffics []*xray.ClientTraffic) []string {
-	if len(clientTraffics) == 0 {
-		return nil
-	}
-	emails := make([]string, 0, len(clientTraffics))
-	for _, ct := range clientTraffics {
-		if ct == nil || ct.Email == "" {
-			continue
-		}
-		if ct.Up == 0 && ct.Down == 0 {
-			continue
-		}
-		emails = append(emails, ct.Email)
-	}
-	return emails
 }
 
 func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) {

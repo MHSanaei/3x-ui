@@ -32,6 +32,7 @@ import {
 import { DBInbound } from '@/models/dbinbound.js';
 import FinalMaskForm from '@/components/FinalMaskForm.vue';
 import DateTimePicker from '@/components/DateTimePicker.vue';
+import JsonEditor from '@/components/JsonEditor.vue';
 import { useNodeList } from '@/composables/useNodeList.js';
 
 const { t } = useI18n();
@@ -1956,16 +1957,13 @@ watch(
           class="mb-12" />
         <a-form layout="vertical">
           <a-form-item label="settings (clients, encryption, fallbacks, …)">
-            <a-textarea v-model:value="advancedJson.settings" :auto-size="{ minRows: 10, maxRows: 24 }"
-              spellcheck="false" class="json-editor" />
+            <JsonEditor v-model:value="advancedJson.settings" min-height="280px" max-height="520px" />
           </a-form-item>
           <a-form-item label="streamSettings">
-            <a-textarea v-model:value="advancedJson.stream" :auto-size="{ minRows: 10, maxRows: 24 }" spellcheck="false"
-              class="json-editor" />
+            <JsonEditor v-model:value="advancedJson.stream" min-height="280px" max-height="520px" />
           </a-form-item>
           <a-form-item label="sniffing (overrides the Sniffing tab when set)">
-            <a-textarea v-model:value="advancedJson.sniffing" :auto-size="{ minRows: 6, maxRows: 16 }"
-              spellcheck="false" class="json-editor" />
+            <JsonEditor v-model:value="advancedJson.sniffing" min-height="180px" max-height="360px" />
           </a-form-item>
         </a-form>
       </a-tab-pane>
@@ -2013,11 +2011,6 @@ watch(
 .vless-auth-state {
   display: block;
   margin-top: 6px;
-}
-
-.json-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
 }
 
 .client-summary {

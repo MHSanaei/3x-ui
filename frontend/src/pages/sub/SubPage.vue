@@ -204,7 +204,7 @@ const themeClass = computed(() => ({
                   <div class="qr-box">
                     <a-tag color="purple" class="qr-tag">{{ t('pages.settings.subSettings') }}</a-tag>
                     <a-qrcode class="qr-code" :value="subUrl" :size="QR_SIZE" type="svg" :bordered="false"
-                      :title="t('copy')" @click="copy(subUrl)" />
+                      color="#000000" bg-color="#ffffff" :title="t('copy')" @click="copy(subUrl)" />
                   </div>
                 </a-col>
                 <a-col v-if="subJsonUrl" :xs="24" :sm="12" class="qr-col">
@@ -213,14 +213,14 @@ const themeClass = computed(() => ({
                       {{ t('pages.settings.subSettings') }} JSON
                     </a-tag>
                     <a-qrcode class="qr-code" :value="subJsonUrl" :size="QR_SIZE" type="svg" :bordered="false"
-                      :title="t('copy')" @click="copy(subJsonUrl)" />
+                      color="#000000" bg-color="#ffffff" :title="t('copy')" @click="copy(subJsonUrl)" />
                   </div>
                 </a-col>
                 <a-col v-if="subClashUrl" :xs="24" :sm="12" class="qr-col">
                   <div class="qr-box">
                     <a-tag color="purple" class="qr-tag">Clash / Mihomo</a-tag>
                     <a-qrcode class="qr-code" :value="subClashUrl" :size="QR_SIZE" type="svg" :bordered="false"
-                      :title="t('copy')" @click="copy(subClashUrl)" />
+                      color="#000000" bg-color="#ffffff" :title="t('copy')" @click="copy(subClashUrl)" />
                   </div>
                 </a-col>
               </a-row>

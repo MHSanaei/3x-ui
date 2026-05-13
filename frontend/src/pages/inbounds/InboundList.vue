@@ -50,6 +50,7 @@ const props = defineProps({
   // inbound row can render its node name without an extra fetch.
   nodesById: { type: Map, default: () => new Map() },
   hasActiveNode: { type: Boolean, default: false },
+  statsVersion: { type: Number, default: 0 },
 });
 
 const emit = defineEmits([
@@ -468,6 +469,7 @@ function showQrCodeMenu(dbInbound) {
             <ClientRowTable :db-inbound="record" :is-mobile="true" :traffic-diff="trafficDiff" :expire-diff="expireDiff"
               :online-clients="onlineClients" :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme"
               :page-size="pageSize" :total-client-count="clientCount[record.id]?.clients || 0"
+              :stats-version="statsVersion"
               @edit-client="(p) => emit('edit-client', p)" @qrcode-client="(p) => emit('qrcode-client', p)"
               @info-client="(p) => emit('info-client', p)"
               @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
@@ -557,6 +559,7 @@ function showQrCodeMenu(dbInbound) {
             :traffic-diff="trafficDiff" :expire-diff="expireDiff" :online-clients="onlineClients"
             :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme" :page-size="pageSize"
             :total-client-count="clientCount[record.id]?.clients || 0"
+            :stats-version="statsVersion"
             @edit-client="(p) => emit('edit-client', p)"
             @qrcode-client="(p) => emit('qrcode-client', p)" @info-client="(p) => emit('info-client', p)"
             @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
