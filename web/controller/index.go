@@ -39,15 +39,10 @@ func NewIndexController(g *gin.RouterGroup) *IndexController {
 // initRouter sets up the routes for index, login, logout, and two-factor authentication.
 func (a *IndexController) initRouter(g *gin.RouterGroup) {
 	g.GET("/", a.index)
-	g.GET("/logout", a.logout)
-	// Public CSRF endpoint — the SPA login page (served by Vite in
-	// dev or by serveDistPage in prod) needs a token to POST /login,
-	// but the panel-side /panel/csrf-token sits behind checkLogin.
-	// EnsureCSRFToken creates a session token even for anonymous
-	// callers, so any pre-login flow can bootstrap from here.
 	g.GET("/csrf-token", a.csrfToken)
 
 	g.POST("/login", middleware.CSRFMiddleware(), a.login)
+	g.POST("/logout", middleware.CSRFMiddleware(), a.logout)
 	g.POST("/getTwoFactorEnable", middleware.CSRFMiddleware(), a.getTwoFactorEnable)
 }
 
@@ -140,7 +135,7 @@ func loginFailureReason(err error) string {
 	return "invalid credentials"
 }
 
-// logout handles user logout by clearing the session and redirecting to the login page.
+// logout clears the session. The SPA performs the navigation client-side.
 func (a *IndexController) logout(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	if user != nil {
@@ -150,7 +145,7 @@ func (a *IndexController) logout(c *gin.Context) {
 		logger.Warning("Unable to clear session on logout:", err)
 	}
 	c.Header("Cache-Control", "no-store")
-	c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
+	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
 // csrfToken returns the session CSRF token. Public — the login page

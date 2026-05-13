@@ -49,6 +49,7 @@ export const sections = [
         method: 'POST',
         path: '/logout',
         summary: 'Clear the session cookie. Requires the CSRF header for browser sessions.',
+        response: '{\n  "success": true\n}',
       },
       {
         method: 'GET',
