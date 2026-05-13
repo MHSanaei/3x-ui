@@ -12,6 +12,7 @@ import {
   SizeFormatter,
   Wireguard,
 } from '@/utils';
+import { getRandomRealityTarget } from '@/models/reality-targets';
 import {
   Inbound,
   Protocols,
@@ -339,11 +340,9 @@ function clearMldsa65() {
   inbound.value.stream.reality.settings.mldsa65Verify = '';
 }
 
-// Reality target/SNI randomizer — only available if the helper is loaded
 function randomizeRealityTarget() {
   if (!inbound.value?.stream?.reality) return;
-  if (typeof window.getRandomRealityTarget !== 'function') return;
-  const t = window.getRandomRealityTarget();
+  const t = getRandomRealityTarget();
   inbound.value.stream.reality.target = t.target;
   inbound.value.stream.reality.serverNames = t.sni;
 }
