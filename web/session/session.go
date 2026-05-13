@@ -15,6 +15,7 @@ import (
 
 const (
 	loginUserKey      = "LOGIN_USER"
+	loginEpochKey     = "LOGIN_EPOCH"
 	apiAuthUserKey    = "api_auth_user"
 	sessionCookieName = "3x-ui"
 )
@@ -29,6 +30,7 @@ func SetLoginUser(c *gin.Context, user *model.User) error {
 	}
 	s := sessions.Default(c)
 	s.Set(loginUserKey, user.Id)
+	s.Set(loginEpochKey, user.LoginEpoch)
 	return s.Save()
 }
 
@@ -53,6 +55,7 @@ func GetLoginUser(c *gin.Context) *model.User {
 	userID, ok := sessionUserID(obj)
 	if !ok {
 		s.Delete(loginUserKey)
+		s.Delete(loginEpochKey)
 		if err := s.Save(); err != nil {
 			logger.Warning("session: failed to drop stale user payload:", err)
 		}
@@ -68,12 +71,39 @@ func GetLoginUser(c *gin.Context) *model.User {
 	if err != nil {
 		logger.Warning("session: failed to load user:", err)
 		s.Delete(loginUserKey)
+		s.Delete(loginEpochKey)
 		if saveErr := s.Save(); saveErr != nil {
 			logger.Warning("session: failed to drop missing user:", saveErr)
 		}
 		return nil
 	}
+	if !sessionEpochMatches(s.Get(loginEpochKey), user.LoginEpoch) {
+		s.Delete(loginUserKey)
+		s.Delete(loginEpochKey)
+		if saveErr := s.Save(); saveErr != nil {
+			logger.Warning("session: failed to drop stale epoch:", saveErr)
+		}
+		return nil
+	}
 	return user
+}
+
+func sessionEpochMatches(cookieVal any, userEpoch int64) bool {
+	var got int64
+	switch v := cookieVal.(type) {
+	case nil:
+	case int64:
+		got = v
+	case int:
+		got = int64(v)
+	case int32:
+		got = int64(v)
+	case float64:
+		got = int64(v)
+	default:
+		return false
+	}
+	return got == userEpoch
 }
 
 func IsLogin(c *gin.Context) bool {
