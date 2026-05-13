@@ -26,9 +26,6 @@ const { t } = useI18n();
 const { fetched, spinning, saveDisabled, allSetting, saveAll } = useAllSetting();
 const { isMobile } = useMediaQuery();
 
-const mustChangeCredentials = window.X_UI_MUST_CHANGE_CREDENTIALS === true
-const activeTab = ref(mustChangeCredentials ? '2' : '1')
-
 const basePath = window.X_UI_BASE_PATH || '';
 const requestUri = window.location.pathname;
 
@@ -120,68 +117,39 @@ function restartPanel() {
   });
 }
 
-const securityChecklist = computed(() => {
-  const segs = window.location.pathname.split('/').length < 4;
-  const out = []
-  if (mustChangeCredentials) {
-    out.push({
-      label: 'Default credentials',
-      ok: false,
-      action: 'Change the default admin/admin credentials in Authentication settings.',
-    })
+// Conf alerts mirror the legacy banner — pure derivation off allSetting.
+const confAlerts = computed(() => {
+  const out = [];
+  if (window.location.protocol !== 'https:') {
+    out.push('Panel is served over plain HTTP — set up TLS for production.');
   }
-  out.push(
-    {
-      label: 'TLS',
-      ok: window.location.protocol === 'https:',
-      action: 'Set certificate and key paths, then restart.',
-    },
-    {
-      label: 'Base path',
-      ok: !(segs && allSetting.webBasePath === '/'),
-      action: 'Change the panel URL path from "/".',
-    },
-    {
-      label: 'Panel port',
-      ok: allSetting.webPort !== 2053,
-      action: 'Use a non-default listening port.',
-    },
-    {
-      label: 'Two-factor authentication',
-      ok: allSetting.twoFactorEnable && allSetting.hasTwoFactorToken,
-      action: 'Enable 2FA in Security.',
-    },
-    {
-      label: 'API token',
-      ok: allSetting.hasApiToken,
-      action: 'Generate or rotate the API token in Security.',
-    },
-  )
+  if (allSetting.webPort === 2053) {
+    out.push('Default port 2053 is well-known — change it to a random port.');
+  }
+  const segs = window.location.pathname.split('/').length < 4;
+  if (segs && allSetting.webBasePath === '/') {
+    out.push('Default base path "/" is well-known — change it to a random path.');
+  }
   if (allSetting.subEnable) {
     let subPath = allSetting.subPath;
     if (allSetting.subURI) {
       try { subPath = new URL(allSetting.subURI).pathname; } catch (_e) { }
     }
-    out.push({
-      label: 'Subscription path',
-      ok: subPath !== '/sub/',
-      action: 'Change the default subscription path.',
-    });
+    if (subPath === '/sub/') {
+      out.push('Default subscription path "/sub/" is well-known — change it.');
+    }
   }
   if (allSetting.subJsonEnable) {
     let p = allSetting.subJsonPath;
     if (allSetting.subJsonURI) {
       try { p = new URL(allSetting.subJsonURI).pathname; } catch (_e) { }
     }
-    out.push({
-      label: 'JSON subscription path',
-      ok: p !== '/json/',
-      action: 'Change the default JSON subscription path.',
-    });
+    if (p === '/json/') {
+      out.push('Default JSON subscription path "/json/" is well-known — change it.');
+    }
   }
   return out;
 });
-const hasSecurityGaps = computed(() => securityChecklist.value.some((item) => !item.ok));
 
 const alertVisible = ref(true);
 </script>
@@ -197,31 +165,14 @@ const alertVisible = ref(true);
             <div v-if="!fetched" class="loading-spacer" />
 
             <template v-else>
-              <a-alert
-                v-if="mustChangeCredentials"
-                type="error"
-                show-icon
-                banner
-                message="Change your default admin credentials to unlock the panel"
-                description="All other panel sections are blocked until you set a unique username and password in the Authentication tab."
-                class="conf-alert"
-              />
-
-              <a-alert v-if="hasSecurityGaps && alertVisible" type="error" show-icon closable class="conf-alert"
+              <a-alert v-if="confAlerts.length > 0 && alertVisible" type="error" show-icon closable class="conf-alert"
                 @close="alertVisible = false">
-                <template #message>Security posture checklist</template>
+                <template #message>Security warnings</template>
                 <template #description>
-                  <a-list size="small" :data-source="securityChecklist">
-                    <template #renderItem="{ item }">
-                      <a-list-item class="checklist-item">
-                        <a-space :size="8" wrap>
-                          <a-tag :color="item.ok ? 'green' : 'red'">{{ item.ok ? 'OK' : 'Action' }}</a-tag>
-                          <strong>{{ item.label }}</strong>
-                          <span>{{ item.ok ? 'Configured' : item.action }}</span>
-                        </a-space>
-                      </a-list-item>
-                    </template>
-                  </a-list>
+                  <b>Your panel may be exposed:</b>
+                  <ul>
+                    <li v-for="(msg, i) in confAlerts" :key="i">{{ msg }}</li>
+                  </ul>
                 </template>
               </a-alert>
 
@@ -248,7 +199,7 @@ const alertVisible = ref(true);
                 </a-col>
 
                 <a-col :span="24">
-                  <a-tabs v-model:activeKey="activeTab">
+                  <a-tabs default-active-key="1">
                     <a-tab-pane key="1" class="tab-pane">
                       <template #tab>
                         <SettingOutlined />
@@ -333,11 +284,6 @@ const alertVisible = ref(true);
 
 .conf-alert {
   margin-bottom: 10px;
-}
-
-.checklist-item {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
 }
 
 .header-row {

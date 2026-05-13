@@ -39,7 +39,7 @@ func NewIndexController(g *gin.RouterGroup) *IndexController {
 // initRouter sets up the routes for index, login, logout, and two-factor authentication.
 func (a *IndexController) initRouter(g *gin.RouterGroup) {
 	g.GET("/", a.index)
-	g.GET("/logout", a.logoutGet)
+	g.GET("/logout", a.logout)
 	// Public CSRF endpoint — the SPA login page (served by Vite in
 	// dev or by serveDistPage in prod) needs a token to POST /login,
 	// but the panel-side /panel/csrf-token sits behind checkLogin.
@@ -48,7 +48,6 @@ func (a *IndexController) initRouter(g *gin.RouterGroup) {
 	g.GET("/csrf-token", a.csrfToken)
 
 	g.POST("/login", middleware.CSRFMiddleware(), a.login)
-	g.POST("/logout", middleware.CSRFMiddleware(), a.logout)
 	g.POST("/getTwoFactorEnable", middleware.CSRFMiddleware(), a.getTwoFactorEnable)
 }
 
@@ -131,9 +130,7 @@ func (a *IndexController) login(c *gin.Context) {
 	}
 
 	logger.Infof("%s logged in successfully", safeUser)
-	jsonMsgObj(c, I18nWeb(c, "pages.login.toasts.successLogin"), gin.H{
-		"mustChangeCredentials": user.Username == "admin" && form.Password == "admin",
-	}, nil)
+	jsonMsg(c, I18nWeb(c, "pages.login.toasts.successLogin"), nil)
 }
 
 func loginFailureReason(err error) string {
@@ -153,16 +150,7 @@ func (a *IndexController) logout(c *gin.Context) {
 		logger.Warning("Unable to clear session on logout:", err)
 	}
 	c.Header("Cache-Control", "no-store")
-	if isAjax(c) {
-		jsonMsg(c, "", nil)
-		return
-	}
 	c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
-}
-
-func (a *IndexController) logoutGet(c *gin.Context) {
-	c.Header("Allow", http.MethodPost)
-	c.AbortWithStatus(http.StatusMethodNotAllowed)
 }
 
 // csrfToken returns the session CSRF token. Public — the login page

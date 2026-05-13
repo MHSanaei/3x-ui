@@ -4,10 +4,8 @@ package controller
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/logger"
-	"github.com/mhsanaei/3x-ui/v3/util/crypto"
 	"github.com/mhsanaei/3x-ui/v3/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/web/session"
 
@@ -19,8 +17,7 @@ type BaseController struct{}
 
 // checkLogin is a middleware that verifies user authentication and handles unauthorized access.
 func (a *BaseController) checkLogin(c *gin.Context) {
-	user := session.GetLoginUser(c)
-	if user == nil {
+	if !session.IsLogin(c) {
 		if isAjax(c) {
 			pureJsonMsg(c, http.StatusUnauthorized, false, I18nWeb(c, "pages.login.loginAgain"))
 		} else {
@@ -28,39 +25,9 @@ func (a *BaseController) checkLogin(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
 		}
 		c.Abort()
-		return
-	}
-	if isDefaultAdminCredential(user.Username, user.Password) && !credentialChangeRouteAllowed(c) {
-		if isAjax(c) {
-			pureJsonMsg(c, http.StatusForbidden, false, "Change the default admin credentials before continuing.")
-		} else {
-			c.Header("Cache-Control", "no-store")
-			c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path")+"panel/settings")
-		}
-		c.Abort()
 	} else {
 		c.Next()
 	}
-}
-
-func isDefaultAdminCredential(username string, hashedPassword string) bool {
-	return username == "admin" && crypto.CheckPasswordHash(hashedPassword, "admin")
-}
-
-func credentialChangeRouteAllowed(c *gin.Context) bool {
-	basePath := c.GetString("base_path")
-	path := c.Request.URL.Path
-	allowedPrefixes := []string{
-		basePath + "panel/settings",
-		basePath + "panel/setting/",
-		basePath + "panel/csrf-token",
-	}
-	for _, prefix := range allowedPrefixes {
-		if strings.HasPrefix(path, prefix) {
-			return true
-		}
-	}
-	return false
 }
 
 // I18nWeb retrieves an internationalized message for the web interface based on the current locale.

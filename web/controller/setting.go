@@ -2,7 +2,6 @@ package controller
 
 import (
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/util/crypto"
@@ -19,15 +18,6 @@ type updateUserForm struct {
 	OldPassword string `json:"oldPassword" form:"oldPassword"`
 	NewUsername string `json:"newUsername" form:"newUsername"`
 	NewPassword string `json:"newPassword" form:"newPassword"`
-}
-
-type verifyTwoFactorForm struct {
-	Code string `json:"code" form:"code"`
-}
-
-type updateSecretForm struct {
-	Key   string `json:"key" form:"key"`
-	Value string `json:"value" form:"value"`
 }
 
 // SettingController handles settings and user management operations.
@@ -51,9 +41,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/all", a.getAllSetting)
 	g.POST("/defaultSettings", a.getDefaultSettings)
 	g.POST("/update", a.updateSetting)
-	g.POST("/secret", a.updateSecret)
 	g.POST("/updateUser", a.updateUser)
-	g.POST("/verifyTwoFactor", a.verifyTwoFactor)
 	g.POST("/restartPanel", a.restartPanel)
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
 	g.GET("/getApiToken", a.getApiToken)
@@ -62,7 +50,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 
 // getAllSetting retrieves all current settings.
 func (a *SettingController) getAllSetting(c *gin.Context) {
-	allSetting, err := a.settingService.GetAllSettingView()
+	allSetting, err := a.settingService.GetAllSetting()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
 		return
@@ -92,16 +80,6 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 }
 
-func (a *SettingController) updateSecret(c *gin.Context) {
-	form := &updateSecretForm{}
-	if err := c.ShouldBind(form); err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
-		return
-	}
-	err := a.settingService.UpdateSecret(form.Key, form.Value)
-	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
-}
-
 // updateUser updates the current user's username and password.
 func (a *SettingController) updateUser(c *gin.Context) {
 	form := &updateUserForm{}
@@ -115,16 +93,8 @@ func (a *SettingController) updateUser(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUserError"), errors.New(I18nWeb(c, "pages.settings.toasts.originalUserPassIncorrect")))
 		return
 	}
-	if strings.TrimSpace(form.NewUsername) == "" || form.NewPassword == "" {
+	if form.NewUsername == "" || form.NewPassword == "" {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUserError"), errors.New(I18nWeb(c, "pages.settings.toasts.userPassMustBeNotEmpty")))
-		return
-	}
-	if len(form.NewPassword) < 10 {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUserError"), errors.New("new password must be at least 10 characters"))
-		return
-	}
-	if strings.TrimSpace(form.NewUsername) == "admin" && form.NewPassword == "admin" {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUserError"), errors.New("default admin/admin credentials are not allowed"))
 		return
 	}
 	err = a.userService.UpdateUser(user.Id, form.NewUsername, form.NewPassword)
@@ -136,19 +106,6 @@ func (a *SettingController) updateUser(c *gin.Context) {
 		}
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUser"), err)
-}
-
-func (a *SettingController) verifyTwoFactor(c *gin.Context) {
-	form := &verifyTwoFactorForm{}
-	if err := c.ShouldBind(form); err != nil {
-		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-		return
-	}
-	ok, err := a.userService.VerifyTwoFactorCode(form.Code)
-	if err == nil && !ok {
-		err = errors.New("invalid 2fa code")
-	}
-	jsonObj(c, ok, err)
 }
 
 // restartPanel restarts the panel service after a delay.

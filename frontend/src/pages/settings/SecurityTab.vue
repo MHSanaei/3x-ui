@@ -21,10 +21,9 @@ const tfa = reactive({
   description: '',
   token: '',
   type: 'set',
-  // resolveConfirm is called by the modal's @confirm with the success bool
-  // and, for redacted-token confirm flows, the code entered by the user.
+  // resolveConfirm is called by the modal's @confirm with the success bool;
   // it then routes the value back to whichever flow opened the modal.
-  resolveConfirm: (_success, _code) => { },
+  resolveConfirm: (_success) => { },
 });
 
 function openTfa({ title, description = '', token = '', type, onConfirm }) {
@@ -36,8 +35,8 @@ function openTfa({ title, description = '', token = '', type, onConfirm }) {
   tfa.open = true;
 }
 
-function onTfaConfirm(success, code = '') {
-  tfa.resolveConfirm(success, code);
+function onTfaConfirm(success) {
+  tfa.resolveConfirm(success);
 }
 
 const user = reactive({
@@ -53,21 +52,14 @@ async function sendUpdateUser() {
   try {
     const msg = await HttpUtil.post('/panel/setting/updateUser', user);
     if (msg?.success) {
-      await logoutAndReturn();
+      // Force re-login at the standard logout path; basePath is handled
+      // by the Go router so a relative redirect is correct here.
+      const basePath = window.X_UI_BASE_PATH || '';
+      window.location.replace(`${basePath}logout`);
     }
   } finally {
     updating.value = false;
   }
-}
-
-async function logoutAndReturn() {
-  await HttpUtil.post('/logout');
-  window.location.replace(window.X_UI_BASE_PATH || '/');
-}
-
-async function verifyTwoFactor(code) {
-  const msg = await HttpUtil.post('/panel/setting/verifyTwoFactor', { code });
-  return !!(msg?.success && msg.obj === true);
 }
 
 function updateUser() {
@@ -77,11 +69,7 @@ function updateUser() {
       description: t('pages.settings.security.twoFactorModalChangeCredentialsStep'),
       token: props.allSetting.twoFactorToken,
       type: 'confirm',
-      onConfirm: async (ok, code) => {
-        if (!ok) return;
-        const verified = props.allSetting.twoFactorToken ? ok : await verifyTwoFactor(code);
-        if (verified) sendUpdateUser();
-      },
+      onConfirm: (ok) => { if (ok) sendUpdateUser(); },
     });
   } else {
     sendUpdateUser();
@@ -100,10 +88,7 @@ async function loadApiToken() {
   apiTokenLoading.value = true;
   try {
     const msg = await HttpUtil.get('/panel/setting/getApiToken');
-    if (msg?.success) {
-      apiToken.value = msg.obj || '';
-      props.allSetting.hasApiToken = !!apiToken.value;
-    }
+    if (msg?.success) apiToken.value = msg.obj || '';
   } finally {
     apiTokenLoading.value = false;
   }
@@ -139,7 +124,6 @@ function regenerateApiToken() {
         const msg = await HttpUtil.post('/panel/setting/regenerateApiToken');
         if (msg?.success) {
           apiToken.value = msg.obj || '';
-          props.allSetting.hasApiToken = !!apiToken.value;
           message.success(t('success'));
         }
       } finally {
@@ -163,7 +147,6 @@ function toggleTwoFactor() {
         if (ok) {
           message.success(t('pages.settings.security.twoFactorModalSetSuccess'));
           props.allSetting.twoFactorToken = newToken;
-          props.allSetting.hasTwoFactorToken = true;
         }
         props.allSetting.twoFactorEnable = ok;
       },
@@ -174,14 +157,11 @@ function toggleTwoFactor() {
       description: t('pages.settings.security.twoFactorModalRemoveStep'),
       token: props.allSetting.twoFactorToken,
       type: 'confirm',
-      onConfirm: async (ok, code) => {
+      onConfirm: (ok) => {
         if (!ok) return;
-        const verified = props.allSetting.twoFactorToken ? ok : await verifyTwoFactor(code);
-        if (!verified) return;
         message.success(t('pages.settings.security.twoFactorModalDeleteSuccess'));
         props.allSetting.twoFactorEnable = false;
         props.allSetting.twoFactorToken = '';
-        props.allSetting.hasTwoFactorToken = false;
       },
     });
   }

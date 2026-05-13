@@ -52,9 +52,7 @@ async function login() {
   submitting.value = true;
   try {
     const msg = await HttpUtil.post('/login', user);
-    if (msg.success) {
-      window.location.href = basePath + (msg.obj?.mustChangeCredentials ? 'panel/settings' : 'panel/');
-    }
+    if (msg.success) window.location.href = basePath + 'panel/';
   } finally {
     submitting.value = false;
   }
