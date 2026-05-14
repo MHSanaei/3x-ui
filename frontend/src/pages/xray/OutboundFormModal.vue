@@ -21,6 +21,7 @@ import {
   DNSRuleActions,
 } from '@/models/outbound.js';
 import FinalMaskForm from '@/components/FinalMaskForm.vue';
+import JsonEditor from '@/components/JsonEditor.vue';
 
 const { t } = useI18n();
 
@@ -988,8 +989,7 @@ function regenerateWgKeys() {
               <a-button>Convert</a-button>
             </template>
           </a-input-search>
-          <a-textarea v-model:value="advancedJson" :auto-size="{ minRows: 14, maxRows: 30 }" spellcheck="false"
-            class="json-editor" />
+          <JsonEditor v-model:value="advancedJson" min-height="360px" max-height="600px" />
         </a-space>
       </a-tab-pane>
     </a-tabs>
@@ -1030,11 +1030,6 @@ function regenerateWgKeys() {
   gap: 8px;
   font-weight: 500;
   opacity: 0.85;
-}
-
-.json-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
 }
 
 /* AD-Vue 4 renders a-checkbox children inside a-checkbox-group as

@@ -228,39 +228,49 @@ onBeforeUnmount(() => {
                 </a-col>
 
                 <a-col :span="24">
-                  <a-tabs :active-key="activeTabKey" @change="onTabChange">
+                  <a-tabs :active-key="activeTabKey" :class="{ 'icons-only': isMobile }" @change="onTabChange">
                     <a-tab-pane key="1" class="tab-pane">
                       <template #tab>
-                        <SettingOutlined />
-                        <span>{{ t('pages.settings.panelSettings') }}</span>
+                        <a-tooltip :title="isMobile ? t('pages.settings.panelSettings') : null">
+                          <SettingOutlined />
+                        </a-tooltip>
+                        <span v-if="!isMobile">{{ t('pages.settings.panelSettings') }}</span>
                       </template>
                       <GeneralTab :all-setting="allSetting" />
                     </a-tab-pane>
                     <a-tab-pane key="2" class="tab-pane">
                       <template #tab>
-                        <SafetyOutlined />
-                        <span>{{ t('pages.settings.securitySettings') }}</span>
+                        <a-tooltip :title="isMobile ? t('pages.settings.securitySettings') : null">
+                          <SafetyOutlined />
+                        </a-tooltip>
+                        <span v-if="!isMobile">{{ t('pages.settings.securitySettings') }}</span>
                       </template>
                       <SecurityTab :all-setting="allSetting" />
                     </a-tab-pane>
                     <a-tab-pane key="3" class="tab-pane">
                       <template #tab>
-                        <MessageOutlined />
-                        <span>{{ t('pages.settings.TGBotSettings') }}</span>
+                        <a-tooltip :title="isMobile ? t('pages.settings.TGBotSettings') : null">
+                          <MessageOutlined />
+                        </a-tooltip>
+                        <span v-if="!isMobile">{{ t('pages.settings.TGBotSettings') }}</span>
                       </template>
                       <TelegramTab :all-setting="allSetting" />
                     </a-tab-pane>
                     <a-tab-pane key="4" class="tab-pane">
                       <template #tab>
-                        <CloudServerOutlined />
-                        <span>{{ t('pages.settings.subSettings') }}</span>
+                        <a-tooltip :title="isMobile ? t('pages.settings.subSettings') : null">
+                          <CloudServerOutlined />
+                        </a-tooltip>
+                        <span v-if="!isMobile">{{ t('pages.settings.subSettings') }}</span>
                       </template>
                       <SubscriptionGeneralTab :all-setting="allSetting" />
                     </a-tab-pane>
                     <a-tab-pane v-if="allSetting.subJsonEnable || allSetting.subClashEnable" key="5" class="tab-pane">
                       <template #tab>
-                        <CodeOutlined />
-                        <span>{{ t('pages.settings.subSettings') }} (Formats)</span>
+                        <a-tooltip :title="isMobile ? `${t('pages.settings.subSettings')} (Formats)` : null">
+                          <CodeOutlined />
+                        </a-tooltip>
+                        <span v-if="!isMobile">{{ t('pages.settings.subSettings') }} (Formats)</span>
                       </template>
                       <SubscriptionFormatsTab :all-setting="allSetting" />
                     </a-tab-pane>
@@ -332,5 +342,34 @@ onBeforeUnmount(() => {
 
 .tab-pane {
   padding-top: 20px;
+}
+
+.icons-only :deep(.ant-tabs-nav) {
+  margin-bottom: 8px;
+}
+
+.icons-only :deep(.ant-tabs-nav-wrap) {
+  width: 100%;
+}
+
+.icons-only :deep(.ant-tabs-nav-list) {
+  display: flex;
+  width: 100%;
+}
+
+.icons-only :deep(.ant-tabs-tab) {
+  flex: 1 1 0;
+  justify-content: center;
+  margin: 0;
+  padding: 10px 0;
+}
+
+.icons-only :deep(.ant-tabs-tab .anticon) {
+  margin: 0;
+  font-size: 18px;
+}
+
+.icons-only :deep(.ant-tabs-nav-operations) {
+  display: none;
 }
 </style>

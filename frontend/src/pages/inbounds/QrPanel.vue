@@ -11,7 +11,7 @@ const props = defineProps({
   value: { type: String, required: true },
   remark: { type: String, default: '' },
   downloadName: { type: String, default: '' },
-  size: { type: Number, default: 240 },
+  size: { type: Number, default: 360 },
   showQr: { type: Boolean, default: true },
 });
 
@@ -47,7 +47,7 @@ function download() {
     </div>
     <div v-if="showQr" class="qr-panel-canvas">
       <a-qrcode class="qr-code" :value="value" :size="size" type="svg" :bordered="false"
-        :title="t('copy')" @click="copy" />
+        color="#000000" bg-color="#ffffff" :title="t('copy')" @click="copy" />
     </div>
   </div>
 </template>
@@ -82,8 +82,15 @@ function download() {
 
 .qr-panel-canvas .qr-code {
   cursor: pointer;
-  padding: 0 !important;
   background: #fff;
   border-radius: 4px;
+  line-height: 0;
+}
+
+.qr-panel-canvas .qr-code :deep(svg) {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 360px;
 }
 </style>

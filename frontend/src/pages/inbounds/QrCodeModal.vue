@@ -98,7 +98,6 @@ watch(() => props.open, (next) => {
   }
   const open = [];
   if (subLink.value) open.push('sub');
-  if (subJsonLink.value) open.push('sub-json');
   activeKeys.value = open;
 });
 

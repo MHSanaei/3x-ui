@@ -3322,6 +3322,20 @@ func (s *InboundService) GetActiveClientTraffics(emails []string) ([]*xray.Clien
 	return traffics, nil
 }
 
+// GetAllClientTraffics returns the full set of client_traffics rows so the
+// websocket broadcasters can ship a complete snapshot every cycle. The old
+// delta-only path (GetActiveClientTraffics on activeEmails) silently dropped
+// the per-client section whenever no client moved bytes in the cycle or a
+// node sync failed, leaving client rows in the UI stuck at stale numbers.
+func (s *InboundService) GetAllClientTraffics() ([]*xray.ClientTraffic, error) {
+	db := database.GetDB()
+	var traffics []*xray.ClientTraffic
+	if err := db.Model(xray.ClientTraffic{}).Find(&traffics).Error; err != nil {
+		return nil, err
+	}
+	return traffics, nil
+}
+
 type InboundTrafficSummary struct {
 	Id      int   `json:"id"`
 	Up      int64 `json:"up"`
