@@ -1595,6 +1595,10 @@ export class Inbound extends XrayCommonClass {
             });
         }
 
+        if (typeof xhttp.mode === 'string' && xhttp.mode.length > 0) {
+            extra.mode = xhttp.mode;
+        }
+
         const stringFields = [
             "sessionPlacement", "sessionKey",
             "seqPlacement", "seqKey",
