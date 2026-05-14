@@ -21,6 +21,7 @@ import {
   DNSRuleActions,
 } from '@/models/outbound.js';
 import FinalMaskForm from '@/components/FinalMaskForm.vue';
+import JsonEditor from '@/components/JsonEditor.vue';
 
 const { t } = useI18n();
 
@@ -80,8 +81,17 @@ watch(() => props.open, (next) => {
   primeAdvancedJson();
 });
 
-watch(activeKey, (key) => {
-  if (key === '2') primeAdvancedJson();
+let isRevertingTab = false;
+watch(activeKey, (key, prev) => {
+  if (isRevertingTab) { isRevertingTab = false; return; }
+  if (key === '2') {
+    primeAdvancedJson();
+  } else if (key === '1' && prev === '2') {
+    if (!applyAdvancedJsonToForm()) {
+      isRevertingTab = true;
+      activeKey.value = '2';
+    }
+  }
 });
 
 function primeAdvancedJson() {
@@ -90,6 +100,33 @@ function primeAdvancedJson() {
     advancedJson.value = JSON.stringify(outbound.value.toJson(), null, 2);
   } catch (_e) {
     advancedJson.value = '';
+  }
+}
+
+function applyAdvancedJsonToForm() {
+  const raw = advancedJson.value.trim();
+  if (!raw) return true;
+  let currentJson = '';
+  try {
+    currentJson = JSON.stringify(outbound.value?.toJson() ?? {}, null, 2);
+  } catch (_e) { /* fall through */ }
+  if (raw === currentJson.trim()) return true;
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    message.error(`JSON: ${e.message}`);
+    return false;
+  }
+  try {
+    const fallbackTag = outbound.value?.tag;
+    const next = Outbound.fromJson(parsed);
+    if (!next.tag && fallbackTag) next.tag = fallbackTag;
+    outbound.value = next;
+    return true;
+  } catch (e) {
+    message.error(`JSON: ${e.message}`);
+    return false;
   }
 }
 
@@ -131,26 +168,14 @@ const tagHelp = computed(() => {
 // ============== Submit ==============
 function onOk() {
   if (!outbound.value) return;
+  if (activeKey.value === '2' && !applyAdvancedJsonToForm()) return;
   if (!outbound.value.tag?.trim()) {
-    message.error(t('somethingWentWrong'));
+    message.error('Tag is required');
     return;
   }
   if (duplicateTag.value) {
-    message.error(t('somethingWentWrong'));
+    message.error('Tag already used by another outbound');
     return;
-  }
-  // If user spent time in the JSON tab, prefer that body — round-trip
-  // it through Outbound.fromJson so the wire shape stays consistent.
-  if (activeKey.value === '2' && advancedJson.value.trim()) {
-    try {
-      const parsed = JSON.parse(advancedJson.value);
-      const built = Outbound.fromJson(parsed);
-      emit('confirm', built.toJson());
-      return;
-    } catch (e) {
-      message.error(`JSON: ${e.message}`);
-      return;
-    }
   }
   emit('confirm', outbound.value.toJson());
 }
@@ -964,8 +989,7 @@ function regenerateWgKeys() {
               <a-button>Convert</a-button>
             </template>
           </a-input-search>
-          <a-textarea v-model:value="advancedJson" :auto-size="{ minRows: 14, maxRows: 30 }" spellcheck="false"
-            class="json-editor" />
+          <JsonEditor v-model:value="advancedJson" min-height="360px" max-height="600px" />
         </a-space>
       </a-tab-pane>
     </a-tabs>
@@ -1006,11 +1030,6 @@ function regenerateWgKeys() {
   gap: 8px;
   font-weight: 500;
   opacity: 0.85;
-}
-
-.json-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
 }
 
 /* AD-Vue 4 renders a-checkbox children inside a-checkbox-group as

@@ -102,6 +102,14 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 	return user, nil
 }
 
+func (s *UserService) BumpLoginEpoch() error {
+	db := database.GetDB()
+	return db.Model(model.User{}).
+		Where("1 = 1").
+		Update("login_epoch", gorm.Expr("login_epoch + 1")).
+		Error
+}
+
 func (s *UserService) UpdateUser(id int, username string, password string) error {
 	db := database.GetDB()
 	hashedPassword, err := crypto.HashPasswordAsBcrypt(password)
@@ -122,7 +130,11 @@ func (s *UserService) UpdateUser(id int, username string, password string) error
 
 	return db.Model(model.User{}).
 		Where("id = ?", id).
-		Updates(map[string]any{"username": username, "password": hashedPassword}).
+		Updates(map[string]any{
+			"username":    username,
+			"password":    hashedPassword,
+			"login_epoch": gorm.Expr("login_epoch + 1"),
+		}).
 		Error
 }
 
@@ -150,5 +162,6 @@ func (s *UserService) UpdateFirstUser(username string, password string) error {
 	}
 	user.Username = username
 	user.Password = hashedPassword
+	user.LoginEpoch++
 	return db.Save(user).Error
 }

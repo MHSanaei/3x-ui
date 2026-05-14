@@ -763,6 +763,9 @@ config_after_install() {
 
             prompt_and_setup_ssl "${config_port}" "${config_webBasePath}" "${server_ip}"
 
+            # Retrieve the API token for display
+            local config_apiToken=$(${xui_folder}/x-ui setting -getApiToken true | grep -Eo 'apiToken: .+' | awk '{print $2}')
+
             # Display final credentials and access information
             echo ""
             echo -e "${green}═══════════════════════════════════════════${plain}"
@@ -773,6 +776,7 @@ config_after_install() {
             echo -e "${green}Port:        ${config_port}${plain}"
             echo -e "${green}WebBasePath: ${config_webBasePath}${plain}"
             echo -e "${green}Access URL:  ${SSL_SCHEME}://${SSL_HOST}:${config_port}/${config_webBasePath}${plain}"
+            echo -e "${green}API Token:   ${config_apiToken}${plain}"
             echo -e "${green}═══════════════════════════════════════════${plain}"
             echo -e "${yellow}⚠ IMPORTANT: Save these credentials securely!${plain}"
             if [[ "$SSL_SCHEME" == "https" ]]; then

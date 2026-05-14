@@ -21,13 +21,14 @@ type Msg struct {
 // AllSetting contains all configuration settings for the 3x-ui panel including web server, Telegram bot, and subscription settings.
 type AllSetting struct {
 	// Web server settings
-	WebListen     string `json:"webListen" form:"webListen"`         // Web server listen IP address
-	WebDomain     string `json:"webDomain" form:"webDomain"`         // Web server domain for domain validation
-	WebPort       int    `json:"webPort" form:"webPort"`             // Web server port number
-	WebCertFile   string `json:"webCertFile" form:"webCertFile"`     // Path to SSL certificate file for web server
-	WebKeyFile    string `json:"webKeyFile" form:"webKeyFile"`       // Path to SSL private key file for web server
-	WebBasePath   string `json:"webBasePath" form:"webBasePath"`     // Base path for web panel URLs
-	SessionMaxAge int    `json:"sessionMaxAge" form:"sessionMaxAge"` // Session maximum age in minutes
+	WebListen         string `json:"webListen" form:"webListen"`                 // Web server listen IP address
+	WebDomain         string `json:"webDomain" form:"webDomain"`                 // Web server domain for domain validation
+	WebPort           int    `json:"webPort" form:"webPort"`                     // Web server port number
+	WebCertFile       string `json:"webCertFile" form:"webCertFile"`             // Path to SSL certificate file for web server
+	WebKeyFile        string `json:"webKeyFile" form:"webKeyFile"`               // Path to SSL private key file for web server
+	WebBasePath       string `json:"webBasePath" form:"webBasePath"`             // Base path for web panel URLs
+	SessionMaxAge     int    `json:"sessionMaxAge" form:"sessionMaxAge"`         // Session maximum age in minutes
+	TrustedProxyCIDRs string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"` // Trusted reverse proxy IPs/CIDRs for forwarded headers
 
 	// UI settings
 	PageSize    int    `json:"pageSize" form:"pageSize"`       // Number of items per page in lists
@@ -74,6 +75,7 @@ type AllSetting struct {
 	RestartXrayOnClientDisable  bool   `json:"restartXrayOnClientDisable" form:"restartXrayOnClientDisable"`   // Restart Xray when clients are auto-disabled by expiry/traffic limit
 	SubEncrypt                  bool   `json:"subEncrypt" form:"subEncrypt"`                                   // Encrypt subscription responses
 	SubShowInfo                 bool   `json:"subShowInfo" form:"subShowInfo"`                                 // Show client information in subscriptions
+	SubEmailInRemark            bool   `json:"subEmailInRemark" form:"subEmailInRemark"`                       // Include email in subscription remark/name
 	SubURI                      string `json:"subURI" form:"subURI"`                                           // Subscription server URI
 	SubJsonPath                 string `json:"subJsonPath" form:"subJsonPath"`                                 // Path for JSON subscription endpoint
 	SubJsonURI                  string `json:"subJsonURI" form:"subJsonURI"`                                   // JSON subscription server URI
@@ -108,6 +110,20 @@ type AllSetting struct {
 	LdapDefaultExpiryDays int    `json:"ldapDefaultExpiryDays" form:"ldapDefaultExpiryDays"`
 	LdapDefaultLimitIP    int    `json:"ldapDefaultLimitIP" form:"ldapDefaultLimitIP"`
 	// JSON subscription routing rules
+}
+
+// AllSettingView is the browser-safe settings read model. Secret values
+// are redacted from the embedded write model and represented by presence
+// flags so the UI can show configured/not configured state.
+type AllSettingView struct {
+	AllSetting
+
+	HasTgBotToken     bool `json:"hasTgBotToken"`
+	HasTwoFactorToken bool `json:"hasTwoFactorToken"`
+	HasLdapPassword   bool `json:"hasLdapPassword"`
+	HasApiToken       bool `json:"hasApiToken"`
+	HasWarpSecret     bool `json:"hasWarpSecret"`
+	HasNordSecret     bool `json:"hasNordSecret"`
 }
 
 // CheckValid validates all settings in the AllSetting struct, checking IP addresses, ports, SSL certificates, and other configuration values.
@@ -177,6 +193,19 @@ func (s *AllSetting) CheckValid() error {
 	}
 	if !strings.HasSuffix(s.SubClashPath, "/") {
 		s.SubClashPath += "/"
+	}
+
+	for _, cidr := range strings.Split(s.TrustedProxyCIDRs, ",") {
+		cidr = strings.TrimSpace(cidr)
+		if cidr == "" {
+			continue
+		}
+		if ip := net.ParseIP(cidr); ip != nil {
+			continue
+		}
+		if _, _, err := net.ParseCIDR(cidr); err != nil {
+			return common.NewError("trusted proxy CIDR is not valid:", cidr)
+		}
 	}
 
 	_, err := time.LoadLocation(s.TimeLocation)

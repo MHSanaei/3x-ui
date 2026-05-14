@@ -7,9 +7,11 @@ import { setupAxios } from '@/api/axios-init.js';
 // stored theme to <body>/<html> before Vue mounts.
 import '@/composables/useTheme.js';
 import { i18n } from '@/i18n/index.js';
+import { applyDocumentTitle } from '@/utils';
 import SettingsPage from '@/pages/settings/SettingsPage.vue';
 
 setupAxios();
+applyDocumentTitle();
 
 const messageContainer = document.getElementById('message');
 if (messageContainer) {

@@ -28,6 +28,7 @@ function defaultForm() {
     basePath: '/',
     apiToken: '',
     enable: true,
+    allowPrivateAddress: false,
   };
 }
 
@@ -69,6 +70,7 @@ function buildPayload() {
     basePath: form.basePath?.trim() || '/',
     apiToken: form.apiToken?.trim() || '',
     enable: !!form.enable,
+    allowPrivateAddress: !!form.allowPrivateAddress,
   };
 }
 
@@ -160,6 +162,11 @@ async function onSave() {
           </a-form-item>
         </a-col>
       </a-row>
+
+      <a-form-item label="Allow private address">
+        <a-switch v-model:checked="form.allowPrivateAddress" />
+        <div class="hint">Enable only for nodes on a private network or VPN.</div>
+      </a-form-item>
 
       <a-form-item :label="t('pages.nodes.apiToken')" required>
         <a-input-password v-model:value="form.apiToken" :placeholder="t('pages.nodes.apiTokenPlaceholder')" />

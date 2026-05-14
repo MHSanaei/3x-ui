@@ -857,6 +857,9 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 
 	// Secure client ID
 	for _, client := range clients {
+		if strings.TrimSpace(client.Email) == "" {
+			return false, common.NewError("client email is required")
+		}
 		switch oldInbound.Protocol {
 		case "trojan":
 			if client.Password == "" {
@@ -1325,8 +1328,11 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 	if newClientId == "" || clientIndex == -1 {
 		return false, common.NewError("empty client ID")
 	}
+	if strings.TrimSpace(clients[0].Email) == "" {
+		return false, common.NewError("client email is required")
+	}
 
-	if len(clients[0].Email) > 0 && clients[0].Email != oldEmail {
+	if clients[0].Email != oldEmail {
 		existEmail, err := s.checkEmailsExistForClients(clients)
 		if err != nil {
 			return false, err
@@ -2044,6 +2050,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 					traffics[traffic_index].Up = 0
 					if !traffic.Enable {
 						traffics[traffic_index].Enable = true
+						c["enable"] = true
 						clientsToAdd = append(clientsToAdd,
 							struct {
 								protocol string
@@ -3319,6 +3326,20 @@ func (s *InboundService) GetActiveClientTraffics(emails []string) ([]*xray.Clien
 			return nil, err
 		}
 		traffics = append(traffics, page...)
+	}
+	return traffics, nil
+}
+
+// GetAllClientTraffics returns the full set of client_traffics rows so the
+// websocket broadcasters can ship a complete snapshot every cycle. The old
+// delta-only path (GetActiveClientTraffics on activeEmails) silently dropped
+// the per-client section whenever no client moved bytes in the cycle or a
+// node sync failed, leaving client rows in the UI stuck at stale numbers.
+func (s *InboundService) GetAllClientTraffics() ([]*xray.ClientTraffic, error) {
+	db := database.GetDB()
+	var traffics []*xray.ClientTraffic
+	if err := db.Model(xray.ClientTraffic{}).Find(&traffics).Error; err != nil {
+		return nil, err
 	}
 	return traffics, nil
 }
