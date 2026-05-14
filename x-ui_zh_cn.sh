@@ -108,7 +108,7 @@ before_show_menu() {
 }
 
 install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/xsdxq-null/3X-UI-CN/main/install_zh_cn.sh)
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -127,7 +127,7 @@ update() {
         fi
         return 0
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/xsdxq-null/3X-UI-CN/main/update_zh_cn.sh)
     if [[ $? == 0 ]]; then
         LOGI "更新完成，面板已自动重启"
         before_show_menu
@@ -167,7 +167,7 @@ legacy_version() {
         exit 1
     fi
     # 使用输入的面板版本在下载链接中
-    install_command="bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/v$tag_version/install.sh") v$tag_version"
+    install_command="bash <(curl -Ls "https://raw.githubusercontent.com/xsdxq-null/3X-UI-CN/v$tag_version/install_zh_cn.sh") v$tag_version"
 
     echo "正在下载并安装面板版本 $tag_version..."
     eval $install_command
@@ -206,7 +206,7 @@ uninstall() {
     echo ""
     echo -e "卸载成功。\n"
     echo "如果您需要重新安装此面板，可以使用以下命令："
-    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)${plain}"
+    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/xsdxq-null/3X-UI-CN/main/install_zh_cn.sh)${plain}"
     echo ""
     # 捕获 SIGTERM 信号
     trap delete_script SIGTERM
