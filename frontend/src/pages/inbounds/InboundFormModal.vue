@@ -1836,8 +1836,8 @@ watch(
             </a-form-item>
             <a-form-item>
               <template #label>
-                <a-tooltip title="Obfuscation password. Must match between server and client.">
-                  Obfs password
+                <a-tooltip title="Hysteria server authentication password. Overridden by per-client auth when clients are configured. Obfuscation (salamander) is configured via UDP Masks below.">
+                  Auth password
                 </a-tooltip>
               </template>
               <a-input v-model:value="inbound.stream.hysteria.auth" />
