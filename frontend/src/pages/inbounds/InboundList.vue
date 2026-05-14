@@ -80,7 +80,7 @@ const savedFilterState = (() => {
 const enableFilter = ref(!!savedFilterState.enableFilter);
 const searchKey = ref(savedFilterState.searchKey || '');
 const filterBy = ref(savedFilterState.filterBy || '');
-const protocolFilter = ref(savedFilterState.protocolFilter || '');
+const protocolFilter = ref(savedFilterState.protocolFilter || undefined);
 const nodeFilter = ref(savedFilterState.nodeFilter || '');
 
 watch([enableFilter, searchKey, filterBy, protocolFilter, nodeFilter], () => {
