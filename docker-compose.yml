@@ -12,5 +12,6 @@ services:
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
     tty: true
-    network_mode: host
+    ports:
+      - "2053:2053"
     restart: unless-stopped
