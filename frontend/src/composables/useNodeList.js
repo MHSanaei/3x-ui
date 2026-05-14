@@ -36,7 +36,9 @@ export function useNodeList() {
     return n != null && n.enable && n.status === 'online';
   }
 
+  const hasActive = computed(() => nodes.value.some((n) => n.enable));
+
   onMounted(refresh);
 
-  return { nodes, fetched, refresh, byId, nameFor, isOnline };
+  return { nodes, fetched, refresh, byId, nameFor, isOnline, hasActive };
 }

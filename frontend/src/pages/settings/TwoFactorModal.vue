@@ -38,18 +38,24 @@ function buildTotp() {
 watch(() => props.open, (next) => {
   if (!next) return;
   enteredCode.value = '';
+  totp = null;
+  qrValue.value = '';
   if (props.token) {
     buildTotp();
   }
 });
 
-function close(success) {
-  emit('confirm', success);
+function close(success, code = '') {
+  emit('confirm', success, code);
   emit('update:open', false);
   enteredCode.value = '';
 }
 
 function onOk() {
+  if (props.type === 'confirm' && !props.token) {
+    close(true, enteredCode.value);
+    return;
+  }
   if (!totp) return;
   if (totp.generate() === enteredCode.value) {
     close(true);
@@ -76,7 +82,7 @@ async function copyToken() {
       <p>{{ t('pages.settings.security.twoFactorModalFirstStep') }}</p>
       <div class="qr-wrap">
         <a-qrcode class="qr-code" :value="qrValue" :size="180" type="svg" :bordered="false"
-          error-level="L" :title="t('copy')" @click="copyToken" />
+          color="#000000" bg-color="#ffffff" error-level="L" :title="t('copy')" @click="copyToken" />
         <span class="qr-token">{{ token }}</span>
       </div>
       <a-divider />

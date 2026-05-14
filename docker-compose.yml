@@ -15,5 +15,6 @@ services:
       XUI_KEEP_ACCESS_LOG: "true"
       XUI_SITE_NAME: "3xui"
     tty: true
-    network_mode: host
+    ports:
+      - "2053:2053"
     restart: unless-stopped

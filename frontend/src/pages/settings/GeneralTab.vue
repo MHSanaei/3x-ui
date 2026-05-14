@@ -154,6 +154,14 @@ onMounted(loadInboundTags);
       </SettingListItem>
 
       <SettingListItem paddings="small">
+        <template #title>Trusted proxy CIDRs</template>
+        <template #description>Comma-separated IPs/CIDRs allowed to set forwarded host, proto, and client IP headers.</template>
+        <template #control>
+          <a-input v-model:value="allSetting.trustedProxyCIDRs" placeholder="127.0.0.1/32,::1/128" />
+        </template>
+      </SettingListItem>
+
+      <SettingListItem paddings="small">
         <template #title>{{ t('pages.settings.pageSize') }}</template>
         <template #description>{{ t('pages.settings.pageSizeDesc') }}</template>
         <template #control>
@@ -298,8 +306,12 @@ onMounted(loadInboundTags);
 
       <SettingListItem paddings="small">
         <template #title>{{ t('password') }}</template>
+        <template #description>
+          {{ allSetting.hasLdapPassword ? 'Configured; leave blank to keep current password.' : 'Not configured.' }}
+        </template>
         <template #control>
-          <a-input-password v-model:value="allSetting.ldapPassword" />
+          <a-input-password v-model:value="allSetting.ldapPassword"
+            :placeholder="allSetting.hasLdapPassword ? 'Configured - enter a new value to replace' : ''" />
         </template>
       </SettingListItem>
 

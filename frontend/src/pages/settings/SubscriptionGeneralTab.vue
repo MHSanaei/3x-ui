@@ -112,6 +112,14 @@ function normalizeSubPath() {
         </template>
       </SettingListItem>
 
+      <SettingListItem paddings="small">
+        <template #title>{{ t('pages.settings.subEmailInRemark') }}</template>
+        <template #description>{{ t('pages.settings.subEmailInRemarkDesc') }}</template>
+        <template #control>
+          <a-switch v-model:checked="allSetting.subEmailInRemark" />
+        </template>
+      </SettingListItem>
+
       <a-divider>{{ t('pages.settings.subTitle') }}</a-divider>
 
       <SettingListItem paddings="small">

@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { ObjectUtil, RandomUtil, Base64, NumberFormatter, SizeFormatter, Wireguard } from '@/utils';
+import { getRandomRealityTarget } from '@/models/reality-targets';
 
 export const Protocols = {
     VMESS: 'vmess',
@@ -687,8 +688,9 @@ export class HysteriaMasquerade extends XrayCommonClass {
     }
 
     static fromJson(json = {}) {
+        const type = ['proxy', 'file', 'string'].includes(json.type) ? json.type : 'proxy';
         return new HysteriaMasquerade(
-            json.type,
+            type,
             json.dir,
             json.url,
             json.rewriteHost,
@@ -896,9 +898,7 @@ export class RealityStreamSettings extends XrayCommonClass {
         super();
         // If target/serverNames are not provided, use random values
         if (!target && !serverNames) {
-            const randomTarget = typeof getRandomRealityTarget !== 'undefined'
-                ? getRandomRealityTarget()
-                : { target: 'www.amazon.com:443', sni: 'www.amazon.com,amazon.com' };
+            const randomTarget = getRandomRealityTarget();
             target = randomTarget.target;
             serverNames = randomTarget.sni;
         }
@@ -1593,6 +1593,10 @@ export class Inbound extends XrayCommonClass {
                     extra[k] = xhttp[k];
                 }
             });
+        }
+
+        if (typeof xhttp.mode === 'string' && xhttp.mode.length > 0) {
+            extra.mode = xhttp.mode;
         }
 
         const stringFields = [
@@ -2967,37 +2971,45 @@ Inbound.HysteriaSettings.Hysteria = class extends Inbound.ClientBase {
 Inbound.TunnelSettings = class extends Inbound.Settings {
     constructor(
         protocol,
-        address,
-        port,
+        rewriteAddress,
+        rewritePort,
         portMap = [],
-        network = 'tcp,udp',
+        allowedNetwork = 'tcp,udp',
         followRedirect = false
     ) {
         super(protocol);
-        this.address = address;
-        this.port = port;
+        this.rewriteAddress = rewriteAddress;
+        this.rewritePort = rewritePort;
         this.portMap = portMap;
-        this.network = network;
+        this.allowedNetwork = allowedNetwork;
         this.followRedirect = followRedirect;
+    }
+
+    addPortMap(port = '', target = '') {
+        this.portMap.push({ name: port, value: target });
+    }
+
+    removePortMap(index) {
+        this.portMap.splice(index, 1);
     }
 
     static fromJson(json = {}) {
         return new Inbound.TunnelSettings(
             Protocols.TUNNEL,
-            json.address,
-            json.port,
+            json.rewriteAddress,
+            json.rewritePort,
             XrayCommonClass.toHeaders(json.portMap),
-            json.network,
+            json.allowedNetwork,
             json.followRedirect,
         );
     }
 
     toJson() {
         return {
-            address: this.address,
-            port: this.port,
+            rewriteAddress: this.rewriteAddress,
+            rewritePort: this.rewritePort,
             portMap: XrayCommonClass.toV2Headers(this.portMap, false),
-            network: this.network,
+            allowedNetwork: this.allowedNetwork,
             followRedirect: this.followRedirect,
         };
     }

@@ -12,6 +12,7 @@ import {
   SizeFormatter,
   Wireguard,
 } from '@/utils';
+import { getRandomRealityTarget } from '@/models/reality-targets';
 import {
   Inbound,
   Protocols,
@@ -31,6 +32,7 @@ import {
 import { DBInbound } from '@/models/dbinbound.js';
 import FinalMaskForm from '@/components/FinalMaskForm.vue';
 import DateTimePicker from '@/components/DateTimePicker.vue';
+import JsonEditor from '@/components/JsonEditor.vue';
 import { useNodeList } from '@/composables/useNodeList.js';
 
 const { t } = useI18n();
@@ -69,6 +71,7 @@ const inbound = ref(null);
 const dbForm = ref(null);
 const saving = ref(false);
 const advancedJson = ref({ stream: '', sniffing: '', settings: '' });
+const activeTabKey = ref('basic');
 // Cached default cert/key paths from /panel/setting/defaultSettings —
 // powers the "Set default cert" button on the TLS form.
 const defaultCert = ref('');
@@ -240,7 +243,58 @@ watch(() => props.open, (next) => {
     dbForm.value = freshDbForm();
     primeAdvancedJson();
   }
+  activeTabKey.value = 'basic';
   fetchDefaultCertSettings();
+});
+
+function applyAdvancedJsonToBasic() {
+  if (!inbound.value) return true;
+  let parsedSettings;
+  let parsedStream;
+  let parsedSniffing;
+  try {
+    parsedSettings = advancedJson.value.settings.trim()
+      ? JSON.parse(advancedJson.value.settings)
+      : inbound.value.settings?.toJson?.();
+  } catch (e) { message.error(`Settings JSON invalid: ${e.message}`); return false; }
+  try {
+    parsedStream = advancedJson.value.stream.trim()
+      ? JSON.parse(advancedJson.value.stream)
+      : inbound.value.stream?.toJson?.();
+  } catch (e) { message.error(`Stream JSON invalid: ${e.message}`); return false; }
+  try {
+    parsedSniffing = advancedJson.value.sniffing.trim()
+      ? JSON.parse(advancedJson.value.sniffing)
+      : inbound.value.sniffing?.toJson?.();
+  } catch (e) { message.error(`Sniffing JSON invalid: ${e.message}`); return false; }
+
+  try {
+    inbound.value = Inbound.fromJson({
+      port: inbound.value.port,
+      listen: inbound.value.listen,
+      protocol: inbound.value.protocol,
+      settings: parsedSettings,
+      streamSettings: parsedStream,
+      tag: inbound.value.tag,
+      sniffing: parsedSniffing,
+      clientStats: inbound.value.clientStats,
+    });
+  } catch (e) {
+    message.error(`Advanced JSON: ${e.message}`);
+    return false;
+  }
+  return true;
+}
+
+let isRevertingTab = false;
+watch(activeTabKey, (next, prev) => {
+  if (isRevertingTab) { isRevertingTab = false; return; }
+  if (prev === 'advanced' && next !== 'advanced') {
+    if (!applyAdvancedJsonToBasic()) {
+      isRevertingTab = true;
+      activeTabKey.value = 'advanced';
+    }
+  }
 });
 
 // In add mode, switching protocol restamps settings + re-syncs port.
@@ -339,11 +393,9 @@ function clearMldsa65() {
   inbound.value.stream.reality.settings.mldsa65Verify = '';
 }
 
-// Reality target/SNI randomizer — only available if the helper is loaded
 function randomizeRealityTarget() {
   if (!inbound.value?.stream?.reality) return;
-  if (typeof window.getRandomRealityTarget !== 'function') return;
-  const t = window.getRandomRealityTarget();
+  const t = getRandomRealityTarget();
   inbound.value.stream.reality.target = t.target;
   inbound.value.stream.reality.serverNames = t.sni;
 }
@@ -393,16 +445,29 @@ async function fetchDefaultCertSettings() {
 }
 
 // === VLESS encryption helpers =======================================
-// `xray vlessenc` returns both X25519 and ML-KEM-768 variants every
-// call; the user clicks one of two buttons to pick which block goes
-// into decryption/encryption.
-async function getNewVlessEnc(authLabel) {
-  if (!authLabel || !inbound.value?.settings) return;
+// `xray vlessenc` returns both X25519 and ML-KEM-768 auth variants every
+// call; the user clicks one button to pick which block goes into
+// decryption/encryption. Both generated strings share the same hybrid
+// mlkem768x25519plus prefix; the auth choice is the final key block.
+function normalizeVlessAuthLabel(label = '') {
+  return label.toLowerCase().replace(/[-_\s]/g, '');
+}
+
+function matchesVlessAuth(block, authId) {
+  if (block?.id === authId) return true;
+  const label = normalizeVlessAuthLabel(block?.label);
+  if (authId === 'mlkem768') return label.includes('mlkem768');
+  if (authId === 'x25519') return label.includes('x25519');
+  return false;
+}
+
+async function getNewVlessEnc(authId) {
+  if (!authId || !inbound.value?.settings) return;
   saving.value = true;
   try {
     const msg = await HttpUtil.get('/panel/api/server/getNewVlessEnc');
     if (!msg?.success) return;
-    const block = (msg.obj?.auths || []).find((a) => a.label === authLabel);
+    const block = (msg.obj?.auths || []).find((a) => matchesVlessAuth(a, authId));
     if (!block) return;
     inbound.value.settings.decryption = block.decryption;
     inbound.value.settings.encryption = block.encryption;
@@ -416,6 +481,17 @@ function clearVlessEnc() {
   inbound.value.settings.decryption = 'none';
   inbound.value.settings.encryption = 'none';
 }
+
+const selectedVlessAuth = computed(() => {
+  const encryption = inbound.value?.settings?.encryption;
+  if (!encryption || encryption === 'none') return 'None';
+
+  const parts = encryption.split('.').filter(Boolean);
+  const authKey = parts[parts.length - 1] || '';
+  if (!authKey) return 'Custom';
+
+  return authKey.length > 300 ? 'ML-KEM-768 auth' : 'X25519 auth';
+});
 
 // === SS method change tracks legacy semantics =========================
 function onSSMethodChange() {
@@ -551,7 +627,7 @@ watch(
 <template>
   <a-modal :open="open" :title="title" :ok-text="okText" :cancel-text="t('close')" :confirm-loading="saving"
     :mask-closable="false" width="780px" @ok="submit" @cancel="close">
-    <a-tabs v-if="inbound && dbForm" default-active-key="basic">
+    <a-tabs v-if="inbound && dbForm" v-model:active-key="activeTabKey">
       <!-- ============================== BASICS ============================== -->
       <a-tab-pane key="basic" :tab="t('pages.xray.basicTemplate')">
         <a-form :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
@@ -561,7 +637,7 @@ watch(
           <a-form-item :label="t('pages.inbounds.remark')">
             <a-input v-model:value="dbForm.remark" />
           </a-form-item>
-          <a-form-item :label="t('pages.inbounds.deployTo')">
+          <a-form-item v-if="selectableNodes.length > 0" :label="t('pages.inbounds.deployTo')">
             <a-select v-model:value="dbForm.nodeId" :disabled="mode === 'edit'"
               :placeholder="t('pages.inbounds.localPanel')" allow-clear>
               <a-select-option :value="null">{{ t('pages.inbounds.localPanel') }}</a-select-option>
@@ -620,10 +696,7 @@ watch(
       </a-tab-pane>
 
       <!-- ============================== PROTOCOL ============================== -->
-      <!-- TUN has no per-protocol form yet (interface/mtu/gateway live in
-           settings JSON), so the tab would render empty — hide it until
-           a TUN form is added. -->
-      <a-tab-pane v-if="protocol !== Protocols.TUN" key="protocol" :tab="t('pages.inbounds.protocol')">
+      <a-tab-pane key="protocol" :tab="t('pages.inbounds.protocol')">
         <!-- Multi-user inbounds: in add mode embed the first client form,
              in edit mode show a count summary. -->
         <template v-if="isMultiUser">
@@ -747,14 +820,17 @@ watch(
           </a-form-item>
           <a-form-item label=" ">
             <a-space :size="8" wrap>
-              <a-button type="primary" :loading="saving" @click="getNewVlessEnc('X25519, not Post-Quantum')">
-                X25519
+              <a-button type="primary" :loading="saving" @click="getNewVlessEnc('x25519')">
+                X25519 auth
               </a-button>
-              <a-button type="primary" :loading="saving" @click="getNewVlessEnc('ML-KEM-768, Post-Quantum')">
-                ML-KEM-768
+              <a-button type="primary" :loading="saving" @click="getNewVlessEnc('mlkem768')">
+                ML-KEM-768 auth
               </a-button>
               <a-button danger @click="clearVlessEnc">Clear</a-button>
             </a-space>
+            <a-typography-text type="secondary" class="vless-auth-state">
+              Selected: {{ selectedVlessAuth }}
+            </a-typography-text>
           </a-form-item>
         </a-form>
 
@@ -833,21 +909,123 @@ watch(
         <!-- Tunnel -->
         <a-form v-if="protocol === Protocols.TUNNEL" :colon="false" :label-col="{ sm: { span: 8 } }"
           :wrapper-col="{ sm: { span: 14 } }" class="mt-12">
-          <a-form-item label="Address">
-            <a-input v-model:value="inbound.settings.address" />
+          <a-form-item label="Rewrite address">
+            <a-input v-model:value="inbound.settings.rewriteAddress" />
           </a-form-item>
-          <a-form-item label="Destination port">
-            <a-input-number v-model:value="inbound.settings.port" :min="1" :max="65535" />
+          <a-form-item label="Rewrite port">
+            <a-input-number v-model:value="inbound.settings.rewritePort" :min="0" :max="65535" />
           </a-form-item>
-          <a-form-item label="Network">
-            <a-select v-model:value="inbound.settings.network">
+          <a-form-item label="Allowed network">
+            <a-select v-model:value="inbound.settings.allowedNetwork">
               <a-select-option value="tcp,udp">TCP, UDP</a-select-option>
               <a-select-option value="tcp">TCP</a-select-option>
               <a-select-option value="udp">UDP</a-select-option>
             </a-select>
           </a-form-item>
+          <a-form-item label="Port map">
+            <a-button size="small" @click="inbound.settings.addPortMap('', '')">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+            </a-button>
+          </a-form-item>
+          <a-form-item v-if="inbound.settings.portMap.length > 0" :wrapper-col="{ span: 24 }">
+            <a-input-group v-for="(pm, idx) in inbound.settings.portMap" :key="`pm-${idx}`" compact class="mb-8">
+              <a-input :style="{ width: '30%' }" v-model:value="pm.name" placeholder="5555">
+                <template #addonBefore>{{ idx + 1 }}</template>
+              </a-input>
+              <a-input :style="{ width: '60%' }" v-model:value="pm.value" placeholder="1.1.1.1:7777" />
+              <a-button @click="inbound.settings.removePortMap(idx)">
+                <template #icon>
+                  <MinusOutlined />
+                </template>
+              </a-button>
+            </a-input-group>
+          </a-form-item>
           <a-form-item label="Follow redirect">
             <a-switch v-model:checked="inbound.settings.followRedirect" />
+          </a-form-item>
+        </a-form>
+
+        <!-- TUN -->
+        <a-form v-if="protocol === Protocols.TUN" :colon="false" :label-col="{ sm: { span: 8 } }"
+          :wrapper-col="{ sm: { span: 14 } }" class="mt-12">
+          <a-form-item label="Interface name">
+            <a-input v-model:value="inbound.settings.name" placeholder="xray0" />
+          </a-form-item>
+          <a-form-item label="MTU">
+            <a-input-number v-model:value="inbound.settings.mtu" :min="0" />
+          </a-form-item>
+          <a-form-item label="Gateway">
+            <a-button size="small" @click="inbound.settings.gateway.push('')">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+            </a-button>
+            <a-input v-for="(_ip, j) in inbound.settings.gateway" :key="`tun-gw-${j}`"
+              v-model:value="inbound.settings.gateway[j]" class="mt-4"
+              :placeholder="j === 0 ? '10.0.0.1/16' : 'fc00::1/64'">
+              <template #addonAfter>
+                <a-button size="small" @click="inbound.settings.gateway.splice(j, 1)">
+                  <template #icon>
+                    <MinusOutlined />
+                  </template>
+                </a-button>
+              </template>
+            </a-input>
+          </a-form-item>
+          <a-form-item label="DNS">
+            <a-button size="small" @click="inbound.settings.dns.push('')">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+            </a-button>
+            <a-input v-for="(_ip, j) in inbound.settings.dns" :key="`tun-dns-${j}`"
+              v-model:value="inbound.settings.dns[j]" class="mt-4" :placeholder="j === 0 ? '1.1.1.1' : '8.8.8.8'">
+              <template #addonAfter>
+                <a-button size="small" @click="inbound.settings.dns.splice(j, 1)">
+                  <template #icon>
+                    <MinusOutlined />
+                  </template>
+                </a-button>
+              </template>
+            </a-input>
+          </a-form-item>
+          <a-form-item label="User level">
+            <a-input-number v-model:value="inbound.settings.userLevel" :min="0" />
+          </a-form-item>
+          <a-form-item>
+            <template #label>
+              <a-tooltip
+                title="Windows-only. CIDRs added to the system routing table automatically so matching traffic goes through TUN.">
+                Auto system routes
+              </a-tooltip>
+            </template>
+            <a-button size="small" @click="inbound.settings.autoSystemRoutingTable.push('')">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+            </a-button>
+            <a-input v-for="(_ip, j) in inbound.settings.autoSystemRoutingTable" :key="`tun-rt-${j}`"
+              v-model:value="inbound.settings.autoSystemRoutingTable[j]" class="mt-4"
+              :placeholder="j === 0 ? '0.0.0.0/0' : '::/0'">
+              <template #addonAfter>
+                <a-button size="small" @click="inbound.settings.autoSystemRoutingTable.splice(j, 1)">
+                  <template #icon>
+                    <MinusOutlined />
+                  </template>
+                </a-button>
+              </template>
+            </a-input>
+          </a-form-item>
+          <a-form-item>
+            <template #label>
+              <a-tooltip
+                title='Physical interface for outbound traffic. Use "auto" to detect; auto-enabled when Auto system routes is set.'>
+                Auto outbounds interface
+              </a-tooltip>
+            </template>
+            <a-input v-model:value="inbound.settings.autoOutboundsInterface" placeholder="auto" />
           </a-form-item>
         </a-form>
 
@@ -1660,6 +1838,98 @@ watch(
               </a-select>
             </a-form-item>
           </template>
+
+          <!-- ====== Hysteria stream settings ====== -->
+          <!-- Per https://xtls.github.io/config/transports/hysteria.html -->
+          <template v-if="protocol === Protocols.HYSTERIA">
+            <a-form-item>
+              <template #label>
+                <a-tooltip title="Hysteria protocol version. Currently must be 2.">
+                  Version
+                </a-tooltip>
+              </template>
+              <a-input-number v-model:value="inbound.stream.hysteria.version" :min="2" :max="2" />
+            </a-form-item>
+            <a-form-item>
+              <template #label>
+                <a-tooltip title="Obfuscation password. Must match between server and client.">
+                  Obfs password
+                </a-tooltip>
+              </template>
+              <a-input v-model:value="inbound.stream.hysteria.auth" />
+            </a-form-item>
+            <a-form-item>
+              <template #label>
+                <a-tooltip title="Idle timeout (seconds) for a single QUIC native UDP connection.">
+                  UDP idle timeout
+                </a-tooltip>
+              </template>
+              <a-input-number v-model:value="inbound.stream.hysteria.udpIdleTimeout" :min="0" />
+            </a-form-item>
+            <a-form-item label="Masquerade">
+              <a-switch v-model:checked="inbound.stream.hysteria.masqueradeSwitch" />
+            </a-form-item>
+            <template v-if="inbound.stream.hysteria.masqueradeSwitch">
+              <a-form-item label="Type">
+                <a-select v-model:value="inbound.stream.hysteria.masquerade.type" :style="{ width: '50%' }">
+                  <a-select-option value="proxy">Proxy</a-select-option>
+                  <a-select-option value="file">File</a-select-option>
+                  <a-select-option value="string">String</a-select-option>
+                </a-select>
+              </a-form-item>
+
+              <!-- Proxy type: url / rewriteHost / insecure -->
+              <template v-if="inbound.stream.hysteria.masquerade.type === 'proxy'">
+                <a-form-item label="URL">
+                  <a-input v-model:value="inbound.stream.hysteria.masquerade.url" placeholder="https://example.com" />
+                </a-form-item>
+                <a-form-item label="Rewrite Host">
+                  <a-switch v-model:checked="inbound.stream.hysteria.masquerade.rewriteHost" />
+                </a-form-item>
+                <a-form-item label="Insecure">
+                  <a-switch v-model:checked="inbound.stream.hysteria.masquerade.insecure" />
+                </a-form-item>
+              </template>
+
+              <!-- File type: dir -->
+              <a-form-item v-if="inbound.stream.hysteria.masquerade.type === 'file'" label="Directory">
+                <a-input v-model:value="inbound.stream.hysteria.masquerade.dir" placeholder="/path/to/www" />
+              </a-form-item>
+
+              <!-- String type: content / statusCode / headers -->
+              <template v-if="inbound.stream.hysteria.masquerade.type === 'string'">
+                <a-form-item label="Content">
+                  <a-textarea v-model:value="inbound.stream.hysteria.masquerade.content"
+                    :auto-size="{ minRows: 2, maxRows: 6 }" />
+                </a-form-item>
+                <a-form-item label="Status Code">
+                  <a-input-number v-model:value="inbound.stream.hysteria.masquerade.statusCode" :min="100" :max="599"
+                    placeholder="200" />
+                </a-form-item>
+                <a-form-item label="Headers">
+                  <a-button size="small" @click="inbound.stream.hysteria.masquerade.addHeader('', '')">
+                    <template #icon>
+                      <PlusOutlined />
+                    </template>
+                  </a-button>
+                </a-form-item>
+                <a-form-item v-if="inbound.stream.hysteria.masquerade.headers.length > 0" :wrapper-col="{ span: 24 }">
+                  <a-input-group v-for="(h, idx) in inbound.stream.hysteria.masquerade.headers" :key="`mh-${idx}`"
+                    compact class="mb-8">
+                    <a-input :style="{ width: '45%' }" v-model:value="h.name" placeholder="Name">
+                      <template #addonBefore>{{ idx + 1 }}</template>
+                    </a-input>
+                    <a-input :style="{ width: '45%' }" v-model:value="h.value" placeholder="Value" />
+                    <a-button @click="inbound.stream.hysteria.masquerade.removeHeader(idx)">
+                      <template #icon>
+                        <MinusOutlined />
+                      </template>
+                    </a-button>
+                  </a-input-group>
+                </a-form-item>
+              </template>
+            </template>
+          </template>
         </a-form>
 
         <!-- ====== FinalMask (TCP/UDP masks + QUIC params) ====== -->
@@ -1703,16 +1973,13 @@ watch(
           class="mb-12" />
         <a-form layout="vertical">
           <a-form-item label="settings (clients, encryption, fallbacks, …)">
-            <a-textarea v-model:value="advancedJson.settings" :auto-size="{ minRows: 10, maxRows: 24 }"
-              spellcheck="false" class="json-editor" />
+            <JsonEditor v-model:value="advancedJson.settings" min-height="280px" max-height="520px" />
           </a-form-item>
           <a-form-item label="streamSettings">
-            <a-textarea v-model:value="advancedJson.stream" :auto-size="{ minRows: 10, maxRows: 24 }" spellcheck="false"
-              class="json-editor" />
+            <JsonEditor v-model:value="advancedJson.stream" min-height="280px" max-height="520px" />
           </a-form-item>
           <a-form-item label="sniffing (overrides the Sniffing tab when set)">
-            <a-textarea v-model:value="advancedJson.sniffing" :auto-size="{ minRows: 6, maxRows: 16 }"
-              spellcheck="false" class="json-editor" />
+            <JsonEditor v-model:value="advancedJson.sniffing" min-height="180px" max-height="360px" />
           </a-form-item>
         </a-form>
       </a-tab-pane>
@@ -1757,9 +2024,9 @@ watch(
   color: #ff4d4f;
 }
 
-.json-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+.vless-auth-state {
+  display: block;
+  margin-top: 6px;
 }
 
 .client-summary {

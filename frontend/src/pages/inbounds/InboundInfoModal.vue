@@ -585,19 +585,50 @@ const showSubscriptionTab = computed(
             </tbody>
           </table>
 
+          <!-- TUN -->
+          <dl v-if="inbound.protocol === Protocols.TUN" class="info-list info-list-block">
+            <div class="info-row">
+              <dt>Interface name</dt>
+              <dd><a-tag color="green" class="value-tag">{{ inbound.settings.name }}</a-tag></dd>
+            </div>
+            <div class="info-row">
+              <dt>MTU</dt>
+              <dd><a-tag color="green">{{ inbound.settings.mtu }}</a-tag></dd>
+            </div>
+            <div v-if="inbound.settings.gateway?.length" class="info-row">
+              <dt>Gateway</dt>
+              <dd><a-tag v-for="(ip, j) in inbound.settings.gateway" :key="`tun-i-gw-${j}`" color="green"
+                  class="value-tag">{{ ip }}</a-tag></dd>
+            </div>
+            <div v-if="inbound.settings.dns?.length" class="info-row">
+              <dt>DNS</dt>
+              <dd><a-tag v-for="(ip, j) in inbound.settings.dns" :key="`tun-i-dns-${j}`" color="green">{{ ip }}</a-tag>
+              </dd>
+            </div>
+            <div class="info-row">
+              <dt>Outbounds interface</dt>
+              <dd><a-tag color="green">{{ inbound.settings.autoOutboundsInterface || 'auto' }}</a-tag></dd>
+            </div>
+            <div v-if="inbound.settings.autoSystemRoutingTable?.length" class="info-row">
+              <dt>Auto system routes</dt>
+              <dd><a-tag v-for="(cidr, j) in inbound.settings.autoSystemRoutingTable" :key="`tun-i-rt-${j}`"
+                  color="green">{{ cidr }}</a-tag></dd>
+            </div>
+          </dl>
+
           <!-- Tunnel -->
           <dl v-if="inbound.protocol === Protocols.TUNNEL" class="info-list info-list-block">
             <div class="info-row">
               <dt>{{ t('pages.inbounds.targetAddress') }}</dt>
-              <dd><a-tag color="green" class="value-tag">{{ inbound.settings.address }}</a-tag></dd>
+              <dd><a-tag color="green" class="value-tag">{{ inbound.settings.rewriteAddress }}</a-tag></dd>
             </div>
             <div class="info-row">
               <dt>{{ t('pages.inbounds.destinationPort') }}</dt>
-              <dd><a-tag color="green">{{ inbound.settings.port }}</a-tag></dd>
+              <dd><a-tag color="green">{{ inbound.settings.rewritePort }}</a-tag></dd>
             </div>
             <div class="info-row">
               <dt>{{ t('pages.inbounds.network') }}</dt>
-              <dd><a-tag color="green">{{ inbound.settings.network }}</a-tag></dd>
+              <dd><a-tag color="green">{{ inbound.settings.allowedNetwork }}</a-tag></dd>
             </div>
             <div class="info-row">
               <dt>FollowRedirect</dt>

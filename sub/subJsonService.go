@@ -265,6 +265,14 @@ func (s *SubJsonService) streamData(stream string) map[string]any {
 		streamSettings["wsSettings"] = s.removeAcceptProxy(streamSettings["wsSettings"])
 	case "httpupgrade":
 		streamSettings["httpupgradeSettings"] = s.removeAcceptProxy(streamSettings["httpupgradeSettings"])
+	case "xhttp":
+		streamSettings["xhttpSettings"] = s.removeAcceptProxy(streamSettings["xhttpSettings"])
+		if xhttp, ok := streamSettings["xhttpSettings"].(map[string]any); ok {
+			delete(xhttp, "noSSEHeader")
+			delete(xhttp, "scMaxBufferedPosts")
+			delete(xhttp, "scStreamUpServerSecs")
+			delete(xhttp, "serverMaxHeaderBytes")
+		}
 	}
 	return streamSettings
 }
@@ -446,6 +454,9 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 	}
 	if udpIdleTimeout, ok := hyStream["udpIdleTimeout"].(float64); ok {
 		outHyStream["udpIdleTimeout"] = int(udpIdleTimeout)
+	}
+	if masquerade, ok := hyStream["masquerade"].(map[string]any); ok {
+		outHyStream["masquerade"] = masquerade
 	}
 	newStream["hysteriaSettings"] = outHyStream
 

@@ -27,6 +27,7 @@ const loading = ref(false);
 const warpData = ref(null);
 const warpConfig = ref(null);
 const warpPlus = ref('');
+const licenseError = ref('');
 // Held in memory so the parent's add/reset handlers receive the same
 // object the modal computed from getConfig().
 const stagedOutbound = ref(null);
@@ -41,6 +42,7 @@ watch(() => props.open, (next) => {
   if (!next) return;
   warpConfig.value = null;
   stagedOutbound.value = null;
+  licenseError.value = '';
   fetchData();
 });
 
@@ -89,12 +91,15 @@ async function getConfig() {
 async function updateLicense() {
   if (warpPlus.value.length < 26) return;
   loading.value = true;
+  licenseError.value = '';
   try {
     const msg = await HttpUtil.post('/panel/xray/warp/license', { license: warpPlus.value });
     if (msg?.success) {
       warpData.value = JSON.parse(msg.obj);
       warpConfig.value = null;
       warpPlus.value = '';
+    } else {
+      licenseError.value = msg?.msg || 'Failed to set WARP license.';
     }
   } finally {
     loading.value = false;
@@ -233,9 +238,12 @@ const hasConfig = computed(() => !ObjectUtil.isEmpty(warpConfig.value));
         <a-collapse-panel header="WARP / WARP+ license key">
           <a-form :colon="false" :label-col="{ md: { span: 6 } }" :wrapper-col="{ md: { span: 14 } }">
             <a-form-item label="Key">
-              <a-input v-model:value="warpPlus" placeholder="26-char WARP+ key" />
-              <a-button type="primary" class="mt-8" :disabled="warpPlus.length < 26" :loading="loading"
-                @click="updateLicense">Update</a-button>
+              <a-input v-model:value="warpPlus" placeholder="26-char WARP+ key" @update:value="licenseError = ''" />
+              <div class="license-actions mt-8">
+                <a-button type="primary" :disabled="warpPlus.length < 26" :loading="loading"
+                  @click="updateLicense">Update</a-button>
+                <a-alert v-if="licenseError" :message="licenseError" type="error" show-icon class="license-error" />
+              </div>
             </a-form-item>
           </a-form>
         </a-collapse-panel>
@@ -357,5 +365,17 @@ const hasConfig = computed(() => !ObjectUtil.isEmpty(warpConfig.value));
 
 .ml-8 {
   margin-left: 8px;
+}
+
+.license-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.license-error {
+  flex: 1;
+  min-width: 0;
 }
 </style>

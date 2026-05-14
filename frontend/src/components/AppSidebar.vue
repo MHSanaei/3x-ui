@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons-vue';
 
 import { theme, currentTheme, toggleTheme, toggleUltra, pauseAnimationsUntilLeave } from '@/composables/useTheme.js';
+import { HttpUtil } from '@/utils';
 
 const { t } = useI18n();
 
@@ -45,7 +46,7 @@ const tabs = computed(() => [
   { key: `${prefix}panel/settings`, icon: 'setting', title: t('menu.settings') },
   { key: `${prefix}panel/xray`, icon: 'tool', title: t('menu.xray') },
   { key: `${prefix}panel/api-docs`, icon: 'apidocs', title: t('menu.apiDocs') },
-  { key: `${prefix}logout`, icon: 'logout', title: t('logout') },
+  { key: 'logout', icon: 'logout', title: t('logout') },
 ]);
 
 const navTabs = computed(() => tabs.value.filter((tab) => tab.icon !== 'logout'));
@@ -55,7 +56,12 @@ const drawerOpen = ref(false);
 const collapsed = ref(JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) || 'false'));
 const drawerWidth = 'min(82vw, 320px)';
 
-function openLink(key) {
+async function openLink(key) {
+  if (key === 'logout') {
+    await HttpUtil.post('/logout');
+    window.location.href = props.basePath || '/';
+    return;
+  }
   if (key.startsWith('http')) {
     window.open(key);
   } else {
