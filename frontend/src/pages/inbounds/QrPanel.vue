@@ -1,7 +1,9 @@
 <script setup>
+import { ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CopyOutlined, DownloadOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
+import QRCode from 'qrcode';
 
 import { ClipboardManager, FileManager } from '@/utils';
 
@@ -11,8 +13,28 @@ const props = defineProps({
   value: { type: String, required: true },
   remark: { type: String, default: '' },
   downloadName: { type: String, default: '' },
-  size: { type: Number, default: 240 },
+  size: { type: Number, default: 360 },
   showQr: { type: Boolean, default: true },
+});
+
+const svg = ref('');
+
+watchEffect(async () => {
+  if (!props.showQr || !props.value) {
+    svg.value = '';
+    return;
+  }
+  try {
+    svg.value = await QRCode.toString(props.value, {
+      type: 'svg',
+      errorCorrectionLevel: 'L',
+      margin: 2,
+      width: props.size,
+      color: { dark: '#000000', light: '#ffffff' },
+    });
+  } catch {
+    svg.value = '';
+  }
 });
 
 async function copy() {
@@ -45,9 +67,8 @@ function download() {
         </a-button>
       </a-tooltip>
     </div>
-    <div v-if="showQr" class="qr-panel-canvas">
-      <a-qrcode class="qr-code" :value="value" :size="size" type="svg" :bordered="false"
-        color="#000000" bg-color="#ffffff" :title="t('copy')" @click="copy" />
+    <div v-if="showQr && svg" class="qr-panel-canvas" :title="t('copy')" @click="copy">
+      <div class="qr-code" v-html="svg" />
     </div>
   </div>
 </template>
@@ -82,8 +103,15 @@ function download() {
 
 .qr-panel-canvas .qr-code {
   cursor: pointer;
-  padding: 0 !important;
   background: #fff;
   border-radius: 4px;
+  line-height: 0;
+}
+
+.qr-panel-canvas .qr-code :deep(svg) {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 360px;
 }
 </style>
