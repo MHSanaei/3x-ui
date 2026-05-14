@@ -418,6 +418,8 @@
       "apiTokenHint": "远程面板在 设置 → API 令牌 中显示其 API 令牌。",
       "regenerate": "重新生成令牌",
       "regenerateConfirm": "重新生成会使当前令牌失效。任何使用该令牌的中央面板都会失去访问权限，直至更新。是否继续？",
+      "allowPrivateAddress": "允许私有地址",
+      "allowPrivateAddressHint": "仅对私有网络或VPN上的节点启用。",
       "enable": "已启用",
       "status": "状态",
       "cpu": "CPU",

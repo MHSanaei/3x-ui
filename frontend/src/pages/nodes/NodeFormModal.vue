@@ -163,9 +163,9 @@ async function onSave() {
         </a-col>
       </a-row>
 
-      <a-form-item label="Allow private address">
+      <a-form-item :label="t('pages.nodes.allowPrivateAddress')">
         <a-switch v-model:checked="form.allowPrivateAddress" />
-        <div class="hint">Enable only for nodes on a private network or VPN.</div>
+        <div class="hint">{{ t('pages.nodes.allowPrivateAddressHint') }}</div>
       </a-form-item>
 
       <a-form-item :label="t('pages.nodes.apiToken')" required>
