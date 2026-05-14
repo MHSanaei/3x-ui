@@ -33,6 +33,7 @@ const props = defineProps({
   isDarkTheme: { type: Boolean, default: false },
   pageSize: { type: Number, default: 0 },
   totalClientCount: { type: Number, default: 0 },
+  statsVersion: { type: Number, default: 0 },
 });
 
 const emit = defineEmits([
@@ -63,7 +64,11 @@ watch([clients, () => props.pageSize], () => {
 });
 
 // === Per-client stats lookup =======================================
+// statsVersion bumps on every ws merge so this computed re-evaluates
+// (DBInbound isn't reactive — the in-place stat mutations alone don't
+// trigger Vue's tracking).
 const statsMap = computed(() => {
+  void props.statsVersion;
   const m = new Map();
   for (const cs of (props.dbInbound.clientStats || [])) m.set(cs.email, cs);
   return m;
@@ -216,6 +221,14 @@ watch(clients, (list) => {
   for (const k of selected.value) if (valid.has(k)) next.add(k);
   if (next.size !== selected.value.size) selected.value = next;
 });
+
+const statsClient = ref(null);
+function openStats(client) {
+  statsClient.value = client;
+}
+function closeStats() {
+  statsClient.value = null;
+}
 
 function confirmBulkDelete() {
   const picked = clients.value.filter((c) => selected.value.has(rowKey(c)));
@@ -433,6 +446,9 @@ function confirmBulkDelete() {
             <span class="client-email">{{ client.email }}</span>
           </a-tooltip>
           <div class="client-card-actions">
+            <a-tooltip :title="t('info')">
+              <InfoCircleOutlined class="row-icon" @click="openStats(client)" />
+            </a-tooltip>
             <a-switch :checked="client.enable" size="small"
               @change="(next) => emit('toggle-enable-client', { dbInbound, client, next })" />
             <a-dropdown :trigger="['click']" placement="bottomRight">
@@ -459,52 +475,55 @@ function confirmBulkDelete() {
             </a-dropdown>
           </div>
         </div>
+      </div>
 
-        <div v-if="client.comment && client.comment.trim()" class="client-comment-line">
-          {{ client.comment.length > 80 ? client.comment.substring(0, 77) + '…' : client.comment }}
-        </div>
-
-        <div class="client-card-foot">
+      <a-modal :open="!!statsClient" :footer="null" :width="360" centered
+        :title="statsClient ? statsClient.email || t('info') : ''" @cancel="closeStats">
+        <div v-if="statsClient" class="client-card-foot">
+          <div v-if="statsClient.comment && statsClient.comment.trim()" class="client-comment-line">
+            {{ statsClient.comment }}
+          </div>
           <div class="stat-row">
             <span class="stat-label">{{ t('pages.inbounds.traffic') }}</span>
-            <a-tag :color="clientStatsColor(client.email)">
-              {{ SizeFormatter.sizeFormat(getSum(client.email)) }} /
-              <InfinityIcon v-if="isUnlimitedTotal(client)" />
-              <template v-else>{{ totalGbDisplay(client) }}</template>
+            <a-tag :color="clientStatsColor(statsClient.email)">
+              {{ SizeFormatter.sizeFormat(getSum(statsClient.email)) }} /
+              <InfinityIcon v-if="isUnlimitedTotal(statsClient)" />
+              <template v-else>{{ totalGbDisplay(statsClient) }}</template>
             </a-tag>
           </div>
           <div class="stat-row">
             <span class="stat-label">{{ t('remained') }}</span>
-            <a-tag v-if="isUnlimitedTotal(client)" color="purple" :style="{ border: 'none' }" class="infinite-tag">
+            <a-tag v-if="isUnlimitedTotal(statsClient)" color="purple" :style="{ border: 'none' }" class="infinite-tag">
               <InfinityIcon />
             </a-tag>
-            <a-tag v-else :color="isClientDepleted(client.email) ? 'red' : ''">
-              {{ SizeFormatter.sizeFormat(getRem(client.email)) }}
+            <a-tag v-else :color="isClientDepleted(statsClient.email) ? 'red' : ''">
+              {{ SizeFormatter.sizeFormat(getRem(statsClient.email)) }}
             </a-tag>
           </div>
           <div class="stat-row">
             <span class="stat-label">{{ t('pages.inbounds.allTimeTraffic') }}</span>
-            <a-tag>{{ SizeFormatter.sizeFormat(getAllTime(client.email)) }}</a-tag>
+            <a-tag>{{ SizeFormatter.sizeFormat(getAllTime(statsClient.email)) }}</a-tag>
           </div>
           <div class="stat-row">
             <span class="stat-label">{{ t('online') }}</span>
-            <a-tag v-if="client.enable && isClientOnline(client.email)" color="green">{{ t('online') }}</a-tag>
+            <a-tag v-if="statsClient.enable && isClientOnline(statsClient.email)" color="green">{{ t('online') }}</a-tag>
             <a-tag v-else>{{ t('offline') }}</a-tag>
           </div>
           <div class="stat-row">
             <span class="stat-label">{{ t('pages.inbounds.expireDate') }}</span>
-            <a-tag v-if="client.expiryTime > 0" :color="ColorUtils.userExpiryColor(expireDiff, client, isDarkTheme)">
-              {{ IntlUtil.formatRelativeTime(client.expiryTime) }}
+            <a-tag v-if="statsClient.expiryTime > 0"
+              :color="ColorUtils.userExpiryColor(expireDiff, statsClient, isDarkTheme)">
+              {{ IntlUtil.formatRelativeTime(statsClient.expiryTime) }}
             </a-tag>
-            <a-tag v-else-if="client.expiryTime < 0" color="green">
-              {{ -client.expiryTime / 86400000 }}d ({{ t('pages.client.delayedStart') }})
+            <a-tag v-else-if="statsClient.expiryTime < 0" color="green">
+              {{ -statsClient.expiryTime / 86400000 }}d ({{ t('pages.client.delayedStart') }})
             </a-tag>
             <a-tag v-else color="purple">
               <InfinityIcon />
             </a-tag>
           </div>
         </div>
-      </div>
+      </a-modal>
     </template>
 
     <a-pagination v-if="pageSize > 0 && clients.length > pageSize" v-model:current="currentPage"

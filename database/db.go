@@ -11,6 +11,7 @@ import (
 	"strings"
 	"path"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/config"
@@ -43,8 +44,12 @@ func initModels() error {
 		&model.Node{},
 		&model.ApiToken{},
 	}
-	for _, model := range models {
-		if err := db.AutoMigrate(model); err != nil {
+	for _, mdl := range models {
+		if err := db.AutoMigrate(mdl); err != nil {
+			if isIgnorableDuplicateColumnErr(err, mdl) {
+				log.Printf("Ignoring duplicate column during auto migration for %T: %v", mdl, err)
+				continue
+			}
 			log.Printf("Error auto migrating model: %v", err)
 			return err
 		}
@@ -102,6 +107,27 @@ func migrateLegacyUniqueConstraints() error {
 	}
 
 	return nil
+}
+
+func isIgnorableDuplicateColumnErr(err error, mdl any) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := strings.ToLower(err.Error())
+	const dupPrefix = "duplicate column name:"
+	if !strings.Contains(errMsg, dupPrefix) {
+		return false
+	}
+	idx := strings.Index(errMsg, dupPrefix)
+	if idx < 0 {
+		return false
+	}
+	col := strings.TrimSpace(errMsg[idx+len(dupPrefix):])
+	col = strings.Trim(col, "`\"[]")
+	if col == "" {
+		return false
+	}
+	return db != nil && db.Migrator().HasColumn(mdl, col)
 }
 
 // initUser creates a default admin user if the users table is empty.

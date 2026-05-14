@@ -43,36 +43,6 @@ func (a *atomicBool) takeAndReset() bool {
 	return v
 }
 
-type emailSet struct {
-	mu sync.Mutex
-	m  map[string]struct{}
-}
-
-func newEmailSet() *emailSet { return &emailSet{m: make(map[string]struct{})} }
-
-func (s *emailSet) addAll(emails []string) {
-	if len(emails) == 0 {
-		return
-	}
-	s.mu.Lock()
-	for _, e := range emails {
-		if e != "" {
-			s.m[e] = struct{}{}
-		}
-	}
-	s.mu.Unlock()
-}
-
-func (s *emailSet) slice() []string {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	out := make([]string, 0, len(s.m))
-	for e := range s.m {
-		out = append(out, e)
-	}
-	return out
-}
-
 func NewNodeTrafficSyncJob() *NodeTrafficSyncJob {
 	return &NodeTrafficSyncJob{}
 }
@@ -97,7 +67,6 @@ func (j *NodeTrafficSyncJob) Run() {
 		return
 	}
 
-	touched := newEmailSet()
 	sem := make(chan struct{}, nodeTrafficSyncConcurrency)
 	var wg sync.WaitGroup
 	for _, n := range nodes {
@@ -109,7 +78,7 @@ func (j *NodeTrafficSyncJob) Run() {
 		go func(n *model.Node) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			j.syncOne(mgr, n, touched)
+			j.syncOne(mgr, n)
 		}(n)
 	}
 	wg.Wait()
@@ -135,12 +104,10 @@ func (j *NodeTrafficSyncJob) Run() {
 	})
 
 	clientStats := map[string]any{}
-	if emails := touched.slice(); len(emails) > 0 {
-		if stats, err := j.inboundService.GetActiveClientTraffics(emails); err != nil {
-			logger.Warning("node traffic sync: get client traffics for websocket failed:", err)
-		} else if len(stats) > 0 {
-			clientStats["clients"] = stats
-		}
+	if stats, err := j.inboundService.GetAllClientTraffics(); err != nil {
+		logger.Warning("node traffic sync: get all client traffics for websocket failed:", err)
+	} else if len(stats) > 0 {
+		clientStats["clients"] = stats
 	}
 	if summary, err := j.inboundService.GetInboundsTrafficSummary(); err != nil {
 		logger.Warning("node traffic sync: get inbounds summary for websocket failed:", err)
@@ -156,7 +123,7 @@ func (j *NodeTrafficSyncJob) Run() {
 	}
 }
 
-func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, touched *emailSet) {
+func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node) {
 	ctx, cancel := context.WithTimeout(context.Background(), nodeTrafficSyncRequestTimeout)
 	defer cancel()
 
@@ -178,17 +145,5 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, touche
 	}
 	if changed {
 		j.structural.set()
-	}
-	for _, ib := range snap.Inbounds {
-		if ib == nil {
-			continue
-		}
-		emails := make([]string, 0, len(ib.ClientStats))
-		for _, cs := range ib.ClientStats {
-			if cs.Email != "" {
-				emails = append(emails, cs.Email)
-			}
-		}
-		touched.addAll(emails)
 	}
 }

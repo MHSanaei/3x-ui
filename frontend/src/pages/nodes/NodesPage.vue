@@ -108,33 +108,33 @@ async function onToggleEnable(node, next) {
           <a-spin :spinning="!fetched" :delay="200" tip="Loading…" size="large">
             <div v-if="!fetched" class="loading-spacer" />
 
-            <a-row v-else :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]">
+            <a-row v-else :gutter="[isMobile ? 8 : 16, isMobile ? 8 : 12]">
               <!-- Summary statistics card -->
               <a-col :span="24">
                 <a-card size="small" hoverable class="summary-card">
-                  <a-row :gutter="[16, 12]">
-                    <a-col :sm="12" :md="6">
+                  <a-row :gutter="[16, isMobile ? 16 : 12]">
+                    <a-col :xs="12" :sm="12" :md="6">
                       <CustomStatistic :title="t('pages.nodes.totalNodes')" :value="String(totals.total)">
                         <template #prefix>
                           <CloudServerOutlined />
                         </template>
                       </CustomStatistic>
                     </a-col>
-                    <a-col :sm="12" :md="6">
+                    <a-col :xs="12" :sm="12" :md="6">
                       <CustomStatistic :title="t('pages.nodes.onlineNodes')" :value="String(totals.online)">
                         <template #prefix>
                           <CheckCircleOutlined style="color: #52c41a" />
                         </template>
                       </CustomStatistic>
                     </a-col>
-                    <a-col :sm="12" :md="6">
+                    <a-col :xs="12" :sm="12" :md="6">
                       <CustomStatistic :title="t('pages.nodes.offlineNodes')" :value="String(totals.offline)">
                         <template #prefix>
                           <CloseCircleOutlined style="color: #ff4d4f" />
                         </template>
                       </CustomStatistic>
                     </a-col>
-                    <a-col :sm="12" :md="6">
+                    <a-col :xs="12" :sm="12" :md="6">
                       <CustomStatistic :title="t('pages.nodes.avgLatency')"
                         :value="totals.avgLatency > 0 ? `${totals.avgLatency} ms` : '-'">
                         <template #prefix>

@@ -45,6 +45,7 @@ const {
   ipLimitEnable,
   remarkModel,
   lastOnlineMap,
+  statsVersion,
   refresh,
   fetchDefaultSettings,
   applyTrafficEvent,
@@ -648,6 +649,7 @@ function onRowAction({ key, dbInbound }) {
                   :last-online-map="lastOnlineMap" :is-dark-theme="themeState.isDark" :expire-diff="expireDiff"
                   :traffic-diff="trafficDiff" :page-size="pageSize" :is-mobile="isMobile"
                   :sub-enable="subSettings.enable" :nodes-by-id="nodesById" :has-active-node="hasActiveNode"
+                  :stats-version="statsVersion"
                   @refresh="refresh"
                   @add-inbound="onAddInbound" @general-action="onGeneralAction" @row-action="onRowAction"
                   @edit-client="onEditClient" @qrcode-client="onQrcodeClient" @info-client="onInfoClient"

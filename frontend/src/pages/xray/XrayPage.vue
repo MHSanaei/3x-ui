@@ -22,6 +22,7 @@ import BalancersTab from './BalancersTab.vue';
 import DnsTab from './DnsTab.vue';
 import WarpModal from './WarpModal.vue';
 import NordModal from './NordModal.vue';
+import JsonEditor from '@/components/JsonEditor.vue';
 import { useXraySetting } from './useXraySetting.js';
 import { useWebSocket } from '@/composables/useWebSocket.js';
 
@@ -301,10 +302,13 @@ onBeforeUnmount(() => {
 
                 <!-- Tabs -->
                 <a-col :span="24">
-                  <a-tabs :active-key="activeTabKey" @change="onTabChange">
+                  <a-tabs :active-key="activeTabKey" :class="{ 'icons-only': isMobile }" @change="onTabChange">
                     <a-tab-pane key="tpl-basic" class="tab-pane">
                       <template #tab>
-                        <SettingOutlined /> <span>{{ t('pages.xray.basicTemplate') }}</span>
+                        <a-tooltip :title="isMobile ? t('pages.xray.basicTemplate') : null">
+                          <SettingOutlined />
+                        </a-tooltip>
+                        <span v-if="!isMobile">{{ t('pages.xray.basicTemplate') }}</span>
                       </template>
                       <BasicsTab :template-settings="templateSettings" :outbound-test-url="outboundTestUrl"
                         :warp-exist="warpExist" :nord-exist="nordExist"
@@ -314,7 +318,10 @@ onBeforeUnmount(() => {
 
                     <a-tab-pane key="tpl-routing" class="tab-pane">
                       <template #tab>
-                        <SwapOutlined /> <span>{{ t('pages.xray.Routings') }}</span>
+                        <a-tooltip :title="isMobile ? t('pages.xray.Routings') : null">
+                          <SwapOutlined />
+                        </a-tooltip>
+                        <span v-if="!isMobile">{{ t('pages.xray.Routings') }}</span>
                       </template>
                       <RoutingTab :template-settings="templateSettings" :inbound-tags="inboundTags"
                         :client-reverse-tags="clientReverseTags" :is-mobile="isMobile" />
@@ -322,7 +329,10 @@ onBeforeUnmount(() => {
 
                     <a-tab-pane key="tpl-outbound" class="tab-pane">
                       <template #tab>
-                        <UploadOutlined /> <span>{{ t('pages.xray.Outbounds') }}</span>
+                        <a-tooltip :title="isMobile ? t('pages.xray.Outbounds') : null">
+                          <UploadOutlined />
+                        </a-tooltip>
+                        <span v-if="!isMobile">{{ t('pages.xray.Outbounds') }}</span>
                       </template>
                       <OutboundsTab :template-settings="templateSettings" :outbounds-traffic="outboundsTraffic"
                         :outbound-test-states="outboundTestStates" :testing-all="testingAll"
@@ -334,21 +344,31 @@ onBeforeUnmount(() => {
 
                     <a-tab-pane key="tpl-balancer" class="tab-pane">
                       <template #tab>
-                        <ClusterOutlined /> <span>{{ t('pages.xray.Balancers') }}</span>
+                        <a-tooltip :title="isMobile ? t('pages.xray.Balancers') : null">
+                          <ClusterOutlined />
+                        </a-tooltip>
+                        <span v-if="!isMobile">{{ t('pages.xray.Balancers') }}</span>
                       </template>
-                      <BalancersTab :template-settings="templateSettings" :client-reverse-tags="clientReverseTags" />
+                      <BalancersTab :template-settings="templateSettings" 
+                      :client-reverse-tags="clientReverseTags" :is-mobile="isMobile" />
                     </a-tab-pane>
 
                     <a-tab-pane key="tpl-dns" class="tab-pane">
                       <template #tab>
-                        <DatabaseOutlined /> <span>DNS</span>
+                        <a-tooltip :title="isMobile ? 'DNS' : null">
+                          <DatabaseOutlined />
+                        </a-tooltip>
+                        <span v-if="!isMobile">DNS</span>
                       </template>
                       <DnsTab :template-settings="templateSettings" />
                     </a-tab-pane>
 
                     <a-tab-pane key="tpl-advanced" class="tab-pane">
                       <template #tab>
-                        <CodeOutlined /> <span>{{ t('pages.xray.advancedTemplate') }}</span>
+                        <a-tooltip :title="isMobile ? t('pages.xray.advancedTemplate') : null">
+                          <CodeOutlined />
+                        </a-tooltip>
+                        <span v-if="!isMobile">{{ t('pages.xray.advancedTemplate') }}</span>
                       </template>
                       <a-list-item-meta :title="t('pages.xray.Template')" :description="t('pages.xray.TemplateDesc')" />
                       <a-radio-group v-model:value="advSettings" button-style="solid"
@@ -358,8 +378,7 @@ onBeforeUnmount(() => {
                         <a-radio-button value="outboundSettings">{{ t('pages.xray.Outbounds') }}</a-radio-button>
                         <a-radio-button value="routingRuleSettings">{{ t('pages.xray.Routings') }}</a-radio-button>
                       </a-radio-group>
-                      <a-textarea v-model:value="advancedText" :auto-size="{ minRows: 18, maxRows: 40 }"
-                        spellcheck="false" class="json-editor" />
+                      <JsonEditor v-model:value="advancedText" min-height="420px" max-height="720px" />
                     </a-tab-pane>
                   </a-tabs>
                 </a-col>
@@ -446,8 +465,32 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 
-.json-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+.icons-only :deep(.ant-tabs-nav) {
+  margin-bottom: 8px;
+}
+
+.icons-only :deep(.ant-tabs-nav-wrap) {
+  width: 100%;
+}
+
+.icons-only :deep(.ant-tabs-nav-list) {
+  display: flex;
+  width: 100%;
+}
+
+.icons-only :deep(.ant-tabs-tab) {
+  flex: 1 1 0;
+  justify-content: center;
+  margin: 0;
+  padding: 10px 0;
+}
+
+.icons-only :deep(.ant-tabs-tab .anticon) {
+  margin: 0;
+  font-size: 18px;
+}
+
+.icons-only :deep(.ant-tabs-nav-operations) {
+  display: none;
 }
 </style>

@@ -1025,6 +1025,10 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 		}
 	}
 
+	if mode, ok := xhttp["mode"].(string); ok && len(mode) > 0 {
+		extra["mode"] = mode
+	}
+
 	stringFields := []string{
 		"sessionPlacement", "sessionKey",
 		"seqPlacement", "seqKey",

@@ -23,6 +23,11 @@ export function useInbounds() {
   const clientCount = ref({});
   const onlineClients = ref([]);
   const lastOnlineMap = ref({});
+  // Bumps on every client_stats merge so the per-inbound ClientRowTable
+  // child can re-render. DBInbound is a plain class instance, not reactive,
+  // so the in-place mutations on its clientStats array are invisible to
+  // Vue's tracking unless something else (this tick) signals the change.
+  const statsVersion = ref(0);
 
   // Default-settings sidecar fields the table needs for color/expiry math.
   const expireDiff = ref(0);
@@ -173,9 +178,9 @@ export function useInbounds() {
     rebuildClientCount();
   }
 
-  // The client_stats payload carries absolute traffic counters for the
-  // clients that had activity in the latest window plus per-inbound
-  // totals. Both are absolute (not deltas), so we overwrite in place.
+  // The client_stats payload carries absolute traffic counters for every
+  // client + per-inbound totals (full snapshot, not deltas). Both are
+  // overwritten in place.
   function applyClientStatsEvent(payload) {
     if (!payload || typeof payload !== 'object') return;
     let touched = false;
@@ -220,6 +225,7 @@ export function useInbounds() {
     }
 
     if (touched) {
+      statsVersion.value++;
       dbInbounds.value = [...dbInbounds.value];
       rebuildClientCount();
     }
@@ -315,6 +321,7 @@ export function useInbounds() {
     clientCount,
     onlineClients,
     lastOnlineMap,
+    statsVersion,
     totals,
     expireDiff,
     trafficDiff,

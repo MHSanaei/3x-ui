@@ -181,7 +181,7 @@ func (j *CheckClientIpJob) processLogFile() bool {
 		var timestamp int64
 		timestampMatches := timestampRegex.FindStringSubmatch(line)
 		if len(timestampMatches) >= 2 {
-			t, err := time.Parse("2006/01/02 15:04:05", timestampMatches[1])
+			t, err := time.ParseInLocation("2006/01/02 15:04:05", timestampMatches[1], time.Local)
 			if err == nil {
 				timestamp = t.Unix()
 			} else {

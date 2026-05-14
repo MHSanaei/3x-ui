@@ -50,6 +50,7 @@ const props = defineProps({
   // inbound row can render its node name without an extra fetch.
   nodesById: { type: Map, default: () => new Map() },
   hasActiveNode: { type: Boolean, default: false },
+  statsVersion: { type: Number, default: 0 },
 });
 
 const emit = defineEmits([
@@ -79,7 +80,7 @@ const savedFilterState = (() => {
 const enableFilter = ref(!!savedFilterState.enableFilter);
 const searchKey = ref(savedFilterState.searchKey || '');
 const filterBy = ref(savedFilterState.filterBy || '');
-const protocolFilter = ref(savedFilterState.protocolFilter || '');
+const protocolFilter = ref(savedFilterState.protocolFilter || undefined);
 const nodeFilter = ref(savedFilterState.nodeFilter || '');
 
 watch([enableFilter, searchKey, filterBy, protocolFilter, nodeFilter], () => {
@@ -229,7 +230,7 @@ const hasAnyRemark = computed(() =>
 const desktopColumns = computed(() => {
   const cols = [
     sortableCol({ title: 'ID', dataIndex: 'id', key: 'id', align: 'right', width: 30 }, 'id'),
-    { title: t('pages.inbounds.operate'), key: 'action', align: 'center', width: 30 },
+    { title: t('pages.inbounds.operate'), key: 'action', align: 'center', width: 60 },
     sortableCol({ title: t('pages.inbounds.enable'), key: 'enable', align: 'center', width: 35 }, 'enable'),
   ];
   if (hasAnyRemark.value) {
@@ -261,6 +262,14 @@ function toggleExpanded(id) {
 }
 function isExpanded(id) {
   return expandedIds.value.has(id);
+}
+
+const statsRecord = ref(null);
+function openStats(record) {
+  statsRecord.value = record;
+}
+function closeStats() {
+  statsRecord.value = null;
 }
 
 // ============ Pagination ============================================
@@ -388,13 +397,16 @@ function showQrCodeMenu(dbInbound) {
         <div v-if="visibleInbounds.length === 0" class="card-empty">—</div>
 
         <div v-for="record in sortedInbounds" :key="record.id" class="inbound-card">
-          <!-- Header: chevron (multi-user only) + remark + enable + actions -->
+          <!-- Header: chevron (multi-user only) + id + remark + info + enable + actions -->
           <div class="card-head" @click="record.isMultiUser() && toggleExpanded(record.id)">
             <RightOutlined v-if="record.isMultiUser()" class="card-expand"
               :class="{ 'is-expanded': isExpanded(record.id) }" />
             <span class="card-id">#{{ record.id }}</span>
             <span class="tag-name">{{ record.remark }}</span>
             <div class="card-actions" @click.stop>
+              <a-tooltip :title="t('info')">
+                <InfoCircleOutlined class="row-action-trigger" @click="openStats(record)" />
+              </a-tooltip>
               <a-switch :checked="record.enable" size="small" @change="(next) => onSwitchEnable(record, next)" />
               <a-dropdown :trigger="['click']" placement="bottomRight">
                 <MoreOutlined class="row-action-trigger" @click.prevent />
@@ -452,74 +464,12 @@ function showQrCodeMenu(dbInbound) {
             </div>
           </div>
 
-          <!-- 2-column labelled stat grid: protocol/port/node + traffic/clients/expiry -->
-          <div class="card-stats">
-            <div class="stat-row">
-              <span class="stat-label">{{ t('pages.inbounds.protocol') }}</span>
-              <a-tag color="purple">{{ record.protocol }}</a-tag>
-              <template v-if="record.isVMess || record.isVLess || record.isTrojan || record.isSS || record.isHysteria">
-                <a-tag color="green">{{ record.isHysteria ? 'UDP' : record.toInbound().stream.network }}</a-tag>
-                <a-tag v-if="record.toInbound().stream.isTls" color="blue">TLS</a-tag>
-                <a-tag v-if="record.toInbound().stream.isReality" color="blue">Reality</a-tag>
-              </template>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">{{ t('pages.inbounds.port') }}</span>
-              <a-tag>{{ record.port }}</a-tag>
-            </div>
-            <div v-if="hasActiveNode" class="stat-row">
-              <span class="stat-label">{{ t('pages.inbounds.node') }}</span>
-              <a-tag v-if="record.nodeId == null" color="default">
-                {{ t('pages.inbounds.localPanel') }}
-              </a-tag>
-              <a-tag v-else-if="nodesById.get(record.nodeId)"
-                :color="nodesById.get(record.nodeId).status === 'online' ? 'blue' : 'red'">
-                {{ nodesById.get(record.nodeId).name }}
-              </a-tag>
-              <a-tag v-else color="orange">#{{ record.nodeId }}</a-tag>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">{{ t('pages.inbounds.traffic') }}</span>
-              <a-tag :color="ColorUtils.usageColor(record.up + record.down, trafficDiff, record.total)">
-                {{ SizeFormatter.sizeFormat(record.up + record.down) }} /
-                <template v-if="record.total > 0">{{ SizeFormatter.sizeFormat(record.total) }}</template>
-                <InfinityIcon v-else />
-              </a-tag>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">{{ t('pages.inbounds.allTimeTraffic') }}</span>
-              <a-tag>{{ SizeFormatter.sizeFormat(record.allTime || 0) }}</a-tag>
-            </div>
-            <div v-if="clientCount[record.id]" class="stat-row">
-              <span class="stat-label">{{ t('clients') }}</span>
-              <a-tag color="green" class="client-count-tag">{{ clientCount[record.id].clients }}</a-tag>
-              <a-tag v-if="clientCount[record.id].online.length" color="blue">
-                {{ clientCount[record.id].online.length }} {{ t('online') }}
-              </a-tag>
-              <a-tag v-if="clientCount[record.id].depleted.length" color="red">
-                {{ clientCount[record.id].depleted.length }} {{ t('depleted') }}
-              </a-tag>
-              <a-tag v-if="clientCount[record.id].expiring.length" color="orange">
-                {{ clientCount[record.id].expiring.length }} {{ t('depletingSoon') }}
-              </a-tag>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">{{ t('pages.inbounds.expireDate') }}</span>
-              <a-tag v-if="record.expiryTime > 0"
-                :color="ColorUtils.usageColor(Date.now(), expireDiff, record._expiryTime)">
-                {{ IntlUtil.formatRelativeTime(record.expiryTime) }}
-              </a-tag>
-              <a-tag v-else color="purple">
-                <InfinityIcon />
-              </a-tag>
-            </div>
-          </div>
-
           <!-- Expanded client list (multi-user only) -->
           <div v-if="record.isMultiUser() && isExpanded(record.id)" class="card-clients">
             <ClientRowTable :db-inbound="record" :is-mobile="true" :traffic-diff="trafficDiff" :expire-diff="expireDiff"
               :online-clients="onlineClients" :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme"
               :page-size="pageSize" :total-client-count="clientCount[record.id]?.clients || 0"
+              :stats-version="statsVersion"
               @edit-client="(p) => emit('edit-client', p)" @qrcode-client="(p) => emit('qrcode-client', p)"
               @info-client="(p) => emit('info-client', p)"
               @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
@@ -529,6 +479,73 @@ function showQrCodeMenu(dbInbound) {
           </div>
         </div>
       </div>
+
+      <!-- ====================== Mobile: info modal ====================== -->
+      <a-modal v-if="isMobile" :open="!!statsRecord" :footer="null" :width="360" centered
+        :title="statsRecord ? `#${statsRecord.id} ${statsRecord.remark || ''}`.trim() : ''" @cancel="closeStats">
+        <div v-if="statsRecord" class="card-stats">
+          <div class="stat-row">
+            <span class="stat-label">{{ t('pages.inbounds.protocol') }}</span>
+            <a-tag color="purple">{{ statsRecord.protocol }}</a-tag>
+            <template
+              v-if="statsRecord.isVMess || statsRecord.isVLess || statsRecord.isTrojan || statsRecord.isSS || statsRecord.isHysteria">
+              <a-tag color="green">{{ statsRecord.isHysteria ? 'UDP' : statsRecord.toInbound().stream.network }}</a-tag>
+              <a-tag v-if="statsRecord.toInbound().stream.isTls" color="blue">TLS</a-tag>
+              <a-tag v-if="statsRecord.toInbound().stream.isReality" color="blue">Reality</a-tag>
+            </template>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">{{ t('pages.inbounds.port') }}</span>
+            <a-tag>{{ statsRecord.port }}</a-tag>
+          </div>
+          <div v-if="hasActiveNode" class="stat-row">
+            <span class="stat-label">{{ t('pages.inbounds.node') }}</span>
+            <a-tag v-if="statsRecord.nodeId == null" color="default">
+              {{ t('pages.inbounds.localPanel') }}
+            </a-tag>
+            <a-tag v-else-if="nodesById.get(statsRecord.nodeId)"
+              :color="nodesById.get(statsRecord.nodeId).status === 'online' ? 'blue' : 'red'">
+              {{ nodesById.get(statsRecord.nodeId).name }}
+            </a-tag>
+            <a-tag v-else color="orange">#{{ statsRecord.nodeId }}</a-tag>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">{{ t('pages.inbounds.traffic') }}</span>
+            <a-tag :color="ColorUtils.usageColor(statsRecord.up + statsRecord.down, trafficDiff, statsRecord.total)">
+              {{ SizeFormatter.sizeFormat(statsRecord.up + statsRecord.down) }} /
+              <template v-if="statsRecord.total > 0">{{ SizeFormatter.sizeFormat(statsRecord.total) }}</template>
+              <InfinityIcon v-else />
+            </a-tag>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">{{ t('pages.inbounds.allTimeTraffic') }}</span>
+            <a-tag>{{ SizeFormatter.sizeFormat(statsRecord.allTime || 0) }}</a-tag>
+          </div>
+          <div v-if="clientCount[statsRecord.id]" class="stat-row">
+            <span class="stat-label">{{ t('clients') }}</span>
+            <a-tag color="green" class="client-count-tag">{{ clientCount[statsRecord.id].clients }}</a-tag>
+            <a-tag v-if="clientCount[statsRecord.id].online.length" color="blue">
+              {{ clientCount[statsRecord.id].online.length }} {{ t('online') }}
+            </a-tag>
+            <a-tag v-if="clientCount[statsRecord.id].depleted.length" color="red">
+              {{ clientCount[statsRecord.id].depleted.length }} {{ t('depleted') }}
+            </a-tag>
+            <a-tag v-if="clientCount[statsRecord.id].expiring.length" color="orange">
+              {{ clientCount[statsRecord.id].expiring.length }} {{ t('depletingSoon') }}
+            </a-tag>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">{{ t('pages.inbounds.expireDate') }}</span>
+            <a-tag v-if="statsRecord.expiryTime > 0"
+              :color="ColorUtils.usageColor(Date.now(), expireDiff, statsRecord._expiryTime)">
+              {{ IntlUtil.formatRelativeTime(statsRecord.expiryTime) }}
+            </a-tag>
+            <a-tag v-else color="purple">
+              <InfinityIcon />
+            </a-tag>
+          </div>
+        </div>
+      </a-modal>
 
       <!-- ====================== Desktop: a-table ======================== -->
       <a-table v-else :columns="columns" :data-source="sortedInbounds" :row-key="(r) => r.id"
@@ -542,6 +559,7 @@ function showQrCodeMenu(dbInbound) {
             :traffic-diff="trafficDiff" :expire-diff="expireDiff" :online-clients="onlineClients"
             :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme" :page-size="pageSize"
             :total-client-count="clientCount[record.id]?.clients || 0"
+            :stats-version="statsVersion"
             @edit-client="(p) => emit('edit-client', p)"
             @qrcode-client="(p) => emit('qrcode-client', p)" @info-client="(p) => emit('info-client', p)"
             @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
@@ -553,59 +571,68 @@ function showQrCodeMenu(dbInbound) {
         <template #bodyCell="{ column, record }">
           <!-- ============== Action dropdown ============== -->
           <template v-if="column.key === 'action'">
-            <a-dropdown :trigger="['click']">
-              <MoreOutlined class="row-action-trigger" @click.prevent />
-              <template #overlay>
-                <a-menu @click="(a) => emit('row-action', { key: a.key, dbInbound: record })">
-                  <a-menu-item key="edit">
-                    <EditOutlined /> {{ t('edit') }}
-                  </a-menu-item>
-                  <a-menu-item v-if="showQrCodeMenu(record)" key="qrcode">
-                    <QrcodeOutlined /> {{ t('qrCode') }}
-                  </a-menu-item>
-                  <template v-if="record.isMultiUser()">
-                    <a-menu-item key="addClient">
-                      <UserAddOutlined /> {{ t('pages.client.add') }}
-                    </a-menu-item>
-                    <a-menu-item key="addBulkClient">
-                      <UsergroupAddOutlined /> {{ t('pages.client.bulk') }}
-                    </a-menu-item>
-                    <a-menu-item key="copyClients">
-                      <CopyOutlined /> {{ t('pages.client.copyFromInbound') }}
-                    </a-menu-item>
-                    <a-menu-item key="resetClients">
-                      <FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}
-                    </a-menu-item>
-                    <a-menu-item key="export">
-                      <ExportOutlined /> {{ t('pages.inbounds.export') }}
-                    </a-menu-item>
-                    <a-menu-item v-if="subEnable" key="subs">
-                      <ExportOutlined /> {{ t('pages.inbounds.export') }} — {{ t('pages.settings.subSettings') }}
-                    </a-menu-item>
-                    <a-menu-item key="delDepletedClients" class="danger-item">
-                      <RestOutlined /> {{ t('pages.inbounds.delDepletedClients') }}
-                    </a-menu-item>
+            <div class="action-buttons">
+              <a-button type="text" size="small" @click.prevent="emit('row-action', {key: 'edit', dbInbound: record})">
+                <template #icon>
+                  <EditOutlined />
+                </template>
+              </a-button>
+
+              <a-dropdown :trigger="['click']">
+                <a-button type="text" size="small" @click.prevent>
+                  <template #icon>
+                    <MoreOutlined />
                   </template>
-                  <template v-else>
-                    <a-menu-item key="showInfo">
-                      <InfoCircleOutlined /> {{ t('info') }}
+                </a-button>
+                <template #overlay>
+                  <a-menu @click="(a) => emit('row-action', { key: a.key, dbInbound: record })">
+                    <a-menu-item v-if="showQrCodeMenu(record)" key="qrcode">
+                      <QrcodeOutlined /> {{ t('qrCode') }}
                     </a-menu-item>
-                  </template>
-                  <a-menu-item key="clipboard">
-                    <CopyOutlined /> {{ t('pages.inbounds.exportInbound') }}
-                  </a-menu-item>
-                  <a-menu-item key="resetTraffic">
-                    <RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') }}
-                  </a-menu-item>
-                  <a-menu-item key="clone">
-                    <BlockOutlined /> {{ t('pages.inbounds.clone') }}
-                  </a-menu-item>
-                  <a-menu-item key="delete" class="danger-item">
-                    <DeleteOutlined /> {{ t('delete') }}
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
+                    <template v-if="record.isMultiUser()">
+                      <a-menu-item key="addClient">
+                        <UserAddOutlined /> {{ t('pages.client.add') }}
+                      </a-menu-item>
+                      <a-menu-item key="addBulkClient">
+                        <UsergroupAddOutlined /> {{ t('pages.client.bulk') }}
+                      </a-menu-item>
+                      <a-menu-item key="copyClients">
+                        <CopyOutlined /> {{ t('pages.client.copyFromInbound') }}
+                      </a-menu-item>
+                      <a-menu-item key="resetClients">
+                        <FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}
+                      </a-menu-item>
+                      <a-menu-item key="export">
+                        <ExportOutlined /> {{ t('pages.inbounds.export') }}
+                      </a-menu-item>
+                      <a-menu-item v-if="subEnable" key="subs">
+                        <ExportOutlined /> {{ t('pages.inbounds.export') }} — {{ t('pages.settings.subSettings') }}
+                      </a-menu-item>
+                      <a-menu-item key="delDepletedClients" class="danger-item">
+                        <RestOutlined /> {{ t('pages.inbounds.delDepletedClients') }}
+                      </a-menu-item>
+                    </template>
+                    <template v-else>
+                      <a-menu-item key="showInfo">
+                        <InfoCircleOutlined /> {{ t('info') }}
+                      </a-menu-item>
+                    </template>
+                    <a-menu-item key="clipboard">
+                      <CopyOutlined /> {{ t('pages.inbounds.exportInbound') }}
+                    </a-menu-item>
+                    <a-menu-item key="resetTraffic">
+                      <RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') }}
+                    </a-menu-item>
+                    <a-menu-item key="clone">
+                      <BlockOutlined /> {{ t('pages.inbounds.clone') }}
+                    </a-menu-item>
+                    <a-menu-item key="delete" class="danger-item">
+                      <DeleteOutlined /> {{ t('delete') }}
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
+            </div>
           </template>
 
           <!-- ============== Enable switch (desktop) ============== -->
@@ -744,6 +771,13 @@ function showQrCodeMenu(dbInbound) {
 
 .filter-bar.mobile>* {
     margin-bottom: 4px;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 .protocol-tags {

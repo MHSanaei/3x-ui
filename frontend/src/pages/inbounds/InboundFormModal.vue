@@ -32,6 +32,7 @@ import {
 import { DBInbound } from '@/models/dbinbound.js';
 import FinalMaskForm from '@/components/FinalMaskForm.vue';
 import DateTimePicker from '@/components/DateTimePicker.vue';
+import JsonEditor from '@/components/JsonEditor.vue';
 import { useNodeList } from '@/composables/useNodeList.js';
 
 const { t } = useI18n();
@@ -679,10 +680,7 @@ watch(
       </a-tab-pane>
 
       <!-- ============================== PROTOCOL ============================== -->
-      <!-- TUN has no per-protocol form yet (interface/mtu/gateway live in
-           settings JSON), so the tab would render empty — hide it until
-           a TUN form is added. -->
-      <a-tab-pane v-if="protocol !== Protocols.TUN" key="protocol" :tab="t('pages.inbounds.protocol')">
+      <a-tab-pane key="protocol" :tab="t('pages.inbounds.protocol')">
         <!-- Multi-user inbounds: in add mode embed the first client form,
              in edit mode show a count summary. -->
         <template v-if="isMultiUser">
@@ -895,21 +893,123 @@ watch(
         <!-- Tunnel -->
         <a-form v-if="protocol === Protocols.TUNNEL" :colon="false" :label-col="{ sm: { span: 8 } }"
           :wrapper-col="{ sm: { span: 14 } }" class="mt-12">
-          <a-form-item label="Address">
-            <a-input v-model:value="inbound.settings.address" />
+          <a-form-item label="Rewrite address">
+            <a-input v-model:value="inbound.settings.rewriteAddress" />
           </a-form-item>
-          <a-form-item label="Destination port">
-            <a-input-number v-model:value="inbound.settings.port" :min="1" :max="65535" />
+          <a-form-item label="Rewrite port">
+            <a-input-number v-model:value="inbound.settings.rewritePort" :min="0" :max="65535" />
           </a-form-item>
-          <a-form-item label="Network">
-            <a-select v-model:value="inbound.settings.network">
+          <a-form-item label="Allowed network">
+            <a-select v-model:value="inbound.settings.allowedNetwork">
               <a-select-option value="tcp,udp">TCP, UDP</a-select-option>
               <a-select-option value="tcp">TCP</a-select-option>
               <a-select-option value="udp">UDP</a-select-option>
             </a-select>
           </a-form-item>
+          <a-form-item label="Port map">
+            <a-button size="small" @click="inbound.settings.addPortMap('', '')">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+            </a-button>
+          </a-form-item>
+          <a-form-item v-if="inbound.settings.portMap.length > 0" :wrapper-col="{ span: 24 }">
+            <a-input-group v-for="(pm, idx) in inbound.settings.portMap" :key="`pm-${idx}`" compact class="mb-8">
+              <a-input :style="{ width: '30%' }" v-model:value="pm.name" placeholder="5555">
+                <template #addonBefore>{{ idx + 1 }}</template>
+              </a-input>
+              <a-input :style="{ width: '60%' }" v-model:value="pm.value" placeholder="1.1.1.1:7777" />
+              <a-button @click="inbound.settings.removePortMap(idx)">
+                <template #icon>
+                  <MinusOutlined />
+                </template>
+              </a-button>
+            </a-input-group>
+          </a-form-item>
           <a-form-item label="Follow redirect">
             <a-switch v-model:checked="inbound.settings.followRedirect" />
+          </a-form-item>
+        </a-form>
+
+        <!-- TUN -->
+        <a-form v-if="protocol === Protocols.TUN" :colon="false" :label-col="{ sm: { span: 8 } }"
+          :wrapper-col="{ sm: { span: 14 } }" class="mt-12">
+          <a-form-item label="Interface name">
+            <a-input v-model:value="inbound.settings.name" placeholder="xray0" />
+          </a-form-item>
+          <a-form-item label="MTU">
+            <a-input-number v-model:value="inbound.settings.mtu" :min="0" />
+          </a-form-item>
+          <a-form-item label="Gateway">
+            <a-button size="small" @click="inbound.settings.gateway.push('')">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+            </a-button>
+            <a-input v-for="(_ip, j) in inbound.settings.gateway" :key="`tun-gw-${j}`"
+              v-model:value="inbound.settings.gateway[j]" class="mt-4"
+              :placeholder="j === 0 ? '10.0.0.1/16' : 'fc00::1/64'">
+              <template #addonAfter>
+                <a-button size="small" @click="inbound.settings.gateway.splice(j, 1)">
+                  <template #icon>
+                    <MinusOutlined />
+                  </template>
+                </a-button>
+              </template>
+            </a-input>
+          </a-form-item>
+          <a-form-item label="DNS">
+            <a-button size="small" @click="inbound.settings.dns.push('')">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+            </a-button>
+            <a-input v-for="(_ip, j) in inbound.settings.dns" :key="`tun-dns-${j}`"
+              v-model:value="inbound.settings.dns[j]" class="mt-4" :placeholder="j === 0 ? '1.1.1.1' : '8.8.8.8'">
+              <template #addonAfter>
+                <a-button size="small" @click="inbound.settings.dns.splice(j, 1)">
+                  <template #icon>
+                    <MinusOutlined />
+                  </template>
+                </a-button>
+              </template>
+            </a-input>
+          </a-form-item>
+          <a-form-item label="User level">
+            <a-input-number v-model:value="inbound.settings.userLevel" :min="0" />
+          </a-form-item>
+          <a-form-item>
+            <template #label>
+              <a-tooltip
+                title="Windows-only. CIDRs added to the system routing table automatically so matching traffic goes through TUN.">
+                Auto system routes
+              </a-tooltip>
+            </template>
+            <a-button size="small" @click="inbound.settings.autoSystemRoutingTable.push('')">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+            </a-button>
+            <a-input v-for="(_ip, j) in inbound.settings.autoSystemRoutingTable" :key="`tun-rt-${j}`"
+              v-model:value="inbound.settings.autoSystemRoutingTable[j]" class="mt-4"
+              :placeholder="j === 0 ? '0.0.0.0/0' : '::/0'">
+              <template #addonAfter>
+                <a-button size="small" @click="inbound.settings.autoSystemRoutingTable.splice(j, 1)">
+                  <template #icon>
+                    <MinusOutlined />
+                  </template>
+                </a-button>
+              </template>
+            </a-input>
+          </a-form-item>
+          <a-form-item>
+            <template #label>
+              <a-tooltip
+                title='Physical interface for outbound traffic. Use "auto" to detect; auto-enabled when Auto system routes is set.'>
+                Auto outbounds interface
+              </a-tooltip>
+            </template>
+            <a-input v-model:value="inbound.settings.autoOutboundsInterface" placeholder="auto" />
           </a-form-item>
         </a-form>
 
@@ -1723,9 +1823,33 @@ watch(
             </a-form-item>
           </template>
 
-          <!-- ====== Hysteria Masquerade ====== -->
-          <!-- Per https://xtls.github.io/config/transports/hysteria.html#masqobject -->
+          <!-- ====== Hysteria stream settings ====== -->
+          <!-- Per https://xtls.github.io/config/transports/hysteria.html -->
           <template v-if="protocol === Protocols.HYSTERIA">
+            <a-form-item>
+              <template #label>
+                <a-tooltip title="Hysteria protocol version. Currently must be 2.">
+                  Version
+                </a-tooltip>
+              </template>
+              <a-input-number v-model:value="inbound.stream.hysteria.version" :min="2" :max="2" />
+            </a-form-item>
+            <a-form-item>
+              <template #label>
+                <a-tooltip title="Obfuscation password. Must match between server and client.">
+                  Obfs password
+                </a-tooltip>
+              </template>
+              <a-input v-model:value="inbound.stream.hysteria.auth" />
+            </a-form-item>
+            <a-form-item>
+              <template #label>
+                <a-tooltip title="Idle timeout (seconds) for a single QUIC native UDP connection.">
+                  UDP idle timeout
+                </a-tooltip>
+              </template>
+              <a-input-number v-model:value="inbound.stream.hysteria.udpIdleTimeout" :min="0" />
+            </a-form-item>
             <a-form-item label="Masquerade">
               <a-switch v-model:checked="inbound.stream.hysteria.masqueradeSwitch" />
             </a-form-item>
@@ -1833,16 +1957,13 @@ watch(
           class="mb-12" />
         <a-form layout="vertical">
           <a-form-item label="settings (clients, encryption, fallbacks, …)">
-            <a-textarea v-model:value="advancedJson.settings" :auto-size="{ minRows: 10, maxRows: 24 }"
-              spellcheck="false" class="json-editor" />
+            <JsonEditor v-model:value="advancedJson.settings" min-height="280px" max-height="520px" />
           </a-form-item>
           <a-form-item label="streamSettings">
-            <a-textarea v-model:value="advancedJson.stream" :auto-size="{ minRows: 10, maxRows: 24 }" spellcheck="false"
-              class="json-editor" />
+            <JsonEditor v-model:value="advancedJson.stream" min-height="280px" max-height="520px" />
           </a-form-item>
           <a-form-item label="sniffing (overrides the Sniffing tab when set)">
-            <a-textarea v-model:value="advancedJson.sniffing" :auto-size="{ minRows: 6, maxRows: 16 }"
-              spellcheck="false" class="json-editor" />
+            <JsonEditor v-model:value="advancedJson.sniffing" min-height="180px" max-height="360px" />
           </a-form-item>
         </a-form>
       </a-tab-pane>
@@ -1890,11 +2011,6 @@ watch(
 .vless-auth-state {
   display: block;
   margin-top: 6px;
-}
-
-.json-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
 }
 
 .client-summary {

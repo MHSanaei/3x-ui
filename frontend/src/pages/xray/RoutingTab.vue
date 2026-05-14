@@ -188,9 +188,9 @@ function onDragPointerMove(ev) {
   dragMoved = true;
   const el = document.elementFromPoint(ev.clientX, ev.clientY);
   if (!el) return;
-  const tr = el.closest('tr[data-row-key]');
-  if (!tr) return;
-  const idx = Number(tr.getAttribute('data-row-key'));
+  const target = el.closest('[data-row-key]');
+  if (!target) return;
+  const idx = Number(target.getAttribute('data-row-key'));
   if (Number.isFinite(idx)) dropTargetIndex.value = idx;
 }
 
@@ -220,7 +220,7 @@ function rowProps(_record, index) {
 // === Columns =========================================================
 // Computed so titles re-render after a locale swap.
 const desktopColumns = computed(() => [
-  { title: '#', align: 'center', width: 70, key: 'action' },
+  { title: '#', align: 'center', width: 100, key: 'action' },
   { title: 'Source', align: 'left', width: 180, key: 'source' },
   { title: t('pages.inbounds.network'), align: 'left', width: 180, key: 'network' },
   { title: 'Destination', align: 'left', key: 'destination' },
@@ -340,27 +340,38 @@ function chipPreview(value) {
             <HolderOutlined class="drag-handle" :title="t('drag') || 'Drag to reorder'"
               @pointerdown="onHandlePointerDown(index, $event)" />
             <span class="row-index">{{ index + 1 }}</span>
-            <a-dropdown :trigger="['click']">
-              <a-button shape="circle" size="small">
-                <MoreOutlined />
+
+            <div :class="!isMobile ? 'action-buttons' : ''">
+              <a-button v-if="!isMobile" shape="circle" size="small" @click="openEdit(index)">
+                <template #icon>
+                  <EditOutlined />
+                </template>
               </a-button>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item @click="openEdit(index)">
-                    <EditOutlined /> {{ t('edit') }}
-                  </a-menu-item>
-                  <a-menu-item :disabled="index === 0" @click="moveUp(index)">
-                    <ArrowUpOutlined />
-                  </a-menu-item>
-                  <a-menu-item :disabled="index === rows.length - 1" @click="moveDown(index)">
-                    <ArrowDownOutlined />
-                  </a-menu-item>
-                  <a-menu-item class="danger" @click="confirmDelete(index)">
-                    <DeleteOutlined /> {{ t('delete') }}
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
+
+              <a-dropdown :trigger="['click']">
+                <a-button shape="circle" size="small">
+                  <template #icon>
+                    <MoreOutlined />
+                  </template>
+                </a-button>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item v-if="isMobile" @click="openEdit(index)">
+                      <EditOutlined /> {{ t('edit') }}
+                    </a-menu-item>
+                    <a-menu-item :disabled="index === 0" @click="moveUp(index)">
+                      <ArrowUpOutlined />
+                    </a-menu-item>
+                    <a-menu-item :disabled="index === rows.length - 1" @click="moveDown(index)">
+                      <ArrowDownOutlined />
+                    </a-menu-item>
+                    <a-menu-item class="danger" @click="confirmDelete(index)">
+                      <DeleteOutlined /> {{ t('delete') }}
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
+            </div>
           </div>
         </template>
 
@@ -548,6 +559,14 @@ function chipPreview(value) {
   opacity: 0.7;
   min-width: 18px;
   text-align: right;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-left: auto;
 }
 
 .criterion-flow {
