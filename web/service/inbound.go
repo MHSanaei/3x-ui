@@ -1516,6 +1516,8 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 
 const resetGracePeriodMs int64 = 30000
 
+const onlineGracePeriodMs int64 = 5000
+
 func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot) (bool, error) {
 	var structuralChange bool
 	err := submitTrafficWrite(func() error {
@@ -1857,14 +1859,8 @@ func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic
 
 func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTraffic) (err error) {
 	if len(traffics) == 0 {
-		// Empty onlineUsers
-		if p != nil {
-			p.SetOnlineClients(make([]string, 0))
-		}
 		return nil
 	}
-
-	onlineClients := make([]string, 0)
 
 	emails := make([]string, 0, len(traffics))
 	for _, traffic := range traffics {
@@ -1908,13 +1904,9 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		dbClientTraffics[dbTraffic_index].Down += t.Down
 		dbClientTraffics[dbTraffic_index].AllTime += t.Up + t.Down
 		if t.Up+t.Down > 0 {
-			onlineClients = append(onlineClients, t.Email)
 			dbClientTraffics[dbTraffic_index].LastOnline = now
 		}
 	}
-
-	// Set onlineUsers
-	p.SetOnlineClients(onlineClients)
 
 	err = tx.Save(dbClientTraffics).Error
 	if err != nil {
@@ -3739,6 +3731,19 @@ func (s *InboundService) GetClientsLastOnline() (map[string]int64, error) {
 		result[r.Email] = r.LastOnline
 	}
 	return result, nil
+}
+
+func (s *InboundService) RefreshOnlineClientsFromMap(lastOnlineMap map[string]int64) {
+	now := time.Now().UnixMilli()
+	newOnlineClients := make([]string, 0, len(lastOnlineMap))
+	for email, lastOnline := range lastOnlineMap {
+		if now-lastOnline < onlineGracePeriodMs {
+			newOnlineClients = append(newOnlineClients, email)
+		}
+	}
+	if p != nil {
+		p.SetOnlineClients(newOnlineClients)
+	}
 }
 
 func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, []string, error) {

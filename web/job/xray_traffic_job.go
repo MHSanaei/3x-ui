@@ -77,16 +77,23 @@ func (j *XrayTrafficJob) Run() {
 	// a missing/null onlineClients field as "no update", so without this the
 	// "everyone went offline" transition was silently dropped — stale online
 	// users lingered in the list and the online filter kept showing them.
-	onlineClients := j.inboundService.GetOnlineClients()
-	if onlineClients == nil {
-		onlineClients = []string{}
-	}
 	lastOnlineMap, err := j.inboundService.GetClientsLastOnline()
 	if err != nil {
 		logger.Warning("get clients last online failed:", err)
 	}
 	if lastOnlineMap == nil {
 		lastOnlineMap = make(map[string]int64)
+	}
+
+	// Determine online clients from lastOnline timestamps with a 5-second
+	// grace period instead of just the current 5-second traffic poll. This
+	// prevents idle-but-connected clients from randomly disappearing from
+	// the UI between polling windows.
+	j.inboundService.RefreshOnlineClientsFromMap(lastOnlineMap)
+
+	onlineClients := j.inboundService.GetOnlineClients()
+	if onlineClients == nil {
+		onlineClients = []string{}
 	}
 	websocket.BroadcastTraffic(map[string]any{
 		"traffics":       traffics,

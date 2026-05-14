@@ -87,16 +87,19 @@ func (j *NodeTrafficSyncJob) Run() {
 		return
 	}
 
-	online := j.inboundService.GetOnlineClients()
-	if online == nil {
-		online = []string{}
-	}
 	lastOnline, err := j.inboundService.GetClientsLastOnline()
 	if err != nil {
 		logger.Warning("node traffic sync: get last-online failed:", err)
 	}
 	if lastOnline == nil {
 		lastOnline = map[string]int64{}
+	}
+
+	j.inboundService.RefreshOnlineClientsFromMap(lastOnline)
+
+	online := j.inboundService.GetOnlineClients()
+	if online == nil {
+		online = []string{}
 	}
 	websocket.BroadcastTraffic(map[string]any{
 		"onlineClients": online,
