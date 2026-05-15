@@ -1021,22 +1021,22 @@ install_x-ui() {
     echo -e "${green}x-ui ${tag_version}${plain} 安装完成，正在运行..."
     echo -e ""
     echo -e "╔═══════════════════════════════════════════════════════╗
-║  ${blue}x-ui 控制菜单用法（子命令）：${plain}                         ║
+║  ${blue}x-ui 控制菜单用法（子命令）：${plain}                          ║
 ║                                                       ║
-║  ${blue}x-ui${plain}              - 管理脚本                        ║
-║  ${blue}x-ui start${plain}        - 启动                            ║
-║  ${blue}x-ui stop${plain}         - 停止                            ║
-║  ${blue}x-ui restart${plain}      - 重启                            ║
-║  ${blue}x-ui status${plain}       - 当前状态                        ║
-║  ${blue}x-ui settings${plain}     - 当前设置                        ║
-║  ${blue}x-ui enable${plain}       - 启用开机自启                    ║
-║  ${blue}x-ui disable${plain}      - 禁用开机自启                    ║
-║  ${blue}x-ui log${plain}          - 查看日志                        ║
+║  ${blue}x-ui${plain}              - 管理脚本                         ║
+║  ${blue}x-ui start${plain}        - 启动                             ║
+║  ${blue}x-ui stop${plain}         - 停止                             ║
+║  ${blue}x-ui restart${plain}      - 重启                             ║
+║  ${blue}x-ui status${plain}       - 当前状态                         ║
+║  ${blue}x-ui settings${plain}     - 当前设置                         ║
+║  ${blue}x-ui enable${plain}       - 启用开机自启                     ║
+║  ${blue}x-ui disable${plain}      - 禁用开机自启                     ║
+║  ${blue}x-ui log${plain}          - 查看日志                         ║
 ║  ${blue}x-ui banlog${plain}       - 查看 Fail2ban 禁止日志           ║
-║  ${blue}x-ui update${plain}       - 更新                            ║
-║  ${blue}x-ui legacy${plain}       - 旧版本                          ║
-║  ${blue}x-ui install${plain}      - 安装                            ║
-║  ${blue}x-ui uninstall${plain}    - 卸载                            ║
+║  ${blue}x-ui update${plain}       - 更新                             ║
+║  ${blue}x-ui legacy${plain}       - 旧版本                           ║
+║  ${blue}x-ui install${plain}      - 安装                             ║
+║  ${blue}x-ui uninstall${plain}    - 卸载                             ║
 ╚═══════════════════════════════════════════════════════╝"
 }
 
