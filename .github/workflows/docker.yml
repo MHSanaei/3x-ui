@@ -44,13 +44,13 @@ jobs:
       - name: Login to registries
         uses: docker/login-action@v4
         with:
-          registry-auth: |
+          registry: |
             - username: ${{ vars.DOCKER_HUB_USERNAME }}
               password: ${{ secrets.DOCKER_HUB_TOKEN }}
             - registry: ghcr.io
               username: ${{ github.actor }}
               password: ${{ secrets.GITHUB_TOKEN }}
-            - registry: reg.vados.ru
+            - registry-auth: reg.vados.ru
               username: ${{ vars.VADOS_REG_USERNAME }}
               password: ${{ secrets.VADOS_REG_PASSWORD }}
 
