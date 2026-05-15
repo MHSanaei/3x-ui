@@ -38,10 +38,9 @@ jobs:
             # set latest tag for default branch
             type=raw,value=latest,enable={{is_default_branch}}
             # use custom value instead of git tag
-            type=semver,pattern={{version}},value=v0.0.1
+            type=semver,pattern=v{{version}},value=v0.0.1
             # use custom value and match part of it
-            type=semver,pattern={{version}},value=p1/v0.0.1,match=v(\d.\d.\d)$
-            type=ref,event=branch
+            type=semver,pattern=v{{version}},value=v0.0.1,match=v(\d.\d.\d)$
             type=ref,event=tag
           labels: |
              maintainer=${GITHUB_REPOSITORY_OWNER}
@@ -60,8 +59,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          reg_url="$(echo "${{ env.CI_REGISTRY }}")"
-          reg_user="$(echo "${{ vars.REG_USER }}")"
+          reg_url="${{ env.CI_REGISTRY }}"
+          reg_user="${{ vars.REG_USER }}"
           echo "${{ secrets.REG_PASS }}" | docker login $reg_url -u $user --password-stdin
           
       - name: Build and push Docker image
