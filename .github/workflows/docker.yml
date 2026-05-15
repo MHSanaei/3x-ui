@@ -26,18 +26,29 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         env:
+           DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
            registry: ${{ env.CI_RETGISTRY }}
            image: ${{ env.CI_IMAGE_NAME }}
         with:
           images: |
-            $registry/$image
-#            ghcr.io/vados-dev/${{ env.IMAGE_NAME }}
+             ${registry}/${image}
           flavor: |
-             latest=auto
+             latest=true
           tags: |
+            # set latest tag for default branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            # use custom value instead of git tag
+            type=semver,pattern={{version}},value=v0.0.1
+            # use custom value and match part of it
+            type=semver,pattern={{version}},value=p1/v0.0.1,match=v(\d.\d.\d)$
             type=ref,event=branch
             type=ref,event=tag
-            type=semver,pattern={{version}}
+          labels: |
+             maintainer=${GITHUB_REPOSITORY_OWNER}
+             org.opencontainers.image.url=${registry}/${image}:
+             org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
+
+#            type=semver,pattern={{version}}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -49,7 +60,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo ${{ secrets.REG_PASS }} | docker login ${{ env.CI_RETGISTRY }} -u {{ vars.REG_USER }} --password-stdin
+          echo ${{ secrets.REG_PASS }} | docker login ${{ env.CI_REGISTRY }} -u {{ vars.REG_USER }} --password-stdin
           
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
@@ -57,9 +68,10 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64
-          images: ${{ steps.meta.outputs.images }}:${{ steps.meta.outputs.tags }}
+#          images: ${{ steps.meta.outputs.images }}:${{ steps.meta.outputs.tags }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
 
 #        uses: docker/login-action@v2
 #        with:
