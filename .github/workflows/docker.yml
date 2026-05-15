@@ -5,7 +5,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: "3x-ui"
+  IMAGE_NAME: "reg.vados.ru/3x-ui"
 
 on:
   workflow_dispatch:
@@ -26,7 +26,7 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: |
-            reg.vados.ru/${{ env.IMAGE_NAME }}
+            ${{ env.IMAGE_NAME }}
 #            ghcr.io/vados-dev/${{ env.IMAGE_NAME }}
           flavor: |
              latest=auto
@@ -41,25 +41,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Login to registries
-        uses: docker/login-action@v4
-        with:
-          registry-auth: |
-            - username: ${{ vars.DOCKER_HUB_USERNAME }}
-              password: ${{ secrets.DOCKER_HUB_TOKEN }}
-            - registry: ghcr.io
-              username: ${{ github.actor }}
-              password: ${{ secrets.GITHUB_TOKEN }}
-              
       - name: Login to reg.vados.ru
         uses: docker/login-action@v4
         env:
-          REG_PASS: ${{ secrets.VADOS_REG_PASSWORD }}
+          REG_USER: ${{ vars.VADOS_REG_USERNAME }}
+          REG_PASS: ${{ secrets.REG_PASS }}
+          image: ${{ env.IMAGE_NAME }}
         with:
           registry-auth: |
             - registry: reg.vados.ru
-              username: ${{ vars.VADOS_REG_USERNAME }}
-              password: ${REG_PASS}
+              username: 
+              password: $REG_PASS
+              scope: '${image}@push'
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
@@ -67,6 +60,17 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64
-#          ${{ steps.meta.outputs.images }}:${{ steps.meta.outputs.tags }}
+          images: ${{ steps.meta.outputs.images }}:${{ steps.meta.outputs.tags }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+#      - name: Login to registries
+#        uses: docker/login-action@v4
+#        with:
+#          registry-auth: |
+#            - username: ${{ vars.DOCKER_HUB_USERNAME }}
+#              password: ${{ secrets.DOCKER_HUB_TOKEN }}
+#            - registry: ghcr.io
+#              username: ${{ github.actor }}
+#              password: ${{ secrets.GITHUB_TOKEN }}
+
