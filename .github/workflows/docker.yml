@@ -51,7 +51,7 @@ jobs:
         uses: docker/login-action@v4
         with:
           registry: reg.vados.ru
-          username: ${{ secrets.VADOS_REG_USERNAME }}
+          username: ${{ vars.VADOS_REG_USERNAME }}
           password: ${{ secrets.VADOS_REG_PASSWORD }}
 
       - name: Log in to GHCR
