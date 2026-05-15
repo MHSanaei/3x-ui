@@ -457,6 +457,7 @@
     "settings": {
       "title": "Configurações do Painel",
       "save": "Salvar",
+      "upload": "Enviar",
       "infoDesc": "Toda alteração feita aqui precisa ser salva. Reinicie o painel para aplicar as alterações.",
       "restartPanel": "Reiniciar Painel",
       "restartPanelDesc": "Tem certeza de que deseja reiniciar o painel? Se não conseguir acessar o painel após reiniciar, consulte os logs do painel no servidor.",
@@ -478,6 +479,8 @@
       "privateKeyPathDesc": "O caminho do arquivo de chave privada para o painel web. (começa com ‘/‘)",
       "panelUrlPath": "Caminho URI",
       "panelUrlPathDesc": "O caminho URI para o painel web. (começa com ‘/‘ e termina com ‘/‘)",
+      "panelFavicon": "Favicon",
+      "panelFaviconDesc": "Envie um favicon PNG ou ICO para o painel",
       "pageSize": "Tamanho da Paginação",
       "pageSizeDesc": "Definir o tamanho da página para a tabela de entradas. (0 = desativado)",
       "remarkModel": "Modelo de Observação & Caractere de Separação",
@@ -611,7 +614,11 @@
         "originalUserPassIncorrect": "O nome de usuário ou senha atual é inválido",
         "userPassMustBeNotEmpty": "O novo nome de usuário e senha não podem estar vazios",
         "getOutboundTrafficError": "Erro ao obter tráfego de saída",
-        "resetOutboundTrafficError": "Erro ao redefinir tráfego de saída"
+        "resetOutboundTrafficError": "Erro ao redefinir tráfego de saída",
+        "faviconUploadUnsupported": "Somente arquivos de favicon PNG e ICO são suportados",
+        "faviconUploadTooLarge": "O arquivo de favicon deve ter 256 KB ou menos",
+        "faviconUploadReadError": "Falha ao ler o arquivo de favicon",
+        "faviconUploadFailed": "Falha ao enviar o favicon"
       }
     },
     "xray": {

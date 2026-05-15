@@ -27,6 +27,7 @@ type AllSetting struct {
 	WebCertFile       string `json:"webCertFile" form:"webCertFile"`             // Path to SSL certificate file for web server
 	WebKeyFile        string `json:"webKeyFile" form:"webKeyFile"`               // Path to SSL private key file for web server
 	WebBasePath       string `json:"webBasePath" form:"webBasePath"`             // Base path for web panel URLs
+	WebFavicon        string `json:"webFavicon" form:"webFavicon"`               // Data URL for the web panel favicon
 	SessionMaxAge     int    `json:"sessionMaxAge" form:"sessionMaxAge"`         // Session maximum age in minutes
 	TrustedProxyCIDRs string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"` // Trusted reverse proxy IPs/CIDRs for forwarded headers
 

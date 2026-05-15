@@ -457,6 +457,7 @@
     "settings": {
       "title": "Параметри панелі",
       "save": "Зберегти",
+      "upload": "Завантажити",
       "infoDesc": "Кожна внесена тут зміна повинна бути збережена. Перезапустіть панель, щоб застосувати зміни.",
       "restartPanel": "Перезапустити панель",
       "restartPanelDesc": "Ви впевнені, що бажаєте перезапустити панель? Якщо ви не можете отримати доступ до панелі після перезапуску, будь ласка, перегляньте інформацію журналу панелі на сервері.",
@@ -478,6 +479,8 @@
       "privateKeyPathDesc": "Шлях до файлу приватного ключа для веб-панелі. (починається з ‘/‘)",
       "panelUrlPath": "Шлях URL",
       "panelUrlPathDesc": "Шлях URL для веб-панелі. (починається з ‘/‘ і закінчується ‘/‘)",
+      "panelFavicon": "Favicon",
+      "panelFaviconDesc": "Завантажте PNG або ICO favicon для панелі",
       "pageSize": "Розмір сторінки",
       "pageSizeDesc": "Визначити розмір сторінки для вхідної таблиці. (0 = вимкнено)",
       "remarkModel": "Модель зауваження та роздільний символ",
@@ -611,7 +614,11 @@
         "originalUserPassIncorrect": "Поточне ім'я користувача або пароль недійсні",
         "userPassMustBeNotEmpty": "Нове ім'я користувача та пароль порожні",
         "getOutboundTrafficError": "Помилка отримання вихідного трафіку",
-        "resetOutboundTrafficError": "Помилка скидання вихідного трафіку"
+        "resetOutboundTrafficError": "Помилка скидання вихідного трафіку",
+        "faviconUploadUnsupported": "Підтримуються лише файли favicon у форматі PNG або ICO",
+        "faviconUploadTooLarge": "Файл favicon має бути розміром 256 КБ або менше",
+        "faviconUploadReadError": "Не вдалося прочитати файл favicon",
+        "faviconUploadFailed": "Не вдалося завантажити favicon"
       }
     },
     "xray": {

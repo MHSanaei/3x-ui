@@ -457,6 +457,7 @@
     "settings": {
       "title": "تنظیمات پنل",
       "save": "ذخیره",
+      "upload": "آپلود",
       "infoDesc": "برای اعمال تغییرات در این بخش باید پس از ذخیره کردن، پنل را ریستارت کنید",
       "restartPanel": "ریستارت پنل",
       "restartPanelDesc": "آیا مطمئن به ریستارت پنل هستید؟ اگر پس‌از ریستارت نمی‌توانید به پنل دسترسی پیدا کنید، لطفاً گزارش‌های موجود در اسکریپت پنل را بررسی کنید",
@@ -478,6 +479,8 @@
       "privateKeyPathDesc": "مسیر فایل کلیدخصوصی برای وب پنل. با '/' شروع‌می‌شود",
       "panelUrlPath": "URI مسیر",
       "panelUrlPathDesc": "برای وب پنل. با '/' شروع‌ و با '/' خاتمه‌ می‌یابد URI مسیر",
+      "panelFavicon": "فاوآیکون",
+      "panelFaviconDesc": "یک فاوآیکون PNG یا ICO برای پنل آپلود کنید",
       "pageSize": "اندازه صفحه بندی جدول",
       "pageSizeDesc": "(اندازه صفحه برای جدول ورودی‌ها.(0 = غیرفعال",
       "remarkModel": "نام‌کانفیگ و جداکننده",
@@ -611,7 +614,11 @@
         "originalUserPassIncorrect": "نام‌کاربری یا رمزعبور فعلی اشتباه‌است",
         "userPassMustBeNotEmpty": "نام‌کاربری یا رمزعبور جدید خالی‌است",
         "getOutboundTrafficError": "خطا در دریافت ترافیک خروجی",
-        "resetOutboundTrafficError": "خطا در بازنشانی ترافیک خروجی"
+        "resetOutboundTrafficError": "خطا در بازنشانی ترافیک خروجی",
+        "faviconUploadUnsupported": "فقط فایل‌های فاوآیکون PNG و ICO پشتیبانی می‌شوند",
+        "faviconUploadTooLarge": "حجم فایل فاوآیکون باید ۲۵۶ کیلوبایت یا کمتر باشد",
+        "faviconUploadReadError": "خواندن فایل فاوآیکون ناموفق بود",
+        "faviconUploadFailed": "آپلود فاوآیکون ناموفق بود"
       }
     },
     "xray": {

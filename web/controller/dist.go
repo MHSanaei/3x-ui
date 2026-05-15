@@ -12,6 +12,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/config"
 	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
 	"github.com/mhsanaei/3x-ui/v3/web/session"
 )
 
@@ -67,11 +68,19 @@ func serveDistPage(c *gin.Context, name string) {
 		escapedVer := jsEscape.Replace(config.GetVersion())
 		script += `;window.X_UI_CUR_VER="` + escapedVer + `"`
 	}
+	faviconLink := []byte("")
+	settingService := service.SettingService{}
+	if allSetting, err := settingService.GetAllSetting(); err == nil && strings.TrimSpace(allSetting.WebFavicon) != "" {
+		faviconLink = []byte(`<link rel="icon" href="` + htmlpkg.EscapeString(strings.TrimSpace(allSetting.WebFavicon)) + `">`)
+	} else if err != nil {
+		logger.Warning("Unable to load web favicon for", name+":", err)
+	}
 	script += `;</script>`
 	inject := []byte(script)
 	inject = append(inject, csrfMeta...)
 	inject = append(inject, basePathMeta...)
 	inject = append(inject, []byte(`</head>`)...)
+	inject = append(inject, faviconLink...)
 	out := bytes.Replace(body, []byte("</head>"), inject, 1)
 
 	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")

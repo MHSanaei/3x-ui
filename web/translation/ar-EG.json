@@ -457,6 +457,7 @@
     "settings": {
       "title": "إعدادات البانل",
       "save": "حفظ",
+      "upload": "رفع",
       "infoDesc": "كل تغيير هتعمله هنا لازم يتخزن. ياريت تعيد تشغيل البانل عشان التعديلات تتفعل.",
       "restartPanel": "إعادة تشغيل البانل",
       "restartPanelDesc": "متأكد إنك عايز تعيد تشغيل البانل؟ لو ماقدرتش تدخل بعد إعادة التشغيل، شوف سجل البانل على السيرفر.",
@@ -478,6 +479,8 @@
       "privateKeyPathDesc": "مسار ملف المفتاح الخاص للبانل. (يبدأ بـ '/')",
       "panelUrlPath": "مسار URI",
       "panelUrlPathDesc": "مسار URI للبانل. (يبدأ بـ '/' وبينتهي بـ '/')",
+      "panelFavicon": "الأيقونة المفضلة",
+      "panelFaviconDesc": "ارفع أيقونة مفضلة للوحة بصيغة PNG أو ICO",
       "pageSize": "حجم الصفحة",
       "pageSizeDesc": "حدد حجم الصفحة لجدول الإدخالات. (0 = تعطيل)",
       "remarkModel": "نموذج الملاحظة وحرف الفصل",
@@ -611,7 +614,11 @@
         "originalUserPassIncorrect": "اسم المستخدم أو الباسورد الحالي غير صحيح",
         "userPassMustBeNotEmpty": "اسم المستخدم والباسورد الجديدين فاضيين",
         "getOutboundTrafficError": "خطأ في الحصول على حركات المرور الصادرة",
-        "resetOutboundTrafficError": "خطأ في إعادة تعيين حركات المرور الصادرة"
+        "resetOutboundTrafficError": "خطأ في إعادة تعيين حركات المرور الصادرة",
+        "faviconUploadUnsupported": "يتم دعم ملفات الأيقونة المفضلة بصيغة PNG و ICO فقط",
+        "faviconUploadTooLarge": "يجب أن يكون حجم ملف الأيقونة المفضلة 256 كيلوبايت أو أقل",
+        "faviconUploadReadError": "فشل في قراءة ملف الأيقونة المفضلة",
+        "faviconUploadFailed": "فشل في رفع الأيقونة المفضلة"
       }
     },
     "xray": {

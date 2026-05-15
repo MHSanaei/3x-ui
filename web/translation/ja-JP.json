@@ -457,6 +457,7 @@
     "settings": {
       "title": "パネル設定",
       "save": "保存",
+      "upload": "アップロード",
       "infoDesc": "ここでのすべての変更は、保存してパネルを再起動する必要があります",
       "restartPanel": "パネル再起動",
       "restartPanelDesc": "パネルを再起動してもよろしいですか？再起動後にパネルにアクセスできない場合は、サーバーでパネルログを確認してください",
@@ -478,6 +479,8 @@
       "privateKeyPathDesc": "'/'で始まる絶対パスを入力",
       "panelUrlPath": "パネルURLルートパス",
       "panelUrlPathDesc": "'/'で始まり、'/'で終わる必要があります",
+      "panelFavicon": "ファビコン",
+      "panelFaviconDesc": "パネル用の PNG または ICO ファビコンをアップロードします",
       "pageSize": "ページサイズ",
       "pageSizeDesc": "インバウンドテーブルのページサイズを定義します。0を設定すると無効化されます",
       "remarkModel": "備考モデルと区切り記号",
@@ -611,7 +614,11 @@
         "originalUserPassIncorrect": "旧ユーザー名または旧パスワードが間違っています",
         "userPassMustBeNotEmpty": "新しいユーザー名と新しいパスワードは空にできません",
         "getOutboundTrafficError": "送信トラフィックの取得エラー",
-        "resetOutboundTrafficError": "送信トラフィックのリセットエラー"
+        "resetOutboundTrafficError": "送信トラフィックのリセットエラー",
+        "faviconUploadUnsupported": "PNG および ICO のファビコンファイルのみ対応しています",
+        "faviconUploadTooLarge": "ファビコンファイルは 256 KB 以下にしてください",
+        "faviconUploadReadError": "ファビコンファイルの読み込みに失敗しました",
+        "faviconUploadFailed": "ファビコンのアップロードに失敗しました"
       }
     },
     "xray": {

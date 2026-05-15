@@ -457,6 +457,7 @@
     "settings": {
       "title": "Cài đặt",
       "save": "Lưu",
+      "upload": "Tải lên",
       "infoDesc": "Mọi thay đổi được thực hiện ở đây cần phải được lưu. Vui lòng khởi động lại bảng điều khiển để áp dụng các thay đổi.",
       "restartPanel": "Khởi động lại bảng điều khiển",
       "restartPanelDesc": "Bạn có chắc chắn muốn khởi động lại bảng điều khiển? Nhấn OK để khởi động lại sau 3 giây. Nếu bạn không thể truy cập bảng điều khiển sau khi khởi động lại, vui lòng xem thông tin nhật ký của bảng điều khiển trên máy chủ.",
@@ -478,6 +479,8 @@
       "privateKeyPathDesc": "Điền vào đường dẫn đầy đủ (bắt đầu từ '/')",
       "panelUrlPath": "Đường dẫn gốc URL bảng điều khiển",
       "panelUrlPathDesc": "Phải bắt đầu và kết thúc bằng '/'",
+      "panelFavicon": "Favicon",
+      "panelFaviconDesc": "Tải lên favicon PNG hoặc ICO cho bảng điều khiển",
       "pageSize": "Kích thước phân trang",
       "pageSizeDesc": "Xác định kích thước trang cho bảng gửi đến. Đặt 0 để tắt",
       "remarkModel": "Ghi chú mô hình và ký tự phân tách",
@@ -611,7 +614,11 @@
         "originalUserPassIncorrect": "Tên người dùng hoặc mật khẩu gốc không đúng",
         "userPassMustBeNotEmpty": "Tên người dùng mới và mật khẩu mới không thể để trống",
         "getOutboundTrafficError": "Lỗi khi lấy lưu lượng truy cập đi",
-        "resetOutboundTrafficError": "Lỗi khi đặt lại lưu lượng truy cập đi"
+        "resetOutboundTrafficError": "Lỗi khi đặt lại lưu lượng truy cập đi",
+        "faviconUploadUnsupported": "Chỉ hỗ trợ tệp favicon PNG và ICO",
+        "faviconUploadTooLarge": "Tệp favicon phải có dung lượng từ 256 KB trở xuống",
+        "faviconUploadReadError": "Không thể đọc tệp favicon",
+        "faviconUploadFailed": "Không thể tải favicon lên"
       }
     },
     "xray": {

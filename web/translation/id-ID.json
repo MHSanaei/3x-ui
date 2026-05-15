@@ -457,6 +457,7 @@
     "settings": {
       "title": "Pengaturan Panel",
       "save": "Simpan",
+      "upload": "Unggah",
       "infoDesc": "Setiap perubahan yang dibuat di sini perlu disimpan. Harap restart panel untuk menerapkan perubahan.",
       "restartPanel": "Restart Panel",
       "restartPanelDesc": "Apakah Anda yakin ingin merestart panel? Jika Anda tidak dapat mengakses panel setelah merestart, lihat info log panel di server.",
@@ -478,6 +479,8 @@
       "privateKeyPathDesc": "Path berkas kunci privat untuk panel web. (dimulai dengan ‘/‘)",
       "panelUrlPath": "URI Path",
       "panelUrlPathDesc": "URI path untuk panel web. (dimulai dengan ‘/‘ dan diakhiri dengan ‘/‘)",
+      "panelFavicon": "Favicon",
+      "panelFaviconDesc": "Unggah favicon PNG atau ICO untuk panel",
       "pageSize": "Ukuran Halaman",
       "pageSizeDesc": "Tentukan ukuran halaman untuk tabel masuk. (0 = nonaktif)",
       "remarkModel": "Model Catatan & Karakter Pemisah",
@@ -611,7 +614,11 @@
         "originalUserPassIncorrect": "Username atau password saat ini tidak valid",
         "userPassMustBeNotEmpty": "Username dan password baru tidak boleh kosong",
         "getOutboundTrafficError": "Gagal mendapatkan lalu lintas keluar",
-        "resetOutboundTrafficError": "Gagal mereset lalu lintas keluar"
+        "resetOutboundTrafficError": "Gagal mereset lalu lintas keluar",
+        "faviconUploadUnsupported": "Hanya file favicon PNG dan ICO yang didukung",
+        "faviconUploadTooLarge": "File favicon harus berukuran 256 KB atau lebih kecil",
+        "faviconUploadReadError": "Gagal membaca file favicon",
+        "faviconUploadFailed": "Gagal mengunggah favicon"
       }
     },
     "xray": {

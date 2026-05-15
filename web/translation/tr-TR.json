@@ -457,6 +457,7 @@
     "settings": {
       "title": "Panel Ayarları",
       "save": "Kaydet",
+      "upload": "Yükle",
       "infoDesc": "Burada yapılan her değişikliğin kaydedilmesi gerekir. Değişikliklerin uygulanması için paneli yeniden başlatın.",
       "restartPanel": "Paneli Yeniden Başlat",
       "restartPanelDesc": "Paneli yeniden başlatmak istediğinizden emin misiniz? Yeniden başlattıktan sonra panele erişemezseniz, sunucudaki panel günlük bilgilerini görüntüleyin.",
@@ -478,6 +479,8 @@
       "privateKeyPathDesc": "Web paneli için özel anahtar dosya yolu. ('/' ile başlar)",
       "panelUrlPath": "URI Yolu",
       "panelUrlPathDesc": "Web paneli için URI yolu. ('/' ile başlar ve '/' ile biter)",
+      "panelFavicon": "Favicon",
+      "panelFaviconDesc": "Panel için PNG veya ICO favicon yükleyin",
       "pageSize": "Sayfa Boyutu",
       "pageSizeDesc": "Gelenler tablosu için sayfa boyutunu belirleyin. (0 = devre dışı)",
       "remarkModel": "Açıklama Modeli & Ayırma Karakteri",
@@ -611,7 +614,11 @@
         "originalUserPassIncorrect": "Mevcut kullanıcı adı veya şifre geçersiz",
         "userPassMustBeNotEmpty": "Yeni kullanıcı adı ve şifre boş olamaz",
         "getOutboundTrafficError": "Giden trafik alınırken hata",
-        "resetOutboundTrafficError": "Giden trafik sıfırlanırken hata"
+        "resetOutboundTrafficError": "Giden trafik sıfırlanırken hata",
+        "faviconUploadUnsupported": "Yalnızca PNG ve ICO favicon dosyaları desteklenir",
+        "faviconUploadTooLarge": "Favicon dosyası 256 KB veya daha küçük olmalıdır",
+        "faviconUploadReadError": "Favicon dosyası okunamadı",
+        "faviconUploadFailed": "Favicon yüklenemedi"
       }
     },
     "xray": {

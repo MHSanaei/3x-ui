@@ -457,6 +457,7 @@
     "settings": {
       "title": "Configuraciones",
       "save": "Guardar",
+      "upload": "Subir",
       "infoDesc": "Cada cambio realizado aquí debe ser guardado. Por favor, reinicie el panel para aplicar los cambios.",
       "restartPanel": "Reiniciar Panel",
       "restartPanelDesc": "¿Está seguro de que desea reiniciar el panel? Haga clic en Aceptar para reiniciar después de 3 segundos. Si no puede acceder al panel después de reiniciar, por favor, consulte la información de registro del panel en el servidor.",
@@ -478,6 +479,8 @@
       "privateKeyPathDesc": "Complete con una ruta absoluta que comience con.",
       "panelUrlPath": "Ruta Raíz de la URL del Panel",
       "panelUrlPathDesc": "Debe empezar con '/' y terminar con.",
+      "panelFavicon": "Favicon",
+      "panelFaviconDesc": "Sube un favicon PNG o ICO para el panel",
       "pageSize": "Tamaño de paginación",
       "pageSizeDesc": "Defina el tamaño de página para la tabla de entradas. Establezca 0 para desactivar",
       "remarkModel": "Modelo de observación y carácter de separación",
@@ -611,7 +614,11 @@
         "originalUserPassIncorrect": "Nombre de usuario o contraseña original incorrectos",
         "userPassMustBeNotEmpty": "El nuevo nombre de usuario y la nueva contraseña no pueden estar vacíos",
         "getOutboundTrafficError": "Error al obtener el tráfico saliente",
-        "resetOutboundTrafficError": "Error al reiniciar el tráfico saliente"
+        "resetOutboundTrafficError": "Error al reiniciar el tráfico saliente",
+        "faviconUploadUnsupported": "Solo se admiten archivos favicon PNG e ICO",
+        "faviconUploadTooLarge": "El archivo favicon debe ser de 256 KB o menos",
+        "faviconUploadReadError": "No se pudo leer el archivo favicon",
+        "faviconUploadFailed": "No se pudo subir el favicon"
       }
     },
     "xray": {

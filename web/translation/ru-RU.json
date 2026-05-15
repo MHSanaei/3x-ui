@@ -457,6 +457,7 @@
     "settings": {
       "title": "Настройки",
       "save": "Сохранить",
+      "upload": "Загрузить",
       "infoDesc": "Сохраните изменения и перезапустите панель для их применения.",
       "restartPanel": "Перезапуск панели",
       "restartPanelDesc": "Вы уверены, что хотите перезапустить панель? Подтвердите, и перезапуск произойдёт через 3 секунды. Если панель будет недоступна, проверьте лог сервера",
@@ -478,6 +479,8 @@
       "privateKeyPathDesc": "Введите полный путь, начинающийся с '/'",
       "panelUrlPath": "Корневой путь URL адреса панели",
       "panelUrlPathDesc": "Должен начинаться с '/' и заканчиваться '/'",
+      "panelFavicon": "Favicon",
+      "panelFaviconDesc": "Загрузите PNG или ICO favicon для панели",
       "pageSize": "Размер нумерации страниц",
       "pageSizeDesc": "Определить размер страницы для таблицы подключений. Установите 0, чтобы отключить",
       "remarkModel": "Модель примечания и символ разделения",
@@ -611,7 +614,11 @@
         "originalUserPassIncorrect": "Неверное имя пользователя или пароль",
         "userPassMustBeNotEmpty": "Новое имя пользователя и новый пароль должны быть заполнены",
         "getOutboundTrafficError": "Ошибка получения трафика исходящего подключения",
-        "resetOutboundTrafficError": "Ошибка сброса трафика исходящего подключения"
+        "resetOutboundTrafficError": "Ошибка сброса трафика исходящего подключения",
+        "faviconUploadUnsupported": "Поддерживаются только favicon файлы PNG и ICO",
+        "faviconUploadTooLarge": "Размер favicon должен быть не больше 256 КБ",
+        "faviconUploadReadError": "Не удалось прочитать файл favicon",
+        "faviconUploadFailed": "Не удалось загрузить favicon"
       }
     },
     "xray": {

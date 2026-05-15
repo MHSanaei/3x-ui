@@ -2,6 +2,7 @@ package service
 
 import (
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,6 +35,7 @@ var defaultValueMap = map[string]string{
 	"secret":                      random.Seq(32),
 	"apiToken":                    "",
 	"webBasePath":                 "/",
+	"webFavicon":                  "",
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
 	"pageSize":                    "25",
@@ -115,6 +117,8 @@ var defaultValueMap = map[string]string{
 // SettingService provides business logic for application settings management.
 // It handles configuration storage, retrieval, and validation for all system settings.
 type SettingService struct{}
+
+const faviconMaxSize = 256 * 1024
 
 func (s *SettingService) GetDefaultJSONConfig() (any, error) {
 	var jsonData any
@@ -774,7 +778,7 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	if err := s.preserveRedactedSecrets(allSetting); err != nil {
 		return err
 	}
-	if err := validateSettingsURLs(allSetting); err != nil {
+	if err := validateSettingsInputs(allSetting); err != nil {
 		return err
 	}
 	if err := allSetting.CheckValid(); err != nil {
@@ -822,7 +826,11 @@ func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) 
 	return nil
 }
 
-func validateSettingsURLs(allSetting *entity.AllSetting) error {
+func validateSettingsInputs(allSetting *entity.AllSetting) error {
+	if err := validateWebFavicon(allSetting); err != nil {
+		return err
+	}
+
 	if allSetting.ExternalTrafficInformURI != "" {
 		u, err := SanitizeHTTPURL(allSetting.ExternalTrafficInformURI)
 		if err != nil {
@@ -837,6 +845,37 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 		}
 		allSetting.TgBotAPIServer = u
 	}
+	return nil
+}
+
+func validateWebFavicon(allSetting *entity.AllSetting) error {
+	allSetting.WebFavicon = strings.TrimSpace(allSetting.WebFavicon)
+	if allSetting.WebFavicon == "" {
+		return nil
+	}
+
+	const marker = ";base64,"
+	idx := strings.Index(allSetting.WebFavicon, marker)
+	if idx < len("data:") || !strings.HasPrefix(allSetting.WebFavicon, "data:") {
+		return common.NewError("web favicon is invalid")
+	}
+	mimeType := allSetting.WebFavicon[len("data:"):idx]
+
+	switch mimeType {
+	case "image/png", "image/x-icon", "image/vnd.microsoft.icon":
+	default:
+		return common.NewError("web favicon file type is not supported")
+	}
+	data, err := base64.StdEncoding.DecodeString(allSetting.WebFavicon[idx+len(marker):])
+
+	if err != nil {
+		return common.NewError("web favicon is invalid:", err)
+	}
+
+	if len(data) > faviconMaxSize {
+		return common.NewError("web favicon file is too large")
+	}
+
 	return nil
 }
 

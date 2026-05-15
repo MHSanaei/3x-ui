@@ -14,6 +14,7 @@ export class AllSetting {
         this.webCertFile = "";
         this.webKeyFile = "";
         this.webBasePath = "/";
+        this.webFavicon = "";
         this.sessionMaxAge = 360;
         this.trustedProxyCIDRs = "127.0.0.1/32,::1/128";
         this.pageSize = 25;

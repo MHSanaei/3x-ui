@@ -457,6 +457,7 @@
     "settings": {
       "title": "面板设置",
       "save": "保存",
+      "upload": "上传",
       "infoDesc": "此处的所有更改都需要保存并重启面板才能生效",
       "restartPanel": "重启面板",
       "restartPanelDesc": "确定要重启面板吗？若重启后无法访问面板，请前往服务器查看面板日志信息",
@@ -478,6 +479,8 @@
       "privateKeyPathDesc": "填写一个 '/' 开头的绝对路径",
       "panelUrlPath": "面板 url 根路径",
       "panelUrlPathDesc": "必须以 '/' 开头，以 '/' 结尾",
+      "panelFavicon": "网站图标",
+      "panelFaviconDesc": "为面板上传 PNG 或 ICO 格式的网站图标",
       "pageSize": "分页大小",
       "pageSizeDesc": "定义入站表的页面大小。设置 0 表示禁用",
       "remarkModel": "备注模型和分隔符",
@@ -611,7 +614,11 @@
         "originalUserPassIncorrect": "原用户名或原密码错误",
         "userPassMustBeNotEmpty": "新用户名和新密码不能为空",
         "getOutboundTrafficError": "获取出站流量错误",
-        "resetOutboundTrafficError": "重置出站流量错误"
+        "resetOutboundTrafficError": "重置出站流量错误",
+        "faviconUploadUnsupported": "仅支持 PNG 和 ICO 网站图标文件",
+        "faviconUploadTooLarge": "网站图标文件必须不超过 256 KB",
+        "faviconUploadReadError": "读取网站图标文件失败",
+        "faviconUploadFailed": "上传网站图标失败"
       }
     },
     "xray": {

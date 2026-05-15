@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { DeleteOutlined, UploadOutlined } from '@ant-design/icons-vue';
+import { message } from 'ant-design-vue';
 
 import { HttpUtil, LanguageManager } from '@/utils';
 import SettingListItem from '@/components/SettingListItem.vue';
@@ -77,6 +79,10 @@ const ldapInboundTagList = computed({
 });
 
 const inboundOptions = ref([]);
+const faviconPreview = computed(() => props.allSetting.webFavicon);
+const faviconMaxSize = 256 * 1024;
+const faviconMimeTypes = ['image/png', 'image/x-icon', 'image/vnd.microsoft.icon'];
+
 async function loadInboundTags() {
   const msg = await HttpUtil.get('/panel/api/inbounds/list');
   if (msg?.success && Array.isArray(msg.obj)) {
@@ -88,6 +94,57 @@ async function loadInboundTags() {
     inboundOptions.value = [];
   }
 }
+
+const uploadFavicon = async ({ file, onSuccess, onError }) => {
+  try {
+    const dataUrl = await fileToFaviconDataUrl(file);
+    props.allSetting.webFavicon = dataUrl;
+    onSuccess?.();
+  } catch (error) {
+    message.error(error?.message || t('pages.settings.toasts.faviconUploadFailed'));
+    onError?.(error);
+  }
+};
+
+const deleteFavicon = () => {
+  props.allSetting.webFavicon = '';
+};
+
+const fileToFaviconDataUrl = (file) => new Promise((resolve, reject) => {
+  if (!file) {
+    reject(new Error(t('pages.settings.toasts.faviconUploadFailed')));
+    return;
+  }
+
+  const ext = file.name?.split('.').pop()?.toLowerCase();
+  const mime = file.type || (ext === 'ico' ? 'image/x-icon' : '');
+
+  if (!faviconMimeTypes.includes(mime)) {
+    reject(new Error(t('pages.settings.toasts.faviconUploadUnsupported')));
+    return;
+  }
+
+  if (file.size > faviconMaxSize) {
+    reject(new Error(t('pages.settings.toasts.faviconUploadTooLarge')));
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const result = String(reader.result || '');
+    if (result) {
+      resolve(result);
+    } else {
+      reject(new Error(t('pages.settings.toasts.faviconUploadReadError')));
+    }
+  };
+  reader.onerror = () => reject(new Error(t('pages.settings.toasts.faviconUploadReadError')));
+  try {
+    reader.readAsDataURL(file);
+  } catch {
+    reject(new Error(t('pages.settings.toasts.faviconUploadReadError')));
+  }
+});
 
 onMounted(loadInboundTags);
 </script>
@@ -142,6 +199,33 @@ onMounted(loadInboundTags);
         <template #description>{{ t('pages.settings.panelUrlPathDesc') }}</template>
         <template #control>
           <a-input v-model:value="allSetting.webBasePath" type="text" />
+        </template>
+      </SettingListItem>
+
+      <SettingListItem paddings="small">
+        <template #title>{{ t('pages.settings.panelFavicon') }}</template>
+        <template #description>{{ t('pages.settings.panelFaviconDesc') }}</template>
+        <template #control>
+          <a-space>
+            <a-avatar v-if="faviconPreview" shape="square" :size="32" :src="faviconPreview" />
+
+            <a-upload accept=".ico,.png,image/x-icon,image/vnd.microsoft.icon,image/png"
+              :show-upload-list="false"
+              :custom-request="uploadFavicon">
+              <a-button>
+                <template #icon>
+                  <UploadOutlined />
+                </template>
+                {{ t('pages.settings.upload') }}
+              </a-button>
+            </a-upload>
+
+            <a-button v-if="faviconPreview" danger @click="deleteFavicon">
+              <template #icon>
+                <DeleteOutlined />
+              </template>
+            </a-button>
+          </a-space>
         </template>
       </SettingListItem>
 
@@ -429,6 +513,12 @@ onMounted(loadInboundTags);
 </template>
 
 <style scoped>
+.favicon-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .ldap-no-inbounds {
   margin-top: 6px;
   color: #999;

@@ -457,6 +457,7 @@
     "settings": {
       "title": "Panel Settings",
       "save": "Save",
+      "upload": "Upload",
       "infoDesc": "Every change made here needs to be saved. Please restart the panel to apply changes.",
       "restartPanel": "Restart Panel",
       "restartPanelDesc": "Are you sure you want to restart the panel? If you cannot access the panel after restarting, please view the panel log info on the server.",
@@ -478,6 +479,8 @@
       "privateKeyPathDesc": "The private key file path for the web panel. (begins with ‘/‘)",
       "panelUrlPath": "URI Path",
       "panelUrlPathDesc": "The URI path for the web panel. (begins with ‘/‘ and concludes with ‘/‘)",
+      "panelFavicon": "Favicon",
+      "panelFaviconDesc": "Upload a PNG or ICO favicon for the panel",
       "pageSize": "Pagination Size",
       "pageSizeDesc": "Define page size for inbounds table. (0 = disable)",
       "remarkModel": "Remark Model & Separation Character",
@@ -611,7 +614,11 @@
         "originalUserPassIncorrect": "The сurrent username or password is invalid",
         "userPassMustBeNotEmpty": "The new username and password is empty",
         "getOutboundTrafficError": "Error getting traffics",
-        "resetOutboundTrafficError": "Error in reset outbound traffics"
+        "resetOutboundTrafficError": "Error in reset outbound traffics",
+        "faviconUploadUnsupported": "Only PNG and ICO favicon files are supported",
+        "faviconUploadTooLarge": "Favicon file must be 256 KB or smaller",
+        "faviconUploadReadError": "Failed to read favicon file",
+        "faviconUploadFailed": "Failed to upload favicon"
       }
     },
     "xray": {
