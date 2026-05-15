@@ -6,7 +6,7 @@ permissions:
 
 env:
   CI_IMAGE_NAME: "3x-ui"
-  CI_RETGISTRY: "reg.vados.ru"
+  CI_REGISTRY: "reg.vados.ru"
 
 on:
   workflow_dispatch:
@@ -60,7 +60,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo ${{ secrets.REG_PASS }} | docker login ${{ env.CI_REGISTRY }} -u {{ vars.REG_USER }} --password-stdin
+          reg_url="$(echo "${{ env.CI_REGISTRY }}")"
+          reg_user="$(echo "${{ vars.REG_USER }}")"
+          echo "${{ secrets.REG_PASS }}" | docker login $reg_url -u $user --password-stdin
           
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
