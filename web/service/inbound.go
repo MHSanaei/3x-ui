@@ -1516,7 +1516,12 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 
 const resetGracePeriodMs int64 = 30000
 
-const onlineGracePeriodMs int64 = 5000
+// onlineGracePeriodMs must comfortably exceed the 5s traffic-poll interval —
+// Xray's stats counters often report a zero delta for an active session across
+// a single poll, so a 5s grace would still drop the client on the next tick.
+// ~4 polls of slack keeps idle-but-connected clients visible without lingering
+// long after a real disconnect.
+const onlineGracePeriodMs int64 = 20000
 
 func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot) (bool, error) {
 	var structuralChange bool
