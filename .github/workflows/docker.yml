@@ -44,7 +44,7 @@ jobs:
       - name: Login to reg.vados.ru
         uses: docker/login-action@v4
         with:
-          username: ${{ vars.VADOS_REG_USERNAME }}
+          username: ${{ vars.REG_USER }}
           password: ${{ secrets.REG_PASS }}
           scope: '${image}@push'
 
