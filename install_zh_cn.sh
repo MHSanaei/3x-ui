@@ -1021,7 +1021,7 @@ install_x-ui() {
     echo -e "${green}x-ui ${tag_version}${plain} 安装完成，正在运行..."
     echo -e ""
     echo -e "╔═══════════════════════════════════════════════════════╗
-║  ${blue}x-ui 控制菜单用法（子命令）：${plain}                          ║
+║  ${blue}x-ui 控制菜单用法（子命令）：${plain}                        ║
 ║                                                       ║
 ║  ${blue}x-ui${plain}              - 管理脚本                         ║
 ║  ${blue}x-ui start${plain}        - 启动                             ║
