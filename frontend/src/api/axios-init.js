@@ -51,7 +51,12 @@ export function setupAxios() {
   axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
   axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-  const basePath = window.X_UI_BASE_PATH;
+  // Read base path from window object or fallback to meta tag (for Cloudflare Rocket Loader compatibility)
+  let basePath = window.X_UI_BASE_PATH;
+  if (!basePath) {
+    const metaTag = document.querySelector('meta[name="base-path"]');
+    basePath = metaTag ? metaTag.getAttribute('content') : null;
+  }
   if (typeof basePath === 'string' && basePath !== '' && basePath !== '/') {
     axios.defaults.baseURL = basePath;
   }

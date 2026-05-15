@@ -418,6 +418,8 @@
       "apiTokenHint": "リモートパネルでは、設定 → APIトークン でAPIトークンを確認できます。",
       "regenerate": "トークンを再生成",
       "regenerateConfirm": "再生成すると現在のトークンは無効になります。これを使用しているすべての中央パネルは更新されるまでアクセスできなくなります。続行しますか？",
+      "allowPrivateAddress": "プライベートアドレスを許可",
+      "allowPrivateAddressHint": "プライベートネットワークまたはVPN上のノードにのみ有効にします。",
       "enable": "有効",
       "status": "ステータス",
       "cpu": "CPU",

@@ -418,6 +418,8 @@
       "apiTokenHint": "Panel jarak jauh menampilkan token API-nya di Pengaturan → Token API.",
       "regenerate": "Buat Ulang Token",
       "regenerateConfirm": "Membuat ulang akan membatalkan token saat ini. Setiap panel pusat yang menggunakannya akan kehilangan akses sampai diperbarui. Lanjutkan?",
+      "allowPrivateAddress": "Izinkan alamat pribadi",
+      "allowPrivateAddressHint": "Aktifkan hanya untuk node di jaringan pribadi atau VPN.",
       "enable": "Aktif",
       "status": "Status",
       "cpu": "CPU",

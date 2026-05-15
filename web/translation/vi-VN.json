@@ -418,6 +418,8 @@
       "apiTokenHint": "Panel từ xa hiển thị token API tại Cài đặt → Token API.",
       "regenerate": "Tạo lại token",
       "regenerateConfirm": "Tạo lại sẽ vô hiệu hóa token hiện tại. Mọi panel trung tâm dùng nó sẽ mất quyền truy cập cho đến khi được cập nhật. Tiếp tục?",
+      "allowPrivateAddress": "Cho phép địa chỉ riêng",
+      "allowPrivateAddressHint": "Chỉ bật cho các nút trên mạng riêng hoặc VPN.",
       "enable": "Kích hoạt",
       "status": "Trạng thái",
       "cpu": "CPU",

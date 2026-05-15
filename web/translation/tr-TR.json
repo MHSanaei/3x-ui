@@ -418,6 +418,8 @@
       "apiTokenHint": "Uzak panel API token'ını Ayarlar → API Token altında gösterir.",
       "regenerate": "Token'ı Yeniden Oluştur",
       "regenerateConfirm": "Yeniden oluşturmak mevcut token'ı geçersiz kılar. Onu kullanan tüm merkezi paneller, güncellenene kadar erişimini kaybeder. Devam edilsin mi?",
+      "allowPrivateAddress": "Özel adrese izin ver",
+      "allowPrivateAddressHint": "Yalnızca özel ağ veya VPN üzerindeki düğümler için etkinleştir.",
       "enable": "Etkin",
       "status": "Durum",
       "cpu": "CPU",

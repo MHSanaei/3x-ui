@@ -1397,6 +1397,13 @@ export class Outbound extends CommonClass {
 
         const port = json.port * 1;
 
+        // Parse fm (finalmask) JSON string — TCP/UDP masks + QUIC params from 3x-ui share links
+        if (json.fm) {
+            try {
+                stream.finalmask = FinalMaskStreamSettings.fromJson(JSON.parse(json.fm));
+            } catch (_) { /* ignore malformed fm */ }
+        }
+
         return new Outbound(json.ps, Protocols.VMess, new Outbound.VmessSettings(json.add, port, json.id, json.scy), stream);
     }
 
@@ -1496,6 +1503,14 @@ export class Outbound extends CommonClass {
             default:
                 return null;
         }
+        // Parse fm (finalmask) JSON param — TCP/UDP masks + QUIC params from 3x-ui share links
+        const fmRaw = url.searchParams.get('fm');
+        if (fmRaw) {
+            try {
+                stream.finalmask = FinalMaskStreamSettings.fromJson(JSON.parse(fmRaw));
+            } catch (_) { /* ignore malformed fm */ }
+        }
+
         let remark = decodeURIComponent(url.hash);
         // Remove '#' from url.hash
         remark = remark.length > 0 ? remark.substring(1) : 'out-' + protocol + '-' + port;
@@ -1516,7 +1531,17 @@ export class Outbound extends CommonClass {
         let urlParams = new URLSearchParams(params);
 
         // Create stream settings with hysteria network
-        let stream = new StreamSettings('hysteria', 'none');
+        let security = urlParams.get('security') ?? 'none';
+        let stream = new StreamSettings('hysteria', security);
+
+        // Parse TLS settings when security=tls
+        if (security === 'tls') {
+            let fp = urlParams.get('fp') ?? 'none';
+            let alpn = urlParams.get('alpn');
+            let sni = urlParams.get('sni') ?? '';
+            let ech = urlParams.get('ech') ?? '';
+            stream.tls = new TlsStreamSettings(sni, alpn ? alpn.split(',') : [], fp, ech);
+        }
 
         // Set hysteria stream settings
         stream.hysteria.auth = password;
@@ -1534,7 +1559,7 @@ export class Outbound extends CommonClass {
             stream.hysteria.udphopIntervalMax = parseInt(urlParams.get('udphopIntervalMax') ?? '30');
         }
 
-        // Optional QUIC parameters
+        // Optional QUIC parameters for FinalMask support and hysteria2 share links
         if (urlParams.has('initStreamReceiveWindow')) {
             stream.hysteria.initStreamReceiveWindow = parseInt(urlParams.get('initStreamReceiveWindow'));
         }
@@ -1555,6 +1580,38 @@ export class Outbound extends CommonClass {
         }
         if (urlParams.has('disablePathMTUDiscovery')) {
             stream.hysteria.disablePathMTUDiscovery = urlParams.get('disablePathMTUDiscovery') === 'true';
+        }
+
+        // Parse fm (finalmask) JSON param — TCP/UDP masks + QUIC params from 3x-ui share links, with special handling to mirror QUIC params into both stream.finalmask and stream.hysteria
+        const fmRaw = urlParams.get('fm');
+        if (fmRaw) {
+            try {
+                const fm = JSON.parse(fmRaw);
+                const qp = fm.quicParams;
+                if (qp && typeof qp === 'object') {
+                    // Populate stream.finalmask.quicParams — this enables the "QUIC Params"
+                    // toggle in FinalMaskForm and carries all QUIC tuning settings.
+                    stream.finalmask.quicParams = QuicParams.fromJson(qp);
+
+                    // Also mirror the overlapping fields into stream.hysteria so the
+                    // Hysteria transport section of the form shows consistent values.
+                    if (qp.congestion) stream.hysteria.congestion = qp.congestion;
+                    if (Number.isInteger(qp.initStreamReceiveWindow)) stream.hysteria.initStreamReceiveWindow = qp.initStreamReceiveWindow;
+                    if (Number.isInteger(qp.maxStreamReceiveWindow)) stream.hysteria.maxStreamReceiveWindow = qp.maxStreamReceiveWindow;
+                    if (Number.isInteger(qp.initConnectionReceiveWindow)) stream.hysteria.initConnectionReceiveWindow = qp.initConnectionReceiveWindow;
+                    if (Number.isInteger(qp.maxConnectionReceiveWindow)) stream.hysteria.maxConnectionReceiveWindow = qp.maxConnectionReceiveWindow;
+                    if (Number.isInteger(qp.maxIdleTimeout)) stream.hysteria.maxIdleTimeout = qp.maxIdleTimeout;
+                    if (Number.isInteger(qp.keepAlivePeriod)) stream.hysteria.keepAlivePeriod = qp.keepAlivePeriod;
+                    if (qp.disablePathMTUDiscovery === true) stream.hysteria.disablePathMTUDiscovery = true;
+                    if (qp.udpHop) {
+                        stream.hysteria.udphopPort = qp.udpHop.ports ?? stream.hysteria.udphopPort;
+                        if (qp.udpHop.interval !== undefined) {
+                            stream.hysteria.udphopIntervalMin = qp.udpHop.interval;
+                            stream.hysteria.udphopIntervalMax = qp.udpHop.interval;
+                        }
+                    }
+                }
+            } catch (_) { /* ignore malformed fm */ }
         }
 
         // Create settings

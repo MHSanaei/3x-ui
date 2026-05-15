@@ -418,6 +418,8 @@
       "apiTokenHint": "O painel remoto exibe o token da API em Configurações → Token da API.",
       "regenerate": "Regenerar token",
       "regenerateConfirm": "Regenerar invalida o token atual. Qualquer painel central que o utilize perderá acesso até ser atualizado. Continuar?",
+      "allowPrivateAddress": "Permitir endereço privado",
+      "allowPrivateAddressHint": "Ativar apenas para nós em uma rede privada ou VPN.",
       "enable": "Ativado",
       "status": "Status",
       "cpu": "CPU",

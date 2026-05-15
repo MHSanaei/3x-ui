@@ -70,8 +70,11 @@ const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const inbound = ref(null);
 const dbForm = ref(null);
 const saving = ref(false);
-const advancedJson = ref({ stream: '', sniffing: '', settings: '' });
+const advancedStreamText = ref('');
+const advancedSniffingText = ref('');
+const advancedSettingsText = ref('');
 const activeTabKey = ref('basic');
+const advancedSectionKey = ref('all');
 // Cached default cert/key paths from /panel/setting/defaultSettings —
 // powers the "Set default cert" button on the TLS form.
 const defaultCert = ref('');
@@ -223,14 +226,19 @@ function freshDbForm() {
 
 function primeAdvancedJson() {
   if (!inbound.value) return;
+  // Only set stream text for protocols that support it
+  if (canEnableStream.value) {
+    try {
+      advancedStreamText.value = JSON.stringify(JSON.parse(inbound.value.stream.toString()), null, 2);
+    } catch (_e) { /* keep prior text */ }
+  } else {
+    advancedStreamText.value = '{}';
+  }
   try {
-    advancedJson.value.stream = JSON.stringify(JSON.parse(inbound.value.stream.toString()), null, 2);
+    advancedSniffingText.value = JSON.stringify(JSON.parse(inbound.value.sniffing.toString()), null, 2);
   } catch (_e) { /* keep prior text */ }
   try {
-    advancedJson.value.sniffing = JSON.stringify(JSON.parse(inbound.value.sniffing.toString()), null, 2);
-  } catch (_e) { /* keep prior text */ }
-  try {
-    advancedJson.value.settings = JSON.stringify(JSON.parse(inbound.value.settings.toString()), null, 2);
+    advancedSettingsText.value = JSON.stringify(JSON.parse(inbound.value.settings.toString()), null, 2);
   } catch (_e) { /* keep prior text */ }
 }
 
@@ -244,6 +252,7 @@ watch(() => props.open, (next) => {
     primeAdvancedJson();
   }
   activeTabKey.value = 'basic';
+  advancedSectionKey.value = 'all';
   fetchDefaultCertSettings();
 });
 
@@ -253,18 +262,18 @@ function applyAdvancedJsonToBasic() {
   let parsedStream;
   let parsedSniffing;
   try {
-    parsedSettings = advancedJson.value.settings.trim()
-      ? JSON.parse(advancedJson.value.settings)
+    parsedSettings = advancedSettingsText.value.trim()
+      ? JSON.parse(advancedSettingsText.value)
       : inbound.value.settings?.toJson?.();
   } catch (e) { message.error(`Settings JSON invalid: ${e.message}`); return false; }
   try {
-    parsedStream = advancedJson.value.stream.trim()
-      ? JSON.parse(advancedJson.value.stream)
+    parsedStream = advancedStreamText.value.trim()
+      ? JSON.parse(advancedStreamText.value)
       : inbound.value.stream?.toJson?.();
   } catch (e) { message.error(`Stream JSON invalid: ${e.message}`); return false; }
   try {
-    parsedSniffing = advancedJson.value.sniffing.trim()
-      ? JSON.parse(advancedJson.value.sniffing)
+    parsedSniffing = advancedSniffingText.value.trim()
+      ? JSON.parse(advancedSniffingText.value)
       : inbound.value.sniffing?.toJson?.();
   } catch (e) { message.error(`Sniffing JSON invalid: ${e.message}`); return false; }
 
@@ -323,6 +332,216 @@ function onNetworkChange(next) {
     inbound.value.stream.finalmask.udp = [];
   }
 }
+
+function parseAdvancedSliceOrFallback(rawText, fallbackValue) {
+  if (!rawText?.trim()) return fallbackValue;
+  return JSON.parse(rawText);
+}
+
+function unwrapWrappedObject(parsed, key) {
+  if (
+    parsed
+    && typeof parsed === 'object'
+    && !Array.isArray(parsed)
+    && parsed[key] !== undefined
+  ) {
+    return parsed[key];
+  }
+  return parsed;
+}
+
+const advancedAllConfig = computed({
+  get: () => {
+    if (!inbound.value) return '';
+    try {
+      const settings = parseAdvancedSliceOrFallback(
+        advancedSettingsText.value,
+        inbound.value.settings?.toJson?.() || {},
+      );
+      const streamSettings = parseAdvancedSliceOrFallback(
+        advancedStreamText.value,
+        inbound.value.stream?.toJson?.() || {},
+      );
+      const sniffing = parseAdvancedSliceOrFallback(
+        advancedSniffingText.value,
+        inbound.value.sniffing?.toJson?.() || {},
+      );
+
+      const result = {
+        listen: inbound.value.listen,
+        port: inbound.value.port,
+        protocol: inbound.value.protocol,
+        settings,
+        sniffing,
+        tag: inbound.value.tag,
+      };
+
+      // Only include streamSettings for protocols that support it
+      if (canEnableStream.value) {
+        result.streamSettings = streamSettings;
+      }
+
+      return JSON.stringify(result, null, 2);
+    } catch (_e) {
+      return '';
+    }
+  },
+  set: (next) => {
+    let parsed;
+    try {
+      parsed = JSON.parse(next);
+    } catch (e) {
+      message.error(`All JSON invalid: ${e.message}`);
+      return;
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      message.error('All JSON must be an inbound object.');
+      return;
+    }
+
+    try {
+      if (typeof parsed.listen === 'string') {
+        inbound.value.listen = parsed.listen;
+      }
+      if (parsed.port !== undefined) {
+        const parsedPort = Number(parsed.port);
+        if (!Number.isNaN(parsedPort) && Number.isFinite(parsedPort)) {
+          inbound.value.port = parsedPort;
+        }
+      }
+      if (typeof parsed.protocol === 'string' && PROTOCOLS.includes(parsed.protocol)) {
+        inbound.value.protocol = parsed.protocol;
+      }
+      if (typeof parsed.tag === 'string') {
+        inbound.value.tag = parsed.tag;
+      }
+
+      const existingSettings = parseAdvancedSliceOrFallback(
+        advancedSettingsText.value,
+        inbound.value?.settings?.toJson?.() || {},
+      );
+      const settings = parsed.settings ?? existingSettings;
+      const sniffing = parsed.sniffing ?? (inbound.value?.sniffing?.toJson?.() || {});
+      advancedSettingsText.value = JSON.stringify(settings, null, 2);
+      advancedSniffingText.value = JSON.stringify(sniffing, null, 2);
+
+      // Only update stream settings if protocol supports it
+      if (canEnableStream.value) {
+        const streamSettings = parsed.streamSettings ?? (inbound.value?.stream?.toJson?.() || {});
+        advancedStreamText.value = JSON.stringify(streamSettings, null, 2);
+      } else {
+        advancedStreamText.value = '{}';
+      }
+    } catch (e) {
+      message.error(`All JSON invalid: ${e.message}`);
+    }
+  },
+});
+
+const advancedSettingsConfig = computed({
+  get: () => {
+    if (!inbound.value) return '';
+    try {
+      const settings = parseAdvancedSliceOrFallback(
+        advancedSettingsText.value,
+        inbound.value.settings?.toJson?.() || {},
+      );
+      return JSON.stringify({
+        settings,
+      }, null, 2);
+    } catch (_e) {
+      return '';
+    }
+  },
+  set: (next) => {
+    let parsed;
+    try {
+      parsed = JSON.parse(next);
+    } catch (e) {
+      message.error(`Settings JSON invalid: ${e.message}`);
+      return;
+    }
+    const unwrapped = unwrapWrappedObject(parsed, 'settings');
+    if (!unwrapped || typeof unwrapped !== 'object' || Array.isArray(unwrapped)) {
+      message.error('Settings JSON must be an object or { settings: { ... } }.');
+      return;
+    }
+
+    try {
+      advancedSettingsText.value = JSON.stringify(unwrapped, null, 2);
+    } catch (e) {
+      message.error(`Settings JSON invalid: ${e.message}`);
+    }
+  },
+});
+
+const advancedSniffingConfig = computed({
+  get: () => {
+    if (!inbound.value) return '';
+    try {
+      const sniffing = parseAdvancedSliceOrFallback(
+        advancedSniffingText.value,
+        inbound.value.sniffing?.toJson?.() || {},
+      );
+      return JSON.stringify({ sniffing }, null, 2);
+    } catch (_e) {
+      return '';
+    }
+  },
+  set: (next) => {
+    let parsed;
+    try {
+      parsed = JSON.parse(next);
+    } catch (e) {
+      message.error(`Sniffing JSON invalid: ${e.message}`);
+      return;
+    }
+    const unwrapped = unwrapWrappedObject(parsed, 'sniffing');
+    if (!unwrapped || typeof unwrapped !== 'object' || Array.isArray(unwrapped)) {
+      message.error('Sniffing JSON must be an object or { sniffing: { ... } }.');
+      return;
+    }
+    try {
+      advancedSniffingText.value = JSON.stringify(unwrapped, null, 2);
+    } catch (e) {
+      message.error(`Sniffing JSON invalid: ${e.message}`);
+    }
+  },
+});
+
+const advancedStreamConfig = computed({
+  get: () => {
+    if (!inbound.value) return '';
+    try {
+      const streamSettings = parseAdvancedSliceOrFallback(
+        advancedStreamText.value,
+        inbound.value.stream?.toJson?.() || {},
+      );
+      return JSON.stringify({ streamSettings }, null, 2);
+    } catch (_e) {
+      return '';
+    }
+  },
+  set: (next) => {
+    let parsed;
+    try {
+      parsed = JSON.parse(next);
+    } catch (e) {
+      message.error(`Stream JSON invalid: ${e.message}`);
+      return;
+    }
+    const unwrapped = unwrapWrappedObject(parsed, 'streamSettings');
+    if (!unwrapped || typeof unwrapped !== 'object' || Array.isArray(unwrapped)) {
+      message.error('Stream JSON must be an object or { streamSettings: { ... } }.');
+      return;
+    }
+    try {
+      advancedStreamText.value = JSON.stringify(unwrapped, null, 2);
+    } catch (e) {
+      message.error(`Stream JSON invalid: ${e.message}`);
+    }
+  },
+});
 
 // === Random helpers wired to the form's sync icons ==================
 function randomEmail(target) {
@@ -525,16 +744,16 @@ async function submit() {
     let settings;
     try {
       streamSettings = canEnableStream.value
-        ? JSON.stringify(JSON.parse(advancedJson.value.stream))
+        ? JSON.stringify(JSON.parse(advancedStreamText.value))
         : (inbound.value.stream?.sockopt
           ? JSON.stringify({ sockopt: inbound.value.stream.sockopt.toJson() })
           : '');
     } catch (e) { message.error(`Stream JSON invalid: ${e.message}`); return; }
     try {
-      sniffing = JSON.stringify(JSON.parse(advancedJson.value.sniffing || inbound.value.sniffing.toString()));
+      sniffing = JSON.stringify(JSON.parse(advancedSniffingText.value || inbound.value.sniffing.toString()));
     } catch (e) { message.error(`Sniffing JSON invalid: ${e.message}`); return; }
     try {
-      settings = JSON.stringify(JSON.parse(advancedJson.value.settings || inbound.value.settings.toString()));
+      settings = JSON.stringify(JSON.parse(advancedSettingsText.value || inbound.value.settings.toString()));
     } catch (e) { message.error(`Settings JSON invalid: ${e.message}`); return; }
 
     // The structured form mutates `inbound.stream` directly when the
@@ -597,8 +816,13 @@ watch(
   () => inbound.value && JSON.stringify(inbound.value.stream?.toJson?.() || {}),
   () => {
     if (!inbound.value?.stream) return;
+    // Only update stream text for protocols that support it
+    if (!canEnableStream.value) {
+      advancedStreamText.value = '{}';
+      return;
+    }
     try {
-      advancedJson.value.stream = JSON.stringify(JSON.parse(inbound.value.stream.toString()), null, 2);
+      advancedStreamText.value = JSON.stringify(JSON.parse(inbound.value.stream.toString()), null, 2);
     } catch (_e) { /* leave as is */ }
   },
 );
@@ -607,7 +831,7 @@ watch(
   () => {
     if (!inbound.value?.sniffing) return;
     try {
-      advancedJson.value.sniffing = JSON.stringify(JSON.parse(inbound.value.sniffing.toString()), null, 2);
+      advancedSniffingText.value = JSON.stringify(JSON.parse(inbound.value.sniffing.toString()), null, 2);
     } catch (_e) { /* leave as is */ }
   },
 );
@@ -616,8 +840,19 @@ watch(
   () => {
     if (!inbound.value?.settings) return;
     try {
-      advancedJson.value.settings = JSON.stringify(JSON.parse(inbound.value.settings.toString()), null, 2);
+      advancedSettingsText.value = JSON.stringify(JSON.parse(inbound.value.settings.toString()), null, 2);
     } catch (_e) { /* leave as is */ }
+  },
+);
+
+// Watch protocol changes to clear stream settings for protocols that don't support it
+watch(
+  () => inbound.value?.protocol,
+  () => {
+    if (!inbound.value) return;
+    if (!canEnableStream.value) {
+      advancedStreamText.value = '{}';
+    }
   },
 );
 </script>
@@ -1005,7 +1240,7 @@ watch(
           <a-form-item>
             <template #label>
               <a-tooltip
-                title='Physical interface for outbound traffic. Use "auto" to detect; auto-enabled when Auto system routes is set.'>
+                title="Physical interface for outbound traffic. Use 'auto' to detect; auto-enabled when Auto system routes is set.">
                 Auto outbounds interface
               </a-tooltip>
             </template>
@@ -1836,14 +2071,6 @@ watch(
             </a-form-item>
             <a-form-item>
               <template #label>
-                <a-tooltip title="Obfuscation password. Must match between server and client.">
-                  Obfs password
-                </a-tooltip>
-              </template>
-              <a-input v-model:value="inbound.stream.hysteria.auth" />
-            </a-form-item>
-            <a-form-item>
-              <template #label>
                 <a-tooltip title="Idle timeout (seconds) for a single QUIC native UDP connection.">
                   UDP idle timeout
                 </a-tooltip>
@@ -1952,20 +2179,48 @@ watch(
 
       <!-- ============================== ADVANCED ============================== -->
       <a-tab-pane key="advanced" :tab="t('pages.xray.advancedTemplate')">
-        <a-alert type="info" show-icon
-          message="Edit raw stream JSON to access advanced fields we don't yet expose through the form."
-          class="mb-12" />
-        <a-form layout="vertical">
-          <a-form-item label="settings (clients, encryption, fallbacks, …)">
-            <JsonEditor v-model:value="advancedJson.settings" min-height="280px" max-height="520px" />
-          </a-form-item>
-          <a-form-item label="streamSettings">
-            <JsonEditor v-model:value="advancedJson.stream" min-height="280px" max-height="520px" />
-          </a-form-item>
-          <a-form-item label="sniffing (overrides the Sniffing tab when set)">
-            <JsonEditor v-model:value="advancedJson.sniffing" min-height="180px" max-height="360px" />
-          </a-form-item>
-        </a-form>
+        <div class="advanced-shell">
+          <div class="advanced-panel">
+            <div class="advanced-panel__header">
+              <div>
+                <div class="advanced-panel__title">Inbound JSON sections</div>
+                <div class="advanced-panel__subtitle">
+                  Full inbound JSON and focused editors for settings, sniffing, and streamSettings.
+                </div>
+              </div>
+            </div>
+
+            <a-tabs v-model:active-key="advancedSectionKey" class="advanced-inner-tabs">
+              <a-tab-pane key="all" tab="All">
+                <div class="advanced-editor-meta">
+                  Full inbound object with all fields in one editor.
+                </div>
+                <JsonEditor v-model:value="advancedAllConfig" min-height="340px" max-height="560px" />
+              </a-tab-pane>
+              <a-tab-pane key="settings" tab="Settings">
+                <div class="advanced-editor-meta">
+                  Xray settings block wrapper:
+                  <code>{ settings: { ... } }</code>.
+                </div>
+                <JsonEditor v-model:value="advancedSettingsConfig" min-height="320px" max-height="540px" />
+              </a-tab-pane>
+              <a-tab-pane key="sniffingSection" tab="Sniffing">
+                <div class="advanced-editor-meta">
+                  Xray sniffing block wrapper:
+                  <code>{ sniffing: { ... } }</code>.
+                </div>
+                <JsonEditor v-model:value="advancedSniffingConfig" min-height="240px" max-height="420px" />
+              </a-tab-pane>
+              <a-tab-pane v-if="canEnableStream" key="streamSection" tab="Stream">
+                <div class="advanced-editor-meta">
+                  Xray stream block wrapper:
+                  <code>{ streamSettings: { ... } }</code>.
+                </div>
+                <JsonEditor v-model:value="advancedStreamConfig" min-height="320px" max-height="540px" />
+              </a-tab-pane>
+            </a-tabs>
+          </div>
+        </div>
       </a-tab-pane>
     </a-tabs>
   </a-modal>
@@ -2039,6 +2294,73 @@ watch(
 
 .wg-peer {
   margin-top: 4px;
+}
+
+.advanced-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.advanced-panel {
+  padding: 14px;
+  border: 1px solid rgba(128, 128, 128, 0.18);
+  border-radius: 12px;
+  background: rgba(128, 128, 128, 0.04);
+}
+
+.advanced-panel__header {
+  margin-bottom: 12px;
+}
+
+.advanced-panel__title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.advanced-panel__subtitle {
+  margin-top: 4px;
+  color: rgba(0, 0, 0, 0.6);
+  line-height: 1.5;
+}
+
+.advanced-inner-tabs :deep(.ant-tabs-nav) {
+  margin-bottom: 12px;
+}
+
+.advanced-inner-tabs :deep(.ant-tabs-tab) {
+  padding-inline: 14px;
+}
+
+.advanced-editor-meta {
+  margin-bottom: 10px;
+  color: rgba(0, 0, 0, 0.65);
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .advanced-panel {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .advanced-inner-tabs :deep(.ant-tabs-tab) {
+    padding-inline: 10px;
+  }
+}
+
+:global(.dark) .advanced-panel__subtitle,
+:global(.dark) .advanced-editor-meta,
+:global(.ultra) .advanced-panel__subtitle,
+:global(.ultra) .advanced-editor-meta {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+:global(.dark) .advanced-panel,
+:global(.ultra) .advanced-panel {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .section-heading {

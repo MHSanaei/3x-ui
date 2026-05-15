@@ -418,6 +418,8 @@
       "apiTokenHint": "The remote panel exposes its API token under Settings → API Token.",
       "regenerate": "Regenerate Token",
       "regenerateConfirm": "Regenerating invalidates the current token. Any central panel using it will lose access until updated. Continue?",
+      "allowPrivateAddress": "Allow private address",
+      "allowPrivateAddressHint": "Enable only for nodes on a private network or VPN.",
       "enable": "Enabled",
       "status": "Status",
       "cpu": "CPU",

@@ -418,6 +418,8 @@
       "apiTokenHint": "遠端面板在 設定 → API 權杖 中顯示其 API 權杖。",
       "regenerate": "重新產生權杖",
       "regenerateConfirm": "重新產生會使目前的權杖失效。任何使用該權杖的中央面板將失去存取權，直到更新為止。是否繼續？",
+      "allowPrivateAddress": "允許私有地址",
+      "allowPrivateAddressHint": "僅對私有網路或VPN上的節點啟用。",
       "enable": "已啟用",
       "status": "狀態",
       "cpu": "CPU",

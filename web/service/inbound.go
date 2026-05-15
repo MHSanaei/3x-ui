@@ -279,11 +279,31 @@ func (s *InboundService) checkEmailsExistForClients(clients []model.Client) (str
 	return "", nil
 }
 
+// normalizeStreamSettings clears StreamSettings for protocols that don't use it.
+// Only vmess, vless, trojan, shadowsocks, and hysteria protocols use streamSettings.
+func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
+	protocolsWithStream := map[model.Protocol]bool{
+		model.VMESS:       true,
+		model.VLESS:       true,
+		model.Trojan:      true,
+		model.Shadowsocks: true,
+		model.Hysteria:    true,
+		model.Hysteria2:   true,
+	}
+	
+	if !protocolsWithStream[inbound.Protocol] {
+		inbound.StreamSettings = ""
+	}
+}
+
 // AddInbound creates a new inbound configuration.
 // It validates port uniqueness, client email uniqueness, and required fields,
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	// Normalize streamSettings based on protocol
+	s.normalizeStreamSettings(inbound)
+	
 	exist, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
 		return inbound, false, err
@@ -550,6 +570,9 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 }
 
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	// Normalize streamSettings based on protocol
+	s.normalizeStreamSettings(inbound)
+	
 	exist, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {
 		return inbound, false, err
@@ -1543,6 +1566,13 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 
 const resetGracePeriodMs int64 = 30000
 
+// onlineGracePeriodMs must comfortably exceed the 5s traffic-poll interval —
+// Xray's stats counters often report a zero delta for an active session across
+// a single poll, so a 5s grace would still drop the client on the next tick.
+// ~4 polls of slack keeps idle-but-connected clients visible without lingering
+// long after a real disconnect.
+const onlineGracePeriodMs int64 = 20000
+
 func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot) (bool, error) {
 	var structuralChange bool
 	err := submitTrafficWrite(func() error {
@@ -1884,14 +1914,8 @@ func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic
 
 func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTraffic) (err error) {
 	if len(traffics) == 0 {
-		// Empty onlineUsers
-		if p != nil {
-			p.SetOnlineClients(make([]string, 0))
-		}
 		return nil
 	}
-
-	onlineClients := make([]string, 0)
 
 	emails := make([]string, 0, len(traffics))
 	for _, traffic := range traffics {
@@ -1935,13 +1959,9 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		dbClientTraffics[dbTraffic_index].Down += t.Down
 		dbClientTraffics[dbTraffic_index].AllTime += t.Up + t.Down
 		if t.Up+t.Down > 0 {
-			onlineClients = append(onlineClients, t.Email)
 			dbClientTraffics[dbTraffic_index].LastOnline = now
 		}
 	}
-
-	// Set onlineUsers
-	p.SetOnlineClients(onlineClients)
 
 	err = tx.Save(dbClientTraffics).Error
 	if err != nil {
@@ -3766,6 +3786,19 @@ func (s *InboundService) GetClientsLastOnline() (map[string]int64, error) {
 		result[r.Email] = r.LastOnline
 	}
 	return result, nil
+}
+
+func (s *InboundService) RefreshOnlineClientsFromMap(lastOnlineMap map[string]int64) {
+	now := time.Now().UnixMilli()
+	newOnlineClients := make([]string, 0, len(lastOnlineMap))
+	for email, lastOnline := range lastOnlineMap {
+		if now-lastOnline < onlineGracePeriodMs {
+			newOnlineClients = append(newOnlineClients, email)
+		}
+	}
+	if p != nil {
+		p.SetOnlineClients(newOnlineClients)
+	}
 }
 
 func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, []string, error) {

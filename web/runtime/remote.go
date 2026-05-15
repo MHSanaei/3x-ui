@@ -344,10 +344,15 @@ func wireInbound(ib *model.Inbound) url.Values {
 }
 
 // sanitizeStreamSettingsForRemote strips file-based TLS certificate paths
-// from the StreamSettings before sending to a remote node. File paths
-// (certificateFile / keyFile) are local to the main panel's filesystem
-// and will cause Xray on the remote node to crash if they don't exist there.
-// Inline certificate content (certificate / key) is kept intact.
+// from the StreamSettings before sending to a remote node, but ONLY when
+// inline certificate content (certificate / key) is also present in the same
+// entry.  In that case the file paths are redundant and stripping them avoids
+// confusion when the central panel's local paths don't exist on the remote.
+//
+// When a certificate entry contains ONLY file paths (no inline content) the
+// paths are left untouched: the user explicitly entered paths that exist on
+// the remote node's filesystem, and removing them would leave Xray with TLS
+// configured but no certificate, causing Xray to crash on the remote node.
 func sanitizeStreamSettingsForRemote(streamSettings string) string {
 	if streamSettings == "" {
 		return streamSettings
@@ -368,18 +373,40 @@ func sanitizeStreamSettingsForRemote(streamSettings string) string {
 		return streamSettings
 	}
 
+	changed := false
 	for _, cert := range certificates {
 		c, ok := cert.(map[string]any)
 		if !ok {
 			continue
 		}
-		delete(c, "certificateFile")
-		delete(c, "keyFile")
+		// Only strip file paths when inline content is present so that the
+		// remote Xray still has a valid certificate to use.
+		hasCertFile := c["certificateFile"] != nil && c["certificateFile"] != ""
+		hasKeyFile := c["keyFile"] != nil && c["keyFile"] != ""
+		hasCertInline := isNonEmptySlice(c["certificate"])
+		hasKeyInline := isNonEmptySlice(c["key"])
+		if hasCertFile && hasCertInline {
+			delete(c, "certificateFile")
+			changed = true
+		}
+		if hasKeyFile && hasKeyInline {
+			delete(c, "keyFile")
+			changed = true
+		}
 	}
 
+	if !changed {
+		return streamSettings
+	}
 	out, err := json.Marshal(stream)
 	if err != nil {
 		return streamSettings
 	}
 	return string(out)
+}
+
+// isNonEmptySlice reports whether v is a non-nil, non-empty JSON array value.
+func isNonEmptySlice(v any) bool {
+	s, ok := v.([]any)
+	return ok && len(s) > 0
 }
