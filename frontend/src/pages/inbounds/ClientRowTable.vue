@@ -8,6 +8,8 @@ import {
   RetweetOutlined,
   DeleteOutlined,
   EllipsisOutlined,
+  CaretUpOutlined,
+  CaretDownOutlined,
 } from '@ant-design/icons-vue';
 import { Modal } from 'ant-design-vue';
 
@@ -50,14 +52,55 @@ const inbound = computed(() => props.dbInbound.toInbound());
 const clients = computed(() => inbound.value?.clients || []);
 
 const currentPage = ref(1);
-const paginatedClients = computed(() => {
-  if (!props.pageSize || props.pageSize <= 0) return clients.value;
-  const start = (currentPage.value - 1) * props.pageSize;
-  return clients.value.slice(start, start + props.pageSize);
+const sortState = ref({ column: null, order: null });
+
+const sortFns = {
+  client: (a, b) => (a.email || '').localeCompare(b.email || ''),
+  enable: (a, b) => Number(a.enable) - Number(b.enable),
+  online: (a, b) => {
+    const aOn = !!a.email && props.onlineClients.includes(a.email);
+    const bOn = !!b.email && props.onlineClients.includes(b.email);
+    return Number(aOn) - Number(bOn);
+  },
+  traffic: (a, b) => (getSum(a.email) - getSum(b.email)),
+  remained: (a, b) => (getRem(a.email) - getRem(b.email)),
+  alltime: (a, b) => (getAllTime(a.email) - getAllTime(b.email)),
+  expiry: (a, b) => (a.expiryTime || Infinity) - (b.expiryTime || Infinity),
+};
+
+const sortedClients = computed(() => {
+  const { column, order } = sortState.value;
+  if (!column || !order) return clients.value;
+  const fn = sortFns[column];
+  if (!fn) return clients.value;
+  const sorted = [...clients.value].sort(fn);
+  return order === 'descend' ? sorted.reverse() : sorted;
 });
 
+const paginatedClients = computed(() => {
+  if (!props.pageSize || props.pageSize <= 0) return sortedClients.value;
+  const start = (currentPage.value - 1) * props.pageSize;
+  return sortedClients.value.slice(start, start + props.pageSize);
+});
+
+function toggleSort(col) {
+  const cur = sortState.value;
+  if (cur.column !== col) {
+    sortState.value = { column: col, order: 'ascend' };
+  } else if (cur.order === 'ascend') {
+    sortState.value = { column: col, order: 'descend' };
+  } else {
+    sortState.value = { column: null, order: null };
+  }
+}
+
+function sortIndicator(col) {
+  if (sortState.value.column !== col) return null;
+  return sortState.value.order === 'ascend' ? 'ascend' : 'descend';
+}
+
 watch([clients, () => props.pageSize], () => {
-  const total = clients.value.length;
+  const total = sortedClients.value.length;
   const size = props.pageSize > 0 ? props.pageSize : (total || 1);
   const maxPage = Math.max(1, Math.ceil(total / size));
   if (currentPage.value > maxPage) currentPage.value = maxPage;
@@ -282,13 +325,55 @@ function confirmBulkDelete() {
             @change="(e) => selectAll(e.target.checked)" />
         </div>
         <div class="cell cell-actions">{{ t('pages.settings.actions') }}</div>
-        <div class="cell cell-enable">{{ t('enable') }}</div>
-        <div class="cell cell-online">{{ t('online') }}</div>
-        <div class="cell cell-client">{{ t('pages.inbounds.client') }}</div>
-        <div class="cell cell-traffic">{{ t('pages.inbounds.traffic') }}</div>
-        <div class="cell cell-remained">{{ t('remained') }}</div>
-        <div class="cell cell-alltime">{{ t('pages.inbounds.allTimeTraffic') }}</div>
-        <div class="cell cell-expiry">{{ t('pages.inbounds.expireDate') }}</div>
+        <div class="cell cell-enable sortable" @click="toggleSort('enable')">
+          {{ t('enable') }}
+          <span class="sort-icons">
+            <CaretUpOutlined :class="['sort-icon', { active: sortIndicator('enable') === 'ascend' }]" />
+            <CaretDownOutlined :class="['sort-icon', { active: sortIndicator('enable') === 'descend' }]" />
+          </span>
+        </div>
+        <div class="cell cell-online sortable" @click="toggleSort('online')">
+          {{ t('online') }}
+          <span class="sort-icons">
+            <CaretUpOutlined :class="['sort-icon', { active: sortIndicator('online') === 'ascend' }]" />
+            <CaretDownOutlined :class="['sort-icon', { active: sortIndicator('online') === 'descend' }]" />
+          </span>
+        </div>
+        <div class="cell cell-client sortable" @click="toggleSort('client')">
+          {{ t('pages.inbounds.client') }}
+          <span class="sort-icons">
+            <CaretUpOutlined :class="['sort-icon', { active: sortIndicator('client') === 'ascend' }]" />
+            <CaretDownOutlined :class="['sort-icon', { active: sortIndicator('client') === 'descend' }]" />
+          </span>
+        </div>
+        <div class="cell cell-traffic sortable" @click="toggleSort('traffic')">
+          {{ t('pages.inbounds.traffic') }}
+          <span class="sort-icons">
+            <CaretUpOutlined :class="['sort-icon', { active: sortIndicator('traffic') === 'ascend' }]" />
+            <CaretDownOutlined :class="['sort-icon', { active: sortIndicator('traffic') === 'descend' }]" />
+          </span>
+        </div>
+        <div class="cell cell-remained sortable" @click="toggleSort('remained')">
+          {{ t('remained') }}
+          <span class="sort-icons">
+            <CaretUpOutlined :class="['sort-icon', { active: sortIndicator('remained') === 'ascend' }]" />
+            <CaretDownOutlined :class="['sort-icon', { active: sortIndicator('remained') === 'descend' }]" />
+          </span>
+        </div>
+        <div class="cell cell-alltime sortable" @click="toggleSort('alltime')">
+          {{ t('pages.inbounds.allTimeTraffic') }}
+          <span class="sort-icons">
+            <CaretUpOutlined :class="['sort-icon', { active: sortIndicator('alltime') === 'ascend' }]" />
+            <CaretDownOutlined :class="['sort-icon', { active: sortIndicator('alltime') === 'descend' }]" />
+          </span>
+        </div>
+        <div class="cell cell-expiry sortable" @click="toggleSort('expiry')">
+          {{ t('pages.inbounds.expireDate') }}
+          <span class="sort-icons">
+            <CaretUpOutlined :class="['sort-icon', { active: sortIndicator('expiry') === 'ascend' }]" />
+            <CaretDownOutlined :class="['sort-icon', { active: sortIndicator('expiry') === 'descend' }]" />
+          </span>
+        </div>
       </div>
 
       <div v-for="client in paginatedClients" :key="rowKey(client)" class="client-row"
@@ -620,6 +705,36 @@ function confirmBulkDelete() {
   letter-spacing: 0.02em;
 }
 
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 120ms ease;
+  flex-wrap: nowrap !important;
+}
+
+.sortable:hover {
+  opacity: 1;
+}
+
+.sort-icons {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 0.5;
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+
+.sort-icon {
+  font-size: 9px;
+  opacity: 0.35;
+  transition: opacity 120ms ease;
+}
+
+.sort-icon.active {
+  opacity: 1;
+  color: var(--ant-color-primary, #1677ff);
+}
+
 .cell {
   min-width: 0;
   /* allow grid children to shrink instead of overflowing */
@@ -653,6 +768,14 @@ function confirmBulkDelete() {
 .cell-traffic,
 .cell-expiry {
   text-align: center;
+}
+
+.client-list-header .cell-traffic,
+.client-list-header .cell-expiry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .client-list-header .cell {
