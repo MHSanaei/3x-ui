@@ -43,16 +43,10 @@ jobs:
 
       - name: Login to reg.vados.ru
         uses: docker/login-action@v4
-        env:
-          REG_USER: ${{ vars.VADOS_REG_USERNAME }}
-          REG_PASS: ${{ secrets.REG_PASS }}
-          image: ${{ env.IMAGE_NAME }}
         with:
-          registry-auth: |
-            - registry: reg.vados.ru
-              username: 
-              password: $REG_PASS
-              scope: '${image}@push'
+          username: ${{ vars.VADOS_REG_USERNAME }}
+          password: ${{ secrets.REG_PASS }}
+          scope: '${image}@push'
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
