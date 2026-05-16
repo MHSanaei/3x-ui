@@ -10,8 +10,13 @@ services:
       - $PWD/cert/:/root/cert/
     environment:
       XRAY_VMESS_AEAD_FORCED: "false"
-      XUI_ENABLE_FAIL2BAN: "true"
+      XUI_ENABLE_FAIL2BAN: "false"
     tty: true
     ports:
+<<<<<<< HEAD
       - "2053:2053"
     restart: unless-stopped
+=======
+      - "2904:2904"
+    restart: unless-stopped
+>>>>>>> 36196363 (Edit files)

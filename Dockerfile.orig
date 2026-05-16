@@ -1,7 +1,7 @@
 # ========================================================
 # Stage: Frontend (Vite)
 # ========================================================
-FROM --platform=$BUILDPLATFORM reg.vados.ru/node:22-alpine AS frontend
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
@@ -12,9 +12,7 @@ RUN npm run build
 # ========================================================
 # Stage: Builder
 # ========================================================
-#ARG CI_REGISTRY=reg.vados.ru
-FROM reg.vados.ru/golang:1.26-alpine AS builder
-#FROM golang:1.26-alpine AS builder
+FROM golang:1.26-alpine AS builder
 WORKDIR /app
 ARG TARGETARCH
 
@@ -35,8 +33,7 @@ RUN ./DockerInit.sh "$TARGETARCH"
 # ========================================================
 # Stage: Final Image of 3x-ui
 # ========================================================
-#FROM alpine
-FROM reg.vados.ru/alpine
+FROM alpine
 ENV TZ=Asia/Tehran
 WORKDIR /app
 
@@ -46,15 +43,13 @@ RUN apk add --no-cache --update \
   fail2ban \
   bash \
   curl \
-  openssl \
-  mc
+  openssl
 
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
 COPY --from=builder /app/web/translation /app/web/translation
 
-ADD --from=builder config/mc.tar.gz /root/.config
 
 # Configure fail2ban
 RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
@@ -68,8 +63,8 @@ RUN chmod +x \
   /app/x-ui \
   /usr/bin/x-ui
 
-ENV XUI_ENABLE_FAIL2BAN="false"
-EXPOSE 2904
+ENV XUI_ENABLE_FAIL2BAN="true"
+EXPOSE 2053
 VOLUME [ "/etc/x-ui" ]
 CMD [ "./x-ui" ]
 ENTRYPOINT [ "/app/DockerEntrypoint.sh" ]

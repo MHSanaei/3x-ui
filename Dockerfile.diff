@@ -1,0 +1,38 @@
+2,12d1
+< # Stage: Frontend (Vite)
+< # ========================================================
+< FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend
+< WORKDIR /src/frontend
+< COPY frontend/package.json frontend/package-lock.json ./
+< RUN npm ci
+< COPY frontend/ ./
+< COPY web/translation /src/web/translation
+< RUN npm run build
+< 
+< # ========================================================
+15,16c4,7
+< FROM golang:1.26-alpine AS builder
+< WORKDIR /app
+---
+> ARG CI_REGISTRY=reg.vados.ru
+> ARG CI_BASE=${CI_REGISTRY}/golang:1.26-alpine
+> FROM ${CI_BASE} AS builder
+> WORKDIR "/app"
+26d16
+< COPY --from=frontend /src/web/dist ./web/dist
+36c26,27
+< FROM alpine
+---
+> 
+> FROM ${CI_REGISTRY}/alpine
+38c29
+< WORKDIR /app
+---
+> WORKDIR "/app"
+45a37
+>   mc \
+51,52c43
+< COPY --from=builder /app/web/translation /app/web/translation
+< 
+---
+> ADD config/mc.tar.gz /root/.config
