@@ -48,12 +48,12 @@ jobs:
           install: true
 
       - name: Login to registry
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "reg_url=${CI_REGISTRY}" 
-          echo "reg_user=${{ vars.REG_USER }}"
-          echo "${{ secrets.REG_PASS }}" | docker login "${reg_url}" -u "${reg_user}" --password-stdin
+        uses: docker/login-action@v2
+        with:
+          registry: reg.vados.ru
+          username: ${{ vars.REG_USER }}
+          password: ${{ secrets.REG_PASS }}
+          scope: '${{ steps.meta.outputs.tags }}@push'
           
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
@@ -63,13 +63,15 @@ jobs:
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          secrets: |
+             
 
 #        uses: docker/login-action@v2
 #        with:
 #          registry: reg.vados.ru
 #          username: ${{ vars.REG_USER }}
 #          password: ${{ secrets.REG_PASS }}
-#          scope: '${IMAGE_NAME}@push'
+#          scope: '${{ steps.meta.outputs.tags }}@push'
 
 #      - name: Login to registries
 #        uses: docker/login-action@v4
