@@ -14,7 +14,7 @@ xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 # 检查 root 权限
 [[ $EUID -ne 0 ]] && echo -e "${red}致命错误：${plain} 请以 root 权限运行此脚本 \n " && exit 1
 
-# Check OS and set release variable
+# 检测操作系统并设置 release 变量
 if [[ -f /etc/os-release ]]; then
     source /etc/os-release
     release=$ID
@@ -22,10 +22,10 @@ elif [[ -f /usr/lib/os-release ]]; then
     source /usr/lib/os-release
     release=$ID
 else
-    echo "无法检查系统操作系统，请联系作者！" >&2
+    echo -e "${red}无法检测操作系统，请联系作者！${plain}" >&2
     exit 1
 fi
-echo "操作系统版本为：$release"
+echo -e "${green}操作系统：$release${plain}"
 
 arch() {
     case "$(uname -m)" in
@@ -42,7 +42,7 @@ arch() {
 
 echo "架构：$(arch)"
 
-# Simple helpers
+# IP 地址验证函数
 is_ipv4() {
     [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1
 }
@@ -56,7 +56,7 @@ is_domain() {
     [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+(xn--[a-z0-9]{2,}|[A-Za-z]{2,})$ ]] && return 0 || return 1
 }
 
-# Port helpers
+# 端口占用检测
 is_port_in_use() {
     local port="$1"
     if command -v ss > /dev/null 2>&1; then
@@ -140,9 +140,9 @@ setup_ssl_certificate() {
         fi
     fi
 
-    # Create certificate directory
-    local certPath="/root/cert/${domain}"
-    mkdir -p "$certPath"
+    # 创建证书目录
+    local cert_dir="/root/cert/${domain}"
+    mkdir -p "$cert_dir"
 
     # 颁发证书
     echo -e "${green}正在为 ${domain} 颁发 SSL 证书...${plain}"
@@ -155,11 +155,11 @@ setup_ssl_certificate() {
         echo -e "${yellow}为 ${domain} 颁发证书失败${plain}"
         echo -e "${yellow}请确保端口 80 已开放，稍后使用 x-ui 重试${plain}"
         rm -rf ~/.acme.sh/${domain} 2> /dev/null
-        rm -rf "$certPath" 2> /dev/null
+        rm -rf "$cert_dir" 2> /dev/null
         return 1
     fi
 
-    # Install certificate
+    # 安装证书
     ~/.acme.sh/acme.sh --installcert -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
         --fullchain-file /root/cert/${domain}/fullchain.pem \
@@ -173,15 +173,15 @@ setup_ssl_certificate() {
     # 启用自动续期
     ~/.acme.sh/acme.sh --upgrade --auto-upgrade > /dev/null 2>&1
     # 安全权限：私钥仅所有者可读
-    chmod 600 $certPath/privkey.pem 2> /dev/null
-    chmod 644 $certPath/fullchain.pem 2> /dev/null
+    chmod 600 $cert_dir/privkey.pem 2> /dev/null
+    chmod 644 $cert_dir/fullchain.pem 2> /dev/null
 
     # 为面板设置证书
-    local webCertFile="/root/cert/${domain}/fullchain.pem"
-    local webKeyFile="/root/cert/${domain}/privkey.pem"
+    local web_cert_file="/root/cert/${domain}/fullchain.pem"
+    local web_key_file="/root/cert/${domain}/privkey.pem"
 
-    if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-        ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile" > /dev/null 2>&1
+    if [[ -f "$web_cert_file" && -f "$web_key_file" ]]; then
+        ${xui_folder}/x-ui cert -webCert "$web_cert_file" -webCertKey "$web_key_file" > /dev/null 2>&1
         echo -e "${green}SSL 证书已成功安装和配置！${plain}"
         return 0
     else
@@ -232,41 +232,41 @@ setup_ip_certificate() {
     fi
 
     # 设置自动续期的重载命令（添加 || true 以便在首次安装时不失败）
-    local reloadCmd="systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null || true"
+    local reload_cmd="systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null || true"
 
     # 选择 HTTP-01 监听器的端口（默认 80，提示覆盖）
-    local WebPort=""
-    read -rp "用于 ACME HTTP-01 监听器的端口（默认 80）：" WebPort
-    WebPort="${WebPort:-80}"
-    if ! [[ "${WebPort}" =~ ^[0-9]+$ ]] || ((WebPort < 1 || WebPort > 65535)); then
+    local web_port=""
+    read -rp "用于 ACME HTTP-01 监听器的端口（默认 80）：" web_port
+    web_port="${web_port:-80}"
+    if ! [[ "${web_port}" =~ ^[0-9]+$ ]] || ((web_port < 1 || web_port > 65535)); then
         echo -e "${red}提供的端口无效。回退到 80。${plain}"
-        WebPort=80
+        web_port=80
     fi
-    echo -e "${green}使用端口 ${WebPort} 进行独立验证。${plain}"
-    if [[ "${WebPort}" -ne 80 ]]; then
-        echo -e "${yellow}提醒：Let's Encrypt 仍然通过端口 80 连接；将外部端口 80 转发到 ${WebPort}。${plain}"
+    echo -e "${green}使用端口 ${web_port} 进行独立验证。${plain}"
+    if [[ "${web_port}" -ne 80 ]]; then
+        echo -e "${yellow}提醒：Let's Encrypt 仍然通过端口 80 连接；将外部端口 80 转发到 ${web_port}。${plain}"
     fi
 
     # 确保选择的端口可用
     while true; do
-        if is_port_in_use "${WebPort}"; then
-            echo -e "${yellow}端口 ${WebPort} 正在使用中。${plain}"
+        if is_port_in_use "${web_port}"; then
+            echo -e "${yellow}端口 ${web_port} 正在使用中。${plain}"
 
             local alt_port=""
             read -rp "输入另一个用于 acme.sh 独立监听器的端口（留空以中止）：" alt_port
             alt_port="${alt_port// /}"
             if [[ -z "${alt_port}" ]]; then
-                echo -e "${red}端口 ${WebPort} 繁忙；无法继续。${plain}"
+                echo -e "${red}端口 ${web_port} 繁忙；无法继续。${plain}"
                 return 1
             fi
             if ! [[ "${alt_port}" =~ ^[0-9]+$ ]] || ((alt_port < 1 || alt_port > 65535)); then
                 echo -e "${red}提供的端口无效。${plain}"
                 return 1
             fi
-            WebPort="${alt_port}"
+            web_port="${alt_port}"
             continue
         else
-            echo -e "${green}端口 ${WebPort} 空闲，已准备好进行独立验证。${plain}"
+            echo -e "${green}端口 ${web_port} 空闲，已准备好进行独立验证。${plain}"
             break
         fi
     done
@@ -274,64 +274,64 @@ setup_ip_certificate() {
     # 使用短期配置文件颁发证书
     echo -e "${green}正在为 ${ipv4} 颁发 IP 证书...${plain}"
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force > /dev/null 2>&1
-
+    
     ~/.acme.sh/acme.sh --issue \
         ${domain_args} \
         --standalone \
         --server letsencrypt \
         --certificate-profile shortlived \
         --days 6 \
-        --httpport ${WebPort} \
+        --httpport ${web_port} \
         --force
-
+    
     if [ $? -ne 0 ]; then
         echo -e "${red}颁发 IP 证书失败${plain}"
-        echo -e "${yellow}请确保端口 ${WebPort} 可访问（或从外部端口 80 转发）${plain}"
+        echo -e "${yellow}请确保端口 ${web_port} 可访问（或从外部端口 80 转发）${plain}"
         # 清理 acme.sh 数据（如果指定了 IPv4 和 IPv6）
         rm -rf ~/.acme.sh/${ipv4} 2> /dev/null
         [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} 2> /dev/null
-        rm -rf ${certDir} 2> /dev/null
+        rm -rf ${cert_dir} 2> /dev/null
         return 1
     fi
-
+    
     echo -e "${green}证书颁发成功，正在安装...${plain}"
-
+    
     # 安装证书
-    # 注意：如果 reloadcmd 失败，acme.sh 可能会报告“Reload error”并以非零退出，
+    # 注意：如果 reloadcmd 失败，acme.sh 可能会报告"Reload error"并以非零退出，
     # 但证书文件仍然已安装。我们检查文件而不是退出码。
     ~/.acme.sh/acme.sh --installcert -d ${ipv4} \
-        --key-file "${certDir}/privkey.pem" \
-        --fullchain-file "${certDir}/fullchain.pem" \
-        --reloadcmd "${reloadCmd}" 2>&1 || true
-
+        --key-file "${cert_dir}/privkey.pem" \
+        --fullchain-file "${cert_dir}/fullchain.pem" \
+        --reloadcmd "${reload_cmd}" 2>&1 || true
+    
     # 验证证书文件是否存在（不要依赖退出码 - reloadcmd 失败会导致非零）
-    if [[ ! -f "${certDir}/fullchain.pem" || ! -f "${certDir}/privkey.pem" ]]; then
+    if [[ ! -f "${cert_dir}/fullchain.pem" || ! -f "${cert_dir}/privkey.pem" ]]; then
         echo -e "${red}安装后未找到证书文件${plain}"
         # 清理 acme.sh 数据（如果指定了 IPv4 和 IPv6）
         rm -rf ~/.acme.sh/${ipv4} 2> /dev/null
         [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} 2> /dev/null
-        rm -rf ${certDir} 2> /dev/null
+        rm -rf ${cert_dir} 2> /dev/null
         return 1
     fi
-
+    
     echo -e "${green}证书文件安装成功${plain}"
-
+    
     # 为 acme.sh 启用自动升级（确保 cron 作业运行）
     ~/.acme.sh/acme.sh --upgrade --auto-upgrade > /dev/null 2>&1
-
+    
     # 安全权限：私钥仅所有者可读
-    chmod 600 ${certDir}/privkey.pem 2> /dev/null
-    chmod 644 ${certDir}/fullchain.pem 2> /dev/null
-
+    chmod 600 ${cert_dir}/privkey.pem 2> /dev/null
+    chmod 644 ${cert_dir}/fullchain.pem 2> /dev/null
+    
     # 配置面板使用证书
     echo -e "${green}正在为面板设置证书路径...${plain}"
-    ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem"
-
+    ${xui_folder}/x-ui cert -webCert "${cert_dir}/fullchain.pem" -webCertKey "${cert_dir}/privkey.pem"
+    
     if [ $? -ne 0 ]; then
         echo -e "${yellow}警告：无法自动设置证书路径${plain}"
         echo -e "${yellow}证书文件位于：${plain}"
-        echo -e "  证书：${certDir}/fullchain.pem"
-        echo -e "  私钥：${certDir}/privkey.pem"
+        echo -e "  证书：${cert_dir}/fullchain.pem"
+        echo -e "  私钥：${cert_dir}/privkey.pem"
     else
         echo -e "${green}证书路径配置成功${plain}"
     fi
@@ -385,30 +385,30 @@ ssl_cert_issue() {
     local cert_exists=0
     if ~/.acme.sh/acme.sh --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
         cert_exists=1
-        local certInfo=$(~/.acme.sh/acme.sh --list 2> /dev/null | grep -F "${domain}")
+        local cert_info=$(~/.acme.sh/acme.sh --list 2> /dev/null | grep -F "${domain}")
         echo -e "${yellow}找到 ${domain} 的现有证书，将重用它。${plain}"
-        [[ -n "${certInfo}" ]] && echo "$certInfo"
+        [[ -n "${cert_info}" ]] && echo "$cert_info"
     else
         echo -e "${green}您的域名已准备好颁发证书...${plain}"
     fi
 
     # 为证书创建目录
-    certPath="/root/cert/${domain}"
-    if [ ! -d "$certPath" ]; then
-        mkdir -p "$certPath"
+    local cert_dir="/root/cert/${domain}"
+    if [ ! -d "$cert_dir" ]; then
+        mkdir -p "$cert_dir"
     else
-        rm -rf "$certPath"
-        mkdir -p "$certPath"
+        rm -rf "$cert_dir"
+        mkdir -p "$cert_dir"
     fi
 
     # 获取独立服务器的端口号
-    local WebPort=80
-    read -rp "请选择要使用的端口（默认 80）：" WebPort
-    if [[ ${WebPort} -gt 65535 || ${WebPort} -lt 1 ]]; then
-        echo -e "${yellow}您的输入 ${WebPort} 无效，将使用默认端口 80。${plain}"
-        WebPort=80
+    local web_port=80
+    read -rp "请选择要使用的端口（默认 80）：" web_port
+    if [[ ${web_port} -gt 65535 || ${web_port} -lt 1 ]]; then
+        echo -e "${yellow}您的输入 ${web_port} 无效，将使用默认端口 80。${plain}"
+        web_port=80
     fi
-    echo -e "${green}将使用端口：${WebPort} 颁发证书。请确保此端口已开放。${plain}"
+    echo -e "${green}将使用端口：${web_port} 颁发证书。请确保此端口已开放。${plain}"
 
     # 暂时停止面板
     echo -e "${yellow}正在暂时停止面板...${plain}"
@@ -417,7 +417,7 @@ ssl_cert_issue() {
     if [[ ${cert_exists} -eq 0 ]]; then
         # 颁发证书
         ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
-        ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
+        ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${web_port} --force
         if [ $? -ne 0 ]; then
             echo -e "${red}颁发证书失败，请检查日志。${plain}"
             rm -rf ~/.acme.sh/${domain}
@@ -431,11 +431,11 @@ ssl_cert_issue() {
     fi
 
     # 设置重载命令
-    reloadCmd="systemctl restart x-ui || rc-service x-ui restart"
+    local reload_cmd="systemctl restart x-ui || rc-service x-ui restart"
     echo -e "${green}ACME 的默认 --reloadcmd 为：${yellow}systemctl restart x-ui || rc-service x-ui restart${plain}"
     echo -e "${green}此命令将在每次颁发和续期证书时运行。${plain}"
-    read -rp "您是否要修改 ACME 的 --reloadcmd？（y/n）：" setReloadcmd
-    if [[ "$setReloadcmd" == "y" || "$setReloadcmd" == "Y" ]]; then
+    read -rp "您是否要修改 ACME 的 --reloadcmd？（y/n）：" set_reload_cmd
+    if [[ "$set_reload_cmd" == "y" || "$set_reload_cmd" == "Y" ]]; then
         echo -e "\n${green}\t1.${plain} 预设：systemctl reload nginx ; systemctl restart x-ui"
         echo -e "${green}\t2.${plain} 输入自定义命令"
         echo -e "${green}\t0.${plain} 保持默认 reloadcmd"
@@ -443,12 +443,12 @@ ssl_cert_issue() {
         case "$choice" in
             1)
                 echo -e "${green}Reloadcmd 为：systemctl reload nginx ; systemctl restart x-ui${plain}"
-                reloadCmd="systemctl reload nginx ; systemctl restart x-ui"
+                reload_cmd="systemctl reload nginx ; systemctl restart x-ui"
                 ;;
             2)
                 echo -e "${yellow}建议将 x-ui restart 放在末尾${plain}"
-                read -rp "请输入您的自定义 reloadcmd：" reloadCmd
-                echo -e "${green}Reloadcmd 为：${reloadCmd}${plain}"
+                read -rp "请输入您的自定义 reloadcmd：" reload_cmd
+                echo -e "${green}Reloadcmd 为：${reload_cmd}${plain}"
                 ;;
             *)
                 echo -e "${green}保持默认 reloadcmd${plain}"
@@ -457,19 +457,19 @@ ssl_cert_issue() {
     fi
 
     # 安装证书
-    local installOutput=""
-    installOutput=$(~/.acme.sh/acme.sh --installcert -d ${domain} \
+    local install_output=""
+    install_output=$(~/.acme.sh/acme.sh --installcert -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
-        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1)
-    local installRc=$?
-    echo "${installOutput}"
+        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reload_cmd}" 2>&1)
+    local install_rc=$?
+    echo "${install_output}"
 
-    local installWroteFiles=0
-    if echo "${installOutput}" | grep -q "Installing key to:" && echo "${installOutput}" | grep -q "Installing full chain to:"; then
-        installWroteFiles=1
+    local install_wrote_files=0
+    if echo "${install_output}" | grep -q "Installing key to:" && echo "${install_output}" | grep -q "Installing full chain to:"; then
+        install_wrote_files=1
     fi
 
-    if [[ -f "/root/cert/${domain}/privkey.pem" && -f "/root/cert/${domain}/fullchain.pem" && (${installRc} -eq 0 || ${installWroteFiles} -eq 1) ]]; then
+    if [[ -f "/root/cert/${domain}/privkey.pem" && -f "/root/cert/${domain}/fullchain.pem" && (${install_rc} -eq 0 || ${install_wrote_files} -eq 1) ]]; then
         echo -e "${green}安装证书成功，正在启用自动续期...${plain}"
     else
         echo -e "${red}安装证书失败，退出。${plain}"
@@ -486,30 +486,30 @@ ssl_cert_issue() {
         echo -e "${yellow}自动续期设置出现问题，证书详情：${plain}"
         ls -lah /root/cert/${domain}/
         # 安全权限：私钥仅所有者可读
-        chmod 600 $certPath/privkey.pem 2> /dev/null
-        chmod 644 $certPath/fullchain.pem 2> /dev/null
+        chmod 600 $cert_dir/privkey.pem 2> /dev/null
+        chmod 644 $cert_dir/fullchain.pem 2> /dev/null
     else
         echo -e "${green}自动续期成功，证书详情：${plain}"
         ls -lah /root/cert/${domain}/
         # 安全权限：私钥仅所有者可读
-        chmod 600 $certPath/privkey.pem 2> /dev/null
-        chmod 644 $certPath/fullchain.pem 2> /dev/null
+        chmod 600 $cert_dir/privkey.pem 2> /dev/null
+        chmod 644 $cert_dir/fullchain.pem 2> /dev/null
     fi
 
     # 启动面板
     systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
 
     # 证书安装成功后提示用户设置面板路径
-    read -rp "您是否要为面板设置此证书？（y/n）：" setPanel
-    if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
-        local webCertFile="/root/cert/${domain}/fullchain.pem"
-        local webKeyFile="/root/cert/${domain}/privkey.pem"
+    read -rp "您是否要为面板设置此证书？（y/n）：" set_panel
+    if [[ "$set_panel" == "y" || "$set_panel" == "Y" ]]; then
+        local web_cert_file="/root/cert/${domain}/fullchain.pem"
+        local web_key_file="/root/cert/${domain}/privkey.pem"
 
-        if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-            ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+        if [[ -f "$web_cert_file" && -f "$web_key_file" ]]; then
+            ${xui_folder}/x-ui cert -webCert "$web_cert_file" -webCertKey "$web_key_file"
             echo -e "${green}已为面板设置证书路径${plain}"
-            echo -e "${green}证书文件：$webCertFile${plain}"
-            echo -e "${green}私钥文件：$webKeyFile${plain}"
+            echo -e "${green}证书文件：$web_cert_file${plain}"
+            echo -e "${green}私钥文件：$web_key_file${plain}"
             echo ""
             echo -e "${green}访问 URL：https://${domain}:${existing_port}/${existing_webBasePath}${plain}"
             echo -e "${yellow}面板将重启以应用 SSL 证书...${plain}"
@@ -764,7 +764,7 @@ config_after_install() {
             prompt_and_setup_ssl "${config_port}" "${config_webBasePath}" "${server_ip}"
 
             # 获取 API 令牌以显示
-            local config_apiToken=$(${xui_folder}/x-ui setting -getApiToken true | grep -Eo 'apiToken: .+' | awk '{print $2}')
+            local config_api_token=$(${xui_folder}/x-ui setting -getApiToken true | grep -Eo 'apiToken: .+' | awk '{print $2}')
 
             # 显示最终凭据和访问信息
             echo ""
@@ -776,7 +776,7 @@ config_after_install() {
             echo -e "${green}端口：        ${config_port}${plain}"
             echo -e "${green}WebBasePath： ${config_webBasePath}${plain}"
             echo -e "${green}访问 URL：  ${SSL_SCHEME}://${SSL_HOST}:${config_port}/${config_webBasePath}${plain}"
-            echo -e "${green}API 令牌：   ${config_apiToken}${plain}"
+            echo -e "${green}API 令牌：   ${config_api_token}${plain}"
             echo -e "${green}═══════════════════════════════════════════${plain}"
             echo -e "${yellow}⚠ 重要：请安全保存这些凭据！${plain}"
             if [[ "$SSL_SCHEME" == "https" ]]; then
