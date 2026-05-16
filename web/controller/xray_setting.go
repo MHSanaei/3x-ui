@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 
+	"github.com/mhsanaei/3x-ui/v3/config"
 	"github.com/mhsanaei/3x-ui/v3/util/common"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 
@@ -213,7 +214,7 @@ func (a *XraySettingController) testOutbound(c *gin.Context) {
 
 	// Load the test URL from server settings to prevent SSRF via user-controlled URLs
 	testURL, _ := a.SettingService.GetXrayOutboundTestUrl()
-	testURL, err := service.SanitizePublicHTTPURL(testURL, false)
+	testURL, err := service.SanitizePublicHTTPURL(testURL, config.AllowPrivateIPs())
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return

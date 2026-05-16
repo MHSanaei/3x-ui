@@ -22,6 +22,9 @@ RUN apk --no-cache --update add \
   curl \
   unzip
 
+COPY go.mod go.sum ./
+RUN go mod download
+
 COPY . .
 COPY --from=frontend /src/web/dist ./web/dist
 
