@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 )
 
 //go:embed version
@@ -55,6 +56,13 @@ func GetLogLevel() LogLevel {
 // IsDebug returns true if debug mode is enabled via the XUI_DEBUG environment variable.
 func IsDebug() bool {
 	return os.Getenv("XUI_DEBUG") == "true"
+}
+
+// AllowPrivateIPs returns true if user bypasses security checks via the ALLOW_PRIVATES environment variable.
+var AllowPrivateIPs = sync.OnceValue(allowPrivateIPs)
+
+func allowPrivateIPs() bool {
+	return os.Getenv("ALLOW_PRIVATE_IPS") == "true"
 }
 
 // GetBinFolderPath returns the path to the binary folder, defaulting to "bin" if not set via XUI_BIN_FOLDER.

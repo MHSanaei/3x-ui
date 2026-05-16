@@ -3,6 +3,7 @@ package job
 import (
 	"encoding/json"
 
+	"github.com/mhsanaei/3x-ui/v3/config"
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 	"github.com/mhsanaei/3x-ui/v3/web/websocket"
@@ -137,7 +138,7 @@ func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traf
 		logger.Warning("get ExternalTrafficInformURI failed:", err)
 		return
 	}
-	informURL, err = service.SanitizePublicHTTPURL(informURL, false)
+	informURL, err = service.SanitizePublicHTTPURL(informURL, config.AllowPrivateIPs())
 	if err != nil {
 		logger.Warning("ExternalTrafficInformURI blocked:", err)
 		return

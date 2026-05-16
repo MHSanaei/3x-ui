@@ -341,7 +341,7 @@ func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*tel
 
 	// Validate API server URL if provided
 	if apiServerUrl != "" {
-		safeURL, err := SanitizePublicHTTPURL(apiServerUrl, false)
+		safeURL, err := SanitizePublicHTTPURL(apiServerUrl, config.AllowPrivateIPs())
 		if err != nil {
 			logger.Warningf("Invalid or blocked API server URL, using default: %v", err)
 			apiServerUrl = ""
