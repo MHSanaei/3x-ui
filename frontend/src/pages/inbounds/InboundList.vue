@@ -143,7 +143,7 @@ function projectInbound(dbInbound, predicate) {
   }
   if (!Array.isArray(settings.clients)) return next;
   const filtered = settings.clients.filter(predicate);
-  next.settings = Inbound.Settings.fromJson(dbInbound.protocol, { clients: filtered });
+  next.settings = Inbound.Settings.fromJson(dbInbound.protocol, { ...settings, clients: filtered });
   next.invalidateCache();
   return next;
 }
