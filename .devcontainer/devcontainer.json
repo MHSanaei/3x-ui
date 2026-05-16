@@ -11,7 +11,10 @@
 			"extensions": [
 				"mads-hartmann.bash-ide-vscode",
 				"dbaeumer.vscode-eslint",
-				"editorconfig.editorconfig"
+				"editorconfig.editorconfig",
+				"ms-azuretools.vscode-docker",
+				"ms-azuretools.vscode-containers",
+				"formulahendry.docker-explorer"
 			]
 		}
 	}
