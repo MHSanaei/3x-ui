@@ -1,0 +1,26 @@
+{
+    "id": "universal",
+    "version": "2.0.1",
+    "name": "Default Linux Universal",
+    "description": "Use or extend the new Ubuntu-based default, large, multi-language universal container for GitHub Codespaces.",
+    "documentationURL": "https://github.com/devcontainers/templates/tree/main/src/universal",
+    "publisher": "Dev Container Spec Maintainers",
+    "licenseURL": "https://github.com/devcontainers/templates/blob/main/LICENSE",
+    "platforms": [
+        "Python",
+        "Node.js",
+        "JavaScript",
+        "TypeScript",
+        "C++",
+        "Java",
+        "C#",
+        ".NET Core",
+        "PHP",
+        "Go",
+        "Ruby",
+        "Conda"
+    ],
+    "optionalPaths": [
+        ".github/*"
+    ]
+}
