@@ -1138,8 +1138,12 @@ export class StreamSettings extends CommonClass {
     }
 
     static fromJson(json = {}) {
+        // Xray-core supports both "xhttpSettings" and "splithttpSettings" (backward-compat alias)
+        const xhttpJson = json.xhttpSettings ?? json.splithttpSettings;
+        // Normalize "splithttp" network name to "xhttp" for internal consistency
+        const network = json.network === 'splithttp' ? 'xhttp' : json.network;
         return new StreamSettings(
-            json.network,
+            network,
             json.security,
             TlsStreamSettings.fromJson(json.tlsSettings),
             RealityStreamSettings.fromJson(json.realitySettings),
@@ -1148,7 +1152,7 @@ export class StreamSettings extends CommonClass {
             WsStreamSettings.fromJson(json.wsSettings),
             GrpcStreamSettings.fromJson(json.grpcSettings),
             HttpUpgradeStreamSettings.fromJson(json.httpupgradeSettings),
-            xHTTPStreamSettings.fromJson(json.xhttpSettings),
+            xHTTPStreamSettings.fromJson(xhttpJson),
             HysteriaStreamSettings.fromJson(json.hysteriaSettings),
             FinalMaskStreamSettings.fromJson(json.finalmask),
             SockoptStreamSettings.fromJson(json.sockopt),
@@ -1379,12 +1383,28 @@ export class Outbound extends CommonClass {
         } else if (network === 'httpupgrade') {
             stream.httpupgrade = new HttpUpgradeStreamSettings(json.path, json.host);
         } else if (network === 'xhttp') {
-            // xHTTPStreamSettings positional args are (path, host, headers, ..., mode);
-            // passing `json.mode` as the 3rd argument used to land in the `headers`
-            // slot, dropping the mode on the floor. Build the object and set mode
-            // explicitly to avoid that.
             const xh = new xHTTPStreamSettings(json.path, json.host);
             if (json.mode) xh.mode = json.mode;
+            if (json.type && !json.mode) xh.mode = json.type;
+            // Padding / obfuscation — sing-box families use x_padding_bytes,
+            // while the extra block carries xPaddingBytes.
+            if (json.x_padding_bytes && !json.xPaddingBytes) json.xPaddingBytes = json.x_padding_bytes;
+            if (typeof json.xPaddingBytes === 'string' && json.xPaddingBytes) xh.xPaddingBytes = json.xPaddingBytes;
+            if (json.xPaddingObfsMode === true) {
+                xh.xPaddingObfsMode = true;
+                ["xPaddingKey", "xPaddingHeader", "xPaddingPlacement", "xPaddingMethod"].forEach(k => {
+                    if (typeof json[k] === 'string' && json[k]) xh[k] = json[k];
+                });
+            }
+            // Bidirectional string fields carried in the extra block
+            const xFields = ["sessionPlacement", "sessionKey", "seqPlacement", "seqKey", "uplinkDataPlacement", "uplinkDataKey", "scMaxEachPostBytes"];
+            xFields.forEach(k => {
+                if (typeof json[k] === 'string' && json[k]) xh[k] = json[k];
+            });
+            // Headers — VMess extra emits them as a {name: value} map
+            if (json.headers && typeof json.headers === 'object' && !Array.isArray(json.headers)) {
+                xh.headers = Object.entries(json.headers).map(([name, value]) => ({ name, value }));
+            }
             stream.xhttp = xh;
         }
 
@@ -1455,6 +1475,16 @@ export class Outbound extends CommonClass {
                     ["xPaddingKey", "xPaddingHeader", "xPaddingPlacement", "xPaddingMethod"].forEach(k => {
                         if (typeof extra[k] === 'string' && extra[k]) xh[k] = extra[k];
                     });
+                    if (!xh.mode && typeof extra.mode === 'string' && extra.mode) xh.mode = extra.mode;
+                    // Bidirectional string fields carried inside the extra block
+                    const xFields = ["sessionPlacement", "sessionKey", "seqPlacement", "seqKey", "uplinkDataPlacement", "uplinkDataKey", "scMaxEachPostBytes"];
+                    xFields.forEach(k => {
+                        if (typeof extra[k] === 'string' && extra[k]) xh[k] = extra[k];
+                    });
+                    // Headers — extra emits them as a {name: value} map
+                    if (extra.headers && typeof extra.headers === 'object' && !Array.isArray(extra.headers)) {
+                        xh.headers = Object.entries(extra.headers).map(([name, value]) => ({ name, value }));
+                    }
                 } catch (_) { /* ignore malformed extra */ }
             }
             stream.xhttp = xh;
@@ -1997,6 +2027,28 @@ Outbound.VLESSSettings = class extends CommonClass {
     }
 
     static fromJson(json = {}) {
+        // Handle v2rayN-style nested vnext array (standard Xray JSON format)
+        if (!ObjectUtil.isArrEmpty(json.vnext)) {
+            const v = json.vnext[0] || {};
+            const u = ObjectUtil.isArrEmpty(v.users) ? {} : v.users[0];
+            const saved = json.testseed;
+            const testseed = (Array.isArray(saved)
+                && saved.length === 4
+                && saved.every(v => Number.isInteger(v) && v > 0))
+                ? saved
+                : [];
+            return new Outbound.VLESSSettings(
+                v.address,
+                v.port,
+                u.id,
+                u.flow,
+                u.encryption,
+                json.reverse?.tag || '',
+                ReverseSniffing.fromJson(json.reverse?.sniffing || {}),
+                json.testpre || 0,
+                testseed,
+            );
+        }
         if (ObjectUtil.isEmpty(json.address) || ObjectUtil.isEmpty(json.port)) return new Outbound.VLESSSettings();
         const saved = json.testseed;
         const testseed = (Array.isArray(saved)
