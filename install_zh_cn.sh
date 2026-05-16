@@ -514,11 +514,17 @@ ssl_cert_issue() {
             echo -e "${green}访问 URL：https://${domain}:${existing_port}/${existing_webBasePath}${plain}"
             echo -e "${yellow}面板将重启以应用 SSL 证书...${plain}"
             systemctl restart x-ui 2> /dev/null || rc-service x-ui restart 2> /dev/null
+            # 标记证书已成功配置
+            SSL_CERT_CONFIGURED=1
         else
             echo -e "${red}错误：未找到域名 $domain 的证书或私钥文件。${plain}"
+            SSL_CERT_CONFIGURED=0
         fi
     else
         echo -e "${yellow}跳过面板路径设置。${plain}"
+        echo -e "${yellow}注意：面板将通过 HTTP 提供服务（不安全）。${plain}"
+        echo -e "${green}访问 URL：http://${domain}:${existing_port}/${existing_webBasePath}${plain}"
+        SSL_CERT_CONFIGURED=0
     fi
 
     return 0
