@@ -2508,7 +2508,7 @@ func (s *InboundService) disableSubQuotaClients(tx *gorm.DB) (bool, int64, error
 			var sum struct{ Total int64 }
 			if err := tx.Model(xray.ClientTraffic{}).
 				Select("COALESCE(SUM(up + down), 0) AS total").
-				Where("email IN ? AND enable = ?", batch, true).
+				Where("LOWER(email) IN ?", batch).
 				Scan(&sum).Error; err != nil {
 				continue
 			}
