@@ -456,7 +456,7 @@ function showQrCodeMenu(dbInbound) {
                       <BlockOutlined /> {{ t('pages.inbounds.clone') }}
                     </a-menu-item>
                     <a-menu-item key="delete" class="danger-item">
-                      <DeleteOutlined /> {{ t('delete') }}
+                      <DeleteOutlined /> {{ t('pages.inbounds.deleteInbound') }}
                     </a-menu-item>
                   </a-menu>
                 </template>
@@ -627,7 +627,7 @@ function showQrCodeMenu(dbInbound) {
                       <BlockOutlined /> {{ t('pages.inbounds.clone') }}
                     </a-menu-item>
                     <a-menu-item key="delete" class="danger-item">
-                      <DeleteOutlined /> {{ t('delete') }}
+                      <DeleteOutlined /> {{ t('pages.inbounds.deleteInbound') }}
                     </a-menu-item>
                   </a-menu>
                 </template>

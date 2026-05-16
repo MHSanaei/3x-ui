@@ -378,11 +378,11 @@ function openAddBulkClient(dbInbound) {
 // Per-row destructive actions go through Modal.confirm (matches legacy).
 function confirmDelete(dbInbound) {
   Modal.confirm({
-    title: `Delete inbound "${dbInbound.remark}"?`,
-    content: 'This removes the inbound and all its clients. This cannot be undone.',
-    okText: 'Delete',
+    title: t('pages.inbounds.deleteInboundTitle', { remark: dbInbound.remark }),
+    content: t('pages.inbounds.deleteInboundContent'),
+    okText: t('delete'),
     okType: 'danger',
-    cancelText: 'Cancel',
+    cancelText: t('cancel'),
     onOk: async () => {
       const msg = await HttpUtil.post(`/panel/api/inbounds/del/${dbInbound.id}`);
       if (msg?.success) await refresh();
@@ -392,10 +392,10 @@ function confirmDelete(dbInbound) {
 
 function confirmResetTraffic(dbInbound) {
   Modal.confirm({
-    title: `Reset traffic for "${dbInbound.remark}"?`,
-    content: 'Resets up/down counters to 0 for this inbound.',
-    okText: 'Reset',
-    cancelText: 'Cancel',
+    title: t('pages.inbounds.resetTrafficTitle', { remark: dbInbound.remark }),
+    content: t('pages.inbounds.resetTrafficContent'),
+    okText: t('pages.inbounds.resetTraffic'),
+    cancelText: t('cancel'),
     onOk: async () => {
       const msg = await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/resetTraffic`);
       if (msg?.success) await refresh();
@@ -405,11 +405,11 @@ function confirmResetTraffic(dbInbound) {
 
 function confirmDelDepleted(dbInboundId) {
   Modal.confirm({
-    title: 'Delete depleted clients?',
-    content: 'Removes every client whose traffic is exhausted or whose expiry has passed.',
-    okText: 'Delete',
+    title: t('pages.inbounds.delDepletedClientsTitle'),
+    content: t('pages.inbounds.delDepletedClientsContent'),
+    okText: t('delete'),
     okType: 'danger',
-    cancelText: 'Cancel',
+    cancelText: t('cancel'),
     onOk: async () => {
       const msg = await HttpUtil.post(`/panel/api/inbounds/delDepletedClients/${dbInboundId}`);
       if (msg?.success) await refresh();
