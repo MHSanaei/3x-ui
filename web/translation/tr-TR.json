@@ -86,7 +86,11 @@
     "active": "Aktif",
     "inactive": "Pasif",
     "unlimited": "Sınırsız",
-    "noExpiry": "Süresiz"
+    "noExpiry": "Süresiz",
+    "subRemained": "Kalan (Abo.)",
+    "subTotalFlow": "Abo. Toplam Akış",
+    "subUsage": "Abo. Kullanım",
+    "subDepleted": "Abo. Tükendi"
   },
   "menu": {
     "theme": "Tema",

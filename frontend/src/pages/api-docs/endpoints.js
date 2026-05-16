@@ -107,6 +107,14 @@ export const sections = [
         response: '{\n  "success": true,\n  "obj": {\n    "email": "user1",\n    "up": 1048576,\n    "down": 2097152,\n    "total": 10737418240,\n    "expiryTime": 1735689600000\n  }\n}',
       },
       {
+        method: 'GET',
+        path: '/panel/api/inbounds/getSubTraffic/:subId',
+        summary: 'Aggregated traffic counters for all clients sharing a subscription ID. Returns combined upload, download, the shared quota (subTotalGB), and the number of linked clients.',
+        params: [
+          { name: 'subId', in: 'path', type: 'string', desc: 'Subscription ID.' },
+        ],
+      },
+      {
         method: 'POST',
         path: '/panel/api/inbounds/add',
         summary: 'Create a new inbound. Send the full inbound payload (protocol, port, settings JSON, streamSettings JSON, sniffing JSON, remark, expiryTime, total, enable).',

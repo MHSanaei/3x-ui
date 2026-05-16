@@ -86,6 +86,17 @@ const totalGB = computed({
   },
 });
 
+const subTotalGB = computed({
+  get: () => {
+    if (!client.value || !client.value.subTotalGB) return 0;
+    return Math.round((client.value.subTotalGB / SizeFormatter.ONE_GB) * 100) / 100;
+  },
+  set: (gb) => {
+    if (!client.value) return;
+    client.value.subTotalGB = Math.round((gb || 0) * SizeFormatter.ONE_GB);
+  },
+});
+
 const isExpired = computed(() => {
   if (props.mode !== 'edit' || !client.value) return false;
   return client.value.expiryTime > 0 && client.value.expiryTime < Date.now();
@@ -338,6 +349,13 @@ const title = computed(() =>
           <a-tooltip :title="t('pages.inbounds.meansNoLimit')">{{ t('pages.inbounds.totalFlow') }}</a-tooltip>
         </template>
         <a-input-number v-model:value="totalGB" :min="0" :step="0.1" />
+      </a-form-item>
+
+      <a-form-item v-if="subEnable && client.subId">
+        <template #label>
+          <a-tooltip :title="t('pages.inbounds.meansNoLimit')">{{ t('subscription.totalQuota') }}</a-tooltip>
+        </template>
+        <a-input-number v-model:value="subTotalGB" :min="0" :step="0.1" />
       </a-form-item>
 
       <a-form-item v-if="mode === 'edit' && clientStats" :label="t('usage')">

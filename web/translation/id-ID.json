@@ -86,7 +86,11 @@
     "active": "Aktif",
     "inactive": "Nonaktif",
     "unlimited": "Tanpa batas",
-    "noExpiry": "Tanpa kedaluwarsa"
+    "noExpiry": "Tanpa kedaluwarsa",
+    "subRemained": "Sisa (Langganan)",
+    "subTotalFlow": "Total Aliran Langg.",
+    "subUsage": "Penggunaan Langg.",
+    "subDepleted": "Langg. Habis"
   },
   "menu": {
     "theme": "Tema",

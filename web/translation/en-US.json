@@ -86,7 +86,11 @@
     "active": "Active",
     "inactive": "Inactive",
     "unlimited": "Unlimited",
-    "noExpiry": "No expiry"
+    "noExpiry": "No expiry",
+    "subRemained": "Remained (Sub.)",
+    "subTotalFlow": "Sub. Total Flow",
+    "subUsage": "Sub. Usage",
+    "subDepleted": "Sub. Depleted"
   },
   "menu": {
     "theme": "Theme",

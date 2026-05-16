@@ -86,7 +86,11 @@
     "active": "نشط",
     "inactive": "غير نشط",
     "unlimited": "غير محدود",
-    "noExpiry": "بدون انتهاء"
+    "noExpiry": "بدون انتهاء",
+    "subRemained": "المتبقي (الاشتراك)",
+    "subTotalFlow": "إجمالي حركة الاشتراك",
+    "subUsage": "استخدام الاشتراك",
+    "subDepleted": "الاشتراك منتهي"
   },
   "menu": {
     "theme": "الثيم",

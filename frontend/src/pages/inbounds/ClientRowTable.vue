@@ -361,6 +361,10 @@ function confirmBulkDelete() {
                     <td>{{ t('remained') }}</td>
                     <td>{{ SizeFormatter.sizeFormat(getRem(client.email)) }}</td>
                   </tr>
+                  <tr v-if="client.subTotalGB > 0">
+                    <td>{{ t('subscription.totalQuota') }}</td>
+                    <td>{{ SizeFormatter.sizeFormat(client.subTotalGB) }}</td>
+                  </tr>
                 </tbody>
               </table>
             </template>

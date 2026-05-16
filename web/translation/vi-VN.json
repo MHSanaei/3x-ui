@@ -86,7 +86,11 @@
     "active": "Hoạt động",
     "inactive": "Không hoạt động",
     "unlimited": "Không giới hạn",
-    "noExpiry": "Không hết hạn"
+    "noExpiry": "Không hết hạn",
+    "subRemained": "Còn lại (Đăng ký)",
+    "subTotalFlow": "Tổng lưu lượng đăng ký",
+    "subUsage": "Sử dụng đăng ký",
+    "subDepleted": "Đăng ký đã hết"
   },
   "menu": {
     "theme": "Chủ đề",

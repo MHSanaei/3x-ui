@@ -64,6 +64,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.GET("/get/:id", a.getInbound)
 	g.GET("/getClientTraffics/:email", a.getClientTraffics)
 	g.GET("/getClientTrafficsById/:id", a.getClientTrafficsById)
+	g.GET("/getSubTraffic/:subId", a.getSubTraffic)
 	g.GET("/getSubLinks/:subId", a.getSubLinks)
 	g.GET("/getClientLinks/:id/:email", a.getClientLinks)
 
@@ -141,6 +142,17 @@ func (a *InboundController) getClientTrafficsById(c *gin.Context) {
 		return
 	}
 	jsonObj(c, clientTraffics, nil)
+}
+
+// getSubTraffic retrieves aggregated traffic info for all clients sharing a SubID.
+func (a *InboundController) getSubTraffic(c *gin.Context) {
+	subId := c.Param("subId")
+	info, err := a.inboundService.GetSubTrafficInfo(subId)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.trafficGetError"), err)
+		return
+	}
+	jsonObj(c, info, nil)
 }
 
 // addInbound creates a new inbound configuration.

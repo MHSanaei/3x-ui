@@ -86,7 +86,11 @@
     "active": "Активна",
     "inactive": "Неактивна",
     "unlimited": "Неограниченно",
-    "noExpiry": "Бессрочно"
+    "noExpiry": "Бессрочно",
+    "subRemained": "Осталось (Подп.)",
+    "subTotalFlow": "Общий лимит подписки",
+    "subUsage": "Использование подписки",
+    "subDepleted": "Подписка исчерпана"
   },
   "menu": {
     "theme": "Тема",

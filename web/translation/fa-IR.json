@@ -86,7 +86,11 @@
     "active": "فعال",
     "inactive": "غیرفعال",
     "unlimited": "نامحدود",
-    "noExpiry": "بدون انقضا"
+    "noExpiry": "بدون انقضا",
+    "subRemained": "باقیمانده (اشتراک)",
+    "subTotalFlow": "حجم کلی اشتراک",
+    "subUsage": "مصرف اشتراک",
+    "subDepleted": "اشتراک تمام شده"
   },
   "menu": {
     "theme": "تم",

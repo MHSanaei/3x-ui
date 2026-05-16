@@ -86,7 +86,11 @@
     "active": "Ativo",
     "inactive": "Inativo",
     "unlimited": "Ilimitado",
-    "noExpiry": "Sem validade"
+    "noExpiry": "Sem validade",
+    "subRemained": "Restante (Assin.)",
+    "subTotalFlow": "Fluxo Total Assin.",
+    "subUsage": "Uso Assin.",
+    "subDepleted": "Assin. Esgotada"
   },
   "menu": {
     "theme": "Tema",

@@ -80,6 +80,38 @@ const refreshing = ref(false);
 const clientIpsArray = ref([]);
 const clientIpsText = ref('');
 
+// Shared subscription quota state.
+const subTrafficInfo = ref(null);
+
+async function loadSubTraffic(subId) {
+  if (!subId) { subTrafficInfo.value = null; return; }
+  try {
+    const msg = await HttpUtil.post(`/panel/api/inbounds/getSubTraffic/${subId}`);
+    if (msg?.success && msg.obj) {
+      subTrafficInfo.value = msg.obj;
+    } else {
+      subTrafficInfo.value = null;
+    }
+  } catch (_e) {
+    subTrafficInfo.value = null;
+  }
+}
+
+function getSubRemaining() {
+  if (!subTrafficInfo.value || !subTrafficInfo.value.total) return '-';
+  const remained = subTrafficInfo.value.total - subTrafficInfo.value.up - subTrafficInfo.value.down;
+  return remained > 0 ? SizeFormatter.sizeFormat(remained) : '-';
+}
+
+function subStatsColor() {
+  if (!subTrafficInfo.value || !subTrafficInfo.value.total) return 'default';
+  return ColorUtils.usageColor(
+    subTrafficInfo.value.up + subTrafficInfo.value.down,
+    props.trafficDiff,
+    subTrafficInfo.value.total,
+  );
+}
+
 // === Status flags shown as tags ====================================
 const isEnable = computed(() => {
   if (clientSettings.value) return !!clientSettings.value.enable;
@@ -246,6 +278,12 @@ watch(() => props.open, (next) => {
   ) {
     loadClientIps();
   }
+
+  // Load shared subscription traffic if client has subTotalGB.
+  subTrafficInfo.value = null;
+  if (clientSettings.value?.subTotalGB > 0 && clientSettings.value?.subId) {
+    loadSubTraffic(clientSettings.value.subId);
+  }
 });
 
 function close() {
@@ -380,6 +418,7 @@ const showSubscriptionTab = computed(
                 <th>{{ t('remained') }}</th>
                 <th>{{ t('pages.inbounds.totalUsage') }}</th>
                 <th>{{ t('pages.inbounds.expireDate') }}</th>
+                <th v-if="subTrafficInfo && subTrafficInfo.total > 0">{{ t('subscription.subRemained') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -408,6 +447,10 @@ const showSubscriptionTab = computed(
                   <a-tag v-else color="purple">
                     <InfinityIcon />
                   </a-tag>
+                </td>
+                <td v-if="subTrafficInfo && subTrafficInfo.total > 0">
+                  <a-tag :color="subStatsColor()">{{ getSubRemaining() }}</a-tag>
+                  <a-tag>{{ SizeFormatter.sizeFormat(subTrafficInfo.total) }}</a-tag>
                 </td>
               </tr>
             </tbody>

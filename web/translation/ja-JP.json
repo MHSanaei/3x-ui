@@ -86,7 +86,11 @@
     "active": "有効",
     "inactive": "無効",
     "unlimited": "無制限",
-    "noExpiry": "期限なし"
+    "noExpiry": "期限なし",
+    "subRemained": "残り (サブ.)",
+    "subTotalFlow": "サブ. 合計フロー",
+    "subUsage": "サブ. 使用量",
+    "subDepleted": "サブ. 消耗済み"
   },
   "menu": {
     "theme": "テーマ",

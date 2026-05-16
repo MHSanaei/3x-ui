@@ -182,6 +182,7 @@ type Client struct {
 	Email      string         `json:"email"`                        // Client email identifier
 	LimitIP    int            `json:"limitIp"`                      // IP limit for this client
 	TotalGB    int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
+	SubTotalGB int64          `json:"subTotalGB" form:"subTotalGB"` // Shared subscription traffic limit in bytes (0 = disabled)
 	ExpiryTime int64          `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
 	Enable     bool           `json:"enable" form:"enable"`         // Whether the client is enabled
 	TgID       int64          `json:"tgId" form:"tgId"`             // Telegram user ID for notifications

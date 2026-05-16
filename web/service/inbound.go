@@ -1859,13 +1859,21 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 		disabledClientsCount = count
 	}
 
+	needRestart3, count, err := s.disableSubQuotaClients(tx)
+	if err != nil {
+		logger.Warning("Error in disabling sub-quota clients:", err)
+	} else if count > 0 {
+		logger.Debugf("%v clients disabled by sub quota", count)
+		disabledClientsCount += count
+	}
+
 	needRestart2, count, err := s.disableInvalidInbounds(tx)
 	if err != nil {
 		logger.Warning("Error in disabling invalid inbounds:", err)
 	} else if count > 0 {
 		logger.Debugf("%v inbounds disabled", count)
 	}
-	return needRestart0 || needRestart1 || needRestart2, disabledClientsCount > 0, nil
+	return needRestart0 || needRestart1 || needRestart2 || needRestart3, disabledClientsCount > 0, nil
 }
 
 func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic) error {
@@ -2336,6 +2344,290 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 	}
 
 	return needRestart, count, nil
+}
+
+// SubTrafficInfo holds aggregated traffic data for all clients sharing a SubID.
+type SubTrafficInfo struct {
+	SubId   string `json:"subId"`
+	Up      int64  `json:"up"`
+	Down    int64  `json:"down"`
+	Total   int64  `json:"total"`   // subTotalGB limit (bytes)
+	Clients int    `json:"clients"` // number of client emails sharing this subId
+}
+
+// GetSubTrafficInfo returns aggregated traffic data for all clients sharing
+// the given subId. The Total field is the first non-zero subTotalGB found
+// across any sibling client.
+func (s *InboundService) GetSubTrafficInfo(subId string) (*SubTrafficInfo, error) {
+	if subId == "" {
+		return nil, common.NewError("empty subId")
+	}
+	db := database.GetDB()
+
+	// 1. Find all emails + subTotalGB for this subId.
+	var rows []struct {
+		Email      string
+		SubTotalGB int64 `gorm:"column:sub_total_gb"`
+	}
+	err := db.Raw(`
+		SELECT JSON_EXTRACT(client.value, '$.email')      AS email,
+		       COALESCE(JSON_EXTRACT(client.value, '$.subTotalGB'), 0) AS sub_total_gb
+		FROM inbounds,
+			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		WHERE REPLACE(JSON_EXTRACT(client.value, '$.subId'), '"', '') = ?
+		`, subId).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return &SubTrafficInfo{SubId: subId}, nil
+	}
+
+	emails := make([]string, 0, len(rows))
+	seen := make(map[string]struct{}, len(rows))
+	var subTotal int64
+	for _, r := range rows {
+		email := strings.Trim(r.Email, "\"")
+		if email == "" {
+			continue
+		}
+		key := strings.ToLower(email)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		emails = append(emails, email)
+		if subTotal == 0 && r.SubTotalGB > 0 {
+			subTotal = r.SubTotalGB
+		}
+	}
+
+	// 2. Sum traffic from client_traffics for those emails.
+	var up, down int64
+	for _, batch := range chunkStrings(emails, sqliteMaxVars) {
+		var result struct {
+			Up   int64
+			Down int64
+		}
+		if err := db.Model(xray.ClientTraffic{}).
+			Select("COALESCE(SUM(up),0) AS up, COALESCE(SUM(down),0) AS down").
+			Where("email IN ?", batch).Scan(&result).Error; err != nil {
+			return nil, err
+		}
+		up += result.Up
+		down += result.Down
+	}
+
+	return &SubTrafficInfo{
+		SubId:   subId,
+		Up:      up,
+		Down:    down,
+		Total:   subTotal,
+		Clients: len(emails),
+	}, nil
+}
+
+// disableSubQuotaClients checks all SubID groups for shared quota violations.
+// If the aggregate traffic (up+down) across all clients sharing a SubID
+// exceeds the subTotalGB configured on any sibling, ALL clients in the group
+// are disabled. Only considers enabled clients on local-node inbounds.
+func (s *InboundService) disableSubQuotaClients(tx *gorm.DB) (bool, int64, error) {
+	// 1. Collect every (email, subId, subTotalGB) tuple from inbound settings.
+	var allRows []struct {
+		InboundId  int
+		Tag        string
+		Email      string
+		SubID      string `gorm:"column:sub_id"`
+		SubTotalGB int64  `gorm:"column:sub_total_gb"`
+	}
+	err := tx.Raw(`
+		SELECT inbounds.id  AS inbound_id,
+		       inbounds.tag AS tag,
+		       JSON_EXTRACT(client.value, '$.email') AS email,
+		       REPLACE(JSON_EXTRACT(client.value, '$.subId'), '"', '') AS sub_id,
+		       COALESCE(JSON_EXTRACT(client.value, '$.subTotalGB'), 0) AS sub_total_gb
+		FROM inbounds,
+			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		WHERE inbounds.node_id IS NULL
+		`).Scan(&allRows).Error
+	if err != nil {
+		return false, 0, err
+	}
+
+	// 2. Group by subId: collect emails and find the first non-zero subTotalGB.
+	type subGroup struct {
+		emails     map[string]struct{}
+		subTotalGB int64
+		members    []struct{ InboundId int; Tag, Email string }
+	}
+	groups := make(map[string]*subGroup)
+	for _, r := range allRows {
+		subId := strings.TrimSpace(r.SubID)
+		if subId == "" {
+			continue
+		}
+		email := strings.Trim(r.Email, "\"")
+		if email == "" {
+			continue
+		}
+		g, ok := groups[subId]
+		if !ok {
+			g = &subGroup{emails: make(map[string]struct{})}
+			groups[subId] = g
+		}
+		g.emails[strings.ToLower(email)] = struct{}{}
+		if g.subTotalGB == 0 && r.SubTotalGB > 0 {
+			g.subTotalGB = r.SubTotalGB
+		}
+		g.members = append(g.members, struct{ InboundId int; Tag, Email string }{
+			InboundId: r.InboundId, Tag: r.Tag, Email: email,
+		})
+	}
+
+	// 3. For each group with a quota, check if aggregate traffic exceeds it.
+	type disableTarget struct {
+		InboundId int
+		Tag       string
+		Email     string
+	}
+	var toDisable []disableTarget
+
+	for _, g := range groups {
+		if g.subTotalGB <= 0 {
+			continue
+		}
+
+		// Sum traffic for all emails in this subId group.
+		emails := make([]string, 0, len(g.emails))
+		for e := range g.emails {
+			emails = append(emails, e)
+		}
+
+		var totalUsed int64
+		for _, batch := range chunkStrings(emails, sqliteMaxVars) {
+			var sum struct{ Total int64 }
+			if err := tx.Model(xray.ClientTraffic{}).
+				Select("COALESCE(SUM(up + down), 0) AS total").
+				Where("email IN ? AND enable = ?", batch, true).
+				Scan(&sum).Error; err != nil {
+				continue
+			}
+			totalUsed += sum.Total
+		}
+
+		if totalUsed < g.subTotalGB {
+			continue
+		}
+
+		// Quota exceeded — mark all members for disabling.
+		for _, m := range g.members {
+			toDisable = append(toDisable, disableTarget{
+				InboundId: m.InboundId, Tag: m.Tag, Email: m.Email,
+			})
+		}
+	}
+
+	if len(toDisable) == 0 {
+		return false, 0, nil
+	}
+
+	// 4. Remove users from Xray runtime.
+	needRestart := false
+	if p != nil {
+		s.xrayApi.Init(p.GetAPIPort())
+		for _, t := range toDisable {
+			err1 := s.xrayApi.RemoveUser(t.Tag, t.Email)
+			if err1 == nil {
+				logger.Debug("Sub-quota client disabled by api:", t.Email)
+			} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", t.Email)) {
+				logger.Debug("Sub-quota user already disabled:", t.Email)
+			} else {
+				logger.Debug("Error disabling sub-quota client by api:", err1)
+				needRestart = true
+			}
+		}
+		s.xrayApi.Close()
+	}
+
+	// 5. Disable client_traffics rows.
+	disableEmails := make([]string, 0, len(toDisable))
+	for _, t := range toDisable {
+		disableEmails = append(disableEmails, t.Email)
+	}
+	uniqDisable := uniqueNonEmptyStrings(disableEmails)
+	var totalDisabled int64
+	for _, batch := range chunkStrings(uniqDisable, sqliteMaxVars) {
+		result := tx.Model(xray.ClientTraffic{}).
+			Where("email IN ? AND enable = ?", batch, true).
+			Update("enable", false)
+		if result.Error != nil {
+			logger.Warning("disableSubQuotaClients update client_traffics:", result.Error)
+		}
+		totalDisabled += result.RowsAffected
+	}
+
+	// 6. Update inbound settings JSON to set enable=false on affected clients.
+	inboundEmailMap := make(map[int]map[string]struct{})
+	for _, t := range toDisable {
+		if inboundEmailMap[t.InboundId] == nil {
+			inboundEmailMap[t.InboundId] = make(map[string]struct{})
+		}
+		inboundEmailMap[t.InboundId][t.Email] = struct{}{}
+	}
+	inboundIds := make([]int, 0, len(inboundEmailMap))
+	for id := range inboundEmailMap {
+		inboundIds = append(inboundIds, id)
+	}
+	var inbounds []*model.Inbound
+	if err = tx.Model(model.Inbound{}).Where("id IN ?", inboundIds).Find(&inbounds).Error; err != nil {
+		logger.Warning("disableSubQuotaClients fetch inbounds:", err)
+		return needRestart, totalDisabled, nil
+	}
+	now := time.Now().Unix() * 1000
+	dirty := make([]*model.Inbound, 0, len(inbounds))
+	for _, inbound := range inbounds {
+		settings := map[string]any{}
+		if jsonErr := json.Unmarshal([]byte(inbound.Settings), &settings); jsonErr != nil {
+			continue
+		}
+		clientsRaw, ok := settings["clients"].([]any)
+		if !ok {
+			continue
+		}
+		emailSet := inboundEmailMap[inbound.Id]
+		changed := false
+		for i := range clientsRaw {
+			c, ok := clientsRaw[i].(map[string]any)
+			if !ok {
+				continue
+			}
+			email, _ := c["email"].(string)
+			if _, shouldDisable := emailSet[email]; !shouldDisable {
+				continue
+			}
+			c["enable"] = false
+			c["updated_at"] = now
+			clientsRaw[i] = c
+			changed = true
+		}
+		if !changed {
+			continue
+		}
+		settings["clients"] = clientsRaw
+		modifiedSettings, jsonErr := json.MarshalIndent(settings, "", "  ")
+		if jsonErr != nil {
+			continue
+		}
+		inbound.Settings = string(modifiedSettings)
+		dirty = append(dirty, inbound)
+	}
+	if len(dirty) > 0 {
+		if err = tx.Save(dirty).Error; err != nil {
+			logger.Warning("disableSubQuotaClients update inbound settings:", err)
+		}
+	}
+
+	return needRestart, totalDisabled, nil
 }
 
 func (s *InboundService) GetInboundTags() (string, error) {

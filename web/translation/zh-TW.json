@@ -86,7 +86,11 @@
     "active": "啟用",
     "inactive": "停用",
     "unlimited": "無限制",
-    "noExpiry": "無到期"
+    "noExpiry": "無到期",
+    "subRemained": "剩餘 (訂閱)",
+    "subTotalFlow": "訂閱總流量",
+    "subUsage": "訂閱用量",
+    "subDepleted": "訂閱已耗盡"
   },
   "menu": {
     "theme": "主題",
