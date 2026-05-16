@@ -295,6 +295,74 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	}
 }
 
+// resolveSubTotalGB looks up the shared quota already configured on any
+// existing sibling client that shares the given subId. Returns the first
+// non-zero subTotalGB found, or 0 if none exists.
+func (s *InboundService) resolveSubTotalGB(subId string) int64 {
+	if strings.TrimSpace(subId) == "" {
+		return 0
+	}
+	db := database.GetDB()
+	var result struct {
+		SubTotalGB int64 `gorm:"column:sub_total_gb"`
+	}
+	err := db.Raw(`
+		SELECT COALESCE(JSON_EXTRACT(client.value, '$.subTotalGB'), 0) AS sub_total_gb
+		FROM inbounds,
+			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		WHERE REPLACE(JSON_EXTRACT(client.value, '$.subId'), '"', '') = ?
+		  AND COALESCE(JSON_EXTRACT(client.value, '$.subTotalGB'), 0) > 0
+		LIMIT 1
+	`, subId).Scan(&result).Error
+	if err != nil {
+		return 0
+	}
+	return result.SubTotalGB
+}
+
+// inheritSubTotalGB mutates the settings JSON in-place: for every client
+// whose subId matches an existing group with a non-zero subTotalGB, the
+// client's own subTotalGB is auto-filled if it was left at zero.
+func (s *InboundService) inheritSubTotalGB(settings *map[string]any) {
+	iClients, ok := (*settings)["clients"].([]any)
+	if !ok {
+		return
+	}
+	// Cache lookups per subId to avoid repeated DB hits.
+	cache := make(map[string]int64)
+	changed := false
+	for i, ic := range iClients {
+		cm, ok := ic.(map[string]any)
+		if !ok {
+			continue
+		}
+		subId, _ := cm["subId"].(string)
+		if strings.TrimSpace(subId) == "" {
+			continue
+		}
+		stgb, _ := cm["subTotalGB"].(float64)
+		if stgb > 0 {
+			// Already has a quota — cache it for siblings.
+			cache[subId] = int64(stgb)
+			continue
+		}
+		// Look up from cache or DB.
+		existing, cached := cache[subId]
+		if !cached {
+			existing = s.resolveSubTotalGB(subId)
+			cache[subId] = existing
+		}
+		if existing > 0 {
+			cm["subTotalGB"] = existing
+			iClients[i] = cm
+			changed = true
+		}
+	}
+	if changed {
+		(*settings)["clients"] = iClients
+	}
+}
+
 // AddInbound creates a new inbound configuration.
 // It validates port uniqueness, client email uniqueness, and required fields,
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
@@ -340,6 +408,25 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 				}
 				c.UpdatedAt = now
 				updatedClients = append(updatedClients, c)
+			}
+			// Auto-inherit subTotalGB from existing SubID siblings.
+			stgbCache := make(map[string]int64)
+			for i, c := range updatedClients {
+				subId := strings.TrimSpace(c.SubID)
+				if subId == "" || c.SubTotalGB > 0 {
+					if subId != "" && c.SubTotalGB > 0 {
+						stgbCache[subId] = c.SubTotalGB
+					}
+					continue
+				}
+				existing, cached := stgbCache[subId]
+				if !cached {
+					existing = s.resolveSubTotalGB(subId)
+					stgbCache[subId] = existing
+				}
+				if existing > 0 {
+					updatedClients[i].SubTotalGB = existing
+				}
 			}
 			settings["clients"] = updatedClients
 			if bs, err3 := json.MarshalIndent(settings, "", "  "); err3 == nil {
@@ -863,6 +950,8 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 			interfaceClients[i] = cm
 		}
 	}
+	// Auto-inherit subTotalGB from existing SubID siblings.
+	s.inheritSubTotalGB(&settings)
 	existEmail, err := s.checkEmailsExistForClients(clients)
 	if err != nil {
 		return false, err
@@ -1412,6 +1501,9 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 			delete(oldSettings, "testseed")
 		}
 	}
+
+	// Auto-inherit subTotalGB from existing SubID siblings.
+	s.inheritSubTotalGB(&oldSettings)
 
 	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
 	if err != nil {

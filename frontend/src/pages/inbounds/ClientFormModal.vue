@@ -97,6 +97,25 @@ const subTotalGB = computed({
   },
 });
 
+// Auto-inherit subTotalGB when the user enters/changes a SubID that
+// already has a quota configured on other clients.
+watch(
+  () => client.value?.subId,
+  async (newSubId) => {
+    if (!newSubId || !client.value) return;
+    // Don't overwrite if the admin already set a value.
+    if (client.value.subTotalGB > 0) return;
+    try {
+      const res = await HttpUtil.get(`/panel/api/inbounds/getSubTraffic/${newSubId}`);
+      if (res.success && res.obj && res.obj.total > 0) {
+        client.value.subTotalGB = res.obj.total;
+      }
+    } catch (_) {
+      // Silently ignore — the admin can still set it manually.
+    }
+  },
+);
+
 const isExpired = computed(() => {
   if (props.mode !== 'edit' || !client.value) return false;
   return client.value.expiryTime > 0 && client.value.expiryTime < Date.now();
