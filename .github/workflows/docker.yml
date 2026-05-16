@@ -23,7 +23,7 @@ jobs:
         with:
          submodules: true
 
-         - name: Docker meta
+      - name: Docker meta
         id: meta
         uses: docker/metadata-action@v6
         with:
