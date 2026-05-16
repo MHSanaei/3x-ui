@@ -137,6 +137,8 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 			}
 		}
 	}
+	// Override total with shared sub-quota when it is the active limiter.
+	s.resolveSubTraffic(subId, inbounds, &traffic)
 	traffic.Enable = hasEnabledClient
 	return result, lastOnline, traffic, nil
 }
@@ -180,6 +182,52 @@ func (s *SubService) getClientTraffics(traffics []xray.ClientTraffic, email stri
 		}
 	}
 	return xray.ClientTraffic{}
+}
+
+// resolveSubTraffic replaces the per-client totalGB-based total with the
+// shared subTotalGB quota when it is the active limiter. Client apps
+// (v2rayNG, Clash, Hiddify, etc.) read the Subscription-Userinfo header
+// to show the user their remaining data — without this, they would see
+// "unlimited" even when the admin set a shared sub-quota.
+//
+// Logic:
+//
+//	subTotalGB > 0 && totalGB == 0  →  use subTotalGB (shared is the limiter)
+//	subTotalGB > 0 && totalGB > 0   →  use min(subTotalGB, sum(totalGB)) — whichever hits first
+//	subTotalGB == 0                 →  use sum(totalGB) (no shared quota, original behavior)
+func (s *SubService) resolveSubTraffic(subId string, inbounds []*model.Inbound, traffic *xray.ClientTraffic) {
+	if subId == "" {
+		return
+	}
+
+	var maxSubTotal int64
+	for _, inbound := range inbounds {
+		clients, err := s.inboundService.GetClients(inbound)
+		if err != nil || clients == nil {
+			continue
+		}
+		for _, c := range clients {
+			if c.SubID == subId && c.SubTotalGB > maxSubTotal {
+				maxSubTotal = c.SubTotalGB
+			}
+		}
+	}
+
+	if maxSubTotal <= 0 {
+		return // no shared quota — keep original aggregated total
+	}
+
+	if traffic.Total == 0 {
+		// Individual totalGB is 0 (unlimited per-client), so subTotalGB
+		// is the only limiter.
+		traffic.Total = maxSubTotal
+	} else {
+		// Both individual and shared quotas are set — the effective
+		// limit is whichever fires first (the smaller one).
+		if maxSubTotal < traffic.Total {
+			traffic.Total = maxSubTotal
+		}
+	}
 }
 
 func (s *SubService) getFallbackMaster(dest string, streamSettings string) (string, int, string, error) {

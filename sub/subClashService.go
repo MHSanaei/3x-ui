@@ -91,6 +91,9 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		}
 	}
 
+	// Override total with shared sub-quota when it is the active limiter.
+	s.SubService.resolveSubTraffic(subId, inbounds, &traffic)
+
 	proxyNames := make([]string, 0, len(proxies)+1)
 	for _, proxy := range proxies {
 		if name, ok := proxy["name"].(string); ok && name != "" {

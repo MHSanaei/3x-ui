@@ -154,6 +154,9 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 		}
 	}
 
+	// Override total with shared sub-quota when it is the active limiter.
+	s.SubService.resolveSubTraffic(subId, inbounds, &traffic)
+
 	// Combile outbounds
 	var finalJson []byte
 	if len(configArray) == 1 {
