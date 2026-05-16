@@ -418,6 +418,8 @@
       "apiTokenHint": "Panel jarak jauh menampilkan token API-nya di Pengaturan → Token API.",
       "regenerate": "Buat Ulang Token",
       "regenerateConfirm": "Membuat ulang akan membatalkan token saat ini. Setiap panel pusat yang menggunakannya akan kehilangan akses sampai diperbarui. Lanjutkan?",
+      "allowPrivateAddress": "Izinkan alamat pribadi",
+      "allowPrivateAddressHint": "Aktifkan hanya untuk node di jaringan pribadi atau VPN.",
       "enable": "Aktif",
       "status": "Status",
       "cpu": "CPU",
@@ -950,6 +952,7 @@
       "change_password": "⚙️🔑 Kata Sandi",
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Komentar",
+      "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Reset Semua Lalu Lintas",
       "SortedTrafficUsageReport": "Laporan Penggunaan Lalu Lintas yang Terurut"
     },

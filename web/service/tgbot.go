@@ -1400,6 +1400,25 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 
 				t.addClient(callbackQuery.Message.GetChat().ID, message_text, messageId)
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
+			case "add_client_set_flow":
+				if dataArray[1] == "none" {
+					client_Flow = ""
+				} else {
+					client_Flow = dataArray[1]
+				}
+				messageId := callbackQuery.Message.GetMessageID()
+				inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				message_text, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				t.addClient(callbackQuery.Message.GetChat().ID, message_text, messageId)
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
 			case "add_client_ip_limit_in":
 				if len(dataArray) >= 2 {
 					oldInputNumber, err := strconv.Atoi(dataArray[1])
@@ -1862,6 +1881,22 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.add")+" 6 "+t.I18nBot("tgbot.months")).WithCallbackData(t.encodeQuery("add_client_reset_exp_c 180")),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.add")+" 12 "+t.I18nBot("tgbot.months")).WithCallbackData(t.encodeQuery("add_client_reset_exp_c 365")),
+			),
+		)
+		t.editMessageCallbackTgBot(chatId, callbackQuery.Message.GetMessageID(), inlineKeyboard)
+	case "add_client_ch_default_flow":
+		inlineKeyboard := tu.InlineKeyboard(
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData(t.encodeQuery("add_client_default_traffic_exp")),
+			),
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton("None").WithCallbackData(t.encodeQuery("add_client_set_flow none")),
+			),
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton("xtls-rprx-vision").WithCallbackData(t.encodeQuery("add_client_set_flow xtls-rprx-vision")),
+			),
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton("xtls-rprx-vision-udp443").WithCallbackData(t.encodeQuery("add_client_set_flow xtls-rprx-vision-udp443")),
 			),
 		)
 		t.editMessageCallbackTgBot(chatId, callbackQuery.Message.GetMessageID(), inlineKeyboard)
@@ -3345,6 +3380,25 @@ func (t *Tgbot) getCommonClientButtons() [][]telego.InlineKeyboardButton {
 	}
 }
 
+// inboundCanEnableTlsFlow mirrors Inbound.canEnableTlsFlow() from the frontend
+// model: xtls-rprx-vision is only valid on VLESS-over-TCP with TLS or Reality.
+func inboundCanEnableTlsFlow(ib *model.Inbound) bool {
+	if ib == nil || ib.Protocol != model.VLESS {
+		return false
+	}
+	var stream struct {
+		Network  string `json:"network"`
+		Security string `json:"security"`
+	}
+	if err := json.Unmarshal([]byte(ib.StreamSettings), &stream); err != nil {
+		return false
+	}
+	if stream.Network != "tcp" {
+		return false
+	}
+	return stream.Security == "tls" || stream.Security == "reality"
+}
+
 // addClient handles the process of adding a new client to an inbound.
 func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
 	inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
@@ -3357,12 +3411,30 @@ func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
 
 	var protocolRows [][]telego.InlineKeyboardButton
 	switch protocol {
-	case model.VMESS, model.VLESS:
+	case model.VMESS:
 		protocolRows = [][]telego.InlineKeyboardButton{
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_email")).WithCallbackData("add_client_ch_default_email"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_id")).WithCallbackData("add_client_ch_default_id"),
 			),
+		}
+	case model.VLESS:
+		protocolRows = [][]telego.InlineKeyboardButton{
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_email")).WithCallbackData("add_client_ch_default_email"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_id")).WithCallbackData("add_client_ch_default_id"),
+			),
+		}
+		if inboundCanEnableTlsFlow(inbound) {
+			flowLabel := t.I18nBot("tgbot.buttons.change_flow")
+			if client_Flow != "" {
+				flowLabel = flowLabel + ": " + client_Flow
+			}
+			protocolRows = append(protocolRows, tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton(flowLabel).WithCallbackData("add_client_ch_default_flow"),
+			))
+		} else if client_Flow != "" {
+			client_Flow = ""
 		}
 	case model.Trojan:
 		protocolRows = [][]telego.InlineKeyboardButton{

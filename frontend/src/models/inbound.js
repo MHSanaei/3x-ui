@@ -2412,20 +2412,25 @@ export class Inbound extends XrayCommonClass {
     }
 
     toJson() {
-        let streamSettings;
-        if (this.canEnableStream() || this.stream?.sockopt) {
-            streamSettings = this.stream.toJson();
-        }
-        return {
+        // Only these protocols use streamSettings
+        const streamProtocols = [Protocols.VLESS, Protocols.VMESS, Protocols.TROJAN, Protocols.SHADOWSOCKS, Protocols.HYSTERIA];
+
+        const result = {
             port: this.port,
             listen: this.listen,
             protocol: this.protocol,
             settings: this.settings instanceof XrayCommonClass ? this.settings.toJson() : this.settings,
-            streamSettings: streamSettings,
             tag: this.tag,
             sniffing: this.sniffing.toJson(),
             clientStats: this.clientStats
         };
+
+        // Only add streamSettings if protocol supports it
+        if (streamProtocols.includes(this.protocol)) {
+            result.streamSettings = this.stream.toJson();
+        }
+
+        return result;
     }
 }
 

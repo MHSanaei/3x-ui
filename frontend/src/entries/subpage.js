@@ -7,7 +7,7 @@ import 'ant-design-vue/dist/reset.css';
 // with the parsed traffic/quota/expiry view-model and the rendered
 // share links — the SPA reads those at mount.
 import '@/composables/useTheme.js';
-import { i18n } from '@/i18n/index.js';
+import { i18n, readyI18n } from '@/i18n/index.js';
 import SubPage from '@/pages/sub/SubPage.vue';
 
 const messageContainer = document.getElementById('message');
@@ -15,4 +15,6 @@ if (messageContainer) {
   message.config({ getContainer: () => messageContainer });
 }
 
-createApp(SubPage).use(Antd).use(i18n).mount('#app');
+readyI18n().then(() => {
+  createApp(SubPage).use(Antd).use(i18n).mount('#app');
+});

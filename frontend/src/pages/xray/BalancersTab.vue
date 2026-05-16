@@ -145,10 +145,11 @@ function syncObservatories() {
 }
 
 function buildWireBalancer(form) {
+  const supportsFallback = form.strategy === 'leastPing' || form.strategy === 'leastLoad';
   const out = {
     tag: form.tag,
     selector: [...form.selector],
-    fallbackTag: form.fallbackTag,
+    fallbackTag: supportsFallback ? form.fallbackTag : '',
   };
   if (form.strategy && form.strategy !== 'random') {
     out.strategy = { type: form.strategy };

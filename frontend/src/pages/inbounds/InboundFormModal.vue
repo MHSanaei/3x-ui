@@ -70,8 +70,11 @@ const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const inbound = ref(null);
 const dbForm = ref(null);
 const saving = ref(false);
-const advancedJson = ref({ stream: '', sniffing: '', settings: '' });
+const advancedStreamText = ref('');
+const advancedSniffingText = ref('');
+const advancedSettingsText = ref('');
 const activeTabKey = ref('basic');
+const advancedSectionKey = ref('all');
 // Cached default cert/key paths from /panel/setting/defaultSettings —
 // powers the "Set default cert" button on the TLS form.
 const defaultCert = ref('');
@@ -223,15 +226,7 @@ function freshDbForm() {
 
 function primeAdvancedJson() {
   if (!inbound.value) return;
-  try {
-    advancedJson.value.stream = JSON.stringify(JSON.parse(inbound.value.stream.toString()), null, 2);
-  } catch (_e) { /* keep prior text */ }
-  try {
-    advancedJson.value.sniffing = JSON.stringify(JSON.parse(inbound.value.sniffing.toString()), null, 2);
-  } catch (_e) { /* keep prior text */ }
-  try {
-    advancedJson.value.settings = JSON.stringify(JSON.parse(inbound.value.settings.toString()), null, 2);
-  } catch (_e) { /* keep prior text */ }
+  ['stream', 'sniffing', 'settings'].forEach(stampAdvancedTextFor);
 }
 
 watch(() => props.open, (next) => {
@@ -244,39 +239,28 @@ watch(() => props.open, (next) => {
     primeAdvancedJson();
   }
   activeTabKey.value = 'basic';
+  advancedSectionKey.value = 'all';
   fetchDefaultCertSettings();
 });
 
 function applyAdvancedJsonToBasic() {
   if (!inbound.value) return true;
-  let parsedSettings;
-  let parsedStream;
-  let parsedSniffing;
+  let settings; let streamSettings; let sniffing;
   try {
-    parsedSettings = advancedJson.value.settings.trim()
-      ? JSON.parse(advancedJson.value.settings)
-      : inbound.value.settings?.toJson?.();
-  } catch (e) { message.error(`Settings JSON invalid: ${e.message}`); return false; }
-  try {
-    parsedStream = advancedJson.value.stream.trim()
-      ? JSON.parse(advancedJson.value.stream)
-      : inbound.value.stream?.toJson?.();
-  } catch (e) { message.error(`Stream JSON invalid: ${e.message}`); return false; }
-  try {
-    parsedSniffing = advancedJson.value.sniffing.trim()
-      ? JSON.parse(advancedJson.value.sniffing)
-      : inbound.value.sniffing?.toJson?.();
-  } catch (e) { message.error(`Sniffing JSON invalid: ${e.message}`); return false; }
+    settings = parseAdvancedSliceWithLabel(advancedSettingsText.value, settingsFallback(), 'Settings');
+    streamSettings = parseAdvancedSliceWithLabel(advancedStreamText.value, streamFallback(), 'Stream');
+    sniffing = parseAdvancedSliceWithLabel(advancedSniffingText.value, sniffingFallback(), 'Sniffing');
+  } catch (_e) { return false; }
 
   try {
     inbound.value = Inbound.fromJson({
       port: inbound.value.port,
       listen: inbound.value.listen,
       protocol: inbound.value.protocol,
-      settings: parsedSettings,
-      streamSettings: parsedStream,
+      settings,
+      streamSettings,
       tag: inbound.value.tag,
-      sniffing: parsedSniffing,
+      sniffing,
       clientStats: inbound.value.clientStats,
     });
   } catch (e) {
@@ -324,6 +308,181 @@ function onNetworkChange(next) {
   }
 }
 
+function parseAdvancedSliceOrFallback(rawText, fallbackValue) {
+  if (!rawText?.trim()) return fallbackValue;
+  return JSON.parse(rawText);
+}
+
+function unwrapWrappedObject(parsed, key) {
+  if (
+    parsed
+    && typeof parsed === 'object'
+    && !Array.isArray(parsed)
+    && parsed[key] !== undefined
+  ) {
+    return parsed[key];
+  }
+  return parsed;
+}
+
+const settingsFallback = () => inbound.value?.settings?.toJson?.() || {};
+const sniffingFallback = () => inbound.value?.sniffing?.toJson?.() || {};
+const streamFallback = () => inbound.value?.stream?.toJson?.() || {};
+
+const advancedTextRefs = {
+  stream: advancedStreamText,
+  sniffing: advancedSniffingText,
+  settings: advancedSettingsText,
+};
+
+function stampAdvancedTextFor(slice) {
+  const textRef = advancedTextRefs[slice];
+  if (!textRef) return;
+  if (slice === 'stream' && !canEnableStream.value) {
+    textRef.value = '{}';
+    return;
+  }
+  const obj = inbound.value?.[slice];
+  if (!obj) return;
+  try {
+    textRef.value = JSON.stringify(JSON.parse(obj.toString()), null, 2);
+  } catch (_e) { /* keep prior text */ }
+}
+
+function parseAdvancedSliceWithLabel(rawText, fallback, label) {
+  try {
+    return parseAdvancedSliceOrFallback(rawText, fallback);
+  } catch (e) {
+    message.error(`${label} JSON invalid: ${e.message}`);
+    throw e;
+  }
+}
+
+function compactAdvancedJson(raw, fallback, label) {
+  try {
+    return JSON.stringify(JSON.parse(raw || fallback));
+  } catch (e) {
+    message.error(`${label} JSON invalid: ${e.message}`);
+    throw e;
+  }
+}
+
+async function withSaving(fn) {
+  saving.value = true;
+  try { return await fn(); } finally { saving.value = false; }
+}
+
+function makeWrappedAdvancedConfig({ key, textRef, getFallback, label }) {
+  const invalid = `${label} JSON invalid`;
+  return computed({
+    get: () => {
+      if (!inbound.value) return '';
+      try {
+        const value = parseAdvancedSliceOrFallback(textRef.value, getFallback());
+        return JSON.stringify({ [key]: value }, null, 2);
+      } catch (_e) {
+        return '';
+      }
+    },
+    set: (next) => {
+      let parsed;
+      try {
+        parsed = JSON.parse(next);
+      } catch (e) {
+        message.error(`${invalid}: ${e.message}`);
+        return;
+      }
+      const unwrapped = unwrapWrappedObject(parsed, key);
+      if (!unwrapped || typeof unwrapped !== 'object' || Array.isArray(unwrapped)) {
+        message.error(`${label} JSON must be an object or { ${key}: { ... } }.`);
+        return;
+      }
+      try {
+        textRef.value = JSON.stringify(unwrapped, null, 2);
+      } catch (e) {
+        message.error(`${invalid}: ${e.message}`);
+      }
+    },
+  });
+}
+
+const advancedAllConfig = computed({
+  get: () => {
+    if (!inbound.value) return '';
+    try {
+      const result = {
+        listen: inbound.value.listen,
+        port: inbound.value.port,
+        protocol: inbound.value.protocol,
+        settings: parseAdvancedSliceOrFallback(advancedSettingsText.value, settingsFallback()),
+        sniffing: parseAdvancedSliceOrFallback(advancedSniffingText.value, sniffingFallback()),
+        tag: inbound.value.tag,
+      };
+      if (canEnableStream.value) {
+        result.streamSettings = parseAdvancedSliceOrFallback(advancedStreamText.value, streamFallback());
+      }
+      return JSON.stringify(result, null, 2);
+    } catch (_e) {
+      return '';
+    }
+  },
+  set: (next) => {
+    let parsed;
+    try {
+      parsed = JSON.parse(next);
+    } catch (e) {
+      message.error(`All JSON invalid: ${e.message}`);
+      return;
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      message.error('All JSON must be an inbound object.');
+      return;
+    }
+
+    try {
+      if (typeof parsed.listen === 'string') inbound.value.listen = parsed.listen;
+      if (parsed.port !== undefined) {
+        const port = Number(parsed.port);
+        if (Number.isFinite(port)) inbound.value.port = port;
+      }
+      if (typeof parsed.protocol === 'string' && PROTOCOLS.includes(parsed.protocol)) {
+        inbound.value.protocol = parsed.protocol;
+      }
+      if (typeof parsed.tag === 'string') inbound.value.tag = parsed.tag;
+
+      const existingSettings = parseAdvancedSliceOrFallback(advancedSettingsText.value, settingsFallback());
+      advancedSettingsText.value = JSON.stringify(parsed.settings ?? existingSettings, null, 2);
+      advancedSniffingText.value = JSON.stringify(parsed.sniffing ?? sniffingFallback(), null, 2);
+      advancedStreamText.value = canEnableStream.value
+        ? JSON.stringify(parsed.streamSettings ?? streamFallback(), null, 2)
+        : '{}';
+    } catch (e) {
+      message.error(`All JSON invalid: ${e.message}`);
+    }
+  },
+});
+
+const advancedSettingsConfig = makeWrappedAdvancedConfig({
+  key: 'settings',
+  textRef: advancedSettingsText,
+  getFallback: settingsFallback,
+  label: 'Settings',
+});
+
+const advancedSniffingConfig = makeWrappedAdvancedConfig({
+  key: 'sniffing',
+  textRef: advancedSniffingText,
+  getFallback: sniffingFallback,
+  label: 'Sniffing',
+});
+
+const advancedStreamConfig = makeWrappedAdvancedConfig({
+  key: 'streamSettings',
+  textRef: advancedStreamText,
+  getFallback: streamFallback,
+  label: 'Stream',
+});
+
 // === Random helpers wired to the form's sync icons ==================
 function randomEmail(target) {
   if (target) target.email = RandomUtil.randomLowerAndNum(9);
@@ -356,16 +515,13 @@ function regenInboundWg() {
 
 // === Reality keygen via existing API =================================
 async function genRealityKeypair() {
-  saving.value = true;
-  try {
+  await withSaving(async () => {
     const msg = await HttpUtil.get('/panel/api/server/getNewX25519Cert');
     if (msg?.success) {
       inbound.value.stream.reality.privateKey = msg.obj.privateKey;
       inbound.value.stream.reality.settings.publicKey = msg.obj.publicKey;
     }
-  } finally {
-    saving.value = false;
-  }
+  });
 }
 
 function clearRealityKeypair() {
@@ -375,16 +531,13 @@ function clearRealityKeypair() {
 }
 
 async function genMldsa65() {
-  saving.value = true;
-  try {
+  await withSaving(async () => {
     const msg = await HttpUtil.get('/panel/api/server/getNewmldsa65');
     if (msg?.success) {
       inbound.value.stream.reality.mldsa65Seed = msg.obj.seed;
       inbound.value.stream.reality.settings.mldsa65Verify = msg.obj.verify;
     }
-  } finally {
-    saving.value = false;
-  }
+  });
 }
 
 function clearMldsa65() {
@@ -408,8 +561,7 @@ function randomizeShortIds() {
 // === ECH cert helpers ================================================
 async function getNewEchCert() {
   if (!inbound.value?.stream?.tls) return;
-  saving.value = true;
-  try {
+  await withSaving(async () => {
     const msg = await HttpUtil.post('/panel/api/server/getNewEchCert', {
       sni: inbound.value.stream.tls.sni,
     });
@@ -417,9 +569,7 @@ async function getNewEchCert() {
       inbound.value.stream.tls.echServerKeys = msg.obj.echServerKeys;
       inbound.value.stream.tls.settings.echConfigList = msg.obj.echConfigList;
     }
-  } finally {
-    saving.value = false;
-  }
+  });
 }
 
 function clearEchCert() {
@@ -463,17 +613,14 @@ function matchesVlessAuth(block, authId) {
 
 async function getNewVlessEnc(authId) {
   if (!authId || !inbound.value?.settings) return;
-  saving.value = true;
-  try {
+  await withSaving(async () => {
     const msg = await HttpUtil.get('/panel/api/server/getNewVlessEnc');
     if (!msg?.success) return;
     const block = (msg.obj?.auths || []).find((a) => matchesVlessAuth(a, authId));
     if (!block) return;
     inbound.value.settings.decryption = block.decryption;
     inbound.value.settings.encryption = block.encryption;
-  } finally {
-    saving.value = false;
-  }
+  });
 }
 
 function clearVlessEnc() {
@@ -518,24 +665,16 @@ async function submit() {
   if (!inbound.value || !dbForm.value) return;
   saving.value = true;
   try {
-    // Sniffing tab is structured; stream stays JSON for unsupported
-    // transports — both go to wire as serialized JSON.
-    let streamSettings;
-    let sniffing;
-    let settings;
+    let streamSettings; let sniffing; let settings;
     try {
       streamSettings = canEnableStream.value
-        ? JSON.stringify(JSON.parse(advancedJson.value.stream))
+        ? compactAdvancedJson(advancedStreamText.value, '', 'Stream')
         : (inbound.value.stream?.sockopt
           ? JSON.stringify({ sockopt: inbound.value.stream.sockopt.toJson() })
           : '');
-    } catch (e) { message.error(`Stream JSON invalid: ${e.message}`); return; }
-    try {
-      sniffing = JSON.stringify(JSON.parse(advancedJson.value.sniffing || inbound.value.sniffing.toString()));
-    } catch (e) { message.error(`Sniffing JSON invalid: ${e.message}`); return; }
-    try {
-      settings = JSON.stringify(JSON.parse(advancedJson.value.settings || inbound.value.settings.toString()));
-    } catch (e) { message.error(`Settings JSON invalid: ${e.message}`); return; }
+      sniffing = compactAdvancedJson(advancedSniffingText.value, inbound.value.sniffing.toString(), 'Sniffing');
+      settings = compactAdvancedJson(advancedSettingsText.value, inbound.value.settings.toString(), 'Settings');
+    } catch (_e) { return; }
 
     // The structured form mutates `inbound.stream` directly when the
     // user edits TCP/WS/gRPC/HTTPUpgrade fields, but if they touched
@@ -591,35 +730,15 @@ const okText = computed(() =>
 
 // Whenever the structured form mutates stream / sniffing / settings,
 // refresh the matching slice of the Advanced JSON tab so the user
-// always sees the live state — flipping a switch in Sniffing or
-// editing encryption in Protocol now reflects in Advanced.
-watch(
-  () => inbound.value && JSON.stringify(inbound.value.stream?.toJson?.() || {}),
-  () => {
-    if (!inbound.value?.stream) return;
-    try {
-      advancedJson.value.stream = JSON.stringify(JSON.parse(inbound.value.stream.toString()), null, 2);
-    } catch (_e) { /* leave as is */ }
-  },
-);
-watch(
-  () => inbound.value && JSON.stringify(inbound.value.sniffing?.toJson?.() || {}),
-  () => {
-    if (!inbound.value?.sniffing) return;
-    try {
-      advancedJson.value.sniffing = JSON.stringify(JSON.parse(inbound.value.sniffing.toString()), null, 2);
-    } catch (_e) { /* leave as is */ }
-  },
-);
-watch(
-  () => inbound.value && JSON.stringify(inbound.value.settings?.toJson?.() || {}),
-  () => {
-    if (!inbound.value?.settings) return;
-    try {
-      advancedJson.value.settings = JSON.stringify(JSON.parse(inbound.value.settings.toString()), null, 2);
-    } catch (_e) { /* leave as is */ }
-  },
-);
+// always sees the live state.
+['stream', 'sniffing', 'settings'].forEach((slice) => {
+  watch(
+    () => inbound.value && JSON.stringify(inbound.value[slice]?.toJson?.() || {}),
+    () => stampAdvancedTextFor(slice),
+  );
+});
+
+watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
 </script>
 
 <template>
@@ -1005,7 +1124,7 @@ watch(
           <a-form-item>
             <template #label>
               <a-tooltip
-                title='Physical interface for outbound traffic. Use "auto" to detect; auto-enabled when Auto system routes is set.'>
+                title="Physical interface for outbound traffic. Use 'auto' to detect; auto-enabled when Auto system routes is set.">
                 Auto outbounds interface
               </a-tooltip>
             </template>
@@ -1944,20 +2063,48 @@ watch(
 
       <!-- ============================== ADVANCED ============================== -->
       <a-tab-pane key="advanced" :tab="t('pages.xray.advancedTemplate')">
-        <a-alert type="info" show-icon
-          message="Edit raw stream JSON to access advanced fields we don't yet expose through the form."
-          class="mb-12" />
-        <a-form layout="vertical">
-          <a-form-item label="settings (clients, encryption, fallbacks, …)">
-            <JsonEditor v-model:value="advancedJson.settings" min-height="280px" max-height="520px" />
-          </a-form-item>
-          <a-form-item label="streamSettings">
-            <JsonEditor v-model:value="advancedJson.stream" min-height="280px" max-height="520px" />
-          </a-form-item>
-          <a-form-item label="sniffing (overrides the Sniffing tab when set)">
-            <JsonEditor v-model:value="advancedJson.sniffing" min-height="180px" max-height="360px" />
-          </a-form-item>
-        </a-form>
+        <div class="advanced-shell">
+          <div class="advanced-panel">
+            <div class="advanced-panel__header">
+              <div>
+                <div class="advanced-panel__title">Inbound JSON sections</div>
+                <div class="advanced-panel__subtitle">
+                  Full inbound JSON and focused editors for settings, sniffing, and streamSettings.
+                </div>
+              </div>
+            </div>
+
+            <a-tabs v-model:active-key="advancedSectionKey" class="advanced-inner-tabs">
+              <a-tab-pane key="all" tab="All">
+                <div class="advanced-editor-meta">
+                  Full inbound object with all fields in one editor.
+                </div>
+                <JsonEditor v-model:value="advancedAllConfig" min-height="340px" max-height="560px" />
+              </a-tab-pane>
+              <a-tab-pane key="settings" tab="Settings">
+                <div class="advanced-editor-meta">
+                  Xray settings block wrapper:
+                  <code>{ settings: { ... } }</code>.
+                </div>
+                <JsonEditor v-model:value="advancedSettingsConfig" min-height="320px" max-height="540px" />
+              </a-tab-pane>
+              <a-tab-pane key="sniffingSection" tab="Sniffing">
+                <div class="advanced-editor-meta">
+                  Xray sniffing block wrapper:
+                  <code>{ sniffing: { ... } }</code>.
+                </div>
+                <JsonEditor v-model:value="advancedSniffingConfig" min-height="240px" max-height="420px" />
+              </a-tab-pane>
+              <a-tab-pane v-if="canEnableStream" key="streamSection" tab="Stream">
+                <div class="advanced-editor-meta">
+                  Xray stream block wrapper:
+                  <code>{ streamSettings: { ... } }</code>.
+                </div>
+                <JsonEditor v-model:value="advancedStreamConfig" min-height="320px" max-height="540px" />
+              </a-tab-pane>
+            </a-tabs>
+          </div>
+        </div>
       </a-tab-pane>
     </a-tabs>
   </a-modal>
@@ -2031,6 +2178,66 @@ watch(
 
 .wg-peer {
   margin-top: 4px;
+}
+
+.advanced-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.advanced-panel {
+  padding: 14px;
+  border: 1px solid rgba(128, 128, 128, 0.18);
+  border-radius: 12px;
+  background: rgba(128, 128, 128, 0.04);
+}
+
+.advanced-panel__header {
+  margin-bottom: 12px;
+}
+
+.advanced-panel__title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.advanced-panel__subtitle {
+  margin-top: 4px;
+  opacity: 0.7;
+  line-height: 1.5;
+}
+
+.advanced-inner-tabs :deep(.ant-tabs-nav) {
+  margin-bottom: 12px;
+}
+
+.advanced-inner-tabs :deep(.ant-tabs-tab) {
+  padding-inline: 14px;
+}
+
+.advanced-editor-meta {
+  margin-bottom: 10px;
+  opacity: 0.75;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .advanced-panel {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .advanced-inner-tabs :deep(.ant-tabs-tab) {
+    padding-inline: 10px;
+  }
+}
+
+:global(body.dark) .advanced-panel,
+:global(html[data-theme='ultra-dark']) .advanced-panel {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .section-heading {

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { message } from 'ant-design-vue';
 import {
   BarsOutlined,
   ControlOutlined,
@@ -18,17 +19,18 @@ import {
   DesktopOutlined,
   DatabaseOutlined,
   ForkOutlined,
+  CopyOutlined,
 } from '@ant-design/icons-vue';
 
 const { t } = useI18n();
 
-import { HttpUtil, SizeFormatter, TimeFormatter } from '@/utils';
+import { HttpUtil, SizeFormatter, TimeFormatter, ClipboardManager, FileManager } from '@/utils';
 import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
 import { useStatus } from '@/composables/useStatus.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
 import CustomStatistic from '@/components/CustomStatistic.vue';
-import TextModal from '@/components/TextModal.vue';
+import JsonEditor from '@/components/JsonEditor.vue';
 import StatusCard from './StatusCard.vue';
 import XrayStatusCard from './XrayStatusCard.vue';
 import PanelUpdateModal from './PanelUpdateModal.vue';
@@ -117,7 +119,7 @@ function openTelegram() {
 }
 
 // Legacy "Config" action — fetch the rendered xray config and show
-// it as JSON in the shared TextModal (same UX as main).
+// it as JSON in the config modal with syntax highlighting.
 async function openConfig() {
   loading.value = true;
   try {
@@ -128,6 +130,17 @@ async function openConfig() {
   } finally {
     loading.value = false;
   }
+}
+
+async function copyConfig() {
+  const ok = await ClipboardManager.copyText(configText.value || '');
+  if (ok) {
+    message.success('Copied');
+  }
+}
+
+function downloadConfig() {
+  FileManager.downloadTextFile(configText.value, 'config.json');
 }
 </script>
 
@@ -360,8 +373,27 @@ async function openConfig() {
       <XrayMetricsModal v-model:open="xrayMetricsOpen" />
       <XrayLogModal v-model:open="xrayLogsOpen" />
       <VersionModal v-model:open="versionOpen" :status="status" @busy="setBusy" />
-      <TextModal v-model:open="configTextOpen" :title="t('pages.index.config')" :content="configText"
-        file-name="config.json" />
+
+      <a-modal v-model:open="configTextOpen" :title="t('pages.index.config')" :width="isMobile ? '100%' : '900px'"
+        :style="isMobile ? { top: '20px', maxWidth: 'calc(100vw - 16px)' } : {}" :closable="true">
+        <JsonEditor v-model:value="configText" :min-height="isMobile ? '300px' : '420px'"
+          :max-height="isMobile ? '500px' : '720px'" :readonly="true" />
+        <template #footer>
+          <a-button @click="downloadConfig" :size="isMobile ? 'small' : 'middle'">
+            <template #icon>
+              <CloudDownloadOutlined />
+            </template>
+            <span v-if="!isMobile">config.json</span>
+            <span v-else>Download</span>
+          </a-button>
+          <a-button type="primary" @click="copyConfig" :size="isMobile ? 'small' : 'middle'">
+            <template #icon>
+              <CopyOutlined />
+            </template>
+            Copy
+          </a-button>
+        </template>
+      </a-modal>
     </a-layout>
   </a-config-provider>
 </template>

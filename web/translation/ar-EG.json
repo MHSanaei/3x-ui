@@ -418,6 +418,8 @@
       "apiTokenHint": "البانل البعيد بيعرض توكن API بتاعه في الإعدادات → توكن API.",
       "regenerate": "تجديد التوكن",
       "regenerateConfirm": "تجديد التوكن هيلغي التوكن الحالي. أي بانل مركزي بيستخدمه هيفقد الصلاحية لحد ما تحدّث التوكن. تكمّل؟",
+      "allowPrivateAddress": "السماح بالعنوان الخاص",
+      "allowPrivateAddressHint": "التفعيل فقط للعقد على شبكة خاصة أو VPN.",
       "enable": "مفعل",
       "status": "الحالة",
       "cpu": "المعالج",
@@ -950,6 +952,7 @@
       "change_password": "⚙️🔑 كلمة السر",
       "change_email": "⚙️📧 البريد الإلكتروني",
       "change_comment": "⚙️💬 تعليق",
+      "change_flow": "⚙️🚦 التدفق",
       "ResetAllTraffics": "إعادة ضبط جميع الترافيك",
       "SortedTrafficUsageReport": "تقرير استخدام الترافيك المرتب"
     },
