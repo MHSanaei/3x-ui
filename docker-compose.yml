@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
-    container_name: 3xui_app
-    # hostname: yourhostname <- optional
+    container_name: reg.vados.ru/3xui_app
+    hostname: amster.vados.ru
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
