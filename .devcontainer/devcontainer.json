@@ -1,0 +1,18 @@
+{
+	"image": "mcr.microsoft.com/devcontainers/javascript-node:4-24-trixie",
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"moby": "false"
+		}
+	},
+	"postCreateCommand": "npm install -g @devcontainers/cli",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"mads-hartmann.bash-ide-vscode",
+				"dbaeumer.vscode-eslint",
+				"editorconfig.editorconfig"
+			]
+		}
+	}
+}
