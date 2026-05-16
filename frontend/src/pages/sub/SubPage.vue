@@ -106,12 +106,10 @@ function linkName(link, idx) {
 // client expects the sub URL in a slightly different param name.
 const shadowrocketUrl = computed(() => {
   if (!subUrl) return '';
-  const separator = subUrl.includes('?') ? '&' : '?';
-  const rawUrl = subUrl + separator + 'flag=shadowrocket';
-  const base64Url = encodeURIComponent(btoa(rawUrl));
-  const remark = encodeURIComponent(subTitle || sId || 'Subscription');
-  return `shadowrocket://add/sub/${base64Url}?remark=${remark}`;
+  const remark = subTitle || sId || 'Subscription';
+  return `sub://${btoa(subUrl)}#${encodeURIComponent(remark)}`;
 });
+
 const v2boxUrl = computed(() => `v2box://install-sub?url=${encodeURIComponent(subUrl)}&name=${encodeURIComponent(sId)}`);
 const streisandUrl = computed(() => `streisand://import/${encodeURIComponent(subUrl)}`);
 const v2raytunUrl = computed(() => subUrl);
