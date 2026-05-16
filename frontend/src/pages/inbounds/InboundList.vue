@@ -129,10 +129,12 @@ function applySecondaryFilters(rows) {
 }
 
 // ============ Search / filter projection =============================
-// Mirrors the legacy logic: when searching, keep inbounds that match
-// anywhere (deep search); when filtering, keep inbounds that have at
-// least one client in the requested bucket and reduce their settings
-// to that bucket.
+// Search mode: match on inbound metadata (remark, tag, listen, protocol,
+// port) and parsed client fields. Raw JSON strings (settings, streamSettings,
+// sniffing) are NOT searched as text to avoid false matches on internal
+// JSON keys like "echForceQuery".
+// Filter mode: keep inbounds that have at least one client in the requested
+// bucket and reduce their settings to that bucket.
 function projectInbound(dbInbound, predicate) {
   const next = new DBInbound(dbInbound);
   let settings;
@@ -163,8 +165,17 @@ const visibleInbounds = computed(() => {
   if (ObjectUtil.isEmpty(searchKey.value)) return applySecondaryFilters([...props.dbInbounds]);
   const out = [];
   for (const dbInbound of props.dbInbounds) {
-    if (!ObjectUtil.deepSearch(dbInbound, searchKey.value)) continue;
-    out.push(projectInbound(dbInbound, (client) => ObjectUtil.deepSearch(client, searchKey.value)));
+    let settings;
+    try { settings = JSON.parse(dbInbound.settings || '{}'); } catch (_e) { settings = {}; }
+    const clients = Array.isArray(settings.clients) ? settings.clients : [];
+    const hasClientMatch = clients.some(client => ObjectUtil.deepSearch(client, searchKey.value));
+    const metaFields = [dbInbound.remark, dbInbound.tag, dbInbound.listen, dbInbound.protocol];
+    const hasMetaMatch = metaFields.some(f => String(f || '').toLowerCase().includes(searchKey.value.toLowerCase())) ||
+                         String(dbInbound.port || '').includes(searchKey.value);
+    if (!hasClientMatch && !hasMetaMatch) continue;
+    out.push(projectInbound(dbInbound, hasClientMatch
+      ? (client) => ObjectUtil.deepSearch(client, searchKey.value)
+      : () => true));
   }
   return applySecondaryFilters(out);
 });
