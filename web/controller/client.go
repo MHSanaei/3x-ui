@@ -26,6 +26,10 @@ func NewClientController(g *gin.RouterGroup) *ClientController {
 func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.GET("/list", a.list)
 	g.GET("/get/:email", a.get)
+	g.GET("/traffic/:email", a.getTrafficByEmail)
+	g.GET("/subLinks/:subId", a.getSubLinks)
+	g.GET("/links/:email", a.getClientLinks)
+
 	g.POST("/add", a.create)
 	g.POST("/update/:email", a.update)
 	g.POST("/del/:email", a.delete)
@@ -39,9 +43,6 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/clearIps/:email", a.clearIps)
 	g.POST("/onlines", a.onlines)
 	g.POST("/lastOnline", a.lastOnline)
-	g.GET("/traffic/:email", a.getTrafficByEmail)
-	g.GET("/subLinks/:subId", a.getSubLinks)
-	g.GET("/links/:email", a.getClientLinks)
 }
 
 func (a *ClientController) list(c *gin.Context) {

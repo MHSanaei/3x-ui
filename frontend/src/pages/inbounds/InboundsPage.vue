@@ -10,6 +10,7 @@ import {
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
 import { Inbound } from '@/models/inbound.js';
+import { coerceInboundJsonField } from '@/models/dbinbound.js';
 import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
@@ -318,11 +319,11 @@ function confirmClone(dbInbound) {
     cancelText: 'Cancel',
     onOk: async () => {
       const baseInbound = dbInbound.toInbound();
-      let clonedSettings = '';
+      let clonedSettings;
       try {
-        const raw = JSON.parse(dbInbound.settings || '{}');
+        const raw = coerceInboundJsonField(dbInbound.settings);
         raw.clients = [];
-        clonedSettings = JSON.stringify(raw, null, 2);
+        clonedSettings = JSON.stringify(raw);
       } catch (_e) {
         clonedSettings = Inbound.Settings.getSettings(baseInbound.protocol).toString();
       }

@@ -233,14 +233,20 @@ export class TcpStreamSettings extends XrayCommonClass {
     }
 
     toJson() {
-        return {
-            acceptProxyProtocol: this.acceptProxyProtocol,
-            header: {
-                type: this.type,
-                request: this.type === 'http' ? this.request.toJson() : undefined,
-                response: this.type === 'http' ? this.response.toJson() : undefined,
-            },
-        };
+        const json = {};
+        if (this.acceptProxyProtocol) {
+            json.acceptProxyProtocol = true;
+        }
+        if (this.type === 'http') {
+            json.header = {
+                type: 'http',
+                request: this.request.toJson(),
+                response: this.response.toJson(),
+            };
+        } else if (this.type && this.type !== 'none') {
+            json.header = { type: this.type };
+        }
+        return json;
     }
 }
 
@@ -1466,7 +1472,9 @@ export class StreamSettings extends XrayCommonClass {
         return {
             network: network,
             security: this.security,
-            externalProxy: this.externalProxy,
+            externalProxy: Array.isArray(this.externalProxy) && this.externalProxy.length > 0
+                ? this.externalProxy
+                : undefined,
             tlsSettings: this.isTls ? this.tls.toJson() : undefined,
             realitySettings: this.isReality ? this.reality.toJson() : undefined,
             tcpSettings: network === 'tcp' ? this.tcp.toJson() : undefined,
@@ -1515,11 +1523,14 @@ export class Sniffing extends XrayCommonClass {
     }
 
     toJson() {
+        if (!this.enabled) {
+            return { enabled: false };
+        }
         return {
-            enabled: this.enabled,
+            enabled: true,
             destOverride: this.destOverride,
-            metadataOnly: this.metadataOnly,
-            routeOnly: this.routeOnly,
+            metadataOnly: this.metadataOnly || undefined,
+            routeOnly: this.routeOnly || undefined,
             ipsExcluded: this.ipsExcluded.length > 0 ? this.ipsExcluded : undefined,
             domainsExcluded: this.domainsExcluded.length > 0 ? this.domainsExcluded : undefined,
         };

@@ -76,9 +76,9 @@ export const sections = [
       {
         method: 'GET',
         path: '/panel/api/inbounds/list',
-        summary: 'List every inbound owned by the authenticated user, including each inbound’s clientStats traffic counters.',
+        summary: 'List every inbound owned by the authenticated user, including each inbound’s clientStats traffic counters. settings, streamSettings, and sniffing are returned as nested JSON objects (no escaped strings); legacy callers that send them back as JSON-encoded strings are still accepted on write.',
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "userId": 1,\n      "up": 0,\n      "down": 0,\n      "total": 0,\n      "remark": "VLESS-443",\n      "enable": true,\n      "expiryTime": 0,\n      "listen": "",\n      "port": 443,\n      "protocol": "vless",\n      "settings": "{\\"clients\\":[...]}",\n      "streamSettings": "{...}",\n      "tag": "inbound-443",\n      "sniffing": "{...}",\n      "clientStats": [...]\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "userId": 1,\n      "up": 0,\n      "down": 0,\n      "total": 0,\n      "remark": "VLESS-443",\n      "enable": true,\n      "expiryTime": 0,\n      "listen": "",\n      "port": 443,\n      "protocol": "vless",\n      "settings": {\n        "clients": [],\n        "decryption": "none"\n      },\n      "streamSettings": {\n        "network": "tcp",\n        "security": "reality",\n        "realitySettings": { "show": false, "dest": "..." }\n      },\n      "tag": "inbound-443",\n      "sniffing": {\n        "enabled": true,\n        "destOverride": ["http", "tls"]\n      },\n      "clientStats": []\n    }\n  ]\n}',
       },
       {
         method: 'GET',
@@ -91,9 +91,9 @@ export const sections = [
       {
         method: 'POST',
         path: '/panel/api/inbounds/add',
-        summary: 'Create a new inbound. Send the full inbound payload (protocol, port, settings JSON, streamSettings JSON, sniffing JSON, remark, expiryTime, total, enable).',
+        summary: 'Create a new inbound. Send the full inbound payload (protocol, port, settings, streamSettings, sniffing, remark, expiryTime, total, enable). settings, streamSettings, and sniffing may be sent as nested JSON objects (preferred) or as JSON-encoded strings (legacy).',
         body:
-          '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": "{\\"clients\\":[{\\"id\\":\\"...\\",\\"email\\":\\"user1\\"}],\\"decryption\\":\\"none\\",\\"fallbacks\\":[]}",\n  "streamSettings": "{\\"network\\":\\"tcp\\",\\"security\\":\\"reality\\",\\"realitySettings\\":{...}}",\n  "sniffing": "{\\"enabled\\":true,\\"destOverride\\":[\\"http\\",\\"tls\\"]}"\n}',
+          '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": {\n    "clients": [{ "id": "...", "email": "user1" }],\n    "decryption": "none",\n    "fallbacks": []\n  },\n  "streamSettings": {\n    "network": "tcp",\n    "security": "reality",\n    "realitySettings": { "show": false, "dest": "..." }\n  },\n  "sniffing": {\n    "enabled": true,\n    "destOverride": ["http", "tls"]\n  }\n}',
         errorResponse:
           '{\n  "success": false,\n  "msg": "Port 443 is already in use"\n}',
       },
@@ -375,9 +375,9 @@ export const sections = [
       {
         method: 'GET',
         path: '/panel/api/clients/list',
-        summary: 'List every client with its attached inbound IDs and traffic record.',
+        summary: 'List every client with its attached inbound IDs and traffic record. The reverse field, if set, is returned as a nested JSON object (legacy JSON-encoded-string form is still accepted on write).',
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "email": "alice@example.com",\n      "subId": "abcd1234",\n      "uuid": "...",\n      "totalGB": 53687091200,\n      "expiryTime": 1735689600000,\n      "enable": true,\n      "inboundIds": [3, 5],\n      "traffic": { "up": 1024, "down": 4096, "enable": true }\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "email": "alice@example.com",\n      "subId": "abcd1234",\n      "uuid": "...",\n      "totalGB": 53687091200,\n      "expiryTime": 1735689600000,\n      "enable": true,\n      "reverse": null,\n      "inboundIds": [3, 5],\n      "traffic": { "up": 1024, "down": 4096, "enable": true }\n    }\n  ]\n}',
       },
       {
         method: 'GET',
@@ -543,7 +543,7 @@ export const sections = [
         method: 'GET',
         path: '/panel/api/nodes/list',
         summary: 'List every configured node with its connection details, health, and last heartbeat patch.',
-        response: '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "de-fra-1",\n      "scheme": "https",\n      "host": "node1.example.com",\n      "port": 2053,\n      "status": "online",\n      "cpu": 23.5,\n      "mem": 45.1\n    }\n  ]\n}',
+        response: '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "de-fra-1",\n      "remark": "",\n      "scheme": "https",\n      "address": "node1.example.com",\n      "port": 2053,\n      "basePath": "/",\n      "apiToken": "abcdef...",\n      "enable": true,\n      "allowPrivateAddress": false,\n      "status": "online",\n      "lastHeartbeat": 1700000000,\n      "latencyMs": 42,\n      "xrayVersion": "25.x.x",\n      "panelVersion": "v3.x.x",\n      "cpuPct": 23.5,\n      "memPct": 45.1,\n      "uptimeSecs": 86400,\n      "lastError": "",\n      "inboundCount": 5,\n      "clientCount": 27,\n      "onlineCount": 3,\n      "depletedCount": 1,\n      "createdAt": 1700000000,\n      "updatedAt": 1700000000\n    }\n  ]\n}',
       },
       {
         method: 'GET',
@@ -556,9 +556,9 @@ export const sections = [
       {
         method: 'POST',
         path: '/panel/api/nodes/add',
-        summary: 'Register a new remote node. Provide its URL, apiToken, and optional label/notes.',
+        summary: 'Register a new remote node. Provide its URL, apiToken, and optional remark / allowPrivateAddress flag.',
         body:
-          '{\n  "name": "de-fra-1",\n  "scheme": "https",\n  "host": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
+          '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef...",\n  "enable": true,\n  "allowPrivateAddress": false\n}',
       },
       {
         method: 'POST',
@@ -567,7 +567,7 @@ export const sections = [
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Node ID.' },
         ],
-        body: '{\n  "name": "de-fra-1",\n  "scheme": "https",\n  "host": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
+        body: '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef...",\n  "enable": true,\n  "allowPrivateAddress": false\n}',
       },
       {
         method: 'POST',
@@ -589,9 +589,9 @@ export const sections = [
       {
         method: 'POST',
         path: '/panel/api/nodes/test',
-        summary: 'Probe a node without saving it. Uses the body as connection details and returns whether the handshake succeeds.',
-        body: '{\n  "scheme": "https",\n  "host": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
-        response: '{\n  "success": true,\n  "obj": {\n    "status": "online",\n    "cpu": 12.5,\n    "mem": 45.2\n  }\n}',
+        summary: 'Probe a node without saving it. Uses the body as connection details and returns the same heartbeat snapshot a registered node would have.',
+        body: '{\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "status": "online",\n    "latencyMs": 42,\n    "xrayVersion": "25.x.x",\n    "panelVersion": "v3.x.x",\n    "cpuPct": 12.5,\n    "memPct": 45.2,\n    "uptimeSecs": 86400,\n    "error": ""\n  }\n}',
       },
       {
         method: 'POST',

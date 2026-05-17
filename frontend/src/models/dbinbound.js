@@ -2,6 +2,19 @@ import dayjs from 'dayjs';
 import { ObjectUtil, NumberFormatter, SizeFormatter } from '@/utils';
 import { Inbound, Protocols } from './inbound.js';
 
+export function coerceInboundJsonField(value) {
+    if (value == null) return {};
+    if (typeof value === 'object') return value;
+    if (typeof value !== 'string') return {};
+    const trimmed = value.trim();
+    if (trimmed === '') return {};
+    try {
+        return JSON.parse(trimmed);
+    } catch (_e) {
+        return {};
+    }
+}
+
 export class DBInbound {
 
     constructor(data) {
@@ -110,20 +123,9 @@ export class DBInbound {
             return this._cachedInbound;
         }
 
-        let settings = {};
-        if (!ObjectUtil.isEmpty(this.settings)) {
-            settings = JSON.parse(this.settings);
-        }
-
-        let streamSettings = {};
-        if (!ObjectUtil.isEmpty(this.streamSettings)) {
-            streamSettings = JSON.parse(this.streamSettings);
-        }
-
-        let sniffing = {};
-        if (!ObjectUtil.isEmpty(this.sniffing)) {
-            sniffing = JSON.parse(this.sniffing);
-        }
+        const settings = coerceInboundJsonField(this.settings);
+        const streamSettings = coerceInboundJsonField(this.streamSettings);
+        const sniffing = coerceInboundJsonField(this.sniffing);
 
         const config = {
             port: this.port,

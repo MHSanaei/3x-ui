@@ -62,6 +62,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 
 	g.GET("/list", a.getInbounds)
 	g.GET("/get/:id", a.getInbound)
+	g.GET("/:id/fallbackChildren", a.getFallbackChildren)
 
 	g.POST("/add", a.addInbound)
 	g.POST("/del/:id", a.delInbound)
@@ -70,7 +71,6 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/:id/resetTraffic", a.resetInboundTraffic)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/import", a.importInbound)
-	g.GET("/:id/fallbackChildren", a.getFallbackChildren)
 	g.POST("/:id/fallbackChildren", a.setFallbackChildren)
 }
 

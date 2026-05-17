@@ -2,8 +2,10 @@
 package model
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/xray"
@@ -83,6 +85,38 @@ type InboundClientIps struct {
 	Ips         string `json:"ips" form:"ips"`
 }
 
+// MarshalJSON emits the Ips column as a real JSON array instead of an escaped
+// JSON-text string. Empty or unparseable storage renders as null so API
+// consumers don't have to special-case the legacy double-encoded shape.
+func (ic InboundClientIps) MarshalJSON() ([]byte, error) {
+	type alias InboundClientIps
+	return json.Marshal(struct {
+		alias
+		Ips json.RawMessage `json:"ips"`
+	}{
+		alias: alias(ic),
+		Ips:   jsonStringFieldToRaw(ic.Ips),
+	})
+}
+
+// UnmarshalJSON accepts ips as either a JSON array (modern shape) or a
+// JSON-encoded string (legacy shape), normalising back to the JSON-text the
+// column stores.
+func (ic *InboundClientIps) UnmarshalJSON(data []byte) error {
+	type alias InboundClientIps
+	aux := struct {
+		*alias
+		Ips json.RawMessage `json:"ips"`
+	}{
+		alias: (*alias)(ic),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	ic.Ips = jsonStringFieldFromRaw(aux.Ips)
+	return nil
+}
+
 // HistoryOfSeeders tracks which database seeders have been executed to prevent re-running.
 type HistoryOfSeeders struct {
 	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
@@ -95,6 +129,74 @@ type ApiToken struct {
 	Token     string `json:"token" gorm:"not null"`
 	Enabled   bool   `json:"enabled" gorm:"default:true"`
 	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime"`
+}
+
+// MarshalJSON emits settings, streamSettings, and sniffing as nested JSON
+// objects rather than escaped strings, so API consumers don't need to JSON.parse
+// a string inside a string. Empty fields render as null; fields whose stored
+// text isn't valid JSON fall back to a JSON-encoded string so no data is lost.
+func (i Inbound) MarshalJSON() ([]byte, error) {
+	type alias Inbound
+	return json.Marshal(struct {
+		alias
+		Settings       json.RawMessage `json:"settings"`
+		StreamSettings json.RawMessage `json:"streamSettings"`
+		Sniffing       json.RawMessage `json:"sniffing"`
+	}{
+		alias:          alias(i),
+		Settings:       jsonStringFieldToRaw(i.Settings),
+		StreamSettings: jsonStringFieldToRaw(i.StreamSettings),
+		Sniffing:       jsonStringFieldToRaw(i.Sniffing),
+	})
+}
+
+// UnmarshalJSON accepts settings, streamSettings, and sniffing as either a raw
+// JSON object/array (the modern shape MarshalJSON emits) or a JSON-encoded
+// string (the legacy shape). Either form is normalised back to the JSON-text
+// string the DB column stores.
+func (i *Inbound) UnmarshalJSON(data []byte) error {
+	type alias Inbound
+	aux := struct {
+		*alias
+		Settings       json.RawMessage `json:"settings"`
+		StreamSettings json.RawMessage `json:"streamSettings"`
+		Sniffing       json.RawMessage `json:"sniffing"`
+	}{
+		alias: (*alias)(i),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	i.Settings = jsonStringFieldFromRaw(aux.Settings)
+	i.StreamSettings = jsonStringFieldFromRaw(aux.StreamSettings)
+	i.Sniffing = jsonStringFieldFromRaw(aux.Sniffing)
+	return nil
+}
+
+func jsonStringFieldToRaw(s string) json.RawMessage {
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return json.RawMessage("null")
+	}
+	if json.Valid([]byte(trimmed)) {
+		return json.RawMessage(trimmed)
+	}
+	b, _ := json.Marshal(s)
+	return b
+}
+
+func jsonStringFieldFromRaw(r json.RawMessage) string {
+	trimmed := bytes.TrimSpace(r)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		return ""
+	}
+	if trimmed[0] == '"' {
+		var s string
+		if err := json.Unmarshal(trimmed, &s); err == nil {
+			return s
+		}
+	}
+	return string(trimmed)
 }
 
 // GenXrayInboundConfig generates an Xray inbound configuration from the Inbound model.
@@ -223,6 +325,37 @@ type ClientRecord struct {
 }
 
 func (ClientRecord) TableName() string { return "clients" }
+
+// MarshalJSON emits the reverse column as a nested JSON object rather than an
+// escaped JSON-text string, matching the same convention Inbound uses for its
+// JSON-text columns. Empty storage renders as null.
+func (r ClientRecord) MarshalJSON() ([]byte, error) {
+	type alias ClientRecord
+	return json.Marshal(struct {
+		alias
+		Reverse json.RawMessage `json:"reverse"`
+	}{
+		alias:   alias(r),
+		Reverse: jsonStringFieldToRaw(r.Reverse),
+	})
+}
+
+// UnmarshalJSON accepts reverse as either a JSON object (modern shape) or a
+// JSON-encoded string (legacy shape).
+func (r *ClientRecord) UnmarshalJSON(data []byte) error {
+	type alias ClientRecord
+	aux := struct {
+		*alias
+		Reverse json.RawMessage `json:"reverse"`
+	}{
+		alias: (*alias)(r),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	r.Reverse = jsonStringFieldFromRaw(aux.Reverse)
+	return nil
+}
 
 type ClientInbound struct {
 	ClientId     int    `json:"clientId" gorm:"primaryKey;column:client_id;index"`
