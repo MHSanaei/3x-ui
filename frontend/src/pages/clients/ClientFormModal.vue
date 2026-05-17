@@ -64,6 +64,7 @@ watch(
       form.inboundIds = Array.isArray(props.attachedIds) ? [...props.attachedIds] : [];
       void loadIps();
     } else {
+      form.email = RandomUtil.randomLowerAndNum(9);
       form.uuid = RandomUtil.randomUUID();
       form.subId = RandomUtil.randomLowerAndNum(16);
       form.password = RandomUtil.randomLowerAndNum(16);
