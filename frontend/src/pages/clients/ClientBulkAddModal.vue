@@ -7,12 +7,17 @@ import { message } from 'ant-design-vue';
 
 import { HttpUtil, RandomUtil, SizeFormatter } from '@/utils';
 import DateTimePicker from '@/components/DateTimePicker.vue';
+import { DBInbound } from '@/models/dbinbound.js';
+import { TLS_FLOW_CONTROL } from '@/models/inbound.js';
+
+const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 
 const { t } = useI18n();
 
 const props = defineProps({
   open: { type: Boolean, default: false },
   inbounds: { type: Array, default: () => [] },
+  ipLimitEnable: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:open', 'saved']);
@@ -31,10 +36,30 @@ const form = reactive({
   quantity: 1,
   subId: '',
   comment: '',
+  flow: '',
   limitIp: 0,
   totalGB: 0,
   expiryTime: 0,
   inboundIds: [],
+});
+
+const flowCapableIds = computed(() => {
+  const ids = new Set();
+  for (const row of props.inbounds || []) {
+    try {
+      const parsed = new DBInbound(row).toInbound();
+      if (parsed.canEnableTlsFlow?.()) ids.add(row.id);
+    } catch (_e) { /* ignore */ }
+  }
+  return ids;
+});
+
+const showFlow = computed(() =>
+  (form.inboundIds || []).some((id) => flowCapableIds.value.has(id)),
+);
+
+watch(showFlow, (next) => {
+  if (!next) form.flow = '';
 });
 
 const expiryDate = computed({
@@ -64,6 +89,7 @@ watch(() => props.open, (next) => {
   form.quantity = 1;
   form.subId = '';
   form.comment = '';
+  form.flow = '';
   form.limitIp = 0;
   form.totalGB = 0;
   form.expiryTime = 0;
@@ -118,6 +144,7 @@ async function submit() {
         id: RandomUtil.randomUUID(),
         password: RandomUtil.randomLowerAndNum(16),
         auth: RandomUtil.randomLowerAndNum(16),
+        flow: showFlow.value ? (form.flow || '') : '',
         totalGB: Math.round((form.totalGB || 0) * SizeFormatter.ONE_GB),
         expiryTime: form.expiryTime,
         limitIp: Number(form.limitIp) || 0,
@@ -191,8 +218,15 @@ async function submit() {
         <a-input v-model:value="form.comment" />
       </a-form-item>
 
+      <a-form-item v-if="showFlow" label="Flow">
+        <a-select v-model:value="form.flow" :style="{ width: '220px' }">
+          <a-select-option value="">none</a-select-option>
+          <a-select-option v-for="k in FLOW_OPTIONS" :key="k" :value="k">{{ k }}</a-select-option>
+        </a-select>
+      </a-form-item>
+
       <a-form-item :label="t('pages.clients.limitIp') || 'IP Limit'">
-        <a-input-number v-model:value="form.limitIp" :min="0" />
+        <a-input-number v-model:value="form.limitIp" :min="0" :disabled="!ipLimitEnable" />
       </a-form-item>
 
       <a-form-item :label="t('pages.clients.totalGB') || 'Total (GB)'">

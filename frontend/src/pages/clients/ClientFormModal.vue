@@ -3,7 +3,11 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { message } from 'ant-design-vue';
 import dayjs from 'dayjs';
-import { RandomUtil } from '@/utils';
+import { HttpUtil, RandomUtil } from '@/utils';
+import { DBInbound } from '@/models/dbinbound.js';
+import { TLS_FLOW_CONTROL } from '@/models/inbound.js';
+
+const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -11,6 +15,7 @@ const props = defineProps({
   client: { type: Object, default: null },
   inbounds: { type: Array, default: () => [] },
   attachedIds: { type: Array, default: () => [] },
+  ipLimitEnable: { type: Boolean, default: false },
   save: { type: Function, required: true },
 });
 
@@ -27,6 +32,7 @@ function emptyForm() {
     uuid: '',
     password: '',
     auth: '',
+    flow: '',
     totalGB: 0,
     expiryTime: null,
     limitIp: 0,
@@ -49,12 +55,14 @@ watch(
       form.uuid = props.client.uuid || '';
       form.password = props.client.password || '';
       form.auth = props.client.auth || '';
+      form.flow = props.client.flow || '';
       form.totalGB = bytesToGB(props.client.totalGB || 0);
       form.expiryTime = props.client.expiryTime ? dayjs(props.client.expiryTime) : null;
       form.limitIp = props.client.limitIp || 0;
       form.comment = props.client.comment || '';
       form.enable = !!props.client.enable;
       form.inboundIds = Array.isArray(props.attachedIds) ? [...props.attachedIds] : [];
+      void loadIps();
     } else {
       form.uuid = RandomUtil.randomUUID();
       form.subId = RandomUtil.randomLowerAndNum(16);
@@ -81,6 +89,53 @@ const inboundOptions = computed(() =>
     title: `${ib.remark || ''} (${ib.protocol}:${ib.port})`,
   })),
 );
+
+const flowCapableIds = computed(() => {
+  const ids = new Set();
+  for (const row of props.inbounds || []) {
+    try {
+      const parsed = new DBInbound(row).toInbound();
+      if (parsed.canEnableTlsFlow?.()) ids.add(row.id);
+    } catch (_e) { /* ignore unparsable */ }
+  }
+  return ids;
+});
+
+const showFlow = computed(() =>
+  (form.inboundIds || []).some((id) => flowCapableIds.value.has(id)),
+);
+
+watch(showFlow, (next) => {
+  if (!next) form.flow = '';
+});
+
+const clientIps = ref([]);
+const ipsLoading = ref(false);
+const ipsClearing = ref(false);
+
+async function loadIps() {
+  if (!isEdit.value || !props.client?.email) return;
+  ipsLoading.value = true;
+  try {
+    const msg = await HttpUtil.post(`/panel/api/clients/ips/${encodeURIComponent(props.client.email)}`);
+    if (!msg?.success) { clientIps.value = []; return; }
+    const arr = Array.isArray(msg.obj) ? msg.obj : [];
+    clientIps.value = arr.filter((x) => typeof x === 'string' && x.length > 0);
+  } finally {
+    ipsLoading.value = false;
+  }
+}
+
+async function clearIps() {
+  if (!isEdit.value || !props.client?.email) return;
+  ipsClearing.value = true;
+  try {
+    const msg = await HttpUtil.post(`/panel/api/clients/clearIps/${encodeURIComponent(props.client.email)}`);
+    if (msg?.success) clientIps.value = [];
+  } finally {
+    ipsClearing.value = false;
+  }
+}
 
 function close() {
   emit('update:open', false);
@@ -121,6 +176,7 @@ async function onSubmit() {
     id: form.uuid,
     password: form.password,
     auth: form.auth,
+    flow: showFlow.value ? (form.flow || '') : '',
     totalGB: gbToBytes(form.totalGB),
     expiryTime: form.expiryTime ? form.expiryTime.valueOf() : 0,
     limitIp: Number(form.limitIp) || 0,
@@ -209,7 +265,18 @@ async function onSubmit() {
         </a-col>
         <a-col :span="12">
           <a-form-item :label="t('pages.clients.limitIp') || 'IP limit'">
-            <a-input-number v-model:value="form.limitIp" :min="0" style="width: 100%" />
+            <a-input-number v-model:value="form.limitIp" :min="0" :disabled="!ipLimitEnable" style="width: 100%" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+
+      <a-row v-if="showFlow" :gutter="16">
+        <a-col :span="12">
+          <a-form-item label="Flow">
+            <a-select v-model:value="form.flow">
+              <a-select-option value="">none</a-select-option>
+              <a-select-option v-for="k in FLOW_OPTIONS" :key="k" :value="k">{{ k }}</a-select-option>
+            </a-select>
           </a-form-item>
         </a-col>
       </a-row>
@@ -240,6 +307,19 @@ async function onSubmit() {
       <a-form-item>
         <a-switch v-model:checked="form.enable" />
         <span style="margin-left: 8px">{{ t('enable') }}</span>
+      </a-form-item>
+
+      <a-form-item v-if="isEdit" :label="t('pages.inbounds.ipLog') || 'IP Log'">
+        <a-space style="margin-bottom: 8px">
+          <a-button size="small" :loading="ipsLoading" @click="loadIps">{{ t('refresh') }}</a-button>
+          <a-button size="small" danger :loading="ipsClearing" :disabled="clientIps.length === 0" @click="clearIps">
+            {{ t('clearAll') || 'Clear' }}
+          </a-button>
+        </a-space>
+        <div v-if="clientIps.length > 0">
+          <a-tag v-for="(ip, idx) in clientIps" :key="idx" color="blue" style="margin-bottom: 4px">{{ ip }}</a-tag>
+        </div>
+        <a-tag v-else>{{ t('tgbot.noIpRecord') || 'No IP record' }}</a-tag>
       </a-form-item>
     </a-form>
   </a-modal>

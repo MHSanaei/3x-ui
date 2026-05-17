@@ -11,6 +11,7 @@ export function useClients() {
   const loading = ref(false);
   const fetched = ref(false);
   const subSettings = ref({ enable: false, subURI: '', subJsonURI: '', subJsonEnable: false });
+  const ipLimitEnable = ref(false);
   let onlinesTimer = null;
 
   async function refresh() {
@@ -42,6 +43,7 @@ export function useClients() {
       subJsonURI: s.subJsonURI || '',
       subJsonEnable: !!s.subJsonEnable,
     };
+    ipLimitEnable.value = !!s.ipLimitEnable;
   }
 
   async function refreshOnlines() {
@@ -138,6 +140,7 @@ export function useClients() {
     loading,
     fetched,
     subSettings,
+    ipLimitEnable,
     refresh,
     refreshOnlines,
     create,

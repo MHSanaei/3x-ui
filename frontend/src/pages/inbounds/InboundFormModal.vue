@@ -17,8 +17,6 @@ import {
   Inbound,
   Protocols,
   SSMethods,
-  USERS_SECURITY,
-  TLS_FLOW_CONTROL,
   SNIFFING_OPTION,
   TLS_VERSION_OPTION,
   TLS_CIPHER_OPTION,
@@ -63,8 +61,6 @@ const emit = defineEmits(['update:open', 'saved']);
 
 const TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'];
 const PROTOCOLS = Object.values(Protocols);
-const SECURITY_OPTIONS = Object.values(USERS_SECURITY);
-const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 
 // === Reactive state ================================================
 // Cloned on every open so cancelling the modal doesn't mutate the row.
@@ -121,35 +117,6 @@ const network = computed({
 const security = computed({
   get: () => inbound.value?.stream?.security,
   set: (v) => { if (inbound.value?.stream) inbound.value.stream.security = v; },
-});
-
-const isMultiUser = computed(() => {
-  if (!inbound.value) return false;
-  switch (inbound.value.protocol) {
-    case Protocols.VMESS:
-    case Protocols.VLESS:
-    case Protocols.PORTFALLBACK:
-    case Protocols.TROJAN:
-    case Protocols.HYSTERIA:
-      return true;
-    case Protocols.SHADOWSOCKS:
-      return !!inbound.value.isSSMultiUser;
-    default:
-      return false;
-  }
-});
-
-const clientsArray = computed(() => {
-  if (!inbound.value) return [];
-  switch (inbound.value.protocol) {
-    case Protocols.VMESS: return inbound.value.settings.vmesses || [];
-    case Protocols.VLESS:
-    case Protocols.PORTFALLBACK: return inbound.value.settings.vlesses || [];
-    case Protocols.TROJAN: return inbound.value.settings.trojans || [];
-    case Protocols.SHADOWSOCKS: return inbound.value.settings.shadowsockses || [];
-    case Protocols.HYSTERIA: return inbound.value.settings.hysterias || [];
-    default: return [];
-  }
 });
 
 const isVlessLike = computed(() => {
@@ -233,11 +200,9 @@ async function saveFallbackChildren(masterId) {
   return !!msg?.success;
 }
 
-const firstClient = computed(() => clientsArray.value[0] || null);
 const canEnableStream = computed(() => inbound.value?.canEnableStream?.() === true);
 const canEnableTls = computed(() => inbound.value?.canEnableTls?.() === true);
 const canEnableReality = computed(() => inbound.value?.canEnableReality?.() === true);
-const canEnableTlsFlow = computed(() => inbound.value?.canEnableTlsFlow?.() === true);
 
 // VLESS/Trojan TLS fallbacks — surfaced in the protocol tab when the
 // inbound is on TCP and (for VLESS) using no Xray-side encryption.
@@ -249,6 +214,23 @@ const showFallbacks = computed(() => {
     return !enc || enc === 'none';
   }
   return inbound.value.protocol === Protocols.TROJAN;
+});
+
+const hasProtocolTabContent = computed(() => {
+  if (!inbound.value) return false;
+  if (isVlessLike.value) return true;
+  if (showFallbacks.value) return true;
+  switch (inbound.value.protocol) {
+    case Protocols.SHADOWSOCKS:
+    case Protocols.HTTP:
+    case Protocols.MIXED:
+    case Protocols.TUNNEL:
+    case Protocols.TUN:
+    case Protocols.WIREGUARD:
+      return true;
+    default:
+      return false;
+  }
 });
 
 function addFallback() {
@@ -266,16 +248,6 @@ const expiryDate = computed({
 const totalGB = computed({
   get: () => (dbForm.value?.total ? Math.round((dbForm.value.total / SizeFormatter.ONE_GB) * 100) / 100 : 0),
   set: (gb) => { if (dbForm.value) dbForm.value.total = NumberFormatter.toFixed((gb || 0) * SizeFormatter.ONE_GB, 0); },
-});
-
-// Client total/expiry bridges (only relevant in add mode for new clients)
-const clientExpiryDate = computed({
-  get: () => (firstClient.value?.expiryTime > 0 ? dayjs(firstClient.value.expiryTime) : null),
-  set: (next) => { if (firstClient.value) firstClient.value.expiryTime = next ? next.valueOf() : 0; },
-});
-const clientTotalGB = computed({
-  get: () => firstClient.value?._totalGB ?? 0,
-  set: (gb) => { if (firstClient.value) firstClient.value._totalGB = gb || 0; },
 });
 
 // === Open / state management =======================================
@@ -368,6 +340,12 @@ watch(activeTabKey, (next, prev) => {
       isRevertingTab = true;
       activeTabKey.value = 'advanced';
     }
+  }
+});
+
+watch(hasProtocolTabContent, (next) => {
+  if (!next && activeTabKey.value === 'protocol') {
+    activeTabKey.value = 'basic';
   }
 });
 
@@ -573,24 +551,8 @@ const advancedStreamConfig = makeWrappedAdvancedConfig({
   label: 'Stream',
 });
 
-// === Random helpers wired to the form's sync icons ==================
-function randomEmail(target) {
-  if (target) target.email = RandomUtil.randomLowerAndNum(9);
-}
-function randomUuid(target) {
-  if (target) target.id = RandomUtil.randomUUID();
-}
-function randomPasswordSeq(target, len = 10) {
-  if (target) target.password = RandomUtil.randomSeq(len);
-}
 function randomSSPassword(target) {
   if (target) target.password = RandomUtil.randomShadowsocksPassword(inbound.value.settings.method);
-}
-function randomAuth(target) {
-  if (target) target.auth = RandomUtil.randomSeq(10);
-}
-function randomSubId(target) {
-  if (target) target.subId = RandomUtil.randomLowerAndNum(16);
 }
 function regenWgKeypair(target) {
   const kp = Wireguard.generateKeypair();
@@ -730,13 +692,9 @@ const selectedVlessAuth = computed(() => {
   return authKey.length > 300 ? 'ML-KEM-768 auth' : 'X25519 auth';
 });
 
-// === SS method change tracks legacy semantics =========================
 function onSSMethodChange() {
   inbound.value.settings.password = RandomUtil.randomShadowsocksPassword(inbound.value.settings.method);
   if (inbound.value.isSSMultiUser) {
-    if (inbound.value.settings.shadowsockses.length === 0) {
-      inbound.value.settings.shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()];
-    }
     inbound.value.settings.shadowsockses.forEach((c) => {
       c.method = inbound.value.isSS2022 ? '' : inbound.value.settings.method;
       c.password = RandomUtil.randomShadowsocksPassword(inbound.value.settings.method);
@@ -897,119 +855,7 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
       </a-tab-pane>
 
       <!-- ============================== PROTOCOL ============================== -->
-      <a-tab-pane key="protocol" :tab="t('pages.inbounds.protocol')">
-        <!-- Multi-user inbounds: in add mode embed the first client form,
-             in edit mode show a count summary. -->
-        <template v-if="isMultiUser">
-          <a-collapse v-if="mode === 'add' && firstClient" default-active-key="0">
-            <a-collapse-panel key="0" header="Client">
-              <a-form :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
-                <a-form-item label="Enable">
-                  <a-switch v-model:checked="firstClient.enable" />
-                </a-form-item>
-                <a-form-item>
-                  <template #label>
-                    <a-tooltip title="Friendly identifier">
-                      Email
-                      <SyncOutlined class="random-icon" @click="randomEmail(firstClient)" />
-                    </a-tooltip>
-                  </template>
-                  <a-input v-model:value="firstClient.email" />
-                </a-form-item>
-
-                <a-form-item v-if="protocol === Protocols.VMESS || isVlessLike">
-                  <template #label>
-                    <a-tooltip title="Reset to a fresh UUID">
-                      ID
-                      <SyncOutlined class="random-icon" @click="randomUuid(firstClient)" />
-                    </a-tooltip>
-                  </template>
-                  <a-input v-model:value="firstClient.id" />
-                </a-form-item>
-
-                <a-form-item v-if="protocol === Protocols.VMESS" label="Security">
-                  <a-select v-model:value="firstClient.security">
-                    <a-select-option v-for="k in SECURITY_OPTIONS" :key="k" :value="k">{{ k }}</a-select-option>
-                  </a-select>
-                </a-form-item>
-
-                <a-form-item v-if="protocol === Protocols.TROJAN || protocol === Protocols.SHADOWSOCKS">
-                  <template #label>
-                    <a-tooltip title="Reset to a fresh random value">
-                      Password
-                      <SyncOutlined v-if="protocol === Protocols.SHADOWSOCKS" class="random-icon"
-                        @click="randomSSPassword(firstClient)" />
-                      <SyncOutlined v-else class="random-icon" @click="randomPasswordSeq(firstClient)" />
-                    </a-tooltip>
-                  </template>
-                  <a-input v-model:value="firstClient.password" />
-                </a-form-item>
-
-                <a-form-item v-if="protocol === Protocols.HYSTERIA">
-                  <template #label>
-                    <a-tooltip title="Reset"><span>Auth password</span>
-                      <SyncOutlined class="random-icon" @click="randomAuth(firstClient)" />
-                    </a-tooltip>
-                  </template>
-                  <a-input v-model:value="firstClient.auth" />
-                </a-form-item>
-
-                <a-form-item v-if="canEnableTlsFlow" label="Flow">
-                  <a-select v-model:value="firstClient.flow">
-                    <a-select-option value="">none</a-select-option>
-                    <a-select-option v-for="k in FLOW_OPTIONS" :key="k" :value="k">{{ k }}</a-select-option>
-                  </a-select>
-                </a-form-item>
-
-                <a-form-item v-if="protocol === Protocols.VLESS" label="Reverse tag">
-                  <a-input v-model:value="firstClient.reverseTag" placeholder="Optional reverse tag" />
-                </a-form-item>
-
-                <a-form-item label="Subscription">
-                  <a-input v-model:value="firstClient.subId">
-                    <template #addonAfter>
-                      <SyncOutlined class="random-icon" @click="randomSubId(firstClient)" />
-                    </template>
-                  </a-input>
-                </a-form-item>
-
-                <a-form-item label="Comment">
-                  <a-input v-model:value="firstClient.comment" />
-                </a-form-item>
-
-                <a-form-item label="Total traffic (GB)">
-                  <a-input-number v-model:value="clientTotalGB" :min="0" :step="0.1" />
-                </a-form-item>
-
-                <a-form-item label="Expiry">
-                  <DateTimePicker v-model:value="clientExpiryDate" />
-                </a-form-item>
-              </a-form>
-            </a-collapse-panel>
-          </a-collapse>
-
-          <a-collapse v-else>
-            <a-collapse-panel key="summary" :header="`Clients: ${clientsArray.length}`">
-              <table class="client-summary">
-                <thead>
-                  <tr>
-                    <th>Email</th>
-                    <th>{{ protocol === Protocols.TROJAN || protocol === Protocols.SHADOWSOCKS ? 'Password' : (protocol
-                      ===
-                      Protocols.HYSTERIA ? 'Auth' : 'ID') }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(c, idx) in clientsArray" :key="idx">
-                    <td>{{ c.email }}</td>
-                    <td>{{ c.id || c.password || c.auth }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </a-collapse-panel>
-          </a-collapse>
-        </template>
-
+      <a-tab-pane v-if="hasProtocolTabContent" key="protocol" :tab="t('pages.inbounds.protocol')">
         <!-- VLess decryption / encryption -->
         <a-form v-if="isVlessLike" :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }"
           class="mt-12">
@@ -1772,205 +1618,6 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
             </a-form-item>
           </template>
 
-          <!-- ====== Security section ====== -->
-          <a-form-item label="Security">
-            <a-select v-model:value="security" :style="{ width: '160px' }" :disabled="!canEnableTls">
-              <a-select-option value="none">none</a-select-option>
-              <a-select-option value="tls">tls</a-select-option>
-              <a-select-option v-if="canEnableReality" value="reality">reality</a-select-option>
-            </a-select>
-          </a-form-item>
-
-          <template v-if="security === 'tls' && inbound.stream.tls">
-            <a-form-item label="SNI">
-              <a-input v-model:value="inbound.stream.tls.sni" placeholder="Server Name Indication" />
-            </a-form-item>
-            <a-form-item label="Cipher Suites">
-              <a-select v-model:value="inbound.stream.tls.cipherSuites">
-                <a-select-option value="">Auto</a-select-option>
-                <a-select-option v-for="[label, val] in CIPHER_SUITES" :key="val" :value="val">{{ label
-                }}</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="Min/Max Version">
-              <a-input-group compact>
-                <a-select v-model:value="inbound.stream.tls.minVersion" :style="{ width: '50%' }">
-                  <a-select-option v-for="v in TLS_VERSIONS" :key="v" :value="v">{{ v }}</a-select-option>
-                </a-select>
-                <a-select v-model:value="inbound.stream.tls.maxVersion" :style="{ width: '50%' }">
-                  <a-select-option v-for="v in TLS_VERSIONS" :key="v" :value="v">{{ v }}</a-select-option>
-                </a-select>
-              </a-input-group>
-            </a-form-item>
-            <a-form-item label="uTLS">
-              <a-select v-model:value="inbound.stream.tls.settings.fingerprint" :style="{ width: '100%' }">
-                <a-select-option value="">None</a-select-option>
-                <a-select-option v-for="fp in FINGERPRINTS" :key="fp" :value="fp">{{ fp }}</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="ALPN">
-              <a-select v-model:value="inbound.stream.tls.alpn" mode="multiple" :style="{ width: '100%' }"
-                :token-separators="[',']">
-                <a-select-option v-for="a in ALPNS" :key="a" :value="a">{{ a }}</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="Reject Unknown SNI">
-              <a-switch v-model:checked="inbound.stream.tls.rejectUnknownSni" />
-            </a-form-item>
-            <a-form-item label="Disable System Root">
-              <a-switch v-model:checked="inbound.stream.tls.disableSystemRoot" />
-            </a-form-item>
-            <a-form-item label="Session Resumption">
-              <a-switch v-model:checked="inbound.stream.tls.enableSessionResumption" />
-            </a-form-item>
-
-
-            <!-- Cert array — file path or inline content per row -->
-            <template v-for="(cert, idx) in inbound.stream.tls.certs" :key="`cert-${idx}`">
-              <a-form-item :label="t('certificate')">
-                <a-radio-group v-model:value="cert.useFile" button-style="solid">
-                  <a-radio-button :value="true">{{ t('pages.inbounds.certificatePath') }}</a-radio-button>
-                  <a-radio-button :value="false">{{ t('pages.inbounds.certificateContent') }}</a-radio-button>
-                </a-radio-group>
-              </a-form-item>
-              <a-form-item label=" ">
-                <a-space>
-                  <a-button v-if="idx === 0" type="primary" size="small" @click="inbound.stream.tls.addCert()">
-                    <template #icon>
-                      <PlusOutlined />
-                    </template>
-                  </a-button>
-                  <a-button v-if="inbound.stream.tls.certs.length > 1" type="primary" size="small"
-                    @click="inbound.stream.tls.removeCert(idx)">
-                    <template #icon>
-                      <MinusOutlined />
-                    </template>
-                  </a-button>
-                </a-space>
-              </a-form-item>
-              <template v-if="cert.useFile">
-                <a-form-item :label="t('pages.inbounds.publicKey')">
-                  <a-input v-model:value="cert.certFile" />
-                </a-form-item>
-                <a-form-item :label="t('pages.inbounds.privatekey')">
-                  <a-input v-model:value="cert.keyFile" />
-                </a-form-item>
-                <a-form-item label=" ">
-                  <a-button type="primary" :disabled="!defaultCert && !defaultKey" @click="setDefaultCertData(idx)">
-                    {{ t('pages.inbounds.setDefaultCert') }}
-                  </a-button>
-                </a-form-item>
-              </template>
-              <template v-else>
-                <a-form-item :label="t('pages.inbounds.publicKey')">
-                  <a-textarea v-model:value="cert.cert" :auto-size="{ minRows: 3, maxRows: 8 }" />
-                </a-form-item>
-                <a-form-item :label="t('pages.inbounds.privatekey')">
-                  <a-textarea v-model:value="cert.key" :auto-size="{ minRows: 3, maxRows: 8 }" />
-                </a-form-item>
-              </template>
-              <a-form-item label="One Time Loading">
-                <a-switch v-model:checked="cert.oneTimeLoading" />
-              </a-form-item>
-              <a-form-item label="Usage Option">
-                <a-select v-model:value="cert.usage" :style="{ width: '50%' }">
-                  <a-select-option v-for="u in USAGES" :key="u" :value="u">{{ u }}</a-select-option>
-                </a-select>
-              </a-form-item>
-              <a-form-item v-if="cert.usage === 'issue'" label="Build Chain">
-                <a-switch v-model:checked="cert.buildChain" />
-              </a-form-item>
-            </template>
-
-
-            <!-- ECH (Encrypted Client Hello) -->
-            <a-form-item label="ECH key">
-              <a-input v-model:value="inbound.stream.tls.echServerKeys" />
-            </a-form-item>
-            <a-form-item label="ECH config">
-              <a-input v-model:value="inbound.stream.tls.settings.echConfigList" />
-            </a-form-item>
-            <a-form-item label=" ">
-              <a-space>
-                <a-button type="primary" :loading="saving" @click="getNewEchCert">Get New ECH Cert</a-button>
-                <a-button danger @click="clearEchCert">Clear</a-button>
-              </a-space>
-            </a-form-item>
-          </template>
-
-          <template v-if="security === 'reality' && inbound.stream.reality">
-            <a-form-item label="Show">
-              <a-switch v-model:checked="inbound.stream.reality.show" />
-            </a-form-item>
-            <a-form-item label="Xver">
-              <a-input-number v-model:value="inbound.stream.reality.xver" :min="0" />
-            </a-form-item>
-            <a-form-item label="uTLS">
-              <a-select v-model:value="inbound.stream.reality.settings.fingerprint" :style="{ width: '100%' }">
-                <a-select-option v-for="fp in FINGERPRINTS" :key="fp" :value="fp">{{ fp }}</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item>
-              <template #label>
-                Target
-                <SyncOutlined class="random-icon" @click="randomizeRealityTarget" />
-              </template>
-              <a-input v-model:value="inbound.stream.reality.target" />
-            </a-form-item>
-            <a-form-item>
-              <template #label>
-                SNI
-                <SyncOutlined class="random-icon" @click="randomizeRealityTarget" />
-              </template>
-              <a-input v-model:value="inbound.stream.reality.serverNames" />
-            </a-form-item>
-            <a-form-item label="Max Time Diff (ms)">
-              <a-input-number v-model:value="inbound.stream.reality.maxTimediff" :min="0" />
-            </a-form-item>
-            <a-form-item label="Min Client Ver">
-              <a-input v-model:value="inbound.stream.reality.minClientVer" placeholder="25.9.11" />
-            </a-form-item>
-            <a-form-item label="Max Client Ver">
-              <a-input v-model:value="inbound.stream.reality.maxClientVer" placeholder="25.9.11" />
-            </a-form-item>
-            <a-form-item>
-              <template #label>
-                Short IDs
-                <SyncOutlined class="random-icon" @click="randomizeShortIds" />
-              </template>
-              <a-textarea v-model:value="inbound.stream.reality.shortIds" :auto-size="{ minRows: 1, maxRows: 4 }" />
-            </a-form-item>
-            <a-form-item label="SpiderX">
-              <a-input v-model:value="inbound.stream.reality.settings.spiderX" />
-            </a-form-item>
-            <a-form-item :label="t('pages.inbounds.publicKey')">
-              <a-textarea v-model:value="inbound.stream.reality.settings.publicKey"
-                :auto-size="{ minRows: 1, maxRows: 4 }" />
-            </a-form-item>
-            <a-form-item :label="t('pages.inbounds.privatekey')">
-              <a-textarea v-model:value="inbound.stream.reality.privateKey" :auto-size="{ minRows: 1, maxRows: 4 }" />
-            </a-form-item>
-            <a-form-item label=" ">
-              <a-space>
-                <a-button type="primary" :loading="saving" @click="genRealityKeypair">Get New Cert</a-button>
-                <a-button danger @click="clearRealityKeypair">Clear</a-button>
-              </a-space>
-            </a-form-item>
-            <a-form-item label="mldsa65 Seed">
-              <a-textarea v-model:value="inbound.stream.reality.mldsa65Seed" :auto-size="{ minRows: 2, maxRows: 6 }" />
-            </a-form-item>
-            <a-form-item label="mldsa65 Verify">
-              <a-textarea v-model:value="inbound.stream.reality.settings.mldsa65Verify"
-                :auto-size="{ minRows: 2, maxRows: 6 }" />
-            </a-form-item>
-            <a-form-item label=" ">
-              <a-space>
-                <a-button type="primary" :loading="saving" @click="genMldsa65">Get New Seed</a-button>
-                <a-button danger @click="clearMldsa65">Clear</a-button>
-              </a-space>
-            </a-form-item>
-          </template>
-
           <!-- ====== External Proxy ====== -->
           <a-form-item label="External Proxy">
             <a-switch v-model:checked="externalProxy" />
@@ -2164,6 +1811,205 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
         <FinalMaskForm :stream="inbound.stream" :protocol="protocol" />
       </a-tab-pane>
 
+      <!-- ============================== SECURITY ============================== -->
+      <a-tab-pane v-if="canEnableStream" key="security" tab="Security">
+        <a-form :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
+          <a-form-item label="Security">
+            <a-select v-model:value="security" :style="{ width: '160px' }" :disabled="!canEnableTls">
+              <a-select-option value="none">none</a-select-option>
+              <a-select-option value="tls">tls</a-select-option>
+              <a-select-option v-if="canEnableReality" value="reality">reality</a-select-option>
+            </a-select>
+          </a-form-item>
+
+          <template v-if="security === 'tls' && inbound.stream.tls">
+            <a-form-item label="SNI">
+              <a-input v-model:value="inbound.stream.tls.sni" placeholder="Server Name Indication" />
+            </a-form-item>
+            <a-form-item label="Cipher Suites">
+              <a-select v-model:value="inbound.stream.tls.cipherSuites">
+                <a-select-option value="">Auto</a-select-option>
+                <a-select-option v-for="[label, val] in CIPHER_SUITES" :key="val" :value="val">{{ label
+                }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="Min/Max Version">
+              <a-input-group compact>
+                <a-select v-model:value="inbound.stream.tls.minVersion" :style="{ width: '50%' }">
+                  <a-select-option v-for="v in TLS_VERSIONS" :key="v" :value="v">{{ v }}</a-select-option>
+                </a-select>
+                <a-select v-model:value="inbound.stream.tls.maxVersion" :style="{ width: '50%' }">
+                  <a-select-option v-for="v in TLS_VERSIONS" :key="v" :value="v">{{ v }}</a-select-option>
+                </a-select>
+              </a-input-group>
+            </a-form-item>
+            <a-form-item label="uTLS">
+              <a-select v-model:value="inbound.stream.tls.settings.fingerprint" :style="{ width: '100%' }">
+                <a-select-option value="">None</a-select-option>
+                <a-select-option v-for="fp in FINGERPRINTS" :key="fp" :value="fp">{{ fp }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="ALPN">
+              <a-select v-model:value="inbound.stream.tls.alpn" mode="multiple" :style="{ width: '100%' }"
+                :token-separators="[',']">
+                <a-select-option v-for="a in ALPNS" :key="a" :value="a">{{ a }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="Reject Unknown SNI">
+              <a-switch v-model:checked="inbound.stream.tls.rejectUnknownSni" />
+            </a-form-item>
+            <a-form-item label="Disable System Root">
+              <a-switch v-model:checked="inbound.stream.tls.disableSystemRoot" />
+            </a-form-item>
+            <a-form-item label="Session Resumption">
+              <a-switch v-model:checked="inbound.stream.tls.enableSessionResumption" />
+            </a-form-item>
+
+            <template v-for="(cert, idx) in inbound.stream.tls.certs" :key="`cert-${idx}`">
+              <a-form-item :label="t('certificate')">
+                <a-radio-group v-model:value="cert.useFile" button-style="solid">
+                  <a-radio-button :value="true">{{ t('pages.inbounds.certificatePath') }}</a-radio-button>
+                  <a-radio-button :value="false">{{ t('pages.inbounds.certificateContent') }}</a-radio-button>
+                </a-radio-group>
+              </a-form-item>
+              <a-form-item label=" ">
+                <a-space>
+                  <a-button v-if="idx === 0" type="primary" size="small" @click="inbound.stream.tls.addCert()">
+                    <template #icon>
+                      <PlusOutlined />
+                    </template>
+                  </a-button>
+                  <a-button v-if="inbound.stream.tls.certs.length > 1" type="primary" size="small"
+                    @click="inbound.stream.tls.removeCert(idx)">
+                    <template #icon>
+                      <MinusOutlined />
+                    </template>
+                  </a-button>
+                </a-space>
+              </a-form-item>
+              <template v-if="cert.useFile">
+                <a-form-item :label="t('pages.inbounds.publicKey')">
+                  <a-input v-model:value="cert.certFile" />
+                </a-form-item>
+                <a-form-item :label="t('pages.inbounds.privatekey')">
+                  <a-input v-model:value="cert.keyFile" />
+                </a-form-item>
+                <a-form-item label=" ">
+                  <a-button type="primary" :disabled="!defaultCert && !defaultKey" @click="setDefaultCertData(idx)">
+                    {{ t('pages.inbounds.setDefaultCert') }}
+                  </a-button>
+                </a-form-item>
+              </template>
+              <template v-else>
+                <a-form-item :label="t('pages.inbounds.publicKey')">
+                  <a-textarea v-model:value="cert.cert" :auto-size="{ minRows: 3, maxRows: 8 }" />
+                </a-form-item>
+                <a-form-item :label="t('pages.inbounds.privatekey')">
+                  <a-textarea v-model:value="cert.key" :auto-size="{ minRows: 3, maxRows: 8 }" />
+                </a-form-item>
+              </template>
+              <a-form-item label="One Time Loading">
+                <a-switch v-model:checked="cert.oneTimeLoading" />
+              </a-form-item>
+              <a-form-item label="Usage Option">
+                <a-select v-model:value="cert.usage" :style="{ width: '50%' }">
+                  <a-select-option v-for="u in USAGES" :key="u" :value="u">{{ u }}</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item v-if="cert.usage === 'issue'" label="Build Chain">
+                <a-switch v-model:checked="cert.buildChain" />
+              </a-form-item>
+            </template>
+
+            <a-form-item label="ECH key">
+              <a-input v-model:value="inbound.stream.tls.echServerKeys" />
+            </a-form-item>
+            <a-form-item label="ECH config">
+              <a-input v-model:value="inbound.stream.tls.settings.echConfigList" />
+            </a-form-item>
+            <a-form-item label=" ">
+              <a-space>
+                <a-button type="primary" :loading="saving" @click="getNewEchCert">Get New ECH Cert</a-button>
+                <a-button danger @click="clearEchCert">Clear</a-button>
+              </a-space>
+            </a-form-item>
+          </template>
+
+          <template v-if="security === 'reality' && inbound.stream.reality">
+            <a-form-item label="Show">
+              <a-switch v-model:checked="inbound.stream.reality.show" />
+            </a-form-item>
+            <a-form-item label="Xver">
+              <a-input-number v-model:value="inbound.stream.reality.xver" :min="0" />
+            </a-form-item>
+            <a-form-item label="uTLS">
+              <a-select v-model:value="inbound.stream.reality.settings.fingerprint" :style="{ width: '100%' }">
+                <a-select-option v-for="fp in FINGERPRINTS" :key="fp" :value="fp">{{ fp }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item>
+              <template #label>
+                Target
+                <SyncOutlined class="random-icon" @click="randomizeRealityTarget" />
+              </template>
+              <a-input v-model:value="inbound.stream.reality.target" />
+            </a-form-item>
+            <a-form-item>
+              <template #label>
+                SNI
+                <SyncOutlined class="random-icon" @click="randomizeRealityTarget" />
+              </template>
+              <a-input v-model:value="inbound.stream.reality.serverNames" />
+            </a-form-item>
+            <a-form-item label="Max Time Diff (ms)">
+              <a-input-number v-model:value="inbound.stream.reality.maxTimediff" :min="0" />
+            </a-form-item>
+            <a-form-item label="Min Client Ver">
+              <a-input v-model:value="inbound.stream.reality.minClientVer" placeholder="25.9.11" />
+            </a-form-item>
+            <a-form-item label="Max Client Ver">
+              <a-input v-model:value="inbound.stream.reality.maxClientVer" placeholder="25.9.11" />
+            </a-form-item>
+            <a-form-item>
+              <template #label>
+                Short IDs
+                <SyncOutlined class="random-icon" @click="randomizeShortIds" />
+              </template>
+              <a-textarea v-model:value="inbound.stream.reality.shortIds" :auto-size="{ minRows: 1, maxRows: 4 }" />
+            </a-form-item>
+            <a-form-item label="SpiderX">
+              <a-input v-model:value="inbound.stream.reality.settings.spiderX" />
+            </a-form-item>
+            <a-form-item :label="t('pages.inbounds.publicKey')">
+              <a-textarea v-model:value="inbound.stream.reality.settings.publicKey"
+                :auto-size="{ minRows: 1, maxRows: 4 }" />
+            </a-form-item>
+            <a-form-item :label="t('pages.inbounds.privatekey')">
+              <a-textarea v-model:value="inbound.stream.reality.privateKey" :auto-size="{ minRows: 1, maxRows: 4 }" />
+            </a-form-item>
+            <a-form-item label=" ">
+              <a-space>
+                <a-button type="primary" :loading="saving" @click="genRealityKeypair">Get New Cert</a-button>
+                <a-button danger @click="clearRealityKeypair">Clear</a-button>
+              </a-space>
+            </a-form-item>
+            <a-form-item label="mldsa65 Seed">
+              <a-textarea v-model:value="inbound.stream.reality.mldsa65Seed" :auto-size="{ minRows: 2, maxRows: 6 }" />
+            </a-form-item>
+            <a-form-item label="mldsa65 Verify">
+              <a-textarea v-model:value="inbound.stream.reality.settings.mldsa65Verify"
+                :auto-size="{ minRows: 2, maxRows: 6 }" />
+            </a-form-item>
+            <a-form-item label=" ">
+              <a-space>
+                <a-button type="primary" :loading="saving" @click="genMldsa65">Get New Seed</a-button>
+                <a-button danger @click="clearMldsa65">Clear</a-button>
+              </a-space>
+            </a-form-item>
+          </template>
+        </a-form>
+      </a-tab-pane>
+
       <!-- ============================== SNIFFING ============================== -->
       <a-tab-pane key="sniffing" tab="Sniffing"><!-- "Sniffing" stays literal — xray config term -->
         <a-form :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
@@ -2283,18 +2129,6 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
 .vless-auth-state {
   display: block;
   margin-top: 6px;
-}
-
-.client-summary {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.client-summary th,
-.client-summary td {
-  padding: 4px 8px;
-  text-align: left;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
 }
 
 .fallbacks-header {

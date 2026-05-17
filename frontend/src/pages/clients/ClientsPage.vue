@@ -34,6 +34,7 @@ const {
   loading,
   fetched,
   subSettings,
+  ipLimitEnable,
   create,
   update,
   remove,
@@ -516,11 +517,12 @@ const columns = computed(() => [
       </a-layout>
 
       <ClientFormModal v-model:open="formOpen" :mode="formMode" :client="editingClient"
-        :attached-ids="editingAttachedIds" :inbounds="inbounds" :save="onSave" />
+        :attached-ids="editingAttachedIds" :inbounds="inbounds" :ip-limit-enable="ipLimitEnable" :save="onSave" />
       <ClientInfoModal v-model:open="infoOpen" :client="infoClient" :inbounds-by-id="inboundsById"
         :is-online="infoClient ? isOnline(infoClient.email) : false" :sub-settings="subSettings" />
       <ClientQrModal v-model:open="qrOpen" :client="qrClient" :sub-settings="subSettings" />
-      <ClientBulkAddModal v-model:open="bulkAddOpen" :inbounds="inbounds" @saved="onBulkAddSaved" />
+      <ClientBulkAddModal v-model:open="bulkAddOpen" :inbounds="inbounds" :ip-limit-enable="ipLimitEnable"
+        @saved="onBulkAddSaved" />
     </a-layout>
   </a-config-provider>
 </template>
