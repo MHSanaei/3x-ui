@@ -597,6 +597,12 @@ export const sections = [
         summary: 'Reset the up/down counters for every client globally. Quotas and expiry are not affected. Triggers an Xray restart if any counter actually moved.',
         response: '{\n  "success": true\n}',
       },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/delDepleted',
+        summary: 'Delete every client whose traffic quota is exhausted (used >= total, when reset is disabled) or whose expiry has passed. Returns the deleted count and triggers an Xray restart when any client was on a running inbound.',
+        response: '{\n  "success": true,\n  "obj": {\n    "deleted": 0\n  }\n}',
+      },
     ],
   },
 

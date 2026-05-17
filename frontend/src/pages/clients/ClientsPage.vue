@@ -10,6 +10,7 @@ import {
   InfoCircleOutlined,
   QrcodeOutlined,
   RetweetOutlined,
+  RestOutlined,
   MoreOutlined,
   UsergroupAddOutlined,
 } from '@ant-design/icons-vue';
@@ -40,6 +41,7 @@ const {
   detach,
   resetTraffic,
   resetAllTraffics,
+  delDepleted,
   setEnable,
 } = useClients();
 
@@ -138,6 +140,25 @@ function onBulkDelete() {
 
 async function onBulkAddSaved() {
   bulkAddOpen.value = false;
+}
+
+function onDelDepleted() {
+  Modal.confirm({
+    title: t('pages.clients.delDepletedConfirmTitle') || 'Delete depleted clients?',
+    content: t('pages.clients.delDepletedConfirmContent')
+      || 'Removes every client whose traffic quota is exhausted or whose expiry has passed. This cannot be undone.',
+    okText: t('delete'),
+    okType: 'danger',
+    cancelText: t('cancel'),
+    onOk: async () => {
+      const msg = await delDepleted();
+      if (msg?.success) {
+        const deleted = msg.obj?.deleted ?? 0;
+        message.success(t('pages.clients.toasts.delDepleted', { count: deleted })
+          || `${deleted} depleted clients deleted`);
+      }
+    },
+  });
 }
 
 const onlineSet = computed(() => new Set(onlines.value || []));
@@ -342,6 +363,12 @@ const columns = computed(() => [
                           <RetweetOutlined />
                         </template>
                         <template v-if="!isMobile">{{ t('pages.clients.resetAllTraffics') }}</template>
+                      </a-button>
+                      <a-button size="small" danger @click="onDelDepleted">
+                        <template #icon>
+                          <RestOutlined />
+                        </template>
+                        <template v-if="!isMobile">{{ t('pages.clients.delDepleted') || 'Delete depleted' }}</template>
                       </a-button>
                     </div>
                   </template>

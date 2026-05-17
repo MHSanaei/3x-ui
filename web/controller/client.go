@@ -30,6 +30,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/:id/attach", a.attach)
 	g.POST("/:id/detach", a.detach)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
+	g.POST("/delDepleted", a.delDepleted)
 }
 
 func (a *ClientController) list(c *gin.Context) {
@@ -150,6 +151,18 @@ func (a *ClientController) resetAllTraffics(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.resetAllClientTrafficSuccess"), nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+}
+
+func (a *ClientController) delDepleted(c *gin.Context) {
+	deleted, needRestart, err := a.clientService.DelDepleted(&a.inboundService)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, gin.H{"deleted": deleted}, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}

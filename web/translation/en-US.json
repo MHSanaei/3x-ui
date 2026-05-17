@@ -440,12 +440,16 @@
       "deleteSelected": "Delete ({count})",
       "bulkDeleteConfirmTitle": "Delete {count} clients?",
       "bulkDeleteConfirmContent": "Each selected client is removed from every attached inbound and its traffic record is dropped. This cannot be undone.",
+      "delDepleted": "Delete depleted",
+      "delDepletedConfirmTitle": "Delete depleted clients?",
+      "delDepletedConfirmContent": "Removes every client whose traffic quota is exhausted or whose expiry has passed. This cannot be undone.",
       "toasts": {
         "deleted": "Client deleted",
         "trafficReset": "Traffic reset",
         "allTrafficsReset": "All client traffic reset",
         "bulkDeleted": "{count} clients deleted",
-        "bulkCreated": "{count} clients created"
+        "bulkCreated": "{count} clients created",
+        "delDepleted": "{count} depleted clients deleted"
       }
     },
     "nodes": {

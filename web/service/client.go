@@ -475,6 +475,48 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	return needRestart, nil
 }
 
+func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, error) {
+	db := database.GetDB()
+	now := time.Now().UnixMilli()
+	depletedClause := "reset = 0 and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))"
+
+	var rows []xray.ClientTraffic
+	if err := db.Where(depletedClause, now).Find(&rows).Error; err != nil {
+		return 0, false, err
+	}
+	if len(rows) == 0 {
+		return 0, false, nil
+	}
+
+	emails := make(map[string]struct{}, len(rows))
+	for _, r := range rows {
+		if r.Email != "" {
+			emails[r.Email] = struct{}{}
+		}
+	}
+
+	needRestart := false
+	deleted := 0
+	for email := range emails {
+		var rec model.ClientRecord
+		if err := db.Where("email = ?", email).First(&rec).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+			return deleted, needRestart, err
+		}
+		nr, err := s.Delete(inboundSvc, rec.Id, false)
+		if err != nil {
+			return deleted, needRestart, err
+		}
+		if nr {
+			needRestart = true
+		}
+		deleted++
+	}
+	return deleted, needRestart, nil
+}
+
 func (s *ClientService) ResetAllTraffics() (bool, error) {
 	res := database.GetDB().Model(&xray.ClientTraffic{}).
 		Where("1 = 1").

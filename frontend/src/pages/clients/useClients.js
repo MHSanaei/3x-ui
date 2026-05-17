@@ -99,6 +99,12 @@ export function useClients() {
     return msg;
   }
 
+  async function delDepleted() {
+    const msg = await HttpUtil.post('/panel/api/clients/delDepleted');
+    if (msg?.success) await refresh();
+    return msg;
+  }
+
   async function setEnable(client, enable) {
     if (!client?.id) return null;
     const payload = {
@@ -142,6 +148,7 @@ export function useClients() {
     detach,
     resetTraffic,
     resetAllTraffics,
+    delDepleted,
     setEnable,
   };
 }
