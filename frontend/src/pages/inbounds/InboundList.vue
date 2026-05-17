@@ -1,11 +1,9 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   PlusOutlined,
   MenuOutlined,
-  SearchOutlined,
-  FilterOutlined,
   MoreOutlined,
   EditOutlined,
   QrcodeOutlined,
@@ -19,9 +17,8 @@ import {
   InfoCircleOutlined,
 } from '@ant-design/icons-vue';
 
-import { HttpUtil, ObjectUtil, SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
+import { HttpUtil, SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
 import { DBInbound } from '@/models/dbinbound.js';
-import { Inbound } from '@/models/inbound.js';
 import InfinityIcon from '@/components/InfinityIcon.vue';
 import { useDatepicker } from '@/composables/useDatepicker.js';
 
@@ -54,107 +51,6 @@ const emit = defineEmits([
   'row-action',
 ]);
 
-// ============ Toolbar / search & filter =============================
-const FILTER_STATE_KEY = 'inboundsFilterState';
-const savedFilterState = (() => {
-  try {
-    return JSON.parse(localStorage.getItem(FILTER_STATE_KEY) || '{}');
-  } catch (_e) {
-    return {};
-  }
-})();
-const enableFilter = ref(!!savedFilterState.enableFilter);
-const searchKey = ref(savedFilterState.searchKey || '');
-const filterBy = ref(savedFilterState.filterBy || '');
-const protocolFilter = ref(savedFilterState.protocolFilter || undefined);
-const nodeFilter = ref(savedFilterState.nodeFilter || '');
-
-watch([enableFilter, searchKey, filterBy, protocolFilter, nodeFilter], () => {
-  localStorage.setItem(FILTER_STATE_KEY, JSON.stringify({
-    enableFilter: enableFilter.value,
-    searchKey: searchKey.value,
-    filterBy: filterBy.value,
-    protocolFilter: protocolFilter.value,
-    nodeFilter: nodeFilter.value,
-  }));
-});
-
-// Toggle the filter mode — flip cleans the other input.
-function onToggleFilter() {
-  if (enableFilter.value) searchKey.value = '';
-  else filterBy.value = '';
-}
-
-const protocolOptions = computed(() => {
-  const values = new Set(props.dbInbounds.map((i) => i.protocol).filter(Boolean));
-  return [...values].sort();
-});
-
-const nodeOptions = computed(() => {
-  const values = new Map();
-  if (props.dbInbounds.some((i) => i.nodeId == null)) {
-    values.set('local', t('pages.inbounds.localPanel'));
-  }
-  for (const dbInbound of props.dbInbounds) {
-    if (dbInbound.nodeId == null) continue;
-    const node = props.nodesById.get(dbInbound.nodeId);
-    values.set(String(dbInbound.nodeId), node?.name || `#${dbInbound.nodeId}`);
-  }
-  return [...values.entries()].map(([value, label]) => ({ value, label }));
-});
-
-function applySecondaryFilters(rows) {
-  return rows.filter((dbInbound) => {
-    if (protocolFilter.value && dbInbound.protocol !== protocolFilter.value) return false;
-    if (nodeFilter.value) {
-      const nodeValue = dbInbound.nodeId == null ? 'local' : String(dbInbound.nodeId);
-      if (nodeValue !== nodeFilter.value) return false;
-    }
-    return true;
-  });
-}
-
-// ============ Search / filter projection =============================
-// Mirrors the legacy logic: when searching, keep inbounds that match
-// anywhere (deep search); when filtering, keep inbounds that have at
-// least one client in the requested bucket and reduce their settings
-// to that bucket.
-function projectInbound(dbInbound, predicate) {
-  const next = new DBInbound(dbInbound);
-  let settings;
-  try {
-    settings = JSON.parse(dbInbound.settings || '{}');
-  } catch (_e) {
-    settings = {};
-  }
-  if (!Array.isArray(settings.clients)) return next;
-  const filtered = settings.clients.filter(predicate);
-  next.settings = Inbound.Settings.fromJson(dbInbound.protocol, { clients: filtered });
-  next.invalidateCache();
-  return next;
-}
-
-const visibleInbounds = computed(() => {
-  if (enableFilter.value) {
-    if (ObjectUtil.isEmpty(filterBy.value)) return applySecondaryFilters([...props.dbInbounds]);
-    const out = [];
-    for (const dbInbound of props.dbInbounds) {
-      const c = props.clientCount[dbInbound.id];
-      if (!c || !c[filterBy.value] || c[filterBy.value].length === 0) continue;
-      const list = c[filterBy.value];
-      out.push(projectInbound(dbInbound, (client) => list.includes(client.email)));
-    }
-    return applySecondaryFilters(out);
-  }
-  if (ObjectUtil.isEmpty(searchKey.value)) return applySecondaryFilters([...props.dbInbounds]);
-  const out = [];
-  for (const dbInbound of props.dbInbounds) {
-    if (!ObjectUtil.deepSearch(dbInbound, searchKey.value)) continue;
-    out.push(projectInbound(dbInbound, (client) => ObjectUtil.deepSearch(client, searchKey.value)));
-  }
-  return applySecondaryFilters(out);
-});
-
 // ============ Sorting =================================================
 const sortState = ref({ column: null, order: null });
 
@@ -186,10 +82,10 @@ const sortFns = {
 
 const sortedInbounds = computed(() => {
   const { column, order } = sortState.value;
-  if (!column || !order) return visibleInbounds.value;
+  if (!column || !order) return props.dbInbounds;
   const fn = sortFns[column];
-  if (!fn) return visibleInbounds.value;
-  const sorted = [...visibleInbounds.value].sort(fn);
+  if (!fn) return props.dbInbounds;
+  const sorted = [...props.dbInbounds].sort(fn);
   return order === 'descend' ? sorted.reverse() : sorted;
 });
 
@@ -199,10 +95,6 @@ function onTableChange(_pag, _filters, sorter) {
     order: sorter?.order || null,
   };
 }
-
-watch([searchKey, filterBy], () => {
-  sortState.value = { column: null, order: null };
-});
 
 // ============ Columns =================================================
 // `key`-driven so we can render via the body-cell slot below. AD-Vue 4's
@@ -322,41 +214,6 @@ function showQrCodeMenu(dbInbound) {
     </template>
 
     <a-space direction="vertical" :style="{ width: '100%' }">
-      <!-- Search / filter toolbar -->
-      <div :class="isMobile ? 'filter-bar mobile' : 'filter-bar'">
-        <a-switch v-model:checked="enableFilter" @change="onToggleFilter">
-          <template #checkedChildren>
-            <SearchOutlined />
-          </template>
-          <template #unCheckedChildren>
-            <FilterOutlined />
-          </template>
-        </a-switch>
-        <a-input v-if="!enableFilter" v-model:value="searchKey" :placeholder="t('search')" autofocus
-          :size="isMobile ? 'small' : 'middle'" :style="{ maxWidth: '300px' }" />
-        <a-radio-group v-if="enableFilter" v-model:value="filterBy" button-style="solid"
-          :size="isMobile ? 'small' : 'middle'">
-          <a-radio-button value="">{{ t('none') }}</a-radio-button>
-          <a-radio-button value="active">{{ t('subscription.active') }}</a-radio-button>
-          <a-radio-button value="deactive">{{ t('disabled') }}</a-radio-button>
-          <a-radio-button value="depleted">{{ t('depleted') }}</a-radio-button>
-          <a-radio-button value="expiring">{{ t('depletingSoon') }}</a-radio-button>
-          <a-radio-button value="online">{{ t('online') }}</a-radio-button>
-        </a-radio-group>
-        <a-select v-model:value="protocolFilter" allow-clear :placeholder="t('pages.inbounds.protocol')"
-          :size="isMobile ? 'small' : 'middle'" :style="{ width: '150px' }">
-          <a-select-option v-for="protocol in protocolOptions" :key="protocol" :value="protocol">
-            {{ protocol }}
-          </a-select-option>
-        </a-select>
-        <a-select v-if="hasActiveNode && nodeOptions.length > 0" v-model:value="nodeFilter" allow-clear
-          :placeholder="t('pages.inbounds.node')" :size="isMobile ? 'small' : 'middle'" :style="{ width: '170px' }">
-          <a-select-option v-for="node in nodeOptions" :key="node.value" :value="node.value">
-            {{ node.label }}
-          </a-select-option>
-        </a-select>
-      </div>
-
       <!-- ====================== Mobile: card list ======================= -->
       <div v-if="isMobile" class="inbound-cards">
         <div v-if="visibleInbounds.length === 0" class="card-empty">—</div>
@@ -658,20 +515,6 @@ function showQrCodeMenu(dbInbound) {
 </template>
 
 <style scoped>
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.filter-bar.mobile {
-  display: block;
-}
-
-.filter-bar.mobile>* {
-  margin-bottom: 4px;
-}
-
 .action-buttons {
   display: flex;
   align-items: center;
@@ -828,16 +671,6 @@ function showQrCodeMenu(dbInbound) {
 
   :deep(.ant-card-body) {
     padding: 8px;
-  }
-
-  .filter-bar.mobile {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .filter-bar.mobile>* {
-    margin-bottom: 0;
   }
 
   .row-action-trigger {

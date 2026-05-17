@@ -12,6 +12,8 @@ export function useClients() {
   const fetched = ref(false);
   const subSettings = ref({ enable: false, subURI: '', subJsonURI: '', subJsonEnable: false });
   const ipLimitEnable = ref(false);
+  const expireDiff = ref(0);
+  const trafficDiff = ref(0);
   let onlinesTimer = null;
 
   async function refresh() {
@@ -44,6 +46,8 @@ export function useClients() {
       subJsonEnable: !!s.subJsonEnable,
     };
     ipLimitEnable.value = !!s.ipLimitEnable;
+    expireDiff.value = (s.expireDiff ?? 0) * 86400000;
+    trafficDiff.value = (s.trafficDiff ?? 0) * 1073741824;
   }
 
   async function refreshOnlines() {
@@ -141,6 +145,8 @@ export function useClients() {
     fetched,
     subSettings,
     ipLimitEnable,
+    expireDiff,
+    trafficDiff,
     refresh,
     refreshOnlines,
     create,

@@ -310,7 +310,7 @@ async function onSubmit() {
         <span style="margin-left: 8px">{{ t('enable') }}</span>
       </a-form-item>
 
-      <a-form-item v-if="isEdit" :label="t('pages.inbounds.ipLog') || 'IP Log'">
+      <a-form-item v-if="isEdit" :label="t('pages.clients.ipLog') || 'IP Log'">
         <a-space style="margin-bottom: 8px">
           <a-button size="small" :loading="ipsLoading" @click="loadIps">{{ t('refresh') }}</a-button>
           <a-button size="small" danger :loading="ipsClearing" :disabled="clientIps.length === 0" @click="clearIps">

@@ -394,6 +394,7 @@
       "method": "Method",
       "first": "First",
       "last": "Last",
+      "ipLog": "IP Log",
       "prefix": "Prefix",
       "postfix": "Postfix",
       "delayedStart": "Start After First Use",

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Modal, message } from 'ant-design-vue';
 import {
@@ -13,12 +13,14 @@ import {
   RestOutlined,
   MoreOutlined,
   UsergroupAddOutlined,
+  SearchOutlined,
+  FilterOutlined,
 } from '@ant-design/icons-vue';
 
 import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
-import { SizeFormatter, IntlUtil } from '@/utils';
+import { ObjectUtil, SizeFormatter, IntlUtil } from '@/utils';
 import { useClients } from './useClients.js';
 import ClientFormModal from './ClientFormModal.vue';
 import ClientInfoModal from './ClientInfoModal.vue';
@@ -35,6 +37,8 @@ const {
   fetched,
   subSettings,
   ipLimitEnable,
+  expireDiff,
+  trafficDiff,
   create,
   update,
   remove,
@@ -95,15 +99,15 @@ function isSelected(id) {
 }
 
 function selectAll(checked) {
-  selectedRowKeys.value = checked ? clients.value.map((c) => c.id) : [];
+  selectedRowKeys.value = checked ? filteredClients.value.map((c) => c.id) : [];
 }
 
 const allSelected = computed(
-  () => clients.value.length > 0 && selectedRowKeys.value.length === clients.value.length,
+  () => filteredClients.value.length > 0 && selectedRowKeys.value.length === filteredClients.value.length,
 );
 
 const someSelected = computed(
-  () => selectedRowKeys.value.length > 0 && selectedRowKeys.value.length < clients.value.length,
+  () => selectedRowKeys.value.length > 0 && selectedRowKeys.value.length < filteredClients.value.length,
 );
 
 function onBulkAdd() {
@@ -162,6 +166,35 @@ function onDelDepleted() {
   });
 }
 
+const FILTER_STATE_KEY = 'clientsFilterState';
+const savedFilterState = (() => {
+  try { return JSON.parse(localStorage.getItem(FILTER_STATE_KEY) || '{}'); }
+  catch (_e) { return {}; }
+})();
+const enableFilter = ref(!!savedFilterState.enableFilter);
+const searchKey = ref(savedFilterState.searchKey || '');
+const filterBy = ref(savedFilterState.filterBy || '');
+const protocolFilter = ref(savedFilterState.protocolFilter || undefined);
+
+watch([enableFilter, searchKey, filterBy, protocolFilter], () => {
+  localStorage.setItem(FILTER_STATE_KEY, JSON.stringify({
+    enableFilter: enableFilter.value,
+    searchKey: searchKey.value,
+    filterBy: filterBy.value,
+    protocolFilter: protocolFilter.value,
+  }));
+});
+
+function onToggleFilter() {
+  if (enableFilter.value) searchKey.value = '';
+  else filterBy.value = '';
+}
+
+const protocolOptions = computed(() => {
+  const values = new Set((inbounds.value || []).map((i) => i.protocol).filter(Boolean));
+  return [...values].sort();
+});
+
 const onlineSet = computed(() => new Set(onlines.value || []));
 const inboundsById = computed(() => {
   const out = {};
@@ -178,6 +211,49 @@ function inboundLabel(id) {
   if (!ib) return `#${id}`;
   return ib.remark ? `${ib.remark} (${ib.protocol}:${ib.port})` : `${ib.protocol}:${ib.port}`;
 }
+
+function clientBucket(row) {
+  if (!row) return null;
+  if (!row.enable) return 'deactive';
+  const traffic = row.traffic || {};
+  const used = (traffic.up || 0) + (traffic.down || 0);
+  const total = row.totalGB || 0;
+  const now = Date.now();
+  const expired = row.expiryTime > 0 && row.expiryTime <= now;
+  const exhausted = total > 0 && used >= total;
+  if (expired || exhausted) return 'depleted';
+  const nearExpiry = row.expiryTime > 0 && row.expiryTime - now < (expireDiff.value || 0);
+  const nearLimit = total > 0 && total - used < (trafficDiff.value || 0);
+  if (nearExpiry || nearLimit) return 'expiring';
+  return 'active';
+}
+
+function clientMatchesProtocol(row, protocol) {
+  if (!protocol) return true;
+  const ids = Array.isArray(row.inboundIds) ? row.inboundIds : [];
+  for (const id of ids) {
+    const ib = inboundsById.value[id];
+    if (ib && ib.protocol === protocol) return true;
+  }
+  return false;
+}
+
+const filteredClients = computed(() => {
+  let rows = clients.value || [];
+  if (enableFilter.value) {
+    if (filterBy.value === 'online') {
+      rows = rows.filter((r) => r.enable && isOnline(r.email));
+    } else if (filterBy.value) {
+      rows = rows.filter((r) => clientBucket(r) === filterBy.value);
+    }
+  } else if (!ObjectUtil.isEmpty(searchKey.value)) {
+    rows = rows.filter((r) => ObjectUtil.deepSearch(r, searchKey.value));
+  }
+  if (protocolFilter.value) {
+    rows = rows.filter((r) => clientMatchesProtocol(r, protocolFilter.value));
+  }
+  return rows;
+});
 
 function onAdd() {
   formMode.value = 'add';
@@ -374,7 +450,35 @@ const columns = computed(() => [
                     </div>
                   </template>
 
-                  <a-table v-if="!isMobile" :columns="columns" :data-source="clients" :loading="loading" row-key="id"
+                  <div :class="isMobile ? 'filter-bar mobile' : 'filter-bar'">
+                    <a-switch v-model:checked="enableFilter" @change="onToggleFilter">
+                      <template #checkedChildren>
+                        <SearchOutlined />
+                      </template>
+                      <template #unCheckedChildren>
+                        <FilterOutlined />
+                      </template>
+                    </a-switch>
+                    <a-input v-if="!enableFilter" v-model:value="searchKey" :placeholder="t('search')" autofocus
+                      :size="isMobile ? 'small' : 'middle'" :style="{ maxWidth: '300px' }" />
+                    <a-radio-group v-if="enableFilter" v-model:value="filterBy" button-style="solid"
+                      :size="isMobile ? 'small' : 'middle'">
+                      <a-radio-button value="">{{ t('none') }}</a-radio-button>
+                      <a-radio-button value="active">{{ t('subscription.active') }}</a-radio-button>
+                      <a-radio-button value="deactive">{{ t('disabled') }}</a-radio-button>
+                      <a-radio-button value="depleted">{{ t('depleted') }}</a-radio-button>
+                      <a-radio-button value="expiring">{{ t('depletingSoon') }}</a-radio-button>
+                      <a-radio-button value="online">{{ t('online') }}</a-radio-button>
+                    </a-radio-group>
+                    <a-select v-model:value="protocolFilter" allow-clear :placeholder="t('pages.inbounds.protocol')"
+                      :size="isMobile ? 'small' : 'middle'" :style="{ width: '150px' }">
+                      <a-select-option v-for="protocol in protocolOptions" :key="protocol" :value="protocol">
+                        {{ protocol }}
+                      </a-select-option>
+                    </a-select>
+                  </div>
+
+                  <a-table v-if="!isMobile" :columns="columns" :data-source="filteredClients" :loading="loading" row-key="id"
                     :row-selection="rowSelection"
                     :pagination="{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }"
                     size="small">
@@ -456,7 +560,7 @@ const columns = computed(() => [
 
                   <a-spin v-else :spinning="loading">
                     <div class="client-cards">
-                      <div v-if="clients.length > 0" class="card-bulk-bar">
+                      <div v-if="filteredClients.length > 0" class="card-bulk-bar">
                         <a-checkbox :checked="allSelected" :indeterminate="someSelected"
                           @change="(e) => selectAll(e.target.checked)">
                           {{ t('pages.clients.selectAll') || 'Select all' }}
@@ -466,12 +570,12 @@ const columns = computed(() => [
                         </span>
                       </div>
 
-                      <div v-if="clients.length === 0" class="card-empty">
+                      <div v-if="filteredClients.length === 0" class="card-empty">
                         <UserOutlined style="font-size: 28px; opacity: 0.5" />
                         <div>{{ t('pages.clients.empty') || 'No clients yet.' }}</div>
                       </div>
 
-                      <div v-for="row in clients" :key="row.id" class="client-card"
+                      <div v-for="row in filteredClients" :key="row.id" class="client-card"
                         :class="{ 'is-selected': isSelected(row.id) }">
                         <div class="card-head">
                           <a-checkbox :checked="isSelected(row.id)"
@@ -552,6 +656,23 @@ const columns = computed(() => [
 
 .content-shell {
   background: transparent;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-bar.mobile {
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.filter-bar.mobile > * {
+  flex: 0 0 auto;
 }
 
 .content-area {

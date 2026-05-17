@@ -319,6 +319,14 @@ function confirmClone(dbInbound) {
     cancelText: 'Cancel',
     onOk: async () => {
       const baseInbound = dbInbound.toInbound();
+      let clonedSettings = '';
+      try {
+        const raw = JSON.parse(dbInbound.settings || '{}');
+        raw.clients = [];
+        clonedSettings = JSON.stringify(raw, null, 2);
+      } catch (_e) {
+        clonedSettings = Inbound.Settings.getSettings(baseInbound.protocol).toString();
+      }
       const data = {
         up: 0,
         down: 0,
@@ -329,7 +337,7 @@ function confirmClone(dbInbound) {
         listen: '',
         port: RandomUtil.randomInteger(10000, 60000),
         protocol: baseInbound.protocol,
-        settings: Inbound.Settings.getSettings(baseInbound.protocol).toString(),
+        settings: clonedSettings,
         streamSettings: baseInbound.stream.toString(),
         sniffing: baseInbound.sniffing.toString(),
       };
