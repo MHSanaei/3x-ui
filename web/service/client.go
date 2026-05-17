@@ -475,6 +475,24 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	return needRestart, nil
 }
 
+func (s *ClientService) CreateOne(inboundSvc *InboundService, inboundId int, client model.Client) (bool, error) {
+	return s.Create(inboundSvc, &ClientCreatePayload{
+		Client:     client,
+		InboundIds: []int{inboundId},
+	})
+}
+
+func (s *ClientService) DetachByEmail(inboundSvc *InboundService, inboundId int, email string) (bool, error) {
+	if email == "" {
+		return false, common.NewError("client email is required")
+	}
+	rec, err := s.GetRecordByEmail(nil, email)
+	if err != nil {
+		return false, err
+	}
+	return s.Detach(inboundSvc, rec.Id, []int{inboundId})
+}
+
 func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email string) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")

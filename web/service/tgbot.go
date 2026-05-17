@@ -118,6 +118,7 @@ type LoginAttempt struct {
 // It handles bot commands, user interactions, and status reporting via Telegram.
 type Tgbot struct {
 	inboundService InboundService
+	clientService  ClientService
 	settingService SettingService
 	serverService  ServerService
 	xrayService    XrayService
@@ -2209,27 +2210,43 @@ func (t *Tgbot) BuildJSONForProtocol(protocol model.Protocol) (string, error) {
 	return jsonString, nil
 }
 
-// SubmitAddClient submits the client addition request to the inbound service.
+// SubmitAddClient submits the client addition request to the client service.
 func (t *Tgbot) SubmitAddClient() (bool, error) {
-
 	inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
 	if err != nil {
 		logger.Warning("getIboundClients run failed:", err)
 		return false, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
 	}
 
-	jsonString, err := t.BuildJSONForProtocol(inbound.Protocol)
-	if err != nil {
-		logger.Warning("BuildJSONForProtocol run failed:", err)
-		return false, errors.New("failed to build JSON for protocol")
+	tgIDInt, _ := strconv.ParseInt(client_TgID, 10, 64)
+	client := model.Client{
+		Email:      client_Email,
+		Enable:     client_Enable,
+		LimitIP:    client_LimitIP,
+		TotalGB:    client_TotalGB,
+		ExpiryTime: client_ExpiryTime,
+		SubID:      client_SubID,
+		Comment:    client_Comment,
+		Reset:      client_Reset,
+		TgID:       tgIDInt,
 	}
 
-	newInbound := &model.Inbound{
-		Id:       receiver_inbound_ID,
-		Settings: jsonString,
+	switch inbound.Protocol {
+	case model.VMESS:
+		client.ID = client_Id
+		client.Security = client_Security
+	case model.VLESS:
+		client.ID = client_Id
+		client.Flow = client_Flow
+	case model.Trojan:
+		client.Password = client_TrPassword
+	case model.Shadowsocks:
+		client.Password = client_ShPassword
+	default:
+		return false, errors.New("unknown protocol")
 	}
 
-	return t.inboundService.AddInboundClient(newInbound)
+	return t.clientService.CreateOne(&t.inboundService, receiver_inbound_ID, client)
 }
 
 // checkAdmin checks if the given Telegram ID is an admin.
