@@ -6,7 +6,6 @@ import {
   SwapOutlined,
   PieChartOutlined,
   BarsOutlined,
-  TeamOutlined,
 } from '@ant-design/icons-vue';
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
@@ -428,7 +427,7 @@ function onRowAction({ key, dbInbound }) {
               <a-col :span="24">
                 <a-card size="small" hoverable class="summary-card">
                   <a-row :gutter="[16, 12]">
-                    <a-col :xs="12" :sm="12" :md="5">
+                    <a-col :xs="12" :sm="12" :md="8">
                       <CustomStatistic :title="t('pages.inbounds.totalDownUp')"
                         :value="`${SizeFormatter.sizeFormat(totals.up)} / ${SizeFormatter.sizeFormat(totals.down)}`">
                         <template #prefix>
@@ -436,7 +435,7 @@ function onRowAction({ key, dbInbound }) {
                         </template>
                       </CustomStatistic>
                     </a-col>
-                    <a-col :xs="12" :sm="12" :md="5">
+                    <a-col :xs="12" :sm="12" :md="8">
                       <CustomStatistic :title="t('pages.inbounds.totalUsage')"
                         :value="SizeFormatter.sizeFormat(totals.up + totals.down)">
                         <template #prefix>
@@ -444,52 +443,10 @@ function onRowAction({ key, dbInbound }) {
                         </template>
                       </CustomStatistic>
                     </a-col>
-                    <a-col :xs="12" :sm="12" :md="5">
+                    <a-col :xs="24" :sm="24" :md="8">
                       <CustomStatistic :title="t('pages.inbounds.inboundCount')" :value="String(dbInbounds.length)">
                         <template #prefix>
                           <BarsOutlined />
-                        </template>
-                      </CustomStatistic>
-                    </a-col>
-                    <a-col :xs="24" :sm="24" :md="4">
-                      <CustomStatistic :title="t('clients')" value=" ">
-                        <template #prefix>
-                          <a-space direction="horizontal">
-                            <TeamOutlined />
-                            <a-tag color="green">{{ totals.clients }}</a-tag>
-                            <a-popover v-if="totals.deactive.length" :title="t('disabled')">
-                              <template #content>
-                                <div class="client-email-list">
-                                  <div v-for="email in totals.deactive" :key="email">{{ email }}</div>
-                                </div>
-                              </template>
-                              <a-tag>{{ totals.deactive.length }}</a-tag>
-                            </a-popover>
-                            <a-popover v-if="totals.depleted.length" :title="t('depleted')">
-                              <template #content>
-                                <div class="client-email-list">
-                                  <div v-for="email in totals.depleted" :key="email">{{ email }}</div>
-                                </div>
-                              </template>
-                              <a-tag color="red">{{ totals.depleted.length }}</a-tag>
-                            </a-popover>
-                            <a-popover v-if="totals.expiring.length" :title="t('depletingSoon')">
-                              <template #content>
-                                <div class="client-email-list">
-                                  <div v-for="email in totals.expiring" :key="email">{{ email }}</div>
-                                </div>
-                              </template>
-                              <a-tag color="orange">{{ totals.expiring.length }}</a-tag>
-                            </a-popover>
-                            <a-popover v-if="totals.online.length" :title="t('online')">
-                              <template #content>
-                                <div class="client-email-list">
-                                  <div v-for="email in totals.online" :key="email">{{ email }}</div>
-                                </div>
-                              </template>
-                              <a-tag color="blue">{{ totals.online.length }}</a-tag>
-                            </a-popover>
-                          </a-space>
                         </template>
                       </CustomStatistic>
                     </a-col>
@@ -578,22 +535,5 @@ function onRowAction({ key, dbInbound }) {
   .summary-card {
     padding: 8px;
   }
-}
-</style>
-
-<style>
-/* AD-Vue popovers teleport their content to <body>, so scoped styles
-   don't reach them — this block has to be unscoped. */
-.client-email-list {
-  max-height: 280px;
-  min-width: 160px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.client-email-list > div {
-  padding: 2px 0;
-  font-size: 12px;
-  white-space: nowrap;
 }
 </style>

@@ -1,8 +1,7 @@
-import { onMounted, onUnmounted, ref, shallowRef } from 'vue';
+import { onMounted, ref, shallowRef } from 'vue';
 import { HttpUtil } from '@/utils';
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } };
-const ONLINES_POLL_MS = 10000;
 
 export function useClients() {
   const clients = shallowRef([]);
@@ -14,7 +13,6 @@ export function useClients() {
   const ipLimitEnable = ref(false);
   const expireDiff = ref(0);
   const trafficDiff = ref(0);
-  let onlinesTimer = null;
 
   async function refresh() {
     loading.value = true;
@@ -48,13 +46,6 @@ export function useClients() {
     ipLimitEnable.value = !!s.ipLimitEnable;
     expireDiff.value = (s.expireDiff ?? 0) * 86400000;
     trafficDiff.value = (s.trafficDiff ?? 0) * 1073741824;
-  }
-
-  async function refreshOnlines() {
-    const msg = await HttpUtil.post('/panel/api/clients/onlines');
-    if (msg?.success) {
-      onlines.value = Array.isArray(msg.obj) ? msg.obj : [];
-    }
   }
 
   async function create(payload) {
@@ -127,14 +118,48 @@ export function useClients() {
     return update(client.id, payload);
   }
 
+  function applyTrafficEvent(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    if (Array.isArray(payload.onlineClients)) {
+      onlines.value = payload.onlineClients;
+    }
+  }
+
+  function applyClientStatsEvent(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    if (!Array.isArray(payload.clients) || payload.clients.length === 0) return;
+    const byEmail = new Map();
+    for (const row of payload.clients) {
+      if (row && row.email) byEmail.set(row.email, row);
+    }
+    let touched = false;
+    const next = clients.value || [];
+    for (let i = 0; i < next.length; i++) {
+      const row = next[i];
+      const upd = byEmail.get(row?.email);
+      if (!upd) continue;
+      const merged = { ...(row.traffic || {}) };
+      if (typeof upd.up === 'number') merged.up = upd.up;
+      if (typeof upd.down === 'number') merged.down = upd.down;
+      if (typeof upd.total === 'number') merged.total = upd.total;
+      if (typeof upd.expiryTime === 'number') merged.expiryTime = upd.expiryTime;
+      if (typeof upd.enable === 'boolean') merged.enable = upd.enable;
+      if (typeof upd.lastOnline === 'number') merged.lastOnline = upd.lastOnline;
+      next[i] = { ...row, traffic: merged };
+      touched = true;
+    }
+    if (touched) clients.value = [...next];
+  }
+
+  function applyInvalidate(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    if (payload.type === 'inbounds' || payload.type === 'clients') {
+      refresh();
+    }
+  }
+
   onMounted(async () => {
     await Promise.all([refresh(), fetchSubSettings()]);
-    refreshOnlines();
-    onlinesTimer = setInterval(refreshOnlines, ONLINES_POLL_MS);
-  });
-
-  onUnmounted(() => {
-    if (onlinesTimer) clearInterval(onlinesTimer);
   });
 
   return {
@@ -148,7 +173,6 @@ export function useClients() {
     expireDiff,
     trafficDiff,
     refresh,
-    refreshOnlines,
     create,
     update,
     remove,
@@ -158,5 +182,8 @@ export function useClients() {
     resetAllTraffics,
     delDepleted,
     setEnable,
+    applyTrafficEvent,
+    applyClientStatsEvent,
+    applyInvalidate,
   };
 }

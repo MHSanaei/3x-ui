@@ -15,11 +15,14 @@ import {
   UsergroupAddOutlined,
   SearchOutlined,
   FilterOutlined,
+  TeamOutlined,
 } from '@ant-design/icons-vue';
 
 import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
+import { useWebSocket } from '@/composables/useWebSocket.js';
 import AppSidebar from '@/components/AppSidebar.vue';
+import CustomStatistic from '@/components/CustomStatistic.vue';
 import { ObjectUtil, SizeFormatter, IntlUtil } from '@/utils';
 import { useClients } from './useClients.js';
 import ClientFormModal from './ClientFormModal.vue';
@@ -48,7 +51,16 @@ const {
   resetAllTraffics,
   delDepleted,
   setEnable,
+  applyTrafficEvent,
+  applyClientStatsEvent,
+  applyInvalidate,
 } = useClients();
+
+useWebSocket({
+  traffic: applyTrafficEvent,
+  client_stats: applyClientStatsEvent,
+  invalidate: applyInvalidate,
+});
 
 const togglingId = ref(null);
 
@@ -214,7 +226,6 @@ function inboundLabel(id) {
 
 function clientBucket(row) {
   if (!row) return null;
-  if (!row.enable) return 'deactive';
   const traffic = row.traffic || {};
   const used = (traffic.up || 0) + (traffic.down || 0);
   const total = row.totalGB || 0;
@@ -222,10 +233,21 @@ function clientBucket(row) {
   const expired = row.expiryTime > 0 && row.expiryTime <= now;
   const exhausted = total > 0 && used >= total;
   if (expired || exhausted) return 'depleted';
+  if (!row.enable) return 'deactive';
   const nearExpiry = row.expiryTime > 0 && row.expiryTime - now < (expireDiff.value || 0);
   const nearLimit = total > 0 && total - used < (trafficDiff.value || 0);
   if (nearExpiry || nearLimit) return 'expiring';
   return 'active';
+}
+
+function bucketTagColor(bucket) {
+  switch (bucket) {
+    case 'depleted': return 'red';
+    case 'expiring': return 'orange';
+    case 'deactive': return 'default';
+    case 'active': return 'green';
+    default: return 'default';
+  }
 }
 
 function clientMatchesProtocol(row, protocol) {
@@ -253,6 +275,24 @@ const filteredClients = computed(() => {
     rows = rows.filter((r) => clientMatchesProtocol(r, protocolFilter.value));
   }
   return rows;
+});
+
+const summary = computed(() => {
+  const rows = clients.value || [];
+  const deactive = [];
+  const depleted = [];
+  const expiring = [];
+  const online = [];
+  let active = 0;
+  for (const row of rows) {
+    const bucket = clientBucket(row);
+    if (bucket === 'deactive') deactive.push(row.email);
+    else if (bucket === 'depleted') depleted.push(row.email);
+    else if (bucket === 'expiring') expiring.push(row.email);
+    else if (bucket === 'active') active++;
+    if (row.enable && isOnline(row.email)) online.push(row.email);
+  }
+  return { total: rows.length, active, deactive, depleted, expiring, online };
 });
 
 function onAdd() {
@@ -413,6 +453,83 @@ const columns = computed(() => [
 
             <a-row v-else :gutter="[isMobile ? 8 : 16, isMobile ? 8 : 12]">
               <a-col :span="24">
+                <a-card size="small" hoverable class="summary-card">
+                  <a-row :gutter="[16, 12]">
+                    <a-col :xs="12" :sm="8" :md="4">
+                      <CustomStatistic :title="t('clients')" :value="String(summary.total)">
+                        <template #prefix>
+                          <TeamOutlined />
+                        </template>
+                      </CustomStatistic>
+                    </a-col>
+                    <a-col :xs="12" :sm="8" :md="4">
+                      <a-popover :title="t('online')" :open="summary.online.length ? undefined : false">
+                        <template #content>
+                          <div class="client-email-list">
+                            <div v-for="email in summary.online" :key="email">{{ email }}</div>
+                          </div>
+                        </template>
+                        <CustomStatistic :title="t('online')" :value="String(summary.online.length)">
+                          <template #prefix>
+                            <span class="dot dot-blue" />
+                          </template>
+                        </CustomStatistic>
+                      </a-popover>
+                    </a-col>
+                    <a-col :xs="12" :sm="8" :md="4">
+                      <a-popover :title="t('depleted')" :open="summary.depleted.length ? undefined : false">
+                        <template #content>
+                          <div class="client-email-list">
+                            <div v-for="email in summary.depleted" :key="email">{{ email }}</div>
+                          </div>
+                        </template>
+                        <CustomStatistic :title="t('depleted')" :value="String(summary.depleted.length)">
+                          <template #prefix>
+                            <span class="dot dot-red" />
+                          </template>
+                        </CustomStatistic>
+                      </a-popover>
+                    </a-col>
+                    <a-col :xs="12" :sm="8" :md="4">
+                      <a-popover :title="t('depletingSoon')" :open="summary.expiring.length ? undefined : false">
+                        <template #content>
+                          <div class="client-email-list">
+                            <div v-for="email in summary.expiring" :key="email">{{ email }}</div>
+                          </div>
+                        </template>
+                        <CustomStatistic :title="t('depletingSoon')" :value="String(summary.expiring.length)">
+                          <template #prefix>
+                            <span class="dot dot-orange" />
+                          </template>
+                        </CustomStatistic>
+                      </a-popover>
+                    </a-col>
+                    <a-col :xs="12" :sm="8" :md="4">
+                      <a-popover :title="t('disabled')" :open="summary.deactive.length ? undefined : false">
+                        <template #content>
+                          <div class="client-email-list">
+                            <div v-for="email in summary.deactive" :key="email">{{ email }}</div>
+                          </div>
+                        </template>
+                        <CustomStatistic :title="t('disabled')" :value="String(summary.deactive.length)">
+                          <template #prefix>
+                            <span class="dot dot-gray" />
+                          </template>
+                        </CustomStatistic>
+                      </a-popover>
+                    </a-col>
+                    <a-col :xs="12" :sm="8" :md="4">
+                      <CustomStatistic :title="t('subscription.active')" :value="String(summary.active)">
+                        <template #prefix>
+                          <span class="dot dot-green" />
+                        </template>
+                      </CustomStatistic>
+                    </a-col>
+                  </a-row>
+                </a-card>
+              </a-col>
+
+              <a-col :span="24">
                 <a-card size="small">
                   <template #title>
                     <div class="card-toolbar">
@@ -490,9 +607,16 @@ const columns = computed(() => [
                         </div>
                       </template>
                       <template v-else-if="column.key === 'online'">
-                        <a-tag v-if="record.enable && isOnline(record.email)" color="green">{{ t('pages.clients.online')
-                          || 'Online'
-                        }}</a-tag>
+                        <a-tag v-if="clientBucket(record) === 'depleted'" color="red">
+                          {{ t('depleted') }}
+                        </a-tag>
+                        <a-tag v-else-if="record.enable && isOnline(record.email)" color="green">
+                          {{ t('pages.clients.online') || 'Online' }}
+                        </a-tag>
+                        <a-tag v-else-if="!record.enable">{{ t('disabled') }}</a-tag>
+                        <a-tag v-else-if="clientBucket(record) === 'expiring'" color="orange">
+                          {{ t('depletingSoon') }}
+                        </a-tag>
                         <a-tag v-else>{{ t('pages.clients.offline') || 'Offline' }}</a-tag>
                       </template>
                       <template v-else-if="column.key === 'inboundIds'">
@@ -580,9 +704,14 @@ const columns = computed(() => [
                         <div class="card-head">
                           <a-checkbox :checked="isSelected(row.id)"
                             @change="(e) => toggleSelect(row.id, e.target.checked)" />
-                          <a-badge
-                            :color="row.enable && isOnline(row.email) ? 'green' : (row.enable ? 'default' : 'red')" />
+                          <a-badge :color="bucketTagColor(clientBucket(row))" />
                           <span class="tag-name">{{ row.email }}</span>
+                          <a-tag v-if="clientBucket(row) === 'depleted'" color="red" class="status-tag">
+                            {{ t('depleted') }}
+                          </a-tag>
+                          <a-tag v-else-if="clientBucket(row) === 'expiring'" color="orange" class="status-tag">
+                            {{ t('depletingSoon') }}
+                          </a-tag>
                           <div class="card-actions" @click.stop>
                             <a-tooltip :title="t('pages.clients.moreInformation') || 'Info'">
                               <InfoCircleOutlined class="row-action-trigger" @click="onShowInfo(row)" />
@@ -687,6 +816,38 @@ const columns = computed(() => [
 
 .loading-spacer {
   min-height: calc(100vh - 120px);
+}
+
+.summary-card {
+  padding: 16px;
+}
+
+@media (max-width: 768px) {
+  .summary-card {
+    padding: 8px;
+  }
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.dot-green { background: #52c41a; }
+.dot-blue { background: #1677ff; }
+.dot-red { background: #ff4d4f; }
+.dot-orange { background: #fa8c16; }
+.dot-gray { background: rgba(128, 128, 128, 0.6); }
+
+.status-tag {
+  margin: 0 0 0 4px;
+  font-size: 11px;
+  padding: 0 6px;
+  line-height: 18px;
 }
 
 .card-toolbar {
@@ -805,5 +966,22 @@ const columns = computed(() => [
 
 .danger-item {
   color: #ff4d4f;
+}
+</style>
+
+<style>
+/* AD-Vue popovers teleport their content to <body>, so scoped styles
+   don't reach them — this block has to be unscoped. */
+.client-email-list {
+  max-height: 280px;
+  min-width: 160px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.client-email-list > div {
+  padding: 2px 0;
+  font-size: 12px;
+  white-space: nowrap;
 }
 </style>
