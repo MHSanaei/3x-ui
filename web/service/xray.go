@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
@@ -241,10 +242,60 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			inbound.StreamSettings = string(newStream)
 		}
 
+		if inbound.Protocol == model.Shadowsocks {
+			if healed, ok := healShadowsocksClientMethods(inbound.Settings); ok {
+				inbound.Settings = healed
+			}
+		}
+
 		inboundConfig := inbound.GenXrayInboundConfig()
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
 	}
 	return xrayConfig, nil
+}
+
+// healShadowsocksClientMethods is the same idea as applyShadowsocksClientMethod
+// (see client.go) but applied at xray-config-build time, to backfill the
+// per-client method field for legacy shadowsocks inbounds whose clients were
+// stored before applyShadowsocksClientMethod existed. Returns the rewritten
+// settings string and true when anything actually changed.
+func healShadowsocksClientMethods(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	method, _ := parsed["method"].(string)
+	if method == "" || strings.HasPrefix(method, "2022-blake3-") {
+		return settings, false
+	}
+	clients, ok := parsed["clients"].([]any)
+	if !ok {
+		return settings, false
+	}
+	changed := false
+	for i := range clients {
+		cm, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		if existing, _ := cm["method"].(string); existing != "" {
+			continue
+		}
+		cm["method"] = method
+		clients[i] = cm
+		changed = true
+	}
+	if !changed {
+		return settings, false
+	}
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
 }
 
 // GetXrayTraffic fetches the current traffic statistics from the running Xray process.

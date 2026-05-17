@@ -17,6 +17,7 @@ export const Protocols = {
 };
 
 export const SSMethods = {
+    AES_256_GCM: 'aes-256-gcm',
     CHACHA20_POLY1305: 'chacha20-poly1305',
     CHACHA20_IETF_POLY1305: 'chacha20-ietf-poly1305',
     XCHACHA20_IETF_POLY1305: 'xchacha20-ietf-poly1305',

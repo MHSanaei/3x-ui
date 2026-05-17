@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/util/common"
+	"github.com/mhsanaei/3x-ui/v3/util/random"
 	"github.com/mhsanaei/3x-ui/v3/xray"
 
 	"gorm.io/gorm"
@@ -360,7 +362,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if getErr != nil {
 			return needRestart, getErr
 		}
-		if err := s.fillProtocolDefaults(&client, inbound.Protocol); err != nil {
+		if err := s.fillProtocolDefaults(&client, inbound); err != nil {
 			return needRestart, err
 		}
 		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {client}})
@@ -381,15 +383,20 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	return needRestart, nil
 }
 
-func (s *ClientService) fillProtocolDefaults(c *model.Client, p model.Protocol) error {
-	switch p {
+func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound) error {
+	switch ib.Protocol {
 	case model.VMESS, model.VLESS:
 		if c.ID == "" {
 			c.ID = uuid.NewString()
 		}
-	case model.Trojan, model.Shadowsocks:
+	case model.Trojan:
 		if c.Password == "" {
 			c.Password = strings.ReplaceAll(uuid.NewString(), "-", "")
+		}
+	case model.Shadowsocks:
+		method := shadowsocksMethodFromSettings(ib.Settings)
+		if c.Password == "" || !validShadowsocksClientKey(method, c.Password) {
+			c.Password = randomShadowsocksClientKey(method)
 		}
 	case model.Hysteria, model.Hysteria2:
 		if c.Auth == "" {
@@ -397,6 +404,80 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, p model.Protocol) 
 		}
 	}
 	return nil
+}
+
+// shadowsocksMethodFromSettings pulls the "method" field out of the inbound's
+// settings JSON. Returns "" when the field is missing or settings is invalid.
+func shadowsocksMethodFromSettings(settings string) string {
+	if settings == "" {
+		return ""
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(settings), &m); err != nil {
+		return ""
+	}
+	method, _ := m["method"].(string)
+	return method
+}
+
+// randomShadowsocksClientKey returns a per-client key sized to the cipher.
+// The 2022-blake3 ciphers require a base64-encoded key of an exact byte
+// length (16 bytes for aes-128-gcm, 32 bytes for aes-256-gcm and
+// chacha20-poly1305) — anything else fails with "bad key" on xray start.
+// Older ciphers accept arbitrary passwords, so we keep the uuid-style.
+func randomShadowsocksClientKey(method string) string {
+	if n := shadowsocksKeyBytes(method); n > 0 {
+		return random.Base64Bytes(n)
+	}
+	return strings.ReplaceAll(uuid.NewString(), "-", "")
+}
+
+// validShadowsocksClientKey reports whether key is acceptable for the cipher.
+// For 2022-blake3 it must decode to the exact byte length the cipher needs;
+// any other method accepts any non-empty string.
+func validShadowsocksClientKey(method, key string) bool {
+	n := shadowsocksKeyBytes(method)
+	if n == 0 {
+		return key != ""
+	}
+	decoded, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		return false
+	}
+	return len(decoded) == n
+}
+
+func shadowsocksKeyBytes(method string) int {
+	switch method {
+	case "2022-blake3-aes-128-gcm":
+		return 16
+	case "2022-blake3-aes-256-gcm", "2022-blake3-chacha20-poly1305":
+		return 32
+	}
+	return 0
+}
+
+// applyShadowsocksClientMethod ensures each client entry carries a "method"
+// field for legacy shadowsocks ciphers. xray's multi-user shadowsocks code
+// requires a per-client method; an empty/missing field fails with
+// "unsupported cipher method:". 2022-blake3 ciphers use the top-level
+// method only, so the per-client field must stay absent.
+func applyShadowsocksClientMethod(clients []any, settings map[string]any) {
+	method, _ := settings["method"].(string)
+	if method == "" || strings.HasPrefix(method, "2022-blake3-") {
+		return
+	}
+	for i := range clients {
+		cm, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		if existing, _ := cm["method"].(string); existing != "" {
+			continue
+		}
+		cm["method"] = method
+		clients[i] = cm
+	}
 }
 
 func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model.Client) (bool, error) {
@@ -433,7 +514,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		if oldKey == "" {
 			continue
 		}
-		if err := s.fillProtocolDefaults(&updated, inbound.Protocol); err != nil {
+		if err := s.fillProtocolDefaults(&updated, inbound); err != nil {
 			return needRestart, err
 		}
 		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {updated}})
@@ -530,7 +611,7 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 			return needRestart, getErr
 		}
 		copyClient := *clientWire
-		if err := s.fillProtocolDefaults(&copyClient, inbound.Protocol); err != nil {
+		if err := s.fillProtocolDefaults(&copyClient, inbound); err != nil {
 			return needRestart, err
 		}
 		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {copyClient}})
@@ -871,6 +952,10 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 		return false, err
 	}
 
+	if oldInbound.Protocol == model.Shadowsocks {
+		applyShadowsocksClientMethod(interfaceClients, oldSettings)
+	}
+
 	oldClients := oldSettings["clients"].([]any)
 	oldClients = append(oldClients, interfaceClients...)
 
@@ -1048,6 +1133,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			newMap["updated_at"] = time.Now().Unix() * 1000
 			interfaceClients[0] = newMap
 		}
+	}
+	if oldInbound.Protocol == model.Shadowsocks {
+		applyShadowsocksClientMethod(interfaceClients, oldSettings)
 	}
 	settingsClients[clientIndex] = interfaceClients[0]
 	oldSettings["clients"] = settingsClients
