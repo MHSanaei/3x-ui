@@ -251,7 +251,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 		model.Hysteria:    true,
 		model.Hysteria2:   true,
 	}
-	
+
 	if !protocolsWithStream[inbound.Protocol] {
 		inbound.StreamSettings = ""
 	}
@@ -264,7 +264,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
-	
+
 	exist, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
 		return inbound, false, err
@@ -527,7 +527,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
-	
+
 	exist, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {
 		return inbound, false, err
@@ -1014,7 +1014,6 @@ func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID
 
 	return result, needRestart, nil
 }
-
 
 const resetGracePeriodMs int64 = 30000
 
@@ -1689,8 +1688,8 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 	}
 
 	type target struct {
-		InboundID int    `gorm:"column:inbound_id"`
-		NodeID    *int   `gorm:"column:node_id"`
+		InboundID int  `gorm:"column:inbound_id"`
+		NodeID    *int `gorm:"column:node_id"`
 		Tag       string
 		Email     string
 	}
@@ -1981,7 +1980,6 @@ func (s *InboundService) GetClientByEmail(clientEmail string) (*xray.ClientTraff
 
 	return nil, nil, common.NewError("Client Not Found In Inbound For Email:", clientEmail)
 }
-
 
 func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 	return submitTrafficWrite(func() error {
@@ -2468,33 +2466,6 @@ func (s *InboundService) UpdateClientTrafficByEmail(email string, upload int64, 
 	})
 }
 
-func (s *InboundService) GetClientTrafficByID(id string) ([]xray.ClientTraffic, error) {
-	db := database.GetDB()
-	var traffics []xray.ClientTraffic
-
-	err := db.Model(xray.ClientTraffic{}).Where(`email IN(
-		SELECT JSON_EXTRACT(client.value, '$.email') as email
-		FROM inbounds,
-	  	JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
-		WHERE
-	  	JSON_EXTRACT(client.value, '$.id') in (?)
-		)`, id).Find(&traffics).Error
-
-	if err != nil {
-		logger.Debug(err)
-		return nil, err
-	}
-	// Reconcile enable flag with client settings per email to avoid stale DB value
-	for i := range traffics {
-		if ct, client, e := s.GetClientByEmail(traffics[i].Email); e == nil && ct != nil && client != nil {
-			traffics[i].Enable = client.Enable
-			traffics[i].UUID = client.ID
-			traffics[i].SubId = client.SubID
-		}
-	}
-	return traffics, err
-}
-
 func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.ClientTraffic, err error) {
 	db := database.GetDB()
 	inbound := &model.Inbound{}
@@ -2882,13 +2853,28 @@ func (s *InboundService) GetSubLinks(host, subId string) ([]string, error) {
 	}
 	return registeredSubLinkProvider.SubLinksForSubId(host, subId)
 }
-func (s *InboundService) GetClientLinks(host string, id int, email string) ([]string, error) {
-	inbound, err := s.GetInbound(id)
-	if err != nil {
-		return nil, err
+func (s *InboundService) GetAllClientLinks(host string, email string) ([]string, error) {
+	if email == "" {
+		return nil, common.NewError("client email is required")
 	}
 	if registeredSubLinkProvider == nil {
 		return nil, common.NewError("sub link provider not registered")
 	}
-	return registeredSubLinkProvider.LinksForClient(host, inbound, email), nil
+	rec, err := s.clientService.GetRecordByEmail(nil, email)
+	if err != nil {
+		return nil, err
+	}
+	inboundIds, err := s.clientService.GetInboundIdsForRecord(rec.Id)
+	if err != nil {
+		return nil, err
+	}
+	var links []string
+	for _, ibId := range inboundIds {
+		inbound, getErr := s.GetInbound(ibId)
+		if getErr != nil {
+			return nil, getErr
+		}
+		links = append(links, registeredSubLinkProvider.LinksForClient(host, inbound, email)...)
+	}
+	return links, nil
 }

@@ -496,6 +496,50 @@ func (s *ClientService) DetachByEmail(inboundSvc *InboundService, inboundId int,
 	return s.Detach(inboundSvc, rec.Id, []int{inboundId})
 }
 
+func (s *ClientService) AttachByEmail(inboundSvc *InboundService, email string, inboundIds []int) (bool, error) {
+	if email == "" {
+		return false, common.NewError("client email is required")
+	}
+	rec, err := s.GetRecordByEmail(nil, email)
+	if err != nil {
+		return false, err
+	}
+	return s.Attach(inboundSvc, rec.Id, inboundIds)
+}
+
+func (s *ClientService) DetachByEmailMany(inboundSvc *InboundService, email string, inboundIds []int) (bool, error) {
+	if email == "" {
+		return false, common.NewError("client email is required")
+	}
+	rec, err := s.GetRecordByEmail(nil, email)
+	if err != nil {
+		return false, err
+	}
+	return s.Detach(inboundSvc, rec.Id, inboundIds)
+}
+
+func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, keepTraffic bool) (bool, error) {
+	if email == "" {
+		return false, common.NewError("client email is required")
+	}
+	rec, err := s.GetRecordByEmail(nil, email)
+	if err != nil {
+		return false, err
+	}
+	return s.Delete(inboundSvc, rec.Id, keepTraffic)
+}
+
+func (s *ClientService) UpdateByEmail(inboundSvc *InboundService, email string, updated model.Client) (bool, error) {
+	if email == "" {
+		return false, common.NewError("client email is required")
+	}
+	rec, err := s.GetRecordByEmail(nil, email)
+	if err != nil {
+		return false, err
+	}
+	return s.Update(inboundSvc, rec.Id, updated)
+}
+
 func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email string) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")
@@ -571,11 +615,11 @@ func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, erro
 
 func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id int) error {
 	return submitTrafficWrite(func() error {
-		return s.resetAllClientTrafficsLocked(inboundSvc, id)
+		return s.resetAllClientTrafficsLocked(id)
 	})
 }
 
-func (s *ClientService) resetAllClientTrafficsLocked(inboundSvc *InboundService, id int) error {
+func (s *ClientService) resetAllClientTrafficsLocked(id int) error {
 	db := database.GetDB()
 	now := time.Now().Unix() * 1000
 

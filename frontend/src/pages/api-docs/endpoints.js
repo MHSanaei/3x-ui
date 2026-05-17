@@ -381,10 +381,10 @@ export const sections = [
       },
       {
         method: 'GET',
-        path: '/panel/api/clients/get/:id',
-        summary: 'Fetch one client by its numeric id, including the inbound IDs it is attached to.',
+        path: '/panel/api/clients/get/:email',
+        summary: 'Fetch one client by email, including the inbound IDs it is attached to.',
         params: [
-          { name: 'id', in: 'path', type: 'integer', desc: 'Numeric client id from the clients table.' },
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
         ],
         response:
           '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5]\n  }\n}',
@@ -402,30 +402,30 @@ export const sections = [
       },
       {
         method: 'POST',
-        path: '/panel/api/clients/update/:id',
-        summary: 'Update an existing client. Changes propagate to every attached inbound. Body is the JSON client payload.',
+        path: '/panel/api/clients/update/:email',
+        summary: 'Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload.',
         params: [
-          { name: 'id', in: 'path', type: 'integer', desc: 'Numeric client id.' },
+          { name: 'email', in: 'path', type: 'string', desc: 'Current client email (unique identifier).' },
         ],
         body: '{\n  "email": "alice@example.com",\n  "totalGB": 107374182400,\n  "expiryTime": 1767225600000,\n  "enable": true\n}',
         response: '{\n  "success": true,\n  "msg": "Client updated"\n}',
       },
       {
         method: 'POST',
-        path: '/panel/api/clients/del/:id',
-        summary: 'Delete a client. Removes it from every attached inbound and drops its traffic record unless keepTraffic=1 is passed.',
+        path: '/panel/api/clients/del/:email',
+        summary: 'Delete a client by email. Removes it from every attached inbound and drops its traffic record unless keepTraffic=1 is passed.',
         params: [
-          { name: 'id', in: 'path', type: 'integer', desc: 'Numeric client id.' },
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
           { name: 'keepTraffic', in: 'query', type: 'integer', desc: 'Pass 1 to retain the xray_client_traffic row after deletion.' },
         ],
         response: '{\n  "success": true,\n  "msg": "Client deleted"\n}',
       },
       {
         method: 'POST',
-        path: '/panel/api/clients/:id/attach',
+        path: '/panel/api/clients/:email/attach',
         summary: 'Attach an existing client to one or more additional inbounds. Body is JSON.',
         params: [
-          { name: 'id', in: 'path', type: 'integer', desc: 'Numeric client id.' },
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
           { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to attach.' },
         ],
         body: '{\n  "inboundIds": [7, 9]\n}',
@@ -433,10 +433,10 @@ export const sections = [
       },
       {
         method: 'POST',
-        path: '/panel/api/clients/:id/detach',
+        path: '/panel/api/clients/:email/detach',
         summary: 'Detach a client from one or more inbounds without deleting the client.',
         params: [
-          { name: 'id', in: 'path', type: 'integer', desc: 'Numeric client id.' },
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
           { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to detach.' },
         ],
         body: '{\n  "inboundIds": [5]\n}',
@@ -510,15 +510,6 @@ export const sections = [
       },
       {
         method: 'GET',
-        path: '/panel/api/clients/traffic/byId/:id',
-        summary: 'Traffic counters for a client identified by its UUID/password.',
-        params: [
-          { name: 'id', in: 'path', type: 'string', desc: 'Client UUID / password.' },
-        ],
-        response: '{\n  "success": true,\n  "obj": [\n    {\n      "email": "user1",\n      "up": 1048576,\n      "down": 2097152,\n      "total": 10737418240,\n      "expiryTime": 1735689600000\n    }\n  ]\n}',
-      },
-      {
-        method: 'GET',
         path: '/panel/api/clients/subLinks/:subId',
         summary:
           'Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as /sub/<subId>, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.',
@@ -530,12 +521,11 @@ export const sections = [
       },
       {
         method: 'GET',
-        path: '/panel/api/clients/links/:id/:email',
+        path: '/panel/api/clients/links/:email',
         summary:
-          "Return the URL(s) for one client on one inbound — the same string the Copy URL button copies in the panel UI. Supported protocols: vmess, vless, trojan, shadowsocks, hysteria, hysteria2. If streamSettings.externalProxy is set, returns one URL per external proxy. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) return an empty array.",
+          "Return every URL for one client across all attached inbounds — the same strings the Copy URL button copies in the panel UI. Supported protocols: vmess, vless, trojan, shadowsocks, hysteria, hysteria2. If streamSettings.externalProxy is set, returns one URL per external proxy. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing.",
         params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' },
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
         ],
         response:
           '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?...#user1"\n  ]\n}',

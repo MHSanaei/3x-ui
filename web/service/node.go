@@ -95,7 +95,7 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 
 	now := time.Now().UnixMilli()
 	type trafficRow struct {
-		InboundID  int   `gorm:"column:inbound_id"`
+		InboundID  int `gorm:"column:inbound_id"`
 		Email      string
 		Enable     bool
 		Total      int64

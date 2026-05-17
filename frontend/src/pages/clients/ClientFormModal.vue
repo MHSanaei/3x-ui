@@ -219,7 +219,7 @@ async function onSubmit() {
       const toDetach = [...original].filter((id) => !next.has(id));
       msg = await props.save(clientPayload, {
         isEdit: true,
-        id: props.client.id,
+        email: props.client.email,
         attach: toAttach,
         detach: toDetach,
       });

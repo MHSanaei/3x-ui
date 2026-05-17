@@ -130,7 +130,7 @@ func TestAPIRoutesDocumented(t *testing.T) {
 		spaPages := map[string]bool{
 			"/": true, "/panel/": true, "/panel/inbounds": true,
 			"/panel/clients": true,
-			"/panel/nodes": true, "/panel/settings": true,
+			"/panel/nodes":   true, "/panel/settings": true,
 			"/panel/xray": true, "/panel/api-docs": true,
 		}
 		if spaPages[r.Path] {

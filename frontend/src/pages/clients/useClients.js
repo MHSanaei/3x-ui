@@ -54,29 +54,37 @@ export function useClients() {
     return msg;
   }
 
-  async function update(id, client) {
-    const msg = await HttpUtil.post(`/panel/api/clients/update/${id}`, client, JSON_HEADERS);
+  async function update(email, client) {
+    if (!email) return null;
+    const encoded = encodeURIComponent(email);
+    const msg = await HttpUtil.post(`/panel/api/clients/update/${encoded}`, client, JSON_HEADERS);
     if (msg?.success) await refresh();
     return msg;
   }
 
-  async function remove(id, keepTraffic = false) {
+  async function remove(email, keepTraffic = false) {
+    if (!email) return null;
+    const encoded = encodeURIComponent(email);
     const url = keepTraffic
-      ? `/panel/api/clients/del/${id}?keepTraffic=1`
-      : `/panel/api/clients/del/${id}`;
+      ? `/panel/api/clients/del/${encoded}?keepTraffic=1`
+      : `/panel/api/clients/del/${encoded}`;
     const msg = await HttpUtil.post(url);
     if (msg?.success) await refresh();
     return msg;
   }
 
-  async function attach(id, inboundIds) {
-    const msg = await HttpUtil.post(`/panel/api/clients/${id}/attach`, { inboundIds }, JSON_HEADERS);
+  async function attach(email, inboundIds) {
+    if (!email) return null;
+    const encoded = encodeURIComponent(email);
+    const msg = await HttpUtil.post(`/panel/api/clients/${encoded}/attach`, { inboundIds }, JSON_HEADERS);
     if (msg?.success) await refresh();
     return msg;
   }
 
-  async function detach(id, inboundIds) {
-    const msg = await HttpUtil.post(`/panel/api/clients/${id}/detach`, { inboundIds }, JSON_HEADERS);
+  async function detach(email, inboundIds) {
+    if (!email) return null;
+    const encoded = encodeURIComponent(email);
+    const msg = await HttpUtil.post(`/panel/api/clients/${encoded}/detach`, { inboundIds }, JSON_HEADERS);
     if (msg?.success) await refresh();
     return msg;
   }
@@ -102,7 +110,7 @@ export function useClients() {
   }
 
   async function setEnable(client, enable) {
-    if (!client?.id) return null;
+    if (!client?.email) return null;
     const payload = {
       email: client.email,
       subId: client.subId,
@@ -115,7 +123,7 @@ export function useClients() {
       comment: client.comment || '',
       enable: !!enable,
     };
-    return update(client.id, payload);
+    return update(client.email, payload);
   }
 
   function applyTrafficEvent(payload) {

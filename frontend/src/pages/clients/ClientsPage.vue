@@ -62,17 +62,17 @@ useWebSocket({
   invalidate: applyInvalidate,
 });
 
-const togglingId = ref(null);
+const togglingEmail = ref(null);
 
 async function onToggleEnable(row, next) {
-  togglingId.value = row.id;
+  togglingEmail.value = row.email;
   try {
     const msg = await setEnable(row, next);
     if (!msg?.success) {
       message.error(msg?.msg || t('somethingWentWrong'));
     }
   } finally {
-    togglingId.value = null;
+    togglingEmail.value = null;
   }
 }
 
@@ -99,19 +99,19 @@ const rowSelection = computed(() => ({
   onChange: (keys) => { selectedRowKeys.value = keys; },
 }));
 
-function toggleSelect(id, checked) {
+function toggleSelect(email, checked) {
   const cur = new Set(selectedRowKeys.value);
-  if (checked) cur.add(id);
-  else cur.delete(id);
+  if (checked) cur.add(email);
+  else cur.delete(email);
   selectedRowKeys.value = Array.from(cur);
 }
 
-function isSelected(id) {
-  return selectedRowKeys.value.includes(id);
+function isSelected(email) {
+  return selectedRowKeys.value.includes(email);
 }
 
 function selectAll(checked) {
-  selectedRowKeys.value = checked ? filteredClients.value.map((c) => c.id) : [];
+  selectedRowKeys.value = checked ? filteredClients.value.map((c) => c.email) : [];
 }
 
 const allSelected = computed(
@@ -127,11 +127,11 @@ function onBulkAdd() {
 }
 
 function onBulkDelete() {
-  const ids = [...selectedRowKeys.value];
-  if (ids.length === 0) return;
+  const emails = [...selectedRowKeys.value];
+  if (emails.length === 0) return;
   Modal.confirm({
-    title: t('pages.clients.bulkDeleteConfirmTitle', { count: ids.length })
-      || `Delete ${ids.length} clients?`,
+    title: t('pages.clients.bulkDeleteConfirmTitle', { count: emails.length })
+      || `Delete ${emails.length} clients?`,
     content: t('pages.clients.bulkDeleteConfirmContent')
       || 'Each client is removed from every attached inbound and its traffic record is dropped. This cannot be undone.',
     okText: t('delete'),
@@ -140,8 +140,8 @@ function onBulkDelete() {
     onOk: async () => {
       let ok = 0;
       let failed = 0;
-      for (const id of ids) {
-        const msg = await remove(id);
+      for (const email of emails) {
+        const msg = await remove(email);
         if (msg?.success) ok++;
         else failed++;
       }
@@ -318,7 +318,7 @@ function onDelete(row) {
     okType: 'danger',
     cancelText: t('cancel'),
     onOk: async () => {
-      const msg = await remove(row.id);
+      const msg = await remove(row.email);
       if (msg?.success) message.success(t('pages.clients.toasts.deleted') || 'Client deleted');
     },
   });
@@ -370,15 +370,14 @@ async function onSave(payload, meta) {
   if (!meta?.isEdit) {
     return create(payload);
   }
-  const id = meta.id;
-  const updateMsg = await update(id, payload);
+  const updateMsg = await update(meta.email, payload);
   if (!updateMsg?.success) return updateMsg;
   if (Array.isArray(meta.attach) && meta.attach.length > 0) {
-    const r = await attach(id, meta.attach);
+    const r = await attach(meta.email, meta.attach);
     if (!r?.success) return r;
   }
   if (Array.isArray(meta.detach) && meta.detach.length > 0) {
-    const r = await detach(id, meta.detach);
+    const r = await detach(meta.email, meta.detach);
     if (!r?.success) return r;
   }
   return updateMsg;
@@ -595,7 +594,7 @@ const columns = computed(() => [
                     </a-select>
                   </div>
 
-                  <a-table v-if="!isMobile" :columns="columns" :data-source="filteredClients" :loading="loading" row-key="id"
+                  <a-table v-if="!isMobile" :columns="columns" :data-source="filteredClients" :loading="loading" row-key="email"
                     :row-selection="rowSelection"
                     :pagination="{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }"
                     size="small">
@@ -640,7 +639,7 @@ const columns = computed(() => [
                         </a-tooltip>
                       </template>
                       <template v-else-if="column.key === 'enable'">
-                        <a-switch :checked="record.enable" size="small" :loading="togglingId === record.id"
+                        <a-switch :checked="record.enable" size="small" :loading="togglingEmail === record.email"
                           @change="(next) => onToggleEnable(record, next)" />
                       </template>
                       <template v-else-if="column.key === 'actions'">
@@ -699,11 +698,11 @@ const columns = computed(() => [
                         <div>{{ t('pages.clients.empty') || 'No clients yet.' }}</div>
                       </div>
 
-                      <div v-for="row in filteredClients" :key="row.id" class="client-card"
-                        :class="{ 'is-selected': isSelected(row.id) }">
+                      <div v-for="row in filteredClients" :key="row.email" class="client-card"
+                        :class="{ 'is-selected': isSelected(row.email) }">
                         <div class="card-head">
-                          <a-checkbox :checked="isSelected(row.id)"
-                            @change="(e) => toggleSelect(row.id, e.target.checked)" />
+                          <a-checkbox :checked="isSelected(row.email)"
+                            @change="(e) => toggleSelect(row.email, e.target.checked)" />
                           <a-badge :color="bucketTagColor(clientBucket(row))" />
                           <span class="tag-name">{{ row.email }}</span>
                           <a-tag v-if="clientBucket(row) === 'depleted'" color="red" class="status-tag">
@@ -716,7 +715,7 @@ const columns = computed(() => [
                             <a-tooltip :title="t('pages.clients.moreInformation') || 'Info'">
                               <InfoCircleOutlined class="row-action-trigger" @click="onShowInfo(row)" />
                             </a-tooltip>
-                            <a-switch :checked="row.enable" size="small" :loading="togglingId === row.id"
+                            <a-switch :checked="row.enable" size="small" :loading="togglingEmail === row.email"
                               @change="(next) => onToggleEnable(row, next)" />
                             <a-dropdown :trigger="['click']" placement="bottomRight">
                               <MoreOutlined class="row-action-trigger" @click.prevent />

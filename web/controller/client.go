@@ -3,7 +3,6 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
@@ -26,12 +25,12 @@ func NewClientController(g *gin.RouterGroup) *ClientController {
 
 func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.GET("/list", a.list)
-	g.GET("/get/:id", a.get)
+	g.GET("/get/:email", a.get)
 	g.POST("/add", a.create)
-	g.POST("/update/:id", a.update)
-	g.POST("/del/:id", a.delete)
-	g.POST("/:id/attach", a.attach)
-	g.POST("/:id/detach", a.detach)
+	g.POST("/update/:email", a.update)
+	g.POST("/del/:email", a.delete)
+	g.POST("/:email/attach", a.attach)
+	g.POST("/:email/detach", a.detach)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/delDepleted", a.delDepleted)
 	g.POST("/resetTraffic/:email", a.resetTrafficByEmail)
@@ -41,9 +40,8 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/onlines", a.onlines)
 	g.POST("/lastOnline", a.lastOnline)
 	g.GET("/traffic/:email", a.getTrafficByEmail)
-	g.GET("/traffic/byId/:id", a.getTrafficsByClientID)
 	g.GET("/subLinks/:subId", a.getSubLinks)
-	g.GET("/links/:id/:email", a.getClientLinks)
+	g.GET("/links/:email", a.getClientLinks)
 }
 
 func (a *ClientController) list(c *gin.Context) {
@@ -56,17 +54,13 @@ func (a *ClientController) list(c *gin.Context) {
 }
 
 func (a *ClientController) get(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	email := c.Param("email")
+	rec, err := a.clientService.GetRecordByEmail(nil, email)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "get"), err)
 		return
 	}
-	rec, err := a.clientService.GetByID(id)
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
-		return
-	}
-	inboundIds, err := a.clientService.GetInboundIdsForRecord(id)
+	inboundIds, err := a.clientService.GetInboundIdsForRecord(rec.Id)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "get"), err)
 		return
@@ -92,17 +86,13 @@ func (a *ClientController) create(c *gin.Context) {
 }
 
 func (a *ClientController) update(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-		return
-	}
+	email := c.Param("email")
 	var updated model.Client
 	if err := c.ShouldBindJSON(&updated); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	needRestart, err := a.clientService.Update(&a.inboundService, id, updated)
+	needRestart, err := a.clientService.UpdateByEmail(&a.inboundService, email, updated)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -114,13 +104,9 @@ func (a *ClientController) update(c *gin.Context) {
 }
 
 func (a *ClientController) delete(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-		return
-	}
+	email := c.Param("email")
 	keepTraffic := c.Query("keepTraffic") == "1"
-	needRestart, err := a.clientService.Delete(&a.inboundService, id, keepTraffic)
+	needRestart, err := a.clientService.DeleteByEmail(&a.inboundService, email, keepTraffic)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -136,17 +122,13 @@ type attachDetachBody struct {
 }
 
 func (a *ClientController) attach(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-		return
-	}
+	email := c.Param("email")
 	var body attachDetachBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	needRestart, err := a.clientService.Attach(&a.inboundService, id, body.InboundIds)
+	needRestart, err := a.clientService.AttachByEmail(&a.inboundService, email, body.InboundIds)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -277,16 +259,6 @@ func (a *ClientController) getTrafficByEmail(c *gin.Context) {
 	jsonObj(c, traffic, nil)
 }
 
-func (a *ClientController) getTrafficsByClientID(c *gin.Context) {
-	id := c.Param("id")
-	traffics, err := a.inboundService.GetClientTrafficByID(id)
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.trafficGetError"), err)
-		return
-	}
-	jsonObj(c, traffics, nil)
-}
-
 func (a *ClientController) getSubLinks(c *gin.Context) {
 	links, err := a.inboundService.GetSubLinks(resolveHost(c), c.Param("subId"))
 	if err != nil {
@@ -297,12 +269,7 @@ func (a *ClientController) getSubLinks(c *gin.Context) {
 }
 
 func (a *ClientController) getClientLinks(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
-		return
-	}
-	links, err := a.inboundService.GetClientLinks(resolveHost(c), id, c.Param("email"))
+	links, err := a.inboundService.GetAllClientLinks(resolveHost(c), c.Param("email"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -311,17 +278,13 @@ func (a *ClientController) getClientLinks(c *gin.Context) {
 }
 
 func (a *ClientController) detach(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-		return
-	}
+	email := c.Param("email")
 	var body attachDetachBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	needRestart, err := a.clientService.Detach(&a.inboundService, id, body.InboundIds)
+	needRestart, err := a.clientService.DetachByEmailMany(&a.inboundService, email, body.InboundIds)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
