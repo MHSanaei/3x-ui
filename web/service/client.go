@@ -610,27 +610,6 @@ func (s *ClientService) resetAllClientTrafficsLocked(inboundSvc *InboundService,
 	}); err != nil {
 		return err
 	}
-
-	var inbounds []model.Inbound
-	q := db.Model(model.Inbound{}).Where("node_id IS NOT NULL")
-	if id != -1 {
-		q = q.Where("id = ?", id)
-	}
-	if err := q.Find(&inbounds).Error; err != nil {
-		logger.Warning("ResetAllClientTraffics: discover node inbounds failed:", err)
-		return nil
-	}
-	for i := range inbounds {
-		ib := &inbounds[i]
-		rt, rterr := inboundSvc.runtimeFor(ib)
-		if rterr != nil {
-			logger.Warning("ResetAllClientTraffics: runtime lookup for inbound", ib.Id, "failed:", rterr)
-			continue
-		}
-		if e := rt.ResetInboundClientTraffics(context.Background(), ib); e != nil {
-			logger.Warning("ResetAllClientTraffics: remote propagation to", rt.Name(), "failed:", e)
-		}
-	}
 	return nil
 }
 
