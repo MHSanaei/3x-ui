@@ -189,7 +189,6 @@ const sortFns = {
   port: (a, b) => a.port - b.port,
   protocol: (a, b) => a.protocol.localeCompare(b.protocol),
   traffic: (a, b) => (a.up + a.down) - (b.up + b.down),
-  allTimeInbound: (a, b) => (a.allTime || 0) - (b.allTime || 0),
   expiryTime: (a, b) => (a.expiryTime || Infinity) - (b.expiryTime || Infinity),
   node: (a, b) => {
     const nameA = props.nodesById.get(a.nodeId)?.name ?? (a.nodeId == null ? '\uffff' : `node #${a.nodeId}`);
@@ -244,7 +243,6 @@ const desktopColumns = computed(() => {
     sortableCol({ title: t('pages.inbounds.protocol'), key: 'protocol', align: 'left', width: 130 }, 'protocol'),
     sortableCol({ title: t('clients'), key: 'clients', align: 'left', width: 50 }, 'clients'),
     sortableCol({ title: t('pages.inbounds.traffic'), key: 'traffic', align: 'center', width: 90 }, 'traffic'),
-    sortableCol({ title: t('pages.inbounds.allTimeTraffic'), key: 'allTimeInbound', align: 'center', width: 95 }, 'allTimeInbound'),
     sortableCol({ title: t('pages.inbounds.expireDate'), key: 'expiryTime', align: 'center', width: 40 }, 'expiryTime'),
   );
   return cols;
@@ -515,10 +513,6 @@ function showQrCodeMenu(dbInbound) {
               <InfinityIcon v-else />
             </a-tag>
           </div>
-          <div class="stat-row">
-            <span class="stat-label">{{ t('pages.inbounds.allTimeTraffic') }}</span>
-            <a-tag>{{ SizeFormatter.sizeFormat(statsRecord.allTime || 0) }}</a-tag>
-          </div>
           <div v-if="clientCount[statsRecord.id]" class="stat-row">
             <span class="stat-label">{{ t('clients') }}</span>
             <a-tag color="green" class="client-count-tag">{{ clientCount[statsRecord.id].clients }}</a-tag>
@@ -733,11 +727,6 @@ function showQrCodeMenu(dbInbound) {
                 <InfinityIcon v-else />
               </a-tag>
             </a-popover>
-          </template>
-
-          <!-- ============== All-time inbound traffic ============== -->
-          <template v-else-if="column.key === 'allTimeInbound'">
-            <a-tag>{{ SizeFormatter.sizeFormat(record.allTime || 0) }}</a-tag>
           </template>
 
           <!-- ============== Expiry ============== -->

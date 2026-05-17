@@ -49,7 +49,6 @@ type Inbound struct {
 	Up                   int64                `json:"up" form:"up"`                                                                                    // Upload traffic in bytes
 	Down                 int64                `json:"down" form:"down"`                                                                                // Download traffic in bytes
 	Total                int64                `json:"total" form:"total"`                                                                              // Total traffic limit in bytes
-	AllTime              int64                `json:"allTime" form:"allTime" gorm:"default:0"`                                                         // All-time traffic usage
 	Remark               string               `json:"remark" form:"remark"`                                                                            // Human-readable remark
 	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1"`                           // Whether the inbound is enabled
 	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                    // Expiration timestamp

@@ -237,8 +237,6 @@
       "customGeoEmpty": "Belum ada sumber geo kustom — klik Tambah untuk membuatnya"
     },
     "inbounds": {
-      "allTimeTraffic": "Total Lalu Lintas",
-      "allTimeTrafficUsage": "Total Penggunaan Sepanjang Waktu",
       "title": "Masuk",
       "totalDownUp": "Total Terkirim/Diterima",
       "totalUsage": "Penggunaan Total",

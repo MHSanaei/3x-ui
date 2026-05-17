@@ -204,13 +204,6 @@ function close() {
           </tr>
 
           <tr>
-            <td>{{ t('pages.inbounds.allTimeTraffic') || 'All-time' }}</td>
-            <td>
-              <a-tag>{{ SizeFormatter.sizeFormat(traffic?.allTime || used) }}</a-tag>
-            </td>
-          </tr>
-
-          <tr>
             <td>{{ t('pages.inbounds.expireDate') || 'Expiry' }}</td>
             <td>
               <a-tag v-if="!client.expiryTime || client.expiryTime <= 0" color="purple">∞</a-tag>

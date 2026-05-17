@@ -1700,7 +1700,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				ExpiryTime:     snapIb.ExpiryTime,
 				Up:             snapIb.Up,
 				Down:           snapIb.Down,
-				AllTime:        snapIb.AllTime,
 			}
 			if err := tx.Create(&newIb).Error; err != nil {
 				logger.Warning("setRemoteTraffic: create central inbound for tag", snapIb.Tag, "failed:", err)
@@ -1729,9 +1728,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if !inGrace || (snapIb.Up+snapIb.Down) <= (c.Up+c.Down) {
 			updates["up"] = snapIb.Up
 			updates["down"] = snapIb.Down
-		}
-		if snapIb.AllTime > c.AllTime {
-			updates["all_time"] = snapIb.AllTime
 		}
 
 		if c.Settings != snapIb.Settings ||
@@ -1792,7 +1788,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					Reset:      cs.Reset,
 					Up:         cs.Up,
 					Down:       cs.Down,
-					AllTime:    cs.AllTime,
 					LastOnline: cs.LastOnline,
 				}).Error; err != nil {
 					return false, err
@@ -1808,17 +1803,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				structuralChange = true
 			}
 
-			allTime := existing.AllTime
-			if cs.AllTime > allTime {
-				allTime = cs.AllTime
-			}
-
 			if inGrace && cs.Up+cs.Down > 0 {
 				if err := tx.Exec(
 					`UPDATE client_traffics
-					 SET enable = ?, total = ?, expiry_time = ?, reset = ?, all_time = ?
+					 SET enable = ?, total = ?, expiry_time = ?, reset = ?
 					 WHERE inbound_id = ? AND email = ?`,
-					cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset, allTime, c.Id, cs.Email,
+					cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset, c.Id, cs.Email,
 				).Error; err != nil {
 					return false, err
 				}
@@ -1828,9 +1818,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if err := tx.Exec(
 				`UPDATE client_traffics
 				 SET up = ?, down = ?, enable = ?, total = ?, expiry_time = ?, reset = ?,
-				     all_time = ?, last_online = MAX(last_online, ?)
+				     last_online = MAX(last_online, ?)
 				 WHERE inbound_id = ? AND email = ?`,
-				cs.Up, cs.Down, cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset, allTime,
+				cs.Up, cs.Down, cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset,
 				cs.LastOnline, c.Id, cs.Email,
 			).Error; err != nil {
 				return false, err
@@ -1930,9 +1920,8 @@ func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic
 		if traffic.IsInbound {
 			err = tx.Model(&model.Inbound{}).Where("tag = ? AND node_id IS NULL", traffic.Tag).
 				Updates(map[string]any{
-					"up":       gorm.Expr("up + ?", traffic.Up),
-					"down":     gorm.Expr("down + ?", traffic.Down),
-					"all_time": gorm.Expr("COALESCE(all_time, 0) + ?", traffic.Up+traffic.Down),
+					"up":   gorm.Expr("up + ?", traffic.Up),
+					"down": gorm.Expr("down + ?", traffic.Down),
 				}).Error
 			if err != nil {
 				return err
@@ -1987,7 +1976,6 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		}
 		dbClientTraffics[dbTraffic_index].Up += t.Up
 		dbClientTraffics[dbTraffic_index].Down += t.Down
-		dbClientTraffics[dbTraffic_index].AllTime += t.Up + t.Down
 		if t.Up+t.Down > 0 {
 			dbClientTraffics[dbTraffic_index].LastOnline = now
 		}
@@ -3449,19 +3437,18 @@ func (s *InboundService) GetAllClientTraffics() ([]*xray.ClientTraffic, error) {
 }
 
 type InboundTrafficSummary struct {
-	Id      int   `json:"id"`
-	Up      int64 `json:"up"`
-	Down    int64 `json:"down"`
-	Total   int64 `json:"total"`
-	AllTime int64 `json:"allTime"`
-	Enable  bool  `json:"enable"`
+	Id     int   `json:"id"`
+	Up     int64 `json:"up"`
+	Down   int64 `json:"down"`
+	Total  int64 `json:"total"`
+	Enable bool  `json:"enable"`
 }
 
 func (s *InboundService) GetInboundsTrafficSummary() ([]InboundTrafficSummary, error) {
 	db := database.GetDB()
 	var summaries []InboundTrafficSummary
 	if err := db.Model(&model.Inbound{}).
-		Select("id, up, down, total, all_time, enable").
+		Select("id, up, down, total, enable").
 		Find(&summaries).Error; err != nil {
 		return nil, err
 	}
@@ -3489,9 +3476,8 @@ func (s *InboundService) UpdateClientTrafficByEmail(email string, upload int64, 
 		err := db.Model(xray.ClientTraffic{}).
 			Where("email = ?", email).
 			Updates(map[string]any{
-				"up":       upload,
-				"down":     download,
-				"all_time": gorm.Expr("CASE WHEN COALESCE(all_time, 0) < ? THEN ? ELSE all_time END", upload+download, upload+download),
+				"up":   upload,
+				"down": download,
 			}).Error
 		if err != nil {
 			logger.Warningf("Error updating ClientTraffic with email %s: %v", email, err)
@@ -3664,23 +3650,15 @@ func (s *InboundService) MigrationRequirements() {
 		}
 	}()
 
-	// Calculate and backfill all_time from up+down for inbounds and clients
-	err = tx.Exec(`
-		UPDATE inbounds
-		SET all_time = IFNULL(up, 0) + IFNULL(down, 0)
-		WHERE IFNULL(all_time, 0) = 0 AND (IFNULL(up, 0) + IFNULL(down, 0)) > 0
-	`).Error
-	if err != nil {
-		return
+	if tx.Migrator().HasColumn(&model.Inbound{}, "all_time") {
+		if err = tx.Migrator().DropColumn(&model.Inbound{}, "all_time"); err != nil {
+			return
+		}
 	}
-	err = tx.Exec(`
-		UPDATE client_traffics
-		SET all_time = IFNULL(up, 0) + IFNULL(down, 0)
-		WHERE IFNULL(all_time, 0) = 0 AND (IFNULL(up, 0) + IFNULL(down, 0)) > 0
-	`).Error
-
-	if err != nil {
-		return
+	if tx.Migrator().HasColumn(&xray.ClientTraffic{}, "all_time") {
+		if err = tx.Migrator().DropColumn(&xray.ClientTraffic{}, "all_time"); err != nil {
+			return
+		}
 	}
 
 	// Fix inbounds based problems

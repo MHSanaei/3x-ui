@@ -237,8 +237,6 @@
       "customGeoEmpty": "暂无自定义 geo 源 — 点击「添加」以创建"
     },
     "inbounds": {
-      "allTimeTraffic": "累计总流量",
-      "allTimeTrafficUsage": "所有时间总使用量",
       "title": "入站列表",
       "totalDownUp": "总上传 / 下载",
       "totalUsage": "总用量",

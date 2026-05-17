@@ -5,7 +5,6 @@ import { Modal, message } from 'ant-design-vue';
 import {
   SwapOutlined,
   PieChartOutlined,
-  HistoryOutlined,
   BarsOutlined,
   TeamOutlined,
 } from '@ant-design/icons-vue';
@@ -579,14 +578,6 @@ function onRowAction({ key, dbInbound }) {
                         :value="SizeFormatter.sizeFormat(totals.up + totals.down)">
                         <template #prefix>
                           <PieChartOutlined />
-                        </template>
-                      </CustomStatistic>
-                    </a-col>
-                    <a-col :xs="12" :sm="12" :md="5">
-                      <CustomStatistic :title="t('pages.inbounds.allTimeTrafficUsage')"
-                        :value="SizeFormatter.sizeFormat(totals.allTime)">
-                        <template #prefix>
-                          <HistoryOutlined />
                         </template>
                       </CustomStatistic>
                     </a-col>

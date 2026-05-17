@@ -237,8 +237,6 @@
       "customGeoEmpty": "Aún no hay fuentes geo personalizadas — haz clic en Añadir para crear una"
     },
     "inbounds": {
-      "allTimeTraffic": "Tráfico Total",
-      "allTimeTrafficUsage": "Uso de datos histórico",
       "title": "Entradas",
       "totalDownUp": "Subidas/Descargas Totales",
       "totalUsage": "Uso Total",

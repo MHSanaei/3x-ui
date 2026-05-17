@@ -195,7 +195,6 @@ export function useInbounds() {
         if (!upd) continue;
         if (typeof upd.up === 'number') ib.up = upd.up;
         if (typeof upd.down === 'number') ib.down = upd.down;
-        if (typeof upd.allTime === 'number') ib.allTime = upd.allTime;
         if (typeof upd.total === 'number') ib.total = upd.total;
         if (typeof upd.enable === 'boolean') ib.enable = upd.enable;
         touched = true;
@@ -216,7 +215,6 @@ export function useInbounds() {
           if (typeof upd.up === 'number') stat.up = upd.up;
           if (typeof upd.down === 'number') stat.down = upd.down;
           if (typeof upd.total === 'number') stat.total = upd.total;
-          if (typeof upd.allTime === 'number') stat.allTime = upd.allTime;
           if (typeof upd.expiryTime === 'number') stat.expiryTime = upd.expiryTime;
           if (typeof upd.enable === 'boolean') stat.enable = upd.enable;
           touched = true;
@@ -283,12 +281,9 @@ export function useInbounds() {
     }
   }
 
-  // Aggregate totals shown in the dashboard summary card. allTime falls
-  // back to up+down when the per-inbound counter isn't populated yet.
   const totals = computed(() => {
     let up = 0;
     let down = 0;
-    let allTime = 0;
     let clients = 0;
     const deactive = [];
     const depleted = [];
@@ -297,7 +292,6 @@ export function useInbounds() {
     for (const ib of dbInbounds.value) {
       up += ib.up || 0;
       down += ib.down || 0;
-      allTime += ib.allTime || (ib.up + ib.down) || 0;
       const c = clientCount.value[ib.id];
       if (c) {
         clients += c.clients;
@@ -307,7 +301,7 @@ export function useInbounds() {
         online.push(...c.online);
       }
     }
-    return { up, down, allTime, clients, deactive, depleted, expiring, online };
+    return { up, down, clients, deactive, depleted, expiring, online };
   });
 
   // ObjectUtil reference is wired at module load — keeping a no-op import

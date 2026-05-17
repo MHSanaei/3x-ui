@@ -237,8 +237,6 @@
       "customGeoEmpty": "カスタム geo ソースはまだありません — 「追加」をクリックして作成してください"
     },
     "inbounds": {
-      "allTimeTraffic": "総トラフィック",
-      "allTimeTrafficUsage": "これまでの総使用量",
       "title": "インバウンド一覧",
       "totalDownUp": "総アップロード / ダウンロード",
       "totalUsage": "総使用量",

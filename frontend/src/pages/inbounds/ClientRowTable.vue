@@ -86,14 +86,6 @@ function getRem(email) {
   const r = s.total - s.up - s.down;
   return r > 0 ? r : 0;
 }
-function getAllTime(email) {
-  const s = statsFor(email);
-  if (!s) return 0;
-  // allTime is the cumulative-historical counter; never let it dip
-  // below up+down (manual edits / partial migrations can push it under).
-  const current = (s.up || 0) + (s.down || 0);
-  return s.allTime > current ? s.allTime : current;
-}
 function isClientDepleted(email) {
   const s = statsFor(email);
   if (!s) return false;
@@ -286,7 +278,6 @@ function confirmBulkDelete() {
         <div class="cell cell-client">{{ t('pages.inbounds.client') }}</div>
         <div class="cell cell-traffic">{{ t('pages.inbounds.traffic') }}</div>
         <div class="cell cell-remained">{{ t('remained') }}</div>
-        <div class="cell cell-alltime">{{ t('pages.inbounds.allTimeTraffic') }}</div>
         <div class="cell cell-expiry">{{ t('pages.inbounds.expireDate') }}</div>
       </div>
 
@@ -386,10 +377,6 @@ function confirmBulkDelete() {
           <a-tag v-else :color="isClientDepleted(client.email) ? 'red' : ''">
             {{ SizeFormatter.sizeFormat(getRem(client.email)) }}
           </a-tag>
-        </div>
-
-        <div class="cell cell-alltime">
-          <a-tag>{{ SizeFormatter.sizeFormat(getAllTime(client.email)) }}</a-tag>
         </div>
 
         <div class="cell cell-expiry">
@@ -500,10 +487,6 @@ function confirmBulkDelete() {
             </a-tag>
           </div>
           <div class="stat-row">
-            <span class="stat-label">{{ t('pages.inbounds.allTimeTraffic') }}</span>
-            <a-tag>{{ SizeFormatter.sizeFormat(getAllTime(statsClient.email)) }}</a-tag>
-          </div>
-          <div class="stat-row">
             <span class="stat-label">{{ t('online') }}</span>
             <a-tag v-if="statsClient.enable && isClientOnline(statsClient.email)" color="green">{{ t('online')
               }}</a-tag>
@@ -571,8 +554,6 @@ function confirmBulkDelete() {
     minmax(160px, 2fr)
     /* traffic */
     130px
-    /* all-time */
-    130px
     /* remained */
     140px;
   /* expiry */
@@ -596,8 +577,6 @@ function confirmBulkDelete() {
     /* client identity */
     minmax(160px, 2fr)
     /* traffic */
-    130px
-    /* all-time */
     130px
     /* remained */
     140px;
@@ -628,7 +607,6 @@ function confirmBulkDelete() {
 .cell-actions,
 .cell-enable,
 .cell-online,
-.cell-alltime,
 .cell-remained {
   text-align: center;
   display: inline-flex;

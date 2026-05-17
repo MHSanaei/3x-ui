@@ -10,7 +10,6 @@ export class DBInbound {
         this.up = 0;
         this.down = 0;
         this.total = 0;
-        this.allTime = 0;
         this.remark = "";
         this.enable = true;
         this.expiryTime = 0;

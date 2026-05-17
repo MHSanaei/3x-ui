@@ -237,8 +237,6 @@
       "customGeoEmpty": "Henüz özel geo kaynağı yok — oluşturmak için Ekle'ye tıklayın"
     },
     "inbounds": {
-      "allTimeTraffic": "Toplam Trafik",
-      "allTimeTrafficUsage": "Tüm Zamanların Toplam Kullanımı",
       "title": "Gelenler",
       "totalDownUp": "Toplam Gönderilen/Alınan",
       "totalUsage": "Toplam Kullanım",

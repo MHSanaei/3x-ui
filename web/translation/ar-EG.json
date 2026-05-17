@@ -237,8 +237,6 @@
       "customGeoEmpty": "لا توجد مصادر geo مخصصة بعد — انقر على «إضافة» لإنشاء واحد"
     },
     "inbounds": {
-      "allTimeTraffic": "إجمالي حركة المرور",
-      "allTimeTrafficUsage": "إجمالي الاستخدام طوال الوقت",
       "title": "الإدخالات",
       "totalDownUp": "إجمالي المرسل/المستقبل",
       "totalUsage": "إجمالي الاستخدام",

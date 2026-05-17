@@ -237,8 +237,6 @@
       "customGeoEmpty": "Chưa có nguồn geo tùy chỉnh nào — nhấp Thêm để tạo"
     },
     "inbounds": {
-      "allTimeTraffic": "Tổng Lưu Lượng",
-      "allTimeTrafficUsage": "Tổng mức sử dụng mọi lúc",
       "title": "Điểm vào (Inbounds)",
       "totalDownUp": "Tổng tải lên/tải xuống",
       "totalUsage": "Tổng sử dụng",
