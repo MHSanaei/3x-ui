@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/xray"
 
@@ -166,8 +167,29 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			finalClients = append(finalClients, entry)
 		}
 
-		if _, hadClients := settings["clients"]; hadClients || len(finalClients) > 0 {
+		_, hadClients := settings["clients"]
+		mutated := hadClients || len(finalClients) > 0
+		if mutated {
 			settings["clients"] = finalClients
+		}
+
+		if inbound.Protocol == model.PortFallback {
+			fallbacks, fbErr := s.inboundService.fallbackService.BuildFallbacksJSON(nil, inbound.Id)
+			if fbErr != nil {
+				return nil, fbErr
+			}
+			generic := make([]any, 0, len(fallbacks))
+			for _, f := range fallbacks {
+				generic = append(generic, f)
+			}
+			settings["fallbacks"] = generic
+			if _, ok := settings["decryption"]; !ok {
+				settings["decryption"] = "none"
+			}
+			mutated = true
+		}
+
+		if mutated {
 			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 			if err != nil {
 				return nil, err

@@ -14,16 +14,17 @@ type Protocol string
 
 // Protocol constants for different Xray inbound protocols
 const (
-	VMESS       Protocol = "vmess"
-	VLESS       Protocol = "vless"
-	Tunnel      Protocol = "tunnel"
-	HTTP        Protocol = "http"
-	Trojan      Protocol = "trojan"
-	Shadowsocks Protocol = "shadowsocks"
-	Mixed       Protocol = "mixed"
-	WireGuard   Protocol = "wireguard"
-	Hysteria    Protocol = "hysteria"
-	Hysteria2   Protocol = "hysteria2"
+	VMESS        Protocol = "vmess"
+	VLESS        Protocol = "vless"
+	Tunnel       Protocol = "tunnel"
+	HTTP         Protocol = "http"
+	Trojan       Protocol = "trojan"
+	Shadowsocks  Protocol = "shadowsocks"
+	Mixed        Protocol = "mixed"
+	WireGuard    Protocol = "wireguard"
+	Hysteria     Protocol = "hysteria"
+	Hysteria2    Protocol = "hysteria2"
+	PortFallback Protocol = "portfallback"
 )
 
 // IsHysteria returns true for both "hysteria" and "hysteria2".
@@ -100,16 +101,18 @@ type ApiToken struct {
 // GenXrayInboundConfig generates an Xray inbound configuration from the Inbound model.
 func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 	listen := i.Listen
-	// Default to 0.0.0.0 (all interfaces) when listen is empty
-	// This ensures proper dual-stack IPv4/IPv6 binding in systems where bindv6only=0
 	if listen == "" {
 		listen = "0.0.0.0"
 	}
 	listen = fmt.Sprintf("\"%v\"", listen)
+	protocol := string(i.Protocol)
+	if i.Protocol == PortFallback {
+		protocol = string(VLESS)
+	}
 	return &xray.InboundConfig{
 		Listen:         json_util.RawMessage(listen),
 		Port:           i.Port,
-		Protocol:       string(i.Protocol),
+		Protocol:       protocol,
 		Settings:       json_util.RawMessage(i.Settings),
 		StreamSettings: json_util.RawMessage(i.StreamSettings),
 		Tag:            i.Tag,

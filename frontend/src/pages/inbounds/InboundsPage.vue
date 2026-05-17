@@ -661,7 +661,8 @@ function onRowAction({ key, dbInbound }) {
         </a-layout-content>
       </a-layout>
 
-      <InboundFormModal v-model:open="formOpen" :mode="formMode" :db-inbound="formDbInbound" @saved="refresh" />
+      <InboundFormModal v-model:open="formOpen" :mode="formMode" :db-inbound="formDbInbound"
+        :db-inbounds="dbInbounds" @saved="refresh" />
       <ClientFormModal v-model:open="clientOpen" :mode="clientMode" :db-inbound="clientDbInbound"
         :client-index="clientIndex" :sub-enable="subSettings.enable" :tg-bot-enable="tgBotEnable"
         :ip-limit-enable="ipLimitEnable" :traffic-diff="trafficDiff" @saved="refresh" />

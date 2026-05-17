@@ -24,8 +24,9 @@ import (
 )
 
 type InboundService struct {
-	xrayApi       xray.XrayAPI
-	clientService ClientService
+	xrayApi         xray.XrayAPI
+	clientService   ClientService
+	fallbackService FallbackService
 }
 
 func (s *InboundService) runtimeFor(ib *model.Inbound) (runtime.Runtime, error) {

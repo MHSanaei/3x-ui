@@ -18,8 +18,9 @@ import (
 
 // InboundController handles HTTP requests related to Xray inbounds management.
 type InboundController struct {
-	inboundService service.InboundService
-	xrayService    service.XrayService
+	inboundService  service.InboundService
+	xrayService     service.XrayService
+	fallbackService service.FallbackService
 }
 
 // NewInboundController creates a new InboundController and sets up its routes.
@@ -87,6 +88,8 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/lastOnline", a.lastOnline)
 	g.POST("/updateClientTraffic/:email", a.updateClientTraffic)
 	g.POST("/:id/delClientByEmail/:email", a.delInboundClientByEmail)
+	g.GET("/:id/fallbackChildren", a.getFallbackChildren)
+	g.POST("/:id/fallbackChildren", a.setFallbackChildren)
 }
 
 type CopyInboundClientsRequest struct {
@@ -630,6 +633,42 @@ func (a *InboundController) getSubLinks(c *gin.Context) {
 		return
 	}
 	jsonObj(c, links, nil)
+}
+
+func (a *InboundController) getFallbackChildren(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	rows, err := a.fallbackService.GetChildren(id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	jsonObj(c, rows, nil)
+}
+
+func (a *InboundController) setFallbackChildren(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	type body struct {
+		Children []service.FallbackChildInput `json:"children"`
+	}
+	var b body
+	if err := c.ShouldBindJSON(&b); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if err := a.fallbackService.SetChildren(id, b.Children); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	a.xrayService.SetToNeedRestart()
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
 }
 
 // getClientLinks returns the URL(s) for one client on one inbound — the same

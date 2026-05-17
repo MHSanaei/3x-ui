@@ -250,6 +250,12 @@
       "node": "Node",
       "deployTo": "Deploy to",
       "localPanel": "Local panel",
+      "portFallback": {
+        "title": "Fallback children",
+        "help": "Pick inbounds that should catch traffic this VLESS-TLS inbound does not match. Each child must listen on 127.0.0.1 to receive forwarded connections.",
+        "child": "Inbound",
+        "path": "Path"
+      },
       "protocol": "Protocol",
       "port": "Port",
       "portMap": "Port Mapping",
