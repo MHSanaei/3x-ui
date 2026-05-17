@@ -570,6 +570,7 @@ export class TlsStreamSettings extends CommonClass {
         alpn = [],
         fingerprint = '',
         echConfigList = '',
+        allowInsecure = false,
         verifyPeerCertByName = '',
         pinnedPeerCertSha256 = '',
     ) {
@@ -578,6 +579,7 @@ export class TlsStreamSettings extends CommonClass {
         this.alpn = alpn;
         this.fingerprint = fingerprint;
         this.echConfigList = echConfigList;
+        this.allowInsecure = allowInsecure;
         this.verifyPeerCertByName = verifyPeerCertByName;
         this.pinnedPeerCertSha256 = pinnedPeerCertSha256;
     }
@@ -588,6 +590,7 @@ export class TlsStreamSettings extends CommonClass {
             json.alpn,
             json.fingerprint,
             json.echConfigList,
+            json.allowInsecure,
             json.verifyPeerCertByName,
             json.pinnedPeerCertSha256,
         );
@@ -599,6 +602,7 @@ export class TlsStreamSettings extends CommonClass {
             alpn: this.alpn,
             fingerprint: this.fingerprint,
             echConfigList: this.echConfigList,
+            allowInsecure: this.allowInsecure,
             verifyPeerCertByName: this.verifyPeerCertByName,
             pinnedPeerCertSha256: this.pinnedPeerCertSha256
         };
@@ -1540,7 +1544,8 @@ export class Outbound extends CommonClass {
             let alpn = urlParams.get('alpn');
             let sni = urlParams.get('sni') ?? '';
             let ech = urlParams.get('ech') ?? '';
-            stream.tls = new TlsStreamSettings(sni, alpn ? alpn.split(',') : [], fp, ech);
+            const insecure = ['1', 'true'].includes((urlParams.get('insecure') ?? '').toLowerCase());
+            stream.tls = new TlsStreamSettings(sni, alpn ? alpn.split(',') : [], fp, ech, insecure);
         }
 
         // Set hysteria stream settings

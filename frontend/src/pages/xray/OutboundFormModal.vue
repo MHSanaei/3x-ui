@@ -894,6 +894,9 @@ function regenerateWgKeys() {
               <a-form-item label="Pinned SHA256">
                 <a-input v-model:value="outbound.stream.tls.pinnedPeerCertSha256" placeholder="base64 SHA256" />
               </a-form-item>
+              <a-form-item label="Allow Insecure">
+                <a-switch v-model:checked="outbound.stream.tls.allowInsecure" />
+              </a-form-item>
             </template>
 
             <template v-if="outbound.stream.isReality">
