@@ -2,6 +2,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/mhsanaei/3x-ui/v3/util/json_util"
@@ -190,4 +191,229 @@ type Client struct {
 	Reset      int            `json:"reset" form:"reset"`           // Reset period in days
 	CreatedAt  int64          `json:"created_at,omitempty"`         // Creation timestamp
 	UpdatedAt  int64          `json:"updated_at,omitempty"`         // Last update timestamp
+}
+
+type ClientRecord struct {
+	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Email      string `json:"email" gorm:"uniqueIndex;not null"`
+	SubID      string `json:"subId" gorm:"index;column:sub_id"`
+	UUID       string `json:"uuid" gorm:"column:uuid"`
+	Password   string `json:"password"`
+	Auth       string `json:"auth"`
+	Flow       string `json:"flow"`
+	Security   string `json:"security"`
+	Reverse    string `json:"reverse" gorm:"column:reverse"`
+	LimitIP    int    `json:"limitIp" gorm:"column:limit_ip"`
+	TotalGB    int64  `json:"totalGB" gorm:"column:total_gb"`
+	ExpiryTime int64  `json:"expiryTime" gorm:"column:expiry_time"`
+	Enable     bool   `json:"enable" gorm:"default:true"`
+	TgID       int64  `json:"tgId" gorm:"column:tg_id"`
+	Comment    string `json:"comment"`
+	Reset      int    `json:"reset" gorm:"default:0"`
+	CreatedAt  int64  `json:"createdAt" gorm:"autoCreateTime"`
+	UpdatedAt  int64  `json:"updatedAt" gorm:"autoUpdateTime"`
+}
+
+func (ClientRecord) TableName() string { return "clients" }
+
+type ClientInbound struct {
+	ClientId     int    `json:"clientId" gorm:"primaryKey;column:client_id;index"`
+	InboundId    int    `json:"inboundId" gorm:"primaryKey;column:inbound_id;index"`
+	FlowOverride string `json:"flowOverride" gorm:"column:flow_override"`
+	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime"`
+}
+
+func (ClientInbound) TableName() string { return "client_inbounds" }
+
+type InboundFallbackChild struct {
+	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	MasterId  int    `json:"masterId" gorm:"index;not null;column:master_id"`
+	ChildId   int    `json:"childId" gorm:"index;not null;column:child_id"`
+	Name      string `json:"name"`
+	Alpn      string `json:"alpn"`
+	Path      string `json:"path"`
+	Xver      int    `json:"xver"`
+	SortOrder int    `json:"sortOrder" gorm:"default:0;column:sort_order"`
+}
+
+func (InboundFallbackChild) TableName() string { return "inbound_fallback_children" }
+
+func (c *Client) ToRecord() *ClientRecord {
+	rec := &ClientRecord{
+		Email:      c.Email,
+		SubID:      c.SubID,
+		UUID:       c.ID,
+		Password:   c.Password,
+		Auth:       c.Auth,
+		Flow:       c.Flow,
+		Security:   c.Security,
+		LimitIP:    c.LimitIP,
+		TotalGB:    c.TotalGB,
+		ExpiryTime: c.ExpiryTime,
+		Enable:     c.Enable,
+		TgID:       c.TgID,
+		Comment:    c.Comment,
+		Reset:      c.Reset,
+		CreatedAt:  c.CreatedAt,
+		UpdatedAt:  c.UpdatedAt,
+	}
+	if c.Reverse != nil {
+		if b, err := json.Marshal(c.Reverse); err == nil {
+			rec.Reverse = string(b)
+		}
+	}
+	return rec
+}
+
+func (r *ClientRecord) ToClient() *Client {
+	c := &Client{
+		ID:         r.UUID,
+		Email:      r.Email,
+		SubID:      r.SubID,
+		Password:   r.Password,
+		Auth:       r.Auth,
+		Flow:       r.Flow,
+		Security:   r.Security,
+		LimitIP:    r.LimitIP,
+		TotalGB:    r.TotalGB,
+		ExpiryTime: r.ExpiryTime,
+		Enable:     r.Enable,
+		TgID:       r.TgID,
+		Comment:    r.Comment,
+		Reset:      r.Reset,
+		CreatedAt:  r.CreatedAt,
+		UpdatedAt:  r.UpdatedAt,
+	}
+	if r.Reverse != "" {
+		var rev ClientReverse
+		if err := json.Unmarshal([]byte(r.Reverse), &rev); err == nil {
+			c.Reverse = &rev
+		}
+	}
+	return c
+}
+
+type ClientMergeConflict struct {
+	Field string
+	Old   any
+	New   any
+	Kept  any
+}
+
+func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientMergeConflict {
+	var conflicts []ClientMergeConflict
+	keep := func(field string, oldV, newV, kept any) {
+		conflicts = append(conflicts, ClientMergeConflict{Field: field, Old: oldV, New: newV, Kept: kept})
+	}
+
+	incomingNewer := incoming.UpdatedAt > existing.UpdatedAt ||
+		(incoming.UpdatedAt == existing.UpdatedAt && incoming.CreatedAt > existing.CreatedAt)
+
+	if existing.UUID != incoming.UUID && incoming.UUID != "" {
+		if incomingNewer || existing.UUID == "" {
+			keep("uuid", existing.UUID, incoming.UUID, incoming.UUID)
+			existing.UUID = incoming.UUID
+		} else {
+			keep("uuid", existing.UUID, incoming.UUID, existing.UUID)
+		}
+	}
+	if existing.Password != incoming.Password && incoming.Password != "" {
+		if incomingNewer || existing.Password == "" {
+			keep("password", existing.Password, incoming.Password, incoming.Password)
+			existing.Password = incoming.Password
+		}
+	}
+	if existing.Auth != incoming.Auth && incoming.Auth != "" {
+		if incomingNewer || existing.Auth == "" {
+			keep("auth", existing.Auth, incoming.Auth, incoming.Auth)
+			existing.Auth = incoming.Auth
+		}
+	}
+	if existing.Flow != incoming.Flow && incoming.Flow != "" {
+		if incomingNewer || existing.Flow == "" {
+			keep("flow", existing.Flow, incoming.Flow, incoming.Flow)
+			existing.Flow = incoming.Flow
+		}
+	}
+	if existing.Security != incoming.Security && incoming.Security != "" {
+		if incomingNewer || existing.Security == "" {
+			keep("security", existing.Security, incoming.Security, incoming.Security)
+			existing.Security = incoming.Security
+		}
+	}
+	if existing.SubID != incoming.SubID && incoming.SubID != "" {
+		if incomingNewer || existing.SubID == "" {
+			keep("subId", existing.SubID, incoming.SubID, incoming.SubID)
+			existing.SubID = incoming.SubID
+		}
+	}
+	if existing.TotalGB != incoming.TotalGB {
+		picked := existing.TotalGB
+		if existing.TotalGB == 0 || (incoming.TotalGB != 0 && incoming.TotalGB > existing.TotalGB) {
+			picked = incoming.TotalGB
+		}
+		if picked != existing.TotalGB {
+			keep("totalGB", existing.TotalGB, incoming.TotalGB, picked)
+			existing.TotalGB = picked
+		}
+	}
+	if existing.ExpiryTime != incoming.ExpiryTime {
+		picked := existing.ExpiryTime
+		if existing.ExpiryTime == 0 || (incoming.ExpiryTime != 0 && incoming.ExpiryTime > existing.ExpiryTime) {
+			picked = incoming.ExpiryTime
+		}
+		if picked != existing.ExpiryTime {
+			keep("expiryTime", existing.ExpiryTime, incoming.ExpiryTime, picked)
+			existing.ExpiryTime = picked
+		}
+	}
+	if existing.LimitIP != incoming.LimitIP && incoming.LimitIP != 0 {
+		picked := existing.LimitIP
+		if existing.LimitIP == 0 || incoming.LimitIP > existing.LimitIP {
+			picked = incoming.LimitIP
+		}
+		if picked != existing.LimitIP {
+			keep("limitIp", existing.LimitIP, incoming.LimitIP, picked)
+			existing.LimitIP = picked
+		}
+	}
+	if existing.TgID != incoming.TgID && incoming.TgID != 0 {
+		if incomingNewer || existing.TgID == 0 {
+			keep("tgId", existing.TgID, incoming.TgID, incoming.TgID)
+			existing.TgID = incoming.TgID
+		}
+	}
+	if existing.Reset != incoming.Reset && incoming.Reset != 0 {
+		if incomingNewer || existing.Reset == 0 {
+			keep("reset", existing.Reset, incoming.Reset, incoming.Reset)
+			existing.Reset = incoming.Reset
+		}
+	}
+	if existing.Reverse != incoming.Reverse && incoming.Reverse != "" {
+		if incomingNewer || existing.Reverse == "" {
+			keep("reverse", existing.Reverse, incoming.Reverse, incoming.Reverse)
+			existing.Reverse = incoming.Reverse
+		}
+	}
+	if existing.Comment != incoming.Comment && incoming.Comment != "" {
+		if incomingNewer || existing.Comment == "" {
+			keep("comment", existing.Comment, incoming.Comment, incoming.Comment)
+			existing.Comment = incoming.Comment
+		}
+	}
+	if existing.Enable != incoming.Enable {
+		if incoming.Enable {
+			if !existing.Enable {
+				keep("enable", existing.Enable, incoming.Enable, true)
+				existing.Enable = true
+			}
+		}
+	}
+	if incoming.CreatedAt != 0 && (existing.CreatedAt == 0 || incoming.CreatedAt < existing.CreatedAt) {
+		existing.CreatedAt = incoming.CreatedAt
+	}
+	if incoming.UpdatedAt > existing.UpdatedAt {
+		existing.UpdatedAt = incoming.UpdatedAt
+	}
+	return conflicts
 }

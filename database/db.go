@@ -4,6 +4,7 @@ package database
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -42,6 +43,9 @@ func initModels() error {
 		&model.CustomGeoResource{},
 		&model.Node{},
 		&model.ApiToken{},
+		&model.ClientRecord{},
+		&model.ClientInbound{},
+		&model.InboundFallbackChild{},
 	}
 	for _, mdl := range models {
 		if err := db.AutoMigrate(mdl); err != nil {
@@ -157,7 +161,89 @@ func runSeeders(isUsersEmpty bool) error {
 			return err
 		}
 	}
+
+	if !slices.Contains(seedersHistory, "ClientsTable") {
+		if err := seedClientsFromInboundJSON(); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func seedClientsFromInboundJSON() error {
+	var inbounds []model.Inbound
+	if err := db.Find(&inbounds).Error; err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		byEmail := map[string]*model.ClientRecord{}
+
+		for _, inbound := range inbounds {
+			if strings.TrimSpace(inbound.Settings) == "" {
+				continue
+			}
+			var settings map[string]any
+			if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+				log.Printf("ClientsTable seed: skip inbound %d (invalid settings json): %v", inbound.Id, err)
+				continue
+			}
+			rawList, ok := settings["clients"].([]any)
+			if !ok {
+				continue
+			}
+
+			for _, raw := range rawList {
+				obj, ok := raw.(map[string]any)
+				if !ok {
+					continue
+				}
+				blob, err := json.Marshal(obj)
+				if err != nil {
+					continue
+				}
+				var c model.Client
+				if err := json.Unmarshal(blob, &c); err != nil {
+					continue
+				}
+				email := strings.TrimSpace(c.Email)
+				if email == "" {
+					continue
+				}
+				incoming := c.ToRecord()
+
+				row, dup := byEmail[email]
+				if !dup {
+					if err := tx.Create(incoming).Error; err != nil {
+						return err
+					}
+					byEmail[email] = incoming
+					row = incoming
+				} else {
+					conflicts := model.MergeClientRecord(row, incoming)
+					for _, x := range conflicts {
+						log.Printf("client merge: email=%s conflict on %s old=%v new=%v kept=%v",
+							email, x.Field, x.Old, x.New, x.Kept)
+					}
+					if err := tx.Save(row).Error; err != nil {
+						return err
+					}
+				}
+
+				link := model.ClientInbound{
+					ClientId:     row.Id,
+					InboundId:    inbound.Id,
+					FlowOverride: c.Flow,
+				}
+				if err := tx.Where("client_id = ? AND inbound_id = ?", row.Id, inbound.Id).
+					FirstOrCreate(&link).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "ClientsTable"}).Error
+	})
 }
 
 // seedApiTokens copies the legacy `apiToken` setting into the new
