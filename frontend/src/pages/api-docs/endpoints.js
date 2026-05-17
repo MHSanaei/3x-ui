@@ -495,6 +495,85 @@ export const sections = [
   },
 
   {
+    id: 'clients',
+    title: 'Clients',
+    description:
+      'Manage clients as first-class entities that can be attached to one or more inbounds. A single client row drives the settings.clients entry in every inbound it belongs to. Endpoints live under /panel/api/clients.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/clients/list',
+        summary: 'List every client with its attached inbound IDs and traffic record.',
+        response:
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "email": "alice@example.com",\n      "subId": "abcd1234",\n      "uuid": "...",\n      "totalGB": 53687091200,\n      "expiryTime": 1735689600000,\n      "enable": true,\n      "inboundIds": [3, 5],\n      "traffic": { "up": 1024, "down": 4096, "enable": true }\n    }\n  ]\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/get/:id',
+        summary: 'Fetch one client by its numeric id, including the inbound IDs it is attached to.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Numeric client id from the clients table.' },
+        ],
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5]\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/add',
+        summary: 'Create a new client and attach it to one or more inbounds in a single call. Body is JSON.',
+        params: [
+          { name: 'client', in: 'body (json)', type: 'object', desc: 'Client fields: email, subId, id (uuid), password, auth, totalGB, expiryTime, limitIp, comment, enable.' },
+          { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to attach the client to. At least one required.' },
+        ],
+        body: '{\n  "client": {\n    "email": "alice@example.com",\n    "totalGB": 53687091200,\n    "expiryTime": 1735689600000\n  },\n  "inboundIds": [3, 5]\n}',
+        response: '{\n  "success": true,\n  "msg": "Client added"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/update/:id',
+        summary: 'Update an existing client. Changes propagate to every attached inbound. Body is the JSON client payload.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Numeric client id.' },
+        ],
+        body: '{\n  "email": "alice@example.com",\n  "totalGB": 107374182400,\n  "expiryTime": 1767225600000,\n  "enable": true\n}',
+        response: '{\n  "success": true,\n  "msg": "Client updated"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/del/:id',
+        summary: 'Delete a client. Removes it from every attached inbound and drops its traffic record unless keepTraffic=1 is passed.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Numeric client id.' },
+          { name: 'keepTraffic', in: 'query', type: 'integer', desc: 'Pass 1 to retain the xray_client_traffic row after deletion.' },
+        ],
+        response: '{\n  "success": true,\n  "msg": "Client deleted"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/:id/attach',
+        summary: 'Attach an existing client to one or more additional inbounds. Body is JSON.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Numeric client id.' },
+          { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to attach.' },
+        ],
+        body: '{\n  "inboundIds": [7, 9]\n}',
+        response: '{\n  "success": true\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/:id/detach',
+        summary: 'Detach a client from one or more inbounds without deleting the client.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Numeric client id.' },
+          { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to detach.' },
+        ],
+        body: '{\n  "inboundIds": [5]\n}',
+        response: '{\n  "success": true\n}',
+      },
+    ],
+  },
+
+  {
     id: 'nodes',
     title: 'Nodes',
     description:

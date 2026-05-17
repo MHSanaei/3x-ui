@@ -94,6 +94,7 @@
     "ultraDark": "Ultra Dark",
     "dashboard": "Overview",
     "inbounds": "Inbounds",
+    "clients": "Clients",
     "nodes": "Nodes",
     "settings": "Panel Settings",
     "xray": "Xray Configs",
@@ -396,6 +397,19 @@
       "days": "Day(s)",
       "renew": "Auto Renew",
       "renewDesc": "Auto-renewal after expiration. (0 = disable)(unit: day)"
+    },
+    "clients": {
+      "title": "Clients",
+      "addTitle": "Add Client",
+      "editTitle": "Edit Client",
+      "attachedInbounds": "Attached inbounds",
+      "selectInbound": "Select one or more inbounds",
+      "empty": "No clients yet — add one to get started.",
+      "deleteConfirmTitle": "Delete client {email}?",
+      "deleteConfirmContent": "This removes the client from every attached inbound and drops its traffic record. This cannot be undone.",
+      "toasts": {
+        "deleted": "Client deleted"
+      }
     },
     "nodes": {
       "title": "Nodes",

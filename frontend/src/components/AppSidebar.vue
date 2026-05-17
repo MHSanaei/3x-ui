@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import {
   DashboardOutlined,
   UserOutlined,
+  TeamOutlined,
   SettingOutlined,
   ToolOutlined,
   ClusterOutlined,
@@ -30,6 +31,7 @@ const props = defineProps({
 const iconByName = {
   dashboard: DashboardOutlined,
   user: UserOutlined,
+  team: TeamOutlined,
   setting: SettingOutlined,
   tool: ToolOutlined,
   cluster: ClusterOutlined,
@@ -42,6 +44,7 @@ const prefix = props.basePath?.startsWith('/') ? props.basePath : `/${props.base
 const tabs = computed(() => [
   { key: `${prefix}panel/`, icon: 'dashboard', title: t('menu.dashboard') },
   { key: `${prefix}panel/inbounds`, icon: 'user', title: t('menu.inbounds') },
+  { key: `${prefix}panel/clients`, icon: 'team', title: t('menu.clients') },
   { key: `${prefix}panel/nodes`, icon: 'cluster', title: t('menu.nodes') },
   { key: `${prefix}panel/settings`, icon: 'setting', title: t('menu.settings') },
   { key: `${prefix}panel/xray`, icon: 'tool', title: t('menu.xray') },
