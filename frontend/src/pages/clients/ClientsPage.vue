@@ -2,7 +2,15 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Modal, message } from 'ant-design-vue';
-import { PlusOutlined, UserOutlined } from '@ant-design/icons-vue';
+import {
+  PlusOutlined,
+  UserOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  InfoCircleOutlined,
+  QrcodeOutlined,
+  RetweetOutlined,
+} from '@ant-design/icons-vue';
 
 import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
@@ -10,17 +18,21 @@ import AppSidebar from '@/components/AppSidebar.vue';
 import { SizeFormatter, IntlUtil } from '@/utils';
 import { useClients } from './useClients.js';
 import ClientFormModal from './ClientFormModal.vue';
+import ClientInfoModal from './ClientInfoModal.vue';
+import ClientQrModal from './ClientQrModal.vue';
 
 const { t } = useI18n();
 
 const {
   clients,
   inbounds,
+  onlines,
   loading,
   fetched,
   create,
   update,
   remove,
+  resetTraffic,
 } = useClients();
 
 const { isMobile } = useMediaQuery();
@@ -32,11 +44,22 @@ const formMode = ref('add');
 const editingClient = ref(null);
 const editingAttachedIds = ref([]);
 
+const infoOpen = ref(false);
+const infoClient = ref(null);
+
+const qrOpen = ref(false);
+const qrClient = ref(null);
+
+const onlineSet = computed(() => new Set(onlines.value || []));
 const inboundsById = computed(() => {
   const out = {};
   for (const ib of inbounds.value) out[ib.id] = ib;
   return out;
 });
+
+function isOnline(email) {
+  return !!email && onlineSet.value.has(email);
+}
 
 function inboundLabel(id) {
   const ib = inboundsById.value[id];
@@ -73,6 +96,34 @@ function onDelete(row) {
   });
 }
 
+function onResetTraffic(row) {
+  if (!row?.email || !Array.isArray(row.inboundIds) || row.inboundIds.length === 0) {
+    message.warning(t('pages.clients.resetNotPossible') || 'Attach this client to an inbound first.');
+    return;
+  }
+  Modal.confirm({
+    title: `${t('pages.inbounds.resetTraffic') || 'Reset traffic'} — ${row.email}`,
+    content: t('pages.inbounds.resetTrafficContent')
+      || 'Counters drop to zero. Quota and expiry stay as-is.',
+    okText: t('reset') || 'Reset',
+    cancelText: t('cancel'),
+    onOk: async () => {
+      const msg = await resetTraffic(row);
+      if (msg?.success) message.success(t('pages.clients.toasts.trafficReset') || 'Traffic reset');
+    },
+  });
+}
+
+function onShowInfo(row) {
+  infoClient.value = row;
+  infoOpen.value = true;
+}
+
+function onShowQr(row) {
+  qrClient.value = row;
+  qrOpen.value = true;
+}
+
 async function onSave(payload, meta) {
   if (meta?.isEdit) {
     return update(meta.id, payload);
@@ -89,19 +140,51 @@ function trafficLabel(row) {
   return `${SizeFormatter.sizeFormat(used)} / ${SizeFormatter.sizeFormat(total)}`;
 }
 
+function remainingLabel(row) {
+  const total = row.totalGB || 0;
+  if (total <= 0) return '∞';
+  const used = (row.traffic?.up || 0) + (row.traffic?.down || 0);
+  const r = total - used;
+  return r > 0 ? SizeFormatter.sizeFormat(r) : '0';
+}
+
+function remainingColor(row) {
+  const total = row.totalGB || 0;
+  if (total <= 0) return 'purple';
+  const used = (row.traffic?.up || 0) + (row.traffic?.down || 0);
+  const ratio = used / total;
+  if (ratio >= 1) return 'red';
+  if (ratio >= 0.85) return 'orange';
+  return 'green';
+}
+
 function expiryLabel(row) {
-  if (!row.expiryTime || row.expiryTime <= 0) return '-';
+  if (!row.expiryTime || row.expiryTime <= 0) return '∞';
   return IntlUtil.formatDate(row.expiryTime);
 }
 
+function expiryRelative(row) {
+  if (!row.expiryTime || row.expiryTime <= 0) return '';
+  return IntlUtil.formatRelativeTime(row.expiryTime);
+}
+
+function expiryColor(row) {
+  if (!row.expiryTime || row.expiryTime <= 0) return 'purple';
+  const now = Date.now();
+  if (row.expiryTime <= now) return 'red';
+  if (row.expiryTime - now < 86400 * 1000 * 3) return 'orange';
+  return 'green';
+}
+
 const columns = computed(() => [
-  { title: t('pages.inbounds.client.email') || 'Email', dataIndex: 'email', key: 'email' },
-  { title: 'subId', dataIndex: 'subId', key: 'subId' },
+  { title: t('pages.inbounds.client.email') || 'Email', key: 'email' },
+  { title: t('online') || 'Online', key: 'online', width: 90 },
   { title: t('pages.clients.attachedInbounds') || 'Attached inbounds', key: 'inboundIds' },
   { title: t('pages.inbounds.traffic') || 'Traffic', key: 'traffic' },
-  { title: t('pages.inbounds.client.expiryTime') || 'Expiry', key: 'expiryTime' },
-  { title: t('enable'), key: 'enable', width: 90 },
-  { title: t('actions') || 'Actions', key: 'actions', width: 160 },
+  { title: t('remained') || 'Remaining', key: 'remaining', width: 130 },
+  { title: t('pages.inbounds.expireDate') || 'Expiry', key: 'expiryTime' },
+  { title: t('enable') || 'Enable', key: 'enable', width: 90 },
+  { title: t('actions') || 'Actions', key: 'actions', width: 220 },
 ]);
 </script>
 
@@ -127,19 +210,39 @@ const columns = computed(() => [
                     </a-button>
                   </template>
 
-                  <a-table :columns="columns" :data-source="clients" :loading="loading" row-key="id" :pagination="{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10','20','50','100'] }" size="small">
+                  <a-table :columns="columns" :data-source="clients" :loading="loading" row-key="id"
+                    :pagination="{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10','20','50','100'] }"
+                    size="small">
                     <template #bodyCell="{ column, record }">
-                      <template v-if="column.key === 'inboundIds'">
+                      <template v-if="column.key === 'email'">
+                        <div class="email-cell">
+                          <span class="email">{{ record.email }}</span>
+                          <span v-if="record.subId" class="sub" :title="record.subId">{{ record.subId }}</span>
+                        </div>
+                      </template>
+                      <template v-else-if="column.key === 'online'">
+                        <a-tag v-if="record.enable && isOnline(record.email)" color="green">{{ t('online') || 'Online' }}</a-tag>
+                        <a-tag v-else>{{ t('offline') || 'Offline' }}</a-tag>
+                      </template>
+                      <template v-else-if="column.key === 'inboundIds'">
                         <a-tag v-for="id in record.inboundIds" :key="id" color="blue" style="margin: 2px">
                           {{ inboundLabel(id) }}
                         </a-tag>
-                        <span v-if="!record.inboundIds || record.inboundIds.length === 0" style="color: rgba(0,0,0,0.45)">—</span>
+                        <span v-if="!record.inboundIds || record.inboundIds.length === 0"
+                          style="color: rgba(0,0,0,0.45)">—</span>
                       </template>
                       <template v-else-if="column.key === 'traffic'">
                         {{ trafficLabel(record) }}
                       </template>
+                      <template v-else-if="column.key === 'remaining'">
+                        <a-tag :color="remainingColor(record)">{{ remainingLabel(record) }}</a-tag>
+                      </template>
                       <template v-else-if="column.key === 'expiryTime'">
-                        {{ expiryLabel(record) }}
+                        <a-tooltip :title="expiryLabel(record)">
+                          <a-tag :color="expiryColor(record)">
+                            {{ record.expiryTime > 0 ? expiryRelative(record) : '∞' }}
+                          </a-tag>
+                        </a-tooltip>
                       </template>
                       <template v-else-if="column.key === 'enable'">
                         <a-tag :color="record.enable ? 'green' : 'default'">
@@ -147,9 +250,32 @@ const columns = computed(() => [
                         </a-tag>
                       </template>
                       <template v-else-if="column.key === 'actions'">
-                        <a-space>
-                          <a-button size="small" @click="onEdit(record)">{{ t('edit') }}</a-button>
-                          <a-button size="small" danger @click="onDelete(record)">{{ t('delete') }}</a-button>
+                        <a-space :size="4">
+                          <a-tooltip :title="t('qrCode') || 'QR Code'">
+                            <a-button size="small" type="text" @click="onShowQr(record)">
+                              <QrcodeOutlined />
+                            </a-button>
+                          </a-tooltip>
+                          <a-tooltip :title="t('info') || 'Info'">
+                            <a-button size="small" type="text" @click="onShowInfo(record)">
+                              <InfoCircleOutlined />
+                            </a-button>
+                          </a-tooltip>
+                          <a-tooltip :title="t('pages.inbounds.resetTraffic') || 'Reset traffic'">
+                            <a-button size="small" type="text" @click="onResetTraffic(record)">
+                              <RetweetOutlined />
+                            </a-button>
+                          </a-tooltip>
+                          <a-tooltip :title="t('edit')">
+                            <a-button size="small" type="text" @click="onEdit(record)">
+                              <EditOutlined />
+                            </a-button>
+                          </a-tooltip>
+                          <a-tooltip :title="t('delete')">
+                            <a-button size="small" type="text" danger @click="onDelete(record)">
+                              <DeleteOutlined />
+                            </a-button>
+                          </a-tooltip>
                         </a-space>
                       </template>
                     </template>
@@ -170,6 +296,9 @@ const columns = computed(() => [
 
       <ClientFormModal v-model:open="formOpen" :mode="formMode" :client="editingClient"
         :attached-ids="editingAttachedIds" :inbounds="inbounds" :save="onSave" />
+      <ClientInfoModal v-model:open="infoOpen" :client="infoClient" :inbounds-by-id="inboundsById"
+        :is-online="infoClient ? isOnline(infoClient.email) : false" />
+      <ClientQrModal v-model:open="qrOpen" :client="qrClient" />
     </a-layout>
   </a-config-provider>
 </template>
@@ -213,5 +342,24 @@ const columns = computed(() => [
 
 .loading-spacer {
   min-height: calc(100vh - 120px);
+}
+
+.email-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.email {
+  font-weight: 500;
+}
+
+.sub {
+  font-size: 11px;
+  opacity: 0.55;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
 }
 </style>
