@@ -336,7 +336,7 @@ function confirmBulkDelete() {
               <template v-else-if="isClientOnline(client.email)">{{ t('online') }}</template>
               <template v-else>{{ t('offline') }}</template>
             </template>
-            <a-badge :color="statusBadgeColor(client)" />
+            <a-badge :color="statusBadgeColor(client)" :class="{ 'client-online-pulse': client.enable && isClientOnline(client.email) }" />
           </a-tooltip>
           <div class="client-id-stack">
             <a-tooltip :title="client.email">
@@ -440,7 +440,7 @@ function confirmBulkDelete() {
               <template v-else-if="isClientOnline(client.email)">{{ t('online') }}</template>
               <template v-else>{{ t('offline') }}</template>
             </template>
-            <a-badge :color="statusBadgeColor(client)" />
+            <a-badge :color="statusBadgeColor(client)" :class="{ 'client-online-pulse': client.enable && isClientOnline(client.email) }" />
           </a-tooltip>
           <a-tooltip :title="client.email">
             <span class="client-email">{{ client.email }}</span>
@@ -837,5 +837,14 @@ function confirmBulkDelete() {
 .client-card-head :deep(.ant-badge-status-dot) {
   width: 9px;
   height: 9px;
+}
+
+.client-online-pulse :deep(.ant-badge-status-dot) {
+  animation: client-online-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes client-online-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.6); opacity: 0.3; }
 }
 </style>
