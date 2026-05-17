@@ -388,24 +388,29 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 
 	needRestart := false
 	var ib model.Inbound
-	loadErr := db.Model(model.Inbound{}).Where("id = ? and enable = ?", id, true).First(&ib).Error
+	loadErr := db.Model(model.Inbound{}).Where("id = ?", id).First(&ib).Error
 	if loadErr == nil {
-		rt, rterr := s.runtimeFor(&ib)
-		if rterr != nil {
-			logger.Warning("DelInbound: runtime lookup failed, deleting central row anyway:", rterr)
-			if ib.NodeID == nil {
-				needRestart = true
+		shouldPushToRuntime := ib.NodeID != nil || ib.Enable
+		if shouldPushToRuntime {
+			rt, rterr := s.runtimeFor(&ib)
+			if rterr != nil {
+				logger.Warning("DelInbound: runtime lookup failed, deleting central row anyway:", rterr)
+				if ib.NodeID == nil {
+					needRestart = true
+				}
+			} else if err1 := rt.DelInbound(context.Background(), &ib); err1 == nil {
+				logger.Debug("Inbound deleted on", rt.Name(), ":", ib.Tag)
+			} else {
+				logger.Warning("DelInbound on", rt.Name(), "failed, deleting central row anyway:", err1)
+				if ib.NodeID == nil {
+					needRestart = true
+				}
 			}
-		} else if err1 := rt.DelInbound(context.Background(), &ib); err1 == nil {
-			logger.Debug("Inbound deleted on", rt.Name(), ":", ib.Tag)
 		} else {
-			logger.Warning("DelInbound on", rt.Name(), "failed, deleting central row anyway:", err1)
-			if ib.NodeID == nil {
-				needRestart = true
-			}
+			logger.Debug("DelInbound: skipping runtime push for disabled local inbound id:", id)
 		}
 	} else {
-		logger.Debug("No enabled inbound found to remove by api, id:", id)
+		logger.Debug("DelInbound: inbound not found, id:", id)
 	}
 
 	// Delete client traffics of inbounds
@@ -1280,14 +1285,45 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if !ok {
 			continue
 		}
+
 		clients, gcErr := s.GetClients(snapIb)
 		if gcErr != nil {
 			logger.Warning("setRemoteTraffic: parse clients for tag", snapIb.Tag, "failed:", gcErr)
 			continue
 		}
-		if err := s.clientService.SyncInbound(tx, c.Id, clients); err != nil {
+		csEnableByEmail := make(map[string]bool, len(snapIb.ClientStats))
+		for _, cs := range snapIb.ClientStats {
+			csEnableByEmail[cs.Email] = cs.Enable
+		}
+		filtered := clients[:0]
+		for i := range clients {
+			if isClientEmailTombstoned(clients[i].Email) {
+				continue
+			}
+			if cse, hit := csEnableByEmail[clients[i].Email]; hit && !cse {
+				clients[i].Enable = false
+			}
+			filtered = append(filtered, clients[i])
+		}
+		if err := s.clientService.SyncInbound(tx, c.Id, filtered); err != nil {
 			logger.Warning("setRemoteTraffic: sync clients for tag", snapIb.Tag, "failed:", err)
 		}
+	}
+
+	var orphanEmails []string
+	if err := tx.Table("clients").
+		Joins("LEFT JOIN client_inbounds ON client_inbounds.client_id = clients.id").
+		Where("client_inbounds.client_id IS NULL").
+		Pluck("clients.email", &orphanEmails).Error; err != nil {
+		logger.Warning("setRemoteTraffic: orphan sweep query failed:", err)
+	} else if len(orphanEmails) > 0 {
+		if err := tx.Where("email IN ?", orphanEmails).Delete(&model.ClientRecord{}).Error; err != nil {
+			logger.Warning("setRemoteTraffic: orphan sweep delete ClientRecord failed:", err)
+		}
+		if err := tx.Where("email IN ?", orphanEmails).Delete(&xray.ClientTraffic{}).Error; err != nil {
+			logger.Warning("setRemoteTraffic: orphan sweep delete ClientTraffic failed:", err)
+		}
+		structuralChange = true
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -1709,10 +1745,15 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 	}
 
 	var localTargets []target
+	localByInbound := make(map[int]map[string]struct{})
 	remoteByInbound := make(map[int][]target)
 	for _, t := range targets {
 		if t.NodeID == nil {
 			localTargets = append(localTargets, t)
+			if localByInbound[t.InboundID] == nil {
+				localByInbound[t.InboundID] = make(map[string]struct{})
+			}
+			localByInbound[t.InboundID][t.Email] = struct{}{}
 		} else {
 			remoteByInbound[t.InboundID] = append(remoteByInbound[t.InboundID], t)
 		}
@@ -1732,6 +1773,12 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 			}
 		}
 		s.xrayApi.Close()
+	}
+
+	for inboundID, emails := range localByInbound {
+		if _, _, mErr := s.markClientsDisabledInSettings(tx, inboundID, emails); mErr != nil {
+			logger.Warning("disableInvalidClients: settings.JSON sync failed for inbound", inboundID, ":", mErr)
+		}
 	}
 
 	result := tx.Model(xray.ClientTraffic{}).
@@ -1765,25 +1812,23 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 	return needRestart, count, nil
 }
 
-// disableRemoteClients marks the given emails as disabled in the stored
-// inbound.settings JSON and pushes the updated inbound to the remote node so
-// the remote's UpdateClientStat sets xray_client_traffic.enable=false and
-// SyncInbound sets clients.enable=false on the remote side. Without this
-// the remote's own auto-disable would be reverted whenever the central
-// pushes any inbound update later.
-func (s *InboundService) disableRemoteClients(tx *gorm.DB, inboundID int, emails map[string]struct{}) error {
+// markClientsDisabledInSettings flips client.enable=false in the inbound's
+// stored settings JSON for the given emails and returns both the pre and
+// post snapshots so a caller pushing to a remote node has the diff to hand.
+func (s *InboundService) markClientsDisabledInSettings(tx *gorm.DB, inboundID int, emails map[string]struct{}) (oldIb, newIb *model.Inbound, err error) {
 	var ib model.Inbound
 	if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundID).First(&ib).Error; err != nil {
-		return err
+		return nil, nil, err
 	}
-	oldSnapshot := ib
+	snapshot := ib
 
 	settings := map[string]any{}
 	if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
-		return err
+		return nil, nil, err
 	}
 	clients, _ := settings["clients"].([]any)
 	now := time.Now().Unix() * 1000
+	mutated := false
 	for i := range clients {
 		entry, ok := clients[i].(map[string]any)
 		if !ok {
@@ -1793,26 +1838,41 @@ func (s *InboundService) disableRemoteClients(tx *gorm.DB, inboundID int, emails
 		if _, hit := emails[email]; !hit {
 			continue
 		}
+		if cur, _ := entry["enable"].(bool); cur == false {
+			continue
+		}
 		entry["enable"] = false
 		entry["updated_at"] = now
 		clients[i] = entry
+		mutated = true
+	}
+	if !mutated {
+		return &snapshot, &ib, nil
 	}
 	settings["clients"] = clients
-	bs, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return err
+	bs, marshalErr := json.MarshalIndent(settings, "", "  ")
+	if marshalErr != nil {
+		return nil, nil, marshalErr
 	}
 	ib.Settings = string(bs)
 	if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundID).
 		Update("settings", ib.Settings).Error; err != nil {
-		return err
+		return nil, nil, err
 	}
+	return &snapshot, &ib, nil
+}
 
-	rt, err := s.runtimeFor(&ib)
+func (s *InboundService) disableRemoteClients(tx *gorm.DB, inboundID int, emails map[string]struct{}) error {
+	oldSnapshot, ib, err := s.markClientsDisabledInSettings(tx, inboundID, emails)
 	if err != nil {
 		return err
 	}
-	if err := rt.UpdateInbound(context.Background(), &oldSnapshot, &ib); err != nil {
+
+	rt, err := s.runtimeFor(ib)
+	if err != nil {
+		return err
+	}
+	if err := rt.UpdateInbound(context.Background(), oldSnapshot, ib); err != nil {
 		return err
 	}
 	return nil

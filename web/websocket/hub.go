@@ -21,36 +21,17 @@ const (
 	MessageTypeNodes        MessageType = "nodes"
 	MessageTypeNotification MessageType = "notification"
 	MessageTypeXrayState    MessageType = "xray_state"
-	// MessageTypeClientStats carries absolute traffic counters for the clients
-	// that had activity in the latest collection window. Frontend applies these
-	// in-place — far smaller than re-broadcasting the full inbound list and
-	// scales to 10k+ clients without falling back to REST.
-	MessageTypeClientStats MessageType = "client_stats"
-	MessageTypeInvalidate  MessageType = "invalidate" // Tells frontend to re-fetch via REST (last-resort).
+	MessageTypeClientStats  MessageType = "client_stats"
+	MessageTypeClients      MessageType = "clients"
+	MessageTypeInvalidate   MessageType = "invalidate"
+	maxMessageSize                      = 10 * 1024 * 1024 // 10MB
 
-	// maxMessageSize caps the WebSocket payload. Beyond this the hub sends a
-	// lightweight invalidate signal and the frontend re-fetches via REST.
-	// 10MB lets typical 2k–8k-client deployments push directly via WS (low
-	// latency); larger installs fall back to invalidate.
-	maxMessageSize = 10 * 1024 * 1024 // 10MB
-
-	enqueueTimeout    = 100 * time.Millisecond
-	clientSendQueue   = 512  // ~50s of buffering for a momentarily slow browser.
-	hubBroadcastQueue = 2048 // Headroom for cron-storm + admin-mutation bursts.
-	hubControlQueue   = 64   // Backlog for register/unregister bursts (page reloads, disconnect storms).
-
-	// minBroadcastInterval throttles per-type broadcasts so cron storms or
-	// rapid mutations cannot drown the hub. Bursts within the interval are
-	// dropped (not coalesced); the next broadcast outside the window delivers
-	// the latest state. Only message types in throttledMessageTypes are gated —
-	// heartbeat and one-shot signals (status, notification, xray_state,
-	// invalidate) bypass this so they are never delayed.
+	enqueueTimeout       = 100 * time.Millisecond
+	clientSendQueue      = 512  // ~50s of buffering for a momentarily slow browser.
+	hubBroadcastQueue    = 2048 // Headroom for cron-storm + admin-mutation bursts.
+	hubControlQueue      = 64   // Backlog for register/unregister bursts (page reloads, disconnect storms).
 	minBroadcastInterval = 250 * time.Millisecond
-
-	// hubRestartAttempts caps panic-recovery restarts. After this many
-	// consecutive failures we stop trying and log; the panel keeps running
-	// (frontend falls back to REST polling) and the operator can investigate.
-	hubRestartAttempts = 3
+	hubRestartAttempts   = 3
 )
 
 // NewClient builds a Client ready for hub registration.

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -70,6 +71,47 @@ func clientKeyForProtocol(p model.Protocol, rec *model.ClientRecord) string {
 }
 
 type ClientService struct{}
+
+// Short-lived tombstone of just-deleted client emails so that a node snapshot
+// arriving between delete and node-side processing doesn't resurrect them.
+var (
+	recentlyDeletedMu sync.Mutex
+	recentlyDeleted   = map[string]time.Time{}
+)
+
+const deleteTombstoneTTL = 90 * time.Second
+
+func tombstoneClientEmail(email string) {
+	if email == "" {
+		return
+	}
+	recentlyDeletedMu.Lock()
+	defer recentlyDeletedMu.Unlock()
+	recentlyDeleted[email] = time.Now()
+	cutoff := time.Now().Add(-deleteTombstoneTTL)
+	for e, ts := range recentlyDeleted {
+		if ts.Before(cutoff) {
+			delete(recentlyDeleted, e)
+		}
+	}
+}
+
+func isClientEmailTombstoned(email string) bool {
+	if email == "" {
+		return false
+	}
+	recentlyDeletedMu.Lock()
+	defer recentlyDeletedMu.Unlock()
+	ts, ok := recentlyDeleted[email]
+	if !ok {
+		return false
+	}
+	if time.Since(ts) > deleteTombstoneTTL {
+		delete(recentlyDeleted, email)
+		return false
+	}
+	return true
+}
 
 func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.Client) error {
 	if tx == nil {
@@ -417,6 +459,8 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 	if err != nil {
 		return false, err
 	}
+	tombstoneClientEmail(existing.Email)
+
 	inboundIds, err := s.GetInboundIdsForRecord(id)
 	if err != nil {
 		return false, err
@@ -893,10 +937,10 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			if len(client.Email) > 0 {
 				inboundSvc.AddClientStat(tx, data.Id, &client)
 			}
-		}
-		if err1 := rt.UpdateInbound(context.Background(), oldInbound, oldInbound); err1 != nil {
-			err = err1
-			return false, err
+			if err1 := rt.AddClient(context.Background(), oldInbound, client); err1 != nil {
+				err = err1
+				return false, err
+			}
 		}
 	}
 
@@ -1139,7 +1183,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				}
 			}
 		} else {
-			if err1 := rt.UpdateInbound(context.Background(), oldInbound, oldInbound); err1 != nil {
+			if err1 := rt.UpdateUser(context.Background(), oldInbound, oldEmail, clients[0]); err1 != nil {
 				err = err1
 				return false, err
 			}
@@ -1246,14 +1290,11 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 				return false, err
 			}
 		}
-		if needApiDel && notDepleted {
+		if needApiDel && notDepleted && oldInbound.NodeID == nil {
 			rt, rterr := inboundSvc.runtimeFor(oldInbound)
 			if rterr != nil {
-				if oldInbound.NodeID != nil {
-					return false, rterr
-				}
 				needRestart = true
-			} else if oldInbound.NodeID == nil {
+			} else {
 				err1 := rt.RemoveUser(context.Background(), oldInbound, email)
 				if err1 == nil {
 					logger.Debug("Client deleted on", rt.Name(), ":", email)
@@ -1264,11 +1305,16 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 					logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
 					needRestart = true
 				}
-			} else {
-				if err1 := rt.UpdateInbound(context.Background(), oldInbound, oldInbound); err1 != nil {
-					return false, err1
-				}
 			}
+		}
+	}
+	if oldInbound.NodeID != nil && len(email) > 0 {
+		rt, rterr := inboundSvc.runtimeFor(oldInbound)
+		if rterr != nil {
+			return false, rterr
+		}
+		if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
+			return false, err1
 		}
 	}
 	if err := db.Save(oldInbound).Error; err != nil {
@@ -1378,7 +1424,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 					needRestart = true
 				}
 			} else {
-				if err1 := rt.UpdateInbound(context.Background(), oldInbound, oldInbound); err1 != nil {
+				if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
 					return false, err1
 				}
 			}

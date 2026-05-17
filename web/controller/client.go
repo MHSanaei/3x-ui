@@ -7,9 +7,14 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/websocket"
 
 	"github.com/gin-gonic/gin"
 )
+
+func notifyClientsChanged() {
+	websocket.BroadcastInvalidate(websocket.MessageTypeClients)
+}
 
 type ClientController struct {
 	clientService  service.ClientService
@@ -84,6 +89,7 @@ func (a *ClientController) create(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	notifyClientsChanged()
 }
 
 func (a *ClientController) update(c *gin.Context) {
@@ -102,6 +108,7 @@ func (a *ClientController) update(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	notifyClientsChanged()
 }
 
 func (a *ClientController) delete(c *gin.Context) {
@@ -116,6 +123,7 @@ func (a *ClientController) delete(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	notifyClientsChanged()
 }
 
 type attachDetachBody struct {
@@ -138,6 +146,7 @@ func (a *ClientController) attach(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	notifyClientsChanged()
 }
 
 func (a *ClientController) resetAllTraffics(c *gin.Context) {
@@ -150,6 +159,7 @@ func (a *ClientController) resetAllTraffics(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	notifyClientsChanged()
 }
 
 func (a *ClientController) delDepleted(c *gin.Context) {
@@ -162,6 +172,7 @@ func (a *ClientController) delDepleted(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	notifyClientsChanged()
 }
 
 func (a *ClientController) resetTrafficByEmail(c *gin.Context) {
@@ -175,6 +186,7 @@ func (a *ClientController) resetTrafficByEmail(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	notifyClientsChanged()
 }
 
 type trafficUpdateRequest struct {
@@ -194,6 +206,7 @@ func (a *ClientController) updateTrafficByEmail(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientUpdateSuccess"), nil)
+	notifyClientsChanged()
 }
 
 func (a *ClientController) getIps(c *gin.Context) {
@@ -294,4 +307,5 @@ func (a *ClientController) detach(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	notifyClientsChanged()
 }
