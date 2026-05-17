@@ -149,10 +149,16 @@ type Node struct {
 	LastHeartbeat int64   `json:"lastHeartbeat"`                 // unix seconds, 0 = never
 	LatencyMs     int     `json:"latencyMs"`
 	XrayVersion   string  `json:"xrayVersion"`
+	PanelVersion  string  `json:"panelVersion" gorm:"column:panel_version"`
 	CpuPct        float64 `json:"cpuPct"`
 	MemPct        float64 `json:"memPct"`
 	UptimeSecs    uint64  `json:"uptimeSecs"`
 	LastError     string  `json:"lastError"`
+
+	InboundCount  int `json:"inboundCount" gorm:"-"`
+	ClientCount   int `json:"clientCount" gorm:"-"`
+	OnlineCount   int `json:"onlineCount" gorm:"-"`
+	DepletedCount int `json:"depletedCount" gorm:"-"`
 
 	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime"`
 	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime"`

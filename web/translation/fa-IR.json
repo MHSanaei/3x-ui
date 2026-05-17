@@ -426,6 +426,7 @@
       "latency": "تاخیر",
       "lastHeartbeat": "آخرین ضربان",
       "xrayVersion": "نسخه Xray",
+      "panelVersion": "نسخه پنل",
       "actions": "عملیات",
       "probe": "بررسی فوری",
       "testConnection": "تست اتصال",

@@ -185,6 +185,10 @@ function isExpanded(id) {
           <a-tag>{{ statsNode.xrayVersion || '-' }}</a-tag>
         </div>
         <div class="stat-row">
+          <span class="stat-label">{{ t('pages.nodes.panelVersion') || 'Panel version' }}</span>
+          <a-tag>{{ statsNode.panelVersion || '-' }}</a-tag>
+        </div>
+        <div class="stat-row">
           <span class="stat-label">{{ t('pages.nodes.uptime') }}</span>
           <a-tag>{{ formatUptime(statsNode.uptimeSecs) }}</a-tag>
         </div>
@@ -193,6 +197,16 @@ function isExpanded(id) {
           <a-tag>
             <template v-if="statsNode.latencyMs > 0">{{ statsNode.latencyMs }} ms</template>
             <template v-else>-</template>
+          </a-tag>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">{{ t('clients') }}</span>
+          <a-tag color="green">{{ statsNode.clientCount || 0 }}</a-tag>
+          <a-tag v-if="statsNode.onlineCount" color="blue">
+            {{ statsNode.onlineCount }} {{ t('online') }}
+          </a-tag>
+          <a-tag v-if="statsNode.depletedCount" color="red">
+            {{ statsNode.depletedCount }} {{ t('depleted') }}
           </a-tag>
         </div>
         <div class="stat-row">
@@ -260,8 +274,28 @@ function isExpanded(id) {
         </template>
       </a-table-column>
 
+      <a-table-column :title="t('pages.nodes.panelVersion') || 'Panel version'" data-index="panelVersion" align="center">
+        <template #default="{ record }">
+          {{ record.panelVersion || '-' }}
+        </template>
+      </a-table-column>
+
       <a-table-column :title="t('pages.nodes.uptime')" data-index="uptimeSecs" align="center">
         <template #default="{ record }">{{ formatUptime(record.uptimeSecs) }}</template>
+      </a-table-column>
+
+      <a-table-column :title="t('clients')" align="center" :width="160">
+        <template #default="{ record }">
+          <a-space :size="4">
+            <a-tag color="green">{{ record.clientCount || 0 }}</a-tag>
+            <a-tag v-if="record.onlineCount" color="blue">
+              {{ record.onlineCount }} {{ t('online') }}
+            </a-tag>
+            <a-tag v-if="record.depletedCount" color="red">
+              {{ record.depletedCount }} {{ t('depleted') }}
+            </a-tag>
+          </a-space>
+        </template>
       </a-table-column>
 
       <a-table-column :title="t('pages.nodes.latency')" data-index="latencyMs" align="center" :width="100">

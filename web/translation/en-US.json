@@ -484,6 +484,7 @@
       "latency": "Latency",
       "lastHeartbeat": "Last Heartbeat",
       "xrayVersion": "Xray Version",
+      "panelVersion": "Panel Version",
       "actions": "Actions",
       "probe": "Probe Now",
       "testConnection": "Test Connection",
