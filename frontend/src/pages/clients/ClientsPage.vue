@@ -724,7 +724,7 @@ const columns = computed(() => [
                     </template>
 
                     <template #emptyText>
-                      <div style="padding: 32px 0; color: rgba(0, 0, 0, 0.45); text-align: center">
+                      <div class="clients-empty">
                         <UserOutlined style="font-size: 32px; margin-bottom: 8px" />
                         <div>{{ t('pages.clients.empty') || 'No clients yet.' }}</div>
                       </div>
@@ -1011,6 +1011,12 @@ const columns = computed(() => [
   flex-direction: column;
   align-items: center;
   gap: 8px;
+}
+
+.clients-empty {
+  padding: 32px 0;
+  text-align: center;
+  opacity: 0.55;
 }
 
 .danger-item {
