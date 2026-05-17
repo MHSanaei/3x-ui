@@ -126,12 +126,12 @@ export function useInbounds() {
   }
 
   async function fetchOnlineUsers() {
-    const msg = await HttpUtil.post('/panel/api/inbounds/onlines');
+    const msg = await HttpUtil.post('/panel/api/clients/onlines');
     if (msg?.success) onlineClients.value = msg.obj || [];
   }
 
   async function fetchLastOnlineMap() {
-    const msg = await HttpUtil.post('/panel/api/inbounds/lastOnline');
+    const msg = await HttpUtil.post('/panel/api/clients/lastOnline');
     if (msg?.success && msg.obj) lastOnlineMap.value = msg.obj;
   }
 

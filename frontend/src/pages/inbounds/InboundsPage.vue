@@ -309,20 +309,6 @@ function confirmResetTraffic(dbInbound) {
   });
 }
 
-function confirmDelDepleted(dbInboundId) {
-  Modal.confirm({
-    title: 'Delete depleted clients?',
-    content: 'Removes every client whose traffic is exhausted or whose expiry has passed.',
-    okText: 'Delete',
-    okType: 'danger',
-    cancelText: 'Cancel',
-    onOk: async () => {
-      const msg = await HttpUtil.post(`/panel/api/inbounds/delDepletedClients/${dbInboundId}`);
-      if (msg?.success) await refresh();
-    },
-  });
-}
-
 // Clone — adds a new inbound with the same protocol+stream+sniffing
 // but a fresh remark/port and an empty client list.
 function confirmClone(dbInbound) {
@@ -375,20 +361,6 @@ function onGeneralAction(key) {
         },
       });
       break;
-    case 'resetClients':
-      Modal.confirm({
-        title: 'Reset all client traffic across all inbounds?',
-        okText: 'Reset',
-        cancelText: 'Cancel',
-        onOk: async () => {
-          const msg = await HttpUtil.post('/panel/api/inbounds/resetAllClientTraffics/-1');
-          if (msg?.success) await refresh();
-        },
-      });
-      break;
-    case 'delDepletedClients':
-      confirmDelDepleted(-1);
-      break;
     default:
       message.info(`General action "${key}" — coming in a later 5f subphase`);
   }
@@ -426,20 +398,6 @@ function onRowAction({ key, dbInbound }) {
       break;
     case 'clone':
       confirmClone(dbInbound);
-      break;
-    case 'resetClients':
-      Modal.confirm({
-        title: `Reset client traffic on "${dbInbound.remark}"?`,
-        okText: 'Reset',
-        cancelText: 'Cancel',
-        onOk: async () => {
-          const msg = await HttpUtil.post(`/panel/api/inbounds/resetAllClientTraffics/${dbInbound.id}`);
-          if (msg?.success) await refresh();
-        },
-      });
-      break;
-    case 'delDepletedClients':
-      confirmDelDepleted(dbInbound.id);
       break;
     default:
       message.info(`Action "${key}" — coming in a later 5f subphase`);

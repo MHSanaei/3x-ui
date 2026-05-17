@@ -50,7 +50,7 @@ watch(() => props.open, async (next) => {
   }
   loading.value = true;
   try {
-    const msg = await HttpUtil.get(`/panel/api/inbounds/getSubLinks/${encodeURIComponent(props.client.subId)}`);
+    const msg = await HttpUtil.get(`/panel/api/clients/subLinks/${encodeURIComponent(props.client.subId)}`);
     links.value = msg?.success && Array.isArray(msg.obj) ? msg.obj : [];
   } finally {
     loading.value = false;

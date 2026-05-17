@@ -45,7 +45,7 @@ export function useClients() {
   }
 
   async function refreshOnlines() {
-    const msg = await HttpUtil.post('/panel/api/inbounds/onlines');
+    const msg = await HttpUtil.post('/panel/api/clients/onlines');
     if (msg?.success) {
       onlines.value = Array.isArray(msg.obj) ? msg.obj : [];
     }
@@ -85,9 +85,8 @@ export function useClients() {
   }
 
   async function resetTraffic(client) {
-    const ibIds = Array.isArray(client?.inboundIds) ? client.inboundIds : [];
-    if (!client?.email || ibIds.length === 0) return null;
-    const url = `/panel/api/inbounds/${ibIds[0]}/resetClientTraffic/${encodeURIComponent(client.email)}`;
+    if (!client?.email) return null;
+    const url = `/panel/api/clients/resetTraffic/${encodeURIComponent(client.email)}`;
     const msg = await HttpUtil.post(url);
     if (msg?.success) await refresh();
     return msg;

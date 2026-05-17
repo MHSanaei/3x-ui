@@ -475,6 +475,37 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	return needRestart, nil
 }
 
+func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email string) (bool, error) {
+	if email == "" {
+		return false, common.NewError("client email is required")
+	}
+	rec, err := s.GetRecordByEmail(nil, email)
+	if err != nil {
+		return false, err
+	}
+	inboundIds, err := s.GetInboundIdsForRecord(rec.Id)
+	if err != nil {
+		return false, err
+	}
+	if len(inboundIds) == 0 {
+		if rErr := inboundSvc.ResetClientTrafficByEmail(email); rErr != nil {
+			return false, rErr
+		}
+		return false, nil
+	}
+	needRestart := false
+	for _, ibId := range inboundIds {
+		nr, rErr := inboundSvc.ResetClientTraffic(ibId, email)
+		if rErr != nil {
+			return needRestart, rErr
+		}
+		if nr {
+			needRestart = true
+		}
+	}
+	return needRestart, nil
+}
+
 func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, error) {
 	db := database.GetDB()
 	now := time.Now().UnixMilli()

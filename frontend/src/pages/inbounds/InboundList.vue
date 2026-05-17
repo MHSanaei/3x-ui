@@ -10,11 +10,9 @@ import {
   EditOutlined,
   QrcodeOutlined,
   CopyOutlined,
-  FileDoneOutlined,
   ExportOutlined,
   ImportOutlined,
   ReloadOutlined,
-  RestOutlined,
   RetweetOutlined,
   BlockOutlined,
   DeleteOutlined,
@@ -317,12 +315,6 @@ function showQrCodeMenu(dbInbound) {
               <a-menu-item key="resetInbounds">
                 <ReloadOutlined /> {{ t('pages.inbounds.resetAllTraffic') }}
               </a-menu-item>
-              <a-menu-item key="resetClients">
-                <FileDoneOutlined /> {{ t('pages.inbounds.resetAllClientTraffics') }}
-              </a-menu-item>
-              <a-menu-item key="delDepletedClients" class="danger-item">
-                <RestOutlined /> {{ t('pages.inbounds.delDepletedClients') }}
-              </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -390,17 +382,11 @@ function showQrCodeMenu(dbInbound) {
                       <QrcodeOutlined /> {{ t('qrCode') }}
                     </a-menu-item>
                     <template v-if="record.isMultiUser()">
-                      <a-menu-item key="resetClients">
-                        <FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}
-                      </a-menu-item>
                       <a-menu-item key="export">
                         <ExportOutlined /> {{ t('pages.inbounds.export') }}
                       </a-menu-item>
                       <a-menu-item v-if="subEnable" key="subs">
                         <ExportOutlined /> {{ t('pages.inbounds.export') }} — {{ t('pages.settings.subSettings') }}
-                      </a-menu-item>
-                      <a-menu-item key="delDepletedClients" class="danger-item">
-                        <RestOutlined /> {{ t('pages.inbounds.delDepletedClients') }}
                       </a-menu-item>
                     </template>
                     <template v-else>
@@ -517,17 +503,11 @@ function showQrCodeMenu(dbInbound) {
                       <QrcodeOutlined /> {{ t('qrCode') }}
                     </a-menu-item>
                     <template v-if="record.isMultiUser()">
-                      <a-menu-item key="resetClients">
-                        <FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}
-                      </a-menu-item>
                       <a-menu-item key="export">
                         <ExportOutlined /> {{ t('pages.inbounds.export') }}
                       </a-menu-item>
                       <a-menu-item v-if="subEnable" key="subs">
                         <ExportOutlined /> {{ t('pages.inbounds.export') }} — {{ t('pages.settings.subSettings') }}
-                      </a-menu-item>
-                      <a-menu-item key="delDepletedClients" class="danger-item">
-                        <RestOutlined /> {{ t('pages.inbounds.delDepletedClients') }}
                       </a-menu-item>
                     </template>
                     <template v-else>
