@@ -216,7 +216,7 @@ function showQrCodeMenu(dbInbound) {
     <a-space direction="vertical" :style="{ width: '100%' }">
       <!-- ====================== Mobile: card list ======================= -->
       <div v-if="isMobile" class="inbound-cards">
-        <div v-if="visibleInbounds.length === 0" class="card-empty">—</div>
+        <div v-if="sortedInbounds.length === 0" class="card-empty">—</div>
 
         <div v-for="record in sortedInbounds" :key="record.id" class="inbound-card">
           <!-- Header: id + remark + info + enable + actions -->
