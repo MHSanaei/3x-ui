@@ -85,12 +85,18 @@ function gbToBytes(gb) {
   return Math.round(gb * 1024 * 1024 * 1024);
 }
 
+const MULTI_CLIENT_PROTOCOLS = new Set([
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'hysteria2', 'portfallback',
+]);
+
 const inboundOptions = computed(() =>
-  (props.inbounds || []).map((ib) => ({
-    label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
-    value: ib.id,
-    title: `${ib.remark || ''} (${ib.protocol}:${ib.port})`,
-  })),
+  (props.inbounds || [])
+    .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol))
+    .map((ib) => ({
+      label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
+      value: ib.id,
+      title: `${ib.remark || ''} (${ib.protocol}:${ib.port})`,
+    })),
 );
 
 const flowCapableIds = computed(() => {

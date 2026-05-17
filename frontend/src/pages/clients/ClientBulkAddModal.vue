@@ -72,11 +72,17 @@ const delayedExpireDays = computed({
   set: (days) => { form.expiryTime = -86400000 * (days || 0); },
 });
 
+const MULTI_CLIENT_PROTOCOLS = new Set([
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'hysteria2', 'portfallback',
+]);
+
 const inboundOptions = computed(() =>
-  (props.inbounds || []).map((ib) => ({
-    label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
-    value: ib.id,
-  })),
+  (props.inbounds || [])
+    .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol))
+    .map((ib) => ({
+      label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
+      value: ib.id,
+    })),
 );
 
 watch(() => props.open, (next) => {

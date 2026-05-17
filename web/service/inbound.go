@@ -1277,6 +1277,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
+	type oldSet struct {
+		inboundID int
+		emails    map[string]struct{}
+	}
+	var perInboundOld []oldSet
 	for _, snapIb := range snap.Inbounds {
 		if snapIb == nil {
 			continue
@@ -1284,6 +1289,19 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		c, ok := tagToCentral[snapIb.Tag]
 		if !ok {
 			continue
+		}
+		var oldEmailsRows []string
+		if err := tx.Table("clients").
+			Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
+			Where("client_inbounds.inbound_id = ?", c.Id).
+			Pluck("email", &oldEmailsRows).Error; err == nil {
+			oldEmails := make(map[string]struct{}, len(oldEmailsRows))
+			for _, e := range oldEmailsRows {
+				if e != "" {
+					oldEmails[e] = struct{}{}
+				}
+			}
+			perInboundOld = append(perInboundOld, oldSet{inboundID: c.Id, emails: oldEmails})
 		}
 
 		clients, gcErr := s.GetClients(snapIb)
@@ -1310,20 +1328,40 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
-	var orphanEmails []string
-	if err := tx.Table("clients").
-		Joins("LEFT JOIN client_inbounds ON client_inbounds.client_id = clients.id").
-		Where("client_inbounds.client_id IS NULL").
-		Pluck("clients.email", &orphanEmails).Error; err != nil {
-		logger.Warning("setRemoteTraffic: orphan sweep query failed:", err)
-	} else if len(orphanEmails) > 0 {
-		if err := tx.Where("email IN ?", orphanEmails).Delete(&model.ClientRecord{}).Error; err != nil {
-			logger.Warning("setRemoteTraffic: orphan sweep delete ClientRecord failed:", err)
+	for _, old := range perInboundOld {
+		var stillAttached []string
+		if err := tx.Table("clients").
+			Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
+			Where("client_inbounds.inbound_id = ?", old.inboundID).
+			Pluck("email", &stillAttached).Error; err != nil {
+			continue
 		}
-		if err := tx.Where("email IN ?", orphanEmails).Delete(&xray.ClientTraffic{}).Error; err != nil {
-			logger.Warning("setRemoteTraffic: orphan sweep delete ClientTraffic failed:", err)
+		stillSet := make(map[string]struct{}, len(stillAttached))
+		for _, e := range stillAttached {
+			stillSet[e] = struct{}{}
 		}
-		structuralChange = true
+		for email := range old.emails {
+			if _, kept := stillSet[email]; kept {
+				continue
+			}
+			var attachmentCount int64
+			if err := tx.Table("client_inbounds").
+				Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+				Where("clients.email = ?", email).
+				Count(&attachmentCount).Error; err != nil {
+				continue
+			}
+			if attachmentCount > 0 {
+				continue
+			}
+			if err := tx.Where("email = ?", email).Delete(&model.ClientRecord{}).Error; err != nil {
+				logger.Warning("setRemoteTraffic: delete ClientRecord", email, "failed:", err)
+			}
+			if err := tx.Where("email = ?", email).Delete(&xray.ClientTraffic{}).Error; err != nil {
+				logger.Warning("setRemoteTraffic: delete ClientTraffic", email, "failed:", err)
+			}
+			structuralChange = true
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
