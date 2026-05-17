@@ -36,8 +36,8 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/delDepleted", a.delDepleted)
 	g.POST("/resetTraffic/:email", a.resetTrafficByEmail)
 	g.POST("/updateTraffic/:email", a.updateTrafficByEmail)
-	g.POST("/clientIps/:email", a.getClientIps)
-	g.POST("/clearClientIps/:email", a.clearClientIps)
+	g.POST("/ips/:email", a.getIps)
+	g.POST("/clearIps/:email", a.clearIps)
 	g.POST("/onlines", a.onlines)
 	g.POST("/lastOnline", a.lastOnline)
 	g.GET("/traffic/:email", a.getTrafficByEmail)
@@ -213,7 +213,7 @@ func (a *ClientController) updateTrafficByEmail(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientUpdateSuccess"), nil)
 }
 
-func (a *ClientController) getClientIps(c *gin.Context) {
+func (a *ClientController) getIps(c *gin.Context) {
 	email := c.Param("email")
 	ips, err := a.inboundService.GetInboundClientIps(email)
 	if err != nil || ips == "" {
@@ -249,7 +249,7 @@ func (a *ClientController) getClientIps(c *gin.Context) {
 	jsonObj(c, ips, nil)
 }
 
-func (a *ClientController) clearClientIps(c *gin.Context) {
+func (a *ClientController) clearIps(c *gin.Context) {
 	email := c.Param("email")
 	if err := a.inboundService.ClearClientIps(email); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)

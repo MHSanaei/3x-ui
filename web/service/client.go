@@ -569,6 +569,71 @@ func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, erro
 	return deleted, needRestart, nil
 }
 
+func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id int) error {
+	return submitTrafficWrite(func() error {
+		return s.resetAllClientTrafficsLocked(inboundSvc, id)
+	})
+}
+
+func (s *ClientService) resetAllClientTrafficsLocked(inboundSvc *InboundService, id int) error {
+	db := database.GetDB()
+	now := time.Now().Unix() * 1000
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		whereText := "inbound_id "
+		if id == -1 {
+			whereText += " > ?"
+		} else {
+			whereText += " = ?"
+		}
+
+		result := tx.Model(xray.ClientTraffic{}).
+			Where(whereText, id).
+			Updates(map[string]any{"enable": true, "up": 0, "down": 0})
+
+		if result.Error != nil {
+			return result.Error
+		}
+
+		inboundWhereText := "id "
+		if id == -1 {
+			inboundWhereText += " > ?"
+		} else {
+			inboundWhereText += " = ?"
+		}
+
+		result = tx.Model(model.Inbound{}).
+			Where(inboundWhereText, id).
+			Update("last_traffic_reset_time", now)
+
+		return result.Error
+	}); err != nil {
+		return err
+	}
+
+	var inbounds []model.Inbound
+	q := db.Model(model.Inbound{}).Where("node_id IS NOT NULL")
+	if id != -1 {
+		q = q.Where("id = ?", id)
+	}
+	if err := q.Find(&inbounds).Error; err != nil {
+		logger.Warning("ResetAllClientTraffics: discover node inbounds failed:", err)
+		return nil
+	}
+	for i := range inbounds {
+		ib := &inbounds[i]
+		rt, rterr := inboundSvc.runtimeFor(ib)
+		if rterr != nil {
+			logger.Warning("ResetAllClientTraffics: runtime lookup for inbound", ib.Id, "failed:", rterr)
+			continue
+		}
+		if e := rt.ResetInboundClientTraffics(context.Background(), ib); e != nil {
+			logger.Warning("ResetAllClientTraffics: remote propagation to", rt.Name(), "failed:", e)
+		}
+	}
+	return nil
+}
+
 func (s *ClientService) ResetAllTraffics() (bool, error) {
 	res := database.GetDB().Model(&xray.ClientTraffic{}).
 		Where("1 = 1").

@@ -473,7 +473,7 @@ export const sections = [
       },
       {
         method: 'POST',
-        path: '/panel/api/clients/clientIps/:email',
+        path: '/panel/api/clients/ips/:email',
         summary: 'List source IPs that have connected with the given client’s credentials. Returns an array of "ip (timestamp)" strings.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
@@ -481,7 +481,7 @@ export const sections = [
       },
       {
         method: 'POST',
-        path: '/panel/api/clients/clearClientIps/:email',
+        path: '/panel/api/clients/clearIps/:email',
         summary: 'Reset the recorded IP list for a client.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
