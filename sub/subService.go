@@ -446,6 +446,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		}
 	}
 	auth := clients[clientIndex].Auth
+	clientAllowInsecure := clients[clientIndex].AllowInsecure
 	params := make(map[string]string)
 
 	params["security"] = "tls"
@@ -467,7 +468,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
 			params["fp"], _ = fpValue.(string)
 		}
-		if insecure, ok := searchKey(tlsSettings, "allowInsecure"); ok {
+		if clientAllowInsecure {
+			params["insecure"] = "1"
+		} else if insecure, ok := searchKey(tlsSettings, "allowInsecure"); ok {
 			if insecure.(bool) {
 				params["insecure"] = "1"
 			}

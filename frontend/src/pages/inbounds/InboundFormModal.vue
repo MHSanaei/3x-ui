@@ -1690,6 +1690,9 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
             <a-form-item label="Session Resumption">
               <a-switch v-model:checked="inbound.stream.tls.enableSessionResumption" />
             </a-form-item>
+            <a-form-item label="Allow Insecure">
+              <a-switch v-model:checked="inbound.stream.tls.settings.allowInsecure" />
+            </a-form-item>
 
 
             <!-- Cert array — file path or inline content per row -->

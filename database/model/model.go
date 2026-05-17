@@ -179,6 +179,7 @@ type Client struct {
 	Flow       string         `json:"flow,omitempty"`               // Flow control (XTLS)
 	Reverse    *ClientReverse `json:"reverse,omitempty"`            // VLESS simple reverse proxy settings
 	Auth       string         `json:"auth,omitempty"`               // Auth password (Hysteria)
+	AllowInsecure bool        `json:"allowInsecure,omitempty"`      // Per-client TLS insecure flag (Hysteria2)
 	Email      string         `json:"email"`                        // Client email identifier
 	LimitIP    int            `json:"limitIp"`                      // IP limit for this client
 	TotalGB    int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB

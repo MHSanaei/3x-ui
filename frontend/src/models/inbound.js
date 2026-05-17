@@ -2224,7 +2224,7 @@ export class Inbound extends XrayCommonClass {
         return url.toString();
     }
 
-    genHysteriaLink(address = '', port = this.port, remark = '', clientAuth) {
+    genHysteriaLink(address = '', port = this.port, remark = '', clientAuth, clientAllowInsecure) {
         const protocol = this.settings.version == 2 ? "hysteria2" : "hysteria";
         const link = `${protocol}://${clientAuth}@${address}:${port}`;
 
@@ -2232,7 +2232,7 @@ export class Inbound extends XrayCommonClass {
         params.set("security", "tls");
         if (this.stream.tls.settings.fingerprint?.length > 0) params.set("fp", this.stream.tls.settings.fingerprint);
         if (this.stream.tls.alpn?.length > 0) params.set("alpn", this.stream.tls.alpn);
-        if (this.stream.tls.settings.allowInsecure) params.set("insecure", "1");
+        if (clientAllowInsecure ?? this.stream.tls.settings.allowInsecure) params.set("insecure", "1");
         if (this.stream.tls.settings.echConfigList?.length > 0) params.set("ech", this.stream.tls.settings.echConfigList);
         if (this.stream.tls.sni?.length > 0) params.set("sni", this.stream.tls.sni);
 
@@ -2343,7 +2343,13 @@ export class Inbound extends XrayCommonClass {
             case Protocols.TROJAN:
                 return this.genTrojanLink(address, port, forceTls, remark, client.password);
             case Protocols.HYSTERIA:
-                return this.genHysteriaLink(address, port, remark, client.auth.length > 0 ? client.auth : this.stream.hysteria.auth);
+                return this.genHysteriaLink(
+                    address,
+                    port,
+                    remark,
+                    client.auth.length > 0 ? client.auth : this.stream.hysteria.auth,
+                    client.allowInsecure,
+                );
             default: return '';
         }
     }
@@ -2952,15 +2958,18 @@ Inbound.HysteriaSettings = class extends Inbound.Settings {
 Inbound.HysteriaSettings.Hysteria = class extends Inbound.ClientBase {
     constructor(
         auth = RandomUtil.randomSeq(10),
+        allowInsecure = false,
         email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
     ) {
         super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
         this.auth = auth;
+        this.allowInsecure = allowInsecure;
     }
 
     toJson() {
         return {
             auth: this.auth,
+            allowInsecure: this.allowInsecure,
             ...this._clientBaseToJson(),
         };
     }
@@ -2968,6 +2977,7 @@ Inbound.HysteriaSettings.Hysteria = class extends Inbound.ClientBase {
     static fromJson(json = {}) {
         return new Inbound.HysteriaSettings.Hysteria(
             json.auth,
+            json.allowInsecure ?? false,
             ...Inbound.ClientBase.commonArgsFromJson(json),
         );
     }

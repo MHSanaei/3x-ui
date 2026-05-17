@@ -271,6 +271,9 @@ const title = computed(() =>
         </template>
         <a-input v-model:value="client.auth" />
       </a-form-item>
+      <a-form-item v-if="protocol === Protocols.HYSTERIA" label="Allow Insecure">
+        <a-switch v-model:checked="client.allowInsecure" />
+      </a-form-item>
 
       <a-form-item v-if="isVmessOrVless">
         <template #label>
