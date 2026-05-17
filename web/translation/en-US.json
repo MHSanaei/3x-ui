@@ -437,10 +437,15 @@
       "empty": "No clients yet — add one to get started.",
       "deleteConfirmTitle": "Delete client {email}?",
       "deleteConfirmContent": "This removes the client from every attached inbound and drops its traffic record. This cannot be undone.",
+      "deleteSelected": "Delete ({count})",
+      "bulkDeleteConfirmTitle": "Delete {count} clients?",
+      "bulkDeleteConfirmContent": "Each selected client is removed from every attached inbound and its traffic record is dropped. This cannot be undone.",
       "toasts": {
         "deleted": "Client deleted",
         "trafficReset": "Traffic reset",
-        "allTrafficsReset": "All client traffic reset"
+        "allTrafficsReset": "All client traffic reset",
+        "bulkDeleted": "{count} clients deleted",
+        "bulkCreated": "{count} clients created"
       }
     },
     "nodes": {

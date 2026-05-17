@@ -12,6 +12,8 @@ import {
   RetweetOutlined,
   ControlOutlined,
   DownOutlined,
+  MoreOutlined,
+  UsergroupAddOutlined,
 } from '@ant-design/icons-vue';
 
 import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
@@ -22,6 +24,7 @@ import { useClients } from './useClients.js';
 import ClientFormModal from './ClientFormModal.vue';
 import ClientInfoModal from './ClientInfoModal.vue';
 import ClientQrModal from './ClientQrModal.vue';
+import ClientBulkAddModal from './ClientBulkAddModal.vue';
 
 const { t } = useI18n();
 
@@ -70,6 +73,74 @@ const infoClient = ref(null);
 
 const qrOpen = ref(false);
 const qrClient = ref(null);
+
+const bulkAddOpen = ref(false);
+const selectedRowKeys = ref([]);
+
+const rowSelection = computed(() => ({
+  selectedRowKeys: selectedRowKeys.value,
+  onChange: (keys) => { selectedRowKeys.value = keys; },
+}));
+
+function toggleSelect(id, checked) {
+  const cur = new Set(selectedRowKeys.value);
+  if (checked) cur.add(id);
+  else cur.delete(id);
+  selectedRowKeys.value = Array.from(cur);
+}
+
+function isSelected(id) {
+  return selectedRowKeys.value.includes(id);
+}
+
+function selectAll(checked) {
+  selectedRowKeys.value = checked ? clients.value.map((c) => c.id) : [];
+}
+
+const allSelected = computed(
+  () => clients.value.length > 0 && selectedRowKeys.value.length === clients.value.length,
+);
+
+const someSelected = computed(
+  () => selectedRowKeys.value.length > 0 && selectedRowKeys.value.length < clients.value.length,
+);
+
+function onBulkAdd() {
+  bulkAddOpen.value = true;
+}
+
+function onBulkDelete() {
+  const ids = [...selectedRowKeys.value];
+  if (ids.length === 0) return;
+  Modal.confirm({
+    title: t('pages.clients.bulkDeleteConfirmTitle', { count: ids.length })
+      || `Delete ${ids.length} clients?`,
+    content: t('pages.clients.bulkDeleteConfirmContent')
+      || 'Each client is removed from every attached inbound and its traffic record is dropped. This cannot be undone.',
+    okText: t('delete'),
+    okType: 'danger',
+    cancelText: t('cancel'),
+    onOk: async () => {
+      let ok = 0;
+      let failed = 0;
+      for (const id of ids) {
+        const msg = await remove(id);
+        if (msg?.success) ok++;
+        else failed++;
+      }
+      selectedRowKeys.value = [];
+      if (failed === 0) {
+        message.success(t('pages.clients.toasts.bulkDeleted', { count: ok }) || `${ok} clients deleted`);
+      } else {
+        message.warning(`${ok} deleted, ${failed} failed`);
+      }
+    },
+  });
+}
+
+async function onBulkAddSaved() {
+  bulkAddOpen.value = false;
+}
 
 const onlineSet = computed(() => new Set(onlines.value || []));
 const inboundsById = computed(() => {
@@ -254,12 +325,25 @@ const columns = computed(() => [
                         <template #icon>
                           <PlusOutlined />
                         </template>
-                        {{ t('pages.clients.addClients') }}
+                        <template v-if="!isMobile">{{ t('pages.clients.addClients') }}</template>
+                      </a-button>
+                      <a-button size="small" @click="onBulkAdd">
+                        <template #icon>
+                          <UsergroupAddOutlined />
+                        </template>
+                        <template v-if="!isMobile">{{ t('pages.clients.bulk') || 'Add Bulk' }}</template>
+                      </a-button>
+                      <a-button v-if="selectedRowKeys.length > 0" danger size="small" @click="onBulkDelete">
+                        <template #icon>
+                          <DeleteOutlined />
+                        </template>
+                        {{ t('pages.clients.deleteSelected', { count: selectedRowKeys.length })
+                          || `Delete (${selectedRowKeys.length})` }}
                       </a-button>
                       <a-dropdown :trigger="['click']">
                         <a-button size="small">
                           <ControlOutlined />
-                          <span>{{ t('pages.clients.general') }}</span>
+                          <span v-if="!isMobile">{{ t('pages.clients.general') }}</span>
                           <DownOutlined />
                         </a-button>
                         <template #overlay>
@@ -276,7 +360,8 @@ const columns = computed(() => [
                     </div>
                   </template>
 
-                  <a-table :columns="columns" :data-source="clients" :loading="loading" row-key="id"
+                  <a-table v-if="!isMobile" :columns="columns" :data-source="clients" :loading="loading" row-key="id"
+                    :row-selection="rowSelection"
                     :pagination="{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }"
                     size="small">
                     <template #bodyCell="{ column, record }">
@@ -354,6 +439,61 @@ const columns = computed(() => [
                       </div>
                     </template>
                   </a-table>
+
+                  <a-spin v-else :spinning="loading">
+                    <div class="client-cards">
+                      <div v-if="clients.length > 0" class="card-bulk-bar">
+                        <a-checkbox :checked="allSelected" :indeterminate="someSelected"
+                          @change="(e) => selectAll(e.target.checked)">
+                          {{ t('pages.clients.selectAll') || 'Select all' }}
+                        </a-checkbox>
+                        <span v-if="selectedRowKeys.length > 0" class="bulk-count">
+                          {{ selectedRowKeys.length }}
+                        </span>
+                      </div>
+
+                      <div v-if="clients.length === 0" class="card-empty">
+                        <UserOutlined style="font-size: 28px; opacity: 0.5" />
+                        <div>{{ t('pages.clients.empty') || 'No clients yet.' }}</div>
+                      </div>
+
+                      <div v-for="row in clients" :key="row.id" class="client-card"
+                        :class="{ 'is-selected': isSelected(row.id) }">
+                        <div class="card-head">
+                          <a-checkbox :checked="isSelected(row.id)"
+                            @change="(e) => toggleSelect(row.id, e.target.checked)" />
+                          <a-badge :color="row.enable && isOnline(row.email) ? 'green' : (row.enable ? 'default' : 'red')" />
+                          <span class="tag-name">{{ row.email }}</span>
+                          <div class="card-actions" @click.stop>
+                            <a-tooltip :title="t('pages.clients.moreInformation') || 'Info'">
+                              <InfoCircleOutlined class="row-action-trigger" @click="onShowInfo(row)" />
+                            </a-tooltip>
+                            <a-switch :checked="row.enable" size="small" :loading="togglingId === row.id"
+                              @change="(next) => onToggleEnable(row, next)" />
+                            <a-dropdown :trigger="['click']" placement="bottomRight">
+                              <MoreOutlined class="row-action-trigger" @click.prevent />
+                              <template #overlay>
+                                <a-menu>
+                                  <a-menu-item key="qr" @click="onShowQr(row)">
+                                    <QrcodeOutlined /> {{ t('pages.clients.qrCode') || 'QR Code' }}
+                                  </a-menu-item>
+                                  <a-menu-item key="reset" @click="onResetTraffic(row)">
+                                    <RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') || 'Reset traffic' }}
+                                  </a-menu-item>
+                                  <a-menu-item key="edit" @click="onEdit(row)">
+                                    <EditOutlined /> {{ t('pages.clients.edit') || 'Edit' }}
+                                  </a-menu-item>
+                                  <a-menu-item key="delete" class="danger-item" @click="onDelete(row)">
+                                    <DeleteOutlined /> {{ t('pages.clients.delete') || 'Delete' }}
+                                  </a-menu-item>
+                                </a-menu>
+                              </template>
+                            </a-dropdown>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </a-spin>
                 </a-card>
               </a-col>
             </a-row>
@@ -366,6 +506,7 @@ const columns = computed(() => [
       <ClientInfoModal v-model:open="infoOpen" :client="infoClient" :inbounds-by-id="inboundsById"
         :is-online="infoClient ? isOnline(infoClient.email) : false" :sub-settings="subSettings" />
       <ClientQrModal v-model:open="qrOpen" :client="qrClient" :sub-settings="subSettings" />
+      <ClientBulkAddModal v-model:open="bulkAddOpen" :inbounds="inbounds" @saved="onBulkAddSaved" />
     </a-layout>
   </a-config-provider>
 </template>
@@ -440,5 +581,92 @@ const columns = computed(() => [
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 220px;
+}
+
+.client-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.card-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 8px;
+}
+
+.bulk-count {
+  font-size: 12px;
+  background: rgba(22, 119, 255, 0.12);
+  color: var(--ant-color-primary, #1677ff);
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+.client-card {
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.client-card.is-selected {
+  border-color: var(--ant-color-primary, #1677ff);
+  background: rgba(22, 119, 255, 0.06);
+}
+
+:global(body.dark) .client-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.card-head .tag-name {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.row-action-trigger {
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 120ms ease;
+}
+
+.row-action-trigger:hover {
+  opacity: 1;
+}
+
+.card-empty {
+  text-align: center;
+  padding: 40px 16px;
+  opacity: 0.55;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.danger-item {
+  color: #ff4d4f;
 }
 </style>
