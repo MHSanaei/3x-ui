@@ -18,9 +18,6 @@ import CustomStatistic from '@/components/CustomStatistic.vue';
 import { useNodeList } from '@/composables/useNodeList.js';
 import InboundList from './InboundList.vue';
 import InboundFormModal from './InboundFormModal.vue';
-import ClientFormModal from './ClientFormModal.vue';
-import ClientBulkModal from './ClientBulkModal.vue';
-import CopyClientsModal from './CopyClientsModal.vue';
 import InboundInfoModal from './InboundInfoModal.vue';
 import QrCodeModal from './QrCodeModal.vue';
 import TextModal from '@/components/TextModal.vue';
@@ -80,17 +77,6 @@ onMounted(async () => {
 const formOpen = ref(false);
 const formMode = ref('add');
 const formDbInbound = ref(null);
-
-// === Client modal (single + bulk) =====================================
-const clientOpen = ref(false);
-const clientMode = ref('add');
-const clientDbInbound = ref(null);
-const clientIndex = ref(null);
-
-const bulkOpen = ref(false);
-const bulkDbInbound = ref(null);
-const copyOpen = ref(false);
-const copyDbInbound = ref(null);
 
 // === Info / QR-code modals ===========================================
 const infoOpen = ref(false);
@@ -283,73 +269,6 @@ function findClientIndex(dbInbound, client) {
   return idx >= 0 ? idx : 0;
 }
 
-function getClientId(protocol, client) {
-  switch (protocol) {
-    case 'trojan': return client.password;
-    case 'shadowsocks': return client.email;
-    case 'hysteria': return client.auth;
-    default: return client.id;
-  }
-}
-
-// === Per-client handlers (called from the expand-row table) =========
-function onEditClient({ dbInbound, client }) {
-  clientMode.value = 'edit';
-  clientDbInbound.value = dbInbound;
-  clientIndex.value = findClientIndex(dbInbound, client);
-  clientOpen.value = true;
-}
-
-function onQrcodeClient({ dbInbound, client }) {
-  qrDbInbound.value = checkFallback(dbInbound);
-  qrClient.value = client || null;
-  qrOpen.value = true;
-}
-
-function onInfoClient({ dbInbound, client }) {
-  infoDbInbound.value = checkFallback(dbInbound);
-  infoClientIndex.value = findClientIndex(dbInbound, client);
-  infoOpen.value = true;
-}
-
-async function onResetTrafficClient({ dbInbound, client }) {
-  const msg = await HttpUtil.post(
-    `/panel/api/inbounds/${dbInbound.id}/resetClientTraffic/${client.email}`,
-  );
-  if (msg?.success) await refresh();
-}
-
-async function onDeleteClient({ dbInbound, client }) {
-  const clientId = getClientId(dbInbound.protocol, client);
-  const msg = await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/delClient/${clientId}`);
-  if (msg?.success) await refresh();
-}
-
-async function onDeleteClients({ dbInbound, clients }) {
-  for (const client of clients) {
-    const clientId = getClientId(dbInbound.protocol, client);
-    await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/delClient/${clientId}`);
-  }
-  await refresh();
-}
-
-async function onToggleEnableClient({ dbInbound, client, next }) {
-  // Mirror legacy: clone the parsed inbound, flip enable on the matching
-  // client, and post the whole client back through updateClient. This
-  // keeps the wire shape identical to the modal save path.
-  const inbound = dbInbound.toInbound();
-  const clients = inbound?.clients || [];
-  const idx = findClientIndex(dbInbound, client);
-  if (idx < 0 || !clients[idx]) return;
-  clients[idx].enable = next;
-  const clientId = getClientId(dbInbound.protocol, clients[idx]);
-  const msg = await HttpUtil.post(`/panel/api/inbounds/updateClient/${clientId}`, {
-    id: dbInbound.id,
-    settings: `{"clients": [${clients[idx].toString()}]}`,
-  });
-  if (msg?.success) await refresh();
-}
-
 function onAddInbound() {
   formMode.value = 'add';
   formDbInbound.value = null;
@@ -360,18 +279,6 @@ function openEdit(dbInbound) {
   formMode.value = 'edit';
   formDbInbound.value = dbInbound;
   formOpen.value = true;
-}
-
-function openAddClient(dbInbound) {
-  clientMode.value = 'add';
-  clientDbInbound.value = dbInbound;
-  clientIndex.value = null;
-  clientOpen.value = true;
-}
-
-function openAddBulkClient(dbInbound) {
-  bulkDbInbound.value = dbInbound;
-  bulkOpen.value = true;
 }
 
 // Per-row destructive actions go through Modal.confirm (matches legacy).
@@ -492,12 +399,6 @@ function onRowAction({ key, dbInbound }) {
     case 'edit':
       openEdit(dbInbound);
       break;
-    case 'addClient':
-      openAddClient(dbInbound);
-      break;
-    case 'addBulkClient':
-      openAddBulkClient(dbInbound);
-      break;
     case 'showInfo':
       infoDbInbound.value = checkFallback(dbInbound);
       infoClientIndex.value = findClientIndex(dbInbound, null);
@@ -516,10 +417,6 @@ function onRowAction({ key, dbInbound }) {
       break;
     case 'clipboard':
       exportInboundClipboard(dbInbound);
-      break;
-    case 'copyClients':
-      copyDbInbound.value = dbInbound;
-      copyOpen.value = true;
       break;
     case 'delete':
       confirmDelete(dbInbound);
@@ -642,10 +539,7 @@ function onRowAction({ key, dbInbound }) {
                   :sub-enable="subSettings.enable" :nodes-by-id="nodesById" :has-active-node="hasActiveNode"
                   :stats-version="statsVersion"
                   @refresh="refresh"
-                  @add-inbound="onAddInbound" @general-action="onGeneralAction" @row-action="onRowAction"
-                  @edit-client="onEditClient" @qrcode-client="onQrcodeClient" @info-client="onInfoClient"
-                  @reset-traffic-client="onResetTrafficClient" @delete-client="onDeleteClient"
-                  @delete-clients="onDeleteClients" @toggle-enable-client="onToggleEnableClient" />
+                  @add-inbound="onAddInbound" @general-action="onGeneralAction" @row-action="onRowAction" />
               </a-col>
             </a-row>
           </a-spin>
@@ -654,13 +548,6 @@ function onRowAction({ key, dbInbound }) {
 
       <InboundFormModal v-model:open="formOpen" :mode="formMode" :db-inbound="formDbInbound"
         :db-inbounds="dbInbounds" @saved="refresh" />
-      <ClientFormModal v-model:open="clientOpen" :mode="clientMode" :db-inbound="clientDbInbound"
-        :client-index="clientIndex" :sub-enable="subSettings.enable" :tg-bot-enable="tgBotEnable"
-        :ip-limit-enable="ipLimitEnable" :traffic-diff="trafficDiff" @saved="refresh" />
-      <ClientBulkModal v-model:open="bulkOpen" :db-inbound="bulkDbInbound" :sub-enable="subSettings.enable"
-        :tg-bot-enable="tgBotEnable" :ip-limit-enable="ipLimitEnable" @saved="refresh" />
-      <CopyClientsModal v-model:open="copyOpen" :db-inbound="copyDbInbound" :db-inbounds="dbInbounds"
-        @saved="refresh" />
       <InboundInfoModal v-model:open="infoOpen" :db-inbound="infoDbInbound" :client-index="infoClientIndex"
         :remark-model="remarkModel" :expire-diff="expireDiff" :traffic-diff="trafficDiff"
         :ip-limit-enable="ipLimitEnable" :tg-bot-enable="tgBotEnable" :sub-settings="subSettings"

@@ -9,8 +9,6 @@ import {
   MoreOutlined,
   EditOutlined,
   QrcodeOutlined,
-  UserAddOutlined,
-  UsergroupAddOutlined,
   CopyOutlined,
   FileDoneOutlined,
   ExportOutlined,
@@ -21,14 +19,12 @@ import {
   BlockOutlined,
   DeleteOutlined,
   InfoCircleOutlined,
-  RightOutlined,
 } from '@ant-design/icons-vue';
 
 import { HttpUtil, ObjectUtil, SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
 import { DBInbound } from '@/models/dbinbound.js';
 import { Inbound } from '@/models/inbound.js';
 import InfinityIcon from '@/components/InfinityIcon.vue';
-import ClientRowTable from './ClientRowTable.vue';
 import { useDatepicker } from '@/composables/useDatepicker.js';
 
 const { datepicker } = useDatepicker();
@@ -58,14 +54,6 @@ const emit = defineEmits([
   'add-inbound',
   'general-action',
   'row-action',
-  // Per-client events surfaced from the expand-row table.
-  'edit-client',
-  'qrcode-client',
-  'info-client',
-  'reset-traffic-client',
-  'delete-client',
-  'delete-clients',
-  'toggle-enable-client',
 ]);
 
 // ============ Toolbar / search & filter =============================
@@ -249,19 +237,6 @@ const desktopColumns = computed(() => {
 });
 const columns = computed(() => desktopColumns.value);
 
-// Mobile expansion state — replaces a-table's expandable() since the
-// mobile branch renders a hand-rolled card list rather than a table.
-const expandedIds = ref(new Set());
-function toggleExpanded(id) {
-  const next = new Set(expandedIds.value);
-  if (next.has(id)) next.delete(id);
-  else next.add(id);
-  expandedIds.value = next;
-}
-function isExpanded(id) {
-  return expandedIds.value.has(id);
-}
-
 const statsRecord = ref(null);
 function openStats(record) {
   statsRecord.value = record;
@@ -395,10 +370,8 @@ function showQrCodeMenu(dbInbound) {
         <div v-if="visibleInbounds.length === 0" class="card-empty">—</div>
 
         <div v-for="record in sortedInbounds" :key="record.id" class="inbound-card">
-          <!-- Header: chevron (multi-user only) + id + remark + info + enable + actions -->
-          <div class="card-head" @click="record.isMultiUser() && toggleExpanded(record.id)">
-            <RightOutlined v-if="record.isMultiUser()" class="card-expand"
-              :class="{ 'is-expanded': isExpanded(record.id) }" />
+          <!-- Header: id + remark + info + enable + actions -->
+          <div class="card-head">
             <span class="card-id">#{{ record.id }}</span>
             <span class="tag-name">{{ record.remark }}</span>
             <div class="card-actions" @click.stop>
@@ -417,15 +390,6 @@ function showQrCodeMenu(dbInbound) {
                       <QrcodeOutlined /> {{ t('qrCode') }}
                     </a-menu-item>
                     <template v-if="record.isMultiUser()">
-                      <a-menu-item key="addClient">
-                        <UserAddOutlined /> {{ t('pages.clients.add') }}
-                      </a-menu-item>
-                      <a-menu-item key="addBulkClient">
-                        <UsergroupAddOutlined /> {{ t('pages.clients.bulk') }}
-                      </a-menu-item>
-                      <a-menu-item key="copyClients">
-                        <CopyOutlined /> {{ t('pages.clients.copyFromInbound') }}
-                      </a-menu-item>
                       <a-menu-item key="resetClients">
                         <FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}
                       </a-menu-item>
@@ -460,18 +424,6 @@ function showQrCodeMenu(dbInbound) {
                 </template>
               </a-dropdown>
             </div>
-          </div>
-
-          <!-- Expanded client list (multi-user only) -->
-          <div v-if="record.isMultiUser() && isExpanded(record.id)" class="card-clients">
-            <ClientRowTable :db-inbound="record" :is-mobile="true" :traffic-diff="trafficDiff" :expire-diff="expireDiff"
-              :online-clients="onlineClients" :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme"
-              :page-size="pageSize" :total-client-count="clientCount[record.id]?.clients || 0"
-              :stats-version="statsVersion" @edit-client="(p) => emit('edit-client', p)"
-              @qrcode-client="(p) => emit('qrcode-client', p)" @info-client="(p) => emit('info-client', p)"
-              @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
-              @delete-client="(p) => emit('delete-client', p)" @delete-clients="(p) => emit('delete-clients', p)"
-              @toggle-enable-client="(p) => emit('toggle-enable-client', p)" />
           </div>
         </div>
       </div>
@@ -542,21 +494,7 @@ function showQrCodeMenu(dbInbound) {
       <!-- ====================== Desktop: a-table ======================== -->
       <a-table v-else :columns="columns" :data-source="sortedInbounds" :row-key="(r) => r.id"
         :pagination="paginationFor(sortedInbounds)" :scroll="{ x: 1000 }" :style="{ marginTop: '10px' }" size="small"
-        :row-class-name="(r) => (r.isMultiUser() ? '' : 'hide-expand-icon')" @change="onTableChange">
-        <!-- Per-inbound client list, expanded by clicking the row's
-             default expand chevron. Hidden via row-class-name for
-             non-multi-user inbounds (matches legacy behavior). -->
-        <template #expandedRowRender="{ record }">
-          <ClientRowTable v-if="record.isMultiUser()" :db-inbound="record" :is-mobile="isMobile"
-            :traffic-diff="trafficDiff" :expire-diff="expireDiff" :online-clients="onlineClients"
-            :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme" :page-size="pageSize"
-            :total-client-count="clientCount[record.id]?.clients || 0" :stats-version="statsVersion"
-            @edit-client="(p) => emit('edit-client', p)" @qrcode-client="(p) => emit('qrcode-client', p)"
-            @info-client="(p) => emit('info-client', p)" @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
-            @delete-client="(p) => emit('delete-client', p)" @delete-clients="(p) => emit('delete-clients', p)"
-            @toggle-enable-client="(p) => emit('toggle-enable-client', p)" />
-        </template>
-
+        @change="onTableChange">
         <template #bodyCell="{ column, record }">
           <!-- ============== Action dropdown ============== -->
           <template v-if="column.key === 'action'">
@@ -579,15 +517,6 @@ function showQrCodeMenu(dbInbound) {
                       <QrcodeOutlined /> {{ t('qrCode') }}
                     </a-menu-item>
                     <template v-if="record.isMultiUser()">
-                      <a-menu-item key="addClient">
-                        <UserAddOutlined /> {{ t('pages.clients.add') }}
-                      </a-menu-item>
-                      <a-menu-item key="addBulkClient">
-                        <UsergroupAddOutlined /> {{ t('pages.clients.bulk') }}
-                      </a-menu-item>
-                      <a-menu-item key="copyClients">
-                        <CopyOutlined /> {{ t('pages.clients.copyFromInbound') }}
-                      </a-menu-item>
                       <a-menu-item key="resetClients">
                         <FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}
                       </a-menu-item>
@@ -789,23 +718,6 @@ function showQrCodeMenu(dbInbound) {
   color: #ff4d4f;
 }
 
-/* Hide the expand chevron on rows whose inbound has no client list
- * (HTTP/Mixed/Tunnel/WireGuard single-config). */
-:deep(.hide-expand-icon .ant-table-row-expand-icon) {
-  visibility: hidden;
-}
-
-/* Push the expand chevron away from the table's left edge so it has
- * a little breathing room instead of being flush against the corner. */
-:deep(.ant-table-tbody .ant-table-cell-with-append) {
-  padding-left: 12px;
-}
-
-:deep(.ant-table-row-expand-icon) {
-  margin-inline-end: 10px;
-  margin-inline-start: 4px;
-}
-
 /* Round the table's outer corners — AD-Vue gives .ant-table the radius
  * token, but the inner header strip and footer touch the edges, so clip
  * them here. */
@@ -890,17 +802,6 @@ function showQrCodeMenu(dbInbound) {
   flex-shrink: 0;
 }
 
-.card-expand {
-  font-size: 12px;
-  opacity: 0.6;
-  transition: transform 150ms ease;
-  flex-shrink: 0;
-}
-
-.card-expand.is-expanded {
-  transform: rotate(90deg);
-}
-
 .card-stats {
   display: flex;
   flex-direction: column;
@@ -927,11 +828,6 @@ function showQrCodeMenu(dbInbound) {
   margin: 0;
 }
 
-.card-clients {
-  margin-top: 4px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(128, 128, 128, 0.15);
-}
 
 .card-empty {
   text-align: center;

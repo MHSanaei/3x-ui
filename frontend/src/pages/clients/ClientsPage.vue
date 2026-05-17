@@ -10,8 +10,6 @@ import {
   InfoCircleOutlined,
   QrcodeOutlined,
   RetweetOutlined,
-  ControlOutlined,
-  DownOutlined,
   MoreOutlined,
   UsergroupAddOutlined,
 } from '@ant-design/icons-vue';
@@ -218,15 +216,14 @@ function onShowQr(row) {
 
 function onResetAllTraffics() {
   Modal.confirm({
-    title: t('pages.clients.resetAllTrafficsTitle') || 'Reset all client traffic?',
-    content: t('pages.clients.resetAllTrafficsContent')
-      || 'Every client’s up/down counter drops to zero. Quotas and expiry are not affected.',
+    title: t('pages.clients.resetAllTrafficsTitle'),
+    content: t('pages.clients.resetAllTrafficsContent'),
     okText: t('reset') || 'Reset',
     okType: 'danger',
     cancelText: t('cancel'),
     onOk: async () => {
       const msg = await resetAllTraffics();
-      if (msg?.success) message.success(t('pages.clients.toasts.allTrafficsReset') || 'All client traffic reset');
+      if (msg?.success) message.success(t('pages.clients.toasts.allTrafficsReset'));
     },
   });
 }
@@ -340,23 +337,12 @@ const columns = computed(() => [
                         {{ t('pages.clients.deleteSelected', { count: selectedRowKeys.length })
                           || `Delete (${selectedRowKeys.length})` }}
                       </a-button>
-                      <a-dropdown :trigger="['click']">
-                        <a-button size="small">
-                          <ControlOutlined />
-                          <span v-if="!isMobile">{{ t('pages.clients.general') }}</span>
-                          <DownOutlined />
-                        </a-button>
-                        <template #overlay>
-                          <a-menu>
-                            <a-menu-item key="resetAllTraffics" @click="onResetAllTraffics">
-                              <RetweetOutlined />
-                              <span style="margin-left: 6px">
-                                {{ t('pages.clients.resetAllTraffics') }}
-                              </span>
-                            </a-menu-item>
-                          </a-menu>
+                      <a-button size="small" @click="onResetAllTraffics">
+                        <template #icon>
+                          <RetweetOutlined />
                         </template>
-                      </a-dropdown>
+                        <template v-if="!isMobile">{{ t('pages.clients.resetAllTraffics') }}</template>
+                      </a-button>
                     </div>
                   </template>
 
@@ -462,7 +448,8 @@ const columns = computed(() => [
                         <div class="card-head">
                           <a-checkbox :checked="isSelected(row.id)"
                             @change="(e) => toggleSelect(row.id, e.target.checked)" />
-                          <a-badge :color="row.enable && isOnline(row.email) ? 'green' : (row.enable ? 'default' : 'red')" />
+                          <a-badge
+                            :color="row.enable && isOnline(row.email) ? 'green' : (row.enable ? 'default' : 'red')" />
                           <span class="tag-name">{{ row.email }}</span>
                           <div class="card-actions" @click.stop>
                             <a-tooltip :title="t('pages.clients.moreInformation') || 'Info'">
