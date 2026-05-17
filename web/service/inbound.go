@@ -1253,10 +1253,9 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 		return false, common.NewError("Client Not Found In Inbound For ID:", clientId)
 	}
 
-	if len(newClients) == 0 {
-		return false, common.NewError("no client remained in Inbound")
+	if newClients == nil {
+		newClients = []any{}
 	}
-
 	settings["clients"] = newClients
 	newSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
@@ -3943,10 +3942,9 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 	if !found {
 		return false, common.NewError(fmt.Sprintf("client with email %s not found", email))
 	}
-	if len(newClients) == 0 {
-		return false, common.NewError("no client remained in Inbound")
+	if newClients == nil {
+		newClients = []any{}
 	}
-
 	settings["clients"] = newClients
 	newSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {

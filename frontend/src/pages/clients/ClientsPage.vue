@@ -31,6 +31,7 @@ const {
   onlines,
   loading,
   fetched,
+  subSettings,
   create,
   update,
   remove,
@@ -322,7 +323,7 @@ const columns = computed(() => [
                               <QrcodeOutlined />
                             </a-button>
                           </a-tooltip>
-                          <a-tooltip :title="t('pages.clients.info') || 'Info'">
+                          <a-tooltip :title="t('pages.clients.moreInformation') || 'More Information'">
                             <a-button size="small" type="text" @click="onShowInfo(record)">
                               <InfoCircleOutlined />
                             </a-button>
@@ -363,8 +364,8 @@ const columns = computed(() => [
       <ClientFormModal v-model:open="formOpen" :mode="formMode" :client="editingClient"
         :attached-ids="editingAttachedIds" :inbounds="inbounds" :save="onSave" />
       <ClientInfoModal v-model:open="infoOpen" :client="infoClient" :inbounds-by-id="inboundsById"
-        :is-online="infoClient ? isOnline(infoClient.email) : false" />
-      <ClientQrModal v-model:open="qrOpen" :client="qrClient" />
+        :is-online="infoClient ? isOnline(infoClient.email) : false" :sub-settings="subSettings" />
+      <ClientQrModal v-model:open="qrOpen" :client="qrClient" :sub-settings="subSettings" />
     </a-layout>
   </a-config-provider>
 </template>

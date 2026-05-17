@@ -102,6 +102,10 @@ function regenerateSubId() {
   form.subId = RandomUtil.randomLowerAndNum(16);
 }
 
+function regenerateEmail() {
+  form.email = RandomUtil.randomLowerAndNum(9);
+}
+
 async function onSubmit() {
   if (!form.email || form.email.trim() === '') {
     message.error(t('pages.clients.email') + ' *');
@@ -159,7 +163,10 @@ async function onSubmit() {
       <a-row :gutter="16">
         <a-col :span="12">
           <a-form-item :label="t('pages.clients.email')" required>
-            <a-input v-model:value="form.email" :placeholder="t('pages.clients.email')" />
+            <a-input-group compact style="display: flex">
+              <a-input v-model:value="form.email" :placeholder="t('pages.clients.email')" style="flex: 1" />
+              <a-button @click="regenerateEmail">↻</a-button>
+            </a-input-group>
           </a-form-item>
         </a-col>
         <a-col :span="12">

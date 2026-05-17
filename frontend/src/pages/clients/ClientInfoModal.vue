@@ -1,9 +1,9 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { SizeFormatter, IntlUtil, ClipboardManager } from '@/utils';
 import { CopyOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
+import { SizeFormatter, IntlUtil, ClipboardManager, HttpUtil } from '@/utils';
 
 const { t } = useI18n();
 
@@ -12,9 +12,16 @@ const props = defineProps({
   client: { type: Object, default: null },
   inboundsById: { type: Object, default: () => ({}) },
   isOnline: { type: Boolean, default: false },
+  subSettings: {
+    type: Object,
+    default: () => ({ enable: false, subURI: '', subJsonURI: '', subJsonEnable: false }),
+  },
 });
 
 const emit = defineEmits(['update:open']);
+
+const links = ref([]);
+const linksLoading = ref(false);
 
 const traffic = computed(() => props.client?.traffic || null);
 const totalBytes = computed(() => props.client?.totalGB || 0);
@@ -24,6 +31,21 @@ const remaining = computed(() => {
   const r = totalBytes.value - used.value;
   return r > 0 ? r : 0;
 });
+
+const subLink = computed(() => {
+  if (!props.client?.subId || !props.subSettings?.subURI) return '';
+  return props.subSettings.subURI + props.client.subId;
+});
+
+const subJsonLink = computed(() => {
+  if (!props.client?.subId) return '';
+  if (!props.subSettings?.subJsonEnable || !props.subSettings?.subJsonURI) return '';
+  return props.subSettings.subJsonURI + props.client.subId;
+});
+
+const showSubscription = computed(
+  () => !!(props.subSettings?.enable && props.client?.subId),
+);
 
 function expiryLabel(ts) {
   if (!ts || ts <= 0) return '∞';
@@ -40,11 +62,37 @@ function lastOnlineLabel(ts) {
   return IntlUtil.formatDate(ts);
 }
 
+function dateLabel(ts) {
+  if (!ts || ts <= 0) return '-';
+  return IntlUtil.formatDate(ts);
+}
+
 async function copyValue(text) {
   if (!text) return;
   const ok = await ClipboardManager.copyText(String(text));
   if (ok) message.success(t('copied'));
 }
+
+async function loadLinks() {
+  if (!props.client?.subId) {
+    links.value = [];
+    return;
+  }
+  linksLoading.value = true;
+  try {
+    const msg = await HttpUtil.get(
+      `/panel/api/inbounds/getSubLinks/${encodeURIComponent(props.client.subId)}`,
+    );
+    links.value = msg?.success && Array.isArray(msg.obj) ? msg.obj : [];
+  } finally {
+    linksLoading.value = false;
+  }
+}
+
+watch(() => props.open, (next) => {
+  if (next) loadLinks();
+  else links.value = [];
+});
 
 function close() {
   emit('update:open', false);
@@ -52,154 +100,319 @@ function close() {
 </script>
 
 <template>
-  <a-modal :open="open" :title="client ? client.email : t('info')" :footer="null" :width="560" @cancel="close">
-    <div v-if="client" class="info-grid">
-      <div class="row">
-        <span class="label">{{ t('online') }}</span>
-        <a-tag v-if="client.enable && isOnline" color="green">{{ t('online') }}</a-tag>
-        <a-tag v-else>{{ t('offline') }}</a-tag>
-        <span class="hint">{{ t('lastOnline') }}: {{ lastOnlineLabel(traffic?.lastOnline) }}</span>
-      </div>
+  <a-modal :open="open" :title="client ? client.email : t('info')" :footer="null" :width="640" @cancel="close">
+    <template v-if="client">
+      <table class="info-table block">
+        <tbody>
+          <tr>
+            <td>{{ t('pages.clients.online') || 'Online' }}</td>
+            <td>
+              <a-tag v-if="client.enable && isOnline" color="green">{{ t('pages.clients.online') || 'Online' }}</a-tag>
+              <a-tag v-else>{{ t('pages.clients.offline') || 'Offline' }}</a-tag>
+              <span class="hint">{{ t('lastOnline') }}: {{ lastOnlineLabel(traffic?.lastOnline) }}</span>
+            </td>
+          </tr>
 
-      <div class="row">
-        <span class="label">{{ t('enabled') }}</span>
-        <a-tag :color="client.enable ? 'green' : 'default'">
-          {{ client.enable ? t('enabled') : t('disabled') }}
-        </a-tag>
-      </div>
+          <tr>
+            <td>{{ t('status') }}</td>
+            <td>
+              <a-tag :color="client.enable ? 'green' : 'default'">
+                {{ client.enable ? t('enabled') : t('disabled') }}
+              </a-tag>
+            </td>
+          </tr>
 
-      <div class="row">
-        <span class="label">subId</span>
-        <span class="value mono">{{ client.subId || '-' }}</span>
-        <a-button v-if="client.subId" size="small" type="text" @click="copyValue(client.subId)">
-          <CopyOutlined />
-        </a-button>
-      </div>
+          <tr>
+            <td>{{ t('pages.clients.email') || 'Email' }}</td>
+            <td>
+              <a-tag v-if="client.email" color="green">{{ client.email }}</a-tag>
+              <a-tag v-else color="red">{{ t('none') }}</a-tag>
+            </td>
+          </tr>
 
-      <div v-if="client.uuid" class="row">
-        <span class="label">UUID</span>
-        <span class="value mono">{{ client.uuid }}</span>
-        <a-button size="small" type="text" @click="copyValue(client.uuid)">
-          <CopyOutlined />
-        </a-button>
-      </div>
+          <tr>
+            <td>subId</td>
+            <td>
+              <a-tag class="info-large-tag">{{ client.subId || '-' }}</a-tag>
+              <a-button v-if="client.subId" size="small" type="text" @click="copyValue(client.subId)">
+                <CopyOutlined />
+              </a-button>
+            </td>
+          </tr>
 
-      <div v-if="client.password" class="row">
-        <span class="label">Password</span>
-        <span class="value mono">{{ client.password }}</span>
-        <a-button size="small" type="text" @click="copyValue(client.password)">
-          <CopyOutlined />
-        </a-button>
-      </div>
+          <tr v-if="client.uuid">
+            <td>UUID</td>
+            <td>
+              <a-tag class="info-large-tag">{{ client.uuid }}</a-tag>
+              <a-button size="small" type="text" @click="copyValue(client.uuid)">
+                <CopyOutlined />
+              </a-button>
+            </td>
+          </tr>
 
-      <div v-if="client.auth" class="row">
-        <span class="label">Auth</span>
-        <span class="value mono">{{ client.auth }}</span>
-        <a-button size="small" type="text" @click="copyValue(client.auth)">
-          <CopyOutlined />
-        </a-button>
-      </div>
+          <tr v-if="client.password">
+            <td>{{ t('password') }}</td>
+            <td>
+              <a-tag class="info-large-tag">{{ client.password }}</a-tag>
+              <a-button size="small" type="text" @click="copyValue(client.password)">
+                <CopyOutlined />
+              </a-button>
+            </td>
+          </tr>
 
-      <div class="row">
-        <span class="label">{{ t('pages.inbounds.traffic') }}</span>
-        <a-tag>
-          ↑ {{ SizeFormatter.sizeFormat(traffic?.up || 0) }}
-          / ↓ {{ SizeFormatter.sizeFormat(traffic?.down || 0) }}
-        </a-tag>
-        <span class="hint">
-          {{ SizeFormatter.sizeFormat(used) }}
-          /
-          {{ totalBytes > 0 ? SizeFormatter.sizeFormat(totalBytes) : '∞' }}
-        </span>
-      </div>
+          <tr v-if="client.auth">
+            <td>Auth</td>
+            <td>
+              <a-tag class="info-large-tag">{{ client.auth }}</a-tag>
+              <a-button size="small" type="text" @click="copyValue(client.auth)">
+                <CopyOutlined />
+              </a-button>
+            </td>
+          </tr>
 
-      <div class="row">
-        <span class="label">{{ t('remained') || 'Remaining' }}</span>
-        <a-tag v-if="remaining < 0" color="purple">∞</a-tag>
-        <a-tag v-else :color="remaining > 0 ? '' : 'red'">
-          {{ SizeFormatter.sizeFormat(remaining) }}
-        </a-tag>
-      </div>
+          <tr>
+            <td>Flow</td>
+            <td>
+              <a-tag v-if="client.flow">{{ client.flow }}</a-tag>
+              <a-tag v-else color="orange">{{ t('none') }}</a-tag>
+            </td>
+          </tr>
 
-      <div class="row">
-        <span class="label">{{ t('pages.inbounds.allTimeTraffic') || 'All-time' }}</span>
-        <a-tag>{{ SizeFormatter.sizeFormat(traffic?.allTime || (used)) }}</a-tag>
-      </div>
+          <tr>
+            <td>{{ t('pages.inbounds.traffic') }}</td>
+            <td>
+              <a-tag>
+                ↑ {{ SizeFormatter.sizeFormat(traffic?.up || 0) }}
+                / ↓ {{ SizeFormatter.sizeFormat(traffic?.down || 0) }}
+              </a-tag>
+              <span class="hint">
+                {{ SizeFormatter.sizeFormat(used) }}
+                /
+                {{ totalBytes > 0 ? SizeFormatter.sizeFormat(totalBytes) : '∞' }}
+              </span>
+            </td>
+          </tr>
 
-      <div class="row">
-        <span class="label">{{ t('pages.inbounds.expireDate') || 'Expiry' }}</span>
-        <a-tag v-if="!client.expiryTime || client.expiryTime <= 0" color="purple">∞</a-tag>
-        <a-tag v-else>{{ expiryLabel(client.expiryTime) }}</a-tag>
-        <span v-if="client.expiryTime > 0" class="hint">{{ expiryRelative(client.expiryTime) }}</span>
-      </div>
+          <tr>
+            <td>{{ t('remained') || 'Remaining' }}</td>
+            <td>
+              <a-tag v-if="remaining < 0" color="purple">∞</a-tag>
+              <a-tag v-else :color="remaining > 0 ? '' : 'red'">
+                {{ SizeFormatter.sizeFormat(remaining) }}
+              </a-tag>
+            </td>
+          </tr>
 
-      <div class="row">
-        <span class="label">IP limit</span>
-        <a-tag v-if="!client.limitIp">∞</a-tag>
-        <a-tag v-else>{{ client.limitIp }}</a-tag>
-      </div>
+          <tr>
+            <td>{{ t('pages.inbounds.allTimeTraffic') || 'All-time' }}</td>
+            <td>
+              <a-tag>{{ SizeFormatter.sizeFormat(traffic?.allTime || used) }}</a-tag>
+            </td>
+          </tr>
 
-      <div v-if="client.comment" class="row">
-        <span class="label">{{ t('pages.clients.comment') || 'Comment' }}</span>
-        <span class="value">{{ client.comment }}</span>
-      </div>
+          <tr>
+            <td>{{ t('pages.inbounds.expireDate') || 'Expiry' }}</td>
+            <td>
+              <a-tag v-if="!client.expiryTime || client.expiryTime <= 0" color="purple">∞</a-tag>
+              <a-tag v-else>{{ expiryLabel(client.expiryTime) }}</a-tag>
+              <span v-if="client.expiryTime > 0" class="hint">{{ expiryRelative(client.expiryTime) }}</span>
+            </td>
+          </tr>
 
-      <div class="row">
-        <span class="label">{{ t('pages.clients.attachedInbounds') || 'Attached inbounds' }}</span>
-        <div class="chips">
-          <a-tag v-for="id in (client.inboundIds || [])" :key="id" color="blue">
-            <template v-if="inboundsById[id]">
-              {{ inboundsById[id].remark || `#${id}` }} ({{ inboundsById[id].protocol }}:{{ inboundsById[id].port }})
-            </template>
-            <template v-else>#{{ id }}</template>
-          </a-tag>
-          <span v-if="!client.inboundIds || client.inboundIds.length === 0" class="hint">—</span>
+          <tr>
+            <td>IP limit</td>
+            <td>
+              <a-tag v-if="!client.limitIp">∞</a-tag>
+              <a-tag v-else>{{ client.limitIp }}</a-tag>
+            </td>
+          </tr>
+
+          <tr>
+            <td>{{ t('pages.inbounds.createdAt') || 'Created' }}</td>
+            <td>
+              <a-tag>{{ dateLabel(client.createdAt) }}</a-tag>
+            </td>
+          </tr>
+
+          <tr>
+            <td>{{ t('pages.inbounds.updatedAt') || 'Updated' }}</td>
+            <td>
+              <a-tag>{{ dateLabel(client.updatedAt) }}</a-tag>
+            </td>
+          </tr>
+
+          <tr v-if="client.comment">
+            <td>{{ t('pages.clients.comment') || 'Comment' }}</td>
+            <td>
+              <a-tag class="info-large-tag">{{ client.comment }}</a-tag>
+            </td>
+          </tr>
+
+          <tr>
+            <td>{{ t('pages.clients.attachedInbounds') || 'Attached inbounds' }}</td>
+            <td>
+              <div class="chips">
+                <a-tag v-for="id in (client.inboundIds || [])" :key="id" color="blue">
+                  <template v-if="inboundsById[id]">
+                    {{ inboundsById[id].remark || `#${id}` }} ({{ inboundsById[id].protocol }}:{{ inboundsById[id].port }})
+                  </template>
+                  <template v-else>#{{ id }}</template>
+                </a-tag>
+                <span v-if="!client.inboundIds || client.inboundIds.length === 0" class="hint">—</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <template v-if="links.length > 0">
+        <a-divider>{{ t('pages.inbounds.copyLink') || 'URL' }}</a-divider>
+        <div v-for="(link, idx) in links" :key="idx" class="link-panel">
+          <div class="link-panel-header">
+            <a-tag color="green">{{ `${t('pages.clients.link') || 'Link'} ${idx + 1}` }}</a-tag>
+            <a-tooltip :title="t('copy')">
+              <a-button size="small" @click="copyValue(link)">
+                <template #icon>
+                  <CopyOutlined />
+                </template>
+              </a-button>
+            </a-tooltip>
+          </div>
+          <code class="link-panel-text">{{ link }}</code>
         </div>
-      </div>
-    </div>
+      </template>
+
+      <template v-if="showSubscription && subLink">
+        <a-divider>{{ t('subscription.title') || 'Subscription info' }}</a-divider>
+        <div class="link-panel">
+          <div class="link-panel-header">
+            <a-tag color="green">{{ t('subscription.title') || 'Subscription info' }}</a-tag>
+            <a-tooltip :title="t('copy')">
+              <a-button size="small" @click="copyValue(subLink)">
+                <template #icon>
+                  <CopyOutlined />
+                </template>
+              </a-button>
+            </a-tooltip>
+          </div>
+          <a :href="subLink" target="_blank" rel="noopener noreferrer" class="link-panel-anchor">{{ subLink }}</a>
+        </div>
+
+        <div v-if="subJsonLink" class="link-panel">
+          <div class="link-panel-header">
+            <a-tag color="green">JSON</a-tag>
+            <a-tooltip :title="t('copy')">
+              <a-button size="small" @click="copyValue(subJsonLink)">
+                <template #icon>
+                  <CopyOutlined />
+                </template>
+              </a-button>
+            </a-tooltip>
+          </div>
+          <a :href="subJsonLink" target="_blank" rel="noopener noreferrer" class="link-panel-anchor">{{ subJsonLink }}</a>
+        </div>
+      </template>
+    </template>
   </a-modal>
 </template>
 
 <style scoped>
-.info-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+.info-table.block {
+  margin-bottom: 10px;
 }
 
-.label {
-  min-width: 120px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.6;
-  flex-shrink: 0;
+.info-table td {
+  padding: 4px 8px;
+  vertical-align: top;
 }
 
-.value {
-  word-break: break-all;
+.info-table td:first-child {
+  width: 140px;
+  font-size: 13px;
+  opacity: 0.75;
+  white-space: nowrap;
 }
 
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+.info-large-tag {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
 }
 
 .hint {
   font-size: 12px;
   opacity: 0.55;
+  margin-left: 6px;
 }
 
 .chips {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.link-panel {
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.link-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.link-panel-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  word-break: break-all;
+  white-space: pre-wrap;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  user-select: all;
+}
+
+:global(body.dark) .link-panel-text {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.link-panel-anchor {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  word-break: break-all;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  color: var(--ant-color-primary, #1677ff);
+  text-decoration: underline;
+  text-decoration-color: rgba(22, 119, 255, 0.4);
+  transition: background 120ms ease, text-decoration-color 120ms ease;
+}
+
+.link-panel-anchor:hover {
+  background: rgba(22, 119, 255, 0.08);
+  text-decoration-color: var(--ant-color-primary, #1677ff);
+}
+
+:global(body.dark) .link-panel-anchor {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:global(body.dark) .link-panel-anchor:hover {
+  background: rgba(22, 119, 255, 0.16);
 }
 </style>

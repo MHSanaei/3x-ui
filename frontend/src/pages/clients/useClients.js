@@ -10,6 +10,7 @@ export function useClients() {
   const onlines = ref([]);
   const loading = ref(false);
   const fetched = ref(false);
+  const subSettings = ref({ enable: false, subURI: '', subJsonURI: '', subJsonEnable: false });
   let onlinesTimer = null;
 
   async function refresh() {
@@ -29,6 +30,18 @@ export function useClients() {
     } finally {
       loading.value = false;
     }
+  }
+
+  async function fetchSubSettings() {
+    const msg = await HttpUtil.post('/panel/setting/defaultSettings');
+    if (!msg?.success) return;
+    const s = msg.obj || {};
+    subSettings.value = {
+      enable: !!s.subEnable,
+      subURI: s.subURI || '',
+      subJsonURI: s.subJsonURI || '',
+      subJsonEnable: !!s.subJsonEnable,
+    };
   }
 
   async function refreshOnlines() {
@@ -104,7 +117,7 @@ export function useClients() {
   }
 
   onMounted(async () => {
-    await refresh();
+    await Promise.all([refresh(), fetchSubSettings()]);
     refreshOnlines();
     onlinesTimer = setInterval(refreshOnlines, ONLINES_POLL_MS);
   });
@@ -119,6 +132,7 @@ export function useClients() {
     onlines,
     loading,
     fetched,
+    subSettings,
     refresh,
     refreshOnlines,
     create,
