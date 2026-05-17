@@ -146,23 +146,42 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				flow = "xtls-rprx-vision"
 			}
 			entry := map[string]any{"email": c.Email}
-			if c.ID != "" {
-				entry["id"] = c.ID
-			}
-			if c.Password != "" {
-				entry["password"] = c.Password
-			}
-			if flow != "" {
-				entry["flow"] = flow
-			}
-			if c.Auth != "" {
-				entry["auth"] = c.Auth
-			}
-			if c.Security != "" {
-				entry["method"] = c.Security
-			}
-			if c.Reverse != nil {
-				entry["reverse"] = c.Reverse
+			switch inbound.Protocol {
+			case model.VLESS, model.PortFallback:
+				if c.ID != "" {
+					entry["id"] = c.ID
+				}
+				if flow != "" {
+					entry["flow"] = flow
+				}
+				if c.Reverse != nil {
+					entry["reverse"] = c.Reverse
+				}
+			case model.VMESS:
+				if c.ID != "" {
+					entry["id"] = c.ID
+				}
+				if c.Security != "" {
+					entry["security"] = c.Security
+				}
+			case model.Trojan:
+				if c.Password != "" {
+					entry["password"] = c.Password
+				}
+				if flow != "" {
+					entry["flow"] = flow
+				}
+			case model.Shadowsocks:
+				if c.Password != "" {
+					entry["password"] = c.Password
+				}
+				if c.Security != "" {
+					entry["method"] = c.Security
+				}
+			case model.Hysteria, model.Hysteria2:
+				if c.Auth != "" {
+					entry["auth"] = c.Auth
+				}
 			}
 			finalClients = append(finalClients, entry)
 		}
