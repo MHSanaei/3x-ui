@@ -629,7 +629,7 @@ func (t *Tgbot) OnReceive() {
 					if checkAdmin(message.From.ID) {
 						for _, sharedUser := range message.UsersShared.Users {
 							userID := sharedUser.UserID
-							needRestart, err := t.inboundService.SetClientTelegramUserID(message.UsersShared.RequestID, userID)
+							needRestart, err := t.clientService.SetClientTelegramUserID(&t.inboundService, message.UsersShared.RequestID, userID)
 							if needRestart {
 								t.xrayService.SetToNeedRestart()
 							}
@@ -900,7 +900,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				if len(dataArray) == 3 {
 					limitTraffic, err := strconv.Atoi(dataArray[2])
 					if err == nil {
-						needRestart, err := t.inboundService.ResetClientTrafficLimitByEmail(email, limitTraffic)
+						needRestart, err := t.clientService.ResetClientTrafficLimitByEmail(&t.inboundService, email, limitTraffic)
 						if needRestart {
 							t.xrayService.SetToNeedRestart()
 						}
@@ -1109,7 +1109,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 							}
 
 						}
-						needRestart, err := t.inboundService.ResetClientExpiryTimeByEmail(email, date)
+						needRestart, err := t.clientService.ResetClientExpiryTimeByEmail(&t.inboundService, email, date)
 						if needRestart {
 							t.xrayService.SetToNeedRestart()
 						}
@@ -1306,7 +1306,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				if len(dataArray) == 3 {
 					count, err := strconv.Atoi(dataArray[2])
 					if err == nil {
-						needRestart, err := t.inboundService.ResetClientIpLimitByEmail(email, count)
+						needRestart, err := t.clientService.ResetClientIpLimitByEmail(&t.inboundService, email, count)
 						if needRestart {
 							t.xrayService.SetToNeedRestart()
 						}
@@ -1520,7 +1520,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
 					return
 				}
-				needRestart, err := t.inboundService.SetClientTelegramUserID(traffic.Id, EmptyTelegramUserID)
+				needRestart, err := t.clientService.SetClientTelegramUserID(&t.inboundService, traffic.Id, EmptyTelegramUserID)
 				if needRestart {
 					t.xrayService.SetToNeedRestart()
 				}
@@ -1541,7 +1541,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				)
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.GetMessageID(), inlineKeyboard)
 			case "toggle_enable_c":
-				enabled, needRestart, err := t.inboundService.ToggleClientEnableByEmail(email)
+				enabled, needRestart, err := t.clientService.ToggleClientEnableByEmail(&t.inboundService, email)
 				if needRestart {
 					t.xrayService.SetToNeedRestart()
 				}
@@ -3115,7 +3115,7 @@ func (t *Tgbot) clientInfoMsg(
 	}
 
 	enabled := ""
-	isEnabled, err := t.inboundService.checkIsEnabledByEmail(traffic.Email)
+	isEnabled, err := t.clientService.checkIsEnabledByEmail(&t.inboundService, traffic.Email)
 	if err != nil {
 		logger.Warning(err)
 		enabled = t.I18nBot("tgbot.wentWrong")

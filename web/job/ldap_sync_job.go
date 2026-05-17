@@ -222,7 +222,7 @@ func (j *LdapSyncJob) batchSetEnable(ib *model.Inbound, emails []string, enable 
 	restartNeeded := false
 	changed := 0
 	for _, email := range emails {
-		ok, needRestart, err := j.inboundService.SetClientEnableByEmail(email, enable)
+		ok, needRestart, err := j.clientService.SetClientEnableByEmail(&j.inboundService, email, enable)
 		if err != nil {
 			logger.Warningf("Batch set enable failed for %s in inbound %s: %v", email, ib.Tag, err)
 			continue

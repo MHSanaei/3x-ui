@@ -261,24 +261,6 @@ func (a *InboundController) resetAllTraffics(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.resetAllTrafficSuccess"), nil)
 }
 
-// resetAllClientTraffics resets traffic counters for all clients in a specific inbound.
-func (a *InboundController) resetAllClientTraffics(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
-		return
-	}
-
-	err = a.inboundService.ResetAllClientTraffics(id)
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-		return
-	} else {
-		a.xrayService.SetToNeedRestart()
-	}
-	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.resetAllClientTrafficSuccess"), nil)
-}
-
 // importInbound imports an inbound configuration from provided data.
 func (a *InboundController) importInbound(c *gin.Context) {
 	inbound := &model.Inbound{}
@@ -372,4 +354,3 @@ func (a *InboundController) setFallbackChildren(c *gin.Context) {
 	a.xrayService.SetToNeedRestart()
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
 }
-
