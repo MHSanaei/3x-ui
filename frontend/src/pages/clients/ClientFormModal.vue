@@ -33,6 +33,7 @@ function emptyForm() {
     password: '',
     auth: '',
     flow: '',
+    reverseTag: '',
     totalGB: 0,
     expiryTime: null,
     limitIp: 0,
@@ -56,6 +57,7 @@ watch(
       form.password = props.client.password || '';
       form.auth = props.client.auth || '';
       form.flow = props.client.flow || '';
+      form.reverseTag = props.client.reverse?.tag || '';
       form.totalGB = bytesToGB(props.client.totalGB || 0);
       form.expiryTime = props.client.expiryTime ? dayjs(props.client.expiryTime) : null;
       form.limitIp = props.client.limitIp || 0;
@@ -108,6 +110,24 @@ const showFlow = computed(() =>
 
 watch(showFlow, (next) => {
   if (!next) form.flow = '';
+});
+
+const vlessLikeIds = computed(() => {
+  const ids = new Set();
+  for (const row of props.inbounds || []) {
+    if (row && (row.protocol === 'vless' || row.protocol === 'portfallback')) {
+      ids.add(row.id);
+    }
+  }
+  return ids;
+});
+
+const showReverseTag = computed(() =>
+  (form.inboundIds || []).some((id) => vlessLikeIds.value.has(id)),
+);
+
+watch(showReverseTag, (next) => {
+  if (!next) form.reverseTag = '';
 });
 
 const clientIps = ref([]);
@@ -184,6 +204,10 @@ async function onSubmit() {
     comment: form.comment,
     enable: !!form.enable,
   };
+  const reverseTag = showReverseTag.value ? (form.reverseTag || '').trim() : '';
+  if (reverseTag) {
+    clientPayload.reverse = { tag: reverseTag };
+  }
 
   submitting.value = true;
   try {
@@ -271,17 +295,6 @@ async function onSubmit() {
         </a-col>
       </a-row>
 
-      <a-row v-if="showFlow" :gutter="16">
-        <a-col :span="12">
-          <a-form-item label="Flow">
-            <a-select v-model:value="form.flow">
-              <a-select-option value="">none</a-select-option>
-              <a-select-option v-for="k in FLOW_OPTIONS" :key="k" :value="k">{{ k }}</a-select-option>
-            </a-select>
-          </a-form-item>
-        </a-col>
-      </a-row>
-
       <a-row :gutter="16">
         <a-col :span="12">
           <a-form-item :label="t('pages.clients.totalGB') || 'Total (GB, 0 = unlimited)'">
@@ -291,6 +304,22 @@ async function onSubmit() {
         <a-col :span="12">
           <a-form-item :label="t('pages.clients.expiryTime') || 'Expiry'">
             <a-date-picker v-model:value="form.expiryTime" show-time style="width: 100%" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+
+      <a-row v-if="showFlow || showReverseTag" :gutter="16">
+        <a-col v-if="showFlow" :span="12">
+          <a-form-item label="Flow">
+            <a-select v-model:value="form.flow">
+              <a-select-option value="">none</a-select-option>
+              <a-select-option v-for="k in FLOW_OPTIONS" :key="k" :value="k">{{ k }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+        <a-col v-if="showReverseTag" :span="12">
+          <a-form-item label="Reverse tag">
+            <a-input v-model:value="form.reverseTag" placeholder="Optional reverse tag" />
           </a-form-item>
         </a-col>
       </a-row>
