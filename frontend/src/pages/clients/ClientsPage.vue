@@ -428,15 +428,65 @@ function expiryColor(row) {
   return 'green';
 }
 
+const sortState = ref({ column: null, order: null });
+
+function sortableCol(col, key) {
+  return {
+    ...col,
+    sorter: true,
+    showSorterTooltip: false,
+    sortOrder: sortState.value.column === key ? sortState.value.order : null,
+    sortDirections: ['ascend', 'descend'],
+  };
+}
+
+const sortFns = {
+  enable: (a, b) => Number(a.enable) - Number(b.enable),
+  email: (a, b) => (a.email || '').localeCompare(b.email || ''),
+  inboundIds: (a, b) => (a.inboundIds?.length || 0) - (b.inboundIds?.length || 0),
+  traffic: (a, b) => {
+    const ua = (a.traffic?.up || 0) + (a.traffic?.down || 0);
+    const ub = (b.traffic?.up || 0) + (b.traffic?.down || 0);
+    return ua - ub;
+  },
+  remaining: (a, b) => {
+    const ra = a.totalGB > 0 ? a.totalGB - ((a.traffic?.up || 0) + (a.traffic?.down || 0)) : Infinity;
+    const rb = b.totalGB > 0 ? b.totalGB - ((b.traffic?.up || 0) + (b.traffic?.down || 0)) : Infinity;
+    return ra - rb;
+  },
+  expiryTime: (a, b) => {
+    const ea = a.expiryTime > 0 ? a.expiryTime : Infinity;
+    const eb = b.expiryTime > 0 ? b.expiryTime : Infinity;
+    return ea - eb;
+  },
+};
+
+const sortedClients = computed(() => {
+  const { column, order } = sortState.value;
+  const rows = filteredClients.value;
+  if (!column || !order) return rows;
+  const fn = sortFns[column];
+  if (!fn) return rows;
+  const sorted = [...rows].sort(fn);
+  return order === 'descend' ? sorted.reverse() : sorted;
+});
+
+function onTableChange(_pag, _filters, sorter) {
+  sortState.value = {
+    column: sorter?.columnKey || sorter?.field || null,
+    order: sorter?.order || null,
+  };
+}
+
 const columns = computed(() => [
   { title: t('pages.clients.actions') || 'Actions', key: 'actions', width: 200 },
-  { title: t('pages.clients.enabled') || 'Enabled', key: 'enable', width: 80 },
+  sortableCol({ title: t('pages.clients.enabled') || 'Enabled', key: 'enable', width: 80 }, 'enable'),
   { title: t('pages.clients.online') || 'Online', key: 'online', width: 90 },
-  { title: t('pages.clients.client') || 'Client', key: 'email' },
-  { title: t('pages.clients.attachedInbounds') || 'Attached inbounds', key: 'inboundIds' },
-  { title: t('pages.clients.traffic') || 'Traffic', key: 'traffic' },
-  { title: t('pages.clients.remaining') || 'Remaining', key: 'remaining', width: 130 },
-  { title: t('pages.clients.duration') || 'Duration', key: 'expiryTime' },
+  sortableCol({ title: t('pages.clients.client') || 'Client', key: 'email' }, 'email'),
+  sortableCol({ title: t('pages.clients.attachedInbounds') || 'Attached inbounds', key: 'inboundIds' }, 'inboundIds'),
+  sortableCol({ title: t('pages.clients.traffic') || 'Traffic', key: 'traffic' }, 'traffic'),
+  sortableCol({ title: t('pages.clients.remaining') || 'Remaining', key: 'remaining', width: 130 }, 'remaining'),
+  sortableCol({ title: t('pages.clients.duration') || 'Duration', key: 'expiryTime' }, 'expiryTime'),
 ]);
 </script>
 
@@ -594,10 +644,10 @@ const columns = computed(() => [
                     </a-select>
                   </div>
 
-                  <a-table v-if="!isMobile" :columns="columns" :data-source="filteredClients" :loading="loading" row-key="email"
+                  <a-table v-if="!isMobile" :columns="columns" :data-source="sortedClients" :loading="loading" row-key="email"
                     :row-selection="rowSelection"
                     :pagination="{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }"
-                    size="small">
+                    size="small" @change="onTableChange">
                     <template #bodyCell="{ column, record }">
                       <template v-if="column.key === 'email'">
                         <div class="email-cell">
