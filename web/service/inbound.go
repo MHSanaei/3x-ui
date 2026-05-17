@@ -219,14 +219,6 @@ func (s *InboundService) getAllEmailSubIDs() (map[string]string, error) {
 	return result, nil
 }
 
-func lowerAll(in []string) []string {
-	out := make([]string, len(in))
-	for i, s := range in {
-		out[i] = strings.ToLower(s)
-	}
-	return out
-}
-
 // emailUsedByOtherInbounds reports whether email lives in any inbound other
 // than exceptInboundId. Empty email returns false.
 func (s *InboundService) emailUsedByOtherInbounds(email string, exceptInboundId int) (bool, error) {
@@ -1662,80 +1654,31 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 		return false, 0, nil
 	}
 
-	rowByEmail := make(map[string]*xray.ClientTraffic, len(depletedRows))
 	depletedEmails := make([]string, 0, len(depletedRows))
 	for i := range depletedRows {
 		if depletedRows[i].Email == "" {
 			continue
 		}
-		rowByEmail[strings.ToLower(depletedRows[i].Email)] = &depletedRows[i]
 		depletedEmails = append(depletedEmails, depletedRows[i].Email)
 	}
 
-	// Resolve inbound membership only for the depleted emails — pushing the
-	// filter into SQLite avoids dragging every panel client through Go for
-	// the common case where most clients are healthy.
-	var memberships []struct {
-		InboundId int
-		Tag       string
-		Email     string
-		SubID     string `gorm:"column:sub_id"`
+	type target struct {
+		Tag   string
+		Email string
 	}
+	var targets []target
 	if len(depletedEmails) > 0 {
 		err = tx.Raw(`
-			SELECT inbounds.id  AS inbound_id,
-			       inbounds.tag AS tag,
-			       JSON_EXTRACT(client.value, '$.email') AS email,
-			       JSON_EXTRACT(client.value, '$.subId') AS sub_id
-			FROM inbounds,
-				JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
-			WHERE LOWER(JSON_EXTRACT(client.value, '$.email')) IN ?
-			`, lowerAll(depletedEmails)).Scan(&memberships).Error
+			SELECT inbounds.tag AS tag, clients.email AS email
+			FROM clients
+			JOIN client_inbounds ON client_inbounds.client_id = clients.id
+			JOIN inbounds        ON inbounds.id = client_inbounds.inbound_id
+			WHERE inbounds.node_id IS NULL
+			  AND clients.email IN ?
+		`, depletedEmails).Scan(&targets).Error
 		if err != nil {
 			return false, 0, err
 		}
-	}
-
-	// Discover the row holder's subId per email. Only siblings sharing it
-	// get cascaded; legacy data where two identities reuse the same email
-	// stays isolated to the row owner.
-	holderSub := make(map[string]string, len(rowByEmail))
-	for _, m := range memberships {
-		email := strings.ToLower(strings.Trim(m.Email, "\""))
-		row, ok := rowByEmail[email]
-		if !ok || m.InboundId != row.InboundId {
-			continue
-		}
-		holderSub[email] = strings.Trim(m.SubID, "\"")
-	}
-
-	type target struct {
-		InboundId int
-		Tag       string
-		Email     string
-	}
-	var targets []target
-	for _, m := range memberships {
-		email := strings.ToLower(strings.Trim(m.Email, "\""))
-		row, ok := rowByEmail[email]
-		if !ok {
-			continue
-		}
-		expected, hasSub := holderSub[email]
-		mSub := strings.Trim(m.SubID, "\"")
-		switch {
-		case !hasSub || expected == "":
-			if m.InboundId != row.InboundId {
-				continue
-			}
-		case mSub != expected:
-			continue
-		}
-		targets = append(targets, target{
-			InboundId: m.InboundId,
-			Tag:       m.Tag,
-			Email:     strings.Trim(m.Email, "\""),
-		})
 	}
 
 	if p != nil && len(targets) > 0 {
@@ -1764,70 +1707,11 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 		return needRestart, count, err
 	}
 
-	if len(targets) == 0 {
-		return needRestart, count, nil
-	}
-
-	inboundEmailMap := make(map[int]map[string]struct{})
-	for _, t := range targets {
-		if inboundEmailMap[t.InboundId] == nil {
-			inboundEmailMap[t.InboundId] = make(map[string]struct{})
-		}
-		inboundEmailMap[t.InboundId][t.Email] = struct{}{}
-	}
-	inboundIds := make([]int, 0, len(inboundEmailMap))
-	for id := range inboundEmailMap {
-		inboundIds = append(inboundIds, id)
-	}
-	var inbounds []*model.Inbound
-	if err = tx.Model(model.Inbound{}).Where("id IN ?", inboundIds).Find(&inbounds).Error; err != nil {
-		logger.Warning("disableInvalidClients fetch inbounds:", err)
-		return needRestart, count, nil
-	}
-	dirty := make([]*model.Inbound, 0, len(inbounds))
-	for _, inbound := range inbounds {
-		settings := map[string]any{}
-		if jsonErr := json.Unmarshal([]byte(inbound.Settings), &settings); jsonErr != nil {
-			continue
-		}
-		clientsRaw, ok := settings["clients"].([]any)
-		if !ok {
-			continue
-		}
-		emailSet := inboundEmailMap[inbound.Id]
-		changed := false
-		for i := range clientsRaw {
-			c, ok := clientsRaw[i].(map[string]any)
-			if !ok {
-				continue
-			}
-			email, _ := c["email"].(string)
-			if _, shouldDisable := emailSet[email]; !shouldDisable {
-				continue
-			}
-			c["enable"] = false
-			if row, ok := rowByEmail[strings.ToLower(email)]; ok {
-				c["totalGB"] = row.Total
-				c["expiryTime"] = row.ExpiryTime
-			}
-			c["updated_at"] = now
-			clientsRaw[i] = c
-			changed = true
-		}
-		if !changed {
-			continue
-		}
-		settings["clients"] = clientsRaw
-		modifiedSettings, jsonErr := json.MarshalIndent(settings, "", "  ")
-		if jsonErr != nil {
-			continue
-		}
-		inbound.Settings = string(modifiedSettings)
-		dirty = append(dirty, inbound)
-	}
-	if len(dirty) > 0 {
-		if err = tx.Save(dirty).Error; err != nil {
-			logger.Warning("disableInvalidClients update inbound settings:", err)
+	if len(depletedEmails) > 0 {
+		if err := tx.Model(&model.ClientRecord{}).
+			Where("email IN ?", depletedEmails).
+			Updates(map[string]any{"enable": false, "updated_at": now}).Error; err != nil {
+			logger.Warning("disableInvalidClients update clients.enable:", err)
 		}
 	}
 
