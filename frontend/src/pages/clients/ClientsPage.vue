@@ -10,6 +10,8 @@ import {
   InfoCircleOutlined,
   QrcodeOutlined,
   RetweetOutlined,
+  ControlOutlined,
+  DownOutlined,
 } from '@ant-design/icons-vue';
 
 import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
@@ -35,7 +37,23 @@ const {
   attach,
   detach,
   resetTraffic,
+  resetAllTraffics,
+  setEnable,
 } = useClients();
+
+const togglingId = ref(null);
+
+async function onToggleEnable(row, next) {
+  togglingId.value = row.id;
+  try {
+    const msg = await setEnable(row, next);
+    if (!msg?.success) {
+      message.error(msg?.msg || t('somethingWentWrong'));
+    }
+  } finally {
+    togglingId.value = null;
+  }
+}
 
 const { isMobile } = useMediaQuery();
 const basePath = window.X_UI_BASE_PATH || '';
@@ -126,6 +144,21 @@ function onShowQr(row) {
   qrOpen.value = true;
 }
 
+function onResetAllTraffics() {
+  Modal.confirm({
+    title: t('pages.clients.resetAllTrafficsTitle') || 'Reset all client traffic?',
+    content: t('pages.clients.resetAllTrafficsContent')
+      || 'Every client’s up/down counter drops to zero. Quotas and expiry are not affected.',
+    okText: t('reset') || 'Reset',
+    okType: 'danger',
+    cancelText: t('cancel'),
+    onOk: async () => {
+      const msg = await resetAllTraffics();
+      if (msg?.success) message.success(t('pages.clients.toasts.allTrafficsReset') || 'All client traffic reset');
+    },
+  });
+}
+
 async function onSave(payload, meta) {
   if (!meta?.isEdit) {
     return create(payload);
@@ -190,14 +223,14 @@ function expiryColor(row) {
 }
 
 const columns = computed(() => [
-  { title: t('pages.inbounds.client.email') || 'Email', key: 'email' },
-  { title: t('online') || 'Online', key: 'online', width: 90 },
+  { title: t('pages.clients.actions') || 'Actions', key: 'actions', width: 200 },
+  { title: t('pages.clients.enabled') || 'Enabled', key: 'enable', width: 80 },
+  { title: t('pages.clients.online') || 'Online', key: 'online', width: 90 },
+  { title: t('pages.clients.client') || 'Client', key: 'email' },
   { title: t('pages.clients.attachedInbounds') || 'Attached inbounds', key: 'inboundIds' },
-  { title: t('pages.inbounds.traffic') || 'Traffic', key: 'traffic' },
-  { title: t('remained') || 'Remaining', key: 'remaining', width: 130 },
-  { title: t('pages.inbounds.expireDate') || 'Expiry', key: 'expiryTime' },
-  { title: t('enable') || 'Enable', key: 'enable', width: 90 },
-  { title: t('actions') || 'Actions', key: 'actions', width: 220 },
+  { title: t('pages.clients.traffic') || 'Traffic', key: 'traffic' },
+  { title: t('pages.clients.remaining') || 'Remaining', key: 'remaining', width: 130 },
+  { title: t('pages.clients.duration') || 'Duration', key: 'expiryTime' },
 ]);
 </script>
 
@@ -213,18 +246,37 @@ const columns = computed(() => [
 
             <a-row v-else :gutter="[isMobile ? 8 : 16, isMobile ? 8 : 12]">
               <a-col :span="24">
-                <a-card size="small" :title="t('menu.clients') || 'Clients'">
-                  <template #extra>
-                    <a-button type="primary" @click="onAdd">
-                      <template #icon>
-                        <PlusOutlined />
-                      </template>
-                      {{ t('add') }}
-                    </a-button>
+                <a-card size="small">
+                  <template #title>
+                    <div class="card-toolbar">
+                      <a-button type="primary" size="small" @click="onAdd">
+                        <template #icon>
+                          <PlusOutlined />
+                        </template>
+                        {{ t('pages.clients.addClients') }}
+                      </a-button>
+                      <a-dropdown :trigger="['click']">
+                        <a-button size="small">
+                          <ControlOutlined />
+                          <span>{{ t('pages.clients.general') }}</span>
+                          <DownOutlined />
+                        </a-button>
+                        <template #overlay>
+                          <a-menu>
+                            <a-menu-item key="resetAllTraffics" @click="onResetAllTraffics">
+                              <RetweetOutlined />
+                              <span style="margin-left: 6px">
+                                {{ t('pages.clients.resetAllTraffics') }}
+                              </span>
+                            </a-menu-item>
+                          </a-menu>
+                        </template>
+                      </a-dropdown>
+                    </div>
                   </template>
 
                   <a-table :columns="columns" :data-source="clients" :loading="loading" row-key="id"
-                    :pagination="{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10','20','50','100'] }"
+                    :pagination="{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }"
                     size="small">
                     <template #bodyCell="{ column, record }">
                       <template v-if="column.key === 'email'">
@@ -234,8 +286,10 @@ const columns = computed(() => [
                         </div>
                       </template>
                       <template v-else-if="column.key === 'online'">
-                        <a-tag v-if="record.enable && isOnline(record.email)" color="green">{{ t('online') || 'Online' }}</a-tag>
-                        <a-tag v-else>{{ t('offline') || 'Offline' }}</a-tag>
+                        <a-tag v-if="record.enable && isOnline(record.email)" color="green">{{ t('pages.clients.online')
+                          || 'Online'
+                        }}</a-tag>
+                        <a-tag v-else>{{ t('pages.clients.offline') || 'Offline' }}</a-tag>
                       </template>
                       <template v-else-if="column.key === 'inboundIds'">
                         <a-tag v-for="id in record.inboundIds" :key="id" color="blue" style="margin: 2px">
@@ -258,18 +312,17 @@ const columns = computed(() => [
                         </a-tooltip>
                       </template>
                       <template v-else-if="column.key === 'enable'">
-                        <a-tag :color="record.enable ? 'green' : 'default'">
-                          {{ record.enable ? t('enable') : t('disable') }}
-                        </a-tag>
+                        <a-switch :checked="record.enable" size="small" :loading="togglingId === record.id"
+                          @change="(next) => onToggleEnable(record, next)" />
                       </template>
                       <template v-else-if="column.key === 'actions'">
                         <a-space :size="4">
-                          <a-tooltip :title="t('qrCode') || 'QR Code'">
+                          <a-tooltip :title="t('pages.clients.qrCode') || 'QR Code'">
                             <a-button size="small" type="text" @click="onShowQr(record)">
                               <QrcodeOutlined />
                             </a-button>
                           </a-tooltip>
-                          <a-tooltip :title="t('info') || 'Info'">
+                          <a-tooltip :title="t('pages.clients.info') || 'Info'">
                             <a-button size="small" type="text" @click="onShowInfo(record)">
                               <InfoCircleOutlined />
                             </a-button>
@@ -279,12 +332,12 @@ const columns = computed(() => [
                               <RetweetOutlined />
                             </a-button>
                           </a-tooltip>
-                          <a-tooltip :title="t('edit')">
+                          <a-tooltip :title="t('pages.clients.edit') || 'Edit'">
                             <a-button size="small" type="text" @click="onEdit(record)">
                               <EditOutlined />
                             </a-button>
                           </a-tooltip>
-                          <a-tooltip :title="t('delete')">
+                          <a-tooltip :title="t('pages.clients.delete') || 'Delete'">
                             <a-button size="small" type="text" danger @click="onDelete(record)">
                               <DeleteOutlined />
                             </a-button>
@@ -355,6 +408,18 @@ const columns = computed(() => [
 
 .loading-spacer {
   min-height: calc(100vh - 120px);
+}
+
+.card-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card-title {
+  font-weight: 600;
+  margin-right: 4px;
 }
 
 .email-cell {

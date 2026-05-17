@@ -80,6 +80,29 @@ export function useClients() {
     return msg;
   }
 
+  async function resetAllTraffics() {
+    const msg = await HttpUtil.post('/panel/api/clients/resetAllTraffics');
+    if (msg?.success) await refresh();
+    return msg;
+  }
+
+  async function setEnable(client, enable) {
+    if (!client?.id) return null;
+    const payload = {
+      email: client.email,
+      subId: client.subId,
+      id: client.uuid,
+      password: client.password,
+      auth: client.auth,
+      totalGB: client.totalGB || 0,
+      expiryTime: client.expiryTime || 0,
+      limitIp: client.limitIp || 0,
+      comment: client.comment || '',
+      enable: !!enable,
+    };
+    return update(client.id, payload);
+  }
+
   onMounted(async () => {
     await refresh();
     refreshOnlines();
@@ -104,5 +127,7 @@ export function useClients() {
     attach,
     detach,
     resetTraffic,
+    resetAllTraffics,
+    setEnable,
   };
 }

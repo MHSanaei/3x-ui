@@ -264,8 +264,7 @@ function confirmBulkDelete() {
 </script>
 
 <template>
-  <div class="client-list"
-    :class="{ 'is-mobile': isMobile, 'is-dark': isDarkTheme, 'has-select': isRemovable }">
+  <div class="client-list" :class="{ 'is-mobile': isMobile, 'is-dark': isDarkTheme, 'has-select': isRemovable }">
     <div v-if="isRemovable && selectedCount > 0" class="bulk-bar">
       <span class="bulk-count">{{ selectedCount }} selected</span>
       <a-button size="small" type="link" @click="clearSelection">{{ t('cancel') }}</a-button>
@@ -397,7 +396,7 @@ function confirmBulkDelete() {
           <template v-if="client.expiryTime !== 0 && client.reset > 0">
             <a-popover>
               <template #content>
-                <span v-if="client.expiryTime < 0">{{ t('pages.client.delayedStart') }}</span>
+                <span v-if="client.expiryTime < 0">{{ t('pages.clients.delayedStart') }}</span>
                 <span v-else>{{ IntlUtil.formatDate(client.expiryTime, datepicker) }}</span>
               </template>
               <div class="usage-bar">
@@ -410,7 +409,7 @@ function confirmBulkDelete() {
           </template>
           <a-popover v-else-if="client.expiryTime !== 0">
             <template #content>
-              <span v-if="client.expiryTime < 0">{{ t('pages.client.delayedStart') }}</span>
+              <span v-if="client.expiryTime < 0">{{ t('pages.clients.delayedStart') }}</span>
               <span v-else>{{ IntlUtil.formatDate(client.expiryTime) }}</span>
             </template>
             <a-tag :style="{ minWidth: '50px', border: 'none' }"
@@ -506,7 +505,8 @@ function confirmBulkDelete() {
           </div>
           <div class="stat-row">
             <span class="stat-label">{{ t('online') }}</span>
-            <a-tag v-if="statsClient.enable && isClientOnline(statsClient.email)" color="green">{{ t('online') }}</a-tag>
+            <a-tag v-if="statsClient.enable && isClientOnline(statsClient.email)" color="green">{{ t('online')
+              }}</a-tag>
             <a-tag v-else>{{ t('offline') }}</a-tag>
           </div>
           <div class="stat-row">
@@ -516,7 +516,7 @@ function confirmBulkDelete() {
               {{ IntlUtil.formatRelativeTime(statsClient.expiryTime) }}
             </a-tag>
             <a-tag v-else-if="statsClient.expiryTime < 0" color="green">
-              {{ -statsClient.expiryTime / 86400000 }}d ({{ t('pages.client.delayedStart') }})
+              {{ -statsClient.expiryTime / 86400000 }}d ({{ t('pages.clients.delayedStart') }})
             </a-tag>
             <a-tag v-else color="purple">
               <InfinityIcon />
@@ -526,9 +526,8 @@ function confirmBulkDelete() {
       </a-modal>
     </template>
 
-    <a-pagination v-if="pageSize > 0 && clients.length > pageSize" v-model:current="currentPage"
-      :page-size="pageSize" :total="clients.length" :show-size-changer="false" size="small"
-      class="client-list-pagination" />
+    <a-pagination v-if="pageSize > 0 && clients.length > pageSize" v-model:current="currentPage" :page-size="pageSize"
+      :total="clients.length" :show-size-changer="false" size="small" class="client-list-pagination" />
   </div>
 </template>
 

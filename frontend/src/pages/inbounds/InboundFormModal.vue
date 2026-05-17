@@ -823,7 +823,7 @@ const title = computed(() =>
     : t('pages.inbounds.addInbound'),
 );
 const okText = computed(() =>
-  props.mode === 'edit' ? t('pages.client.submitEdit') : t('create'),
+  props.mode === 'edit' ? t('pages.clients.submitEdit') : t('create'),
 );
 
 // Whenever the structured form mutates stream / sniffing / settings,
@@ -1011,8 +1011,8 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
         </template>
 
         <!-- VLess decryption / encryption -->
-        <a-form v-if="isVlessLike" :colon="false" :label-col="{ sm: { span: 8 } }"
-          :wrapper-col="{ sm: { span: 14 } }" class="mt-12">
+        <a-form v-if="isVlessLike" :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }"
+          class="mt-12">
           <a-form-item label="Decryption">
             <a-input v-model:value="inbound.settings.decryption" />
           </a-form-item>
@@ -1038,11 +1038,10 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
         <a-card v-if="protocol === Protocols.PORTFALLBACK" size="small" class="mt-12"
           :title="t('pages.inbounds.portFallback.title') || 'Fallback children'">
           <a-typography-paragraph type="secondary">
-            {{ t('pages.inbounds.portFallback.help')
-              || 'Pick inbounds that should catch traffic this VLESS-TLS inbound does not match. Each child must listen on 127.0.0.1 to receive forwarded connections.' }}
+            {{ t('pages.inbounds.portFallback.help') || 'Pick inbounds that should catch traffic this VLESS-TLS inbound does not match. Each child must listen on 127.0.0.1 to receive forwarded connections.' }}
           </a-typography-paragraph>
-          <a-table :columns="fallbackChildColumns" :data-source="fallbackChildren" row-key="rowKey"
-            size="small" :pagination="false">
+          <a-table :columns="fallbackChildColumns" :data-source="fallbackChildren" row-key="rowKey" size="small"
+            :pagination="false">
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.key === 'childId'">
                 <a-select v-model:value="record.childId" :options="fallbackChildOptions" :show-search="true"

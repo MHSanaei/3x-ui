@@ -104,7 +104,7 @@ function regenerateSubId() {
 
 async function onSubmit() {
   if (!form.email || form.email.trim() === '') {
-    message.error(t('pages.inbounds.client.email') + ' *');
+    message.error(t('pages.clients.email') + ' *');
     return;
   }
   if (!isEdit.value && (!form.inboundIds || form.inboundIds.length === 0)) {
@@ -158,12 +158,12 @@ async function onSubmit() {
     <a-form layout="vertical" :model="form">
       <a-row :gutter="16">
         <a-col :span="12">
-          <a-form-item :label="t('pages.inbounds.client.email')" required>
-            <a-input v-model:value="form.email" :placeholder="t('pages.inbounds.client.email')" />
+          <a-form-item :label="t('pages.clients.email')" required>
+            <a-input v-model:value="form.email" :placeholder="t('pages.clients.email')" />
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item :label="t('pages.inbounds.client.subId') || 'subId'">
+          <a-form-item :label="t('pages.clients.subId') || 'subId'">
             <a-input-group compact style="display: flex">
               <a-input v-model:value="form.subId" style="flex: 1" />
               <a-button @click="regenerateSubId">↻</a-button>
@@ -182,7 +182,7 @@ async function onSubmit() {
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item :label="t('pages.inbounds.client.password') || 'Password'">
+          <a-form-item :label="t('pages.clients.password') || 'Password'">
             <a-input-group compact style="display: flex">
               <a-input v-model:value="form.password" style="flex: 1" />
               <a-button @click="regeneratePassword">↻</a-button>
@@ -201,7 +201,7 @@ async function onSubmit() {
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item :label="t('pages.inbounds.client.limitIp') || 'IP limit'">
+          <a-form-item :label="t('pages.clients.limitIp') || 'IP limit'">
             <a-input-number v-model:value="form.limitIp" :min="0" style="width: 100%" />
           </a-form-item>
         </a-col>
@@ -209,23 +209,22 @@ async function onSubmit() {
 
       <a-row :gutter="16">
         <a-col :span="12">
-          <a-form-item :label="t('pages.inbounds.client.totalGB') || 'Total (GB, 0 = unlimited)'">
+          <a-form-item :label="t('pages.clients.totalGB') || 'Total (GB, 0 = unlimited)'">
             <a-input-number v-model:value="form.totalGB" :min="0" :step="0.1" style="width: 100%" />
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item :label="t('pages.inbounds.client.expiryTime') || 'Expiry'">
+          <a-form-item :label="t('pages.clients.expiryTime') || 'Expiry'">
             <a-date-picker v-model:value="form.expiryTime" show-time style="width: 100%" />
           </a-form-item>
         </a-col>
       </a-row>
 
-      <a-form-item :label="t('pages.inbounds.client.comment') || 'Comment'">
+      <a-form-item :label="t('pages.clients.comment') || 'Comment'">
         <a-input v-model:value="form.comment" />
       </a-form-item>
 
-      <a-form-item :label="t('pages.clients.attachedInbounds') || 'Attached inbounds'"
-        :required="!isEdit">
+      <a-form-item :label="t('pages.clients.attachedInbounds') || 'Attached inbounds'" :required="!isEdit">
         <a-select v-model:value="form.inboundIds" mode="multiple" :options="inboundOptions" :show-search="true"
           :placeholder="t('pages.clients.selectInbound') || 'Select one or more inbounds'"
           :filter-option="(input, option) => (option.label || '').toLowerCase().includes(input.toLowerCase())" />

@@ -372,7 +372,7 @@
         }
       }
     },
-    "client": {
+    "clients": {
       "add": "Add Client",
       "edit": "Edit Client",
       "submitAdd": "Add Client",
@@ -402,19 +402,47 @@
       "expireDays": "Duration",
       "days": "Day(s)",
       "renew": "Auto Renew",
-      "renewDesc": "Auto-renewal after expiration. (0 = disable)(unit: day)"
-    },
-    "clients": {
+      "renewDesc": "Auto-renewal after expiration. (0 = disable)(unit: day)",
       "title": "Clients",
+      "actions": "Actions",
+      "totalGB": "Total Sent/Received (GB)",
+      "expiryTime": "Expiry",
+      "addClients": "Add Clients",
+      "limitIp": "IP Limit",
+      "password": "Password",
+      "subId": "Subscription ID",
+      "online": "Online",
+      "email": "Email",
+      "comment": "Comment",
+      "traffic": "Traffic",
+      "offline": "Offline",
       "addTitle": "Add Client",
+      "qrCode": "QR Code",
+      "info": "Info",
+      "delete": "Delete",
+      "reset": "Reset Traffic",
       "editTitle": "Edit Client",
+      "client": "Client",
+      "enabled": "Enabled",
+      "remaining": "Remaining",
+      "duration": "Duration",
       "attachedInbounds": "Attached inbounds",
       "selectInbound": "Select one or more inbounds",
+      "noSubId": "This client has no subId, no shareable link.",
+      "noLinks": "No shareable links — attach this client to a protocol-capable inbound first.",
+      "link": "Link",
+      "resetNotPossible": "Attach this client to an inbound first.",
+      "general": "General",
+      "resetAllTraffics": "Reset all client traffic",
+      "resetAllTrafficsTitle": "Reset all client traffic?",
+      "resetAllTrafficsContent": "Every client's up/down counter drops to zero. Quotas and expiry are not affected. This cannot be undone.",
       "empty": "No clients yet — add one to get started.",
       "deleteConfirmTitle": "Delete client {email}?",
       "deleteConfirmContent": "This removes the client from every attached inbound and drops its traffic record. This cannot be undone.",
       "toasts": {
-        "deleted": "Client deleted"
+        "deleted": "Client deleted",
+        "trafficReset": "Traffic reset",
+        "allTrafficsReset": "All client traffic reset"
       }
     },
     "nodes": {

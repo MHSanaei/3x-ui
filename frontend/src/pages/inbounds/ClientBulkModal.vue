@@ -176,10 +176,10 @@ async function submit() {
 </script>
 
 <template>
-  <a-modal :open="open" :title="t('pages.client.bulk')" :ok-text="t('create')" :cancel-text="t('close')"
+  <a-modal :open="open" :title="t('pages.clients.bulk')" :ok-text="t('create')" :cancel-text="t('close')"
     :confirm-loading="saving" :mask-closable="false" @ok="submit" @cancel="close">
     <a-form v-if="inbound" :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
-      <a-form-item :label="t('pages.client.method')">
+      <a-form-item :label="t('pages.clients.method')">
         <a-select v-model:value="form.emailMethod">
           <a-select-option :value="0">Random</a-select-option>
           <a-select-option :value="1">Random + Prefix</a-select-option>
@@ -189,19 +189,19 @@ async function submit() {
         </a-select>
       </a-form-item>
 
-      <a-form-item v-if="form.emailMethod > 1" :label="t('pages.client.first')">
+      <a-form-item v-if="form.emailMethod > 1" :label="t('pages.clients.first')">
         <a-input-number v-model:value="form.firstNum" :min="1" />
       </a-form-item>
-      <a-form-item v-if="form.emailMethod > 1" :label="t('pages.client.last')">
+      <a-form-item v-if="form.emailMethod > 1" :label="t('pages.clients.last')">
         <a-input-number v-model:value="form.lastNum" :min="form.firstNum" />
       </a-form-item>
-      <a-form-item v-if="form.emailMethod > 0" :label="t('pages.client.prefix')">
+      <a-form-item v-if="form.emailMethod > 0" :label="t('pages.clients.prefix')">
         <a-input v-model:value="form.emailPrefix" />
       </a-form-item>
-      <a-form-item v-if="form.emailMethod > 2" :label="t('pages.client.postfix')">
+      <a-form-item v-if="form.emailMethod > 2" :label="t('pages.clients.postfix')">
         <a-input v-model:value="form.emailPostfix" />
       </a-form-item>
-      <a-form-item v-if="form.emailMethod < 2" :label="t('pages.client.clientCount')">
+      <a-form-item v-if="form.emailMethod < 2" :label="t('pages.clients.clientCount')">
         <a-input-number v-model:value="form.quantity" :min="1" :max="500" />
       </a-form-item>
 
@@ -245,11 +245,11 @@ async function submit() {
         <a-input-number v-model:value="form.totalGB" :min="0" :step="0.1" />
       </a-form-item>
 
-      <a-form-item :label="t('pages.client.delayedStart')">
+      <a-form-item :label="t('pages.clients.delayedStart')">
         <a-switch v-model:checked="delayedStart" @click="form.expiryTime = 0" />
       </a-form-item>
 
-      <a-form-item v-if="delayedStart" :label="t('pages.client.expireDays')">
+      <a-form-item v-if="delayedStart" :label="t('pages.clients.expireDays')">
         <a-input-number v-model:value="delayedExpireDays" :min="0" />
       </a-form-item>
 
@@ -263,7 +263,7 @@ async function submit() {
 
       <a-form-item v-if="form.expiryTime !== 0">
         <template #label>
-          <a-tooltip :title="t('pages.client.renewDesc')">{{ t('pages.client.renew') }}</a-tooltip>
+          <a-tooltip :title="t('pages.clients.renewDesc')">{{ t('pages.clients.renew') }}</a-tooltip>
         </template>
         <a-input-number v-model:value="form.reset" :min="0" />
       </a-form-item>

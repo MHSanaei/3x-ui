@@ -475,6 +475,16 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	return needRestart, nil
 }
 
+func (s *ClientService) ResetAllTraffics() (bool, error) {
+	res := database.GetDB().Model(&xray.ClientTraffic{}).
+		Where("1 = 1").
+		Updates(map[string]any{"up": 0, "down": 0})
+	if res.Error != nil {
+		return false, res.Error
+	}
+	return res.RowsAffected > 0, nil
+}
+
 func (s *ClientService) Detach(inboundSvc *InboundService, id int, inboundIds []int) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {

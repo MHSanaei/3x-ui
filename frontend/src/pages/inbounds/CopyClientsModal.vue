@@ -82,9 +82,9 @@ const rowSelection = computed(() => ({
 }));
 
 const title = computed(() => {
-  if (!props.dbInbound) return t('pages.client.copyFromInbound');
+  if (!props.dbInbound) return t('pages.clients.copyFromInbound');
   const target = props.dbInbound.remark || `#${props.dbInbound.id}`;
-  return `${t('pages.client.copyToInbound')} ${target}`;
+  return `${t('pages.clients.copyToInbound')} ${target}`;
 });
 
 watch(() => props.open, (next) => {
@@ -108,7 +108,7 @@ function clearAll() {
 
 async function ok() {
   if (!sourceInboundId.value) {
-    message.error(t('pages.client.copySelectSourceFirst'));
+    message.error(t('pages.clients.copySelectSourceFirst'));
     return;
   }
   if (!props.dbInbound) return;
@@ -128,12 +128,12 @@ async function ok() {
     const addedCount = (obj.added || []).length;
     const errorList = obj.errors || [];
     if (addedCount > 0) {
-      message.success(`${t('pages.client.copyResultSuccess')}: ${addedCount}`);
+      message.success(`${t('pages.clients.copyResultSuccess')}: ${addedCount}`);
     } else {
-      message.warning(t('pages.client.copyResultNone'));
+      message.warning(t('pages.clients.copyResultNone'));
     }
     if (errorList.length > 0) {
-      message.error(`${t('pages.client.copyResultErrors')}: ${errorList.join('; ')}`);
+      message.error(`${t('pages.clients.copyResultErrors')}: ${errorList.join('; ')}`);
     }
     emit('saved');
     emit('update:open', false);
@@ -149,11 +149,11 @@ function close() {
 </script>
 
 <template>
-  <a-modal :open="open" :title="title" :ok-text="t('pages.client.copySelected')" :cancel-text="t('close')"
+  <a-modal :open="open" :title="title" :ok-text="t('pages.clients.copySelected')" :cancel-text="t('close')"
     :confirm-loading="saving" :mask-closable="false" width="720px" @ok="ok" @cancel="close">
     <a-space direction="vertical" :style="{ width: '100%' }">
       <div>
-        <div :style="{ marginBottom: '6px' }">{{ t('pages.client.copySource') }}</div>
+        <div :style="{ marginBottom: '6px' }">{{ t('pages.clients.copySource') }}</div>
         <a-select v-model:value="sourceInboundId" :style="{ width: '100%' }" allow-clear>
           <a-select-option v-for="item in sources" :key="item.id" :value="item.id">
             {{ item.label }}
@@ -163,21 +163,21 @@ function close() {
 
       <div v-if="sourceInboundId">
         <a-space :style="{ marginBottom: '8px' }">
-          <a-button size="small" @click="selectAll">{{ t('pages.client.selectAll') }}</a-button>
-          <a-button size="small" @click="clearAll">{{ t('pages.client.clearAll') }}</a-button>
+          <a-button size="small" @click="selectAll">{{ t('pages.clients.selectAll') }}</a-button>
+          <a-button size="small" @click="clearAll">{{ t('pages.clients.clearAll') }}</a-button>
         </a-space>
         <a-table :columns="columns" :data-source="sourceClients" :pagination="false" size="small"
           :row-key="(r) => r.email" :row-selection="rowSelection" :scroll="{ y: 280 }" />
       </div>
 
       <div v-if="showFlow">
-        <div :style="{ marginBottom: '6px' }">{{ t('pages.client.copyFlowLabel') }}</div>
+        <div :style="{ marginBottom: '6px' }">{{ t('pages.clients.copyFlowLabel') }}</div>
         <a-select v-model:value="flow" :style="{ width: '100%' }" allow-clear>
           <a-select-option value="">{{ t('none') }}</a-select-option>
           <a-select-option v-for="key in FLOW_OPTIONS" :key="key" :value="key">{{ key }}</a-select-option>
         </a-select>
         <div :style="{ marginTop: '4px', fontSize: '12px', opacity: 0.7 }">
-          {{ t('pages.client.copyFlowHint') }}
+          {{ t('pages.clients.copyFlowHint') }}
         </div>
       </div>
     </a-space>

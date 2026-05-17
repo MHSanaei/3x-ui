@@ -210,7 +210,7 @@ const title = computed(() =>
     : `+ ${t('pages.xray.Outbounds')}`,
 );
 const okText = computed(() =>
-  isEdit.value ? t('pages.client.submitEdit') : t('create'),
+  isEdit.value ? t('pages.clients.submitEdit') : t('create'),
 );
 
 // Helper getters / shortcuts used by the template.
@@ -343,8 +343,7 @@ function regenerateWgKeys() {
           <!-- ============== Loopback ============== -->
           <template v-if="isLoopback">
             <a-form-item label="Inbound tag">
-              <a-input v-model:value="outbound.settings.inboundTag"
-                placeholder="inbound tag using in routing rules" />
+              <a-input v-model:value="outbound.settings.inboundTag" placeholder="inbound tag using in routing rules" />
             </a-form-item>
           </template>
 

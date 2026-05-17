@@ -591,6 +591,12 @@ export const sections = [
         body: '{\n  "inboundIds": [5]\n}',
         response: '{\n  "success": true\n}',
       },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/resetAllTraffics',
+        summary: 'Reset the up/down counters for every client globally. Quotas and expiry are not affected. Triggers an Xray restart if any counter actually moved.',
+        response: '{\n  "success": true\n}',
+      },
     ],
   },
 

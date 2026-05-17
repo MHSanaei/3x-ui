@@ -420,13 +420,13 @@ function showQrCodeMenu(dbInbound) {
                     </a-menu-item>
                     <template v-if="record.isMultiUser()">
                       <a-menu-item key="addClient">
-                        <UserAddOutlined /> {{ t('pages.client.add') }}
+                        <UserAddOutlined /> {{ t('pages.clients.add') }}
                       </a-menu-item>
                       <a-menu-item key="addBulkClient">
-                        <UsergroupAddOutlined /> {{ t('pages.client.bulk') }}
+                        <UsergroupAddOutlined /> {{ t('pages.clients.bulk') }}
                       </a-menu-item>
                       <a-menu-item key="copyClients">
-                        <CopyOutlined /> {{ t('pages.client.copyFromInbound') }}
+                        <CopyOutlined /> {{ t('pages.clients.copyFromInbound') }}
                       </a-menu-item>
                       <a-menu-item key="resetClients">
                         <FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}
@@ -469,12 +469,10 @@ function showQrCodeMenu(dbInbound) {
             <ClientRowTable :db-inbound="record" :is-mobile="true" :traffic-diff="trafficDiff" :expire-diff="expireDiff"
               :online-clients="onlineClients" :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme"
               :page-size="pageSize" :total-client-count="clientCount[record.id]?.clients || 0"
-              :stats-version="statsVersion"
-              @edit-client="(p) => emit('edit-client', p)" @qrcode-client="(p) => emit('qrcode-client', p)"
-              @info-client="(p) => emit('info-client', p)"
+              :stats-version="statsVersion" @edit-client="(p) => emit('edit-client', p)"
+              @qrcode-client="(p) => emit('qrcode-client', p)" @info-client="(p) => emit('info-client', p)"
               @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
-              @delete-client="(p) => emit('delete-client', p)"
-              @delete-clients="(p) => emit('delete-clients', p)"
+              @delete-client="(p) => emit('delete-client', p)" @delete-clients="(p) => emit('delete-clients', p)"
               @toggle-enable-client="(p) => emit('toggle-enable-client', p)" />
           </div>
         </div>
@@ -558,13 +556,10 @@ function showQrCodeMenu(dbInbound) {
           <ClientRowTable v-if="record.isMultiUser()" :db-inbound="record" :is-mobile="isMobile"
             :traffic-diff="trafficDiff" :expire-diff="expireDiff" :online-clients="onlineClients"
             :last-online-map="lastOnlineMap" :is-dark-theme="isDarkTheme" :page-size="pageSize"
-            :total-client-count="clientCount[record.id]?.clients || 0"
-            :stats-version="statsVersion"
-            @edit-client="(p) => emit('edit-client', p)"
-            @qrcode-client="(p) => emit('qrcode-client', p)" @info-client="(p) => emit('info-client', p)"
-            @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
-            @delete-client="(p) => emit('delete-client', p)"
-            @delete-clients="(p) => emit('delete-clients', p)"
+            :total-client-count="clientCount[record.id]?.clients || 0" :stats-version="statsVersion"
+            @edit-client="(p) => emit('edit-client', p)" @qrcode-client="(p) => emit('qrcode-client', p)"
+            @info-client="(p) => emit('info-client', p)" @reset-traffic-client="(p) => emit('reset-traffic-client', p)"
+            @delete-client="(p) => emit('delete-client', p)" @delete-clients="(p) => emit('delete-clients', p)"
             @toggle-enable-client="(p) => emit('toggle-enable-client', p)" />
         </template>
 
@@ -572,7 +567,7 @@ function showQrCodeMenu(dbInbound) {
           <!-- ============== Action dropdown ============== -->
           <template v-if="column.key === 'action'">
             <div class="action-buttons">
-              <a-button type="text" size="small" @click.prevent="emit('row-action', {key: 'edit', dbInbound: record})">
+              <a-button type="text" size="small" @click.prevent="emit('row-action', { key: 'edit', dbInbound: record })">
                 <template #icon>
                   <EditOutlined />
                 </template>
@@ -591,13 +586,13 @@ function showQrCodeMenu(dbInbound) {
                     </a-menu-item>
                     <template v-if="record.isMultiUser()">
                       <a-menu-item key="addClient">
-                        <UserAddOutlined /> {{ t('pages.client.add') }}
+                        <UserAddOutlined /> {{ t('pages.clients.add') }}
                       </a-menu-item>
                       <a-menu-item key="addBulkClient">
-                        <UsergroupAddOutlined /> {{ t('pages.client.bulk') }}
+                        <UsergroupAddOutlined /> {{ t('pages.clients.bulk') }}
                       </a-menu-item>
                       <a-menu-item key="copyClients">
-                        <CopyOutlined /> {{ t('pages.client.copyFromInbound') }}
+                        <CopyOutlined /> {{ t('pages.clients.copyFromInbound') }}
                       </a-menu-item>
                       <a-menu-item key="resetClients">
                         <FileDoneOutlined /> {{ t('pages.inbounds.resetInboundClientTraffics') }}
@@ -671,14 +666,17 @@ function showQrCodeMenu(dbInbound) {
           <!-- ============== Clients tag + popovers ============== -->
           <template v-else-if="column.key === 'clients'">
             <template v-if="clientCount[record.id]">
-              <a-tag color="green" class="client-count-tag" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].clients }}</a-tag>
+              <a-tag color="green" class="client-count-tag" style="margin: 0; padding: 0 2px">{{
+                clientCount[record.id].clients }}</a-tag>
               <a-popover v-if="clientCount[record.id].deactive.length" :title="t('disabled')">
                 <template #content>
                   <div class="client-email-list">
                     <div v-for="email in clientCount[record.id].deactive" :key="email">{{ email }}</div>
                   </div>
                 </template>
-                <a-tag class="client-count-tag" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].deactive.length }}</a-tag>
+                <a-tag class="client-count-tag" style="margin: 0; padding: 0 2px">{{
+                  clientCount[record.id].deactive.length
+                  }}</a-tag>
               </a-popover>
               <a-popover v-if="clientCount[record.id].depleted.length" :title="t('depleted')">
                 <template #content>
@@ -686,8 +684,9 @@ function showQrCodeMenu(dbInbound) {
                     <div v-for="email in clientCount[record.id].depleted" :key="email">{{ email }}</div>
                   </div>
                 </template>
-                <a-tag color="red" class="client-count-tag" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].depleted.length
-                }}</a-tag>
+                <a-tag color="red" class="client-count-tag" style="margin: 0; padding: 0 2px">{{
+                  clientCount[record.id].depleted.length
+                  }}</a-tag>
               </a-popover>
               <a-popover v-if="clientCount[record.id].expiring.length" :title="t('depletingSoon')">
                 <template #content>
@@ -695,8 +694,9 @@ function showQrCodeMenu(dbInbound) {
                     <div v-for="email in clientCount[record.id].expiring" :key="email">{{ email }}</div>
                   </div>
                 </template>
-                <a-tag color="orange" class="client-count-tag" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].expiring.length
-                }}</a-tag>
+                <a-tag color="orange" class="client-count-tag" style="margin: 0; padding: 0 2px">{{
+                  clientCount[record.id].expiring.length
+                  }}</a-tag>
               </a-popover>
               <a-popover v-if="clientCount[record.id].online.length" :title="t('online')">
                 <template #content>
@@ -704,7 +704,8 @@ function showQrCodeMenu(dbInbound) {
                     <div v-for="email in clientCount[record.id].online" :key="email">{{ email }}</div>
                   </div>
                 </template>
-                <a-tag color="blue" class="client-count-tag" style="margin: 0; padding: 0 2px">{{ clientCount[record.id].online.length }}</a-tag>
+                <a-tag color="blue" class="client-count-tag" style="margin: 0; padding: 0 2px">{{
+                  clientCount[record.id].online.length }}</a-tag>
               </a-popover>
             </template>
           </template>
@@ -770,7 +771,7 @@ function showQrCodeMenu(dbInbound) {
 }
 
 .filter-bar.mobile>* {
-    margin-bottom: 4px;
+  margin-bottom: 4px;
 }
 
 .action-buttons {

@@ -52,8 +52,7 @@ function close() {
 </script>
 
 <template>
-  <a-modal :open="open" :title="client ? client.email : t('info')" :footer="null" :width="560"
-    @cancel="close">
+  <a-modal :open="open" :title="client ? client.email : t('info')" :footer="null" :width="560" @cancel="close">
     <div v-if="client" class="info-grid">
       <div class="row">
         <span class="label">{{ t('online') }}</span>
@@ -63,9 +62,9 @@ function close() {
       </div>
 
       <div class="row">
-        <span class="label">{{ t('enable') }}</span>
+        <span class="label">{{ t('enabled') }}</span>
         <a-tag :color="client.enable ? 'green' : 'default'">
-          {{ client.enable ? t('enable') : t('disable') }}
+          {{ client.enable ? t('enabled') : t('disabled') }}
         </a-tag>
       </div>
 
@@ -141,7 +140,7 @@ function close() {
       </div>
 
       <div v-if="client.comment" class="row">
-        <span class="label">{{ t('pages.inbounds.client.comment') || 'Comment' }}</span>
+        <span class="label">{{ t('pages.clients.comment') || 'Comment' }}</span>
         <span class="value">{{ client.comment }}</span>
       </div>
 

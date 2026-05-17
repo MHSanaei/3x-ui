@@ -230,13 +230,13 @@ async function submit() {
 }
 
 const title = computed(() =>
-  props.mode === 'edit' ? t('pages.client.edit') : t('pages.client.add'),
+  props.mode === 'edit' ? t('pages.clients.edit') : t('pages.clients.add'),
 );
 </script>
 
 <template>
   <a-modal :open="open" :title="title"
-    :ok-text="mode === 'edit' ? t('pages.client.submitEdit') : t('pages.client.submitAdd')" :cancel-text="t('close')"
+    :ok-text="mode === 'edit' ? t('pages.clients.submitEdit') : t('pages.clients.submitAdd')" :cancel-text="t('close')"
     :confirm-loading="saving" :mask-closable="false" @ok="submit" @cancel="close">
     <a-tag v-if="mode === 'edit' && (isExpired || isTrafficExhausted)" color="red" class="status-banner">
       {{ t('depleted') }}
@@ -351,11 +351,11 @@ const title = computed(() =>
         </a-tooltip>
       </a-form-item>
 
-      <a-form-item :label="t('pages.client.delayedStart')">
+      <a-form-item :label="t('pages.clients.delayedStart')">
         <a-switch v-model:checked="delayedStart" @click="client.expiryTime = 0" />
       </a-form-item>
 
-      <a-form-item v-if="delayedStart" :label="t('pages.client.expireDays')">
+      <a-form-item v-if="delayedStart" :label="t('pages.clients.expireDays')">
         <a-input-number v-model:value="delayedExpireDays" :min="0" />
       </a-form-item>
 
@@ -370,7 +370,7 @@ const title = computed(() =>
 
       <a-form-item v-if="client.expiryTime !== 0">
         <template #label>
-          <a-tooltip :title="t('pages.client.renewDesc')">{{ t('pages.client.renew') }}</a-tooltip>
+          <a-tooltip :title="t('pages.clients.renewDesc')">{{ t('pages.clients.renew') }}</a-tooltip>
         </template>
         <a-input-number v-model:value="client.reset" :min="0" />
       </a-form-item>

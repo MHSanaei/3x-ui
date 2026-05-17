@@ -29,6 +29,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/del/:id", a.delete)
 	g.POST("/:id/attach", a.attach)
 	g.POST("/:id/detach", a.detach)
+	g.POST("/resetAllTraffics", a.resetAllTraffics)
 }
 
 func (a *ClientController) list(c *gin.Context) {
@@ -137,6 +138,18 @@ func (a *ClientController) attach(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientAddSuccess"), nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+}
+
+func (a *ClientController) resetAllTraffics(c *gin.Context) {
+	needRestart, err := a.clientService.ResetAllTraffics()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.resetAllClientTrafficSuccess"), nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
