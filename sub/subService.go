@@ -144,15 +144,14 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	// allow "hysteria2" so imports stored with the literal v2 protocol
-	// string still surface here (#4081)
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where(`id in (
 		SELECT DISTINCT inbounds.id
-		FROM inbounds,
-			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		FROM inbounds
+		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
+		JOIN clients ON clients.id = client_inbounds.client_id
 		WHERE
-			protocol in ('vmess','vless','trojan','shadowsocks','hysteria','hysteria2')
-			AND JSON_EXTRACT(client.value, '$.subId') = ? AND enable = ?
+			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','hysteria2')
+			AND clients.sub_id = ? AND inbounds.enable = ?
 	)`, subId, true).Find(&inbounds).Error
 	if err != nil {
 		return nil, err

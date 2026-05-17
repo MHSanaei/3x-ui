@@ -24,7 +24,8 @@ import (
 )
 
 type InboundService struct {
-	xrayApi xray.XrayAPI
+	xrayApi       xray.XrayAPI
+	clientService ClientService
 }
 
 func (s *InboundService) runtimeFor(ib *model.Inbound) (runtime.Runtime, error) {
@@ -395,6 +396,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, err
 	}
 
+	if err = s.clientService.SyncInbound(tx, inbound.Id, clients); err != nil {
+		return inbound, false, err
+	}
+
 	needRestart := false
 	if inbound.Enable {
 		rt, rterr := s.runtimeFor(inbound)
@@ -445,6 +450,9 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	// Delete client traffics of inbounds
 	err := db.Where("inbound_id = ?", id).Delete(xray.ClientTraffic{}).Error
 	if err != nil {
+		return false, err
+	}
+	if err := s.clientService.DetachInbound(db, id); err != nil {
 		return false, err
 	}
 	inbound, err := s.GetInbound(id)
@@ -705,7 +713,18 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		}
 	}
 
-	return inbound, needRestart, tx.Save(oldInbound).Error
+	if err = tx.Save(oldInbound).Error; err != nil {
+		return inbound, false, err
+	}
+	newClients, gcErr := s.GetClients(oldInbound)
+	if gcErr != nil {
+		err = gcErr
+		return inbound, false, err
+	}
+	if err = s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
+		return inbound, false, err
+	}
+	return inbound, needRestart, nil
 }
 
 func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
@@ -980,7 +999,18 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 		}
 	}
 
-	return needRestart, tx.Save(oldInbound).Error
+	if err = tx.Save(oldInbound).Error; err != nil {
+		return false, err
+	}
+	finalClients, gcErr := s.GetClients(oldInbound)
+	if gcErr != nil {
+		err = gcErr
+		return false, err
+	}
+	if err = s.clientService.SyncInbound(tx, oldInbound.Id, finalClients); err != nil {
+		return false, err
+	}
+	return needRestart, nil
 }
 
 func (s *InboundService) getClientPrimaryKey(protocol model.Protocol, client model.Client) string {
@@ -1291,7 +1321,17 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 			}
 		}
 	}
-	return needRestart, db.Save(oldInbound).Error
+	if err := db.Save(oldInbound).Error; err != nil {
+		return false, err
+	}
+	finalClients, gcErr := s.GetClients(oldInbound)
+	if gcErr != nil {
+		return false, gcErr
+	}
+	if err := s.clientService.SyncInbound(db, inboundId, finalClients); err != nil {
+		return false, err
+	}
+	return needRestart, nil
 }
 
 func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId string) (bool, error) {
@@ -1540,7 +1580,18 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		logger.Debug("Client old email not found")
 		needRestart = true
 	}
-	return needRestart, tx.Save(oldInbound).Error
+	if err = tx.Save(oldInbound).Error; err != nil {
+		return false, err
+	}
+	finalClients, gcErr := s.GetClients(oldInbound)
+	if gcErr != nil {
+		err = gcErr
+		return false, err
+	}
+	if err = s.clientService.SyncInbound(tx, oldInbound.Id, finalClients); err != nil {
+		return false, err
+	}
+	return needRestart, nil
 }
 
 const resetGracePeriodMs int64 = 30000
@@ -2002,6 +2053,20 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 		if err != nil {
 			logger.Warning("AddClientTraffic update inbounds ", err)
 			logger.Error(inbounds)
+		} else {
+			for _, ib := range inbounds {
+				if ib == nil {
+					continue
+				}
+				cs, gcErr := s.GetClients(ib)
+				if gcErr != nil {
+					logger.Warning("AddClientTraffic sync clients: GetClients failed", gcErr)
+					continue
+				}
+				if syncErr := s.clientService.SyncInbound(tx, ib.Id, cs); syncErr != nil {
+					logger.Warning("AddClientTraffic sync clients: SyncInbound failed", syncErr)
+				}
+			}
 		}
 	}
 
@@ -2095,6 +2160,19 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	err = tx.Save(inbounds).Error
 	if err != nil {
 		return false, 0, err
+	}
+	for _, ib := range inbounds {
+		if ib == nil {
+			continue
+		}
+		cs, gcErr := s.GetClients(ib)
+		if gcErr != nil {
+			logger.Warning("autoRenewClients sync clients: GetClients failed", gcErr)
+			continue
+		}
+		if syncErr := s.clientService.SyncInbound(tx, ib.Id, cs); syncErr != nil {
+			logger.Warning("autoRenewClients sync clients: SyncInbound failed", syncErr)
+		}
 	}
 	err = tx.Save(traffics).Error
 	if err != nil {
@@ -3156,6 +3234,14 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 		if err = tx.Save(inbound).Error; err != nil {
 			return err
 		}
+		survivingClients, gcErr := s.GetClients(inbound)
+		if gcErr != nil {
+			err = gcErr
+			return err
+		}
+		if err = s.clientService.SyncInbound(tx, inbound.Id, survivingClients); err != nil {
+			return err
+		}
 	}
 
 	// Drop now-orphaned rows. With id >= 0, a row is safe to drop only when
@@ -3924,7 +4010,17 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 		}
 	}
 
-	return needRestart, db.Save(oldInbound).Error
+	if err := db.Save(oldInbound).Error; err != nil {
+		return false, err
+	}
+	finalClients, gcErr := s.GetClients(oldInbound)
+	if gcErr != nil {
+		return false, gcErr
+	}
+	if err := s.clientService.SyncInbound(db, inboundId, finalClients); err != nil {
+		return false, err
+	}
+	return needRestart, nil
 }
 
 type SubLinkProvider interface {

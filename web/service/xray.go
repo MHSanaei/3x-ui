@@ -116,57 +116,62 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if inbound.NodeID != nil {
 			continue
 		}
-		// get settings clients
 		settings := map[string]any{}
 		json.Unmarshal([]byte(inbound.Settings), &settings)
-		clients, ok := settings["clients"].([]any)
-		if ok {
-			// Fast O(N) lookup map for client traffic enablement
-			clientStats := inbound.ClientStats
-			enableMap := make(map[string]bool, len(clientStats))
-			for _, clientTraffic := range clientStats {
-				enableMap[clientTraffic.Email] = clientTraffic.Enable
+
+		dbClients, listErr := s.inboundService.clientService.ListForInbound(nil, inbound.Id)
+		if listErr != nil {
+			return nil, listErr
+		}
+
+		clientStats := inbound.ClientStats
+		enableMap := make(map[string]bool, len(clientStats))
+		for _, clientTraffic := range clientStats {
+			enableMap[clientTraffic.Email] = clientTraffic.Enable
+		}
+
+		var finalClients []any
+		for i := range dbClients {
+			c := dbClients[i]
+			if enable, exists := enableMap[c.Email]; exists && !enable {
+				logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c.Email)
+				continue
 			}
-
-			// filter and clean clients
-			var final_clients []any
-			for _, client := range clients {
-				c, ok := client.(map[string]any)
-				if !ok {
-					continue
-				}
-
-				email, _ := c["email"].(string)
-
-				// check users active or not via stats
-				if enable, exists := enableMap[email]; exists && !enable {
-					logger.Infof("Remove Inbound User %s due to expiration or traffic limit", email)
-					continue
-				}
-
-				// check manual disabled flag
-				if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
-					continue
-				}
-
-				// clear client config for additional parameters
-				for key := range c {
-					if key != "email" && key != "id" && key != "password" && key != "flow" && key != "method" && key != "auth" && key != "reverse" {
-						delete(c, key)
-					}
-					if flow, ok := c["flow"].(string); ok && flow == "xtls-rprx-vision-udp443" {
-						c["flow"] = "xtls-rprx-vision"
-					}
-				}
-				final_clients = append(final_clients, any(c))
+			if !c.Enable {
+				continue
 			}
+			flow := c.Flow
+			if flow == "xtls-rprx-vision-udp443" {
+				flow = "xtls-rprx-vision"
+			}
+			entry := map[string]any{"email": c.Email}
+			if c.ID != "" {
+				entry["id"] = c.ID
+			}
+			if c.Password != "" {
+				entry["password"] = c.Password
+			}
+			if flow != "" {
+				entry["flow"] = flow
+			}
+			if c.Auth != "" {
+				entry["auth"] = c.Auth
+			}
+			if c.Security != "" {
+				entry["method"] = c.Security
+			}
+			if c.Reverse != nil {
+				entry["reverse"] = c.Reverse
+			}
+			finalClients = append(finalClients, entry)
+		}
 
-			settings["clients"] = final_clients
+		if _, hadClients := settings["clients"]; hadClients || len(finalClients) > 0 {
+			settings["clients"] = finalClients
 			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 			if err != nil {
 				return nil, err
 			}
-
 			inbound.Settings = string(modifiedSettings)
 		}
 
