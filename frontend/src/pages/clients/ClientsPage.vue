@@ -32,6 +32,8 @@ const {
   create,
   update,
   remove,
+  attach,
+  detach,
   resetTraffic,
 } = useClients();
 
@@ -125,10 +127,21 @@ function onShowQr(row) {
 }
 
 async function onSave(payload, meta) {
-  if (meta?.isEdit) {
-    return update(meta.id, payload);
+  if (!meta?.isEdit) {
+    return create(payload);
   }
-  return create(payload);
+  const id = meta.id;
+  const updateMsg = await update(id, payload);
+  if (!updateMsg?.success) return updateMsg;
+  if (Array.isArray(meta.attach) && meta.attach.length > 0) {
+    const r = await attach(id, meta.attach);
+    if (!r?.success) return r;
+  }
+  if (Array.isArray(meta.detach) && meta.detach.length > 0) {
+    const r = await detach(id, meta.detach);
+    if (!r?.success) return r;
+  }
+  return updateMsg;
 }
 
 function trafficLabel(row) {

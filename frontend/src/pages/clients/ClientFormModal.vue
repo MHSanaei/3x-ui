@@ -128,7 +128,16 @@ async function onSubmit() {
   try {
     let msg;
     if (isEdit.value) {
-      msg = await props.save(clientPayload, { isEdit: true, id: props.client.id });
+      const original = new Set(props.attachedIds || []);
+      const next = new Set(form.inboundIds || []);
+      const toAttach = [...next].filter((id) => !original.has(id));
+      const toDetach = [...original].filter((id) => !next.has(id));
+      msg = await props.save(clientPayload, {
+        isEdit: true,
+        id: props.client.id,
+        attach: toAttach,
+        detach: toDetach,
+      });
     } else {
       msg = await props.save(
         { client: clientPayload, inboundIds: form.inboundIds },
@@ -215,7 +224,8 @@ async function onSubmit() {
         <a-input v-model:value="form.comment" />
       </a-form-item>
 
-      <a-form-item v-if="!isEdit" :label="t('pages.clients.attachedInbounds') || 'Attach to inbounds'" required>
+      <a-form-item :label="t('pages.clients.attachedInbounds') || 'Attached inbounds'"
+        :required="!isEdit">
         <a-select v-model:value="form.inboundIds" mode="multiple" :options="inboundOptions" :show-search="true"
           :placeholder="t('pages.clients.selectInbound') || 'Select one or more inbounds'"
           :filter-option="(input, option) => (option.label || '').toLowerCase().includes(input.toLowerCase())" />
