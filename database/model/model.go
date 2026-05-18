@@ -37,6 +37,18 @@ func IsHysteria(p Protocol) bool {
 	return p == Hysteria || p == Hysteria2
 }
 
+// IsSocksLike returns true for both the dedicated "socks" inbound and
+// the combined "mixed" inbound, since Mixed exposes SOCKS5 alongside
+// HTTP on the same port and accepts the exact same settings shape
+// (auth/accounts/udp/ip) that the pure Socks inbound does.
+//
+// Use this helper anywhere routing, sub-link generation, or UI code
+// needs to treat "this inbound speaks SOCKS5" uniformly without
+// re-listing both constants at every call site.
+func IsSocksLike(p Protocol) bool {
+	return p == Socks || p == Mixed
+}
+
 // User represents a user account in the 3x-ui panel.
 type User struct {
 	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`

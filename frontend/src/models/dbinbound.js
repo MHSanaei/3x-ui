@@ -62,6 +62,20 @@ export class DBInbound {
         return this.protocol === Protocols.MIXED;
     }
 
+    // Pure SOCKS5 inbound (Xray "socks" protocol, RFC 1928). Distinct
+    // from `isMixed`, which is HTTP+SOCKS on the same port. Use
+    // `isSocksLike` when you want either one.
+    get isSocks() {
+        return this.protocol === Protocols.SOCKS;
+    }
+
+    // True for both the dedicated SOCKS5 inbound and the combined
+    // Mixed inbound, since both speak SOCKS5 and share the same
+    // settings shape (auth/accounts/udp/ip).
+    get isSocksLike() {
+        return this.protocol === Protocols.SOCKS || this.protocol === Protocols.MIXED;
+    }
+
     get isHTTP() {
         return this.protocol === Protocols.HTTP;
     }

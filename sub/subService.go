@@ -209,18 +209,27 @@ func (s *SubService) getFallbackMaster(dest string, streamSettings string) (stri
 // pair. Returns "" when the inbound's protocol doesn't produce a subscription URL
 // (socks, http, mixed, wireguard, dokodemo, tunnel). The returned string may
 // contain multiple `\n`-separated URLs when the inbound has externalProxy set.
+//
+// SOCKS5 and Mixed are deliberately link-less here. A `socks://user:pass@host:port`
+// form exists in some client ecosystems but is not standardised across the
+// xray/v2ray clients we target, and emitting one would mislead users into
+// pasting it into clients that silently ignore it. Tracked as follow-up #1
+// in the SOCKS5 scaffold PR description.
 func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 	switch inbound.Protocol {
-	case "vmess":
+	case model.VMESS:
 		return s.genVmessLink(inbound, email)
-	case "vless":
+	case model.VLESS:
 		return s.genVlessLink(inbound, email)
-	case "trojan":
+	case model.Trojan:
 		return s.genTrojanLink(inbound, email)
-	case "shadowsocks":
+	case model.Shadowsocks:
 		return s.genShadowsocksLink(inbound, email)
-	case "hysteria", "hysteria2":
+	case model.Hysteria, model.Hysteria2:
 		return s.genHysteriaLink(inbound, email)
+	case model.Socks, model.Mixed, model.HTTP, model.Tunnel, model.WireGuard:
+		// Tunnel-style or proxy-listener protocols: no per-client URL.
+		return ""
 	}
 	return ""
 }
