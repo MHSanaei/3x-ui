@@ -20,9 +20,14 @@ const (
 	Trojan      Protocol = "trojan"
 	Shadowsocks Protocol = "shadowsocks"
 	Mixed       Protocol = "mixed"
-	WireGuard   Protocol = "wireguard"
-	Hysteria    Protocol = "hysteria"
-	Hysteria2   Protocol = "hysteria2"
+	// Socks is a dedicated SOCKS5 inbound (Xray "socks" protocol).
+	// Unlike Mixed (HTTP+SOCKS), this is a pure SOCKS5 inbound and is
+	// intended for tunneling clients that only speak SOCKS5.
+	// See: https://xtls.github.io/config/inbounds/socks.html
+	Socks     Protocol = "socks"
+	WireGuard Protocol = "wireguard"
+	Hysteria  Protocol = "hysteria"
+	Hysteria2 Protocol = "hysteria2"
 )
 
 // IsHysteria returns true for both "hysteria" and "hysteria2".

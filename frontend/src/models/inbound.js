@@ -10,6 +10,9 @@ export const Protocols = {
     WIREGUARD: 'wireguard',
     HYSTERIA: 'hysteria',
     MIXED: 'mixed',
+    // Dedicated SOCKS5 inbound. Use MIXED if you also need HTTP support
+    // on the same port; SOCKS is pure SOCKS5 (RFC 1928) only.
+    SOCKS: 'socks',
     HTTP: 'http',
     TUNNEL: 'tunnel',
     TUN: 'tun',
@@ -2448,6 +2451,7 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.SHADOWSOCKS: return new Inbound.ShadowsocksSettings(protocol);
             case Protocols.TUNNEL: return new Inbound.TunnelSettings(protocol);
             case Protocols.MIXED: return new Inbound.MixedSettings(protocol);
+            case Protocols.SOCKS: return new Inbound.SocksSettings(protocol);
             case Protocols.HTTP: return new Inbound.HttpSettings(protocol);
             case Protocols.WIREGUARD: return new Inbound.WireguardSettings(protocol);
             case Protocols.TUN: return new Inbound.TunSettings(protocol);
@@ -2464,6 +2468,7 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.SHADOWSOCKS: return Inbound.ShadowsocksSettings.fromJson(json);
             case Protocols.TUNNEL: return Inbound.TunnelSettings.fromJson(json);
             case Protocols.MIXED: return Inbound.MixedSettings.fromJson(json);
+            case Protocols.SOCKS: return Inbound.SocksSettings.fromJson(json);
             case Protocols.HTTP: return Inbound.HttpSettings.fromJson(json);
             case Protocols.WIREGUARD: return Inbound.WireguardSettings.fromJson(json);
             case Protocols.TUN: return Inbound.TunSettings.fromJson(json);
@@ -3071,6 +3076,85 @@ Inbound.MixedSettings.SocksAccount = class extends XrayCommonClass {
 
     static fromJson(json = {}) {
         return new Inbound.MixedSettings.SocksAccount(json.user, json.pass);
+    }
+};
+
+// Dedicated SOCKS5 inbound settings.
+//
+// This mirrors Xray's `socks` inbound (RFC 1928), see:
+//   https://xtls.github.io/config/inbounds/socks.html
+//
+// Unlike MixedSettings (which exposes HTTP+SOCKS on the same port),
+// SocksSettings configures a pure SOCKS5 inbound. The accepted fields
+// are the same shape Xray expects:
+//   - auth: "noauth" | "password"
+//   - accounts: [{ user, pass }]  (only used when auth === "password")
+//   - udp: bool                   (enables UDP ASSOCIATE)
+//   - ip:  string                 (address sent to client for UDP replies,
+//                                  defaults to 127.0.0.1)
+//
+// NOTE: SOCKS inbounds are tunnel-style and do not produce a subscription
+// link (mirrors how MIXED/HTTP are treated in sub/subService.go::GetLink).
+Inbound.SocksSettings = class extends Inbound.Settings {
+    constructor(
+        protocol,
+        auth = 'password',
+        accounts = [new Inbound.SocksSettings.SocksAccount()],
+        udp = false,
+        ip = '127.0.0.1',
+    ) {
+        super(protocol);
+        this.auth = auth;
+        this.accounts = accounts;
+        this.udp = udp;
+        this.ip = ip;
+    }
+
+    addAccount(account) {
+        this.accounts.push(account);
+    }
+
+    delAccount(index) {
+        this.accounts.splice(index, 1);
+    }
+
+    static fromJson(json = {}) {
+        let accounts;
+        if (json.auth === 'password') {
+            accounts = (json.accounts || []).map(
+                account => Inbound.SocksSettings.SocksAccount.fromJson(account)
+            );
+        }
+        return new Inbound.SocksSettings(
+            Protocols.SOCKS,
+            json.auth,
+            accounts,
+            json.udp,
+            json.ip,
+        );
+    }
+
+    toJson() {
+        return {
+            auth: this.auth,
+            accounts: this.auth === 'password'
+                ? this.accounts.map(account => account.toJson())
+                : undefined,
+            udp: this.udp,
+            ip: this.ip,
+        };
+    }
+};
+
+Inbound.SocksSettings.SocksAccount = class extends XrayCommonClass {
+    constructor(user = RandomUtil.randomSeq(10), pass = RandomUtil.randomSeq(10)) {
+        super();
+        this.user = user;
+        this.pass = pass;
+    }
+
+    static fromJson(json = {}) {
+        return new Inbound.SocksSettings.SocksAccount(json.user, json.pass);
     }
 };
 
