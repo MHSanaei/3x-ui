@@ -40,6 +40,9 @@ export class DBInbound {
         // Optional FK to web/runtime registered Node. null/undefined =
         // local panel; otherwise the inbound lives on the named node.
         this.nodeId = null;
+        // Populated by the API when this inbound is a fallback child of
+        // a VLESS/Trojan TCP-TLS master. Shape: { masterId, path }.
+        this.fallbackParent = null;
         if (data == null) {
             return;
         }

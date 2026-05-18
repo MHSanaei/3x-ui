@@ -24,8 +24,9 @@ import (
 )
 
 type InboundService struct {
-	xrayApi       xray.XrayAPI
-	clientService ClientService
+	xrayApi         xray.XrayAPI
+	clientService   ClientService
+	fallbackService FallbackService
 }
 
 func (s *InboundService) runtimeFor(ib *model.Inbound) (runtime.Runtime, error) {
@@ -130,7 +131,42 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 		return nil, err
 	}
 	s.enrichClientStats(db, inbounds)
+	s.annotateFallbackParents(db, inbounds)
 	return inbounds, nil
+}
+
+// annotateFallbackParents fills FallbackParent on each inbound that is
+// the child side of a fallback rule. One DB round-trip serves the full
+// list — the frontend needs this to rewrite the child's client-share
+// link so it points at the master's reachable endpoint.
+func (s *InboundService) annotateFallbackParents(db *gorm.DB, inbounds []*model.Inbound) {
+	if len(inbounds) == 0 {
+		return
+	}
+	childIds := make([]int, 0, len(inbounds))
+	for _, ib := range inbounds {
+		childIds = append(childIds, ib.Id)
+	}
+	var rows []model.InboundFallback
+	if err := db.Where("child_id IN ?", childIds).
+		Order("sort_order ASC, id ASC").
+		Find(&rows).Error; err != nil {
+		return
+	}
+	first := make(map[int]model.InboundFallback, len(rows))
+	for _, r := range rows {
+		if _, ok := first[r.ChildId]; !ok {
+			first[r.ChildId] = r
+		}
+	}
+	for _, ib := range inbounds {
+		if r, ok := first[ib.Id]; ok {
+			ib.FallbackParent = &model.FallbackParentInfo{
+				MasterId: r.MasterId,
+				Path:     r.Path,
+			}
+		}
+	}
 }
 
 // InboundOption is the lightweight projection of an inbound used by client UI
@@ -186,6 +222,39 @@ func inboundCanEnableTlsFlow(protocol, streamSettings string) bool {
 	if protocol != string(model.VLESS) {
 		return false
 	}
+	if streamSettings == "" {
+		return false
+	}
+	var stream struct {
+		Network  string `json:"network"`
+		Security string `json:"security"`
+	}
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return false
+	}
+	if stream.Network != "tcp" {
+		return false
+	}
+	return stream.Security == "tls" || stream.Security == "reality"
+}
+
+// inboundCanHostFallbacks gates the settings.fallbacks injection.
+// Xray only honors fallbacks on VLESS and Trojan inbounds carried over
+// TCP transport with TLS or Reality security.
+func inboundCanHostFallbacks(ib *model.Inbound) bool {
+	if ib == nil {
+		return false
+	}
+	if ib.Protocol != model.VLESS && ib.Protocol != model.Trojan {
+		return false
+	}
+	return inboundCanEnableTlsFlow(string(ib.Protocol), ib.StreamSettings) ||
+		(ib.Protocol == model.Trojan && trojanStreamSupportsFallbacks(ib.StreamSettings))
+}
+
+// trojanStreamSupportsFallbacks mirrors the Trojan side of the same gate
+// (Trojan reuses XTLS-Vision capable streams: tcp + tls or reality).
+func trojanStreamSupportsFallbacks(streamSettings string) bool {
 	if streamSettings == "" {
 		return false
 	}

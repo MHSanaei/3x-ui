@@ -3,7 +3,15 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
 import { message } from 'ant-design-vue';
-import { SyncOutlined, PlusOutlined, MinusOutlined, DeleteOutlined } from '@ant-design/icons-vue';
+import {
+  SyncOutlined,
+  PlusOutlined,
+  MinusOutlined,
+  DeleteOutlined,
+  CaretUpOutlined,
+  CaretDownOutlined,
+  SettingOutlined,
+} from '@ant-design/icons-vue';
 
 import {
   HttpUtil,
@@ -117,6 +125,193 @@ const isVlessLike = computed(() => {
   return inbound.value.protocol === Protocols.VLESS;
 });
 
+const FALLBACK_ELIGIBLE_TRANSPORTS = new Set(['tcp', 'ws', 'grpc', 'httpupgrade', 'xhttp']);
+
+const isFallbackHost = computed(() => {
+  const ib = inbound.value;
+  if (!ib) return false;
+  if (ib.protocol !== Protocols.VLESS && ib.protocol !== Protocols.TROJAN) return false;
+  if (ib.stream?.network !== 'tcp') return false;
+  const sec = ib.stream?.security;
+  return sec === 'tls' || sec === 'reality';
+});
+
+const fallbacks = ref([]);
+let fallbackRowKey = 0;
+const fallbackEditing = ref(new Set());
+
+const fallbackChildOptions = computed(() => {
+  const list = props.dbInbounds || [];
+  const masterId = props.dbInbound?.id;
+  return list
+    .filter((ib) => ib.id !== masterId)
+    .map((ib) => ({
+      label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
+      value: ib.id,
+    }));
+});
+
+function getChildStream(childDb) {
+  if (!childDb) return null;
+  try { return childDb.toInbound()?.stream || null; } catch (_e) { return null; }
+}
+
+function deriveFallbackDefaults(childDb) {
+  const out = { name: '', alpn: '', path: '', xver: 0 };
+  const stream = getChildStream(childDb);
+  if (!stream) return out;
+  switch (stream.network) {
+    case 'tcp': {
+      const tcp = stream.tcp;
+      if (tcp?.type === 'http') {
+        const p = tcp?.request?.path;
+        if (Array.isArray(p) && p.length) out.path = p[0];
+      }
+      if (tcp?.acceptProxyProtocol) out.xver = 2;
+      break;
+    }
+    case 'ws': {
+      out.path = stream.ws?.path || '';
+      if (stream.ws?.acceptProxyProtocol) out.xver = 2;
+      break;
+    }
+    case 'grpc': {
+      out.path = stream.grpc?.serviceName || '';
+      out.alpn = 'h2';
+      break;
+    }
+    case 'httpupgrade': {
+      out.path = stream.httpupgrade?.path || '';
+      if (stream.httpupgrade?.acceptProxyProtocol) out.xver = 2;
+      break;
+    }
+    case 'xhttp': {
+      out.path = stream.xhttp?.path || '';
+      break;
+    }
+  }
+  return out;
+}
+
+function addFallback(childId = null) {
+  const row = { rowKey: `fb-${++fallbackRowKey}`, childId: childId || null, name: '', alpn: '', path: '', xver: 0 };
+  if (childId) {
+    const child = (props.dbInbounds || []).find((ib) => ib.id === childId);
+    Object.assign(row, deriveFallbackDefaults(child));
+  }
+  fallbacks.value.push(row);
+}
+
+function removeFallback(idx) {
+  fallbacks.value.splice(idx, 1);
+}
+
+function moveFallback(idx, dir) {
+  const arr = fallbacks.value;
+  const j = idx + dir;
+  if (j < 0 || j >= arr.length) return;
+  const tmp = arr[idx];
+  arr[idx] = arr[j];
+  arr[j] = tmp;
+}
+
+function onFallbackChildPicked(record, childId) {
+  record.childId = childId;
+  const child = (props.dbInbounds || []).find((ib) => ib.id === childId);
+  const defaults = deriveFallbackDefaults(child);
+  record.name = defaults.name;
+  record.alpn = defaults.alpn;
+  record.path = defaults.path;
+  record.xver = defaults.xver;
+}
+
+function rederiveFallback(record) {
+  if (!record?.childId) return;
+  const child = (props.dbInbounds || []).find((ib) => ib.id === record.childId);
+  const defaults = deriveFallbackDefaults(child);
+  record.name = defaults.name;
+  record.alpn = defaults.alpn;
+  record.path = defaults.path;
+  record.xver = defaults.xver;
+  message.success(t('pages.inbounds.fallbacks.rederived') || 'Re-filled from child');
+}
+
+function quickAddAllFallbacks() {
+  const masterId = props.dbInbound?.id;
+  const list = props.dbInbounds || [];
+  const existing = new Set(fallbacks.value.map((r) => r.childId).filter(Boolean));
+  let added = 0;
+  for (const ib of list) {
+    if (ib.id === masterId) continue;
+    if (existing.has(ib.id)) continue;
+    const stream = getChildStream(ib);
+    if (!stream || !FALLBACK_ELIGIBLE_TRANSPORTS.has(stream.network)) continue;
+    addFallback(ib.id);
+    added += 1;
+  }
+  if (added > 0) {
+    message.success(t('pages.inbounds.fallbacks.quickAdded', { n: added }) || `Added ${added} fallback(s)`);
+  } else {
+    message.info(t('pages.inbounds.fallbacks.quickAddedNone') || 'No new eligible inbounds to add');
+  }
+}
+
+function isFallbackEditing(rowKey) { return fallbackEditing.value.has(rowKey); }
+function toggleFallbackEdit(rowKey) {
+  const next = new Set(fallbackEditing.value);
+  if (next.has(rowKey)) next.delete(rowKey); else next.add(rowKey);
+  fallbackEditing.value = next;
+}
+
+function describeFallback(record) {
+  const parts = [];
+  if (record.name) parts.push(`SNI=${record.name}`);
+  if (record.alpn) parts.push(`ALPN=${record.alpn}`);
+  if (record.path) parts.push(`path=${record.path}`);
+  const condition = parts.length
+    ? `${t('pages.inbounds.fallbacks.routesWhen') || 'Routes when'} ${parts.join(' · ')}`
+    : (t('pages.inbounds.fallbacks.defaultCatchAll') || 'Default — catches anything else');
+  const proxyTag = record.xver === 2 ? ' · PROXY v2' : record.xver === 1 ? ' · PROXY v1' : '';
+  return { condition, proxyTag };
+}
+
+async function loadFallbacks(masterId) {
+  fallbacks.value = [];
+  if (!masterId) return;
+  const msg = await HttpUtil.get(`/panel/api/inbounds/${masterId}/fallbacks`);
+  if (!msg?.success || !Array.isArray(msg.obj)) return;
+  fallbacks.value = msg.obj.map((r) => ({
+    rowKey: `fb-${++fallbackRowKey}`,
+    childId: r.childId,
+    name: r.name || '',
+    alpn: r.alpn || '',
+    path: r.path || '',
+    xver: r.xver || 0,
+  }));
+}
+
+async function saveFallbacks(masterId) {
+  if (!masterId) return true;
+  const payload = {
+    fallbacks: fallbacks.value
+      .filter((c) => c.childId)
+      .map((c, i) => ({
+        childId: c.childId,
+        name: c.name,
+        alpn: c.alpn,
+        path: c.path,
+        xver: Number(c.xver) || 0,
+        sortOrder: i,
+      })),
+  };
+  const msg = await HttpUtil.post(
+    `/panel/api/inbounds/${masterId}/fallbacks`,
+    payload,
+    { headers: { 'Content-Type': 'application/json' } },
+  );
+  return !!msg?.success;
+}
+
 const canEnableStream = computed(() => inbound.value?.canEnableStream?.() === true);
 const canEnableTls = computed(() => inbound.value?.canEnableTls?.() === true);
 const canEnableReality = computed(() => inbound.value?.canEnableReality?.() === true);
@@ -124,6 +319,7 @@ const canEnableReality = computed(() => inbound.value?.canEnableReality?.() === 
 const hasProtocolTabContent = computed(() => {
   if (!inbound.value) return false;
   if (isVlessLike.value) return true;
+  if (isFallbackHost.value) return true;
   switch (inbound.value.protocol) {
     case Protocols.SHADOWSOCKS:
     case Protocols.HTTP:
@@ -184,12 +380,20 @@ function primeAdvancedJson() {
 
 watch(() => props.open, (next) => {
   if (!next) return;
+  fallbackEditing.value = new Set();
   if (props.mode === 'edit' && props.dbInbound) {
     loadFromDbInbound(props.dbInbound);
+    const proto = props.dbInbound.protocol;
+    if (proto === Protocols.VLESS || proto === Protocols.TROJAN) {
+      loadFallbacks(props.dbInbound.id);
+    } else {
+      fallbacks.value = [];
+    }
   } else {
     inbound.value = makeFreshInbound(Protocols.VLESS);
     dbForm.value = freshDbForm();
     primeAdvancedJson();
+    fallbacks.value = [];
   }
   activeTabKey.value = 'basic';
   advancedSectionKey.value = 'all';
@@ -655,6 +859,12 @@ async function submit() {
       : '/panel/api/inbounds/add';
     const msg = await HttpUtil.post(url, payload);
     if (msg?.success) {
+      if (isFallbackHost.value) {
+        const masterId = props.mode === 'edit'
+          ? props.dbInbound.id
+          : (msg.obj?.id || msg.obj?.Id);
+        if (masterId) await saveFallbacks(masterId);
+      }
       emit('saved');
       close();
     }
@@ -768,6 +978,81 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
             </a-typography-text>
           </a-form-item>
         </a-form>
+
+        <a-card v-if="isFallbackHost" size="small" class="mt-12"
+          :title="t('pages.inbounds.fallbacks.title') || 'Fallbacks'">
+          <a-typography-paragraph type="secondary" style="margin-bottom: 12px">
+            {{ t('pages.inbounds.fallbacks.help') || 'When a connection on this inbound does not match any client, route it to another inbound. Pick a child below and the routing fields (SNI / ALPN / path / xver) auto-fill from its transport — most setups need no further tweaking. Each child should listen on 127.0.0.1 with security=none.' }}
+          </a-typography-paragraph>
+          <template v-if="fallbacks.length === 0">
+            <a-empty :description="t('pages.inbounds.fallbacks.empty') || 'No fallbacks yet'" :image-style="{ height: '40px' }" style="margin: 8px 0 12px" />
+          </template>
+          <div v-for="(record, index) in fallbacks" :key="record.rowKey"
+            style="border: 1px solid var(--app-border-tertiary); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px">
+            <a-row :gutter="8" align="middle" :wrap="false">
+              <a-col flex="none">
+                <a-space direction="vertical" :size="2">
+                  <a-button size="small" type="text" :disabled="index === 0" @click="moveFallback(index, -1)">
+                    <CaretUpOutlined />
+                  </a-button>
+                  <a-button size="small" type="text" :disabled="index === fallbacks.length - 1" @click="moveFallback(index, 1)">
+                    <CaretDownOutlined />
+                  </a-button>
+                </a-space>
+              </a-col>
+              <a-col flex="auto">
+                <a-select :value="record.childId" :options="fallbackChildOptions" :show-search="true"
+                  :placeholder="t('pages.inbounds.fallbacks.pickInbound') || 'Pick an inbound'"
+                  :filter-option="(input, option) => (option.label || '').toLowerCase().includes(input.toLowerCase())"
+                  style="width: 100%" @change="(v) => onFallbackChildPicked(record, v)" />
+                <a-typography-text type="secondary" style="font-size: 12px; display: block; margin-top: 4px">
+                  {{ describeFallback(record).condition }}{{ describeFallback(record).proxyTag }}
+                </a-typography-text>
+              </a-col>
+              <a-col flex="none">
+                <a-space :size="4">
+                  <a-tooltip :title="t('pages.inbounds.fallbacks.rederive') || 'Re-fill from child'">
+                    <a-button size="small" type="text" :disabled="!record.childId" @click="rederiveFallback(record)">
+                      <SyncOutlined />
+                    </a-button>
+                  </a-tooltip>
+                  <a-tooltip :title="isFallbackEditing(record.rowKey)
+                    ? (t('pages.inbounds.fallbacks.hideAdvanced') || 'Hide advanced')
+                    : (t('pages.inbounds.fallbacks.editAdvanced') || 'Edit routing fields')">
+                    <a-button size="small" type="text" @click="toggleFallbackEdit(record.rowKey)">
+                      <SettingOutlined />
+                    </a-button>
+                  </a-tooltip>
+                  <a-button size="small" type="text" danger @click="removeFallback(index)">
+                    <DeleteOutlined />
+                  </a-button>
+                </a-space>
+              </a-col>
+            </a-row>
+            <a-row v-if="isFallbackEditing(record.rowKey)" :gutter="8" style="margin-top: 8px">
+              <a-col :span="8">
+                <a-input v-model:value="record.name" addon-before="SNI" :placeholder="t('pages.inbounds.fallbacks.matchAny') || 'any'" />
+              </a-col>
+              <a-col :span="5">
+                <a-input v-model:value="record.alpn" addon-before="ALPN" :placeholder="t('pages.inbounds.fallbacks.matchAny') || 'any'" />
+              </a-col>
+              <a-col :span="7">
+                <a-input v-model:value="record.path" addon-before="Path" placeholder="/" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model:value="record.xver" addon-before="xver" :min="0" :max="2" style="width: 100%" />
+              </a-col>
+            </a-row>
+          </div>
+          <a-space :size="8" style="margin-top: 4px" wrap>
+            <a-button size="small" @click="addFallback()">
+              <PlusOutlined /> {{ t('pages.inbounds.fallbacks.add') || 'Add fallback' }}
+            </a-button>
+            <a-button size="small" type="primary" ghost @click="quickAddAllFallbacks">
+              {{ t('pages.inbounds.fallbacks.quickAddAll') || 'Quick add all eligible' }}
+            </a-button>
+          </a-space>
+        </a-card>
 
         <!-- Shadowsocks shared fields (method/network/ivCheck) -->
         <a-form v-if="protocol === Protocols.SHADOWSOCKS" :colon="false" :label-col="{ sm: { span: 8 } }"

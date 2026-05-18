@@ -250,11 +250,22 @@
       "node": "Nút",
       "deployTo": "Triển khai tới",
       "localPanel": "Panel cục bộ",
-      "portFallback": {
-        "title": "Inbound dự phòng",
-        "help": "Chọn các inbound sẽ tiếp nhận lưu lượng mà inbound VLESS-TLS này không khớp. Mỗi inbound con phải lắng nghe trên 127.0.0.1 để nhận các kết nối được chuyển tiếp.",
-        "child": "Inbound",
-        "path": "Đường dẫn"
+      "fallbacks": {
+        "title": "Fallback",
+        "help": "Khi một kết nối trên inbound này không khớp với client nào, nó sẽ được chuyển hướng tới inbound khác. Chọn một child bên dưới và các trường định tuyến (SNI / ALPN / Path / xver) sẽ được tự động điền từ transport của child — hầu hết cấu hình không cần chỉnh thêm. Mỗi child nên lắng nghe trên 127.0.0.1 với security=none.",
+        "empty": "Chưa có fallback nào",
+        "add": "Thêm fallback",
+        "pickInbound": "Chọn một inbound",
+        "matchAny": "bất kỳ",
+        "rederive": "Điền lại từ child",
+        "rederived": "Đã điền lại từ child",
+        "editAdvanced": "Sửa trường định tuyến",
+        "hideAdvanced": "Ẩn nâng cao",
+        "quickAddAll": "Thêm nhanh tất cả các inbound đủ điều kiện",
+        "quickAdded": "Đã thêm {n} fallback",
+        "quickAddedNone": "Không có inbound mới nào đủ điều kiện",
+        "routesWhen": "Định tuyến khi",
+        "defaultCatchAll": "Mặc định — bắt mọi thứ khác"
       },
       "protocol": "Giao thức",
       "port": "Cổng",

@@ -178,7 +178,8 @@ function exportInboundSubs(dbInbound) {
 function exportAllLinks() {
   const out = [];
   for (const ib of dbInbounds.value) {
-    out.push(ib.genInboundLinks(remarkModel.value, hostOverrideFor(ib)));
+    const projected = checkFallback(ib);
+    out.push(projected.genInboundLinks(remarkModel.value, hostOverrideFor(ib)));
   }
   openText({
     title: 'Export all inbound links',
@@ -227,8 +228,18 @@ function importInbound() {
 // the root inbound that owns the listen address so QRs/links carry
 // the externally-reachable host:port and the right TLS state.
 function checkFallback(dbInbound) {
-  // We don't keep parsed Inbounds in state right now (the page works
-  // off DBInbounds); compute on the fly.
+  // Path 1: panel-tracked fallback relationship (inbound_fallbacks row).
+  // The backend annotates each child inbound with fallbackParent so the
+  // child's client-share link advertises the master's reachable endpoint
+  // and inherits its TLS / Reality state.
+  const parent = dbInbound.fallbackParent;
+  if (parent?.masterId) {
+    const master = dbInbounds.value.find((ib) => ib.id === parent.masterId);
+    if (master) return projectChildThroughMaster(dbInbound, master);
+  }
+  // Path 2: legacy unix-socket convention (`@vless-ws` etc.) — walk the
+  // VLESS/Trojan TCP inbounds and look for one whose settings.fallbacks
+  // references this child's listen address.
   if (!dbInbound.listen?.startsWith?.('@')) return dbInbound;
   for (const candidate of dbInbounds.value) {
     if (candidate.id === dbInbound.id) continue;
@@ -237,21 +248,28 @@ function checkFallback(dbInbound) {
     if (!['trojan', 'vless'].includes(parsed.protocol)) continue;
     const fallbacks = parsed.settings.fallbacks || [];
     if (!fallbacks.find((f) => f.dest === dbInbound.listen)) continue;
-    // Build a one-off DBInbound copy with the parent's listen/port +
-    // copied stream so the link gen sees the public endpoint.
-    const projected = JSON.parse(JSON.stringify(dbInbound));
-    projected.listen = candidate.listen;
-    projected.port = candidate.port;
-    const inheritedStream = parsed.stream;
-    const ownInbound = dbInbound.toInbound();
-    ownInbound.stream.security = inheritedStream.security;
-    ownInbound.stream.tls = inheritedStream.tls;
-    ownInbound.stream.externalProxy = inheritedStream.externalProxy;
-    projected.streamSettings = ownInbound.stream.toString();
-    // Re-wrap so callers get the same DBInbound shape they had.
-    return new dbInbound.constructor(projected);
+    return projectChildThroughMaster(dbInbound, candidate);
   }
   return dbInbound;
+}
+
+// projectChildThroughMaster returns a one-off DBInbound copy whose
+// listen/port + TLS/Reality state come from the master, while the
+// protocol/transport/clients stay the child's. This is what makes a
+// `vless://uuid@server:443?type=ws&path=/vlws&security=tls` link work
+// for a child VLESS-WS bound to 127.0.0.1.
+function projectChildThroughMaster(child, master) {
+  const projected = JSON.parse(JSON.stringify(child));
+  projected.listen = master.listen;
+  projected.port = master.port;
+  const masterStream = master.toInbound().stream;
+  const childInbound = child.toInbound();
+  childInbound.stream.security = masterStream.security;
+  childInbound.stream.tls = masterStream.tls;
+  childInbound.stream.reality = masterStream.reality;
+  childInbound.stream.externalProxy = masterStream.externalProxy;
+  projected.streamSettings = childInbound.stream.toString();
+  return new child.constructor(projected);
 }
 
 function findClientIndex(dbInbound, client) {

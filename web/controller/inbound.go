@@ -17,8 +17,9 @@ import (
 
 // InboundController handles HTTP requests related to Xray inbounds management.
 type InboundController struct {
-	inboundService service.InboundService
-	xrayService    service.XrayService
+	inboundService  service.InboundService
+	xrayService     service.XrayService
+	fallbackService service.FallbackService
 }
 
 // NewInboundController creates a new InboundController and sets up its routes.
@@ -62,6 +63,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.GET("/list", a.getInbounds)
 	g.GET("/options", a.getInboundOptions)
 	g.GET("/get/:id", a.getInbound)
+	g.GET("/:id/fallbacks", a.getFallbacks)
 
 	g.POST("/add", a.addInbound)
 	g.POST("/del/:id", a.delInbound)
@@ -70,6 +72,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/:id/resetTraffic", a.resetInboundTraffic)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/import", a.importInbound)
+	g.POST("/:id/fallbacks", a.setFallbacks)
 }
 
 // getInbounds retrieves the list of inbounds for the logged-in user.
@@ -328,5 +331,44 @@ func resolveHost(c *gin.Context) string {
 		return h
 	}
 	return c.Request.Host
+}
+
+// getFallbacks returns the fallback rules attached to the master inbound.
+func (a *InboundController) getFallbacks(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	rows, err := a.fallbackService.GetByMaster(id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	jsonObj(c, rows, nil)
+}
+
+// setFallbacks atomically replaces the master inbound's fallback list
+// and triggers an Xray restart so the new settings.fallbacks take effect.
+func (a *InboundController) setFallbacks(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	type body struct {
+		Fallbacks []service.FallbackInput `json:"fallbacks"`
+	}
+	var b body
+	if err := c.ShouldBindJSON(&b); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if err := a.fallbackService.SetByMaster(id, b.Fallbacks); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	a.xrayService.SetToNeedRestart()
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
 }
 

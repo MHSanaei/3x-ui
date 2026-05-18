@@ -250,11 +250,22 @@
       "node": "Node",
       "deployTo": "Terapkan ke",
       "localPanel": "Panel lokal",
-      "portFallback": {
-        "title": "Inbound cadangan",
-        "help": "Pilih inbound yang harus menangkap lalu lintas yang tidak cocok pada inbound VLESS-TLS ini. Setiap anak harus mendengarkan di 127.0.0.1 untuk menerima koneksi yang diteruskan.",
-        "child": "Inbound",
-        "path": "Path"
+      "fallbacks": {
+        "title": "Fallback",
+        "help": "Saat koneksi pada inbound ini tidak cocok dengan client mana pun, arahkan ke inbound lain. Pilih child di bawah dan field routing (SNI / ALPN / Path / xver) terisi otomatis dari transport-nya — sebagian besar konfigurasi tidak perlu disesuaikan lagi. Setiap child harus listen di 127.0.0.1 dengan security=none.",
+        "empty": "Belum ada fallback",
+        "add": "Tambah fallback",
+        "pickInbound": "Pilih inbound",
+        "matchAny": "apa pun",
+        "rederive": "Isi ulang dari child",
+        "rederived": "Diisi ulang dari child",
+        "editAdvanced": "Edit field routing",
+        "hideAdvanced": "Sembunyikan lanjutan",
+        "quickAddAll": "Tambah cepat semua yang memenuhi syarat",
+        "quickAdded": "Menambahkan {n} fallback",
+        "quickAddedNone": "Tidak ada inbound baru yang memenuhi syarat",
+        "routesWhen": "Diarahkan ketika",
+        "defaultCatchAll": "Default — menangkap apa pun lainnya"
       },
       "protocol": "Protokol",
       "port": "Port",

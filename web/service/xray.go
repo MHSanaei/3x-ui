@@ -193,6 +193,21 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			settings["clients"] = finalClients
 		}
 
+		if inboundCanHostFallbacks(inbound) {
+			fallbacks, fbErr := s.inboundService.fallbackService.BuildFallbacksJSON(nil, inbound.Id)
+			if fbErr != nil {
+				return nil, fbErr
+			}
+			if len(fallbacks) > 0 {
+				generic := make([]any, 0, len(fallbacks))
+				for _, f := range fallbacks {
+					generic = append(generic, f)
+				}
+				settings["fallbacks"] = generic
+				mutated = true
+			}
+		}
+
 		if mutated {
 			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 			if err != nil {

@@ -250,11 +250,22 @@
       "node": "Düğüm",
       "deployTo": "Şuraya dağıt",
       "localPanel": "Yerel panel",
-      "portFallback": {
-        "title": "Yedek inbound'lar",
-        "help": "Bu VLESS-TLS inbound'unun eşleşmediği trafiği almasını istediğiniz inbound'ları seçin. Yönlendirilen bağlantıları alabilmek için her alt inbound 127.0.0.1 üzerinde dinlemelidir.",
-        "child": "Inbound",
-        "path": "Yol"
+      "fallbacks": {
+        "title": "Fallback'ler",
+        "help": "Bu inbound üzerindeki bir bağlantı hiçbir client ile eşleşmediğinde, başka bir inbound'a yönlendirilir. Aşağıdan bir child seçin; yönlendirme alanları (SNI / ALPN / Path / xver) onun transport'undan otomatik dolar — çoğu kurulum için ek ayar gerekmez. Her child 127.0.0.1 üzerinde security=none ile dinlemelidir.",
+        "empty": "Henüz fallback yok",
+        "add": "Fallback ekle",
+        "pickInbound": "Bir inbound seç",
+        "matchAny": "herhangi",
+        "rederive": "Child'dan yeniden doldur",
+        "rederived": "Child'dan yeniden dolduruldu",
+        "editAdvanced": "Yönlendirme alanlarını düzenle",
+        "hideAdvanced": "Gelişmişi gizle",
+        "quickAddAll": "Uygun olan tümünü hızlı ekle",
+        "quickAdded": "{n} fallback eklendi",
+        "quickAddedNone": "Eklenecek yeni uygun inbound yok",
+        "routesWhen": "Şu durumda yönlendirir",
+        "defaultCatchAll": "Varsayılan — başka her şeyi yakalar"
       },
       "protocol": "Protokol",
       "port": "Port",

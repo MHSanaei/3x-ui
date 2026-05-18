@@ -250,11 +250,22 @@
       "node": "Nodo",
       "deployTo": "Desplegar en",
       "localPanel": "Panel local",
-      "portFallback": {
-        "title": "Inbounds de respaldo",
-        "help": "Selecciona los inbounds que deben recibir el tráfico que este inbound VLESS-TLS no coincida. Cada hijo debe escuchar en 127.0.0.1 para recibir las conexiones reenviadas.",
-        "child": "Inbound",
-        "path": "Ruta"
+      "fallbacks": {
+        "title": "Fallbacks",
+        "help": "Cuando una conexión en este inbound no coincide con ningún cliente, redirígela a otro inbound. Elige un hijo abajo y los campos de enrutamiento (SNI / ALPN / Path / xver) se rellenan automáticamente desde su transporte; la mayoría de las configuraciones no necesitan más ajustes. Cada hijo debe escuchar en 127.0.0.1 con security=none.",
+        "empty": "Aún no hay fallbacks",
+        "add": "Añadir fallback",
+        "pickInbound": "Selecciona un inbound",
+        "matchAny": "cualquiera",
+        "rederive": "Rellenar desde el hijo",
+        "rederived": "Rellenado desde el hijo",
+        "editAdvanced": "Editar campos de enrutamiento",
+        "hideAdvanced": "Ocultar avanzado",
+        "quickAddAll": "Añadir todos los elegibles",
+        "quickAdded": "Se añadieron {n} fallback(s)",
+        "quickAddedNone": "No hay nuevos inbounds elegibles",
+        "routesWhen": "Enruta cuando",
+        "defaultCatchAll": "Por defecto — captura cualquier otra cosa"
       },
       "protocol": "Protocolo",
       "port": "Puerto",

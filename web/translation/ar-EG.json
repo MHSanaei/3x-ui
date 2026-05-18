@@ -250,11 +250,22 @@
       "node": "نود",
       "deployTo": "نشر على",
       "localPanel": "بانل محلي",
-      "portFallback": {
-        "title": "العناصر الاحتياطية",
-        "help": "حدد الاتصالات الواردة التي يجب أن تستقبل حركة المرور التي لا تتطابق مع اتصال VLESS-TLS الوارد. يجب أن يستمع كل عنصر فرعي على 127.0.0.1 لاستقبال الاتصالات المُحوَّلة.",
-        "child": "الاتصال الوارد",
-        "path": "المسار"
+      "fallbacks": {
+        "title": "الـ Fallbacks",
+        "help": "عند وصول اتصال إلى هذا الـ inbound لا يطابق أي عميل، يتم توجيهه إلى inbound آخر. اختر فرعًا أدناه وسيتم ملء حقول التوجيه (SNI / ALPN / Path / xver) تلقائيًا من نقل الفرع — في الغالب لا تحتاج إلى أي تعديل إضافي. يجب أن يستمع كل فرع على 127.0.0.1 مع security=none.",
+        "empty": "لا توجد fallbacks بعد",
+        "add": "إضافة fallback",
+        "pickInbound": "اختر inbound",
+        "matchAny": "أي",
+        "rederive": "إعادة الملء من الفرع",
+        "rederived": "تم إعادة الملء من الفرع",
+        "editAdvanced": "تحرير حقول التوجيه",
+        "hideAdvanced": "إخفاء المتقدم",
+        "quickAddAll": "إضافة سريعة لكل الـ inbounds المؤهلة",
+        "quickAdded": "تمت إضافة {n} fallback",
+        "quickAddedNone": "لا توجد inbounds جديدة مؤهلة للإضافة",
+        "routesWhen": "يوجَّه عندما",
+        "defaultCatchAll": "افتراضي — يلتقط أي شيء آخر"
       },
       "protocol": "بروتوكول",
       "port": "بورت",

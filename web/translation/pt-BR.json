@@ -250,11 +250,22 @@
       "node": "Nó",
       "deployTo": "Implantar em",
       "localPanel": "Painel local",
-      "portFallback": {
-        "title": "Inbounds de fallback",
-        "help": "Selecione os inbounds que devem receber o tráfego que este inbound VLESS-TLS não atender. Cada filho precisa escutar em 127.0.0.1 para receber as conexões encaminhadas.",
-        "child": "Inbound",
-        "path": "Caminho"
+      "fallbacks": {
+        "title": "Fallbacks",
+        "help": "Quando uma conexão neste inbound não corresponde a nenhum cliente, redirecione-a para outro inbound. Escolha um filho abaixo e os campos de roteamento (SNI / ALPN / Path / xver) são preenchidos automaticamente a partir do transporte dele — a maioria das configurações não precisa de mais ajustes. Cada filho deve escutar em 127.0.0.1 com security=none.",
+        "empty": "Ainda sem fallbacks",
+        "add": "Adicionar fallback",
+        "pickInbound": "Escolha um inbound",
+        "matchAny": "qualquer",
+        "rederive": "Preencher a partir do filho",
+        "rederived": "Preenchido a partir do filho",
+        "editAdvanced": "Editar campos de roteamento",
+        "hideAdvanced": "Ocultar avançado",
+        "quickAddAll": "Adicionar todos os elegíveis",
+        "quickAdded": "{n} fallback(s) adicionado(s)",
+        "quickAddedNone": "Nenhum inbound novo elegível para adicionar",
+        "routesWhen": "Roteia quando",
+        "defaultCatchAll": "Padrão — captura qualquer outra coisa"
       },
       "protocol": "Protocolo",
       "port": "Porta",

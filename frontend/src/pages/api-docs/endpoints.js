@@ -150,6 +150,27 @@ export const sections = [
           { name: 'data', in: 'body (form)', type: 'string', desc: 'JSON-encoded inbound payload.' },
         ],
       },
+      {
+        method: 'GET',
+        path: '/panel/api/inbounds/:id/fallbacks',
+        summary: 'List the fallback rules attached to a master VLESS/Trojan TCP-TLS inbound. Each rule links one child inbound (the dest) to optional SNI/ALPN/path/xver match criteria.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Master inbound ID.' },
+        ],
+        response:
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "masterId": 10,\n      "childId": 11,\n      "name": "",\n      "alpn": "",\n      "path": "/vlws",\n      "xver": 2,\n      "sortOrder": 0\n    }\n  ]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/inbounds/:id/fallbacks',
+        summary: 'Replace the entire fallback list for a master inbound. Body is JSON. Triggers an Xray restart.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Master inbound ID.' },
+          { name: 'fallbacks', in: 'body (json)', type: 'object[]', desc: 'Array of {childId, name, alpn, path, xver, sortOrder} entries.' },
+        ],
+        body: '{\n  "fallbacks": [\n    { "childId": 11, "path": "/vlws", "xver": 2 },\n    { "childId": 12, "alpn": "h2" }\n  ]\n}',
+        response: '{\n  "success": true,\n  "msg": "Inbound updated"\n}',
+      },
     ],
   },
 

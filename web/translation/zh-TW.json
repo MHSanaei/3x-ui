@@ -250,11 +250,22 @@
       "node": "節點",
       "deployTo": "部署到",
       "localPanel": "本機面板",
-      "portFallback": {
-        "title": "回退入站",
-        "help": "選擇當此 VLESS-TLS 入站未匹配時應接收流量的入站。每個子入站必須監聽 127.0.0.1 才能接收轉發的連線。",
-        "child": "入站",
-        "path": "路徑"
+      "fallbacks": {
+        "title": "回落",
+        "help": "當此入站的連線未匹配任何用戶時，將其路由到另一個入站。在下方選擇一個子入站，路由欄位（SNI / ALPN / Path / xver）會自動從子入站的傳輸方式填入——大多數情境不需要再調整。每個子入站應監聽 127.0.0.1，security=none。",
+        "empty": "尚未新增回落",
+        "add": "新增回落",
+        "pickInbound": "選擇一個入站",
+        "matchAny": "任何",
+        "rederive": "從子入站重新填入",
+        "rederived": "已從子入站重新填入",
+        "editAdvanced": "編輯路由欄位",
+        "hideAdvanced": "隱藏進階",
+        "quickAddAll": "一鍵新增所有符合的入站",
+        "quickAdded": "已新增 {n} 個回落",
+        "quickAddedNone": "沒有可新增的新入站",
+        "routesWhen": "當條件成立時路由",
+        "defaultCatchAll": "預設 — 兜底匹配其餘"
       },
       "protocol": "協議",
       "port": "埠",

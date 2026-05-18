@@ -66,6 +66,23 @@ type Inbound struct {
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
 	NodeID         *int     `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
+
+	// FallbackParent is populated by the API layer when this inbound is
+	// attached as a fallback child of a VLESS/Trojan TCP-TLS master.
+	// The frontend uses it to rewrite client-share links so they advertise
+	// the master's externally reachable endpoint instead of the child's
+	// loopback listen. Not persisted.
+	FallbackParent *FallbackParentInfo `json:"fallbackParent,omitempty" gorm:"-"`
+}
+
+// FallbackParentInfo carries everything the frontend needs to rewrite a
+// child inbound's client link: where to connect (the master's address
+// and port) and which path matched on the master's fallbacks array.
+// The frontend already has the master inbound in its dbInbounds list,
+// so we only ship identifiers + the match path here.
+type FallbackParentInfo struct {
+	MasterId int    `json:"masterId"`
+	Path     string `json:"path,omitempty"`
 }
 
 // OutboundTraffics tracks traffic statistics for Xray outbound connections.
@@ -361,6 +378,24 @@ type ClientInbound struct {
 }
 
 func (ClientInbound) TableName() string { return "client_inbounds" }
+
+// InboundFallback is one routing rule on a master inbound's
+// settings.fallbacks array. The master is always a VLESS or Trojan
+// inbound on TCP transport with TLS or Reality. The child is any other
+// inbound — its listen+port becomes the fallback dest, with optional
+// SNI/ALPN/path match criteria pulled from the same row.
+type InboundFallback struct {
+	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	MasterId  int    `json:"masterId" gorm:"index;not null;column:master_id"`
+	ChildId   int    `json:"childId" gorm:"index;not null;column:child_id"`
+	Name      string `json:"name"`
+	Alpn      string `json:"alpn"`
+	Path      string `json:"path"`
+	Xver      int    `json:"xver"`
+	SortOrder int    `json:"sortOrder" gorm:"default:0;column:sort_order"`
+}
+
+func (InboundFallback) TableName() string { return "inbound_fallbacks" }
 
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{

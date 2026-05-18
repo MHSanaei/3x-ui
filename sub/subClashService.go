@@ -50,14 +50,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		if clients == nil {
 			continue
 		}
-		if len(inbound.Listen) > 0 && inbound.Listen[0] == '@' {
-			listen, port, streamSettings, err := s.SubService.getFallbackMaster(inbound.Listen, inbound.StreamSettings)
-			if err == nil {
-				inbound.Listen = listen
-				inbound.Port = port
-				inbound.StreamSettings = streamSettings
-			}
-		}
+		s.SubService.projectThroughFallbackMaster(inbound)
 		for _, client := range clients {
 			if client.SubID == subId {
 				_, clientTraffics = s.SubService.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
