@@ -55,7 +55,14 @@ export function useInbounds() {
   // (HTTP, MIXED, WireGuard) since their settings have no client list.
   function rollupClients(dbInbound, inbound) {
     const clientStats = Array.isArray(dbInbound.clientStats) ? dbInbound.clientStats : [];
-    const clients = inbound?.clients || [];
+    const allClients = inbound?.clients || [];
+    const statsEmails = new Set();
+    for (const s of clientStats) {
+      if (s && s.email) statsEmails.add(s.email);
+    }
+    const clients = clientStats.length > 0
+      ? allClients.filter((c) => c && c.email && statsEmails.has(c.email))
+      : allClients;
     const active = [];
     const deactive = [];
     const depleted = [];

@@ -136,10 +136,9 @@ async function submit() {
   if (emails.length === 0) return;
 
   saving.value = true;
-  let ok = 0;
-  let failed = 0;
+  const silentJsonOpts = { ...JSON_HEADERS, silent: true };
   try {
-    for (const email of emails) {
+    const results = await Promise.all(emails.map((email) => {
       const client = {
         email,
         subId: form.subId || RandomUtil.randomLowerAndNum(16),
@@ -154,14 +153,24 @@ async function submit() {
         enable: true,
       };
       const payload = { client, inboundIds: form.inboundIds };
-      const msg = await HttpUtil.post('/panel/api/clients/add', payload, JSON_HEADERS);
+      return HttpUtil.post('/panel/api/clients/add', payload, silentJsonOpts);
+    }));
+    let ok = 0;
+    let failed = 0;
+    let firstError = '';
+    for (const msg of results) {
       if (msg?.success) ok++;
-      else failed++;
+      else {
+        failed++;
+        if (!firstError && msg?.msg) firstError = msg.msg;
+      }
     }
     if (failed === 0) {
       message.success(t('pages.clients.toasts.bulkCreated', { count: ok }));
     } else {
-      message.warning(t('pages.clients.toasts.bulkCreatedMixed', { ok, failed }));
+      message.warning(firstError
+        ? `${t('pages.clients.toasts.bulkCreatedMixed', { ok, failed })} — ${firstError}`
+        : t('pages.clients.toasts.bulkCreatedMixed', { ok, failed }));
     }
     emit('saved');
     close();

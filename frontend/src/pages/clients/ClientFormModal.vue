@@ -15,6 +15,7 @@ const props = defineProps({
   inbounds: { type: Array, default: () => [] },
   attachedIds: { type: Array, default: () => [] },
   ipLimitEnable: { type: Boolean, default: false },
+  tgBotEnable: { type: Boolean, default: false },
   save: { type: Function, required: true },
 });
 
@@ -34,7 +35,9 @@ function emptyForm() {
     flow: '',
     reverseTag: '',
     totalGB: 0,
-    expiryTime: null,
+    expiryDate: null,
+    delayedStart: false,
+    delayedDays: 0,
     limitIp: 0,
     tgId: 0,
     comment: '',
@@ -59,7 +62,16 @@ watch(
       form.flow = props.client.flow || '';
       form.reverseTag = props.client.reverse?.tag || '';
       form.totalGB = bytesToGB(props.client.totalGB || 0);
-      form.expiryTime = props.client.expiryTime ? dayjs(props.client.expiryTime) : null;
+      const et = Number(props.client.expiryTime) || 0;
+      if (et < 0) {
+        form.delayedStart = true;
+        form.delayedDays = Math.round(et / -86400000);
+        form.expiryDate = null;
+      } else {
+        form.delayedStart = false;
+        form.delayedDays = 0;
+        form.expiryDate = et > 0 ? dayjs(et) : null;
+      }
       form.limitIp = props.client.limitIp || 0;
       form.tgId = Number(props.client.tgId) || 0;
       form.comment = props.client.comment || '';
@@ -186,6 +198,14 @@ function regenerateEmail() {
   form.email = RandomUtil.randomLowerAndNum(12);
 }
 
+function onDelayedStartToggle(next) {
+  if (next) {
+    form.expiryDate = null;
+  } else {
+    form.delayedDays = 0;
+  }
+}
+
 async function onSubmit() {
   if (!form.email || form.email.trim() === '') {
     message.error(`${t('pages.clients.email')} *`);
@@ -195,6 +215,9 @@ async function onSubmit() {
     message.error(t('pages.clients.selectInbound'));
     return;
   }
+  const expiryTime = form.delayedStart
+    ? -86400000 * (Number(form.delayedDays) || 0)
+    : (form.expiryDate ? form.expiryDate.valueOf() : 0);
   const clientPayload = {
     email: form.email.trim(),
     subId: form.subId,
@@ -203,7 +226,7 @@ async function onSubmit() {
     auth: form.auth,
     flow: showFlow.value ? (form.flow || '') : '',
     totalGB: gbToBytes(form.totalGB),
-    expiryTime: form.expiryTime ? form.expiryTime.valueOf() : 0,
+    expiryTime,
     limitIp: Number(form.limitIp) || 0,
     tgId: Number(form.tgId) || 0,
     comment: form.comment,
@@ -285,7 +308,7 @@ async function onSubmit() {
       </a-row>
 
       <a-row :gutter="16">
-        <a-col :span="ipLimitEnable ? 12 : 24">
+        <a-col :span="12">
           <a-form-item :label="t('pages.clients.uuid')">
             <a-input-group compact style="display: flex">
               <a-input v-model:value="form.uuid" style="flex: 1" />
@@ -293,7 +316,12 @@ async function onSubmit() {
             </a-input-group>
           </a-form-item>
         </a-col>
-        <a-col v-if="ipLimitEnable" :span="12">
+        <a-col :span="ipLimitEnable ? 8 : 12">
+          <a-form-item :label="t('pages.clients.totalGB')">
+            <a-input-number v-model:value="form.totalGB" :min="0" :step="0.1" style="width: 100%" />
+          </a-form-item>
+        </a-col>
+        <a-col v-if="ipLimitEnable" :span="4">
           <a-form-item :label="t('pages.clients.limitIp')">
             <a-input-number v-model:value="form.limitIp" :min="0" style="width: 100%" />
           </a-form-item>
@@ -302,13 +330,16 @@ async function onSubmit() {
 
       <a-row :gutter="16">
         <a-col :span="12">
-          <a-form-item :label="t('pages.clients.totalGB')">
-            <a-input-number v-model:value="form.totalGB" :min="0" :step="0.1" style="width: 100%" />
+          <a-form-item v-if="form.delayedStart" :label="t('pages.clients.expireDays')">
+            <a-input-number v-model:value="form.delayedDays" :min="0" style="width: 100%" />
+          </a-form-item>
+          <a-form-item v-else :label="t('pages.clients.expiryTime')">
+            <a-date-picker v-model:value="form.expiryDate" show-time style="width: 100%" />
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item :label="t('pages.clients.expiryTime')">
-            <a-date-picker v-model:value="form.expiryTime" show-time style="width: 100%" />
+          <a-form-item :label="t('pages.clients.delayedStart')">
+            <a-switch v-model:checked="form.delayedStart" @change="onDelayedStartToggle" />
           </a-form-item>
         </a-col>
       </a-row>
@@ -330,14 +361,13 @@ async function onSubmit() {
       </a-row>
 
       <a-row :gutter="16">
-        <a-col :span="12">
+        <a-col v-if="tgBotEnable" :span="12">
           <a-form-item :label="t('pages.clients.telegramId')">
             <a-input-number v-model:value="form.tgId" :min="0" :controls="false"
-              :placeholder="t('pages.clients.telegramIdPlaceholder')"
-              style="width: 100%" />
+              :placeholder="t('pages.clients.telegramIdPlaceholder')" style="width: 100%" />
           </a-form-item>
         </a-col>
-        <a-col :span="12">
+        <a-col :span="tgBotEnable ? 12 : 24">
           <a-form-item :label="t('pages.clients.comment')">
             <a-input v-model:value="form.comment" />
           </a-form-item>

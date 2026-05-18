@@ -83,6 +83,71 @@ var (
 
 const deleteTombstoneTTL = 90 * time.Second
 
+var (
+	inboundMutationLocksMu sync.Mutex
+	inboundMutationLocks   = map[int]*sync.Mutex{}
+)
+
+func lockInbound(inboundId int) *sync.Mutex {
+	inboundMutationLocksMu.Lock()
+	defer inboundMutationLocksMu.Unlock()
+	m, ok := inboundMutationLocks[inboundId]
+	if !ok {
+		m = &sync.Mutex{}
+		inboundMutationLocks[inboundId] = m
+	}
+	m.Lock()
+	return m
+}
+
+func compactOrphans(db *gorm.DB, clients []any) []any {
+	if len(clients) == 0 {
+		return clients
+	}
+	emails := make([]string, 0, len(clients))
+	for _, c := range clients {
+		cm, ok := c.(map[string]any)
+		if !ok {
+			continue
+		}
+		if e, _ := cm["email"].(string); e != "" {
+			emails = append(emails, e)
+		}
+	}
+	if len(emails) == 0 {
+		return clients
+	}
+	var existingEmails []string
+	if err := db.Model(&model.ClientRecord{}).Where("email IN ?", emails).Pluck("email", &existingEmails).Error; err != nil {
+		logger.Warning("compactOrphans pluck:", err)
+		return clients
+	}
+	if len(existingEmails) == len(emails) {
+		return clients
+	}
+	existing := make(map[string]struct{}, len(existingEmails))
+	for _, e := range existingEmails {
+		existing[e] = struct{}{}
+	}
+	out := make([]any, 0, len(existingEmails))
+	for _, c := range clients {
+		cm, ok := c.(map[string]any)
+		if !ok {
+			out = append(out, c)
+			continue
+		}
+		e, _ := cm["email"].(string)
+		if e == "" {
+			out = append(out, c)
+			continue
+		}
+		if _, ok := existing[e]; ok {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 func tombstoneClientEmail(email string) {
 	if email == "" {
 		return
@@ -138,6 +203,9 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			return err
 		}
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if isClientEmailTombstoned(email) {
+				continue
+			}
 			if err := tx.Create(incoming).Error; err != nil {
 				return err
 			}
@@ -887,6 +955,8 @@ func (s *ClientService) checkEmailsExistForClients(inboundSvc *InboundService, c
 }
 
 func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model.Inbound) (bool, error) {
+	defer lockInbound(data.Id).Unlock()
+
 	clients, err := inboundSvc.GetClients(data)
 	if err != nil {
 		return false, err
@@ -957,6 +1027,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 	}
 
 	oldClients := oldSettings["clients"].([]any)
+	oldClients = compactOrphans(database.GetDB(), oldClients)
 	oldClients = append(oldClients, interfaceClients...)
 
 	oldSettings["clients"] = oldClients
@@ -1044,6 +1115,8 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 }
 
 func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *model.Inbound, clientId string) (bool, error) {
+	defer lockInbound(data.Id).Unlock()
+
 	clients, err := inboundSvc.GetClients(data)
 	if err != nil {
 		return false, err
@@ -1295,6 +1368,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 }
 
 func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId int, clientId string) (bool, error) {
+	defer lockInbound(inboundId).Unlock()
+
 	oldInbound, err := inboundSvc.GetInbound(inboundId)
 	if err != nil {
 		logger.Error("Load Old Data Error")
@@ -1337,6 +1412,8 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 		return false, common.NewError("Client Not Found In Inbound For ID:", clientId)
 	}
 
+	db := database.GetDB()
+	newClients = compactOrphans(db, newClients)
 	if newClients == nil {
 		newClients = []any{}
 	}
@@ -1347,8 +1424,6 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 	}
 
 	oldInbound.Settings = string(newSettings)
-
-	db := database.GetDB()
 
 	emailShared, err := inboundSvc.emailUsedByOtherInbounds(email, inboundId)
 	if err != nil {
@@ -1365,12 +1440,13 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 	needRestart := false
 
 	if len(email) > 0 {
-		notDepleted := true
-		err = db.Model(xray.ClientTraffic{}).Select("enable").Where("email = ?", email).First(&notDepleted).Error
+		var enables []bool
+		err = db.Model(xray.ClientTraffic{}).Where("email = ?", email).Limit(1).Pluck("enable", &enables).Error
 		if err != nil {
 			logger.Error("Get stats error")
 			return false, err
 		}
+		notDepleted := len(enables) > 0 && enables[0]
 		if !emailShared {
 			err = inboundSvc.DelClientStat(db, email)
 			if err != nil {
@@ -1419,6 +1495,8 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 }
 
 func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inboundId int, email string) (bool, error) {
+	defer lockInbound(inboundId).Unlock()
+
 	oldInbound, err := inboundSvc.GetInbound(inboundId)
 	if err != nil {
 		logger.Error("Load Old Data Error")
@@ -1455,6 +1533,8 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	if !found {
 		return false, common.NewError(fmt.Sprintf("client with email %s not found", email))
 	}
+	db := database.GetDB()
+	newClients = compactOrphans(db, newClients)
 	if newClients == nil {
 		newClients = []any{}
 	}
@@ -1465,8 +1545,6 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	}
 
 	oldInbound.Settings = string(newSettings)
-
-	db := database.GetDB()
 
 	emailShared, err := inboundSvc.emailUsedByOtherInbounds(email, inboundId)
 	if err != nil {

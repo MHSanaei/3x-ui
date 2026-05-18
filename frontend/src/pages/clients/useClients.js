@@ -11,6 +11,7 @@ export function useClients() {
   const fetched = ref(false);
   const subSettings = ref({ enable: false, subURI: '', subJsonURI: '', subJsonEnable: false });
   const ipLimitEnable = ref(false);
+  const tgBotEnable = ref(false);
   const expireDiff = ref(0);
   const trafficDiff = ref(0);
 
@@ -44,6 +45,7 @@ export function useClients() {
       subJsonEnable: !!s.subJsonEnable,
     };
     ipLimitEnable.value = !!s.ipLimitEnable;
+    tgBotEnable.value = !!s.tgBotEnable;
     expireDiff.value = (s.expireDiff ?? 0) * 86400000;
     trafficDiff.value = (s.trafficDiff ?? 0) * 1073741824;
   }
@@ -71,6 +73,18 @@ export function useClients() {
     const msg = await HttpUtil.post(url);
     if (msg?.success) await refresh();
     return msg;
+  }
+
+  async function removeMany(emails, keepTraffic = false) {
+    if (!Array.isArray(emails) || emails.length === 0) return [];
+    const suffix = keepTraffic ? '?keepTraffic=1' : '';
+    const silentOpts = { silent: true };
+    const results = await Promise.all(emails.map((email) => {
+      const url = `/panel/api/clients/del/${encodeURIComponent(email)}${suffix}`;
+      return HttpUtil.post(url, undefined, silentOpts);
+    }));
+    await refresh();
+    return results;
   }
 
   async function attach(email, inboundIds) {
@@ -159,11 +173,15 @@ export function useClients() {
     if (touched) clients.value = [...next];
   }
 
+  let invalidateTimer = null;
   function applyInvalidate(payload) {
     if (!payload || typeof payload !== 'object') return;
-    if (payload.type === 'inbounds' || payload.type === 'clients') {
+    if (payload.type !== 'inbounds' && payload.type !== 'clients') return;
+    if (invalidateTimer) clearTimeout(invalidateTimer);
+    invalidateTimer = setTimeout(() => {
+      invalidateTimer = null;
       refresh();
-    }
+    }, 200);
   }
 
   onMounted(async () => {
@@ -178,12 +196,14 @@ export function useClients() {
     fetched,
     subSettings,
     ipLimitEnable,
+    tgBotEnable,
     expireDiff,
     trafficDiff,
     refresh,
     create,
     update,
     remove,
+    removeMany,
     attach,
     detach,
     resetTraffic,

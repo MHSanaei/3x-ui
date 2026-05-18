@@ -40,11 +40,13 @@ const {
   fetched,
   subSettings,
   ipLimitEnable,
+  tgBotEnable,
   expireDiff,
   trafficDiff,
   create,
   update,
   remove,
+  removeMany,
   attach,
   detach,
   resetTraffic,
@@ -136,18 +138,24 @@ function onBulkDelete() {
     okType: 'danger',
     cancelText: t('cancel'),
     onOk: async () => {
+      const results = await removeMany(emails);
+      selectedRowKeys.value = [];
       let ok = 0;
       let failed = 0;
-      for (const email of emails) {
-        const msg = await remove(email);
+      let firstError = '';
+      for (const msg of results) {
         if (msg?.success) ok++;
-        else failed++;
+        else {
+          failed++;
+          if (!firstError && msg?.msg) firstError = msg.msg;
+        }
       }
-      selectedRowKeys.value = [];
       if (failed === 0) {
         message.success(t('pages.clients.toasts.bulkDeleted', { count: ok }));
       } else {
-        message.warning(t('pages.clients.toasts.bulkDeletedMixed', { ok, failed }));
+        message.warning(firstError
+          ? `${t('pages.clients.toasts.bulkDeletedMixed', { ok, failed })} — ${firstError}`
+          : t('pages.clients.toasts.bulkDeletedMixed', { ok, failed }));
       }
     },
   });
@@ -405,17 +413,26 @@ function remainingColor(row) {
 }
 
 function expiryLabel(row) {
-  if (!row.expiryTime || row.expiryTime <= 0) return '∞';
+  if (!row.expiryTime) return '∞';
+  if (row.expiryTime < 0) {
+    const days = Math.round(row.expiryTime / -86400000);
+    return `${t('pages.clients.delayedStart')}: ${days}d`;
+  }
   return IntlUtil.formatDate(row.expiryTime);
 }
 
 function expiryRelative(row) {
-  if (!row.expiryTime || row.expiryTime <= 0) return '';
+  if (!row.expiryTime) return '';
+  if (row.expiryTime < 0) {
+    const days = Math.round(row.expiryTime / -86400000);
+    return `${days}d`;
+  }
   return IntlUtil.formatRelativeTime(row.expiryTime);
 }
 
 function expiryColor(row) {
-  if (!row.expiryTime || row.expiryTime <= 0) return 'purple';
+  if (!row.expiryTime) return 'purple';
+  if (row.expiryTime < 0) return 'blue';
   const now = Date.now();
   if (row.expiryTime <= now) return 'red';
   if (row.expiryTime - now < 86400 * 1000 * 3) return 'orange';
@@ -423,6 +440,7 @@ function expiryColor(row) {
 }
 
 const sortState = ref({ column: null, order: null });
+const paginationState = ref({ current: 1, pageSize: 20 });
 
 function sortableCol(col, key) {
   return {
@@ -465,12 +483,27 @@ const sortedClients = computed(() => {
   return order === 'descend' ? sorted.reverse() : sorted;
 });
 
-function onTableChange(_pag, _filters, sorter) {
+function onTableChange(pag, _filters, sorter) {
+  if (pag) {
+    paginationState.value = {
+      current: pag.current || 1,
+      pageSize: pag.pageSize || paginationState.value.pageSize,
+    };
+  }
   sortState.value = {
     column: sorter?.columnKey || sorter?.field || null,
     order: sorter?.order || null,
   };
 }
+
+const tablePagination = computed(() => ({
+  current: paginationState.value.current,
+  pageSize: paginationState.value.pageSize,
+  total: sortedClients.value.length,
+  showSizeChanger: sortedClients.value.length > 10,
+  pageSizeOptions: ['10', '20', '50', '100'],
+  hideOnSinglePage: sortedClients.value.length <= paginationState.value.pageSize,
+}));
 
 const columns = computed(() => [
   { title: t('pages.clients.actions'), key: 'actions', width: 200 },
@@ -638,9 +671,7 @@ const columns = computed(() => [
                   </div>
 
                   <a-table v-if="!isMobile" :columns="columns" :data-source="sortedClients" :loading="loading" row-key="email"
-                    :row-selection="rowSelection"
-                    :pagination="{ pageSize: 20, showSizeChanger: sortedClients.length > 10, pageSizeOptions: ['10', '20', '50', '100'], hideOnSinglePage: sortedClients.length <= 10 }"
-                    size="small" @change="onTableChange">
+                    :row-selection="rowSelection" :pagination="tablePagination" size="small" @change="onTableChange">
                     <template #bodyCell="{ column, record }">
                       <template v-if="column.key === 'email'">
                         <div class="email-cell">
@@ -677,7 +708,7 @@ const columns = computed(() => [
                       <template v-else-if="column.key === 'expiryTime'">
                         <a-tooltip :title="expiryLabel(record)">
                           <a-tag :color="expiryColor(record)">
-                            {{ record.expiryTime > 0 ? expiryRelative(record) : '∞' }}
+                            {{ record.expiryTime ? expiryRelative(record) : '∞' }}
                           </a-tag>
                         </a-tooltip>
                       </template>
@@ -792,7 +823,8 @@ const columns = computed(() => [
       </a-layout>
 
       <ClientFormModal v-model:open="formOpen" :mode="formMode" :client="editingClient"
-        :attached-ids="editingAttachedIds" :inbounds="inbounds" :ip-limit-enable="ipLimitEnable" :save="onSave" />
+        :attached-ids="editingAttachedIds" :inbounds="inbounds" :ip-limit-enable="ipLimitEnable"
+        :tg-bot-enable="tgBotEnable" :save="onSave" />
       <ClientInfoModal v-model:open="infoOpen" :client="infoClient" :inbounds-by-id="inboundsById"
         :is-online="infoClient ? isOnline(infoClient.email) : false" :sub-settings="subSettings" />
       <ClientQrModal v-model:open="qrOpen" :client="qrClient" :sub-settings="subSettings" />
