@@ -61,9 +61,11 @@ useWebSocket({
   inbounds: applyInboundsEvent,
 });
 const { isMobile } = useMediaQuery();
-// Node list lives on the central panel; the Inbounds page consumes
-// the id→node map for the new "Node" column. Fetched once on mount.
 const { byId: nodesById, hasActive: hasActiveNode } = useNodeList();
+const hasNodeAttachedInbound = computed(() =>
+  (dbInbounds.value || []).some((ib) => ib?.nodeId != null),
+);
+const showNodeInfo = computed(() => hasNodeAttachedInbound.value || hasActiveNode.value);
 
 const basePath = window.X_UI_BASE_PATH || '';
 const requestUri = window.location.pathname;
@@ -460,18 +462,17 @@ function onRowAction({ key, dbInbound }) {
                 <InboundList :db-inbounds="dbInbounds" :client-count="clientCount" :online-clients="onlineClients"
                   :last-online-map="lastOnlineMap" :is-dark-theme="themeState.isDark" :expire-diff="expireDiff"
                   :traffic-diff="trafficDiff" :page-size="pageSize" :is-mobile="isMobile"
-                  :sub-enable="subSettings.enable" :nodes-by-id="nodesById" :has-active-node="hasActiveNode"
-                  :stats-version="statsVersion"
-                  @refresh="refresh"
-                  @add-inbound="onAddInbound" @general-action="onGeneralAction" @row-action="onRowAction" />
+                  :sub-enable="subSettings.enable" :nodes-by-id="nodesById" :has-active-node="showNodeInfo"
+                  :stats-version="statsVersion" @refresh="refresh" @add-inbound="onAddInbound"
+                  @general-action="onGeneralAction" @row-action="onRowAction" />
               </a-col>
             </a-row>
           </a-spin>
         </a-layout-content>
       </a-layout>
 
-      <InboundFormModal v-model:open="formOpen" :mode="formMode" :db-inbound="formDbInbound"
-        :db-inbounds="dbInbounds" @saved="refresh" />
+      <InboundFormModal v-model:open="formOpen" :mode="formMode" :db-inbound="formDbInbound" :db-inbounds="dbInbounds"
+        @saved="refresh" />
       <InboundInfoModal v-model:open="infoOpen" :db-inbound="infoDbInbound" :client-index="infoClientIndex"
         :remark-model="remarkModel" :expire-diff="expireDiff" :traffic-diff="trafficDiff"
         :ip-limit-enable="ipLimitEnable" :tg-bot-enable="tgBotEnable" :sub-settings="subSettings"
