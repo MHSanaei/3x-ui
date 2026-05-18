@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/logger"
-	"github.com/mhsanaei/3x-ui/v3/util/common"
-	"github.com/mhsanaei/3x-ui/v3/web/locale"
-	"github.com/mhsanaei/3x-ui/v3/web/middleware"
-	"github.com/mhsanaei/3x-ui/v3/web/network"
-	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/saeederamy/3x-ui/v3/logger"
+	"github.com/saeederamy/3x-ui/v3/util/common"
+	"github.com/saeederamy/3x-ui/v3/web/locale"
+	"github.com/saeederamy/3x-ui/v3/web/middleware"
+	"github.com/saeederamy/3x-ui/v3/web/network"
+	"github.com/saeederamy/3x-ui/v3/web/service"
 
 	"github.com/gin-gonic/gin"
 )

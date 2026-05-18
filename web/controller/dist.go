@@ -10,9 +10,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/mhsanaei/3x-ui/v3/config"
-	"github.com/mhsanaei/3x-ui/v3/logger"
-	"github.com/mhsanaei/3x-ui/v3/web/session"
+	"github.com/saeederamy/3x-ui/v3/config"
+	"github.com/saeederamy/3x-ui/v3/logger"
+	"github.com/saeederamy/3x-ui/v3/web/session"
 )
 
 var distFS embed.FS

@@ -25,7 +25,7 @@
 ## شروع سریع
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/saeederamy/3x-ui/main/install.sh)
 ```
 
 برای مستندات کامل، لطفاً به [ویکی پروژه](https://github.com/MHSanaei/3x-ui/wiki) مراجعه کنید.

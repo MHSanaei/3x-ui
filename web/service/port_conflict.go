@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/database"
-	"github.com/mhsanaei/3x-ui/v3/database/model"
-	"github.com/mhsanaei/3x-ui/v3/util/common"
+	"github.com/saeederamy/3x-ui/v3/database"
+	"github.com/saeederamy/3x-ui/v3/database/model"
+	"github.com/saeederamy/3x-ui/v3/util/common"
 )
 
 // transportBits is a bitmask of L4 transports an inbound listens on.

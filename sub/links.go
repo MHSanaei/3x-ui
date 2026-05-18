@@ -3,8 +3,8 @@ package sub
 import (
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/database/model"
-	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/saeederamy/3x-ui/v3/database/model"
+	"github.com/saeederamy/3x-ui/v3/web/service"
 )
 
 type LinkProvider struct {

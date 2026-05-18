@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/util/common"
+	"github.com/saeederamy/3x-ui/v3/util/common"
 )
 
 type NordService struct {

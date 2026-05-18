@@ -3,8 +3,8 @@ package controller
 import (
 	"encoding/json"
 
-	"github.com/mhsanaei/3x-ui/v3/util/common"
-	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/saeederamy/3x-ui/v3/util/common"
+	"github.com/saeederamy/3x-ui/v3/web/service"
 
 	"github.com/gin-gonic/gin"
 )

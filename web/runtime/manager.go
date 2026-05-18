@@ -4,8 +4,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/mhsanaei/3x-ui/v3/database"
-	"github.com/mhsanaei/3x-ui/v3/database/model"
+	"github.com/saeederamy/3x-ui/v3/database"
+	"github.com/saeederamy/3x-ui/v3/database/model"
 )
 
 type Manager struct {

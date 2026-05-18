@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/database/model"
-	"github.com/mhsanaei/3x-ui/v3/web/service"
-	"github.com/mhsanaei/3x-ui/v3/web/session"
-	"github.com/mhsanaei/3x-ui/v3/web/websocket"
+	"github.com/saeederamy/3x-ui/v3/database/model"
+	"github.com/saeederamy/3x-ui/v3/web/service"
+	"github.com/saeederamy/3x-ui/v3/web/session"
+	"github.com/saeederamy/3x-ui/v3/web/websocket"
 
 	"github.com/gin-gonic/gin"
 )
