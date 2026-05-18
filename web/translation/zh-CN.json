@@ -99,7 +99,8 @@
     "xray": "Xray 设置",
     "apiDocs": "API 文档",
     "logout": "退出登录",
-    "link": "管理"
+    "link": "管理",
+    "clients": "客户端"
   },
   "pages": {
     "login": {
@@ -361,6 +362,12 @@
           "requestHeader": "请求头",
           "responseHeader": "响应头"
         }
+      },
+      "portFallback": {
+        "title": "回退入站",
+        "help": "选择当此 VLESS-TLS 入站不匹配时应接收流量的入站。每个子入站必须监听 127.0.0.1 才能接收转发的连接。",
+        "child": "入站",
+        "path": "路径"
       }
     },
     "client": {
@@ -450,7 +457,8 @@
         "test": "测试连接",
         "fillRequired": "名称、地址、端口和 API 令牌为必填项",
         "probeFailed": "探测失败"
-      }
+      },
+      "panelVersion": "面板版本"
     },
     "settings": {
       "title": "面板设置",
@@ -800,6 +808,102 @@
         "ipPool": "IP 池子网",
         "poolSize": "池大小"
       }
+    },
+    "clients": {
+      "add": "添加客户端",
+      "edit": "编辑客户端",
+      "submitAdd": "添加客户端",
+      "submitEdit": "保存更改",
+      "clientCount": "客户端数量",
+      "bulk": "批量添加",
+      "copyFromInbound": "从入站复制客户端",
+      "copyToInbound": "复制客户端到",
+      "copySelected": "复制所选",
+      "copySource": "来源",
+      "copyEmailPreview": "生成的邮箱预览",
+      "copySelectSourceFirst": "请先选择一个来源入站。",
+      "copyResult": "复制结果",
+      "copyResultSuccess": "复制成功",
+      "copyResultNone": "没有内容可复制：未选中客户端或来源为空",
+      "copyResultErrors": "复制错误",
+      "copyFlowLabel": "新客户端的 Flow (VLESS)",
+      "copyFlowHint": "应用于所有被复制的客户端。留空则跳过。",
+      "selectAll": "全选",
+      "clearAll": "全部清除",
+      "method": "方式",
+      "first": "首个",
+      "last": "末位",
+      "ipLog": "IP 日志",
+      "prefix": "前缀",
+      "postfix": "后缀",
+      "delayedStart": "首次使用后开始",
+      "expireDays": "时长",
+      "days": "天",
+      "renew": "自动续期",
+      "renewDesc": "到期后自动续期。(0 = 禁用) (单位: 天)",
+      "title": "客户端",
+      "actions": "操作",
+      "totalGB": "总上传/下载 (GB)",
+      "expiryTime": "过期时间",
+      "addClients": "添加客户端",
+      "limitIp": "IP 限制",
+      "password": "密码",
+      "subId": "订阅 ID",
+      "online": "在线",
+      "email": "邮箱",
+      "comment": "备注",
+      "traffic": "流量",
+      "offline": "离线",
+      "addTitle": "添加客户端",
+      "qrCode": "二维码",
+      "moreInformation": "更多信息",
+      "delete": "删除",
+      "reset": "重置流量",
+      "editTitle": "编辑客户端",
+      "client": "客户端",
+      "enabled": "已启用",
+      "remaining": "剩余",
+      "duration": "时长",
+      "attachedInbounds": "关联入站",
+      "selectInbound": "选择一个或多个入站",
+      "noSubId": "该客户端没有 subId，无法生成共享链接。",
+      "noLinks": "没有可共享的链接 — 请先将此客户端关联到支持协议的入站。",
+      "link": "链接",
+      "resetNotPossible": "请先将此客户端关联到入站。",
+      "general": "通用",
+      "resetAllTraffics": "重置所有客户端流量",
+      "resetAllTrafficsTitle": "重置所有客户端流量？",
+      "resetAllTrafficsContent": "所有客户端的上下行计数器将归零。配额与过期时间不受影响。该操作不可撤销。",
+      "empty": "尚无客户端 — 添加一个开始使用。",
+      "deleteConfirmTitle": "删除客户端 {email}？",
+      "deleteConfirmContent": "将从所有关联入站中移除该客户端并删除其流量记录。该操作不可撤销。",
+      "deleteSelected": "删除 ({count})",
+      "bulkDeleteConfirmTitle": "删除 {count} 个客户端？",
+      "bulkDeleteConfirmContent": "每个所选客户端都会从关联的入站中被移除，其流量记录也会被删除。该操作不可撤销。",
+      "delDepleted": "删除已耗尽",
+      "delDepletedConfirmTitle": "删除已耗尽的客户端？",
+      "delDepletedConfirmContent": "删除所有流量配额已用尽或已过期的客户端。该操作不可撤销。",
+      "auth": "Auth",
+      "hysteriaAuth": "Hysteria Auth",
+      "uuid": "UUID",
+      "flow": "Flow",
+      "reverseTag": "Reverse tag",
+      "reverseTagPlaceholder": "可选 Reverse tag",
+      "telegramId": "Telegram 用户 ID",
+      "telegramIdPlaceholder": "数字形式的 Telegram 用户 ID (0 = 无)",
+      "created": "创建时间",
+      "updated": "更新时间",
+      "ipLimit": "IP 限制",
+      "toasts": {
+        "deleted": "客户端已删除",
+        "trafficReset": "流量已重置",
+        "allTrafficsReset": "所有客户端流量已重置",
+        "bulkDeleted": "已删除 {count} 个客户端",
+        "bulkDeletedMixed": "已删除 {ok} 个，失败 {failed} 个",
+        "bulkCreated": "已创建 {count} 个客户端",
+        "bulkCreatedMixed": "已创建 {ok} 个，失败 {failed} 个",
+        "delDepleted": "已删除 {count} 个已耗尽的客户端"
+      }
     }
   },
   "tgbot": {
@@ -977,5 +1081,6 @@
       "chooseClient": "为入站 {{ .Inbound }} 选择一个客户",
       "chooseInbound": "选择一个入站"
     }
-  }
+  },
+  "refresh": "刷新"
 }

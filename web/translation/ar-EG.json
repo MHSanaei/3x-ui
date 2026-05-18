@@ -99,7 +99,8 @@
     "xray": "إعدادات Xray",
     "apiDocs": "توثيق API",
     "logout": "تسجيل خروج",
-    "link": "إدارة"
+    "link": "إدارة",
+    "clients": "العملاء"
   },
   "pages": {
     "login": {
@@ -361,6 +362,12 @@
           "requestHeader": "رأس الطلب",
           "responseHeader": "رأس الرد"
         }
+      },
+      "portFallback": {
+        "title": "العناصر الاحتياطية",
+        "help": "حدد الاتصالات الواردة التي يجب أن تستقبل حركة المرور التي لا تتطابق مع اتصال VLESS-TLS الوارد. يجب أن يستمع كل عنصر فرعي على 127.0.0.1 لاستقبال الاتصالات المُحوَّلة.",
+        "child": "الاتصال الوارد",
+        "path": "المسار"
       }
     },
     "client": {
@@ -450,7 +457,8 @@
         "test": "اختبار الاتصال",
         "fillRequired": "الاسم والعنوان والبورت وتوكن API كلهم مطلوبين",
         "probeFailed": "فشل الفحص"
-      }
+      },
+      "panelVersion": "إصدار اللوحة"
     },
     "settings": {
       "title": "إعدادات البانل",
@@ -800,6 +808,102 @@
         "ipPool": "نطاق IP Pool",
         "poolSize": "حجم المجموعة"
       }
+    },
+    "clients": {
+      "add": "إضافة عميل",
+      "edit": "تعديل العميل",
+      "submitAdd": "إضافة عميل",
+      "submitEdit": "حفظ التغييرات",
+      "clientCount": "عدد العملاء",
+      "bulk": "إضافة مجمعة",
+      "copyFromInbound": "نسخ العملاء من الاتصال الوارد",
+      "copyToInbound": "نسخ العملاء إلى",
+      "copySelected": "نسخ المحدد",
+      "copySource": "المصدر",
+      "copyEmailPreview": "معاينة البريد الناتج",
+      "copySelectSourceFirst": "يرجى تحديد اتصال وارد مصدر أولاً.",
+      "copyResult": "نتيجة النسخ",
+      "copyResultSuccess": "تم النسخ بنجاح",
+      "copyResultNone": "لا شيء للنسخ: لم يتم تحديد عملاء أو أن المصدر فارغ",
+      "copyResultErrors": "أخطاء النسخ",
+      "copyFlowLabel": "Flow للعملاء الجدد (VLESS)",
+      "copyFlowHint": "يُطبَّق على جميع العملاء المنسوخين. اتركه فارغًا للتخطي.",
+      "selectAll": "تحديد الكل",
+      "clearAll": "مسح الكل",
+      "method": "الطريقة",
+      "first": "أول",
+      "last": "آخر",
+      "ipLog": "سجل IP",
+      "prefix": "بادئة",
+      "postfix": "لاحقة",
+      "delayedStart": "البدء بعد أول استخدام",
+      "expireDays": "المدة",
+      "days": "يوم",
+      "renew": "تجديد تلقائي",
+      "renewDesc": "تجديد تلقائي بعد انتهاء الصلاحية. (0 = تعطيل) (الوحدة: يوم)",
+      "title": "العملاء",
+      "actions": "الإجراءات",
+      "totalGB": "مجموع المرسل/المستقبل (جيجابايت)",
+      "expiryTime": "انتهاء الصلاحية",
+      "addClients": "إضافة عملاء",
+      "limitIp": "حد عناوين IP",
+      "password": "كلمة المرور",
+      "subId": "معرّف الاشتراك",
+      "online": "متصل",
+      "email": "البريد الإلكتروني",
+      "comment": "ملاحظة",
+      "traffic": "حركة المرور",
+      "offline": "غير متصل",
+      "addTitle": "إضافة عميل",
+      "qrCode": "رمز QR",
+      "moreInformation": "مزيد من المعلومات",
+      "delete": "حذف",
+      "reset": "إعادة ضبط حركة المرور",
+      "editTitle": "تعديل العميل",
+      "client": "العميل",
+      "enabled": "مفعّل",
+      "remaining": "المتبقي",
+      "duration": "المدة",
+      "attachedInbounds": "الاتصالات الواردة المرتبطة",
+      "selectInbound": "حدد اتصالاً واردًا واحدًا أو أكثر",
+      "noSubId": "هذا العميل ليس لديه subId، لا يوجد رابط قابل للمشاركة.",
+      "noLinks": "لا توجد روابط للمشاركة — قم بإرفاق هذا العميل بأحد الاتصالات الواردة الداعمة للبروتوكول أولاً.",
+      "link": "رابط",
+      "resetNotPossible": "قم بإرفاق هذا العميل بأحد الاتصالات الواردة أولاً.",
+      "general": "عام",
+      "resetAllTraffics": "إعادة ضبط حركة مرور كل العملاء",
+      "resetAllTrafficsTitle": "إعادة ضبط حركة مرور كل العملاء؟",
+      "resetAllTrafficsContent": "يُعاد ضبط عدّاد الإرسال/الاستقبال لكل عميل إلى الصفر. لا تتأثر الحصص ومواعيد الانتهاء. لا يمكن التراجع.",
+      "empty": "لا يوجد عملاء بعد — أضف واحدًا للبدء.",
+      "deleteConfirmTitle": "حذف العميل {email}؟",
+      "deleteConfirmContent": "سيؤدي هذا إلى إزالة العميل من جميع الاتصالات الواردة المرتبطة وحذف سجل حركة مروره. لا يمكن التراجع.",
+      "deleteSelected": "حذف ({count})",
+      "bulkDeleteConfirmTitle": "حذف {count} عميل؟",
+      "bulkDeleteConfirmContent": "سيتم إزالة كل عميل محدد من جميع الاتصالات الواردة المرتبطة وحذف سجل حركة مروره. لا يمكن التراجع.",
+      "delDepleted": "حذف المنتهية",
+      "delDepletedConfirmTitle": "حذف العملاء المنتهية حصصهم؟",
+      "delDepletedConfirmContent": "يُحذف كل عميل استُنفِدت حصة حركة مروره أو انتهت صلاحيته. لا يمكن التراجع.",
+      "auth": "Auth",
+      "hysteriaAuth": "Auth (Hysteria)",
+      "uuid": "UUID",
+      "flow": "Flow",
+      "reverseTag": "Reverse tag",
+      "reverseTagPlaceholder": "Reverse tag اختياري",
+      "telegramId": "معرّف مستخدم تلغرام",
+      "telegramIdPlaceholder": "معرّف مستخدم تلغرام رقمي (0 = لا شيء)",
+      "created": "تاريخ الإنشاء",
+      "updated": "تاريخ التحديث",
+      "ipLimit": "حد IP",
+      "toasts": {
+        "deleted": "تم حذف العميل",
+        "trafficReset": "تمت إعادة ضبط حركة المرور",
+        "allTrafficsReset": "تمت إعادة ضبط حركة مرور كل العملاء",
+        "bulkDeleted": "تم حذف {count} عميل",
+        "bulkDeletedMixed": "تم حذف {ok}, وفشل {failed}",
+        "bulkCreated": "تم إنشاء {count} عميل",
+        "bulkCreatedMixed": "تم إنشاء {ok}, وفشل {failed}",
+        "delDepleted": "تم حذف {count} عميل منتهٍ"
+      }
     }
   },
   "tgbot": {
@@ -977,5 +1081,6 @@
       "chooseClient": "اختار عميل للإدخال {{ .Inbound }}",
       "chooseInbound": "اختار الإدخال"
     }
-  }
+  },
+  "refresh": "تحديث"
 }

@@ -99,7 +99,8 @@
     "xray": "Xray設定",
     "apiDocs": "API ドキュメント",
     "logout": "ログアウト",
-    "link": "リンク管理"
+    "link": "リンク管理",
+    "clients": "クライアント"
   },
   "pages": {
     "login": {
@@ -361,6 +362,12 @@
           "requestHeader": "リクエストヘッダー",
           "responseHeader": "レスポンスヘッダー"
         }
+      },
+      "portFallback": {
+        "title": "フォールバック子",
+        "help": "この VLESS-TLS インバウンドが一致しないトラフィックを受け取るインバウンドを選択してください。各子インバウンドは転送された接続を受信するために 127.0.0.1 でリッスンする必要があります。",
+        "child": "インバウンド",
+        "path": "パス"
       }
     },
     "client": {
@@ -450,7 +457,8 @@
         "test": "接続テスト",
         "fillRequired": "名前、アドレス、ポート、APIトークンは必須です",
         "probeFailed": "プローブに失敗しました"
-      }
+      },
+      "panelVersion": "パネルのバージョン"
     },
     "settings": {
       "title": "パネル設定",
@@ -800,6 +808,102 @@
         "ipPool": "IPプールサブネット",
         "poolSize": "プールサイズ"
       }
+    },
+    "clients": {
+      "add": "クライアントを追加",
+      "edit": "クライアントを編集",
+      "submitAdd": "クライアントを追加",
+      "submitEdit": "変更を保存",
+      "clientCount": "クライアント数",
+      "bulk": "一括追加",
+      "copyFromInbound": "インバウンドからクライアントをコピー",
+      "copyToInbound": "コピー先",
+      "copySelected": "選択をコピー",
+      "copySource": "コピー元",
+      "copyEmailPreview": "生成されるメールのプレビュー",
+      "copySelectSourceFirst": "まずコピー元のインバウンドを選択してください。",
+      "copyResult": "コピー結果",
+      "copyResultSuccess": "コピーに成功しました",
+      "copyResultNone": "コピーする対象がありません。クライアントが選択されていないか、コピー元が空です",
+      "copyResultErrors": "コピーエラー",
+      "copyFlowLabel": "新規クライアントの Flow (VLESS)",
+      "copyFlowHint": "コピーされる全クライアントに適用されます。空欄でスキップします。",
+      "selectAll": "すべて選択",
+      "clearAll": "すべてクリア",
+      "method": "メソッド",
+      "first": "最初",
+      "last": "最後",
+      "ipLog": "IP ログ",
+      "prefix": "プレフィックス",
+      "postfix": "サフィックス",
+      "delayedStart": "初回使用から開始",
+      "expireDays": "期間",
+      "days": "日",
+      "renew": "自動更新",
+      "renewDesc": "有効期限切れ後に自動更新します。(0 = 無効) (単位: 日)",
+      "title": "クライアント",
+      "actions": "操作",
+      "totalGB": "送受信合計 (GB)",
+      "expiryTime": "有効期限",
+      "addClients": "クライアントを追加",
+      "limitIp": "IP 制限",
+      "password": "パスワード",
+      "subId": "サブスクリプション ID",
+      "online": "オンライン",
+      "email": "メール",
+      "comment": "コメント",
+      "traffic": "トラフィック",
+      "offline": "オフライン",
+      "addTitle": "クライアントを追加",
+      "qrCode": "QR コード",
+      "moreInformation": "詳細情報",
+      "delete": "削除",
+      "reset": "トラフィックをリセット",
+      "editTitle": "クライアントを編集",
+      "client": "クライアント",
+      "enabled": "有効",
+      "remaining": "残量",
+      "duration": "期間",
+      "attachedInbounds": "関連付けされたインバウンド",
+      "selectInbound": "1 つ以上のインバウンドを選択",
+      "noSubId": "このクライアントには subId がなく、共有可能なリンクはありません。",
+      "noLinks": "共有可能なリンクがありません — まずこのクライアントを対応するプロトコルのインバウンドに関連付けてください。",
+      "link": "リンク",
+      "resetNotPossible": "まずこのクライアントをインバウンドに関連付けてください。",
+      "general": "一般",
+      "resetAllTraffics": "すべてのクライアントのトラフィックをリセット",
+      "resetAllTrafficsTitle": "すべてのクライアントのトラフィックをリセットしますか?",
+      "resetAllTrafficsContent": "すべてのクライアントの送受信カウンターがゼロにリセットされます。クォータと有効期限には影響しません。元に戻せません。",
+      "empty": "クライアントはまだいません — 1 つ追加して始めましょう。",
+      "deleteConfirmTitle": "クライアント {email} を削除しますか?",
+      "deleteConfirmContent": "クライアントを関連付けされたすべてのインバウンドから削除し、トラフィック記録も破棄します。元に戻せません。",
+      "deleteSelected": "削除 ({count})",
+      "bulkDeleteConfirmTitle": "{count} 件のクライアントを削除しますか?",
+      "bulkDeleteConfirmContent": "選択された各クライアントを関連付けされたすべてのインバウンドから削除し、トラフィック記録も破棄します。元に戻せません。",
+      "delDepleted": "使い切ったクライアントを削除",
+      "delDepletedConfirmTitle": "使い切ったクライアントを削除しますか?",
+      "delDepletedConfirmContent": "トラフィック上限に達したか有効期限が切れたクライアントをすべて削除します。元に戻せません。",
+      "auth": "Auth",
+      "hysteriaAuth": "Auth (Hysteria)",
+      "uuid": "UUID",
+      "flow": "Flow",
+      "reverseTag": "Reverse tag",
+      "reverseTagPlaceholder": "任意の Reverse tag",
+      "telegramId": "Telegram ユーザー ID",
+      "telegramIdPlaceholder": "数値の Telegram ユーザー ID (0 = なし)",
+      "created": "作成日",
+      "updated": "更新日",
+      "ipLimit": "IP 制限",
+      "toasts": {
+        "deleted": "クライアントを削除しました",
+        "trafficReset": "トラフィックをリセットしました",
+        "allTrafficsReset": "すべてのクライアントのトラフィックをリセットしました",
+        "bulkDeleted": "{count} 件のクライアントを削除しました",
+        "bulkDeletedMixed": "{ok} 件削除、{failed} 件失敗",
+        "bulkCreated": "{count} 件のクライアントを作成しました",
+        "bulkCreatedMixed": "{ok} 件作成、{failed} 件失敗",
+        "delDepleted": "使い切った {count} 件のクライアントを削除しました"
+      }
     }
   },
   "tgbot": {
@@ -977,5 +1081,6 @@
       "chooseClient": "インバウンド {{ .Inbound }} のクライアントを選択",
       "chooseInbound": "インバウンドを選択"
     }
-  }
+  },
+  "refresh": "更新"
 }

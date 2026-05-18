@@ -99,7 +99,8 @@
     "logout": "Đăng xuất",
     "xray": "Cài đặt Xray",
     "apiDocs": "Tài liệu API",
-    "link": "Quản lý"
+    "link": "Quản lý",
+    "clients": "Khách hàng"
   },
   "pages": {
     "login": {
@@ -361,6 +362,12 @@
           "requestHeader": "Header yêu cầu",
           "responseHeader": "Header phản hồi"
         }
+      },
+      "portFallback": {
+        "title": "Inbound dự phòng",
+        "help": "Chọn các inbound sẽ tiếp nhận lưu lượng mà inbound VLESS-TLS này không khớp. Mỗi inbound con phải lắng nghe trên 127.0.0.1 để nhận các kết nối được chuyển tiếp.",
+        "child": "Inbound",
+        "path": "Đường dẫn"
       }
     },
     "client": {
@@ -450,7 +457,8 @@
         "test": "Kiểm tra kết nối",
         "fillRequired": "Tên, địa chỉ, cổng và token API là bắt buộc",
         "probeFailed": "Kiểm tra thất bại"
-      }
+      },
+      "panelVersion": "Phiên bản panel"
     },
     "settings": {
       "title": "Cài đặt",
@@ -800,6 +808,102 @@
         "ipPool": "Mạng con nhóm IP",
         "poolSize": "Kích thước bể bơi"
       }
+    },
+    "clients": {
+      "add": "Thêm khách hàng",
+      "edit": "Chỉnh sửa khách hàng",
+      "submitAdd": "Thêm khách hàng",
+      "submitEdit": "Lưu thay đổi",
+      "clientCount": "Số lượng khách hàng",
+      "bulk": "Thêm hàng loạt",
+      "copyFromInbound": "Sao chép khách hàng từ inbound",
+      "copyToInbound": "Sao chép khách hàng đến",
+      "copySelected": "Sao chép đã chọn",
+      "copySource": "Nguồn",
+      "copyEmailPreview": "Xem trước email kết quả",
+      "copySelectSourceFirst": "Hãy chọn inbound nguồn trước.",
+      "copyResult": "Kết quả sao chép",
+      "copyResultSuccess": "Đã sao chép thành công",
+      "copyResultNone": "Không có gì để sao chép: chưa chọn khách hàng hoặc nguồn rỗng",
+      "copyResultErrors": "Lỗi sao chép",
+      "copyFlowLabel": "Flow cho khách hàng mới (VLESS)",
+      "copyFlowHint": "Áp dụng cho tất cả khách hàng được sao chép. Để trống để bỏ qua.",
+      "selectAll": "Chọn tất cả",
+      "clearAll": "Xóa tất cả",
+      "method": "Phương thức",
+      "first": "Đầu",
+      "last": "Cuối",
+      "ipLog": "Nhật ký IP",
+      "prefix": "Tiền tố",
+      "postfix": "Hậu tố",
+      "delayedStart": "Bắt đầu sau lần dùng đầu",
+      "expireDays": "Thời hạn",
+      "days": "Ngày",
+      "renew": "Tự động gia hạn",
+      "renewDesc": "Tự động gia hạn sau khi hết hạn. (0 = tắt) (đơn vị: ngày)",
+      "title": "Khách hàng",
+      "actions": "Hành động",
+      "totalGB": "Tổng gửi/nhận (GB)",
+      "expiryTime": "Hết hạn",
+      "addClients": "Thêm khách hàng",
+      "limitIp": "Giới hạn IP",
+      "password": "Mật khẩu",
+      "subId": "ID đăng ký",
+      "online": "Trực tuyến",
+      "email": "Email",
+      "comment": "Ghi chú",
+      "traffic": "Lưu lượng",
+      "offline": "Ngoại tuyến",
+      "addTitle": "Thêm khách hàng",
+      "qrCode": "Mã QR",
+      "moreInformation": "Thông tin thêm",
+      "delete": "Xóa",
+      "reset": "Đặt lại lưu lượng",
+      "editTitle": "Chỉnh sửa khách hàng",
+      "client": "Khách hàng",
+      "enabled": "Đã bật",
+      "remaining": "Còn lại",
+      "duration": "Thời hạn",
+      "attachedInbounds": "Inbound đã gắn",
+      "selectInbound": "Chọn một hoặc nhiều inbound",
+      "noSubId": "Khách hàng này không có subId, không có liên kết chia sẻ.",
+      "noLinks": "Không có liên kết chia sẻ — hãy gắn khách hàng này vào một inbound có giao thức tương thích trước.",
+      "link": "Liên kết",
+      "resetNotPossible": "Hãy gắn khách hàng này vào một inbound trước.",
+      "general": "Chung",
+      "resetAllTraffics": "Đặt lại lưu lượng của tất cả khách hàng",
+      "resetAllTrafficsTitle": "Đặt lại lưu lượng của tất cả khách hàng?",
+      "resetAllTrafficsContent": "Bộ đếm gửi/nhận của mỗi khách hàng về 0. Hạn mức và thời hạn không bị ảnh hưởng. Không thể hoàn tác.",
+      "empty": "Chưa có khách hàng nào — thêm một để bắt đầu.",
+      "deleteConfirmTitle": "Xóa khách hàng {email}?",
+      "deleteConfirmContent": "Hành động này gỡ khách hàng khỏi mọi inbound đã gắn và xóa bản ghi lưu lượng. Không thể hoàn tác.",
+      "deleteSelected": "Xóa ({count})",
+      "bulkDeleteConfirmTitle": "Xóa {count} khách hàng?",
+      "bulkDeleteConfirmContent": "Mỗi khách hàng được chọn sẽ bị gỡ khỏi tất cả inbound đã gắn và bản ghi lưu lượng cũng bị xóa. Không thể hoàn tác.",
+      "delDepleted": "Xóa hết hạn mức",
+      "delDepletedConfirmTitle": "Xóa khách hàng hết hạn mức?",
+      "delDepletedConfirmContent": "Gỡ tất cả khách hàng đã dùng hết hạn mức lưu lượng hoặc đã quá hạn. Không thể hoàn tác.",
+      "auth": "Auth",
+      "hysteriaAuth": "Auth Hysteria",
+      "uuid": "UUID",
+      "flow": "Flow",
+      "reverseTag": "Reverse tag",
+      "reverseTagPlaceholder": "Reverse tag tùy chọn",
+      "telegramId": "ID người dùng Telegram",
+      "telegramIdPlaceholder": "ID người dùng Telegram dạng số (0 = không có)",
+      "created": "Tạo",
+      "updated": "Cập nhật",
+      "ipLimit": "Giới hạn IP",
+      "toasts": {
+        "deleted": "Đã xóa khách hàng",
+        "trafficReset": "Đã đặt lại lưu lượng",
+        "allTrafficsReset": "Đã đặt lại lưu lượng của tất cả khách hàng",
+        "bulkDeleted": "Đã xóa {count} khách hàng",
+        "bulkDeletedMixed": "Đã xóa {ok}, thất bại {failed}",
+        "bulkCreated": "Đã tạo {count} khách hàng",
+        "bulkCreatedMixed": "Đã tạo {ok}, thất bại {failed}",
+        "delDepleted": "Đã xóa {count} khách hàng hết hạn mức"
+      }
     }
   },
   "tgbot": {
@@ -977,5 +1081,6 @@
       "chooseClient": "Chọn một Khách hàng cho Inbound {{ .Inbound }}",
       "chooseInbound": "Chọn một Inbound"
     }
-  }
+  },
+  "refresh": "Làm mới"
 }

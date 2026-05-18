@@ -99,7 +99,8 @@
     "xray": "Xray Configs",
     "apiDocs": "Documentação da API",
     "logout": "Sair",
-    "link": "Gerenciar"
+    "link": "Gerenciar",
+    "clients": "Clientes"
   },
   "pages": {
     "login": {
@@ -361,6 +362,12 @@
           "requestHeader": "Cabeçalho da Requisição",
           "responseHeader": "Cabeçalho da Resposta"
         }
+      },
+      "portFallback": {
+        "title": "Inbounds de fallback",
+        "help": "Selecione os inbounds que devem receber o tráfego que este inbound VLESS-TLS não atender. Cada filho precisa escutar em 127.0.0.1 para receber as conexões encaminhadas.",
+        "child": "Inbound",
+        "path": "Caminho"
       }
     },
     "client": {
@@ -450,7 +457,8 @@
         "test": "Testar conexão",
         "fillRequired": "Nome, endereço, porta e token da API são obrigatórios",
         "probeFailed": "Falha na sondagem"
-      }
+      },
+      "panelVersion": "Versão do painel"
     },
     "settings": {
       "title": "Configurações do Painel",
@@ -800,6 +808,102 @@
         "ipPool": "Sub-rede do Pool de IP",
         "poolSize": "Tamanho do Pool"
       }
+    },
+    "clients": {
+      "add": "Adicionar cliente",
+      "edit": "Editar cliente",
+      "submitAdd": "Adicionar cliente",
+      "submitEdit": "Salvar alterações",
+      "clientCount": "Número de clientes",
+      "bulk": "Adicionar em lote",
+      "copyFromInbound": "Copiar clientes do inbound",
+      "copyToInbound": "Copiar clientes para",
+      "copySelected": "Copiar selecionados",
+      "copySource": "Origem",
+      "copyEmailPreview": "Prévia do e-mail resultante",
+      "copySelectSourceFirst": "Selecione primeiro um inbound de origem.",
+      "copyResult": "Resultado da cópia",
+      "copyResultSuccess": "Copiado com sucesso",
+      "copyResultNone": "Nada a copiar: nenhum cliente selecionado ou a origem está vazia",
+      "copyResultErrors": "Erros de cópia",
+      "copyFlowLabel": "Flow para os novos clientes (VLESS)",
+      "copyFlowHint": "Aplicado a todos os clientes copiados. Deixe em branco para ignorar.",
+      "selectAll": "Selecionar tudo",
+      "clearAll": "Limpar tudo",
+      "method": "Método",
+      "first": "Primeiro",
+      "last": "Último",
+      "ipLog": "Registro de IP",
+      "prefix": "Prefixo",
+      "postfix": "Sufixo",
+      "delayedStart": "Iniciar após o primeiro uso",
+      "expireDays": "Duração",
+      "days": "Dia(s)",
+      "renew": "Renovação automática",
+      "renewDesc": "Renovação automática após a expiração. (0 = desativar) (unidade: dia)",
+      "title": "Clientes",
+      "actions": "Ações",
+      "totalGB": "Total enviado/recebido (GB)",
+      "expiryTime": "Expiração",
+      "addClients": "Adicionar clientes",
+      "limitIp": "Limite de IP",
+      "password": "Senha",
+      "subId": "ID da assinatura",
+      "online": "Online",
+      "email": "E-mail",
+      "comment": "Comentário",
+      "traffic": "Tráfego",
+      "offline": "Offline",
+      "addTitle": "Adicionar cliente",
+      "qrCode": "Código QR",
+      "moreInformation": "Mais informações",
+      "delete": "Excluir",
+      "reset": "Redefinir tráfego",
+      "editTitle": "Editar cliente",
+      "client": "Cliente",
+      "enabled": "Habilitado",
+      "remaining": "Restante",
+      "duration": "Duração",
+      "attachedInbounds": "Inbounds associados",
+      "selectInbound": "Selecione um ou mais inbounds",
+      "noSubId": "Este cliente não tem subId, sem link compartilhável.",
+      "noLinks": "Sem links compartilháveis — associe primeiro este cliente a um inbound compatível com o protocolo.",
+      "link": "Link",
+      "resetNotPossible": "Associe primeiro este cliente a um inbound.",
+      "general": "Geral",
+      "resetAllTraffics": "Redefinir o tráfego de todos os clientes",
+      "resetAllTrafficsTitle": "Redefinir o tráfego de todos os clientes?",
+      "resetAllTrafficsContent": "Os contadores de envio/recebimento de cada cliente vão a zero. Cota e expiração não são afetadas. Não é possível desfazer.",
+      "empty": "Ainda não há clientes — adicione um para começar.",
+      "deleteConfirmTitle": "Excluir o cliente {email}?",
+      "deleteConfirmContent": "Isto remove o cliente de cada inbound associado e descarta o registro de tráfego. Não é possível desfazer.",
+      "deleteSelected": "Excluir ({count})",
+      "bulkDeleteConfirmTitle": "Excluir {count} clientes?",
+      "bulkDeleteConfirmContent": "Cada cliente selecionado é removido dos inbounds associados e o registro de tráfego é descartado. Não é possível desfazer.",
+      "delDepleted": "Excluir esgotados",
+      "delDepletedConfirmTitle": "Excluir clientes esgotados?",
+      "delDepletedConfirmContent": "Remove todos os clientes cuja cota de tráfego foi esgotada ou cuja expiração já passou. Não é possível desfazer.",
+      "auth": "Auth",
+      "hysteriaAuth": "Auth do Hysteria",
+      "uuid": "UUID",
+      "flow": "Flow",
+      "reverseTag": "Reverse tag",
+      "reverseTagPlaceholder": "Reverse tag opcional",
+      "telegramId": "ID de usuário do Telegram",
+      "telegramIdPlaceholder": "ID numérico de usuário do Telegram (0 = nenhum)",
+      "created": "Criado",
+      "updated": "Atualizado",
+      "ipLimit": "Limite de IP",
+      "toasts": {
+        "deleted": "Cliente excluído",
+        "trafficReset": "Tráfego redefinido",
+        "allTrafficsReset": "Tráfego de todos os clientes redefinido",
+        "bulkDeleted": "{count} clientes excluídos",
+        "bulkDeletedMixed": "{ok} excluídos, {failed} com falha",
+        "bulkCreated": "{count} clientes criados",
+        "bulkCreatedMixed": "{ok} criados, {failed} com falha",
+        "delDepleted": "{count} clientes esgotados excluídos"
+      }
     }
   },
   "tgbot": {
@@ -977,5 +1081,6 @@
       "chooseClient": "Escolha um cliente para Inbound {{ .Inbound }}",
       "chooseInbound": "Escolha um Inbound"
     }
-  }
+  },
+  "refresh": "Atualizar"
 }

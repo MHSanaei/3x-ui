@@ -99,7 +99,8 @@
     "xray": "Xray Yapılandırmaları",
     "apiDocs": "API Belgeleri",
     "logout": "Çıkış Yap",
-    "link": "Yönet"
+    "link": "Yönet",
+    "clients": "İstemciler"
   },
   "pages": {
     "login": {
@@ -361,6 +362,12 @@
           "requestHeader": "İstek Başlığı",
           "responseHeader": "Yanıt Başlığı"
         }
+      },
+      "portFallback": {
+        "title": "Yedek inbound'lar",
+        "help": "Bu VLESS-TLS inbound'unun eşleşmediği trafiği almasını istediğiniz inbound'ları seçin. Yönlendirilen bağlantıları alabilmek için her alt inbound 127.0.0.1 üzerinde dinlemelidir.",
+        "child": "Inbound",
+        "path": "Yol"
       }
     },
     "client": {
@@ -450,7 +457,8 @@
         "test": "Bağlantıyı test et",
         "fillRequired": "Ad, adres, port ve API token gereklidir",
         "probeFailed": "Test başarısız"
-      }
+      },
+      "panelVersion": "Panel sürümü"
     },
     "settings": {
       "title": "Panel Ayarları",
@@ -800,6 +808,102 @@
         "ipPool": "IP Havuzu Alt Ağı",
         "poolSize": "Havuz Boyutu"
       }
+    },
+    "clients": {
+      "add": "İstemci ekle",
+      "edit": "İstemciyi düzenle",
+      "submitAdd": "İstemci ekle",
+      "submitEdit": "Değişiklikleri kaydet",
+      "clientCount": "İstemci sayısı",
+      "bulk": "Toplu ekle",
+      "copyFromInbound": "Inbound'dan istemcileri kopyala",
+      "copyToInbound": "İstemcileri kopyalanacak yer",
+      "copySelected": "Seçileni kopyala",
+      "copySource": "Kaynak",
+      "copyEmailPreview": "Oluşacak e-posta önizlemesi",
+      "copySelectSourceFirst": "Önce bir kaynak inbound seçin.",
+      "copyResult": "Kopya sonucu",
+      "copyResultSuccess": "Başarıyla kopyalandı",
+      "copyResultNone": "Kopyalanacak bir şey yok: istemci seçilmemiş veya kaynak boş",
+      "copyResultErrors": "Kopyalama hataları",
+      "copyFlowLabel": "Yeni istemciler için Flow (VLESS)",
+      "copyFlowHint": "Kopyalanan tüm istemcilere uygulanır. Atlamak için boş bırakın.",
+      "selectAll": "Tümünü seç",
+      "clearAll": "Tümünü temizle",
+      "method": "Yöntem",
+      "first": "İlk",
+      "last": "Son",
+      "ipLog": "IP günlüğü",
+      "prefix": "Önek",
+      "postfix": "Sonek",
+      "delayedStart": "İlk kullanımdan sonra başla",
+      "expireDays": "Süre",
+      "days": "Gün",
+      "renew": "Otomatik yenileme",
+      "renewDesc": "Süre dolduktan sonra otomatik yenileme. (0 = devre dışı) (birim: gün)",
+      "title": "İstemciler",
+      "actions": "Eylemler",
+      "totalGB": "Toplam Gönderilen/Alınan (GB)",
+      "expiryTime": "Son kullanma",
+      "addClients": "İstemci ekle",
+      "limitIp": "IP limiti",
+      "password": "Şifre",
+      "subId": "Abonelik ID'si",
+      "online": "Çevrimiçi",
+      "email": "E-posta",
+      "comment": "Yorum",
+      "traffic": "Trafik",
+      "offline": "Çevrimdışı",
+      "addTitle": "İstemci ekle",
+      "qrCode": "QR kodu",
+      "moreInformation": "Daha fazla bilgi",
+      "delete": "Sil",
+      "reset": "Trafiği sıfırla",
+      "editTitle": "İstemciyi düzenle",
+      "client": "İstemci",
+      "enabled": "Etkin",
+      "remaining": "Kalan",
+      "duration": "Süre",
+      "attachedInbounds": "Bağlı inbound'lar",
+      "selectInbound": "Bir veya daha fazla inbound seçin",
+      "noSubId": "Bu istemcinin subId'si yok, paylaşılabilir bağlantı yok.",
+      "noLinks": "Paylaşılabilir bağlantı yok — önce bu istemciyi protokol destekli bir inbound'a bağlayın.",
+      "link": "Bağlantı",
+      "resetNotPossible": "Önce bu istemciyi bir inbound'a bağlayın.",
+      "general": "Genel",
+      "resetAllTraffics": "Tüm istemcilerin trafiğini sıfırla",
+      "resetAllTrafficsTitle": "Tüm istemcilerin trafiği sıfırlansın mı?",
+      "resetAllTrafficsContent": "Her istemcinin yükleme/indirme sayaçları sıfırlanır. Kotalar ve son kullanma tarihleri etkilenmez. Geri alınamaz.",
+      "empty": "Henüz istemci yok — başlamak için bir tane ekleyin.",
+      "deleteConfirmTitle": "{email} istemcisi silinsin mi?",
+      "deleteConfirmContent": "Bu işlem istemciyi bağlı tüm inbound'lardan kaldırır ve trafik kaydını siler. Geri alınamaz.",
+      "deleteSelected": "Sil ({count})",
+      "bulkDeleteConfirmTitle": "{count} istemci silinsin mi?",
+      "bulkDeleteConfirmContent": "Seçili her istemci bağlı tüm inbound'lardan kaldırılır ve trafik kaydı silinir. Geri alınamaz.",
+      "delDepleted": "Tükenmişleri sil",
+      "delDepletedConfirmTitle": "Tükenmiş istemciler silinsin mi?",
+      "delDepletedConfirmContent": "Trafik kotası dolan veya süresi geçen tüm istemciler silinir. Geri alınamaz.",
+      "auth": "Auth",
+      "hysteriaAuth": "Hysteria Auth",
+      "uuid": "UUID",
+      "flow": "Flow",
+      "reverseTag": "Reverse tag",
+      "reverseTagPlaceholder": "İsteğe bağlı Reverse tag",
+      "telegramId": "Telegram kullanıcı ID'si",
+      "telegramIdPlaceholder": "Sayısal Telegram kullanıcı ID'si (0 = yok)",
+      "created": "Oluşturuldu",
+      "updated": "Güncellendi",
+      "ipLimit": "IP limiti",
+      "toasts": {
+        "deleted": "İstemci silindi",
+        "trafficReset": "Trafik sıfırlandı",
+        "allTrafficsReset": "Tüm istemcilerin trafiği sıfırlandı",
+        "bulkDeleted": "{count} istemci silindi",
+        "bulkDeletedMixed": "{ok} silindi, {failed} başarısız",
+        "bulkCreated": "{count} istemci oluşturuldu",
+        "bulkCreatedMixed": "{ok} oluşturuldu, {failed} başarısız",
+        "delDepleted": "{count} tükenmiş istemci silindi"
+      }
     }
   },
   "tgbot": {
@@ -977,5 +1081,6 @@
       "chooseClient": "Gelen {{ .Inbound }} için bir Müşteri Seçin",
       "chooseInbound": "Bir Gelen Seçin"
     }
-  }
+  },
+  "refresh": "Yenile"
 }

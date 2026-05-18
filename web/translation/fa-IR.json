@@ -99,7 +99,8 @@
     "xray": "پیکربندی ایکس‌ری",
     "apiDocs": "مستندات API",
     "logout": "خروج",
-    "link": "مدیریت"
+    "link": "مدیریت",
+    "clients": "کلاینت‌ها"
   },
   "pages": {
     "login": {
@@ -361,6 +362,12 @@
           "requestHeader": "سربرگ درخواست",
           "responseHeader": "سربرگ پاسخ"
         }
+      },
+      "portFallback": {
+        "title": "فرزندان فال‌بک",
+        "help": "اینباندهایی را که باید ترافیک نامطابق این اینباند VLESS-TLS را دریافت کنند انتخاب کنید. هر فرزند باید روی 127.0.0.1 گوش دهد تا اتصالات ارجاع‌شده را بپذیرد.",
+        "child": "اینباند",
+        "path": "مسیر"
       }
     },
     "client": {
@@ -801,6 +808,102 @@
         "ipPool": "زیرشبکه استخر آی‌پی",
         "poolSize": "اندازه استخر"
       }
+    },
+    "clients": {
+      "add": "افزودن کلاینت",
+      "edit": "ویرایش کلاینت",
+      "submitAdd": "افزودن کلاینت",
+      "submitEdit": "ذخیره تغییرات",
+      "clientCount": "تعداد کلاینت‌ها",
+      "bulk": "افزودن گروهی",
+      "copyFromInbound": "کپی کلاینت‌ها از اینباند",
+      "copyToInbound": "کپی کلاینت‌ها به",
+      "copySelected": "کپی انتخاب‌شده‌ها",
+      "copySource": "منبع",
+      "copyEmailPreview": "پیش‌نمایش ایمیل خروجی",
+      "copySelectSourceFirst": "ابتدا یک اینباند مبدأ انتخاب کنید.",
+      "copyResult": "نتیجه کپی",
+      "copyResultSuccess": "با موفقیت کپی شد",
+      "copyResultNone": "چیزی برای کپی نیست: کلاینتی انتخاب نشده یا منبع خالی است",
+      "copyResultErrors": "خطاهای کپی",
+      "copyFlowLabel": "Flow برای کلاینت‌های جدید (VLESS)",
+      "copyFlowHint": "روی همه کلاینت‌های کپی‌شده اعمال می‌شود. خالی بگذارید تا رد شود.",
+      "selectAll": "انتخاب همه",
+      "clearAll": "پاک کردن همه",
+      "method": "روش",
+      "first": "اول",
+      "last": "آخر",
+      "ipLog": "گزارش IP",
+      "prefix": "پیشوند",
+      "postfix": "پسوند",
+      "delayedStart": "شروع پس از اولین استفاده",
+      "expireDays": "مدت",
+      "days": "روز",
+      "renew": "تمدید خودکار",
+      "renewDesc": "تمدید خودکار پس از انقضا. (۰ = غیرفعال) (واحد: روز)",
+      "title": "کلاینت‌ها",
+      "actions": "عملیات",
+      "totalGB": "مجموع ارسال/دریافت (گیگابایت)",
+      "expiryTime": "انقضا",
+      "addClients": "افزودن کلاینت‌ها",
+      "limitIp": "محدودیت IP",
+      "password": "رمز عبور",
+      "subId": "شناسه اشتراک",
+      "online": "آنلاین",
+      "email": "ایمیل",
+      "comment": "توضیحات",
+      "traffic": "ترافیک",
+      "offline": "آفلاین",
+      "addTitle": "افزودن کلاینت",
+      "qrCode": "کد QR",
+      "moreInformation": "اطلاعات بیشتر",
+      "delete": "حذف",
+      "reset": "بازنشانی ترافیک",
+      "editTitle": "ویرایش کلاینت",
+      "client": "کلاینت",
+      "enabled": "فعال",
+      "remaining": "باقی‌مانده",
+      "duration": "مدت",
+      "attachedInbounds": "اینباندهای متصل",
+      "selectInbound": "یک یا چند اینباند انتخاب کنید",
+      "noSubId": "این کلاینت subId ندارد، لینک اشتراک‌گذاری وجود ندارد.",
+      "noLinks": "لینکی برای اشتراک‌گذاری نیست — ابتدا این کلاینت را به یک اینباند با پروتکل سازگار متصل کنید.",
+      "link": "لینک",
+      "resetNotPossible": "ابتدا این کلاینت را به یک اینباند متصل کنید.",
+      "general": "عمومی",
+      "resetAllTraffics": "بازنشانی ترافیک همه کلاینت‌ها",
+      "resetAllTrafficsTitle": "بازنشانی ترافیک همه کلاینت‌ها؟",
+      "resetAllTrafficsContent": "شمارنده ارسال/دریافت همه کلاینت‌ها به صفر می‌رسد. سهمیه و تاریخ انقضا تغییری نمی‌کند. این عمل غیرقابل بازگشت است.",
+      "empty": "هنوز کلاینتی نیست — برای شروع یکی اضافه کنید.",
+      "deleteConfirmTitle": "حذف کلاینت {email}؟",
+      "deleteConfirmContent": "این کلاینت از تمام اینباندهای متصل حذف و سابقه ترافیک آن پاک می‌شود. این عمل غیرقابل بازگشت است.",
+      "deleteSelected": "حذف ({count})",
+      "bulkDeleteConfirmTitle": "حذف {count} کلاینت؟",
+      "bulkDeleteConfirmContent": "هر کلاینت انتخاب‌شده از تمام اینباندهای متصل حذف و سابقه ترافیک آن پاک می‌شود. این عمل غیرقابل بازگشت است.",
+      "delDepleted": "حذف اتمام‌یافته‌ها",
+      "delDepletedConfirmTitle": "حذف کلاینت‌های اتمام‌یافته؟",
+      "delDepletedConfirmContent": "هر کلاینتی که سهمیه ترافیک‌اش تمام شده یا تاریخ انقضایش گذشته است حذف می‌شود. این عمل غیرقابل بازگشت است.",
+      "auth": "Auth",
+      "hysteriaAuth": "Auth (هیستریا)",
+      "uuid": "UUID",
+      "flow": "Flow",
+      "reverseTag": "Reverse tag",
+      "reverseTagPlaceholder": "Reverse tag اختیاری",
+      "telegramId": "شناسه کاربر تلگرام",
+      "telegramIdPlaceholder": "شناسه عددی کاربر تلگرام (۰ = هیچ)",
+      "created": "ساخته‌شده",
+      "updated": "به‌روزشده",
+      "ipLimit": "محدودیت IP",
+      "toasts": {
+        "deleted": "کلاینت حذف شد",
+        "trafficReset": "ترافیک بازنشانی شد",
+        "allTrafficsReset": "ترافیک همه کلاینت‌ها بازنشانی شد",
+        "bulkDeleted": "{count} کلاینت حذف شد",
+        "bulkDeletedMixed": "{ok} حذف، {failed} ناموفق",
+        "bulkCreated": "{count} کلاینت ساخته شد",
+        "bulkCreatedMixed": "{ok} ساخته شد، {failed} ناموفق",
+        "delDepleted": "{count} کلاینت اتمام‌یافته حذف شد"
+      }
     }
   },
   "tgbot": {
@@ -978,5 +1081,6 @@
       "chooseClient": "یک مشتری برای ورودی {{ .Inbound }} انتخاب کنید",
       "chooseInbound": "یک ورودی انتخاب کنید"
     }
-  }
+  },
+  "refresh": "تازه‌سازی"
 }
