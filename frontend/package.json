@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@vitejs/plugin-vue": "^6.0.6",
+    "@vitejs/plugin-vue": "^6.0.7",
     "eslint": "^10.3.0",
     "eslint-plugin-vue": "^10.9.1",
     "globals": "^17.6.0",
