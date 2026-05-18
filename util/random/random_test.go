@@ -32,7 +32,7 @@ func TestSeq_NotConstant(t *testing.T) {
 
 func TestNum_InRange(t *testing.T) {
 	for _, upper := range []int{1, 2, 10, 1000} {
-		for i := 0; i < 200; i++ {
+		for range 200 {
 			v := Num(upper)
 			if v < 0 || v >= upper {
 				t.Fatalf("Num(%d) returned %d, out of [0, %d)", upper, v, upper)

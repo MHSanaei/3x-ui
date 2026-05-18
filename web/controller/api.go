@@ -32,8 +32,8 @@ func NewAPIController(g *gin.RouterGroup, customGeo *service.CustomGeoService) *
 
 func (a *APIController) checkAPIAuth(c *gin.Context) {
 	auth := c.GetHeader("Authorization")
-	if strings.HasPrefix(auth, "Bearer ") {
-		tok := strings.TrimPrefix(auth, "Bearer ")
+	if after, ok := strings.CutPrefix(auth, "Bearer "); ok {
+		tok := after
 		if a.apiTokenService.Match(tok) {
 			if u, err := a.userService.GetFirstUser(); err == nil {
 				session.SetAPIAuthUser(c, u)

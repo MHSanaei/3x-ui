@@ -42,28 +42,24 @@ func TestAtomicBool_ConcurrentSettersExactlyOneTakeWins(t *testing.T) {
 	const readers = 20
 
 	var wg sync.WaitGroup
-	for i := 0; i < setters; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range setters {
+		wg.Go(func() {
 			a.set()
-		}()
+		})
 	}
 	wg.Wait()
 
 	trueCount := 0
 	var rwg sync.WaitGroup
 	var mu sync.Mutex
-	for i := 0; i < readers; i++ {
-		rwg.Add(1)
-		go func() {
-			defer rwg.Done()
+	for range readers {
+		rwg.Go(func() {
 			if a.takeAndReset() {
 				mu.Lock()
 				trueCount++
 				mu.Unlock()
 			}
-		}()
+		})
 	}
 	rwg.Wait()
 

@@ -110,7 +110,7 @@ func (h *Hub) shouldThrottle(msgType MessageType) bool {
 // panic doesn't permanently kill real-time updates for commercial deployments.
 // After the cap, the hub stays down and the frontend falls back to REST polling.
 func (h *Hub) Run() {
-	for attempt := 0; attempt < hubRestartAttempts; attempt++ {
+	for attempt := range hubRestartAttempts {
 		stopped := h.runOnce()
 		if stopped {
 			return

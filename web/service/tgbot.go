@@ -227,7 +227,7 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	parsedAdminIds := make([]int64, 0)
 	// Parse admin IDs from comma-separated string
 	if tgBotID != "" {
-		for _, adminID := range strings.Split(tgBotID, ",") {
+		for adminID := range strings.SplitSeq(tgBotID, ",") {
 			id, err := strconv.ParseInt(adminID, 10, 64)
 			if err != nil {
 				logger.Warning("Failed to parse admin ID from Telegram bot chat ID:", err)
@@ -2051,12 +2051,7 @@ func (t *Tgbot) SubmitAddClient() (bool, error) {
 
 // checkAdmin checks if the given Telegram ID is an admin.
 func checkAdmin(tgId int64) bool {
-	for _, adminId := range adminIds {
-		if adminId == tgId {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(adminIds, tgId)
 }
 
 // SendAnswer sends a response message with an inline keyboard to the specified chat.
@@ -2373,17 +2368,18 @@ func (t *Tgbot) sendClientIndividualLinks(chatId int64, email string) {
 	// Send in chunks to respect message length; use monospace formatting
 	const maxPerMessage = 50
 	for i := 0; i < len(cleaned); i += maxPerMessage {
-		j := i + maxPerMessage
-		if j > len(cleaned) {
-			j = len(cleaned)
-		}
+		j := min(i+maxPerMessage, len(cleaned))
 		chunk := cleaned[i:j]
-		msg := t.I18nBot("subscription.individualLinks") + ":\r\n"
+		var msg strings.Builder
+		msg.WriteString(t.I18nBot("subscription.individualLinks"))
+		msg.WriteString(":\r\n")
 		for _, link := range chunk {
 			// wrap each link in <code>
-			msg += "<code>" + link + "</code>\r\n"
+			msg.WriteString("<code>")
+			msg.WriteString(link)
+			msg.WriteString("</code>\r\n")
 		}
-		t.SendMsgToTgbot(chatId, msg)
+		t.SendMsgToTgbot(chatId, msg.String())
 	}
 }
 
@@ -3439,7 +3435,8 @@ func (t *Tgbot) notifyExhausted() {
 								var exhaustedClients []xray.ClientTraffic
 								traffics, err := t.inboundService.GetClientTrafficTgBot(client.TgID)
 								if err == nil && len(traffics) > 0 {
-									output := t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients"))
+									var output strings.Builder
+									output.WriteString(t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients")))
 									for _, traffic := range traffics {
 										if traffic.Enable {
 											if (traffic.ExpiryTime > 0 && (traffic.ExpiryTime-now < exDiff)) ||
@@ -3451,21 +3448,23 @@ func (t *Tgbot) notifyExhausted() {
 										}
 									}
 									if len(exhaustedClients) > 0 {
-										output += t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabledClients)))
+										output.WriteString(t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabledClients))))
 										if len(disabledClients) > 0 {
-											output += t.I18nBot("tgbot.clients") + ":\r\n"
+											output.WriteString(t.I18nBot("tgbot.clients"))
+											output.WriteString(":\r\n")
 											for _, traffic := range disabledClients {
-												output += " " + traffic.Email
+												output.WriteString(" ")
+												output.WriteString(traffic.Email)
 											}
-											output += "\r\n"
+											output.WriteString("\r\n")
 										}
-										output += "\r\n"
-										output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(len(exhaustedClients)))
+										output.WriteString("\r\n")
+										output.WriteString(t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(len(exhaustedClients))))
 										for _, traffic := range exhaustedClients {
-											output += t.clientInfoMsg(&traffic, true, false, false, true, true, false)
-											output += "\r\n"
+											output.WriteString(t.clientInfoMsg(&traffic, true, false, false, true, true, false))
+											output.WriteString("\r\n")
 										}
-										t.SendMsgToTgbot(chatID, output)
+										t.SendMsgToTgbot(chatID, output.String())
 									}
 									chatIDsDone = append(chatIDsDone, chatID)
 								}
@@ -3480,12 +3479,7 @@ func (t *Tgbot) notifyExhausted() {
 
 // int64Contains checks if an int64 slice contains a specific item.
 func int64Contains(slice []int64, item int64) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(slice, item)
 }
 
 // onlineClients retrieves and sends information about online clients.

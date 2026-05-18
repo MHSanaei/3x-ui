@@ -213,7 +213,7 @@ func compareVersionStrings(a string, b string) (int, bool) {
 	if !okA || !okB {
 		return 0, false
 	}
-	for i := 0; i < len(aParts); i++ {
+	for i := range len(aParts) {
 		if aParts[i] > bParts[i] {
 			return 1, true
 		}

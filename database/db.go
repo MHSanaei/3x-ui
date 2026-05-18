@@ -69,11 +69,11 @@ func isIgnorableDuplicateColumnErr(err error, mdl any) bool {
 	if !strings.Contains(errMsg, dupPrefix) {
 		return false
 	}
-	idx := strings.Index(errMsg, dupPrefix)
-	if idx < 0 {
+	_, after, ok := strings.Cut(errMsg, dupPrefix)
+	if !ok {
 		return false
 	}
-	col := strings.TrimSpace(errMsg[idx+len(dupPrefix):])
+	col := strings.TrimSpace(after)
 	col = strings.Trim(col, "`\"[]")
 	if col == "" {
 		return false

@@ -2526,10 +2526,7 @@ func chunkStrings(s []string, size int) [][]string {
 	}
 	out := make([][]string, 0, (len(s)+size-1)/size)
 	for i := 0; i < len(s); i += size {
-		end := i + size
-		if end > len(s) {
-			end = len(s)
-		}
+		end := min(i+size, len(s))
 		out = append(out, s[i:end])
 	}
 	return out
@@ -2543,10 +2540,7 @@ func chunkInts(s []int, size int) [][]int {
 	}
 	out := make([][]int, 0, (len(s)+size-1)/size)
 	for i := 0; i < len(s); i += size {
-		end := i + size
-		if end > len(s) {
-			end = len(s)
-		}
+		end := min(i+size, len(s))
 		out = append(out, s[i:end])
 	}
 	return out
