@@ -82,6 +82,13 @@ export const sections = [
       },
       {
         method: 'GET',
+        path: '/panel/api/inbounds/options',
+        summary: 'Lightweight picker projection of the authenticated user’s inbounds. Returns only id, remark, protocol, port, and a server-computed tlsFlowCapable flag (true for VLESS / port-fallback on TCP with tls or reality). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.',
+        response:
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "remark": "VLESS-443",\n      "protocol": "vless",\n      "port": 443,\n      "tlsFlowCapable": true\n    }\n  ]\n}',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/inbounds/get/:id',
         summary: 'Fetch a single inbound by numeric ID.',
         params: [
@@ -392,22 +399,22 @@ export const sections = [
       {
         method: 'POST',
         path: '/panel/api/clients/add',
-        summary: 'Create a new client and attach it to one or more inbounds in a single call. Body is JSON.',
+        summary: 'Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets (UUID for VLESS/VMess, password for Trojan/Shadowsocks, auth for Hysteria) are generated server-side when omitted, so callers can send only the universal fields.',
         params: [
-          { name: 'client', in: 'body (json)', type: 'object', desc: 'Client fields: email, subId, id (uuid), password, auth, totalGB, expiryTime, limitIp, comment, enable.' },
+          { name: 'client', in: 'body (json)', type: 'object', desc: 'Client fields: email, subId, id (uuid), password, auth, flow, totalGB, expiryTime, limitIp, tgId (numeric Telegram user ID, 0 = none), comment, enable.' },
           { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to attach the client to. At least one required.' },
         ],
-        body: '{\n  "client": {\n    "email": "alice@example.com",\n    "totalGB": 53687091200,\n    "expiryTime": 1735689600000\n  },\n  "inboundIds": [3, 5]\n}',
+        body: '{\n  "client": {\n    "email": "alice@example.com",\n    "totalGB": 53687091200,\n    "expiryTime": 1735689600000,\n    "tgId": 0,\n    "limitIp": 0,\n    "enable": true\n  },\n  "inboundIds": [3, 5]\n}',
         response: '{\n  "success": true,\n  "msg": "Client added"\n}',
       },
       {
         method: 'POST',
         path: '/panel/api/clients/update/:email',
-        summary: 'Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload.',
+        summary: 'Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload — supply the full set of fields you want to keep (the server replaces the row, it does not patch).',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Current client email (unique identifier).' },
         ],
-        body: '{\n  "email": "alice@example.com",\n  "totalGB": 107374182400,\n  "expiryTime": 1767225600000,\n  "enable": true\n}',
+        body: '{\n  "email": "alice@example.com",\n  "totalGB": 107374182400,\n  "expiryTime": 1767225600000,\n  "tgId": 123456789,\n  "enable": true\n}',
         response: '{\n  "success": true,\n  "msg": "Client updated"\n}',
       },
       {

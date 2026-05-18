@@ -19,7 +19,7 @@ export function useClients() {
     try {
       const [clientsMsg, inboundsMsg] = await Promise.all([
         HttpUtil.get('/panel/api/clients/list'),
-        HttpUtil.get('/panel/api/inbounds/list'),
+        HttpUtil.get('/panel/api/inbounds/options'),
       ]);
       if (clientsMsg?.success) {
         clients.value = Array.isArray(clientsMsg.obj) ? clientsMsg.obj : [];

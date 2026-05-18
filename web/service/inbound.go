@@ -134,6 +134,75 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	return inbounds, nil
 }
 
+// InboundOption is the lightweight projection of an inbound used by client UI
+// pickers — only the fields needed to render labels, filter by protocol, and
+// decide whether the XTLS Vision flow selector should appear. Keeping this
+// payload minimal avoids shipping per-client settings and traffic stats just
+// to populate a dropdown.
+type InboundOption struct {
+	Id             int    `json:"id"`
+	Remark         string `json:"remark"`
+	Protocol       string `json:"protocol"`
+	Port           int    `json:"port"`
+	TlsFlowCapable bool   `json:"tlsFlowCapable"`
+}
+
+// GetInboundOptions returns the picker-sized projection of the user's inbounds.
+// The TlsFlowCapable flag mirrors Inbound.canEnableTlsFlow() on the frontend
+// (VLESS/PortFallback over TCP with tls or reality) so the client modal does
+// not need StreamSettings to decide whether to show the Flow field.
+func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
+	db := database.GetDB()
+	var rows []struct {
+		Id             int    `gorm:"column:id"`
+		Remark         string `gorm:"column:remark"`
+		Protocol       string `gorm:"column:protocol"`
+		Port           int    `gorm:"column:port"`
+		StreamSettings string `gorm:"column:stream_settings"`
+	}
+	err := db.Table("inbounds").
+		Select("id, remark, protocol, port, stream_settings").
+		Where("user_id = ?", userId).
+		Order("id ASC").
+		Scan(&rows).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	out := make([]InboundOption, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, InboundOption{
+			Id:             r.Id,
+			Remark:         r.Remark,
+			Protocol:       r.Protocol,
+			Port:           r.Port,
+			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings),
+		})
+	}
+	return out, nil
+}
+
+// inboundCanEnableTlsFlow mirrors Inbound.canEnableTlsFlow() from the frontend:
+// XTLS Vision is only valid for VLESS / PortFallback on TCP with tls or reality.
+func inboundCanEnableTlsFlow(protocol, streamSettings string) bool {
+	if protocol != string(model.VLESS) && protocol != string(model.PortFallback) {
+		return false
+	}
+	if streamSettings == "" {
+		return false
+	}
+	var stream struct {
+		Network  string `json:"network"`
+		Security string `json:"security"`
+	}
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return false
+	}
+	if stream.Network != "tcp" {
+		return false
+	}
+	return stream.Security == "tls" || stream.Security == "reality"
+}
+
 // GetAllInbounds retrieves all inbounds with client stats.
 func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	db := database.GetDB()

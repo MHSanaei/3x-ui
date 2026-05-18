@@ -7,7 +7,6 @@ import { message } from 'ant-design-vue';
 
 import { HttpUtil, RandomUtil, SizeFormatter } from '@/utils';
 import DateTimePicker from '@/components/DateTimePicker.vue';
-import { DBInbound } from '@/models/dbinbound.js';
 import { TLS_FLOW_CONTROL } from '@/models/inbound.js';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
@@ -46,10 +45,7 @@ const form = reactive({
 const flowCapableIds = computed(() => {
   const ids = new Set();
   for (const row of props.inbounds || []) {
-    try {
-      const parsed = new DBInbound(row).toInbound();
-      if (parsed.canEnableTlsFlow?.()) ids.add(row.id);
-    } catch (_e) { /* ignore */ }
+    if (row?.tlsFlowCapable) ids.add(row.id);
   }
   return ids;
 });
@@ -176,9 +172,8 @@ async function submit() {
 </script>
 
 <template>
-  <a-modal :open="open" :title="t('pages.clients.bulk') || 'Add Bulk'" :ok-text="t('create')"
-    :cancel-text="t('close')" :confirm-loading="saving" :mask-closable="false" :width="640"
-    @ok="submit" @cancel="close">
+  <a-modal :open="open" :title="t('pages.clients.bulk') || 'Add Bulk'" :ok-text="t('create')" :cancel-text="t('close')"
+    :confirm-loading="saving" :mask-closable="false" :width="640" @ok="submit" @cancel="close">
     <a-form :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
       <a-form-item :label="t('pages.clients.attachedInbounds') || 'Attached inbounds'" required>
         <a-select v-model:value="form.inboundIds" mode="multiple" :options="inboundOptions"
@@ -231,11 +226,11 @@ async function submit() {
         </a-select>
       </a-form-item>
 
-      <a-form-item :label="t('pages.clients.limitIp') || 'IP Limit'">
-        <a-input-number v-model:value="form.limitIp" :min="0" :disabled="!ipLimitEnable" />
+      <a-form-item v-if="ipLimitEnable" :label="t('pages.clients.limitIp') || 'IP Limit'">
+        <a-input-number v-model:value="form.limitIp" :min="0" />
       </a-form-item>
 
-      <a-form-item :label="t('pages.clients.totalGB') || 'Total (GB)'">
+      <a-form-item :label="t('pages.clients.totalGB')">
         <a-input-number v-model:value="form.totalGB" :min="0" :step="0.1" />
       </a-form-item>
 

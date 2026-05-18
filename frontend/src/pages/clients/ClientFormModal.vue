@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n';
 import { message } from 'ant-design-vue';
 import dayjs from 'dayjs';
 import { HttpUtil, RandomUtil } from '@/utils';
-import { DBInbound } from '@/models/dbinbound.js';
 import { TLS_FLOW_CONTROL } from '@/models/inbound.js';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
@@ -37,6 +36,7 @@ function emptyForm() {
     totalGB: 0,
     expiryTime: null,
     limitIp: 0,
+    tgId: 0,
     comment: '',
     enable: true,
     inboundIds: [],
@@ -61,6 +61,7 @@ watch(
       form.totalGB = bytesToGB(props.client.totalGB || 0);
       form.expiryTime = props.client.expiryTime ? dayjs(props.client.expiryTime) : null;
       form.limitIp = props.client.limitIp || 0;
+      form.tgId = Number(props.client.tgId) || 0;
       form.comment = props.client.comment || '';
       form.enable = !!props.client.enable;
       form.inboundIds = Array.isArray(props.attachedIds) ? [...props.attachedIds] : [];
@@ -102,10 +103,7 @@ const inboundOptions = computed(() =>
 const flowCapableIds = computed(() => {
   const ids = new Set();
   for (const row of props.inbounds || []) {
-    try {
-      const parsed = new DBInbound(row).toInbound();
-      if (parsed.canEnableTlsFlow?.()) ids.add(row.id);
-    } catch (_e) { /* ignore unparsable */ }
+    if (row?.tlsFlowCapable) ids.add(row.id);
   }
   return ids;
 });
@@ -185,7 +183,7 @@ function regenerateSubId() {
 }
 
 function regenerateEmail() {
-  form.email = RandomUtil.randomLowerAndNum(9);
+  form.email = RandomUtil.randomLowerAndNum(12);
 }
 
 async function onSubmit() {
@@ -207,6 +205,7 @@ async function onSubmit() {
     totalGB: gbToBytes(form.totalGB),
     expiryTime: form.expiryTime ? form.expiryTime.valueOf() : 0,
     limitIp: Number(form.limitIp) || 0,
+    tgId: Number(form.tgId) || 0,
     comment: form.comment,
     enable: !!form.enable,
   };
@@ -268,10 +267,10 @@ async function onSubmit() {
 
       <a-row :gutter="16">
         <a-col :span="12">
-          <a-form-item label="UUID">
+          <a-form-item label="Auth (Hysteria)">
             <a-input-group compact style="display: flex">
-              <a-input v-model:value="form.uuid" style="flex: 1" />
-              <a-button @click="regenerateUUID">↻</a-button>
+              <a-input v-model:value="form.auth" style="flex: 1" />
+              <a-button @click="regenerateAuth">↻</a-button>
             </a-input-group>
           </a-form-item>
         </a-col>
@@ -286,17 +285,17 @@ async function onSubmit() {
       </a-row>
 
       <a-row :gutter="16">
-        <a-col :span="12">
-          <a-form-item label="Auth (Hysteria)">
+        <a-col :span="ipLimitEnable ? 12 : 24">
+          <a-form-item label="UUID">
             <a-input-group compact style="display: flex">
-              <a-input v-model:value="form.auth" style="flex: 1" />
-              <a-button @click="regenerateAuth">↻</a-button>
+              <a-input v-model:value="form.uuid" style="flex: 1" />
+              <a-button @click="regenerateUUID">↻</a-button>
             </a-input-group>
           </a-form-item>
         </a-col>
-        <a-col :span="12">
+        <a-col v-if="ipLimitEnable" :span="12">
           <a-form-item :label="t('pages.clients.limitIp') || 'IP limit'">
-            <a-input-number v-model:value="form.limitIp" :min="0" :disabled="!ipLimitEnable" style="width: 100%" />
+            <a-input-number v-model:value="form.limitIp" :min="0" style="width: 100%" />
           </a-form-item>
         </a-col>
       </a-row>
@@ -330,9 +329,20 @@ async function onSubmit() {
         </a-col>
       </a-row>
 
-      <a-form-item :label="t('pages.clients.comment') || 'Comment'">
-        <a-input v-model:value="form.comment" />
-      </a-form-item>
+      <a-row :gutter="16">
+        <a-col :span="12">
+          <a-form-item :label="'Telegram user ID'">
+            <a-input-number v-model:value="form.tgId" :min="0" :controls="false"
+              :placeholder="t('pages.clients.telegramIdPlaceholder') || 'Numeric Telegram user ID (0 = none)'"
+              style="width: 100%" />
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item :label="t('pages.clients.comment') || 'Comment'">
+            <a-input v-model:value="form.comment" />
+          </a-form-item>
+        </a-col>
+      </a-row>
 
       <a-form-item :label="t('pages.clients.attachedInbounds') || 'Attached inbounds'" :required="!isEdit">
         <a-select v-model:value="form.inboundIds" mode="multiple" :options="inboundOptions" :show-search="true"

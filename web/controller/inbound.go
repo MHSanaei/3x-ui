@@ -61,6 +61,7 @@ func (a *InboundController) broadcastInboundsUpdate(userId int) {
 func (a *InboundController) initRouter(g *gin.RouterGroup) {
 
 	g.GET("/list", a.getInbounds)
+	g.GET("/options", a.getInboundOptions)
 	g.GET("/get/:id", a.getInbound)
 	g.GET("/:id/fallbackChildren", a.getFallbackChildren)
 
@@ -83,6 +84,19 @@ func (a *InboundController) getInbounds(c *gin.Context) {
 		return
 	}
 	jsonObj(c, inbounds, nil)
+}
+
+// getInboundOptions returns a lightweight projection of the user's inbounds
+// (id, remark, protocol, port, tlsFlowCapable) for pickers in the clients UI.
+// Avoids shipping per-client settings and traffic stats just to fill a dropdown.
+func (a *InboundController) getInboundOptions(c *gin.Context) {
+	user := session.GetLoginUser(c)
+	options, err := a.inboundService.GetInboundOptions(user.Id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, options, nil)
 }
 
 // getInbound retrieves a specific inbound by its ID.
