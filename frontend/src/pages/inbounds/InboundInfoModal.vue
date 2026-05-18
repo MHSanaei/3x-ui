@@ -669,13 +669,40 @@ const showSubscriptionTab = computed(
                   <a-tag color="green" class="value-tag">{{ account.user }}</a-tag>
                   <span class="account-sep">:</span>
                   <a-tag class="value-tag">{{ account.pass }}</a-tag>
-                  <a-tooltip :title="t('copy')">
-                    <a-button size="small" @click="copyText(`${account.user}:${account.pass}`)">
-                      <template #icon>
-                        <CopyOutlined />
-                      </template>
+
+                  <a-dropdown-button class="value-copy-dropdown" trigger="click"
+                   size="small" @click="copyText(`${account.user}:${account.pass}`)">
+                    <a-tooltip :title="t('copy')">
+                      <CopyOutlined />
+                    </a-tooltip>
+                  
+                    <template #overlay>
+                      <a-menu @click="({ key }) => copyText(`${key}://${account.user}:${account.pass}@${dbInbound.address}:${dbInbound.port}`)">
+                        <a-menu-item key="socks5">
+                          SOCKS5
+                        </a-menu-item>
+                        <a-menu-item key="http">
+                          HTTP
+                        </a-menu-item>
+                      </a-menu>
+                    </template>
+                  </a-dropdown-button>
+                </dd>
+              </div>
+            </template>
+
+            <template v-if="inbound.settings.auth === 'noauth'">
+              <div class="info-row">
+                <dt>{{ t('copy') }}</dt>
+                <dd>
+                  <a-space>
+                    <a-button size="small" @click="copyText(`socks5://${dbInbound.address}:${dbInbound.port}`)">
+                      SOCKS5
                     </a-button>
-                  </a-tooltip>
+                    <a-button size="small" @click="copyText(`http://${dbInbound.address}:${dbInbound.port}`)">
+                      HTTP
+                    </a-button>
+                  </a-space>
                 </dd>
               </div>
             </template>
@@ -897,6 +924,7 @@ const showSubscriptionTab = computed(
   white-space: normal;
   word-break: break-all;
   display: inline-block;
+  margin-right: 0;
 }
 
 .value-block {
@@ -925,6 +953,10 @@ const showSubscriptionTab = computed(
 
 .value-copy {
   flex-shrink: 0;
+}
+
+.value-copy-dropdown > :global(.ant-btn):first-child {
+  padding: 0 4px !important;
 }
 
 .security-line {
