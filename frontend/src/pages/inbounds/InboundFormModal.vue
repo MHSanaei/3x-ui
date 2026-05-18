@@ -289,9 +289,9 @@ function applyAdvancedJsonToBasic() {
   if (!inbound.value) return true;
   let settings; let streamSettings; let sniffing;
   try {
-    settings = parseAdvancedSliceWithLabel(advancedSettingsText.value, settingsFallback(), 'Settings');
-    streamSettings = parseAdvancedSliceWithLabel(advancedStreamText.value, streamFallback(), 'Stream');
-    sniffing = parseAdvancedSliceWithLabel(advancedSniffingText.value, sniffingFallback(), 'Sniffing');
+    settings = parseAdvancedSliceWithLabel(advancedSettingsText.value, settingsFallback(), t('pages.inbounds.advanced.settings'));
+    streamSettings = parseAdvancedSliceWithLabel(advancedStreamText.value, streamFallback(), t('pages.inbounds.advanced.stream'));
+    sniffing = parseAdvancedSliceWithLabel(advancedSniffingText.value, sniffingFallback(), t('pages.inbounds.advanced.sniffing'));
   } catch (_e) { return false; }
 
   try {
@@ -306,7 +306,7 @@ function applyAdvancedJsonToBasic() {
       clientStats: inbound.value.clientStats,
     });
   } catch (e) {
-    message.error(`Advanced JSON: ${e.message}`);
+    message.error(`${t('pages.inbounds.advanced.jsonErrorPrefix')}: ${e.message}`);
     return false;
   }
   return true;
@@ -667,9 +667,11 @@ const selectedVlessAuth = computed(() => {
 
   const parts = encryption.split('.').filter(Boolean);
   const authKey = parts[parts.length - 1] || '';
-  if (!authKey) return 'Custom';
+  if (!authKey) return t('pages.inbounds.vlessAuthCustom');
 
-  return authKey.length > 300 ? 'ML-KEM-768 auth' : 'X25519 auth';
+  return authKey.length > 300
+    ? t('pages.inbounds.vlessAuthMlkem768')
+    : t('pages.inbounds.vlessAuthX25519');
 });
 
 function onSSMethodChange() {
@@ -696,12 +698,12 @@ async function submit() {
     let streamSettings; let sniffing; let settings;
     try {
       streamSettings = canEnableStream.value
-        ? compactAdvancedJson(advancedStreamText.value, '', 'Stream')
+        ? compactAdvancedJson(advancedStreamText.value, '', t('pages.inbounds.advanced.stream'))
         : (inbound.value.stream?.sockopt
           ? JSON.stringify({ sockopt: inbound.value.stream.sockopt.toJson() })
           : '');
-      sniffing = compactAdvancedJson(advancedSniffingText.value, inbound.value.sniffing.toString(), 'Sniffing');
-      settings = compactAdvancedJson(advancedSettingsText.value, inbound.value.settings.toString(), 'Settings');
+      sniffing = compactAdvancedJson(advancedSniffingText.value, inbound.value.sniffing.toString(), t('pages.inbounds.advanced.sniffing'));
+      settings = compactAdvancedJson(advancedSettingsText.value, inbound.value.settings.toString(), t('pages.inbounds.advanced.settings'));
     } catch (_e) { return; }
 
     // The structured form mutates `inbound.stream` directly when the
@@ -839,24 +841,24 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
         <!-- VLess decryption / encryption -->
         <a-form v-if="isVlessLike" :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }"
           class="mt-12">
-          <a-form-item label="Decryption">
+          <a-form-item :label="t('pages.inbounds.decryption')">
             <a-input v-model:value="inbound.settings.decryption" />
           </a-form-item>
-          <a-form-item label="Encryption">
+          <a-form-item :label="t('pages.inbounds.encryption')">
             <a-input v-model:value="inbound.settings.encryption" />
           </a-form-item>
           <a-form-item label=" ">
             <a-space :size="8" wrap>
               <a-button type="primary" :loading="saving" @click="getNewVlessEnc('x25519')">
-                X25519 auth
+                {{ t('pages.inbounds.vlessAuthX25519') }}
               </a-button>
               <a-button type="primary" :loading="saving" @click="getNewVlessEnc('mlkem768')">
-                ML-KEM-768 auth
+                {{ t('pages.inbounds.vlessAuthMlkem768') }}
               </a-button>
-              <a-button danger @click="clearVlessEnc">Clear</a-button>
+              <a-button danger @click="clearVlessEnc">{{ t('clear') }}</a-button>
             </a-space>
             <a-typography-text type="secondary" class="vless-auth-state">
-              Selected: {{ selectedVlessAuth }}
+              {{ t('pages.inbounds.vlessAuthSelected', { auth: selectedVlessAuth }) }}
             </a-typography-text>
           </a-form-item>
         </a-form>
@@ -1163,7 +1165,7 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
 
       <!-- ============================== STREAM ============================== -->
       <a-tab-pane v-if="canEnableStream" key="stream"
-        tab="Stream"><!-- "Stream" stays literal — it's a wire-format identifier -->
+        :tab="t('pages.inbounds.streamTab')">
         <a-form :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
           <a-form-item v-if="protocol !== Protocols.HYSTERIA" label="Transmission">
             <a-select v-model:value="network" :style="{ width: '75%' }">
@@ -1707,14 +1709,14 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
       </a-tab-pane>
 
       <!-- ============================== SECURITY ============================== -->
-      <a-tab-pane v-if="canEnableStream" key="security" tab="Security">
+      <a-tab-pane v-if="canEnableStream" key="security" :tab="t('pages.inbounds.securityTab')">
         <a-form :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
-          <a-form-item label="Security">
-            <a-select v-model:value="security" :style="{ width: '160px' }" :disabled="!canEnableTls">
-              <a-select-option value="none">none</a-select-option>
-              <a-select-option value="tls">tls</a-select-option>
-              <a-select-option v-if="canEnableReality" value="reality">reality</a-select-option>
-            </a-select>
+          <a-form-item :label="t('pages.inbounds.securityTab')">
+            <a-radio-group v-model:value="security" button-style="solid" :disabled="!canEnableTls">
+              <a-radio-button value="none">none</a-radio-button>
+              <a-radio-button value="tls">tls</a-radio-button>
+              <a-radio-button v-if="canEnableReality" value="reality">reality</a-radio-button>
+            </a-radio-group>
           </a-form-item>
 
           <template v-if="security === 'tls' && inbound.stream.tls">
@@ -1906,9 +1908,9 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
       </a-tab-pane>
 
       <!-- ============================== SNIFFING ============================== -->
-      <a-tab-pane key="sniffing" tab="Sniffing"><!-- "Sniffing" stays literal — xray config term -->
+      <a-tab-pane key="sniffing" :tab="t('pages.inbounds.sniffingTab')">
         <a-form :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
-          <a-form-item label="Enabled">
+          <a-form-item :label="t('enable')">
             <a-switch v-model:checked="inbound.sniffing.enabled" />
           </a-form-item>
           <template v-if="inbound.sniffing.enabled">
@@ -1917,17 +1919,17 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
                 <a-checkbox v-for="(value, key) in SNIFFING_OPTION" :key="key" :value="value">{{ key }}</a-checkbox>
               </a-checkbox-group>
             </a-form-item>
-            <a-form-item label="Metadata only">
+            <a-form-item :label="t('pages.inbounds.sniffingMetadataOnly')">
               <a-switch v-model:checked="inbound.sniffing.metadataOnly" />
             </a-form-item>
-            <a-form-item label="Route only">
+            <a-form-item :label="t('pages.inbounds.sniffingRouteOnly')">
               <a-switch v-model:checked="inbound.sniffing.routeOnly" />
             </a-form-item>
-            <a-form-item label="IPs excluded">
+            <a-form-item :label="t('pages.inbounds.sniffingIpsExcluded')">
               <a-select v-model:value="inbound.sniffing.ipsExcluded" mode="tags" :token-separators="[',']"
                 placeholder="IP/CIDR/geoip:*/ext:*" :style="{ width: '100%' }" />
             </a-form-item>
-            <a-form-item label="Domains excluded">
+            <a-form-item :label="t('pages.inbounds.sniffingDomainsExcluded')">
               <a-select v-model:value="inbound.sniffing.domainsExcluded" mode="tags" :token-separators="[',']"
                 placeholder="domain:*/ext:*" :style="{ width: '100%' }" />
             </a-form-item>
@@ -1941,37 +1943,37 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
           <div class="advanced-panel">
             <div class="advanced-panel__header">
               <div>
-                <div class="advanced-panel__title">Inbound JSON sections</div>
+                <div class="advanced-panel__title">{{ t('pages.inbounds.advanced.title') }}</div>
                 <div class="advanced-panel__subtitle">
-                  Full inbound JSON and focused editors for settings, sniffing, and streamSettings.
+                  {{ t('pages.inbounds.advanced.subtitle') }}
                 </div>
               </div>
             </div>
 
             <a-tabs v-model:active-key="advancedSectionKey" class="advanced-inner-tabs">
-              <a-tab-pane key="all" tab="All">
+              <a-tab-pane key="all" :tab="t('pages.inbounds.advanced.all')">
                 <div class="advanced-editor-meta">
-                  Full inbound object with all fields in one editor.
+                  {{ t('pages.inbounds.advanced.allHelp') }}
                 </div>
                 <JsonEditor v-model:value="advancedAllConfig" min-height="340px" max-height="560px" />
               </a-tab-pane>
-              <a-tab-pane key="settings" tab="Settings">
+              <a-tab-pane key="settings" :tab="t('pages.inbounds.advanced.settings')">
                 <div class="advanced-editor-meta">
-                  Xray settings block wrapper:
+                  {{ t('pages.inbounds.advanced.settingsHelp') }}
                   <code>{ settings: { ... } }</code>.
                 </div>
                 <JsonEditor v-model:value="advancedSettingsConfig" min-height="320px" max-height="540px" />
               </a-tab-pane>
-              <a-tab-pane key="sniffingSection" tab="Sniffing">
+              <a-tab-pane key="sniffingSection" :tab="t('pages.inbounds.advanced.sniffing')">
                 <div class="advanced-editor-meta">
-                  Xray sniffing block wrapper:
+                  {{ t('pages.inbounds.advanced.sniffingHelp') }}
                   <code>{ sniffing: { ... } }</code>.
                 </div>
                 <JsonEditor v-model:value="advancedSniffingConfig" min-height="240px" max-height="420px" />
               </a-tab-pane>
-              <a-tab-pane v-if="canEnableStream" key="streamSection" tab="Stream">
+              <a-tab-pane v-if="canEnableStream" key="streamSection" :tab="t('pages.inbounds.advanced.stream')">
                 <div class="advanced-editor-meta">
-                  Xray stream block wrapper:
+                  {{ t('pages.inbounds.advanced.streamHelp') }}
                   <code>{ streamSettings: { ... } }</code>.
                 </div>
                 <JsonEditor v-model:value="advancedStreamConfig" min-height="320px" max-height="540px" />

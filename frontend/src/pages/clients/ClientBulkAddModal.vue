@@ -204,7 +204,7 @@ async function submit() {
         <a-input v-model:value="form.emailPostfix" />
       </a-form-item>
       <a-form-item v-if="form.emailMethod < 2" :label="t('pages.clients.clientCount')">
-        <a-input-number v-model:value="form.quantity" :min="1" :max="500" />
+        <a-input-number v-model:value="form.quantity" :min="1" :max="100" />
       </a-form-item>
 
       <a-form-item>

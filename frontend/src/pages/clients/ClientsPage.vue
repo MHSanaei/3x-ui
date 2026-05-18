@@ -639,7 +639,7 @@ const columns = computed(() => [
 
                   <a-table v-if="!isMobile" :columns="columns" :data-source="sortedClients" :loading="loading" row-key="email"
                     :row-selection="rowSelection"
-                    :pagination="{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }"
+                    :pagination="{ pageSize: 20, showSizeChanger: sortedClients.length > 10, pageSizeOptions: ['10', '20', '50', '100'], hideOnSinglePage: sortedClients.length <= 10 }"
                     size="small" @change="onTableChange">
                     <template #bodyCell="{ column, record }">
                       <template v-if="column.key === 'email'">
