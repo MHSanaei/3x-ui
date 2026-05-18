@@ -25,7 +25,7 @@
     "otpauth": "^9.5.1",
     "qs": "^6.13.1",
     "vue": "^3.5.13",
-    "vue-i18n": "^11.1.4",
+    "vue-i18n": "^11.4.4",
     "vue3-persian-datetime-picker": "^1.2.2"
   },
   "devDependencies": {
