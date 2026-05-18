@@ -16,6 +16,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/config"
 	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/web/global"
 )
 
 // PanelService provides business logic for panel management operations.
@@ -35,14 +36,21 @@ const (
 )
 
 func (s *PanelService) RestartPanel(delay time.Duration) error {
-	p, err := os.FindProcess(syscall.Getpid())
-	if err != nil {
-		return err
-	}
 	go func() {
 		time.Sleep(delay)
-		err := p.Signal(syscall.SIGHUP)
+		if global.TriggerRestart() {
+			return
+		}
+		if runtime.GOOS == "windows" {
+			logger.Error("panel restart: no restart hook registered (SIGHUP unsupported on Windows)")
+			return
+		}
+		p, err := os.FindProcess(syscall.Getpid())
 		if err != nil {
+			logger.Error("panel restart: FindProcess failed:", err)
+			return
+		}
+		if err := p.Signal(syscall.SIGHUP); err != nil {
 			logger.Error("failed to send SIGHUP signal:", err)
 		}
 	}()

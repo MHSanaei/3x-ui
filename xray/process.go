@@ -368,6 +368,8 @@ func (p *process) startCommand(cmd *exec.Cmd) error {
 		return err
 	}
 
+	attachChildLifetime(cmd)
+
 	go p.waitForCommand(cmd)
 	return nil
 }
