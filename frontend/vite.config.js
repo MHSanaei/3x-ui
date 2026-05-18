@@ -9,7 +9,14 @@ const BACKEND_TARGET = 'http://localhost:2053';
 
 function resolveDBPath() {
   const envFolder = process.env.XUI_DB_FOLDER;
-  if (envFolder) return path.join(envFolder, 'x-ui.db');
+  if (envFolder) {
+    const abs = path.isAbsolute(envFolder)
+      ? envFolder
+      : path.resolve(__dirname, '..', envFolder);
+    return path.join(abs, 'x-ui.db');
+  }
+  const repoSubDB = path.resolve(__dirname, '..', 'x-ui', 'x-ui.db');
+  if (fs.existsSync(repoSubDB)) return repoSubDB;
   const repoDB = path.resolve(__dirname, '..', 'x-ui.db');
   if (fs.existsSync(repoDB)) return repoDB;
   return '/etc/x-ui/x-ui.db';
