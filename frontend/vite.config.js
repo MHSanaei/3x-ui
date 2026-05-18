@@ -78,19 +78,14 @@ function injectBasePathPlugin() {
 function bypassMigratedRoute(req) {
   if (req.method !== 'GET') return undefined;
   const url = req.url.split('?')[0];
+  const basePath = refreshBasePath();
 
-  for (const [key, value] of Object.entries(BASE_MIGRATED_ROUTES)) {
-    if (url === '/' + key) return value;
-  }
+  if (url === basePath) return '/login.html';
 
-  const m = url.match(/^\/[^/]+\/(.+)$/);
-  if (m) {
-    const stripped = m[1];
+  if (url.startsWith(basePath)) {
+    const stripped = url.slice(basePath.length);
     if (stripped in BASE_MIGRATED_ROUTES) return BASE_MIGRATED_ROUTES[stripped];
   }
-
-  if (url === '/' || /^\/[^/]+\/$/.test(url)) return '/login.html';
-
   return undefined;
 }
 

@@ -34,22 +34,17 @@ import JsonEditor from '@/components/JsonEditor.vue';
 import { useNodeList } from '@/composables/useNodeList.js';
 
 const { t } = useI18n();
-
-// Node selector — Phase 1 multi-node deployment. Shows all enabled
-// nodes regardless of online state so the form is usable while a node
-// is briefly offline; the backend's fail-fast path will surface the
-// real error when the user submits.
 const { nodes: availableNodes } = useNodeList();
 const selectableNodes = computed(() => (availableNodes.value || []).filter((n) => n.enable));
-
-// Phase 5f-iii-b: structured per-protocol/per-transport forms instead
-// of raw JSON textareas. Edits a deeply-reactive Inbound + DBInbound
-// pair so the existing model helpers (.toString(), .canEnableTls(),
-// genAllLinks(), addPeer(), etc.) keep working unchanged. The
-// "Advanced" tab still exposes the full streamSettings JSON for
-// transport variants (KCP/XHTTP/sockopt/finalmask) we don't yet have
-// dedicated UI for.
-
+const NODE_ELIGIBLE_PROTOCOLS = new Set([
+  Protocols.VLESS,
+  Protocols.VMESS,
+  Protocols.TROJAN,
+  Protocols.SHADOWSOCKS,
+  Protocols.HYSTERIA,
+  Protocols.WIREGUARD,
+]);
+const isNodeEligible = computed(() => NODE_ELIGIBLE_PROTOCOLS.has(inbound.value?.protocol));
 const props = defineProps({
   open: { type: Boolean, default: false },
   mode: { type: String, default: 'add', validator: (v) => ['add', 'edit'].includes(v) },
@@ -72,8 +67,6 @@ const advancedSniffingText = ref('');
 const advancedSettingsText = ref('');
 const activeTabKey = ref('basic');
 const advancedSectionKey = ref('all');
-// Cached default cert/key paths from /panel/setting/defaultSettings —
-// powers the "Set default cert" button on the TLS form.
 const defaultCert = ref('');
 const defaultKey = ref('');
 
@@ -334,6 +327,9 @@ function onProtocolChange(next) {
   if (props.mode === 'edit' || !inbound.value) return;
   inbound.value.protocol = next;
   inbound.value.settings = Inbound.Settings.getSettings(next);
+  if (!NODE_ELIGIBLE_PROTOCOLS.has(next)) {
+    dbForm.value.nodeId = null;
+  }
   primeAdvancedJson();
 }
 
@@ -792,7 +788,7 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
           <a-form-item :label="t('pages.inbounds.remark')">
             <a-input v-model:value="dbForm.remark" />
           </a-form-item>
-          <a-form-item v-if="selectableNodes.length > 0" :label="t('pages.inbounds.deployTo')">
+          <a-form-item v-if="selectableNodes.length > 0 && isNodeEligible" :label="t('pages.inbounds.deployTo')">
             <a-select v-model:value="dbForm.nodeId" :disabled="mode === 'edit'"
               :placeholder="t('pages.inbounds.localPanel')" allow-clear>
               <a-select-option :value="null">{{ t('pages.inbounds.localPanel') }}</a-select-option>
@@ -1164,8 +1160,7 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
       </a-tab-pane>
 
       <!-- ============================== STREAM ============================== -->
-      <a-tab-pane v-if="canEnableStream" key="stream"
-        :tab="t('pages.inbounds.streamTab')">
+      <a-tab-pane v-if="canEnableStream" key="stream" :tab="t('pages.inbounds.streamTab')">
         <a-form :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
           <a-form-item v-if="protocol !== Protocols.HYSTERIA" label="Transmission">
             <a-select v-model:value="network" :style="{ width: '75%' }">

@@ -70,7 +70,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 	}
 
 	if len(inbounds) == 0 {
-		return nil, 0, traffic, common.NewError("No inbounds found with ", subId)
+		return nil, 0, traffic, nil
 	}
 
 	s.datepicker, err = s.settingService.GetDatepicker()
@@ -535,8 +535,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		return strings.Join(links, "\n")
 	}
 
-	// No external proxy configured — fall back to the request host.
-	link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, s.address, inbound.Port)
+	// No external proxy configured — use the inbound's resolved address so
+	// node-managed inbounds get the node's host instead of the central panel's.
+	link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, s.resolveInboundAddress(inbound), inbound.Port)
 	url, _ := url.Parse(link)
 	q := url.Query()
 	for k, v := range params {
