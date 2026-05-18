@@ -166,8 +166,8 @@ legacy_version() {
         echo "Panel version cannot be empty. Exiting."
         exit 1
     fi
-    # Use the entered panel version in the download link
-    install_command="bash <(curl -Ls "https://raw.githubusercontent.com/saeederamy/3x-ui/v$tag_version/install.sh") v$tag_version"
+    # Always use main branch install.sh so it pulls from the correct fork
+    install_command="bash <(curl -Ls \"https://raw.githubusercontent.com/saeederamy/3x-ui/main/install.sh\") v$tag_version"
 
     echo "Downloading and installing panel version $tag_version..."
     eval $install_command
