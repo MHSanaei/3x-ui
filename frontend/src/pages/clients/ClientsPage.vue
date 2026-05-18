@@ -130,10 +130,8 @@ function onBulkDelete() {
   const emails = [...selectedRowKeys.value];
   if (emails.length === 0) return;
   Modal.confirm({
-    title: t('pages.clients.bulkDeleteConfirmTitle', { count: emails.length })
-      || `Delete ${emails.length} clients?`,
-    content: t('pages.clients.bulkDeleteConfirmContent')
-      || 'Each client is removed from every attached inbound and its traffic record is dropped. This cannot be undone.',
+    title: t('pages.clients.bulkDeleteConfirmTitle', { count: emails.length }),
+    content: t('pages.clients.bulkDeleteConfirmContent'),
     okText: t('delete'),
     okType: 'danger',
     cancelText: t('cancel'),
@@ -147,9 +145,9 @@ function onBulkDelete() {
       }
       selectedRowKeys.value = [];
       if (failed === 0) {
-        message.success(t('pages.clients.toasts.bulkDeleted', { count: ok }) || `${ok} clients deleted`);
+        message.success(t('pages.clients.toasts.bulkDeleted', { count: ok }));
       } else {
-        message.warning(`${ok} deleted, ${failed} failed`);
+        message.warning(t('pages.clients.toasts.bulkDeletedMixed', { ok, failed }));
       }
     },
   });
@@ -161,9 +159,8 @@ async function onBulkAddSaved() {
 
 function onDelDepleted() {
   Modal.confirm({
-    title: t('pages.clients.delDepletedConfirmTitle') || 'Delete depleted clients?',
-    content: t('pages.clients.delDepletedConfirmContent')
-      || 'Removes every client whose traffic quota is exhausted or whose expiry has passed. This cannot be undone.',
+    title: t('pages.clients.delDepletedConfirmTitle'),
+    content: t('pages.clients.delDepletedConfirmContent'),
     okText: t('delete'),
     okType: 'danger',
     cancelText: t('cancel'),
@@ -171,8 +168,7 @@ function onDelDepleted() {
       const msg = await delDepleted();
       if (msg?.success) {
         const deleted = msg.obj?.deleted ?? 0;
-        message.success(t('pages.clients.toasts.delDepleted', { count: deleted })
-          || `${deleted} depleted clients deleted`);
+        message.success(t('pages.clients.toasts.delDepleted', { count: deleted }));
       }
     },
   });
@@ -311,33 +307,31 @@ function onEdit(row) {
 
 function onDelete(row) {
   Modal.confirm({
-    title: t('pages.clients.deleteConfirmTitle', { email: row.email }) || `Delete ${row.email}?`,
-    content: t('pages.clients.deleteConfirmContent')
-      || 'This removes the client from every attached inbound and drops its traffic record.',
+    title: t('pages.clients.deleteConfirmTitle', { email: row.email }),
+    content: t('pages.clients.deleteConfirmContent'),
     okText: t('delete'),
     okType: 'danger',
     cancelText: t('cancel'),
     onOk: async () => {
       const msg = await remove(row.email);
-      if (msg?.success) message.success(t('pages.clients.toasts.deleted') || 'Client deleted');
+      if (msg?.success) message.success(t('pages.clients.toasts.deleted'));
     },
   });
 }
 
 function onResetTraffic(row) {
   if (!row?.email || !Array.isArray(row.inboundIds) || row.inboundIds.length === 0) {
-    message.warning(t('pages.clients.resetNotPossible') || 'Attach this client to an inbound first.');
+    message.warning(t('pages.clients.resetNotPossible'));
     return;
   }
   Modal.confirm({
-    title: `${t('pages.inbounds.resetTraffic') || 'Reset traffic'} — ${row.email}`,
-    content: t('pages.inbounds.resetTrafficContent')
-      || 'Counters drop to zero. Quota and expiry stay as-is.',
-    okText: t('reset') || 'Reset',
+    title: `${t('pages.inbounds.resetTraffic')} — ${row.email}`,
+    content: t('pages.inbounds.resetTrafficContent'),
+    okText: t('reset'),
     cancelText: t('cancel'),
     onOk: async () => {
       const msg = await resetTraffic(row);
-      if (msg?.success) message.success(t('pages.clients.toasts.trafficReset') || 'Traffic reset');
+      if (msg?.success) message.success(t('pages.clients.toasts.trafficReset'));
     },
   });
 }
@@ -356,7 +350,7 @@ function onResetAllTraffics() {
   Modal.confirm({
     title: t('pages.clients.resetAllTrafficsTitle'),
     content: t('pages.clients.resetAllTrafficsContent'),
-    okText: t('reset') || 'Reset',
+    okText: t('reset'),
     okType: 'danger',
     cancelText: t('cancel'),
     onOk: async () => {
@@ -479,14 +473,14 @@ function onTableChange(_pag, _filters, sorter) {
 }
 
 const columns = computed(() => [
-  { title: t('pages.clients.actions') || 'Actions', key: 'actions', width: 200 },
-  sortableCol({ title: t('pages.clients.enabled') || 'Enabled', key: 'enable', width: 80 }, 'enable'),
-  { title: t('pages.clients.online') || 'Online', key: 'online', width: 90 },
-  sortableCol({ title: t('pages.clients.client') || 'Client', key: 'email' }, 'email'),
-  sortableCol({ title: t('pages.clients.attachedInbounds') || 'Attached inbounds', key: 'inboundIds' }, 'inboundIds'),
-  sortableCol({ title: t('pages.clients.traffic') || 'Traffic', key: 'traffic' }, 'traffic'),
-  sortableCol({ title: t('pages.clients.remaining') || 'Remaining', key: 'remaining', width: 130 }, 'remaining'),
-  sortableCol({ title: t('pages.clients.duration') || 'Duration', key: 'expiryTime' }, 'expiryTime'),
+  { title: t('pages.clients.actions'), key: 'actions', width: 200 },
+  sortableCol({ title: t('pages.clients.enabled'), key: 'enable', width: 80 }, 'enable'),
+  { title: t('pages.clients.online'), key: 'online', width: 90 },
+  sortableCol({ title: t('pages.clients.client'), key: 'email' }, 'email'),
+  sortableCol({ title: t('pages.clients.attachedInbounds'), key: 'inboundIds' }, 'inboundIds'),
+  sortableCol({ title: t('pages.clients.traffic'), key: 'traffic' }, 'traffic'),
+  sortableCol({ title: t('pages.clients.remaining'), key: 'remaining', width: 130 }, 'remaining'),
+  sortableCol({ title: t('pages.clients.duration'), key: 'expiryTime' }, 'expiryTime'),
 ]);
 </script>
 
@@ -497,7 +491,7 @@ const columns = computed(() => [
 
       <a-layout class="content-shell">
         <a-layout-content id="content-layout" class="content-area">
-          <a-spin :spinning="!fetched" :delay="200" tip="Loading…" size="large">
+          <a-spin :spinning="!fetched" :delay="200" :tip="t('loading')" size="large">
             <div v-if="!fetched" class="loading-spacer" />
 
             <a-row v-else :gutter="[isMobile ? 8 : 16, isMobile ? 8 : 12]">
@@ -592,14 +586,13 @@ const columns = computed(() => [
                         <template #icon>
                           <UsergroupAddOutlined />
                         </template>
-                        <template v-if="!isMobile">{{ t('pages.clients.bulk') || 'Add Bulk' }}</template>
+                        <template v-if="!isMobile">{{ t('pages.clients.bulk') }}</template>
                       </a-button>
                       <a-button v-if="selectedRowKeys.length > 0" danger size="small" @click="onBulkDelete">
                         <template #icon>
                           <DeleteOutlined />
                         </template>
-                        {{ t('pages.clients.deleteSelected', { count: selectedRowKeys.length })
-                          || `Delete (${selectedRowKeys.length})` }}
+                        {{ t('pages.clients.deleteSelected', { count: selectedRowKeys.length }) }}
                       </a-button>
                       <a-button size="small" @click="onResetAllTraffics">
                         <template #icon>
@@ -611,7 +604,7 @@ const columns = computed(() => [
                         <template #icon>
                           <RestOutlined />
                         </template>
-                        <template v-if="!isMobile">{{ t('pages.clients.delDepleted') || 'Delete depleted' }}</template>
+                        <template v-if="!isMobile">{{ t('pages.clients.delDepleted') }}</template>
                       </a-button>
                     </div>
                   </template>
@@ -660,13 +653,13 @@ const columns = computed(() => [
                           {{ t('depleted') }}
                         </a-tag>
                         <a-tag v-else-if="record.enable && isOnline(record.email)" color="green">
-                          {{ t('pages.clients.online') || 'Online' }}
+                          {{ t('pages.clients.online') }}
                         </a-tag>
                         <a-tag v-else-if="!record.enable">{{ t('disabled') }}</a-tag>
                         <a-tag v-else-if="clientBucket(record) === 'expiring'" color="orange">
                           {{ t('depletingSoon') }}
                         </a-tag>
-                        <a-tag v-else>{{ t('pages.clients.offline') || 'Offline' }}</a-tag>
+                        <a-tag v-else>{{ t('pages.clients.offline') }}</a-tag>
                       </template>
                       <template v-else-if="column.key === 'inboundIds'">
                         <a-tag v-for="id in record.inboundIds" :key="id" color="blue" style="margin: 2px">
@@ -694,27 +687,27 @@ const columns = computed(() => [
                       </template>
                       <template v-else-if="column.key === 'actions'">
                         <a-space :size="4">
-                          <a-tooltip :title="t('pages.clients.qrCode') || 'QR Code'">
+                          <a-tooltip :title="t('pages.clients.qrCode')">
                             <a-button size="small" type="text" @click="onShowQr(record)">
                               <QrcodeOutlined />
                             </a-button>
                           </a-tooltip>
-                          <a-tooltip :title="t('pages.clients.moreInformation') || 'More Information'">
+                          <a-tooltip :title="t('pages.clients.moreInformation')">
                             <a-button size="small" type="text" @click="onShowInfo(record)">
                               <InfoCircleOutlined />
                             </a-button>
                           </a-tooltip>
-                          <a-tooltip :title="t('pages.inbounds.resetTraffic') || 'Reset traffic'">
+                          <a-tooltip :title="t('pages.inbounds.resetTraffic')">
                             <a-button size="small" type="text" @click="onResetTraffic(record)">
                               <RetweetOutlined />
                             </a-button>
                           </a-tooltip>
-                          <a-tooltip :title="t('pages.clients.edit') || 'Edit'">
+                          <a-tooltip :title="t('edit')">
                             <a-button size="small" type="text" @click="onEdit(record)">
                               <EditOutlined />
                             </a-button>
                           </a-tooltip>
-                          <a-tooltip :title="t('pages.clients.delete') || 'Delete'">
+                          <a-tooltip :title="t('delete')">
                             <a-button size="small" type="text" danger @click="onDelete(record)">
                               <DeleteOutlined />
                             </a-button>
@@ -726,7 +719,7 @@ const columns = computed(() => [
                     <template #emptyText>
                       <div class="clients-empty">
                         <UserOutlined style="font-size: 32px; margin-bottom: 8px" />
-                        <div>{{ t('pages.clients.empty') || 'No clients yet.' }}</div>
+                        <div>{{ t('pages.clients.empty') }}</div>
                       </div>
                     </template>
                   </a-table>
@@ -736,7 +729,7 @@ const columns = computed(() => [
                       <div v-if="filteredClients.length > 0" class="card-bulk-bar">
                         <a-checkbox :checked="allSelected" :indeterminate="someSelected"
                           @change="(e) => selectAll(e.target.checked)">
-                          {{ t('pages.clients.selectAll') || 'Select all' }}
+                          {{ t('pages.clients.selectAll') }}
                         </a-checkbox>
                         <span v-if="selectedRowKeys.length > 0" class="bulk-count">
                           {{ selectedRowKeys.length }}
@@ -745,7 +738,7 @@ const columns = computed(() => [
 
                       <div v-if="filteredClients.length === 0" class="card-empty">
                         <UserOutlined style="font-size: 28px; opacity: 0.5" />
-                        <div>{{ t('pages.clients.empty') || 'No clients yet.' }}</div>
+                        <div>{{ t('pages.clients.empty') }}</div>
                       </div>
 
                       <div v-for="row in filteredClients" :key="row.email" class="client-card"
@@ -762,7 +755,7 @@ const columns = computed(() => [
                             {{ t('depletingSoon') }}
                           </a-tag>
                           <div class="card-actions" @click.stop>
-                            <a-tooltip :title="t('pages.clients.moreInformation') || 'Info'">
+                            <a-tooltip :title="t('pages.clients.moreInformation')">
                               <InfoCircleOutlined class="row-action-trigger" @click="onShowInfo(row)" />
                             </a-tooltip>
                             <a-switch :checked="row.enable" size="small" :loading="togglingEmail === row.email"
@@ -772,16 +765,16 @@ const columns = computed(() => [
                               <template #overlay>
                                 <a-menu>
                                   <a-menu-item key="qr" @click="onShowQr(row)">
-                                    <QrcodeOutlined /> {{ t('pages.clients.qrCode') || 'QR Code' }}
+                                    <QrcodeOutlined /> {{ t('pages.clients.qrCode') }}
                                   </a-menu-item>
                                   <a-menu-item key="reset" @click="onResetTraffic(row)">
-                                    <RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') || 'Reset traffic' }}
+                                    <RetweetOutlined /> {{ t('pages.inbounds.resetTraffic') }}
                                   </a-menu-item>
                                   <a-menu-item key="edit" @click="onEdit(row)">
-                                    <EditOutlined /> {{ t('pages.clients.edit') || 'Edit' }}
+                                    <EditOutlined /> {{ t('edit') }}
                                   </a-menu-item>
                                   <a-menu-item key="delete" class="danger-item" @click="onDelete(row)">
-                                    <DeleteOutlined /> {{ t('pages.clients.delete') || 'Delete' }}
+                                    <DeleteOutlined /> {{ t('delete') }}
                                   </a-menu-item>
                                 </a-menu>
                               </template>

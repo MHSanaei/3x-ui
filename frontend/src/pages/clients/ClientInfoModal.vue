@@ -105,10 +105,10 @@ function close() {
       <table class="info-table block">
         <tbody>
           <tr>
-            <td>{{ t('pages.clients.online') || 'Online' }}</td>
+            <td>{{ t('pages.clients.online') }}</td>
             <td>
-              <a-tag v-if="client.enable && isOnline" color="green">{{ t('pages.clients.online') || 'Online' }}</a-tag>
-              <a-tag v-else>{{ t('pages.clients.offline') || 'Offline' }}</a-tag>
+              <a-tag v-if="client.enable && isOnline" color="green">{{ t('pages.clients.online') }}</a-tag>
+              <a-tag v-else>{{ t('pages.clients.offline') }}</a-tag>
               <span class="hint">{{ t('lastOnline') }}: {{ lastOnlineLabel(traffic?.lastOnline) }}</span>
             </td>
           </tr>
@@ -123,7 +123,7 @@ function close() {
           </tr>
 
           <tr>
-            <td>{{ t('pages.clients.email') || 'Email' }}</td>
+            <td>{{ t('pages.clients.email') }}</td>
             <td>
               <a-tag v-if="client.email" color="green">{{ client.email }}</a-tag>
               <a-tag v-else color="red">{{ t('none') }}</a-tag>
@@ -131,7 +131,7 @@ function close() {
           </tr>
 
           <tr>
-            <td>subId</td>
+            <td>{{ t('pages.clients.subId') }}</td>
             <td>
               <a-tag class="info-large-tag">{{ client.subId || '-' }}</a-tag>
               <a-button v-if="client.subId" size="small" type="text" @click="copyValue(client.subId)">
@@ -141,7 +141,7 @@ function close() {
           </tr>
 
           <tr v-if="client.uuid">
-            <td>UUID</td>
+            <td>{{ t('pages.clients.uuid') }}</td>
             <td>
               <a-tag class="info-large-tag">{{ client.uuid }}</a-tag>
               <a-button size="small" type="text" @click="copyValue(client.uuid)">
@@ -161,7 +161,7 @@ function close() {
           </tr>
 
           <tr v-if="client.auth">
-            <td>Auth</td>
+            <td>{{ t('pages.clients.auth') }}</td>
             <td>
               <a-tag class="info-large-tag">{{ client.auth }}</a-tag>
               <a-button size="small" type="text" @click="copyValue(client.auth)">
@@ -171,7 +171,7 @@ function close() {
           </tr>
 
           <tr>
-            <td>Flow</td>
+            <td>{{ t('pages.clients.flow') }}</td>
             <td>
               <a-tag v-if="client.flow">{{ client.flow }}</a-tag>
               <a-tag v-else color="orange">{{ t('none') }}</a-tag>
@@ -194,7 +194,7 @@ function close() {
           </tr>
 
           <tr>
-            <td>{{ t('remained') || 'Remaining' }}</td>
+            <td>{{ t('remained') }}</td>
             <td>
               <a-tag v-if="remaining < 0" color="purple">∞</a-tag>
               <a-tag v-else :color="remaining > 0 ? '' : 'red'">
@@ -204,7 +204,7 @@ function close() {
           </tr>
 
           <tr>
-            <td>{{ t('pages.inbounds.expireDate') || 'Expiry' }}</td>
+            <td>{{ t('pages.inbounds.expireDate') }}</td>
             <td>
               <a-tag v-if="!client.expiryTime || client.expiryTime <= 0" color="purple">∞</a-tag>
               <a-tag v-else>{{ expiryLabel(client.expiryTime) }}</a-tag>
@@ -213,7 +213,7 @@ function close() {
           </tr>
 
           <tr>
-            <td>IP limit</td>
+            <td>{{ t('pages.clients.ipLimit') }}</td>
             <td>
               <a-tag v-if="!client.limitIp">∞</a-tag>
               <a-tag v-else>{{ client.limitIp }}</a-tag>
@@ -221,28 +221,28 @@ function close() {
           </tr>
 
           <tr>
-            <td>{{ t('pages.inbounds.createdAt') || 'Created' }}</td>
+            <td>{{ t('pages.inbounds.createdAt') }}</td>
             <td>
               <a-tag>{{ dateLabel(client.createdAt) }}</a-tag>
             </td>
           </tr>
 
           <tr>
-            <td>{{ t('pages.inbounds.updatedAt') || 'Updated' }}</td>
+            <td>{{ t('pages.inbounds.updatedAt') }}</td>
             <td>
               <a-tag>{{ dateLabel(client.updatedAt) }}</a-tag>
             </td>
           </tr>
 
           <tr v-if="client.comment">
-            <td>{{ t('pages.clients.comment') || 'Comment' }}</td>
+            <td>{{ t('pages.clients.comment') }}</td>
             <td>
               <a-tag class="info-large-tag">{{ client.comment }}</a-tag>
             </td>
           </tr>
 
           <tr>
-            <td>{{ t('pages.clients.attachedInbounds') || 'Attached inbounds' }}</td>
+            <td>{{ t('pages.clients.attachedInbounds') }}</td>
             <td>
               <div class="chips">
                 <a-tag v-for="id in (client.inboundIds || [])" :key="id" color="blue">
@@ -259,10 +259,10 @@ function close() {
       </table>
 
       <template v-if="links.length > 0">
-        <a-divider>{{ t('pages.inbounds.copyLink') || 'URL' }}</a-divider>
+        <a-divider>{{ t('pages.inbounds.copyLink') }}</a-divider>
         <div v-for="(link, idx) in links" :key="idx" class="link-panel">
           <div class="link-panel-header">
-            <a-tag color="green">{{ `${t('pages.clients.link') || 'Link'} ${idx + 1}` }}</a-tag>
+            <a-tag color="green">{{ `${t('pages.clients.link')} ${idx + 1}` }}</a-tag>
             <a-tooltip :title="t('copy')">
               <a-button size="small" @click="copyValue(link)">
                 <template #icon>
@@ -276,10 +276,10 @@ function close() {
       </template>
 
       <template v-if="showSubscription && subLink">
-        <a-divider>{{ t('subscription.title') || 'Subscription info' }}</a-divider>
+        <a-divider>{{ t('subscription.title') }}</a-divider>
         <div class="link-panel">
           <div class="link-panel-header">
-            <a-tag color="green">{{ t('subscription.title') || 'Subscription info' }}</a-tag>
+            <a-tag color="green">{{ t('subscription.title') }}</a-tag>
             <a-tooltip :title="t('copy')">
               <a-button size="small" @click="copyValue(subLink)">
                 <template #icon>

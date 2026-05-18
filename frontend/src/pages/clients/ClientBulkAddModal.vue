@@ -129,7 +129,7 @@ function buildEmails() {
 
 async function submit() {
   if (!Array.isArray(form.inboundIds) || form.inboundIds.length === 0) {
-    message.error(t('pages.clients.selectInbound') || 'Select one or more inbounds.');
+    message.error(t('pages.clients.selectInbound'));
     return;
   }
   const emails = buildEmails();
@@ -159,9 +159,9 @@ async function submit() {
       else failed++;
     }
     if (failed === 0) {
-      message.success(t('pages.clients.toasts.bulkCreated', { count: ok }) || `${ok} clients created`);
+      message.success(t('pages.clients.toasts.bulkCreated', { count: ok }));
     } else {
-      message.warning(`${ok} created, ${failed} failed`);
+      message.warning(t('pages.clients.toasts.bulkCreatedMixed', { ok, failed }));
     }
     emit('saved');
     close();
@@ -172,10 +172,10 @@ async function submit() {
 </script>
 
 <template>
-  <a-modal :open="open" :title="t('pages.clients.bulk') || 'Add Bulk'" :ok-text="t('create')" :cancel-text="t('close')"
+  <a-modal :open="open" :title="t('pages.clients.bulk')" :ok-text="t('create')" :cancel-text="t('close')"
     :confirm-loading="saving" :mask-closable="false" :width="640" @ok="submit" @cancel="close">
     <a-form :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }">
-      <a-form-item :label="t('pages.clients.attachedInbounds') || 'Attached inbounds'" required>
+      <a-form-item :label="t('pages.clients.attachedInbounds')" required>
         <a-select v-model:value="form.inboundIds" mode="multiple" :options="inboundOptions"
           :placeholder="t('pages.clients.selectInbound')" :show-search="true"
           :filter-option="(input, option) => (option.label || '').toLowerCase().includes(input.toLowerCase())" />
@@ -219,14 +219,14 @@ async function submit() {
         <a-input v-model:value="form.comment" />
       </a-form-item>
 
-      <a-form-item v-if="showFlow" label="Flow">
+      <a-form-item v-if="showFlow" :label="t('pages.clients.flow')">
         <a-select v-model:value="form.flow" :style="{ width: '220px' }">
-          <a-select-option value="">none</a-select-option>
+          <a-select-option value="">{{ t('none') }}</a-select-option>
           <a-select-option v-for="k in FLOW_OPTIONS" :key="k" :value="k">{{ k }}</a-select-option>
         </a-select>
       </a-form-item>
 
-      <a-form-item v-if="ipLimitEnable" :label="t('pages.clients.limitIp') || 'IP Limit'">
+      <a-form-item v-if="ipLimitEnable" :label="t('pages.clients.limitIp')">
         <a-input-number v-model:value="form.limitIp" :min="0" />
       </a-form-item>
 

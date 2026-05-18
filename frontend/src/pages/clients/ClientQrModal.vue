@@ -67,20 +67,20 @@ function close() {
     @cancel="close">
     <a-spin :spinning="loading">
       <div v-if="!client?.subId && !loading" class="empty">
-        {{ t('pages.clients.noSubId') || 'This client has no subId, no shareable link.' }}
+        {{ t('pages.clients.noSubId') }}
       </div>
       <div v-else-if="!hasAnything && !loading" class="empty">
-        {{ t('pages.clients.noLinks') || 'No shareable links — attach this client to a protocol-capable inbound first.' }}
+        {{ t('pages.clients.noLinks') }}
       </div>
       <a-collapse v-else :active-key="activeKeys" accordion>
-        <a-collapse-panel v-if="subLink" key="sub" :header="t('subscription.title') || 'Subscription info'">
-          <QrPanel :value="subLink" :remark="`${client?.email || ''} — ${t('subscription.title') || 'Subscription'}`" />
+        <a-collapse-panel v-if="subLink" key="sub" :header="t('subscription.title')">
+          <QrPanel :value="subLink" :remark="`${client?.email || ''} — ${t('subscription.title')}`" />
         </a-collapse-panel>
-        <a-collapse-panel v-if="subJsonLink" key="subJson" :header="`${t('subscription.title') || 'Subscription info'} (JSON)`">
+        <a-collapse-panel v-if="subJsonLink" key="subJson" :header="`${t('subscription.title')} (JSON)`">
           <QrPanel :value="subJsonLink" :remark="`${client?.email || ''} — JSON`" />
         </a-collapse-panel>
         <a-collapse-panel v-for="(link, idx) in links" :key="`l${idx}`"
-          :header="`${t('pages.clients.link') || 'Link'} ${idx + 1}`">
+          :header="`${t('pages.clients.link')} ${idx + 1}`">
           <QrPanel :value="link" :remark="`${client?.email || ''} #${idx + 1}`" />
         </a-collapse-panel>
       </a-collapse>

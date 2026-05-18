@@ -188,7 +188,7 @@ function regenerateEmail() {
 
 async function onSubmit() {
   if (!form.email || form.email.trim() === '') {
-    message.error(t('pages.clients.email') + ' *');
+    message.error(`${t('pages.clients.email')} *`);
     return;
   }
   if (!isEdit.value && (!form.inboundIds || form.inboundIds.length === 0)) {
@@ -243,7 +243,7 @@ async function onSubmit() {
 
 <template>
   <a-modal :open="open" :title="isEdit ? t('pages.clients.editTitle') : t('pages.clients.addTitle')"
-    :destroy-on-close="true" :ok-text="isEdit ? t('save') : t('add')" :cancel-text="t('cancel')"
+    :destroy-on-close="true" :ok-text="isEdit ? t('save') : t('create')" :cancel-text="t('cancel')"
     :ok-button-props="{ loading: submitting }" :width="720" @ok="onSubmit" @cancel="close">
     <a-form layout="vertical" :model="form">
       <a-row :gutter="16">
@@ -256,7 +256,7 @@ async function onSubmit() {
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item :label="t('pages.clients.subId') || 'subId'">
+          <a-form-item :label="t('pages.clients.subId')">
             <a-input-group compact style="display: flex">
               <a-input v-model:value="form.subId" style="flex: 1" />
               <a-button @click="regenerateSubId">↻</a-button>
@@ -267,7 +267,7 @@ async function onSubmit() {
 
       <a-row :gutter="16">
         <a-col :span="12">
-          <a-form-item label="Auth (Hysteria)">
+          <a-form-item :label="t('pages.clients.hysteriaAuth')">
             <a-input-group compact style="display: flex">
               <a-input v-model:value="form.auth" style="flex: 1" />
               <a-button @click="regenerateAuth">↻</a-button>
@@ -275,7 +275,7 @@ async function onSubmit() {
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item :label="t('pages.clients.password') || 'Password'">
+          <a-form-item :label="t('pages.clients.password')">
             <a-input-group compact style="display: flex">
               <a-input v-model:value="form.password" style="flex: 1" />
               <a-button @click="regeneratePassword">↻</a-button>
@@ -286,7 +286,7 @@ async function onSubmit() {
 
       <a-row :gutter="16">
         <a-col :span="ipLimitEnable ? 12 : 24">
-          <a-form-item label="UUID">
+          <a-form-item :label="t('pages.clients.uuid')">
             <a-input-group compact style="display: flex">
               <a-input v-model:value="form.uuid" style="flex: 1" />
               <a-button @click="regenerateUUID">↻</a-button>
@@ -294,7 +294,7 @@ async function onSubmit() {
           </a-form-item>
         </a-col>
         <a-col v-if="ipLimitEnable" :span="12">
-          <a-form-item :label="t('pages.clients.limitIp') || 'IP limit'">
+          <a-form-item :label="t('pages.clients.limitIp')">
             <a-input-number v-model:value="form.limitIp" :min="0" style="width: 100%" />
           </a-form-item>
         </a-col>
@@ -302,12 +302,12 @@ async function onSubmit() {
 
       <a-row :gutter="16">
         <a-col :span="12">
-          <a-form-item :label="t('pages.clients.totalGB') || 'Total (GB, 0 = unlimited)'">
+          <a-form-item :label="t('pages.clients.totalGB')">
             <a-input-number v-model:value="form.totalGB" :min="0" :step="0.1" style="width: 100%" />
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item :label="t('pages.clients.expiryTime') || 'Expiry'">
+          <a-form-item :label="t('pages.clients.expiryTime')">
             <a-date-picker v-model:value="form.expiryTime" show-time style="width: 100%" />
           </a-form-item>
         </a-col>
@@ -315,38 +315,38 @@ async function onSubmit() {
 
       <a-row v-if="showFlow || showReverseTag" :gutter="16">
         <a-col v-if="showFlow" :span="12">
-          <a-form-item label="Flow">
+          <a-form-item :label="t('pages.clients.flow')">
             <a-select v-model:value="form.flow">
-              <a-select-option value="">none</a-select-option>
+              <a-select-option value="">{{ t('none') }}</a-select-option>
               <a-select-option v-for="k in FLOW_OPTIONS" :key="k" :value="k">{{ k }}</a-select-option>
             </a-select>
           </a-form-item>
         </a-col>
         <a-col v-if="showReverseTag" :span="12">
-          <a-form-item label="Reverse tag">
-            <a-input v-model:value="form.reverseTag" placeholder="Optional reverse tag" />
+          <a-form-item :label="t('pages.clients.reverseTag')">
+            <a-input v-model:value="form.reverseTag" :placeholder="t('pages.clients.reverseTagPlaceholder')" />
           </a-form-item>
         </a-col>
       </a-row>
 
       <a-row :gutter="16">
         <a-col :span="12">
-          <a-form-item :label="'Telegram user ID'">
+          <a-form-item :label="t('pages.clients.telegramId')">
             <a-input-number v-model:value="form.tgId" :min="0" :controls="false"
-              :placeholder="t('pages.clients.telegramIdPlaceholder') || 'Numeric Telegram user ID (0 = none)'"
+              :placeholder="t('pages.clients.telegramIdPlaceholder')"
               style="width: 100%" />
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item :label="t('pages.clients.comment') || 'Comment'">
+          <a-form-item :label="t('pages.clients.comment')">
             <a-input v-model:value="form.comment" />
           </a-form-item>
         </a-col>
       </a-row>
 
-      <a-form-item :label="t('pages.clients.attachedInbounds') || 'Attached inbounds'" :required="!isEdit">
+      <a-form-item :label="t('pages.clients.attachedInbounds')" :required="!isEdit">
         <a-select v-model:value="form.inboundIds" mode="multiple" :options="inboundOptions" :show-search="true"
-          :placeholder="t('pages.clients.selectInbound') || 'Select one or more inbounds'"
+          :placeholder="t('pages.clients.selectInbound')"
           :filter-option="(input, option) => (option.label || '').toLowerCase().includes(input.toLowerCase())" />
       </a-form-item>
 
@@ -355,17 +355,17 @@ async function onSubmit() {
         <span style="margin-left: 8px">{{ t('enable') }}</span>
       </a-form-item>
 
-      <a-form-item v-if="isEdit && ipLimitEnable" :label="t('pages.clients.ipLog') || 'IP Log'">
+      <a-form-item v-if="isEdit && ipLimitEnable" :label="t('pages.clients.ipLog')">
         <a-space style="margin-bottom: 8px">
           <a-button size="small" :loading="ipsLoading" @click="loadIps">{{ t('refresh') }}</a-button>
           <a-button size="small" danger :loading="ipsClearing" :disabled="clientIps.length === 0" @click="clearIps">
-            {{ t('clearAll') || 'Clear' }}
+            {{ t('pages.clients.clearAll') }}
           </a-button>
         </a-space>
         <div v-if="clientIps.length > 0">
           <a-tag v-for="(ip, idx) in clientIps" :key="idx" color="blue" style="margin-bottom: 4px">{{ ip }}</a-tag>
         </div>
-        <a-tag v-else>{{ t('tgbot.noIpRecord') || 'No IP record' }}</a-tag>
+        <a-tag v-else>{{ t('tgbot.noIpRecord') }}</a-tag>
       </a-form-item>
     </a-form>
   </a-modal>
