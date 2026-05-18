@@ -26,7 +26,7 @@ const { datepicker } = useDatepicker();
 //     client row + share links
 //   • SS single-user → connection details + share link
 //   • WireGuard → secret/peers + per-peer config download
-//   • Mixed/HTTP/Tunnel → connection details only
+//   • Mixed/SOCKS/HTTP/Tunnel → connection details only
 //
 // We display links via QrPanel — each link gets its own QR + copy +
 // (for WireGuard configs) download button.
@@ -640,8 +640,9 @@ const showSubscriptionTab = computed(
             </div>
           </dl>
 
-          <!-- Mixed -->
-          <dl v-if="dbInbound.isMixed" class="info-list info-list-block">
+          <!-- Mixed / SOCKS: share the same auth/udp/ip + accounts shape
+               (Xray's mixed and socks inbounds accept the same keys). -->
+          <dl v-if="dbInbound.isSocksLike" class="info-list info-list-block">
             <div class="info-row">
               <dt>Auth</dt>
               <dd>

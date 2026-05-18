@@ -20,9 +20,14 @@ const (
 	Trojan      Protocol = "trojan"
 	Shadowsocks Protocol = "shadowsocks"
 	Mixed       Protocol = "mixed"
-	WireGuard   Protocol = "wireguard"
-	Hysteria    Protocol = "hysteria"
-	Hysteria2   Protocol = "hysteria2"
+	// Socks is a dedicated SOCKS5 inbound (Xray "socks" protocol).
+	// Unlike Mixed (HTTP+SOCKS), this is a pure SOCKS5 inbound and is
+	// intended for tunneling clients that only speak SOCKS5.
+	// See: https://xtls.github.io/config/inbounds/socks.html
+	Socks     Protocol = "socks"
+	WireGuard Protocol = "wireguard"
+	Hysteria  Protocol = "hysteria"
+	Hysteria2 Protocol = "hysteria2"
 )
 
 // IsHysteria returns true for both "hysteria" and "hysteria2".
@@ -30,6 +35,18 @@ const (
 // with the literal v2 string would otherwise fall through (#4081).
 func IsHysteria(p Protocol) bool {
 	return p == Hysteria || p == Hysteria2
+}
+
+// IsSocksLike returns true for both the dedicated "socks" inbound and
+// the combined "mixed" inbound, since Mixed exposes SOCKS5 alongside
+// HTTP on the same port and accepts the exact same settings shape
+// (auth/accounts/udp/ip) that the pure Socks inbound does.
+//
+// Use this helper anywhere routing, sub-link generation, or UI code
+// needs to treat "this inbound speaks SOCKS5" uniformly without
+// re-listing both constants at every call site.
+func IsSocksLike(p Protocol) bool {
+	return p == Socks || p == Mixed
 }
 
 // User represents a user account in the 3x-ui panel.

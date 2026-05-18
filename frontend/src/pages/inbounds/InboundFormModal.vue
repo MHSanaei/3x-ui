@@ -174,6 +174,26 @@ function delFallback(idx) {
   inbound.value?.settings?.delFallback?.(idx);
 }
 
+// Helper for the shared HTTP / MIXED / SOCKS accounts editor: dispatches
+// to the right Account class so each protocol stores accounts in the
+// shape Xray expects on the wire.
+function addAccountByProtocol() {
+  const settings = inbound.value?.settings;
+  if (!settings) return;
+  switch (inbound.value.protocol) {
+    case Protocols.HTTP:
+      settings.addAccount(new Inbound.HttpSettings.HttpAccount());
+      break;
+    case Protocols.SOCKS:
+      settings.addAccount(new Inbound.SocksSettings.SocksAccount());
+      break;
+    case Protocols.MIXED:
+    default:
+      settings.addAccount(new Inbound.MixedSettings.SocksAccount());
+      break;
+  }
+}
+
 // Date / GB bridges (legacy used moment via _expiryTime; we go direct).
 const expiryDate = computed({
   get: () => (dbForm.value?.expiryTime > 0 ? dayjs(dbForm.value.expiryTime) : null),
@@ -964,13 +984,12 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
           </a-form-item>
         </a-form>
 
-        <!-- HTTP / Mixed accounts -->
-        <a-form v-if="protocol === Protocols.HTTP || protocol === Protocols.MIXED" :colon="false"
-          :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }" class="mt-12">
+        <!-- HTTP / Mixed / SOCKS accounts -->
+        <a-form
+          v-if="protocol === Protocols.HTTP || protocol === Protocols.MIXED || protocol === Protocols.SOCKS"
+          :colon="false" :label-col="{ sm: { span: 8 } }" :wrapper-col="{ sm: { span: 14 } }" class="mt-12">
           <a-form-item label="Accounts">
-            <a-button size="small" @click="protocol === Protocols.HTTP
-              ? inbound.settings.addAccount(new Inbound.HttpSettings.HttpAccount())
-              : inbound.settings.addAccount(new Inbound.MixedSettings.SocksAccount())">
+            <a-button size="small" @click="addAccountByProtocol()">
               <template #icon>
                 <PlusOutlined />
               </template>
@@ -993,7 +1012,7 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
           <a-form-item v-if="protocol === Protocols.HTTP" label="Allow transparent">
             <a-switch v-model:checked="inbound.settings.allowTransparent" />
           </a-form-item>
-          <template v-if="protocol === Protocols.MIXED">
+          <template v-if="protocol === Protocols.MIXED || protocol === Protocols.SOCKS">
             <a-form-item label="Auth">
               <a-select v-model:value="inbound.settings.auth">
                 <a-select-option value="noauth">noauth</a-select-option>
