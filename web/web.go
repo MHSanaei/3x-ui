@@ -132,6 +132,9 @@ func NewServer() *Server {
 }
 
 func (s *Server) isDirectHTTPSConfigured() bool {
+	if config.IsSkipHSTS() {
+		return false
+	}
 	certFile, certErr := s.settingService.GetCertFile()
 	keyFile, keyErr := s.settingService.GetKeyFile()
 	if certErr != nil || keyErr != nil || certFile == "" || keyFile == "" {
