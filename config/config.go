@@ -100,6 +100,22 @@ func GetDBPath() string {
 	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
 }
 
+// GetDBKind returns the configured database backend: "sqlite" (default) or "postgres".
+func GetDBKind() string {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv("XUI_DB_TYPE")))
+	switch v {
+	case "postgres", "postgresql", "pg":
+		return "postgres"
+	default:
+		return "sqlite"
+	}
+}
+
+// GetDBDSN returns the PostgreSQL DSN from XUI_DB_DSN. Empty for sqlite.
+func GetDBDSN() string {
+	return strings.TrimSpace(os.Getenv("XUI_DB_DSN"))
+}
+
 // GetLogFolder returns the path to the log folder based on environment variables or platform defaults.
 func GetLogFolder() string {
 	logFolderPath := os.Getenv("XUI_LOG_FOLDER")

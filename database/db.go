@@ -1,5 +1,5 @@
 // Package database provides database initialization, migration, and management utilities
-// for the 3x-ui panel using GORM with SQLite.
+// for the 3x-ui panel using GORM with SQLite or PostgreSQL.
 package database
 
 import (
@@ -19,12 +19,34 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/util/crypto"
 	"github.com/mhsanaei/3x-ui/v3/xray"
 
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 var db *gorm.DB
+
+const (
+	DialectSQLite   = "sqlite"
+	DialectPostgres = "postgres"
+)
+
+// IsPostgres reports whether the active connection is a PostgreSQL backend.
+func IsPostgres() bool {
+	if db == nil {
+		return config.GetDBKind() == "postgres"
+	}
+	return db.Dialector.Name() == "postgres"
+}
+
+// Dialect returns the active GORM dialect name, or "" if the DB is not open.
+func Dialect() string {
+	if db == nil {
+		return ""
+	}
+	return db.Dialector.Name()
+}
 
 const (
 	defaultUsername = "admin"
@@ -65,20 +87,25 @@ func isIgnorableDuplicateColumnErr(err error, mdl any) bool {
 		return false
 	}
 	errMsg := strings.ToLower(err.Error())
-	const dupPrefix = "duplicate column name:"
-	if !strings.Contains(errMsg, dupPrefix) {
-		return false
+	// SQLite: "duplicate column name: foo"
+	// Postgres: `pq: column "foo" of relation "bar" already exists` / `sqlstate 42701`
+	const sqlitePrefix = "duplicate column name:"
+	if _, after, ok := strings.Cut(errMsg, sqlitePrefix); ok {
+		col := strings.TrimSpace(after)
+		col = strings.Trim(col, "`\"[]")
+		return col != "" && db != nil && db.Migrator().HasColumn(mdl, col)
 	}
-	_, after, ok := strings.Cut(errMsg, dupPrefix)
-	if !ok {
-		return false
+	if strings.Contains(errMsg, "already exists") && strings.Contains(errMsg, "column ") {
+		// Best effort: extract the column name between the first pair of double quotes.
+		if _, after, ok := strings.Cut(errMsg, "column \""); ok {
+			rest := after
+			if e := strings.Index(rest, "\""); e > 0 {
+				col := rest[:e]
+				return col != "" && db != nil && db.Migrator().HasColumn(mdl, col)
+			}
+		}
 	}
-	col := strings.TrimSpace(after)
-	col = strings.Trim(col, "`\"[]")
-	if col == "" {
-		return false
-	}
-	return db != nil && db.Migrator().HasColumn(mdl, col)
+	return false
 }
 
 // initUser creates a default admin user if the users table is empty.
@@ -281,41 +308,54 @@ func isTableEmpty(tableName string) (bool, error) {
 }
 
 // InitDB sets up the database connection, migrates models, and runs seeders.
+// When XUI_DB_TYPE=postgres, dbPath is ignored and XUI_DB_DSN is used instead.
 func InitDB(dbPath string) error {
-	dir := path.Dir(dbPath)
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		return err
-	}
-
 	var gormLogger logger.Interface
-
 	if config.IsDebug() {
 		gormLogger = logger.Default
 	} else {
 		gormLogger = logger.Discard
 	}
+	c := &gorm.Config{Logger: gormLogger}
 
-	c := &gorm.Config{
-		Logger: gormLogger,
-	}
-	dsn := dbPath + "?_journal_mode=WAL&_busy_timeout=10000&_synchronous=NORMAL&_txlock=immediate"
-	db, err = gorm.Open(sqlite.Open(dsn), c)
-	if err != nil {
-		return err
+	var err error
+	switch config.GetDBKind() {
+	case "postgres":
+		dsn := config.GetDBDSN()
+		if dsn == "" {
+			return errors.New("XUI_DB_TYPE=postgres but XUI_DB_DSN is empty")
+		}
+		db, err = gorm.Open(postgres.Open(dsn), c)
+		if err != nil {
+			return err
+		}
+	default:
+		dir := path.Dir(dbPath)
+		if err = os.MkdirAll(dir, 0755); err != nil {
+			return err
+		}
+		dsn := dbPath + "?_journal_mode=WAL&_busy_timeout=10000&_synchronous=NORMAL&_txlock=immediate"
+		db, err = gorm.Open(sqlite.Open(dsn), c)
+		if err != nil {
+			return err
+		}
+		sqlDB, err := db.DB()
+		if err != nil {
+			return err
+		}
+		if _, err := sqlDB.Exec("PRAGMA journal_mode=WAL"); err != nil {
+			return err
+		}
+		if _, err := sqlDB.Exec("PRAGMA busy_timeout=10000"); err != nil {
+			return err
+		}
+		if _, err := sqlDB.Exec("PRAGMA synchronous=NORMAL"); err != nil {
+			return err
+		}
 	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
-		return err
-	}
-	if _, err := sqlDB.Exec("PRAGMA journal_mode=WAL"); err != nil {
-		return err
-	}
-	if _, err := sqlDB.Exec("PRAGMA busy_timeout=10000"); err != nil {
-		return err
-	}
-	if _, err := sqlDB.Exec("PRAGMA synchronous=NORMAL"); err != nil {
 		return err
 	}
 	sqlDB.SetMaxOpenConns(8)
@@ -370,13 +410,12 @@ func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 }
 
 // Checkpoint performs a WAL checkpoint on the SQLite database to ensure data consistency.
+// No-op on PostgreSQL (WAL there is managed by the server).
 func Checkpoint() error {
-	// Update WAL
-	err := db.Exec("PRAGMA wal_checkpoint;").Error
-	if err != nil {
-		return err
+	if IsPostgres() {
+		return nil
 	}
-	return nil
+	return db.Exec("PRAGMA wal_checkpoint;").Error
 }
 
 // ValidateSQLiteDB opens the provided sqlite DB path with a throw-away connection

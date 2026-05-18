@@ -18,7 +18,6 @@ import {
 } from '@ant-design/icons-vue';
 
 import { HttpUtil, SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
-import { DBInbound } from '@/models/dbinbound.js';
 import InfinityIcon from '@/components/InfinityIcon.vue';
 import { useDatepicker } from '@/composables/useDatepicker.js';
 

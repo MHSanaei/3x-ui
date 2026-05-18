@@ -242,12 +242,12 @@ func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, err
 func (s *InboundService) getAllEmails() ([]string, error) {
 	db := database.GetDB()
 	var emails []string
-	err := db.Raw(`
-		SELECT DISTINCT JSON_EXTRACT(client.value, '$.email')
-		FROM inbounds,
-			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
-		`).Scan(&emails).Error
-	if err != nil {
+	query := fmt.Sprintf(
+		"SELECT DISTINCT %s %s",
+		database.JSONFieldText("client.value", "email"),
+		database.JSONClientsFromInbound(),
+	)
+	if err := db.Raw(query).Scan(&emails).Error; err != nil {
 		return nil, err
 	}
 	return emails, nil
@@ -261,22 +261,22 @@ func (s *InboundService) getAllEmailSubIDs() (map[string]string, error) {
 		Email string
 		SubID string
 	}
-	err := db.Raw(`
-		SELECT JSON_EXTRACT(client.value, '$.email')  AS email,
-		       JSON_EXTRACT(client.value, '$.subId')  AS sub_id
-		FROM inbounds,
-			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
-		`).Scan(&rows).Error
-	if err != nil {
+	query := fmt.Sprintf(
+		"SELECT %s AS email, %s AS sub_id %s",
+		database.JSONFieldText("client.value", "email"),
+		database.JSONFieldText("client.value", "subId"),
+		database.JSONClientsFromInbound(),
+	)
+	if err := db.Raw(query).Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 	result := make(map[string]string, len(rows))
 	for _, r := range rows {
-		email := strings.ToLower(strings.Trim(r.Email, "\""))
+		email := strings.ToLower(r.Email)
 		if email == "" {
 			continue
 		}
-		subID := strings.Trim(r.SubID, "\"")
+		subID := r.SubID
 		if existing, ok := result[email]; ok {
 			if existing != subID {
 				result[email] = ""
@@ -296,14 +296,12 @@ func (s *InboundService) emailUsedByOtherInbounds(email string, exceptInboundId 
 	}
 	db := database.GetDB()
 	var count int64
-	err := db.Raw(`
-		SELECT COUNT(*)
-		FROM inbounds,
-			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
-		WHERE inbounds.id != ?
-		  AND LOWER(JSON_EXTRACT(client.value, '$.email')) = LOWER(?)
-		`, exceptInboundId, email).Scan(&count).Error
-	if err != nil {
+	query := fmt.Sprintf(
+		"SELECT COUNT(*) %s WHERE inbounds.id != ? AND LOWER(%s) = LOWER(?)",
+		database.JSONClientsFromInbound(),
+		database.JSONFieldText("client.value", "email"),
+	)
+	if err := db.Raw(query, exceptInboundId, email).Scan(&count).Error; err != nil {
 		return false, err
 	}
 	return count > 0, nil
@@ -2043,14 +2041,12 @@ func (s *InboundService) GetClientReverseTags() (string, error) {
 
 func (s *InboundService) MigrationRemoveOrphanedTraffics() {
 	db := database.GetDB()
-	db.Exec(`
-		DELETE FROM client_traffics
-		WHERE email NOT IN (
-			SELECT JSON_EXTRACT(client.value, '$.email')
-			FROM inbounds,
-				JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
-		)
-	`)
+	query := fmt.Sprintf(
+		"DELETE FROM client_traffics WHERE email NOT IN (SELECT %s %s)",
+		database.JSONFieldText("client.value", "email"),
+		database.JSONClientsFromInbound(),
+	)
+	db.Exec(query)
 }
 
 // AddClientStat inserts a per-client accounting row, no-op on email
@@ -2390,12 +2386,14 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 		emails = append(emails, e)
 	}
 	var stillReferenced []string
-	if err = tx.Raw(`
-		SELECT DISTINCT LOWER(JSON_EXTRACT(client.value, '$.email'))
-		FROM inbounds,
-			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
-		WHERE LOWER(JSON_EXTRACT(client.value, '$.email')) IN ?
-		`, emails).Scan(&stillReferenced).Error; err != nil {
+	emailExpr := database.JSONFieldText("client.value", "email")
+	stillQuery := fmt.Sprintf(
+		"SELECT DISTINCT LOWER(%s) %s WHERE LOWER(%s) IN ?",
+		emailExpr,
+		database.JSONClientsFromInbound(),
+		emailExpr,
+	)
+	if err = tx.Raw(stillQuery, emails).Scan(&stillReferenced).Error; err != nil {
 		return err
 	}
 	stillSet := make(map[string]struct{}, len(stillReferenced))
@@ -2756,8 +2754,10 @@ func (s *InboundService) MigrationRequirements() {
 	defer func() {
 		if err == nil {
 			tx.Commit()
-			if dbErr := db.Exec(`VACUUM "main"`).Error; dbErr != nil {
-				logger.Warningf("VACUUM failed: %v", dbErr)
+			if !database.IsPostgres() {
+				if dbErr := db.Exec(`VACUUM "main"`).Error; dbErr != nil {
+					logger.Warningf("VACUUM failed: %v", dbErr)
+				}
 			}
 		} else {
 			tx.Rollback()

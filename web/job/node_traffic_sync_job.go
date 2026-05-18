@@ -18,12 +18,12 @@ const (
 )
 
 type NodeTrafficSyncJob struct {
-	nodeService     service.NodeService
-	inboundService  service.InboundService
-	settingService  service.SettingService
-	xrayService     service.XrayService
-	running         sync.Mutex
-	structural      atomicBool
+	nodeService    service.NodeService
+	inboundService service.InboundService
+	settingService service.SettingService
+	xrayService    service.XrayService
+	running        sync.Mutex
+	structural     atomicBool
 }
 
 type atomicBool struct {

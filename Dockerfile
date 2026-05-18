@@ -64,6 +64,10 @@ RUN chmod +x \
   /usr/bin/x-ui
 
 ENV XUI_ENABLE_FAIL2BAN="true"
+# Database backend: set XUI_DB_TYPE=postgres and XUI_DB_DSN=postgres://... to use PostgreSQL.
+# Default (unset) is SQLite stored under /etc/x-ui.
+ENV XUI_DB_TYPE=""
+ENV XUI_DB_DSN=""
 EXPOSE 2053
 VOLUME [ "/etc/x-ui" ]
 CMD [ "./x-ui" ]
