@@ -24,9 +24,8 @@ import (
 )
 
 type InboundService struct {
-	xrayApi         xray.XrayAPI
-	clientService   ClientService
-	fallbackService FallbackService
+	xrayApi       xray.XrayAPI
+	clientService ClientService
 }
 
 func (s *InboundService) runtimeFor(ib *model.Inbound) (runtime.Runtime, error) {
@@ -149,8 +148,8 @@ type InboundOption struct {
 
 // GetInboundOptions returns the picker-sized projection of the user's inbounds.
 // The TlsFlowCapable flag mirrors Inbound.canEnableTlsFlow() on the frontend
-// (VLESS/PortFallback over TCP with tls or reality) so the client modal does
-// not need StreamSettings to decide whether to show the Flow field.
+// (VLESS over TCP with tls or reality) so the client modal does not need
+// StreamSettings to decide whether to show the Flow field.
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
 	db := database.GetDB()
 	var rows []struct {
@@ -182,9 +181,9 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 }
 
 // inboundCanEnableTlsFlow mirrors Inbound.canEnableTlsFlow() from the frontend:
-// XTLS Vision is only valid for VLESS / PortFallback on TCP with tls or reality.
+// XTLS Vision is only valid for VLESS on TCP with tls or reality.
 func inboundCanEnableTlsFlow(protocol, streamSettings string) bool {
-	if protocol != string(model.VLESS) && protocol != string(model.PortFallback) {
+	if protocol != string(model.VLESS) {
 		return false
 	}
 	if streamSettings == "" {

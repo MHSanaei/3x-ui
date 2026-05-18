@@ -114,84 +114,8 @@ const security = computed({
 
 const isVlessLike = computed(() => {
   if (!inbound.value) return false;
-  return inbound.value.protocol === Protocols.VLESS
-    || inbound.value.protocol === Protocols.PORTFALLBACK;
+  return inbound.value.protocol === Protocols.VLESS;
 });
-
-const fallbackChildren = ref([]);
-let fallbackChildRowKey = 0;
-
-const fallbackChildColumns = computed(() => [
-  { title: t('pages.inbounds.portFallback.child') || 'Inbound', key: 'childId', width: '40%' },
-  { title: 'SNI', key: 'name' },
-  { title: 'ALPN', key: 'alpn' },
-  { title: t('pages.inbounds.portFallback.path') || 'Path', key: 'path' },
-  { title: 'xver', key: 'xver', width: 100 },
-  { title: '', key: 'actions', width: 90 },
-]);
-
-const fallbackChildOptions = computed(() => {
-  const list = props.dbInbounds || [];
-  const masterId = props.dbInbound?.id;
-  return list
-    .filter((ib) => ib.id !== masterId && ib.protocol !== Protocols.PORTFALLBACK)
-    .map((ib) => ({
-      label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
-      value: ib.id,
-    }));
-});
-
-function addFallbackChild() {
-  fallbackChildren.value.push({
-    rowKey: `row-${++fallbackChildRowKey}`,
-    childId: null,
-    name: '',
-    alpn: '',
-    path: '',
-    xver: 0,
-  });
-}
-
-function removeFallbackChild(idx) {
-  fallbackChildren.value.splice(idx, 1);
-}
-
-async function loadFallbackChildren(masterId) {
-  fallbackChildren.value = [];
-  if (!masterId) return;
-  const msg = await HttpUtil.get(`/panel/api/inbounds/${masterId}/fallbackChildren`);
-  if (!msg?.success || !Array.isArray(msg.obj)) return;
-  fallbackChildren.value = msg.obj.map((r) => ({
-    rowKey: `row-${++fallbackChildRowKey}`,
-    childId: r.childId,
-    name: r.name || '',
-    alpn: r.alpn || '',
-    path: r.path || '',
-    xver: r.xver || 0,
-  }));
-}
-
-async function saveFallbackChildren(masterId) {
-  if (!masterId) return true;
-  const payload = {
-    children: fallbackChildren.value
-      .filter((c) => c.childId)
-      .map((c, i) => ({
-        childId: c.childId,
-        name: c.name,
-        alpn: c.alpn,
-        path: c.path,
-        xver: Number(c.xver) || 0,
-        sortOrder: i,
-      })),
-  };
-  const msg = await HttpUtil.post(
-    `/panel/api/inbounds/${masterId}/fallbackChildren`,
-    payload,
-    { headers: { 'Content-Type': 'application/json' } },
-  );
-  return !!msg?.success;
-}
 
 const canEnableStream = computed(() => inbound.value?.canEnableStream?.() === true);
 const canEnableTls = computed(() => inbound.value?.canEnableTls?.() === true);
@@ -262,16 +186,10 @@ watch(() => props.open, (next) => {
   if (!next) return;
   if (props.mode === 'edit' && props.dbInbound) {
     loadFromDbInbound(props.dbInbound);
-    if (props.dbInbound.protocol === Protocols.PORTFALLBACK) {
-      loadFallbackChildren(props.dbInbound.id);
-    } else {
-      fallbackChildren.value = [];
-    }
   } else {
     inbound.value = makeFreshInbound(Protocols.VLESS);
     dbForm.value = freshDbForm();
     primeAdvancedJson();
-    fallbackChildren.value = [];
   }
   activeTabKey.value = 'basic';
   advancedSectionKey.value = 'all';
@@ -737,14 +655,6 @@ async function submit() {
       : '/panel/api/inbounds/add';
     const msg = await HttpUtil.post(url, payload);
     if (msg?.success) {
-      if (inbound.value.protocol === Protocols.PORTFALLBACK) {
-        const masterId = props.mode === 'edit'
-          ? props.dbInbound.id
-          : (msg.obj?.id || msg.obj?.Id);
-        if (masterId) {
-          await saveFallbackChildren(masterId);
-        }
-      }
       emit('saved');
       close();
     }
@@ -858,41 +768,6 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
             </a-typography-text>
           </a-form-item>
         </a-form>
-
-        <a-card v-if="protocol === Protocols.PORTFALLBACK" size="small" class="mt-12"
-          :title="t('pages.inbounds.portFallback.title') || 'Fallback children'">
-          <a-typography-paragraph type="secondary">
-            {{ t('pages.inbounds.portFallback.help') || 'Pick inbounds that should catch traffic this VLESS-TLS inbound does not match. Each child must listen on 127.0.0.1 to receive forwarded connections.' }}
-          </a-typography-paragraph>
-          <a-table :columns="fallbackChildColumns" :data-source="fallbackChildren" row-key="rowKey" size="small"
-            :pagination="false">
-            <template #bodyCell="{ column, record, index }">
-              <template v-if="column.key === 'childId'">
-                <a-select v-model:value="record.childId" :options="fallbackChildOptions" :show-search="true"
-                  :filter-option="(input, option) => (option.label || '').toLowerCase().includes(input.toLowerCase())"
-                  style="width: 100%" />
-              </template>
-              <template v-else-if="column.key === 'name'">
-                <a-input v-model:value="record.name" placeholder="SNI" />
-              </template>
-              <template v-else-if="column.key === 'alpn'">
-                <a-input v-model:value="record.alpn" placeholder="h2 / http/1.1" />
-              </template>
-              <template v-else-if="column.key === 'path'">
-                <a-input v-model:value="record.path" placeholder="/path" />
-              </template>
-              <template v-else-if="column.key === 'xver'">
-                <a-input-number v-model:value="record.xver" :min="0" :max="2" style="width: 80px" />
-              </template>
-              <template v-else-if="column.key === 'actions'">
-                <a-button size="small" danger @click="removeFallbackChild(index)">{{ t('delete') }}</a-button>
-              </template>
-            </template>
-          </a-table>
-          <a-button size="small" style="margin-top: 8px" @click="addFallbackChild">
-            <PlusOutlined /> {{ t('add') }}
-          </a-button>
-        </a-card>
 
         <!-- Shadowsocks shared fields (method/network/ivCheck) -->
         <a-form v-if="protocol === Protocols.SHADOWSOCKS" :colon="false" :label-col="{ sm: { span: 8 } }"

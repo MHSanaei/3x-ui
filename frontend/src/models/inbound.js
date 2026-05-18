@@ -13,7 +13,6 @@ export const Protocols = {
     HTTP: 'http',
     TUNNEL: 'tunnel',
     TUN: 'tun',
-    PORTFALLBACK: 'portfallback',
 };
 
 export const SSMethods = {
@@ -1855,14 +1854,14 @@ export class Inbound extends XrayCommonClass {
 
     canEnableTls() {
         if (this.protocol === Protocols.HYSTERIA) return true;
-        if (![Protocols.VMESS, Protocols.VLESS, Protocols.PORTFALLBACK, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(this.protocol)) return false;
+        if (![Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(this.protocol)) return false;
         return ["tcp", "ws", "http", "grpc", "httpupgrade", "xhttp"].includes(this.network);
     }
 
     //this is used for xtls-rprx-vision
     canEnableTlsFlow() {
         if (((this.stream.security === 'tls') || (this.stream.security === 'reality')) && (this.network === "tcp")) {
-            return this.protocol === Protocols.VLESS || this.protocol === Protocols.PORTFALLBACK;
+            return this.protocol === Protocols.VLESS;
         }
         return false;
     }
@@ -1877,12 +1876,12 @@ export class Inbound extends XrayCommonClass {
     }
 
     canEnableReality() {
-        if (![Protocols.VLESS, Protocols.PORTFALLBACK, Protocols.TROJAN].includes(this.protocol)) return false;
+        if (![Protocols.VLESS, Protocols.TROJAN].includes(this.protocol)) return false;
         return ["tcp", "http", "grpc", "xhttp"].includes(this.network);
     }
 
     canEnableStream() {
-        return [Protocols.VMESS, Protocols.VLESS, Protocols.PORTFALLBACK, Protocols.TROJAN, Protocols.SHADOWSOCKS, Protocols.HYSTERIA].includes(this.protocol);
+        return [Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS, Protocols.HYSTERIA].includes(this.protocol);
     }
 
     reset() {
@@ -2456,8 +2455,7 @@ Inbound.Settings = class extends XrayCommonClass {
     static getSettings(protocol) {
         switch (protocol) {
             case Protocols.VMESS: return new Inbound.VmessSettings(protocol);
-            case Protocols.VLESS:
-            case Protocols.PORTFALLBACK: return new Inbound.VLESSSettings(protocol);
+            case Protocols.VLESS: return new Inbound.VLESSSettings(protocol);
             case Protocols.TROJAN: return new Inbound.TrojanSettings(protocol);
             case Protocols.SHADOWSOCKS: return new Inbound.ShadowsocksSettings(protocol);
             case Protocols.TUNNEL: return new Inbound.TunnelSettings(protocol);
@@ -2473,8 +2471,7 @@ Inbound.Settings = class extends XrayCommonClass {
     static fromJson(protocol, json) {
         switch (protocol) {
             case Protocols.VMESS: return Inbound.VmessSettings.fromJson(json);
-            case Protocols.VLESS:
-            case Protocols.PORTFALLBACK: return Inbound.VLESSSettings.fromJson(json);
+            case Protocols.VLESS: return Inbound.VLESSSettings.fromJson(json);
             case Protocols.TROJAN: return Inbound.TrojanSettings.fromJson(json);
             case Protocols.SHADOWSOCKS: return Inbound.ShadowsocksSettings.fromJson(json);
             case Protocols.TUNNEL: return Inbound.TunnelSettings.fromJson(json);

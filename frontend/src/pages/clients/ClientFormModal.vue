@@ -99,7 +99,7 @@ function gbToBytes(gb) {
 }
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'hysteria2', 'portfallback',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'hysteria2',
 ]);
 
 const inboundOptions = computed(() =>
@@ -131,7 +131,7 @@ watch(showFlow, (next) => {
 const vlessLikeIds = computed(() => {
   const ids = new Set();
   for (const row of props.inbounds || []) {
-    if (row && (row.protocol === 'vless' || row.protocol === 'portfallback')) {
+    if (row && row.protocol === 'vless') {
       ids.add(row.id);
     }
   }

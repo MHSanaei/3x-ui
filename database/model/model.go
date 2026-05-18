@@ -26,7 +26,6 @@ const (
 	WireGuard    Protocol = "wireguard"
 	Hysteria     Protocol = "hysteria"
 	Hysteria2    Protocol = "hysteria2"
-	PortFallback Protocol = "portfallback"
 )
 
 // IsHysteria returns true for both "hysteria" and "hysteria2".
@@ -207,9 +206,6 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 	}
 	listen = fmt.Sprintf("\"%v\"", listen)
 	protocol := string(i.Protocol)
-	if i.Protocol == PortFallback {
-		protocol = string(VLESS)
-	}
 	return &xray.InboundConfig{
 		Listen:         json_util.RawMessage(listen),
 		Port:           i.Port,
@@ -365,19 +361,6 @@ type ClientInbound struct {
 }
 
 func (ClientInbound) TableName() string { return "client_inbounds" }
-
-type InboundFallbackChild struct {
-	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	MasterId  int    `json:"masterId" gorm:"index;not null;column:master_id"`
-	ChildId   int    `json:"childId" gorm:"index;not null;column:child_id"`
-	Name      string `json:"name"`
-	Alpn      string `json:"alpn"`
-	Path      string `json:"path"`
-	Xver      int    `json:"xver"`
-	SortOrder int    `json:"sortOrder" gorm:"default:0;column:sort_order"`
-}
-
-func (InboundFallbackChild) TableName() string { return "inbound_fallback_children" }
 
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{

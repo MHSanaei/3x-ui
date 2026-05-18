@@ -35,7 +35,6 @@ func migrationModels() []any {
 		&model.InboundClientIps{},
 		&model.ClientRecord{},
 		&model.ClientInbound{},
-		&model.InboundFallbackChild{},
 	}
 }
 

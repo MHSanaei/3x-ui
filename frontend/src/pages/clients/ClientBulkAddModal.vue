@@ -69,7 +69,7 @@ const delayedExpireDays = computed({
 });
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'hysteria2', 'portfallback',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'hysteria2',
 ]);
 
 const inboundOptions = computed(() =>

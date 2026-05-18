@@ -148,7 +148,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			}
 			entry := map[string]any{"email": c.Email}
 			switch inbound.Protocol {
-			case model.VLESS, model.PortFallback:
+			case model.VLESS:
 				if c.ID != "" {
 					entry["id"] = c.ID
 				}
@@ -191,22 +191,6 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		mutated := hadClients || len(finalClients) > 0
 		if mutated {
 			settings["clients"] = finalClients
-		}
-
-		if inbound.Protocol == model.PortFallback {
-			fallbacks, fbErr := s.inboundService.fallbackService.BuildFallbacksJSON(nil, inbound.Id)
-			if fbErr != nil {
-				return nil, fbErr
-			}
-			generic := make([]any, 0, len(fallbacks))
-			for _, f := range fallbacks {
-				generic = append(generic, f)
-			}
-			settings["fallbacks"] = generic
-			if _, ok := settings["decryption"]; !ok {
-				settings["decryption"] = "none"
-			}
-			mutated = true
 		}
 
 		if mutated {
