@@ -9,7 +9,7 @@ import { safeInlineHtml } from './endpoints.js';
 
 const props = defineProps({
   section: { type: Object, required: true },
-  icon: { type: Object, default: null },
+  icon: { type: [Object, Function], default: null },
   collapsed: { type: Boolean, default: false },
 });
 
