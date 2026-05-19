@@ -2845,7 +2845,7 @@ func (s *InboundService) MigrationRequirements() {
 
 	// Fix inbounds based problems
 	var inbounds []*model.Inbound
-	err = tx.Model(model.Inbound{}).Where("protocol IN (?)", []string{"vmess", "vless", "trojan"}).Find(&inbounds).Error
+	err = tx.Model(model.Inbound{}).Where("protocol IN (?)", []string{"vmess", "vless", "trojan", "shadowsocks", "hysteria", "hysteria2"}).Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return
 	}
