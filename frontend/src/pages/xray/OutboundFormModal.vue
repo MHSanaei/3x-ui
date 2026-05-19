@@ -328,6 +328,47 @@ function regenerateWgKeys() {
                 </a-select>
               </a-form-item>
             </template>
+
+            <a-form-item label="Final Rules">
+              <a-button size="small" type="primary" @click="outbound.settings.addFinalRule('allow')">
+                <template #icon>
+                  <PlusOutlined />
+                </template>
+              </a-button>
+              <span class="ml-8" style="opacity: 0.6;">
+                Override Xray's default private-IP block (needed for LAN access through proxy)
+              </span>
+            </a-form-item>
+            <template v-for="(rule, index) in outbound.settings.finalRules || []" :key="`fr-${index}`">
+              <a-form-item :wrapper-col="{ md: { span: 14, offset: 8 } }" :colon="false">
+                <div class="item-heading">
+                  <span>Rule {{ index + 1 }}</span>
+                  <DeleteOutlined class="danger-icon" @click="outbound.settings.delFinalRule(index)" />
+                </div>
+              </a-form-item>
+              <a-form-item label="Action">
+                <a-select v-model:value="rule.action">
+                  <a-select-option v-for="x in ['allow', 'block']" :key="x" :value="x">{{ x }}</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item label="Network">
+                <a-select v-model:value="rule.network" allow-clear placeholder="(any)">
+                  <a-select-option value="tcp">tcp</a-select-option>
+                  <a-select-option value="udp">udp</a-select-option>
+                  <a-select-option value="tcp,udp">tcp,udp</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item label="Port">
+                <a-input v-model:value="rule.port" placeholder="e.g. 80,443 or 1000-2000" />
+              </a-form-item>
+              <a-form-item label="IP / CIDR / geoip">
+                <a-select v-model:value="rule.ip" mode="tags" :token-separators="[',', ' ']"
+                  placeholder="e.g. 10.0.0.0/8, geoip:private, ext:cn.dat:cn" />
+              </a-form-item>
+              <a-form-item v-if="rule.action === 'block'" label="Block delay (ms)">
+                <a-input v-model:value="rule.blockDelay" placeholder="optional: 5000-10000" />
+              </a-form-item>
+            </template>
           </template>
 
           <!-- ============== Blackhole ============== -->
