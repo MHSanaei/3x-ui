@@ -140,6 +140,10 @@ install_postgres_local() {
             ;;
         opensuse-tumbleweed | opensuse-leap)
             zypper -q install -y postgresql-server postgresql-contrib >&2 || return 1
+            if [[ ! -f /var/lib/pgsql/data/PG_VERSION ]]; then
+                install -d -o postgres -g postgres -m 700 /var/lib/pgsql/data >&2 || return 1
+                su - postgres -c "initdb -D /var/lib/pgsql/data" >&2 || return 1
+            fi
             ;;
         alpine)
             apk add --no-cache postgresql postgresql-contrib >&2 || return 1
@@ -824,35 +828,63 @@ config_after_install() {
             read -rp "Choose [1]: " db_choice
             db_choice="${db_choice:-1}"
             if [[ "$db_choice" == "2" ]]; then
-                echo ""
-                echo -e "  1) Install PostgreSQL locally and create a dedicated user/db (recommended)"
-                echo -e "  2) Use an existing PostgreSQL server (enter DSN)"
-                read -rp "Choose [1]: " pg_mode
-                pg_mode="${pg_mode:-1}"
+                local xui_env_file
+                case "${release}" in
+                    ubuntu | debian | armbian)
+                        xui_env_file="/etc/default/x-ui"
+                        ;;
+                    arch | manjaro | parch | alpine)
+                        xui_env_file="/etc/conf.d/x-ui"
+                        ;;
+                    *)
+                        xui_env_file="/etc/sysconfig/x-ui"
+                        ;;
+                esac
+
                 local xui_dsn=""
-                if [[ "$pg_mode" == "2" ]]; then
-                    while [[ -z "$xui_dsn" ]]; do
-                        read -rp "Enter PostgreSQL DSN (postgres://user:pass@host:port/dbname?sslmode=disable): " xui_dsn
-                        xui_dsn="${xui_dsn// /}"
-                    done
-                    db_label="PostgreSQL (external)"
-                else
-                    echo -e "${yellow}Installing PostgreSQL — this may take a moment...${plain}"
-                    if xui_dsn=$(install_postgres_local); then
-                        db_label="PostgreSQL (xui@127.0.0.1:5432/xui)"
+                local pg_mode=""
+                while [[ -z "$xui_dsn" ]]; do
+                    echo ""
+                    echo -e "  1) Install PostgreSQL locally and create a dedicated user/db (recommended)"
+                    echo -e "  2) Use an existing PostgreSQL server (enter DSN)"
+                    read -rp "Choose [1]: " pg_mode
+                    pg_mode="${pg_mode:-1}"
+                    if [[ "$pg_mode" == "2" ]]; then
+                        while [[ -z "$xui_dsn" ]]; do
+                            read -rp "Enter PostgreSQL DSN (postgres://user:pass@host:port/dbname?sslmode=disable): " xui_dsn
+                            xui_dsn="${xui_dsn// /}"
+                        done
+                        db_label="PostgreSQL (external)"
                     else
-                        echo -e "${red}PostgreSQL installation failed; falling back to SQLite.${plain}"
-                        xui_dsn=""
+                        echo -e "${yellow}Installing PostgreSQL — this may take a moment...${plain}"
+                        if xui_dsn=$(install_postgres_local); then
+                            db_label="PostgreSQL (xui@127.0.0.1:5432/xui)"
+                        else
+                            echo ""
+                            echo -e "${red}PostgreSQL installation failed.${plain}"
+                            echo -e "  1) Retry local install"
+                            echo -e "  2) Enter an external DSN instead"
+                            echo -e "  3) Abort install"
+                            echo -e "  4) Fall back to SQLite"
+                            read -rp "Choose [1]: " pg_fail
+                            pg_fail="${pg_fail:-1}"
+                            case "$pg_fail" in
+                                2) pg_mode="2" ;;
+                                3) echo -e "${red}Install aborted.${plain}"; exit 1 ;;
+                                4) db_choice="1"; xui_dsn=""; break ;;
+                                *) xui_dsn="" ;;
+                            esac
+                        fi
                     fi
-                fi
+                done
                 if [[ -n "$xui_dsn" ]]; then
-                    install -d -m 755 /etc/default
+                    install -d -m 755 "$(dirname "$xui_env_file")"
                     umask 077
-                    cat > /etc/default/x-ui << EOF
+                    cat > "$xui_env_file" << EOF
 XUI_DB_TYPE=postgres
 XUI_DB_DSN=${xui_dsn}
 EOF
-                    chmod 600 /etc/default/x-ui
+                    chmod 600 "$xui_env_file"
                     umask 022
                     export XUI_DB_TYPE=postgres
                     export XUI_DB_DSN="${xui_dsn}"
