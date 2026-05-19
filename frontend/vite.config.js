@@ -9,7 +9,14 @@ const BACKEND_TARGET = 'http://localhost:2053';
 
 function resolveDBPath() {
   const envFolder = process.env.XUI_DB_FOLDER;
-  if (envFolder) return path.join(envFolder, 'x-ui.db');
+  if (envFolder) {
+    const abs = path.isAbsolute(envFolder)
+      ? envFolder
+      : path.resolve(__dirname, '..', envFolder);
+    return path.join(abs, 'x-ui.db');
+  }
+  const repoSubDB = path.resolve(__dirname, '..', 'x-ui', 'x-ui.db');
+  if (fs.existsSync(repoSubDB)) return repoSubDB;
   const repoDB = path.resolve(__dirname, '..', 'x-ui.db');
   if (fs.existsSync(repoDB)) return repoDB;
   return '/etc/x-ui/x-ui.db';
@@ -22,6 +29,8 @@ const BASE_MIGRATED_ROUTES = {
   'panel/settings/': '/settings.html',
   'panel/inbounds': '/inbounds.html',
   'panel/inbounds/': '/inbounds.html',
+  'panel/clients': '/clients.html',
+  'panel/clients/': '/clients.html',
   'panel/xray': '/xray.html',
   'panel/xray/': '/xray.html',
   'panel/nodes': '/nodes.html',
@@ -76,19 +85,14 @@ function injectBasePathPlugin() {
 function bypassMigratedRoute(req) {
   if (req.method !== 'GET') return undefined;
   const url = req.url.split('?')[0];
+  const basePath = refreshBasePath();
 
-  for (const [key, value] of Object.entries(BASE_MIGRATED_ROUTES)) {
-    if (url === '/' + key) return value;
-  }
+  if (url === basePath) return '/login.html';
 
-  const m = url.match(/^\/[^/]+\/(.+)$/);
-  if (m) {
-    const stripped = m[1];
+  if (url.startsWith(basePath)) {
+    const stripped = url.slice(basePath.length);
     if (stripped in BASE_MIGRATED_ROUTES) return BASE_MIGRATED_ROUTES[stripped];
   }
-
-  if (url === '/' || /^\/[^/]+\/$/.test(url)) return '/login.html';
-
   return undefined;
 }
 
@@ -150,6 +154,7 @@ export default defineConfig({
         login: path.resolve(__dirname, 'login.html'),
         settings: path.resolve(__dirname, 'settings.html'),
         inbounds: path.resolve(__dirname, 'inbounds.html'),
+        clients: path.resolve(__dirname, 'clients.html'),
         xray: path.resolve(__dirname, 'xray.html'),
         nodes: path.resolve(__dirname, 'nodes.html'),
         apiDocs: path.resolve(__dirname, 'api-docs.html'),

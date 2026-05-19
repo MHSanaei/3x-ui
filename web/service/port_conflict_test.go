@@ -56,7 +56,8 @@ func seedInboundConflictNode(t *testing.T, tag, listen string, port int, protoco
 	}
 }
 
-func intPtr(v int) *int { return &v }
+//go:fix inline
+func intPtr(v int) *int { return new(v) }
 
 func TestInboundTransports(t *testing.T) {
 	cases := []struct {
@@ -360,7 +361,7 @@ func TestGenerateInboundTag_SpecificListenSameDisambiguation(t *testing.T) {
 func TestCheckPortConflict_NodeScope(t *testing.T) {
 	setupConflictDB(t)
 	seedInboundConflictNode(t, "local-443-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`, nil)
-	seedInboundConflictNode(t, "node1-443-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`, intPtr(1))
+	seedInboundConflictNode(t, "node1-443-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`, new(1))
 
 	svc := &InboundService{}
 
@@ -370,8 +371,8 @@ func TestCheckPortConflict_NodeScope(t *testing.T) {
 		want   bool
 	}{
 		{"new local same port + tcp clashes with local", nil, true},
-		{"new remote on different node from local is fine", intPtr(2), false},
-		{"new remote on existing node 1 clashes", intPtr(1), true},
+		{"new remote on different node from local is fine", new(2), false},
+		{"new remote on existing node 1 clashes", new(1), true},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

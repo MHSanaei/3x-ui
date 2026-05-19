@@ -2,6 +2,7 @@ package sub
 
 import (
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -49,14 +50,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		if clients == nil {
 			continue
 		}
-		if len(inbound.Listen) > 0 && inbound.Listen[0] == '@' {
-			listen, port, streamSettings, err := s.SubService.getFallbackMaster(inbound.Listen, inbound.StreamSettings)
-			if err == nil {
-				inbound.Listen = listen
-				inbound.Port = port
-				inbound.StreamSettings = streamSettings
-			}
-		}
+		s.SubService.projectThroughFallbackMaster(inbound)
 		for _, client := range clients {
 			if client.SubID == subId {
 				_, clientTraffics = s.SubService.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
@@ -471,8 +465,6 @@ func cloneMap(src map[string]any) map[string]any {
 		return nil
 	}
 	dst := make(map[string]any, len(src))
-	for k, v := range src {
-		dst[k] = v
-	}
+	maps.Copy(dst, src)
 	return dst
 }

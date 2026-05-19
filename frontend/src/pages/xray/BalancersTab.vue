@@ -133,23 +133,25 @@ function syncObservatories() {
     delete t.observatory;
   }
 
-  const leastLoads = balancers.filter((b) => b.strategy?.type === 'leastLoad');
-  if (leastLoads.length > 0) {
+  const burstFeeders = balancers.filter((b) => {
+    const type = b.strategy?.type || 'random';
+    return type === 'leastLoad' || type === 'random' || type === 'roundRobin';
+  });
+  if (burstFeeders.length > 0) {
     if (!t.burstObservatory) {
       t.burstObservatory = JSON.parse(JSON.stringify(DEFAULT_BURST_OBSERVATORY));
     }
-    t.burstObservatory.subjectSelector = collectSelectors(leastLoads);
+    t.burstObservatory.subjectSelector = collectSelectors(burstFeeders);
   } else {
     delete t.burstObservatory;
   }
 }
 
 function buildWireBalancer(form) {
-  const supportsFallback = form.strategy === 'leastPing' || form.strategy === 'leastLoad';
   const out = {
     tag: form.tag,
     selector: [...form.selector],
-    fallbackTag: supportsFallback ? form.fallbackTag : '',
+    fallbackTag: form.fallbackTag || '',
   };
   if (form.strategy && form.strategy !== 'random') {
     out.strategy = { type: form.strategy };
@@ -218,11 +220,11 @@ const showObsEditor = computed(() => hasObservatory.value || hasBurstObservatory
 
 const obsView = ref('observatory');
 
-// Keep the radio selection valid as observatories appear/disappear —
-// e.g. deleting the last leastPing balancer should flip the editor to
-// the burstObservatory pane instead of leaving it pointing at the
-// (now-removed) observatory key.
-watch(showObsEditor, () => {
+// Watch each flag individually — watching showObsEditor (OR of the two)
+// misses the case where one observatory swaps for the other in the same
+// tick, leaving obsView pointing at a now-deleted key and JsonEditor
+// trying to parse an empty string.
+watch([hasObservatory, hasBurstObservatory], () => {
   if (obsView.value === 'observatory' && !hasObservatory.value && hasBurstObservatory.value) {
     obsView.value = 'burstObservatory';
   } else if (obsView.value === 'burstObservatory' && !hasBurstObservatory.value && hasObservatory.value) {

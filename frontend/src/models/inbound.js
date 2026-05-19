@@ -16,6 +16,7 @@ export const Protocols = {
 };
 
 export const SSMethods = {
+    AES_256_GCM: 'aes-256-gcm',
     CHACHA20_POLY1305: 'chacha20-poly1305',
     CHACHA20_IETF_POLY1305: 'chacha20-ietf-poly1305',
     XCHACHA20_IETF_POLY1305: 'xchacha20-ietf-poly1305',
@@ -232,14 +233,20 @@ export class TcpStreamSettings extends XrayCommonClass {
     }
 
     toJson() {
-        return {
-            acceptProxyProtocol: this.acceptProxyProtocol,
-            header: {
-                type: this.type,
-                request: this.type === 'http' ? this.request.toJson() : undefined,
-                response: this.type === 'http' ? this.response.toJson() : undefined,
-            },
-        };
+        const json = {};
+        if (this.acceptProxyProtocol) {
+            json.acceptProxyProtocol = true;
+        }
+        if (this.type === 'http') {
+            json.header = {
+                type: 'http',
+                request: this.request.toJson(),
+                response: this.response.toJson(),
+            };
+        } else if (this.type && this.type !== 'none') {
+            json.header = { type: this.type };
+        }
+        return json;
     }
 }
 
@@ -1465,7 +1472,9 @@ export class StreamSettings extends XrayCommonClass {
         return {
             network: network,
             security: this.security,
-            externalProxy: this.externalProxy,
+            externalProxy: Array.isArray(this.externalProxy) && this.externalProxy.length > 0
+                ? this.externalProxy
+                : undefined,
             tlsSettings: this.isTls ? this.tls.toJson() : undefined,
             realitySettings: this.isReality ? this.reality.toJson() : undefined,
             tcpSettings: network === 'tcp' ? this.tcp.toJson() : undefined,
@@ -1514,11 +1523,14 @@ export class Sniffing extends XrayCommonClass {
     }
 
     toJson() {
+        if (!this.enabled) {
+            return { enabled: false };
+        }
         return {
-            enabled: this.enabled,
+            enabled: true,
             destOverride: this.destOverride,
-            metadataOnly: this.metadataOnly,
-            routeOnly: this.routeOnly,
+            metadataOnly: this.metadataOnly || undefined,
+            routeOnly: this.routeOnly || undefined,
             ipsExcluded: this.ipsExcluded.length > 0 ? this.ipsExcluded : undefined,
             domainsExcluded: this.domainsExcluded.length > 0 ? this.domainsExcluded : undefined,
         };
@@ -2567,7 +2579,7 @@ Inbound.ClientBase = class extends XrayCommonClass {
 
 Inbound.VmessSettings = class extends Inbound.Settings {
     constructor(protocol,
-        vmesses = [new Inbound.VmessSettings.VMESS()]) {
+        vmesses = []) {
         super(protocol);
         this.vmesses = vmesses;
     }
@@ -2635,7 +2647,7 @@ Inbound.VmessSettings.VMESS = class extends Inbound.ClientBase {
 Inbound.VLESSSettings = class extends Inbound.Settings {
     constructor(
         protocol,
-        vlesses = [new Inbound.VLESSSettings.VLESS()],
+        vlesses = [],
         decryption = "none",
         encryption = "none",
         fallbacks = [],
@@ -2782,7 +2794,7 @@ Inbound.VLESSSettings.Fallback = class extends XrayCommonClass {
 
 Inbound.TrojanSettings = class extends Inbound.Settings {
     constructor(protocol,
-        trojans = [new Inbound.TrojanSettings.Trojan()],
+        trojans = [],
         fallbacks = [],) {
         super(protocol);
         this.trojans = trojans;
@@ -2864,8 +2876,8 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
     constructor(protocol,
         method = SSMethods.BLAKE3_AES_256_GCM,
         password = RandomUtil.randomShadowsocksPassword(),
-        network = 'tcp,udp',
-        shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()],
+        network = 'tcp',
+        shadowsockses = [],
         ivCheck = false,
     ) {
         super(protocol);
@@ -2927,7 +2939,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends Inbound.ClientBase {
 };
 
 Inbound.HysteriaSettings = class extends Inbound.Settings {
-    constructor(protocol, version = 2, hysterias = [new Inbound.HysteriaSettings.Hysteria()]) {
+    constructor(protocol, version = 2, hysterias = []) {
         super(protocol);
         this.version = version;
         this.hysterias = hysterias;

@@ -70,7 +70,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 	}
 
 	if len(inbounds) == 0 {
-		return nil, 0, traffic, common.NewError("No inbounds found with ", subId)
+		return nil, 0, traffic, nil
 	}
 
 	s.datepicker, err = s.settingService.GetDatepicker()
@@ -92,14 +92,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 		if clients == nil {
 			continue
 		}
-		if len(inbound.Listen) > 0 && inbound.Listen[0] == '@' {
-			listen, port, streamSettings, err := s.getFallbackMaster(inbound.Listen, inbound.StreamSettings)
-			if err == nil {
-				inbound.Listen = listen
-				inbound.Port = port
-				inbound.StreamSettings = streamSettings
-			}
-		}
+		s.projectThroughFallbackMaster(inbound)
 		for _, client := range clients {
 			if client.SubID == subId {
 				if client.Enable {
@@ -144,15 +137,14 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	// allow "hysteria2" so imports stored with the literal v2 protocol
-	// string still surface here (#4081)
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where(`id in (
 		SELECT DISTINCT inbounds.id
-		FROM inbounds,
-			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		FROM inbounds
+		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
+		JOIN clients ON clients.id = client_inbounds.client_id
 		WHERE
-			protocol in ('vmess','vless','trojan','shadowsocks','hysteria','hysteria2')
-			AND JSON_EXTRACT(client.value, '$.subId') = ? AND enable = ?
+			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','hysteria2')
+			AND clients.sub_id = ? AND inbounds.enable = ?
 	)`, subId, true).Find(&inbounds).Error
 	if err != nil {
 		return nil, err
@@ -193,16 +185,89 @@ func (s *SubService) getFallbackMaster(dest string, streamSettings string) (stri
 		return "", 0, "", err
 	}
 
-	var stream map[string]any
-	json.Unmarshal([]byte(streamSettings), &stream)
-	var masterStream map[string]any
-	json.Unmarshal([]byte(inbound.StreamSettings), &masterStream)
-	stream["security"] = masterStream["security"]
-	stream["tlsSettings"] = masterStream["tlsSettings"]
-	stream["externalProxy"] = masterStream["externalProxy"]
-	modifiedStream, _ := json.MarshalIndent(stream, "", "  ")
+	return inbound.Listen, inbound.Port, mergeStreamFromMaster(streamSettings, inbound.StreamSettings), nil
+}
 
-	return inbound.Listen, inbound.Port, string(modifiedStream), nil
+// projectThroughFallbackMaster mutates the inbound in place so its
+// Listen/Port/StreamSettings reflect the externally reachable master
+// when applicable. Covers both fallback mechanisms:
+//   - panel-tracked: an inbound_fallbacks row where child_id = inbound.Id
+//   - legacy unix-socket: inbound.Listen begins with "@" and some VLESS/
+//     Trojan inbound's settings.fallbacks references that listen address
+//
+// Returns true when a projection happened; sub services call this before
+// generating links so a child VLESS-WS bound to 127.0.0.1 emits the
+// master's :443 + TLS state instead of its own loopback endpoint.
+func (s *SubService) projectThroughFallbackMaster(inbound *model.Inbound) bool {
+	if inbound == nil {
+		return false
+	}
+	db := database.GetDB()
+	var master *model.Inbound
+
+	var rule model.InboundFallback
+	if err := db.Where("child_id = ?", inbound.Id).
+		Order("sort_order ASC, id ASC").
+		First(&rule).Error; err == nil {
+		var m model.Inbound
+		if err := db.Where("id = ?", rule.MasterId).First(&m).Error; err == nil {
+			master = &m
+		}
+	}
+
+	if master == nil && len(inbound.Listen) > 0 && inbound.Listen[0] == '@' {
+		var m model.Inbound
+		if err := db.Model(model.Inbound{}).
+			Where("JSON_TYPE(settings, '$.fallbacks') = 'array'").
+			Where("EXISTS (SELECT * FROM json_each(settings, '$.fallbacks') WHERE json_extract(value, '$.dest') = ?)", inbound.Listen).
+			First(&m).Error; err == nil {
+			master = &m
+		}
+	}
+
+	if master == nil {
+		return false
+	}
+	inbound.StreamSettings = mergeStreamFromMaster(inbound.StreamSettings, master.StreamSettings)
+	inbound.Listen = master.Listen
+	inbound.Port = master.Port
+	return true
+}
+
+// mergeStreamFromMaster copies the master's security + tlsSettings +
+// realitySettings + externalProxy onto the child's stream so the child's
+// link advertises the master's TLS / Reality state. Transport (network
+// + ws/grpc/etc. settings) stays the child's.
+func mergeStreamFromMaster(childStream, masterStream string) string {
+	var stream map[string]any
+	json.Unmarshal([]byte(childStream), &stream)
+	if stream == nil {
+		stream = map[string]any{}
+	}
+	var mst map[string]any
+	json.Unmarshal([]byte(masterStream), &mst)
+	if mst == nil {
+		return childStream
+	}
+	stream["security"] = mst["security"]
+	if v, ok := mst["tlsSettings"]; ok {
+		stream["tlsSettings"] = v
+	} else {
+		delete(stream, "tlsSettings")
+	}
+	if v, ok := mst["realitySettings"]; ok {
+		stream["realitySettings"] = v
+	} else {
+		delete(stream, "realitySettings")
+	}
+	if v, ok := mst["externalProxy"]; ok {
+		stream["externalProxy"] = v
+	}
+	out, err := json.MarshalIndent(stream, "", "  ")
+	if err != nil {
+		return childStream
+	}
+	return string(out)
 }
 
 // GetLink dispatches to the protocol-specific generator for one (inbound, client)
@@ -536,8 +601,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		return strings.Join(links, "\n")
 	}
 
-	// No external proxy configured — fall back to the request host.
-	link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, s.address, inbound.Port)
+	// No external proxy configured — use the inbound's resolved address so
+	// node-managed inbounds get the node's host instead of the central panel's.
+	link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, s.resolveInboundAddress(inbound), inbound.Port)
 	url, _ := url.Parse(link)
 	q := url.Query()
 	for k, v := range params {

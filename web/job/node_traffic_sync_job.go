@@ -20,6 +20,8 @@ const (
 type NodeTrafficSyncJob struct {
 	nodeService    service.NodeService
 	inboundService service.InboundService
+	settingService service.SettingService
+	xrayService    service.XrayService
 	running        sync.Mutex
 	structural     atomicBool
 }
@@ -83,6 +85,22 @@ func (j *NodeTrafficSyncJob) Run() {
 	}
 	wg.Wait()
 
+	_, clientsDisabled, err := j.inboundService.AddTraffic(nil, nil)
+	if err != nil {
+		logger.Warning("node traffic sync: depletion check failed:", err)
+	}
+	if clientsDisabled {
+		if restartOnDisable, settingErr := j.settingService.GetRestartXrayOnClientDisable(); settingErr == nil && restartOnDisable {
+			if err := j.xrayService.RestartXray(true); err != nil {
+				logger.Warning("node traffic sync: restart xray after disabling clients failed:", err)
+				j.xrayService.SetToNeedRestart()
+			}
+		} else if settingErr != nil {
+			logger.Warning("node traffic sync: get RestartXrayOnClientDisable failed:", settingErr)
+		}
+		j.structural.set()
+	}
+
 	if !websocket.HasClients() {
 		return
 	}
@@ -123,6 +141,7 @@ func (j *NodeTrafficSyncJob) Run() {
 
 	if j.structural.takeAndReset() {
 		websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
+		websocket.BroadcastInvalidate(websocket.MessageTypeClients)
 	}
 }
 

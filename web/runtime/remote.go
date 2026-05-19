@@ -257,31 +257,58 @@ func (r *Remote) RemoveUser(ctx context.Context, ib *model.Inbound, _ string) er
 	return r.UpdateInbound(ctx, ib, ib)
 }
 
+func (r *Remote) AddClient(ctx context.Context, ib *model.Inbound, client model.Client) error {
+	id, err := r.resolveRemoteID(ctx, ib.Tag)
+	if err != nil {
+		return fmt.Errorf("remote AddClient: resolve tag %q: %w", ib.Tag, err)
+	}
+	payload := map[string]any{
+		"client":     client,
+		"inboundIds": []int{id},
+	}
+	if _, err := r.do(ctx, http.MethodPost, "panel/api/clients/add", payload); err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteUser is idempotent: master's per-inbound Delete loop may call it
+// multiple times for the same node, and "not found" on the follow-ups is
+// the expected success path.
+func (r *Remote) DeleteUser(ctx context.Context, _ *model.Inbound, email string) error {
+	if email == "" {
+		return nil
+	}
+	_, err := r.do(ctx, http.MethodPost,
+		"panel/api/clients/del/"+url.PathEscape(email), nil)
+	if err == nil {
+		return nil
+	}
+	if strings.Contains(strings.ToLower(err.Error()), "not found") {
+		return nil
+	}
+	return err
+}
+
+func (r *Remote) UpdateUser(ctx context.Context, _ *model.Inbound, oldEmail string, payload model.Client) error {
+	if oldEmail == "" {
+		oldEmail = payload.Email
+	}
+	if _, err := r.do(ctx, http.MethodPost,
+		"panel/api/clients/update/"+url.PathEscape(oldEmail), payload); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *Remote) RestartXray(ctx context.Context) error {
 	_, err := r.do(ctx, http.MethodPost, "panel/api/server/restartXrayService", nil)
 	return err
 }
 
-func (r *Remote) ResetClientTraffic(ctx context.Context, ib *model.Inbound, email string) error {
-	id, err := r.resolveRemoteID(ctx, ib.Tag)
-	if err != nil {
-		logger.Warning("remote ResetClientTraffic: tag", ib.Tag, "not found on", r.node.Name)
-		return nil
-	}
-	_, err = r.do(ctx, http.MethodPost,
-		fmt.Sprintf("panel/api/inbounds/%d/resetClientTraffic/%s", id, url.PathEscape(email)),
-		nil)
-	return err
-}
-
-func (r *Remote) ResetInboundClientTraffics(ctx context.Context, ib *model.Inbound) error {
-	id, err := r.resolveRemoteID(ctx, ib.Tag)
-	if err != nil {
-		logger.Warning("remote ResetInboundClientTraffics: tag", ib.Tag, "not found on", r.node.Name)
-		return nil
-	}
-	_, err = r.do(ctx, http.MethodPost,
-		fmt.Sprintf("panel/api/inbounds/resetAllClientTraffics/%d", id), nil)
+func (r *Remote) ResetClientTraffic(ctx context.Context, _ *model.Inbound, email string) error {
+	_, err := r.do(ctx, http.MethodPost,
+		"panel/api/clients/resetTraffic/"+url.PathEscape(email), nil)
 	return err
 }
 
@@ -307,14 +334,14 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 		return nil, fmt.Errorf("decode inbound list: %w", err)
 	}
 
-	envOnlines, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/onlines", nil)
+	envOnlines, err := r.do(ctx, http.MethodPost, "panel/api/clients/onlines", nil)
 	if err != nil {
 		logger.Warning("remote", r.node.Name, "onlines fetch failed:", err)
 	} else if len(envOnlines.Obj) > 0 {
 		_ = json.Unmarshal(envOnlines.Obj, &snap.OnlineEmails)
 	}
 
-	envLastOnline, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/lastOnline", nil)
+	envLastOnline, err := r.do(ctx, http.MethodPost, "panel/api/clients/lastOnline", nil)
 	if err != nil {
 		logger.Warning("remote", r.node.Name, "lastOnline fetch failed:", err)
 	} else if len(envLastOnline.Obj) > 0 {
