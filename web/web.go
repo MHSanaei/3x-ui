@@ -132,9 +132,6 @@ func NewServer() *Server {
 }
 
 func (s *Server) isDirectHTTPSConfigured() bool {
-	if config.IsSkipHSTS() {
-		return false
-	}
 	certFile, certErr := s.settingService.GetCertFile()
 	keyFile, keyErr := s.settingService.GetKeyFile()
 	if certErr != nil || keyErr != nil || certFile == "" || keyFile == "" {
@@ -157,7 +154,8 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	engine := gin.Default()
 	directHTTPS := s.isDirectHTTPSConfigured()
-	engine.Use(middleware.SecurityHeadersMiddleware(directHTTPS))
+	sendHSTS := directHTTPS && !config.IsSkipHSTS()
+	engine.Use(middleware.SecurityHeadersMiddleware(sendHSTS))
 
 	webDomain, err := s.settingService.GetWebDomain()
 	if err != nil {
