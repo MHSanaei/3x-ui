@@ -207,9 +207,9 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 				path := c.Request.URL.Path
 				pathPrefix := strings.TrimRight(LinksPath, "/") + "/"
 				if strings.HasPrefix(path, pathPrefix) && strings.Contains(path, "/assets/") {
-					assetsIndex := strings.Index(path, "/assets/")
-					if assetsIndex != -1 {
-						assetPath := path[assetsIndex+8:] // +8 to skip "/assets/"
+					_, after, ok := strings.Cut(path, "/assets/")
+					if ok {
+						assetPath := after // +8 to skip "/assets/"
 						if assetPath != "" {
 							c.FileFromFS(assetPath, assetsFS)
 							c.Abort()

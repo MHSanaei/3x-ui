@@ -3,6 +3,7 @@ package global
 
 import (
 	"context"
+	"sync"
 	_ "unsafe"
 
 	"github.com/robfig/cron/v3"
@@ -11,6 +12,9 @@ import (
 var (
 	webServer WebServer
 	subServer SubServer
+
+	restartHookMu sync.RWMutex
+	restartHook   func()
 )
 
 // WebServer interface defines methods for accessing the web server instance.
@@ -43,4 +47,25 @@ func SetSubServer(s SubServer) {
 // GetSubServer returns the global subscription server instance.
 func GetSubServer() SubServer {
 	return subServer
+}
+
+// SetRestartHook registers a callback that triggers an in-process panel
+// restart. main.go sets this up to push SIGHUP into its own signal channel
+// so the restart path works on Windows (where p.Signal(SIGHUP) is unsupported).
+func SetRestartHook(fn func()) {
+	restartHookMu.Lock()
+	defer restartHookMu.Unlock()
+	restartHook = fn
+}
+
+// TriggerRestart fires the registered restart hook. Returns false if none is set.
+func TriggerRestart() bool {
+	restartHookMu.RLock()
+	fn := restartHook
+	restartHookMu.RUnlock()
+	if fn == nil {
+		return false
+	}
+	fn()
+	return true
 }

@@ -27,7 +27,7 @@ func getRemoteIp(c *gin.Context) string {
 		}
 
 		if xff := c.GetHeader("X-Forwarded-For"); xff != "" {
-			for _, part := range strings.Split(xff, ",") {
+			for part := range strings.SplitSeq(xff, ",") {
 				if ip, ok := extractTrustedIP(part); ok {
 					return ip
 				}
@@ -50,7 +50,7 @@ func isTrustedProxy(ip string) bool {
 	}
 
 	trusted := trustedProxyCIDRs()
-	for _, value := range strings.Split(trusted, ",") {
+	for value := range strings.SplitSeq(trusted, ",") {
 		value = strings.TrimSpace(value)
 		if value == "" {
 			continue
