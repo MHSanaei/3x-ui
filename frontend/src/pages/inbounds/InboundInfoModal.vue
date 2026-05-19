@@ -19,41 +19,20 @@ import { useDatepicker } from '@/composables/useDatepicker.js';
 const { t } = useI18n();
 const { datepicker } = useDatepicker();
 
-// One modal handles every protocol's info / share view because the
-// legacy template did the same. The big v-if forks at the top decide
-// which sub-block of the body renders:
-//   • multi-user inbound (VMess/VLess/Trojan/SS-multi/Hysteria) → per-
-//     client row + share links
-//   • SS single-user → connection details + share link
-//   • WireGuard → secret/peers + per-peer config download
-//   • Mixed/HTTP/Tunnel → connection details only
-//
-// We display links via QrPanel — each link gets its own QR + copy +
-// (for WireGuard configs) download button.
-
 const props = defineProps({
   open: { type: Boolean, default: false },
-  // Result of inbounds-page checkFallback() so the link-gen sees the
-  // root inbound's listen/port/security when the dbInbound is a
-  // domain-socket fallback (`@<name>`).
   dbInbound: { type: Object, default: null },
-  // Index into inbound.clients to focus on for multi-user inbounds.
   clientIndex: { type: Number, default: 0 },
-  // Sidecar config the legacy panel keyed off `app.*`.
   remarkModel: { type: String, default: '-ieo' },
   expireDiff: { type: Number, default: 0 },
   trafficDiff: { type: Number, default: 0 },
   ipLimitEnable: { type: Boolean, default: false },
   tgBotEnable: { type: Boolean, default: false },
-  // Address of the node hosting this inbound; '' for local. Wired
-  // through to share/QR link generation so node-managed inbounds
-  // produce links that connect to the node, not the central panel.
   nodeAddress: { type: String, default: '' },
   subSettings: {
     type: Object,
     default: () => ({ enable: false, subURI: '', subJsonURI: '', subJsonEnable: false }),
   },
-  // Email -> ts (last-online unix-ms) map fetched at the page level.
   lastOnlineMap: { type: Object, default: () => ({}) },
 });
 
@@ -598,7 +577,8 @@ const showSubscriptionTab = computed(
             <div v-if="inbound.settings.gateway?.length" class="info-row">
               <dt>Gateway</dt>
               <dd><a-tag v-for="(ip, j) in inbound.settings.gateway" :key="`tun-i-gw-${j}`" color="green"
-                  class="value-tag">{{ ip }}</a-tag></dd>
+                  class="value-tag">{{
+                  ip }}</a-tag></dd>
             </div>
             <div v-if="inbound.settings.dns?.length" class="info-row">
               <dt>DNS</dt>
@@ -612,7 +592,8 @@ const showSubscriptionTab = computed(
             <div v-if="inbound.settings.autoSystemRoutingTable?.length" class="info-row">
               <dt>Auto system routes</dt>
               <dd><a-tag v-for="(cidr, j) in inbound.settings.autoSystemRoutingTable" :key="`tun-i-rt-${j}`"
-                  color="green">{{ cidr }}</a-tag></dd>
+                  color="green">{{
+                  cidr }}</a-tag></dd>
             </div>
           </dl>
 
@@ -670,12 +651,101 @@ const showSubscriptionTab = computed(
                   <span class="account-sep">:</span>
                   <a-tag class="value-tag">{{ account.pass }}</a-tag>
                   <a-tooltip :title="t('copy')">
-                    <a-button size="small" @click="copyText(`${account.user}:${account.pass}`)">
-                      <template #icon>
-                        <CopyOutlined />
-                      </template>
+                    <a-button size="small" type="text"
+                      @click="copyText(`${account.user}:${account.pass}`)">
+                      <template #icon><CopyOutlined /></template>
                     </a-button>
                   </a-tooltip>
+                  <a-space :size="4" wrap class="share-buttons share-desktop">
+                    <a-tooltip :title="`socks5://${dbInbound.address}:${dbInbound.port}@${account.user}:${account.pass}`">
+                      <a-button size="small"
+                        @click="copyText(`socks5://${dbInbound.address}:${dbInbound.port}@${account.user}:${account.pass}`)">
+                        SOCKS5
+                      </a-button>
+                    </a-tooltip>
+                    <a-tooltip :title="`http://${dbInbound.address}:${dbInbound.port}@${account.user}:${account.pass}`">
+                      <a-button size="small"
+                        @click="copyText(`http://${dbInbound.address}:${dbInbound.port}@${account.user}:${account.pass}`)">
+                        HTTP
+                      </a-button>
+                    </a-tooltip>
+                    <a-tooltip title="https://t.me/socks?server=...&port=...&user=...&pass=...">
+                      <a-button size="small"
+                        @click="copyText(`https://t.me/socks?server=${encodeURIComponent(dbInbound.address)}&port=${dbInbound.port}&user=${encodeURIComponent(account.user)}&pass=${encodeURIComponent(account.pass)}`)">
+                        Telegram
+                      </a-button>
+                    </a-tooltip>
+                  </a-space>
+                  <a-dropdown :trigger="['click']" class="share-mobile">
+                    <a-button size="small">
+                      <template #icon><CopyOutlined /></template>
+                      {{ t('copy') }}
+                    </a-button>
+                    <template #overlay>
+                      <a-menu @click="({ key }) => {
+                        const h = dbInbound.address;
+                        const port = dbInbound.port;
+                        if (key === 'telegram') {
+                          copyText(`https://t.me/socks?server=${encodeURIComponent(h)}&port=${port}&user=${encodeURIComponent(account.user)}&pass=${encodeURIComponent(account.pass)}`);
+                        } else {
+                          copyText(`${key}://${h}:${port}@${account.user}:${account.pass}`);
+                        }
+                      }">
+                        <a-menu-item key="socks5">SOCKS5</a-menu-item>
+                        <a-menu-item key="http">HTTP</a-menu-item>
+                        <a-menu-item key="telegram">Telegram</a-menu-item>
+                      </a-menu>
+                    </template>
+                  </a-dropdown>
+                </dd>
+              </div>
+            </template>
+
+            <template v-if="inbound.settings.auth === 'noauth'">
+              <div class="info-row">
+                <dt>{{ t('copy') }}</dt>
+                <dd>
+                  <a-space :size="4" wrap class="share-buttons share-desktop">
+                    <a-tooltip :title="`socks5://${dbInbound.address}:${dbInbound.port}`">
+                      <a-button size="small"
+                        @click="copyText(`socks5://${dbInbound.address}:${dbInbound.port}`)">
+                        SOCKS5
+                      </a-button>
+                    </a-tooltip>
+                    <a-tooltip :title="`http://${dbInbound.address}:${dbInbound.port}`">
+                      <a-button size="small"
+                        @click="copyText(`http://${dbInbound.address}:${dbInbound.port}`)">
+                        HTTP
+                      </a-button>
+                    </a-tooltip>
+                    <a-tooltip title="https://t.me/socks?server=...&port=...">
+                      <a-button size="small"
+                        @click="copyText(`https://t.me/socks?server=${encodeURIComponent(dbInbound.address)}&port=${dbInbound.port}`)">
+                        Telegram
+                      </a-button>
+                    </a-tooltip>
+                  </a-space>
+                  <a-dropdown :trigger="['click']" class="share-mobile">
+                    <a-button size="small">
+                      <template #icon><CopyOutlined /></template>
+                      {{ t('copy') }}
+                    </a-button>
+                    <template #overlay>
+                      <a-menu @click="({ key }) => {
+                        const h = dbInbound.address;
+                        const port = dbInbound.port;
+                        if (key === 'telegram') {
+                          copyText(`https://t.me/socks?server=${encodeURIComponent(h)}&port=${port}`);
+                        } else {
+                          copyText(`${key}://${h}:${port}`);
+                        }
+                      }">
+                        <a-menu-item key="socks5">SOCKS5</a-menu-item>
+                        <a-menu-item key="http">HTTP</a-menu-item>
+                        <a-menu-item key="telegram">Telegram</a-menu-item>
+                      </a-menu>
+                    </template>
+                  </a-dropdown>
                 </dd>
               </div>
             </template>
@@ -897,6 +967,7 @@ const showSubscriptionTab = computed(
   white-space: normal;
   word-break: break-all;
   display: inline-block;
+  margin-right: 0;
 }
 
 .value-block {
@@ -925,6 +996,27 @@ const showSubscriptionTab = computed(
 
 .value-copy {
   flex-shrink: 0;
+}
+
+.share-buttons,
+.share-mobile {
+  margin-inline-start: 4px;
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid rgba(128, 128, 128, 0.25);
+}
+
+.share-mobile {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .share-desktop {
+    display: none !important;
+  }
+  .share-mobile {
+    display: inline-flex;
+    align-items: center;
+  }
 }
 
 .security-line {
