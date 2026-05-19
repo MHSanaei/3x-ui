@@ -33,29 +33,31 @@ export class HttpUtil {
     }
 
     static async get(url, params, options = {}) {
+        const { silent, ...axiosOpts } = options;
         try {
-            const resp = await axios.get(url, { params, ...options });
+            const resp = await axios.get(url, { params, ...axiosOpts });
             const msg = this._respToMsg(resp);
-            this._handleMsg(msg);
+            if (!silent) this._handleMsg(msg);
             return msg;
         } catch (error) {
             console.error('GET request failed:', error);
             const errorMsg = new Msg(false, error.response?.data?.message || error.message || 'Request failed');
-            this._handleMsg(errorMsg);
+            if (!silent) this._handleMsg(errorMsg);
             return errorMsg;
         }
     }
 
     static async post(url, data, options = {}) {
+        const { silent, ...axiosOpts } = options;
         try {
-            const resp = await axios.post(url, data, options);
+            const resp = await axios.post(url, data, axiosOpts);
             const msg = this._respToMsg(resp);
-            this._handleMsg(msg);
+            if (!silent) this._handleMsg(msg);
             return msg;
         } catch (error) {
             console.error('POST request failed:', error);
             const errorMsg = new Msg(false, error.response?.data?.message || error.message || 'Request failed');
-            this._handleMsg(errorMsg);
+            if (!silent) this._handleMsg(errorMsg);
             return errorMsg;
         }
     }

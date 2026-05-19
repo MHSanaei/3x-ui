@@ -340,7 +340,6 @@ const localOutboundTestUrl = computed({
         <template #description>{{ t('pages.xray.accessLogDesc') }}</template>
         <template #control>
           <a-select v-model:value="accessLog" :style="{ width: '100%' }">
-            <a-select-option value="">{{ t('none') }}</a-select-option>
             <a-select-option v-for="s in ACCESS_LOG" :key="s" :value="s">{{ s }}</a-select-option>
           </a-select>
         </template>
@@ -351,7 +350,7 @@ const localOutboundTestUrl = computed({
         <template #description>{{ t('pages.xray.errorLogDesc') }}</template>
         <template #control>
           <a-select v-model:value="errorLog" :style="{ width: '100%' }">
-            <a-select-option value="">{{ t('none') }}</a-select-option>
+            <a-select-option value="">{{ t('empty') }}</a-select-option>
             <a-select-option v-for="s in ERROR_LOG" :key="s" :value="s">{{ s }}</a-select-option>
           </a-select>
         </template>
@@ -362,7 +361,7 @@ const localOutboundTestUrl = computed({
         <template #description>{{ t('pages.xray.maskAddressDesc') }}</template>
         <template #control>
           <a-select v-model:value="maskAddressLog" :style="{ width: '100%' }">
-            <a-select-option value="">{{ t('none') }}</a-select-option>
+            <a-select-option value="">{{ t('empty') }}</a-select-option>
             <a-select-option v-for="s in MASK_ADDRESS" :key="s" :value="s">{{ s }}</a-select-option>
           </a-select>
         </template>
