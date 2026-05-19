@@ -48,21 +48,6 @@ func Dialect() string {
 	return db.Dialector.Name()
 }
 
-var sensitiveConflictFields = map[string]struct{}{
-	"uuid":     {},
-	"password": {},
-	"auth":     {},
-	"subId":    {},
-}
-
-// redactConflictValues masks values for credential-bearing merge fields so
-// they never reach plain-text logs. Non-sensitive fields pass through.
-func redactConflictValues(x model.ClientMergeConflict) (oldV, newV, keptV any) {
-	if _, sensitive := sensitiveConflictFields[x.Field]; sensitive {
-		return "<redacted>", "<redacted>", "<redacted>"
-	}
-	return x.Old, x.New, x.Kept
-}
 
 const (
 	defaultUsername = "admin"
@@ -265,9 +250,8 @@ func seedClientsFromInboundJSON() error {
 				} else {
 					conflicts := model.MergeClientRecord(row, incoming)
 					for _, x := range conflicts {
-						oldV, newV, keptV := redactConflictValues(x)
 						log.Printf("client merge: email=%s conflict on %s old=%v new=%v kept=%v",
-							email, x.Field, oldV, newV, keptV)
+							email, x.Field, x.Old, x.New, x.Kept)
 					}
 					if err := tx.Save(row).Error; err != nil {
 						return err

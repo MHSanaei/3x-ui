@@ -464,28 +464,30 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 	keep := func(field string, oldV, newV, kept any) {
 		conflicts = append(conflicts, ClientMergeConflict{Field: field, Old: oldV, New: newV, Kept: kept})
 	}
+	const redacted = "<redacted>"
+	keepSecret := func(field string) {
+		conflicts = append(conflicts, ClientMergeConflict{Field: field, Old: redacted, New: redacted, Kept: redacted})
+	}
 
 	incomingNewer := incoming.UpdatedAt > existing.UpdatedAt ||
 		(incoming.UpdatedAt == existing.UpdatedAt && incoming.CreatedAt > existing.CreatedAt)
 
 	if existing.UUID != incoming.UUID && incoming.UUID != "" {
 		if incomingNewer || existing.UUID == "" {
-			keep("uuid", existing.UUID, incoming.UUID, incoming.UUID)
 			existing.UUID = incoming.UUID
-		} else {
-			keep("uuid", existing.UUID, incoming.UUID, existing.UUID)
 		}
+		keepSecret("uuid")
 	}
 	if existing.Password != incoming.Password && incoming.Password != "" {
 		if incomingNewer || existing.Password == "" {
-			keep("password", existing.Password, incoming.Password, incoming.Password)
 			existing.Password = incoming.Password
+			keepSecret("password")
 		}
 	}
 	if existing.Auth != incoming.Auth && incoming.Auth != "" {
 		if incomingNewer || existing.Auth == "" {
-			keep("auth", existing.Auth, incoming.Auth, incoming.Auth)
 			existing.Auth = incoming.Auth
+			keepSecret("auth")
 		}
 	}
 	if existing.Flow != incoming.Flow && incoming.Flow != "" {
@@ -502,8 +504,8 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 	}
 	if existing.SubID != incoming.SubID && incoming.SubID != "" {
 		if incomingNewer || existing.SubID == "" {
-			keep("subId", existing.SubID, incoming.SubID, incoming.SubID)
 			existing.SubID = incoming.SubID
+			keepSecret("subId")
 		}
 	}
 	if existing.TotalGB != incoming.TotalGB {

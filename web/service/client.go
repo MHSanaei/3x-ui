@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"strings"
 	"sync"
 	"time"
@@ -48,7 +47,8 @@ func (c ClientWithAttachments) MarshalJSON() ([]byte, error) {
 	if len(rec) < 2 || rec[len(rec)-1] != '}' || len(extra) <= 2 {
 		return rec, nil
 	}
-	if len(extra) > math.MaxInt-len(rec) {
+	const maxMarshalSize = 256 << 20
+	if len(rec) > maxMarshalSize || len(extra) > maxMarshalSize {
 		return rec, nil
 	}
 	out := make([]byte, 0, len(rec)+len(extra))
