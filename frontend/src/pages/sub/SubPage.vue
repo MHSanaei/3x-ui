@@ -125,7 +125,7 @@ const shadowrocketUrl = computed(() => {
   if (!subUrl) return '';
   const separator = subUrl.includes('?') ? '&' : '?';
   const rawUrl = subUrl + separator + 'flag=shadowrocket';
-  const base64Url = encodeURIComponent(btoa(rawUrl));
+  const base64Url = btoa(rawUrl).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const remark = encodeURIComponent(subTitle || sId || 'Subscription');
   return `shadowrocket://add/sub/${base64Url}?remark=${remark}`;
 });
