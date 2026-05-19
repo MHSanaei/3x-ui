@@ -58,11 +58,13 @@ func IsDebug() bool {
 	return os.Getenv("XUI_DEBUG") == "true"
 }
 
-// AllowPrivateIPs returns true if user bypasses security checks via the ALLOW_PRIVATES environment variable.
+// AllowPrivateIPs returns true if private/loopback IPs are allowed for outbound test/inform/Telegram-API URLs via the XUI_ALLOW_PRIVATE_IPS environment variable.
 var AllowPrivateIPs = sync.OnceValue(allowPrivateIPs)
 
 func allowPrivateIPs() bool {
-	return os.Getenv("ALLOW_PRIVATE_IPS") == "true"
+	return os.Getenv("XUI_ALLOW_PRIVATE_IPS") == "true"
+}
+
 // IsSkipHSTS returns true if skipping HSTS mode is enabled via the XUI_SKIP_HSTS environment variable.
 func IsSkipHSTS() bool {
 	return os.Getenv("XUI_SKIP_HSTS") == "true"
