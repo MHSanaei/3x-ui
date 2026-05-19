@@ -14,6 +14,7 @@ export function useClients() {
   const tgBotEnable = ref(false);
   const expireDiff = ref(0);
   const trafficDiff = ref(0);
+  const pageSize = ref(0);
 
   async function refresh() {
     loading.value = true;
@@ -48,6 +49,7 @@ export function useClients() {
     tgBotEnable.value = !!s.tgBotEnable;
     expireDiff.value = (s.expireDiff ?? 0) * 86400000;
     trafficDiff.value = (s.trafficDiff ?? 0) * 1073741824;
+    pageSize.value = s.pageSize ?? 0;
   }
 
   async function create(payload) {
@@ -199,6 +201,7 @@ export function useClients() {
     tgBotEnable,
     expireDiff,
     trafficDiff,
+    pageSize,
     refresh,
     create,
     update,
