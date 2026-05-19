@@ -137,7 +137,7 @@ async function loadClientIps() {
   if (!clientStats.value?.email) return;
   refreshing.value = true;
   try {
-    const msg = await HttpUtil.post(`/panel/api/inbounds/clientIps/${clientStats.value.email}`);
+    const msg = await HttpUtil.post(`/panel/api/clients/ips/${clientStats.value.email}`);
     if (!msg?.success) {
       clientIpsText.value = msg?.obj || 'No IP record';
       clientIpsArray.value = [];
@@ -164,7 +164,7 @@ async function loadClientIps() {
 
 async function clearClientIps() {
   if (!clientStats.value?.email) return;
-  const msg = await HttpUtil.post(`/panel/api/inbounds/clearClientIps/${clientStats.value.email}`);
+  const msg = await HttpUtil.post(`/panel/api/clients/clearIps/${clientStats.value.email}`);
   if (msg?.success) {
     clientIpsArray.value = [];
     clientIpsText.value = t('tgbot.noIpRecord');

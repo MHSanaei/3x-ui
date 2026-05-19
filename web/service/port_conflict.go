@@ -72,7 +72,7 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 				// "udp", or "tcp,udp". if it's set, it wins outright.
 				if n, ok := st["network"].(string); ok && n != "" {
 					bits = 0
-					for _, part := range strings.Split(n, ",") {
+					for part := range strings.SplitSeq(n, ",") {
 						switch strings.TrimSpace(part) {
 						case "tcp":
 							bits |= transportTCP

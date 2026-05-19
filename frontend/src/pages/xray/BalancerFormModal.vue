@@ -61,16 +61,6 @@ const isValid = computed(
   () => !tagEmpty.value && !duplicateTag.value && !emptySelector.value,
 );
 
-const fallbackSupported = computed(
-  () => form.strategy === 'leastPing' || form.strategy === 'leastLoad',
-);
-
-watch(() => form.strategy, (next) => {
-  if (next !== 'leastPing' && next !== 'leastLoad') {
-    form.fallbackTag = '';
-  }
-});
-
 const tagValidateStatus = computed(() => {
   if (tagEmpty.value) return 'error';
   if (duplicateTag.value) return 'warning';
@@ -97,7 +87,7 @@ const title = computed(() =>
     : `+ ${t('pages.xray.Balancers')}`,
 );
 const okText = computed(() =>
-  isEdit.value ? t('pages.client.submitEdit') : t('create'),
+  isEdit.value ? t('pages.clients.submitEdit') : t('create'),
 );
 </script>
 
@@ -121,9 +111,8 @@ const okText = computed(() =>
         </a-select>
       </a-form-item>
 
-      <a-form-item label="Fallback"
-        :help="fallbackSupported ? '' : 'Available only with Least ping / Least load'">
-        <a-select v-model:value="form.fallbackTag" allow-clear :disabled="!fallbackSupported">
+      <a-form-item label="Fallback">
+        <a-select v-model:value="form.fallbackTag" allow-clear>
           <a-select-option v-for="tag in ['', ...outboundTags]" :key="tag || '__empty'" :value="tag">
             {{ tag || `(${t('none')})` }}
           </a-select-option>

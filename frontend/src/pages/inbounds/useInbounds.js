@@ -55,7 +55,14 @@ export function useInbounds() {
   // (HTTP, MIXED, WireGuard) since their settings have no client list.
   function rollupClients(dbInbound, inbound) {
     const clientStats = Array.isArray(dbInbound.clientStats) ? dbInbound.clientStats : [];
-    const clients = inbound?.clients || [];
+    const allClients = inbound?.clients || [];
+    const statsEmails = new Set();
+    for (const s of clientStats) {
+      if (s && s.email) statsEmails.add(s.email);
+    }
+    const clients = clientStats.length > 0
+      ? allClients.filter((c) => c && c.email && statsEmails.has(c.email))
+      : allClients;
     const active = [];
     const deactive = [];
     const depleted = [];
@@ -126,12 +133,12 @@ export function useInbounds() {
   }
 
   async function fetchOnlineUsers() {
-    const msg = await HttpUtil.post('/panel/api/inbounds/onlines');
+    const msg = await HttpUtil.post('/panel/api/clients/onlines');
     if (msg?.success) onlineClients.value = msg.obj || [];
   }
 
   async function fetchLastOnlineMap() {
-    const msg = await HttpUtil.post('/panel/api/inbounds/lastOnline');
+    const msg = await HttpUtil.post('/panel/api/clients/lastOnline');
     if (msg?.success && msg.obj) lastOnlineMap.value = msg.obj;
   }
 
@@ -195,7 +202,6 @@ export function useInbounds() {
         if (!upd) continue;
         if (typeof upd.up === 'number') ib.up = upd.up;
         if (typeof upd.down === 'number') ib.down = upd.down;
-        if (typeof upd.allTime === 'number') ib.allTime = upd.allTime;
         if (typeof upd.total === 'number') ib.total = upd.total;
         if (typeof upd.enable === 'boolean') ib.enable = upd.enable;
         touched = true;
@@ -216,7 +222,6 @@ export function useInbounds() {
           if (typeof upd.up === 'number') stat.up = upd.up;
           if (typeof upd.down === 'number') stat.down = upd.down;
           if (typeof upd.total === 'number') stat.total = upd.total;
-          if (typeof upd.allTime === 'number') stat.allTime = upd.allTime;
           if (typeof upd.expiryTime === 'number') stat.expiryTime = upd.expiryTime;
           if (typeof upd.enable === 'boolean') stat.enable = upd.enable;
           touched = true;
@@ -283,31 +288,14 @@ export function useInbounds() {
     }
   }
 
-  // Aggregate totals shown in the dashboard summary card. allTime falls
-  // back to up+down when the per-inbound counter isn't populated yet.
   const totals = computed(() => {
     let up = 0;
     let down = 0;
-    let allTime = 0;
-    let clients = 0;
-    const deactive = [];
-    const depleted = [];
-    const expiring = [];
-    const online = [];
     for (const ib of dbInbounds.value) {
       up += ib.up || 0;
       down += ib.down || 0;
-      allTime += ib.allTime || (ib.up + ib.down) || 0;
-      const c = clientCount.value[ib.id];
-      if (c) {
-        clients += c.clients;
-        deactive.push(...c.deactive);
-        depleted.push(...c.depleted);
-        expiring.push(...c.expiring);
-        online.push(...c.online);
-      }
     }
-    return { up, down, allTime, clients, deactive, depleted, expiring, online };
+    return { up, down };
   });
 
   // ObjectUtil reference is wired at module load — keeping a no-op import

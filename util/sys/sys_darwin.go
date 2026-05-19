@@ -1,5 +1,4 @@
 //go:build darwin
-// +build darwin
 
 package sys
 
@@ -33,8 +32,9 @@ func GetUDPCount() (int, error) {
 
 // --- CPU Utilization (macOS native) ---
 
-// sysctl kern.cp_time returns an array of 5 longs: user, nice, sys, idle, intr.
-// We compute utilization deltas without cgo.
+// sysctl kern.cp_time returns 5 longs in the BSD CPUSTATES order:
+// user, nice, sys, intr, idle (CP_INTR=3, CP_IDLE=4). gopsutil reads the
+// same layout in cpu_darwin_nocgo.go.
 var (
 	cpuMu       sync.Mutex
 	lastTotals  [5]uint64
@@ -61,13 +61,6 @@ func CPUPercentRaw() (float64, error) {
 		return 0, fmt.Errorf("unexpected kern.cp_time size: %d", len(raw))
 	}
 
-	// user, nice, sys, idle, intr
-	user := out[0]
-	nice := out[1]
-	sysv := out[2]
-	idle := out[3]
-	intr := out[4]
-
 	cpuMu.Lock()
 	defer cpuMu.Unlock()
 
@@ -77,19 +70,19 @@ func CPUPercentRaw() (float64, error) {
 		return 0, nil
 	}
 
-	dUser := user - lastTotals[0]
-	dNice := nice - lastTotals[1]
-	dSys := sysv - lastTotals[2]
-	dIdle := idle - lastTotals[3]
-	dIntr := intr - lastTotals[4]
-
+	var deltas [5]uint64
+	var totald uint64
+	for i := range 5 {
+		deltas[i] = out[i] - lastTotals[i]
+		totald += deltas[i]
+	}
 	lastTotals = out
 
-	totald := dUser + dNice + dSys + dIdle + dIntr
 	if totald == 0 {
 		return 0, nil
 	}
-	busy := totald - dIdle
+	idleDelta := deltas[4]
+	busy := totald - idleDelta
 	pct := float64(busy) / float64(totald) * 100.0
 	if pct > 100 {
 		pct = 100
