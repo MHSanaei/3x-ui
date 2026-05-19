@@ -2924,6 +2924,12 @@ func (s *InboundService) MigrationRequirements() {
 				}
 			}
 		}
+
+		// Heal clients table for installs where the one-shot seeder
+		// skipped clients due to a tgId-string unmarshal error.
+		if syncErr := s.clientService.SyncInbound(tx, inbounds[inbound_index].Id, modelClients); syncErr != nil {
+			logger.Warning("MigrationRequirements sync clients failed:", syncErr)
+		}
 	}
 	tx.Save(inbounds)
 
