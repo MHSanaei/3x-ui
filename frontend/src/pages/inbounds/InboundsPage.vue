@@ -5,13 +5,12 @@ import { Modal, message } from 'ant-design-vue';
 import {
   SwapOutlined,
   PieChartOutlined,
-  HistoryOutlined,
   BarsOutlined,
-  TeamOutlined,
 } from '@ant-design/icons-vue';
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
 import { Inbound } from '@/models/inbound.js';
+import { coerceInboundJsonField } from '@/models/dbinbound.js';
 import { theme as themeState, antdThemeConfig } from '@/composables/useTheme.js';
 import { useMediaQuery } from '@/composables/useMediaQuery.js';
 import AppSidebar from '@/components/AppSidebar.vue';
@@ -19,9 +18,6 @@ import CustomStatistic from '@/components/CustomStatistic.vue';
 import { useNodeList } from '@/composables/useNodeList.js';
 import InboundList from './InboundList.vue';
 import InboundFormModal from './InboundFormModal.vue';
-import ClientFormModal from './ClientFormModal.vue';
-import ClientBulkModal from './ClientBulkModal.vue';
-import CopyClientsModal from './CopyClientsModal.vue';
 import InboundInfoModal from './InboundInfoModal.vue';
 import QrCodeModal from './QrCodeModal.vue';
 import TextModal from '@/components/TextModal.vue';
@@ -65,9 +61,11 @@ useWebSocket({
   inbounds: applyInboundsEvent,
 });
 const { isMobile } = useMediaQuery();
-// Node list lives on the central panel; the Inbounds page consumes
-// the id→node map for the new "Node" column. Fetched once on mount.
 const { byId: nodesById, hasActive: hasActiveNode } = useNodeList();
+const hasNodeAttachedInbound = computed(() =>
+  (dbInbounds.value || []).some((ib) => ib?.nodeId != null),
+);
+const showNodeInfo = computed(() => hasNodeAttachedInbound.value || hasActiveNode.value);
 
 const basePath = window.X_UI_BASE_PATH || '';
 const requestUri = window.location.pathname;
@@ -81,17 +79,6 @@ onMounted(async () => {
 const formOpen = ref(false);
 const formMode = ref('add');
 const formDbInbound = ref(null);
-
-// === Client modal (single + bulk) =====================================
-const clientOpen = ref(false);
-const clientMode = ref('add');
-const clientDbInbound = ref(null);
-const clientIndex = ref(null);
-
-const bulkOpen = ref(false);
-const bulkDbInbound = ref(null);
-const copyOpen = ref(false);
-const copyDbInbound = ref(null);
 
 // === Info / QR-code modals ===========================================
 const infoOpen = ref(false);
@@ -191,7 +178,8 @@ function exportInboundSubs(dbInbound) {
 function exportAllLinks() {
   const out = [];
   for (const ib of dbInbounds.value) {
-    out.push(ib.genInboundLinks(remarkModel.value, hostOverrideFor(ib)));
+    const projected = checkFallback(ib);
+    out.push(projected.genInboundLinks(remarkModel.value, hostOverrideFor(ib)));
   }
   openText({
     title: 'Export all inbound links',
@@ -240,8 +228,18 @@ function importInbound() {
 // the root inbound that owns the listen address so QRs/links carry
 // the externally-reachable host:port and the right TLS state.
 function checkFallback(dbInbound) {
-  // We don't keep parsed Inbounds in state right now (the page works
-  // off DBInbounds); compute on the fly.
+  // Path 1: panel-tracked fallback relationship (inbound_fallbacks row).
+  // The backend annotates each child inbound with fallbackParent so the
+  // child's client-share link advertises the master's reachable endpoint
+  // and inherits its TLS / Reality state.
+  const parent = dbInbound.fallbackParent;
+  if (parent?.masterId) {
+    const master = dbInbounds.value.find((ib) => ib.id === parent.masterId);
+    if (master) return projectChildThroughMaster(dbInbound, master);
+  }
+  // Path 2: legacy unix-socket convention (`@vless-ws` etc.) — walk the
+  // VLESS/Trojan TCP inbounds and look for one whose settings.fallbacks
+  // references this child's listen address.
   if (!dbInbound.listen?.startsWith?.('@')) return dbInbound;
   for (const candidate of dbInbounds.value) {
     if (candidate.id === dbInbound.id) continue;
@@ -250,21 +248,28 @@ function checkFallback(dbInbound) {
     if (!['trojan', 'vless'].includes(parsed.protocol)) continue;
     const fallbacks = parsed.settings.fallbacks || [];
     if (!fallbacks.find((f) => f.dest === dbInbound.listen)) continue;
-    // Build a one-off DBInbound copy with the parent's listen/port +
-    // copied stream so the link gen sees the public endpoint.
-    const projected = JSON.parse(JSON.stringify(dbInbound));
-    projected.listen = candidate.listen;
-    projected.port = candidate.port;
-    const inheritedStream = parsed.stream;
-    const ownInbound = dbInbound.toInbound();
-    ownInbound.stream.security = inheritedStream.security;
-    ownInbound.stream.tls = inheritedStream.tls;
-    ownInbound.stream.externalProxy = inheritedStream.externalProxy;
-    projected.streamSettings = ownInbound.stream.toString();
-    // Re-wrap so callers get the same DBInbound shape they had.
-    return new dbInbound.constructor(projected);
+    return projectChildThroughMaster(dbInbound, candidate);
   }
   return dbInbound;
+}
+
+// projectChildThroughMaster returns a one-off DBInbound copy whose
+// listen/port + TLS/Reality state come from the master, while the
+// protocol/transport/clients stay the child's. This is what makes a
+// `vless://uuid@server:443?type=ws&path=/vlws&security=tls` link work
+// for a child VLESS-WS bound to 127.0.0.1.
+function projectChildThroughMaster(child, master) {
+  const projected = JSON.parse(JSON.stringify(child));
+  projected.listen = master.listen;
+  projected.port = master.port;
+  const masterStream = master.toInbound().stream;
+  const childInbound = child.toInbound();
+  childInbound.stream.security = masterStream.security;
+  childInbound.stream.tls = masterStream.tls;
+  childInbound.stream.reality = masterStream.reality;
+  childInbound.stream.externalProxy = masterStream.externalProxy;
+  projected.streamSettings = childInbound.stream.toString();
+  return new child.constructor(projected);
 }
 
 function findClientIndex(dbInbound, client) {
@@ -284,73 +289,6 @@ function findClientIndex(dbInbound, client) {
   return idx >= 0 ? idx : 0;
 }
 
-function getClientId(protocol, client) {
-  switch (protocol) {
-    case 'trojan': return client.password;
-    case 'shadowsocks': return client.email;
-    case 'hysteria': return client.auth;
-    default: return client.id;
-  }
-}
-
-// === Per-client handlers (called from the expand-row table) =========
-function onEditClient({ dbInbound, client }) {
-  clientMode.value = 'edit';
-  clientDbInbound.value = dbInbound;
-  clientIndex.value = findClientIndex(dbInbound, client);
-  clientOpen.value = true;
-}
-
-function onQrcodeClient({ dbInbound, client }) {
-  qrDbInbound.value = checkFallback(dbInbound);
-  qrClient.value = client || null;
-  qrOpen.value = true;
-}
-
-function onInfoClient({ dbInbound, client }) {
-  infoDbInbound.value = checkFallback(dbInbound);
-  infoClientIndex.value = findClientIndex(dbInbound, client);
-  infoOpen.value = true;
-}
-
-async function onResetTrafficClient({ dbInbound, client }) {
-  const msg = await HttpUtil.post(
-    `/panel/api/inbounds/${dbInbound.id}/resetClientTraffic/${client.email}`,
-  );
-  if (msg?.success) await refresh();
-}
-
-async function onDeleteClient({ dbInbound, client }) {
-  const clientId = getClientId(dbInbound.protocol, client);
-  const msg = await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/delClient/${clientId}`);
-  if (msg?.success) await refresh();
-}
-
-async function onDeleteClients({ dbInbound, clients }) {
-  for (const client of clients) {
-    const clientId = getClientId(dbInbound.protocol, client);
-    await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/delClient/${clientId}`);
-  }
-  await refresh();
-}
-
-async function onToggleEnableClient({ dbInbound, client, next }) {
-  // Mirror legacy: clone the parsed inbound, flip enable on the matching
-  // client, and post the whole client back through updateClient. This
-  // keeps the wire shape identical to the modal save path.
-  const inbound = dbInbound.toInbound();
-  const clients = inbound?.clients || [];
-  const idx = findClientIndex(dbInbound, client);
-  if (idx < 0 || !clients[idx]) return;
-  clients[idx].enable = next;
-  const clientId = getClientId(dbInbound.protocol, clients[idx]);
-  const msg = await HttpUtil.post(`/panel/api/inbounds/updateClient/${clientId}`, {
-    id: dbInbound.id,
-    settings: `{"clients": [${clients[idx].toString()}]}`,
-  });
-  if (msg?.success) await refresh();
-}
-
 function onAddInbound() {
   formMode.value = 'add';
   formDbInbound.value = null;
@@ -361,18 +299,6 @@ function openEdit(dbInbound) {
   formMode.value = 'edit';
   formDbInbound.value = dbInbound;
   formOpen.value = true;
-}
-
-function openAddClient(dbInbound) {
-  clientMode.value = 'add';
-  clientDbInbound.value = dbInbound;
-  clientIndex.value = null;
-  clientOpen.value = true;
-}
-
-function openAddBulkClient(dbInbound) {
-  bulkDbInbound.value = dbInbound;
-  bulkOpen.value = true;
 }
 
 // Per-row destructive actions go through Modal.confirm (matches legacy).
@@ -403,20 +329,6 @@ function confirmResetTraffic(dbInbound) {
   });
 }
 
-function confirmDelDepleted(dbInboundId) {
-  Modal.confirm({
-    title: 'Delete depleted clients?',
-    content: 'Removes every client whose traffic is exhausted or whose expiry has passed.',
-    okText: 'Delete',
-    okType: 'danger',
-    cancelText: 'Cancel',
-    onOk: async () => {
-      const msg = await HttpUtil.post(`/panel/api/inbounds/delDepletedClients/${dbInboundId}`);
-      if (msg?.success) await refresh();
-    },
-  });
-}
-
 // Clone — adds a new inbound with the same protocol+stream+sniffing
 // but a fresh remark/port and an empty client list.
 function confirmClone(dbInbound) {
@@ -427,6 +339,14 @@ function confirmClone(dbInbound) {
     cancelText: 'Cancel',
     onOk: async () => {
       const baseInbound = dbInbound.toInbound();
+      let clonedSettings;
+      try {
+        const raw = coerceInboundJsonField(dbInbound.settings);
+        raw.clients = [];
+        clonedSettings = JSON.stringify(raw);
+      } catch (_e) {
+        clonedSettings = Inbound.Settings.getSettings(baseInbound.protocol).toString();
+      }
       const data = {
         up: 0,
         down: 0,
@@ -437,7 +357,7 @@ function confirmClone(dbInbound) {
         listen: '',
         port: RandomUtil.randomInteger(10000, 60000),
         protocol: baseInbound.protocol,
-        settings: Inbound.Settings.getSettings(baseInbound.protocol).toString(),
+        settings: clonedSettings,
         streamSettings: baseInbound.stream.toString(),
         sniffing: baseInbound.sniffing.toString(),
       };
@@ -469,20 +389,6 @@ function onGeneralAction(key) {
         },
       });
       break;
-    case 'resetClients':
-      Modal.confirm({
-        title: 'Reset all client traffic across all inbounds?',
-        okText: 'Reset',
-        cancelText: 'Cancel',
-        onOk: async () => {
-          const msg = await HttpUtil.post('/panel/api/inbounds/resetAllClientTraffics/-1');
-          if (msg?.success) await refresh();
-        },
-      });
-      break;
-    case 'delDepletedClients':
-      confirmDelDepleted(-1);
-      break;
     default:
       message.info(`General action "${key}" — coming in a later 5f subphase`);
   }
@@ -492,12 +398,6 @@ function onRowAction({ key, dbInbound }) {
   switch (key) {
     case 'edit':
       openEdit(dbInbound);
-      break;
-    case 'addClient':
-      openAddClient(dbInbound);
-      break;
-    case 'addBulkClient':
-      openAddBulkClient(dbInbound);
       break;
     case 'showInfo':
       infoDbInbound.value = checkFallback(dbInbound);
@@ -518,10 +418,6 @@ function onRowAction({ key, dbInbound }) {
     case 'clipboard':
       exportInboundClipboard(dbInbound);
       break;
-    case 'copyClients':
-      copyDbInbound.value = dbInbound;
-      copyOpen.value = true;
-      break;
     case 'delete':
       confirmDelete(dbInbound);
       break;
@@ -530,20 +426,6 @@ function onRowAction({ key, dbInbound }) {
       break;
     case 'clone':
       confirmClone(dbInbound);
-      break;
-    case 'resetClients':
-      Modal.confirm({
-        title: `Reset client traffic on "${dbInbound.remark}"?`,
-        okText: 'Reset',
-        cancelText: 'Cancel',
-        onOk: async () => {
-          const msg = await HttpUtil.post(`/panel/api/inbounds/resetAllClientTraffics/${dbInbound.id}`);
-          if (msg?.success) await refresh();
-        },
-      });
-      break;
-    case 'delDepletedClients':
-      confirmDelDepleted(dbInbound.id);
       break;
     default:
       message.info(`Action "${key}" — coming in a later 5f subphase`);
@@ -566,7 +448,7 @@ function onRowAction({ key, dbInbound }) {
               <a-col :span="24">
                 <a-card size="small" hoverable class="summary-card">
                   <a-row :gutter="[16, 12]">
-                    <a-col :xs="12" :sm="12" :md="5">
+                    <a-col :xs="12" :sm="12" :md="8">
                       <CustomStatistic :title="t('pages.inbounds.totalDownUp')"
                         :value="`${SizeFormatter.sizeFormat(totals.up)} / ${SizeFormatter.sizeFormat(totals.down)}`">
                         <template #prefix>
@@ -574,7 +456,7 @@ function onRowAction({ key, dbInbound }) {
                         </template>
                       </CustomStatistic>
                     </a-col>
-                    <a-col :xs="12" :sm="12" :md="5">
+                    <a-col :xs="12" :sm="12" :md="8">
                       <CustomStatistic :title="t('pages.inbounds.totalUsage')"
                         :value="SizeFormatter.sizeFormat(totals.up + totals.down)">
                         <template #prefix>
@@ -582,60 +464,10 @@ function onRowAction({ key, dbInbound }) {
                         </template>
                       </CustomStatistic>
                     </a-col>
-                    <a-col :xs="12" :sm="12" :md="5">
-                      <CustomStatistic :title="t('pages.inbounds.allTimeTrafficUsage')"
-                        :value="SizeFormatter.sizeFormat(totals.allTime)">
-                        <template #prefix>
-                          <HistoryOutlined />
-                        </template>
-                      </CustomStatistic>
-                    </a-col>
-                    <a-col :xs="12" :sm="12" :md="5">
+                    <a-col :xs="24" :sm="24" :md="8">
                       <CustomStatistic :title="t('pages.inbounds.inboundCount')" :value="String(dbInbounds.length)">
                         <template #prefix>
                           <BarsOutlined />
-                        </template>
-                      </CustomStatistic>
-                    </a-col>
-                    <a-col :xs="24" :sm="24" :md="4">
-                      <CustomStatistic :title="t('clients')" value=" ">
-                        <template #prefix>
-                          <a-space direction="horizontal">
-                            <TeamOutlined />
-                            <a-tag color="green">{{ totals.clients }}</a-tag>
-                            <a-popover v-if="totals.deactive.length" :title="t('disabled')">
-                              <template #content>
-                                <div class="client-email-list">
-                                  <div v-for="email in totals.deactive" :key="email">{{ email }}</div>
-                                </div>
-                              </template>
-                              <a-tag>{{ totals.deactive.length }}</a-tag>
-                            </a-popover>
-                            <a-popover v-if="totals.depleted.length" :title="t('depleted')">
-                              <template #content>
-                                <div class="client-email-list">
-                                  <div v-for="email in totals.depleted" :key="email">{{ email }}</div>
-                                </div>
-                              </template>
-                              <a-tag color="red">{{ totals.depleted.length }}</a-tag>
-                            </a-popover>
-                            <a-popover v-if="totals.expiring.length" :title="t('depletingSoon')">
-                              <template #content>
-                                <div class="client-email-list">
-                                  <div v-for="email in totals.expiring" :key="email">{{ email }}</div>
-                                </div>
-                              </template>
-                              <a-tag color="orange">{{ totals.expiring.length }}</a-tag>
-                            </a-popover>
-                            <a-popover v-if="totals.online.length" :title="t('online')">
-                              <template #content>
-                                <div class="client-email-list">
-                                  <div v-for="email in totals.online" :key="email">{{ email }}</div>
-                                </div>
-                              </template>
-                              <a-tag color="blue">{{ totals.online.length }}</a-tag>
-                            </a-popover>
-                          </a-space>
                         </template>
                       </CustomStatistic>
                     </a-col>
@@ -648,26 +480,16 @@ function onRowAction({ key, dbInbound }) {
                 <InboundList :db-inbounds="dbInbounds" :client-count="clientCount" :online-clients="onlineClients"
                   :last-online-map="lastOnlineMap" :is-dark-theme="themeState.isDark" :expire-diff="expireDiff"
                   :traffic-diff="trafficDiff" :page-size="pageSize" :is-mobile="isMobile"
-                  :sub-enable="subSettings.enable" :nodes-by-id="nodesById" :has-active-node="hasActiveNode"
-                  :stats-version="statsVersion"
-                  @refresh="refresh"
-                  @add-inbound="onAddInbound" @general-action="onGeneralAction" @row-action="onRowAction"
-                  @edit-client="onEditClient" @qrcode-client="onQrcodeClient" @info-client="onInfoClient"
-                  @reset-traffic-client="onResetTrafficClient" @delete-client="onDeleteClient"
-                  @delete-clients="onDeleteClients" @toggle-enable-client="onToggleEnableClient" />
+                  :sub-enable="subSettings.enable" :nodes-by-id="nodesById" :has-active-node="showNodeInfo"
+                  :stats-version="statsVersion" @refresh="refresh" @add-inbound="onAddInbound"
+                  @general-action="onGeneralAction" @row-action="onRowAction" />
               </a-col>
             </a-row>
           </a-spin>
         </a-layout-content>
       </a-layout>
 
-      <InboundFormModal v-model:open="formOpen" :mode="formMode" :db-inbound="formDbInbound" @saved="refresh" />
-      <ClientFormModal v-model:open="clientOpen" :mode="clientMode" :db-inbound="clientDbInbound"
-        :client-index="clientIndex" :sub-enable="subSettings.enable" :tg-bot-enable="tgBotEnable"
-        :ip-limit-enable="ipLimitEnable" :traffic-diff="trafficDiff" @saved="refresh" />
-      <ClientBulkModal v-model:open="bulkOpen" :db-inbound="bulkDbInbound" :sub-enable="subSettings.enable"
-        :tg-bot-enable="tgBotEnable" :ip-limit-enable="ipLimitEnable" @saved="refresh" />
-      <CopyClientsModal v-model:open="copyOpen" :db-inbound="copyDbInbound" :db-inbounds="dbInbounds"
+      <InboundFormModal v-model:open="formOpen" :mode="formMode" :db-inbound="formDbInbound" :db-inbounds="dbInbounds"
         @saved="refresh" />
       <InboundInfoModal v-model:open="infoOpen" :db-inbound="infoDbInbound" :client-index="infoClientIndex"
         :remark-model="remarkModel" :expire-diff="expireDiff" :traffic-diff="trafficDiff"
@@ -733,22 +555,5 @@ function onRowAction({ key, dbInbound }) {
   .summary-card {
     padding: 8px;
   }
-}
-</style>
-
-<style>
-/* AD-Vue popovers teleport their content to <body>, so scoped styles
-   don't reach them — this block has to be unscoped. */
-.client-email-list {
-  max-height: 280px;
-  min-width: 160px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.client-email-list > div {
-  padding: 2px 0;
-  font-size: 12px;
-  white-space: nowrap;
 }
 </style>

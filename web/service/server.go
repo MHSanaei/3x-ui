@@ -71,11 +71,12 @@ type Status struct {
 		ErrorMsg string       `json:"errorMsg"`
 		Version  string       `json:"version"`
 	} `json:"xray"`
-	Uptime   uint64    `json:"uptime"`
-	Loads    []float64 `json:"loads"`
-	TcpCount int       `json:"tcpCount"`
-	UdpCount int       `json:"udpCount"`
-	NetIO    struct {
+	PanelVersion string    `json:"panelVersion"`
+	Uptime       uint64    `json:"uptime"`
+	Loads        []float64 `json:"loads"`
+	TcpCount     int       `json:"tcpCount"`
+	UdpCount     int       `json:"udpCount"`
+	NetIO        struct {
 		Up   uint64 `json:"up"`
 		Down uint64 `json:"down"`
 	} `json:"netIO"`
@@ -104,6 +105,7 @@ type Release struct {
 type ServerService struct {
 	xrayService        XrayService
 	inboundService     InboundService
+	settingService     SettingService
 	cachedIPv4         string
 	cachedIPv6         string
 	noIPv6             bool
@@ -114,6 +116,128 @@ type ServerService struct {
 	emaCPU             float64
 	cachedCpuSpeedMhz  float64
 	lastCpuInfoAttempt time.Time
+
+	lastStatusMu sync.RWMutex
+	lastStatus   *Status
+
+	versionsCacheMu sync.Mutex
+	versionsCache   *cachedXrayVersions
+}
+
+type cachedXrayVersions struct {
+	versions  []string
+	fetchedAt time.Time
+}
+
+// xrayVersionsCacheTTL bounds how often /getXrayVersion hits GitHub. The list
+// is purely informational (rendered in the "switch Xray version" picker) so a
+// quarter-hour staleness window is fine and saves the API budget.
+const xrayVersionsCacheTTL = 15 * time.Minute
+
+// allowedHistoryBuckets is the bucket-second whitelist for time-series
+// aggregation endpoints (server + node metrics). Restricting it prevents
+// callers from triggering arbitrary aggregation work and keeps the
+// frontend's bucket selector self-documenting.
+var allowedHistoryBuckets = map[int]bool{
+	2:   true, // Real-time view
+	30:  true, // 30s intervals
+	60:  true, // 1m intervals
+	120: true, // 2m intervals
+	180: true, // 3m intervals
+	300: true, // 5m intervals
+}
+
+// IsAllowedHistoryBucket reports whether a bucket-seconds value is in the
+// whitelist used by /server/history, /server/cpuHistory, /server/xrayMetricsHistory,
+// /server/xrayObservatoryHistory, and /nodes/history.
+func IsAllowedHistoryBucket(bucketSeconds int) bool {
+	return allowedHistoryBuckets[bucketSeconds]
+}
+
+// LastStatus returns the most recent Status snapshot collected by
+// RefreshStatus. Safe for concurrent readers.
+func (s *ServerService) LastStatus() *Status {
+	s.lastStatusMu.RLock()
+	defer s.lastStatusMu.RUnlock()
+	return s.lastStatus
+}
+
+// RefreshStatus collects a new system snapshot, stores it as LastStatus, and
+// appends it to the system-metrics time series. Returns the new snapshot (may
+// be nil if collection failed). Called by the background ticker; the caller is
+// responsible for any side effects (websocket broadcast, xray metrics sample).
+func (s *ServerService) RefreshStatus() *Status {
+	next := s.GetStatus(s.LastStatus())
+	if next == nil {
+		return nil
+	}
+	s.lastStatusMu.Lock()
+	s.lastStatus = next
+	s.lastStatusMu.Unlock()
+	s.AppendStatusSample(time.Now(), next)
+	return next
+}
+
+// GetXrayVersionsCached wraps GetXrayVersions with a TTL cache. On fetch
+// failure we serve the last successful list (if any) so the UI doesn't go
+// blank during a GitHub API hiccup; if there's no cache at all the underlying
+// error is surfaced.
+func (s *ServerService) GetXrayVersionsCached() ([]string, error) {
+	s.versionsCacheMu.Lock()
+	cache := s.versionsCache
+	s.versionsCacheMu.Unlock()
+	if cache != nil && time.Since(cache.fetchedAt) <= xrayVersionsCacheTTL {
+		return cache.versions, nil
+	}
+	versions, err := s.GetXrayVersions()
+	if err != nil {
+		if cache != nil {
+			logger.Warning("GetXrayVersionsCached: serving stale list:", err)
+			return cache.versions, nil
+		}
+		return nil, err
+	}
+	s.versionsCacheMu.Lock()
+	s.versionsCache = &cachedXrayVersions{versions: versions, fetchedAt: time.Now()}
+	s.versionsCacheMu.Unlock()
+	return versions, nil
+}
+
+// GetDefaultLogOutboundTags scans the default Xray config for freedom and
+// blackhole outbound tags so /getXrayLogs can colour-code log lines without
+// the controller re-doing the JSON walk. Falls back to the historical
+// "direct"/"blocked" defaults when the config can't be read.
+func (s *ServerService) GetDefaultLogOutboundTags() (freedoms, blackholes []string) {
+	config, err := s.settingService.GetDefaultXrayConfig()
+	if err == nil && config != nil {
+		if cfgMap, ok := config.(map[string]any); ok {
+			if outbounds, ok := cfgMap["outbounds"].([]any); ok {
+				for _, outbound := range outbounds {
+					obMap, ok := outbound.(map[string]any)
+					if !ok {
+						continue
+					}
+					tag, _ := obMap["tag"].(string)
+					if tag == "" {
+						continue
+					}
+					switch obMap["protocol"] {
+					case "freedom":
+						freedoms = append(freedoms, tag)
+					case "blackhole":
+						blackholes = append(blackholes, tag)
+					}
+				}
+			}
+		}
+	}
+	if len(freedoms) == 0 {
+		freedoms = []string{"direct"}
+	}
+	if len(blackholes) == 0 {
+		blackholes = []string{"blocked"}
+	}
+	return freedoms, blackholes
 }
 
 // AggregateCpuHistory returns up to maxPoints averaged buckets of size bucketSeconds.
@@ -360,6 +484,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Xray.ErrorMsg = s.xrayService.GetXrayResult()
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
+	status.PanelVersion = config.GetVersion()
 
 	// Application stats
 	var rtm runtime.MemStats
@@ -383,8 +508,8 @@ func (s *ServerService) AppendCpuSample(t time.Time, v float64) {
 
 // AppendStatusSample writes one tick of every metric we keep — CPU, memory
 // percent, network throughput (bytes/s), online client count, and the three
-// load averages. Called by ServerController.refreshStatus on the same @2s
-// cadence as AppendCpuSample, so all series stay aligned.
+// load averages. Called by RefreshStatus on the same @2s cadence as
+// AppendCpuSample, so all series stay aligned.
 func (s *ServerService) AppendStatusSample(t time.Time, status *Status) {
 	if status == nil {
 		return

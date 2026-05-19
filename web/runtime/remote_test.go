@@ -7,8 +7,8 @@ import (
 
 func TestSanitizeStreamSettingsForRemote(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
+		name  string
+		input string
 		// wantCertFile / wantKeyFile: expected presence after sanitize
 		wantCertFile bool
 		wantKeyFile  bool
@@ -55,7 +55,7 @@ func TestSanitizeStreamSettingsForRemote(t *testing.T) {
 			wantKeyFile:  false,
 		},
 		{
-			name: "empty stream settings",
+			name:  "empty stream settings",
 			input: "",
 			// empty input returns empty, nothing to check
 		},

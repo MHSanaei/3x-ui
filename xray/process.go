@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -368,6 +370,8 @@ func (p *process) startCommand(cmd *exec.Cmd) error {
 		return err
 	}
 
+	attachChildLifetime(cmd)
+
 	go p.waitForCommand(cmd)
 	return nil
 }
@@ -451,8 +455,42 @@ func (p *process) waitForExit(timeout time.Duration) error {
 	}
 }
 
-// writeCrashReport writes a crash report to the binary folder with a timestamped filename.
+const (
+	crashReportPrefix = "core_crash_"
+	crashReportSuffix = ".log"
+	maxCrashReports   = 10
+)
+
+// writeCrashReport persists a captured xray crash chunk to the log folder
+// with nanosecond-precision filename so restart-loop bursts don't overwrite
+// each other, and prunes old reports to keep the folder bounded.
 func writeCrashReport(m []byte) error {
-	crashReportPath := config.GetBinFolderPath() + "/core_crash_" + time.Now().Format("20060102_150405") + ".log"
-	return os.WriteFile(crashReportPath, m, 0644)
+	dir := config.GetLogFolder()
+	if err := os.MkdirAll(dir, 0o770); err != nil {
+		return err
+	}
+	pruneOldCrashReports(dir, maxCrashReports-1)
+	name := crashReportPrefix + time.Now().Format("20060102_150405_000000000") + crashReportSuffix
+	return os.WriteFile(filepath.Join(dir, name), m, 0o640)
+}
+
+func pruneOldCrashReports(dir string, keep int) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	var reports []string
+	for _, e := range entries {
+		n := e.Name()
+		if !e.IsDir() && strings.HasPrefix(n, crashReportPrefix) && strings.HasSuffix(n, crashReportSuffix) {
+			reports = append(reports, n)
+		}
+	}
+	if len(reports) <= keep {
+		return
+	}
+	sort.Strings(reports)
+	for _, old := range reports[:len(reports)-keep] {
+		_ = os.Remove(filepath.Join(dir, old))
+	}
 }

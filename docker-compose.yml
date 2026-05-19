@@ -11,7 +11,24 @@ services:
     environment:
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
+      # To use PostgreSQL instead of the default SQLite, run:
+      #   docker compose --profile postgres up -d
+      # and uncomment the two lines below.
+      # XUI_DB_TYPE: "postgres"
+      # XUI_DB_DSN: "postgres://xui:xui@postgres:5432/xui?sslmode=disable"
     tty: true
     ports:
       - "2053:2053"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: 3xui_postgres
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_USER: xui
+      POSTGRES_PASSWORD: xui
+      POSTGRES_DB: xui
+    volumes:
+      - $PWD/pgdata/:/var/lib/postgresql/data
     restart: unless-stopped
