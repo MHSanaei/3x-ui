@@ -71,15 +71,21 @@ export function useNodes() {
     return msg;
   }
 
-  // Aggregate cards on the dashboard. Computed off the live list so a
-  // refresh (or a WS push) picks up new totals automatically.
   const totals = computed(() => {
     const list = nodes.value;
     let online = 0;
     let offline = 0;
     let latencySum = 0;
     let latencyCount = 0;
+    let inbounds = 0;
+    let clients = 0;
+    let onlineClients = 0;
+    let depleted = 0;
     for (const n of list) {
+      inbounds += n.inboundCount || 0;
+      clients += n.clientCount || 0;
+      onlineClients += n.onlineCount || 0;
+      depleted += n.depletedCount || 0;
       if (!n.enable) continue;
       if (n.status === 'online') {
         online += 1;
@@ -96,6 +102,10 @@ export function useNodes() {
       online,
       offline,
       avgLatency: latencyCount > 0 ? Math.round(latencySum / latencyCount) : 0,
+      inbounds,
+      clients,
+      onlineClients,
+      depleted,
     };
   });
 

@@ -124,12 +124,13 @@ func (h *metricHistory) aggregate(metric string, bucketSeconds int, maxPoints in
 }
 
 // systemMetrics holds whole-host time series (cpu, mem, netUp, etc.)
-// fed by ServerController.refreshStatus every 2s. nodeMetrics holds
+// fed by ServerService.RefreshStatus every 2s. nodeMetrics holds
 // per-node CPU/Mem fed by NodeHeartbeatJob every 10s. Both are
 // process-local — survival across panel restart is not required.
 var (
 	systemMetrics = newMetricHistory()
 	nodeMetrics   = newMetricHistory()
+	xrayMetrics   = newMetricHistory()
 )
 
 // SystemMetricKeys lists the metric names ServerService writes on every
@@ -141,3 +142,11 @@ var SystemMetricKeys = []string{
 
 // NodeMetricKeys lists the per-node metric names NodeHeartbeatJob writes.
 var NodeMetricKeys = []string{"cpu", "mem"}
+
+// XrayMetricKeys lists series sourced from xray's /debug/vars expvar
+// endpoint. Populated by XrayMetricsService.Sample on the same 2s cadence
+// as the system metrics, but only when the xray config has a `metrics`
+// block configured.
+var XrayMetricKeys = []string{
+	"xrAlloc", "xrSys", "xrHeapObjects", "xrNumGC", "xrPauseNs",
+}

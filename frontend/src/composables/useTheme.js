@@ -16,7 +16,7 @@ function readBool(key, fallback) {
 }
 
 const isDark = readBool(STORAGE_DARK, true);
-const isUltra = readBool(STORAGE_ULTRA, true);
+const isUltra = readBool(STORAGE_ULTRA, false);
 
 export const theme = reactive({
   isDark,

@@ -10,6 +10,7 @@ import {
 import { Modal } from 'ant-design-vue';
 
 import BalancerFormModal from './BalancerFormModal.vue';
+import JsonEditor from '@/components/JsonEditor.vue';
 
 const { t } = useI18n();
 
@@ -21,6 +22,7 @@ const { t } = useI18n();
 const props = defineProps({
   templateSettings: { type: Object, default: null },
   clientReverseTags: { type: Array, default: () => [] },
+  isMobile: { type: Boolean, default: false },
 });
 
 const STRATEGY_LABELS = {
@@ -131,12 +133,15 @@ function syncObservatories() {
     delete t.observatory;
   }
 
-  const leastLoads = balancers.filter((b) => b.strategy?.type === 'leastLoad');
-  if (leastLoads.length > 0) {
+  const burstFeeders = balancers.filter((b) => {
+    const type = b.strategy?.type || 'random';
+    return type === 'leastLoad' || type === 'random' || type === 'roundRobin';
+  });
+  if (burstFeeders.length > 0) {
     if (!t.burstObservatory) {
       t.burstObservatory = JSON.parse(JSON.stringify(DEFAULT_BURST_OBSERVATORY));
     }
-    t.burstObservatory.subjectSelector = collectSelectors(leastLoads);
+    t.burstObservatory.subjectSelector = collectSelectors(burstFeeders);
   } else {
     delete t.burstObservatory;
   }
@@ -146,7 +151,7 @@ function buildWireBalancer(form) {
   const out = {
     tag: form.tag,
     selector: [...form.selector],
-    fallbackTag: form.fallbackTag,
+    fallbackTag: form.fallbackTag || '',
   };
   if (form.strategy && form.strategy !== 'random') {
     out.strategy = { type: form.strategy };
@@ -196,7 +201,7 @@ function confirmDelete(idx) {
 }
 
 const columns = computed(() => [
-  { title: '#', key: 'action', align: 'center', width: 80 },
+  { title: '#', key: 'action', align: 'center', width: 100 },
   { title: 'Tag', dataIndex: 'tag', key: 'tag', align: 'center', width: 160 },
   { title: 'Strategy', key: 'strategy', align: 'center', width: 140 },
   { title: 'Selector', key: 'selector', align: 'center' },
@@ -215,11 +220,11 @@ const showObsEditor = computed(() => hasObservatory.value || hasBurstObservatory
 
 const obsView = ref('observatory');
 
-// Keep the radio selection valid as observatories appear/disappear —
-// e.g. deleting the last leastPing balancer should flip the editor to
-// the burstObservatory pane instead of leaving it pointing at the
-// (now-removed) observatory key.
-watch(showObsEditor, () => {
+// Watch each flag individually — watching showObsEditor (OR of the two)
+// misses the case where one observatory swaps for the other in the same
+// tick, leaving obsView pointing at a now-deleted key and JsonEditor
+// trying to parse an empty string.
+watch([hasObservatory, hasBurstObservatory], () => {
   if (obsView.value === 'observatory' && !hasObservatory.value && hasBurstObservatory.value) {
     obsView.value = 'burstObservatory';
   } else if (obsView.value === 'burstObservatory' && !hasBurstObservatory.value && hasObservatory.value) {
@@ -266,25 +271,39 @@ const obsText = computed({
         {{ t('pages.xray.Balancers') }}
       </a-button>
 
-      <a-table :columns="columns" :data-source="rows" :row-key="(r) => r.key" :pagination="false" size="small" bordered>
+      <a-table :columns="columns" :data-source="rows" :row-key="(r) => r.key" :pagination="false"
+        size="small" :scroll="{ x: 400 }">
         <template #bodyCell="{ column, record, index }">
           <template v-if="column.key === 'action'">
-            <span class="row-index">{{ index + 1 }}</span>
-            <a-dropdown :trigger="['click']">
-              <a-button shape="circle" size="small" class="action-btn">
-                <MoreOutlined />
-              </a-button>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item @click="openEdit(index)">
-                    <EditOutlined /> {{ t('edit') }}
-                  </a-menu-item>
-                  <a-menu-item class="danger" @click="confirmDelete(index)">
-                    <DeleteOutlined /> {{ t('delete') }}
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
+            <div class="action-cell">
+              <span class="row-index">{{ index + 1 }}</span>
+
+              <div :class="!isMobile ? 'action-buttons' : ''">
+                <a-button v-if="!isMobile" shape="circle" size="small" @click="openEdit(index)">
+                  <template #icon>
+                    <EditOutlined />
+                  </template>
+                </a-button>
+
+                <a-dropdown :trigger="['click']">
+                  <a-button shape="circle" size="small">
+                    <template #icon>
+                      <MoreOutlined />
+                    </template>
+                  </a-button>
+                  <template #overlay>
+                    <a-menu>
+                      <a-menu-item v-if="isMobile" @click="openEdit(index)">
+                        <EditOutlined /> {{ t('edit') }}
+                      </a-menu-item>
+                      <a-menu-item class="danger" @click="confirmDelete(index)">
+                        <DeleteOutlined /> {{ t('delete') }}
+                      </a-menu-item>
+                    </a-menu>
+                  </template>
+                </a-dropdown>
+              </div>
+            </div>
           </template>
 
           <template v-else-if="column.key === 'strategy'">
@@ -305,8 +324,7 @@ const obsText = computed({
           <a-radio-button v-if="hasObservatory" value="observatory">Observatory</a-radio-button>
           <a-radio-button v-if="hasBurstObservatory" value="burstObservatory">Burst Observatory</a-radio-button>
         </a-radio-group>
-        <a-textarea v-model:value="obsText" :auto-size="{ minRows: 8, maxRows: 24 }" spellcheck="false"
-          class="json-editor" />
+        <JsonEditor v-model:value="obsText" min-height="220px" max-height="480px" />
       </template>
     </template>
 
@@ -316,23 +334,29 @@ const obsText = computed({
 </template>
 
 <style scoped>
+.action-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .row-index {
   font-weight: 500;
   opacity: 0.7;
-  margin-right: 6px;
+  min-width: 18px;
+  text-align: right;
 }
 
-.action-btn {
-  vertical-align: middle;
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-left: auto;
 }
 
 .danger {
   color: #ff4d4f;
 }
 
-.json-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
-  margin-top: 8px;
-}
 </style>

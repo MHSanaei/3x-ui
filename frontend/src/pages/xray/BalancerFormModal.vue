@@ -87,7 +87,7 @@ const title = computed(() =>
     : `+ ${t('pages.xray.Balancers')}`,
 );
 const okText = computed(() =>
-  isEdit.value ? t('pages.client.submitEdit') : t('create'),
+  isEdit.value ? t('pages.clients.submitEdit') : t('create'),
 );
 </script>
 

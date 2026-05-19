@@ -21,6 +21,7 @@ import {
   DNSRuleActions,
 } from '@/models/outbound.js';
 import FinalMaskForm from '@/components/FinalMaskForm.vue';
+import JsonEditor from '@/components/JsonEditor.vue';
 
 const { t } = useI18n();
 
@@ -34,7 +35,6 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   outbound: { type: Object, default: null },
   existingTags: { type: Array, default: () => [] },
-  inboundTags: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['update:open', 'confirm']);
@@ -81,8 +81,17 @@ watch(() => props.open, (next) => {
   primeAdvancedJson();
 });
 
-watch(activeKey, (key) => {
-  if (key === '2') primeAdvancedJson();
+let isRevertingTab = false;
+watch(activeKey, (key, prev) => {
+  if (isRevertingTab) { isRevertingTab = false; return; }
+  if (key === '2') {
+    primeAdvancedJson();
+  } else if (key === '1' && prev === '2') {
+    if (!applyAdvancedJsonToForm()) {
+      isRevertingTab = true;
+      activeKey.value = '2';
+    }
+  }
 });
 
 function primeAdvancedJson() {
@@ -91,6 +100,33 @@ function primeAdvancedJson() {
     advancedJson.value = JSON.stringify(outbound.value.toJson(), null, 2);
   } catch (_e) {
     advancedJson.value = '';
+  }
+}
+
+function applyAdvancedJsonToForm() {
+  const raw = advancedJson.value.trim();
+  if (!raw) return true;
+  let currentJson = '';
+  try {
+    currentJson = JSON.stringify(outbound.value?.toJson() ?? {}, null, 2);
+  } catch (_e) { /* fall through */ }
+  if (raw === currentJson.trim()) return true;
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    message.error(`JSON: ${e.message}`);
+    return false;
+  }
+  try {
+    const fallbackTag = outbound.value?.tag;
+    const next = Outbound.fromJson(parsed);
+    if (!next.tag && fallbackTag) next.tag = fallbackTag;
+    outbound.value = next;
+    return true;
+  } catch (e) {
+    message.error(`JSON: ${e.message}`);
+    return false;
   }
 }
 
@@ -132,26 +168,14 @@ const tagHelp = computed(() => {
 // ============== Submit ==============
 function onOk() {
   if (!outbound.value) return;
+  if (activeKey.value === '2' && !applyAdvancedJsonToForm()) return;
   if (!outbound.value.tag?.trim()) {
-    message.error(t('somethingWentWrong'));
+    message.error('Tag is required');
     return;
   }
   if (duplicateTag.value) {
-    message.error(t('somethingWentWrong'));
+    message.error('Tag already used by another outbound');
     return;
-  }
-  // If user spent time in the JSON tab, prefer that body — round-trip
-  // it through Outbound.fromJson so the wire shape stays consistent.
-  if (activeKey.value === '2' && advancedJson.value.trim()) {
-    try {
-      const parsed = JSON.parse(advancedJson.value);
-      const built = Outbound.fromJson(parsed);
-      emit('confirm', built.toJson());
-      return;
-    } catch (e) {
-      message.error(`JSON: ${e.message}`);
-      return;
-    }
   }
   emit('confirm', outbound.value.toJson());
 }
@@ -171,6 +195,7 @@ function convertLink() {
       return;
     }
     outbound.value = next;
+    primeAdvancedJson();
     linkInput.value = '';
     message.success('Link imported successfully...');
     activeKey.value = '1';
@@ -185,7 +210,7 @@ const title = computed(() =>
     : `+ ${t('pages.xray.Outbounds')}`,
 );
 const okText = computed(() =>
-  isEdit.value ? t('pages.client.submitEdit') : t('create'),
+  isEdit.value ? t('pages.clients.submitEdit') : t('create'),
 );
 
 // Helper getters / shortcuts used by the template.
@@ -303,6 +328,47 @@ function regenerateWgKeys() {
                 </a-select>
               </a-form-item>
             </template>
+
+            <a-form-item label="Final Rules">
+              <a-button size="small" type="primary" @click="outbound.settings.addFinalRule('allow')">
+                <template #icon>
+                  <PlusOutlined />
+                </template>
+              </a-button>
+              <span class="ml-8" style="opacity: 0.6;">
+                Override Xray's default private-IP block (needed for LAN access through proxy)
+              </span>
+            </a-form-item>
+            <template v-for="(rule, index) in outbound.settings.finalRules || []" :key="`fr-${index}`">
+              <a-form-item :wrapper-col="{ md: { span: 14, offset: 8 } }" :colon="false">
+                <div class="item-heading">
+                  <span>Rule {{ index + 1 }}</span>
+                  <DeleteOutlined class="danger-icon" @click="outbound.settings.delFinalRule(index)" />
+                </div>
+              </a-form-item>
+              <a-form-item label="Action">
+                <a-select v-model:value="rule.action">
+                  <a-select-option v-for="x in ['allow', 'block']" :key="x" :value="x">{{ x }}</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item label="Network">
+                <a-select v-model:value="rule.network" allow-clear placeholder="(any)">
+                  <a-select-option value="tcp">tcp</a-select-option>
+                  <a-select-option value="udp">udp</a-select-option>
+                  <a-select-option value="tcp,udp">tcp,udp</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item label="Port">
+                <a-input v-model:value="rule.port" placeholder="e.g. 80,443 or 1000-2000" />
+              </a-form-item>
+              <a-form-item label="IP / CIDR / geoip">
+                <a-select v-model:value="rule.ip" mode="tags" :token-separators="[',', ' ']"
+                  placeholder="e.g. 10.0.0.0/8, geoip:private, ext:cn.dat:cn" />
+              </a-form-item>
+              <a-form-item v-if="rule.action === 'block'" label="Block delay (ms)">
+                <a-input v-model:value="rule.blockDelay" placeholder="optional: 5000-10000" />
+              </a-form-item>
+            </template>
           </template>
 
           <!-- ============== Blackhole ============== -->
@@ -318,10 +384,7 @@ function regenerateWgKeys() {
           <!-- ============== Loopback ============== -->
           <template v-if="isLoopback">
             <a-form-item label="Inbound tag">
-              <a-auto-complete v-model:value="outbound.settings.inboundTag"
-                :options="inboundTags.map((tag) => ({ value: tag }))"
-                :filter-option="(input, option) => option.value.toLowerCase().includes(input.toLowerCase())"
-                placeholder="tag of an existing inbound to re-route into" />
+              <a-input v-model:value="outbound.settings.inboundTag" placeholder="inbound tag using in routing rules" />
             </a-form-item>
           </template>
 
@@ -967,8 +1030,7 @@ function regenerateWgKeys() {
               <a-button>Convert</a-button>
             </template>
           </a-input-search>
-          <a-textarea v-model:value="advancedJson" :auto-size="{ minRows: 14, maxRows: 30 }" spellcheck="false"
-            class="json-editor" />
+          <JsonEditor v-model:value="advancedJson" min-height="360px" max-height="600px" />
         </a-space>
       </a-tab-pane>
     </a-tabs>
@@ -1009,11 +1071,6 @@ function regenerateWgKeys() {
   gap: 8px;
   font-weight: 500;
   opacity: 0.85;
-}
-
-.json-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
 }
 
 /* AD-Vue 4 renders a-checkbox children inside a-checkbox-group as

@@ -35,15 +35,6 @@ const props = defineProps({
   isMobile: { type: Boolean, default: false },
 });
 
-const inboundTagOptions = computed(() => {
-  const out = new Set();
-  for (const ib of props.templateSettings?.inbounds || []) {
-    if (ib.tag) out.add(ib.tag);
-  }
-  for (const t of props.inboundTags || []) out.add(t);
-  return [...out];
-});
-
 const emit = defineEmits(['reset-traffic', 'test', 'test-all', 'show-warp', 'show-nord', 'delete']);
 
 const testMode = ref('tcp');
@@ -166,9 +157,9 @@ function hasBreakdown(r) {
 // === Columns ========================================================
 // Computed so titles re-render after a locale swap.
 const columns = computed(() => [
-  { title: '#', key: 'action', align: 'center', width: 70 },
-  { title: 'Tag', key: 'identity', align: 'left', width: 220 },
-  { title: t('pages.inbounds.address'), key: 'address', align: 'left', width: 230 },
+  { title: '#', key: 'action', align: 'center', width: 100 },
+  { title: 'Tag', key: 'identity', align: 'left' },
+  { title: t('pages.inbounds.address'), key: 'address', align: 'left' },
   { title: t('pages.inbounds.traffic'), key: 'traffic', align: 'left', width: 200 },
   { title: t('pages.xray.latency') !== 'pages.xray.latency' ? t('pages.xray.latency') : 'Latency', key: 'testResult', align: 'left', width: 140 },
   { title: t('check'), key: 'test', align: 'center', width: 80 },
@@ -331,33 +322,41 @@ const rows = computed(() => {
         <template v-if="column.key === 'action'">
           <div class="action-cell">
             <span class="row-index">{{ index + 1 }}</span>
-            <a-dropdown :trigger="['click']">
-              <a-button shape="circle" size="small">
-                <MoreOutlined />
-              </a-button>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item v-if="index > 0" @click="setFirst(index)">
-                    <VerticalAlignTopOutlined /> Move to top
-                  </a-menu-item>
-                  <a-menu-item @click="openEdit(index)">
-                    <EditOutlined /> Edit
-                  </a-menu-item>
-                  <a-menu-item :disabled="index === 0" @click="moveUp(index)">
-                    <ArrowUpOutlined />
-                  </a-menu-item>
-                  <a-menu-item :disabled="index === rows.length - 1" @click="moveDown(index)">
-                    <ArrowDownOutlined />
-                  </a-menu-item>
-                  <a-menu-item @click="emit('reset-traffic', record.tag || '')">
-                    <RetweetOutlined /> Reset traffic
-                  </a-menu-item>
-                  <a-menu-item class="danger" @click="confirmDelete(index)">
-                    <DeleteOutlined /> Delete
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
+
+            <div class="action-buttons">
+              <a-button shape="circle" size="small" @click="openEdit(index)">
+                <template #icon>
+                    <EditOutlined />
+                  </template>
+                </a-button>
+
+              <a-dropdown :trigger="['click']">
+                <a-button shape="circle" size="small">
+                  <template #icon>
+                    <MoreOutlined />
+                  </template>
+                </a-button>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item v-if="index > 0" @click="setFirst(index)">
+                      <VerticalAlignTopOutlined /> Move to top
+                    </a-menu-item>
+                    <a-menu-item :disabled="index === 0" @click="moveUp(index)">
+                      <ArrowUpOutlined />
+                    </a-menu-item>
+                    <a-menu-item :disabled="index === rows.length - 1" @click="moveDown(index)">
+                      <ArrowDownOutlined />
+                    </a-menu-item>
+                    <a-menu-item @click="emit('reset-traffic', record.tag || '')">
+                      <RetweetOutlined /> Reset traffic
+                    </a-menu-item>
+                    <a-menu-item class="danger" @click="confirmDelete(index)">
+                      <DeleteOutlined /> Delete
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
+            </div>
           </div>
         </template>
 
@@ -443,7 +442,7 @@ const rows = computed(() => {
     </a-table>
 
     <OutboundFormModal v-model:open="modalOpen" :outbound="editingOutbound" :existing-tags="existingTags"
-      :inbound-tags="inboundTagOptions" @confirm="onConfirm" />
+      @confirm="onConfirm" />
   </a-space>
 </template>
 
@@ -451,6 +450,11 @@ const rows = computed(() => {
 .toolbar-right {
   display: flex;
   justify-content: flex-end;
+}
+
+.toolbar-right :global(.ant-space),
+.header-actions :global(.ant-space) {
+  margin-bottom: 0 !important;
 }
 
 .card-empty {
@@ -533,6 +537,14 @@ const rows = computed(() => {
   opacity: 0.7;
   min-width: 18px;
   text-align: right;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-left: auto;
 }
 
 .identity-cell {

@@ -8,15 +8,16 @@ import {
   antdThemeConfig,
   currentTheme,
   theme as themeState,
+  toggleTheme,
+  toggleUltra,
+  pauseAnimationsUntilLeave,
 } from '@/composables/useTheme.js';
-import ThemeSwitchLogin from '@/components/ThemeSwitchLogin.vue';
 
 const { t } = useI18n();
 
 const fetched = ref(false);
 const submitting = ref(false);
 const twoFactorEnable = ref(false);
-const version = computed(() => window.X_UI_CUR_VER || '');
 
 const user = reactive({
   username: '',
@@ -61,21 +62,54 @@ const lang = ref(LanguageManager.getLanguage());
 function onLangChange(next) {
   LanguageManager.setLanguage(next);
 }
+
+/* Same Light -> Dark -> Ultra Dark -> Light cycle the sidebar's brand
+ * button uses, so the login chrome offers a one-click theme toggle
+ * without the popover ceremony. */
+function cycleTheme() {
+  pauseAnimationsUntilLeave('login-theme-cycle');
+  if (!themeState.isDark) {
+    toggleTheme();
+    if (themeState.isUltra) toggleUltra();
+  } else if (!themeState.isUltra) {
+    toggleUltra();
+  } else {
+    toggleUltra();
+    toggleTheme();
+  }
+}
 </script>
 
 <template>
   <a-config-provider :theme="antdThemeConfig">
     <a-layout class="login-app" :class="{ 'is-dark': themeState.isDark, 'is-ultra': themeState.isUltra }">
       <a-layout-content class="login-content">
-        <!-- Floating settings (theme switcher + language picker) sits in
-             the viewport's top-right corner so the card stays uncluttered. -->
+        <!-- Floating chrome at top-right: theme cycle (Light/Dark/Ultra)
+             plus a language picker hidden behind the gear popover. -->
         <div class="login-toolbar">
-          <a-popover :overlay-class-name="currentTheme" :title="t('menu.settings')" placement="bottomRight"
+          <button type="button" class="theme-cycle" :aria-label="t('menu.theme')" :title="t('menu.theme')"
+            @click="cycleTheme">
+            <svg v-if="!themeState.isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+            <svg v-else-if="!themeState.isUltra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              <path fill="none" d="M19 3l0.7 1.4 1.4 0.7-1.4 0.7L19 7.2l-0.7-1.4-1.4-0.7 1.4-0.7z" />
+            </svg>
+          </button>
+
+          <a-popover :overlay-class-name="currentTheme" :title="t('pages.settings.language')" placement="bottomRight"
             trigger="click">
             <template #content>
               <a-space direction="vertical" :size="10" class="settings-popover">
-                <ThemeSwitchLogin />
-                <span>{{ t('pages.settings.language') }}</span>
                 <a-select v-model:value="lang" class="lang-select" @change="onLangChange">
                   <a-select-option v-for="l in LanguageManager.supportedLanguages" :key="l.value" :value="l.value">
                     <span :aria-label="l.name">{{ l.icon }}</span>
@@ -143,7 +177,6 @@ function onLangChange(next) {
               </a-form-item>
             </a-form>
 
-            <div v-if="version" class="version">v{{ version }}</div>
           </div>
         </div>
       </a-layout-content>
@@ -243,24 +276,49 @@ function onLangChange(next) {
 }
 
 @keyframes blob-drift-a {
-  0%   { transform: translate(0, 0) scale(1); }
-  50%  { transform: translate(18vw, 10vh) scale(1.15); }
-  100% { transform: translate(34vw, 22vh) scale(1.25); }
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(18vw, 10vh) scale(1.15);
+  }
+
+  100% {
+    transform: translate(34vw, 22vh) scale(1.25);
+  }
 }
 
 @keyframes blob-drift-b {
-  0%   { transform: translate(0, 0) scale(1); }
-  50%  { transform: translate(-16vw, -10vh) scale(1.12); }
-  100% { transform: translate(-30vw, -22vh) scale(1.2); }
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(-16vw, -10vh) scale(1.12);
+  }
+
+  100% {
+    transform: translate(-30vw, -22vh) scale(1.2);
+  }
 }
 
 @keyframes blob-drift-c {
-  0%   { transform: translate(-50%, -50%) scale(1); }
-  50%  { transform: translate(-20%, -20%) scale(1.1); }
-  100% { transform: translate(-80%, -10%) scale(1.05); }
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    transform: translate(-20%, -20%) scale(1.1);
+  }
+
+  100% {
+    transform: translate(-80%, -10%) scale(1.05);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .login-app::before,
   .login-app::after,
   .login-content::before {
@@ -276,7 +334,7 @@ function onLangChange(next) {
   position: relative;
 }
 
-.login-content > * {
+.login-content>* {
   position: relative;
   z-index: 1;
 }
@@ -286,11 +344,42 @@ function onLangChange(next) {
   top: 16px;
   right: 16px;
   z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .toolbar-btn {
   width: 40px;
   height: 40px;
+}
+
+.theme-cycle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--bg-card);
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.2s, transform 0.15s, color 0.2s;
+}
+
+.theme-cycle:hover,
+.theme-cycle:focus-visible {
+  background-color: rgba(64, 150, 255, 0.1);
+  color: #4096ff;
+  transform: scale(1.05);
+  outline: none;
+}
+
+.theme-cycle svg {
+  width: 18px;
+  height: 18px;
 }
 
 .login-wrapper {
@@ -364,10 +453,12 @@ function onLangChange(next) {
 .headline-leave-active {
   transition: opacity 280ms ease, transform 280ms ease;
 }
+
 .headline-enter-from {
   opacity: 0;
   transform: translateY(6px);
 }
+
 .headline-leave-to {
   opacity: 0;
   transform: translateY(-6px);
@@ -380,13 +471,6 @@ function onLangChange(next) {
 
 .submit-row {
   margin-bottom: 0;
-}
-
-.version {
-  text-align: center;
-  font-size: 12px;
-  color: var(--color-text-subtle);
-  margin-top: 16px;
 }
 
 .settings-popover {

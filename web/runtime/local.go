@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
@@ -78,6 +79,54 @@ func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) e
 	})
 }
 
+func (l *Local) AddClient(ctx context.Context, ib *model.Inbound, client model.Client) error {
+	if !client.Enable {
+		return nil
+	}
+	user := map[string]any{
+		"email":    client.Email,
+		"id":       client.ID,
+		"security": client.Security,
+		"flow":     client.Flow,
+		"auth":     client.Auth,
+		"password": client.Password,
+	}
+	return l.AddUser(ctx, ib, user)
+}
+
+func (l *Local) DeleteUser(ctx context.Context, ib *model.Inbound, email string) error {
+	if email == "" {
+		return nil
+	}
+	if err := l.RemoveUser(ctx, ib, email); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail string, payload model.Client) error {
+	if oldEmail != "" {
+		if err := l.RemoveUser(ctx, ib, oldEmail); err != nil && !strings.Contains(err.Error(), "not found") {
+			return err
+		}
+	}
+	if !payload.Enable {
+		return nil
+	}
+	user := map[string]any{
+		"email":    payload.Email,
+		"id":       payload.ID,
+		"security": payload.Security,
+		"flow":     payload.Flow,
+		"auth":     payload.Auth,
+		"password": payload.Password,
+	}
+	return l.AddUser(ctx, ib, user)
+}
+
 func (l *Local) RestartXray(_ context.Context) error {
 	if l.deps.SetNeedRestart != nil {
 		l.deps.SetNeedRestart()
@@ -86,10 +135,6 @@ func (l *Local) RestartXray(_ context.Context) error {
 }
 
 func (l *Local) ResetClientTraffic(_ context.Context, _ *model.Inbound, _ string) error {
-	return nil
-}
-
-func (l *Local) ResetInboundClientTraffics(_ context.Context, _ *model.Inbound) error {
 	return nil
 }
 

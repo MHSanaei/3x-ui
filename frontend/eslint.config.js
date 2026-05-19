@@ -19,9 +19,6 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
-        // Legacy script tags inject a couple of helpers on window before
-        // the SPA boots; declared here so no-undef stops flagging them.
-        getRandomRealityTarget: 'readonly',
       },
     },
     rules: {

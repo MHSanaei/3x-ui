@@ -98,7 +98,6 @@ watch(() => props.open, (next) => {
   }
   const open = [];
   if (subLink.value) open.push('sub');
-  if (subJsonLink.value) open.push('sub-json');
   activeKeys.value = open;
 });
 
@@ -112,7 +111,8 @@ function close() {
     <template v-if="dbInbound">
       <a-collapse v-model:active-key="activeKeys" ghost class="qr-collapse">
         <a-collapse-panel v-for="item in qrItems" :key="item.key" :header="item.header">
-          <QrPanel :value="item.value" :remark="item.header" :download-name="item.downloadName || ''" />
+          <QrPanel :value="item.value" :remark="item.header" :download-name="item.downloadName || ''"
+            :show-qr="!item.value.includes('mldsa65') && !item.value.includes('ML-KEM-768')" />
         </a-collapse-panel>
       </a-collapse>
     </template>

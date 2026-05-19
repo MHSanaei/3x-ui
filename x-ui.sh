@@ -436,7 +436,11 @@ restart() {
 }
 
 restart_xray() {
-    systemctl reload x-ui
+    if [[ $release == "alpine" ]]; then
+        rc-service x-ui reload
+    else
+        systemctl reload x-ui
+    fi
     LOGI "xray-core Restart signal sent successfully, Please check the log information to confirm whether xray restarted successfully"
     sleep 2
     show_xray_status
@@ -2088,7 +2092,7 @@ EOF
 
     cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
 [Definition]
-datepattern = ^%Y/%m/%d %H:%M:%S
+datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
 failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*Disconnecting OLD IP\s*=\s*<ADDR>\s*\|\|\s*Timestamp\s*=\s*\d+
 ignoreregex =
 EOF

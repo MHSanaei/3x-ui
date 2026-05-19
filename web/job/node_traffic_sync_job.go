@@ -20,6 +20,8 @@ const (
 type NodeTrafficSyncJob struct {
 	nodeService    service.NodeService
 	inboundService service.InboundService
+	settingService service.SettingService
+	xrayService    service.XrayService
 	running        sync.Mutex
 	structural     atomicBool
 }
@@ -41,36 +43,6 @@ func (a *atomicBool) takeAndReset() bool {
 	a.v = false
 	a.mu.Unlock()
 	return v
-}
-
-type emailSet struct {
-	mu sync.Mutex
-	m  map[string]struct{}
-}
-
-func newEmailSet() *emailSet { return &emailSet{m: make(map[string]struct{})} }
-
-func (s *emailSet) addAll(emails []string) {
-	if len(emails) == 0 {
-		return
-	}
-	s.mu.Lock()
-	for _, e := range emails {
-		if e != "" {
-			s.m[e] = struct{}{}
-		}
-	}
-	s.mu.Unlock()
-}
-
-func (s *emailSet) slice() []string {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	out := make([]string, 0, len(s.m))
-	for e := range s.m {
-		out = append(out, e)
-	}
-	return out
 }
 
 func NewNodeTrafficSyncJob() *NodeTrafficSyncJob {
@@ -97,7 +69,6 @@ func (j *NodeTrafficSyncJob) Run() {
 		return
 	}
 
-	touched := newEmailSet()
 	sem := make(chan struct{}, nodeTrafficSyncConcurrency)
 	var wg sync.WaitGroup
 	for _, n := range nodes {
@@ -109,19 +80,31 @@ func (j *NodeTrafficSyncJob) Run() {
 		go func(n *model.Node) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			j.syncOne(mgr, n, touched)
+			j.syncOne(mgr, n)
 		}(n)
 	}
 	wg.Wait()
+
+	_, clientsDisabled, err := j.inboundService.AddTraffic(nil, nil)
+	if err != nil {
+		logger.Warning("node traffic sync: depletion check failed:", err)
+	}
+	if clientsDisabled {
+		if restartOnDisable, settingErr := j.settingService.GetRestartXrayOnClientDisable(); settingErr == nil && restartOnDisable {
+			if err := j.xrayService.RestartXray(true); err != nil {
+				logger.Warning("node traffic sync: restart xray after disabling clients failed:", err)
+				j.xrayService.SetToNeedRestart()
+			}
+		} else if settingErr != nil {
+			logger.Warning("node traffic sync: get RestartXrayOnClientDisable failed:", settingErr)
+		}
+		j.structural.set()
+	}
 
 	if !websocket.HasClients() {
 		return
 	}
 
-	online := j.inboundService.GetOnlineClients()
-	if online == nil {
-		online = []string{}
-	}
 	lastOnline, err := j.inboundService.GetClientsLastOnline()
 	if err != nil {
 		logger.Warning("node traffic sync: get last-online failed:", err)
@@ -129,18 +112,23 @@ func (j *NodeTrafficSyncJob) Run() {
 	if lastOnline == nil {
 		lastOnline = map[string]int64{}
 	}
+
+	j.inboundService.RefreshOnlineClientsFromMap(lastOnline)
+
+	online := j.inboundService.GetOnlineClients()
+	if online == nil {
+		online = []string{}
+	}
 	websocket.BroadcastTraffic(map[string]any{
 		"onlineClients": online,
 		"lastOnlineMap": lastOnline,
 	})
 
 	clientStats := map[string]any{}
-	if emails := touched.slice(); len(emails) > 0 {
-		if stats, err := j.inboundService.GetActiveClientTraffics(emails); err != nil {
-			logger.Warning("node traffic sync: get client traffics for websocket failed:", err)
-		} else if len(stats) > 0 {
-			clientStats["clients"] = stats
-		}
+	if stats, err := j.inboundService.GetAllClientTraffics(); err != nil {
+		logger.Warning("node traffic sync: get all client traffics for websocket failed:", err)
+	} else if len(stats) > 0 {
+		clientStats["clients"] = stats
 	}
 	if summary, err := j.inboundService.GetInboundsTrafficSummary(); err != nil {
 		logger.Warning("node traffic sync: get inbounds summary for websocket failed:", err)
@@ -153,10 +141,11 @@ func (j *NodeTrafficSyncJob) Run() {
 
 	if j.structural.takeAndReset() {
 		websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
+		websocket.BroadcastInvalidate(websocket.MessageTypeClients)
 	}
 }
 
-func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, touched *emailSet) {
+func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node) {
 	ctx, cancel := context.WithTimeout(context.Background(), nodeTrafficSyncRequestTimeout)
 	defer cancel()
 
@@ -178,17 +167,5 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, touche
 	}
 	if changed {
 		j.structural.set()
-	}
-	for _, ib := range snap.Inbounds {
-		if ib == nil {
-			continue
-		}
-		emails := make([]string, 0, len(ib.ClientStats))
-		for _, cs := range ib.ClientStats {
-			if cs.Email != "" {
-				emails = append(emails, cs.Email)
-			}
-		}
-		touched.addAll(emails)
 	}
 }

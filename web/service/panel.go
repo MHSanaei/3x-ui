@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/config"
 	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/web/global"
 )
 
 // PanelService provides business logic for panel management operations.
@@ -28,15 +30,27 @@ type PanelUpdateInfo struct {
 	UpdateAvailable bool   `json:"updateAvailable"`
 }
 
+const (
+	panelUpdaterURL      = "https://raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh"
+	maxPanelUpdaterBytes = 2 << 20
+)
+
 func (s *PanelService) RestartPanel(delay time.Duration) error {
-	p, err := os.FindProcess(syscall.Getpid())
-	if err != nil {
-		return err
-	}
 	go func() {
 		time.Sleep(delay)
-		err := p.Signal(syscall.SIGHUP)
+		if global.TriggerRestart() {
+			return
+		}
+		if runtime.GOOS == "windows" {
+			logger.Error("panel restart: no restart hook registered (SIGHUP unsupported on Windows)")
+			return
+		}
+		p, err := os.FindProcess(syscall.Getpid())
 		if err != nil {
+			logger.Error("panel restart: FindProcess failed:", err)
+			return
+		}
+		if err := p.Signal(syscall.SIGHUP); err != nil {
 			logger.Error("failed to send SIGHUP signal:", err)
 		}
 	}()
@@ -67,13 +81,14 @@ func (s *PanelService) StartUpdate() error {
 	if err != nil {
 		return fmt.Errorf("bash is required to run the panel updater: %w", err)
 	}
-	curl, err := exec.LookPath("curl")
+
+	scriptPath, err := downloadPanelUpdater()
 	if err != nil {
-		return fmt.Errorf("curl is required to download the panel updater: %w", err)
+		return err
 	}
 
 	mainFolder, serviceFolder := resolveUpdateFolders()
-	updateScript := fmt.Sprintf("set -o pipefail; %s -fLs https://raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh | %s", shellQuote(curl), shellQuote(bash))
+	updateScript := fmt.Sprintf("set -e; trap 'rm -f %s' EXIT; %s %s", shellQuote(scriptPath), shellQuote(bash), shellQuote(scriptPath))
 
 	if systemdRun, err := exec.LookPath("systemd-run"); err == nil {
 		unitName := fmt.Sprintf("x-ui-web-update-%d", time.Now().Unix())
@@ -88,6 +103,7 @@ func (s *PanelService) StartUpdate() error {
 			output := strings.TrimSpace(string(out))
 			if !strings.Contains(output, "System has not been booted with systemd") &&
 				!strings.Contains(output, "Failed to connect to bus") {
+				_ = os.Remove(scriptPath)
 				return fmt.Errorf("failed to start panel update job: %w: %s", err, output)
 			}
 			logger.Warning("systemd-run is unavailable, falling back to detached update process:", output)
@@ -104,6 +120,7 @@ func (s *PanelService) StartUpdate() error {
 	)
 	setDetachedProcess(cmd)
 	if err := cmd.Start(); err != nil {
+		_ = os.Remove(scriptPath)
 		return fmt.Errorf("failed to start panel update job: %w", err)
 	}
 	if err := cmd.Process.Release(); err != nil {
@@ -111,6 +128,44 @@ func (s *PanelService) StartUpdate() error {
 	}
 	logger.Infof("started panel update job with pid %d", cmd.Process.Pid)
 	return nil
+}
+
+func downloadPanelUpdater() (string, error) {
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Get(panelUpdaterURL)
+	if err != nil {
+		return "", fmt.Errorf("download panel updater: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("download panel updater: unexpected HTTP %d", resp.StatusCode)
+	}
+
+	file, err := os.CreateTemp("", "3x-ui-update-*.sh")
+	if err != nil {
+		return "", err
+	}
+	path := file.Name()
+	ok := false
+	defer func() {
+		_ = file.Close()
+		if !ok {
+			_ = os.Remove(path)
+		}
+	}()
+
+	n, err := io.Copy(file, io.LimitReader(resp.Body, maxPanelUpdaterBytes+1))
+	if err != nil {
+		return "", fmt.Errorf("write panel updater: %w", err)
+	}
+	if n > maxPanelUpdaterBytes {
+		return "", fmt.Errorf("panel updater exceeds %d bytes", maxPanelUpdaterBytes)
+	}
+	if err := file.Chmod(0700); err != nil {
+		return "", err
+	}
+	ok = true
+	return path, nil
 }
 
 func fetchLatestPanelVersion() (string, error) {
@@ -166,7 +221,7 @@ func compareVersionStrings(a string, b string) (int, bool) {
 	if !okA || !okB {
 		return 0, false
 	}
-	for i := 0; i < len(aParts); i++ {
+	for i := range len(aParts) {
 		if aParts[i] > bParts[i] {
 			return 1, true
 		}

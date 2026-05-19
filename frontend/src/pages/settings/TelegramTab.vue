@@ -23,9 +23,12 @@ defineProps({
 
       <SettingListItem paddings="small">
         <template #title>{{ t('pages.settings.telegramToken') }}</template>
-        <template #description>{{ t('pages.settings.telegramTokenDesc') }}</template>
+        <template #description>
+          {{ allSetting.hasTgBotToken ? 'Configured; leave blank to keep current token.' : t('pages.settings.telegramTokenDesc') }}
+        </template>
         <template #control>
-          <a-input v-model:value="allSetting.tgBotToken" type="text" />
+          <a-input-password v-model:value="allSetting.tgBotToken"
+            :placeholder="allSetting.hasTgBotToken ? 'Configured - enter a new token to replace' : ''" />
         </template>
       </SettingListItem>
 

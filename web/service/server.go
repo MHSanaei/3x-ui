@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -70,11 +71,12 @@ type Status struct {
 		ErrorMsg string       `json:"errorMsg"`
 		Version  string       `json:"version"`
 	} `json:"xray"`
-	Uptime   uint64    `json:"uptime"`
-	Loads    []float64 `json:"loads"`
-	TcpCount int       `json:"tcpCount"`
-	UdpCount int       `json:"udpCount"`
-	NetIO    struct {
+	PanelVersion string    `json:"panelVersion"`
+	Uptime       uint64    `json:"uptime"`
+	Loads        []float64 `json:"loads"`
+	TcpCount     int       `json:"tcpCount"`
+	UdpCount     int       `json:"udpCount"`
+	NetIO        struct {
 		Up   uint64 `json:"up"`
 		Down uint64 `json:"down"`
 	} `json:"netIO"`
@@ -103,6 +105,7 @@ type Release struct {
 type ServerService struct {
 	xrayService        XrayService
 	inboundService     InboundService
+	settingService     SettingService
 	cachedIPv4         string
 	cachedIPv6         string
 	noIPv6             bool
@@ -113,6 +116,128 @@ type ServerService struct {
 	emaCPU             float64
 	cachedCpuSpeedMhz  float64
 	lastCpuInfoAttempt time.Time
+
+	lastStatusMu sync.RWMutex
+	lastStatus   *Status
+
+	versionsCacheMu sync.Mutex
+	versionsCache   *cachedXrayVersions
+}
+
+type cachedXrayVersions struct {
+	versions  []string
+	fetchedAt time.Time
+}
+
+// xrayVersionsCacheTTL bounds how often /getXrayVersion hits GitHub. The list
+// is purely informational (rendered in the "switch Xray version" picker) so a
+// quarter-hour staleness window is fine and saves the API budget.
+const xrayVersionsCacheTTL = 15 * time.Minute
+
+// allowedHistoryBuckets is the bucket-second whitelist for time-series
+// aggregation endpoints (server + node metrics). Restricting it prevents
+// callers from triggering arbitrary aggregation work and keeps the
+// frontend's bucket selector self-documenting.
+var allowedHistoryBuckets = map[int]bool{
+	2:   true, // Real-time view
+	30:  true, // 30s intervals
+	60:  true, // 1m intervals
+	120: true, // 2m intervals
+	180: true, // 3m intervals
+	300: true, // 5m intervals
+}
+
+// IsAllowedHistoryBucket reports whether a bucket-seconds value is in the
+// whitelist used by /server/history, /server/cpuHistory, /server/xrayMetricsHistory,
+// /server/xrayObservatoryHistory, and /nodes/history.
+func IsAllowedHistoryBucket(bucketSeconds int) bool {
+	return allowedHistoryBuckets[bucketSeconds]
+}
+
+// LastStatus returns the most recent Status snapshot collected by
+// RefreshStatus. Safe for concurrent readers.
+func (s *ServerService) LastStatus() *Status {
+	s.lastStatusMu.RLock()
+	defer s.lastStatusMu.RUnlock()
+	return s.lastStatus
+}
+
+// RefreshStatus collects a new system snapshot, stores it as LastStatus, and
+// appends it to the system-metrics time series. Returns the new snapshot (may
+// be nil if collection failed). Called by the background ticker; the caller is
+// responsible for any side effects (websocket broadcast, xray metrics sample).
+func (s *ServerService) RefreshStatus() *Status {
+	next := s.GetStatus(s.LastStatus())
+	if next == nil {
+		return nil
+	}
+	s.lastStatusMu.Lock()
+	s.lastStatus = next
+	s.lastStatusMu.Unlock()
+	s.AppendStatusSample(time.Now(), next)
+	return next
+}
+
+// GetXrayVersionsCached wraps GetXrayVersions with a TTL cache. On fetch
+// failure we serve the last successful list (if any) so the UI doesn't go
+// blank during a GitHub API hiccup; if there's no cache at all the underlying
+// error is surfaced.
+func (s *ServerService) GetXrayVersionsCached() ([]string, error) {
+	s.versionsCacheMu.Lock()
+	cache := s.versionsCache
+	s.versionsCacheMu.Unlock()
+	if cache != nil && time.Since(cache.fetchedAt) <= xrayVersionsCacheTTL {
+		return cache.versions, nil
+	}
+	versions, err := s.GetXrayVersions()
+	if err != nil {
+		if cache != nil {
+			logger.Warning("GetXrayVersionsCached: serving stale list:", err)
+			return cache.versions, nil
+		}
+		return nil, err
+	}
+	s.versionsCacheMu.Lock()
+	s.versionsCache = &cachedXrayVersions{versions: versions, fetchedAt: time.Now()}
+	s.versionsCacheMu.Unlock()
+	return versions, nil
+}
+
+// GetDefaultLogOutboundTags scans the default Xray config for freedom and
+// blackhole outbound tags so /getXrayLogs can colour-code log lines without
+// the controller re-doing the JSON walk. Falls back to the historical
+// "direct"/"blocked" defaults when the config can't be read.
+func (s *ServerService) GetDefaultLogOutboundTags() (freedoms, blackholes []string) {
+	config, err := s.settingService.GetDefaultXrayConfig()
+	if err == nil && config != nil {
+		if cfgMap, ok := config.(map[string]any); ok {
+			if outbounds, ok := cfgMap["outbounds"].([]any); ok {
+				for _, outbound := range outbounds {
+					obMap, ok := outbound.(map[string]any)
+					if !ok {
+						continue
+					}
+					tag, _ := obMap["tag"].(string)
+					if tag == "" {
+						continue
+					}
+					switch obMap["protocol"] {
+					case "freedom":
+						freedoms = append(freedoms, tag)
+					case "blackhole":
+						blackholes = append(blackholes, tag)
+					}
+				}
+			}
+		}
+	}
+	if len(freedoms) == 0 {
+		freedoms = []string{"direct"}
+	}
+	if len(blackholes) == 0 {
+		blackholes = []string{"blocked"}
+	}
+	return freedoms, blackholes
 }
 
 // AggregateCpuHistory returns up to maxPoints averaged buckets of size bucketSeconds.
@@ -359,6 +484,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Xray.ErrorMsg = s.xrayService.GetXrayResult()
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
+	status.PanelVersion = config.GetVersion()
 
 	// Application stats
 	var rtm runtime.MemStats
@@ -382,8 +508,8 @@ func (s *ServerService) AppendCpuSample(t time.Time, v float64) {
 
 // AppendStatusSample writes one tick of every metric we keep — CPU, memory
 // percent, network throughput (bytes/s), online client count, and the three
-// load averages. Called by ServerController.refreshStatus on the same @2s
-// cadence as AppendCpuSample, so all series stay aligned.
+// load averages. Called by RefreshStatus on the same @2s cadence as
+// AppendCpuSample, so all series stay aligned.
 func (s *ServerService) AppendStatusSample(t time.Time, status *Status) {
 	if status == nil {
 		return
@@ -493,6 +619,11 @@ func (s *ServerService) sampleCPUUtilization() (float64, error) {
 
 var xrayVersionsClient = &http.Client{Timeout: 10 * time.Second}
 
+const (
+	maxXrayArchiveBytes = 200 << 20
+	maxXrayBinaryBytes  = 200 << 20
+)
+
 func (s *ServerService) GetXrayVersions() ([]string, error) {
 	const (
 		XrayURL    = "https://api.github.com/repos/XTLS/Xray-core/releases"
@@ -601,28 +732,53 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 
 	fileName := fmt.Sprintf("Xray-%s-%s.zip", osName, arch)
 	url := fmt.Sprintf("https://github.com/XTLS/Xray-core/releases/download/%s/%s", version, fileName)
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("download xray: unexpected HTTP %d", resp.StatusCode)
+	}
+	if resp.ContentLength > maxXrayArchiveBytes {
+		return "", fmt.Errorf("download xray: archive exceeds %d bytes", maxXrayArchiveBytes)
+	}
 
-	os.Remove(fileName)
-	file, err := os.Create(fileName)
+	file, err := os.CreateTemp("", "xray-*.zip")
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	path := file.Name()
+	ok := false
+	defer func() {
+		_ = file.Close()
+		if !ok {
+			_ = os.Remove(path)
+		}
+	}()
 
-	_, err = io.Copy(file, resp.Body)
+	n, err := io.Copy(file, io.LimitReader(resp.Body, maxXrayArchiveBytes+1))
 	if err != nil {
 		return "", err
 	}
+	if n > maxXrayArchiveBytes {
+		return "", fmt.Errorf("download xray: archive exceeds %d bytes", maxXrayArchiveBytes)
+	}
 
-	return fileName, nil
+	ok = true
+	return path, nil
 }
 
 func (s *ServerService) UpdateXray(version string) error {
+	versions, err := s.GetXrayVersions()
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(versions, version) {
+		return fmt.Errorf("xray version %q is not in the fetched release list", version)
+	}
+
 	// 1. Stop xray before doing anything
 	if err := s.StopXrayService(); err != nil {
 		logger.Warning("failed to stop xray before update:", err)
@@ -657,15 +813,42 @@ func (s *ServerService) UpdateXray(version string) error {
 			return err
 		}
 		defer zipFile.Close()
-		os.MkdirAll(filepath.Dir(fileName), 0755)
-		os.Remove(fileName)
-		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
+		if err := os.MkdirAll(filepath.Dir(fileName), 0755); err != nil {
+			return err
+		}
+		tmpFile, err := os.CreateTemp(filepath.Dir(fileName), ".xray-*")
 		if err != nil {
 			return err
 		}
-		defer file.Close()
-		_, err = io.Copy(file, zipFile)
-		return err
+		tmpPath := tmpFile.Name()
+		ok := false
+		defer func() {
+			_ = tmpFile.Close()
+			if !ok {
+				_ = os.Remove(tmpPath)
+			}
+		}()
+		n, err := io.Copy(tmpFile, io.LimitReader(zipFile, maxXrayBinaryBytes+1))
+		if err != nil {
+			return err
+		}
+		if n > maxXrayBinaryBytes {
+			return fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
+		}
+		if err := tmpFile.Chmod(0755); err != nil {
+			return err
+		}
+		if err := tmpFile.Close(); err != nil {
+			return err
+		}
+		if runtime.GOOS == "windows" {
+			_ = os.Remove(fileName)
+		}
+		if err := os.Rename(tmpPath, fileName); err != nil {
+			return err
+		}
+		ok = true
+		return nil
 	}
 
 	// 4. Extract correct binary
@@ -1275,7 +1458,13 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 		return nil, err
 	}
 
-	lines := strings.Split(out.String(), "\n")
+	return map[string]any{
+		"auths": parseVlessEncAuths(out.String()),
+	}, nil
+}
+
+func parseVlessEncAuths(output string) []map[string]string {
+	lines := strings.Split(output, "\n")
 	var auths []map[string]string
 	var current map[string]string
 
@@ -1285,14 +1474,18 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 			if current != nil {
 				auths = append(auths, current)
 			}
+			label := strings.TrimSpace(strings.TrimPrefix(line, "Authentication:"))
 			current = map[string]string{
-				"label": strings.TrimSpace(strings.TrimPrefix(line, "Authentication:")),
+				"id":    vlessEncAuthID(label),
+				"label": label,
 			}
 		} else if strings.HasPrefix(line, `"decryption"`) || strings.HasPrefix(line, `"encryption"`) {
 			parts := strings.SplitN(line, ":", 2)
 			if len(parts) == 2 && current != nil {
 				key := strings.Trim(parts[0], `" `)
-				val := strings.Trim(parts[1], `" `)
+				val := strings.TrimSpace(parts[1])
+				val = strings.TrimSuffix(val, ",")
+				val = strings.Trim(val, `" `)
 				current[key] = val
 			}
 		}
@@ -1302,9 +1495,19 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 		auths = append(auths, current)
 	}
 
-	return map[string]any{
-		"auths": auths,
-	}, nil
+	return auths
+}
+
+func vlessEncAuthID(label string) string {
+	normalized := strings.NewReplacer("-", "", "_", "", " ", "").Replace(strings.ToLower(label))
+	switch {
+	case strings.Contains(normalized, "mlkem768"):
+		return "mlkem768"
+	case strings.Contains(normalized, "x25519"):
+		return "x25519"
+	default:
+		return normalized
+	}
 }
 
 func (s *ServerService) GetNewUUID() (map[string]string, error) {

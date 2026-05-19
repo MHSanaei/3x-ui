@@ -70,6 +70,20 @@
       "problemMatcher": [
         "$go"
       ]
+    },
+    {
+      "label": "go: fmt",
+      "type": "shell",
+      "command": "gofmt",
+      "args": [
+        "-l",
+        "-w",
+        "."
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }

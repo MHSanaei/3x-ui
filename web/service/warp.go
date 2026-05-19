@@ -152,13 +152,8 @@ func (s *WarpService) SetWarpLicense(license string) (string, error) {
 	if err := json.Unmarshal(body, &response); err != nil {
 		return "", err
 	}
-	if success, _ := response["success"].(bool); !success {
-		if errorArr, ok := response["errors"].([]any); ok && len(errorArr) > 0 {
-			if errorObj, ok := errorArr[0].(map[string]any); ok {
-				return "", common.NewError(errorObj["code"], errorObj["message"])
-			}
-		}
-		return "", common.NewError("warp set license failed: unknown error")
+	if _, ok := response["id"].(string); !ok {
+		return "", common.NewErrorf("warp set license failed: unexpected response: %s", string(body))
 	}
 
 	warpData["license_key"] = license
@@ -202,8 +197,26 @@ func doWarpRequest(req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := parseWarpError(body); msg != "" {
+			return nil, common.NewError(msg)
+		}
 		return nil, common.NewErrorf("warp api %s %s returned status %d: %s",
 			req.Method, req.URL.Path, resp.StatusCode, string(body))
 	}
 	return body, nil
+}
+
+func parseWarpError(body []byte) string {
+	var env struct {
+		Errors []struct {
+			Message string `json:"message"`
+		} `json:"errors"`
+	}
+	if err := json.Unmarshal(body, &env); err != nil {
+		return ""
+	}
+	if len(env.Errors) == 0 || env.Errors[0].Message == "" {
+		return ""
+	}
+	return env.Errors[0].Message
 }

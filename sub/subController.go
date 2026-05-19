@@ -10,11 +10,22 @@ import (
 	"strconv"
 	"strings"
 
-	webpkg "github.com/mhsanaei/3x-ui/v3/web"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 
 	"github.com/gin-gonic/gin"
 )
+
+// writeSubError translates a service-layer result into an HTTP response.
+// A nil error with no rows means the subId doesn't match anything (deleted
+// client, never-existed id) and becomes 404. A real error becomes 500. No
+// body — VPN clients only look at the status.
+func writeSubError(c *gin.Context, err error) {
+	if err == nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	c.Status(http.StatusInternalServerError)
+}
 
 // SUBController handles HTTP requests for subscription links and JSON configurations.
 type SUBController struct {
@@ -106,7 +117,7 @@ func (a *SUBController) subs(c *gin.Context) {
 	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
 	subs, lastOnline, traffic, err := a.subService.GetSubs(subId, host)
 	if err != nil || len(subs) == 0 {
-		c.String(400, "Error!")
+		writeSubError(c, err)
 	} else {
 		result := ""
 		for _, sub := range subs {
@@ -159,8 +170,7 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 	if diskBody, diskErr := os.ReadFile("web/dist/subpage.html"); diskErr == nil {
 		body = diskBody
 	} else {
-		dist := webpkg.EmbeddedDist()
-		readBody, err := dist.ReadFile("dist/subpage.html")
+		readBody, err := distFS.ReadFile("dist/subpage.html")
 		if err != nil {
 			c.String(http.StatusInternalServerError, "missing embedded subpage")
 			return
@@ -242,7 +252,7 @@ func (a *SUBController) subJsons(c *gin.Context) {
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	jsonSub, header, err := a.subJsonService.GetJson(subId, host)
 	if err != nil || len(jsonSub) == 0 {
-		c.String(400, "Error!")
+		writeSubError(c, err)
 	} else {
 		profileUrl := a.subProfileUrl
 		if profileUrl == "" {
@@ -259,7 +269,7 @@ func (a *SUBController) subClashs(c *gin.Context) {
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	clashSub, header, err := a.subClashService.GetClash(subId, host)
 	if err != nil || len(clashSub) == 0 {
-		c.String(400, "Error!")
+		writeSubError(c, err)
 	} else {
 		profileUrl := a.subProfileUrl
 		if profileUrl == "" {

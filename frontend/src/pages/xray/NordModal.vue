@@ -222,6 +222,12 @@ function resetOutbound() {
 }
 
 function close() { emit('update:open', false); }
+
+function loadColor(load) {
+  if (load < 30) return 'green';
+  if (load < 70) return 'orange';
+  return 'red';
+}
 </script>
 
 <template>
@@ -299,9 +305,13 @@ function close() { emit('update:open', false); }
         </a-form-item>
 
         <a-form-item v-if="filteredServers.length > 0" label="Server">
-          <a-select v-model:value="serverId">
-            <a-select-option v-for="s in filteredServers" :key="s.id" :value="s.id">
-              {{ s.cityName }} - {{ s.name }} (load: {{ s.load }}%)
+          <a-select v-model:value="serverId" show-search option-filter-prop="label">
+            <a-select-option v-for="s in filteredServers" :key="s.id" :value="s.id"
+              :label="`${s.cityName} ${s.name} ${s.hostname}`">
+              <span class="server-row">
+                <span class="server-name">{{ s.cityName }} - {{ s.name }}</span>
+                <a-tag :color="loadColor(s.load)" class="server-load-tag">{{ s.load }}%</a-tag>
+              </span>
             </a-select-option>
           </a-select>
         </a-form-item>
@@ -375,5 +385,23 @@ function close() { emit('update:open', false); }
 
 .ml-8 {
   margin-left: 8px;
+}
+
+.server-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.server-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.server-load-tag {
+  margin-right: 0;
+  flex-shrink: 0;
 }
 </style>

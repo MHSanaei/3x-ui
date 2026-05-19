@@ -2,9 +2,31 @@ name: "CodeQL Advanced"
 
 on:
   push:
+    branches:
+      - main
     tags-ignore:
       - "v*"
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - "**.js"
+      - "**.mjs"
+      - "**.cjs"
+      - "**.ts"
+      - "**.vue"
+      - "frontend/package-lock.json"
   pull_request:
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - "**.js"
+      - "**.mjs"
+      - "**.cjs"
+      - "**.ts"
+      - "**.vue"
+      - "frontend/package-lock.json"
   schedule:
     - cron: "18 2 * * 2"
 
@@ -35,9 +57,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      # The Go binary embeds web/dist/ via //go:embed all:dist (web/web.go).
-      # web/dist/ is .gitignored, so CodeQL's autobuild for Go will fail with
-      # "pattern all:dist: no matching files found" unless vite emits it first.
       - name: Setup Node.js
         if: matrix.language == 'go'
         uses: actions/setup-node@v6

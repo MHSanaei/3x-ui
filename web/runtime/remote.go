@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/util/netsafe"
 )
 
 const remoteHTTPTimeout = 10 * time.Second
@@ -25,6 +27,7 @@ var remoteHTTPClient = &http.Client{
 		MaxIdleConns:        64,
 		MaxIdleConnsPerHost: 4,
 		IdleConnTimeout:     60 * time.Second,
+		DialContext:         netsafe.SSRFGuardedDialContext,
 	},
 }
 
@@ -50,7 +53,18 @@ func NewRemote(n *model.Node) *Remote {
 
 func (r *Remote) Name() string { return "node:" + r.node.Name }
 
-func (r *Remote) baseURL() string {
+func (r *Remote) baseURL() (string, error) {
+	addr, err := netsafe.NormalizeHost(r.node.Address)
+	if err != nil {
+		return "", err
+	}
+	scheme := r.node.Scheme
+	if scheme != "http" && scheme != "https" {
+		scheme = "https"
+	}
+	if r.node.Port <= 0 || r.node.Port > 65535 {
+		return "", fmt.Errorf("invalid node port %d", r.node.Port)
+	}
 	bp := r.node.BasePath
 	if bp == "" {
 		bp = "/"
@@ -58,7 +72,12 @@ func (r *Remote) baseURL() string {
 	if !strings.HasSuffix(bp, "/") {
 		bp += "/"
 	}
-	return fmt.Sprintf("%s://%s:%d%s", r.node.Scheme, r.node.Address, r.node.Port, bp)
+	u := &url.URL{
+		Scheme: scheme,
+		Host:   net.JoinHostPort(addr, strconv.Itoa(r.node.Port)),
+		Path:   bp,
+	}
+	return u.String(), nil
 }
 
 func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelope, error) {
@@ -66,7 +85,11 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 		return nil, errors.New("node has no API token configured")
 	}
 
-	target := r.baseURL() + strings.TrimPrefix(path, "/")
+	base, err := r.baseURL()
+	if err != nil {
+		return nil, err
+	}
+	target := base + strings.TrimPrefix(path, "/")
 
 	var (
 		reqBody     io.Reader
@@ -78,15 +101,15 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 		reqBody = strings.NewReader(b.Encode())
 		contentType = "application/x-www-form-urlencoded"
 	default:
-		buf, err := json.Marshal(b)
-		if err != nil {
-			return nil, fmt.Errorf("marshal body: %w", err)
+		buf, jerr := json.Marshal(b)
+		if jerr != nil {
+			return nil, fmt.Errorf("marshal body: %w", jerr)
 		}
 		reqBody = bytes.NewReader(buf)
 		contentType = "application/json"
 	}
 
-	cctx, cancel := context.WithTimeout(ctx, remoteHTTPTimeout)
+	cctx, cancel := context.WithTimeout(netsafe.ContextWithAllowPrivate(ctx, r.node.AllowPrivateAddress), remoteHTTPTimeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(cctx, method, target, reqBody)
 	if err != nil {
@@ -234,31 +257,58 @@ func (r *Remote) RemoveUser(ctx context.Context, ib *model.Inbound, _ string) er
 	return r.UpdateInbound(ctx, ib, ib)
 }
 
+func (r *Remote) AddClient(ctx context.Context, ib *model.Inbound, client model.Client) error {
+	id, err := r.resolveRemoteID(ctx, ib.Tag)
+	if err != nil {
+		return fmt.Errorf("remote AddClient: resolve tag %q: %w", ib.Tag, err)
+	}
+	payload := map[string]any{
+		"client":     client,
+		"inboundIds": []int{id},
+	}
+	if _, err := r.do(ctx, http.MethodPost, "panel/api/clients/add", payload); err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteUser is idempotent: master's per-inbound Delete loop may call it
+// multiple times for the same node, and "not found" on the follow-ups is
+// the expected success path.
+func (r *Remote) DeleteUser(ctx context.Context, _ *model.Inbound, email string) error {
+	if email == "" {
+		return nil
+	}
+	_, err := r.do(ctx, http.MethodPost,
+		"panel/api/clients/del/"+url.PathEscape(email), nil)
+	if err == nil {
+		return nil
+	}
+	if strings.Contains(strings.ToLower(err.Error()), "not found") {
+		return nil
+	}
+	return err
+}
+
+func (r *Remote) UpdateUser(ctx context.Context, _ *model.Inbound, oldEmail string, payload model.Client) error {
+	if oldEmail == "" {
+		oldEmail = payload.Email
+	}
+	if _, err := r.do(ctx, http.MethodPost,
+		"panel/api/clients/update/"+url.PathEscape(oldEmail), payload); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *Remote) RestartXray(ctx context.Context) error {
 	_, err := r.do(ctx, http.MethodPost, "panel/api/server/restartXrayService", nil)
 	return err
 }
 
-func (r *Remote) ResetClientTraffic(ctx context.Context, ib *model.Inbound, email string) error {
-	id, err := r.resolveRemoteID(ctx, ib.Tag)
-	if err != nil {
-		logger.Warning("remote ResetClientTraffic: tag", ib.Tag, "not found on", r.node.Name)
-		return nil
-	}
-	_, err = r.do(ctx, http.MethodPost,
-		fmt.Sprintf("panel/api/inbounds/%d/resetClientTraffic/%s", id, url.PathEscape(email)),
-		nil)
-	return err
-}
-
-func (r *Remote) ResetInboundClientTraffics(ctx context.Context, ib *model.Inbound) error {
-	id, err := r.resolveRemoteID(ctx, ib.Tag)
-	if err != nil {
-		logger.Warning("remote ResetInboundClientTraffics: tag", ib.Tag, "not found on", r.node.Name)
-		return nil
-	}
-	_, err = r.do(ctx, http.MethodPost,
-		fmt.Sprintf("panel/api/inbounds/resetAllClientTraffics/%d", id), nil)
+func (r *Remote) ResetClientTraffic(ctx context.Context, _ *model.Inbound, email string) error {
+	_, err := r.do(ctx, http.MethodPost,
+		"panel/api/clients/resetTraffic/"+url.PathEscape(email), nil)
 	return err
 }
 
@@ -284,14 +334,14 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 		return nil, fmt.Errorf("decode inbound list: %w", err)
 	}
 
-	envOnlines, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/onlines", nil)
+	envOnlines, err := r.do(ctx, http.MethodPost, "panel/api/clients/onlines", nil)
 	if err != nil {
 		logger.Warning("remote", r.node.Name, "onlines fetch failed:", err)
 	} else if len(envOnlines.Obj) > 0 {
 		_ = json.Unmarshal(envOnlines.Obj, &snap.OnlineEmails)
 	}
 
-	envLastOnline, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/lastOnline", nil)
+	envLastOnline, err := r.do(ctx, http.MethodPost, "panel/api/clients/lastOnline", nil)
 	if err != nil {
 		logger.Warning("remote", r.node.Name, "lastOnline fetch failed:", err)
 	} else if len(envLastOnline.Obj) > 0 {
@@ -311,11 +361,79 @@ func wireInbound(ib *model.Inbound) url.Values {
 	v.Set("port", strconv.Itoa(ib.Port))
 	v.Set("protocol", string(ib.Protocol))
 	v.Set("settings", ib.Settings)
-	v.Set("streamSettings", ib.StreamSettings)
+	v.Set("streamSettings", sanitizeStreamSettingsForRemote(ib.StreamSettings))
 	v.Set("tag", ib.Tag)
 	v.Set("sniffing", ib.Sniffing)
 	if ib.TrafficReset != "" {
 		v.Set("trafficReset", ib.TrafficReset)
 	}
 	return v
+}
+
+// sanitizeStreamSettingsForRemote strips file-based TLS certificate paths
+// from the StreamSettings before sending to a remote node, but ONLY when
+// inline certificate content (certificate / key) is also present in the same
+// entry.  In that case the file paths are redundant and stripping them avoids
+// confusion when the central panel's local paths don't exist on the remote.
+//
+// When a certificate entry contains ONLY file paths (no inline content) the
+// paths are left untouched: the user explicitly entered paths that exist on
+// the remote node's filesystem, and removing them would leave Xray with TLS
+// configured but no certificate, causing Xray to crash on the remote node.
+func sanitizeStreamSettingsForRemote(streamSettings string) string {
+	if streamSettings == "" {
+		return streamSettings
+	}
+
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return streamSettings
+	}
+
+	tlsSettings, ok := stream["tlsSettings"].(map[string]any)
+	if !ok {
+		return streamSettings
+	}
+
+	certificates, ok := tlsSettings["certificates"].([]any)
+	if !ok {
+		return streamSettings
+	}
+
+	changed := false
+	for _, cert := range certificates {
+		c, ok := cert.(map[string]any)
+		if !ok {
+			continue
+		}
+		// Only strip file paths when inline content is present so that the
+		// remote Xray still has a valid certificate to use.
+		hasCertFile := c["certificateFile"] != nil && c["certificateFile"] != ""
+		hasKeyFile := c["keyFile"] != nil && c["keyFile"] != ""
+		hasCertInline := isNonEmptySlice(c["certificate"])
+		hasKeyInline := isNonEmptySlice(c["key"])
+		if hasCertFile && hasCertInline {
+			delete(c, "certificateFile")
+			changed = true
+		}
+		if hasKeyFile && hasKeyInline {
+			delete(c, "keyFile")
+			changed = true
+		}
+	}
+
+	if !changed {
+		return streamSettings
+	}
+	out, err := json.Marshal(stream)
+	if err != nil {
+		return streamSettings
+	}
+	return string(out)
+}
+
+// isNonEmptySlice reports whether v is a non-nil, non-empty JSON array value.
+func isNonEmptySlice(v any) bool {
+	s, ok := v.([]any)
+	return ok && len(s) > 0
 }

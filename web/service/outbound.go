@@ -190,7 +190,7 @@ func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundRes
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			results[i] = probeTCPEndpoint(endpoints[i], 5*time.Second)
+			results[i] = probeEndpoint(endpoints[i], 5*time.Second)
 		}(i)
 	}
 	wg.Wait()
@@ -207,7 +207,11 @@ func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundRes
 		}
 	}
 
-	out := &TestOutboundResult{Mode: "tcp", Endpoints: results}
+	mode := "tcp"
+	if endpoints[0].Network == "udp" {
+		mode = "udp"
+	}
+	out := &TestOutboundResult{Mode: mode, Endpoints: results}
 	if bestDelay >= 0 {
 		out.Success = true
 		out.Delay = bestDelay
@@ -218,6 +222,22 @@ func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundRes
 		}
 	}
 	return out, nil
+}
+
+// outboundEndpoint is a host:port plus the transport its proxy actually
+// listens on. WireGuard (and WARP, which is WireGuard) is UDP-only, so a
+// TCP dial to its peer endpoint always times out — the probe must match
+// the transport of the outbound being tested.
+type outboundEndpoint struct {
+	Address string
+	Network string
+}
+
+func probeEndpoint(ep outboundEndpoint, timeout time.Duration) TestEndpointResult {
+	if ep.Network == "udp" {
+		return probeUDPEndpoint(ep.Address, timeout)
+	}
+	return probeTCPEndpoint(ep.Address, timeout)
 }
 
 func probeTCPEndpoint(endpoint string, timeout time.Duration) TestEndpointResult {
@@ -234,18 +254,69 @@ func probeTCPEndpoint(endpoint string, timeout time.Duration) TestEndpointResult
 	return r
 }
 
-func extractOutboundEndpoints(ob map[string]any) []string {
+// probeUDPEndpoint sends a single byte and waits briefly for a reply or
+// an ICMP-driven error. WireGuard won't answer an unauthenticated byte,
+// so a read timeout is the normal "endpoint reachable" outcome; a
+// concrete error (e.g. ECONNREFUSED, "host unreachable") fails the probe.
+func probeUDPEndpoint(endpoint string, timeout time.Duration) TestEndpointResult {
+	r := TestEndpointResult{Address: endpoint}
+	start := time.Now()
+	conn, err := net.DialTimeout("udp", endpoint, timeout)
+	if err != nil {
+		r.Delay = time.Since(start).Milliseconds()
+		r.Error = err.Error()
+		return r
+	}
+	defer conn.Close()
+
+	if _, werr := conn.Write([]byte{0}); werr != nil {
+		r.Delay = time.Since(start).Milliseconds()
+		r.Error = werr.Error()
+		return r
+	}
+
+	_ = conn.SetReadDeadline(time.Now().Add(timeout))
+	buf := make([]byte, 64)
+	_, rerr := conn.Read(buf)
+	r.Delay = time.Since(start).Milliseconds()
+	if rerr != nil {
+		if nerr, ok := rerr.(net.Error); ok && nerr.Timeout() {
+			r.Success = true
+			return r
+		}
+		r.Error = rerr.Error()
+		return r
+	}
+	r.Success = true
+	return r
+}
+
+func extractOutboundEndpoints(ob map[string]any) []outboundEndpoint {
 	protocol, _ := ob["protocol"].(string)
 	settings, _ := ob["settings"].(map[string]any)
 	if settings == nil {
 		return nil
 	}
-	var out []string
+
+	// Hysteria (and hysteria2 over trojan) is QUIC/UDP. Detect it via the
+	// outer protocol or via streamSettings.network so trojan-with-hysteria2
+	// transport gets probed over UDP too. kcp and quic are also UDP-based.
+	network := "tcp"
+	if protocol == "hysteria" || protocol == "wireguard" {
+		network = "udp"
+	}
+	if stream, ok := ob["streamSettings"].(map[string]any); ok {
+		if n, _ := stream["network"].(string); n == "hysteria" || n == "kcp" || n == "quic" {
+			network = "udp"
+		}
+	}
+
+	var out []outboundEndpoint
 	addServer := func(addr any, port any) {
 		host, _ := addr.(string)
 		p := numAsInt(port)
 		if host != "" && p > 0 {
-			out = append(out, fmt.Sprintf("%s:%d", host, p))
+			out = append(out, outboundEndpoint{Address: fmt.Sprintf("%s:%d", host, p), Network: network})
 		}
 	}
 	switch protocol {
@@ -258,6 +329,8 @@ func extractOutboundEndpoints(ob map[string]any) []string {
 			}
 		}
 	case "vless":
+		addServer(settings["address"], settings["port"])
+	case "hysteria":
 		addServer(settings["address"], settings["port"])
 	case "trojan", "shadowsocks", "http", "socks":
 		if servers, ok := settings["servers"].([]any); ok {
@@ -272,7 +345,7 @@ func extractOutboundEndpoints(ob map[string]any) []string {
 			for _, p := range peers {
 				if pm, ok := p.(map[string]any); ok {
 					if ep, _ := pm["endpoint"].(string); ep != "" {
-						out = append(out, ep)
+						out = append(out, outboundEndpoint{Address: ep, Network: network})
 					}
 				}
 			}
