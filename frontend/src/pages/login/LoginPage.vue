@@ -469,6 +469,13 @@ function cycleTheme() {
   font-weight: 500;
 }
 
+.login-form :deep(input.ant-input:-webkit-autofill) {
+  -webkit-text-fill-color: var(--color-text) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-card) inset !important;
+  box-shadow: 0 0 0 1000px var(--bg-card) inset !important;
+  transition: background-color 9999s ease-in-out 0s, color 9999s ease-in-out 0s;
+}
+
 .submit-row {
   margin-bottom: 0;
 }
