@@ -748,6 +748,9 @@ export class SockoptStreamSettings extends CommonClass {
         penetrate = false,
         addressPortStrategy = Address_Port_Strategy.NONE,
         trustedXForwardedFor = [],
+        mark = 0,            
+        interfaceName = "",  
+
     ) {
         super();
         this.dialerProxy = dialerProxy;
@@ -757,6 +760,9 @@ export class SockoptStreamSettings extends CommonClass {
         this.penetrate = penetrate;
         this.addressPortStrategy = addressPortStrategy;
         this.trustedXForwardedFor = trustedXForwardedFor;
+        this.mark = mark;          
+        this.interfaceName = interfaceName; 
+
     }
 
     static fromJson(json = {}) {
@@ -768,7 +774,9 @@ export class SockoptStreamSettings extends CommonClass {
             json.tcpMptcp,
             json.penetrate,
             json.addressPortStrategy,
-            json.trustedXForwardedFor || []
+            json.trustedXForwardedFor || [],
+            json.mark ?? 0,      
+            json.interface ?? "", 
         );
     }
 
@@ -779,7 +787,9 @@ export class SockoptStreamSettings extends CommonClass {
             tcpKeepAliveInterval: this.tcpKeepAliveInterval,
             tcpMptcp: this.tcpMptcp,
             penetrate: this.penetrate,
-            addressPortStrategy: this.addressPortStrategy
+            addressPortStrategy: this.addressPortStrategy,
+            mark: this.mark, 
+            interface: this.interfaceName, 
         };
         if (this.trustedXForwardedFor && this.trustedXForwardedFor.length > 0) {
             result.trustedXForwardedFor = this.trustedXForwardedFor;

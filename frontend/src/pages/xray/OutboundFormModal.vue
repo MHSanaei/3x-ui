@@ -988,6 +988,12 @@ function regenerateWgKeys() {
               <a-form-item label="Penetrate">
                 <a-switch v-model:checked="outbound.stream.sockopt.penetrate" />
               </a-form-item>
+              <a-form-item label="Mark (fwmark)">
+                <a-input-number v-model:value="outbound.stream.sockopt.mark" :min="0" />
+              </a-form-item>
+              <a-form-item label="Interface">
+                <a-input v-model:value="outbound.stream.sockopt.interfaceName" />
+              </a-form-item>
             </template>
           </template>
 
