@@ -10,26 +10,12 @@
       "program": "${workspaceFolder}",
       "cwd": "${workspaceFolder}",
       "env": {
-        "XUI_DEBUG": "true"
+        "XUI_DEBUG": "true",
+        "XUI_DB_FOLDER": "x-ui",
+        "XUI_LOG_FOLDER": "x-ui",
+        "XUI_BIN_FOLDER": "x-ui"
       },
       "console": "integratedTerminal"
     },
-    {
-      "name": "Run 3x-ui (Debug, custom env)",
-      "type": "go",
-      "request": "launch",
-      "mode": "auto",
-      "program": "${workspaceFolder}",
-      "cwd": "${workspaceFolder}",
-      "env": {
-        // Set to true to serve assets/templates directly from disk for development
-        "XUI_DEBUG": "true",
-        // Uncomment to override DB folder location (by default uses working dir on Windows when debug)
-        // "XUI_DB_FOLDER": "${workspaceFolder}",
-        // Example: override log level (debug|info|notice|warn|error)
-        // "XUI_LOG_LEVEL": "debug"
-      },
-      "console": "integratedTerminal"
-    }
   ]
 }

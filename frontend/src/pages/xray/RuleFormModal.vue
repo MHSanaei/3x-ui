@@ -129,7 +129,7 @@ const title = computed(() =>
     : `+ ${t('pages.xray.Routings')}`,
 );
 const okText = computed(() =>
-  isEdit.value ? t('pages.client.submitEdit') : t('create'),
+  isEdit.value ? t('pages.clients.submitEdit') : t('create'),
 );
 
 const NETWORKS = ['', 'TCP', 'UDP', 'TCP,UDP'];
@@ -248,7 +248,7 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
       <a-form-item label="Outbound tag">
         <a-select v-model:value="form.outboundTag">
           <a-select-option v-for="tag in outboundTags" :key="tag || '__empty'" :value="tag">{{ tag || '(none)'
-            }}</a-select-option>
+          }}</a-select-option>
         </a-select>
       </a-form-item>
 
@@ -261,7 +261,7 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
         </template>
         <a-select v-model:value="form.balancerTag">
           <a-select-option v-for="tag in balancerTags" :key="tag || '__empty'" :value="tag">{{ tag || '(none)'
-            }}</a-select-option>
+          }}</a-select-option>
         </a-select>
       </a-form-item>
     </a-form>

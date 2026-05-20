@@ -30,7 +30,10 @@
   "outbounds": [{
       "protocol": "freedom",
       "settings": {
-        "domainStrategy": "AsIs"
+        "domainStrategy": "AsIs",
+        "finalRules": [
+          { "action": "allow", "ip": ["geoip:private"] }
+        ]
       },
       "tag": "direct"
     },

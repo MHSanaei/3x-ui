@@ -57,6 +57,11 @@ func IsDebug() bool {
 	return os.Getenv("XUI_DEBUG") == "true"
 }
 
+// IsSkipHSTS returns true if skipping HSTS mode is enabled via the XUI_SKIP_HSTS environment variable.
+func IsSkipHSTS() bool {
+	return os.Getenv("XUI_SKIP_HSTS") == "true"
+}
+
 // GetBinFolderPath returns the path to the binary folder, defaulting to "bin" if not set via XUI_BIN_FOLDER.
 func GetBinFolderPath() string {
 	binFolderPath := os.Getenv("XUI_BIN_FOLDER")
@@ -98,6 +103,22 @@ func GetDBFolderPath() string {
 // GetDBPath returns the full path to the database file.
 func GetDBPath() string {
 	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
+}
+
+// GetDBKind returns the configured database backend: "sqlite" (default) or "postgres".
+func GetDBKind() string {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv("XUI_DB_TYPE")))
+	switch v {
+	case "postgres", "postgresql", "pg":
+		return "postgres"
+	default:
+		return "sqlite"
+	}
+}
+
+// GetDBDSN returns the PostgreSQL DSN from XUI_DB_DSN. Empty for sqlite.
+func GetDBDSN() string {
+	return strings.TrimSpace(os.Getenv("XUI_DB_DSN"))
 }
 
 // GetLogFolder returns the path to the log folder based on environment variables or platform defaults.

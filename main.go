@@ -73,7 +73,13 @@ func runWebServer() {
 
 	sigCh := make(chan os.Signal, 1)
 	// Trap shutdown signals
-	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM, sys.SIGUSR1)
+	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM, sys.SIGUSR1, os.Interrupt)
+	global.SetRestartHook(func() {
+		select {
+		case sigCh <- syscall.SIGHUP:
+		default:
+		}
+	})
 	for {
 		sig := <-sigCh
 
@@ -439,6 +445,12 @@ func main() {
 
 	runCmd := flag.NewFlagSet("run", flag.ExitOnError)
 
+	migrateDbCmd := flag.NewFlagSet("migrate-db", flag.ExitOnError)
+	var migrateDsn string
+	var migrateSrc string
+	migrateDbCmd.StringVar(&migrateDsn, "dsn", "", "Destination PostgreSQL DSN (postgres://user:pass@host:port/db?sslmode=disable)")
+	migrateDbCmd.StringVar(&migrateSrc, "src", "", "Source SQLite file (defaults to the configured x-ui.db)")
+
 	settingCmd := flag.NewFlagSet("setting", flag.ExitOnError)
 	var port int
 	var username string
@@ -482,6 +494,7 @@ func main() {
 		fmt.Println("Commands:")
 		fmt.Println("    run            run web panel")
 		fmt.Println("    migrate        migrate form other/old x-ui")
+		fmt.Println("    migrate-db     copy data from the SQLite file into a PostgreSQL database")
 		fmt.Println("    setting        set settings")
 	}
 
@@ -501,6 +514,23 @@ func main() {
 		runWebServer()
 	case "migrate":
 		migrateDb()
+	case "migrate-db":
+		if err := migrateDbCmd.Parse(os.Args[2:]); err != nil {
+			fmt.Println(err)
+			return
+		}
+		src := migrateSrc
+		if src == "" {
+			src = config.GetDBPath()
+		}
+		if migrateDsn == "" {
+			fmt.Println("--dsn is required: postgres://user:pass@host:port/dbname?sslmode=disable")
+			return
+		}
+		if err := database.MigrateData(src, migrateDsn); err != nil {
+			fmt.Println("migration failed:", err)
+			os.Exit(1)
+		}
 	case "setting":
 		err := settingCmd.Parse(os.Args[2:])
 		if err != nil {

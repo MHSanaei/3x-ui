@@ -76,9 +76,16 @@ export const sections = [
       {
         method: 'GET',
         path: '/panel/api/inbounds/list',
-        summary: 'List every inbound owned by the authenticated user, including each inbound’s clientStats traffic counters.',
+        summary: 'List every inbound owned by the authenticated user, including each inbound’s clientStats traffic counters. settings, streamSettings, and sniffing are returned as nested JSON objects (no escaped strings); legacy callers that send them back as JSON-encoded strings are still accepted on write.',
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "userId": 1,\n      "up": 0,\n      "down": 0,\n      "total": 0,\n      "remark": "VLESS-443",\n      "enable": true,\n      "expiryTime": 0,\n      "listen": "",\n      "port": 443,\n      "protocol": "vless",\n      "settings": "{\\"clients\\":[...]}",\n      "streamSettings": "{...}",\n      "tag": "inbound-443",\n      "sniffing": "{...}",\n      "clientStats": [...]\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "userId": 1,\n      "up": 0,\n      "down": 0,\n      "total": 0,\n      "remark": "VLESS-443",\n      "enable": true,\n      "expiryTime": 0,\n      "listen": "",\n      "port": 443,\n      "protocol": "vless",\n      "settings": {\n        "clients": [],\n        "decryption": "none"\n      },\n      "streamSettings": {\n        "network": "tcp",\n        "security": "reality",\n        "realitySettings": { "show": false, "dest": "..." }\n      },\n      "tag": "inbound-443",\n      "sniffing": {\n        "enabled": true,\n        "destOverride": ["http", "tls"]\n      },\n      "clientStats": []\n    }\n  ]\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/inbounds/options',
+        summary: 'Lightweight picker projection of the authenticated user’s inbounds. Returns only id, remark, protocol, port, and a server-computed tlsFlowCapable flag (true for VLESS / port-fallback on TCP with tls or reality). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.',
+        response:
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "remark": "VLESS-443",\n      "protocol": "vless",\n      "port": 443,\n      "tlsFlowCapable": true\n    }\n  ]\n}',
       },
       {
         method: 'GET',
@@ -89,29 +96,11 @@ export const sections = [
         ],
       },
       {
-        method: 'GET',
-        path: '/panel/api/inbounds/getClientTraffics/:email',
-        summary: 'Traffic counters for a client identified by email.',
-        params: [
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique across the panel).' },
-        ],
-        response: '{\n  "success": true,\n  "obj": {\n    "email": "user1",\n    "up": 1048576,\n    "down": 2097152,\n    "total": 10737418240,\n    "expiryTime": 1735689600000\n  }\n}',
-      },
-      {
-        method: 'GET',
-        path: '/panel/api/inbounds/getClientTrafficsById/:id',
-        summary: 'Traffic counters for a client identified by its UUID/password.',
-        params: [
-          { name: 'id', in: 'path', type: 'string', desc: 'Client subId / UUID.' },
-        ],
-        response: '{\n  "success": true,\n  "obj": {\n    "email": "user1",\n    "up": 1048576,\n    "down": 2097152,\n    "total": 10737418240,\n    "expiryTime": 1735689600000\n  }\n}',
-      },
-      {
         method: 'POST',
         path: '/panel/api/inbounds/add',
-        summary: 'Create a new inbound. Send the full inbound payload (protocol, port, settings JSON, streamSettings JSON, sniffing JSON, remark, expiryTime, total, enable).',
+        summary: 'Create a new inbound. Send the full inbound payload (protocol, port, settings, streamSettings, sniffing, remark, expiryTime, total, enable). settings, streamSettings, and sniffing may be sent as nested JSON objects (preferred) or as JSON-encoded strings (legacy).',
         body:
-          '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": "{\\"clients\\":[{\\"id\\":\\"...\\",\\"email\\":\\"user1\\"}],\\"decryption\\":\\"none\\",\\"fallbacks\\":[]}",\n  "streamSettings": "{\\"network\\":\\"tcp\\",\\"security\\":\\"reality\\",\\"realitySettings\\":{...}}",\n  "sniffing": "{\\"enabled\\":true,\\"destOverride\\":[\\"http\\",\\"tls\\"]}"\n}',
+          '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": {\n    "clients": [{ "id": "...", "email": "user1" }],\n    "decryption": "none",\n    "fallbacks": []\n  },\n  "streamSettings": {\n    "network": "tcp",\n    "security": "reality",\n    "realitySettings": { "show": false, "dest": "..." }\n  },\n  "sniffing": {\n    "enabled": true,\n    "destOverride": ["http", "tls"]\n  }\n}',
         errorResponse:
           '{\n  "success": false,\n  "msg": "Port 443 is already in use"\n}',
       },
@@ -142,59 +131,6 @@ export const sections = [
       },
       {
         method: 'POST',
-        path: '/panel/api/inbounds/clientIps/:email',
-        summary: 'List source IPs that have connected with the given client’s credentials. Returns an array of "ip (timestamp)" strings.',
-        params: [
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/inbounds/clearClientIps/:email',
-        summary: 'Reset the recorded IP list for a client.',
-        params: [
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/inbounds/addClient',
-        summary: 'Add one or more clients to an existing inbound. The settings field is the JSON-encoded settings.clients array of the target inbound.',
-        body:
-          '{\n  "id": 1,\n  "settings": "{\\"clients\\":[{\\"id\\":\\"uuid-here\\",\\"email\\":\\"newuser\\",\\"limitIp\\":0,\\"totalGB\\":0,\\"expiryTime\\":0,\\"enable\\":true,\\"flow\\":\\"\\"}]}"\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/inbounds/:id/copyClients',
-        summary: 'Copy selected clients from one inbound into another. Useful for duplicating user lists across protocols.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Target inbound ID.' },
-          { name: 'sourceInboundId', in: 'body', type: 'number', desc: 'Inbound ID to read clients from.' },
-          { name: 'clientEmails', in: 'body', type: 'string[]', desc: 'Emails of clients to copy. Empty means all clients.' },
-          { name: 'flow', in: 'body', type: 'string', desc: 'Override the flow field on copied clients (e.g. "xtls-rprx-vision"). Empty to keep source flow.' },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/inbounds/:id/delClient/:clientId',
-        summary: 'Delete a client by its UUID/password from a specific inbound.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' },
-          { name: 'clientId', in: 'path', type: 'string', desc: 'Client UUID / password.' },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/inbounds/updateClient/:clientId',
-        summary: 'Update a single client without rewriting the whole settings JSON. Send the target inbound payload with the new client values.',
-        params: [
-          { name: 'clientId', in: 'path', type: 'string', desc: 'Client UUID / password.' },
-        ],
-        body:
-          '{\n  "id": 1,\n  "settings": "{\\"clients\\":[{\\"id\\":\\"uuid-here\\",\\"email\\":\\"user1\\",\\"limitIp\\":2,\\"totalGB\\":10737418240,\\"expiryTime\\":1735689600000,\\"enable\\":true}]}"\n}',
-      },
-      {
-        method: 'POST',
         path: '/panel/api/inbounds/:id/resetTraffic',
         summary: 'Zero out upload + download counters for a single inbound. Does not touch per-client counters.',
         params: [
@@ -203,33 +139,8 @@ export const sections = [
       },
       {
         method: 'POST',
-        path: '/panel/api/inbounds/:id/resetClientTraffic/:email',
-        summary: 'Zero out upload + download counters for one client.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' },
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
-        ],
-      },
-      {
-        method: 'POST',
         path: '/panel/api/inbounds/resetAllTraffics',
         summary: 'Reset upload + download counters on every inbound. Destructive — accounting history is lost.',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/inbounds/resetAllClientTraffics/:id',
-        summary: 'Reset traffic for every client in one inbound.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/inbounds/delDepletedClients/:id',
-        summary: 'Delete clients in this inbound whose traffic cap or expiry has elapsed. Pass id=-1 to sweep every inbound.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Inbound ID, or -1 for all inbounds.' },
-        ],
       },
       {
         method: 'POST',
@@ -240,57 +151,25 @@ export const sections = [
         ],
       },
       {
-        method: 'POST',
-        path: '/panel/api/inbounds/onlines',
-        summary: 'List the emails of currently connected clients (last seen within the heartbeat window).',
-        response: '{\n  "success": true,\n  "obj": ["user1", "user2"]\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/inbounds/lastOnline',
-        summary: 'Map of client email → last-seen unix timestamp.',
-        response: '{\n  "success": true,\n  "obj": [\n    { "email": "user1", "lastOnline": 1700000000 },\n    { "email": "user2", "lastOnline": 1699999000 }\n  ]\n}',
-      },
-      {
         method: 'GET',
-        path: '/panel/api/inbounds/getSubLinks/:subId',
-        summary:
-          'Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as /sub/<subId>, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.',
+        path: '/panel/api/inbounds/:id/fallbacks',
+        summary: 'List the fallback rules attached to a master VLESS/Trojan TCP-TLS inbound. Each rule links one child inbound (the dest) to optional SNI/ALPN/path/xver match criteria.',
         params: [
-          { name: 'subId', in: 'path', type: 'string', desc: "Subscription ID, taken from the client's subId field." },
+          { name: 'id', in: 'path', type: 'number', desc: 'Master inbound ID.' },
         ],
         response:
-          '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?security=reality&...#user1",\n    "vmess://eyJ2IjoyLC..."\n  ]\n}',
-      },
-      {
-        method: 'GET',
-        path: '/panel/api/inbounds/getClientLinks/:id/:email',
-        summary:
-          "Return the URL(s) for one client on one inbound — the same string the Copy URL button copies in the panel UI. Supported protocols: vmess, vless, trojan, shadowsocks, hysteria, hysteria2. If streamSettings.externalProxy is set, returns one URL per external proxy. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) return an empty array.",
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' },
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
-        ],
-        response:
-          '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?...#user1"\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "masterId": 10,\n      "childId": 11,\n      "name": "",\n      "alpn": "",\n      "path": "/vlws",\n      "xver": 2,\n      "sortOrder": 0\n    }\n  ]\n}',
       },
       {
         method: 'POST',
-        path: '/panel/api/inbounds/updateClientTraffic/:email',
-        summary: 'Manually adjust a client’s upload + download counters. Useful for migrations from external accounting systems.',
+        path: '/panel/api/inbounds/:id/fallbacks',
+        summary: 'Replace the entire fallback list for a master inbound. Body is JSON. Triggers an Xray restart.',
         params: [
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+          { name: 'id', in: 'path', type: 'number', desc: 'Master inbound ID.' },
+          { name: 'fallbacks', in: 'body (json)', type: 'object[]', desc: 'Array of {childId, name, alpn, path, xver, sortOrder} entries.' },
         ],
-        body: '{\n  "upload": 1073741824,\n  "download": 5368709120\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/inbounds/:id/delClientByEmail/:email',
-        summary: 'Delete a client identified by email rather than UUID.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' },
-          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
-        ],
+        body: '{\n  "fallbacks": [\n    { "childId": 11, "path": "/vlws", "xver": 2 },\n    { "childId": 12, "alpn": "h2" }\n  ]\n}',
+        response: '{\n  "success": true,\n  "msg": "Inbound updated"\n}',
       },
     ],
   },
@@ -495,6 +374,173 @@ export const sections = [
   },
 
   {
+    id: 'clients',
+    title: 'Clients',
+    description:
+      'Manage clients as first-class entities that can be attached to one or more inbounds. A single client row drives the settings.clients entry in every inbound it belongs to. Endpoints live under /panel/api/clients.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/clients/list',
+        summary: 'List every client with its attached inbound IDs and traffic record. The reverse field, if set, is returned as a nested JSON object (legacy JSON-encoded-string form is still accepted on write).',
+        response:
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "email": "alice@example.com",\n      "subId": "abcd1234",\n      "uuid": "...",\n      "totalGB": 53687091200,\n      "expiryTime": 1735689600000,\n      "enable": true,\n      "reverse": null,\n      "inboundIds": [3, 5],\n      "traffic": { "up": 1024, "down": 4096, "enable": true }\n    }\n  ]\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/get/:email',
+        summary: 'Fetch one client by email, including the inbound IDs it is attached to.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+        ],
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5]\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/add',
+        summary: 'Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets (UUID for VLESS/VMess, password for Trojan/Shadowsocks, auth for Hysteria) are generated server-side when omitted, so callers can send only the universal fields.',
+        params: [
+          { name: 'client', in: 'body (json)', type: 'object', desc: 'Client fields: email, subId, id (uuid), password, auth, flow, totalGB, expiryTime, limitIp, tgId (numeric Telegram user ID, 0 = none), comment, enable.' },
+          { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to attach the client to. At least one required.' },
+        ],
+        body: '{\n  "client": {\n    "email": "alice@example.com",\n    "totalGB": 53687091200,\n    "expiryTime": 1735689600000,\n    "tgId": 0,\n    "limitIp": 0,\n    "enable": true\n  },\n  "inboundIds": [3, 5]\n}',
+        response: '{\n  "success": true,\n  "msg": "Client added"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/update/:email',
+        summary: 'Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload — supply the full set of fields you want to keep (the server replaces the row, it does not patch).',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Current client email (unique identifier).' },
+        ],
+        body: '{\n  "email": "alice@example.com",\n  "totalGB": 107374182400,\n  "expiryTime": 1767225600000,\n  "tgId": 123456789,\n  "enable": true\n}',
+        response: '{\n  "success": true,\n  "msg": "Client updated"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/del/:email',
+        summary: 'Delete a client by email. Removes it from every attached inbound and drops its traffic record unless keepTraffic=1 is passed.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          { name: 'keepTraffic', in: 'query', type: 'integer', desc: 'Pass 1 to retain the xray_client_traffic row after deletion.' },
+        ],
+        response: '{\n  "success": true,\n  "msg": "Client deleted"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/:email/attach',
+        summary: 'Attach an existing client to one or more additional inbounds. Body is JSON.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to attach.' },
+        ],
+        body: '{\n  "inboundIds": [7, 9]\n}',
+        response: '{\n  "success": true\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/:email/detach',
+        summary: 'Detach a client from one or more inbounds without deleting the client.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to detach.' },
+        ],
+        body: '{\n  "inboundIds": [5]\n}',
+        response: '{\n  "success": true\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/resetAllTraffics',
+        summary: 'Reset the up/down counters for every client globally. Quotas and expiry are not affected. Triggers an Xray restart if any counter actually moved.',
+        response: '{\n  "success": true\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/delDepleted',
+        summary: 'Delete every client whose traffic quota is exhausted (used >= total, when reset is disabled) or whose expiry has passed. Returns the deleted count and triggers an Xray restart when any client was on a running inbound.',
+        response: '{\n  "success": true,\n  "obj": {\n    "deleted": 0\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/resetTraffic/:email',
+        summary: 'Zero out a single client’s up/down counters. Re-enables the client across every attached inbound and pushes the change to Xray (or the remote node) so depleted users can connect again immediately.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/updateTraffic/:email',
+        summary: 'Manually adjust a client’s upload + download counters. Useful for migrations from external accounting systems.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+        ],
+        body: '{\n  "upload": 1073741824,\n  "download": 5368709120\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/ips/:email',
+        summary: 'List source IPs that have connected with the given client’s credentials. Returns an array of "ip (timestamp)" strings.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/clearIps/:email',
+        summary: 'Reset the recorded IP list for a client.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/onlines',
+        summary: 'List the emails of currently connected clients (last seen within the heartbeat window).',
+        response: '{\n  "success": true,\n  "obj": ["user1", "user2"]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/lastOnline',
+        summary: 'Map of client email → last-seen unix timestamp.',
+        response: '{\n  "success": true,\n  "obj": {\n    "user1": 1700000000,\n    "user2": 1699999000\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/traffic/:email',
+        summary: 'Traffic counters for a client identified by email.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique across the panel).' },
+        ],
+        response: '{\n  "success": true,\n  "obj": {\n    "email": "user1",\n    "up": 1048576,\n    "down": 2097152,\n    "total": 10737418240,\n    "expiryTime": 1735689600000\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/subLinks/:subId',
+        summary:
+          'Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as /sub/<subId>, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.',
+        params: [
+          { name: 'subId', in: 'path', type: 'string', desc: "Subscription ID, taken from the client's subId field." },
+        ],
+        response:
+          '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?security=reality&...#user1",\n    "vmess://eyJ2IjoyLC..."\n  ]\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/links/:email',
+        summary:
+          "Return every URL for one client across all attached inbounds — the same strings the Copy URL button copies in the panel UI. Supported protocols: vmess, vless, trojan, shadowsocks, hysteria, hysteria2. If streamSettings.externalProxy is set, returns one URL per external proxy. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing.",
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+        ],
+        response:
+          '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?...#user1"\n  ]\n}',
+      },
+    ],
+  },
+
+  {
     id: 'nodes',
     title: 'Nodes',
     description:
@@ -504,7 +550,7 @@ export const sections = [
         method: 'GET',
         path: '/panel/api/nodes/list',
         summary: 'List every configured node with its connection details, health, and last heartbeat patch.',
-        response: '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "de-fra-1",\n      "scheme": "https",\n      "host": "node1.example.com",\n      "port": 2053,\n      "status": "online",\n      "cpu": 23.5,\n      "mem": 45.1\n    }\n  ]\n}',
+        response: '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "de-fra-1",\n      "remark": "",\n      "scheme": "https",\n      "address": "node1.example.com",\n      "port": 2053,\n      "basePath": "/",\n      "apiToken": "abcdef...",\n      "enable": true,\n      "allowPrivateAddress": false,\n      "status": "online",\n      "lastHeartbeat": 1700000000,\n      "latencyMs": 42,\n      "xrayVersion": "25.x.x",\n      "panelVersion": "v3.x.x",\n      "cpuPct": 23.5,\n      "memPct": 45.1,\n      "uptimeSecs": 86400,\n      "lastError": "",\n      "inboundCount": 5,\n      "clientCount": 27,\n      "onlineCount": 3,\n      "depletedCount": 1,\n      "createdAt": 1700000000,\n      "updatedAt": 1700000000\n    }\n  ]\n}',
       },
       {
         method: 'GET',
@@ -517,9 +563,9 @@ export const sections = [
       {
         method: 'POST',
         path: '/panel/api/nodes/add',
-        summary: 'Register a new remote node. Provide its URL, apiToken, and optional label/notes.',
+        summary: 'Register a new remote node. Provide its URL, apiToken, and optional remark / allowPrivateAddress flag.',
         body:
-          '{\n  "name": "de-fra-1",\n  "scheme": "https",\n  "host": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
+          '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef...",\n  "enable": true,\n  "allowPrivateAddress": false\n}',
       },
       {
         method: 'POST',
@@ -528,7 +574,7 @@ export const sections = [
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Node ID.' },
         ],
-        body: '{\n  "name": "de-fra-1",\n  "scheme": "https",\n  "host": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
+        body: '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef...",\n  "enable": true,\n  "allowPrivateAddress": false\n}',
       },
       {
         method: 'POST',
@@ -550,9 +596,9 @@ export const sections = [
       {
         method: 'POST',
         path: '/panel/api/nodes/test',
-        summary: 'Probe a node without saving it. Uses the body as connection details and returns whether the handshake succeeds.',
-        body: '{\n  "scheme": "https",\n  "host": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
-        response: '{\n  "success": true,\n  "obj": {\n    "status": "online",\n    "cpu": 12.5,\n    "mem": 45.2\n  }\n}',
+        summary: 'Probe a node without saving it. Uses the body as connection details and returns the same heartbeat snapshot a registered node would have.',
+        body: '{\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "status": "online",\n    "latencyMs": 42,\n    "xrayVersion": "25.x.x",\n    "panelVersion": "v3.x.x",\n    "cpuPct": 12.5,\n    "memPct": 45.2,\n    "uptimeSecs": 86400,\n    "error": ""\n  }\n}',
       },
       {
         method: 'POST',

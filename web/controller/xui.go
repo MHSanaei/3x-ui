@@ -33,6 +33,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 
 	g.GET("/", a.index)
 	g.GET("/inbounds", a.inbounds)
+	g.GET("/clients", a.clients)
 	g.GET("/nodes", a.nodes)
 	g.GET("/settings", a.settings)
 	g.GET("/xray", a.xraySettings)
@@ -60,6 +61,10 @@ func (a *XUIController) index(c *gin.Context) {
 // inbounds renders the inbounds management page.
 func (a *XUIController) inbounds(c *gin.Context) {
 	serveDistPage(c, "inbounds.html")
+}
+
+func (a *XUIController) clients(c *gin.Context) {
+	serveDistPage(c, "clients.html")
 }
 
 // nodes renders the multi-panel nodes management page.
