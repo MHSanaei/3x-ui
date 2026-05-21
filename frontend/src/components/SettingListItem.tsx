@@ -6,6 +6,7 @@ interface SettingListItemProps {
   title?: ReactNode;
   description?: ReactNode;
   children?: ReactNode;
+  control?: ReactNode;
 }
 
 export default function SettingListItem({
@@ -13,6 +14,7 @@ export default function SettingListItem({
   title,
   description,
   children,
+  control,
 }: SettingListItemProps) {
   const padding = paddings === 'small' ? '10px 20px' : '20px';
   return (
@@ -22,7 +24,7 @@ export default function SettingListItem({
           <List.Item.Meta title={title} description={description} />
         </Col>
         <Col xs={24} lg={12}>
-          {children}
+          {control ?? children}
         </Col>
       </Row>
     </List.Item>

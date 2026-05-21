@@ -1,0 +1,69 @@
+.nord-data-table {
+  margin: 5px 0;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.nord-data-table td {
+  padding: 4px 8px;
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.nord-data-table td:first-child {
+  font-family: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+  width: 130px;
+}
+
+.row-odd {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+body.dark .row-odd {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.zero-margin {
+  margin: 0;
+}
+
+.mt-8 {
+  margin-top: 8px;
+}
+
+.mt-10 {
+  margin-top: 10px;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+
+.my-10 {
+  margin: 10px 0;
+}
+
+.ml-8 {
+  margin-left: 8px;
+}
+
+.server-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.server-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.server-load-tag {
+  margin-right: 0;
+  flex-shrink: 0;
+}

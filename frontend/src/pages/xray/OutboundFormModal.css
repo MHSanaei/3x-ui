@@ -1,0 +1,38 @@
+.random-icon {
+  cursor: pointer;
+  color: var(--ant-primary-color, #1890ff);
+  margin-left: 4px;
+}
+
+.danger-icon {
+  cursor: pointer;
+  color: #ff4d4f;
+  margin-left: 8px;
+}
+
+.ml-8 {
+  margin-left: 8px;
+}
+
+.mb-8 {
+  margin-bottom: 8px;
+}
+
+.item-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.sniffing-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.sniffing-options .ant-checkbox-wrapper {
+  margin-inline-start: 0;
+}
