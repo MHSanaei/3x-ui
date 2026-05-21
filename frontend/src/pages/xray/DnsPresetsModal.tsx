@@ -44,7 +44,7 @@ export default function DnsPresetsModal({ open, onClose, onInstall }: DnsPresets
       open={open}
       title={t('pages.xray.dns.dnsPresetTitle')}
       footer={null}
-      maskClosable={false}
+      mask={{ closable: false }}
       onCancel={onClose}
     >
       <List bordered>

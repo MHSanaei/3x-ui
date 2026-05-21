@@ -111,7 +111,7 @@ export default function NodesPage() {
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={!fetched} delay={200} tip="Loading…" size="large">
+            <Spin spinning={!fetched} delay={200} description="Loading…" size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : (

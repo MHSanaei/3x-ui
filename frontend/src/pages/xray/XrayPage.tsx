@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  BackTop,
   Alert,
   Button,
   Card,
   Col,
   ConfigProvider,
+  FloatButton,
   Layout,
   message,
   Modal,
@@ -258,7 +258,7 @@ export default function XrayPage() {
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={spinning || !fetched} delay={200} tip="Loading…" size="large">
+            <Spin spinning={spinning || !fetched} delay={200} description="Loading…" size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : fetchError ? (
@@ -274,7 +274,7 @@ export default function XrayPage() {
                     <Card hoverable>
                       <Row className="header-row">
                         <Col xs={24} sm={14} className="header-actions">
-                          <Space direction="horizontal">
+                          <Space>
                             <Button type="primary" disabled={saveDisabled} onClick={onSaveAll}>
                               {t('pages.xray.save')}
                             </Button>
@@ -293,8 +293,8 @@ export default function XrayPage() {
                           </Space>
                         </Col>
                         <Col xs={24} sm={10} className="header-info">
-                          <BackTop target={scrollTarget} visibilityHeight={200} />
-                          <Alert type="warning" showIcon message={t('pages.settings.infoDesc')} />
+                          <FloatButton.BackTop target={scrollTarget} visibilityHeight={200} />
+                          <Alert type="warning" showIcon title={t('pages.settings.infoDesc')} />
                         </Col>
                       </Row>
                     </Card>

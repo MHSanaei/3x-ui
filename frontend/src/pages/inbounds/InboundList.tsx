@@ -245,12 +245,12 @@ export default function InboundList({
     [dbInbounds],
   );
 
-  const sorterFor = (key: SortKey) => ({
+  const sorterFor = useCallback((key: SortKey) => ({
     sorter: true as const,
     showSorterTooltip: false,
     sortOrder: sortKey === key ? sortOrder : null,
     sortDirections: ['ascend' as const, 'descend' as const],
-  });
+  }), [sortKey, sortOrder]);
 
   const columns: TableColumnType<DBInboundRecord>[] = useMemo(() => {
     const cols: TableColumnType<DBInboundRecord>[] = [
@@ -474,7 +474,7 @@ export default function InboundList({
     );
 
     return cols;
-  }, [t, hasAnyRemark, hasActiveNode, nodesById, clientCount, subEnable, expireDiff, trafficDiff, datepicker, onRowAction, onSwitchEnable]);
+  }, [t, hasAnyRemark, hasActiveNode, nodesById, clientCount, subEnable, expireDiff, trafficDiff, datepicker, onRowAction, onSwitchEnable, sorterFor]);
 
   const paginationFor = (rows: DBInboundRecord[]) => {
     const size = pageSize > 0 ? pageSize : rows.length || 1;
@@ -497,7 +497,7 @@ export default function InboundList({
     <Card
       hoverable
       title={(
-        <Space direction="horizontal">
+        <Space>
           <Button type="primary" onClick={onAddInbound} icon={<PlusOutlined />}>
             {!isMobile && t('pages.inbounds.addInbound')}
           </Button>
@@ -509,7 +509,7 @@ export default function InboundList({
         </Space>
       )}
     >
-      <Space direction="vertical" style={{ width: '100%' }}>
+      <Space orientation="vertical" style={{ width: '100%' }}>
         {isMobile ? (
           <div className="inbound-cards">
             {sortedInbounds.length === 0 ? (
@@ -571,7 +571,7 @@ export default function InboundList({
         centered
         title={statsRecord ? `#${statsRecord.id} ${statsRecord.remark || ''}`.trim() : ''}
         onCancel={() => setStatsRecord(null)}
-        destroyOnClose
+        destroyOnHidden
       >
         {statsRecord && (
           <div className="card-stats">

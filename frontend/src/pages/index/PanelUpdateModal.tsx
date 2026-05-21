@@ -72,7 +72,6 @@ export default function PanelUpdateModal({ open, info, onClose, onBusy }: PanelU
       <Modal
         open={open}
         title={t('pages.index.updatePanel')}
-        closable
         footer={null}
         onCancel={onClose}
       >
@@ -80,7 +79,7 @@ export default function PanelUpdateModal({ open, info, onClose, onBusy }: PanelU
           <Alert
             type="warning"
             className="mb-12"
-            message={t('pages.index.panelUpdateDesc')}
+            title={t('pages.index.panelUpdateDesc')}
             showIcon
           />
         )}

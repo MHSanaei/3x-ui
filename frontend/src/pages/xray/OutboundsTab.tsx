@@ -326,7 +326,7 @@ export default function OutboundsTab({
           return (
             <Popover
               placement="topLeft"
-              overlayClassName="outbound-test-popover"
+              rootClassName="outbound-test-popover"
               content={
                 <div className="timing-breakdown">
                   <div className={`td-head ${r.success ? 'ok' : 'fail'}`}>
@@ -386,7 +386,7 @@ export default function OutboundsTab({
   return (
     <>
       {modalContextHolder}
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
         <Row gutter={[12, 12]} align="middle" justify="space-between">
           <Col xs={24} sm={12}>
             <Space size="small" wrap>

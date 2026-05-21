@@ -1,5 +1,25 @@
 .ant-statistic-content {
-  font-size: 16px;
+  font-size: 15px !important;
+  line-height: 1.4 !important;
+}
+
+.ant-statistic-content-value,
+.ant-statistic-content-prefix,
+.ant-statistic-content-suffix {
+  font-size: 15px !important;
+}
+
+.ant-statistic-content-prefix {
+  margin-inline-end: 6px !important;
+}
+
+.ant-statistic-content-prefix .anticon {
+  font-size: 16px !important;
+}
+
+.ant-statistic-title {
+  font-size: 12px !important;
+  margin-bottom: 4px !important;
 }
 
 body.dark .ant-statistic-content {

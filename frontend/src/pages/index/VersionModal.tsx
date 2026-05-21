@@ -98,7 +98,6 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
     <Modal
       open={open}
       title={t('pages.index.xrayUpdates')}
-      closable
       footer={null}
       onCancel={onClose}
     >
@@ -117,7 +116,7 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
                   <Alert
                     type="warning"
                     className="mb-12"
-                    message={t('pages.index.xraySwitchClickDesk')}
+                    title={t('pages.index.xraySwitchClickDesk')}
                     showIcon
                   />
                   <List bordered className="version-list">

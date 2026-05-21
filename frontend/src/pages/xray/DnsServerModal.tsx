@@ -156,7 +156,7 @@ export default function DnsServerModal({
       title={title}
       okText={t('confirm')}
       cancelText={t('close')}
-      maskClosable={false}
+      mask={{ closable: false }}
       onOk={submit}
       onCancel={onClose}
     >

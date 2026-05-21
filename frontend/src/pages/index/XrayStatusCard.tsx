@@ -50,7 +50,7 @@ export default function XrayStatusCard({
   const stateText = t(XRAY_STATE_KEYS[status.xray.state] ?? 'pages.index.xrayStatusUnknown');
 
   const title = (
-    <Space direction="horizontal">
+    <Space>
       <span>{t('pages.index.xrayStatus')}</span>
       {isMobile && status.xray.version && status.xray.version !== 'Unknown' && (
         <Tag color="green">v{status.xray.version}</Tag>
@@ -105,21 +105,21 @@ export default function XrayStatusCard({
   const actions = [
     ...(ipLimitEnable
       ? [
-          <Space direction="horizontal" className="action" key="xraylogs" onClick={onOpenXrayLogs}>
+          <Space className="action" key="xraylogs" onClick={onOpenXrayLogs}>
             <BarsOutlined />
             {!isMobile && <span>{t('pages.index.logs')}</span>}
           </Space>,
         ]
       : []),
-    <Space direction="horizontal" className="action" key="stop" onClick={onStopXray}>
+    <Space className="action" key="stop" onClick={onStopXray}>
       <PoweroffOutlined />
       {!isMobile && <span>{t('pages.index.stopXray')}</span>}
     </Space>,
-    <Space direction="horizontal" className="action" key="restart" onClick={onRestartXray}>
+    <Space className="action" key="restart" onClick={onRestartXray}>
       <ReloadOutlined />
       {!isMobile && <span>{t('pages.index.restartXray')}</span>}
     </Space>,
-    <Space direction="horizontal" className="action" key="switch" onClick={onOpenVersionSwitch}>
+    <Space className="action" key="switch" onClick={onOpenVersionSwitch}>
       <ToolOutlined />
       {!isMobile && (
         <span>

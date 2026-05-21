@@ -235,7 +235,7 @@ export default function NordModal({
   }
 
   return (
-    <Modal open={open} title="NordVPN NordLynx" footer={null} closable maskClosable onCancel={onClose}>
+    <Modal open={open} title="NordVPN NordLynx" footer={null} onCancel={onClose}>
       {nordData == null ? (
         <Tabs
           defaultActiveKey="token"

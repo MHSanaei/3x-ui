@@ -210,7 +210,7 @@ export default function ClientBulkAddModal({
       okText={t('create')}
       cancelText={t('close')}
       confirmLoading={saving}
-      maskClosable={false}
+      mask={{ closable: false }}
       width={640}
       onOk={submit}
       onCancel={() => onOpenChange(false)}

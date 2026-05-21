@@ -174,7 +174,7 @@ export default function NodeFormModal({
       confirmLoading={submitting}
       okText={t('save')}
       cancelText={t('cancel')}
-      maskClosable={false}
+      mask={{ closable: false }}
       width="640px"
       onOk={onSave}
       onCancel={close}
@@ -276,14 +276,14 @@ export default function NodeFormModal({
                 <Alert
                   type="success"
                   showIcon
-                  message={t('pages.nodes.connectionOk', { ms: testResult.latencyMs })}
+                  title={t('pages.nodes.connectionOk', { ms: testResult.latencyMs })}
                   description={testResult.xrayVersion ? `Xray ${testResult.xrayVersion}` : undefined}
                 />
               ) : (
                 <Alert
                   type="error"
                   showIcon
-                  message={t('pages.nodes.connectionFailed')}
+                  title={t('pages.nodes.connectionFailed')}
                   description={testResult.error}
                 />
               )}

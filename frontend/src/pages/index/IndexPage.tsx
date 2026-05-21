@@ -158,7 +158,7 @@ export default function IndexPage() {
             <Spin
               spinning={loading || !fetched}
               delay={200}
-              tip={loading ? loadingTip : t('loading')}
+              description={loading ? loadingTip : t('loading')}
               size="large"
             >
               {!fetched ? (
@@ -450,7 +450,6 @@ export default function IndexPage() {
           title={t('pages.index.config')}
           width={isMobile ? '100%' : 900}
           style={isMobile ? { top: 20, maxWidth: 'calc(100vw - 16px)' } : undefined}
-          closable
           onCancel={() => setConfigTextOpen(false)}
           footer={[
             <Button

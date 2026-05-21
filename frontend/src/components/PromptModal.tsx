@@ -55,11 +55,11 @@ export default function PromptModal({
       title={title}
       okText={okText}
       cancelText="Cancel"
-      maskClosable={false}
+      mask={{ closable: false }}
       confirmLoading={loading}
       onOk={() => onConfirm(value)}
       onCancel={onClose}
-      destroyOnClose
+      destroyOnHidden
     >
       {type === 'textarea' ? (
         <Input.TextArea

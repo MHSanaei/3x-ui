@@ -97,7 +97,7 @@ export default function BalancerFormModal({
       okText={okText}
       cancelText={t('close')}
       okButtonProps={{ disabled: !isValid }}
-      maskClosable={false}
+      mask={{ closable: false }}
       onOk={submit}
       onCancel={onClose}
     >

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Checkbox, Form, Input, Modal, Select } from 'antd';
+import { Button, Checkbox, Form, Modal, Select, Space } from 'antd';
 import { DownloadOutlined, SyncOutlined } from '@ant-design/icons';
 
 import { HttpUtil, FileManager, PromiseUtil } from '@/utils';
@@ -107,7 +107,6 @@ export default function LogModal({ open, onClose }: LogModalProps) {
   return (
     <Modal
       open={open}
-      closable
       footer={null}
       width={isMobile ? '100vw' : 800}
       className={isMobile ? 'logmodal-mobile' : undefined}
@@ -116,7 +115,7 @@ export default function LogModal({ open, onClose }: LogModalProps) {
     >
       <Form layout="inline" className="log-toolbar">
         <Form.Item>
-          <Input.Group compact>
+          <Space.Compact>
             <Select value={rows} size="small" style={{ width: 70 }} onChange={setRows}>
               <Select.Option value="10">10</Select.Option>
               <Select.Option value="20">20</Select.Option>
@@ -131,7 +130,7 @@ export default function LogModal({ open, onClose }: LogModalProps) {
               <Select.Option value="warning">Warning</Select.Option>
               <Select.Option value="err">Error</Select.Option>
             </Select>
-          </Input.Group>
+          </Space.Compact>
         </Form.Item>
         <Form.Item>
           <Checkbox checked={syslog} onChange={(e) => setSyslog(e.target.checked)}>

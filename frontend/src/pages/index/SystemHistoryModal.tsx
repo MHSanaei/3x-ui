@@ -106,7 +106,6 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
   return (
     <Modal
       open={open}
-      closable
       footer={null}
       width={isMobile ? '95vw' : 900}
       onCancel={onClose}

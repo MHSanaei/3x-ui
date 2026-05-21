@@ -327,7 +327,7 @@ export default function ClientFormModal({
     <Modal
       open={open}
       title={isEdit ? t('pages.clients.editTitle') : t('pages.clients.addTitle')}
-      destroyOnClose
+      destroyOnHidden
       okText={isEdit ? t('save') : t('create')}
       cancelText={t('cancel')}
       okButtonProps={{ loading: submitting }}

@@ -207,7 +207,7 @@ export default function WarpModal({
   const hasConfig = !ObjectUtil.isEmpty(warpConfig);
 
   return (
-    <Modal open={open} title="Cloudflare WARP" footer={null} closable maskClosable onCancel={onClose}>
+    <Modal open={open} title="Cloudflare WARP" footer={null} onCancel={onClose}>
       {!hasWarp ? (
         <Button type="primary" loading={loading} icon={<ApiOutlined />} onClick={register}>
           Create WARP account
@@ -268,7 +268,7 @@ export default function WarpModal({
                           Update
                         </Button>
                         {licenseError && (
-                          <Alert message={licenseError} type="error" showIcon className="license-error" />
+                          <Alert title={licenseError} type="error" showIcon className="license-error" />
                         )}
                       </div>
                     </Form.Item>

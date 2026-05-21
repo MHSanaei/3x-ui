@@ -199,7 +199,7 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         closable={false}
         open={drawerOpen}
         rootClassName={currentTheme}
-        width="min(82vw, 320px)"
+        size="min(82vw, 320px)"
         styles={{
           wrapper: { padding: 0 },
           body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' },

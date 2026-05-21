@@ -329,7 +329,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                           options={['ip', 'ipv4', 'ipv6'].map((p) => ({ value: p, label: p }))}
                         />
                       </SettingListItem>
-                      <Space direction="horizontal" style={{ padding: '10px 20px' }}>
+                      <Space style={{ padding: '10px 20px' }}>
                         {noisesArray.length > 1 && (
                           <Button type="primary" danger onClick={() => removeNoise(index)}>
                             {t('delete')}

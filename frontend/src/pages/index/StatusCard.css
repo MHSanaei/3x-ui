@@ -2,7 +2,8 @@
   text-align: center;
 }
 
-.status-card .ant-progress-text {
-  font-size: 14px !important;
+.status-card .ant-progress-text,
+.status-card .ant-progress-indicator {
+  font-size: 12px !important;
   font-weight: 500;
 }

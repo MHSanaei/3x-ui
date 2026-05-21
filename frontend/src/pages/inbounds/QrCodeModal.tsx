@@ -125,7 +125,7 @@ export default function QrCodeModal({
   }));
 
   return (
-    <Modal open={open} onCancel={onClose} title={t('qrCode')} footer={null} width={420} destroyOnClose>
+    <Modal open={open} onCancel={onClose} title={t('qrCode')} footer={null} width={420} destroyOnHidden>
       {dbInbound && (
         <Collapse
           ghost

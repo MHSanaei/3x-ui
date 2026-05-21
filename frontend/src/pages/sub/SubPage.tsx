@@ -256,7 +256,7 @@ export default function SubPage() {
         placement="bottomRight"
         trigger="click"
         content={
-          <Space direction="vertical" size={10} className="settings-popover">
+          <Space orientation="vertical" size={10} className="settings-popover">
             <Select
               className="lang-select"
               value={lang}

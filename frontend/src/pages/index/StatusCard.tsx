@@ -3,6 +3,7 @@ import { Card, Col, Progress, Row, Tooltip } from 'antd';
 import { AreaChartOutlined } from '@ant-design/icons';
 
 import { CPUFormatter, SizeFormatter } from '@/utils';
+import { useTheme } from '@/hooks/useTheme';
 import type { Status } from '@/models/status';
 import './StatusCard.css';
 
@@ -11,11 +12,14 @@ interface StatusCardProps {
   isMobile: boolean;
 }
 
-const TRAIL_COLOR = 'rgba(128, 128, 128, 0.25)';
-
 export default function StatusCard({ status, isMobile }: StatusCardProps) {
   const { t } = useTranslation();
-  const gaugeSize = isMobile ? 60 : 70;
+  const { isDark, isUltra } = useTheme();
+  const gaugeSize = isMobile ? 60 : 90;
+  const strokeWidth = isMobile ? 7 : 5;
+  const railColor = isDark
+    ? isUltra ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.16)'
+    : 'rgba(0, 0, 0, 0.08)';
 
   return (
     <Card hoverable className="status-card">
@@ -27,7 +31,8 @@ export default function StatusCard({ status, isMobile }: StatusCardProps) {
                 type="dashboard"
                 status="normal"
                 strokeColor={status.cpu.color}
-                trailColor={TRAIL_COLOR}
+                railColor={railColor}
+                strokeWidth={strokeWidth}
                 percent={status.cpu.percent}
                 size={gaugeSize}
               />
@@ -56,7 +61,8 @@ export default function StatusCard({ status, isMobile }: StatusCardProps) {
                 type="dashboard"
                 status="normal"
                 strokeColor={status.mem.color}
-                trailColor={TRAIL_COLOR}
+                railColor={railColor}
+                strokeWidth={strokeWidth}
                 percent={status.mem.percent}
                 size={gaugeSize}
               />
@@ -75,7 +81,8 @@ export default function StatusCard({ status, isMobile }: StatusCardProps) {
                 type="dashboard"
                 status="normal"
                 strokeColor={status.swap.color}
-                trailColor={TRAIL_COLOR}
+                railColor={railColor}
+                strokeWidth={strokeWidth}
                 percent={status.swap.percent}
                 size={gaugeSize}
               />
@@ -90,7 +97,8 @@ export default function StatusCard({ status, isMobile }: StatusCardProps) {
                 type="dashboard"
                 status="normal"
                 strokeColor={status.disk.color}
-                trailColor={TRAIL_COLOR}
+                railColor={railColor}
+                strokeWidth={strokeWidth}
                 percent={status.disk.percent}
                 size={gaugeSize}
               />

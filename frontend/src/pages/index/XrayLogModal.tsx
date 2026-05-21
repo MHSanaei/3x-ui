@@ -110,7 +110,6 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
   return (
     <Modal
       open={open}
-      closable
       footer={null}
       width={isMobile ? '100vw' : '80vw'}
       className={isMobile ? 'xraylog-modal-mobile' : undefined}

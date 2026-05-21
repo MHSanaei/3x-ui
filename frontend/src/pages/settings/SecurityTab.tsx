@@ -279,7 +279,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
                   onChange={(e) => updateUserField('newPassword', e.target.value)} />
               </SettingListItem>
               <List.Item>
-                <Space direction="horizontal" style={{ padding: '0 20px' }}>
+                <Space style={{ padding: '0 20px' }}>
                   <Button type="primary" loading={updating} onClick={onUpdateUserClick}>
                     {t('confirm')}
                   </Button>

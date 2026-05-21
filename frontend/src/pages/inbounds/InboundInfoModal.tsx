@@ -882,7 +882,7 @@ export default function InboundInfoModal({
   tabItems.push({ key: 'inbound', label: t('pages.xray.rules.inbound'), children: inboundTab });
 
   return (
-    <Modal open={open} onCancel={onClose} title={t('pages.inbounds.inboundData')} footer={null} width={640} destroyOnClose>
+    <Modal open={open} onCancel={onClose} title={t('pages.inbounds.inboundData')} footer={null} width={640} destroyOnHidden>
       <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
     </Modal>
   );

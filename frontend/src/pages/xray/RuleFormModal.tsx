@@ -149,7 +149,7 @@ export default function RuleFormModal({
       title={title}
       okText={okText}
       cancelText={t('close')}
-      maskClosable={false}
+      mask={{ closable: false }}
       width={640}
       onOk={submit}
       onCancel={onClose}

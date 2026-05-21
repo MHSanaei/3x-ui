@@ -427,7 +427,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
             </Button>
           </Empty>
         ) : (
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => syncHosts([...hostsList, { domain: '', values: [] }])}>
               {t('pages.xray.dns.hostsAdd')}
             </Button>
@@ -475,7 +475,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
             </Space>
           </Empty>
         ) : (
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             <Space wrap>
               <Button type="primary" icon={<PlusOutlined />} onClick={openAddServer}>
                 {t('pages.xray.dns.add')}
@@ -509,7 +509,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
             </Button>
           </Empty>
         ) : (
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             <Button type="primary" icon={<PlusOutlined />} onClick={addFakedns}>
               {t('pages.xray.fakedns.add')}
             </Button>

@@ -220,7 +220,6 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
   return (
     <Modal
       open={open}
-      closable
       footer={null}
       width={isMobile ? '95vw' : 900}
       onCancel={onClose}
@@ -249,7 +248,7 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
           type="warning"
           showIcon
           className="metrics-alert"
-          message={t('pages.index.xrayMetricsDisabled')}
+          title={t('pages.index.xrayMetricsDisabled')}
           description={state.reason || t('pages.index.xrayMetricsHint')}
         />
       )}
@@ -269,7 +268,7 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
               type="info"
               showIcon
               className="metrics-alert"
-              message={t('pages.index.xrayObservatoryEmpty')}
+              title={t('pages.index.xrayObservatoryEmpty')}
               description={t('pages.index.xrayObservatoryHint')}
             />
           ) : (

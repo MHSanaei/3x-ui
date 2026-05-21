@@ -145,12 +145,12 @@ export default function LoginPage() {
               {themeIcon}
             </button>
             <Popover
-              overlayClassName={isDark ? 'dark' : 'light'}
+              rootClassName={isDark ? 'dark' : 'light'}
               title={t('pages.settings.language')}
               placement="bottomRight"
               trigger="click"
               content={
-                <Space direction="vertical" size={10} className="settings-popover">
+                <Space orientation="vertical" size={10} className="settings-popover">
                   <Select
                     className="lang-select"
                     value={lang}
@@ -240,7 +240,7 @@ export default function LoginPage() {
                       size="large"
                       block
                     >
-                      {submitting ? '' : t('login')}
+                      {t('login')}
                     </Button>
                   </Form.Item>
                 </Form>

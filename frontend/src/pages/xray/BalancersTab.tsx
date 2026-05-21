@@ -306,7 +306,7 @@ export default function BalancersTab({
   return (
     <>
       {modalContextHolder}
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
         {rows.length === 0 ? (
           <Empty description={t('emptyBalancersDesc')}>
             <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>

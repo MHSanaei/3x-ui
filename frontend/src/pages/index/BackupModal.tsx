@@ -62,7 +62,6 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
     <Modal
       open={open}
       title={t('pages.index.backupTitle')}
-      closable
       footer={null}
       onCancel={onClose}
     >

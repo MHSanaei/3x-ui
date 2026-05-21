@@ -402,7 +402,7 @@ export default function RoutingTab({
   return (
     <>
       {modalContextHolder}
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
           {t('pages.xray.Routings')}
         </Button>

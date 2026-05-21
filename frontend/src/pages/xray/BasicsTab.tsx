@@ -206,7 +206,7 @@ export default function BasicsTab({
           <Alert
             type="warning"
             className="mb-12 hint-alert"
-            message={t('pages.xray.generalConfigsDesc')}
+            title={t('pages.xray.generalConfigsDesc')}
             icon={<ExclamationCircleFilled style={{ color: '#FFA031' }} />}
           />
           <SettingListItem
@@ -300,7 +300,7 @@ export default function BasicsTab({
           <Alert
             type="warning"
             className="mb-12 hint-alert"
-            message={t('pages.xray.logConfigsDesc')}
+            title={t('pages.xray.logConfigsDesc')}
             icon={<ExclamationCircleFilled style={{ color: '#FFA031' }} />}
           />
           <SettingListItem
@@ -377,7 +377,7 @@ export default function BasicsTab({
           <Alert
             type="warning"
             className="mb-12 hint-alert"
-            message={t('pages.xray.blockConnectionsConfigsDesc')}
+            title={t('pages.xray.blockConnectionsConfigsDesc')}
             icon={<ExclamationCircleFilled style={{ color: '#FFA031' }} />}
           />
 
@@ -428,7 +428,7 @@ export default function BasicsTab({
           <Alert
             type="warning"
             className="mb-12 hint-alert"
-            message={t('pages.xray.directConnectionsConfigsDesc')}
+            title={t('pages.xray.directConnectionsConfigsDesc')}
             icon={<ExclamationCircleFilled style={{ color: '#FFA031' }} />}
           />
 
@@ -532,7 +532,7 @@ export default function BasicsTab({
       key: 'reset',
       label: t('pages.settings.resetDefaultConfig'),
       children: (
-        <Space direction="horizontal" style={{ padding: '0 20px' }}>
+        <Space style={{ padding: '0 20px' }}>
           <Button danger onClick={confirmResetDefault}>
             {t('pages.settings.resetDefaultConfig')}
           </Button>

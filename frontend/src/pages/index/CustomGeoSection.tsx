@@ -234,7 +234,7 @@ export default function CustomGeoSection({ active }: CustomGeoSectionProps) {
         type="info"
         showIcon
         className="mb-10"
-        message={t('pages.index.customGeoRoutingHint')}
+        title={t('pages.index.customGeoRoutingHint')}
       />
 
       <div className="toolbar">

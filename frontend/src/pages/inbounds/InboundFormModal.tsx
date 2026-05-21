@@ -648,14 +648,14 @@ export default function InboundFormModal({
   const sniffingFallback = () => inboundRef.current?.sniffing?.toJson?.() || {};
   const streamFallback = () => inboundRef.current?.stream?.toJson?.() || {};
 
-  const parseAdvancedSliceWithLabel = (rawText: string, fallback: unknown, label: string) => {
+  const parseAdvancedSliceWithLabel = useCallback((rawText: string, fallback: unknown, label: string) => {
     try {
       return parseAdvancedSliceOrFallback(rawText, fallback);
     } catch (e) {
       message.error(`${label} JSON invalid: ${(e as Error).message}`);
       throw e;
     }
-  };
+  }, []);
 
   const compactAdvancedJson = (raw: string, fallback: string, label: string) => {
     try {
@@ -696,7 +696,7 @@ export default function InboundFormModal({
       return false;
     }
     return true;
-  }, [t, refresh]);
+  }, [t, refresh, parseAdvancedSliceWithLabel]);
 
   const handleTabChange = (next: string) => {
     if (activeTabKey === 'advanced' && next !== 'advanced') {
@@ -886,16 +886,15 @@ export default function InboundFormModal({
     }
   }, [canEnableStream, t, mode, dbInbound, isFallbackHost, saveFallbacks, onSaved, onClose]);
 
+  const protocolSnapshot = inboundRef.current?.protocol;
+  const streamSnapshot = JSON.stringify(inboundRef.current?.stream?.toJson?.() || {});
+  const sniffingSnapshot = JSON.stringify(inboundRef.current?.sniffing?.toJson?.() || {});
+  const settingsSnapshot = JSON.stringify(inboundRef.current?.settings?.toJson?.() || {});
+
   useEffect(() => {
     if (!inboundRef.current) return;
     (['stream', 'sniffing', 'settings'] as const).forEach(stampAdvancedTextFor);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    inboundRef.current?.protocol,
-    JSON.stringify(inboundRef.current?.stream?.toJson?.() || {}),
-    JSON.stringify(inboundRef.current?.sniffing?.toJson?.() || {}),
-    JSON.stringify(inboundRef.current?.settings?.toJson?.() || {}),
-  ]);
+  }, [protocolSnapshot, streamSnapshot, sniffingSnapshot, settingsSnapshot, stampAdvancedTextFor]);
 
   const title = mode === 'edit' ? t('pages.inbounds.modifyInbound') : t('pages.inbounds.addInbound');
   const okText = mode === 'edit' ? t('pages.clients.submitEdit') : t('create');
@@ -998,7 +997,7 @@ export default function InboundFormModal({
         <div key={record.rowKey} style={{ border: '1px solid var(--app-border-tertiary)', borderRadius: 6, padding: '10px 12px', marginBottom: 8 }}>
           <Row gutter={8} align="middle" wrap={false}>
             <Col flex="none">
-              <Space direction="vertical" size={2}>
+              <Space orientation="vertical" size={2}>
                 <Button size="small" type="text" disabled={index === 0} onClick={() => moveFallback(index, -1)}>
                   <CaretUpOutlined />
                 </Button>
@@ -1146,7 +1145,7 @@ export default function InboundFormModal({
           </Form.Item>
           <Form.Item wrapperCol={{ span: 24 }}>
             {(ib.settings.accounts || []).map((account: any, idx: number) => (
-              <Input.Group key={idx} compact className="mb-8">
+              <Space.Compact key={idx} className="mb-8" block>
                 <Input style={{ width: '45%' }} value={account.user}
                   addonBefore={String(idx + 1)} placeholder="Username"
                   onChange={(e) => { account.user = e.target.value; refresh(); }} />
@@ -1155,7 +1154,7 @@ export default function InboundFormModal({
                 <Button onClick={() => { ib.settings.delAccount(idx); refresh(); }}>
                   <MinusOutlined />
                 </Button>
-              </Input.Group>
+              </Space.Compact>
             ))}
           </Form.Item>
           {ib.protocol === Protocols.HTTP && (
@@ -1208,7 +1207,7 @@ export default function InboundFormModal({
           {(ib.settings.portMap || []).length > 0 && (
             <Form.Item wrapperCol={{ span: 24 }}>
               {(ib.settings.portMap as { name: string; value: string }[]).map((pm, idx) => (
-                <Input.Group key={`pm-${idx}`} compact className="mb-8">
+                <Space.Compact key={`pm-${idx}`} className="mb-8" block>
                   <Input style={{ width: '30%' }} value={pm.name} placeholder="5555" addonBefore={String(idx + 1)}
                     onChange={(e) => { pm.name = e.target.value; refresh(); }} />
                   <Input style={{ width: '60%' }} value={pm.value} placeholder="1.1.1.1:7777"
@@ -1216,7 +1215,7 @@ export default function InboundFormModal({
                   <Button onClick={() => { ib.settings.removePortMap(idx); refresh(); }}>
                     <MinusOutlined />
                   </Button>
-                </Input.Group>
+                </Space.Compact>
               ))}
             </Form.Item>
           )}
@@ -1405,7 +1404,7 @@ export default function InboundFormModal({
                   {(ib.stream.tcp.request.headers || []).length > 0 && (
                     <Form.Item wrapperCol={{ span: 24 }}>
                       {(ib.stream.tcp.request.headers as { name: string; value: string }[]).map((h, idx) => (
-                        <Input.Group key={`tcp-rh-${idx}`} compact className="mb-8">
+                        <Space.Compact key={`tcp-rh-${idx}`} className="mb-8" block>
                           <Input style={{ width: '45%' }} value={h.name} addonBefore={String(idx + 1)}
                             placeholder={t('pages.inbounds.stream.general.name')}
                             onChange={(e) => { h.name = e.target.value; refresh(); }} />
@@ -1415,7 +1414,7 @@ export default function InboundFormModal({
                           <Button onClick={() => { ib.stream.tcp.request.removeHeader(idx); refresh(); }}>
                             <MinusOutlined />
                           </Button>
-                        </Input.Group>
+                        </Space.Compact>
                       ))}
                     </Form.Item>
                   )}
@@ -1440,7 +1439,7 @@ export default function InboundFormModal({
                   {(ib.stream.tcp.response.headers || []).length > 0 && (
                     <Form.Item wrapperCol={{ span: 24 }}>
                       {(ib.stream.tcp.response.headers as { name: string; value: string }[]).map((h, idx) => (
-                        <Input.Group key={`tcp-rsh-${idx}`} compact className="mb-8">
+                        <Space.Compact key={`tcp-rsh-${idx}`} className="mb-8" block>
                           <Input style={{ width: '45%' }} value={h.name} addonBefore={String(idx + 1)}
                             placeholder={t('pages.inbounds.stream.general.name')}
                             onChange={(e) => { h.name = e.target.value; refresh(); }} />
@@ -1450,7 +1449,7 @@ export default function InboundFormModal({
                           <Button onClick={() => { ib.stream.tcp.response.removeHeader(idx); refresh(); }}>
                             <MinusOutlined />
                           </Button>
-                        </Input.Group>
+                        </Space.Compact>
                       ))}
                     </Form.Item>
                   )}
@@ -1482,7 +1481,7 @@ export default function InboundFormModal({
               {(ib.stream.ws.headers || []).length > 0 && (
                 <Form.Item wrapperCol={{ span: 24 }}>
                   {(ib.stream.ws.headers as { name: string; value: string }[]).map((h, idx) => (
-                    <Input.Group key={`ws-h-${idx}`} compact className="mb-8">
+                    <Space.Compact key={`ws-h-${idx}`} className="mb-8" block>
                       <Input style={{ width: '45%' }} value={h.name} addonBefore={String(idx + 1)}
                         placeholder={t('pages.inbounds.stream.general.name')}
                         onChange={(e) => { h.name = e.target.value; refresh(); }} />
@@ -1492,7 +1491,7 @@ export default function InboundFormModal({
                       <Button onClick={() => { ib.stream.ws.removeHeader(idx); refresh(); }}>
                         <MinusOutlined />
                       </Button>
-                    </Input.Group>
+                    </Space.Compact>
                   ))}
                 </Form.Item>
               )}
@@ -1518,7 +1517,7 @@ export default function InboundFormModal({
               {(ib.stream.httpupgrade.headers || []).length > 0 && (
                 <Form.Item wrapperCol={{ span: 24 }}>
                   {(ib.stream.httpupgrade.headers as { name: string; value: string }[]).map((h, idx) => (
-                    <Input.Group key={`hu-h-${idx}`} compact className="mb-8">
+                    <Space.Compact key={`hu-h-${idx}`} className="mb-8" block>
                       <Input style={{ width: '45%' }} value={h.name} addonBefore={String(idx + 1)}
                         placeholder={t('pages.inbounds.stream.general.name')}
                         onChange={(e) => { h.name = e.target.value; refresh(); }} />
@@ -1528,7 +1527,7 @@ export default function InboundFormModal({
                       <Button onClick={() => { ib.stream.httpupgrade.removeHeader(idx); refresh(); }}>
                         <MinusOutlined />
                       </Button>
-                    </Input.Group>
+                    </Space.Compact>
                   ))}
                 </Form.Item>
               )}
@@ -1545,7 +1544,7 @@ export default function InboundFormModal({
               {(ib.stream.xhttp.headers || []).length > 0 && (
                 <Form.Item wrapperCol={{ span: 24 }}>
                   {(ib.stream.xhttp.headers as { name: string; value: string }[]).map((h, idx) => (
-                    <Input.Group key={`xh-h-${idx}`} compact className="mb-8">
+                    <Space.Compact key={`xh-h-${idx}`} className="mb-8" block>
                       <Input style={{ width: '45%' }} value={h.name} addonBefore={String(idx + 1)}
                         placeholder={t('pages.inbounds.stream.general.name')}
                         onChange={(e) => { h.name = e.target.value; refresh(); }} />
@@ -1555,7 +1554,7 @@ export default function InboundFormModal({
                       <Button onClick={() => { ib.stream.xhttp.removeHeader(idx); refresh(); }}>
                         <MinusOutlined />
                       </Button>
-                    </Input.Group>
+                    </Space.Compact>
                   ))}
                 </Form.Item>
               )}
@@ -1652,7 +1651,7 @@ export default function InboundFormModal({
           {externalProxyOn && (
             <Form.Item wrapperCol={{ span: 24 }}>
               {(ib.stream.externalProxy as { forceTls: string; dest: string; port: number; remark: string }[]).map((row, idx) => (
-                <Input.Group key={`ep-${idx}`} compact style={{ margin: '8px 0' }}>
+                <Space.Compact key={`ep-${idx}`} style={{ margin: '8px 0' }} block>
                   <Tooltip title="Force TLS">
                     <Select value={row.forceTls} style={{ width: '20%' }} onChange={(v) => { row.forceTls = v; refresh(); }}>
                       <Select.Option value="same">{t('pages.inbounds.same')}</Select.Option>
@@ -1669,7 +1668,7 @@ export default function InboundFormModal({
                   <Input style={{ width: '35%' }} value={row.remark} placeholder={t('pages.inbounds.remark')}
                     onChange={(e) => { row.remark = e.target.value; refresh(); }}
                     addonAfter={<MinusOutlined onClick={() => { ib.stream.externalProxy.splice(idx, 1); refresh(); }} />} />
-                </Input.Group>
+                </Space.Compact>
               ))}
             </Form.Item>
           )}
@@ -1762,7 +1761,7 @@ export default function InboundFormModal({
                       {(ib.stream.hysteria.masquerade.headers || []).length > 0 && (
                         <Form.Item wrapperCol={{ span: 24 }}>
                           {(ib.stream.hysteria.masquerade.headers as { name: string; value: string }[]).map((h, idx) => (
-                            <Input.Group key={`mh-${idx}`} compact className="mb-8">
+                            <Space.Compact key={`mh-${idx}`} className="mb-8" block>
                               <Input style={{ width: '45%' }} value={h.name} addonBefore={String(idx + 1)} placeholder="Name"
                                 onChange={(e) => { h.name = e.target.value; refresh(); }} />
                               <Input style={{ width: '45%' }} value={h.value} placeholder="Value"
@@ -1770,7 +1769,7 @@ export default function InboundFormModal({
                               <Button onClick={() => { ib.stream.hysteria.masquerade.removeHeader(idx); refresh(); }}>
                                 <MinusOutlined />
                               </Button>
-                            </Input.Group>
+                            </Space.Compact>
                           ))}
                         </Form.Item>
                       )}
@@ -1808,14 +1807,14 @@ export default function InboundFormModal({
             </Select>
           </Form.Item>
           <Form.Item label="Min/Max Version">
-            <Input.Group compact>
+            <Space.Compact block>
               <Select value={ib.stream.tls.minVersion} style={{ width: '50%' }} onChange={(v) => { ib.stream.tls.minVersion = v; refresh(); }}>
                 {TLS_VERSIONS.map((v) => <Select.Option key={v} value={v}>{v}</Select.Option>)}
               </Select>
               <Select value={ib.stream.tls.maxVersion} style={{ width: '50%' }} onChange={(v) => { ib.stream.tls.maxVersion = v; refresh(); }}>
                 {TLS_VERSIONS.map((v) => <Select.Option key={v} value={v}>{v}</Select.Option>)}
               </Select>
-            </Input.Group>
+            </Space.Compact>
           </Form.Item>
           <Form.Item label="uTLS">
             <Select value={ib.stream.tls.settings.fingerprint} style={{ width: '100%' }} onChange={(v) => { ib.stream.tls.settings.fingerprint = v; refresh(); }}>
@@ -2085,11 +2084,11 @@ export default function InboundFormModal({
       okText={okText}
       cancelText={t('close')}
       confirmLoading={saving}
-      maskClosable={false}
+      mask={{ closable: false }}
       width={780}
       onOk={submit}
       onCancel={onClose}
-      destroyOnClose
+      destroyOnHidden
     >
       <Tabs activeKey={activeTabKey} onChange={handleTabChange} items={tabItems} />
     </Modal>

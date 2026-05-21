@@ -266,7 +266,7 @@ export default function OutboundFormModal({
       title={title}
       okText={okText}
       cancelText={t('close')}
-      maskClosable={false}
+      mask={{ closable: false }}
       width={780}
       onOk={onOk}
       onCancel={onClose}
@@ -434,7 +434,7 @@ export default function OutboundFormModal({
             key: '2',
             label: 'JSON',
             children: (
-              <Space direction="vertical" size={10} style={{ width: '100%', marginTop: 10 }}>
+              <Space orientation="vertical" size={10} style={{ width: '100%', marginTop: 10 }}>
                 <Input.Search
                   value={linkInput}
                   placeholder="vmess:// vless:// trojan:// ss:// hysteria2://"

@@ -30,8 +30,7 @@ export default function TextModal({ open, onClose, title, content, fileName = ''
       open={open}
       title={title}
       onCancel={onClose}
-      closable
-      destroyOnClose
+      destroyOnHidden
       footer={(
         <>
           {fileName && (

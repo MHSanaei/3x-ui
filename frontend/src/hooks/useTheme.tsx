@@ -42,24 +42,32 @@ const ULTRA_DARK_TOKENS = {
   colorBgElevated: '#141414',
 };
 const DARK_LAYOUT_TOKENS = {
-  colorBgHeader: '#252526',
-  colorBgTrigger: '#333333',
-  colorBgBody: '#1e1e1e',
+  bodyBg: '#1e1e1e',
+  headerBg: '#252526',
+  headerColor: '#ffffff',
+  footerBg: '#1e1e1e',
+  siderBg: '#252526',
+  triggerBg: '#333333',
+  triggerColor: '#ffffff',
 };
 const ULTRA_DARK_LAYOUT_TOKENS = {
-  colorBgHeader: '#0a0a0a',
-  colorBgTrigger: '#141414',
-  colorBgBody: '#000',
+  bodyBg: '#000',
+  headerBg: '#0a0a0a',
+  headerColor: '#ffffff',
+  footerBg: '#000',
+  siderBg: '#0a0a0a',
+  triggerBg: '#141414',
+  triggerColor: '#ffffff',
 };
 const DARK_MENU_TOKENS = {
-  colorItemBg: '#252526',
-  colorSubItemBg: '#1e1e1e',
-  menuSubMenuBg: '#252526',
+  darkItemBg: '#252526',
+  darkSubMenuItemBg: '#1e1e1e',
+  darkPopupBg: '#252526',
 };
 const ULTRA_DARK_MENU_TOKENS = {
-  colorItemBg: '#0a0a0a',
-  colorSubItemBg: '#000',
-  menuSubMenuBg: '#0a0a0a',
+  darkItemBg: '#0a0a0a',
+  darkSubMenuItemBg: '#000',
+  darkPopupBg: '#0a0a0a',
 };
 
 export function buildAntdThemeConfig(isDark: boolean, isUltra: boolean): ThemeConfig {
