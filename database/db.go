@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -198,6 +199,36 @@ func runSeeders(isUsersEmpty bool) error {
 	return nil
 }
 
+// normalizeClientJSONFields coerces loosely-typed numeric fields in a raw
+// settings.clients entry so json.Unmarshal into model.Client doesn't fail
+// when older rows wrote tgId/limitIp/totalGB/etc. as strings. Empty strings
+// drop the key so the field falls back to its zero value.
+func normalizeClientJSONFields(obj map[string]any) {
+	normalizeInt := func(key string) {
+		raw, exists := obj[key]
+		if !exists {
+			return
+		}
+		s, ok := raw.(string)
+		if !ok {
+			return
+		}
+		trimmed := strings.ReplaceAll(strings.TrimSpace(s), " ", "")
+		if trimmed == "" {
+			delete(obj, key)
+			return
+		}
+		if n, err := strconv.ParseInt(trimmed, 10, 64); err == nil {
+			obj[key] = n
+		} else {
+			delete(obj, key)
+		}
+	}
+	for _, k := range []string{"tgId", "limitIp", "totalGB", "expiryTime", "reset", "created_at", "updated_at"} {
+		normalizeInt(k)
+	}
+}
+
 func seedClientsFromInboundJSON() error {
 	var inbounds []model.Inbound
 	if err := db.Find(&inbounds).Error; err != nil {
@@ -226,12 +257,15 @@ func seedClientsFromInboundJSON() error {
 				if !ok {
 					continue
 				}
+				normalizeClientJSONFields(obj)
 				blob, err := json.Marshal(obj)
 				if err != nil {
 					continue
 				}
 				var c model.Client
 				if err := json.Unmarshal(blob, &c); err != nil {
+					log.Printf("ClientsTable seed: skip client in inbound %d (unmarshal failed): %v; payload=%s",
+						inbound.Id, err, string(blob))
 					continue
 				}
 				email := strings.TrimSpace(c.Email)

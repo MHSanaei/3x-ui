@@ -43,6 +43,7 @@ const {
   tgBotEnable,
   expireDiff,
   trafficDiff,
+  pageSize,
   create,
   update,
   remove,
@@ -442,6 +443,10 @@ function expiryColor(row) {
 const sortState = ref({ column: null, order: null });
 const paginationState = ref({ current: 1, pageSize: 20 });
 
+watch(pageSize, (next) => {
+  if (next > 0) paginationState.value.pageSize = next;
+}, { immediate: true });
+
 function sortableCol(col, key) {
   return {
     ...col,
@@ -670,8 +675,9 @@ const columns = computed(() => [
                     </a-select>
                   </div>
 
-                  <a-table v-if="!isMobile" :columns="columns" :data-source="sortedClients" :loading="loading" row-key="email"
-                    :row-selection="rowSelection" :pagination="tablePagination" size="small" @change="onTableChange">
+                  <a-table v-if="!isMobile" :columns="columns" :data-source="sortedClients" :loading="loading"
+                    row-key="email" :row-selection="rowSelection" :pagination="tablePagination" size="small"
+                    @change="onTableChange">
                     <template #bodyCell="{ column, record }">
                       <template v-if="column.key === 'email'">
                         <div class="email-cell">
@@ -842,6 +848,11 @@ const columns = computed(() => [
   background: var(--bg-page);
 }
 
+.clients-page :deep(.ant-pagination-options-size-changer),
+.clients-page :deep(.ant-pagination-options-size-changer .ant-select-selector) {
+  min-width: 100px !important;
+}
+
 .clients-page.is-dark {
   --bg-page: #1e1e1e;
   --bg-card: #252526;
@@ -874,7 +885,7 @@ const columns = computed(() => [
   margin-bottom: 8px;
 }
 
-.filter-bar.mobile > * {
+.filter-bar.mobile>* {
   flex: 0 0 auto;
 }
 
@@ -911,11 +922,25 @@ const columns = computed(() => [
   vertical-align: middle;
 }
 
-.dot-green { background: #52c41a; }
-.dot-blue { background: #1677ff; }
-.dot-red { background: #ff4d4f; }
-.dot-orange { background: #fa8c16; }
-.dot-gray { background: rgba(128, 128, 128, 0.6); }
+.dot-green {
+  background: #52c41a;
+}
+
+.dot-blue {
+  background: #1677ff;
+}
+
+.dot-red {
+  background: #ff4d4f;
+}
+
+.dot-orange {
+  background: #fa8c16;
+}
+
+.dot-gray {
+  background: rgba(128, 128, 128, 0.6);
+}
 
 .status-tag {
   margin: 0 0 0 4px;
@@ -1050,8 +1075,6 @@ const columns = computed(() => [
 </style>
 
 <style>
-/* AD-Vue popovers teleport their content to <body>, so scoped styles
-   don't reach them — this block has to be unscoped. */
 .client-email-list {
   max-height: 280px;
   min-width: 160px;
@@ -1059,9 +1082,17 @@ const columns = computed(() => [
   padding-right: 4px;
 }
 
-.client-email-list > div {
+.client-email-list>div {
   padding: 2px 0;
   font-size: 12px;
+  white-space: nowrap;
+}
+
+.ant-select-dropdown:has(.ant-select-item-option[title$="/ page"]) {
+  min-width: 110px !important;
+}
+
+.ant-select-dropdown:has(.ant-select-item-option[title$="/ page"]) .ant-select-item-option-content {
   white-space: nowrap;
 }
 </style>

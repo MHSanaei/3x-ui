@@ -2845,7 +2845,7 @@ func (s *InboundService) MigrationRequirements() {
 
 	// Fix inbounds based problems
 	var inbounds []*model.Inbound
-	err = tx.Model(model.Inbound{}).Where("protocol IN (?)", []string{"vmess", "vless", "trojan"}).Find(&inbounds).Error
+	err = tx.Model(model.Inbound{}).Where("protocol IN (?)", []string{"vmess", "vless", "trojan", "shadowsocks", "hysteria", "hysteria2"}).Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return
 	}
@@ -2923,6 +2923,12 @@ func (s *InboundService) MigrationRequirements() {
 					s.AddClientStat(tx, inbounds[inbound_index].Id, &modelClient)
 				}
 			}
+		}
+
+		// Heal clients table for installs where the one-shot seeder
+		// skipped clients due to a tgId-string unmarshal error.
+		if syncErr := s.clientService.SyncInbound(tx, inbounds[inbound_index].Id, modelClients); syncErr != nil {
+			logger.Warning("MigrationRequirements sync clients failed:", syncErr)
 		}
 	}
 	tx.Save(inbounds)

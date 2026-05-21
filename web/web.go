@@ -154,7 +154,8 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	engine := gin.Default()
 	directHTTPS := s.isDirectHTTPSConfigured()
-	engine.Use(middleware.SecurityHeadersMiddleware(directHTTPS))
+	sendHSTS := directHTTPS && !config.IsSkipHSTS()
+	engine.Use(middleware.SecurityHeadersMiddleware(sendHSTS))
 
 	webDomain, err := s.settingService.GetWebDomain()
 	if err != nil {
