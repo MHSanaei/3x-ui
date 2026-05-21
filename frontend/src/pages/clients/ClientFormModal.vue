@@ -270,7 +270,7 @@ async function onSubmit() {
     :ok-button-props="{ loading: submitting }" :width="720" @ok="onSubmit" @cancel="close">
     <a-form layout="vertical" :model="form">
       <a-row :gutter="16">
-        <a-col :span="12">
+        <a-col :xs="24" :md="12">
           <a-form-item :label="t('pages.clients.email')" required>
             <a-input-group compact style="display: flex">
               <a-input v-model:value="form.email" :placeholder="t('pages.clients.email')" style="flex: 1" />
@@ -278,7 +278,7 @@ async function onSubmit() {
             </a-input-group>
           </a-form-item>
         </a-col>
-        <a-col :span="12">
+        <a-col :xs="24" :md="12">
           <a-form-item :label="t('pages.clients.subId')">
             <a-input-group compact style="display: flex">
               <a-input v-model:value="form.subId" style="flex: 1" />
@@ -289,7 +289,7 @@ async function onSubmit() {
       </a-row>
 
       <a-row :gutter="16">
-        <a-col :span="12">
+        <a-col :xs="24" :md="12">
           <a-form-item :label="t('pages.clients.hysteriaAuth')">
             <a-input-group compact style="display: flex">
               <a-input v-model:value="form.auth" style="flex: 1" />
@@ -297,7 +297,7 @@ async function onSubmit() {
             </a-input-group>
           </a-form-item>
         </a-col>
-        <a-col :span="12">
+        <a-col :xs="24" :md="12">
           <a-form-item :label="t('pages.clients.password')">
             <a-input-group compact style="display: flex">
               <a-input v-model:value="form.password" style="flex: 1" />
@@ -308,7 +308,7 @@ async function onSubmit() {
       </a-row>
 
       <a-row :gutter="16">
-        <a-col :span="12">
+        <a-col :xs="24" :md="12">
           <a-form-item :label="t('pages.clients.uuid')">
             <a-input-group compact style="display: flex">
               <a-input v-model:value="form.uuid" style="flex: 1" />
@@ -316,12 +316,12 @@ async function onSubmit() {
             </a-input-group>
           </a-form-item>
         </a-col>
-        <a-col :span="ipLimitEnable ? 8 : 12">
+        <a-col :xs="24" :md="ipLimitEnable ? 8 : 12">
           <a-form-item :label="t('pages.clients.totalGB')">
             <a-input-number v-model:value="form.totalGB" :min="0" :step="0.1" style="width: 100%" />
           </a-form-item>
         </a-col>
-        <a-col v-if="ipLimitEnable" :span="4">
+        <a-col v-if="ipLimitEnable" :xs="24" :md="4">
           <a-form-item :label="t('pages.clients.limitIp')">
             <a-input-number v-model:value="form.limitIp" :min="0" style="width: 100%" />
           </a-form-item>
@@ -329,7 +329,7 @@ async function onSubmit() {
       </a-row>
 
       <a-row :gutter="16">
-        <a-col :span="12">
+        <a-col :xs="24" :md="12">
           <a-form-item v-if="form.delayedStart" :label="t('pages.clients.expireDays')">
             <a-input-number v-model:value="form.delayedDays" :min="0" style="width: 100%" />
           </a-form-item>
@@ -337,7 +337,7 @@ async function onSubmit() {
             <a-date-picker v-model:value="form.expiryDate" show-time style="width: 100%" />
           </a-form-item>
         </a-col>
-        <a-col :span="12">
+        <a-col :xs="24" :md="12">
           <a-form-item :label="t('pages.clients.delayedStart')">
             <a-switch v-model:checked="form.delayedStart" @change="onDelayedStartToggle" />
           </a-form-item>
@@ -345,7 +345,7 @@ async function onSubmit() {
       </a-row>
 
       <a-row v-if="showFlow || showReverseTag" :gutter="16">
-        <a-col v-if="showFlow" :span="12">
+        <a-col v-if="showFlow" :xs="24" :md="12">
           <a-form-item :label="t('pages.clients.flow')">
             <a-select v-model:value="form.flow">
               <a-select-option value="">{{ t('none') }}</a-select-option>
@@ -353,7 +353,7 @@ async function onSubmit() {
             </a-select>
           </a-form-item>
         </a-col>
-        <a-col v-if="showReverseTag" :span="12">
+        <a-col v-if="showReverseTag" :xs="24" :md="12">
           <a-form-item :label="t('pages.clients.reverseTag')">
             <a-input v-model:value="form.reverseTag" :placeholder="t('pages.clients.reverseTagPlaceholder')" />
           </a-form-item>
@@ -361,13 +361,13 @@ async function onSubmit() {
       </a-row>
 
       <a-row :gutter="16">
-        <a-col v-if="tgBotEnable" :span="12">
+        <a-col v-if="tgBotEnable" :xs="24" :md="12">
           <a-form-item :label="t('pages.clients.telegramId')">
             <a-input-number v-model:value="form.tgId" :min="0" :controls="false"
               :placeholder="t('pages.clients.telegramIdPlaceholder')" style="width: 100%" />
           </a-form-item>
         </a-col>
-        <a-col :span="tgBotEnable ? 12 : 24">
+        <a-col :xs="24" :md="tgBotEnable ? 12 : 24">
           <a-form-item :label="t('pages.clients.comment')">
             <a-input v-model:value="form.comment" />
           </a-form-item>

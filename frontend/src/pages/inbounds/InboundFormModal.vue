@@ -1030,16 +1030,16 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
               </a-col>
             </a-row>
             <a-row v-if="isFallbackEditing(record.rowKey)" :gutter="8" style="margin-top: 8px">
-              <a-col :span="8">
+              <a-col :xs="24" :md="8">
                 <a-input v-model:value="record.name" addon-before="SNI" :placeholder="t('pages.inbounds.fallbacks.matchAny') || 'any'" />
               </a-col>
-              <a-col :span="5">
+              <a-col :xs="24" :md="5">
                 <a-input v-model:value="record.alpn" addon-before="ALPN" :placeholder="t('pages.inbounds.fallbacks.matchAny') || 'any'" />
               </a-col>
-              <a-col :span="7">
+              <a-col :xs="24" :md="7">
                 <a-input v-model:value="record.path" addon-before="Path" placeholder="/" />
               </a-col>
-              <a-col :span="4">
+              <a-col :xs="24" :md="4">
                 <a-input-number v-model:value="record.xver" addon-before="xver" :min="0" :max="2" style="width: 100%" />
               </a-col>
             </a-row>
