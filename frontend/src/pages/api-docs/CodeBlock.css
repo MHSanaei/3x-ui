@@ -1,67 +1,3 @@
-<script setup>
-import { computed, ref } from 'vue';
-import { message } from 'ant-design-vue';
-import { CopyOutlined, CheckOutlined } from '@ant-design/icons-vue';
-
-const props = defineProps({
-  code: { type: String, default: '' },
-  lang: { type: String, default: 'json' },
-});
-
-const copied = ref(false);
-
-function escapeHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function highlightJson(str) {
-  const escaped = escapeHtml(str);
-  return escaped.replace(
-    /("(?:[^"\\]|\\.)*")\s*(:)|("(?:[^"\\]|\\.)*")|(-?\d+\.?\d*(?:[eE][+-]?\d+)?)\b|(true|false)|(null)|([{}[\]])/g,
-    (_m, key, colon, string, number, bool, nil) => {
-      if (colon) return `<span class="json-key">${key}</span>${colon}`;
-      if (string) return `<span class="json-string">${string}</span>`;
-      if (number) return `<span class="json-number">${number}</span>`;
-      if (bool) return `<span class="json-boolean">${bool}</span>`;
-      if (nil) return `<span class="json-null">${nil}</span>`;
-      return _m;
-    }
-  );
-}
-
-const highlighted = computed(() => {
-  if (props.lang === 'json') {
-    return highlightJson(props.code);
-  }
-  return escapeHtml(props.code);
-});
-
-async function copyCode() {
-  try {
-    await navigator.clipboard.writeText(props.code);
-    copied.value = true;
-    message.success('Copied');
-    setTimeout(() => { copied.value = false; }, 2000);
-  } catch {
-    message.error('Copy failed');
-  }
-}
-</script>
-
-<template>
-  <div class="code-block-wrapper">
-    <div class="code-toolbar">
-      <span class="lang-badge">{{ lang.toUpperCase() }}</span>
-      <button class="copy-btn" :class="{ copied }" @click="copyCode" :title="copied ? 'Copied' : 'Copy'">
-        <CheckOutlined v-if="copied" />
-        <CopyOutlined v-else />
-      </button>
-    </div>
-    <pre class="code-block" :class="`lang-${lang}`"><code v-html="highlighted"></code></pre>
-  </div>
-</template>
-
-<style scoped>
 .code-block-wrapper {
   position: relative;
   border-radius: 6px;
@@ -127,9 +63,7 @@ async function copyCode() {
   border: none;
   border-radius: 0;
 }
-</style>
 
-<style>
 .json-key { color: #0550ae; }
 .json-string { color: #116329; }
 .json-number { color: #9a6700; }
@@ -171,4 +105,3 @@ body.dark .copy-btn:hover {
   color: #58a6ff;
   border-color: #58a6ff;
 }
-</style>
