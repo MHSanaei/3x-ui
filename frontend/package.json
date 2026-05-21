@@ -24,7 +24,7 @@
     "dayjs": "^1.11.20",
     "otpauth": "^9.5.1",
     "qs": "^6.13.1",
-    "vue": "^3.5.13",
+    "vue": "^3.5.34",
     "vue-i18n": "^11.1.4",
     "vue3-persian-datetime-picker": "^1.2.2"
   },
@@ -34,7 +34,7 @@
     "eslint": "^10.3.0",
     "eslint-plugin-vue": "^10.9.1",
     "globals": "^17.6.0",
-    "vite": "^8.0.11",
+    "vite": "8.0.13",
     "vue-eslint-parser": "^10.4.0"
   },
   "overrides": {
