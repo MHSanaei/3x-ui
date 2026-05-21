@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import react from '@vitejs/plugin-react';
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -136,7 +137,7 @@ function makeBackendProxy(target) {
 }
 
 export default defineConfig({
-  plugins: [vue(), injectBasePathPlugin()],
+  plugins: [vue(), react(), injectBasePathPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
@@ -170,6 +171,17 @@ export default defineConfig({
             id.includes('/node_modules/vue/')
             || id.includes('/node_modules/@vue/')
           ) return 'vendor-vue';
+          if (id.includes('/node_modules/antd/')) return 'vendor-antd-react';
+          if (id.includes('/@ant-design/icons/')) return 'vendor-icons-react';
+          if (
+            id.includes('/node_modules/react-i18next/')
+            || id.includes('/node_modules/i18next/')
+          ) return 'vendor-i18next';
+          if (
+            id.includes('/node_modules/react/')
+            || id.includes('/node_modules/react-dom/')
+            || id.includes('/node_modules/scheduler/')
+          ) return 'vendor-react';
           if (id.includes('dayjs')) return 'vendor-dayjs';
           if (id.includes('axios')) return 'vendor-axios';
           if (
