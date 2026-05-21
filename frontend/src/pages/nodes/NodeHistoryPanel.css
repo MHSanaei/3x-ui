@@ -1,0 +1,20 @@
+.node-history-panel {
+  padding: 8px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .node-history-panel {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.node-history-panel .series-title {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.75;
+  margin-bottom: 4px;
+}

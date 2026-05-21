@@ -1,0 +1,30 @@
+.sparkline-svg {
+  display: block;
+  width: 100%;
+}
+
+.sparkline-svg .cpu-grid-y-text,
+.sparkline-svg .cpu-grid-x-text {
+  fill: rgba(0, 0, 0, 0.65);
+}
+
+.sparkline-svg .cpu-grid-text {
+  fill: rgba(0, 0, 0, 0.88);
+}
+
+body.dark .sparkline-svg .cpu-grid-y-text,
+body.dark .sparkline-svg .cpu-grid-x-text {
+  fill: rgba(255, 255, 255, 0.85);
+}
+
+body.dark .sparkline-svg .cpu-grid-text {
+  fill: rgba(255, 255, 255, 0.95);
+}
+
+body.dark .sparkline-svg .cpu-grid-line {
+  stroke: rgba(255, 255, 255, 0.12);
+}
+
+body.dark .sparkline-svg .cpu-grid-h-line {
+  stroke: rgba(255, 255, 255, 0.35);
+}
