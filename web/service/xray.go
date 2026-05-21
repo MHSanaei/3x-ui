@@ -3,12 +3,15 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 
+	"github.com/mhsanaei/3x-ui/v3/config"
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/xray"
 
 	"go.uber.org/atomic"
@@ -104,6 +107,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	xrayConfig.LogConfig = resolveXrayLogPaths(xrayConfig.LogConfig)
 
 	_, _, _ = s.inboundService.AddTraffic(nil, nil)
 
@@ -251,6 +255,56 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
 	}
 	return xrayConfig, nil
+}
+
+// resolveXrayLogPaths rewrites relative `log.access` / `log.error` values to
+// absolute paths under config.GetLogFolder(), so Xray writes those files
+// alongside the panel's other logs regardless of the working directory the
+// panel was launched from. Values that are empty, "none", or already absolute
+// are left untouched, as are unparseable log blocks.
+func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
+	if len(logCfg) == 0 {
+		return logCfg
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(logCfg, &parsed); err != nil {
+		return logCfg
+	}
+	changed := false
+	for _, key := range []string{"access", "error"} {
+		v, ok := parsed[key].(string)
+		if !ok {
+			continue
+		}
+		trimmed := strings.TrimSpace(v)
+		if trimmed == "" || strings.EqualFold(trimmed, "none") {
+			continue
+		}
+		if filepath.IsAbs(trimmed) {
+			continue
+		}
+		cleaned := filepath.ToSlash(filepath.Clean(trimmed))
+		base := filepath.Base(cleaned)
+		if base == "" || base == "." || base == string(filepath.Separator) {
+			continue
+		}
+		// Only rewrite bare names ("./access.log", "access.log").
+		// A nested relative path like "./logs/foo.log" is treated as
+		// a deliberate user choice and left alone.
+		if cleaned != base {
+			continue
+		}
+		parsed[key] = filepath.Join(config.GetLogFolder(), base)
+		changed = true
+	}
+	if !changed {
+		return logCfg
+	}
+	out, err := json.Marshal(parsed)
+	if err != nil {
+		return logCfg
+	}
+	return out
 }
 
 // healShadowsocksClientMethods is the same idea as applyShadowsocksClientMethod
