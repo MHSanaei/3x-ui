@@ -132,7 +132,7 @@ export default function ClientsPage() {
 
   useEffect(() => {
     if (pageSize > 0) {
-      /* eslint-disable-next-line react-hooks/set-state-in-effect */
+       
       setTablePageSize(pageSize);
     }
   }, [pageSize]);

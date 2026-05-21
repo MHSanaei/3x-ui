@@ -129,7 +129,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     loadApiTokens();
   }, [loadApiTokens]);
 

@@ -1,0 +1,82 @@
+.index-page {
+  --bg-page: #e6e8ec;
+  --bg-card: #ffffff;
+
+  min-height: 100vh;
+  background: var(--bg-page);
+}
+
+.index-page.is-dark {
+  --bg-page: #1e1e1e;
+  --bg-card: #252526;
+}
+
+.index-page.is-dark.is-ultra {
+  --bg-page: #050505;
+  --bg-card: #0c0e12;
+}
+
+.index-page .ant-layout,
+.index-page .ant-layout-content {
+  background: transparent;
+}
+
+.index-page .content-shell {
+  background: transparent;
+}
+
+.index-page .content-area {
+  padding: 24px;
+}
+
+@media (max-width: 768px) {
+  .index-page .content-area {
+    padding: 12px;
+    padding-top: 64px;
+  }
+}
+
+.index-page .loading-spacer {
+  min-height: calc(100vh - 120px);
+}
+
+.index-page .action {
+  cursor: pointer;
+  justify-content: center;
+}
+
+.index-page .action-update {
+  color: #fa8c16;
+  font-weight: 600;
+}
+
+.index-page .action-update .anticon {
+  color: #fa8c16;
+}
+
+.index-page .history-tag {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-end: 0;
+}
+
+.index-page .tg-icon {
+  display: inline-block;
+  vertical-align: -2px;
+}
+
+.index-page .ip-toggle-icon {
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.index-page .ip-hidden .ant-statistic-content-value {
+  filter: blur(6px);
+  transition: filter 0.2s ease;
+}
+
+.index-page .ip-visible .ant-statistic-content-value {
+  filter: none;
+}

@@ -1,0 +1,25 @@
+.mb-12 {
+  margin-bottom: 12px;
+}
+
+.version-list {
+  width: 100%;
+}
+
+.version-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reload-icon {
+  cursor: pointer;
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.actions-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}

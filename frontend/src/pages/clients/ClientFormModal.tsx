@@ -143,7 +143,7 @@ export default function ClientFormModal({
 
   useEffect(() => {
     if (!open) return;
-    /* eslint-disable react-hooks/set-state-in-effect */
+     
     if (isEdit && client) {
       const et = Number(client.expiryTime) || 0;
       const next: FormState = {
@@ -183,7 +183,7 @@ export default function ClientFormModal({
         auth: RandomUtil.randomLowerAndNum(16),
       });
     }
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isEdit]);
 
@@ -215,14 +215,14 @@ export default function ClientFormModal({
 
   useEffect(() => {
     if (!showFlow && form.flow) {
-      /* eslint-disable-next-line react-hooks/set-state-in-effect */
+       
       update('flow', '');
     }
   }, [showFlow, form.flow]);
 
   useEffect(() => {
     if (!showReverseTag && form.reverseTag) {
-      /* eslint-disable-next-line react-hooks/set-state-in-effect */
+       
       update('reverseTag', '');
     }
   }, [showReverseTag, form.reverseTag]);

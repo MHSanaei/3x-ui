@@ -247,9 +247,9 @@ export function useClients() {
   }, [refresh]);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
+     
     Promise.all([refresh(), fetchSubSettings()]);
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [refresh, fetchSubSettings]);
 
   return {

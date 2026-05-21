@@ -1,0 +1,53 @@
+.metrics-alert {
+  margin-bottom: 10px;
+}
+
+.obs-pane {
+  padding: 4px 16px 0;
+}
+
+.obs-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.obs-select {
+  min-width: 240px;
+}
+
+.obs-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.obs-stamp {
+  opacity: 0.7;
+}
+
+.obs-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.obs-dot.is-alive {
+  background: #52c41a;
+}
+
+.obs-dot.is-dead {
+  background: #f5222d;
+}
+
+.listen-tag {
+  opacity: 0.7;
+}

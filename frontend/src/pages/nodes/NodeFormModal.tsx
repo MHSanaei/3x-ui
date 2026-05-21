@@ -96,10 +96,10 @@ export default function NodeFormModal({
         scheme: (node.scheme as 'http' | 'https') || base.scheme,
       }
       : base;
-    /* eslint-disable react-hooks/set-state-in-effect */
+     
     setForm(next);
     setTestResult(null);
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [open, mode, node]);
 
   const title = useMemo(

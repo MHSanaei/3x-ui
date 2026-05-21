@@ -1,0 +1,9 @@
+.backup-list {
+  width: 100%;
+}
+
+.backup-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}

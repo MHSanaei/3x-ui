@@ -1,0 +1,18 @@
+.bucket-select {
+  width: 80px;
+  margin-left: 10px;
+}
+
+.history-tabs {
+  margin-bottom: 4px;
+}
+
+.cpu-chart-wrap {
+  padding: 8px 16px 16px;
+}
+
+.cpu-chart-meta {
+  margin-bottom: 10px;
+  font-size: 11px;
+  opacity: 0.65;
+}

@@ -80,10 +80,10 @@ export default function ClientBulkAddModal({
 
   useEffect(() => {
     if (!open) return;
-    /* eslint-disable react-hooks/set-state-in-effect */
+     
     setForm(emptyForm());
     setDelayedStart(false);
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [open]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -105,7 +105,7 @@ export default function ClientBulkAddModal({
 
   useEffect(() => {
     if (!showFlow && form.flow) {
-      /* eslint-disable-next-line react-hooks/set-state-in-effect */
+       
       update('flow', '');
     }
   }, [showFlow, form.flow]);

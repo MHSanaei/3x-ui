@@ -34,7 +34,7 @@ export default function TwoFactorModal({
 
   useEffect(() => {
     if (!open) return;
-    /* eslint-disable react-hooks/set-state-in-effect */
+     
     setEnteredCode('');
     totpRef.current = null;
     setQrValue('');
@@ -50,7 +50,7 @@ export default function TwoFactorModal({
       totpRef.current = totp;
       setQrValue(totp.toString());
     }
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [open, token]);
 
   function close(success: boolean, code = '') {

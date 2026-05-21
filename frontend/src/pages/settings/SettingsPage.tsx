@@ -93,12 +93,12 @@ export default function SettingsPage() {
   const [entryIsIP, setEntryIsIP] = useState(false);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
+     
     const host = window.location.hostname;
     setEntryHost(host);
     setEntryPort(window.location.port);
     setEntryIsIP(isIp(host));
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, []);
 
   const [alertVisible, setAlertVisible] = useState(true);
