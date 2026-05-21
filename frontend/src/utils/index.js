@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { message as antMessage } from 'ant-design-vue';
+import { message as antMessage } from 'antd';
 
 export class Msg {
     constructor(success = false, msg = "", obj = null) {

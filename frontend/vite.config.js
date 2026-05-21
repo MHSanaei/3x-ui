@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite';
-import vue from '@vitejs/plugin-vue';
 import react from '@vitejs/plugin-react';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -137,7 +136,7 @@ function makeBackendProxy(target) {
 }
 
 export default defineConfig({
-  plugins: [vue(), react(), injectBasePathPlugin()],
+  plugins: [react(), injectBasePathPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
@@ -164,15 +163,8 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
-          if (id.includes('ant-design-vue')) return 'vendor-antd';
-          if (id.includes('@ant-design/icons-vue')) return 'vendor-icons';
-          if (id.includes('vue-i18n')) return 'vendor-i18n';
-          if (
-            id.includes('/node_modules/vue/')
-            || id.includes('/node_modules/@vue/')
-          ) return 'vendor-vue';
-          if (id.includes('/node_modules/antd/')) return 'vendor-antd-react';
-          if (id.includes('/@ant-design/icons/')) return 'vendor-icons-react';
+          if (id.includes('/node_modules/antd/')) return 'vendor-antd';
+          if (id.includes('/@ant-design/icons/')) return 'vendor-icons';
           if (
             id.includes('/node_modules/react-i18next/')
             || id.includes('/node_modules/i18next/')
@@ -184,12 +176,6 @@ export default defineConfig({
           ) return 'vendor-react';
           if (id.includes('dayjs')) return 'vendor-dayjs';
           if (id.includes('axios')) return 'vendor-axios';
-          if (
-            id.includes('vue3-persian-datetime-picker')
-            || id.includes('moment-jalaali')
-            || id.includes('jalaali-js')
-            || id.includes('/node_modules/moment/')
-          ) return 'vendor-jalali';
           return 'vendor';
         },
       },

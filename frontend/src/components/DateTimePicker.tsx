@@ -1,10 +1,3 @@
-// React port of DateTimePicker.vue. For now this delegates to AntD's
-// <DatePicker>; the Jalali calendar UI from vue3-persian-datetime-picker
-// has no clean React equivalent and is tracked as a follow-up for when
-// the inbounds entry migrates. Read-only Jalali display still works via
-// IntlUtil.formatDate, which uses Intl.DateTimeFormat with the persian
-// calendar extension.
-
 import { DatePicker } from 'antd';
 import type { Dayjs } from 'dayjs';
 
