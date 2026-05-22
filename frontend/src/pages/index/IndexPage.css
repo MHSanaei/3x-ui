@@ -163,7 +163,29 @@ html[data-theme='ultra-dark'] .index-page .ant-card .ant-card-actions > li {
   max-width: 100%;
   padding: 0 8px;
   flex-wrap: nowrap;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  color: rgba(0, 0, 0, 0.78);
+  font-weight: 500;
+  transition: opacity 0.15s ease, transform 0.15s ease, color 0.2s ease;
+}
+
+.index-page .action .anticon {
+  color: rgba(0, 0, 0, 0.72);
+}
+
+body.dark .index-page .action {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+body.dark .index-page .action .anticon {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+html[data-theme='ultra-dark'] .index-page .action {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+html[data-theme='ultra-dark'] .index-page .action .anticon {
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .index-page .action > span:not(.anticon):not(.tg-icon) {

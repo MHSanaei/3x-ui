@@ -170,6 +170,7 @@ export default function LoginPage() {
             >
               <Button
                 shape="circle"
+                size="large"
                 className="toolbar-btn"
                 aria-label={t('menu.settings')}
                 icon={<SettingOutlined />}

@@ -219,6 +219,13 @@
 .toolbar-btn {
   width: 40px;
   height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  padding: 0;
+}
+
+.toolbar-btn .anticon {
+  font-size: 18px;
 }
 
 .theme-cycle {

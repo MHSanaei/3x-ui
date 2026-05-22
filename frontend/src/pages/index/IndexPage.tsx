@@ -11,6 +11,7 @@ import {
   Row,
   Space,
   Spin,
+  Tag,
   Tooltip,
 } from 'antd';
 import {
@@ -210,7 +211,18 @@ export default function IndexPage() {
 
                   <Col xs={24} lg={12}>
                     <Card
-                      title="3X-UI"
+                      title={
+                        <Space>
+                          <span>3X-UI</span>
+                          {isMobile && displayVersion && (
+                            <Tag color={panelUpdateInfo.updateAvailable ? 'orange' : 'green'}>
+                              {panelUpdateInfo.updateAvailable
+                                ? `v${panelUpdateInfo.latestVersion}`
+                                : `v${displayVersion}`}
+                            </Tag>
+                          )}
+                        </Space>
+                      }
                       hoverable
                       actions={[
                         <Space className="action" key="tg" onClick={openTelegram}>
