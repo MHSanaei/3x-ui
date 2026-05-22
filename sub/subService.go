@@ -863,11 +863,131 @@ func cloneVmessShareObj(baseObj map[string]any, newSecurity string) map[string]a
 	return newObj
 }
 
+func applyExternalProxyTLSObj(ep map[string]any, obj map[string]any, security string) {
+	if security != "tls" {
+		return
+	}
+	if dest, ok := ep["dest"].(string); ok && dest != "" {
+		obj["sni"] = dest
+	}
+	if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
+		obj["fp"] = fp
+	}
+	if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
+		obj["alpn"] = alpn
+	}
+}
+
+func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, security string) {
+	if security != "tls" {
+		return
+	}
+	if dest, ok := ep["dest"].(string); ok && dest != "" {
+		params["sni"] = dest
+	}
+	if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
+		params["fp"] = fp
+	}
+	if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
+		params["alpn"] = alpn
+	}
+}
+
+func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, security string) {
+	if security != "tls" {
+		return
+	}
+	tlsSettings, _ := stream["tlsSettings"].(map[string]any)
+	if tlsSettings == nil {
+		tlsSettings = map[string]any{}
+		stream["tlsSettings"] = tlsSettings
+	}
+	if dest, ok := ep["dest"].(string); ok && dest != "" {
+		tlsSettings["serverName"] = dest
+	}
+	if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
+		tlsSettings["fingerprint"] = fp
+		settings, _ := tlsSettings["settings"].(map[string]any)
+		if settings == nil {
+			settings = map[string]any{}
+			tlsSettings["settings"] = settings
+		}
+		settings["fingerprint"] = fp
+	}
+	if alpn, ok := externalProxyALPNList(ep["alpn"]); ok {
+		tlsSettings["alpn"] = alpn
+	}
+}
+
+func externalProxyALPN(value any) (string, bool) {
+	switch v := value.(type) {
+	case string:
+		return v, v != ""
+	case []string:
+		if len(v) == 0 {
+			return "", false
+		}
+		return strings.Join(v, ","), true
+	case []any:
+		alpn := make([]string, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok && s != "" {
+				alpn = append(alpn, s)
+			}
+		}
+		if len(alpn) == 0 {
+			return "", false
+		}
+		return strings.Join(alpn, ","), true
+	default:
+		return "", false
+	}
+}
+
+func externalProxyALPNList(value any) ([]any, bool) {
+	switch v := value.(type) {
+	case string:
+		if v == "" {
+			return nil, false
+		}
+		parts := strings.Split(v, ",")
+		out := make([]any, 0, len(parts))
+		for _, part := range parts {
+			if part = strings.TrimSpace(part); part != "" {
+				out = append(out, part)
+			}
+		}
+		return out, len(out) > 0
+	case []string:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			if item != "" {
+				out = append(out, item)
+			}
+		}
+		return out, len(out) > 0
+	case []any:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok && s != "" {
+				out = append(out, s)
+			}
+		}
+		return out, len(out) > 0
+	default:
+		return nil, false
+	}
+}
+
 func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string) string {
 	var links strings.Builder
 	for index, externalProxy := range externalProxies {
 		ep, _ := externalProxy.(map[string]any)
 		newSecurity, _ := ep["forceTls"].(string)
+		securityToApply := baseObj["tls"].(string)
+		if newSecurity != "same" {
+			securityToApply = newSecurity
+		}
 		newObj := cloneVmessShareObj(baseObj, newSecurity)
 		newObj["ps"] = s.genRemark(inbound, email, ep["remark"].(string))
 		newObj["add"] = ep["dest"].(string)
@@ -876,6 +996,7 @@ func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj
 		if newSecurity != "same" {
 			newObj["tls"] = newSecurity
 		}
+		applyExternalProxyTLSObj(ep, newObj, securityToApply)
 		if index > 0 {
 			links.WriteString("\n")
 		}
@@ -931,11 +1052,14 @@ func (s *SubService) buildExternalProxyURLLinks(
 			securityToApply = newSecurity
 		}
 
+		nextParams := cloneStringMap(params)
+		applyExternalProxyTLSParams(ep, nextParams, securityToApply)
+
 		links = append(
 			links,
 			buildLinkWithParamsAndSecurity(
 				makeLink(dest, port),
-				params,
+				nextParams,
 				makeRemark(ep),
 				securityToApply,
 				newSecurity == "none",
@@ -1066,10 +1190,9 @@ func searchKey(data any, key string) (any, bool) {
 //   - server-only (noSSEHeader, scMaxBufferedPosts, scStreamUpServerSecs,
 //     serverMaxHeaderBytes) — client wouldn't read them, so emitting
 //     them just bloats the URL.
-//   - client-only (headers, uplinkHTTPMethod, uplinkChunkSize,
-//     noGRPCHeader, scMinPostsIntervalMs, xmux, downloadSettings) — the
-//     inbound config doesn't have them; the client configures them
-//     locally.
+//   - client-only values are included only when present in the inbound
+//     JSON. Some deployments/imported configs carry them there, and the
+//     subscription link is the only place clients can receive them.
 //
 // Truthy-only guards keep default inbounds emitting the same compact URL
 // they did before this helper grew.
@@ -1091,18 +1214,33 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 		}
 	}
 
-	if mode, ok := xhttp["mode"].(string); ok && len(mode) > 0 {
-		extra["mode"] = mode
-	}
-
 	stringFields := []string{
+		"uplinkHTTPMethod",
 		"sessionPlacement", "sessionKey",
 		"seqPlacement", "seqKey",
 		"uplinkDataPlacement", "uplinkDataKey",
-		"scMaxEachPostBytes",
+		"scMaxEachPostBytes", "scMinPostsIntervalMs",
 	}
 	for _, field := range stringFields {
 		if v, ok := xhttp[field].(string); ok && len(v) > 0 {
+			extra[field] = v
+		}
+	}
+
+	for _, field := range []string{"uplinkChunkSize"} {
+		if v, ok := nonZeroShareValue(xhttp[field]); ok {
+			extra[field] = v
+		}
+	}
+
+	for _, field := range []string{"noGRPCHeader"} {
+		if v, ok := xhttp[field].(bool); ok && v {
+			extra[field] = v
+		}
+	}
+
+	for _, field := range []string{"xmux", "downloadSettings"} {
+		if v, ok := nonEmptyShareObject(xhttp[field]); ok {
 			extra[field] = v
 		}
 	}
@@ -1128,6 +1266,38 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 		return nil
 	}
 	return extra
+}
+
+func nonZeroShareValue(v any) (any, bool) {
+	switch value := v.(type) {
+	case string:
+		return value, value != ""
+	case int:
+		return value, value != 0
+	case int32:
+		return value, value != 0
+	case int64:
+		return value, value != 0
+	case float32:
+		return value, value != 0
+	case float64:
+		return value, value != 0
+	default:
+		return nil, false
+	}
+}
+
+func nonEmptyShareObject(v any) (any, bool) {
+	switch value := v.(type) {
+	case map[string]any:
+		return value, len(value) > 0
+	case map[string]string:
+		return value, len(value) > 0
+	case []any:
+		return value, len(value) > 0
+	default:
+		return nil, false
+	}
 }
 
 // applyXhttpExtraParams emits the full xhttp config into the URL query

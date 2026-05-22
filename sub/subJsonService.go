@@ -174,7 +174,8 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 	}
 
 	externalProxies, ok := stream["externalProxy"].([]any)
-	if !ok || len(externalProxies) == 0 {
+	hasExternalProxy := ok && len(externalProxies) > 0
+	if !hasExternalProxy {
 		externalProxies = []any{
 			map[string]any{
 				"forceTls": "same",
@@ -203,6 +204,10 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 				newStream["security"] = "none"
 				delete(newStream, "tlsSettings")
 			}
+		}
+		security, _ := newStream["security"].(string)
+		if hasExternalProxy {
+			applyExternalProxyTLSToStream(extPrxy, newStream, security)
 		}
 		streamSettings, _ := json.MarshalIndent(newStream, "", "  ")
 

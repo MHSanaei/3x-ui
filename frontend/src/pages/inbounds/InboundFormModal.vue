@@ -101,6 +101,8 @@ const externalProxy = computed({
         dest: window.location.hostname,
         port: inbound.value.port,
         remark: '',
+        fingerprint: '',
+        alpn: [],
       }];
     } else {
       inbound.value.stream.externalProxy = [];
@@ -1597,6 +1599,15 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
             <a-form-item label="Padding Bytes">
               <a-input v-model:value="inbound.stream.xhttp.xPaddingBytes" />
             </a-form-item>
+            <a-form-item label="Uplink HTTP Method">
+              <a-select v-model:value="inbound.stream.xhttp.uplinkHTTPMethod">
+                <a-select-option value="">Default (POST)</a-select-option>
+                <a-select-option value="POST">POST</a-select-option>
+                <a-select-option value="PUT">PUT</a-select-option>
+                <a-select-option value="GET" :disabled="inbound.stream.xhttp.mode !== 'packet-up'">GET (packet-up
+                  only)</a-select-option>
+              </a-select>
+            </a-form-item>
             <a-form-item label="Padding Obfs Mode">
               <a-switch v-model:checked="inbound.stream.xhttp.xPaddingObfsMode" />
             </a-form-item>
@@ -1674,32 +1685,42 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
           <a-form-item label="External Proxy">
             <a-switch v-model:checked="externalProxy" />
             <a-button v-if="externalProxy" size="small" type="primary" :style="{ marginLeft: '10px' }"
-              @click="inbound.stream.externalProxy.push({ forceTls: 'same', dest: '', port: 443, remark: '' })">
+              @click="inbound.stream.externalProxy.push({ forceTls: 'same', dest: '', port: 443, remark: '', fingerprint: '', alpn: [] })">
               <template #icon>
                 <PlusOutlined />
               </template>
             </a-button>
           </a-form-item>
           <a-form-item v-if="externalProxy" :wrapper-col="{ span: 24 }">
-            <a-input-group v-for="(row, idx) in inbound.stream.externalProxy" :key="`ep-${idx}`" compact
-              :style="{ margin: '8px 0' }">
-              <a-tooltip title="Force TLS">
-                <a-select v-model:value="row.forceTls" :style="{ width: '20%' }">
-                  <a-select-option value="same">{{ t('pages.inbounds.same') }}</a-select-option>
-                  <a-select-option value="none">{{ t('none') }}</a-select-option>
-                  <a-select-option value="tls">TLS</a-select-option>
+            <div v-for="(row, idx) in inbound.stream.externalProxy" :key="`ep-${idx}`" :style="{ margin: '8px 0' }">
+              <a-input-group compact>
+                <a-tooltip title="Force TLS">
+                  <a-select v-model:value="row.forceTls" :style="{ width: '20%' }">
+                    <a-select-option value="same">{{ t('pages.inbounds.same') }}</a-select-option>
+                    <a-select-option value="none">{{ t('none') }}</a-select-option>
+                    <a-select-option value="tls">TLS</a-select-option>
+                  </a-select>
+                </a-tooltip>
+                <a-input v-model:value="row.dest" :style="{ width: '30%' }" :placeholder="t('host')" />
+                <a-tooltip :title="t('pages.inbounds.port')">
+                  <a-input-number v-model:value="row.port" :style="{ width: '15%' }" :min="1" :max="65535" />
+                </a-tooltip>
+                <a-input v-model:value="row.remark" :style="{ width: '35%' }" :placeholder="t('pages.inbounds.remark')">
+                  <template #addonAfter>
+                    <MinusOutlined @click="inbound.stream.externalProxy.splice(idx, 1)" />
+                  </template>
+                </a-input>
+              </a-input-group>
+              <a-input-group v-if="row.forceTls === 'tls'" compact :style="{ marginTop: '6px' }">
+                <a-select v-model:value="row.fingerprint" :style="{ width: '35%' }" placeholder="Fingerprint">
+                  <a-select-option value="">Default</a-select-option>
+                  <a-select-option v-for="fp in FINGERPRINTS" :key="fp" :value="fp">{{ fp }}</a-select-option>
                 </a-select>
-              </a-tooltip>
-              <a-input v-model:value="row.dest" :style="{ width: '30%' }" :placeholder="t('host')" />
-              <a-tooltip :title="t('pages.inbounds.port')">
-                <a-input-number v-model:value="row.port" :style="{ width: '15%' }" :min="1" :max="65535" />
-              </a-tooltip>
-              <a-input v-model:value="row.remark" :style="{ width: '35%' }" :placeholder="t('pages.inbounds.remark')">
-                <template #addonAfter>
-                  <MinusOutlined @click="inbound.stream.externalProxy.splice(idx, 1)" />
-                </template>
-              </a-input>
-            </a-input-group>
+                <a-select v-model:value="row.alpn" mode="multiple" :style="{ width: '65%' }" placeholder="ALPN">
+                  <a-select-option v-for="alpn in ALPNS" :key="alpn" :value="alpn">{{ alpn }}</a-select-option>
+                </a-select>
+              </a-input-group>
+            </div>
           </a-form-item>
 
           <!-- ====== Sockopt ====== -->
