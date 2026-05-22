@@ -687,6 +687,7 @@ export default function ClientsPage() {
                   <Col span={24}>
                     <Card
                       size="small"
+                      hoverable
                       title={
                         <div className="card-toolbar">
                           <Button type="primary" size="small" icon={<PlusOutlined />} onClick={onAdd}>

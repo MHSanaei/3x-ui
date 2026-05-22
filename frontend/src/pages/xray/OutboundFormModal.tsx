@@ -138,6 +138,9 @@ export default function OutboundFormModal({
   }
 
   function onTabChange(key: string) {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     if (revertingTabRef.current) {
       revertingTabRef.current = false;
       setActiveKey(key);

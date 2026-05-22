@@ -305,6 +305,7 @@ export default function XrayPage() {
                   </Col>
 
                   <Col span={24}>
+                    <Card hoverable>
                     <Tabs
                       activeKey={activeTabKey}
                       onChange={onTabChange}
@@ -444,6 +445,7 @@ export default function XrayPage() {
                         },
                       ]}
                     />
+                    </Card>
                   </Col>
                 </Row>
               )}

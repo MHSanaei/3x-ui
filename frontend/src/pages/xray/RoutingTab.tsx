@@ -76,7 +76,12 @@ export default function RoutingTab({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
-  const dragStateRef = useRef<{ startY: number; moved: boolean }>({ startY: 0, moved: false });
+  const dragRef = useRef<{ from: number | null; to: number | null; startY: number; moved: boolean }>({
+    from: null,
+    to: null,
+    startY: 0,
+    moved: false,
+  });
 
   const rules = useMemo(
     () => (templateSettings?.routing?.rules || []) as RoutingRule[],
@@ -214,43 +219,49 @@ export default function RoutingTab({
   function onHandlePointerDown(idx: number, ev: React.PointerEvent) {
     if (ev.button != null && ev.button !== 0) return;
     ev.preventDefault();
+    try {
+      (ev.currentTarget as Element).setPointerCapture(ev.pointerId);
+    } catch { /* ignore */ }
+    dragRef.current = { from: idx, to: idx, startY: ev.clientY, moved: false };
     setDraggedIndex(idx);
     setDropTargetIndex(idx);
-    dragStateRef.current = { startY: ev.clientY, moved: false };
-    document.addEventListener('pointermove', onDragMove);
-    document.addEventListener('pointerup', onDragUp);
-    document.addEventListener('pointercancel', onDragUp);
-  }
-  function onDragMove(ev: PointerEvent) {
-    setDraggedIndex((dragged) => {
-      if (dragged == null) return dragged;
-      const state = dragStateRef.current;
-      if (!state.moved && Math.abs(ev.clientY - state.startY) < 5) return dragged;
+
+    const onMove = (e: PointerEvent) => {
+      const state = dragRef.current;
+      if (state.from == null) return;
+      if (!state.moved && Math.abs(e.clientY - state.startY) < 5) return;
       state.moved = true;
-      const el = document.elementFromPoint(ev.clientX, ev.clientY);
-      if (!el) return dragged;
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      if (!el) return;
       const target = el.closest('[data-row-key]');
-      if (!target) return dragged;
-      const idx = Number(target.getAttribute('data-row-key'));
-      if (Number.isFinite(idx)) setDropTargetIndex(idx);
-      return dragged;
-    });
-  }
-  function onDragUp() {
-    document.removeEventListener('pointermove', onDragMove);
-    document.removeEventListener('pointerup', onDragUp);
-    document.removeEventListener('pointercancel', onDragUp);
-    const from = draggedIndex;
-    const to = dropTargetIndex;
-    setDraggedIndex(null);
-    setDropTargetIndex(null);
-    if (!dragStateRef.current.moved || from == null || to == null || from === to) return;
-    mutate((tt) => {
-      const list = tt.routing?.rules;
-      if (!list) return;
-      const [moved] = list.splice(from, 1);
-      list.splice(to, 0, moved);
-    });
+      if (!target) return;
+      const newIdx = Number(target.getAttribute('data-row-key'));
+      if (Number.isFinite(newIdx) && newIdx !== state.to) {
+        state.to = newIdx;
+        setDropTargetIndex(newIdx);
+      }
+    };
+
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      const { from, to, moved } = dragRef.current;
+      dragRef.current = { from: null, to: null, startY: 0, moved: false };
+      setDraggedIndex(null);
+      setDropTargetIndex(null);
+      if (!moved || from == null || to == null || from === to) return;
+      mutate((tt) => {
+        const list = tt.routing?.rules;
+        if (!list) return;
+        const [movedItem] = list.splice(from, 1);
+        list.splice(to, 0, movedItem);
+      });
+    };
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
   }
 
   function ruleCriteriaChips(rule: RuleRow) {

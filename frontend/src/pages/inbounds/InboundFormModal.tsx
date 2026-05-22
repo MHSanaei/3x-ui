@@ -701,6 +701,9 @@ export default function InboundFormModal({
   }, [t, refresh, parseAdvancedSliceWithLabel, messageApi]);
 
   const handleTabChange = (next: string) => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     if (activeTabKey === 'advanced' && next !== 'advanced') {
       if (!applyAdvancedJsonToBasic()) return;
     }

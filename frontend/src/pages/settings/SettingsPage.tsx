@@ -320,12 +320,14 @@ export default function SettingsPage() {
                     </Col>
 
                     <Col span={24}>
-                      <Tabs
-                        activeKey={activeTabKey}
-                        onChange={onTabChange}
-                        className={isMobile ? 'icons-only' : ''}
-                        items={tabItems}
-                      />
+                      <Card hoverable>
+                        <Tabs
+                          activeKey={activeTabKey}
+                          onChange={onTabChange}
+                          className={isMobile ? 'icons-only' : ''}
+                          items={tabItems}
+                        />
+                      </Card>
                     </Col>
                   </Row>
                 </>

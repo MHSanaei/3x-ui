@@ -34,10 +34,10 @@ export default function BalancerFormModal({
   onConfirm,
 }: BalancerFormModalProps) {
   const { t } = useTranslation();
-  const [tag, setTag] = useState('');
-  const [strategy, setStrategy] = useState('random');
-  const [selector, setSelector] = useState<string[]>([]);
-  const [fallbackTag, setFallbackTag] = useState('');
+  const [tag, setTag] = useState(() => balancer?.tag || '');
+  const [strategy, setStrategy] = useState(() => balancer?.strategy || 'random');
+  const [selector, setSelector] = useState<string[]>(() => [...(balancer?.selector || [])]);
+  const [fallbackTag, setFallbackTag] = useState(() => balancer?.fallbackTag || '');
 
   const isEdit = balancer != null;
 
@@ -98,6 +98,7 @@ export default function BalancerFormModal({
       cancelText={t('close')}
       okButtonProps={{ disabled: !isValid }}
       mask={{ closable: false }}
+      destroyOnHidden
       onOk={submit}
       onCancel={onClose}
     >

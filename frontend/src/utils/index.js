@@ -238,7 +238,7 @@ export class ObjectUtil {
     }
 
     static isArrEmpty(arr) {
-        return !this.isEmpty(arr) && arr.length === 0;
+        return !Array.isArray(arr) || arr.length === 0;
     }
 
     static copyArr(dest, src) {
