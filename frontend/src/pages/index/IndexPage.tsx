@@ -40,6 +40,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import AppSidebar from '@/components/AppSidebar';
 import CustomStatistic from '@/components/CustomStatistic';
 import JsonEditor from '@/components/JsonEditor';
+import { setMessageInstance } from '@/utils/messageBus';
 import StatusCard from './StatusCard';
 import XrayStatusCard from './XrayStatusCard';
 import PanelUpdateModal from './PanelUpdateModal';
@@ -57,6 +58,8 @@ export default function IndexPage() {
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const { status, fetched, refresh } = useStatus();
   const { isMobile } = useMediaQuery();
+  const [messageApi, messageContextHolder] = message.useMessage();
+  useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
   const [ipLimitEnable, setIpLimitEnable] = useState(false);
   const [panelUpdateInfo, setPanelUpdateInfo] = useState<PanelUpdateInfo>({
@@ -139,7 +142,7 @@ export default function IndexPage() {
 
   async function copyConfig() {
     const ok = await ClipboardManager.copyText(configText || '');
-    if (ok) message.success('Copied');
+    if (ok) messageApi.success('Copied');
   }
 
   function downloadConfig() {
@@ -150,6 +153,7 @@ export default function IndexPage() {
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
+      {messageContextHolder}
       <Layout className={pageClass}>
         <AppSidebar basePath={basePath} requestUri={requestUri} />
 

@@ -23,7 +23,6 @@ function applyDom(isDark: boolean, isUltra: boolean) {
   if (msg) msg.className = isDark ? 'dark' : 'light';
 }
 
-// Mirror the Vue useTheme module: apply current localStorage state at
 // module load so the document is in the right theme before React mounts.
 const initialDark = readBool(STORAGE_DARK, true);
 const initialUltra = readBool(STORAGE_ULTRA, false);

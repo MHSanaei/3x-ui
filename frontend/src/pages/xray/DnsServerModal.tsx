@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Divider, Form, Input, InputNumber, Modal, Select, Switch } from 'antd';
+import { Button, Divider, Form, Input, InputNumber, Modal, Select, Space, Switch } from 'antd';
 import { PlusOutlined, MinusOutlined } from '@ant-design/icons';
+import InputAddon from '@/components/InputAddon';
 
 export type DnsServerValue =
   | string
@@ -190,39 +191,45 @@ export default function DnsServerModal({
         <Form.Item label={t('pages.xray.dns.domains')}>
           <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => updateList('domains', (d) => d.push(''))} />
           {form.domains.map((value, idx) => (
-            <Input
-              key={`d${idx}`}
-              value={value}
-              style={{ marginTop: 4 }}
-              onChange={(e) => updateList('domains', (d) => { d[idx] = e.target.value; })}
-              addonAfter={<MinusOutlined onClick={() => updateList('domains', (d) => d.splice(idx, 1))} />}
-            />
+            <Space.Compact key={`d${idx}`} block style={{ marginTop: 4 }}>
+              <Input
+                value={value}
+                onChange={(e) => updateList('domains', (d) => { d[idx] = e.target.value; })}
+              />
+              <InputAddon onClick={() => updateList('domains', (d) => d.splice(idx, 1))}>
+                <MinusOutlined />
+              </InputAddon>
+            </Space.Compact>
           ))}
         </Form.Item>
 
         <Form.Item label={t('pages.xray.dns.expectIPs')}>
           <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => updateList('expectedIPs', (d) => d.push(''))} />
           {form.expectedIPs.map((value, idx) => (
-            <Input
-              key={`e${idx}`}
-              value={value}
-              style={{ marginTop: 4 }}
-              onChange={(e) => updateList('expectedIPs', (d) => { d[idx] = e.target.value; })}
-              addonAfter={<MinusOutlined onClick={() => updateList('expectedIPs', (d) => d.splice(idx, 1))} />}
-            />
+            <Space.Compact key={`e${idx}`} block style={{ marginTop: 4 }}>
+              <Input
+                value={value}
+                onChange={(e) => updateList('expectedIPs', (d) => { d[idx] = e.target.value; })}
+              />
+              <InputAddon onClick={() => updateList('expectedIPs', (d) => d.splice(idx, 1))}>
+                <MinusOutlined />
+              </InputAddon>
+            </Space.Compact>
           ))}
         </Form.Item>
 
         <Form.Item label={t('pages.xray.dns.unexpectIPs')}>
           <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => updateList('unexpectedIPs', (d) => d.push(''))} />
           {form.unexpectedIPs.map((value, idx) => (
-            <Input
-              key={`u${idx}`}
-              value={value}
-              style={{ marginTop: 4 }}
-              onChange={(e) => updateList('unexpectedIPs', (d) => { d[idx] = e.target.value; })}
-              addonAfter={<MinusOutlined onClick={() => updateList('unexpectedIPs', (d) => d.splice(idx, 1))} />}
-            />
+            <Space.Compact key={`u${idx}`} block style={{ marginTop: 4 }}>
+              <Input
+                value={value}
+                onChange={(e) => updateList('unexpectedIPs', (d) => { d[idx] = e.target.value; })}
+              />
+              <InputAddon onClick={() => updateList('unexpectedIPs', (d) => d.splice(idx, 1))}>
+                <MinusOutlined />
+              </InputAddon>
+            </Space.Compact>
           ))}
         </Form.Item>
 

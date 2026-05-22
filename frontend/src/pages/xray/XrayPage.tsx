@@ -36,6 +36,7 @@ import { useXraySetting } from '@/hooks/useXraySetting';
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
 import AppSidebar from '@/components/AppSidebar';
 import JsonEditor from '@/components/JsonEditor';
+import { setMessageInstance } from '@/utils/messageBus';
 
 import BasicsTab from './BasicsTab';
 import RoutingTab from './RoutingTab';
@@ -65,6 +66,8 @@ export default function XrayPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const { isMobile } = useMediaQuery();
+  const [messageApi, messageContextHolder] = message.useMessage();
+  useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
   const xs = useXraySetting();
   const {
     fetched,
@@ -239,7 +242,7 @@ export default function XrayPage() {
     try {
       JSON.parse(xraySetting);
     } catch (e) {
-      message.error(`Advanced JSON: ${(e as Error).message}`);
+      messageApi.error(`Advanced JSON: ${(e as Error).message}`);
       setActiveTabKey('tpl-advanced');
       return;
     }
@@ -252,6 +255,7 @@ export default function XrayPage() {
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
+      {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
         <AppSidebar basePath={basePath} requestUri={requestUri} />

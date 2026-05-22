@@ -48,6 +48,7 @@ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import AppSidebar from '@/components/AppSidebar';
 import CustomStatistic from '@/components/CustomStatistic';
 import { IntlUtil, ObjectUtil, SizeFormatter } from '@/utils';
+import { setMessageInstance } from '@/utils/messageBus';
 import ClientFormModal from './ClientFormModal';
 import ClientInfoModal from './ClientInfoModal';
 import ClientQrModal from './ClientQrModal';
@@ -86,6 +87,8 @@ export default function ClientsPage() {
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const { isMobile } = useMediaQuery();
   const [modal, modalContextHolder] = Modal.useModal();
+  const [messageApi, messageContextHolder] = message.useMessage();
+  useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
   const {
     clients, inbounds, onlines, loading, fetched, subSettings,
@@ -318,7 +321,7 @@ export default function ClientsPage() {
     try {
       const msg = await setEnable(row, next);
       if (!msg?.success) {
-        message.error(msg?.msg || t('somethingWentWrong'));
+        messageApi.error(msg?.msg || t('somethingWentWrong'));
       }
     } finally {
       setTogglingEmail(null);
@@ -348,14 +351,14 @@ export default function ClientsPage() {
       cancelText: t('cancel'),
       onOk: async () => {
         const msg = await remove(row.email);
-        if (msg?.success) message.success(t('pages.clients.toasts.deleted'));
+        if (msg?.success) messageApi.success(t('pages.clients.toasts.deleted'));
       },
     });
   }
 
   function onResetTraffic(row: ClientRecord) {
     if (!row?.email || !Array.isArray(row.inboundIds) || row.inboundIds.length === 0) {
-      message.warning(t('pages.clients.resetNotPossible'));
+      messageApi.warning(t('pages.clients.resetNotPossible'));
       return;
     }
     modal.confirm({
@@ -365,7 +368,7 @@ export default function ClientsPage() {
       cancelText: t('cancel'),
       onOk: async () => {
         const msg = await resetTraffic(row);
-        if (msg?.success) message.success(t('pages.clients.toasts.trafficReset'));
+        if (msg?.success) messageApi.success(t('pages.clients.toasts.trafficReset'));
       },
     });
   }
@@ -389,7 +392,7 @@ export default function ClientsPage() {
       cancelText: t('cancel'),
       onOk: async () => {
         const msg = await resetAllTraffics();
-        if (msg?.success) message.success(t('pages.clients.toasts.allTrafficsReset'));
+        if (msg?.success) messageApi.success(t('pages.clients.toasts.allTrafficsReset'));
       },
     });
   }
@@ -405,7 +408,7 @@ export default function ClientsPage() {
         const msg = await delDepleted();
         if (msg?.success) {
           const deleted = msg.obj?.deleted ?? 0;
-          message.success(t('pages.clients.toasts.delDepleted', { count: deleted }));
+          messageApi.success(t('pages.clients.toasts.delDepleted', { count: deleted }));
         }
       },
     });
@@ -434,9 +437,9 @@ export default function ClientsPage() {
           }
         }
         if (failed === 0) {
-          message.success(t('pages.clients.toasts.bulkDeleted', { count: ok }));
+          messageApi.success(t('pages.clients.toasts.bulkDeleted', { count: ok }));
         } else {
-          message.warning(firstError
+          messageApi.warning(firstError
             ? `${t('pages.clients.toasts.bulkDeletedMixed', { ok, failed })} — ${firstError}`
             : t('pages.clients.toasts.bulkDeletedMixed', { ok, failed }));
         }
@@ -620,6 +623,7 @@ export default function ClientsPage() {
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
+      {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
         <AppSidebar basePath={basePath} requestUri={requestUri} />
@@ -758,6 +762,7 @@ export default function ClientsPage() {
                           rowSelection={rowSelection}
                           pagination={tablePagination}
                           size="small"
+                          scroll={{ x: 1200 }}
                           onChange={onTableChange}
                           locale={{
                             emptyText: (

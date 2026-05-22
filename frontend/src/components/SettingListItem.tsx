@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Col, List, Row } from 'antd';
+import { Col, Row } from 'antd';
+import './SettingListItem.css';
 
 interface SettingListItemProps {
   paddings?: 'small' | 'default';
@@ -18,15 +19,18 @@ export default function SettingListItem({
 }: SettingListItemProps) {
   const padding = paddings === 'small' ? '10px 20px' : '20px';
   return (
-    <List.Item style={{ padding }}>
+    <div className="setting-list-item" style={{ padding }}>
       <Row gutter={[8, 16]} style={{ width: '100%' }}>
         <Col xs={24} lg={12}>
-          <List.Item.Meta title={title} description={description} />
+          <div className="setting-list-meta">
+            {title && <div className="setting-list-title">{title}</div>}
+            {description && <div className="setting-list-description">{description}</div>}
+          </div>
         </Col>
         <Col xs={24} lg={12}>
           {control ?? children}
         </Col>
       </Row>
-    </List.Item>
+    </div>
   );
 }

@@ -185,7 +185,7 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
   }, [open, fetchState, stopObsPolling]);
 
   useEffect(() => {
-    if (!openRef.current) return;
+    if (!open) return;
     if (isObservatory) {
       fetchObservatory();
       fetchObsBucket();
@@ -202,20 +202,20 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
     return () => {
       stopObsPolling();
     };
-  }, [activeKey, isObservatory, fetchObservatory, fetchObsBucket, fetchMetricBucket, stopObsPolling]);
+  }, [open, activeKey, isObservatory, fetchObservatory, fetchObsBucket, fetchMetricBucket, stopObsPolling]);
 
   useEffect(() => {
-    if (!openRef.current) return;
+    if (!open) return;
     if (isObservatory) {
       fetchObsBucket();
     } else {
       fetchMetricBucket();
     }
-  }, [bucket, isObservatory, fetchObsBucket, fetchMetricBucket]);
+  }, [open, bucket, isObservatory, fetchObsBucket, fetchMetricBucket]);
 
   useEffect(() => {
-    if (openRef.current && isObservatory) fetchObsBucket();
-  }, [obsActiveTag, isObservatory, fetchObsBucket]);
+    if (open && isObservatory) fetchObsBucket();
+  }, [open, obsActiveTag, isObservatory, fetchObsBucket]);
 
   return (
     <Modal

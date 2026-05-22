@@ -28,6 +28,7 @@ export default function TwoFactorModal({
   onOpenChange,
 }: TwoFactorModalProps) {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [enteredCode, setEnteredCode] = useState('');
   const [qrValue, setQrValue] = useState('');
   const totpRef = useRef<OTPAuth.TOTP | null>(null);
@@ -68,7 +69,7 @@ export default function TwoFactorModal({
     if (totpRef.current.generate() === enteredCode) {
       close(true);
     } else {
-      message.error(t('pages.settings.security.twoFactorModalError'));
+      messageApi.error(t('pages.settings.security.twoFactorModalError'));
     }
   }
 
@@ -78,15 +79,17 @@ export default function TwoFactorModal({
 
   async function copyToken() {
     const ok = await ClipboardManager.copyText(token);
-    if (ok) message.success(t('copied'));
+    if (ok) messageApi.success(t('copied'));
   }
 
   return (
-    <Modal
-      open={open}
-      title={title}
-      closable
-      onCancel={onCancel}
+    <>
+      {messageContextHolder}
+      <Modal
+        open={open}
+        title={title}
+        closable
+        onCancel={onCancel}
       footer={[
         <Button key="cancel" onClick={onCancel}>{t('cancel')}</Button>,
         <Button key="ok" type="primary" disabled={enteredCode.length < 6} onClick={onOk}>
@@ -124,6 +127,7 @@ export default function TwoFactorModal({
           <Input value={enteredCode} onChange={(e) => setEnteredCode(e.target.value)} style={{ width: '100%' }} />
         </>
       )}
-    </Modal>
+      </Modal>
+    </>
   );
 }

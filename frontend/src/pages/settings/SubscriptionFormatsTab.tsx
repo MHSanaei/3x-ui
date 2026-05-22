@@ -5,7 +5,6 @@ import {
   Collapse,
   Input,
   InputNumber,
-  List,
   Select,
   Space,
   Switch,
@@ -258,7 +257,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
               <Switch checked={fragment} onChange={setFragmentEnabled} />
             </SettingListItem>
             {fragment && (
-              <List.Item className="nested-block">
+              <div className="nested-block">
                 <Collapse items={[
                   {
                     key: 'sett',
@@ -285,7 +284,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     ),
                   },
                 ]} />
-              </List.Item>
+              </div>
             )}
           </>
         ),
@@ -299,7 +298,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
               <Switch checked={noisesEnabled} onChange={setNoisesEnabled} />
             </SettingListItem>
             {noisesEnabled && (
-              <List.Item className="nested-block">
+              <div className="nested-block">
                 <Collapse items={noisesArray.map((noise, index) => ({
                   key: String(index),
                   label: `Noise №${index + 1}`,
@@ -340,7 +339,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                   ),
                 }))} />
                 <Button type="primary" style={{ marginTop: 10 }} onClick={addNoise}>+ Noise</Button>
-              </List.Item>
+              </div>
             )}
           </>
         ),
@@ -354,7 +353,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
               <Switch checked={muxEnabled} onChange={setMuxEnabled} />
             </SettingListItem>
             {muxEnabled && (
-              <List.Item className="nested-block">
+              <div className="nested-block">
                 <Collapse items={[
                   {
                     key: 'sett',
@@ -381,7 +380,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     ),
                   },
                 ]} />
-              </List.Item>
+              </div>
             )}
           </>
         ),
@@ -395,7 +394,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
               <Switch checked={directEnabled} onChange={setDirectEnabled} />
             </SettingListItem>
             {directEnabled && (
-              <List.Item className="nested-block">
+              <div className="nested-block">
                 <Collapse items={[
                   {
                     key: 'rules',
@@ -424,7 +423,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     ),
                   },
                 ]} />
-              </List.Item>
+              </div>
             )}
           </>
         ),

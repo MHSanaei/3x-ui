@@ -129,6 +129,7 @@ export default function ClientFormModal({
   onOpenChange,
 }: ClientFormModalProps) {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const isEdit = mode === 'edit';
 
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -268,11 +269,11 @@ export default function ClientFormModal({
 
   async function onSubmit() {
     if (!form.email || form.email.trim() === '') {
-      message.error(`${t('pages.clients.email')} *`);
+      messageApi.error(`${t('pages.clients.email')} *`);
       return;
     }
     if (!isEdit && (!form.inboundIds || form.inboundIds.length === 0)) {
-      message.error(t('pages.clients.selectInbound'));
+      messageApi.error(t('pages.clients.selectInbound'));
       return;
     }
     const expiryTime = form.delayedStart
@@ -324,10 +325,12 @@ export default function ClientFormModal({
   }
 
   return (
-    <Modal
-      open={open}
-      title={isEdit ? t('pages.clients.editTitle') : t('pages.clients.addTitle')}
-      destroyOnHidden
+    <>
+      {messageContextHolder}
+      <Modal
+        open={open}
+        title={isEdit ? t('pages.clients.editTitle') : t('pages.clients.addTitle')}
+        destroyOnHidden
       okText={isEdit ? t('save') : t('create')}
       cancelText={t('cancel')}
       okButtonProps={{ loading: submitting }}
@@ -517,6 +520,7 @@ export default function ClientFormModal({
           </Form.Item>
         )}
       </Form>
-    </Modal>
+      </Modal>
+    </>
   );
 }

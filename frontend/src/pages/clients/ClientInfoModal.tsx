@@ -49,6 +49,7 @@ export default function ClientInfoModal({
   onOpenChange,
 }: ClientInfoModalProps) {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [links, setLinks] = useState<string[]>([]);
 
   useEffect(() => {
@@ -93,16 +94,18 @@ export default function ClientInfoModal({
   async function copyValue(text: string) {
     if (!text) return;
     const ok = await ClipboardManager.copyText(String(text));
-    if (ok) message.success(t('copied'));
+    if (ok) messageApi.success(t('copied'));
   }
 
   return (
-    <Modal
-      open={open}
-      title={client ? client.email : t('info')}
-      footer={null}
-      width={640}
-      onCancel={() => onOpenChange(false)}
+    <>
+      {messageContextHolder}
+      <Modal
+        open={open}
+        title={client ? client.email : t('info')}
+        footer={null}
+        width={640}
+        onCancel={() => onOpenChange(false)}
     >
       {client && (
         <>
@@ -289,6 +292,7 @@ export default function ClientInfoModal({
           )}
         </>
       )}
-    </Modal>
+      </Modal>
+    </>
   );
 }

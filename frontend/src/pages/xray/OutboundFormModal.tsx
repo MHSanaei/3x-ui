@@ -17,6 +17,7 @@ import {
 import { SyncOutlined, PlusOutlined, MinusOutlined, DeleteOutlined } from '@ant-design/icons';
 
 import { Wireguard } from '@/utils';
+import InputAddon from '@/components/InputAddon';
 import {
   Outbound,
   Protocols,
@@ -67,6 +68,7 @@ export default function OutboundFormModal({
   onConfirm,
 }: OutboundFormModalProps) {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const outboundRef = useRef<any>(null);
   const [, setTick] = useState(0);
@@ -119,7 +121,7 @@ export default function OutboundFormModal({
     try {
       parsed = JSON.parse(raw);
     } catch (e) {
-      message.error(`JSON: ${(e as Error).message}`);
+      messageApi.error(`JSON: ${(e as Error).message}`);
       return false;
     }
     try {
@@ -130,7 +132,7 @@ export default function OutboundFormModal({
       refresh();
       return true;
     } catch (e) {
-      message.error(`JSON: ${(e as Error).message}`);
+      messageApi.error(`JSON: ${(e as Error).message}`);
       return false;
     }
   }
@@ -219,11 +221,11 @@ export default function OutboundFormModal({
     if (!ob) return;
     if (activeKey === '2' && !applyAdvancedJsonToForm()) return;
     if (!ob.tag?.trim()) {
-      message.error('Tag is required');
+      messageApi.error('Tag is required');
       return;
     }
     if (duplicateTag) {
-      message.error('Tag already used by another outbound');
+      messageApi.error('Tag already used by another outbound');
       return;
     }
     onConfirm(ob.toJson());
@@ -235,17 +237,17 @@ export default function OutboundFormModal({
     try {
       const next = Outbound.fromLink(link);
       if (!next) {
-        message.error('Wrong Link!');
+        messageApi.error('Wrong Link!');
         return;
       }
       outboundRef.current = next;
       primeAdvancedJson();
       setLinkInput('');
-      message.success('Link imported successfully...');
+      messageApi.success('Link imported successfully...');
       setActiveKey('1');
       refresh();
     } catch (e) {
-      message.error(`Link parse: ${(e as Error).message}`);
+      messageApi.error(`Link parse: ${(e as Error).message}`);
     }
   }
 
@@ -256,21 +258,26 @@ export default function OutboundFormModal({
 
   if (!ob) {
     return (
-      <Modal open={open} title={title} footer={null} onCancel={onClose} />
+      <>
+        {messageContextHolder}
+        <Modal open={open} title={title} footer={null} onCancel={onClose} />
+      </>
     );
   }
 
   return (
-    <Modal
-      open={open}
-      title={title}
-      okText={okText}
-      cancelText={t('close')}
-      mask={{ closable: false }}
-      width={780}
-      onOk={onOk}
-      onCancel={onClose}
-    >
+    <>
+      {messageContextHolder}
+      <Modal
+        open={open}
+        title={title}
+        okText={okText}
+        cancelText={t('close')}
+        mask={{ closable: false }}
+        width={780}
+        onOk={onOk}
+        onCancel={onClose}
+      >
       <Tabs
         activeKey={activeKey}
         onChange={onTabChange}
@@ -279,6 +286,7 @@ export default function OutboundFormModal({
             key: '1',
             label: t('pages.xray.basicTemplate'),
             children: (
+              <>
               <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 14 } }}>
                 <Form.Item label={t('protocol')}>
                   <Select
@@ -423,11 +431,11 @@ export default function OutboundFormModal({
                 {ob.stream && <SockoptFields ob={ob} refresh={refresh} />}
 
                 {ob.canEnableMux() && <MuxFields ob={ob} refresh={refresh} t={t} />}
-
-                {ob.stream && ob.canEnableStream() && (
-                  <FinalMaskForm stream={ob.stream} protocol={proto} onChange={refresh} />
-                )}
               </Form>
+              {ob.stream && ob.canEnableStream() && (
+                <FinalMaskForm stream={ob.stream} protocol={proto} onChange={refresh} />
+              )}
+              </>
             ),
           },
           {
@@ -453,7 +461,8 @@ export default function OutboundFormModal({
           },
         ]}
       />
-    </Modal>
+      </Modal>
+    </>
   );
 }
 
@@ -808,17 +817,17 @@ function WireguardFields({ ob, refresh, regenerate, t }: TFieldProps & { regener
           </Form.Item>
           <Form.Item label="Allowed IPs">
             {(peer.allowedIPs || []).map((ip, idx) => (
-              <Input
-                key={idx}
-                value={ip}
-                style={{ marginBottom: 4 }}
-                onChange={(e) => { peer.allowedIPs![idx] = e.target.value; refresh(); }}
-                addonAfter={
-                  (peer.allowedIPs || []).length > 1 ? (
-                    <MinusOutlined onClick={() => { peer.allowedIPs!.splice(idx, 1); refresh(); }} />
-                  ) : undefined
-                }
-              />
+              <Space.Compact key={idx} block style={{ marginBottom: 4 }}>
+                <Input
+                  value={ip}
+                  onChange={(e) => { peer.allowedIPs![idx] = e.target.value; refresh(); }}
+                />
+                {(peer.allowedIPs || []).length > 1 && (
+                  <InputAddon onClick={() => { peer.allowedIPs!.splice(idx, 1); refresh(); }}>
+                    <MinusOutlined />
+                  </InputAddon>
+                )}
+              </Space.Compact>
             ))}
             <Button
               size="small"
@@ -1047,22 +1056,20 @@ function XhttpFields({ ob, refresh, t }: TFieldProps) {
       </Form.Item>
       <Form.Item wrapperCol={{ span: 24 }}>
         {(xh.headers as Array<{ name: string; value: string }>).map((header, idx) => (
-          <Input.Group key={idx} compact className="mb-8">
+          <Space.Compact key={idx} block className="mb-8">
+            <InputAddon>{`${idx + 1}`}</InputAddon>
             <Input
               value={header.name}
-              addonBefore={`${idx + 1}`}
-              style={{ width: '45%' }}
               placeholder="Name"
               onChange={(e) => { header.name = e.target.value; refresh(); }}
             />
             <Input
               value={header.value}
-              style={{ width: '45%' }}
               placeholder="Value"
               onChange={(e) => { header.value = e.target.value; refresh(); }}
             />
             <Button icon={<MinusOutlined />} onClick={() => { xh.removeHeader(idx); refresh(); }} />
-          </Input.Group>
+          </Space.Compact>
         ))}
       </Form.Item>
 

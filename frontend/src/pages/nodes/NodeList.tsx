@@ -119,6 +119,37 @@ export default function NodeList({
 
   const columns = useMemo<ColumnsType<NodeRow>>(() => [
     {
+      title: t('pages.nodes.actions'),
+      align: 'center',
+      width: 160,
+      render: (_value, record) => (
+        <Space>
+          <Tooltip title={t('pages.nodes.probe')}>
+            <Button type="text" size="small" icon={<ThunderboltOutlined />} onClick={() => onProbe(record)} />
+          </Tooltip>
+          <Tooltip title={t('edit')}>
+            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => onEdit(record)} />
+          </Tooltip>
+          <Tooltip title={t('delete')}>
+            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
+          </Tooltip>
+        </Space>
+      ),
+    },
+    {
+      title: t('pages.nodes.enable'),
+      dataIndex: 'enable',
+      align: 'center',
+      width: 80,
+      render: (_value, record) => (
+        <Switch
+          checked={!!record.enable}
+          size="small"
+          onChange={(v) => onToggleEnable(record, v)}
+        />
+      ),
+    },
+    {
       title: t('pages.nodes.name'),
       dataIndex: 'name',
       ellipsis: true,
@@ -233,38 +264,6 @@ export default function NodeList({
       align: 'center',
       width: 120,
       render: (_value, record) => relativeTime(record.lastHeartbeat),
-    },
-    {
-      title: t('pages.nodes.enable'),
-      dataIndex: 'enable',
-      align: 'center',
-      width: 80,
-      render: (_value, record) => (
-        <Switch
-          checked={!!record.enable}
-          size="small"
-          onChange={(v) => onToggleEnable(record, v)}
-        />
-      ),
-    },
-    {
-      title: t('pages.nodes.actions'),
-      align: 'center',
-      width: 160,
-      fixed: 'right',
-      render: (_value, record) => (
-        <Space>
-          <Tooltip title={t('pages.nodes.probe')}>
-            <Button type="text" size="small" icon={<ThunderboltOutlined />} onClick={() => onProbe(record)} />
-          </Tooltip>
-          <Tooltip title={t('edit')}>
-            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => onEdit(record)} />
-          </Tooltip>
-          <Tooltip title={t('delete')}>
-            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
-          </Tooltip>
-        </Space>
-      ),
     },
   ], [t, showAddress, relativeTime, onToggleEnable, onProbe, onEdit, onDelete]);
 

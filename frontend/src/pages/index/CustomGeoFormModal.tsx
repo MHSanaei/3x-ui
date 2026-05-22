@@ -25,6 +25,7 @@ export default function CustomGeoFormModal({
   onSaved,
 }: CustomGeoFormModalProps) {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [type, setType] = useState<'geosite' | 'geoip'>('geosite');
   const [alias, setAlias] = useState('');
   const [url, setUrl] = useState('');
@@ -47,22 +48,22 @@ export default function CustomGeoFormModal({
 
   function validate(): boolean {
     if (!/^[a-z0-9_-]+$/.test(alias || '')) {
-      message.error(t('pages.index.customGeoValidationAlias'));
+      messageApi.error(t('pages.index.customGeoValidationAlias'));
       return false;
     }
     const u = (url || '').trim();
     if (!/^https?:\/\//i.test(u)) {
-      message.error(t('pages.index.customGeoValidationUrl'));
+      messageApi.error(t('pages.index.customGeoValidationUrl'));
       return false;
     }
     try {
       const parsed = new URL(u);
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        message.error(t('pages.index.customGeoValidationUrl'));
+        messageApi.error(t('pages.index.customGeoValidationUrl'));
         return false;
       }
     } catch {
-      message.error(t('pages.index.customGeoValidationUrl'));
+      messageApi.error(t('pages.index.customGeoValidationUrl'));
       return false;
     }
     return true;
@@ -86,9 +87,11 @@ export default function CustomGeoFormModal({
   }
 
   return (
-    <Modal
-      open={open}
-      title={editing ? t('pages.index.customGeoModalEdit') : t('pages.index.customGeoModalAdd')}
+    <>
+      {messageContextHolder}
+      <Modal
+        open={open}
+        title={editing ? t('pages.index.customGeoModalEdit') : t('pages.index.customGeoModalAdd')}
       confirmLoading={saving}
       okText={t('pages.index.customGeoModalSave')}
       cancelText={t('close')}
@@ -123,6 +126,7 @@ export default function CustomGeoFormModal({
           />
         </Form.Item>
       </Form>
-    </Modal>
+      </Modal>
+    </>
   );
 }

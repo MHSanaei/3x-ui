@@ -25,6 +25,7 @@ import {
 } from '@ant-design/icons';
 
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
+import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import './SubPage.css';
 
@@ -78,6 +79,8 @@ function linkName(link: string, idx: number): string {
 export default function SubPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, toggleTheme, toggleUltra, antdThemeConfig } = useTheme();
+  const [messageApi, messageContextHolder] = message.useMessage();
+  useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
   const [isMobile, setIsMobile] = useState<boolean>(() => window.innerWidth < 576);
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
@@ -109,8 +112,8 @@ export default function SubPage() {
   const copy = useCallback(async (value: string) => {
     if (!value) return;
     const ok = await ClipboardManager.copyText(value);
-    if (ok) message.success(t('copied'));
-  }, [t]);
+    if (ok) messageApi.success(t('copied'));
+  }, [t, messageApi]);
 
   const open = useCallback((url: string) => {
     if (!url) return;
@@ -273,6 +276,7 @@ export default function SubPage() {
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
+      {messageContextHolder}
       <Layout className={pageClass}>
         <Layout.Content className="content">
           <Row justify="center">

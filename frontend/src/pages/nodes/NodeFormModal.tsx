@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
+  Button,
   Col,
   Form,
   Input,
@@ -74,6 +75,7 @@ export default function NodeFormModal({
   onOpenChange,
 }: NodeFormModalProps) {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
 
   const [form, setForm] = useState<FormState>(defaultForm);
   const [submitting, setSubmitting] = useState(false);
@@ -132,7 +134,7 @@ export default function NodeFormModal({
     try {
       const payload = buildPayload();
       if (!payload.address || !payload.port) {
-        message.error(t('pages.nodes.toasts.fillRequired'));
+        messageApi.error(t('pages.nodes.toasts.fillRequired'));
         return;
       }
       const msg = await testConnection(payload);
@@ -149,7 +151,7 @@ export default function NodeFormModal({
   async function onSave() {
     const payload = buildPayload();
     if (!payload.name || !payload.address || !payload.port) {
-      message.error(t('pages.nodes.toasts.fillRequired'));
+      messageApi.error(t('pages.nodes.toasts.fillRequired'));
       return;
     }
     setSubmitting(true);
@@ -168,10 +170,12 @@ export default function NodeFormModal({
   }
 
   return (
-    <Modal
-      open={open}
-      title={title}
-      confirmLoading={submitting}
+    <>
+      {messageContextHolder}
+      <Modal
+        open={open}
+        title={title}
+        confirmLoading={submitting}
       okText={t('save')}
       cancelText={t('cancel')}
       mask={{ closable: false }}
@@ -267,9 +271,9 @@ export default function NodeFormModal({
         </Form.Item>
 
         <div className="test-row">
-          <button type="button" disabled={testing} className="ant-btn ant-btn-default" onClick={onTest}>
+          <Button type="default" loading={testing} onClick={onTest}>
             {t('pages.nodes.testConnection')}
-          </button>
+          </Button>
           {testResult && (
             <div className="test-result">
               {testResult.status === 'online' ? (
@@ -291,6 +295,7 @@ export default function NodeFormModal({
           )}
         </div>
       </Form>
-    </Modal>
+      </Modal>
+    </>
   );
 }

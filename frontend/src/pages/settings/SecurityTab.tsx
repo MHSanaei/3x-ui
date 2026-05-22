@@ -6,7 +6,6 @@ import {
   Empty,
   Form,
   Input,
-  List,
   Modal,
   Space,
   Spin,
@@ -61,6 +60,7 @@ const TFA_INITIAL: TfaState = {
 export default function SecurityTab({ allSetting, updateSetting }: SecurityTabProps) {
   const { t } = useTranslation();
   const [modal, modalContextHolder] = Modal.useModal();
+  const [messageApi, messageContextHolder] = message.useMessage();
 
   const [tfa, setTfa] = useState<TfaState>(TFA_INITIAL);
   const [user, setUser] = useState({
@@ -145,7 +145,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
     if (!token) return;
     try {
       await navigator.clipboard.writeText(token);
-      message.success(t('copySuccess'));
+      messageApi.success(t('copySuccess'));
     } catch {
       const ta = document.createElement('textarea');
       ta.value = token;
@@ -153,7 +153,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-      message.success(t('copySuccess'));
+      messageApi.success(t('copySuccess'));
     }
   }
 
@@ -165,7 +165,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
   async function confirmCreateToken() {
     const name = createName.trim();
     if (!name) {
-      message.error(t('pages.settings.security.apiTokenNameRequired') || 'Name is required');
+      messageApi.error(t('pages.settings.security.apiTokenNameRequired') || 'Name is required');
       return;
     }
     setCreating(true);
@@ -231,7 +231,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
         type: 'set',
         onConfirm: (ok: boolean) => {
           if (ok) {
-            message.success(t('pages.settings.security.twoFactorModalSetSuccess'));
+            messageApi.success(t('pages.settings.security.twoFactorModalSetSuccess'));
             updateSetting({ twoFactorToken: newToken, twoFactorEnable: true });
           } else {
             updateSetting({ twoFactorEnable: false });
@@ -246,7 +246,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
         type: 'confirm',
         onConfirm: (ok: boolean) => {
           if (!ok) return;
-          message.success(t('pages.settings.security.twoFactorModalDeleteSuccess'));
+          messageApi.success(t('pages.settings.security.twoFactorModalDeleteSuccess'));
           updateSetting({ twoFactorEnable: false, twoFactorToken: '' });
         },
       });
@@ -255,6 +255,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
 
   return (
     <>
+      {messageContextHolder}
       {modalContextHolder}
       <Collapse defaultActiveKey="1" items={[
         {
@@ -278,13 +279,13 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
                 <Input.Password value={user.newPassword} autoComplete="new-password"
                   onChange={(e) => updateUserField('newPassword', e.target.value)} />
               </SettingListItem>
-              <List.Item>
+              <div className="security-actions">
                 <Space style={{ padding: '0 20px' }}>
                   <Button type="primary" loading={updating} onClick={onUpdateUserClick}>
                     {t('confirm')}
                   </Button>
                 </Space>
-              </List.Item>
+              </div>
             </>
           ),
         },

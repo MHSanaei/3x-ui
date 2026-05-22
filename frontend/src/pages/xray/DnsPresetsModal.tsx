@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button, List, Modal, Space, Tag } from 'antd';
+import { Button, Modal, Space, Tag } from 'antd';
 import './DnsPresetsModal.css';
 
 interface DnsPresetsModalProps {
@@ -47,9 +47,9 @@ export default function DnsPresetsModal({ open, onClose, onInstall }: DnsPresets
       mask={{ closable: false }}
       onCancel={onClose}
     >
-      <List bordered>
+      <div className="preset-list">
         {PRESETS.map((preset) => (
-          <List.Item key={preset.name} className="preset-row">
+          <div key={preset.name} className="preset-row">
             <Space size="small" align="center">
               <Tag color={preset.family ? 'purple' : 'green'}>
                 {preset.family ? t('pages.xray.dns.dnsPresetFamily') : 'DNS'}
@@ -59,9 +59,9 @@ export default function DnsPresetsModal({ open, onClose, onInstall }: DnsPresets
             <Button type="primary" size="small" onClick={() => onInstall([...preset.data])}>
               {t('install')}
             </Button>
-          </List.Item>
+          </div>
         ))}
-      </List>
+      </div>
     </Modal>
   );
 }

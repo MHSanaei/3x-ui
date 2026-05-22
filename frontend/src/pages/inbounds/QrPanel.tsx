@@ -59,11 +59,12 @@ export default function QrPanel({
   showQr = true,
 }: QrPanelProps) {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const qrRef = useRef<HTMLDivElement | null>(null);
 
   async function copy() {
     const ok = await ClipboardManager.copyText(value);
-    if (ok) message.success(t('copied'));
+    if (ok) messageApi.success(t('copied'));
   }
 
   function download() {
@@ -77,7 +78,7 @@ export default function QrPanel({
     if (!blob) return;
     try {
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      message.success(t('copied'));
+      messageApi.success(t('copied'));
     } catch {
       downloadImageBlob(blob, remark);
     }
@@ -91,6 +92,7 @@ export default function QrPanel({
 
   return (
     <div className="qr-panel">
+      {messageContextHolder}
       <div className="qr-panel-header">
         <Tag color="green" className="qr-remark">{remark}</Tag>
         <Tooltip title={t('copy')}>

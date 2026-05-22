@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button, List, Modal } from 'antd';
+import { Button, Modal } from 'antd';
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 
 import { HttpUtil, PromiseUtil } from '@/utils';
@@ -65,23 +65,23 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
       footer={null}
       onCancel={onClose}
     >
-      <List bordered className="backup-list">
-        <List.Item className="backup-item">
-          <List.Item.Meta
-            title={t('pages.index.exportDatabase')}
-            description={t('pages.index.exportDatabaseDesc')}
-          />
+      <div className="backup-list">
+        <div className="backup-item">
+          <div className="backup-meta">
+            <div className="backup-title">{t('pages.index.exportDatabase')}</div>
+            <div className="backup-description">{t('pages.index.exportDatabaseDesc')}</div>
+          </div>
           <Button type="primary" onClick={exportDb} icon={<DownloadOutlined />} />
-        </List.Item>
+        </div>
 
-        <List.Item className="backup-item">
-          <List.Item.Meta
-            title={t('pages.index.importDatabase')}
-            description={t('pages.index.importDatabaseDesc')}
-          />
+        <div className="backup-item">
+          <div className="backup-meta">
+            <div className="backup-title">{t('pages.index.importDatabase')}</div>
+            <div className="backup-description">{t('pages.index.importDatabaseDesc')}</div>
+          </div>
           <Button type="primary" onClick={importDb} icon={<UploadOutlined />} />
-        </List.Item>
-      </List>
+        </div>
+      </div>
     </Modal>
   );
 }

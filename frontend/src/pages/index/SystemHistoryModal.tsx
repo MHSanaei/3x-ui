@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Select, Tabs } from 'antd';
 
@@ -54,7 +54,6 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
   const [bucket, setBucket] = useState(2);
   const [points, setPoints] = useState<number[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
-  const openRef = useRef(open);
 
   const activeMetric = useMemo(() => METRICS.find((m) => m.key === activeKey), [activeKey]);
   const strokeColor = activeMetric?.stroke || status?.cpu?.color || '#008771';
@@ -93,15 +92,14 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
   }, [activeMetric, bucket]);
 
   useEffect(() => {
-    openRef.current = open;
     if (open) {
       setActiveKey('cpu');
     }
   }, [open]);
 
   useEffect(() => {
-    if (openRef.current) fetchBucket();
-  }, [activeKey, bucket, fetchBucket]);
+    if (open) fetchBucket();
+  }, [open, activeKey, bucket, fetchBucket]);
 
   return (
     <Modal

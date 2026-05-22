@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Collapse, Modal } from 'antd';
+import type { CollapseProps } from 'antd';
 
 import { Protocols } from '@/models/inbound.js';
 import QrPanel from './QrPanel';
@@ -56,7 +57,7 @@ export default function QrCodeModal({
   const [wireguardLinks, setWireguardLinks] = useState<string[]>([]);
   const [subLink, setSubLink] = useState('');
   const [subJsonLink, setSubJsonLink] = useState('');
-  const [activeKeys, setActiveKeys] = useState<string[]>([]);
+  const [defaultActive, setDefaultActive] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open || !dbInbound) return;
@@ -83,7 +84,7 @@ export default function QrCodeModal({
     }
     setSubLink(nextSub);
     setSubJsonLink(nextSubJson);
-    setActiveKeys(nextSub ? ['sub'] : []);
+    setDefaultActive(nextSub ? ['sub'] : []);
   }, [open, dbInbound, client, remarkModel, nodeAddress, subSettings]);
 
   const qrItems = useMemo<QrItem[]>(() => {
@@ -111,26 +112,29 @@ export default function QrCodeModal({
     return items;
   }, [subLink, subJsonLink, links, wireguardConfigs, wireguardLinks, t]);
 
-  const collapseItems = qrItems.map((item) => ({
-    key: item.key,
-    label: item.header,
-    children: (
-      <QrPanel
-        value={item.value}
-        remark={item.header}
-        downloadName={item.downloadName || ''}
-        showQr={!item.value.includes('mldsa65') && !item.value.includes('ML-KEM-768')}
-      />
-    ),
-  }));
+  const collapseItems: CollapseProps['items'] = useMemo(
+    () => qrItems.map((item) => ({
+      key: item.key,
+      label: item.header,
+      children: (
+        <QrPanel
+          value={item.value}
+          remark={item.header}
+          downloadName={item.downloadName || ''}
+          showQr={!item.value.includes('mldsa65') && !item.value.includes('ML-KEM-768')}
+        />
+      ),
+    })),
+    [qrItems],
+  );
 
   return (
     <Modal open={open} onCancel={onClose} title={t('qrCode')} footer={null} width={420} destroyOnHidden>
-      {dbInbound && (
+      {dbInbound && collapseItems && collapseItems.length > 0 && (
         <Collapse
+          key={collapseItems.map((i) => i?.key).join('|')}
           ghost
-          activeKey={activeKeys}
-          onChange={(keys) => setActiveKeys(Array.isArray(keys) ? keys : [keys])}
+          defaultActiveKey={defaultActive}
           items={collapseItems}
         />
       )}

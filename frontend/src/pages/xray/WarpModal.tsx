@@ -72,6 +72,7 @@ export default function WarpModal({
   onResetOutbound,
   onRemoveOutbound,
 }: WarpModalProps) {
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [warpData, setWarpData] = useState<WarpData | null>(null);
   const [warpConfig, setWarpConfig] = useState<WarpConfig | null>(null);
@@ -191,7 +192,7 @@ export default function WarpModal({
 
   function addOutbound() {
     if (!stagedOutbound) {
-      message.warning('Fetch the WARP config first.');
+      messageApi.warning('Fetch the WARP config first.');
       return;
     }
     onAddOutbound(stagedOutbound);
@@ -207,7 +208,9 @@ export default function WarpModal({
   const hasConfig = !ObjectUtil.isEmpty(warpConfig);
 
   return (
-    <Modal open={open} title="Cloudflare WARP" footer={null} onCancel={onClose}>
+    <>
+      {messageContextHolder}
+      <Modal open={open} title="Cloudflare WARP" footer={null} onCancel={onClose}>
       {!hasWarp ? (
         <Button type="primary" loading={loading} icon={<ApiOutlined />} onClick={register}>
           Create WARP account
@@ -348,6 +351,7 @@ export default function WarpModal({
           )}
         </>
       )}
-    </Modal>
+      </Modal>
+    </>
   );
 }

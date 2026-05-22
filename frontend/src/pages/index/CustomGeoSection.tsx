@@ -51,6 +51,7 @@ function extDisplay(record: CustomGeoListRecord): string {
 export default function CustomGeoSection({ active }: CustomGeoSectionProps) {
   const { t } = useTranslation();
   const [modal, modalContextHolder] = Modal.useModal();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [list, setList] = useState<CustomGeoListRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [updatingAll, setUpdatingAll] = useState(false);
@@ -85,7 +86,7 @@ export default function CustomGeoSection({ active }: CustomGeoSectionProps) {
   async function copyExt(record: CustomGeoListRecord) {
     const text = extDisplay(record);
     const ok = await ClipboardManager.copyText(text);
-    if (ok) message.success(`${t('copied')}: ${text}`);
+    if (ok) messageApi.success(`${t('copied')}: ${text}`);
   }
 
   function confirmDelete(record: CustomGeoListRecord) {
@@ -120,7 +121,7 @@ export default function CustomGeoSection({ active }: CustomGeoSectionProps) {
       const failed = msg?.obj?.failed?.length || 0;
       if (msg?.success || ok > 0) {
         await loadList();
-        if (failed > 0) message.warning(`Updated ${ok}, failed ${failed}`);
+        if (failed > 0) messageApi.warning(`Updated ${ok}, failed ${failed}`);
       }
     } finally {
       setUpdatingAll(false);
@@ -229,6 +230,7 @@ export default function CustomGeoSection({ active }: CustomGeoSectionProps) {
 
   return (
     <div className="custom-geo-section">
+      {messageContextHolder}
       {modalContextHolder}
       <Alert
         type="info"

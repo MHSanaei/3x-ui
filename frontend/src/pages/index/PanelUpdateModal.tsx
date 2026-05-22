@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, List, Modal, Tag } from 'antd';
+import { Alert, Button, Modal, Tag } from 'antd';
 import { CloudDownloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
@@ -84,23 +84,23 @@ export default function PanelUpdateModal({ open, info, onClose, onBusy }: PanelU
           />
         )}
 
-        <List bordered className="version-list">
-          <List.Item className="version-list-item">
+        <div className="version-list">
+          <div className="version-list-item">
             <span>{t('pages.index.currentPanelVersion')}</span>
             <Tag color="green">v{info.currentVersion || '?'}</Tag>
-          </List.Item>
+          </div>
           {info.updateAvailable ? (
-            <List.Item className="version-list-item">
+            <div className="version-list-item">
               <span>{t('pages.index.latestPanelVersion')}</span>
               <Tag color="purple">{info.latestVersion || '-'}</Tag>
-            </List.Item>
+            </div>
           ) : (
-            <List.Item className="version-list-item">
+            <div className="version-list-item">
               <span>{t('pages.index.panelUpToDate')}</span>
               <Tag color="green">{t('pages.index.panelUpToDate')}</Tag>
-            </List.Item>
+            </div>
           )}
-        </List>
+        </div>
 
         <div className="actions-row">
           <Button

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, Modal, Select, Tooltip } from 'antd';
+import { Button, Form, Input, Modal, Select, Space, Tooltip } from 'antd';
 import { PlusOutlined, MinusOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import InputAddon from '@/components/InputAddon';
 
 export interface RoutingRule {
   type?: string;
@@ -207,11 +208,10 @@ export default function RuleFormModal({
         </Form.Item>
         <Form.Item wrapperCol={{ span: 24 }}>
           {form.attrs.map((attr, idx) => (
-            <Input.Group key={idx} compact className="mb-8">
+            <Space.Compact key={idx} block className="mb-8">
+              <InputAddon>{`${idx + 1}`}</InputAddon>
               <Input
                 value={attr[0]}
-                style={{ width: '45%' }}
-                addonBefore={`${idx + 1}`}
                 placeholder="Name"
                 onChange={(e) => {
                   const next = form.attrs.map((a, i) => (i === idx ? ([e.target.value, a[1]] as [string, string]) : a));
@@ -220,7 +220,6 @@ export default function RuleFormModal({
               />
               <Input
                 value={attr[1]}
-                style={{ width: '45%' }}
                 placeholder="Value"
                 onChange={(e) => {
                   const next = form.attrs.map((a, i) => (i === idx ? ([a[0], e.target.value] as [string, string]) : a));
@@ -231,7 +230,7 @@ export default function RuleFormModal({
                 icon={<MinusOutlined />}
                 onClick={() => update('attrs', form.attrs.filter((_, i) => i !== idx))}
               />
-            </Input.Group>
+            </Space.Compact>
           ))}
         </Form.Item>
 

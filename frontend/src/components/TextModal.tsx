@@ -12,10 +12,11 @@ interface TextModalProps {
 }
 
 export default function TextModal({ open, onClose, title, content, fileName = '' }: TextModalProps) {
+  const [messageApi, messageContextHolder] = message.useMessage();
   async function copy() {
     const ok = await ClipboardManager.copyText(content || '');
     if (ok) {
-      message.success('Copied');
+      messageApi.success('Copied');
       onClose();
     }
   }
@@ -26,11 +27,13 @@ export default function TextModal({ open, onClose, title, content, fileName = ''
   }
 
   return (
-    <Modal
-      open={open}
-      title={title}
-      onCancel={onClose}
-      destroyOnHidden
+    <>
+      {messageContextHolder}
+      <Modal
+        open={open}
+        title={title}
+        onCancel={onClose}
+        destroyOnHidden
       footer={(
         <>
           {fileName && (
@@ -50,6 +53,7 @@ export default function TextModal({ open, onClose, title, content, fileName = ''
           overflowY: 'auto',
         }}
       />
-    </Modal>
+      </Modal>
+    </>
   );
 }

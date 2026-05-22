@@ -14,6 +14,7 @@ import {
   Spin,
   Tabs,
   Tooltip,
+  message,
 } from 'antd';
 import {
   CloudServerOutlined,
@@ -24,6 +25,7 @@ import {
 } from '@ant-design/icons';
 
 import { HttpUtil, PromiseUtil } from '@/utils';
+import { setMessageInstance } from '@/utils/messageBus';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useAllSetting } from '@/hooks/useAllSetting';
@@ -77,6 +79,11 @@ export default function SettingsPage() {
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const { isMobile } = useMediaQuery();
   const [modal, modalContextHolder] = Modal.useModal();
+  const [messageApi, messageContextHolder] = message.useMessage();
+
+  useEffect(() => {
+    setMessageInstance(messageApi);
+  }, [messageApi]);
 
   const {
     allSetting,
@@ -259,6 +266,7 @@ export default function SettingsPage() {
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
+      {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
         <AppSidebar basePath={basePath} requestUri={requestUri} />

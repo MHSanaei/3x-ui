@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Collapse, List, Modal, Radio, Spin, Tag, Tooltip } from 'antd';
+import { Alert, Button, Collapse, Modal, Radio, Spin, Tag, Tooltip } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -119,17 +119,17 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
                     title={t('pages.index.xraySwitchClickDesk')}
                     showIcon
                   />
-                  <List bordered className="version-list">
+                  <div className="version-list">
                     {versions.map((version, index) => (
-                      <List.Item key={version} className="version-list-item">
+                      <div key={version} className="version-list-item">
                         <Tag color={index % 2 === 0 ? 'purple' : 'green'}>{version}</Tag>
                         <Radio
                           checked={version === `v${status?.xray?.version}`}
                           onClick={() => switchXrayVersion(version)}
                         />
-                      </List.Item>
+                      </div>
                     ))}
-                  </List>
+                  </div>
                 </>
               ),
             },
@@ -138,9 +138,9 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
               label: 'Geofiles',
               children: (
                 <>
-                  <List bordered className="version-list">
+                  <div className="version-list">
                     {GEOFILES.map((file, index) => (
-                      <List.Item key={file} className="version-list-item">
+                      <div key={file} className="version-list-item">
                         <Tag color={index % 2 === 0 ? 'purple' : 'green'}>{file}</Tag>
                         <Tooltip title={t('update')}>
                           <ReloadOutlined
@@ -148,9 +148,9 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
                             onClick={() => updateGeofile(file)}
                           />
                         </Tooltip>
-                      </List.Item>
+                      </div>
                     ))}
-                  </List>
+                  </div>
                   <div className="actions-row">
                     <Button onClick={() => updateGeofile('')}>
                       {t('pages.index.geofilesUpdateAll')}

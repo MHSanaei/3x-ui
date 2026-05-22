@@ -48,7 +48,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	a.xraySettingController = NewXraySettingController(g)
 }
 
-// All four panel pages now serve the Vue 3 builds from web/dist/
+// The main panel's HTML routes serve the pre-built SPA pages from distFS,
 // instead of rendering the legacy Go templates. Each handler is a
 // thin wrapper around serveDistPage so the basePath injection +
 // no-cache headers stay centralised.

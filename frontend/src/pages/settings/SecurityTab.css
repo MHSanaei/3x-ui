@@ -82,3 +82,9 @@
   border-radius: 4px;
   word-break: break-all;
 }
+
+.security-actions {
+  padding: 12px 0;
+  display: flex;
+  align-items: center;
+}

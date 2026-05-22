@@ -25,7 +25,7 @@ export async function readyI18n() {
     lng: active,
     fallbackLng: FALLBACK,
     resources: { [FALLBACK]: { translation: enUS } },
-    interpolation: { escapeValue: false },
+    interpolation: { escapeValue: false, prefix: '{', suffix: '}' },
     returnNull: false,
   });
   if (active !== FALLBACK) {

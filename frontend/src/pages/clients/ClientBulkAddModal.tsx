@@ -73,6 +73,7 @@ export default function ClientBulkAddModal({
   onSaved,
 }: ClientBulkAddModalProps) {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [delayedStart, setDelayedStart] = useState(false);
@@ -153,7 +154,7 @@ export default function ClientBulkAddModal({
 
   async function submit() {
     if (!Array.isArray(form.inboundIds) || form.inboundIds.length === 0) {
-      message.error(t('pages.clients.selectInbound'));
+      messageApi.error(t('pages.clients.selectInbound'));
       return;
     }
     const emails = buildEmails();
@@ -190,9 +191,9 @@ export default function ClientBulkAddModal({
         }
       }
       if (failed === 0) {
-        message.success(t('pages.clients.toasts.bulkCreated', { count: ok }));
+        messageApi.success(t('pages.clients.toasts.bulkCreated', { count: ok }));
       } else {
-        message.warning(firstError
+        messageApi.warning(firstError
           ? `${t('pages.clients.toasts.bulkCreatedMixed', { ok, failed })} — ${firstError}`
           : t('pages.clients.toasts.bulkCreatedMixed', { ok, failed }));
       }
@@ -204,10 +205,12 @@ export default function ClientBulkAddModal({
   }
 
   return (
-    <Modal
-      open={open}
-      title={t('pages.clients.bulk')}
-      okText={t('create')}
+    <>
+      {messageContextHolder}
+      <Modal
+        open={open}
+        title={t('pages.clients.bulk')}
+        okText={t('create')}
       cancelText={t('close')}
       confirmLoading={saving}
       mask={{ closable: false }}
@@ -332,6 +335,7 @@ export default function ClientBulkAddModal({
           </Form.Item>
         )}
       </Form>
-    </Modal>
+      </Modal>
+    </>
   );
 }

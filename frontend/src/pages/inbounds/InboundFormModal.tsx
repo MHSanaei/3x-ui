@@ -40,6 +40,7 @@ import {
   SizeFormatter,
   Wireguard,
 } from '@/utils';
+import InputAddon from '@/components/InputAddon';
 import { getRandomRealityTarget } from '@/models/reality-targets';
 import {
   Inbound,
@@ -157,6 +158,7 @@ export default function InboundFormModal({
   dbInbounds,
 }: InboundFormModalProps) {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const { nodes: availableNodes } = useNodes();
   const selectableNodes = useMemo(
     () => (availableNodes || []).filter((n: NodeRecord) => n.enable),
@@ -413,8 +415,8 @@ export default function InboundFormModal({
       const defaults = deriveFallbackDefaults(child);
       return { ...row, ...defaults };
     }));
-    message.success(t('pages.inbounds.fallbacks.rederived') || 'Re-filled from child');
-  }, [dbInbounds, t]);
+    messageApi.success(t('pages.inbounds.fallbacks.rederived') || 'Re-filled from child');
+  }, [dbInbounds, t, messageApi]);
 
   const quickAddAllFallbacks = useCallback(() => {
     const masterId = dbInbound?.id;
@@ -438,13 +440,13 @@ export default function InboundFormModal({
         added += 1;
       }
       if (added > 0) {
-        message.success(t('pages.inbounds.fallbacks.quickAdded', { n: added }) || `Added ${added} fallback(s)`);
+        messageApi.success(t('pages.inbounds.fallbacks.quickAdded', { n: added }) || `Added ${added} fallback(s)`);
       } else {
-        message.info(t('pages.inbounds.fallbacks.quickAddedNone') || 'No new eligible inbounds to add');
+        messageApi.info(t('pages.inbounds.fallbacks.quickAddedNone') || 'No new eligible inbounds to add');
       }
       return next;
     });
-  }, [dbInbound, dbInbounds, t]);
+  }, [dbInbound, dbInbounds, t, messageApi]);
 
   const fallbackChildOptions = useMemo(() => {
     const list = dbInbounds || [];
@@ -652,16 +654,16 @@ export default function InboundFormModal({
     try {
       return parseAdvancedSliceOrFallback(rawText, fallback);
     } catch (e) {
-      message.error(`${label} JSON invalid: ${(e as Error).message}`);
+      messageApi.error(`${label} JSON invalid: ${(e as Error).message}`);
       throw e;
     }
-  }, []);
+  }, [messageApi]);
 
   const compactAdvancedJson = (raw: string, fallback: string, label: string) => {
     try {
       return JSON.stringify(JSON.parse(raw || fallback));
     } catch (e) {
-      message.error(`${label} JSON invalid: ${(e as Error).message}`);
+      messageApi.error(`${label} JSON invalid: ${(e as Error).message}`);
       throw e;
     }
   };
@@ -692,11 +694,11 @@ export default function InboundFormModal({
       });
       refresh();
     } catch (e) {
-      message.error(`${t('pages.inbounds.advanced.jsonErrorPrefix')}: ${(e as Error).message}`);
+      messageApi.error(`${t('pages.inbounds.advanced.jsonErrorPrefix')}: ${(e as Error).message}`);
       return false;
     }
     return true;
-  }, [t, refresh, parseAdvancedSliceWithLabel]);
+  }, [t, refresh, parseAdvancedSliceWithLabel, messageApi]);
 
   const handleTabChange = (next: string) => {
     if (activeTabKey === 'advanced' && next !== 'advanced') {
@@ -734,23 +736,23 @@ export default function InboundFormModal({
     try {
       parsed = JSON.parse(next);
     } catch (e) {
-      message.error(`${label} JSON invalid: ${(e as Error).message}`);
+      messageApi.error(`${label} JSON invalid: ${(e as Error).message}`);
       return;
     }
     const unwrapped = unwrapWrappedObject(parsed, key);
     if (!unwrapped || typeof unwrapped !== 'object' || Array.isArray(unwrapped)) {
-      message.error(`${label} JSON must be an object or { ${key}: { ... } }.`);
+      messageApi.error(`${label} JSON must be an object or { ${key}: { ... } }.`);
       return;
     }
     try {
       advancedTextRef.current[slice] = JSON.stringify(unwrapped, null, 2);
       refresh();
     } catch (e) {
-      message.error(`${label} JSON invalid: ${(e as Error).message}`);
+      messageApi.error(`${label} JSON invalid: ${(e as Error).message}`);
     }
   };
 
-  const advancedAllValue = useMemo(() => {
+  const advancedAllValue = (() => {
     const ib = inboundRef.current;
     if (!ib) return '';
     try {
@@ -769,19 +771,18 @@ export default function InboundFormModal({
     } catch {
       return '';
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inboundRef.current, canEnableStream]);
+  })();
 
   const setAdvancedAllValue = (next: string) => {
     let parsed: any;
     try {
       parsed = JSON.parse(next);
     } catch (e) {
-      message.error(`All JSON invalid: ${(e as Error).message}`);
+      messageApi.error(`All JSON invalid: ${(e as Error).message}`);
       return;
     }
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      message.error('All JSON must be an inbound object.');
+      messageApi.error('All JSON must be an inbound object.');
       return;
     }
     const ib = inboundRef.current;
@@ -804,7 +805,7 @@ export default function InboundFormModal({
         : '{}';
       refresh();
     } catch (e) {
-      message.error(`All JSON invalid: ${(e as Error).message}`);
+      messageApi.error(`All JSON invalid: ${(e as Error).message}`);
     }
   };
 
@@ -919,13 +920,13 @@ export default function InboundFormModal({
       {selectableNodes.length > 0 && isNodeEligible && (
         <Form.Item label={t('pages.inbounds.deployTo')}>
           <Select
-            value={form.nodeId}
+            value={form.nodeId ?? ''}
             disabled={mode === 'edit'}
             placeholder={t('pages.inbounds.localPanel')}
             allowClear
-            onChange={(v) => { form.nodeId = v ?? null; refresh(); }}
+            onChange={(v) => { form.nodeId = v === '' || v == null ? null : v; refresh(); }}
           >
-            <Select.Option value={null}>{t('pages.inbounds.localPanel')}</Select.Option>
+            <Select.Option value="">{t('pages.inbounds.localPanel')}</Select.Option>
             {selectableNodes.map((n: NodeRecord) => (
               <Select.Option key={n.id} value={n.id} disabled={n.status === 'offline'}>
                 {n.name}{n.status === 'offline' ? ' (offline)' : ''}
@@ -991,7 +992,7 @@ export default function InboundFormModal({
         {t('pages.inbounds.fallbacks.help') || 'When a connection on this inbound does not match any client, route it to another inbound. Pick a child below and the routing fields (SNI / ALPN / path / xver) auto-fill from its transport — most setups need no further tweaking. Each child should listen on 127.0.0.1 with security=none.'}
       </Paragraph>
       {fallbacks.length === 0 && (
-        <Empty description={t('pages.inbounds.fallbacks.empty') || 'No fallbacks yet'} imageStyle={{ height: 40 }} style={{ margin: '8px 0 12px' }} />
+        <Empty description={t('pages.inbounds.fallbacks.empty') || 'No fallbacks yet'} styles={{ image: { height: 40 } }} style={{ margin: '8px 0 12px' }} />
       )}
       {fallbacks.map((record, index) => (
         <div key={record.rowKey} style={{ border: '1px solid var(--app-border-tertiary)', borderRadius: 6, padding: '10px 12px', marginBottom: 8 }}>
@@ -1043,21 +1044,33 @@ export default function InboundFormModal({
           {fallbackEditing.has(record.rowKey) && (
             <Row gutter={8} style={{ marginTop: 8 }}>
               <Col xs={24} md={8}>
-                <Input addonBefore="SNI" placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
-                  value={record.name} onChange={(e) => updateFallback(record.rowKey, { name: e.target.value })} />
+                <Space.Compact block>
+                  <InputAddon>SNI</InputAddon>
+                  <Input placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
+                    value={record.name} onChange={(e) => updateFallback(record.rowKey, { name: e.target.value })} />
+                </Space.Compact>
               </Col>
               <Col xs={24} md={5}>
-                <Input addonBefore="ALPN" placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
-                  value={record.alpn} onChange={(e) => updateFallback(record.rowKey, { alpn: e.target.value })} />
+                <Space.Compact block>
+                  <InputAddon>ALPN</InputAddon>
+                  <Input placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
+                    value={record.alpn} onChange={(e) => updateFallback(record.rowKey, { alpn: e.target.value })} />
+                </Space.Compact>
               </Col>
               <Col xs={24} md={7}>
-                <Input addonBefore="Path" placeholder="/" value={record.path}
-                  onChange={(e) => updateFallback(record.rowKey, { path: e.target.value })} />
+                <Space.Compact block>
+                  <InputAddon>Path</InputAddon>
+                  <Input placeholder="/" value={record.path}
+                    onChange={(e) => updateFallback(record.rowKey, { path: e.target.value })} />
+                </Space.Compact>
               </Col>
               <Col xs={24} md={4}>
-                <InputNumber addonBefore="xver" min={0} max={2} style={{ width: '100%' }}
-                  value={record.xver}
-                  onChange={(v) => updateFallback(record.rowKey, { xver: Number(v) || 0 })} />
+                <Space.Compact block>
+                  <InputAddon>xver</InputAddon>
+                  <InputNumber min={0} max={2} style={{ width: '100%' }}
+                    value={record.xver}
+                    onChange={(v) => updateFallback(record.rowKey, { xver: Number(v) || 0 })} />
+                </Space.Compact>
               </Col>
             </Row>
           )}
@@ -1146,10 +1159,10 @@ export default function InboundFormModal({
           <Form.Item wrapperCol={{ span: 24 }}>
             {(ib.settings.accounts || []).map((account: any, idx: number) => (
               <Space.Compact key={idx} className="mb-8" block>
-                <Input style={{ width: '45%' }} value={account.user}
-                  addonBefore={String(idx + 1)} placeholder="Username"
+                <InputAddon>{String(idx + 1)}</InputAddon>
+                <Input value={account.user} placeholder="Username"
                   onChange={(e) => { account.user = e.target.value; refresh(); }} />
-                <Input style={{ width: '45%' }} value={account.pass} placeholder="Password"
+                <Input value={account.pass} placeholder="Password"
                   onChange={(e) => { account.pass = e.target.value; refresh(); }} />
                 <Button onClick={() => { ib.settings.delAccount(idx); refresh(); }}>
                   <MinusOutlined />
@@ -1208,9 +1221,10 @@ export default function InboundFormModal({
             <Form.Item wrapperCol={{ span: 24 }}>
               {(ib.settings.portMap as { name: string; value: string }[]).map((pm, idx) => (
                 <Space.Compact key={`pm-${idx}`} className="mb-8" block>
-                  <Input style={{ width: '30%' }} value={pm.name} placeholder="5555" addonBefore={String(idx + 1)}
+                  <InputAddon>{String(idx + 1)}</InputAddon>
+                  <Input value={pm.name} placeholder="5555"
                     onChange={(e) => { pm.name = e.target.value; refresh(); }} />
-                  <Input style={{ width: '60%' }} value={pm.value} placeholder="1.1.1.1:7777"
+                  <Input value={pm.value} placeholder="1.1.1.1:7777"
                     onChange={(e) => { pm.value = e.target.value; refresh(); }} />
                   <Button onClick={() => { ib.settings.removePortMap(idx); refresh(); }}>
                     <MinusOutlined />
@@ -1240,11 +1254,15 @@ export default function InboundFormModal({
               <PlusOutlined />
             </Button>
             {(ib.settings.gateway || []).map((_ip: string, j: number) => (
-              <Input key={`tun-gw-${j}`} className="mt-4"
-                placeholder={j === 0 ? '10.0.0.1/16' : 'fc00::1/64'}
-                value={ib.settings.gateway[j]}
-                onChange={(e) => { ib.settings.gateway[j] = e.target.value; refresh(); }}
-                addonAfter={<Button size="small" onClick={() => { ib.settings.gateway.splice(j, 1); refresh(); }}><MinusOutlined /></Button>} />
+              <Space.Compact key={`tun-gw-${j}`} block className="mt-4">
+                <Input
+                  placeholder={j === 0 ? '10.0.0.1/16' : 'fc00::1/64'}
+                  value={ib.settings.gateway[j]}
+                  onChange={(e) => { ib.settings.gateway[j] = e.target.value; refresh(); }} />
+                <Button size="small" onClick={() => { ib.settings.gateway.splice(j, 1); refresh(); }}>
+                  <MinusOutlined />
+                </Button>
+              </Space.Compact>
             ))}
           </Form.Item>
           <Form.Item label="DNS">
@@ -1252,11 +1270,15 @@ export default function InboundFormModal({
               <PlusOutlined />
             </Button>
             {(ib.settings.dns || []).map((_ip: string, j: number) => (
-              <Input key={`tun-dns-${j}`} className="mt-4"
-                placeholder={j === 0 ? '1.1.1.1' : '8.8.8.8'}
-                value={ib.settings.dns[j]}
-                onChange={(e) => { ib.settings.dns[j] = e.target.value; refresh(); }}
-                addonAfter={<Button size="small" onClick={() => { ib.settings.dns.splice(j, 1); refresh(); }}><MinusOutlined /></Button>} />
+              <Space.Compact key={`tun-dns-${j}`} block className="mt-4">
+                <Input
+                  placeholder={j === 0 ? '1.1.1.1' : '8.8.8.8'}
+                  value={ib.settings.dns[j]}
+                  onChange={(e) => { ib.settings.dns[j] = e.target.value; refresh(); }} />
+                <Button size="small" onClick={() => { ib.settings.dns.splice(j, 1); refresh(); }}>
+                  <MinusOutlined />
+                </Button>
+              </Space.Compact>
             ))}
           </Form.Item>
           <Form.Item label="User level">
@@ -1268,11 +1290,15 @@ export default function InboundFormModal({
               <PlusOutlined />
             </Button>
             {(ib.settings.autoSystemRoutingTable || []).map((_ip: string, j: number) => (
-              <Input key={`tun-rt-${j}`} className="mt-4"
-                placeholder={j === 0 ? '0.0.0.0/0' : '::/0'}
-                value={ib.settings.autoSystemRoutingTable[j]}
-                onChange={(e) => { ib.settings.autoSystemRoutingTable[j] = e.target.value; refresh(); }}
-                addonAfter={<Button size="small" onClick={() => { ib.settings.autoSystemRoutingTable.splice(j, 1); refresh(); }}><MinusOutlined /></Button>} />
+              <Space.Compact key={`tun-rt-${j}`} block className="mt-4">
+                <Input
+                  placeholder={j === 0 ? '0.0.0.0/0' : '::/0'}
+                  value={ib.settings.autoSystemRoutingTable[j]}
+                  onChange={(e) => { ib.settings.autoSystemRoutingTable[j] = e.target.value; refresh(); }} />
+                <Button size="small" onClick={() => { ib.settings.autoSystemRoutingTable.splice(j, 1); refresh(); }}>
+                  <MinusOutlined />
+                </Button>
+              </Space.Compact>
             ))}
           </Form.Item>
           <Form.Item label={<Tooltip title="Physical interface for outbound traffic. Use 'auto' to detect; auto-enabled when Auto system routes is set.">Auto outbounds interface</Tooltip>}>
@@ -1326,12 +1352,16 @@ export default function InboundFormModal({
                   <PlusOutlined />
                 </Button>
                 {(peer.allowedIPs || []).map((_ip: string, j: number) => (
-                  <Input key={j} className="mt-4"
-                    value={peer.allowedIPs[j]}
-                    onChange={(e) => { peer.allowedIPs[j] = e.target.value; refresh(); }}
-                    addonAfter={peer.allowedIPs.length > 1
-                      ? <Button size="small" onClick={() => { peer.allowedIPs.splice(j, 1); refresh(); }}><MinusOutlined /></Button>
-                      : undefined} />
+                  <Space.Compact key={j} block className="mt-4">
+                    <Input
+                      value={peer.allowedIPs[j]}
+                      onChange={(e) => { peer.allowedIPs[j] = e.target.value; refresh(); }} />
+                    {peer.allowedIPs.length > 1 && (
+                      <Button size="small" onClick={() => { peer.allowedIPs.splice(j, 1); refresh(); }}>
+                        <MinusOutlined />
+                      </Button>
+                    )}
+                  </Space.Compact>
                 ))}
               </Form.Item>
               <Form.Item label="Keep-alive">
@@ -1388,12 +1418,16 @@ export default function InboundFormModal({
                   </Form.Item>
                   <Form.Item label={<>{t('pages.inbounds.stream.tcp.path')} <Button size="small" style={{ marginLeft: 6 }} onClick={() => { ib.stream.tcp.request.addPath('/'); refresh(); }}><PlusOutlined /></Button></>}>
                     {(ib.stream.tcp.request.path || []).map((_p: string, idx: number) => (
-                      <Input key={`tcp-path-${idx}`} className="mb-4"
-                        value={ib.stream.tcp.request.path[idx]}
-                        onChange={(e) => { ib.stream.tcp.request.path[idx] = e.target.value; refresh(); }}
-                        addonAfter={ib.stream.tcp.request.path.length > 1
-                          ? <Button size="small" onClick={() => { ib.stream.tcp.request.removePath(idx); refresh(); }}><MinusOutlined /></Button>
-                          : undefined} />
+                      <Space.Compact key={`tcp-path-${idx}`} block className="mb-4">
+                        <Input
+                          value={ib.stream.tcp.request.path[idx]}
+                          onChange={(e) => { ib.stream.tcp.request.path[idx] = e.target.value; refresh(); }} />
+                        {ib.stream.tcp.request.path.length > 1 && (
+                          <Button size="small" onClick={() => { ib.stream.tcp.request.removePath(idx); refresh(); }}>
+                            <MinusOutlined />
+                          </Button>
+                        )}
+                      </Space.Compact>
                     ))}
                   </Form.Item>
                   <Form.Item label={t('pages.inbounds.stream.tcp.requestHeader')}>
@@ -1405,10 +1439,11 @@ export default function InboundFormModal({
                     <Form.Item wrapperCol={{ span: 24 }}>
                       {(ib.stream.tcp.request.headers as { name: string; value: string }[]).map((h, idx) => (
                         <Space.Compact key={`tcp-rh-${idx}`} className="mb-8" block>
-                          <Input style={{ width: '45%' }} value={h.name} addonBefore={String(idx + 1)}
+                          <InputAddon>{String(idx + 1)}</InputAddon>
+                          <Input value={h.name}
                             placeholder={t('pages.inbounds.stream.general.name')}
                             onChange={(e) => { h.name = e.target.value; refresh(); }} />
-                          <Input style={{ width: '45%' }} value={h.value}
+                          <Input value={h.value}
                             placeholder={t('pages.inbounds.stream.general.value')}
                             onChange={(e) => { h.value = e.target.value; refresh(); }} />
                           <Button onClick={() => { ib.stream.tcp.request.removeHeader(idx); refresh(); }}>
@@ -1440,10 +1475,11 @@ export default function InboundFormModal({
                     <Form.Item wrapperCol={{ span: 24 }}>
                       {(ib.stream.tcp.response.headers as { name: string; value: string }[]).map((h, idx) => (
                         <Space.Compact key={`tcp-rsh-${idx}`} className="mb-8" block>
-                          <Input style={{ width: '45%' }} value={h.name} addonBefore={String(idx + 1)}
+                          <InputAddon>{String(idx + 1)}</InputAddon>
+                          <Input value={h.name}
                             placeholder={t('pages.inbounds.stream.general.name')}
                             onChange={(e) => { h.name = e.target.value; refresh(); }} />
-                          <Input style={{ width: '45%' }} value={h.value}
+                          <Input value={h.value}
                             placeholder={t('pages.inbounds.stream.general.value')}
                             onChange={(e) => { h.value = e.target.value; refresh(); }} />
                           <Button onClick={() => { ib.stream.tcp.response.removeHeader(idx); refresh(); }}>
@@ -1482,10 +1518,11 @@ export default function InboundFormModal({
                 <Form.Item wrapperCol={{ span: 24 }}>
                   {(ib.stream.ws.headers as { name: string; value: string }[]).map((h, idx) => (
                     <Space.Compact key={`ws-h-${idx}`} className="mb-8" block>
-                      <Input style={{ width: '45%' }} value={h.name} addonBefore={String(idx + 1)}
+                      <InputAddon>{String(idx + 1)}</InputAddon>
+                      <Input value={h.name}
                         placeholder={t('pages.inbounds.stream.general.name')}
                         onChange={(e) => { h.name = e.target.value; refresh(); }} />
-                      <Input style={{ width: '45%' }} value={h.value}
+                      <Input value={h.value}
                         placeholder={t('pages.inbounds.stream.general.value')}
                         onChange={(e) => { h.value = e.target.value; refresh(); }} />
                       <Button onClick={() => { ib.stream.ws.removeHeader(idx); refresh(); }}>
@@ -1518,10 +1555,11 @@ export default function InboundFormModal({
                 <Form.Item wrapperCol={{ span: 24 }}>
                   {(ib.stream.httpupgrade.headers as { name: string; value: string }[]).map((h, idx) => (
                     <Space.Compact key={`hu-h-${idx}`} className="mb-8" block>
-                      <Input style={{ width: '45%' }} value={h.name} addonBefore={String(idx + 1)}
+                      <InputAddon>{String(idx + 1)}</InputAddon>
+                      <Input value={h.name}
                         placeholder={t('pages.inbounds.stream.general.name')}
                         onChange={(e) => { h.name = e.target.value; refresh(); }} />
-                      <Input style={{ width: '45%' }} value={h.value}
+                      <Input value={h.value}
                         placeholder={t('pages.inbounds.stream.general.value')}
                         onChange={(e) => { h.value = e.target.value; refresh(); }} />
                       <Button onClick={() => { ib.stream.httpupgrade.removeHeader(idx); refresh(); }}>
@@ -1545,10 +1583,11 @@ export default function InboundFormModal({
                 <Form.Item wrapperCol={{ span: 24 }}>
                   {(ib.stream.xhttp.headers as { name: string; value: string }[]).map((h, idx) => (
                     <Space.Compact key={`xh-h-${idx}`} className="mb-8" block>
-                      <Input style={{ width: '45%' }} value={h.name} addonBefore={String(idx + 1)}
+                      <InputAddon>{String(idx + 1)}</InputAddon>
+                      <Input value={h.name}
                         placeholder={t('pages.inbounds.stream.general.name')}
                         onChange={(e) => { h.name = e.target.value; refresh(); }} />
-                      <Input style={{ width: '45%' }} value={h.value}
+                      <Input value={h.value}
                         placeholder={t('pages.inbounds.stream.general.value')}
                         onChange={(e) => { h.value = e.target.value; refresh(); }} />
                       <Button onClick={() => { ib.stream.xhttp.removeHeader(idx); refresh(); }}>
@@ -1665,9 +1704,11 @@ export default function InboundFormModal({
                     <InputNumber value={row.port} style={{ width: '15%' }} min={1} max={65535}
                       onChange={(v) => { row.port = Number(v) || 0; refresh(); }} />
                   </Tooltip>
-                  <Input style={{ width: '35%' }} value={row.remark} placeholder={t('pages.inbounds.remark')}
-                    onChange={(e) => { row.remark = e.target.value; refresh(); }}
-                    addonAfter={<MinusOutlined onClick={() => { ib.stream.externalProxy.splice(idx, 1); refresh(); }} />} />
+                  <Input style={{ width: '25%' }} value={row.remark} placeholder={t('pages.inbounds.remark')}
+                    onChange={(e) => { row.remark = e.target.value; refresh(); }} />
+                  <InputAddon onClick={() => { ib.stream.externalProxy.splice(idx, 1); refresh(); }}>
+                    <MinusOutlined />
+                  </InputAddon>
                 </Space.Compact>
               ))}
             </Form.Item>
@@ -1762,9 +1803,10 @@ export default function InboundFormModal({
                         <Form.Item wrapperCol={{ span: 24 }}>
                           {(ib.stream.hysteria.masquerade.headers as { name: string; value: string }[]).map((h, idx) => (
                             <Space.Compact key={`mh-${idx}`} className="mb-8" block>
-                              <Input style={{ width: '45%' }} value={h.name} addonBefore={String(idx + 1)} placeholder="Name"
+                              <InputAddon>{String(idx + 1)}</InputAddon>
+                              <Input value={h.name} placeholder="Name"
                                 onChange={(e) => { h.name = e.target.value; refresh(); }} />
-                              <Input style={{ width: '45%' }} value={h.value} placeholder="Value"
+                              <Input value={h.value} placeholder="Value"
                                 onChange={(e) => { h.value = e.target.value; refresh(); }} />
                               <Button onClick={() => { ib.stream.hysteria.masquerade.removeHeader(idx); refresh(); }}>
                                 <MinusOutlined />
@@ -2078,19 +2120,22 @@ export default function InboundFormModal({
   tabItems.push({ key: 'advanced', label: t('pages.xray.advancedTemplate'), children: renderAdvancedTab() });
 
   return (
-    <Modal
-      open={open}
-      title={title}
-      okText={okText}
-      cancelText={t('close')}
-      confirmLoading={saving}
-      mask={{ closable: false }}
-      width={780}
-      onOk={submit}
-      onCancel={onClose}
-      destroyOnHidden
-    >
-      <Tabs activeKey={activeTabKey} onChange={handleTabChange} items={tabItems} />
-    </Modal>
+    <>
+      {messageContextHolder}
+      <Modal
+        open={open}
+        title={title}
+        okText={okText}
+        cancelText={t('close')}
+        confirmLoading={saving}
+        mask={{ closable: false }}
+        width={780}
+        onOk={submit}
+        onCancel={onClose}
+        destroyOnHidden
+      >
+        <Tabs activeKey={activeTabKey} onChange={handleTabChange} items={tabItems} />
+      </Modal>
+    </>
   );
 }

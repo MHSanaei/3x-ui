@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { message as antMessage } from 'antd';
+import { getMessage } from './messageBus';
 
 export class Msg {
     constructor(success = false, msg = "", obj = null) {
@@ -15,7 +15,7 @@ export class HttpUtil {
             return;
         }
         const messageType = msg.success ? 'success' : 'error';
-        antMessage[messageType](msg.msg);
+        getMessage()[messageType](msg.msg);
     }
 
     static _respToMsg(resp) {

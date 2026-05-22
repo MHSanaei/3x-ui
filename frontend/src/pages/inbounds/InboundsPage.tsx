@@ -11,6 +11,8 @@ import {
   Spin,
   message,
 } from 'antd';
+
+import { setMessageInstance } from '@/utils/messageBus';
 import {
   SwapOutlined,
   PieChartOutlined,
@@ -75,6 +77,10 @@ export default function InboundsPage() {
     applyInvalidate,
     applyInboundsEvent,
   } = useInbounds();
+
+  const [modal, modalContextHolder] = Modal.useModal();
+  const [messageApi, messageContextHolder] = message.useMessage();
+  useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
   const { nodes: nodesList } = useNodes();
   const nodesById = useMemo(() => {
@@ -305,7 +311,7 @@ export default function InboundsPage() {
   }, []);
 
   const confirmDelete = useCallback((dbInbound: any) => {
-    Modal.confirm({
+    modal.confirm({
       title: `Delete inbound "${dbInbound.remark}"?`,
       content: 'This removes the inbound and all its clients. This cannot be undone.',
       okText: 'Delete',
@@ -316,10 +322,10 @@ export default function InboundsPage() {
         if (msg?.success) await refresh();
       },
     });
-  }, [refresh]);
+  }, [modal, refresh]);
 
   const confirmResetTraffic = useCallback((dbInbound: any) => {
-    Modal.confirm({
+    modal.confirm({
       title: `Reset traffic for "${dbInbound.remark}"?`,
       content: 'Resets up/down counters to 0 for this inbound.',
       okText: 'Reset',
@@ -329,10 +335,10 @@ export default function InboundsPage() {
         if (msg?.success) await refresh();
       },
     });
-  }, [refresh]);
+  }, [modal, refresh]);
 
   const confirmClone = useCallback((dbInbound: any) => {
-    Modal.confirm({
+    modal.confirm({
       title: `Clone inbound "${dbInbound.remark}"?`,
       content: 'Creates a copy with a new port and an empty client list.',
       okText: 'Clone',
@@ -365,7 +371,7 @@ export default function InboundsPage() {
         if (msg?.success) await refresh();
       },
     });
-  }, [refresh]);
+  }, [modal, refresh]);
 
   const onGeneralAction = useCallback((key: GeneralAction) => {
     switch (key) {
@@ -373,7 +379,7 @@ export default function InboundsPage() {
       case 'export': exportAllLinks(); break;
       case 'subs': exportAllSubs(); break;
       case 'resetInbounds':
-        Modal.confirm({
+        modal.confirm({
           title: 'Reset all inbound traffic?',
           okText: 'Reset',
           cancelText: 'Cancel',
@@ -384,9 +390,9 @@ export default function InboundsPage() {
         });
         break;
       default:
-        message.info(`General action "${key}" — coming in a later 5f subphase`);
+        messageApi.info(`General action "${key}" — coming in a later 5f subphase`);
     }
-  }, [importInbound, exportAllLinks, exportAllSubs, refresh]);
+  }, [modal, importInbound, exportAllLinks, exportAllSubs, refresh, messageApi]);
 
   const onRowAction = useCallback(({ key, dbInbound }: { key: RowAction; dbInbound: any }) => {
     switch (key) {
@@ -421,15 +427,17 @@ export default function InboundsPage() {
         confirmClone(dbInbound);
         break;
       default:
-        message.info(`Action "${key}" — coming in a later 5f subphase`);
+        messageApi.info(`Action "${key}" — coming in a later 5f subphase`);
     }
-  }, [openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmClone]);
+  }, [openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmClone, messageApi]);
 
   const basePath = (typeof window !== 'undefined' && window.X_UI_BASE_PATH) || '';
   const requestUri = typeof window !== 'undefined' ? window.location.pathname : '';
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
+      {messageContextHolder}
+      {modalContextHolder}
       <Layout className={`inbounds-page${isDark ? ' is-dark' : ''}${isUltra ? ' is-ultra' : ''}`}>
         <AppSidebar basePath={basePath} requestUri={requestUri} />
 

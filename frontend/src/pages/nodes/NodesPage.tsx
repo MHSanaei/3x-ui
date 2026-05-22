@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Col, ConfigProvider, Layout, Modal, Row, Spin, message } from 'antd';
 import {
@@ -17,6 +17,7 @@ import AppSidebar from '@/components/AppSidebar';
 import CustomStatistic from '@/components/CustomStatistic';
 import NodeList from './NodeList';
 import NodeFormModal from './NodeFormModal';
+import { setMessageInstance } from '@/utils/messageBus';
 import './NodesPage.css';
 
 const basePath = window.X_UI_BASE_PATH || '';
@@ -27,6 +28,8 @@ export default function NodesPage() {
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const { isMobile } = useMediaQuery();
   const [modal, modalContextHolder] = Modal.useModal();
+  const [messageApi, messageContextHolder] = message.useMessage();
+  useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
   const {
     nodes,
@@ -76,21 +79,21 @@ export default function NodesPage() {
       cancelText: t('cancel'),
       onOk: async () => {
         const msg = await remove(node.id);
-        if (msg?.success) message.success(t('pages.nodes.toasts.deleted'));
+        if (msg?.success) messageApi.success(t('pages.nodes.toasts.deleted'));
       },
     });
-  }, [modal, t, remove]);
+  }, [modal, t, remove, messageApi]);
 
   const onProbe = useCallback(async (node: NodeRecord) => {
     const msg = await probe(node.id);
     if (msg?.success && msg.obj) {
       if (msg.obj.status === 'online') {
-        message.success(t('pages.nodes.connectionOk', { ms: msg.obj.latencyMs }));
+        messageApi.success(t('pages.nodes.connectionOk', { ms: msg.obj.latencyMs }));
       } else {
-        message.error(msg.obj.error || t('pages.nodes.toasts.probeFailed'));
+        messageApi.error(msg.obj.error || t('pages.nodes.toasts.probeFailed'));
       }
     }
-  }, [probe, t]);
+  }, [probe, t, messageApi]);
 
   const onToggleEnable = useCallback(async (node: NodeRecord, next: boolean) => {
     await setEnable(node.id, next);
@@ -105,6 +108,7 @@ export default function NodesPage() {
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
+      {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
         <AppSidebar basePath={basePath} requestUri={requestUri} />

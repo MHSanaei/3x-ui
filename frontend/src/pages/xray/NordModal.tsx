@@ -58,6 +58,7 @@ export default function NordModal({
   onRemoveOutbound,
   onRemoveRoutingRules,
 }: NordModalProps) {
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [nordData, setNordData] = useState<NordData | null>(null);
   const [token, setToken] = useState('');
@@ -184,7 +185,7 @@ export default function NordModal({
         })
         .sort((a: NordServer, b: NordServer) => a.load - b.load);
       setServers(next);
-      if (next.length === 0) message.warning('No servers found for the selected country');
+      if (next.length === 0) messageApi.warning('No servers found for the selected country');
     } finally {
       setLoading(false);
     }
@@ -196,7 +197,7 @@ export default function NordModal({
     const tech = server.technologies?.find((tt) => tt.id === 35);
     const publicKey = tech?.metadata?.find((m) => m.name === 'public_key')?.value;
     if (!publicKey) {
-      message.error('Selected server does not advertise a NordLynx public key.');
+      messageApi.error('Selected server does not advertise a NordLynx public key.');
       return null;
     }
     return {
@@ -215,7 +216,7 @@ export default function NordModal({
     const ob = buildNordOutbound();
     if (!ob) return;
     onAddOutbound(ob);
-    message.success('NordVPN outbound added');
+    messageApi.success('NordVPN outbound added');
     onClose();
   }
 
@@ -230,12 +231,14 @@ export default function NordModal({
       oldTag,
       newTag: ob.tag as string,
     });
-    message.success('NordVPN outbound updated');
+    messageApi.success('NordVPN outbound updated');
     onClose();
   }
 
   return (
-    <Modal open={open} title="NordVPN NordLynx" footer={null} onCancel={onClose}>
+    <>
+      {messageContextHolder}
+      <Modal open={open} title="NordVPN NordLynx" footer={null} onCancel={onClose}>
       {nordData == null ? (
         <Tabs
           defaultActiveKey="token"
@@ -387,6 +390,7 @@ export default function NordModal({
           )}
         </>
       )}
-    </Modal>
+      </Modal>
+    </>
   );
 }

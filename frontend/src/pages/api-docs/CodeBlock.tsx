@@ -29,6 +29,7 @@ function highlightJson(str: string): string {
 
 export default function CodeBlock({ code = '', lang = 'json' }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
+  const [messageApi, messageContextHolder] = message.useMessage();
 
   const highlighted = useMemo(
     () => (lang === 'json' ? highlightJson(code) : escapeHtml(code)),
@@ -39,15 +40,16 @@ export default function CodeBlock({ code = '', lang = 'json' }: CodeBlockProps) 
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
-      message.success('Copied');
+      messageApi.success('Copied');
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      message.error('Copy failed');
+      messageApi.error('Copy failed');
     }
   }
 
   return (
     <div className="code-block-wrapper">
+      {messageContextHolder}
       <div className="code-toolbar">
         <span className="lang-badge">{lang.toUpperCase()}</span>
         <button

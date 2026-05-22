@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Divider, Modal, Space, Tabs, Tag, Tooltip, message } from 'antd';
+import { Button, Divider, Modal, Space, Tabs, Tag, Tooltip } from 'antd';
+import { getMessage } from '@/utils/messageBus';
 import { CopyOutlined, SyncOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
 
 import {
@@ -106,7 +107,7 @@ interface InboundInfoModalProps {
 
 function copyText(value: unknown, t: (k: string) => string) {
   ClipboardManager.copyText(String(value ?? '')).then((ok) => {
-    if (ok) message.success(t('copied'));
+    if (ok) getMessage().success(t('copied'));
   });
 }
 
