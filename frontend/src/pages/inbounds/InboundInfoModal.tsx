@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Modal, Space, Tabs, Tag, Tooltip } from 'antd';
 import { getMessage } from '@/utils/messageBus';
@@ -802,59 +802,86 @@ export default function InboundInfoModal({
       )}
 
       {dbInbound.isWireguard && inbound.settings && (
-        <table className="info-table protocol-table wg-table">
-          <tbody>
-            <tr><td>Secret key</td><td>{inbound.settings.secretKey as string}</td></tr>
-            <tr><td>Public key</td><td>{inbound.settings.pubKey as string}</td></tr>
-            <tr><td>MTU</td><td>{inbound.settings.mtu as number}</td></tr>
-            <tr><td>No-kernel TUN</td><td>{String(inbound.settings.noKernelTun)}</td></tr>
-            {Array.isArray(inbound.settings.peers) && (inbound.settings.peers as { privateKey: string; publicKey: string; psk: string; allowedIPs?: string[]; keepAlive?: number }[]).map((peer, idx) => (
-              <>
-                <tr key={`p-h-${idx}`}>
-                  <td colSpan={2}><Divider>Peer {idx + 1}</Divider></td>
-                </tr>
-                <tr key={`p-sk-${idx}`}><td>Secret key</td><td>{peer.privateKey}</td></tr>
-                <tr key={`p-pk-${idx}`}><td>Public key</td><td>{peer.publicKey}</td></tr>
-                <tr key={`p-psk-${idx}`}><td>PSK</td><td>{peer.psk}</td></tr>
-                <tr key={`p-ai-${idx}`}><td>Allowed IPs</td><td>{(peer.allowedIPs || []).join(',')}</td></tr>
-                <tr key={`p-ka-${idx}`}><td>Keep alive</td><td>{peer.keepAlive}</td></tr>
-                {wireguardConfigs[idx] && (
-                  <tr key={`p-conf-${idx}`}>
-                    <td colSpan={2}>
-                      <div className="link-panel">
-                        <div className="link-panel-header">
-                          <Tag color="green">Peer {idx + 1} config</Tag>
-                          <Tooltip title={t('copy')}>
-                            <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(wireguardConfigs[idx], t)} />
-                          </Tooltip>
-                          <Tooltip title={t('download')}>
-                            <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadText(wireguardConfigs[idx], `peer-${idx + 1}.conf`)} />
-                          </Tooltip>
-                        </div>
-                        <code className="link-panel-text">{wireguardConfigs[idx]}</code>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                {wireguardLinks[idx] && (
-                  <tr key={`p-link-${idx}`}>
-                    <td colSpan={2}>
-                      <div className="link-panel">
-                        <div className="link-panel-header">
-                          <Tag color="green">Peer {idx + 1} link</Tag>
-                          <Tooltip title={t('copy')}>
-                            <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(wireguardLinks[idx], t)} />
-                          </Tooltip>
-                        </div>
-                        <code className="link-panel-text">{wireguardLinks[idx]}</code>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </>
-            ))}
-          </tbody>
-        </table>
+        <>
+          <dl className="info-list info-list-block">
+            <div className="info-row">
+              <dt>Secret key</dt>
+              <dd><Tag className="value-tag">{inbound.settings.secretKey as string}</Tag></dd>
+            </div>
+            <div className="info-row">
+              <dt>Public key</dt>
+              <dd><Tag className="value-tag">{inbound.settings.pubKey as string}</Tag></dd>
+            </div>
+            <div className="info-row">
+              <dt>MTU</dt>
+              <dd><Tag>{inbound.settings.mtu as number}</Tag></dd>
+            </div>
+            <div className="info-row">
+              <dt>No-kernel TUN</dt>
+              <dd>
+                <Tag color={inbound.settings.noKernelTun ? 'green' : 'default'}>
+                  {String(inbound.settings.noKernelTun)}
+                </Tag>
+              </dd>
+            </div>
+          </dl>
+          {Array.isArray(inbound.settings.peers) && (inbound.settings.peers as { privateKey: string; publicKey: string; psk: string; allowedIPs?: string[]; keepAlive?: number }[]).map((peer, idx) => (
+            <Fragment key={idx}>
+              <Divider>Peer {idx + 1}</Divider>
+              <dl className="info-list info-list-block">
+                <div className="info-row">
+                  <dt>Secret key</dt>
+                  <dd><Tag className="value-tag">{peer.privateKey}</Tag></dd>
+                </div>
+                <div className="info-row">
+                  <dt>Public key</dt>
+                  <dd><Tag className="value-tag">{peer.publicKey}</Tag></dd>
+                </div>
+                <div className="info-row">
+                  <dt>PSK</dt>
+                  <dd><Tag className="value-tag">{peer.psk}</Tag></dd>
+                </div>
+                <div className="info-row">
+                  <dt>Allowed IPs</dt>
+                  <dd>
+                    {(peer.allowedIPs || []).map((ip, j) => (
+                      <Tag key={`wg-ip-${idx}-${j}`} className="value-tag">{ip}</Tag>
+                    ))}
+                  </dd>
+                </div>
+                <div className="info-row">
+                  <dt>Keep alive</dt>
+                  <dd><Tag>{peer.keepAlive}</Tag></dd>
+                </div>
+              </dl>
+              {wireguardConfigs[idx] && (
+                <div className="link-panel">
+                  <div className="link-panel-header">
+                    <Tag color="green">Peer {idx + 1} config</Tag>
+                    <Tooltip title={t('copy')}>
+                      <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(wireguardConfigs[idx], t)} />
+                    </Tooltip>
+                    <Tooltip title={t('download')}>
+                      <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadText(wireguardConfigs[idx], `peer-${idx + 1}.conf`)} />
+                    </Tooltip>
+                  </div>
+                  <code className="link-panel-text">{wireguardConfigs[idx]}</code>
+                </div>
+              )}
+              {wireguardLinks[idx] && (
+                <div className="link-panel">
+                  <div className="link-panel-header">
+                    <Tag color="green">Peer {idx + 1} link</Tag>
+                    <Tooltip title={t('copy')}>
+                      <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(wireguardLinks[idx], t)} />
+                    </Tooltip>
+                  </div>
+                  <code className="link-panel-text">{wireguardLinks[idx]}</code>
+                </div>
+              )}
+            </Fragment>
+          ))}
+        </>
       )}
 
       {dbInbound.isSS && !inbound.isSSMultiUser && links.length > 0 && (

@@ -22,22 +22,22 @@
 }
 
 .login-app.is-dark {
-  --bg-page: #0b0d17;
-  --bg-card: rgba(30, 32, 50, 0.55);
-  --bg-card-solid: #1a1c2e;
+  --bg-page: #0d1117;
+  --bg-card: rgba(28, 30, 36, 0.55);
+  --bg-card-solid: #1c1e22;
   --color-text: rgba(255, 255, 255, 0.92);
   --color-text-subtle: rgba(255, 255, 255, 0.55);
-  --color-accent: #818cf8;
+  --color-accent: #3b82f6;
   --color-border: rgba(255, 255, 255, 0.10);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 20px 60px rgba(99, 102, 241, 0.25);
-  --blob-1: rgba(99, 102, 241, 0.55);
-  --blob-2: rgba(236, 72, 153, 0.45);
-  --blob-3: rgba(34, 211, 238, 0.40);
-  --blob-4: rgba(251, 146, 60, 0.30);
-  --blob-5: rgba(168, 85, 247, 0.45);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 20px 60px rgba(59, 130, 246, 0.22);
+  --blob-1: rgba(96, 165, 250, 0.42);
+  --blob-2: rgba(59, 130, 246, 0.42);
+  --blob-3: rgba(37, 99, 235, 0.35);
+  --blob-4: rgba(251, 146, 60, 0.18);
+  --blob-5: rgba(129, 140, 248, 0.30);
   --grid-color: rgba(255, 255, 255, 0.04);
   --vignette: radial-gradient(ellipse at center, transparent 25%, rgba(0, 0, 0, 0.5) 100%);
-  background: radial-gradient(ellipse at 25% 20%, #1e1b4b 0%, #0b0d17 60%);
+  background: radial-gradient(ellipse at 25% 20%, #152038 0%, #0d1117 60%);
 }
 
 .login-app.is-dark.is-ultra {
@@ -301,7 +301,7 @@
     135deg,
     rgba(255, 255, 255, 0.15),
     rgba(255, 255, 255, 0) 40%,
-    rgba(129, 140, 248, 0.35) 80%
+    rgba(59, 130, 246, 0.40) 80%
   );
 }
 
@@ -330,12 +330,23 @@
   -webkit-text-fill-color: transparent;
 }
 
+.login-app.is-dark .brand-name {
+  background: linear-gradient(135deg, #60a5fa, #1d4ed8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 .brand-accent {
   display: block;
   width: 40px;
   height: 3px;
   border-radius: 2px;
   background: linear-gradient(90deg, var(--color-accent), #ec4899);
+}
+
+.login-app.is-dark .brand-accent {
+  background: linear-gradient(90deg, #60a5fa, #1d4ed8);
 }
 
 .welcome {
