@@ -29,44 +29,44 @@ const initialUltra = readBool(STORAGE_ULTRA, false);
 applyDom(initialDark, initialUltra);
 
 const DARK_TOKENS = {
-  colorBgBase: '#1e1e1e',
-  colorBgLayout: '#1e1e1e',
-  colorBgContainer: '#252526',
-  colorBgElevated: '#2d2d30',
+  colorBgBase: '#1a1b1f',
+  colorBgLayout: '#1a1b1f',
+  colorBgContainer: '#23252b',
+  colorBgElevated: '#2d2f37',
 };
 const ULTRA_DARK_TOKENS = {
   colorBgBase: '#000',
   colorBgLayout: '#000',
-  colorBgContainer: '#0a0a0a',
-  colorBgElevated: '#141414',
+  colorBgContainer: '#101013',
+  colorBgElevated: '#1a1a1e',
 };
 const DARK_LAYOUT_TOKENS = {
-  bodyBg: '#1e1e1e',
-  headerBg: '#252526',
+  bodyBg: '#1a1b1f',
+  headerBg: '#15161a',
   headerColor: '#ffffff',
-  footerBg: '#1e1e1e',
-  siderBg: '#252526',
-  triggerBg: '#333333',
+  footerBg: '#1a1b1f',
+  siderBg: '#15161a',
+  triggerBg: '#23252b',
   triggerColor: '#ffffff',
 };
 const ULTRA_DARK_LAYOUT_TOKENS = {
   bodyBg: '#000',
-  headerBg: '#0a0a0a',
+  headerBg: '#050507',
   headerColor: '#ffffff',
   footerBg: '#000',
-  siderBg: '#0a0a0a',
-  triggerBg: '#141414',
+  siderBg: '#050507',
+  triggerBg: '#1a1a1e',
   triggerColor: '#ffffff',
 };
 const DARK_MENU_TOKENS = {
-  darkItemBg: '#252526',
-  darkSubMenuItemBg: '#1e1e1e',
-  darkPopupBg: '#252526',
+  darkItemBg: '#15161a',
+  darkSubMenuItemBg: '#1a1b1f',
+  darkPopupBg: '#23252b',
 };
 const ULTRA_DARK_MENU_TOKENS = {
-  darkItemBg: '#0a0a0a',
+  darkItemBg: '#050507',
   darkSubMenuItemBg: '#000',
-  darkPopupBg: '#0a0a0a',
+  darkPopupBg: '#101013',
 };
 
 export function buildAntdThemeConfig(isDark: boolean, isUltra: boolean): ThemeConfig {

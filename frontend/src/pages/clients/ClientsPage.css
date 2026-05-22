@@ -6,13 +6,13 @@
 }
 
 .clients-page.is-dark {
-  --bg-page: #1e1e1e;
-  --bg-card: #252526;
+  --bg-page: #1a1b1f;
+  --bg-card: #23252b;
 }
 
 .clients-page.is-dark.is-ultra {
-  --bg-page: #050505;
-  --bg-card: #0c0e12;
+  --bg-page: #000;
+  --bg-card: #101013;
 }
 
 .clients-page .ant-layout,

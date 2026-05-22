@@ -53,6 +53,7 @@ import ClientFormModal from './ClientFormModal';
 import ClientInfoModal from './ClientInfoModal';
 import ClientQrModal from './ClientQrModal';
 import ClientBulkAddModal from './ClientBulkAddModal';
+import '@/styles/page-cards.css';
 import './ClientsPage.css';
 
 const basePath = window.X_UI_BASE_PATH || '';

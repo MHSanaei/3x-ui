@@ -18,6 +18,7 @@ import CustomStatistic from '@/components/CustomStatistic';
 import NodeList from './NodeList';
 import NodeFormModal from './NodeFormModal';
 import { setMessageInstance } from '@/utils/messageBus';
+import '@/styles/page-cards.css';
 import './NodesPage.css';
 
 const basePath = window.X_UI_BASE_PATH || '';

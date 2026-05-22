@@ -36,6 +36,7 @@ import InboundList from './InboundList';
 import InboundFormModal from './InboundFormModal';
 import InboundInfoModal from './InboundInfoModal';
 import QrCodeModal from './QrCodeModal';
+import '@/styles/page-cards.css';
 import './InboundsPage.css';
 
 type RowAction =

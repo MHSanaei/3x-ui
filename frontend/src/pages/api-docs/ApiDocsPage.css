@@ -6,13 +6,13 @@
 }
 
 .api-docs-page.is-dark {
-  --bg-page: #1e1e1e;
-  --bg-card: #252526;
+  --bg-page: #1a1b1f;
+  --bg-card: #23252b;
 }
 
 .api-docs-page.is-dark.is-ultra {
   --bg-page: #000;
-  --bg-card: #0a0a0a;
+  --bg-card: #101013;
 }
 
 .api-docs-page .content-shell {

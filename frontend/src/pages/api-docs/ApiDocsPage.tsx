@@ -24,6 +24,7 @@ import { sections as allSections } from './endpoints.js';
 import EndpointSection from './EndpointSection';
 import type { Section } from './EndpointSection';
 import CodeBlock from './CodeBlock';
+import '@/styles/page-cards.css';
 import './ApiDocsPage.css';
 
 const sectionIcons: Record<string, ComponentType<{ className?: string }>> = {

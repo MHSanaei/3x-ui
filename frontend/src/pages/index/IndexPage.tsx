@@ -51,6 +51,7 @@ import SystemHistoryModal from './SystemHistoryModal';
 import XrayMetricsModal from './XrayMetricsModal';
 import XrayLogModal from './XrayLogModal';
 import VersionModal from './VersionModal';
+import '@/styles/page-cards.css';
 import './IndexPage.css';
 
 export default function IndexPage() {

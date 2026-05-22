@@ -1,0 +1,167 @@
+.index-page .ant-card,
+.clients-page .ant-card,
+.inbounds-page .ant-card,
+.xray-page .ant-card,
+.settings-page .ant-card,
+.nodes-page .ant-card,
+.api-docs-page .ant-card {
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+}
+
+body.dark .index-page .ant-card,
+body.dark .clients-page .ant-card,
+body.dark .inbounds-page .ant-card,
+body.dark .xray-page .ant-card,
+body.dark .settings-page .ant-card,
+body.dark .nodes-page .ant-card,
+body.dark .api-docs-page .ant-card {
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+html[data-theme='ultra-dark'] .index-page .ant-card,
+html[data-theme='ultra-dark'] .clients-page .ant-card,
+html[data-theme='ultra-dark'] .inbounds-page .ant-card,
+html[data-theme='ultra-dark'] .xray-page .ant-card,
+html[data-theme='ultra-dark'] .settings-page .ant-card,
+html[data-theme='ultra-dark'] .nodes-page .ant-card,
+html[data-theme='ultra-dark'] .api-docs-page .ant-card {
+  border-color: rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.index-page .ant-card.ant-card-hoverable:hover,
+.clients-page .ant-card.ant-card-hoverable:hover,
+.inbounds-page .ant-card.ant-card-hoverable:hover,
+.xray-page .ant-card.ant-card-hoverable:hover,
+.settings-page .ant-card.ant-card-hoverable:hover,
+.nodes-page .ant-card.ant-card-hoverable:hover,
+.api-docs-page .ant-card.ant-card-hoverable:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 0, 0, 0.10);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+body.dark .index-page .ant-card.ant-card-hoverable:hover,
+body.dark .clients-page .ant-card.ant-card-hoverable:hover,
+body.dark .inbounds-page .ant-card.ant-card-hoverable:hover,
+body.dark .xray-page .ant-card.ant-card-hoverable:hover,
+body.dark .settings-page .ant-card.ant-card-hoverable:hover,
+body.dark .nodes-page .ant-card.ant-card-hoverable:hover,
+body.dark .api-docs-page .ant-card.ant-card-hoverable:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme='ultra-dark'] .index-page .ant-card.ant-card-hoverable:hover,
+html[data-theme='ultra-dark'] .clients-page .ant-card.ant-card-hoverable:hover,
+html[data-theme='ultra-dark'] .inbounds-page .ant-card.ant-card-hoverable:hover,
+html[data-theme='ultra-dark'] .xray-page .ant-card.ant-card-hoverable:hover,
+html[data-theme='ultra-dark'] .settings-page .ant-card.ant-card-hoverable:hover,
+html[data-theme='ultra-dark'] .nodes-page .ant-card.ant-card-hoverable:hover,
+html[data-theme='ultra-dark'] .api-docs-page .ant-card.ant-card-hoverable:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.index-page .ant-card .ant-card-head,
+.clients-page .ant-card .ant-card-head,
+.inbounds-page .ant-card .ant-card-head,
+.xray-page .ant-card .ant-card-head,
+.settings-page .ant-card .ant-card-head,
+.nodes-page .ant-card .ant-card-head,
+.api-docs-page .ant-card .ant-card-head {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.index-page .ant-card .ant-card-actions,
+.clients-page .ant-card .ant-card-actions,
+.inbounds-page .ant-card .ant-card-actions,
+.xray-page .ant-card .ant-card-actions,
+.settings-page .ant-card .ant-card-actions,
+.nodes-page .ant-card .ant-card-actions,
+.api-docs-page .ant-card .ant-card-actions {
+  border-top-color: rgba(0, 0, 0, 0.06);
+  background: transparent;
+}
+
+.index-page .ant-card .ant-card-actions > li,
+.clients-page .ant-card .ant-card-actions > li,
+.inbounds-page .ant-card .ant-card-actions > li,
+.xray-page .ant-card .ant-card-actions > li,
+.settings-page .ant-card .ant-card-actions > li,
+.nodes-page .ant-card .ant-card-actions > li,
+.api-docs-page .ant-card .ant-card-actions > li {
+  border-inline-end-color: rgba(0, 0, 0, 0.06);
+}
+
+body.dark .index-page .ant-card .ant-card-head,
+body.dark .clients-page .ant-card .ant-card-head,
+body.dark .inbounds-page .ant-card .ant-card-head,
+body.dark .xray-page .ant-card .ant-card-head,
+body.dark .settings-page .ant-card .ant-card-head,
+body.dark .nodes-page .ant-card .ant-card-head,
+body.dark .api-docs-page .ant-card .ant-card-head {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+body.dark .index-page .ant-card .ant-card-actions,
+body.dark .clients-page .ant-card .ant-card-actions,
+body.dark .inbounds-page .ant-card .ant-card-actions,
+body.dark .xray-page .ant-card .ant-card-actions,
+body.dark .settings-page .ant-card .ant-card-actions,
+body.dark .nodes-page .ant-card .ant-card-actions,
+body.dark .api-docs-page .ant-card .ant-card-actions {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+body.dark .index-page .ant-card .ant-card-actions > li,
+body.dark .clients-page .ant-card .ant-card-actions > li,
+body.dark .inbounds-page .ant-card .ant-card-actions > li,
+body.dark .xray-page .ant-card .ant-card-actions > li,
+body.dark .settings-page .ant-card .ant-card-actions > li,
+body.dark .nodes-page .ant-card .ant-card-actions > li,
+body.dark .api-docs-page .ant-card .ant-card-actions > li {
+  border-inline-end-color: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme='ultra-dark'] .index-page .ant-card .ant-card-head,
+html[data-theme='ultra-dark'] .clients-page .ant-card .ant-card-head,
+html[data-theme='ultra-dark'] .inbounds-page .ant-card .ant-card-head,
+html[data-theme='ultra-dark'] .xray-page .ant-card .ant-card-head,
+html[data-theme='ultra-dark'] .settings-page .ant-card .ant-card-head,
+html[data-theme='ultra-dark'] .nodes-page .ant-card .ant-card-head,
+html[data-theme='ultra-dark'] .api-docs-page .ant-card .ant-card-head {
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme='ultra-dark'] .index-page .ant-card .ant-card-actions,
+html[data-theme='ultra-dark'] .clients-page .ant-card .ant-card-actions,
+html[data-theme='ultra-dark'] .inbounds-page .ant-card .ant-card-actions,
+html[data-theme='ultra-dark'] .xray-page .ant-card .ant-card-actions,
+html[data-theme='ultra-dark'] .settings-page .ant-card .ant-card-actions,
+html[data-theme='ultra-dark'] .nodes-page .ant-card .ant-card-actions,
+html[data-theme='ultra-dark'] .api-docs-page .ant-card .ant-card-actions {
+  border-top-color: rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme='ultra-dark'] .index-page .ant-card .ant-card-actions > li,
+html[data-theme='ultra-dark'] .clients-page .ant-card .ant-card-actions > li,
+html[data-theme='ultra-dark'] .inbounds-page .ant-card .ant-card-actions > li,
+html[data-theme='ultra-dark'] .xray-page .ant-card .ant-card-actions > li,
+html[data-theme='ultra-dark'] .settings-page .ant-card .ant-card-actions > li,
+html[data-theme='ultra-dark'] .nodes-page .ant-card .ant-card-actions > li,
+html[data-theme='ultra-dark'] .api-docs-page .ant-card .ant-card-actions > li {
+  border-inline-end-color: rgba(255, 255, 255, 0.04);
+}
