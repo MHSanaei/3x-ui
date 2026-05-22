@@ -536,34 +536,45 @@ export class Wireguard {
 }
 
 export class ClipboardManager {
-    static copyText(content = "") {
-        // !! here old way of copying is used because not everyone can afford https connection
-        return new Promise((resolve) => {
+    static async copyText(content = "") {
+        const text = String(content ?? "");
+        if (navigator.clipboard && window.isSecureContext) {
             try {
-                const textarea = window.document.createElement('textarea');
-
-                textarea.style.fontSize = '12pt';
-                textarea.style.border = '0';
-                textarea.style.padding = '0';
-                textarea.style.margin = '0';
-                textarea.style.position = 'absolute';
-                textarea.style.left = '-9999px';
-                textarea.style.top = `${window.pageYOffset || document.documentElement.scrollTop}px`;
-                textarea.setAttribute('readonly', '');
-                textarea.value = content;
-
-                window.document.body.appendChild(textarea);
-
-                textarea.select();
-                window.document.execCommand("copy");
-
-                window.document.body.removeChild(textarea);
-
-                resolve(true)
+                await navigator.clipboard.writeText(text);
+                return true;
             } catch {
-                resolve(false)
+                /* fall through to legacy path */
             }
-        })
+        }
+        return ClipboardManager._legacyCopy(text);
+    }
+
+    static _legacyCopy(text) {
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.top = '0';
+            textarea.style.left = '0';
+            textarea.style.width = '1em';
+            textarea.style.height = '1em';
+            textarea.style.padding = '0';
+            textarea.style.border = '0';
+            textarea.style.outline = 'none';
+            textarea.style.boxShadow = 'none';
+            textarea.style.background = 'transparent';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            textarea.setSelectionRange(0, text.length);
+            const ok = document.execCommand('copy');
+            document.body.removeChild(textarea);
+            return ok;
+        } catch {
+            return false;
+        }
     }
 }
 

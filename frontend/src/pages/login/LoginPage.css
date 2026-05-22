@@ -1,41 +1,58 @@
 .login-app {
-  --bg-page: #f5f7fa;
-  --bg-card: #ffffff;
+  --bg-page: #eef2ff;
+  --bg-card: rgba(255, 255, 255, 0.72);
+  --bg-card-solid: #ffffff;
   --color-text: rgba(0, 0, 0, 0.88);
   --color-text-subtle: rgba(0, 0, 0, 0.55);
-  --color-accent: #1677ff;
-  --color-border: rgba(0, 0, 0, 0.08);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
-  --blob-1: rgba(99, 102, 241, 0.45);
-  --blob-2: rgba(236, 72, 153, 0.38);
-  --blob-3: rgba(20, 184, 166, 0.32);
+  --color-accent: #6366f1;
+  --color-border: rgba(255, 255, 255, 0.6);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 18px 50px rgba(99, 102, 241, 0.18);
+  --blob-1: rgba(99, 102, 241, 0.55);
+  --blob-2: rgba(236, 72, 153, 0.50);
+  --blob-3: rgba(20, 184, 166, 0.40);
+  --blob-4: rgba(251, 191, 36, 0.35);
+  --blob-5: rgba(56, 189, 248, 0.40);
+  --grid-color: rgba(99, 102, 241, 0.06);
+  --vignette: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.05) 100%);
 
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: var(--bg-page);
+  background: linear-gradient(135deg, #eef2ff 0%, #fdf2f8 50%, #ecfeff 100%);
 }
 
 .login-app.is-dark {
-  --bg-page: #1e1e1e;
-  --bg-card: #252526;
+  --bg-page: #0b0d17;
+  --bg-card: rgba(30, 32, 50, 0.55);
+  --bg-card-solid: #1a1c2e;
   --color-text: rgba(255, 255, 255, 0.92);
   --color-text-subtle: rgba(255, 255, 255, 0.55);
-  --color-accent: #4096ff;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 32px rgba(0, 0, 0, 0.4);
-  --blob-1: rgba(64, 150, 255, 0.40);
-  --blob-2: rgba(168, 85, 247, 0.34);
-  --blob-3: rgba(34, 211, 238, 0.22);
+  --color-accent: #818cf8;
+  --color-border: rgba(255, 255, 255, 0.10);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 20px 60px rgba(99, 102, 241, 0.25);
+  --blob-1: rgba(99, 102, 241, 0.55);
+  --blob-2: rgba(236, 72, 153, 0.45);
+  --blob-3: rgba(34, 211, 238, 0.40);
+  --blob-4: rgba(251, 146, 60, 0.30);
+  --blob-5: rgba(168, 85, 247, 0.45);
+  --grid-color: rgba(255, 255, 255, 0.04);
+  --vignette: radial-gradient(ellipse at center, transparent 25%, rgba(0, 0, 0, 0.5) 100%);
+  background: radial-gradient(ellipse at 25% 20%, #1e1b4b 0%, #0b0d17 60%);
 }
 
 .login-app.is-dark.is-ultra {
   --bg-page: #000;
-  --bg-card: #141414;
+  --bg-card: rgba(15, 17, 28, 0.6);
+  --bg-card-solid: #0a0c14;
   --color-border: rgba(255, 255, 255, 0.06);
-  --blob-1: rgba(64, 150, 255, 0.22);
-  --blob-2: rgba(168, 85, 247, 0.18);
-  --blob-3: rgba(34, 211, 238, 0.12);
+  --blob-1: rgba(99, 102, 241, 0.30);
+  --blob-2: rgba(236, 72, 153, 0.22);
+  --blob-3: rgba(34, 211, 238, 0.20);
+  --blob-4: rgba(251, 146, 60, 0.15);
+  --blob-5: rgba(168, 85, 247, 0.25);
+  --grid-color: rgba(255, 255, 255, 0.025);
+  --vignette: radial-gradient(ellipse at center, transparent 20%, rgba(0, 0, 0, 0.8) 100%);
+  background: radial-gradient(ellipse at 25% 20%, #0a0a1a 0%, #000 60%);
 }
 
 .login-app::before,
@@ -47,7 +64,7 @@
   max-width: 900px;
   max-height: 900px;
   border-radius: 50%;
-  filter: blur(90px);
+  filter: blur(100px);
   pointer-events: none;
   z-index: 0;
   will-change: transform;
@@ -78,11 +95,62 @@
   max-height: 700px;
   border-radius: 50%;
   background: radial-gradient(circle, var(--blob-3) 0%, transparent 65%);
-  filter: blur(90px);
+  filter: blur(100px);
   pointer-events: none;
   z-index: 0;
   will-change: transform;
   animation: blob-drift-c 36s ease-in-out infinite alternate;
+}
+
+.login-content::after {
+  content: '';
+  position: absolute;
+  top: 10%;
+  right: 15%;
+  width: 35vw;
+  height: 35vw;
+  max-width: 500px;
+  max-height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--blob-4) 0%, transparent 65%);
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform;
+  animation: blob-drift-d 28s ease-in-out infinite alternate;
+}
+
+.login-wrapper::before {
+  content: '';
+  position: absolute;
+  bottom: 5%;
+  left: 10%;
+  width: 35vw;
+  height: 35vw;
+  max-width: 500px;
+  max-height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--blob-5) 0%, transparent 65%);
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform;
+  animation: blob-drift-e 32s ease-in-out infinite alternate;
+}
+
+.login-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 @keyframes blob-drift-a {
@@ -103,10 +171,24 @@
   100% { transform: translate(-80%, -10%) scale(1.05); }
 }
 
+@keyframes blob-drift-d {
+  0% { transform: translate(0, 0) scale(0.9); }
+  50% { transform: translate(-12vw, 14vh) scale(1.05); }
+  100% { transform: translate(8vw, -8vh) scale(1.1); }
+}
+
+@keyframes blob-drift-e {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(14vw, -8vh) scale(1.1); }
+  100% { transform: translate(-6vw, 12vh) scale(1.15); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .login-app::before,
   .login-app::after,
-  .login-content::before {
+  .login-content::before,
+  .login-content::after,
+  .login-wrapper::before {
     animation: none;
   }
 }
@@ -151,13 +233,15 @@
   justify-content: center;
   cursor: pointer;
   padding: 0;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   transition: background-color 0.2s, transform 0.15s, color 0.2s;
 }
 
 .theme-cycle:hover,
 .theme-cycle:focus-visible {
-  background-color: rgba(64, 150, 255, 0.1);
-  color: #4096ff;
+  background-color: rgba(99, 102, 241, 0.15);
+  color: var(--color-accent);
   transform: scale(1.05);
   outline: none;
 }
@@ -168,6 +252,7 @@
 }
 
 .login-wrapper {
+  position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -180,13 +265,44 @@
 }
 
 .login-card {
+  position: relative;
   width: 100%;
   max-width: 400px;
   background: var(--bg-card);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: 20px;
   padding: 40px 32px 28px;
   box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  z-index: 2;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.5),
+    rgba(255, 255, 255, 0) 40%,
+    rgba(99, 102, 241, 0.25) 80%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.login-app.is-dark .login-card::before {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15),
+    rgba(255, 255, 255, 0) 40%,
+    rgba(129, 140, 248, 0.35) 80%
+  );
 }
 
 @media (max-width: 480px) {
@@ -208,6 +324,10 @@
   font-weight: 700;
   letter-spacing: 1.5px;
   color: var(--color-text);
+  background: linear-gradient(135deg, var(--color-accent), #ec4899);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .brand-accent {
@@ -215,7 +335,7 @@
   width: 40px;
   height: 3px;
   border-radius: 2px;
-  background: var(--color-accent);
+  background: linear-gradient(90deg, var(--color-accent), #ec4899);
 }
 
 .welcome {
@@ -255,8 +375,8 @@
 .login-form input.ant-input:-webkit-autofill:hover,
 .login-form input.ant-input:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--color-text) !important;
-  -webkit-box-shadow: 0 0 0 1000px var(--bg-card) inset !important;
-  box-shadow: 0 0 0 1000px var(--bg-card) inset !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-card-solid) inset !important;
+  box-shadow: 0 0 0 1000px var(--bg-card-solid) inset !important;
   transition: background-color 9999s ease-in-out 0s, color 9999s ease-in-out 0s;
 }
 
