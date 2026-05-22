@@ -44,6 +44,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useClients } from '@/hooks/useClients';
+import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import AppSidebar from '@/components/AppSidebar';
 import CustomStatistic from '@/components/CustomStatistic';
@@ -86,6 +87,7 @@ function readFilterState(): FilterState {
 export default function ClientsPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
+  const { datepicker } = useDatepicker();
   const { isMobile } = useMediaQuery();
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
@@ -296,7 +298,7 @@ export default function ClientsPage() {
       const days = Math.round(row.expiryTime / -86400000);
       return `${t('pages.clients.delayedStart')}: ${days}d`;
     }
-    return IntlUtil.formatDate(row.expiryTime);
+    return IntlUtil.formatDate(row.expiryTime, datepicker);
   }
 
   function expiryRelative(row: ClientRecord) {

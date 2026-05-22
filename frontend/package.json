@@ -1,7 +1,7 @@
 {
   "name": "3x-ui-frontend",
   "private": true,
-  "version": "0.0.3",
+  "version": "0.1.0",
   "type": "module",
   "description": "3x-ui panel frontend (React 19 + Ant Design 6 + Vite 8).",
   "engines": {
@@ -25,6 +25,7 @@
     "dayjs": "^1.11.20",
     "i18next": "^26.2.0",
     "otpauth": "^9.5.1",
+    "persian-calendar-suite": "^1.5.5",
     "qs": "^6.15.2",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

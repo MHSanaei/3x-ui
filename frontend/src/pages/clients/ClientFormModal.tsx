@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import {
   Button,
   Col,
-  DatePicker,
   Form,
   Input,
   InputNumber,
@@ -19,6 +18,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
 import { HttpUtil, RandomUtil } from '@/utils';
+import DateTimePicker from '@/components/DateTimePicker';
 import { TLS_FLOW_CONTROL } from '@/models/inbound';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import './ClientFormModal.css';
@@ -416,11 +416,9 @@ export default function ClientFormModal({
               </Form.Item>
             ) : (
               <Form.Item label={t('pages.clients.expiryTime')}>
-                <DatePicker
+                <DateTimePicker
                   value={form.expiryDate}
                   onChange={(d) => update('expiryDate', d || null)}
-                  showTime
-                  style={{ width: '100%' }}
                 />
               </Form.Item>
             )}

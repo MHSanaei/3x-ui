@@ -4,6 +4,7 @@ import { Button, Divider, Modal, Tag, Tooltip, message } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 
 import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
+import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import './ClientInfoModal.css';
 
@@ -30,16 +31,6 @@ interface ApiMsg<T = unknown> {
 
 const DEFAULT_SUB: SubSettings = { enable: false, subURI: '', subJsonURI: '', subJsonEnable: false };
 
-function expiryLabel(ts?: number) {
-  if (!ts || ts <= 0) return '∞';
-  return IntlUtil.formatDate(ts);
-}
-
-function dateLabel(ts?: number) {
-  if (!ts || ts <= 0) return '-';
-  return IntlUtil.formatDate(ts);
-}
-
 export default function ClientInfoModal({
   open,
   client,
@@ -48,6 +39,9 @@ export default function ClientInfoModal({
   subSettings = DEFAULT_SUB,
   onOpenChange,
 }: ClientInfoModalProps) {
+  const { datepicker } = useDatepicker();
+  const expiryLabel = (ts?: number) => (!ts || ts <= 0 ? '∞' : IntlUtil.formatDate(ts, datepicker));
+  const dateLabel = (ts?: number) => (!ts || ts <= 0 ? '-' : IntlUtil.formatDate(ts, datepicker));
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [links, setLinks] = useState<string[]>([]);

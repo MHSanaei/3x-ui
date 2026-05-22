@@ -911,24 +911,22 @@ export class FileManager {
 }
 
 export class IntlUtil {
-    // When `calendar` is "jalalian", append the BCP-47 calendar extension
-    // so Intl renders the date in the Persian (Jalali/Shamsi) calendar
-    // regardless of the UI language. Without it, only locales that
-    // default to Persian (e.g. fa-IR) would show Jalali; en-US/ru/etc.
-    // would keep showing Gregorian.
+    // For Jalali display, always use fa-IR locale (its default calendar
+    // is Persian) so we get a clean "1405/07/03 12:00:00" format with
+    // Persian digits, without the awkward "AP" era suffix that appears
+    // when other locales force `-u-ca-persian`.
     static formatDate(date, calendar = "gregorian") {
         const language = LanguageManager.getLanguage()
-        const locale = calendar === "jalalian"
-            ? `${language}-u-ca-persian`
-            : language
+        const locale = calendar === "jalalian" ? "fa-IR" : language
 
-        let intlOptions = {
+        const intlOptions = {
             year: "numeric",
-            month: "numeric",
-            day: "numeric",
-            hour: "numeric",
-            minute: "numeric",
-            second: "numeric"
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
         }
 
         const intl = new Intl.DateTimeFormat(
