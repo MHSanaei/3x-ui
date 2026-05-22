@@ -35,7 +35,7 @@ const METRICS: MetricDef[] = [
 
 function unitFormatter(unit: string, activeKey: string): (v: number) => string {
   if (unit === 'B/s') {
-    return (v) => `${SizeFormatter.sizeFormat(Math.max(0, Number(v) || 0))}/s`;
+    return (v) => `${SizeFormatter.sizeFormat(Math.max(0, Number(v) || 0)).replace(/\.\d+/, '')}/s`;
   }
   if (unit === '%') {
     return (v) => `${Number(v).toFixed(1)}%`;

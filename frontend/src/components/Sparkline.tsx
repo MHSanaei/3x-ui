@@ -38,10 +38,10 @@ export default function Sparkline({
   strokeWidth = 2,
   maxPoints = 120,
   showGrid = true,
-  gridColor = 'rgba(0,0,0,0.1)',
-  fillOpacity = 0.15,
+  gridColor = 'rgba(0,0,0,0.08)',
+  fillOpacity = 0.22,
   showMarker = true,
-  markerRadius = 2.8,
+  markerRadius = 3,
   showAxes = false,
   yTickStep = 25,
   tickCountX = 4,
@@ -60,7 +60,10 @@ export default function Sparkline({
   const [hoverIdx, setHoverIdx] = useState(-1);
 
   const reactId = useId();
-  const gradId = `spkGrad-${reactId.replace(/[^a-zA-Z0-9]/g, '')}`;
+  const safeId = reactId.replace(/[^a-zA-Z0-9]/g, '');
+  const gradId = `spkGrad-${safeId}`;
+  const shadowId = `spkShadow-${safeId}`;
+  const glowId = `spkGlow-${safeId}`;
 
   useEffect(() => {
     const el = svgRef.current;
@@ -211,6 +214,15 @@ export default function Sparkline({
     return `${val}${lab ? ' • ' + lab : ''}`;
   }, [hoverIdx, dataSlice, labelsSlice, tooltipFormatter, yFormatter]);
 
+  const tooltipPillWidth = Math.max(48, hoverText.length * 6.2 + 14);
+  const hoverPoint = hoverIdx >= 0 ? pointsArr[hoverIdx] : null;
+  const tooltipX = hoverPoint
+    ? Math.max(
+        paddingLeft + 2,
+        Math.min(effectiveVbWidth - paddingRight - tooltipPillWidth - 2, hoverPoint[0] - tooltipPillWidth / 2),
+      )
+    : 0;
+
   return (
     <svg
       ref={svgRef}
@@ -224,9 +236,25 @@ export default function Sparkline({
     >
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={stroke} stopOpacity={fillOpacity} />
+          <stop offset="0%" stopColor={stroke} stopOpacity={Math.min(1, fillOpacity * 1.8)} />
+          <stop offset="50%" stopColor={stroke} stopOpacity={fillOpacity * 0.7} />
           <stop offset="100%" stopColor={stroke} stopOpacity={0} />
         </linearGradient>
+        <filter id={shadowId} x="-10%" y="-50%" width="120%" height="200%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2.4" />
+          <feOffset dx="0" dy="2" result="offsetBlur" />
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.45" />
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <radialGradient id={glowId}>
+          <stop offset="0%" stopColor={stroke} stopOpacity="0.55" />
+          <stop offset="100%" stopColor={stroke} stopOpacity="0" />
+        </radialGradient>
       </defs>
 
       {showGrid && (
@@ -240,6 +268,7 @@ export default function Sparkline({
               y2={g.y2}
               stroke={gridColor}
               strokeWidth={1}
+              strokeDasharray="3 5"
               className="cpu-grid-line"
             />
           ))}
@@ -252,10 +281,10 @@ export default function Sparkline({
             <text
               key={`y${i}`}
               className="cpu-grid-y-text"
-              x={Math.max(0, paddingLeft - 4)}
+              x={Math.max(0, paddingLeft - 6)}
               y={tk.y + 4}
               textAnchor="end"
-              fontSize={10}
+              fontSize={10.5}
             >
               {tk.label}
             </text>
@@ -267,7 +296,7 @@ export default function Sparkline({
               x={tk.x}
               y={paddingTop + drawHeight + 14}
               textAnchor="middle"
-              fontSize={10}
+              fontSize={10.5}
             >
               {tk.label}
             </text>
@@ -283,9 +312,16 @@ export default function Sparkline({
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
+        filter={`url(#${shadowId})`}
       />
       {showMarker && lastPoint && (
-        <circle cx={lastPoint[0]} cy={lastPoint[1]} r={markerRadius} fill={stroke} />
+        <>
+          <circle cx={lastPoint[0]} cy={lastPoint[1]} r={markerRadius * 3} fill={`url(#${glowId})`}>
+            <animate attributeName="r" values={`${markerRadius * 2.4};${markerRadius * 3.4};${markerRadius * 2.4}`} dur="2.6s" repeatCount="indefinite" />
+          </circle>
+          <circle cx={lastPoint[0]} cy={lastPoint[1]} r={markerRadius + 1.5} fill={stroke} fillOpacity={0.25} />
+          <circle cx={lastPoint[0]} cy={lastPoint[1]} r={markerRadius} fill={stroke} stroke="#fff" strokeWidth={1.5} />
+        </>
       )}
 
       {showTooltip && hoverIdx >= 0 && pointsArr[hoverIdx] && (
@@ -296,16 +332,32 @@ export default function Sparkline({
             x2={pointsArr[hoverIdx][0]}
             y1={paddingTop}
             y2={paddingTop + drawHeight}
-            stroke="rgba(0,0,0,0.2)"
+            stroke={stroke}
+            strokeOpacity={0.45}
             strokeWidth={1}
+            strokeDasharray="3 4"
           />
-          <circle cx={pointsArr[hoverIdx][0]} cy={pointsArr[hoverIdx][1]} r={3.5} fill={stroke} />
+          <circle cx={pointsArr[hoverIdx][0]} cy={pointsArr[hoverIdx][1]} r={5} fill={stroke} fillOpacity={0.25} />
+          <circle cx={pointsArr[hoverIdx][0]} cy={pointsArr[hoverIdx][1]} r={3.5} fill={stroke} stroke="#fff" strokeWidth={1.5} />
+          <rect
+            x={tooltipX}
+            y={paddingTop + 2}
+            width={tooltipPillWidth}
+            height={18}
+            rx={9}
+            ry={9}
+            className="cpu-tooltip-pill"
+            fill={stroke}
+            fillOpacity={0.92}
+          />
           <text
-            className="cpu-grid-text"
-            x={pointsArr[hoverIdx][0]}
-            y={paddingTop + 12}
+            className="cpu-tooltip-text"
+            x={tooltipX + tooltipPillWidth / 2}
+            y={paddingTop + 14}
             textAnchor="middle"
             fontSize={11}
+            fontWeight={600}
+            fill="#fff"
           >
             {hoverText}
           </text>
