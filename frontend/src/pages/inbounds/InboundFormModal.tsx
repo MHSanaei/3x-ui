@@ -659,14 +659,14 @@ export default function InboundFormModal({
     }
   }, [messageApi]);
 
-  const compactAdvancedJson = (raw: string, fallback: string, label: string) => {
+  const compactAdvancedJson = useCallback((raw: string, fallback: string, label: string) => {
     try {
       return JSON.stringify(JSON.parse(raw || fallback));
     } catch (e) {
       messageApi.error(`${label} JSON invalid: ${(e as Error).message}`);
       throw e;
     }
-  };
+  }, [messageApi]);
 
   const applyAdvancedJsonToBasic = useCallback((): boolean => {
     const ib = inboundRef.current;
@@ -888,7 +888,7 @@ export default function InboundFormModal({
     } finally {
       setSaving(false);
     }
-  }, [canEnableStream, t, mode, dbInbound, isFallbackHost, saveFallbacks, onSaved, onClose]);
+  }, [canEnableStream, compactAdvancedJson, t, mode, dbInbound, isFallbackHost, saveFallbacks, onSaved, onClose]);
 
   const protocolSnapshot = inboundRef.current?.protocol;
   const streamSnapshot = JSON.stringify(inboundRef.current?.stream?.toJson?.() || {});
