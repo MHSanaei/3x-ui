@@ -57,7 +57,7 @@ export default function QrCodeModal({
   const [wireguardLinks, setWireguardLinks] = useState<string[]>([]);
   const [subLink, setSubLink] = useState('');
   const [subJsonLink, setSubJsonLink] = useState('');
-  const [defaultActive, setDefaultActive] = useState<string[]>([]);
+  const [activeKey, setActiveKey] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open || !dbInbound) return;
@@ -84,7 +84,6 @@ export default function QrCodeModal({
     }
     setSubLink(nextSub);
     setSubJsonLink(nextSubJson);
-    setDefaultActive(nextSub ? ['sub'] : []);
   }, [open, dbInbound, client, remarkModel, nodeAddress, subSettings]);
 
   const qrItems = useMemo<QrItem[]>(() => {
@@ -128,13 +127,21 @@ export default function QrCodeModal({
     [qrItems],
   );
 
+  useEffect(() => {
+    if (!open) {
+      setActiveKey([]);
+      return;
+    }
+    setActiveKey(qrItems.length > 0 ? [qrItems[0].key] : []);
+  }, [open, qrItems]);
+
   return (
     <Modal open={open} onCancel={onClose} title={t('qrCode')} footer={null} width={420} destroyOnHidden>
       {dbInbound && collapseItems && collapseItems.length > 0 && (
         <Collapse
-          key={collapseItems.map((i) => i?.key).join('|')}
           ghost
-          defaultActiveKey={defaultActive}
+          activeKey={activeKey}
+          onChange={(keys) => setActiveKey(typeof keys === 'string' ? [keys] : (keys as string[]))}
           items={collapseItems}
         />
       )}

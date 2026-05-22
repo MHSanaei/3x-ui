@@ -71,13 +71,7 @@ export default function ClientQrModal({
     return () => { cancelled = true; };
   }, [open, client?.subId]);
 
-  const activeKeys = useMemo(() => {
-    const keys: string[] = [];
-    if (subLink) keys.push('sub');
-    if (subJsonLink) keys.push('subJson');
-    if (links.length > 0) keys.push('l0');
-    return keys;
-  }, [subLink, subJsonLink, links.length]);
+  const [activeKey, setActiveKey] = useState<string[]>([]);
 
   const items = useMemo(() => {
     const out: { key: string; label: string; children: React.ReactNode }[] = [];
@@ -105,6 +99,14 @@ export default function ClientQrModal({
     return out;
   }, [subLink, subJsonLink, links, client?.email, t]);
 
+  useEffect(() => {
+    if (!open) {
+      setActiveKey([]);
+      return;
+    }
+    setActiveKey(items.length > 0 ? [items[0].key] : []);
+  }, [open, items]);
+
   return (
     <Modal
       open={open}
@@ -121,7 +123,13 @@ export default function ClientQrModal({
         {client?.subId && !hasAnything && !loading && (
           <div style={{ padding: 24, textAlign: 'center', opacity: 0.6 }}>{t('pages.clients.noLinks')}</div>
         )}
-        {hasAnything && <Collapse activeKey={activeKeys} accordion={false} items={items} />}
+        {hasAnything && (
+          <Collapse
+            activeKey={activeKey}
+            onChange={(keys) => setActiveKey(typeof keys === 'string' ? [keys] : (keys as string[]))}
+            items={items}
+          />
+        )}
       </Spin>
     </Modal>
   );
