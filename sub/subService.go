@@ -867,8 +867,8 @@ func applyExternalProxyTLSObj(ep map[string]any, obj map[string]any, security st
 	if security != "tls" {
 		return
 	}
-	if dest, ok := ep["dest"].(string); ok && dest != "" {
-		obj["sni"] = dest
+	if sni, ok := externalProxySNI(ep); ok {
+		obj["sni"] = sni
 	}
 	if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
 		obj["fp"] = fp
@@ -882,8 +882,8 @@ func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, se
 	if security != "tls" {
 		return
 	}
-	if dest, ok := ep["dest"].(string); ok && dest != "" {
-		params["sni"] = dest
+	if sni, ok := externalProxySNI(ep); ok {
+		params["sni"] = sni
 	}
 	if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
 		params["fp"] = fp
@@ -902,8 +902,8 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 		tlsSettings = map[string]any{}
 		stream["tlsSettings"] = tlsSettings
 	}
-	if dest, ok := ep["dest"].(string); ok && dest != "" {
-		tlsSettings["serverName"] = dest
+	if sni, ok := externalProxySNI(ep); ok {
+		tlsSettings["serverName"] = sni
 	}
 	if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
 		tlsSettings["fingerprint"] = fp
@@ -917,6 +917,16 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 	if alpn, ok := externalProxyALPNList(ep["alpn"]); ok {
 		tlsSettings["alpn"] = alpn
 	}
+}
+
+func externalProxySNI(ep map[string]any) (string, bool) {
+	if sni, ok := ep["sni"].(string); ok && sni != "" {
+		return sni, true
+	}
+	if dest, ok := ep["dest"].(string); ok && dest != "" {
+		return dest, true
+	}
+	return "", false
 }
 
 func externalProxyALPN(value any) (string, bool) {

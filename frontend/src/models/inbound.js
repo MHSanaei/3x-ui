@@ -1703,7 +1703,8 @@ export class Inbound extends XrayCommonClass {
 
     static applyExternalProxyTLSParams(externalProxy, params, security) {
         if (!externalProxy || security !== 'tls') return;
-        if (externalProxy.dest?.length > 0) params.set("sni", externalProxy.dest);
+        const sni = externalProxy.sni?.length > 0 ? externalProxy.sni : externalProxy.dest;
+        if (sni?.length > 0) params.set("sni", sni);
         if (externalProxy.fingerprint?.length > 0) params.set("fp", externalProxy.fingerprint);
         const alpn = Inbound.externalProxyAlpn(externalProxy.alpn);
         if (alpn.length > 0) params.set("alpn", alpn);
@@ -1711,7 +1712,8 @@ export class Inbound extends XrayCommonClass {
 
     static applyExternalProxyTLSObj(externalProxy, obj, security) {
         if (!externalProxy || !obj || security !== 'tls') return;
-        if (externalProxy.dest?.length > 0) obj.sni = externalProxy.dest;
+        const sni = externalProxy.sni?.length > 0 ? externalProxy.sni : externalProxy.dest;
+        if (sni?.length > 0) obj.sni = sni;
         if (externalProxy.fingerprint?.length > 0) obj.fp = externalProxy.fingerprint;
         const alpn = Inbound.externalProxyAlpn(externalProxy.alpn);
         if (alpn.length > 0) obj.alpn = alpn;

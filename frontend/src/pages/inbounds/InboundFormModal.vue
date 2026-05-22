@@ -101,6 +101,7 @@ const externalProxy = computed({
         dest: window.location.hostname,
         port: inbound.value.port,
         remark: '',
+        sni: '',
         fingerprint: '',
         alpn: [],
       }];
@@ -1685,7 +1686,7 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
           <a-form-item label="External Proxy">
             <a-switch v-model:checked="externalProxy" />
             <a-button v-if="externalProxy" size="small" type="primary" :style="{ marginLeft: '10px' }"
-              @click="inbound.stream.externalProxy.push({ forceTls: 'same', dest: '', port: 443, remark: '', fingerprint: '', alpn: [] })">
+              @click="inbound.stream.externalProxy.push({ forceTls: 'same', dest: '', port: 443, remark: '', sni: '', fingerprint: '', alpn: [] })">
               <template #icon>
                 <PlusOutlined />
               </template>
@@ -1712,11 +1713,12 @@ watch(() => inbound.value?.protocol, () => stampAdvancedTextFor('stream'));
                 </a-input>
               </a-input-group>
               <a-input-group v-if="row.forceTls === 'tls'" compact :style="{ marginTop: '6px' }">
-                <a-select v-model:value="row.fingerprint" :style="{ width: '35%' }" placeholder="Fingerprint">
+                <a-input v-model:value="row.sni" :style="{ width: '30%' }" placeholder="SNI (defaults to host)" />
+                <a-select v-model:value="row.fingerprint" :style="{ width: '30%' }" placeholder="Fingerprint">
                   <a-select-option value="">Default</a-select-option>
                   <a-select-option v-for="fp in FINGERPRINTS" :key="fp" :value="fp">{{ fp }}</a-select-option>
                 </a-select>
-                <a-select v-model:value="row.alpn" mode="multiple" :style="{ width: '65%' }" placeholder="ALPN">
+                <a-select v-model:value="row.alpn" mode="multiple" :style="{ width: '40%' }" placeholder="ALPN">
                   <a-select-option v-for="alpn in ALPNS" :key="alpn" :value="alpn">{{ alpn }}</a-select-option>
                 </a-select>
               </a-input-group>

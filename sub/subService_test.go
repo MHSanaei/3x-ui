@@ -449,20 +449,32 @@ func TestApplyExternalProxyTLSParams_UsesProxyDomainAndOverrides(t *testing.T) {
 	}
 	ep := map[string]any{
 		"dest":        "proxy.example.com",
+		"sni":         "tls.example.com",
 		"fingerprint": "chrome",
 		"alpn":        []any{"h3", "h2"},
 	}
 
 	applyExternalProxyTLSParams(ep, params, "tls")
 
-	if params["sni"] != "proxy.example.com" {
-		t.Fatalf("sni = %q, want proxy.example.com", params["sni"])
+	if params["sni"] != "tls.example.com" {
+		t.Fatalf("sni = %q, want tls.example.com", params["sni"])
 	}
 	if params["fp"] != "chrome" {
 		t.Fatalf("fp = %q, want chrome", params["fp"])
 	}
 	if params["alpn"] != "h3,h2" {
 		t.Fatalf("alpn = %q, want h3,h2", params["alpn"])
+	}
+}
+
+func TestApplyExternalProxyTLSParams_FallsBackToDestSNI(t *testing.T) {
+	params := map[string]string{"security": "tls"}
+	ep := map[string]any{"dest": "proxy.example.com"}
+
+	applyExternalProxyTLSParams(ep, params, "tls")
+
+	if params["sni"] != "proxy.example.com" {
+		t.Fatalf("sni = %q, want proxy.example.com", params["sni"])
 	}
 }
 
