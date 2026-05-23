@@ -49,7 +49,7 @@ import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import AppSidebar from '@/components/AppSidebar';
 import CustomStatistic from '@/components/CustomStatistic';
-import { IntlUtil, ObjectUtil, SizeFormatter } from '@/utils';
+import { IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import ClientFormModal from './ClientFormModal';
 import ClientInfoModal from './ClientInfoModal';
@@ -96,11 +96,15 @@ export default function ClientsPage() {
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
   const {
-    clients, inbounds, onlines, loading, fetched, subSettings,
+    clients, filtered,
+    summary: serverSummary,
+    setQuery,
+    inbounds, onlines, loading, fetched, subSettings,
     ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, removeMany, bulkAdjust, attach, detach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent, applyInvalidate,
+    hydrate,
   } = useClients();
 
   useWebSocket({
@@ -131,13 +135,39 @@ export default function ClientsPage() {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(25);
+  // debouncedSearch lags behind the input so we don't spam the server on every
+  // keystroke; the search box still feels instant locally.
+  const [debouncedSearch, setDebouncedSearch] = useState(searchKey);
 
   useEffect(() => {
     localStorage.setItem(FILTER_STATE_KEY, JSON.stringify({
       enableFilter, searchKey, filterBy, protocolFilter,
     }));
   }, [enableFilter, searchKey, filterBy, protocolFilter]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedSearch(searchKey), 300);
+    return () => window.clearTimeout(handle);
+  }, [searchKey]);
+
+  useEffect(() => {
+    // Reset to page 1 whenever a filter or sort changes — otherwise an empty
+    // result set on a high page number leaves the user staring at "no clients".
+    setCurrentPage(1);
+  }, [debouncedSearch, enableFilter, filterBy, protocolFilter, sortColumn, sortOrder]);
+
+  useEffect(() => {
+    setQuery({
+      page: currentPage,
+      pageSize: tablePageSize,
+      search: enableFilter ? '' : debouncedSearch,
+      filter: enableFilter ? (filterBy || '') : '',
+      protocol: protocolFilter || '',
+      sort: sortColumn || undefined,
+      order: sortOrder || undefined,
+    });
+  }, [setQuery, currentPage, tablePageSize, enableFilter, debouncedSearch, filterBy, protocolFilter, sortColumn, sortOrder]);
 
   useEffect(() => {
     if (pageSize > 0) {
@@ -192,81 +222,18 @@ export default function ClientsPage() {
     }
   }
 
-  function clientMatchesProtocol(row: ClientRecord, protocol?: string) {
-    if (!protocol) return true;
-    const ids = Array.isArray(row.inboundIds) ? row.inboundIds : [];
-    for (const id of ids) {
-      const ib = inboundsById[id];
-      if (ib && ib.protocol === protocol) return true;
-    }
-    return false;
-  }
+  // The list page renders rows the server already sorted, filtered, and
+  // paginated. Local filtering is gone — keep the variable name so the rest
+  // of the file (table dataSource, mobile cards, select-all) doesn't need
+  // a rename.
+  const filteredClients = clients;
 
-  const filteredClients = useMemo(() => {
-    let rows = clients || [];
-    if (enableFilter) {
-      if (filterBy === 'online') {
-        rows = rows.filter((r) => r.enable && isOnline(r.email));
-      } else if (filterBy) {
-        rows = rows.filter((r) => clientBucket(r) === filterBy);
-      }
-    } else if (!ObjectUtil.isEmpty(searchKey)) {
-      rows = rows.filter((r) => ObjectUtil.deepSearch(r, searchKey));
-    }
-    if (protocolFilter) {
-      rows = rows.filter((r) => clientMatchesProtocol(r, protocolFilter));
-    }
-    return rows;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clients, enableFilter, filterBy, searchKey, protocolFilter, clientBucket]);
+  // Server-computed counts that stay stable as the user paginates/filters.
+  const summary = serverSummary;
 
-  const summary = useMemo(() => {
-    const rows = clients || [];
-    const deactive: string[] = [];
-    const depleted: string[] = [];
-    const expiring: string[] = [];
-    const online: string[] = [];
-    let active = 0;
-    for (const row of rows) {
-      const bucket = clientBucket(row);
-      if (bucket === 'deactive') deactive.push(row.email);
-      else if (bucket === 'depleted') depleted.push(row.email);
-      else if (bucket === 'expiring') expiring.push(row.email);
-      else if (bucket === 'active') active++;
-      if (row.enable && isOnline(row.email)) online.push(row.email);
-    }
-    return { total: rows.length, active, deactive, depleted, expiring, online };
-  }, [clients, clientBucket, isOnline]);
-
-  const sortFns: Record<string, (a: ClientRecord, b: ClientRecord) => number> = {
-    enable: (a, b) => Number(a.enable) - Number(b.enable),
-    email: (a, b) => (a.email || '').localeCompare(b.email || ''),
-    inboundIds: (a, b) => (a.inboundIds?.length || 0) - (b.inboundIds?.length || 0),
-    traffic: (a, b) => {
-      const ua = (a.traffic?.up || 0) + (a.traffic?.down || 0);
-      const ub = (b.traffic?.up || 0) + (b.traffic?.down || 0);
-      return ua - ub;
-    },
-    remaining: (a, b) => {
-      const ra = (a.totalGB || 0) > 0 ? (a.totalGB || 0) - ((a.traffic?.up || 0) + (a.traffic?.down || 0)) : Infinity;
-      const rb = (b.totalGB || 0) > 0 ? (b.totalGB || 0) - ((b.traffic?.up || 0) + (b.traffic?.down || 0)) : Infinity;
-      return ra - rb;
-    },
-    expiryTime: (a, b) => {
-      const ea = (a.expiryTime ?? 0) > 0 ? (a.expiryTime ?? 0) : Infinity;
-      const eb = (b.expiryTime ?? 0) > 0 ? (b.expiryTime ?? 0) : Infinity;
-      return ea - eb;
-    },
-  };
-
-  const sortedClients = useMemo(() => {
-    if (!sortColumn || !sortOrder) return filteredClients;
-    const fn = sortFns[sortColumn];
-    if (!fn) return filteredClients;
-    const sorted = [...filteredClients].sort(fn);
-    return sortOrder === 'descend' ? sorted.reverse() : sorted;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredClients, sortColumn, sortOrder]);
+  // Sort is server-side now; the page already arrives in the requested
+  // order, so we just hand it through.
+  const sortedClients = filteredClients;
 
   function trafficLabel(row: ClientRecord) {
     const t0 = row.traffic;
@@ -341,10 +308,15 @@ export default function ClientsPage() {
     setFormOpen(true);
   }
 
-  function onEdit(row: ClientRecord) {
+  async function onEdit(row: ClientRecord) {
     setFormMode('edit');
-    setEditingClient({ ...row });
-    setEditingAttachedIds(Array.isArray(row.inboundIds) ? [...row.inboundIds] : []);
+    // Paged list omits per-client secrets to keep the row payload tiny;
+    // edit needs them, so fetch the full record first.
+    const full = await hydrate(row.email);
+    const merged: ClientRecord = full ? { ...row, ...full.client } : { ...row };
+    setEditingClient(merged);
+    const ids = full?.inboundIds ?? (Array.isArray(row.inboundIds) ? row.inboundIds : []);
+    setEditingAttachedIds([...ids]);
     setFormOpen(true);
   }
 
@@ -379,13 +351,15 @@ export default function ClientsPage() {
     });
   }
 
-  function onShowInfo(row: ClientRecord) {
-    setInfoClient(row);
+  async function onShowInfo(row: ClientRecord) {
+    const full = await hydrate(row.email);
+    setInfoClient(full ? { ...row, ...full.client, inboundIds: full.inboundIds } : row);
     setInfoOpen(true);
   }
 
-  function onShowQr(row: ClientRecord) {
-    setQrClient(row);
+  async function onShowQr(row: ClientRecord) {
+    const full = await hydrate(row.email);
+    setQrClient(full ? { ...row, ...full.client, inboundIds: full.inboundIds } : row);
     setQrOpen(true);
   }
 
@@ -595,10 +569,11 @@ export default function ClientsPage() {
   const tablePagination = {
     current: currentPage,
     pageSize: tablePageSize,
-    total: sortedClients.length,
-    showSizeChanger: sortedClients.length > 10,
-    pageSizeOptions: ['10', '20', '50', '100'],
-    hideOnSinglePage: sortedClients.length <= tablePageSize,
+    total: filtered,
+    showSizeChanger: filtered > 10,
+    pageSizeOptions: ['10', '25', '50', '100', '200'],
+    hideOnSinglePage: filtered <= tablePageSize,
+    showTotal: (n: number) => `${n}`,
   };
 
   const rowSelection = {

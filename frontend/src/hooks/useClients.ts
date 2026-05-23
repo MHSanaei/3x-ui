@@ -54,12 +54,65 @@ interface SubSettings {
   subJsonEnable: boolean;
 }
 
+export interface ClientQueryParams {
+  page: number;
+  pageSize: number;
+  search?: string;
+  filter?: string;
+  protocol?: string;
+  sort?: string;
+  order?: 'ascend' | 'descend';
+}
+
+export interface ClientsSummary {
+  total: number;
+  active: number;
+  online: string[];
+  depleted: string[];
+  expiring: string[];
+  deactive: string[];
+}
+
+interface ClientPageResponse {
+  items: ClientRecord[];
+  total: number;
+  filtered: number;
+  page: number;
+  pageSize: number;
+  summary?: ClientsSummary;
+}
+
+const DEFAULT_QUERY: ClientQueryParams = { page: 1, pageSize: 25 };
+
 export function useClients() {
   const [clients, setClients] = useState<ClientRecord[]>([]);
+  const [total, setTotal] = useState(0);
+  const [filtered, setFiltered] = useState(0);
+  const [summary, setSummary] = useState<ClientsSummary>({
+    total: 0, active: 0, online: [], depleted: [], expiring: [], deactive: [],
+  });
   const [inbounds, setInbounds] = useState<InboundOption[]>([]);
   const [onlines, setOnlines] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
+  const [query, setQueryState] = useState<ClientQueryParams>(DEFAULT_QUERY);
+  // Shallow-compare against the previous query so callers can pass a fresh
+  // object on every render (the common React pattern) without triggering a
+  // re-fetch when nothing actually changed.
+  const setQuery = useCallback((next: ClientQueryParams) => {
+    setQueryState((prev) => {
+      if (
+        prev.page === next.page
+        && prev.pageSize === next.pageSize
+        && (prev.search ?? '') === (next.search ?? '')
+        && (prev.filter ?? '') === (next.filter ?? '')
+        && (prev.protocol ?? '') === (next.protocol ?? '')
+        && (prev.sort ?? '') === (next.sort ?? '')
+        && (prev.order ?? '') === (next.order ?? '')
+      ) return prev;
+      return next;
+    });
+  }, []);
   const [subSettings, setSubSettings] = useState<SubSettings>({
     enable: false, subURI: '', subJsonURI: '', subJsonEnable: false,
   });
@@ -70,27 +123,52 @@ export function useClients() {
   const [pageSize, setPageSize] = useState(0);
 
   const clientsRef = useRef<ClientRecord[]>([]);
+  const queryRef = useRef<ClientQueryParams>(query);
   const invalidateTimerRef = useRef<number | null>(null);
 
   useEffect(() => { clientsRef.current = clients; }, [clients]);
+  useEffect(() => { queryRef.current = query; }, [query]);
 
-  const refresh = useCallback(async () => {
+  const buildQS = (p: ClientQueryParams) => {
+    const sp = new URLSearchParams();
+    sp.set('page', String(p.page || 1));
+    sp.set('pageSize', String(p.pageSize || DEFAULT_QUERY.pageSize));
+    if (p.search) sp.set('search', p.search);
+    if (p.filter) sp.set('filter', p.filter);
+    if (p.protocol) sp.set('protocol', p.protocol);
+    if (p.sort) sp.set('sort', p.sort);
+    if (p.order) sp.set('order', p.order);
+    return sp.toString();
+  };
+
+  const refresh = useCallback(async (override?: ClientQueryParams) => {
     setLoading(true);
     try {
-      const [clientsMsg, inboundsMsg] = await Promise.all([
-        HttpUtil.get('/panel/api/clients/list') as Promise<ApiMsg<ClientRecord[]>>,
-        HttpUtil.get('/panel/api/inbounds/options') as Promise<ApiMsg<InboundOption[]>>,
-      ]);
-      if (clientsMsg?.success) {
-        setClients(Array.isArray(clientsMsg.obj) ? clientsMsg.obj : []);
-      }
-      if (inboundsMsg?.success) {
-        setInbounds(Array.isArray(inboundsMsg.obj) ? inboundsMsg.obj : []);
+      const params = override ?? queryRef.current;
+      const qs = buildQS(params);
+      const msg = await HttpUtil.get(`/panel/api/clients/list/paged?${qs}`) as ApiMsg<ClientPageResponse>;
+      if (msg?.success && msg.obj) {
+        setClients(Array.isArray(msg.obj.items) ? msg.obj.items : []);
+        setTotal(msg.obj.total ?? 0);
+        setFiltered(msg.obj.filtered ?? 0);
+        if (msg.obj.summary) setSummary(msg.obj.summary);
       }
       setFetched(true);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Inbound options are picker-shaped and don't depend on the clients query —
+  // fetch them once on mount instead of every refresh.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const msg = await HttpUtil.get('/panel/api/inbounds/options') as ApiMsg<InboundOption[]>;
+      if (cancelled) return;
+      if (msg?.success) setInbounds(Array.isArray(msg.obj) ? msg.obj : []);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const fetchSubSettings = useCallback(async () => {
@@ -108,6 +186,17 @@ export function useClients() {
     setExpireDiff(((s.expireDiff as number) ?? 0) * 86400000);
     setTrafficDiff(((s.trafficDiff as number) ?? 0) * 1073741824);
     setPageSize((s.pageSize as number) ?? 0);
+  }, []);
+
+  // hydrate fetches the full client record (uuid, password, flow, ...) for a
+  // single email. The paged list endpoint omits these to keep the row payload
+  // tiny; edit / info / qr / link modals call this to get a complete record
+  // before opening.
+  const hydrate = useCallback(async (email: string): Promise<{ client: ClientRecord; inboundIds: number[] } | null> => {
+    if (!email) return null;
+    const msg = await HttpUtil.get(`/panel/api/clients/get/${encodeURIComponent(email)}`) as ApiMsg<{ client: ClientRecord; inboundIds: number[] }>;
+    if (!msg?.success || !msg.obj) return null;
+    return msg.obj;
   }, []);
 
   const create = useCallback(async (payload: unknown) => {
@@ -258,13 +347,18 @@ export function useClients() {
   }, [refresh]);
 
   useEffect(() => {
-     
-    Promise.all([refresh(), fetchSubSettings()]);
-     
-  }, [refresh, fetchSubSettings]);
+    Promise.all([refresh(query), fetchSubSettings()]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, fetchSubSettings]);
 
   return {
     clients,
+    total,
+    filtered,
+    summary,
+    hydrate,
+    query,
+    setQuery,
     inbounds,
     onlines,
     loading,

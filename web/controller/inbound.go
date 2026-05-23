@@ -61,6 +61,7 @@ func (a *InboundController) broadcastInboundsUpdate(userId int) {
 func (a *InboundController) initRouter(g *gin.RouterGroup) {
 
 	g.GET("/list", a.getInbounds)
+	g.GET("/list/slim", a.getInboundsSlim)
 	g.GET("/options", a.getInboundOptions)
 	g.GET("/get/:id", a.getInbound)
 	g.GET("/:id/fallbacks", a.getFallbacks)
@@ -79,6 +80,18 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 func (a *InboundController) getInbounds(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	inbounds, err := a.inboundService.GetInbounds(user.Id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, inbounds, nil)
+}
+
+// getInboundsSlim is the list-page variant that strips full client
+// payloads from settings.clients[]. Detail-view flows still use /get/:id.
+func (a *InboundController) getInboundsSlim(c *gin.Context) {
+	user := session.GetLoginUser(c)
+	inbounds, err := a.inboundService.GetInboundsSlim(user.Id)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return

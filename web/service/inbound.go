@@ -135,6 +135,71 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	return inbounds, nil
 }
 
+// GetInboundsSlim returns the same list of inbounds as GetInbounds but
+// strips every per-client field other than email / enable / comment from
+// settings.clients and skips UUID/SubId enrichment on ClientStats. The
+// inbounds page only needs those three to roll up client counts and
+// render badges, so this trims tens of bytes per client (UUID, password,
+// flow, security, totalGB, expiryTime, limitIp, tgId, ...) which adds
+// up fast on installs with thousands of clients.
+//
+// Full client data is still available through GET /panel/api/inbounds/get/:id
+// for the edit/info/qr/export/clone flows that need it.
+func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
+	db := database.GetDB()
+	var inbounds []*model.Inbound
+	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Find(&inbounds).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	s.annotateFallbackParents(db, inbounds)
+	for _, ib := range inbounds {
+		ib.Settings = slimSettingsClients(ib.Settings)
+	}
+	return inbounds, nil
+}
+
+// slimSettingsClients rewrites the inbound settings JSON so settings.clients[]
+// keeps only the fields the list view actually reads. Returns the input
+// unchanged when the JSON can't be parsed or has no clients array.
+func slimSettingsClients(settings string) string {
+	if settings == "" {
+		return settings
+	}
+	var raw map[string]any
+	if err := json.Unmarshal([]byte(settings), &raw); err != nil {
+		return settings
+	}
+	clients, ok := raw["clients"].([]any)
+	if !ok || len(clients) == 0 {
+		return settings
+	}
+	slim := make([]any, 0, len(clients))
+	for _, entry := range clients {
+		c, ok := entry.(map[string]any)
+		if !ok {
+			continue
+		}
+		row := make(map[string]any, 3)
+		if v, ok := c["email"]; ok {
+			row["email"] = v
+		}
+		if v, ok := c["enable"]; ok {
+			row["enable"] = v
+		}
+		if v, ok := c["comment"]; ok && v != "" {
+			row["comment"] = v
+		}
+		slim = append(slim, row)
+	}
+	raw["clients"] = slim
+	out, err := json.Marshal(raw)
+	if err != nil {
+		return settings
+	}
+	return string(out)
+}
+
 // annotateFallbackParents fills FallbackParent on each inbound that is
 // the child side of a fallback rule. One DB round-trip serves the full
 // list — the frontend needs this to rewrite the child's client-share
@@ -177,6 +242,7 @@ func (s *InboundService) annotateFallbackParents(db *gorm.DB, inbounds []*model.
 type InboundOption struct {
 	Id             int    `json:"id"`
 	Remark         string `json:"remark"`
+	Tag            string `json:"tag"`
 	Protocol       string `json:"protocol"`
 	Port           int    `json:"port"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable"`
@@ -191,12 +257,13 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 	var rows []struct {
 		Id             int    `gorm:"column:id"`
 		Remark         string `gorm:"column:remark"`
+		Tag            string `gorm:"column:tag"`
 		Protocol       string `gorm:"column:protocol"`
 		Port           int    `gorm:"column:port"`
 		StreamSettings string `gorm:"column:stream_settings"`
 	}
 	err := db.Table("inbounds").
-		Select("id, remark, protocol, port, stream_settings").
+		Select("id, remark, tag, protocol, port, stream_settings").
 		Where("user_id = ?", userId).
 		Order("id ASC").
 		Scan(&rows).Error
@@ -208,6 +275,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		out = append(out, InboundOption{
 			Id:             r.Id,
 			Remark:         r.Remark,
+			Tag:            r.Tag,
 			Protocol:       r.Protocol,
 			Port:           r.Port,
 			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings),
