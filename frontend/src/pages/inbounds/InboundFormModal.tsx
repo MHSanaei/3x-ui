@@ -60,7 +60,7 @@ import { DBInbound } from '@/models/dbinbound.js';
 import FinalMaskForm from '@/components/FinalMaskForm';
 import DateTimePicker from '@/components/DateTimePicker';
 import JsonEditor from '@/components/JsonEditor';
-import { useNodes, type NodeRecord } from '@/hooks/useNodes';
+import type { NodeRecord } from '@/hooks/useNodes';
 import './InboundFormModal.css';
 
 const { TextArea } = Input;
@@ -73,6 +73,7 @@ interface InboundFormModalProps {
   mode: 'add' | 'edit';
   dbInbound: any;
   dbInbounds: any[];
+  availableNodes?: NodeRecord[];
 }
 
 const TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'];
@@ -156,10 +157,10 @@ export default function InboundFormModal({
   mode,
   dbInbound,
   dbInbounds,
+  availableNodes,
 }: InboundFormModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
-  const { nodes: availableNodes } = useNodes();
   const selectableNodes = useMemo(
     () => (availableNodes || []).filter((n: NodeRecord) => n.enable),
     [availableNodes],

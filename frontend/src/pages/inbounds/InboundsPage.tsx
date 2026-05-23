@@ -524,6 +524,7 @@ export default function InboundsPage() {
           mode={formMode}
           dbInbound={formDbInbound}
           dbInbounds={dbInbounds as any[]}
+          availableNodes={nodesList}
         />
         <InboundInfoModal
           open={infoOpen}
