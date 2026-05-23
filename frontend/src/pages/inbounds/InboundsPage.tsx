@@ -235,15 +235,15 @@ export default function InboundsPage() {
   const exportInboundLinks = useCallback((dbInbound: any) => {
     const projected = checkFallback(dbInbound);
     openText({
-      title: 'Export inbound links',
+      title: t('pages.inbounds.exportLinksTitle'),
       content: projected.genInboundLinks(remarkModel, hostOverrideFor(dbInbound)),
       fileName: projected.remark || 'inbound',
     });
-  }, [checkFallback, remarkModel, hostOverrideFor, openText]);
+  }, [checkFallback, remarkModel, hostOverrideFor, openText, t]);
 
   const exportInboundClipboard = useCallback((dbInbound: any) => {
-    openText({ title: 'Inbound JSON', content: JSON.stringify(dbInbound, null, 2) });
-  }, [openText]);
+    openText({ title: t('pages.inbounds.inboundJsonTitle'), content: JSON.stringify(dbInbound, null, 2) });
+  }, [openText, t]);
 
   const exportInboundSubs = useCallback((dbInbound: any) => {
     const inbound = dbInbound.toInbound();
@@ -255,11 +255,11 @@ export default function InboundsPage() {
       }
     }
     openText({
-      title: 'Export subscription links',
+      title: t('pages.inbounds.exportSubsTitle'),
       content: [...new Set(subLinks)].join('\n'),
       fileName: `${dbInbound.remark || 'inbound'}-Subs`,
     });
-  }, [subSettings, openText]);
+  }, [subSettings, openText, t]);
 
   const exportAllLinks = useCallback(async () => {
     const hydrated = await Promise.all(
@@ -270,8 +270,8 @@ export default function InboundsPage() {
       const projected = checkFallback(ib);
       out.push(projected.genInboundLinks(remarkModel, hostOverrideFor(ib)));
     }
-    openText({ title: 'Export all inbound links', content: out.join('\r\n'), fileName: 'All-Inbounds' });
-  }, [dbInbounds, hydrateInbound, checkFallback, remarkModel, hostOverrideFor, openText]);
+    openText({ title: t('pages.inbounds.exportAllLinksTitle'), content: out.join('\r\n'), fileName: 'All-Inbounds' });
+  }, [dbInbounds, hydrateInbound, checkFallback, remarkModel, hostOverrideFor, openText, t]);
 
   const exportAllSubs = useCallback(async () => {
     const hydrated = await Promise.all(
@@ -287,8 +287,8 @@ export default function InboundsPage() {
         }
       }
     }
-    openText({ title: 'Export all subscription links', content: [...new Set(out)].join('\r\n'), fileName: 'All-Inbounds-Subs' });
-  }, [dbInbounds, hydrateInbound, subSettings, openText]);
+    openText({ title: t('pages.inbounds.exportAllSubsTitle'), content: [...new Set(out)].join('\r\n'), fileName: 'All-Inbounds-Subs' });
+  }, [dbInbounds, hydrateInbound, subSettings, openText, t]);
 
   const importInbound = useCallback(() => {
     openPrompt({
@@ -321,37 +321,37 @@ export default function InboundsPage() {
 
   const confirmDelete = useCallback((dbInbound: any) => {
     modal.confirm({
-      title: `Delete inbound "${dbInbound.remark}"?`,
-      content: 'This removes the inbound and all its clients. This cannot be undone.',
-      okText: 'Delete',
+      title: t('pages.inbounds.deleteConfirmTitle', { remark: dbInbound.remark }),
+      content: t('pages.inbounds.deleteConfirmContent'),
+      okText: t('delete'),
       okType: 'danger',
-      cancelText: 'Cancel',
+      cancelText: t('cancel'),
       onOk: async () => {
         const msg = await HttpUtil.post(`/panel/api/inbounds/del/${dbInbound.id}`);
         if (msg?.success) await refresh();
       },
     });
-  }, [modal, refresh]);
+  }, [modal, refresh, t]);
 
   const confirmResetTraffic = useCallback((dbInbound: any) => {
     modal.confirm({
-      title: `Reset traffic for "${dbInbound.remark}"?`,
-      content: 'Resets up/down counters to 0 for this inbound.',
-      okText: 'Reset',
-      cancelText: 'Cancel',
+      title: t('pages.inbounds.resetConfirmTitle', { remark: dbInbound.remark }),
+      content: t('pages.inbounds.resetConfirmContent'),
+      okText: t('reset'),
+      cancelText: t('cancel'),
       onOk: async () => {
         const msg = await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/resetTraffic`);
         if (msg?.success) await refresh();
       },
     });
-  }, [modal, refresh]);
+  }, [modal, refresh, t]);
 
   const confirmClone = useCallback((dbInbound: any) => {
     modal.confirm({
-      title: `Clone inbound "${dbInbound.remark}"?`,
-      content: 'Creates a copy with a new port and an empty client list.',
-      okText: 'Clone',
-      cancelText: 'Cancel',
+      title: t('pages.inbounds.cloneConfirmTitle', { remark: dbInbound.remark }),
+      content: t('pages.inbounds.cloneConfirmContent'),
+      okText: t('pages.inbounds.clone'),
+      cancelText: t('cancel'),
       onOk: async () => {
         const baseInbound = dbInbound.toInbound();
         let clonedSettings: string;
@@ -380,7 +380,7 @@ export default function InboundsPage() {
         if (msg?.success) await refresh();
       },
     });
-  }, [modal, refresh]);
+  }, [modal, refresh, t]);
 
   const onGeneralAction = useCallback((key: GeneralAction) => {
     switch (key) {

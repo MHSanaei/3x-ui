@@ -175,14 +175,14 @@ export default function SettingsPage() {
   const confAlerts = useMemo<string[]>(() => {
     const out: string[] = [];
     if (window.location.protocol !== 'https:') {
-      out.push('Panel is served over plain HTTP — set up TLS for production.');
+      out.push(t('pages.settings.warnHttp'));
     }
     if (allSetting.webPort === 2053) {
-      out.push('Default port 2053 is well-known — change it to a random port.');
+      out.push(t('pages.settings.warnDefaultPort'));
     }
     const segs = window.location.pathname.split('/').length < 4;
     if (segs && allSetting.webBasePath === '/') {
-      out.push('Default base path "/" is well-known — change it to a random path.');
+      out.push(t('pages.settings.warnDefaultBasePath'));
     }
     if (allSetting.subEnable) {
       let subPath = allSetting.subPath;
@@ -190,7 +190,7 @@ export default function SettingsPage() {
         try { subPath = new URL(allSetting.subURI).pathname; } catch { /* noop */ }
       }
       if (subPath === '/sub/') {
-        out.push('Default subscription path "/sub/" is well-known — change it.');
+        out.push(t('pages.settings.warnDefaultSubPath'));
       }
     }
     if (allSetting.subJsonEnable) {
@@ -199,11 +199,11 @@ export default function SettingsPage() {
         try { p = new URL(allSetting.subJsonURI).pathname; } catch { /* noop */ }
       }
       if (p === '/json/') {
-        out.push('Default JSON subscription path "/json/" is well-known — change it.');
+        out.push(t('pages.settings.warnDefaultJsonPath'));
       }
     }
     return out;
-  }, [allSetting]);
+  }, [allSetting, t]);
 
   const pageClass = useMemo(() => {
     const classes = ['settings-page'];
@@ -286,10 +286,10 @@ export default function SettingsPage() {
                       closable
                       className="conf-alert"
                       onClose={() => setAlertVisible(false)}
-                      title="Security warnings"
+                      title={t('pages.settings.securityWarnings')}
                       description={(
                         <>
-                          <b>Your panel may be exposed:</b>
+                          <b>{t('pages.settings.panelExposed')}</b>
                           <ul>
                             {confAlerts.map((msg, i) => <li key={i}>{msg}</li>)}
                           </ul>
