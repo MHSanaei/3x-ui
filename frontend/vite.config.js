@@ -174,7 +174,16 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
           if (id.includes('/node_modules/antd/')) return 'vendor-antd';
-          if (id.includes('/@ant-design/icons/')) return 'vendor-icons';
+          if (id.includes('/@ant-design/icons/') || id.includes('/@ant-design/icons-svg/')) return 'vendor-icons';
+          if (
+            id.includes('/node_modules/@rc-component/')
+            || id.includes('/node_modules/rc-')
+            || id.includes('/@ant-design/cssinjs')
+            || id.includes('/@ant-design/colors')
+            || id.includes('/@ant-design/fast-color')
+            || id.includes('/@ant-design/react-slick')
+            || id.includes('/@ctrl/tinycolor')
+          ) return 'vendor-antd';
           if (
             id.includes('/node_modules/react-i18next/')
             || id.includes('/node_modules/i18next/')
@@ -184,6 +193,13 @@ export default defineConfig({
             || id.includes('/node_modules/react-dom/')
             || id.includes('/node_modules/scheduler/')
           ) return 'vendor-react';
+          if (
+            id.includes('/node_modules/codemirror/')
+            || id.includes('/node_modules/@codemirror/')
+            || id.includes('/node_modules/@lezer/')
+          ) return 'vendor-codemirror';
+          if (id.includes('/node_modules/persian-calendar-suite/')) return 'vendor-jalali';
+          if (id.includes('/node_modules/otpauth/')) return 'vendor-otpauth';
           if (id.includes('dayjs')) return 'vendor-dayjs';
           if (id.includes('axios')) return 'vendor-axios';
           return 'vendor';
