@@ -479,8 +479,14 @@
       "deleteConfirmTitle": "حذف العميل {email}؟",
       "deleteConfirmContent": "سيؤدي هذا إلى إزالة العميل من جميع الاتصالات الواردة المرتبطة وحذف سجل حركة مروره. لا يمكن التراجع.",
       "deleteSelected": "حذف ({count})",
+      "adjustSelected": "تعديل ({count})",
       "bulkDeleteConfirmTitle": "حذف {count} عميل؟",
       "bulkDeleteConfirmContent": "سيتم إزالة كل عميل محدد من جميع الاتصالات الواردة المرتبطة وحذف سجل حركة مروره. لا يمكن التراجع.",
+      "bulkAdjustTitle": "تعديل {count} عميل",
+      "bulkAdjustHint": "القيم الموجبة تزيد، السالبة تنقص. العملاء بصلاحية أو ترافيك غير محدود يُتخطّون لذلك الحقل.",
+      "bulkAdjustNothing": "حدد الأيام أو الترافيك قبل التطبيق.",
+      "addDays": "إضافة أيام",
+      "addTrafficGB": "إضافة ترافيك (GB)",
       "delDepleted": "حذف المنتهية",
       "delDepletedConfirmTitle": "حذف العملاء المنتهية حصصهم؟",
       "delDepletedConfirmContent": "يُحذف كل عميل استُنفِدت حصة حركة مروره أو انتهت صلاحيته. لا يمكن التراجع.",
@@ -503,6 +509,8 @@
         "bulkDeletedMixed": "تم حذف {ok}, وفشل {failed}",
         "bulkCreated": "تم إنشاء {count} عميل",
         "bulkCreatedMixed": "تم إنشاء {ok}, وفشل {failed}",
+        "bulkAdjusted": "تم تعديل {count} عميل",
+        "bulkAdjustedMixed": "{ok} تم تعديلهم، {skipped} تم تخطيهم",
         "delDepleted": "تم حذف {count} عميل منتهٍ"
       }
     },

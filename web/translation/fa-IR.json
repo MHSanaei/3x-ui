@@ -479,8 +479,14 @@
       "deleteConfirmTitle": "حذف کلاینت {email}؟",
       "deleteConfirmContent": "این کلاینت از تمام اینباندهای متصل حذف و سابقه ترافیک آن پاک می‌شود. این عمل غیرقابل بازگشت است.",
       "deleteSelected": "حذف ({count})",
+      "adjustSelected": "تنظیم ({count})",
       "bulkDeleteConfirmTitle": "حذف {count} کلاینت؟",
       "bulkDeleteConfirmContent": "هر کلاینت انتخاب‌شده از تمام اینباندهای متصل حذف و سابقه ترافیک آن پاک می‌شود. این عمل غیرقابل بازگشت است.",
+      "bulkAdjustTitle": "تنظیم {count} کلاینت",
+      "bulkAdjustHint": "مقادیر مثبت اضافه و منفی کم می‌کنند. کلاینت‌هایی که زمان یا ترافیک نامحدود دارند برای همان فیلد رد می‌شوند.",
+      "bulkAdjustNothing": "قبل از اعمال، روز یا ترافیک را تنظیم کنید.",
+      "addDays": "افزودن روز",
+      "addTrafficGB": "افزودن ترافیک (گیگابایت)",
       "delDepleted": "حذف اتمام‌یافته‌ها",
       "delDepletedConfirmTitle": "حذف کلاینت‌های اتمام‌یافته؟",
       "delDepletedConfirmContent": "هر کلاینتی که سهمیه ترافیک‌اش تمام شده یا تاریخ انقضایش گذشته است حذف می‌شود. این عمل غیرقابل بازگشت است.",
@@ -503,6 +509,8 @@
         "bulkDeletedMixed": "{ok} حذف، {failed} ناموفق",
         "bulkCreated": "{count} کلاینت ساخته شد",
         "bulkCreatedMixed": "{ok} ساخته شد، {failed} ناموفق",
+        "bulkAdjusted": "{count} کلاینت تنظیم شد",
+        "bulkAdjustedMixed": "{ok} تنظیم، {skipped} رد شد",
         "delDepleted": "{count} کلاینت اتمام‌یافته حذف شد"
       }
     },

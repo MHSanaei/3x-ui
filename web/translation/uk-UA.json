@@ -479,8 +479,14 @@
       "deleteConfirmTitle": "Видалити клієнта {email}?",
       "deleteConfirmContent": "Клієнт буде вилучений з усіх прив'язаних вхідних, його запис трафіку буде знищено. Цю дію неможливо скасувати.",
       "deleteSelected": "Видалити ({count})",
+      "adjustSelected": "Змінити ({count})",
       "bulkDeleteConfirmTitle": "Видалити {count} клієнтів?",
       "bulkDeleteConfirmContent": "Кожен вибраний клієнт вилучається з усіх прив'язаних вхідних, його запис трафіку знищується. Цю дію неможливо скасувати.",
+      "bulkAdjustTitle": "Змінити {count} клієнтів",
+      "bulkAdjustHint": "Додатні значення подовжують, від'ємні зменшують. Клієнти з необмеженим терміном або трафіком пропускаються для відповідного поля.",
+      "bulkAdjustNothing": "Вкажіть дні або трафік перед застосуванням.",
+      "addDays": "Додати дні",
+      "addTrafficGB": "Додати трафік (ГБ)",
       "delDepleted": "Видалити вичерпаних",
       "delDepletedConfirmTitle": "Видалити вичерпаних клієнтів?",
       "delDepletedConfirmContent": "Видаляються всі клієнти, у яких вичерпана квота трафіку або сплив термін. Цю дію неможливо скасувати.",
@@ -503,6 +509,8 @@
         "bulkDeletedMixed": "Видалено: {ok}, не вдалось: {failed}",
         "bulkCreated": "Створено клієнтів: {count}",
         "bulkCreatedMixed": "Створено: {ok}, не вдалось: {failed}",
+        "bulkAdjusted": "Змінено клієнтів: {count}",
+        "bulkAdjustedMixed": "Змінено: {ok}, пропущено: {skipped}",
         "delDepleted": "Видалено вичерпаних клієнтів: {count}"
       }
     },

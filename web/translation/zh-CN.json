@@ -479,8 +479,14 @@
       "deleteConfirmTitle": "删除客户端 {email}？",
       "deleteConfirmContent": "将从所有关联入站中移除该客户端并删除其流量记录。该操作不可撤销。",
       "deleteSelected": "删除 ({count})",
+      "adjustSelected": "调整 ({count})",
       "bulkDeleteConfirmTitle": "删除 {count} 个客户端？",
       "bulkDeleteConfirmContent": "每个所选客户端都会从关联的入站中被移除，其流量记录也会被删除。该操作不可撤销。",
+      "bulkAdjustTitle": "调整 {count} 个客户端",
+      "bulkAdjustHint": "正值延长，负值减少。具有无限期限或流量的客户端将跳过该字段。",
+      "bulkAdjustNothing": "应用前请设置天数或流量。",
+      "addDays": "添加天数",
+      "addTrafficGB": "添加流量 (GB)",
       "delDepleted": "删除已耗尽",
       "delDepletedConfirmTitle": "删除已耗尽的客户端？",
       "delDepletedConfirmContent": "删除所有流量配额已用尽或已过期的客户端。该操作不可撤销。",
@@ -503,6 +509,8 @@
         "bulkDeletedMixed": "已删除 {ok} 个，失败 {failed} 个",
         "bulkCreated": "已创建 {count} 个客户端",
         "bulkCreatedMixed": "已创建 {ok} 个，失败 {failed} 个",
+        "bulkAdjusted": "已调整 {count} 个客户端",
+        "bulkAdjustedMixed": "已调整 {ok} 个，跳过 {skipped} 个",
         "delDepleted": "已删除 {count} 个已耗尽的客户端"
       }
     },

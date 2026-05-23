@@ -25,6 +25,7 @@ import {
 } from 'antd';
 import type { ColumnsType, TableProps } from 'antd/es/table';
 import {
+  ClockCircleOutlined,
   DeleteOutlined,
   EditOutlined,
   FilterOutlined,
@@ -54,6 +55,7 @@ import ClientFormModal from './ClientFormModal';
 import ClientInfoModal from './ClientInfoModal';
 import ClientQrModal from './ClientQrModal';
 import ClientBulkAddModal from './ClientBulkAddModal';
+import ClientBulkAdjustModal from './ClientBulkAdjustModal';
 import '@/styles/page-cards.css';
 import './ClientsPage.css';
 
@@ -96,7 +98,7 @@ export default function ClientsPage() {
   const {
     clients, inbounds, onlines, loading, fetched, subSettings,
     ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
-    create, update, remove, removeMany, attach, detach,
+    create, update, remove, removeMany, bulkAdjust, attach, detach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent, applyInvalidate,
   } = useClients();
@@ -117,6 +119,7 @@ export default function ClientsPage() {
   const [qrOpen, setQrOpen] = useState(false);
   const [qrClient, setQrClient] = useState<ClientRecord | null>(null);
   const [bulkAddOpen, setBulkAddOpen] = useState(false);
+  const [bulkAdjustOpen, setBulkAdjustOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
   const initial = readFilterState();
@@ -700,9 +703,14 @@ export default function ClientsPage() {
                             {!isMobile && t('pages.clients.bulk')}
                           </Button>
                           {selectedRowKeys.length > 0 && (
-                            <Button danger size="small" icon={<DeleteOutlined />} onClick={onBulkDelete}>
-                              {t('pages.clients.deleteSelected', { count: selectedRowKeys.length })}
-                            </Button>
+                            <>
+                              <Button size="small" icon={<ClockCircleOutlined />} onClick={() => setBulkAdjustOpen(true)}>
+                                {t('pages.clients.adjustSelected', { count: selectedRowKeys.length })}
+                              </Button>
+                              <Button danger size="small" icon={<DeleteOutlined />} onClick={onBulkDelete}>
+                                {t('pages.clients.deleteSelected', { count: selectedRowKeys.length })}
+                              </Button>
+                            </>
                           )}
                           <Button size="small" icon={<RetweetOutlined />} onClick={onResetAllTraffics}>
                             {!isMobile && t('pages.clients.resetAllTraffics')}
@@ -901,6 +909,19 @@ export default function ClientsPage() {
           ipLimitEnable={ipLimitEnable}
           onOpenChange={setBulkAddOpen}
           onSaved={() => setBulkAddOpen(false)}
+        />
+        <ClientBulkAdjustModal
+          open={bulkAdjustOpen}
+          count={selectedRowKeys.length}
+          onOpenChange={setBulkAdjustOpen}
+          onSubmit={async (addDays, addBytes) => {
+            const msg = await bulkAdjust([...selectedRowKeys], addDays, addBytes);
+            if (msg?.success) {
+              setSelectedRowKeys([]);
+              return msg.obj ?? { adjusted: 0 };
+            }
+            return null;
+          }}
         />
       </Layout>
     </ConfigProvider>

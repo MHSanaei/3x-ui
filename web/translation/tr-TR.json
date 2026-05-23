@@ -479,8 +479,14 @@
       "deleteConfirmTitle": "{email} istemcisi silinsin mi?",
       "deleteConfirmContent": "Bu işlem istemciyi bağlı tüm inbound'lardan kaldırır ve trafik kaydını siler. Geri alınamaz.",
       "deleteSelected": "Sil ({count})",
+      "adjustSelected": "Ayarla ({count})",
       "bulkDeleteConfirmTitle": "{count} istemci silinsin mi?",
       "bulkDeleteConfirmContent": "Seçili her istemci bağlı tüm inbound'lardan kaldırılır ve trafik kaydı silinir. Geri alınamaz.",
+      "bulkAdjustTitle": "{count} istemciyi ayarla",
+      "bulkAdjustHint": "Pozitif değerler ekler, negatif değerler azaltır. Sınırsız süreli veya trafikli istemciler ilgili alan için atlanır.",
+      "bulkAdjustNothing": "Uygulamadan önce gün veya trafik belirleyin.",
+      "addDays": "Gün ekle",
+      "addTrafficGB": "Trafik ekle (GB)",
       "delDepleted": "Tükenmişleri sil",
       "delDepletedConfirmTitle": "Tükenmiş istemciler silinsin mi?",
       "delDepletedConfirmContent": "Trafik kotası dolan veya süresi geçen tüm istemciler silinir. Geri alınamaz.",
@@ -503,6 +509,8 @@
         "bulkDeletedMixed": "{ok} silindi, {failed} başarısız",
         "bulkCreated": "{count} istemci oluşturuldu",
         "bulkCreatedMixed": "{ok} oluşturuldu, {failed} başarısız",
+        "bulkAdjusted": "{count} istemci ayarlandı",
+        "bulkAdjustedMixed": "{ok} ayarlandı, {skipped} atlandı",
         "delDepleted": "{count} tükenmiş istemci silindi"
       }
     },
