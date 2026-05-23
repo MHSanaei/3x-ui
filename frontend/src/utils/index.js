@@ -550,31 +550,45 @@ export class ClipboardManager {
     }
 
     static _legacyCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.setAttribute('aria-hidden', 'true');
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        textarea.style.opacity = '1';
+
+        const active = document.activeElement;
+        const host = (active && active !== document.body && active.parentElement)
+            ? active.parentElement
+            : document.body;
+        host.appendChild(textarea);
+
+        const prevSelection = document.getSelection()?.rangeCount
+            ? document.getSelection().getRangeAt(0)
+            : null;
+
+        let ok = false;
         try {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.setAttribute('readonly', '');
-            textarea.style.position = 'fixed';
-            textarea.style.top = '0';
-            textarea.style.left = '0';
-            textarea.style.width = '1em';
-            textarea.style.height = '1em';
-            textarea.style.padding = '0';
-            textarea.style.border = '0';
-            textarea.style.outline = 'none';
-            textarea.style.boxShadow = 'none';
-            textarea.style.background = 'transparent';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.focus();
+            textarea.focus({ preventScroll: true });
             textarea.select();
             textarea.setSelectionRange(0, text.length);
-            const ok = document.execCommand('copy');
-            document.body.removeChild(textarea);
-            return ok;
+            ok = document.execCommand('copy');
         } catch {
-            return false;
+            ok = false;
         }
+
+        host.removeChild(textarea);
+        if (active && typeof active.focus === 'function') {
+            try { active.focus({ preventScroll: true }); } catch { /* ignore */ }
+        }
+        if (prevSelection) {
+            const sel = document.getSelection();
+            sel?.removeAllRanges();
+            sel?.addRange(prevSelection);
+        }
+        return ok;
     }
 }
 
