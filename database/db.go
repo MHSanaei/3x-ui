@@ -49,7 +49,6 @@ func Dialect() string {
 	return db.Dialector.Name()
 }
 
-
 const (
 	defaultUsername = "admin"
 	defaultPassword = "admin"

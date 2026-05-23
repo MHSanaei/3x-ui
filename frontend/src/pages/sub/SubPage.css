@@ -1,0 +1,206 @@
+.subscription-page {
+  --bg-page: #e6e8ec;
+  --bg-card: #ffffff;
+  min-height: 100vh;
+  background: var(--bg-page);
+}
+
+.subscription-page.is-dark {
+  --bg-page: #1a1b1f;
+  --bg-card: #23252b;
+}
+
+.subscription-page.is-dark.is-ultra {
+  --bg-page: #000;
+  --bg-card: #101013;
+}
+
+.subscription-page .ant-layout,
+.subscription-page .ant-layout-content {
+  background: transparent;
+}
+
+.subscription-page .content {
+  padding: 24px 12px;
+}
+
+.subscription-card {
+  margin-top: 8px;
+}
+
+.qr-row {
+  margin-bottom: 12px;
+}
+
+.qr-col {
+  display: flex;
+  justify-content: center;
+}
+
+.qr-box {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 240px;
+}
+
+.qr-tag {
+  width: 100%;
+  text-align: center;
+  margin: 0;
+}
+
+.qr-code {
+  cursor: pointer;
+  padding: 0 !important;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.info-table {
+  margin-top: 12px;
+}
+
+.info-table .ant-descriptions-view,
+.info-table .ant-descriptions-view table,
+.info-table .ant-descriptions-view th,
+.info-table .ant-descriptions-view td {
+  border-color: rgba(0, 0, 0, 0.18) !important;
+}
+
+.info-table tbody > tr > th,
+.info-table tbody > tr > td {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.18) !important;
+}
+
+.info-table tbody > tr:last-child > th,
+.info-table tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+.is-dark .info-table .ant-descriptions-view,
+.is-dark .info-table .ant-descriptions-view table,
+.is-dark .info-table .ant-descriptions-view th,
+.is-dark .info-table .ant-descriptions-view td {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+.is-dark .info-table tbody > tr > th,
+.is-dark .info-table tbody > tr > td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18) !important;
+}
+
+.is-dark .info-table tbody > tr:last-child > th,
+.is-dark .info-table tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+.links-section {
+  margin-top: 16px;
+}
+
+.link-row {
+  position: relative;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.link-tag {
+  margin-bottom: -10px;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.link-box {
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 22px 18px 14px;
+  margin-top: -10px;
+  word-break: break-all;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  transition: background 120ms ease, border-color 120ms ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.link-box:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+.link-copy-icon {
+  margin-right: 6px;
+  opacity: 0.6;
+}
+
+.is-dark .link-box {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.is-dark .link-box:hover {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.apps-row {
+  margin-top: 24px;
+}
+
+.app-col {
+  text-align: center;
+}
+
+.settings-popover {
+  min-width: 220px;
+}
+
+.theme-cycle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--bg-card);
+  color: rgba(0, 0, 0, 0.65);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.2s, transform 0.15s, color 0.2s;
+}
+
+.theme-cycle:hover,
+.theme-cycle:focus-visible {
+  background-color: rgba(64, 150, 255, 0.1);
+  color: #4096ff;
+  transform: scale(1.05);
+  outline: none;
+}
+
+.theme-cycle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.is-dark .theme-cycle {
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.is-dark .theme-cycle:hover,
+.is-dark .theme-cycle:focus-visible {
+  background-color: rgba(64, 150, 255, 0.1);
+  color: #4096ff;
+}
+
+.lang-select {
+  width: 100%;
+}

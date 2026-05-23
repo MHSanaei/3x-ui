@@ -16,16 +16,16 @@ type Protocol string
 
 // Protocol constants for different Xray inbound protocols
 const (
-	VMESS        Protocol = "vmess"
-	VLESS        Protocol = "vless"
-	Tunnel       Protocol = "tunnel"
-	HTTP         Protocol = "http"
-	Trojan       Protocol = "trojan"
-	Shadowsocks  Protocol = "shadowsocks"
-	Mixed        Protocol = "mixed"
-	WireGuard    Protocol = "wireguard"
-	Hysteria     Protocol = "hysteria"
-	Hysteria2    Protocol = "hysteria2"
+	VMESS       Protocol = "vmess"
+	VLESS       Protocol = "vless"
+	Tunnel      Protocol = "tunnel"
+	HTTP        Protocol = "http"
+	Trojan      Protocol = "trojan"
+	Shadowsocks Protocol = "shadowsocks"
+	Mixed       Protocol = "mixed"
+	WireGuard   Protocol = "wireguard"
+	Hysteria    Protocol = "hysteria"
+	Hysteria2   Protocol = "hysteria2"
 )
 
 // IsHysteria returns true for both "hysteria" and "hysteria2".
@@ -144,7 +144,7 @@ type ApiToken struct {
 	Name      string `json:"name" gorm:"uniqueIndex;not null"`
 	Token     string `json:"token" gorm:"not null"`
 	Enabled   bool   `json:"enabled" gorm:"default:true"`
-	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime"`
+	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 }
 
 // MarshalJSON emits settings, streamSettings, and sniffing as nested JSON
@@ -275,8 +275,8 @@ type Node struct {
 	OnlineCount   int `json:"onlineCount" gorm:"-"`
 	DepletedCount int `json:"depletedCount" gorm:"-"`
 
-	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime"`
-	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime"`
+	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 }
 
 type CustomGeoResource struct {
@@ -287,8 +287,8 @@ type CustomGeoResource struct {
 	LocalPath     string `json:"localPath" gorm:"column:local_path"`
 	LastUpdatedAt int64  `json:"lastUpdatedAt" gorm:"default:0;column:last_updated_at"`
 	LastModified  string `json:"lastModified" gorm:"column:last_modified"`
-	CreatedAt     int64  `json:"createdAt" gorm:"autoCreateTime;column:created_at"`
-	UpdatedAt     int64  `json:"updatedAt" gorm:"autoUpdateTime;column:updated_at"`
+	CreatedAt     int64  `json:"createdAt" gorm:"autoCreateTime:milli;column:created_at"`
+	UpdatedAt     int64  `json:"updatedAt" gorm:"autoUpdateTime:milli;column:updated_at"`
 }
 
 type ClientReverse struct {
@@ -333,8 +333,8 @@ type ClientRecord struct {
 	TgID       int64  `json:"tgId" gorm:"column:tg_id"`
 	Comment    string `json:"comment"`
 	Reset      int    `json:"reset" gorm:"default:0"`
-	CreatedAt  int64  `json:"createdAt" gorm:"autoCreateTime"`
-	UpdatedAt  int64  `json:"updatedAt" gorm:"autoUpdateTime"`
+	CreatedAt  int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt  int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 }
 
 func (ClientRecord) TableName() string { return "clients" }
@@ -374,7 +374,7 @@ type ClientInbound struct {
 	ClientId     int    `json:"clientId" gorm:"primaryKey;column:client_id;index"`
 	InboundId    int    `json:"inboundId" gorm:"primaryKey;column:inbound_id;index"`
 	FlowOverride string `json:"flowOverride" gorm:"column:flow_override"`
-	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime"`
+	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 }
 
 func (ClientInbound) TableName() string { return "client_inbounds" }
