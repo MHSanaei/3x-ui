@@ -846,11 +846,25 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 
 		applied := false
 		if addDays != 0 {
-			if rec.ExpiryTime == 0 {
+			switch {
+			case rec.ExpiryTime == 0:
 				result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "unlimited expiry"})
-			} else {
-				client.ExpiryTime = rec.ExpiryTime + addExpiryMs
-				applied = true
+			case rec.ExpiryTime > 0:
+				next := rec.ExpiryTime + addExpiryMs
+				if next <= 0 {
+					result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "reduction exceeds remaining time"})
+				} else {
+					client.ExpiryTime = next
+					applied = true
+				}
+			default:
+				next := rec.ExpiryTime - addExpiryMs
+				if next >= 0 {
+					result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "reduction exceeds delay window"})
+				} else {
+					client.ExpiryTime = next
+					applied = true
+				}
 			}
 		}
 		if addBytes != 0 {
