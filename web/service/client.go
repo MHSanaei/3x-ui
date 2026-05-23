@@ -1615,6 +1615,30 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		}
 	}
 
+	if clientIndex == -1 {
+		var rec model.ClientRecord
+		var lookupErr error
+		switch oldInbound.Protocol {
+		case "trojan":
+			lookupErr = database.GetDB().Where("password = ?", clientId).First(&rec).Error
+		case "shadowsocks":
+			lookupErr = database.GetDB().Where("email = ?", clientId).First(&rec).Error
+		case "hysteria", "hysteria2":
+			lookupErr = database.GetDB().Where("auth = ?", clientId).First(&rec).Error
+		default:
+			lookupErr = database.GetDB().Where("uuid = ?", clientId).First(&rec).Error
+		}
+		if lookupErr == nil && rec.Email != "" {
+			for index, oldClient := range oldClients {
+				if oldClient.Email == rec.Email {
+					oldEmail = oldClient.Email
+					clientIndex = index
+					break
+				}
+			}
+		}
+	}
+
 	if newClientId == "" || clientIndex == -1 {
 		return false, common.NewError("empty client ID")
 	}
