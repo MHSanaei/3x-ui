@@ -966,7 +966,7 @@ export default function InboundFormModal({
         <InputNumber
           value={totalGB}
           min={0}
-          step={0.1}
+          step={1}
           onChange={(v) => {
             form.total = NumberFormatter.toFixed((Number(v) || 0) * SizeFormatter.ONE_GB, 0);
             refresh();
