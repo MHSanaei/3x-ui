@@ -479,8 +479,14 @@
       "deleteConfirmTitle": "クライアント {email} を削除しますか?",
       "deleteConfirmContent": "クライアントを関連付けされたすべてのインバウンドから削除し、トラフィック記録も破棄します。元に戻せません。",
       "deleteSelected": "削除 ({count})",
+      "adjustSelected": "調整 ({count})",
       "bulkDeleteConfirmTitle": "{count} 件のクライアントを削除しますか?",
       "bulkDeleteConfirmContent": "選択された各クライアントを関連付けされたすべてのインバウンドから削除し、トラフィック記録も破棄します。元に戻せません。",
+      "bulkAdjustTitle": "{count} 件のクライアントを調整",
+      "bulkAdjustHint": "正の値は延長、負の値は短縮します。無期限の有効期限または無制限のトラフィックを持つクライアントは、その項目についてスキップされます。",
+      "bulkAdjustNothing": "適用する前に日数またはトラフィックを設定してください。",
+      "addDays": "日数を追加",
+      "addTrafficGB": "トラフィックを追加 (GB)",
       "delDepleted": "使い切ったクライアントを削除",
       "delDepletedConfirmTitle": "使い切ったクライアントを削除しますか?",
       "delDepletedConfirmContent": "トラフィック上限に達したか有効期限が切れたクライアントをすべて削除します。元に戻せません。",
@@ -503,6 +509,8 @@
         "bulkDeletedMixed": "{ok} 件削除、{failed} 件失敗",
         "bulkCreated": "{count} 件のクライアントを作成しました",
         "bulkCreatedMixed": "{ok} 件作成、{failed} 件失敗",
+        "bulkAdjusted": "{count} 件のクライアントを調整しました",
+        "bulkAdjustedMixed": "{ok} 件調整、{skipped} 件スキップ",
         "delDepleted": "使い切った {count} 件のクライアントを削除しました"
       }
     },

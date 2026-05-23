@@ -479,8 +479,14 @@
       "deleteConfirmTitle": "刪除客戶端 {email}？",
       "deleteConfirmContent": "將從所有關聯入站中移除該客戶端並刪除其流量紀錄。此操作無法復原。",
       "deleteSelected": "刪除 ({count})",
+      "adjustSelected": "調整 ({count})",
       "bulkDeleteConfirmTitle": "刪除 {count} 個客戶端？",
       "bulkDeleteConfirmContent": "每個所選客戶端都會從關聯的入站中被移除，其流量紀錄也會被刪除。此操作無法復原。",
+      "bulkAdjustTitle": "調整 {count} 個客戶端",
+      "bulkAdjustHint": "正值延長，負值減少。具有無限期限或流量的客戶端將跳過該欄位。",
+      "bulkAdjustNothing": "套用前請設定天數或流量。",
+      "addDays": "新增天數",
+      "addTrafficGB": "新增流量 (GB)",
       "delDepleted": "刪除已耗盡",
       "delDepletedConfirmTitle": "刪除已耗盡的客戶端？",
       "delDepletedConfirmContent": "刪除所有流量配額已用盡或已過期的客戶端。此操作無法復原。",
@@ -503,6 +509,8 @@
         "bulkDeletedMixed": "已刪除 {ok} 個，失敗 {failed} 個",
         "bulkCreated": "已建立 {count} 個客戶端",
         "bulkCreatedMixed": "已建立 {ok} 個，失敗 {failed} 個",
+        "bulkAdjusted": "已調整 {count} 個客戶端",
+        "bulkAdjustedMixed": "已調整 {ok} 個，跳過 {skipped} 個",
         "delDepleted": "已刪除 {count} 個已耗盡的客戶端"
       }
     },

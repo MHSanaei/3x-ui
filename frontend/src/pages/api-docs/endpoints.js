@@ -463,6 +463,13 @@ export const sections = [
       },
       {
         method: 'POST',
+        path: '/panel/api/clients/bulkAdjust',
+        summary: 'Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. Returns the adjusted count and per-email skip reasons.',
+        body: '{\n  "emails": ["alice", "bob"],\n  "addDays": 30,\n  "addBytes": 53687091200\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "adjusted": 2,\n    "skipped": [\n      { "email": "carol", "reason": "unlimited expiry" }\n    ]\n  }\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/clients/resetTraffic/:email',
         summary: 'Zero out a single client’s up/down counters. Re-enables the client across every attached inbound and pushes the change to Xray (or the remote node) so depleted users can connect again immediately.',
         params: [

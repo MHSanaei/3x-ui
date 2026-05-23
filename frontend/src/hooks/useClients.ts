@@ -146,6 +146,17 @@ export function useClients() {
     return results;
   }, [refresh]);
 
+  const bulkAdjust = useCallback(async (emails: string[], addDays: number, addBytes: number) => {
+    if (!Array.isArray(emails) || emails.length === 0) return null;
+    const msg = await HttpUtil.post(
+      '/panel/api/clients/bulkAdjust',
+      { emails, addDays, addBytes },
+      JSON_HEADERS,
+    ) as ApiMsg<{ adjusted: number; skipped?: { email: string; reason: string }[] }>;
+    if (msg?.success) await refresh();
+    return msg;
+  }, [refresh]);
+
   const attach = useCallback(async (email: string, inboundIds: number[]) => {
     if (!email) return null;
     const encoded = encodeURIComponent(email);
@@ -269,6 +280,7 @@ export function useClients() {
     update,
     remove,
     removeMany,
+    bulkAdjust,
     attach,
     detach,
     resetTraffic,

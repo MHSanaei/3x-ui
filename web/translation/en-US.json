@@ -479,8 +479,14 @@
       "deleteConfirmTitle": "Delete client {email}?",
       "deleteConfirmContent": "This removes the client from every attached inbound and drops its traffic record. This cannot be undone.",
       "deleteSelected": "Delete ({count})",
+      "adjustSelected": "Adjust ({count})",
       "bulkDeleteConfirmTitle": "Delete {count} clients?",
       "bulkDeleteConfirmContent": "Each selected client is removed from every attached inbound and its traffic record is dropped. This cannot be undone.",
+      "bulkAdjustTitle": "Adjust {count} clients",
+      "bulkAdjustHint": "Positive values extend, negative values reduce. Clients with unlimited expiry or traffic are skipped for that field.",
+      "bulkAdjustNothing": "Set days or traffic before applying.",
+      "addDays": "Add days",
+      "addTrafficGB": "Add traffic (GB)",
       "delDepleted": "Delete depleted",
       "delDepletedConfirmTitle": "Delete depleted clients?",
       "delDepletedConfirmContent": "Removes every client whose traffic quota is exhausted or whose expiry has passed. This cannot be undone.",
@@ -503,6 +509,8 @@
         "bulkDeletedMixed": "{ok} deleted, {failed} failed",
         "bulkCreated": "{count} clients created",
         "bulkCreatedMixed": "{ok} created, {failed} failed",
+        "bulkAdjusted": "{count} clients adjusted",
+        "bulkAdjustedMixed": "{ok} adjusted, {skipped} skipped",
         "delDepleted": "{count} depleted clients deleted"
       }
     },

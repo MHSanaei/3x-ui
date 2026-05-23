@@ -803,6 +803,99 @@ func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email st
 	return needRestart, nil
 }
 
+// BulkAdjustResult is returned by BulkAdjust to report how many clients were
+// successfully updated and which were skipped (typically because the field
+// being adjusted was unlimited for that client) or failed.
+type BulkAdjustResult struct {
+	Adjusted int                `json:"adjusted"`
+	Skipped  []BulkAdjustReport `json:"skipped,omitempty"`
+}
+
+type BulkAdjustReport struct {
+	Email  string `json:"email"`
+	Reason string `json:"reason"`
+}
+
+// BulkAdjust shifts ExpiryTime by addDays (days) and TotalGB by addBytes
+// for every email in the list. Clients whose corresponding field is
+// unlimited (0) are skipped — bulk extend should not accidentally
+// limit an unlimited client. addDays and addBytes may be negative.
+func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, addDays int, addBytes int64) (BulkAdjustResult, bool, error) {
+	result := BulkAdjustResult{}
+	needRestart := false
+	if len(emails) == 0 {
+		return result, needRestart, nil
+	}
+	if addDays == 0 && addBytes == 0 {
+		return result, needRestart, common.NewError("no adjustment specified")
+	}
+
+	addExpiryMs := int64(addDays) * 24 * 60 * 60 * 1000
+
+	for _, email := range emails {
+		email = strings.TrimSpace(email)
+		if email == "" {
+			continue
+		}
+		rec, err := s.GetRecordByEmail(nil, email)
+		if err != nil {
+			result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: err.Error()})
+			continue
+		}
+		client := rec.ToClient()
+
+		applied := false
+		if addDays != 0 {
+			switch {
+			case rec.ExpiryTime == 0:
+				result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "unlimited expiry"})
+			case rec.ExpiryTime > 0:
+				next := rec.ExpiryTime + addExpiryMs
+				if next <= 0 {
+					result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "reduction exceeds remaining time"})
+				} else {
+					client.ExpiryTime = next
+					applied = true
+				}
+			default:
+				next := rec.ExpiryTime - addExpiryMs
+				if next >= 0 {
+					result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "reduction exceeds delay window"})
+				} else {
+					client.ExpiryTime = next
+					applied = true
+				}
+			}
+		}
+		if addBytes != 0 {
+			if rec.TotalGB == 0 {
+				result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "unlimited traffic"})
+			} else {
+				next := rec.TotalGB + addBytes
+				if next < 0 {
+					next = 0
+				}
+				client.TotalGB = next
+				applied = true
+			}
+		}
+		if !applied {
+			continue
+		}
+
+		nr, err := s.Update(inboundSvc, rec.Id, *client)
+		if err != nil {
+			result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: err.Error()})
+			continue
+		}
+		if nr {
+			needRestart = true
+		}
+		result.Adjusted++
+	}
+	return result, needRestart, nil
+}
+
 func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, error) {
 	db := database.GetDB()
 	now := time.Now().UnixMilli()

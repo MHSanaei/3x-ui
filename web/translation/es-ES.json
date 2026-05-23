@@ -479,8 +479,14 @@
       "deleteConfirmTitle": "¿Eliminar al cliente {email}?",
       "deleteConfirmContent": "Esto elimina al cliente de cada inbound asociado y descarta su registro de tráfico. No se puede deshacer.",
       "deleteSelected": "Eliminar ({count})",
+      "adjustSelected": "Ajustar ({count})",
       "bulkDeleteConfirmTitle": "¿Eliminar {count} clientes?",
       "bulkDeleteConfirmContent": "Cada cliente seleccionado se elimina de los inbounds asociados y se descarta su registro de tráfico. No se puede deshacer.",
+      "bulkAdjustTitle": "Ajustar {count} clientes",
+      "bulkAdjustHint": "Los valores positivos extienden, los negativos reducen. Los clientes con expiración o tráfico ilimitado se omiten para ese campo.",
+      "bulkAdjustNothing": "Establece días o tráfico antes de aplicar.",
+      "addDays": "Añadir días",
+      "addTrafficGB": "Añadir tráfico (GB)",
       "delDepleted": "Eliminar agotados",
       "delDepletedConfirmTitle": "¿Eliminar clientes agotados?",
       "delDepletedConfirmContent": "Elimina todos los clientes con cuota agotada o expirados. No se puede deshacer.",
@@ -503,6 +509,8 @@
         "bulkDeletedMixed": "{ok} eliminados, {failed} fallidos",
         "bulkCreated": "{count} clientes creados",
         "bulkCreatedMixed": "{ok} creados, {failed} fallidos",
+        "bulkAdjusted": "{count} clientes ajustados",
+        "bulkAdjustedMixed": "{ok} ajustados, {skipped} omitidos",
         "delDepleted": "{count} clientes agotados eliminados"
       }
     },

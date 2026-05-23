@@ -479,8 +479,14 @@
       "deleteConfirmTitle": "Hapus klien {email}?",
       "deleteConfirmContent": "Tindakan ini menghapus klien dari setiap inbound terlampir dan menghapus catatan lalu lintasnya. Tidak dapat dibatalkan.",
       "deleteSelected": "Hapus ({count})",
+      "adjustSelected": "Sesuaikan ({count})",
       "bulkDeleteConfirmTitle": "Hapus {count} klien?",
       "bulkDeleteConfirmContent": "Setiap klien yang dipilih dihapus dari semua inbound terlampir dan catatan lalu lintasnya dihapus. Tidak dapat dibatalkan.",
+      "bulkAdjustTitle": "Sesuaikan {count} klien",
+      "bulkAdjustHint": "Nilai positif menambah, negatif mengurangi. Klien dengan masa berlaku atau trafik tak terbatas dilewati untuk bidang tersebut.",
+      "bulkAdjustNothing": "Setel hari atau trafik sebelum menerapkan.",
+      "addDays": "Tambah hari",
+      "addTrafficGB": "Tambah trafik (GB)",
       "delDepleted": "Hapus yang habis",
       "delDepletedConfirmTitle": "Hapus klien yang habis?",
       "delDepletedConfirmContent": "Hapus setiap klien yang kuota lalu lintasnya habis atau yang masa berlakunya telah berakhir. Tidak dapat dibatalkan.",
@@ -503,6 +509,8 @@
         "bulkDeletedMixed": "{ok} dihapus, {failed} gagal",
         "bulkCreated": "{count} klien dibuat",
         "bulkCreatedMixed": "{ok} dibuat, {failed} gagal",
+        "bulkAdjusted": "{count} klien disesuaikan",
+        "bulkAdjustedMixed": "{ok} disesuaikan, {skipped} dilewati",
         "delDepleted": "{count} klien habis dihapus"
       }
     },

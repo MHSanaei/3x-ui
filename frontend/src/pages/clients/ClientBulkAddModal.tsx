@@ -308,7 +308,7 @@ export default function ClientBulkAddModal({
         )}
 
         <Form.Item label={t('pages.clients.totalGB')}>
-          <InputNumber value={form.totalGB} min={0} step={0.1} onChange={(v) => update('totalGB', Number(v) || 0)} />
+          <InputNumber value={form.totalGB} min={0} step={1} onChange={(v) => update('totalGB', Number(v) || 0)} />
         </Form.Item>
 
         <Form.Item label={t('pages.clients.delayedStart')}>
