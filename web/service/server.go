@@ -853,7 +853,7 @@ func (s *ServerService) UpdateXray(version string) error {
 
 	// 4. Extract correct binary
 	if runtime.GOOS == "windows" {
-		targetBinary := filepath.Join("bin", "xray-windows-amd64.exe")
+		targetBinary := filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
 		err = copyZipFile("xray.exe", targetBinary)
 	} else {
 		err = copyZipFile("xray", xray.GetBinaryPath())
