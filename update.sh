@@ -105,6 +105,31 @@ gen_random_string() {
         | head -c "$length"
 }
 
+xui_env_file_path() {
+    case "${release}" in
+        ubuntu | debian | armbian)
+            echo "/etc/default/x-ui"
+            ;;
+        arch | manjaro | parch | alpine)
+            echo "/etc/conf.d/x-ui"
+            ;;
+        *)
+            echo "/etc/sysconfig/x-ui"
+            ;;
+    esac
+}
+
+load_xui_env() {
+    local env_file
+    env_file="$(xui_env_file_path)"
+    if [[ -r "$env_file" ]]; then
+        set -a
+        # shellcheck disable=SC1090
+        source "$env_file"
+        set +a
+    fi
+}
+
 install_base() {
     echo -e "${green}Updating and install dependency packages...${plain}"
     case "${release}" in
@@ -774,6 +799,8 @@ config_after_update() {
 
 update_x-ui() {
     cd ${xui_folder%/x-ui}/
+
+    load_xui_env
 
     if [ -f "${xui_folder}/x-ui" ]; then
         current_xui_version=$(${xui_folder}/x-ui -v)
