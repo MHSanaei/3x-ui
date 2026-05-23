@@ -590,7 +590,7 @@ export default function ClientsPage() {
       }, 'expiryTime'),
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, togglingEmail, sortColumn, sortOrder, clientBucket, isOnline]);
+  }, [t, togglingEmail, sortColumn, sortOrder, clientBucket, isOnline, inboundsById]);
 
   const tablePagination = {
     current: currentPage,
