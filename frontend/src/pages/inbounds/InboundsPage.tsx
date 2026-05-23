@@ -72,6 +72,7 @@ export default function InboundsPage() {
     ipLimitEnable,
     remarkModel,
     refresh,
+    hydrateInbound,
     fetchDefaultSettings,
     applyTrafficEvent,
     applyClientStatsEvent,
@@ -259,18 +260,24 @@ export default function InboundsPage() {
     });
   }, [subSettings, openText]);
 
-  const exportAllLinks = useCallback(() => {
+  const exportAllLinks = useCallback(async () => {
+    const hydrated = await Promise.all(
+      (dbInbounds as any[]).map((ib) => hydrateInbound(ib.id).then((r) => r ?? ib)),
+    );
     const out: string[] = [];
-    for (const ib of dbInbounds as any[]) {
+    for (const ib of hydrated) {
       const projected = checkFallback(ib);
       out.push(projected.genInboundLinks(remarkModel, hostOverrideFor(ib)));
     }
     openText({ title: 'Export all inbound links', content: out.join('\r\n'), fileName: 'All-Inbounds' });
-  }, [dbInbounds, checkFallback, remarkModel, hostOverrideFor, openText]);
+  }, [dbInbounds, hydrateInbound, checkFallback, remarkModel, hostOverrideFor, openText]);
 
-  const exportAllSubs = useCallback(() => {
+  const exportAllSubs = useCallback(async () => {
+    const hydrated = await Promise.all(
+      (dbInbounds as any[]).map((ib) => hydrateInbound(ib.id).then((r) => r ?? ib)),
+    );
     const out: string[] = [];
-    for (const ib of dbInbounds as any[]) {
+    for (const ib of hydrated) {
       const inbound = ib.toInbound();
       const clients = inbound?.clients || [];
       for (const c of clients) {
@@ -280,7 +287,7 @@ export default function InboundsPage() {
       }
     }
     openText({ title: 'Export all subscription links', content: [...new Set(out)].join('\r\n'), fileName: 'All-Inbounds-Subs' });
-  }, [dbInbounds, subSettings, openText]);
+  }, [dbInbounds, hydrateInbound, subSettings, openText]);
 
   const importInbound = useCallback(() => {
     openPrompt({
@@ -395,42 +402,51 @@ export default function InboundsPage() {
     }
   }, [modal, importInbound, exportAllLinks, exportAllSubs, refresh, messageApi]);
 
-  const onRowAction = useCallback(({ key, dbInbound }: { key: RowAction; dbInbound: any }) => {
+  const onRowAction = useCallback(async ({ key, dbInbound }: { key: RowAction; dbInbound: any }) => {
+    // Actions that touch per-client secrets (uuid, password, flow, ...) need
+    // the full payload that the slim list view does not ship. Hydrate first
+    // and then operate on the rehydrated record.
+    const hydratingKeys: RowAction[] = ['edit', 'showInfo', 'qrcode', 'export', 'subs', 'clipboard', 'clone'];
+    let target = dbInbound;
+    if (hydratingKeys.includes(key)) {
+      const hydrated = await hydrateInbound(dbInbound.id);
+      if (hydrated) target = hydrated;
+    }
     switch (key) {
       case 'edit':
-        openEdit(dbInbound);
+        openEdit(target);
         break;
       case 'showInfo':
-        setInfoDbInbound(checkFallback(dbInbound));
-        setInfoClientIndex(findClientIndex(dbInbound, null));
+        setInfoDbInbound(checkFallback(target));
+        setInfoClientIndex(findClientIndex(target, null));
         setInfoOpen(true);
         break;
       case 'qrcode':
-        setQrDbInbound(checkFallback(dbInbound));
+        setQrDbInbound(checkFallback(target));
         setQrOpen(true);
         break;
       case 'export':
-        exportInboundLinks(dbInbound);
+        exportInboundLinks(target);
         break;
       case 'subs':
-        exportInboundSubs(dbInbound);
+        exportInboundSubs(target);
         break;
       case 'clipboard':
-        exportInboundClipboard(dbInbound);
+        exportInboundClipboard(target);
         break;
       case 'delete':
-        confirmDelete(dbInbound);
+        confirmDelete(target);
         break;
       case 'resetTraffic':
-        confirmResetTraffic(dbInbound);
+        confirmResetTraffic(target);
         break;
       case 'clone':
-        confirmClone(dbInbound);
+        confirmClone(target);
         break;
       default:
         messageApi.info(`Action "${key}" — coming in a later 5f subphase`);
     }
-  }, [openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmClone, messageApi]);
+  }, [hydrateInbound, openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmClone, messageApi]);
 
   const basePath = (typeof window !== 'undefined' && window.X_UI_BASE_PATH) || '';
   const requestUri = typeof window !== 'undefined' ? window.location.pathname : '';

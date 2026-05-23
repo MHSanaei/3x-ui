@@ -206,7 +206,7 @@ export function useInbounds() {
     if (refreshingRef.current) return;
     refreshingRef.current = true;
     try {
-      const msg = await HttpUtil.get('/panel/api/inbounds/list');
+      const msg = await HttpUtil.get('/panel/api/inbounds/list/slim');
       if (!msg?.success) return;
       await fetchLastOnlineMap();
       await fetchOnlineUsers();
@@ -215,6 +215,26 @@ export function useInbounds() {
       window.setTimeout(() => { refreshingRef.current = false; }, 500);
     }
   }, [fetchLastOnlineMap, fetchOnlineUsers, setInbounds]);
+
+  // hydrateInbound fetches the full inbound (including settings.clients with
+  // uuid/password/flow/etc.) and swaps it into the cached list. Use this
+  // before opening edit / info / qr / export / clone flows — refresh() loads
+  // the slim list which doesn't carry per-client secrets.
+  const hydrateInbound = useCallback(async (id: number) => {
+    const msg = await HttpUtil.get(`/panel/api/inbounds/get/${id}`);
+    if (!msg?.success || !msg.obj) return null;
+    const full = msg.obj as { id: number; protocol: string };
+    const dbInbound = new DBInbound(full) as DBInboundInstance;
+    setDbInbounds((prev) => {
+      const next = prev.map((row) => (
+        (row as unknown as { id: number }).id === id ? dbInbound : row
+      ));
+      dbInboundsRef.current = next;
+      return next;
+    });
+    rebuildClientCount();
+    return dbInbound;
+  }, [rebuildClientCount]);
 
   const applyTrafficEvent = useCallback(
     (payload: unknown) => {
@@ -340,6 +360,7 @@ export function useInbounds() {
     ipLimitEnable,
     pageSize,
     refresh,
+    hydrateInbound,
     fetchDefaultSettings,
     applyTrafficEvent,
     applyClientStatsEvent,
