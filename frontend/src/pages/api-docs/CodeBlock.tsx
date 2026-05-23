@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { message } from 'antd';
 import { CheckOutlined, CopyOutlined } from '@ant-design/icons';
+import { ClipboardManager } from '@/utils';
 import './CodeBlock.css';
 
 interface CodeBlockProps {
@@ -37,12 +38,12 @@ export default function CodeBlock({ code = '', lang = 'json' }: CodeBlockProps) 
   );
 
   async function copyCode() {
-    try {
-      await navigator.clipboard.writeText(code);
+    const ok = await ClipboardManager.copyText(code);
+    if (ok) {
       setCopied(true);
       messageApi.success('Copied');
       window.setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       messageApi.error('Copy failed');
     }
   }

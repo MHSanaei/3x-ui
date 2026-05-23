@@ -12,7 +12,7 @@ import {
   Switch,
   message,
 } from 'antd';
-import { HttpUtil, RandomUtil } from '@/utils';
+import { ClipboardManager, HttpUtil, RandomUtil } from '@/utils';
 import type { AllSetting } from '@/models/setting';
 import SettingListItem from '@/components/SettingListItem';
 import TwoFactorModal from './TwoFactorModal';
@@ -143,18 +143,9 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
 
   async function copyToken(token: string) {
     if (!token) return;
-    try {
-      await navigator.clipboard.writeText(token);
-      messageApi.success(t('copySuccess'));
-    } catch {
-      const ta = document.createElement('textarea');
-      ta.value = token;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      messageApi.success(t('copySuccess'));
-    }
+    const ok = await ClipboardManager.copyText(token);
+    if (ok) messageApi.success(t('copySuccess'));
+    else messageApi.error(t('copyFail') ?? 'Copy failed');
   }
 
   function openCreateModal() {
