@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -40,18 +40,19 @@ import { useStatus } from '@/hooks/useStatus';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import AppSidebar from '@/components/AppSidebar';
 import CustomStatistic from '@/components/CustomStatistic';
-import JsonEditor from '@/components/JsonEditor';
+import LazyMount from '@/components/LazyMount';
 import { setMessageInstance } from '@/utils/messageBus';
 import StatusCard from './StatusCard';
 import XrayStatusCard from './XrayStatusCard';
-import PanelUpdateModal from './PanelUpdateModal';
 import type { PanelUpdateInfo } from './PanelUpdateModal';
-import LogModal from './LogModal';
-import BackupModal from './BackupModal';
-import SystemHistoryModal from './SystemHistoryModal';
-import XrayMetricsModal from './XrayMetricsModal';
-import XrayLogModal from './XrayLogModal';
-import VersionModal from './VersionModal';
+const JsonEditor = lazy(() => import('@/components/JsonEditor'));
+const PanelUpdateModal = lazy(() => import('./PanelUpdateModal'));
+const LogModal = lazy(() => import('./LogModal'));
+const BackupModal = lazy(() => import('./BackupModal'));
+const SystemHistoryModal = lazy(() => import('./SystemHistoryModal'));
+const XrayMetricsModal = lazy(() => import('./XrayMetricsModal'));
+const XrayLogModal = lazy(() => import('./XrayLogModal'));
+const VersionModal = lazy(() => import('./VersionModal'));
 import '@/styles/page-cards.css';
 import './IndexPage.css';
 
@@ -435,67 +436,83 @@ export default function IndexPage() {
           </Layout.Content>
         </Layout>
 
-        <PanelUpdateModal
-          open={panelUpdateOpen}
-          info={panelUpdateInfo}
-          onClose={() => setPanelUpdateOpen(false)}
-          onBusy={setBusy}
-        />
-        <LogModal open={logsOpen} onClose={() => setLogsOpen(false)} />
-        <BackupModal
-          open={backupOpen}
-          basePath={basePath}
-          onClose={() => setBackupOpen(false)}
-          onBusy={setBusy}
-        />
-        <SystemHistoryModal
-          open={sysHistoryOpen}
-          status={status}
-          onClose={() => setSysHistoryOpen(false)}
-        />
-        <XrayMetricsModal open={xrayMetricsOpen} onClose={() => setXrayMetricsOpen(false)} />
-        <XrayLogModal open={xrayLogsOpen} onClose={() => setXrayLogsOpen(false)} />
-        <VersionModal
-          open={versionOpen}
-          status={status}
-          onClose={() => setVersionOpen(false)}
-          onBusy={setBusy}
-        />
-
-        <Modal
-          open={configTextOpen}
-          title={t('pages.index.config')}
-          width={isMobile ? '100%' : 900}
-          style={isMobile ? { top: 20, maxWidth: 'calc(100vw - 16px)' } : undefined}
-          onCancel={() => setConfigTextOpen(false)}
-          footer={[
-            <Button
-              key="download"
-              onClick={downloadConfig}
-              size={isMobile ? 'small' : 'middle'}
-              icon={<CloudDownloadOutlined />}
-            >
-              {isMobile ? 'Download' : 'config.json'}
-            </Button>,
-            <Button
-              key="copy"
-              type="primary"
-              onClick={copyConfig}
-              size={isMobile ? 'small' : 'middle'}
-              icon={<CopyOutlined />}
-            >
-              Copy
-            </Button>,
-          ]}
-        >
-          <JsonEditor
-            value={configText}
-            onChange={setConfigText}
-            minHeight={isMobile ? '300px' : '420px'}
-            maxHeight={isMobile ? '500px' : '720px'}
-            readOnly
+        <LazyMount when={panelUpdateOpen}>
+          <PanelUpdateModal
+            open={panelUpdateOpen}
+            info={panelUpdateInfo}
+            onClose={() => setPanelUpdateOpen(false)}
+            onBusy={setBusy}
           />
-        </Modal>
+        </LazyMount>
+        <LazyMount when={logsOpen}>
+          <LogModal open={logsOpen} onClose={() => setLogsOpen(false)} />
+        </LazyMount>
+        <LazyMount when={backupOpen}>
+          <BackupModal
+            open={backupOpen}
+            basePath={basePath}
+            onClose={() => setBackupOpen(false)}
+            onBusy={setBusy}
+          />
+        </LazyMount>
+        <LazyMount when={sysHistoryOpen}>
+          <SystemHistoryModal
+            open={sysHistoryOpen}
+            status={status}
+            onClose={() => setSysHistoryOpen(false)}
+          />
+        </LazyMount>
+        <LazyMount when={xrayMetricsOpen}>
+          <XrayMetricsModal open={xrayMetricsOpen} onClose={() => setXrayMetricsOpen(false)} />
+        </LazyMount>
+        <LazyMount when={xrayLogsOpen}>
+          <XrayLogModal open={xrayLogsOpen} onClose={() => setXrayLogsOpen(false)} />
+        </LazyMount>
+        <LazyMount when={versionOpen}>
+          <VersionModal
+            open={versionOpen}
+            status={status}
+            onClose={() => setVersionOpen(false)}
+            onBusy={setBusy}
+          />
+        </LazyMount>
+
+        <LazyMount when={configTextOpen}>
+          <Modal
+            open={configTextOpen}
+            title={t('pages.index.config')}
+            width={isMobile ? '100%' : 900}
+            style={isMobile ? { top: 20, maxWidth: 'calc(100vw - 16px)' } : undefined}
+            onCancel={() => setConfigTextOpen(false)}
+            footer={[
+              <Button
+                key="download"
+                onClick={downloadConfig}
+                size={isMobile ? 'small' : 'middle'}
+                icon={<CloudDownloadOutlined />}
+              >
+                {isMobile ? 'Download' : 'config.json'}
+              </Button>,
+              <Button
+                key="copy"
+                type="primary"
+                onClick={copyConfig}
+                size={isMobile ? 'small' : 'middle'}
+                icon={<CopyOutlined />}
+              >
+                Copy
+              </Button>,
+            ]}
+          >
+            <JsonEditor
+              value={configText}
+              onChange={setConfigText}
+              minHeight={isMobile ? '300px' : '420px'}
+              maxHeight={isMobile ? '500px' : '720px'}
+              readOnly
+            />
+          </Modal>
+        </LazyMount>
       </Layout>
     </ConfigProvider>
   );

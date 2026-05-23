@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Card,
@@ -28,14 +28,15 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { useNodes } from '@/hooks/useNodes';
 import AppSidebar from '@/components/AppSidebar';
 import CustomStatistic from '@/components/CustomStatistic';
-import TextModal from '@/components/TextModal';
-import PromptModal from '@/components/PromptModal';
+const TextModal = lazy(() => import('@/components/TextModal'));
+const PromptModal = lazy(() => import('@/components/PromptModal'));
 
 import { useInbounds } from './useInbounds';
 import InboundList from './InboundList';
-import InboundFormModal from './InboundFormModal';
-import InboundInfoModal from './InboundInfoModal';
-import QrCodeModal from './QrCodeModal';
+import LazyMount from '@/components/LazyMount';
+const InboundFormModal = lazy(() => import('./InboundFormModal'));
+const InboundInfoModal = lazy(() => import('./InboundInfoModal'));
+const QrCodeModal = lazy(() => import('./QrCodeModal'));
 import '@/styles/page-cards.css';
 import './InboundsPage.css';
 
@@ -517,56 +518,66 @@ export default function InboundsPage() {
           </Layout.Content>
         </Layout>
 
-        <InboundFormModal
-          open={formOpen}
-          onClose={() => setFormOpen(false)}
-          onSaved={refresh}
-          mode={formMode}
-          dbInbound={formDbInbound}
-          dbInbounds={dbInbounds as any[]}
-          availableNodes={nodesList}
-        />
-        <InboundInfoModal
-          open={infoOpen}
-          onClose={() => setInfoOpen(false)}
-          dbInbound={infoDbInbound}
-          clientIndex={infoClientIndex}
-          remarkModel={remarkModel}
-          expireDiff={expireDiff}
-          trafficDiff={trafficDiff}
-          ipLimitEnable={ipLimitEnable}
-          tgBotEnable={tgBotEnable}
-          subSettings={subSettings}
-          lastOnlineMap={lastOnlineMap}
-          nodeAddress={infoNodeAddress}
-        />
-        <QrCodeModal
-          open={qrOpen}
-          onClose={() => setQrOpen(false)}
-          dbInbound={qrDbInbound}
-          client={null}
-          remarkModel={remarkModel}
-          nodeAddress={qrNodeAddress}
-          subSettings={subSettings}
-        />
+        <LazyMount when={formOpen}>
+          <InboundFormModal
+            open={formOpen}
+            onClose={() => setFormOpen(false)}
+            onSaved={refresh}
+            mode={formMode}
+            dbInbound={formDbInbound}
+            dbInbounds={dbInbounds as any[]}
+            availableNodes={nodesList}
+          />
+        </LazyMount>
+        <LazyMount when={infoOpen}>
+          <InboundInfoModal
+            open={infoOpen}
+            onClose={() => setInfoOpen(false)}
+            dbInbound={infoDbInbound}
+            clientIndex={infoClientIndex}
+            remarkModel={remarkModel}
+            expireDiff={expireDiff}
+            trafficDiff={trafficDiff}
+            ipLimitEnable={ipLimitEnable}
+            tgBotEnable={tgBotEnable}
+            subSettings={subSettings}
+            lastOnlineMap={lastOnlineMap}
+            nodeAddress={infoNodeAddress}
+          />
+        </LazyMount>
+        <LazyMount when={qrOpen}>
+          <QrCodeModal
+            open={qrOpen}
+            onClose={() => setQrOpen(false)}
+            dbInbound={qrDbInbound}
+            client={null}
+            remarkModel={remarkModel}
+            nodeAddress={qrNodeAddress}
+            subSettings={subSettings}
+          />
+        </LazyMount>
 
-        <TextModal
-          open={textOpen}
-          onClose={() => setTextOpen(false)}
-          title={textTitle}
-          content={textContent}
-          fileName={textFileName}
-        />
-        <PromptModal
-          open={promptOpen}
-          onClose={() => setPromptOpen(false)}
-          title={promptTitle}
-          okText={promptOkText}
-          type={promptType}
-          initialValue={promptInitial}
-          loading={promptLoading}
-          onConfirm={onPromptConfirm}
-        />
+        <LazyMount when={textOpen}>
+          <TextModal
+            open={textOpen}
+            onClose={() => setTextOpen(false)}
+            title={textTitle}
+            content={textContent}
+            fileName={textFileName}
+          />
+        </LazyMount>
+        <LazyMount when={promptOpen}>
+          <PromptModal
+            open={promptOpen}
+            onClose={() => setPromptOpen(false)}
+            title={promptTitle}
+            okText={promptOkText}
+            type={promptType}
+            initialValue={promptInitial}
+            loading={promptLoading}
+            onConfirm={onPromptConfirm}
+          />
+        </LazyMount>
       </Layout>
     </ConfigProvider>
   );

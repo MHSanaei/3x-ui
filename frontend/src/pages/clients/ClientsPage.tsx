@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Badge,
@@ -51,11 +51,12 @@ import AppSidebar from '@/components/AppSidebar';
 import CustomStatistic from '@/components/CustomStatistic';
 import { IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
-import ClientFormModal from './ClientFormModal';
-import ClientInfoModal from './ClientInfoModal';
-import ClientQrModal from './ClientQrModal';
-import ClientBulkAddModal from './ClientBulkAddModal';
-import ClientBulkAdjustModal from './ClientBulkAdjustModal';
+import LazyMount from '@/components/LazyMount';
+const ClientFormModal = lazy(() => import('./ClientFormModal'));
+const ClientInfoModal = lazy(() => import('./ClientInfoModal'));
+const ClientQrModal = lazy(() => import('./ClientQrModal'));
+const ClientBulkAddModal = lazy(() => import('./ClientBulkAddModal'));
+const ClientBulkAdjustModal = lazy(() => import('./ClientBulkAdjustModal'));
 import '@/styles/page-cards.css';
 import './ClientsPage.css';
 
@@ -853,51 +854,61 @@ export default function ClientsPage() {
           </Layout.Content>
         </Layout>
 
-        <ClientFormModal
-          open={formOpen}
-          mode={formMode}
-          client={editingClient}
-          attachedIds={editingAttachedIds}
-          inbounds={inbounds}
-          ipLimitEnable={ipLimitEnable}
-          tgBotEnable={tgBotEnable}
-          save={onSave}
-          onOpenChange={setFormOpen}
-        />
-        <ClientInfoModal
-          open={infoOpen}
-          client={infoClient}
-          inboundsById={inboundsById}
-          isOnline={infoClient ? isOnline(infoClient.email) : false}
-          subSettings={subSettings}
-          onOpenChange={setInfoOpen}
-        />
-        <ClientQrModal
-          open={qrOpen}
-          client={qrClient}
-          subSettings={subSettings}
-          onOpenChange={setQrOpen}
-        />
-        <ClientBulkAddModal
-          open={bulkAddOpen}
-          inbounds={inbounds}
-          ipLimitEnable={ipLimitEnable}
-          onOpenChange={setBulkAddOpen}
-          onSaved={() => setBulkAddOpen(false)}
-        />
-        <ClientBulkAdjustModal
-          open={bulkAdjustOpen}
-          count={selectedRowKeys.length}
-          onOpenChange={setBulkAdjustOpen}
-          onSubmit={async (addDays, addBytes) => {
-            const msg = await bulkAdjust([...selectedRowKeys], addDays, addBytes);
-            if (msg?.success) {
-              setSelectedRowKeys([]);
-              return msg.obj ?? { adjusted: 0 };
-            }
-            return null;
-          }}
-        />
+        <LazyMount when={formOpen}>
+          <ClientFormModal
+            open={formOpen}
+            mode={formMode}
+            client={editingClient}
+            attachedIds={editingAttachedIds}
+            inbounds={inbounds}
+            ipLimitEnable={ipLimitEnable}
+            tgBotEnable={tgBotEnable}
+            save={onSave}
+            onOpenChange={setFormOpen}
+          />
+        </LazyMount>
+        <LazyMount when={infoOpen}>
+          <ClientInfoModal
+            open={infoOpen}
+            client={infoClient}
+            inboundsById={inboundsById}
+            isOnline={infoClient ? isOnline(infoClient.email) : false}
+            subSettings={subSettings}
+            onOpenChange={setInfoOpen}
+          />
+        </LazyMount>
+        <LazyMount when={qrOpen}>
+          <ClientQrModal
+            open={qrOpen}
+            client={qrClient}
+            subSettings={subSettings}
+            onOpenChange={setQrOpen}
+          />
+        </LazyMount>
+        <LazyMount when={bulkAddOpen}>
+          <ClientBulkAddModal
+            open={bulkAddOpen}
+            inbounds={inbounds}
+            ipLimitEnable={ipLimitEnable}
+            onOpenChange={setBulkAddOpen}
+            onSaved={() => setBulkAddOpen(false)}
+          />
+        </LazyMount>
+        <LazyMount when={bulkAdjustOpen}>
+          <ClientBulkAdjustModal
+            open={bulkAdjustOpen}
+            count={selectedRowKeys.length}
+            onOpenChange={setBulkAdjustOpen}
+            onSubmit={async (addDays, addBytes) => {
+              const msg = await bulkAdjust([...selectedRowKeys], addDays, addBytes);
+              if (msg?.success) {
+                setSelectedRowKeys([]);
+                return msg.obj ?? { adjusted: 0 };
+              }
+              return null;
+            }}
+          />
+        </LazyMount>
       </Layout>
     </ConfigProvider>
   );
