@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { message } from 'antd';
 import 'antd/dist/reset.css';
 
+import '@/utils/chunkReload';
 import { readyI18n } from '@/i18n/react';
 import { ThemeProvider } from '@/hooks/useTheme';
 import SubPage from '@/pages/sub/SubPage';

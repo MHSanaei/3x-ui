@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { message } from 'antd';
 import 'antd/dist/reset.css';
 
+import '@/utils/chunkReload';
 import { setupAxios } from '@/api/axios-init.js';
 import { applyDocumentTitle } from '@/utils';
 import { readyI18n } from '@/i18n/react';
