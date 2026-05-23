@@ -102,7 +102,8 @@
     "xray": "Xray Configs",
     "apiDocs": "Documentação da API",
     "logout": "Sair",
-    "link": "Gerenciar"
+    "link": "Gerenciar",
+    "donate": "Doar"
   },
   "pages": {
     "login": {

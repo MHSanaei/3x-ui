@@ -7,15 +7,13 @@ import {
   Input,
   Layout,
   Popover,
-  Select,
-  Space,
   Spin,
   message,
 } from 'antd';
 import {
   KeyOutlined,
   LockOutlined,
-  SettingOutlined,
+  TranslationOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 
@@ -107,16 +105,8 @@ export default function LoginPage() {
     return classes.join(' ');
   }, [isDark, isUltra]);
 
-  const langOptions = useMemo(
-    () => LanguageManager.supportedLanguages.map((l: { value: string; name: string; icon: string }) => ({
-      value: l.value,
-      label: (
-        <>
-          <span aria-label={l.name}>{l.icon}</span>
-          &nbsp;&nbsp;<span>{l.name}</span>
-        </>
-      ),
-    })),
+  const langList = useMemo(
+    () => LanguageManager.supportedLanguages as { value: string; name: string; icon: string }[],
     [],
   );
 
@@ -154,26 +144,31 @@ export default function LoginPage() {
             </button>
             <Popover
               rootClassName={isDark ? 'dark' : 'light'}
-              title={t('pages.settings.language')}
               placement="bottomRight"
               trigger="click"
               content={
-                <Space orientation="vertical" size={10} className="settings-popover">
-                  <Select
-                    className="lang-select"
-                    value={lang}
-                    onChange={onLangChange}
-                    options={langOptions}
-                  />
-                </Space>
+                <ul className="lang-list">
+                  {langList.map((l) => (
+                    <li key={l.value}>
+                      <button
+                        type="button"
+                        className={`lang-item${lang === l.value ? ' is-active' : ''}`}
+                        onClick={() => onLangChange(l.value)}
+                      >
+                        <span className="lang-item-icon" aria-hidden="true">{l.icon}</span>
+                        <span className="lang-item-name">{l.name}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               }
             >
               <Button
                 shape="circle"
                 size="large"
                 className="toolbar-btn"
-                aria-label={t('menu.settings')}
-                icon={<SettingOutlined />}
+                aria-label={t('pages.settings.language')}
+                icon={<TranslationOutlined />}
               />
             </Popover>
           </div>

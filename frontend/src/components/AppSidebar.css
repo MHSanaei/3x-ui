@@ -30,12 +30,66 @@
   letter-spacing: 0;
 }
 
-.brand-text {
-  flex: 1 1 auto;
+.brand-block {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  line-height: 1.1;
 }
 
-.sider-brand-collapsed .brand-text {
+.brand-text {
+  display: block;
+}
+
+.brand-version {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+.sider-brand-collapsed .brand-block {
+  align-items: center;
   flex: 0 0 auto;
+}
+
+.brand-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.sidebar-donate {
+  background: transparent;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.75);
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background-color 0.2s, transform 0.15s, color 0.2s;
+}
+
+.sidebar-donate:hover,
+.sidebar-donate:focus-visible {
+  background-color: rgba(236, 72, 153, 0.12);
+  color: #ec4899;
+  transform: scale(1.08);
+  outline: none;
+}
+
+.sidebar-donate .anticon {
+  font-size: 16px;
 }
 
 .sidebar-theme-cycle {
@@ -194,6 +248,14 @@ body.dark .sidebar-theme-cycle {
 }
 
 html[data-theme='ultra-dark'] .sidebar-theme-cycle {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+body.dark .sidebar-donate {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+html[data-theme='ultra-dark'] .sidebar-donate {
   color: rgba(255, 255, 255, 0.92);
 }
 

@@ -67,8 +67,17 @@ function refreshBasePath() {
   return cachedBasePath;
 }
 
+function readPanelVersion() {
+  try {
+    const versionFile = path.resolve(__dirname, '..', 'config', 'version');
+    return fs.readFileSync(versionFile, 'utf8').trim();
+  } catch (_e) {
+    return '';
+  }
+}
+
 // `apply: 'serve'` keeps the injection out of `vite build` — dist.go
-// already injects webBasePath at runtime in production.
+// already injects webBasePath and version at runtime in production.
 function injectBasePathPlugin() {
   return {
     name: 'xui-inject-base-path',
@@ -76,7 +85,8 @@ function injectBasePathPlugin() {
     transformIndexHtml(html) {
       const basePath = refreshBasePath();
       const escaped = basePath.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-      const tag = `<script>window.X_UI_BASE_PATH="${escaped}";</script>`;
+      const version = readPanelVersion().replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const tag = `<script>window.X_UI_BASE_PATH="${escaped}";window.X_UI_CUR_VER="${version}";</script>`;
       return html.replace('</head>', `${tag}</head>`);
     },
   };

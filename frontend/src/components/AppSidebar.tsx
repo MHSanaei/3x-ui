@@ -8,6 +8,7 @@ import {
   ClusterOutlined,
   CloseOutlined,
   DashboardOutlined,
+  HeartOutlined,
   LogoutOutlined,
   MenuOutlined,
   SettingOutlined,
@@ -21,6 +22,7 @@ import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
+const DONATE_URL = 'https://donate.sanaei.dev/';
 
 interface AppSidebarProps {
   basePath?: string;
@@ -46,6 +48,21 @@ function readCollapsed(): boolean {
   } catch {
     return false;
   }
+}
+
+function DonateButton({ ariaLabel }: { ariaLabel: string }) {
+  return (
+    <a
+      href={DONATE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="sidebar-donate"
+      aria-label={ariaLabel}
+      title={ariaLabel}
+    >
+      <HeartOutlined />
+    </a>
+  );
 }
 
 function ThemeCycleButton({ id, isDark, isUltra, onCycle, ariaLabel }: {
@@ -92,6 +109,7 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
 
   const prefix = basePath.startsWith('/') ? basePath : `/${basePath || ''}`;
   const currentTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
+  const panelVersion = window.X_UI_CUR_VER || '';
 
   const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(() => [
     { key: `${prefix}panel/`, icon: 'dashboard', title: t('menu.dashboard') },
@@ -165,15 +183,23 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         onCollapse={onSiderCollapse}
       >
         <div className={`sider-brand${collapsed ? ' sider-brand-collapsed' : ''}`}>
-          <span className="brand-text">{collapsed ? '3X' : '3X-UI'}</span>
+          <div className="brand-block">
+            <span className="brand-text">{collapsed ? '3X' : '3X-UI'}</span>
+            {!collapsed && panelVersion && (
+              <span className="brand-version">v{panelVersion}</span>
+            )}
+          </div>
           {!collapsed && (
-            <ThemeCycleButton
-              id="theme-cycle"
-              isDark={isDark}
-              isUltra={isUltra}
-              onCycle={() => cycleTheme('theme-cycle')}
-              ariaLabel={t('menu.theme')}
-            />
+            <div className="brand-actions">
+              <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
+              <ThemeCycleButton
+                id="theme-cycle"
+                isDark={isDark}
+                isUltra={isUltra}
+                onCycle={() => cycleTheme('theme-cycle')}
+                ariaLabel={t('menu.theme')}
+              />
+            </div>
           )}
         </div>
         <Menu
@@ -208,8 +234,12 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         onClose={() => setDrawerOpen(false)}
       >
         <div className="drawer-header">
-          <span className="drawer-brand">3X-UI</span>
+          <div className="brand-block">
+            <span className="drawer-brand">3X-UI</span>
+            {panelVersion && <span className="brand-version">v{panelVersion}</span>}
+          </div>
           <div className="drawer-header-actions">
+            <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
             <ThemeCycleButton
               id="theme-cycle-drawer"
               isDark={isDark}
