@@ -576,7 +576,7 @@ export class ClipboardManager {
             textarea.setSelectionRange(0, text.length);
             ok = document.execCommand('copy');
         } catch {
-            ok = false;
+            /* keep ok as false */
         }
 
         host.removeChild(textarea);
