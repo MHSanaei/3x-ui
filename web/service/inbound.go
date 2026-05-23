@@ -242,6 +242,7 @@ func (s *InboundService) annotateFallbackParents(db *gorm.DB, inbounds []*model.
 type InboundOption struct {
 	Id             int    `json:"id"`
 	Remark         string `json:"remark"`
+	Tag            string `json:"tag"`
 	Protocol       string `json:"protocol"`
 	Port           int    `json:"port"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable"`
@@ -256,12 +257,13 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 	var rows []struct {
 		Id             int    `gorm:"column:id"`
 		Remark         string `gorm:"column:remark"`
+		Tag            string `gorm:"column:tag"`
 		Protocol       string `gorm:"column:protocol"`
 		Port           int    `gorm:"column:port"`
 		StreamSettings string `gorm:"column:stream_settings"`
 	}
 	err := db.Table("inbounds").
-		Select("id, remark, protocol, port, stream_settings").
+		Select("id, remark, tag, protocol, port, stream_settings").
 		Where("user_id = ?", userId).
 		Order("id ASC").
 		Scan(&rows).Error
@@ -273,6 +275,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		out = append(out, InboundOption{
 			Id:             r.Id,
 			Remark:         r.Remark,
+			Tag:            r.Tag,
 			Protocol:       r.Protocol,
 			Port:           r.Port,
 			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings),
