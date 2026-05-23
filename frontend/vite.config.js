@@ -152,6 +152,16 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  experimental: {
+    renderBuiltUrl(filename, { hostType }) {
+      if (hostType === 'js') {
+        return {
+          runtime: `((window.X_UI_BASE_PATH||'/')+${JSON.stringify(filename)})`,
+        };
+      }
+      return undefined;
+    },
+  },
   build: {
     outDir,
     emptyOutDir: true,
