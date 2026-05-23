@@ -208,9 +208,6 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			return err
 		}
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if isClientEmailTombstoned(email) {
-				continue
-			}
 			if err := tx.Create(incoming).Error; err != nil {
 				return err
 			}
