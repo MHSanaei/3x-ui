@@ -393,7 +393,7 @@ export default function ClientFormModal({
           </Col>
           <Col xs={24} md={ipLimitEnable ? 8 : 12}>
             <Form.Item label={t('pages.clients.totalGB')}>
-              <InputNumber value={form.totalGB} min={0} step={0.1} style={{ width: '100%' }}
+              <InputNumber value={form.totalGB} min={0} step={1} style={{ width: '100%' }}
                 onChange={(v) => update('totalGB', Number(v) || 0)} />
             </Form.Item>
           </Col>
