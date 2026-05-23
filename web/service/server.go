@@ -662,9 +662,6 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 	var versions []string
 	for _, release := range releases {
 		tagVersion := strings.TrimPrefix(release.TagName, "v")
-		if tagVersion == "26.5.3" {
-			continue
-		}
 		tagParts := strings.Split(tagVersion, ".")
 		if len(tagParts) != 3 {
 			continue
@@ -853,7 +850,7 @@ func (s *ServerService) UpdateXray(version string) error {
 
 	// 4. Extract correct binary
 	if runtime.GOOS == "windows" {
-		targetBinary := filepath.Join("bin", "xray-windows-amd64.exe")
+		targetBinary := filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
 		err = copyZipFile("xray.exe", targetBinary)
 	} else {
 		err = copyZipFile("xray", xray.GetBinaryPath())

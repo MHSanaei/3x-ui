@@ -1,0 +1,40 @@
+.qr-panel {
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qr-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.qr-remark {
+  margin: 0;
+}
+
+.qr-panel-canvas {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0;
+}
+
+.qr-panel-canvas .qr-code {
+  cursor: pointer;
+  background: #fff;
+  border-radius: 4px;
+  line-height: 0;
+}
+
+.qr-panel-canvas .qr-code svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 360px;
+}

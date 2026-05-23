@@ -371,4 +371,3 @@ func (a *InboundController) setFallbacks(c *gin.Context) {
 	a.xrayService.SetToNeedRestart()
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
 }
-

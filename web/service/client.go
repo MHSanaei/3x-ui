@@ -604,6 +604,12 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 			needRestart = true
 		}
 	}
+
+	if err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("id = ?", id).
+		Update("updated_at", updated.UpdatedAt).Error; err != nil {
+		return needRestart, err
+	}
 	return needRestart, nil
 }
 

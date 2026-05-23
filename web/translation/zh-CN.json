@@ -102,7 +102,8 @@
     "xray": "Xray 设置",
     "apiDocs": "API 文档",
     "logout": "退出登录",
-    "link": "管理"
+    "link": "管理",
+    "donate": "捐赠"
   },
   "pages": {
     "login": {

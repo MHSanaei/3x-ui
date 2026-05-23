@@ -14,7 +14,6 @@ on:
       - "**.mjs"
       - "**.cjs"
       - "**.ts"
-      - "**.vue"
       - "frontend/package-lock.json"
   pull_request:
     paths:
@@ -25,7 +24,6 @@ on:
       - "**.mjs"
       - "**.cjs"
       - "**.ts"
-      - "**.vue"
       - "frontend/package-lock.json"
   schedule:
     - cron: "18 2 * * 2"
