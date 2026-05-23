@@ -16,16 +16,16 @@ type Protocol string
 
 // Protocol constants for different Xray inbound protocols
 const (
-	VMESS        Protocol = "vmess"
-	VLESS        Protocol = "vless"
-	Tunnel       Protocol = "tunnel"
-	HTTP         Protocol = "http"
-	Trojan       Protocol = "trojan"
-	Shadowsocks  Protocol = "shadowsocks"
-	Mixed        Protocol = "mixed"
-	WireGuard    Protocol = "wireguard"
-	Hysteria     Protocol = "hysteria"
-	Hysteria2    Protocol = "hysteria2"
+	VMESS       Protocol = "vmess"
+	VLESS       Protocol = "vless"
+	Tunnel      Protocol = "tunnel"
+	HTTP        Protocol = "http"
+	Trojan      Protocol = "trojan"
+	Shadowsocks Protocol = "shadowsocks"
+	Mixed       Protocol = "mixed"
+	WireGuard   Protocol = "wireguard"
+	Hysteria    Protocol = "hysteria"
+	Hysteria2   Protocol = "hysteria2"
 )
 
 // IsHysteria returns true for both "hysteria" and "hysteria2".

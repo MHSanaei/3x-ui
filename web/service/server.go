@@ -662,9 +662,6 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 	var versions []string
 	for _, release := range releases {
 		tagVersion := strings.TrimPrefix(release.TagName, "v")
-		if tagVersion == "26.5.3" {
-			continue
-		}
 		tagParts := strings.Split(tagVersion, ".")
 		if len(tagParts) != 3 {
 			continue
