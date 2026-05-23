@@ -11,6 +11,7 @@ import {
   Input,
   Layout,
   Modal,
+  Pagination,
   Popover,
   Radio,
   Row,
@@ -71,19 +72,22 @@ interface FilterState {
   searchKey: string;
   filterBy: string;
   protocolFilter?: string;
+  inboundFilter?: number;
 }
 
 function readFilterState(): FilterState {
   try {
     const raw = JSON.parse(localStorage.getItem(FILTER_STATE_KEY) || '{}');
+    const inb = typeof raw.inboundFilter === 'number' && raw.inboundFilter > 0 ? raw.inboundFilter : undefined;
     return {
       enableFilter: !!raw.enableFilter,
       searchKey: raw.searchKey || '',
       filterBy: raw.filterBy || '',
       protocolFilter: raw.protocolFilter,
+      inboundFilter: inb,
     };
   } catch {
-    return { enableFilter: false, searchKey: '', filterBy: '', protocolFilter: undefined };
+    return { enableFilter: false, searchKey: '', filterBy: '', protocolFilter: undefined, inboundFilter: undefined };
   }
 }
 
@@ -132,6 +136,7 @@ export default function ClientsPage() {
   const [searchKey, setSearchKey] = useState(initial.searchKey);
   const [filterBy, setFilterBy] = useState(initial.filterBy);
   const [protocolFilter, setProtocolFilter] = useState<string | undefined>(initial.protocolFilter);
+  const [inboundFilter, setInboundFilter] = useState<number | undefined>(initial.inboundFilter);
 
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(null);
@@ -143,9 +148,9 @@ export default function ClientsPage() {
 
   useEffect(() => {
     localStorage.setItem(FILTER_STATE_KEY, JSON.stringify({
-      enableFilter, searchKey, filterBy, protocolFilter,
+      enableFilter, searchKey, filterBy, protocolFilter, inboundFilter,
     }));
-  }, [enableFilter, searchKey, filterBy, protocolFilter]);
+  }, [enableFilter, searchKey, filterBy, protocolFilter, inboundFilter]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedSearch(searchKey), 300);
@@ -156,7 +161,7 @@ export default function ClientsPage() {
     // Reset to page 1 whenever a filter or sort changes — otherwise an empty
     // result set on a high page number leaves the user staring at "no clients".
     setCurrentPage(1);
-  }, [debouncedSearch, enableFilter, filterBy, protocolFilter, sortColumn, sortOrder]);
+  }, [debouncedSearch, enableFilter, filterBy, protocolFilter, inboundFilter, sortColumn, sortOrder]);
 
   useEffect(() => {
     setQuery({
@@ -165,10 +170,11 @@ export default function ClientsPage() {
       search: enableFilter ? '' : debouncedSearch,
       filter: enableFilter ? (filterBy || '') : '',
       protocol: protocolFilter || '',
+      inbound: inboundFilter,
       sort: sortColumn || undefined,
       order: sortOrder || undefined,
     });
-  }, [setQuery, currentPage, tablePageSize, enableFilter, debouncedSearch, filterBy, protocolFilter, sortColumn, sortOrder]);
+  }, [setQuery, currentPage, tablePageSize, enableFilter, debouncedSearch, filterBy, protocolFilter, inboundFilter, sortColumn, sortOrder]);
 
   useEffect(() => {
     if (pageSize > 0) {
@@ -732,12 +738,36 @@ export default function ClientsPage() {
                         )}
                         <Select
                           value={protocolFilter}
-                          onChange={(v) => setProtocolFilter(v)}
+                          onChange={(v) => {
+                            setProtocolFilter(v);
+                            if (v && inboundFilter) {
+                              const ib = inbounds.find((x) => x.id === inboundFilter);
+                              if (!ib || ib.protocol !== v) setInboundFilter(undefined);
+                            }
+                          }}
                           allowClear
                           placeholder={t('pages.inbounds.protocol')}
                           size={isMobile ? 'small' : 'middle'}
                           style={{ width: 150 }}
                           options={protocolOptions.map((p) => ({ value: p, label: p }))}
+                        />
+                        <Select
+                          value={inboundFilter}
+                          onChange={(v) => setInboundFilter(v)}
+                          allowClear
+                          showSearch
+                          optionFilterProp="label"
+                          placeholder={t('inbounds')}
+                          size={isMobile ? 'small' : 'middle'}
+                          style={{ minWidth: 160, maxWidth: 240 }}
+                          options={inbounds
+                            .filter((ib) => !protocolFilter || ib.protocol === protocolFilter)
+                            .map((ib) => ({
+                              value: ib.id,
+                              label: ib.remark
+                                ? `${ib.remark} (${ib.protocol || ''}${ib.port ? `:${ib.port}` : ''})`
+                                : `#${ib.id} ${ib.protocol || ''}${ib.port ? `:${ib.port}` : ''}`,
+                            }))}
                         />
                       </div>
 
@@ -782,6 +812,24 @@ export default function ClientsPage() {
                               <div className="card-empty">
                                 <UserOutlined style={{ fontSize: 28, opacity: 0.5 }} />
                                 <div>{t('pages.clients.empty')}</div>
+                              </div>
+                            )}
+                            {filteredClients.length > 0 && (
+                              <div className="card-pagination">
+                                <Pagination
+                                  current={currentPage}
+                                  pageSize={tablePageSize}
+                                  total={filtered}
+                                  showSizeChanger={filtered > 10}
+                                  pageSizeOptions={['10', '25', '50', '100', '200']}
+                                  hideOnSinglePage={filtered <= tablePageSize}
+                                  size="small"
+                                  showTotal={(n) => `${n}`}
+                                  onChange={(p, s) => {
+                                    setCurrentPage(p);
+                                    if (s && s !== tablePageSize) setTablePageSize(s);
+                                  }}
+                                />
                               </div>
                             )}
                             {filteredClients.map((row) => {

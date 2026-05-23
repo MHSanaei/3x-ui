@@ -828,6 +828,7 @@ type ClientPageParams struct {
 	Search   string `form:"search"`
 	Filter   string `form:"filter"`
 	Protocol string `form:"protocol"`
+	Inbound  int    `form:"inbound"`
 	Sort     string `form:"sort"`
 	Order    string `form:"order"`
 }
@@ -926,6 +927,9 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 			continue
 		}
 		if params.Protocol != "" && !clientMatchesProtocol(c, params.Protocol, protocolByInbound) {
+			continue
+		}
+		if params.Inbound > 0 && !clientMatchesInbound(c, params.Inbound) {
 			continue
 		}
 		if params.Filter != "" && !clientMatchesBucket(c, params.Filter, onlineSet, nowMs, expireDiffMs, trafficDiffBytes) {
@@ -1040,6 +1044,18 @@ func clientMatchesProtocol(c ClientWithAttachments, protocol string, byInbound m
 	}
 	for _, id := range c.InboundIds {
 		if byInbound[id] == protocol {
+			return true
+		}
+	}
+	return false
+}
+
+func clientMatchesInbound(c ClientWithAttachments, inboundId int) bool {
+	if inboundId <= 0 {
+		return true
+	}
+	for _, id := range c.InboundIds {
+		if id == inboundId {
 			return true
 		}
 	}

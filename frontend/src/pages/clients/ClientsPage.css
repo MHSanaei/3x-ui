@@ -145,6 +145,18 @@
   padding: 4px 4px 8px;
 }
 
+.card-pagination {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 4px 0 8px;
+}
+
+.card-pagination .ant-pagination-options-size-changer,
+.card-pagination .ant-pagination-options-size-changer .ant-select-selector {
+  min-width: 88px !important;
+}
+
 .bulk-count {
   font-size: 12px;
   background: rgba(22, 119, 255, 0.12);

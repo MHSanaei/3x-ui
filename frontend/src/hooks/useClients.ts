@@ -60,6 +60,7 @@ export interface ClientQueryParams {
   search?: string;
   filter?: string;
   protocol?: string;
+  inbound?: number;
   sort?: string;
   order?: 'ascend' | 'descend';
 }
@@ -107,6 +108,7 @@ export function useClients() {
         && (prev.search ?? '') === (next.search ?? '')
         && (prev.filter ?? '') === (next.filter ?? '')
         && (prev.protocol ?? '') === (next.protocol ?? '')
+        && (prev.inbound ?? 0) === (next.inbound ?? 0)
         && (prev.sort ?? '') === (next.sort ?? '')
         && (prev.order ?? '') === (next.order ?? '')
       ) return prev;
@@ -136,6 +138,7 @@ export function useClients() {
     if (p.search) sp.set('search', p.search);
     if (p.filter) sp.set('filter', p.filter);
     if (p.protocol) sp.set('protocol', p.protocol);
+    if (p.inbound && p.inbound > 0) sp.set('inbound', String(p.inbound));
     if (p.sort) sp.set('sort', p.sort);
     if (p.order) sp.set('order', p.order);
     return sp.toString();
