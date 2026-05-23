@@ -20,6 +20,7 @@ type ClientController struct {
 	clientService  service.ClientService
 	inboundService service.InboundService
 	xrayService    service.XrayService
+	settingService service.SettingService
 }
 
 func NewClientController(g *gin.RouterGroup) *ClientController {
@@ -30,6 +31,7 @@ func NewClientController(g *gin.RouterGroup) *ClientController {
 
 func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.GET("/list", a.list)
+	g.GET("/list/paged", a.listPaged)
 	g.GET("/get/:email", a.get)
 	g.GET("/traffic/:email", a.getTrafficByEmail)
 	g.GET("/subLinks/:subId", a.getSubLinks)
@@ -58,6 +60,20 @@ func (a *ClientController) list(c *gin.Context) {
 		return
 	}
 	jsonObj(c, rows, nil)
+}
+
+func (a *ClientController) listPaged(c *gin.Context) {
+	var params service.ClientPageParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	resp, err := a.clientService.ListPaged(&a.inboundService, &a.settingService, params)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, resp, nil)
 }
 
 func (a *ClientController) get(c *gin.Context) {
