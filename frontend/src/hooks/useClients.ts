@@ -95,7 +95,24 @@ export function useClients() {
   const [onlines, setOnlines] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
-  const [query, setQuery] = useState<ClientQueryParams>(DEFAULT_QUERY);
+  const [query, setQueryState] = useState<ClientQueryParams>(DEFAULT_QUERY);
+  // Shallow-compare against the previous query so callers can pass a fresh
+  // object on every render (the common React pattern) without triggering a
+  // re-fetch when nothing actually changed.
+  const setQuery = useCallback((next: ClientQueryParams) => {
+    setQueryState((prev) => {
+      if (
+        prev.page === next.page
+        && prev.pageSize === next.pageSize
+        && (prev.search ?? '') === (next.search ?? '')
+        && (prev.filter ?? '') === (next.filter ?? '')
+        && (prev.protocol ?? '') === (next.protocol ?? '')
+        && (prev.sort ?? '') === (next.sort ?? '')
+        && (prev.order ?? '') === (next.order ?? '')
+      ) return prev;
+      return next;
+    });
+  }, []);
   const [subSettings, setSubSettings] = useState<SubSettings>({
     enable: false, subURI: '', subJsonURI: '', subJsonEnable: false,
   });
@@ -129,26 +146,30 @@ export function useClients() {
     try {
       const params = override ?? queryRef.current;
       const qs = buildQS(params);
-      const [clientsMsg, inboundsMsg] = await Promise.all([
-        HttpUtil.get(`/panel/api/clients/list/paged?${qs}`) as Promise<ApiMsg<ClientPageResponse>>,
-        inbounds.length === 0
-          ? HttpUtil.get('/panel/api/inbounds/options') as Promise<ApiMsg<InboundOption[]>>
-          : Promise.resolve(null as ApiMsg<InboundOption[]> | null),
-      ]);
-      if (clientsMsg?.success && clientsMsg.obj) {
-        setClients(Array.isArray(clientsMsg.obj.items) ? clientsMsg.obj.items : []);
-        setTotal(clientsMsg.obj.total ?? 0);
-        setFiltered(clientsMsg.obj.filtered ?? 0);
-        if (clientsMsg.obj.summary) setSummary(clientsMsg.obj.summary);
-      }
-      if (inboundsMsg?.success) {
-        setInbounds(Array.isArray(inboundsMsg.obj) ? inboundsMsg.obj : []);
+      const msg = await HttpUtil.get(`/panel/api/clients/list/paged?${qs}`) as ApiMsg<ClientPageResponse>;
+      if (msg?.success && msg.obj) {
+        setClients(Array.isArray(msg.obj.items) ? msg.obj.items : []);
+        setTotal(msg.obj.total ?? 0);
+        setFiltered(msg.obj.filtered ?? 0);
+        if (msg.obj.summary) setSummary(msg.obj.summary);
       }
       setFetched(true);
     } finally {
       setLoading(false);
     }
-  }, [inbounds.length]);
+  }, []);
+
+  // Inbound options are picker-shaped and don't depend on the clients query —
+  // fetch them once on mount instead of every refresh.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const msg = await HttpUtil.get('/panel/api/inbounds/options') as ApiMsg<InboundOption[]>;
+      if (cancelled) return;
+      if (msg?.success) setInbounds(Array.isArray(msg.obj) ? msg.obj : []);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const fetchSubSettings = useCallback(async () => {
     const msg = await HttpUtil.post('/panel/setting/defaultSettings') as ApiMsg<Record<string, unknown>>;
