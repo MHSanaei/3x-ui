@@ -61,8 +61,6 @@ const ClientBulkAdjustModal = lazy(() => import('./ClientBulkAdjustModal'));
 import '@/styles/page-cards.css';
 import './ClientsPage.css';
 
-const basePath = window.X_UI_BASE_PATH || '';
-const requestUri = window.location.pathname;
 const FILTER_STATE_KEY = 'clientsFilterState';
 
 type Bucket = 'active' | 'deactive' | 'depleted' | 'expiring';
@@ -108,14 +106,13 @@ export default function ClientsPage() {
     ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, removeMany, bulkAdjust, attach, detach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
-    applyTrafficEvent, applyClientStatsEvent, applyInvalidate,
+    applyTrafficEvent, applyClientStatsEvent,
     hydrate,
   } = useClients();
 
   useWebSocket({
     traffic: applyTrafficEvent,
     client_stats: applyClientStatsEvent,
-    invalidate: applyInvalidate,
   });
 
   const [togglingEmail, setTogglingEmail] = useState<string | null>(null);
@@ -614,7 +611,7 @@ export default function ClientsPage() {
       {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">

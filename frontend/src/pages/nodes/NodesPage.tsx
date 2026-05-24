@@ -10,9 +10,9 @@ import {
 
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useNodes } from '@/hooks/useNodes';
-import type { NodeRecord } from '@/hooks/useNodes';
-import { useWebSocket } from '@/hooks/useWebSocket';
+import { useNodesQuery } from '@/api/queries/useNodesQuery';
+import type { NodeRecord } from '@/api/queries/useNodesQuery';
+import { useNodeMutations } from '@/api/queries/useNodeMutations';
 import AppSidebar from '@/components/AppSidebar';
 import CustomStatistic from '@/components/CustomStatistic';
 import NodeList from './NodeList';
@@ -20,9 +20,6 @@ import NodeFormModal from './NodeFormModal';
 import { setMessageInstance } from '@/utils/messageBus';
 import '@/styles/page-cards.css';
 import './NodesPage.css';
-
-const basePath = window.X_UI_BASE_PATH || '';
-const requestUri = window.location.pathname;
 
 export default function NodesPage() {
   const { t } = useTranslation();
@@ -32,21 +29,8 @@ export default function NodesPage() {
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
-  const {
-    nodes,
-    loading,
-    fetched,
-    totals,
-    applyNodesEvent,
-    create,
-    update,
-    remove,
-    setEnable,
-    testConnection,
-    probe,
-  } = useNodes();
-
-  useWebSocket({ nodes: applyNodesEvent });
+  const { nodes, loading, fetched, totals } = useNodesQuery();
+  const { create, update, remove, setEnable, testConnection, probe } = useNodeMutations();
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
@@ -112,7 +96,7 @@ export default function NodesPage() {
       {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">

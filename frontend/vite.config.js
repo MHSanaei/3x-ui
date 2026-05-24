@@ -22,22 +22,7 @@ function resolveDBPath() {
   return '/etc/x-ui/x-ui.db';
 }
 
-const BASE_MIGRATED_ROUTES = {
-  'panel': '/index.html',
-  'panel/': '/index.html',
-  'panel/settings': '/settings.html',
-  'panel/settings/': '/settings.html',
-  'panel/inbounds': '/inbounds.html',
-  'panel/inbounds/': '/inbounds.html',
-  'panel/clients': '/clients.html',
-  'panel/clients/': '/clients.html',
-  'panel/xray': '/xray.html',
-  'panel/xray/': '/xray.html',
-  'panel/nodes': '/nodes.html',
-  'panel/nodes/': '/nodes.html',
-  'panel/api-docs': '/api-docs.html',
-  'panel/api-docs/': '/api-docs.html',
-};
+const PANEL_API_PREFIXES = ['panel/api/', 'panel/setting/', 'panel/xray/', 'panel/csrf-token'];
 
 let cachedBasePath = '/';
 
@@ -101,7 +86,14 @@ function bypassMigratedRoute(req) {
 
   if (url.startsWith(basePath)) {
     const stripped = url.slice(basePath.length);
-    if (stripped in BASE_MIGRATED_ROUTES) return BASE_MIGRATED_ROUTES[stripped];
+    for (const prefix of PANEL_API_PREFIXES) {
+      if (stripped === prefix.replace(/\/$/, '') || stripped.startsWith(prefix)) {
+        return undefined;
+      }
+    }
+    if (stripped === 'panel' || stripped === 'panel/' || stripped.startsWith('panel/')) {
+      return '/index.html';
+    }
   }
   return undefined;
 }
@@ -172,12 +164,6 @@ export default defineConfig({
       input: {
         index: path.resolve(__dirname, 'index.html'),
         login: path.resolve(__dirname, 'login.html'),
-        settings: path.resolve(__dirname, 'settings.html'),
-        inbounds: path.resolve(__dirname, 'inbounds.html'),
-        clients: path.resolve(__dirname, 'clients.html'),
-        xray: path.resolve(__dirname, 'xray.html'),
-        nodes: path.resolve(__dirname, 'nodes.html'),
-        apiDocs: path.resolve(__dirname, 'api-docs.html'),
         subpage: path.resolve(__dirname, 'subpage.html'),
       },
       output: {
@@ -210,6 +196,13 @@ export default defineConfig({
           ) return 'vendor-codemirror';
           if (id.includes('/node_modules/persian-calendar-suite/')) return 'vendor-jalali';
           if (id.includes('/node_modules/otpauth/')) return 'vendor-otpauth';
+          if (id.includes('/node_modules/@tanstack/')) return 'vendor-tanstack';
+          if (id.includes('/node_modules/react-router')) return 'vendor-router';
+          if (
+            id.includes('/node_modules/swagger-ui-react/')
+            || id.includes('/node_modules/swagger-ui/')
+            || id.includes('/node_modules/swagger-client/')
+          ) return 'vendor-swagger';
           if (id.includes('dayjs')) return 'vendor-dayjs';
           if (id.includes('axios')) return 'vendor-axios';
           return 'vendor';
