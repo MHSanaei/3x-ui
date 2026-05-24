@@ -40,9 +40,16 @@ export default function ClientInfoModal({
   onOpenChange,
 }: ClientInfoModalProps) {
   const { datepicker } = useDatepicker();
-  const expiryLabel = (ts?: number) => (!ts || ts <= 0 ? '∞' : IntlUtil.formatDate(ts, datepicker));
-  const dateLabel = (ts?: number) => (!ts || ts <= 0 ? '-' : IntlUtil.formatDate(ts, datepicker));
   const { t } = useTranslation();
+  const expiryLabel = (ts?: number) => {
+    if (!ts) return '∞';
+    if (ts < 0) {
+      const days = Math.round(ts / -86400000);
+      return `${t('pages.clients.delayedStart')}: ${days}d`;
+    }
+    return IntlUtil.formatDate(ts, datepicker);
+  };
+  const dateLabel = (ts?: number) => (!ts || ts <= 0 ? '-' : IntlUtil.formatDate(ts, datepicker));
   const [messageApi, messageContextHolder] = message.useMessage();
   const [links, setLinks] = useState<string[]>([]);
 
@@ -195,9 +202,9 @@ export default function ClientInfoModal({
               <tr>
                 <td>{t('pages.inbounds.expireDate')}</td>
                 <td>
-                  {!client.expiryTime || client.expiryTime <= 0
+                  {!client.expiryTime
                     ? <Tag color="purple">∞</Tag>
-                    : <Tag>{expiryLabel(client.expiryTime)}</Tag>}
+                    : <Tag color={client.expiryTime < 0 ? 'blue' : undefined}>{expiryLabel(client.expiryTime)}</Tag>}
                   {(client.expiryTime ?? 0) > 0 && (
                     <span className="hint">{IntlUtil.formatRelativeTime(client.expiryTime)}</span>
                   )}

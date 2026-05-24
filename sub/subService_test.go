@@ -5,9 +5,26 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 )
+
+func TestSubscriptionExpiryFromClient(t *testing.T) {
+	if got := subscriptionExpiryFromClient(0); got != 0 {
+		t.Fatalf("zero expiry should stay zero, got %d", got)
+	}
+	if got := subscriptionExpiryFromClient(1_700_000_000_000); got != 1_700_000_000_000 {
+		t.Fatalf("positive expiry should pass through, got %d", got)
+	}
+	const oneDayMs = int64(86_400_000)
+	before := time.Now().UnixMilli()
+	got := subscriptionExpiryFromClient(-oneDayMs)
+	after := time.Now().UnixMilli()
+	if got < before+oneDayMs || got > after+oneDayMs {
+		t.Fatalf("delayed-start expiry should land ~1 day from now, got %d (window %d..%d)", got, before+oneDayMs, after+oneDayMs)
+	}
+}
 
 func TestFindClientIndex(t *testing.T) {
 	clients := []model.Client{
