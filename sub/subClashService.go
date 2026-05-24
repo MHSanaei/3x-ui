@@ -363,6 +363,53 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 			proxy["grpc-opts"] = grpcOpts
 		}
 		return true
+	case "httpupgrade":
+		proxy["network"] = "httpupgrade"
+		hu, _ := stream["httpupgradeSettings"].(map[string]any)
+		opts := map[string]any{}
+		if hu != nil {
+			if path, ok := hu["path"].(string); ok && path != "" {
+				opts["path"] = path
+			}
+			host := ""
+			if v, ok := hu["host"].(string); ok && v != "" {
+				host = v
+			} else if headers, ok := hu["headers"].(map[string]any); ok {
+				host = searchHost(headers)
+			}
+			if host != "" {
+				opts["headers"] = map[string]any{"Host": host}
+			}
+		}
+		if len(opts) > 0 {
+			proxy["http-upgrade-opts"] = opts
+		}
+		return true
+	case "xhttp":
+		proxy["network"] = "xhttp"
+		xhttp, _ := stream["xhttpSettings"].(map[string]any)
+		opts := map[string]any{}
+		if xhttp != nil {
+			if path, ok := xhttp["path"].(string); ok && path != "" {
+				opts["path"] = path
+			}
+			host := ""
+			if v, ok := xhttp["host"].(string); ok && v != "" {
+				host = v
+			} else if headers, ok := xhttp["headers"].(map[string]any); ok {
+				host = searchHost(headers)
+			}
+			if host != "" {
+				opts["host"] = host
+			}
+			if mode, ok := xhttp["mode"].(string); ok && mode != "" {
+				opts["mode"] = mode
+			}
+		}
+		if len(opts) > 0 {
+			proxy["xhttp-opts"] = opts
+		}
+		return true
 	default:
 		return false
 	}
