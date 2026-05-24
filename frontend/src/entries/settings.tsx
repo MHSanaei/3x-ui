@@ -6,6 +6,7 @@ import { setupAxios } from '@/api/axios-init.js';
 import { applyDocumentTitle } from '@/utils';
 import { readyI18n } from '@/i18n/react';
 import { ThemeProvider } from '@/hooks/useTheme';
+import { QueryProvider } from '@/api/QueryProvider';
 import SettingsPage from '@/pages/settings/SettingsPage';
 
 setupAxios();
@@ -21,7 +22,9 @@ readyI18n().then(() => {
   if (root) {
     createRoot(root).render(
       <ThemeProvider>
-        <SettingsPage />
+        <QueryProvider>
+          <SettingsPage />
+        </QueryProvider>
       </ThemeProvider>,
     );
   }
