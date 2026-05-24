@@ -13,7 +13,7 @@ import {
   Switch,
   message,
 } from 'antd';
-import type { NodeRecord } from '@/hooks/useNodes';
+import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import './NodeFormModal.css';
 
 type Mode = 'add' | 'edit';

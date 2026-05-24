@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { WebSocketClient } from '@/api/websocket.js';
+import { keys } from '@/api/queryKeys';
 
 type Handler = (payload: unknown) => void;
 
@@ -46,13 +47,20 @@ export function useWebSocketBridge() {
       queryClient.setQueryData(['xray', 'outboundsTraffic'], payload);
     };
 
+    const onNodes: Handler = (payload) => {
+      if (!Array.isArray(payload)) return;
+      queryClient.setQueryData(keys.nodes.list(), payload);
+    };
+
     client.on('invalidate', onInvalidate);
     client.on('outbounds', onOutbounds);
+    client.on('nodes', onNodes);
     client.connect();
 
     return () => {
       client.off('invalidate', onInvalidate);
       client.off('outbounds', onOutbounds);
+      client.off('nodes', onNodes);
       if (invalidateTimer != null) {
         clearTimeout(invalidateTimer);
         invalidateTimer = null;

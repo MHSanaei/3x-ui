@@ -25,7 +25,7 @@ import { coerceInboundJsonField } from '@/models/dbinbound.js';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { useNodes } from '@/hooks/useNodes';
+import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import AppSidebar from '@/components/AppSidebar';
 import CustomStatistic from '@/components/CustomStatistic';
 const TextModal = lazy(() => import('@/components/TextModal'));
@@ -85,9 +85,9 @@ export default function InboundsPage() {
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
-  const { nodes: nodesList } = useNodes();
+  const { nodes: nodesList } = useNodesQuery();
   const nodesById = useMemo(() => {
-    const map = new Map<number, ReturnType<typeof useNodes>['nodes'][number]>();
+    const map = new Map<number, ReturnType<typeof useNodesQuery>['nodes'][number]>();
     for (const n of nodesList || []) map.set(n.id, n);
     return map;
   }, [nodesList]);
