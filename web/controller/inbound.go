@@ -61,6 +61,7 @@ func (a *InboundController) broadcastInboundsUpdate(userId int) {
 func (a *InboundController) initRouter(g *gin.RouterGroup) {
 
 	g.GET("/list", a.getInbounds)
+	g.GET("/list/slim", a.getInboundsSlim)
 	g.GET("/options", a.getInboundOptions)
 	g.GET("/get/:id", a.getInbound)
 	g.GET("/:id/fallbacks", a.getFallbacks)
@@ -79,6 +80,18 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 func (a *InboundController) getInbounds(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	inbounds, err := a.inboundService.GetInbounds(user.Id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, inbounds, nil)
+}
+
+// getInboundsSlim is the list-page variant that strips full client
+// payloads from settings.clients[]. Detail-view flows still use /get/:id.
+func (a *InboundController) getInboundsSlim(c *gin.Context) {
+	user := session.GetLoginUser(c)
+	inbounds, err := a.inboundService.GetInboundsSlim(user.Id)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -153,6 +166,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 		a.xrayService.SetToNeedRestart()
 	}
 	a.broadcastInboundsUpdate(user.Id)
+	notifyClientsChanged()
 }
 
 // delInbound deletes an inbound configuration by its ID.
@@ -173,6 +187,7 @@ func (a *InboundController) delInbound(c *gin.Context) {
 	}
 	user := session.GetLoginUser(c)
 	a.broadcastInboundsUpdate(user.Id)
+	notifyClientsChanged()
 }
 
 // updateInbound updates an existing inbound configuration.
@@ -208,6 +223,7 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	}
 	user := session.GetLoginUser(c)
 	a.broadcastInboundsUpdate(user.Id)
+	notifyClientsChanged()
 }
 
 // setInboundEnable flips only the enable flag of an inbound. This is a
@@ -286,6 +302,9 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	inbound.Id = 0
 	inbound.UserId = user.Id
+	if inbound.NodeID != nil && *inbound.NodeID == 0 {
+		inbound.NodeID = nil
+	}
 	if inbound.Tag == "" {
 		if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
 			inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
@@ -299,12 +318,17 @@ func (a *InboundController) importInbound(c *gin.Context) {
 		inbound.ClientStats[index].Enable = true
 	}
 
-	needRestart := false
-	inbound, needRestart, err = a.inboundService.AddInbound(inbound)
-	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundCreateSuccess"), inbound, err)
-	if err == nil && needRestart {
+	inbound, needRestart, err := a.inboundService.AddInbound(inbound)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundCreateSuccess"), inbound, nil)
+	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	a.broadcastInboundsUpdate(user.Id)
+	notifyClientsChanged()
 }
 
 // resolveHost mirrors what sub.SubService.ResolveRequest does for the host
@@ -371,4 +395,3 @@ func (a *InboundController) setFallbacks(c *gin.Context) {
 	a.xrayService.SetToNeedRestart()
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
 }
-

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -207,9 +208,6 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			return err
 		}
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if isClientEmailTombstoned(email) {
-				continue
-			}
 			if err := tx.Create(incoming).Error; err != nil {
 				return err
 			}
@@ -604,6 +602,12 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 			needRestart = true
 		}
 	}
+
+	if err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("id = ?", id).
+		Update("updated_at", updated.UpdatedAt).Error; err != nil {
+		return needRestart, err
+	}
 	return needRestart, nil
 }
 
@@ -795,6 +799,460 @@ func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email st
 		}
 	}
 	return needRestart, nil
+}
+
+// ClientSlim is the row-shape used by the clients page. It drops fields the
+// table never reads (UUID, password, auth, flow, security, reverse, tgId)
+// so the list payload stays compact even when the panel manages thousands
+// of clients. Modals that need the full record still call /get/:email.
+type ClientSlim struct {
+	Email      string              `json:"email"`
+	SubID      string              `json:"subId"`
+	Enable     bool                `json:"enable"`
+	TotalGB    int64               `json:"totalGB"`
+	ExpiryTime int64               `json:"expiryTime"`
+	LimitIP    int                 `json:"limitIp"`
+	Reset      int                 `json:"reset"`
+	Comment    string              `json:"comment,omitempty"`
+	InboundIds []int               `json:"inboundIds"`
+	Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
+	CreatedAt  int64               `json:"createdAt"`
+	UpdatedAt  int64               `json:"updatedAt"`
+}
+
+// ClientPageParams are the query params accepted by /panel/api/clients/list/paged.
+// All fields are optional — the empty value means "no filter" / defaults.
+type ClientPageParams struct {
+	Page     int    `form:"page"`
+	PageSize int    `form:"pageSize"`
+	Search   string `form:"search"`
+	Filter   string `form:"filter"`
+	Protocol string `form:"protocol"`
+	Inbound  int    `form:"inbound"`
+	Sort     string `form:"sort"`
+	Order    string `form:"order"`
+}
+
+// ClientPageResponse is the shape returned by ListPaged. `Total` is the
+// row count in the DB; `Filtered` is the count after Search/Filter/Protocol
+// were applied, before pagination. The page contains at most PageSize items.
+// Summary is computed across the full DB row set so dashboard counters
+// on the clients page stay stable as the user paginates/filters.
+type ClientPageResponse struct {
+	Items    []ClientSlim   `json:"items"`
+	Total    int            `json:"total"`
+	Filtered int            `json:"filtered"`
+	Page     int            `json:"page"`
+	PageSize int            `json:"pageSize"`
+	Summary  ClientsSummary `json:"summary"`
+}
+
+// ClientsSummary collects per-bucket counts plus the matching email lists so
+// the clients page can render the dashboard stat cards and their hover
+// popovers without shipping the full client array.
+type ClientsSummary struct {
+	Total    int      `json:"total"`
+	Active   int      `json:"active"`
+	Online   []string `json:"online"`
+	Depleted []string `json:"depleted"`
+	Expiring []string `json:"expiring"`
+	Deactive []string `json:"deactive"`
+}
+
+const (
+	clientPageDefaultSize = 25
+	clientPageMaxSize     = 200
+)
+
+// ListPaged loads every client (with traffic + attachments) into memory,
+// applies the requested filter / search / protocol predicates, sorts, and
+// returns the requested page along with total and filtered counts. The DB
+// query itself is unchanged from List(); the win is that the response
+// only carries 25-ish slim rows over the wire instead of all 2000 full
+// records, which on real panels was the dominant cost.
+func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *SettingService, params ClientPageParams) (*ClientPageResponse, error) {
+	all, err := s.List()
+	if err != nil {
+		return nil, err
+	}
+	total := len(all)
+
+	pageSize := params.PageSize
+	if pageSize <= 0 {
+		pageSize = clientPageDefaultSize
+	}
+	if pageSize > clientPageMaxSize {
+		pageSize = clientPageMaxSize
+	}
+	page := params.Page
+	if page <= 0 {
+		page = 1
+	}
+
+	var protocolByInbound map[int]string
+	if params.Protocol != "" {
+		inbounds, err := inboundSvc.GetAllInbounds()
+		if err == nil {
+			protocolByInbound = make(map[int]string, len(inbounds))
+			for _, ib := range inbounds {
+				protocolByInbound[ib.Id] = string(ib.Protocol)
+			}
+		}
+	}
+
+	onlines := inboundSvc.GetOnlineClients()
+	onlineSet := make(map[string]struct{}, len(onlines))
+	for _, e := range onlines {
+		onlineSet[e] = struct{}{}
+	}
+
+	var expireDiffMs, trafficDiffBytes int64
+	if settingSvc != nil {
+		if v, err := settingSvc.GetExpireDiff(); err == nil {
+			expireDiffMs = int64(v) * 86400000
+		}
+		if v, err := settingSvc.GetTrafficDiff(); err == nil {
+			trafficDiffBytes = int64(v) * 1073741824
+		}
+	}
+
+	nowMs := time.Now().UnixMilli()
+	summary := buildClientsSummary(all, onlineSet, nowMs, expireDiffMs, trafficDiffBytes)
+
+	needle := strings.ToLower(strings.TrimSpace(params.Search))
+
+	filtered := make([]ClientWithAttachments, 0, len(all))
+	for _, c := range all {
+		if needle != "" && !clientMatchesSearch(c, needle) {
+			continue
+		}
+		if params.Protocol != "" && !clientMatchesProtocol(c, params.Protocol, protocolByInbound) {
+			continue
+		}
+		if params.Inbound > 0 && !clientMatchesInbound(c, params.Inbound) {
+			continue
+		}
+		if params.Filter != "" && !clientMatchesBucket(c, params.Filter, onlineSet, nowMs, expireDiffMs, trafficDiffBytes) {
+			continue
+		}
+		filtered = append(filtered, c)
+	}
+
+	sortClients(filtered, params.Sort, params.Order)
+
+	filteredCount := len(filtered)
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if start > filteredCount {
+		start = filteredCount
+	}
+	if end > filteredCount {
+		end = filteredCount
+	}
+	pageRows := filtered[start:end]
+
+	items := make([]ClientSlim, 0, len(pageRows))
+	for _, c := range pageRows {
+		items = append(items, toClientSlim(c))
+	}
+
+	return &ClientPageResponse{
+		Items:    items,
+		Total:    total,
+		Filtered: filteredCount,
+		Page:     page,
+		PageSize: pageSize,
+		Summary:  summary,
+	}, nil
+}
+
+func buildClientsSummary(all []ClientWithAttachments, onlineSet map[string]struct{}, nowMs, expireDiffMs, trafficDiffBytes int64) ClientsSummary {
+	s := ClientsSummary{
+		Total:    len(all),
+		Online:   []string{},
+		Depleted: []string{},
+		Expiring: []string{},
+		Deactive: []string{},
+	}
+	for _, c := range all {
+		used := int64(0)
+		if c.Traffic != nil {
+			used = c.Traffic.Up + c.Traffic.Down
+		}
+		exhausted := c.TotalGB > 0 && used >= c.TotalGB
+		expired := c.ExpiryTime > 0 && c.ExpiryTime <= nowMs
+		if c.Enable {
+			if _, ok := onlineSet[c.Email]; ok {
+				s.Online = append(s.Online, c.Email)
+			}
+		}
+		if exhausted || expired {
+			s.Depleted = append(s.Depleted, c.Email)
+			continue
+		}
+		if !c.Enable {
+			s.Deactive = append(s.Deactive, c.Email)
+			continue
+		}
+		nearExpiry := c.ExpiryTime > 0 && c.ExpiryTime-nowMs < expireDiffMs
+		nearLimit := c.TotalGB > 0 && c.TotalGB-used < trafficDiffBytes
+		if nearExpiry || nearLimit {
+			s.Expiring = append(s.Expiring, c.Email)
+		} else {
+			s.Active++
+		}
+	}
+	return s
+}
+
+func toClientSlim(c ClientWithAttachments) ClientSlim {
+	return ClientSlim{
+		Email:      c.Email,
+		SubID:      c.SubID,
+		Enable:     c.Enable,
+		TotalGB:    c.TotalGB,
+		ExpiryTime: c.ExpiryTime,
+		LimitIP:    c.LimitIP,
+		Reset:      c.Reset,
+		Comment:    c.Comment,
+		InboundIds: c.InboundIds,
+		Traffic:    c.Traffic,
+		CreatedAt:  c.CreatedAt,
+		UpdatedAt:  c.UpdatedAt,
+	}
+}
+
+func clientMatchesSearch(c ClientWithAttachments, needle string) bool {
+	if needle == "" {
+		return true
+	}
+	if strings.Contains(strings.ToLower(c.Email), needle) {
+		return true
+	}
+	if strings.Contains(strings.ToLower(c.SubID), needle) {
+		return true
+	}
+	if strings.Contains(strings.ToLower(c.Comment), needle) {
+		return true
+	}
+	return false
+}
+
+func clientMatchesProtocol(c ClientWithAttachments, protocol string, byInbound map[int]string) bool {
+	if protocol == "" {
+		return true
+	}
+	for _, id := range c.InboundIds {
+		if byInbound[id] == protocol {
+			return true
+		}
+	}
+	return false
+}
+
+func clientMatchesInbound(c ClientWithAttachments, inboundId int) bool {
+	if inboundId <= 0 {
+		return true
+	}
+	for _, id := range c.InboundIds {
+		if id == inboundId {
+			return true
+		}
+	}
+	return false
+}
+
+func clientMatchesBucket(c ClientWithAttachments, bucket string, onlineSet map[string]struct{}, nowMs, expireDiffMs, trafficDiffBytes int64) bool {
+	if bucket == "" {
+		return true
+	}
+	used := int64(0)
+	if c.Traffic != nil {
+		used = c.Traffic.Up + c.Traffic.Down
+	}
+	exhausted := c.TotalGB > 0 && used >= c.TotalGB
+	expired := c.ExpiryTime > 0 && c.ExpiryTime <= nowMs
+	switch bucket {
+	case "online":
+		if onlineSet == nil {
+			return false
+		}
+		_, ok := onlineSet[c.Email]
+		return ok && c.Enable
+	case "depleted":
+		return exhausted || expired
+	case "deactive":
+		return !c.Enable
+	case "active":
+		return c.Enable && !exhausted && !expired
+	case "expiring":
+		if !c.Enable || exhausted || expired {
+			return false
+		}
+		nearExpiry := c.ExpiryTime > 0 && c.ExpiryTime-nowMs < expireDiffMs
+		nearLimit := c.TotalGB > 0 && c.TotalGB-used < trafficDiffBytes
+		return nearExpiry || nearLimit
+	}
+	return true
+}
+
+func sortClients(rows []ClientWithAttachments, sortKey, order string) {
+	if sortKey == "" {
+		return
+	}
+	desc := order == "descend"
+	less := func(i, j int) bool {
+		a, b := rows[i], rows[j]
+		switch sortKey {
+		case "enable":
+			if a.Enable == b.Enable {
+				return false
+			}
+			return !a.Enable && b.Enable
+		case "email":
+			return strings.ToLower(a.Email) < strings.ToLower(b.Email)
+		case "inboundIds":
+			return len(a.InboundIds) < len(b.InboundIds)
+		case "traffic":
+			ua := int64(0)
+			if a.Traffic != nil {
+				ua = a.Traffic.Up + a.Traffic.Down
+			}
+			ub := int64(0)
+			if b.Traffic != nil {
+				ub = b.Traffic.Up + b.Traffic.Down
+			}
+			return ua < ub
+		case "remaining":
+			ra := int64(1<<62 - 1)
+			if a.TotalGB > 0 {
+				used := int64(0)
+				if a.Traffic != nil {
+					used = a.Traffic.Up + a.Traffic.Down
+				}
+				ra = a.TotalGB - used
+			}
+			rb := int64(1<<62 - 1)
+			if b.TotalGB > 0 {
+				used := int64(0)
+				if b.Traffic != nil {
+					used = b.Traffic.Up + b.Traffic.Down
+				}
+				rb = b.TotalGB - used
+			}
+			return ra < rb
+		case "expiryTime":
+			ea := int64(1<<62 - 1)
+			if a.ExpiryTime > 0 {
+				ea = a.ExpiryTime
+			}
+			eb := int64(1<<62 - 1)
+			if b.ExpiryTime > 0 {
+				eb = b.ExpiryTime
+			}
+			return ea < eb
+		}
+		return false
+	}
+	sort.SliceStable(rows, func(i, j int) bool {
+		if desc {
+			return less(j, i)
+		}
+		return less(i, j)
+	})
+}
+
+// BulkAdjustResult is returned by BulkAdjust to report how many clients were
+// successfully updated and which were skipped (typically because the field
+// being adjusted was unlimited for that client) or failed.
+type BulkAdjustResult struct {
+	Adjusted int                `json:"adjusted"`
+	Skipped  []BulkAdjustReport `json:"skipped,omitempty"`
+}
+
+type BulkAdjustReport struct {
+	Email  string `json:"email"`
+	Reason string `json:"reason"`
+}
+
+// BulkAdjust shifts ExpiryTime by addDays (days) and TotalGB by addBytes
+// for every email in the list. Clients whose corresponding field is
+// unlimited (0) are skipped — bulk extend should not accidentally
+// limit an unlimited client. addDays and addBytes may be negative.
+func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, addDays int, addBytes int64) (BulkAdjustResult, bool, error) {
+	result := BulkAdjustResult{}
+	needRestart := false
+	if len(emails) == 0 {
+		return result, needRestart, nil
+	}
+	if addDays == 0 && addBytes == 0 {
+		return result, needRestart, common.NewError("no adjustment specified")
+	}
+
+	addExpiryMs := int64(addDays) * 24 * 60 * 60 * 1000
+
+	for _, email := range emails {
+		email = strings.TrimSpace(email)
+		if email == "" {
+			continue
+		}
+		rec, err := s.GetRecordByEmail(nil, email)
+		if err != nil {
+			result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: err.Error()})
+			continue
+		}
+		client := rec.ToClient()
+
+		applied := false
+		if addDays != 0 {
+			switch {
+			case rec.ExpiryTime == 0:
+				result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "unlimited expiry"})
+			case rec.ExpiryTime > 0:
+				next := rec.ExpiryTime + addExpiryMs
+				if next <= 0 {
+					result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "reduction exceeds remaining time"})
+				} else {
+					client.ExpiryTime = next
+					applied = true
+				}
+			default:
+				next := rec.ExpiryTime - addExpiryMs
+				if next >= 0 {
+					result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "reduction exceeds delay window"})
+				} else {
+					client.ExpiryTime = next
+					applied = true
+				}
+			}
+		}
+		if addBytes != 0 {
+			if rec.TotalGB == 0 {
+				result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "unlimited traffic"})
+			} else {
+				next := rec.TotalGB + addBytes
+				if next < 0 {
+					next = 0
+				}
+				client.TotalGB = next
+				applied = true
+			}
+		}
+		if !applied {
+			continue
+		}
+
+		nr, err := s.Update(inboundSvc, rec.Id, *client)
+		if err != nil {
+			result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: err.Error()})
+			continue
+		}
+		if nr {
+			needRestart = true
+		}
+		result.Adjusted++
+	}
+	return result, needRestart, nil
 }
 
 func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, error) {
@@ -1167,6 +1625,30 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			oldEmail = oldClient.Email
 			clientIndex = index
 			break
+		}
+	}
+
+	if clientIndex == -1 {
+		var rec model.ClientRecord
+		var lookupErr error
+		switch oldInbound.Protocol {
+		case "trojan":
+			lookupErr = database.GetDB().Where("password = ?", clientId).First(&rec).Error
+		case "shadowsocks":
+			lookupErr = database.GetDB().Where("email = ?", clientId).First(&rec).Error
+		case "hysteria", "hysteria2":
+			lookupErr = database.GetDB().Where("auth = ?", clientId).First(&rec).Error
+		default:
+			lookupErr = database.GetDB().Where("uuid = ?", clientId).First(&rec).Error
+		}
+		if lookupErr == nil && rec.Email != "" {
+			for index, oldClient := range oldClients {
+				if oldClient.Email == rec.Email {
+					oldEmail = oldClient.Email
+					clientIndex = index
+					break
+				}
+			}
 		}
 	}
 

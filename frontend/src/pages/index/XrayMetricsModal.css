@@ -1,0 +1,69 @@
+.metrics-alert {
+  margin-bottom: 10px;
+}
+
+.obs-pane {
+  padding: 4px 16px 0;
+}
+
+.obs-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.obs-select {
+  min-width: 240px;
+}
+
+.obs-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.obs-stamp {
+  opacity: 0.7;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+}
+
+.obs-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+  box-shadow: 0 0 0 3px rgba(82, 196, 26, 0.18);
+}
+
+.obs-dot.is-alive {
+  background: #52c41a;
+  box-shadow: 0 0 0 3px rgba(82, 196, 26, 0.22);
+  animation: obs-dot-pulse 2.2s ease-in-out infinite;
+}
+
+.obs-dot.is-dead {
+  background: #f5222d;
+  box-shadow: 0 0 0 3px rgba(245, 34, 45, 0.22);
+}
+
+@keyframes obs-dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(82, 196, 26, 0.22); }
+  50% { box-shadow: 0 0 0 6px rgba(82, 196, 26, 0.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .obs-dot.is-alive { animation: none; }
+}
+
+.listen-tag {
+  opacity: 0.7;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}

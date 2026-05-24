@@ -174,20 +174,6 @@ func (s *SubService) getClientTraffics(traffics []xray.ClientTraffic, email stri
 	return xray.ClientTraffic{}
 }
 
-func (s *SubService) getFallbackMaster(dest string, streamSettings string) (string, int, string, error) {
-	db := database.GetDB()
-	var inbound *model.Inbound
-	err := db.Model(model.Inbound{}).
-		Where("JSON_TYPE(settings, '$.fallbacks') = 'array'").
-		Where("EXISTS (SELECT * FROM json_each(settings, '$.fallbacks') WHERE json_extract(value, '$.dest') = ?)", dest).
-		Find(&inbound).Error
-	if err != nil {
-		return "", 0, "", err
-	}
-
-	return inbound.Listen, inbound.Port, mergeStreamFromMaster(streamSettings, inbound.StreamSettings), nil
-}
-
 // projectThroughFallbackMaster mutates the inbound in place so its
 // Listen/Port/StreamSettings reflect the externally reachable master
 // when applicable. Covers both fallback mechanisms:

@@ -188,9 +188,6 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 	}
 
 	// JSON-marshal the view-model so the SPA can read it as a plain
-	// object on mount. PageData fields are already in the shape the Vue
-	// component expects, plus a `links` array carrying the rendered
-	// share URLs.
 	// The panel's "Calendar Type" setting decides whether the SubPage
 	// renders dates in Gregorian or Jalali — surface it here so the SPA
 	// can match the rest of the panel without a round-trip.

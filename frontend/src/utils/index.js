@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { message as antMessage } from 'ant-design-vue';
+import { getMessage } from './messageBus';
 
 export class Msg {
     constructor(success = false, msg = "", obj = null) {
@@ -15,7 +15,7 @@ export class HttpUtil {
             return;
         }
         const messageType = msg.success ? 'success' : 'error';
-        antMessage[messageType](msg.msg);
+        getMessage()[messageType](msg.msg);
     }
 
     static _respToMsg(resp) {
@@ -238,7 +238,7 @@ export class ObjectUtil {
     }
 
     static isArrEmpty(arr) {
-        return !this.isEmpty(arr) && arr.length === 0;
+        return !Array.isArray(arr) || arr.length === 0;
     }
 
     static copyArr(dest, src) {
@@ -536,34 +536,59 @@ export class Wireguard {
 }
 
 export class ClipboardManager {
-    static copyText(content = "") {
-        // !! here old way of copying is used because not everyone can afford https connection
-        return new Promise((resolve) => {
+    static async copyText(content = "") {
+        const text = String(content ?? "");
+        if (navigator.clipboard && window.isSecureContext) {
             try {
-                const textarea = window.document.createElement('textarea');
-
-                textarea.style.fontSize = '12pt';
-                textarea.style.border = '0';
-                textarea.style.padding = '0';
-                textarea.style.margin = '0';
-                textarea.style.position = 'absolute';
-                textarea.style.left = '-9999px';
-                textarea.style.top = `${window.pageYOffset || document.documentElement.scrollTop}px`;
-                textarea.setAttribute('readonly', '');
-                textarea.value = content;
-
-                window.document.body.appendChild(textarea);
-
-                textarea.select();
-                window.document.execCommand("copy");
-
-                window.document.body.removeChild(textarea);
-
-                resolve(true)
+                await navigator.clipboard.writeText(text);
+                return true;
             } catch {
-                resolve(false)
+                /* fall through to legacy path */
             }
-        })
+        }
+        return ClipboardManager._legacyCopy(text);
+    }
+
+    static _legacyCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.setAttribute('aria-hidden', 'true');
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        textarea.style.opacity = '1';
+
+        const active = document.activeElement;
+        const host = (active && active !== document.body && active.parentElement)
+            ? active.parentElement
+            : document.body;
+        host.appendChild(textarea);
+
+        const prevSelection = document.getSelection()?.rangeCount
+            ? document.getSelection().getRangeAt(0)
+            : null;
+
+        let ok = false;
+        try {
+            textarea.focus({ preventScroll: true });
+            textarea.select();
+            textarea.setSelectionRange(0, text.length);
+            ok = document.execCommand('copy');
+        } catch {
+            /* keep ok as false */
+        }
+
+        host.removeChild(textarea);
+        if (active && typeof active.focus === 'function') {
+            try { active.focus({ preventScroll: true }); } catch { /* ignore */ }
+        }
+        if (prevSelection) {
+            const sel = document.getSelection();
+            sel?.removeAllRanges();
+            sel?.addRange(prevSelection);
+        }
+        return ok;
     }
 }
 
@@ -900,24 +925,22 @@ export class FileManager {
 }
 
 export class IntlUtil {
-    // When `calendar` is "jalalian", append the BCP-47 calendar extension
-    // so Intl renders the date in the Persian (Jalali/Shamsi) calendar
-    // regardless of the UI language. Without it, only locales that
-    // default to Persian (e.g. fa-IR) would show Jalali; en-US/ru/etc.
-    // would keep showing Gregorian.
+    // For Jalali display, always use fa-IR locale (its default calendar
+    // is Persian) so we get a clean "1405/07/03 12:00:00" format with
+    // Persian digits, without the awkward "AP" era suffix that appears
+    // when other locales force `-u-ca-persian`.
     static formatDate(date, calendar = "gregorian") {
         const language = LanguageManager.getLanguage()
-        const locale = calendar === "jalalian"
-            ? `${language}-u-ca-persian`
-            : language
+        const locale = calendar === "jalalian" ? "fa-IR" : language
 
-        let intlOptions = {
+        const intlOptions = {
             year: "numeric",
-            month: "numeric",
-            day: "numeric",
-            hour: "numeric",
-            minute: "numeric",
-            second: "numeric"
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
         }
 
         const intl = new Intl.DateTimeFormat(

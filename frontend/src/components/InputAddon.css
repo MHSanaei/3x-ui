@@ -1,0 +1,40 @@
+.input-addon {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 11px;
+  height: 32px;
+  font-size: 14px;
+  line-height: 30px;
+  background-color: rgba(0, 0, 0, 0.02);
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  position: relative;
+  z-index: 1;
+  color: rgba(0, 0, 0, 0.88);
+  white-space: nowrap;
+}
+
+body.dark .input-addon,
+html[data-theme='ultra-dark'] .input-addon {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: #424242;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.ant-space-compact > .input-addon:not(:first-child) {
+  margin-inline-start: -1px;
+}
+
+.ant-space-compact > .input-addon:first-child {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.ant-space-compact > .input-addon:last-child {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+.ant-space-compact > .input-addon:not(:first-child):not(:last-child) {
+  border-radius: 0;
+}

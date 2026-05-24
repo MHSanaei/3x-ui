@@ -49,7 +49,6 @@ func Dialect() string {
 	return db.Dialector.Name()
 }
 
-
 const (
 	defaultUsername = "admin"
 	defaultPassword = "admin"
@@ -347,7 +346,15 @@ func isTableEmpty(tableName string) (bool, error) {
 func InitDB(dbPath string) error {
 	var gormLogger logger.Interface
 	if config.IsDebug() {
-		gormLogger = logger.Default
+		gormLogger = logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             time.Second,
+				LogLevel:                  logger.Info,
+				IgnoreRecordNotFoundError: true,
+				Colorful:                  true,
+			},
+		)
 	} else {
 		gormLogger = logger.Discard
 	}

@@ -1,0 +1,9 @@
+.status-card .text-center {
+  text-align: center;
+}
+
+.status-card .ant-progress-text,
+.status-card .ant-progress-indicator {
+  font-size: 12px !important;
+  font-weight: 500;
+}

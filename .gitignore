@@ -16,6 +16,9 @@ tmp/
 backup/
 bin/
 dist/
+!web/dist/
+web/dist/*
+!web/dist/.gitkeep
 release/
 node_modules/
 
