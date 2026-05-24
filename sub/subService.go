@@ -879,6 +879,24 @@ func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, se
 	}
 }
 
+// cloneStreamForExternalProxy returns a shallow clone of stream with
+// tlsSettings (and its nested settings map) deep-copied. The external
+// proxy loop mutates tlsSettings per iteration, so without isolating
+// those maps each proxy's SNI/fingerprint/ALPN would leak into the next.
+func cloneStreamForExternalProxy(stream map[string]any) map[string]any {
+	out := cloneMap(stream)
+	ts, ok := out["tlsSettings"].(map[string]any)
+	if !ok || ts == nil {
+		return out
+	}
+	clonedTs := cloneMap(ts)
+	if inner, ok := clonedTs["settings"].(map[string]any); ok && inner != nil {
+		clonedTs["settings"] = cloneMap(inner)
+	}
+	out["tlsSettings"] = clonedTs
+	return out
+}
+
 func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, security string) {
 	if security != "tls" {
 		return

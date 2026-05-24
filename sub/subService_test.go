@@ -478,6 +478,43 @@ func TestApplyExternalProxyTLSParams_FallsBackToDestSNI(t *testing.T) {
 	}
 }
 
+func TestApplyExternalProxyTLSToStream_DoesNotLeakAcrossProxies(t *testing.T) {
+	stream := map[string]any{
+		"security":    "tls",
+		"tlsSettings": map[string]any{},
+	}
+	proxies := []map[string]any{
+		{"dest": "a.example.com", "fingerprint": "chrome", "alpn": []any{"h3"}},
+		{"dest": "b.example.com"},
+	}
+
+	results := make([]map[string]any, 0, len(proxies))
+	for _, ep := range proxies {
+		working := cloneStreamForExternalProxy(stream)
+		applyExternalProxyTLSToStream(ep, working, "tls")
+		ts := working["tlsSettings"].(map[string]any)
+		snapshot := map[string]any{
+			"serverName":  ts["serverName"],
+			"fingerprint": ts["fingerprint"],
+			"alpn":        ts["alpn"],
+		}
+		results = append(results, snapshot)
+	}
+
+	if results[0]["serverName"] != "a.example.com" || results[0]["fingerprint"] != "chrome" {
+		t.Fatalf("proxy A snapshot = %v", results[0])
+	}
+	if results[1]["serverName"] != "b.example.com" {
+		t.Fatalf("proxy B serverName = %v, want b.example.com", results[1]["serverName"])
+	}
+	if results[1]["fingerprint"] != nil {
+		t.Fatalf("proxy B should inherit no fingerprint, got %v (leaked from A)", results[1]["fingerprint"])
+	}
+	if results[1]["alpn"] != nil {
+		t.Fatalf("proxy B should inherit no alpn, got %v (leaked from A)", results[1]["alpn"])
+	}
+}
+
 func TestApplyExternalProxyTLSParams_DoesNotApplyForNone(t *testing.T) {
 	params := map[string]string{
 		"security": "none",

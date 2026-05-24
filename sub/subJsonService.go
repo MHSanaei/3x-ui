@@ -192,7 +192,7 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 		extPrxy := ep.(map[string]any)
 		inbound.Listen = extPrxy["dest"].(string)
 		inbound.Port = int(extPrxy["port"].(float64))
-		newStream := stream
+		newStream := cloneStreamForExternalProxy(stream)
 		switch extPrxy["forceTls"].(string) {
 		case "tls":
 			if newStream["security"] != "tls" {

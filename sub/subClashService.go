@@ -139,7 +139,7 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 		workingInbound := *inbound
 		workingInbound.Listen = extPrxy["dest"].(string)
 		workingInbound.Port = int(extPrxy["port"].(float64))
-		workingStream := cloneMap(stream)
+		workingStream := cloneStreamForExternalProxy(stream)
 
 		switch extPrxy["forceTls"].(string) {
 		case "tls":
