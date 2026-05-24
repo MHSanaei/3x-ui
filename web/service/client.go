@@ -222,9 +222,7 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			if incoming.Auth != "" {
 				row.Auth = incoming.Auth
 			}
-			if incoming.Flow != "" {
-				row.Flow = incoming.Flow
-			}
+			row.Flow = incoming.Flow
 			if incoming.Security != "" {
 				row.Security = incoming.Security
 			}

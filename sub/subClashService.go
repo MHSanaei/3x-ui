@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-json"
 	yaml "github.com/goccy/go-yaml"
@@ -63,12 +64,13 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		return "", "", nil
 	}
 
+	now := time.Now().UnixMilli()
 	for index, clientTraffic := range clientTraffics {
 		if index == 0 {
 			traffic.Up = clientTraffic.Up
 			traffic.Down = clientTraffic.Down
 			traffic.Total = clientTraffic.Total
-			traffic.ExpiryTime = subscriptionExpiryFromClient(clientTraffic.ExpiryTime)
+			traffic.ExpiryTime = subscriptionExpiryFromClient(now, clientTraffic.ExpiryTime)
 		} else {
 			traffic.Up += clientTraffic.Up
 			traffic.Down += clientTraffic.Down
@@ -77,7 +79,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 			} else {
 				traffic.Total += clientTraffic.Total
 			}
-			normalized := subscriptionExpiryFromClient(clientTraffic.ExpiryTime)
+			normalized := subscriptionExpiryFromClient(now, clientTraffic.ExpiryTime)
 			if normalized != traffic.ExpiryTime {
 				traffic.ExpiryTime = 0
 			}
