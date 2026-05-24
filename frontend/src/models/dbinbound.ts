@@ -1,16 +1,62 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import dayjs, { type Dayjs } from 'dayjs';
 import { ObjectUtil, NumberFormatter, SizeFormatter } from '@/utils';
 import { Inbound, Protocols } from './inbound';
 
-export function coerceInboundJsonField(value: unknown): any {
+export type RawJsonField = string | Record<string, unknown> | unknown[];
+
+export interface ClientStats {
+    email: string;
+    up: number;
+    down: number;
+    total: number;
+    expiryTime: number;
+    enable?: boolean;
+    inboundId?: number;
+    reset?: number;
+}
+
+export interface FallbackParentRef {
+    masterId: number;
+    path: string;
+}
+
+export type DBInboundInit = Partial<{
+    id: number;
+    userId: number;
+    up: number;
+    down: number;
+    total: number;
+    remark: string;
+    enable: boolean;
+    expiryTime: number;
+    trafficReset: string;
+    lastTrafficResetTime: number;
+    listen: string;
+    port: number;
+    protocol: string;
+    settings: RawJsonField;
+    streamSettings: RawJsonField;
+    tag: string;
+    sniffing: RawJsonField;
+    clientStats: ClientStats[] | string;
+    nodeId: number | null;
+    fallbackParent: FallbackParentRef | null;
+}>;
+
+export function coerceInboundJsonField(value: unknown): Record<string, unknown> {
     if (value == null) return {};
-    if (typeof value === 'object') return value;
+    if (typeof value === 'object' && !Array.isArray(value)) {
+        return value as Record<string, unknown>;
+    }
     if (typeof value !== 'string') return {};
     const trimmed = value.trim();
     if (trimmed === '') return {};
     try {
-        return JSON.parse(trimmed);
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            return parsed as Record<string, unknown>;
+        }
+        return {};
     } catch {
         return {};
     }
@@ -31,18 +77,18 @@ export class DBInbound {
     listen: string;
     port: number;
     protocol: string;
-    settings: any;
-    streamSettings: any;
+    settings: RawJsonField;
+    streamSettings: RawJsonField;
     tag: string;
-    sniffing: any;
-    clientStats: any;
+    sniffing: RawJsonField;
+    clientStats: ClientStats[] | string;
     nodeId: number | null;
-    fallbackParent: { masterId: number; path: string } | null;
+    fallbackParent: FallbackParentRef | null;
 
-    private _cachedInbound: any = null;
-    private _clientStatsMap: Map<string, any> | null = null;
+    private _cachedInbound: Inbound | null = null;
+    private _clientStatsMap: Map<string, ClientStats> | null = null;
 
-    constructor(data?: any) {
+    constructor(data?: DBInboundInit) {
         this.id = 0;
         this.userId = 0;
         this.up = 0;
@@ -142,7 +188,7 @@ export class DBInbound {
         this._clientStatsMap = null;
     }
 
-    toInbound(): any {
+    toInbound(): Inbound {
         if (this._cachedInbound) {
             return this._cachedInbound;
         }
@@ -166,12 +212,14 @@ export class DBInbound {
         return this._cachedInbound;
     }
 
-    getClientStats(email: string): any {
+    getClientStats(email: string): ClientStats | undefined {
         if (!this._clientStatsMap) {
             this._clientStatsMap = new Map();
-            if (this.clientStats && Array.isArray(this.clientStats)) {
+            if (Array.isArray(this.clientStats)) {
                 for (const stats of this.clientStats) {
-                    this._clientStatsMap.set(stats.email, stats);
+                    if (stats && stats.email) {
+                        this._clientStatsMap.set(stats.email, stats);
+                    }
                 }
             }
         }
@@ -205,7 +253,7 @@ export class DBInbound {
         }
     }
 
-    genInboundLinks(remarkModel: string, hostOverride: string = ''): any[] {
+    genInboundLinks(remarkModel: string, hostOverride: string = ''): string {
         const inbound = this.toInbound();
         return inbound.genInboundLinks(this.remark, remarkModel, hostOverride);
     }
