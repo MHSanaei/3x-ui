@@ -1,77 +1,164 @@
 name: Bug report
-description: Create a report to help us improve
-title: "Bug report"
-labels: ["bug"]
+description: Report something that is broken or behaving unexpectedly
+title: "[Bug]: "
+labels: ["bug", "needs triage"]
 
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for reporting a bug! Please fill out the following information.
+        Thanks for taking the time to file a bug. A complete report helps us
+        reproduce and fix it quickly. Please **search [existing issues](../issues?q=is%3Aissue)**
+        before opening a new one — duplicates will be closed.
 
   - type: textarea
     id: what-happened
     attributes:
       label: Describe the bug
-      description: A clear and concise description of what the bug is.
-      placeholder: My problem is...
+      description: A clear and concise description of what went wrong.
+      placeholder: When I … the panel does … but I expected it to …
     validations:
       required: true
 
   - type: textarea
     id: how-repeat-problem
     attributes:
-      label: How to repeat the problem?
-      description: Sequence of actions that allow you to reproduce the bug
+      label: How to reproduce the problem
+      description: Numbered steps starting from a clean state. The clearer the steps, the faster the fix.
       placeholder: |
-        1. Open `Inbounds` page
-        2. ...
+        1. Open the `Inbounds` page
+        2. Create a new VLESS inbound with …
+        3. Click `Save`
+        4. Observe …
     validations:
       required: true
 
   - type: textarea
     id: expected-action
     attributes:
-      label: Expected action
-      description: What's going to happen
-      placeholder: Must be...
+      label: Expected behavior
+      placeholder: I expected the panel to …
     validations:
       required: false
 
   - type: textarea
     id: received-action
     attributes:
-      label: Received action
-      description: What's really happening
-      placeholder: It's actually happening...
+      label: Actual behavior
+      placeholder: Instead, the panel …
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: |
+        Panel logs (`journalctl -u x-ui -n 200`) and/or the browser DevTools
+        console output. **Redact** tokens, real domains, IPs, and client UUIDs.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag images directly into this field. Redact any sensitive data.
     validations:
       required: false
 
   - type: input
     id: xui-version
     attributes:
-      label: 3x-ui Version
-      description: Which version of 3x-ui are you using?
-      placeholder: 2.X.X
+      label: 3x-ui version
+      description: Shown at the top of the panel sidebar.
+      placeholder: 3.1.0
     validations:
       required: true
 
   - type: input
     id: xray-version
     attributes:
-      label: Xray-core Version
-      description: Which version of Xray-core are you using?
-      placeholder: 2.X.X
+      label: Xray-core version
+      description: Visible on the `Xray Settings` page.
+      placeholder: 25.x.x
+    validations:
+      required: false
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How did you install 3x-ui?
+      options:
+        - install.sh script
+        - Docker / Docker Compose
+        - Manual build from source
+        - Other (please describe in the bug body)
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: Distribution and version.
+      placeholder: Ubuntu 24.04 / Debian 12 / CentOS Stream 9 …
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which parts of the panel are affected?
+      multiple: true
+      options:
+        - Frontend (UI / panel pages)
+        - Backend (API endpoints, login, settings)
+        - Xray config generation
+        - Subscription (share links / Clash / JSON)
+        - Statistics / traffic counters
+        - Database / migrations
+        - Install / upgrade script
+        - Docker image
+        - Multi-node (sub-nodes)
+        - Telegram bot
+        - Other
+    validations:
+      required: false
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser (only if it is a UI bug)
+      placeholder: Chrome 132 / Firefox 134 / Safari 18 / mobile Chrome …
+    validations:
+      required: false
+
+  - type: dropdown
+    id: reverse-proxy
+    attributes:
+      label: Is the panel behind a reverse proxy or CDN?
+      options:
+        - "No — direct access"
+        - "Yes — Nginx"
+        - "Yes — Caddy"
+        - "Yes — Cloudflare (proxied DNS)"
+        - "Yes — Cloudflare Tunnel"
+        - "Yes — other"
     validations:
       required: false
 
   - type: checkboxes
     id: checklist
     attributes:
-      label: Checklist
-      description: Please check all the checkboxes
+      label: Before submitting
       options:
-        - label: This bug report is written entirely in English.
+        - label: I searched [existing issues](../issues?q=is%3Aissue) and this bug has not been reported.
           required: true
-        - label: This bug report is new and no one has reported it before me.
+        - label: I am running the latest released version of 3x-ui (or have verified the bug still exists on it).
+          required: true
+        - label: This bug report is written in English.
+          required: true
+        - label: I have redacted any sensitive data (tokens, real domains, client UUIDs).
           required: true
