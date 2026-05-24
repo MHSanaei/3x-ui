@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Button, Collapse, Input, Modal, Select, Space, Switch } from 'antd';
 import { ExclamationCircleFilled, CloudOutlined, ApiOutlined } from '@ant-design/icons';
 
-import { OutboundDomainStrategies } from '@/models/outbound.js';
+import { OutboundDomainStrategies } from '@/models/outbound';
 import SettingListItem from '@/components/SettingListItem';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
 import './BasicsTab.css';

@@ -3,7 +3,7 @@ import { Button, Divider, Form, Input, InputNumber, Select, Switch } from 'antd'
 import { DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { RandomUtil } from '@/utils';
-import { Protocols } from '@/models/outbound.js';
+import { Protocols } from '@/models/outbound';
 
 interface StreamShape {
   network?: string;

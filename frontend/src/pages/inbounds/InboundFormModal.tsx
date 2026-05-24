@@ -55,7 +55,7 @@ import {
   DOMAIN_STRATEGY_OPTION,
   TCP_CONGESTION_OPTION,
   MODE_OPTION,
-} from '@/models/inbound.js';
+} from '@/models/inbound';
 import { DBInbound } from '@/models/dbinbound';
 import FinalMaskForm from '@/components/FinalMaskForm';
 import DateTimePicker from '@/components/DateTimePicker';

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { HttpUtil } from '@/utils';
 import { DBInbound } from '@/models/dbinbound';
-import { Protocols } from '@/models/inbound.js';
+import { Protocols } from '@/models/inbound';
 import { setDatepicker } from '@/hooks/useDatepicker';
 import { keys } from '@/api/queryKeys';
 
