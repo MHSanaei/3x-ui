@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client';
+import { RouterProvider } from 'react-router-dom';
 import { message } from 'antd';
 import 'antd/dist/reset.css';
 
@@ -7,7 +8,7 @@ import { applyDocumentTitle } from '@/utils';
 import { readyI18n } from '@/i18n/react';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { QueryProvider } from '@/api/QueryProvider';
-import ClientsPage from '@/pages/clients/ClientsPage';
+import { router } from '@/routes';
 
 setupAxios();
 applyDocumentTitle();
@@ -23,7 +24,7 @@ readyI18n().then(() => {
     createRoot(root).render(
       <ThemeProvider>
         <QueryProvider>
-          <ClientsPage />
+          <RouterProvider router={router} />
         </QueryProvider>
       </ThemeProvider>,
     );

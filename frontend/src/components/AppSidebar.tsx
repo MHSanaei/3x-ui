@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Drawer, Layout, Menu } from 'antd';
 import type { MenuProps } from 'antd';
@@ -23,11 +24,7 @@ import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
 const DONATE_URL = 'https://donate.sanaei.dev/';
-
-interface AppSidebarProps {
-  basePath?: string;
-  requestUri?: string;
-}
+const LOGOUT_KEY = '__logout__';
 
 type IconName = 'dashboard' | 'user' | 'team' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
 
@@ -100,30 +97,33 @@ function ThemeCycleButton({ id, isDark, isUltra, onCycle, ariaLabel }: {
   );
 }
 
-export default function AppSidebar({ basePath = '', requestUri = '' }: AppSidebarProps) {
+export default function AppSidebar() {
   const { t } = useTranslation();
   const { isDark, isUltra, toggleTheme, toggleUltra } = useTheme();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed());
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const prefix = basePath.startsWith('/') ? basePath : `/${basePath || ''}`;
   const currentTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
   const panelVersion = window.X_UI_CUR_VER || '';
 
   const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(() => [
-    { key: `${prefix}panel/`, icon: 'dashboard', title: t('menu.dashboard') },
-    { key: `${prefix}panel/inbounds`, icon: 'user', title: t('menu.inbounds') },
-    { key: `${prefix}panel/clients`, icon: 'team', title: t('menu.clients') },
-    { key: `${prefix}panel/nodes`, icon: 'cluster', title: t('menu.nodes') },
-    { key: `${prefix}panel/settings`, icon: 'setting', title: t('menu.settings') },
-    { key: `${prefix}panel/xray`, icon: 'tool', title: t('menu.xray') },
-    { key: `${prefix}panel/api-docs`, icon: 'apidocs', title: t('menu.apiDocs') },
-    { key: 'logout', icon: 'logout', title: t('logout') },
-  ], [prefix, t]);
+    { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
+    { key: '/inbounds', icon: 'user', title: t('menu.inbounds') },
+    { key: '/clients', icon: 'team', title: t('menu.clients') },
+    { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
+    { key: '/settings', icon: 'setting', title: t('menu.settings') },
+    { key: '/xray', icon: 'tool', title: t('menu.xray') },
+    { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
+    { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
+  ], [t]);
 
   const navItems = useMemo(() => tabs.filter((tab) => tab.icon !== 'logout'), [tabs]);
   const utilItems = useMemo(() => tabs.filter((tab) => tab.icon === 'logout'), [tabs]);
+
+  const selectedKey = pathname === '' ? '/' : pathname;
 
   const toMenuItems = useCallback((items: typeof tabs): MenuProps['items'] =>
     items.map((tab) => {
@@ -137,17 +137,13 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
   []);
 
   const openLink = useCallback(async (key: string) => {
-    if (key === 'logout') {
+    if (key === LOGOUT_KEY) {
       await HttpUtil.post('/logout');
-      window.location.href = basePath || '/';
+      window.location.href = window.X_UI_BASE_PATH || '/';
       return;
     }
-    if (key.startsWith('http')) {
-      window.open(key);
-    } else {
-      window.location.href = key;
-    }
-  }, [basePath]);
+    navigate(key);
+  }, [navigate]);
 
   const onMenuClick = useCallback<NonNullable<MenuProps['onClick']>>(({ key }) => {
     openLink(String(key));
@@ -205,7 +201,7 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         <Menu
           theme={currentTheme}
           mode="inline"
-          selectedKeys={[requestUri]}
+          selectedKeys={[selectedKey]}
           className="sider-nav"
           items={toMenuItems(navItems)}
           onClick={onMenuClick}
@@ -213,7 +209,7 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         <Menu
           theme={currentTheme}
           mode="inline"
-          selectedKeys={[requestUri]}
+          selectedKeys={[selectedKey]}
           className="sider-utility"
           items={toMenuItems(utilItems)}
           onClick={onMenuClick}
@@ -260,7 +256,7 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         <Menu
           theme={currentTheme}
           mode="inline"
-          selectedKeys={[requestUri]}
+          selectedKeys={[selectedKey]}
           className="drawer-menu drawer-nav"
           items={toMenuItems(navItems)}
           onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}
@@ -268,7 +264,7 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         <Menu
           theme={currentTheme}
           mode="inline"
-          selectedKeys={[requestUri]}
+          selectedKeys={[selectedKey]}
           className="drawer-menu drawer-utility"
           items={toMenuItems(utilItems)}
           onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}

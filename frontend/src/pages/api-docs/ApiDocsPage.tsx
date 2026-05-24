@@ -47,7 +47,6 @@ const curlExample = `curl -X GET \\
   https://your-panel.example.com/panel/api/inbounds/list`;
 
 const basePath = window.X_UI_BASE_PATH || '';
-const requestUri = window.location.pathname;
 const settingsHref = `${basePath}panel/settings#security`;
 
 const endpointCount = (allSections as Section[]).reduce(
@@ -148,7 +147,7 @@ export default function ApiDocsPage() {
   return (
     <ConfigProvider theme={antdThemeConfig}>
       <Layout className={pageClass}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content className="content-area">

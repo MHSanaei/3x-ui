@@ -140,9 +140,6 @@ export default function XrayPage() {
   const warpExist = !!templateSettings?.outbounds?.find((o) => o?.tag === 'warp');
   const nordExist = !!templateSettings?.outbounds?.find((o) => o?.tag?.startsWith?.('nord-'));
 
-  const basePath = window.X_UI_BASE_PATH || '';
-  const requestUri = window.location.pathname;
-
   async function onTestOutbound(idx: number, mode: string) {
     const outbound = templateSettings?.outbounds?.[idx];
     if (outbound) await testOutbound(idx, outbound, mode);
@@ -259,7 +256,7 @@ export default function XrayPage() {
       {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">

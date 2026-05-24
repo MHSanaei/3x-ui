@@ -72,7 +72,6 @@ export default function IndexPage() {
   });
 
   const basePath = window.X_UI_BASE_PATH || '';
-  const requestUri = window.location.pathname;
 
   const [showIp, setShowIp] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
@@ -158,7 +157,7 @@ export default function IndexPage() {
     <ConfigProvider theme={antdThemeConfig}>
       {messageContextHolder}
       <Layout className={pageClass}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content className="content-area">

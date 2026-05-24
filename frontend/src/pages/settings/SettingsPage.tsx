@@ -42,8 +42,6 @@ interface ApiMsg {
   success?: boolean;
 }
 
-const basePath = window.X_UI_BASE_PATH || '';
-const requestUri = window.location.pathname;
 const tabSlugs = ['general', 'security', 'telegram', 'subscription', 'subscription-formats'];
 
 function slugToKey(slug: string): string {
@@ -270,7 +268,7 @@ export default function SettingsPage() {
       {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">

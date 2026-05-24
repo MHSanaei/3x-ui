@@ -449,15 +449,12 @@ export default function InboundsPage() {
     }
   }, [hydrateInbound, openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmClone, messageApi]);
 
-  const basePath = (typeof window !== 'undefined' && window.X_UI_BASE_PATH) || '';
-  const requestUri = typeof window !== 'undefined' ? window.location.pathname : '';
-
   return (
     <ConfigProvider theme={antdThemeConfig}>
       {messageContextHolder}
       {modalContextHolder}
       <Layout className={`inbounds-page${isDark ? ' is-dark' : ''}${isUltra ? ' is-ultra' : ''}`}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">

@@ -21,9 +21,6 @@ import { setMessageInstance } from '@/utils/messageBus';
 import '@/styles/page-cards.css';
 import './NodesPage.css';
 
-const basePath = window.X_UI_BASE_PATH || '';
-const requestUri = window.location.pathname;
-
 export default function NodesPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
@@ -112,7 +109,7 @@ export default function NodesPage() {
       {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
