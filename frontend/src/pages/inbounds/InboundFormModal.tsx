@@ -56,7 +56,7 @@ import {
   TCP_CONGESTION_OPTION,
   MODE_OPTION,
 } from '@/models/inbound.js';
-import { DBInbound } from '@/models/dbinbound.js';
+import { DBInbound } from '@/models/dbinbound';
 import FinalMaskForm from '@/components/FinalMaskForm';
 import DateTimePicker from '@/components/DateTimePicker';
 import JsonEditor from '@/components/JsonEditor';

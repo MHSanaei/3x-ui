@@ -21,7 +21,7 @@ import {
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
 import { Inbound } from '@/models/inbound.js';
-import { coerceInboundJsonField } from '@/models/dbinbound.js';
+import { coerceInboundJsonField } from '@/models/dbinbound';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';

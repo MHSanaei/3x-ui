@@ -1,8 +1,9 @@
-import dayjs from 'dayjs';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import dayjs, { type Dayjs } from 'dayjs';
 import { ObjectUtil, NumberFormatter, SizeFormatter } from '@/utils';
-import { Inbound, Protocols } from './inbound.js';
+import { Inbound, Protocols } from './inbound';
 
-export function coerceInboundJsonField(value) {
+export function coerceInboundJsonField(value: unknown): any {
     if (value == null) return {};
     if (typeof value === 'object') return value;
     if (typeof value !== 'string') return {};
@@ -10,14 +11,38 @@ export function coerceInboundJsonField(value) {
     if (trimmed === '') return {};
     try {
         return JSON.parse(trimmed);
-    } catch (_e) {
+    } catch {
         return {};
     }
 }
 
 export class DBInbound {
+    id: number;
+    userId: number;
+    up: number;
+    down: number;
+    total: number;
+    remark: string;
+    enable: boolean;
+    expiryTime: number;
+    trafficReset: string;
+    lastTrafficResetTime: number;
 
-    constructor(data) {
+    listen: string;
+    port: number;
+    protocol: string;
+    settings: any;
+    streamSettings: any;
+    tag: string;
+    sniffing: any;
+    clientStats: any;
+    nodeId: number | null;
+    fallbackParent: { masterId: number; path: string } | null;
+
+    private _cachedInbound: any = null;
+    private _clientStatsMap: Map<string, any> | null = null;
+
+    constructor(data?: any) {
         this.id = 0;
         this.userId = 0;
         this.up = 0;
@@ -36,12 +61,8 @@ export class DBInbound {
         this.streamSettings = "";
         this.tag = "";
         this.sniffing = "";
-        this.clientStats = ""
-        // Optional FK to web/runtime registered Node. null/undefined =
-        // local panel; otherwise the inbound lives on the named node.
+        this.clientStats = "";
         this.nodeId = null;
-        // Populated by the API when this inbound is a fallback child of
-        // a VLESS/Trojan TCP-TLS master. Shape: { masterId, path }.
         this.fallbackParent = null;
         if (data == null) {
             return;
@@ -49,11 +70,11 @@ export class DBInbound {
         ObjectUtil.cloneProps(this, data);
     }
 
-    get totalGB() {
+    get totalGB(): number {
         return NumberFormatter.toFixed(this.total / SizeFormatter.ONE_GB, 2);
     }
 
-    set totalGB(gb) {
+    set totalGB(gb: number) {
         this.total = NumberFormatter.toFixed(gb * SizeFormatter.ONE_GB, 0);
     }
 
@@ -89,7 +110,7 @@ export class DBInbound {
         return this.protocol === Protocols.HYSTERIA;
     }
 
-    get address() {
+    get address(): string {
         let address = location.hostname;
         if (!ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0") {
             address = this.listen;
@@ -97,14 +118,14 @@ export class DBInbound {
         return address;
     }
 
-    get _expiryTime() {
+    get _expiryTime(): Dayjs | null {
         if (this.expiryTime === 0) {
             return null;
         }
         return dayjs(this.expiryTime);
     }
 
-    set _expiryTime(t) {
+    set _expiryTime(t: Dayjs | null | undefined) {
         if (t == null) {
             this.expiryTime = 0;
         } else {
@@ -112,16 +133,16 @@ export class DBInbound {
         }
     }
 
-    get isExpiry() {
+    get isExpiry(): boolean {
         return this.expiryTime < new Date().getTime();
     }
 
-    invalidateCache() {
+    invalidateCache(): void {
         this._cachedInbound = null;
         this._clientStatsMap = null;
     }
 
-    toInbound() {
+    toInbound(): any {
         if (this._cachedInbound) {
             return this._cachedInbound;
         }
@@ -145,7 +166,7 @@ export class DBInbound {
         return this._cachedInbound;
     }
 
-    getClientStats(email) {
+    getClientStats(email: string): any {
         if (!this._clientStatsMap) {
             this._clientStatsMap = new Map();
             if (this.clientStats && Array.isArray(this.clientStats)) {
@@ -157,7 +178,7 @@ export class DBInbound {
         return this._clientStatsMap.get(email);
     }
 
-    isMultiUser() {
+    isMultiUser(): boolean {
         switch (this.protocol) {
             case Protocols.VMESS:
             case Protocols.VLESS:
@@ -171,7 +192,7 @@ export class DBInbound {
         }
     }
 
-    hasLink() {
+    hasLink(): boolean {
         switch (this.protocol) {
             case Protocols.VMESS:
             case Protocols.VLESS:
@@ -184,7 +205,7 @@ export class DBInbound {
         }
     }
 
-    genInboundLinks(remarkModel, hostOverride = '') {
+    genInboundLinks(remarkModel: string, hostOverride: string = ''): any[] {
         const inbound = this.toInbound();
         return inbound.genInboundLinks(this.remark, remarkModel, hostOverride);
     }
