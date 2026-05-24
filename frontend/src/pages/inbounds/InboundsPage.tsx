@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -21,7 +20,7 @@ import {
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
 import { Inbound } from '@/models/inbound';
-import { coerceInboundJsonField } from '@/models/dbinbound';
+import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -52,6 +51,12 @@ type RowAction =
   | 'clone';
 
 type GeneralAction = 'import' | 'export' | 'subs' | 'resetInbounds';
+
+interface ClientMatchTarget {
+  id?: string;
+  email?: string;
+  password?: string;
+}
 
 export default function InboundsPage() {
   const { t } = useTranslation();
@@ -94,7 +99,7 @@ export default function InboundsPage() {
     [nodesList],
   );
   const hasNodeAttachedInbound = useMemo(
-    () => (dbInbounds || []).some((ib: any) => ib?.nodeId != null),
+    () => (dbInbounds || []).some((ib) => ib?.nodeId != null),
     [dbInbounds],
   );
   const showNodeInfo = hasNodeAttachedInbound || hasActiveNode;
@@ -106,14 +111,14 @@ export default function InboundsPage() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
-  const [formDbInbound, setFormDbInbound] = useState<any>(null);
+  const [formDbInbound, setFormDbInbound] = useState<DBInbound | null>(null);
 
   const [infoOpen, setInfoOpen] = useState(false);
-  const [infoDbInbound, setInfoDbInbound] = useState<any>(null);
+  const [infoDbInbound, setInfoDbInbound] = useState<DBInbound | null>(null);
   const [infoClientIndex, setInfoClientIndex] = useState(0);
 
   const [qrOpen, setQrOpen] = useState(false);
-  const [qrDbInbound, setQrDbInbound] = useState<any>(null);
+  const [qrDbInbound, setQrDbInbound] = useState<DBInbound | null>(null);
 
   const [textOpen, setTextOpen] = useState(false);
   const [textTitle, setTextTitle] = useState('');
@@ -128,7 +133,7 @@ export default function InboundsPage() {
   const [promptLoading, setPromptLoading] = useState(false);
   const [promptHandler, setPromptHandler] = useState<((value: string) => Promise<boolean | void> | boolean | void) | null>(null);
 
-  const hostOverrideFor = useCallback((dbInbound: any) => {
+  const hostOverrideFor = useCallback((dbInbound: DBInbound | null) => {
     if (!dbInbound || dbInbound.nodeId == null) return '';
     return nodesById.get(dbInbound.nodeId)?.address || '';
   }, [nodesById]);
@@ -172,8 +177,8 @@ export default function InboundsPage() {
     }
   }, [promptHandler]);
 
-  const projectChildThroughMaster = useCallback((child: any, master: any) => {
-    const projected = JSON.parse(JSON.stringify(child));
+  const projectChildThroughMaster = useCallback((child: DBInbound, master: DBInbound): DBInbound => {
+    const projected = JSON.parse(JSON.stringify(child)) as DBInbound;
     projected.listen = master.listen;
     projected.port = master.port;
     const masterStream = master.toInbound().stream;
@@ -183,17 +188,18 @@ export default function InboundsPage() {
     childInbound.stream.reality = masterStream.reality;
     childInbound.stream.externalProxy = masterStream.externalProxy;
     projected.streamSettings = childInbound.stream.toString();
-    return new child.constructor(projected);
+    const Ctor = child.constructor as new (data: DBInbound) => DBInbound;
+    return new Ctor(projected);
   }, []);
 
-  const checkFallback = useCallback((dbInbound: any) => {
+  const checkFallback = useCallback((dbInbound: DBInbound): DBInbound => {
     const parent = dbInbound?.fallbackParent;
     if (parent?.masterId) {
-      const master = (dbInbounds as any[]).find((ib: any) => ib.id === parent.masterId);
+      const master = dbInbounds.find((ib) => ib.id === parent.masterId);
       if (master) return projectChildThroughMaster(dbInbound, master);
     }
-    if (!(dbInbound?.listen as string | undefined)?.startsWith?.('@')) return dbInbound;
-    for (const candidate of dbInbounds as any[]) {
+    if (!dbInbound?.listen?.startsWith?.('@')) return dbInbound;
+    for (const candidate of dbInbounds) {
       if (candidate.id === dbInbound.id) continue;
       const parsed = candidate.toInbound();
       if (!parsed.isTcp) continue;
@@ -205,11 +211,11 @@ export default function InboundsPage() {
     return dbInbound;
   }, [dbInbounds, projectChildThroughMaster]);
 
-  const findClientIndex = useCallback((dbInbound: any, client: any) => {
+  const findClientIndex = useCallback((dbInbound: DBInbound, client: ClientMatchTarget | null) => {
     if (!client) return 0;
     const inbound = dbInbound.toInbound();
-    const clients = inbound?.clients || [];
-    const idx = clients.findIndex((c: any) => {
+    const clients = (inbound?.clients || []) as ClientMatchTarget[];
+    const idx = clients.findIndex((c) => {
       if (!c) return false;
       switch (dbInbound.protocol) {
         case 'trojan':
@@ -222,7 +228,7 @@ export default function InboundsPage() {
     return idx >= 0 ? idx : 0;
   }, []);
 
-  const exportInboundLinks = useCallback((dbInbound: any) => {
+  const exportInboundLinks = useCallback((dbInbound: DBInbound) => {
     const projected = checkFallback(dbInbound);
     openText({
       title: t('pages.inbounds.exportLinksTitle'),
@@ -231,13 +237,13 @@ export default function InboundsPage() {
     });
   }, [checkFallback, remarkModel, hostOverrideFor, openText, t]);
 
-  const exportInboundClipboard = useCallback((dbInbound: any) => {
+  const exportInboundClipboard = useCallback((dbInbound: DBInbound) => {
     openText({ title: t('pages.inbounds.inboundJsonTitle'), content: JSON.stringify(dbInbound, null, 2) });
   }, [openText, t]);
 
-  const exportInboundSubs = useCallback((dbInbound: any) => {
+  const exportInboundSubs = useCallback((dbInbound: DBInbound) => {
     const inbound = dbInbound.toInbound();
-    const clients = inbound?.clients || [];
+    const clients = (inbound?.clients || []) as { subId?: string }[];
     const subLinks: string[] = [];
     for (const c of clients) {
       if (c.subId && subSettings.subURI) {
@@ -253,7 +259,7 @@ export default function InboundsPage() {
 
   const exportAllLinks = useCallback(async () => {
     const hydrated = await Promise.all(
-      (dbInbounds as any[]).map((ib) => hydrateInbound(ib.id).then((r) => r ?? ib)),
+      dbInbounds.map((ib) => hydrateInbound(ib.id).then((r) => r ?? ib)),
     );
     const out: string[] = [];
     for (const ib of hydrated) {
@@ -265,12 +271,12 @@ export default function InboundsPage() {
 
   const exportAllSubs = useCallback(async () => {
     const hydrated = await Promise.all(
-      (dbInbounds as any[]).map((ib) => hydrateInbound(ib.id).then((r) => r ?? ib)),
+      dbInbounds.map((ib) => hydrateInbound(ib.id).then((r) => r ?? ib)),
     );
     const out: string[] = [];
     for (const ib of hydrated) {
       const inbound = ib.toInbound();
-      const clients = inbound?.clients || [];
+      const clients = (inbound?.clients || []) as { subId?: string }[];
       for (const c of clients) {
         if (c.subId && subSettings.subURI) {
           out.push(subSettings.subURI + c.subId);
@@ -303,13 +309,13 @@ export default function InboundsPage() {
     setFormOpen(true);
   }, []);
 
-  const openEdit = useCallback((dbInbound: any) => {
+  const openEdit = useCallback((dbInbound: DBInbound) => {
     setFormMode('edit');
     setFormDbInbound(dbInbound);
     setFormOpen(true);
   }, []);
 
-  const confirmDelete = useCallback((dbInbound: any) => {
+  const confirmDelete = useCallback((dbInbound: DBInbound) => {
     modal.confirm({
       title: t('pages.inbounds.deleteConfirmTitle', { remark: dbInbound.remark }),
       content: t('pages.inbounds.deleteConfirmContent'),
@@ -323,7 +329,7 @@ export default function InboundsPage() {
     });
   }, [modal, refresh, t]);
 
-  const confirmResetTraffic = useCallback((dbInbound: any) => {
+  const confirmResetTraffic = useCallback((dbInbound: DBInbound) => {
     modal.confirm({
       title: t('pages.inbounds.resetConfirmTitle', { remark: dbInbound.remark }),
       content: t('pages.inbounds.resetConfirmContent'),
@@ -336,7 +342,7 @@ export default function InboundsPage() {
     });
   }, [modal, refresh, t]);
 
-  const confirmClone = useCallback((dbInbound: any) => {
+  const confirmClone = useCallback((dbInbound: DBInbound) => {
     modal.confirm({
       title: t('pages.inbounds.cloneConfirmTitle', { remark: dbInbound.remark }),
       content: t('pages.inbounds.cloneConfirmContent'),
@@ -350,7 +356,7 @@ export default function InboundsPage() {
           raw.clients = [];
           clonedSettings = JSON.stringify(raw);
         } catch {
-          clonedSettings = (Inbound as any).Settings.getSettings(baseInbound.protocol).toString();
+          clonedSettings = Inbound.Settings.getSettings(baseInbound.protocol).toString();
         }
         const data = {
           up: 0,
@@ -393,7 +399,7 @@ export default function InboundsPage() {
     }
   }, [modal, importInbound, exportAllLinks, exportAllSubs, refresh, messageApi]);
 
-  const onRowAction = useCallback(async ({ key, dbInbound }: { key: RowAction; dbInbound: any }) => {
+  const onRowAction = useCallback(async ({ key, dbInbound }: { key: RowAction; dbInbound: DBInbound }) => {
     // Actions that touch per-client secrets (uuid, password, flow, ...) need
     // the full payload that the slim list view does not ship. Hydrate first
     // and then operate on the rehydrated record.
@@ -483,7 +489,7 @@ export default function InboundsPage() {
 
                   <Col span={24}>
                     <InboundList
-                      dbInbounds={dbInbounds as any}
+                      dbInbounds={dbInbounds}
                       clientCount={clientCount}
                       onlineClients={onlineClients}
                       lastOnlineMap={lastOnlineMap}
@@ -496,7 +502,7 @@ export default function InboundsPage() {
                       hasActiveNode={showNodeInfo}
                       onAddInbound={onAddInbound}
                       onGeneralAction={onGeneralAction}
-                      onRowAction={onRowAction}
+                      onRowAction={({ key, dbInbound }) => onRowAction({ key, dbInbound: dbInbound as unknown as DBInbound })}
                     />
                   </Col>
                 </Row>
@@ -512,7 +518,7 @@ export default function InboundsPage() {
             onSaved={refresh}
             mode={formMode}
             dbInbound={formDbInbound}
-            dbInbounds={dbInbounds as any[]}
+            dbInbounds={dbInbounds}
             availableNodes={nodesList}
           />
         </LazyMount>

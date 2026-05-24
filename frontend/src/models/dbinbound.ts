@@ -38,7 +38,7 @@ export type DBInboundInit = Partial<{
     streamSettings: RawJsonField;
     tag: string;
     sniffing: RawJsonField;
-    clientStats: ClientStats[] | string;
+    clientStats: ClientStats[];
     nodeId: number | null;
     fallbackParent: FallbackParentRef | null;
 }>;
@@ -81,7 +81,7 @@ export class DBInbound {
     streamSettings: RawJsonField;
     tag: string;
     sniffing: RawJsonField;
-    clientStats: ClientStats[] | string;
+    clientStats: ClientStats[];
     nodeId: number | null;
     fallbackParent: FallbackParentRef | null;
 
@@ -107,7 +107,7 @@ export class DBInbound {
         this.streamSettings = "";
         this.tag = "";
         this.sniffing = "";
-        this.clientStats = "";
+        this.clientStats = [];
         this.nodeId = null;
         this.fallbackParent = null;
         if (data == null) {
