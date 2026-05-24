@@ -14,9 +14,11 @@ export const keys = {
   inbounds: {
     root: () => ['inbounds'] as const,
     slim: () => ['inbounds', 'slim'] as const,
+    options: () => ['inbounds', 'options'] as const,
   },
   clients: {
     root: () => ['clients'] as const,
+    list: (params: unknown) => ['clients', 'list', params] as const,
     onlines: () => ['clients', 'onlines'] as const,
     lastOnline: () => ['clients', 'lastOnline'] as const,
   },

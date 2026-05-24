@@ -106,14 +106,13 @@ export default function ClientsPage() {
     ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, removeMany, bulkAdjust, attach, detach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
-    applyTrafficEvent, applyClientStatsEvent, applyInvalidate,
+    applyTrafficEvent, applyClientStatsEvent,
     hydrate,
   } = useClients();
 
   useWebSocket({
     traffic: applyTrafficEvent,
     client_stats: applyClientStatsEvent,
-    invalidate: applyInvalidate,
   });
 
   const [togglingEmail, setTogglingEmail] = useState<string | null>(null);
