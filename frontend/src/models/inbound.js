@@ -499,14 +499,13 @@ export class HTTPUpgradeStreamSettings extends XrayCommonClass {
 // Mirrors the inbound (server-side) view of Xray-core's SplitHTTPConfig
 // (infra/conf/transport_internet.go). Only fields the server actually
 // reads at runtime, plus the bidirectional fields the server enforces,
-// live here. Client-only fields (uplinkHTTPMethod, uplinkChunkSize,
-// noGRPCHeader, scMinPostsIntervalMs, xmux, downloadSettings) belong on
-// the outbound class instead.
+// live here. Most client-only fields (uplinkChunkSize, noGRPCHeader,
+// scMinPostsIntervalMs, xmux, downloadSettings) belong on the outbound
+// class instead.
 //
-// `headers` is technically client-only at runtime (xray's listener
-// doesn't read it) but we keep it here so the admin can set request
-// headers that get embedded into the share link's `extra` blob — the
-// client picks them up from there.
+// `headers` and `uplinkHTTPMethod` are client-only at runtime (xray's
+// listener doesn't read them) but we keep them here so the admin can set
+// values that get embedded into the share link's `extra` blob.
 export class xHTTPStreamSettings extends XrayCommonClass {
     constructor(
         // Bidirectional — must match between client and server
@@ -533,6 +532,7 @@ export class xHTTPStreamSettings extends XrayCommonClass {
         serverMaxHeaderBytes = 0,
         // URL-share only — embedded in the link's `extra` blob so clients
         // pick them up; xray's listener ignores them at runtime.
+        uplinkHTTPMethod = '',
         headers = [],
     ) {
         super();
@@ -556,6 +556,7 @@ export class xHTTPStreamSettings extends XrayCommonClass {
         this.scMaxBufferedPosts = scMaxBufferedPosts;
         this.scStreamUpServerSecs = scStreamUpServerSecs;
         this.serverMaxHeaderBytes = serverMaxHeaderBytes;
+        this.uplinkHTTPMethod = uplinkHTTPMethod;
         this.headers = headers;
     }
 
@@ -589,6 +590,7 @@ export class xHTTPStreamSettings extends XrayCommonClass {
             json.scMaxBufferedPosts,
             json.scStreamUpServerSecs,
             json.serverMaxHeaderBytes,
+            json.uplinkHTTPMethod,
             XrayCommonClass.toHeaders(json.headers),
         );
     }
@@ -615,6 +617,7 @@ export class xHTTPStreamSettings extends XrayCommonClass {
             scMaxBufferedPosts: this.scMaxBufferedPosts,
             scStreamUpServerSecs: this.scStreamUpServerSecs,
             serverMaxHeaderBytes: this.serverMaxHeaderBytes,
+            uplinkHTTPMethod: this.uplinkHTTPMethod,
             headers: XrayCommonClass.toV2Headers(this.headers, false),
         };
     }
@@ -1584,10 +1587,9 @@ export class Inbound extends XrayCommonClass {
     //   - server-only (noSSEHeader, scMaxBufferedPosts,
     //     scStreamUpServerSecs, serverMaxHeaderBytes) — client wouldn't
     //     read them, so emitting them just bloats the URL.
-    //   - client-only (headers, uplinkHTTPMethod, uplinkChunkSize,
-    //     noGRPCHeader, scMinPostsIntervalMs, xmux, downloadSettings) —
-    //     not on the inbound class at all; the client configures them
-    //     locally.
+    //   - client-only values are included only when present on the inbound
+    //     object. Imported/API-created configs can carry them there, and
+    //     the share link is the only place clients can receive them.
     //
     // Truthy-only guards keep default inbounds emitting the same compact
     // URL they did before this helper grew.
@@ -1607,19 +1609,33 @@ export class Inbound extends XrayCommonClass {
             });
         }
 
-        if (typeof xhttp.mode === 'string' && xhttp.mode.length > 0) {
-            extra.mode = xhttp.mode;
-        }
-
         const stringFields = [
+            "uplinkHTTPMethod",
             "sessionPlacement", "sessionKey",
             "seqPlacement", "seqKey",
             "uplinkDataPlacement", "uplinkDataKey",
-            "scMaxEachPostBytes",
+            "scMaxEachPostBytes", "scMinPostsIntervalMs",
         ];
         for (const k of stringFields) {
             const v = xhttp[k];
             if (typeof v === 'string' && v.length > 0) extra[k] = v;
+        }
+
+        const uplinkChunkSize = xhttp.uplinkChunkSize;
+        if ((typeof uplinkChunkSize === 'number' && uplinkChunkSize !== 0) ||
+            (typeof uplinkChunkSize === 'string' && uplinkChunkSize.length > 0)) {
+            extra.uplinkChunkSize = uplinkChunkSize;
+        }
+
+        if (xhttp.noGRPCHeader === true) {
+            extra.noGRPCHeader = true;
+        }
+
+        for (const k of ["xmux", "downloadSettings"]) {
+            const v = xhttp[k];
+            if (v && typeof v === 'object' && Object.keys(v).length > 0) {
+                extra[k] = v;
+            }
         }
 
         // Headers — emitted as the {name: value} map upstream's struct
@@ -1678,6 +1694,29 @@ export class Inbound extends XrayCommonClass {
         for (const [k, v] of Object.entries(extra)) {
             obj[k] = v;
         }
+    }
+
+    static externalProxyAlpn(value) {
+        if (Array.isArray(value)) return value.filter(Boolean).join(',');
+        return typeof value === 'string' ? value : '';
+    }
+
+    static applyExternalProxyTLSParams(externalProxy, params, security) {
+        if (!externalProxy || security !== 'tls') return;
+        const sni = externalProxy.sni?.length > 0 ? externalProxy.sni : externalProxy.dest;
+        if (sni?.length > 0) params.set("sni", sni);
+        if (externalProxy.fingerprint?.length > 0) params.set("fp", externalProxy.fingerprint);
+        const alpn = Inbound.externalProxyAlpn(externalProxy.alpn);
+        if (alpn.length > 0) params.set("alpn", alpn);
+    }
+
+    static applyExternalProxyTLSObj(externalProxy, obj, security) {
+        if (!externalProxy || !obj || security !== 'tls') return;
+        const sni = externalProxy.sni?.length > 0 ? externalProxy.sni : externalProxy.dest;
+        if (sni?.length > 0) obj.sni = sni;
+        if (externalProxy.fingerprint?.length > 0) obj.fp = externalProxy.fingerprint;
+        const alpn = Inbound.externalProxyAlpn(externalProxy.alpn);
+        if (alpn.length > 0) obj.alpn = alpn;
     }
 
     static hasShareableFinalMaskValue(value) {
@@ -1894,7 +1933,7 @@ export class Inbound extends XrayCommonClass {
         this.sniffing = new Sniffing();
     }
 
-    genVmessLink(address = '', port = this.port, forceTls, remark = '', clientId, security) {
+    genVmessLink(address = '', port = this.port, forceTls, remark = '', clientId, security, externalProxy = null) {
         if (this.protocol !== Protocols.VMESS) {
             return '';
         }
@@ -1958,11 +1997,12 @@ export class Inbound extends XrayCommonClass {
                 obj.alpn = this.stream.tls.alpn.join(',');
             }
         }
+        Inbound.applyExternalProxyTLSObj(externalProxy, obj, tls);
 
         return 'vmess://' + Base64.encode(JSON.stringify(obj, null, 2));
     }
 
-    genVLESSLink(address = '', port = this.port, forceTls, remark = '', clientId, flow) {
+    genVLESSLink(address = '', port = this.port, forceTls, remark = '', clientId, flow, externalProxy = null) {
         const uuid = clientId;
         const type = this.stream.network;
         const security = forceTls == 'same' ? this.stream.security : forceTls;
@@ -2028,6 +2068,7 @@ export class Inbound extends XrayCommonClass {
                     params.set("flow", flow);
                 }
             }
+            Inbound.applyExternalProxyTLSParams(externalProxy, params, security);
         }
 
         else if (security === 'reality') {
@@ -2064,7 +2105,7 @@ export class Inbound extends XrayCommonClass {
         return url.toString();
     }
 
-    genSSLink(address = '', port = this.port, forceTls, remark = '', clientPassword) {
+    genSSLink(address = '', port = this.port, forceTls, remark = '', clientPassword, externalProxy = null) {
         let settings = this.settings;
         const type = this.stream.network;
         const security = forceTls == 'same' ? this.stream.security : forceTls;
@@ -2126,6 +2167,7 @@ export class Inbound extends XrayCommonClass {
                     params.set("sni", this.stream.tls.sni);
                 }
             }
+            Inbound.applyExternalProxyTLSParams(externalProxy, params, security);
         }
 
 
@@ -2142,7 +2184,7 @@ export class Inbound extends XrayCommonClass {
         return url.toString();
     }
 
-    genTrojanLink(address = '', port = this.port, forceTls, remark = '', clientPassword) {
+    genTrojanLink(address = '', port = this.port, forceTls, remark = '', clientPassword, externalProxy = null) {
         const security = forceTls == 'same' ? this.stream.security : forceTls;
         const type = this.stream.network;
         const params = new Map();
@@ -2203,6 +2245,7 @@ export class Inbound extends XrayCommonClass {
                     params.set("sni", this.stream.tls.sni);
                 }
             }
+            Inbound.applyExternalProxyTLSParams(externalProxy, params, security);
         }
 
         else if (security === 'reality') {
@@ -2344,16 +2387,16 @@ export class Inbound extends XrayCommonClass {
         return links.join('\r\n');
     }
 
-    genLink(address = '', port = this.port, forceTls = 'same', remark = '', client) {
+    genLink(address = '', port = this.port, forceTls = 'same', remark = '', client, externalProxy = null) {
         switch (this.protocol) {
             case Protocols.VMESS:
-                return this.genVmessLink(address, port, forceTls, remark, client.id, client.security);
+                return this.genVmessLink(address, port, forceTls, remark, client.id, client.security, externalProxy);
             case Protocols.VLESS:
-                return this.genVLESSLink(address, port, forceTls, remark, client.id, client.flow);
+                return this.genVLESSLink(address, port, forceTls, remark, client.id, client.flow, externalProxy);
             case Protocols.SHADOWSOCKS:
-                return this.genSSLink(address, port, forceTls, remark, this.isSSMultiUser ? client.password : '');
+                return this.genSSLink(address, port, forceTls, remark, this.isSSMultiUser ? client.password : '', externalProxy);
             case Protocols.TROJAN:
-                return this.genTrojanLink(address, port, forceTls, remark, client.password);
+                return this.genTrojanLink(address, port, forceTls, remark, client.password, externalProxy);
             case Protocols.HYSTERIA:
                 return this.genHysteriaLink(address, port, remark, client.auth.length > 0 ? client.auth : this.stream.hysteria.auth);
             default: return '';
@@ -2384,7 +2427,7 @@ export class Inbound extends XrayCommonClass {
                 let r = orderChars.split('').map(char => orders[char]).filter(x => x.length > 0).join(separationChar);
                 result.push({
                     remark: r,
-                    link: this.genLink(ep.dest, ep.port, ep.forceTls, r, client)
+                    link: this.genLink(ep.dest, ep.port, ep.forceTls, r, client, ep)
                 });
             });
         }

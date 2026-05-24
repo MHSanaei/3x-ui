@@ -122,7 +122,8 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 		defaultDest = host
 	}
 	externalProxies, ok := stream["externalProxy"].([]any)
-	if !ok || len(externalProxies) == 0 {
+	hasExternalProxy := ok && len(externalProxies) > 0
+	if !hasExternalProxy {
 		externalProxies = []any{map[string]any{
 			"forceTls": "same",
 			"dest":     defaultDest,
@@ -138,7 +139,7 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 		workingInbound := *inbound
 		workingInbound.Listen = extPrxy["dest"].(string)
 		workingInbound.Port = int(extPrxy["port"].(float64))
-		workingStream := cloneMap(stream)
+		workingStream := cloneStreamForExternalProxy(stream)
 
 		switch extPrxy["forceTls"].(string) {
 		case "tls":
@@ -152,6 +153,10 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 				delete(workingStream, "tlsSettings")
 				delete(workingStream, "realitySettings")
 			}
+		}
+		security, _ := workingStream["security"].(string)
+		if hasExternalProxy {
+			applyExternalProxyTLSToStream(extPrxy, workingStream, security)
 		}
 
 		proxy := s.buildProxy(&workingInbound, client, workingStream, extPrxy["remark"].(string))
@@ -382,6 +387,17 @@ func (s *SubClashService) applySecurity(proxy map[string]any, security string, s
 			}
 			if fingerprint, ok := tlsSettings["fingerprint"].(string); ok && fingerprint != "" {
 				proxy["client-fingerprint"] = fingerprint
+			}
+			if alpn, ok := externalProxyALPNList(tlsSettings["alpn"]); ok {
+				out := make([]string, 0, len(alpn))
+				for _, item := range alpn {
+					if s, ok := item.(string); ok && s != "" {
+						out = append(out, s)
+					}
+				}
+				if len(out) > 0 {
+					proxy["alpn"] = out
+				}
 			}
 		}
 		return true

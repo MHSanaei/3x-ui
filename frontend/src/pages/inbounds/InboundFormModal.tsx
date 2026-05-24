@@ -319,6 +319,9 @@ export default function InboundFormModal({
         dest: window.location.hostname,
         port: ib.port,
         remark: '',
+        sni: '',
+        fingerprint: '',
+        alpn: [],
       }];
     } else {
       ib.stream.externalProxy = [];
@@ -1617,6 +1620,14 @@ export default function InboundFormModal({
               )}
               <Form.Item label="Server Max Header Bytes"><InputNumber value={ib.stream.xhttp.serverMaxHeaderBytes} min={0} placeholder="0 (default)" onChange={(v) => { ib.stream.xhttp.serverMaxHeaderBytes = Number(v) || 0; refresh(); }} /></Form.Item>
               <Form.Item label="Padding Bytes"><Input value={ib.stream.xhttp.xPaddingBytes} onChange={(e) => { ib.stream.xhttp.xPaddingBytes = e.target.value; refresh(); }} /></Form.Item>
+              <Form.Item label="Uplink HTTP Method">
+                <Select value={ib.stream.xhttp.uplinkHTTPMethod || ''} onChange={(v) => { ib.stream.xhttp.uplinkHTTPMethod = v; refresh(); }}>
+                  <Select.Option value="">Default (POST)</Select.Option>
+                  <Select.Option value="POST">POST</Select.Option>
+                  <Select.Option value="PUT">PUT</Select.Option>
+                  <Select.Option value="GET" disabled={ib.stream.xhttp.mode !== 'packet-up'}>GET (packet-up only)</Select.Option>
+                </Select>
+              </Form.Item>
               <Form.Item label="Padding Obfs Mode"><Switch checked={!!ib.stream.xhttp.xPaddingObfsMode} onChange={(v) => { ib.stream.xhttp.xPaddingObfsMode = v; refresh(); }} /></Form.Item>
               {ib.stream.xhttp.xPaddingObfsMode && (
                 <>
@@ -1686,34 +1697,51 @@ export default function InboundFormModal({
             <Switch checked={externalProxyOn} onChange={setExternalProxy} />
             {externalProxyOn && (
               <Button size="small" type="primary" style={{ marginLeft: 10 }}
-                onClick={() => { ib.stream.externalProxy.push({ forceTls: 'same', dest: '', port: 443, remark: '' }); refresh(); }}>
+                onClick={() => { ib.stream.externalProxy.push({ forceTls: 'same', dest: '', port: 443, remark: '', sni: '', fingerprint: '', alpn: [] }); refresh(); }}>
                 <PlusOutlined />
               </Button>
             )}
           </Form.Item>
           {externalProxyOn && (
             <Form.Item wrapperCol={{ span: 24 }}>
-              {(ib.stream.externalProxy as { forceTls: string; dest: string; port: number; remark: string }[]).map((row, idx) => (
-                <Space.Compact key={`ep-${idx}`} style={{ margin: '8px 0' }} block>
-                  <Tooltip title="Force TLS">
-                    <Select value={row.forceTls} style={{ width: '20%' }} onChange={(v) => { row.forceTls = v; refresh(); }}>
-                      <Select.Option value="same">{t('pages.inbounds.same')}</Select.Option>
-                      <Select.Option value="none">{t('none')}</Select.Option>
-                      <Select.Option value="tls">TLS</Select.Option>
-                    </Select>
-                  </Tooltip>
-                  <Input style={{ width: '30%' }} value={row.dest} placeholder={t('host')}
-                    onChange={(e) => { row.dest = e.target.value; refresh(); }} />
-                  <Tooltip title={t('pages.inbounds.port')}>
-                    <InputNumber value={row.port} style={{ width: '15%' }} min={1} max={65535}
-                      onChange={(v) => { row.port = Number(v) || 0; refresh(); }} />
-                  </Tooltip>
-                  <Input style={{ width: '25%' }} value={row.remark} placeholder={t('pages.inbounds.remark')}
-                    onChange={(e) => { row.remark = e.target.value; refresh(); }} />
-                  <InputAddon onClick={() => { ib.stream.externalProxy.splice(idx, 1); refresh(); }}>
-                    <MinusOutlined />
-                  </InputAddon>
-                </Space.Compact>
+              {(ib.stream.externalProxy as { forceTls: string; dest: string; port: number; remark: string; sni?: string; fingerprint?: string; alpn?: string[] }[]).map((row, idx) => (
+                <div key={`ep-${idx}`} style={{ margin: '8px 0' }}>
+                  <Space.Compact block>
+                    <Tooltip title="Force TLS">
+                      <Select value={row.forceTls} style={{ width: '20%' }} onChange={(v) => { row.forceTls = v; refresh(); }}>
+                        <Select.Option value="same">{t('pages.inbounds.same')}</Select.Option>
+                        <Select.Option value="none">{t('none')}</Select.Option>
+                        <Select.Option value="tls">TLS</Select.Option>
+                      </Select>
+                    </Tooltip>
+                    <Input style={{ width: '30%' }} value={row.dest} placeholder={t('host')}
+                      onChange={(e) => { row.dest = e.target.value; refresh(); }} />
+                    <Tooltip title={t('pages.inbounds.port')}>
+                      <InputNumber value={row.port} style={{ width: '15%' }} min={1} max={65535}
+                        onChange={(v) => { row.port = Number(v) || 0; refresh(); }} />
+                    </Tooltip>
+                    <Input style={{ width: '25%' }} value={row.remark} placeholder={t('pages.inbounds.remark')}
+                      onChange={(e) => { row.remark = e.target.value; refresh(); }} />
+                    <InputAddon onClick={() => { ib.stream.externalProxy.splice(idx, 1); refresh(); }}>
+                      <MinusOutlined />
+                    </InputAddon>
+                  </Space.Compact>
+                  {row.forceTls === 'tls' && (
+                    <Space.Compact style={{ marginTop: 6 }} block>
+                      <Input style={{ width: '30%' }} value={row.sni || ''} placeholder="SNI (defaults to host)"
+                        onChange={(e) => { row.sni = e.target.value; refresh(); }} />
+                      <Select value={row.fingerprint || ''} style={{ width: '30%' }} placeholder="Fingerprint"
+                        onChange={(v) => { row.fingerprint = v; refresh(); }}>
+                        <Select.Option value="">Default</Select.Option>
+                        {FINGERPRINTS.map((fp) => <Select.Option key={fp} value={fp}>{fp}</Select.Option>)}
+                      </Select>
+                      <Select mode="multiple" value={row.alpn || []} style={{ width: '40%' }} placeholder="ALPN"
+                        onChange={(v) => { row.alpn = v; refresh(); }}>
+                        {ALPNS.map((alpn) => <Select.Option key={alpn} value={alpn}>{alpn}</Select.Option>)}
+                      </Select>
+                    </Space.Compact>
+                  )}
+                </div>
               ))}
             </Form.Item>
           )}

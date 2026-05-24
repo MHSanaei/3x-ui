@@ -1407,10 +1407,24 @@ export class Outbound extends CommonClass {
                 });
             }
             // Bidirectional string fields carried in the extra block
-            const xFields = ["sessionPlacement", "sessionKey", "seqPlacement", "seqKey", "uplinkDataPlacement", "uplinkDataKey", "scMaxEachPostBytes"];
+            const xFields = [
+                "uplinkHTTPMethod",
+                "sessionPlacement", "sessionKey",
+                "seqPlacement", "seqKey",
+                "uplinkDataPlacement", "uplinkDataKey",
+                "scMaxEachPostBytes", "scMinPostsIntervalMs",
+            ];
             xFields.forEach(k => {
                 if (typeof json[k] === 'string' && json[k]) xh[k] = json[k];
             });
+            if (typeof json.uplinkChunkSize === 'number' && json.uplinkChunkSize !== 0) xh.uplinkChunkSize = json.uplinkChunkSize;
+            if (typeof json.uplinkChunkSize === 'string' && json.uplinkChunkSize) xh.uplinkChunkSize = json.uplinkChunkSize;
+            if (json.noGRPCHeader === true) xh.noGRPCHeader = true;
+            if (json.xmux && typeof json.xmux === 'object') {
+                xh.xmux = json.xmux;
+                xh.enableXmux = true;
+            }
+            if (json.downloadSettings && typeof json.downloadSettings === 'object') xh.downloadSettings = json.downloadSettings;
             // Headers — VMess extra emits them as a {name: value} map
             if (json.headers && typeof json.headers === 'object' && !Array.isArray(json.headers)) {
                 xh.headers = Object.entries(json.headers).map(([name, value]) => ({ name, value }));
@@ -1487,10 +1501,24 @@ export class Outbound extends CommonClass {
                     });
                     if (!xh.mode && typeof extra.mode === 'string' && extra.mode) xh.mode = extra.mode;
                     // Bidirectional string fields carried inside the extra block
-                    const xFields = ["sessionPlacement", "sessionKey", "seqPlacement", "seqKey", "uplinkDataPlacement", "uplinkDataKey", "scMaxEachPostBytes"];
+                    const xFields = [
+                        "uplinkHTTPMethod",
+                        "sessionPlacement", "sessionKey",
+                        "seqPlacement", "seqKey",
+                        "uplinkDataPlacement", "uplinkDataKey",
+                        "scMaxEachPostBytes", "scMinPostsIntervalMs",
+                    ];
                     xFields.forEach(k => {
                         if (typeof extra[k] === 'string' && extra[k]) xh[k] = extra[k];
                     });
+                    if (typeof extra.uplinkChunkSize === 'number' && extra.uplinkChunkSize !== 0) xh.uplinkChunkSize = extra.uplinkChunkSize;
+                    if (typeof extra.uplinkChunkSize === 'string' && extra.uplinkChunkSize) xh.uplinkChunkSize = extra.uplinkChunkSize;
+                    if (extra.noGRPCHeader === true) xh.noGRPCHeader = true;
+                    if (extra.xmux && typeof extra.xmux === 'object') {
+                        xh.xmux = extra.xmux;
+                        xh.enableXmux = true;
+                    }
+                    if (extra.downloadSettings && typeof extra.downloadSettings === 'object') xh.downloadSettings = extra.downloadSettings;
                     // Headers — extra emits them as a {name: value} map
                     if (extra.headers && typeof extra.headers === 'object' && !Array.isArray(extra.headers)) {
                         xh.headers = Object.entries(extra.headers).map(([name, value]) => ({ name, value }));
