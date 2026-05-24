@@ -663,13 +663,13 @@ watch(
               <a-tooltip :title="t('pages.inbounds.speedLimitDesc')">{{ t('pages.inbounds.speedLimit') }}</a-tooltip>
             </template>
             <a-input-group compact>
-              <a-select v-model:value="dbForm.speedLimitType" style="width: 96px">
+              <a-select v-model:value="dbForm.speedLimitType" class="speed-limit-type">
                 <a-select-option value="all">{{ t('pages.inbounds.speedLimitModeAll') }}</a-select-option>
                 <a-select-option value="up">{{ t('pages.inbounds.speedLimitModeUp') }}</a-select-option>
                 <a-select-option value="down">{{ t('pages.inbounds.speedLimitModeDown') }}</a-select-option>
               </a-select>
-              <a-input-number v-model:value="dbForm.speedLimit" :min="0" style="width: calc(100% - 144px)" />
-              <a-input value="Mbps" disabled style="width: 48px" />
+              <a-input-number v-model:value="dbForm.speedLimit" :min="0" class="speed-limit-value" />
+              <a-input value="Mbps" disabled class="speed-limit-unit" />
             </a-input-group>
           </a-form-item>
           <a-form-item>
@@ -2022,6 +2022,19 @@ watch(
   margin-left: 6px;
   cursor: pointer;
   color: #ff4d4f;
+}
+
+.speed-limit-type {
+  width: 96px;
+}
+
+.speed-limit-value {
+  width: calc(100% - 160px);
+}
+
+.speed-limit-unit {
+  width: 64px;
+  text-align: center;
 }
 
 .vless-auth-state {
