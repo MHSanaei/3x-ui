@@ -1,0 +1,4944 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "3X-UI Panel API",
+    "version": "3.x",
+    "description": "Programmatic interface to a 3X-UI panel. Authenticate either by logging in (cookie) or with an API token from Settings → Security → API Token (Bearer). All endpoints under /panel/api/* honour both modes."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Current panel (basePath aware)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API token from Settings → Security → API Token. Send as `Authorization: Bearer <token>`."
+      },
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "3x-ui",
+        "description": "Session cookie set by POST /login. Browser-only."
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {
+      "cookieAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "Two authentication modes are supported. UI sessions use a cookie set by the login endpoint. Programmatic clients (bots, scripts, remote panels) authenticate with a Bearer token taken from Settings → Security → API Token. Both work for every endpoint under /panel/api/*."
+    },
+    {
+      "name": "Inbounds",
+      "description": "Manage inbound configurations and their clients. All endpoints live under /panel/api/inbounds and require a logged-in session or Bearer token. Link-generating endpoints honour forwarded headers only when the request comes from a configured trusted proxy."
+    },
+    {
+      "name": "Server",
+      "description": "System status, log retrieval, certificate generators, Xray binary management, and backup/restore. All under /panel/api/server."
+    },
+    {
+      "name": "Clients",
+      "description": "Manage clients as first-class entities that can be attached to one or more inbounds. A single client row drives the settings.clients entry in every inbound it belongs to. Endpoints live under /panel/api/clients."
+    },
+    {
+      "name": "Nodes",
+      "description": "Manage remote 3x-ui panels acting as nodes for a central panel. All endpoints under /panel/api/nodes."
+    },
+    {
+      "name": "Custom Geo",
+      "description": "Manage user-supplied GeoIP / GeoSite source files. All endpoints under /panel/api/custom-geo."
+    },
+    {
+      "name": "Backup",
+      "description": "Operations that interact with the configured Telegram bot."
+    },
+    {
+      "name": "Settings",
+      "description": "Panel configuration and user credentials. All endpoints live under /panel/setting and require a logged-in session or Bearer token."
+    },
+    {
+      "name": "API Tokens",
+      "description": "Manage Bearer tokens used for programmatic auth (bots, central panels acting on this node, CI). Each token has a unique name and an enabled flag — disable to revoke without deleting, delete to revoke permanently. Tokens are stored plaintext so the SPA can show them on demand. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any /panel/api/* request."
+    },
+    {
+      "name": "Xray Settings",
+      "description": "Xray configuration template, outbound management, Warp/Nord integration, and config testing. All endpoints under /panel/xray."
+    },
+    {
+      "name": "Subscription Server",
+      "description": "A separate HTTP/HTTPS server that serves proxy subscription links (standard, JSON, and Clash) to clients. The server listens on its own port (default 10882) and is configured in Settings → Subscription. Paths are configurable; defaults are shown below. All subscription endpoints set response headers for client apps to read traffic/expiry info."
+    },
+    {
+      "name": "WebSocket",
+      "description": "Real-time status updates via WebSocket. Connect once at <code>ws://<panel>/ws</code> to receive a stream of JSON messages without polling. Requires an authenticated session cookie (Bearer token auth is not supported). Each message has a <code>type</code> field that identifies the payload shape."
+    }
+  ],
+  "paths": {
+    "/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Authenticate with username + password and receive a session cookie. Required before any cookie-based API call.",
+        "operationId": "post_login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "Panel admin username."
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Panel admin password."
+                  },
+                  "twoFactorCode": {
+                    "type": "string",
+                    "description": "OTP code when 2FA is enabled. Omit otherwise."
+                  }
+                },
+                "required": [
+                  "username",
+                  "password",
+                  "twoFactorCode"
+                ]
+              },
+              "example": {
+                "username": "admin",
+                "password": "admin",
+                "twoFactorCode": "123456"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Logged in successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "msg": "Wrong username or password"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Clear the session cookie. Requires the CSRF header for browser sessions.",
+        "operationId": "post_logout",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/csrf-token": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Mint a CSRF token for the current session. The SPA replays it in the X-CSRF-Token header on unsafe requests. Bearer-token callers can skip this — the middleware short-circuits CSRF for authenticated API requests.",
+        "operationId": "get_csrf_token",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": "csrf-token-string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getTwoFactorEnable": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Returns whether 2FA is enabled on the panel — used by the login page to decide whether to show the OTP field.",
+        "operationId": "post_getTwoFactorEnable",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/list": {
+      "get": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "List every inbound owned by the authenticated user, including each inbound’s clientStats traffic counters. settings, streamSettings, and sniffing are returned as nested JSON objects (no escaped strings); legacy callers that send them back as JSON-encoded strings are still accepted on write.",
+        "operationId": "get_panel_api_inbounds_list",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "id": 1,
+                      "userId": 1,
+                      "up": 0,
+                      "down": 0,
+                      "total": 0,
+                      "remark": "VLESS-443",
+                      "enable": true,
+                      "expiryTime": 0,
+                      "listen": "",
+                      "port": 443,
+                      "protocol": "vless",
+                      "settings": {
+                        "clients": [],
+                        "decryption": "none"
+                      },
+                      "streamSettings": {
+                        "network": "tcp",
+                        "security": "reality",
+                        "realitySettings": {
+                          "show": false,
+                          "dest": "..."
+                        }
+                      },
+                      "tag": "inbound-443",
+                      "sniffing": {
+                        "enabled": true,
+                        "destOverride": [
+                          "http",
+                          "tls"
+                        ]
+                      },
+                      "clientStats": []
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/list/slim": {
+      "get": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Same shape as /list but with settings.clients[] stripped down to {email, enable, comment} and ClientStats not enriched with UUID/SubId. Use this for list pages; fetch /get/:id when you need the full per-client payload (uuid, password, flow, ...).",
+        "operationId": "get_panel_api_inbounds_list_slim",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "id": 1,
+                      "userId": 1,
+                      "remark": "VLESS-443",
+                      "settings": {
+                        "clients": [
+                          {
+                            "email": "alice",
+                            "enable": true
+                          }
+                        ],
+                        "decryption": "none"
+                      },
+                      "clientStats": []
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/options": {
+      "get": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Lightweight picker projection of the authenticated user’s inbounds. Returns only id, remark, protocol, port, and a server-computed tlsFlowCapable flag (true for VLESS / port-fallback on TCP with tls or reality). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.",
+        "operationId": "get_panel_api_inbounds_options",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "id": 1,
+                      "remark": "VLESS-443",
+                      "protocol": "vless",
+                      "port": 443,
+                      "tlsFlowCapable": true
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/get/{id}": {
+      "get": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Fetch a single inbound by numeric ID.",
+        "operationId": "get_panel_api_inbounds_get_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/add": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Create a new inbound. Send the full inbound payload (protocol, port, settings, streamSettings, sniffing, remark, expiryTime, total, enable). settings, streamSettings, and sniffing may be sent as nested JSON objects (preferred) or as JSON-encoded strings (legacy).",
+        "operationId": "post_panel_api_inbounds_add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "enable": true,
+                "remark": "VLESS-443",
+                "listen": "",
+                "port": 443,
+                "protocol": "vless",
+                "expiryTime": 0,
+                "total": 0,
+                "settings": {
+                  "clients": [
+                    {
+                      "id": "...",
+                      "email": "user1"
+                    }
+                  ],
+                  "decryption": "none",
+                  "fallbacks": []
+                },
+                "streamSettings": {
+                  "network": "tcp",
+                  "security": "reality",
+                  "realitySettings": {
+                    "show": false,
+                    "dest": "..."
+                  }
+                },
+                "sniffing": {
+                  "enabled": true,
+                  "destOverride": [
+                    "http",
+                    "tls"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "msg": "Port 443 is already in use"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/del/{id}": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Delete an inbound by ID. Also removes its associated client stats rows.",
+        "operationId": "post_panel_api_inbounds_del_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/update/{id}": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Replace an inbound’s configuration. Body shape mirrors /add. Heavy on inbounds with thousands of clients — prefer /setEnable for enable-only flips.",
+        "operationId": "post_panel_api_inbounds_update_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/setEnable/{id}": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Toggle only the enable flag without serialising the whole settings JSON. Recommended for UI switches on large inbounds.",
+        "operationId": "post_panel_api_inbounds_setEnable_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "enable": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/{id}/resetTraffic": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Zero out upload + download counters for a single inbound. Does not touch per-client counters.",
+        "operationId": "post_panel_api_inbounds_id_resetTraffic",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/resetAllTraffics": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Reset upload + download counters on every inbound. Destructive — accounting history is lost.",
+        "operationId": "post_panel_api_inbounds_resetAllTraffics",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/import": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Bulk-import an inbound from a JSON blob (e.g. one exported via the UI). The body uses form encoding with a single \"data\" field.",
+        "operationId": "post_panel_api_inbounds_import",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/{id}/fallbacks": {
+      "get": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "List the fallback rules attached to a master VLESS/Trojan TCP-TLS inbound. Each rule links one child inbound (the dest) to optional SNI/ALPN/path/xver match criteria.",
+        "operationId": "get_panel_api_inbounds_id_fallbacks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Master inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "id": 1,
+                      "masterId": 10,
+                      "childId": 11,
+                      "name": "",
+                      "alpn": "",
+                      "path": "/vlws",
+                      "xver": 2,
+                      "sortOrder": 0
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Replace the entire fallback list for a master inbound. Body is JSON. Triggers an Xray restart.",
+        "operationId": "post_panel_api_inbounds_id_fallbacks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Master inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "fallbacks": [
+                  {
+                    "childId": 11,
+                    "path": "/vlws",
+                    "xver": 2
+                  },
+                  {
+                    "childId": 12,
+                    "alpn": "h2"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Inbound updated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/status": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Real-time machine snapshot: CPU, memory, swap, disk, network IO, load averages, open connections, Xray state. Cached and refreshed every 2 seconds in the background.",
+        "operationId": "get_panel_api_server_status",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "cpu": 12.5,
+                    "mem": {
+                      "current": 2147483648,
+                      "total": 8589934592
+                    },
+                    "swap": {
+                      "current": 0,
+                      "total": 4294967296
+                    },
+                    "disk": {
+                      "current": 53687091200,
+                      "total": 268435456000
+                    },
+                    "netIO": {
+                      "up": 1073741824,
+                      "down": 2147483648
+                    },
+                    "xray": {
+                      "state": "running",
+                      "version": "v25.10.31"
+                    },
+                    "tcpCount": 42,
+                    "load": {
+                      "load1": 0.5,
+                      "load5": 0.3,
+                      "load15": 0.2
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/cpuHistory/{bucket}": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Legacy: aggregated CPU history. Use /history/cpu/:bucket instead — same data with a uniform {t, v} shape.",
+        "operationId": "get_panel_api_server_cpuHistory_bucket",
+        "parameters": [
+          {
+            "name": "bucket",
+            "in": "path",
+            "required": true,
+            "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/history/{metric}/{bucket}": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Aggregated time-series for one metric. Returns an array of {t, v} samples covering the last ~6 hours.",
+        "operationId": "get_panel_api_server_history_metric_bucket",
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "path",
+            "required": true,
+            "description": "cpu | mem | netUp | netDown | online | load1 | load5 | load15.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bucket",
+            "in": "path",
+            "required": true,
+            "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "t": 1700000000,
+                      "v": 12.5
+                    },
+                    {
+                      "t": 1700000002,
+                      "v": 13.1
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/xrayMetricsState": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Xray runtime metrics state — whether the xray config has a `metrics` block, which expvar keys are flowing, and the current snapshot values for each. Returns an empty state when metrics are not configured.",
+        "operationId": "get_panel_api_server_xrayMetricsState",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/xrayMetricsHistory/{metric}/{bucket}": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Time-series history for one Xray runtime metric over the last ~6 hours. Same {t, v} shape as /history/:metric/:bucket.",
+        "operationId": "get_panel_api_server_xrayMetricsHistory_metric_bucket",
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "path",
+            "required": true,
+            "description": "xrAlloc | xrSys | xrHeapObjects | xrNumGC | xrPauseNs.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bucket",
+            "in": "path",
+            "required": true,
+            "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/xrayObservatory": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Latest snapshot from the Xray observatory — per-outbound latency, health status, and last-probe time. Only populated when the Xray config has an observatory configured.",
+        "operationId": "get_panel_api_server_xrayObservatory",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/xrayObservatoryHistory/{tag}/{bucket}": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Time-series of observatory probe results for one outbound tag. Same {t, v} shape as the other history endpoints.",
+        "operationId": "get_panel_api_server_xrayObservatoryHistory_tag_bucket",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "description": "Outbound tag from the observatory config.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bucket",
+            "in": "path",
+            "required": true,
+            "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getXrayVersion": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "List Xray binary versions available for install on this host.",
+        "operationId": "get_panel_api_server_getXrayVersion",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "v25.10.31",
+                    "v25.9.15",
+                    "v25.8.1"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getPanelUpdateInfo": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Check whether a newer 3x-ui release is available on GitHub.",
+        "operationId": "get_panel_api_server_getPanelUpdateInfo",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getConfigJson": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Return the assembled Xray config that’s currently running on this host.",
+        "operationId": "get_panel_api_server_getConfigJson",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getDb": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Stream the SQLite database file as an attachment. Use as a manual backup.",
+        "operationId": "get_panel_api_server_getDb",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getNewUUID": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Generate a fresh UUID v4. Convenience helper for client IDs.",
+        "operationId": "get_panel_api_server_getNewUUID",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": "550e8400-e29b-41d4-a716-446655440000"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getNewX25519Cert": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Generate a new X25519 keypair for Reality.",
+        "operationId": "get_panel_api_server_getNewX25519Cert",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "privateKey": "uN9qLfV3zH8w...",
+                    "publicKey": "5v8xPqR2sM7k..."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getNewmldsa65": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Generate a new ML-DSA-65 keypair (post-quantum signature). Returns {privateKey, publicKey, seed}.",
+        "operationId": "get_panel_api_server_getNewmldsa65",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "privateKey": "mdsa65priv...",
+                    "publicKey": "mdsa65pub...",
+                    "seed": "random-seed..."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getNewmlkem768": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Generate a new ML-KEM-768 keypair (post-quantum KEM). Returns {clientKey, serverKey}.",
+        "operationId": "get_panel_api_server_getNewmlkem768",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "clientKey": "mlkem768-client...",
+                    "serverKey": "mlkem768-server..."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getNewVlessEnc": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Generate VLESS encryption auth options. Returns an auths array each with id, label, encryption, and decryption fields.",
+        "operationId": "get_panel_api_server_getNewVlessEnc",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "auths": [
+                      {
+                        "id": 0,
+                        "label": "Auth #0",
+                        "encryption": "aes-256-gcm",
+                        "decryption": ""
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/stopXrayService": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Stop the Xray binary. All proxies go offline immediately.",
+        "operationId": "post_panel_api_server_stopXrayService",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "msg": "Xray is not running"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/restartXrayService": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Reload Xray with the current config. Typically required after structural inbound or routing changes.",
+        "operationId": "post_panel_api_server_restartXrayService",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "msg": "Xray config is invalid: ..."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/installXray/{version}": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Download and install the specified Xray version. Pass \"latest\" for the newest release.",
+        "operationId": "post_panel_api_server_installXray_version",
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Xray tag (e.g. v25.10.31) or \"latest\".",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/updatePanel": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Self-update the panel to the latest version. The server restarts on success.",
+        "operationId": "post_panel_api_server_updatePanel",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/updateGeofile": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Refresh the default GeoIP / GeoSite data files. Body can include a fileName, or use the /:fileName variant.",
+        "operationId": "post_panel_api_server_updateGeofile",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/updateGeofile/{fileName}": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Refresh a single Geo file by filename (e.g. geoip.dat, geosite.dat).",
+        "operationId": "post_panel_api_server_updateGeofile_fileName",
+        "parameters": [
+          {
+            "name": "fileName",
+            "in": "path",
+            "required": true,
+            "description": "Filename of the data file to refresh.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/logs/{count}": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Return the last N lines of the panel’s own log.",
+        "operationId": "post_panel_api_server_logs_count",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "path",
+            "required": true,
+            "description": "Number of trailing log lines.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "level": "info",
+                "syslog": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": "2025/01/01 12:00:00 [INFO] Server started\n2025/01/01 12:00:01 [INFO] Xray is running"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/xraylogs/{count}": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Return the last N lines of the Xray process log.",
+        "operationId": "post_panel_api_server_xraylogs_count",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "path",
+            "required": true,
+            "description": "Number of trailing log lines.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": "2025/01/01 12:00:00 rejected  vless  proxy  example.com  reason: no valid user\n2025/01/01 12:00:01 direct  freedom  ok"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/importDB": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Restore the panel DB from an uploaded SQLite file (multipart form, field name \"db\"). The panel restarts after restore. Destructive.",
+        "operationId": "post_panel_api_server_importDB",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getNewEchCert": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Generate a new ECH (Encrypted Client Hello) keypair and config list for the given SNI.",
+        "operationId": "post_panel_api_server_getNewEchCert",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/list": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "List every client with its attached inbound IDs and traffic record. The reverse field, if set, is returned as a nested JSON object (legacy JSON-encoded-string form is still accepted on write).",
+        "operationId": "get_panel_api_clients_list",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "id": 1,
+                      "email": "alice@example.com",
+                      "subId": "abcd1234",
+                      "uuid": "...",
+                      "totalGB": 53687091200,
+                      "expiryTime": 1735689600000,
+                      "enable": true,
+                      "reverse": null,
+                      "inboundIds": [
+                        3,
+                        5
+                      ],
+                      "traffic": {
+                        "up": 1024,
+                        "down": 4096,
+                        "enable": true
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/list/paged": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Filter, sort, and paginate clients on the server. Each item is a slim row (no uuid/password/auth/flow/security/reverse/tgId) so the clients page can ship 25-ish rows in a few KB instead of the full table. The response also includes a summary computed across the full DB row set so dashboard counters stay stable as the user paginates or filters. Page size capped at 200; fetch /get/:email to obtain the full per-client payload for an edit/info modal.",
+        "operationId": "get_panel_api_clients_list_paged",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "description": "1-indexed page number. Defaults to 1.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": true,
+            "description": "Rows per page. Defaults to 25, capped at 200.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": true,
+            "description": "Case-insensitive substring match on email / subId / comment.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "required": true,
+            "description": "Status bucket: online | active | deactive | depleted | expiring.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "protocol",
+            "in": "query",
+            "required": true,
+            "description": "Match clients attached to at least one inbound of this protocol (vless, vmess, trojan, shadowsocks, ...).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": true,
+            "description": "Sort key: enable | email | inboundIds | traffic | remaining | expiryTime.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": true,
+            "description": "ascend or descend.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "items": [
+                      {
+                        "email": "alice@example.com",
+                        "subId": "abcd1234",
+                        "enable": true,
+                        "totalGB": 53687091200,
+                        "expiryTime": 1735689600000,
+                        "limitIp": 0,
+                        "reset": 0,
+                        "inboundIds": [
+                          3,
+                          5
+                        ],
+                        "traffic": {
+                          "up": 1024,
+                          "down": 4096,
+                          "enable": true
+                        },
+                        "createdAt": 1735000000000,
+                        "updatedAt": 1735100000000
+                      }
+                    ],
+                    "total": 2000,
+                    "filtered": 47,
+                    "page": 1,
+                    "pageSize": 25,
+                    "summary": {
+                      "total": 2000,
+                      "active": 1850,
+                      "online": [
+                        "alice@example.com"
+                      ],
+                      "depleted": [],
+                      "expiring": [],
+                      "deactive": []
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/get/{email}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Fetch one client by email, including the inbound IDs it is attached to.",
+        "operationId": "get_panel_api_clients_get_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/add": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets (UUID for VLESS/VMess, password for Trojan/Shadowsocks, auth for Hysteria) are generated server-side when omitted, so callers can send only the universal fields.",
+        "operationId": "post_panel_api_clients_add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "client": {
+                  "email": "alice@example.com",
+                  "totalGB": 53687091200,
+                  "expiryTime": 1735689600000,
+                  "tgId": 0,
+                  "limitIp": 0,
+                  "enable": true
+                },
+                "inboundIds": [
+                  3,
+                  5
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Client added"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/update/{email}": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload — supply the full set of fields you want to keep (the server replaces the row, it does not patch).",
+        "operationId": "post_panel_api_clients_update_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Current client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "email": "alice@example.com",
+                "totalGB": 107374182400,
+                "expiryTime": 1767225600000,
+                "tgId": 123456789,
+                "enable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Client updated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/del/{email}": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Delete a client by email. Removes it from every attached inbound and drops its traffic record unless keepTraffic=1 is passed.",
+        "operationId": "post_panel_api_clients_del_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keepTraffic",
+            "in": "query",
+            "required": true,
+            "description": "Pass 1 to retain the xray_client_traffic row after deletion.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Client deleted"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/{email}/attach": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Attach an existing client to one or more additional inbounds. Body is JSON.",
+        "operationId": "post_panel_api_clients_email_attach",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "inboundIds": [
+                  7,
+                  9
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/{email}/detach": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Detach a client from one or more inbounds without deleting the client.",
+        "operationId": "post_panel_api_clients_email_detach",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "inboundIds": [
+                  5
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/resetAllTraffics": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Reset the up/down counters for every client globally. Quotas and expiry are not affected. Triggers an Xray restart if any counter actually moved.",
+        "operationId": "post_panel_api_clients_resetAllTraffics",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/delDepleted": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Delete every client whose traffic quota is exhausted (used >= total, when reset is disabled) or whose expiry has passed. Returns the deleted count and triggers an Xray restart when any client was on a running inbound.",
+        "operationId": "post_panel_api_clients_delDepleted",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "deleted": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/bulkAdjust": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. Returns the adjusted count and per-email skip reasons.",
+        "operationId": "post_panel_api_clients_bulkAdjust",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "emails": [
+                  "alice",
+                  "bob"
+                ],
+                "addDays": 30,
+                "addBytes": 53687091200
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "adjusted": 2,
+                    "skipped": [
+                      {
+                        "email": "carol",
+                        "reason": "unlimited expiry"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/resetTraffic/{email}": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Zero out a single client’s up/down counters. Re-enables the client across every attached inbound and pushes the change to Xray (or the remote node) so depleted users can connect again immediately.",
+        "operationId": "post_panel_api_clients_resetTraffic_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/updateTraffic/{email}": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Manually adjust a client’s upload + download counters. Useful for migrations from external accounting systems.",
+        "operationId": "post_panel_api_clients_updateTraffic_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "upload": 1073741824,
+                "download": 5368709120
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/ips/{email}": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "List source IPs that have connected with the given client’s credentials. Returns an array of \"ip (timestamp)\" strings.",
+        "operationId": "post_panel_api_clients_ips_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/clearIps/{email}": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Reset the recorded IP list for a client.",
+        "operationId": "post_panel_api_clients_clearIps_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/onlines": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "List the emails of currently connected clients (last seen within the heartbeat window).",
+        "operationId": "post_panel_api_clients_onlines",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "user1",
+                    "user2"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/lastOnline": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Map of client email → last-seen unix timestamp.",
+        "operationId": "post_panel_api_clients_lastOnline",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "user1": 1700000000,
+                    "user2": 1699999000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/traffic/{email}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Traffic counters for a client identified by email.",
+        "operationId": "get_panel_api_clients_traffic_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique across the panel).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "email": "user1",
+                    "up": 1048576,
+                    "down": 2097152,
+                    "total": 10737418240,
+                    "expiryTime": 1735689600000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/subLinks/{subId}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as /sub/<subId>, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.",
+        "operationId": "get_panel_api_clients_subLinks_subId",
+        "parameters": [
+          {
+            "name": "subId",
+            "in": "path",
+            "required": true,
+            "description": "Subscription ID, taken from the client's subId field.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "vless://uuid@host:443?security=reality&...#user1",
+                    "vmess://eyJ2IjoyLC..."
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/links/{email}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Return every URL for one client across all attached inbounds — the same strings the Copy URL button copies in the panel UI. Supported protocols: vmess, vless, trojan, shadowsocks, hysteria, hysteria2. If streamSettings.externalProxy is set, returns one URL per external proxy. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing.",
+        "operationId": "get_panel_api_clients_links_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "vless://uuid@host:443?...#user1"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/list": {
+      "get": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "List every configured node with its connection details, health, and last heartbeat patch.",
+        "operationId": "get_panel_api_nodes_list",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "id": 1,
+                      "name": "de-fra-1",
+                      "remark": "",
+                      "scheme": "https",
+                      "address": "node1.example.com",
+                      "port": 2053,
+                      "basePath": "/",
+                      "apiToken": "abcdef...",
+                      "enable": true,
+                      "allowPrivateAddress": false,
+                      "status": "online",
+                      "lastHeartbeat": 1700000000,
+                      "latencyMs": 42,
+                      "xrayVersion": "25.x.x",
+                      "panelVersion": "v3.x.x",
+                      "cpuPct": 23.5,
+                      "memPct": 45.1,
+                      "uptimeSecs": 86400,
+                      "lastError": "",
+                      "inboundCount": 5,
+                      "clientCount": 27,
+                      "onlineCount": 3,
+                      "depletedCount": 1,
+                      "createdAt": 1700000000,
+                      "updatedAt": 1700000000
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/get/{id}": {
+      "get": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Fetch a single node by ID.",
+        "operationId": "get_panel_api_nodes_get_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/add": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Register a new remote node. Provide its URL, apiToken, and optional remark / allowPrivateAddress flag.",
+        "operationId": "post_panel_api_nodes_add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "name": "de-fra-1",
+                "remark": "",
+                "scheme": "https",
+                "address": "node1.example.com",
+                "port": 2053,
+                "basePath": "/",
+                "apiToken": "abcdef...",
+                "enable": true,
+                "allowPrivateAddress": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/update/{id}": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Replace a node’s connection details. Same body shape as /add.",
+        "operationId": "post_panel_api_nodes_update_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "name": "de-fra-1",
+                "remark": "",
+                "scheme": "https",
+                "address": "node1.example.com",
+                "port": 2053,
+                "basePath": "/",
+                "apiToken": "abcdef...",
+                "enable": true,
+                "allowPrivateAddress": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/del/{id}": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Delete a node. Inbounds bound to it are not auto-migrated.",
+        "operationId": "post_panel_api_nodes_del_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/setEnable/{id}": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Pause or resume traffic sync with this node.",
+        "operationId": "post_panel_api_nodes_setEnable_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "enable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/test": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Probe a node without saving it. Uses the body as connection details and returns the same heartbeat snapshot a registered node would have.",
+        "operationId": "post_panel_api_nodes_test",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "scheme": "https",
+                "address": "node1.example.com",
+                "port": 2053,
+                "basePath": "/",
+                "apiToken": "abcdef..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "status": "online",
+                    "latencyMs": 42,
+                    "xrayVersion": "25.x.x",
+                    "panelVersion": "v3.x.x",
+                    "cpuPct": 12.5,
+                    "memPct": 45.2,
+                    "uptimeSecs": 86400,
+                    "error": ""
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/probe/{id}": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Probe an existing node, updating its cached health state.",
+        "operationId": "post_panel_api_nodes_probe_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/history/{id}/{metric}/{bucket}": {
+      "get": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Aggregated metric history for a node — same shape as /server/history, scoped to one node.",
+        "operationId": "get_panel_api_nodes_history_id_metric_bucket",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "metric",
+            "in": "path",
+            "required": true,
+            "description": "cpu | mem.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bucket",
+            "in": "path",
+            "required": true,
+            "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/custom-geo/list": {
+      "get": {
+        "tags": [
+          "Custom Geo"
+        ],
+        "summary": "List configured custom geo sources with their type, alias, URL, status, and last-download timestamp.",
+        "operationId": "get_panel_api_custom_geo_list",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/custom-geo/aliases": {
+      "get": {
+        "tags": [
+          "Custom Geo"
+        ],
+        "summary": "List geo aliases currently usable in routing rules — both built-in defaults and the user-configured ones.",
+        "operationId": "get_panel_api_custom_geo_aliases",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/custom-geo/add": {
+      "post": {
+        "tags": [
+          "Custom Geo"
+        ],
+        "summary": "Register a custom geo source. Alias is auto-normalised; URL must point to a .dat / .json blob.",
+        "operationId": "post_panel_api_custom_geo_add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "type": "geoip",
+                "alias": "myips",
+                "url": "https://example.com/geo/my.dat"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/custom-geo/update/{id}": {
+      "post": {
+        "tags": [
+          "Custom Geo"
+        ],
+        "summary": "Replace a custom geo source. Same body shape as /add.",
+        "operationId": "post_panel_api_custom_geo_update_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Custom geo source ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/custom-geo/delete/{id}": {
+      "post": {
+        "tags": [
+          "Custom Geo"
+        ],
+        "summary": "Remove a custom geo source and its cached file.",
+        "operationId": "post_panel_api_custom_geo_delete_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Custom geo source ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/custom-geo/download/{id}": {
+      "post": {
+        "tags": [
+          "Custom Geo"
+        ],
+        "summary": "Re-download one custom geo source on demand.",
+        "operationId": "post_panel_api_custom_geo_download_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Custom geo source ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/custom-geo/update-all": {
+      "post": {
+        "tags": [
+          "Custom Geo"
+        ],
+        "summary": "Re-download every configured custom geo source. Errors are reported per-source in the response.",
+        "operationId": "post_panel_api_custom_geo_update_all",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/backuptotgbot": {
+      "post": {
+        "tags": [
+          "Backup"
+        ],
+        "summary": "Send a fresh DB backup to every Telegram chat configured as an admin recipient. No body, no params.",
+        "operationId": "post_panel_api_backuptotgbot",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/setting/all": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Return every panel setting: web server, Telegram bot, subscription, security, LDAP. The full JSON blob that the Settings page edits.",
+        "operationId": "post_panel_setting_all",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/setting/defaultSettings": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Return the computed default settings based on the request host. Useful to preview what a fresh install would use.",
+        "operationId": "post_panel_setting_defaultSettings",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/setting/update": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Persist every setting at once. The body mirrors the shape returned by /all. Invalid values (bad ports, missing cert pairs, etc.) are rejected before write.",
+        "operationId": "post_panel_setting_update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/setting/updateUser": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Change the panel admin username and password. Requires the current credentials for verification. The session is refreshed with the new values on success.",
+        "operationId": "post_panel_setting_updateUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "oldUsername": {
+                    "type": "string",
+                    "description": "Current admin username."
+                  },
+                  "oldPassword": {
+                    "type": "string",
+                    "description": "Current admin password."
+                  },
+                  "newUsername": {
+                    "type": "string",
+                    "description": "Desired new username."
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "description": "Desired new password."
+                  }
+                },
+                "required": [
+                  "oldUsername",
+                  "oldPassword",
+                  "newUsername",
+                  "newPassword"
+                ]
+              },
+              "example": {
+                "oldUsername": "admin",
+                "oldPassword": "admin",
+                "newUsername": "newadmin",
+                "newPassword": "newpass"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/setting/restartPanel": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Restart the entire 3x-ui process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.",
+        "operationId": "post_panel_setting_restartPanel",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/setting/getDefaultJsonConfig": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Return the built-in default Xray JSON config template that ships with this panel version.",
+        "operationId": "get_panel_setting_getDefaultJsonConfig",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/setting/apiTokens": {
+      "get": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "List every API token, enabled or not.",
+        "operationId": "get_panel_setting_apiTokens",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "id": 1,
+                      "name": "default",
+                      "token": "abcdef-12345-...",
+                      "enabled": true,
+                      "createdAt": 1736000000
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/setting/apiTokens/create": {
+      "post": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Mint a new API token. Name must be unique and 1-64 characters; the token string is server-generated.",
+        "operationId": "post_panel_setting_apiTokens_create",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Human-readable label, e.g. \"central-panel-a\"."
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              },
+              "example": {
+                "name": "central-panel-a"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "id": 2,
+                    "name": "central-panel-a",
+                    "token": "new-token-string",
+                    "enabled": true,
+                    "createdAt": 1736000000
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "msg": "a token with that name already exists"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/setting/apiTokens/delete/{id}": {
+      "post": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Permanently delete a token. Any caller using it stops authenticating immediately.",
+        "operationId": "post_panel_setting_apiTokens_delete_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Token row ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/setting/apiTokens/setEnabled/{id}": {
+      "post": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Toggle a token enabled/disabled without deleting it. Disabled tokens are rejected by checkAPIAuth on the next request.",
+        "operationId": "post_panel_setting_apiTokens_setEnabled_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Token row ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "New enabled state."
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              },
+              "example": {
+                "enabled": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/xray/": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Return the Xray config template (JSON string), available inbound tags, client reverse tags, and the configured outbound test URL in one response.",
+        "operationId": "post_panel_xray",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "xraySetting": "{...raw xray config...}",
+                    "inboundTags": "[\"inbound-443\"]",
+                    "clientReverseTags": "[]",
+                    "outboundTestUrl": "https://www.google.com/generate_204"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/xray/getDefaultJsonConfig": {
+      "get": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Return the built-in default Xray config shipped with the panel (identical to /panel/setting/getDefaultJsonConfig).",
+        "operationId": "get_panel_xray_getDefaultJsonConfig",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/xray/getOutboundsTraffic": {
+      "get": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Return traffic statistics for every outbound. Each outbound shows up/down/total counters.",
+        "operationId": "get_panel_xray_getOutboundsTraffic",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/xray/getXrayResult": {
+      "get": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Return the most recent Xray process stdout/stderr output. Useful to check for startup errors or runtime warnings.",
+        "operationId": "get_panel_xray_getXrayResult",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/xray/update": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Save the Xray JSON config template and optionally the outbound test URL. Both are sent as form fields.",
+        "operationId": "post_panel_xray_update",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/xray/warp/{action}": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Manage Cloudflare Warp integration. The action parameter selects the operation.",
+        "operationId": "post_panel_xray_warp_action",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "description": "data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). license — set a Warp+ license key (sends license).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/xray/nord/{action}": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Manage NordVPN integration. The action parameter selects the operation.",
+        "operationId": "post_panel_xray_nord_action",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "description": "countries — list available countries. servers — list servers in a country (sends countryId). reg — get NordVPN credentials (sends token). setKey — store NordVPN API key (sends key). data — return current NordVPN connection data. del — delete NordVPN data.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/xray/resetOutboundsTraffic": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Reset traffic counters for a specific outbound by tag.",
+        "operationId": "post_panel_xray_resetOutboundsTraffic",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/xray/testOutbound": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Test an outbound configuration. Sends the outbound JSON (required), optionally all outbounds (to resolve sockopt.dialerProxy dependencies), and a mode flag.",
+        "operationId": "post_panel_xray_testOutbound",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{subPath}{subid}": {
+      "get": {
+        "tags": [
+          "Subscription Server"
+        ],
+        "summary": "Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. Default path: /sub/:subid.",
+        "operationId": "get_subPath_subid",
+        "parameters": [
+          {
+            "name": "subid",
+            "in": "path",
+            "required": true,
+            "description": "Client subscription ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subPath",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{jsonPath}{subid}": {
+      "get": {
+        "tags": [
+          "Subscription Server"
+        ],
+        "summary": "Return subscription as a JSON array of proxy configs (one per enabled client). Only when JSON subscription is enabled in settings. Default path: /json/:subid.",
+        "operationId": "get_jsonPath_subid",
+        "parameters": [
+          {
+            "name": "subid",
+            "in": "path",
+            "required": true,
+            "description": "Client subscription ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jsonPath",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{clashPath}{subid}": {
+      "get": {
+        "tags": [
+          "Subscription Server"
+        ],
+        "summary": "Return subscription as a Clash/Mihomo-compatible YAML config. Only when Clash subscription is enabled in settings. Default path: /clash/:subid.",
+        "operationId": "get_clashPath_subid",
+        "parameters": [
+          {
+            "name": "subid",
+            "in": "path",
+            "required": true,
+            "description": "Client subscription ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clashPath",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ws": {
+      "get": {
+        "tags": [
+          "WebSocket"
+        ],
+        "summary": "Upgrade an HTTP connection to a WebSocket. Requires an authenticated session cookie (Bearer token auth is not supported here). Returns 101 Switching Protocols on success. The server then pushes JSON messages described below.",
+        "operationId": "get_ws",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "→ type: status": {
+      "ws": {
+        "tags": [
+          "WebSocket"
+        ],
+        "summary": "Server health snapshot pushed every 2 seconds. Contains CPU, memory, swap, disk, network IO, load, and Xray state — same shape as <code>GET /panel/api/server/status</code>.",
+        "operationId": "ws_type_status",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "type": "status",
+                  "data": {
+                    "cpu": 12.5,
+                    "mem": {
+                      "current": 2147483648,
+                      "total": 8589934592
+                    },
+                    "xray": {
+                      "state": "running"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "→ type: xrayState": {
+      "ws": {
+        "tags": [
+          "WebSocket"
+        ],
+        "summary": "Xray process state change. Fired when Xray starts, stops, or encounters an error.",
+        "operationId": "ws_type_xrayState",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "type": "xrayState",
+                  "data": "running"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "→ type: notification": {
+      "ws": {
+        "tags": [
+          "WebSocket"
+        ],
+        "summary": "In-panel toast notification. Fired on Xray stop/restart, DB import, panel restart, etc.",
+        "operationId": "ws_type_notification",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "type": "notification",
+                  "title": "Xray service restarted",
+                  "body": "Xray has been restarted successfully",
+                  "severity": "success"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "→ type: invalidate": {
+      "ws": {
+        "tags": [
+          "WebSocket"
+        ],
+        "summary": "Instructs the UI to re-fetch a resource. Fired when another admin session modifies data (e.g. toggling inbound enable).",
+        "operationId": "ws_type_invalidate",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "type": "invalidate",
+                  "resource": "inbounds"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

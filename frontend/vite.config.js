@@ -198,6 +198,11 @@ export default defineConfig({
           if (id.includes('/node_modules/otpauth/')) return 'vendor-otpauth';
           if (id.includes('/node_modules/@tanstack/')) return 'vendor-tanstack';
           if (id.includes('/node_modules/react-router')) return 'vendor-router';
+          if (
+            id.includes('/node_modules/swagger-ui-react/')
+            || id.includes('/node_modules/swagger-ui/')
+            || id.includes('/node_modules/swagger-client/')
+          ) return 'vendor-swagger';
           if (id.includes('dayjs')) return 'vendor-dayjs';
           if (id.includes('axios')) return 'vendor-axios';
           return 'vendor';
