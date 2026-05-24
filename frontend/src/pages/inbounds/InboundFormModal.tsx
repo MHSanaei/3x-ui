@@ -990,9 +990,10 @@ export default function InboundFormModal({
           <InputNumber
             value={form.speedLimit || 0}
             min={0}
-            style={{ width: 'calc(100% - 112px)' }}
+            style={{ width: 'calc(100% - 176px)' }}
             onChange={(v) => { form.speedLimit = Number(v) || 0; refresh(); }}
           />
+          <Input value="Mbps" disabled style={{ width: 64, textAlign: 'center' }} />
         </Space.Compact>
       </Form.Item>
       <Form.Item label={t('pages.inbounds.periodicTrafficResetTitle')}>
