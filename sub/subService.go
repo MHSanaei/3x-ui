@@ -108,15 +108,13 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 		}
 	}
 
-	// Prepare statistics
+	now := time.Now().UnixMilli()
 	for index, clientTraffic := range clientTraffics {
 		if index == 0 {
 			traffic.Up = clientTraffic.Up
 			traffic.Down = clientTraffic.Down
 			traffic.Total = clientTraffic.Total
-			if clientTraffic.ExpiryTime > 0 {
-				traffic.ExpiryTime = clientTraffic.ExpiryTime
-			}
+			traffic.ExpiryTime = subscriptionExpiryFromClient(now, clientTraffic.ExpiryTime)
 		} else {
 			traffic.Up += clientTraffic.Up
 			traffic.Down += clientTraffic.Down
@@ -125,13 +123,24 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 			} else {
 				traffic.Total += clientTraffic.Total
 			}
-			if clientTraffic.ExpiryTime != traffic.ExpiryTime {
+			normalized := subscriptionExpiryFromClient(now, clientTraffic.ExpiryTime)
+			if normalized != traffic.ExpiryTime {
 				traffic.ExpiryTime = 0
 			}
 		}
 	}
 	traffic.Enable = hasEnabledClient
 	return result, lastOnline, traffic, nil
+}
+
+func subscriptionExpiryFromClient(nowMs, expiryTime int64) int64 {
+	if expiryTime > 0 {
+		return expiryTime
+	}
+	if expiryTime < 0 {
+		return nowMs + (-expiryTime)
+	}
+	return 0
 }
 
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {

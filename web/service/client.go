@@ -213,12 +213,22 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			}
 			row = incoming
 		} else {
-			row.UUID = incoming.UUID
-			row.Password = incoming.Password
-			row.Auth = incoming.Auth
+			if incoming.UUID != "" {
+				row.UUID = incoming.UUID
+			}
+			if incoming.Password != "" {
+				row.Password = incoming.Password
+			}
+			if incoming.Auth != "" {
+				row.Auth = incoming.Auth
+			}
 			row.Flow = incoming.Flow
-			row.Security = incoming.Security
-			row.Reverse = incoming.Reverse
+			if incoming.Security != "" {
+				row.Security = incoming.Security
+			}
+			if incoming.Reverse != "" {
+				row.Reverse = incoming.Reverse
+			}
 			row.SubID = incoming.SubID
 			row.LimitIP = incoming.LimitIP
 			row.TotalGB = incoming.TotalGB

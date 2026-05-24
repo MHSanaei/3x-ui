@@ -142,11 +142,11 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		hashSeeder := &model.HistoryOfSeeders{
-			SeederName: "UserPasswordHash",
-		}
-		if err := db.Create(hashSeeder).Error; err != nil {
-			return err
+		seeders := []string{"UserPasswordHash", "ClientsTable"}
+		for _, name := range seeders {
+			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
+				return err
+			}
 		}
 		return seedApiTokens()
 	}
@@ -236,6 +236,14 @@ func seedClientsFromInboundJSON() error {
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		byEmail := map[string]*model.ClientRecord{}
+
+		var existing []model.ClientRecord
+		if err := tx.Find(&existing).Error; err != nil {
+			return err
+		}
+		for i := range existing {
+			byEmail[existing[i].Email] = &existing[i]
+		}
 
 		for _, inbound := range inbounds {
 			if strings.TrimSpace(inbound.Settings) == "" {

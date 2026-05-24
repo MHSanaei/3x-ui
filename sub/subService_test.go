@@ -9,6 +9,23 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 )
 
+func TestSubscriptionExpiryFromClient(t *testing.T) {
+	const now = int64(1_700_000_000_000)
+	const oneDayMs = int64(86_400_000)
+	if got := subscriptionExpiryFromClient(now, 0); got != 0 {
+		t.Fatalf("zero expiry should stay zero, got %d", got)
+	}
+	if got := subscriptionExpiryFromClient(now, 1_700_000_000_000); got != 1_700_000_000_000 {
+		t.Fatalf("positive expiry should pass through, got %d", got)
+	}
+	if got := subscriptionExpiryFromClient(now, -oneDayMs); got != now+oneDayMs {
+		t.Fatalf("delayed-start expiry should be now+|value|, got %d, want %d", got, now+oneDayMs)
+	}
+	if a, b := subscriptionExpiryFromClient(now, -oneDayMs), subscriptionExpiryFromClient(now, -oneDayMs); a != b {
+		t.Fatalf("same now+value should be deterministic across calls, got %d vs %d (#4545 review)", a, b)
+	}
+}
+
 func TestFindClientIndex(t *testing.T) {
 	clients := []model.Client{
 		{Email: "a@example.com"},

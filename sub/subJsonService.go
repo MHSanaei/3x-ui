@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"strings"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
@@ -125,14 +126,13 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	}
 
 	// Prepare statistics
+	now := time.Now().UnixMilli()
 	for index, clientTraffic := range clientTraffics {
 		if index == 0 {
 			traffic.Up = clientTraffic.Up
 			traffic.Down = clientTraffic.Down
 			traffic.Total = clientTraffic.Total
-			if clientTraffic.ExpiryTime > 0 {
-				traffic.ExpiryTime = clientTraffic.ExpiryTime
-			}
+			traffic.ExpiryTime = subscriptionExpiryFromClient(now, clientTraffic.ExpiryTime)
 		} else {
 			traffic.Up += clientTraffic.Up
 			traffic.Down += clientTraffic.Down
@@ -141,7 +141,8 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 			} else {
 				traffic.Total += clientTraffic.Total
 			}
-			if clientTraffic.ExpiryTime != traffic.ExpiryTime {
+			normalized := subscriptionExpiryFromClient(now, clientTraffic.ExpiryTime)
+			if normalized != traffic.ExpiryTime {
 				traffic.ExpiryTime = 0
 			}
 		}

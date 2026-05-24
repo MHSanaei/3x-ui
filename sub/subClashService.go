@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-json"
 	yaml "github.com/goccy/go-yaml"
@@ -63,14 +64,13 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		return "", "", nil
 	}
 
+	now := time.Now().UnixMilli()
 	for index, clientTraffic := range clientTraffics {
 		if index == 0 {
 			traffic.Up = clientTraffic.Up
 			traffic.Down = clientTraffic.Down
 			traffic.Total = clientTraffic.Total
-			if clientTraffic.ExpiryTime > 0 {
-				traffic.ExpiryTime = clientTraffic.ExpiryTime
-			}
+			traffic.ExpiryTime = subscriptionExpiryFromClient(now, clientTraffic.ExpiryTime)
 		} else {
 			traffic.Up += clientTraffic.Up
 			traffic.Down += clientTraffic.Down
@@ -79,7 +79,8 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 			} else {
 				traffic.Total += clientTraffic.Total
 			}
-			if clientTraffic.ExpiryTime != traffic.ExpiryTime {
+			normalized := subscriptionExpiryFromClient(now, clientTraffic.ExpiryTime)
+			if normalized != traffic.ExpiryTime {
 				traffic.ExpiryTime = 0
 			}
 		}
@@ -362,6 +363,53 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 		}
 		if len(grpcOpts) > 0 {
 			proxy["grpc-opts"] = grpcOpts
+		}
+		return true
+	case "httpupgrade":
+		proxy["network"] = "httpupgrade"
+		hu, _ := stream["httpupgradeSettings"].(map[string]any)
+		opts := map[string]any{}
+		if hu != nil {
+			if path, ok := hu["path"].(string); ok && path != "" {
+				opts["path"] = path
+			}
+			host := ""
+			if v, ok := hu["host"].(string); ok && v != "" {
+				host = v
+			} else if headers, ok := hu["headers"].(map[string]any); ok {
+				host = searchHost(headers)
+			}
+			if host != "" {
+				opts["headers"] = map[string]any{"Host": host}
+			}
+		}
+		if len(opts) > 0 {
+			proxy["http-upgrade-opts"] = opts
+		}
+		return true
+	case "xhttp":
+		proxy["network"] = "xhttp"
+		xhttp, _ := stream["xhttpSettings"].(map[string]any)
+		opts := map[string]any{}
+		if xhttp != nil {
+			if path, ok := xhttp["path"].(string); ok && path != "" {
+				opts["path"] = path
+			}
+			host := ""
+			if v, ok := xhttp["host"].(string); ok && v != "" {
+				host = v
+			} else if headers, ok := xhttp["headers"].(map[string]any); ok {
+				host = searchHost(headers)
+			}
+			if host != "" {
+				opts["host"] = host
+			}
+			if mode, ok := xhttp["mode"].(string); ok && mode != "" {
+				opts["mode"] = mode
+			}
+		}
+		if len(opts) > 0 {
+			proxy["xhttp-opts"] = opts
 		}
 		return true
 	default:
