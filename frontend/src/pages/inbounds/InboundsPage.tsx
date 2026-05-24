@@ -25,7 +25,7 @@ import { coerceInboundJsonField } from '@/models/dbinbound.js';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { useNodes } from '@/hooks/useNodes';
+import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import AppSidebar from '@/components/AppSidebar';
 import CustomStatistic from '@/components/CustomStatistic';
 const TextModal = lazy(() => import('@/components/TextModal'));
@@ -74,20 +74,17 @@ export default function InboundsPage() {
     remarkModel,
     refresh,
     hydrateInbound,
-    fetchDefaultSettings,
     applyTrafficEvent,
     applyClientStatsEvent,
-    applyInvalidate,
-    applyInboundsEvent,
   } = useInbounds();
 
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
-  const { nodes: nodesList } = useNodes();
+  const { nodes: nodesList } = useNodesQuery();
   const nodesById = useMemo(() => {
-    const map = new Map<number, ReturnType<typeof useNodes>['nodes'][number]>();
+    const map = new Map<number, ReturnType<typeof useNodesQuery>['nodes'][number]>();
     for (const n of nodesList || []) map.set(n.id, n);
     return map;
   }, [nodesList]);
@@ -105,14 +102,7 @@ export default function InboundsPage() {
   useWebSocket({
     traffic: applyTrafficEvent,
     client_stats: applyClientStatsEvent,
-    invalidate: applyInvalidate,
-    inbounds: applyInboundsEvent,
   });
-
-  useEffect(() => {
-    fetchDefaultSettings().then(() => refresh());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
@@ -449,15 +439,12 @@ export default function InboundsPage() {
     }
   }, [hydrateInbound, openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmClone, messageApi]);
 
-  const basePath = (typeof window !== 'undefined' && window.X_UI_BASE_PATH) || '';
-  const requestUri = typeof window !== 'undefined' ? window.location.pathname : '';
-
   return (
     <ConfigProvider theme={antdThemeConfig}>
       {messageContextHolder}
       {modalContextHolder}
       <Layout className={`inbounds-page${isDark ? ' is-dark' : ''}${isUltra ? ' is-ultra' : ''}`}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">

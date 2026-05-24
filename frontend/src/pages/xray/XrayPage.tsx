@@ -31,7 +31,6 @@ import {
 
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { useXraySetting } from '@/hooks/useXraySetting';
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
 import AppSidebar from '@/components/AppSidebar';
@@ -89,15 +88,12 @@ export default function XrayPage() {
     testingAll,
     fetchAll,
     resetOutboundsTraffic,
-    applyOutboundsEvent,
     testOutbound,
     testAllOutbounds,
     saveAll,
     resetToDefault,
     restartXray,
   } = xs;
-
-  useWebSocket({ outbounds: applyOutboundsEvent as never });
 
   const [modal, modalContextHolder] = Modal.useModal();
   const [warpOpen, setWarpOpen] = useState(false);
@@ -139,9 +135,6 @@ export default function XrayPage() {
 
   const warpExist = !!templateSettings?.outbounds?.find((o) => o?.tag === 'warp');
   const nordExist = !!templateSettings?.outbounds?.find((o) => o?.tag?.startsWith?.('nord-'));
-
-  const basePath = window.X_UI_BASE_PATH || '';
-  const requestUri = window.location.pathname;
 
   async function onTestOutbound(idx: number, mode: string) {
     const outbound = templateSettings?.outbounds?.[idx];
@@ -259,7 +252,7 @@ export default function XrayPage() {
       {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">

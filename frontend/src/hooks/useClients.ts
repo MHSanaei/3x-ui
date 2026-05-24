@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { HttpUtil } from '@/utils';
+import { keys } from '@/api/queryKeys';
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
 
@@ -84,22 +87,49 @@ interface ClientPageResponse {
 }
 
 const DEFAULT_QUERY: ClientQueryParams = { page: 1, pageSize: 25 };
+const DEFAULT_SUMMARY: ClientsSummary = {
+  total: 0, active: 0, online: [], depleted: [], expiring: [], deactive: [],
+};
+
+function buildQS(p: ClientQueryParams): string {
+  const sp = new URLSearchParams();
+  sp.set('page', String(p.page || 1));
+  sp.set('pageSize', String(p.pageSize || DEFAULT_QUERY.pageSize));
+  if (p.search) sp.set('search', p.search);
+  if (p.filter) sp.set('filter', p.filter);
+  if (p.protocol) sp.set('protocol', p.protocol);
+  if (p.inbound && p.inbound > 0) sp.set('inbound', String(p.inbound));
+  if (p.sort) sp.set('sort', p.sort);
+  if (p.order) sp.set('order', p.order);
+  return sp.toString();
+}
+
+async function fetchClientPage(params: ClientQueryParams): Promise<ClientPageResponse> {
+  const qs = buildQS(params);
+  const msg = await HttpUtil.get(`/panel/api/clients/list/paged?${qs}`, undefined, { silent: true }) as ApiMsg<ClientPageResponse>;
+  if (!msg?.success || !msg.obj) throw new Error(msg?.msg || 'Failed to fetch clients');
+  return msg.obj;
+}
+
+async function fetchInboundOptions(): Promise<InboundOption[]> {
+  const msg = await HttpUtil.get('/panel/api/inbounds/options', undefined, { silent: true }) as ApiMsg<InboundOption[]>;
+  if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch inbound options');
+  return Array.isArray(msg.obj) ? msg.obj : [];
+}
+
+async function fetchDefaults(): Promise<Record<string, unknown>> {
+  const msg = await HttpUtil.post('/panel/setting/defaultSettings', undefined, { silent: true }) as ApiMsg<Record<string, unknown>>;
+  if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch defaults');
+  return msg.obj || {};
+}
 
 export function useClients() {
-  const [clients, setClients] = useState<ClientRecord[]>([]);
-  const [total, setTotal] = useState(0);
-  const [filtered, setFiltered] = useState(0);
-  const [summary, setSummary] = useState<ClientsSummary>({
-    total: 0, active: 0, online: [], depleted: [], expiring: [], deactive: [],
-  });
-  const [inbounds, setInbounds] = useState<InboundOption[]>([]);
-  const [onlines, setOnlines] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [fetched, setFetched] = useState(false);
+  const queryClient = useQueryClient();
+
   const [query, setQueryState] = useState<ClientQueryParams>(DEFAULT_QUERY);
-  // Shallow-compare against the previous query so callers can pass a fresh
-  // object on every render (the common React pattern) without triggering a
-  // re-fetch when nothing actually changed.
+  // setQuery shallow-compares so callers can pass a fresh object every render
+  // (the common React pattern) without triggering a re-fetch when nothing
+  // actually changed.
   const setQuery = useCallback((next: ClientQueryParams) => {
     setQueryState((prev) => {
       if (
@@ -115,86 +145,69 @@ export function useClients() {
       return next;
     });
   }, []);
-  const [subSettings, setSubSettings] = useState<SubSettings>({
-    enable: false, subURI: '', subJsonURI: '', subJsonEnable: false,
+
+  const listQuery = useQuery({
+    queryKey: keys.clients.list(query),
+    queryFn: () => fetchClientPage(query),
+    staleTime: Infinity,
+    placeholderData: keepPreviousData,
   });
-  const [ipLimitEnable, setIpLimitEnable] = useState(false);
-  const [tgBotEnable, setTgBotEnable] = useState(false);
-  const [expireDiff, setExpireDiff] = useState(0);
-  const [trafficDiff, setTrafficDiff] = useState(0);
-  const [pageSize, setPageSize] = useState(0);
 
-  const clientsRef = useRef<ClientRecord[]>([]);
-  const queryRef = useRef<ClientQueryParams>(query);
-  const invalidateTimerRef = useRef<number | null>(null);
+  const inboundOptionsQuery = useQuery({
+    queryKey: keys.inbounds.options(),
+    queryFn: fetchInboundOptions,
+    staleTime: Infinity,
+  });
 
-  useEffect(() => { clientsRef.current = clients; }, [clients]);
-  useEffect(() => { queryRef.current = query; }, [query]);
+  const defaultsQuery = useQuery({
+    queryKey: keys.settings.defaults(),
+    queryFn: fetchDefaults,
+    staleTime: Infinity,
+  });
 
-  const buildQS = (p: ClientQueryParams) => {
-    const sp = new URLSearchParams();
-    sp.set('page', String(p.page || 1));
-    sp.set('pageSize', String(p.pageSize || DEFAULT_QUERY.pageSize));
-    if (p.search) sp.set('search', p.search);
-    if (p.filter) sp.set('filter', p.filter);
-    if (p.protocol) sp.set('protocol', p.protocol);
-    if (p.inbound && p.inbound > 0) sp.set('inbound', String(p.inbound));
-    if (p.sort) sp.set('sort', p.sort);
-    if (p.order) sp.set('order', p.order);
-    return sp.toString();
-  };
+  const onlinesQuery = useQuery({
+    queryKey: keys.clients.onlines(),
+    queryFn: async () => {
+      const msg = await HttpUtil.post('/panel/api/clients/onlines', undefined, { silent: true }) as ApiMsg<string[]>;
+      if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch onlines');
+      return Array.isArray(msg.obj) ? msg.obj : [];
+    },
+    staleTime: Infinity,
+  });
 
-  const refresh = useCallback(async (override?: ClientQueryParams) => {
-    setLoading(true);
-    try {
-      const params = override ?? queryRef.current;
-      const qs = buildQS(params);
-      const msg = await HttpUtil.get(`/panel/api/clients/list/paged?${qs}`) as ApiMsg<ClientPageResponse>;
-      if (msg?.success && msg.obj) {
-        setClients(Array.isArray(msg.obj.items) ? msg.obj.items : []);
-        setTotal(msg.obj.total ?? 0);
-        setFiltered(msg.obj.filtered ?? 0);
-        if (msg.obj.summary) setSummary(msg.obj.summary);
-      }
-      setFetched(true);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const clients = listQuery.data?.items ?? [];
+  const total = listQuery.data?.total ?? 0;
+  const filtered = listQuery.data?.filtered ?? 0;
+  const summary = listQuery.data?.summary ?? DEFAULT_SUMMARY;
+  const fetched = listQuery.data !== undefined;
+  const loading = listQuery.isFetching;
 
-  // Inbound options are picker-shaped and don't depend on the clients query —
-  // fetch them once on mount instead of every refresh.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const msg = await HttpUtil.get('/panel/api/inbounds/options') as ApiMsg<InboundOption[]>;
-      if (cancelled) return;
-      if (msg?.success) setInbounds(Array.isArray(msg.obj) ? msg.obj : []);
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const inbounds = inboundOptionsQuery.data ?? [];
+  const onlines = onlinesQuery.data ?? [];
 
-  const fetchSubSettings = useCallback(async () => {
-    const msg = await HttpUtil.post('/panel/setting/defaultSettings') as ApiMsg<Record<string, unknown>>;
-    if (!msg?.success) return;
-    const s = msg.obj || {};
-    setSubSettings({
-      enable: !!s.subEnable,
-      subURI: (s.subURI as string) || '',
-      subJsonURI: (s.subJsonURI as string) || '',
-      subJsonEnable: !!s.subJsonEnable,
-    });
-    setIpLimitEnable(!!s.ipLimitEnable);
-    setTgBotEnable(!!s.tgBotEnable);
-    setExpireDiff(((s.expireDiff as number) ?? 0) * 86400000);
-    setTrafficDiff(((s.trafficDiff as number) ?? 0) * 1073741824);
-    setPageSize((s.pageSize as number) ?? 0);
-  }, []);
+  const defaults = defaultsQuery.data ?? {};
+  const subSettings: SubSettings = useMemo(() => ({
+    enable: !!defaults.subEnable,
+    subURI: (defaults.subURI as string) || '',
+    subJsonURI: (defaults.subJsonURI as string) || '',
+    subJsonEnable: !!defaults.subJsonEnable,
+  }), [defaults.subEnable, defaults.subURI, defaults.subJsonURI, defaults.subJsonEnable]);
 
-  // hydrate fetches the full client record (uuid, password, flow, ...) for a
-  // single email. The paged list endpoint omits these to keep the row payload
-  // tiny; edit / info / qr / link modals call this to get a complete record
-  // before opening.
+  const ipLimitEnable = !!defaults.ipLimitEnable;
+  const tgBotEnable = !!defaults.tgBotEnable;
+  const expireDiff = ((defaults.expireDiff as number) ?? 0) * 86400000;
+  const trafficDiff = ((defaults.trafficDiff as number) ?? 0) * 1073741824;
+  const pageSize = (defaults.pageSize as number) ?? 0;
+
+  const invalidateAll = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
+    [queryClient],
+  );
+
+  const refresh = useCallback(async () => {
+    await invalidateAll();
+  }, [invalidateAll]);
+
   const hydrate = useCallback(async (email: string): Promise<{ client: ClientRecord; inboundIds: number[] } | null> => {
     if (!email) return null;
     const msg = await HttpUtil.get(`/panel/api/clients/get/${encodeURIComponent(email)}`) as ApiMsg<{ client: ClientRecord; inboundIds: number[] }>;
@@ -202,88 +215,109 @@ export function useClients() {
     return msg.obj;
   }, []);
 
-  const create = useCallback(async (payload: unknown) => {
-    const msg = await HttpUtil.post('/panel/api/clients/add', payload, JSON_HEADERS) as ApiMsg;
-    if (msg?.success) await refresh();
-    return msg;
-  }, [refresh]);
+  const createMut = useMutation({
+    mutationFn: (payload: unknown) =>
+      HttpUtil.post('/panel/api/clients/add', payload, JSON_HEADERS) as Promise<ApiMsg>,
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
 
-  const update = useCallback(async (email: string, client: unknown) => {
-    if (!email) return null;
-    const encoded = encodeURIComponent(email);
-    const msg = await HttpUtil.post(`/panel/api/clients/update/${encoded}`, client, JSON_HEADERS) as ApiMsg;
-    if (msg?.success) await refresh();
-    return msg;
-  }, [refresh]);
+  const updateMut = useMutation({
+    mutationFn: ({ email, client }: { email: string; client: unknown }) =>
+      HttpUtil.post(`/panel/api/clients/update/${encodeURIComponent(email)}`, client, JSON_HEADERS) as Promise<ApiMsg>,
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
 
-  const remove = useCallback(async (email: string, keepTraffic = false) => {
-    if (!email) return null;
-    const encoded = encodeURIComponent(email);
-    const url = keepTraffic
-      ? `/panel/api/clients/del/${encoded}?keepTraffic=1`
-      : `/panel/api/clients/del/${encoded}`;
-    const msg = await HttpUtil.post(url) as ApiMsg;
-    if (msg?.success) await refresh();
-    return msg;
-  }, [refresh]);
+  const removeMut = useMutation({
+    mutationFn: ({ email, keepTraffic }: { email: string; keepTraffic?: boolean }) => {
+      const url = keepTraffic
+        ? `/panel/api/clients/del/${encodeURIComponent(email)}?keepTraffic=1`
+        : `/panel/api/clients/del/${encodeURIComponent(email)}`;
+      return HttpUtil.post(url) as Promise<ApiMsg>;
+    },
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
 
-  const removeMany = useCallback(async (emails: string[], keepTraffic = false) => {
-    if (!Array.isArray(emails) || emails.length === 0) return [];
-    const suffix = keepTraffic ? '?keepTraffic=1' : '';
-    const results = await Promise.all(emails.map((email) => {
-      const url = `/panel/api/clients/del/${encodeURIComponent(email)}${suffix}`;
-      return HttpUtil.post(url, undefined, { silent: true }) as Promise<ApiMsg>;
-    }));
-    await refresh();
-    return results;
-  }, [refresh]);
+  const removeManyMut = useMutation({
+    mutationFn: async ({ emails, keepTraffic }: { emails: string[]; keepTraffic?: boolean }) => {
+      const suffix = keepTraffic ? '?keepTraffic=1' : '';
+      const results = await Promise.all(emails.map((email) => {
+        const url = `/panel/api/clients/del/${encodeURIComponent(email)}${suffix}`;
+        return HttpUtil.post(url, undefined, { silent: true }) as Promise<ApiMsg>;
+      }));
+      return results;
+    },
+    onSuccess: () => invalidateAll(),
+  });
 
-  const bulkAdjust = useCallback(async (emails: string[], addDays: number, addBytes: number) => {
-    if (!Array.isArray(emails) || emails.length === 0) return null;
-    const msg = await HttpUtil.post(
-      '/panel/api/clients/bulkAdjust',
-      { emails, addDays, addBytes },
-      JSON_HEADERS,
-    ) as ApiMsg<{ adjusted: number; skipped?: { email: string; reason: string }[] }>;
-    if (msg?.success) await refresh();
-    return msg;
-  }, [refresh]);
+  const bulkAdjustMut = useMutation({
+    mutationFn: (payload: { emails: string[]; addDays: number; addBytes: number }) =>
+      HttpUtil.post(
+        '/panel/api/clients/bulkAdjust',
+        payload,
+        JSON_HEADERS,
+      ) as Promise<ApiMsg<{ adjusted: number; skipped?: { email: string; reason: string }[] }>>,
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
 
-  const attach = useCallback(async (email: string, inboundIds: number[]) => {
-    if (!email) return null;
-    const encoded = encodeURIComponent(email);
-    const msg = await HttpUtil.post(`/panel/api/clients/${encoded}/attach`, { inboundIds }, JSON_HEADERS) as ApiMsg;
-    if (msg?.success) await refresh();
-    return msg;
-  }, [refresh]);
+  const attachMut = useMutation({
+    mutationFn: ({ email, inboundIds }: { email: string; inboundIds: number[] }) =>
+      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/attach`, { inboundIds }, JSON_HEADERS) as Promise<ApiMsg>,
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
 
-  const detach = useCallback(async (email: string, inboundIds: number[]) => {
-    if (!email) return null;
-    const encoded = encodeURIComponent(email);
-    const msg = await HttpUtil.post(`/panel/api/clients/${encoded}/detach`, { inboundIds }, JSON_HEADERS) as ApiMsg;
-    if (msg?.success) await refresh();
-    return msg;
-  }, [refresh]);
+  const detachMut = useMutation({
+    mutationFn: ({ email, inboundIds }: { email: string; inboundIds: number[] }) =>
+      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/detach`, { inboundIds }, JSON_HEADERS) as Promise<ApiMsg>,
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
 
-  const resetTraffic = useCallback(async (client: ClientRecord) => {
-    if (!client?.email) return null;
-    const url = `/panel/api/clients/resetTraffic/${encodeURIComponent(client.email)}`;
-    const msg = await HttpUtil.post(url) as ApiMsg;
-    if (msg?.success) await refresh();
-    return msg;
-  }, [refresh]);
+  const resetTrafficMut = useMutation({
+    mutationFn: (email: string) =>
+      HttpUtil.post(`/panel/api/clients/resetTraffic/${encodeURIComponent(email)}`) as Promise<ApiMsg>,
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
 
-  const resetAllTraffics = useCallback(async () => {
-    const msg = await HttpUtil.post('/panel/api/clients/resetAllTraffics') as ApiMsg;
-    if (msg?.success) await refresh();
-    return msg;
-  }, [refresh]);
+  const resetAllTrafficsMut = useMutation({
+    mutationFn: () => HttpUtil.post('/panel/api/clients/resetAllTraffics') as Promise<ApiMsg>,
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
 
-  const delDepleted = useCallback(async () => {
-    const msg = await HttpUtil.post('/panel/api/clients/delDepleted') as ApiMsg<{ deleted?: number }>;
-    if (msg?.success) await refresh();
-    return msg;
-  }, [refresh]);
+  const delDepletedMut = useMutation({
+    mutationFn: () => HttpUtil.post('/panel/api/clients/delDepleted') as Promise<ApiMsg<{ deleted?: number }>>,
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
+  const create = useCallback((payload: unknown) => createMut.mutateAsync(payload), [createMut]);
+  const update = useCallback((email: string, client: unknown) => {
+    if (!email) return Promise.resolve(null as unknown as ApiMsg);
+    return updateMut.mutateAsync({ email, client });
+  }, [updateMut]);
+  const remove = useCallback((email: string, keepTraffic = false) => {
+    if (!email) return Promise.resolve(null as unknown as ApiMsg);
+    return removeMut.mutateAsync({ email, keepTraffic });
+  }, [removeMut]);
+  const removeMany = useCallback((emails: string[], keepTraffic = false) => {
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve([] as ApiMsg[]);
+    return removeManyMut.mutateAsync({ emails, keepTraffic });
+  }, [removeManyMut]);
+  const bulkAdjust = useCallback((emails: string[], addDays: number, addBytes: number) => {
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
+    return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes });
+  }, [bulkAdjustMut]);
+  const attach = useCallback((email: string, inboundIds: number[]) => {
+    if (!email) return Promise.resolve(null as unknown as ApiMsg);
+    return attachMut.mutateAsync({ email, inboundIds });
+  }, [attachMut]);
+  const detach = useCallback((email: string, inboundIds: number[]) => {
+    if (!email) return Promise.resolve(null as unknown as ApiMsg);
+    return detachMut.mutateAsync({ email, inboundIds });
+  }, [detachMut]);
+  const resetTraffic = useCallback((client: ClientRecord) => {
+    if (!client?.email) return Promise.resolve(null as unknown as ApiMsg);
+    return resetTrafficMut.mutateAsync(client.email);
+  }, [resetTrafficMut]);
+  const resetAllTraffics = useCallback(() => resetAllTrafficsMut.mutateAsync(), [resetAllTrafficsMut]);
+  const delDepleted = useCallback(() => delDepletedMut.mutateAsync(), [delDepletedMut]);
 
   const setEnable = useCallback(async (client: ClientRecord, enable: boolean) => {
     if (!client?.email) return null;
@@ -302,57 +336,53 @@ export function useClients() {
     return update(client.email, payload);
   }, [update]);
 
+  // WS-driven in-place merges. Page wires these via useWebSocket; the bridge
+  // covers coarse 'invalidate' and 'inbounds' events centrally.
+  const queryRef = useRef(query);
+  queryRef.current = query;
+
   const applyTrafficEvent = useCallback((payload: unknown) => {
     if (!payload || typeof payload !== 'object') return;
     const p = payload as { onlineClients?: string[] };
     if (Array.isArray(p.onlineClients)) {
-      setOnlines(p.onlineClients);
+      queryClient.setQueryData(keys.clients.onlines(), p.onlineClients);
     }
-  }, []);
+  }, [queryClient]);
 
   const applyClientStatsEvent = useCallback((payload: unknown) => {
     if (!payload || typeof payload !== 'object') return;
-    const p = payload as { clients?: ClientTraffic[] & { email?: string }[] };
+    const p = payload as { clients?: (ClientTraffic & { email?: string })[] };
     if (!Array.isArray(p.clients) || p.clients.length === 0) return;
     const byEmail = new Map<string, ClientTraffic>();
-    for (const row of p.clients as (ClientTraffic & { email?: string })[]) {
+    for (const row of p.clients) {
       if (row && row.email) byEmail.set(row.email, row);
     }
-    const cur = clientsRef.current || [];
-    let touched = false;
-    const next = cur.slice();
-    for (let i = 0; i < next.length; i++) {
-      const row = next[i];
-      const upd = byEmail.get(row?.email);
-      if (!upd) continue;
-      const merged: ClientTraffic = { ...(row.traffic || {}) };
-      if (typeof upd.up === 'number') merged.up = upd.up;
-      if (typeof upd.down === 'number') merged.down = upd.down;
-      if (typeof upd.total === 'number') merged.total = upd.total;
-      if (typeof upd.expiryTime === 'number') merged.expiryTime = upd.expiryTime;
-      if (typeof upd.enable === 'boolean') merged.enable = upd.enable;
-      if (typeof upd.lastOnline === 'number') merged.lastOnline = upd.lastOnline;
-      next[i] = { ...row, traffic: merged };
-      touched = true;
-    }
-    if (touched) setClients(next);
-  }, []);
-
-  const applyInvalidate = useCallback((payload: unknown) => {
-    if (!payload || typeof payload !== 'object') return;
-    const p = payload as { type?: string };
-    if (p.type !== 'inbounds' && p.type !== 'clients') return;
-    if (invalidateTimerRef.current != null) clearTimeout(invalidateTimerRef.current);
-    invalidateTimerRef.current = window.setTimeout(() => {
-      invalidateTimerRef.current = null;
-      refresh();
-    }, 200);
-  }, [refresh]);
+    queryClient.setQueryData<ClientPageResponse>(keys.clients.list(queryRef.current), (prev) => {
+      if (!prev) return prev;
+      let touched = false;
+      const next = prev.items.slice();
+      for (let i = 0; i < next.length; i++) {
+        const row = next[i];
+        const upd = byEmail.get(row?.email);
+        if (!upd) continue;
+        const merged: ClientTraffic = { ...(row.traffic || {}) };
+        if (typeof upd.up === 'number') merged.up = upd.up;
+        if (typeof upd.down === 'number') merged.down = upd.down;
+        if (typeof upd.total === 'number') merged.total = upd.total;
+        if (typeof upd.expiryTime === 'number') merged.expiryTime = upd.expiryTime;
+        if (typeof upd.enable === 'boolean') merged.enable = upd.enable;
+        if (typeof upd.lastOnline === 'number') merged.lastOnline = upd.lastOnline;
+        next[i] = { ...row, traffic: merged };
+        touched = true;
+      }
+      if (!touched) return prev;
+      return { ...prev, items: next };
+    });
+  }, [queryClient]);
 
   useEffect(() => {
-    Promise.all([refresh(query), fetchSubSettings()]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, fetchSubSettings]);
+    queryRef.current = query;
+  }, [query]);
 
   return {
     clients,
@@ -386,6 +416,5 @@ export function useClients() {
     setEnable,
     applyTrafficEvent,
     applyClientStatsEvent,
-    applyInvalidate,
   };
 }

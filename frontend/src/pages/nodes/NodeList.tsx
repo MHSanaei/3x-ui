@@ -28,7 +28,7 @@ import {
 } from '@ant-design/icons';
 
 import NodeHistoryPanel from './NodeHistoryPanel';
-import type { NodeRecord } from '@/hooks/useNodes';
+import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import './NodeList.css';
 
 interface NodeListProps {

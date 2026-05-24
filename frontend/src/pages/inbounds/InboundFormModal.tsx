@@ -60,7 +60,7 @@ import { DBInbound } from '@/models/dbinbound.js';
 import FinalMaskForm from '@/components/FinalMaskForm';
 import DateTimePicker from '@/components/DateTimePicker';
 import JsonEditor from '@/components/JsonEditor';
-import type { NodeRecord } from '@/hooks/useNodes';
+import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import './InboundFormModal.css';
 
 const { TextArea } = Input;
