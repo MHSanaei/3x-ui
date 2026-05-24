@@ -28,7 +28,7 @@ import { HttpUtil, PromiseUtil } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useAllSetting } from '@/hooks/useAllSetting';
+import { useAllSettings } from '@/api/queries/useAllSettings';
 import AppSidebar from '@/components/AppSidebar';
 import GeneralTab from './GeneralTab';
 import SecurityTab from './SecurityTab';
@@ -92,7 +92,7 @@ export default function SettingsPage() {
     setSpinning,
     saveDisabled,
     saveAll,
-  } = useAllSetting();
+  } = useAllSettings();
 
   const [entryHost, setEntryHost] = useState('');
   const [entryPort, setEntryPort] = useState('');
