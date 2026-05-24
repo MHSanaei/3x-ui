@@ -32,7 +32,7 @@ export default function ApiDocsPage() {
               <SwaggerUI
                 url={openApiUrl}
                 docExpansion="list"
-                deepLinking
+                deepLinking={false}
                 tryItOutEnabled
               />
             </div>
