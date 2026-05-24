@@ -1,8 +1,8 @@
 # 3x-ui frontend
 
-Vue 3 + Ant Design Vue 4 + Vite. Multi-page app — one HTML entry per
-panel route — built into `../web/dist/` and embedded into the Go binary
-via `embed.FS`.
+React 19 + Ant Design 6 + TypeScript + Vite 8. Multi-page app — one HTML
+entry per panel route — built into `../web/dist/` and embedded into the
+Go binary via `embed.FS`.
 
 ## Dev
 
@@ -30,44 +30,52 @@ Outputs to `../web/dist/` (HTML at the root, hashed JS/CSS under
 `assets/`). The Go binary embeds this directory at compile time and
 `web/controller/dist.go` serves the per-page HTML.
 
-## Lint
+## Type check and lint
 
 ```sh
+npm run typecheck
 npm run lint
 ```
 
-ESLint 10 with `eslint.config.js` (flat config) — `vue3-recommended`
-plus a few rule overrides for the project's formatting style.
+`tsc --noEmit` against `tsconfig.json` (strict mode, `jsx: "react-jsx"`,
+`@/*` → `src/*` alias). ESLint 10 with `eslint.config.js` (flat config)
+— `@eslint/js` recommended plus `typescript-eslint` and
+`eslint-plugin-react-hooks` rules.
 
 ## Layout
 
 ```
 frontend/
 ├── *.html                 # Vite entry HTML, one per panel route
+├── tsconfig.json
 ├── eslint.config.js
 ├── vite.config.js
 └── src/
-    ├── entries/           # Per-page bootstrap (createApp + mount)
+    ├── entries/           # Per-page bootstrap (createRoot + render)
     ├── pages/             # One folder per route, each with the page
     │   ├── index/         # component + helpers + sub-components
     │   ├── login/
     │   ├── inbounds/
+    │   ├── clients/
     │   ├── xray/
+    │   ├── nodes/
     │   ├── settings/
+    │   ├── api-docs/
     │   └── sub/
-    ├── components/        # Cross-page Vue components
-    ├── composables/       # Reusable reactive logic (useTheme, …)
-    ├── api/               # Axios setup, CSRF interceptor
-    ├── i18n/              # vue-i18n init (locales live in web/translation/)
+    ├── components/        # Cross-page React components
+    ├── hooks/             # Reusable hooks (useTheme, useWebSocket, …)
+    ├── api/               # Axios setup, CSRF interceptor, WebSocket
+    ├── i18n/              # react-i18next init (locales live in web/translation/)
     ├── models/            # Inbound, Outbound, Status, … domain classes
+    ├── styles/            # Shared CSS modules (page-cards, …)
     └── utils/             # HttpUtil, ObjectUtil, LanguageManager, …
 ```
 
 ## Adding a new page
 
-1. Add `frontend/<page>.html` referencing `/src/entries/<page>.js`.
-2. Add `src/entries/<page>.js` that imports the page component and
-   mounts it.
+1. Add `frontend/<page>.html` referencing `/src/entries/<page>.tsx`.
+2. Add `src/entries/<page>.tsx` that imports the page component and
+   mounts it with `createRoot(...).render(...)`.
 3. Add the page component under `src/pages/<page>/`.
 4. Register the entry in `rollupOptions.input` in `vite.config.js`.
 5. If the page is reachable from the sidebar at `/panel/<route>`, add

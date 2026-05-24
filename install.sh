@@ -110,6 +110,83 @@ gen_random_string() {
         | head -c "$length"
 }
 
+install_postgres_local() {
+    local pg_user="xui"
+    local pg_db="xui"
+    local pg_pass
+    pg_pass=$(gen_random_string 24)
+
+    case "${release}" in
+        ubuntu | debian | armbian)
+            apt-get update >&2 && apt-get install -y -q postgresql >&2 || return 1
+            ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+            dnf install -y -q postgresql-server postgresql-contrib >&2 || return 1
+            [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
+            ;;
+        centos)
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                yum install -y postgresql-server postgresql-contrib >&2 || return 1
+            else
+                dnf install -y -q postgresql-server postgresql-contrib >&2 || return 1
+            fi
+            [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
+            ;;
+        arch | manjaro | parch)
+            pacman -Syu --noconfirm postgresql >&2 || return 1
+            if [[ ! -f /var/lib/postgres/data/PG_VERSION ]]; then
+                sudo -u postgres initdb -D /var/lib/postgres/data >&2 || return 1
+            fi
+            ;;
+        opensuse-tumbleweed | opensuse-leap)
+            zypper -q install -y postgresql-server postgresql-contrib >&2 || return 1
+            if [[ ! -f /var/lib/pgsql/data/PG_VERSION ]]; then
+                install -d -o postgres -g postgres -m 700 /var/lib/pgsql/data >&2 || return 1
+                su - postgres -c "initdb -D /var/lib/pgsql/data" >&2 || return 1
+            fi
+            ;;
+        alpine)
+            apk add --no-cache postgresql postgresql-contrib >&2 || return 1
+            if [[ ! -f /var/lib/postgresql/data/PG_VERSION ]]; then
+                /etc/init.d/postgresql setup >&2 || return 1
+            fi
+            rc-update add postgresql default >&2 2> /dev/null || true
+            rc-service postgresql start >&2 || return 1
+            ;;
+        *)
+            echo -e "${red}Unsupported distro for automatic PostgreSQL install: ${release}${plain}" >&2
+            return 1
+            ;;
+    esac
+
+    if [[ "${release}" != "alpine" ]]; then
+        systemctl enable --now postgresql >&2 || return 1
+    fi
+
+    # Wait briefly for the server to accept connections.
+    local i
+    for i in 1 2 3 4 5; do
+        sudo -u postgres psql -tAc 'SELECT 1' > /dev/null 2>&1 && break
+        sleep 1
+    done
+
+    # Idempotent role/db creation.
+    sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${pg_user}'" 2> /dev/null \
+        | grep -q 1 \
+        || sudo -u postgres psql -c "CREATE USER ${pg_user} WITH PASSWORD '${pg_pass}';" >&2 || return 1
+
+    sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null \
+        | grep -q 1 \
+        || sudo -u postgres psql -c "CREATE DATABASE ${pg_db} OWNER ${pg_user};" >&2 || return 1
+
+    sudo -u postgres psql -c "ALTER USER ${pg_user} WITH PASSWORD '${pg_pass}';" >&2 || return 1
+
+    local pg_pass_enc
+    pg_pass_enc=$(printf '%s' "${pg_pass}" | sed -e 's/%/%25/g' -e 's/:/%3A/g' -e 's/@/%40/g' -e 's|/|%2F|g' -e 's/?/%3F/g' -e 's/#/%23/g')
+    echo "postgres://${pg_user}:${pg_pass_enc}@127.0.0.1:5432/${pg_db}?sslmode=disable"
+    return 0
+}
+
 install_acme() {
     echo -e "${green}Installing acme.sh for SSL certificate management...${plain}"
     cd ~ || return 1
@@ -741,6 +818,79 @@ config_after_install() {
             local config_username=$(gen_random_string 10)
             local config_password=$(gen_random_string 10)
 
+            local db_label="SQLite (/etc/x-ui/x-ui.db)"
+            echo ""
+            echo -e "${green}═══════════════════════════════════════════${plain}"
+            echo -e "${green}     Database Selection                    ${plain}"
+            echo -e "${green}═══════════════════════════════════════════${plain}"
+            echo -e "  1) SQLite     (default — recommended for < 1000 clients)"
+            echo -e "  2) PostgreSQL (recommended for high client counts / many nodes)"
+            read -rp "Choose [1]: " db_choice
+            db_choice="${db_choice:-1}"
+            if [[ "$db_choice" == "2" ]]; then
+                local xui_env_file
+                case "${release}" in
+                    ubuntu | debian | armbian)
+                        xui_env_file="/etc/default/x-ui"
+                        ;;
+                    arch | manjaro | parch | alpine)
+                        xui_env_file="/etc/conf.d/x-ui"
+                        ;;
+                    *)
+                        xui_env_file="/etc/sysconfig/x-ui"
+                        ;;
+                esac
+
+                local xui_dsn=""
+                local pg_mode=""
+                while [[ -z "$xui_dsn" ]]; do
+                    echo ""
+                    echo -e "  1) Install PostgreSQL locally and create a dedicated user/db (recommended)"
+                    echo -e "  2) Use an existing PostgreSQL server (enter DSN)"
+                    read -rp "Choose [1]: " pg_mode
+                    pg_mode="${pg_mode:-1}"
+                    if [[ "$pg_mode" == "2" ]]; then
+                        while [[ -z "$xui_dsn" ]]; do
+                            read -rp "Enter PostgreSQL DSN (postgres://user:pass@host:port/dbname?sslmode=disable): " xui_dsn
+                            xui_dsn="${xui_dsn// /}"
+                        done
+                        db_label="PostgreSQL (external)"
+                    else
+                        echo -e "${yellow}Installing PostgreSQL — this may take a moment...${plain}"
+                        if xui_dsn=$(install_postgres_local); then
+                            db_label="PostgreSQL (xui@127.0.0.1:5432/xui)"
+                        else
+                            echo ""
+                            echo -e "${red}PostgreSQL installation failed.${plain}"
+                            echo -e "  1) Retry local install"
+                            echo -e "  2) Enter an external DSN instead"
+                            echo -e "  3) Abort install"
+                            echo -e "  4) Fall back to SQLite"
+                            read -rp "Choose [1]: " pg_fail
+                            pg_fail="${pg_fail:-1}"
+                            case "$pg_fail" in
+                                2) pg_mode="2" ;;
+                                3) echo -e "${red}Install aborted.${plain}"; exit 1 ;;
+                                4) db_choice="1"; xui_dsn=""; break ;;
+                                *) xui_dsn="" ;;
+                            esac
+                        fi
+                    fi
+                done
+                if [[ -n "$xui_dsn" ]]; then
+                    install -d -m 755 "$(dirname "$xui_env_file")"
+                    umask 077
+                    cat > "$xui_env_file" << EOF
+XUI_DB_TYPE=postgres
+XUI_DB_DSN=${xui_dsn}
+EOF
+                    chmod 600 "$xui_env_file"
+                    umask 022
+                    export XUI_DB_TYPE=postgres
+                    export XUI_DB_DSN="${xui_dsn}"
+                fi
+            fi
+
             read -rp "Would you like to customize the Panel Port settings? (If not, a random port will be applied) [y/n]: " config_confirm
             if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
                 read -rp "Please set up the panel port: " config_port
@@ -775,6 +925,7 @@ config_after_install() {
             echo -e "${green}Password:    ${config_password}${plain}"
             echo -e "${green}Port:        ${config_port}${plain}"
             echo -e "${green}WebBasePath: ${config_webBasePath}${plain}"
+            echo -e "${green}Database:    ${db_label}${plain}"
             echo -e "${green}Access URL:  ${SSL_SCHEME}://${SSL_HOST}:${config_port}/${config_webBasePath}${plain}"
             echo -e "${green}API Token:   ${config_apiToken}${plain}"
             echo -e "${green}═══════════════════════════════════════════${plain}"

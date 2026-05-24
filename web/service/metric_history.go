@@ -124,7 +124,7 @@ func (h *metricHistory) aggregate(metric string, bucketSeconds int, maxPoints in
 }
 
 // systemMetrics holds whole-host time series (cpu, mem, netUp, etc.)
-// fed by ServerController.refreshStatus every 2s. nodeMetrics holds
+// fed by ServerService.RefreshStatus every 2s. nodeMetrics holds
 // per-node CPU/Mem fed by NodeHeartbeatJob every 10s. Both are
 // process-local — survival across panel restart is not required.
 var (

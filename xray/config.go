@@ -11,17 +11,17 @@ import (
 type Config struct {
 	LogConfig        json_util.RawMessage `json:"log"`
 	RouterConfig     json_util.RawMessage `json:"routing"`
-	DNSConfig        json_util.RawMessage `json:"dns"`
+	DNSConfig        json_util.RawMessage `json:"dns,omitempty"`
 	InboundConfigs   []InboundConfig      `json:"inbounds"`
 	OutboundConfigs  json_util.RawMessage `json:"outbounds"`
-	Transport        json_util.RawMessage `json:"transport"`
+	Transport        json_util.RawMessage `json:"transport,omitempty"`
 	Policy           json_util.RawMessage `json:"policy"`
 	API              json_util.RawMessage `json:"api"`
 	Stats            json_util.RawMessage `json:"stats"`
-	Reverse          json_util.RawMessage `json:"reverse"`
-	FakeDNS          json_util.RawMessage `json:"fakedns"`
-	Observatory      json_util.RawMessage `json:"observatory"`
-	BurstObservatory json_util.RawMessage `json:"burstObservatory"`
+	Reverse          json_util.RawMessage `json:"reverse,omitempty"`
+	FakeDNS          json_util.RawMessage `json:"fakedns,omitempty"`
+	Observatory      json_util.RawMessage `json:"observatory,omitempty"`
+	BurstObservatory json_util.RawMessage `json:"burstObservatory,omitempty"`
 	Metrics          json_util.RawMessage `json:"metrics"`
 }
 

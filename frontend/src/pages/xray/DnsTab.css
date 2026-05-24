@@ -1,0 +1,16 @@
+.row-index {
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.muted {
+  opacity: 0.7;
+  word-break: break-all;
+}
+
+.hosts-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}

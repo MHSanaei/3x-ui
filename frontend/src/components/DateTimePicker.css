@@ -1,0 +1,35 @@
+.jdp-wrap {
+  width: 100%;
+}
+
+.jdp-wrap > * {
+  width: 100%;
+}
+
+.jdp-wrap input {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: plaintext;
+}
+
+.jdp-dark .jdp-wrap input,
+.jdp-dark input {
+  color: rgba(255, 255, 255, 0.88) !important;
+  background-color: #23252b !important;
+}
+
+.jdp-ultra .jdp-wrap input,
+.jdp-ultra input {
+  color: rgba(255, 255, 255, 0.88) !important;
+  background-color: #101013 !important;
+}
+
+.jdp-dark input::placeholder,
+.jdp-ultra input::placeholder {
+  color: rgba(255, 255, 255, 0.30) !important;
+}
+
+.jdp-disabled {
+  pointer-events: none;
+  opacity: 0.6;
+}

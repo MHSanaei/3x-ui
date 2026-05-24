@@ -1,0 +1,233 @@
+.clients-page {
+  --bg-page: #e6e8ec;
+  --bg-card: #ffffff;
+  min-height: 100vh;
+  background: var(--bg-page);
+}
+
+.clients-page.is-dark {
+  --bg-page: #1a1b1f;
+  --bg-card: #23252b;
+}
+
+.clients-page.is-dark.is-ultra {
+  --bg-page: #000;
+  --bg-card: #101013;
+}
+
+.clients-page .ant-layout,
+.clients-page .ant-layout-content {
+  background: transparent;
+}
+
+.clients-page .content-shell {
+  background: transparent;
+}
+
+.clients-page .content-area {
+  padding: 24px;
+}
+
+@media (max-width: 768px) {
+  .clients-page .content-area {
+    padding: 8px;
+  }
+}
+
+.clients-page .ant-pagination-options-size-changer,
+.clients-page .ant-pagination-options-size-changer .ant-select-selector {
+  min-width: 100px !important;
+}
+
+.clients-page .loading-spacer {
+  min-height: calc(100vh - 120px);
+}
+
+.clients-page .summary-card {
+  padding: 16px;
+}
+
+@media (max-width: 768px) {
+  .clients-page .summary-card {
+    padding: 8px;
+  }
+}
+
+.client-email-list {
+  max-height: 280px;
+  min-width: 160px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.client-email-list > div {
+  padding: 2px 0;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-bar.mobile {
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.filter-bar.mobile > * {
+  flex: 0 0 auto;
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.dot-green { background: #52c41a; }
+.dot-blue { background: #1677ff; }
+.dot-red { background: #ff4d4f; }
+.dot-orange { background: #fa8c16; }
+.dot-gray { background: rgba(128, 128, 128, 0.6); }
+
+.status-tag {
+  margin: 0 0 0 4px;
+  font-size: 11px;
+  padding: 0 6px;
+  line-height: 18px;
+}
+
+.card-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.email-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.email-cell .email {
+  font-weight: 500;
+}
+
+.email-cell .sub {
+  font-size: 11px;
+  opacity: 0.55;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.client-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.card-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 8px;
+}
+
+.card-pagination {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 4px 0 8px;
+}
+
+.card-pagination .ant-pagination-options-size-changer,
+.card-pagination .ant-pagination-options-size-changer .ant-select-selector {
+  min-width: 88px !important;
+}
+
+.bulk-count {
+  font-size: 12px;
+  background: rgba(22, 119, 255, 0.12);
+  color: var(--ant-color-primary, #1677ff);
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+.client-card {
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.client-card.is-selected {
+  border-color: var(--ant-color-primary, #1677ff);
+  background: rgba(22, 119, 255, 0.06);
+}
+
+body.dark .client-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.card-head .tag-name {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.row-action-trigger {
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 120ms ease;
+}
+
+.row-action-trigger:hover {
+  opacity: 1;
+}
+
+.card-empty {
+  text-align: center;
+  padding: 40px 16px;
+  opacity: 0.55;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.clients-empty {
+  padding: 32px 0;
+  text-align: center;
+  opacity: 0.55;
+}

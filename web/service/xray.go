@@ -3,10 +3,15 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 
+	"github.com/mhsanaei/3x-ui/v3/config"
+	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/xray"
 
 	"go.uber.org/atomic"
@@ -102,6 +107,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	xrayConfig.LogConfig = resolveXrayLogPaths(xrayConfig.LogConfig)
 
 	_, _, _ = s.inboundService.AddTraffic(nil, nil)
 
@@ -116,57 +122,101 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if inbound.NodeID != nil {
 			continue
 		}
-		// get settings clients
 		settings := map[string]any{}
 		json.Unmarshal([]byte(inbound.Settings), &settings)
-		clients, ok := settings["clients"].([]any)
-		if ok {
-			// Fast O(N) lookup map for client traffic enablement
-			clientStats := inbound.ClientStats
-			enableMap := make(map[string]bool, len(clientStats))
-			for _, clientTraffic := range clientStats {
-				enableMap[clientTraffic.Email] = clientTraffic.Enable
+
+		dbClients, listErr := s.inboundService.clientService.ListForInbound(nil, inbound.Id)
+		if listErr != nil {
+			return nil, listErr
+		}
+
+		clientStats := inbound.ClientStats
+		enableMap := make(map[string]bool, len(clientStats))
+		for _, clientTraffic := range clientStats {
+			enableMap[clientTraffic.Email] = clientTraffic.Enable
+		}
+
+		var finalClients []any
+		for i := range dbClients {
+			c := dbClients[i]
+			if enable, exists := enableMap[c.Email]; exists && !enable {
+				logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c.Email)
+				continue
 			}
-
-			// filter and clean clients
-			var final_clients []any
-			for _, client := range clients {
-				c, ok := client.(map[string]any)
-				if !ok {
-					continue
-				}
-
-				email, _ := c["email"].(string)
-
-				// check users active or not via stats
-				if enable, exists := enableMap[email]; exists && !enable {
-					logger.Infof("Remove Inbound User %s due to expiration or traffic limit", email)
-					continue
-				}
-
-				// check manual disabled flag
-				if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
-					continue
-				}
-
-				// clear client config for additional parameters
-				for key := range c {
-					if key != "email" && key != "id" && key != "password" && key != "flow" && key != "method" && key != "auth" && key != "reverse" {
-						delete(c, key)
-					}
-					if flow, ok := c["flow"].(string); ok && flow == "xtls-rprx-vision-udp443" {
-						c["flow"] = "xtls-rprx-vision"
-					}
-				}
-				final_clients = append(final_clients, any(c))
+			if !c.Enable {
+				continue
 			}
+			flow := c.Flow
+			if flow == "xtls-rprx-vision-udp443" {
+				flow = "xtls-rprx-vision"
+			}
+			entry := map[string]any{"email": c.Email}
+			switch inbound.Protocol {
+			case model.VLESS:
+				if c.ID != "" {
+					entry["id"] = c.ID
+				}
+				if flow != "" {
+					entry["flow"] = flow
+				}
+				if c.Reverse != nil {
+					entry["reverse"] = c.Reverse
+				}
+			case model.VMESS:
+				if c.ID != "" {
+					entry["id"] = c.ID
+				}
+				if c.Security != "" {
+					entry["security"] = c.Security
+				}
+			case model.Trojan:
+				if c.Password != "" {
+					entry["password"] = c.Password
+				}
+				if flow != "" {
+					entry["flow"] = flow
+				}
+			case model.Shadowsocks:
+				if c.Password != "" {
+					entry["password"] = c.Password
+				}
+				if c.Security != "" {
+					entry["method"] = c.Security
+				}
+			case model.Hysteria, model.Hysteria2:
+				if c.Auth != "" {
+					entry["auth"] = c.Auth
+				}
+			}
+			finalClients = append(finalClients, entry)
+		}
 
-			settings["clients"] = final_clients
+		_, hadClients := settings["clients"]
+		mutated := hadClients || len(finalClients) > 0
+		if mutated {
+			settings["clients"] = finalClients
+		}
+
+		if inboundCanHostFallbacks(inbound) {
+			fallbacks, fbErr := s.inboundService.fallbackService.BuildFallbacksJSON(nil, inbound.Id)
+			if fbErr != nil {
+				return nil, fbErr
+			}
+			if len(fallbacks) > 0 {
+				generic := make([]any, 0, len(fallbacks))
+				for _, f := range fallbacks {
+					generic = append(generic, f)
+				}
+				settings["fallbacks"] = generic
+				mutated = true
+			}
+		}
+
+		if mutated {
 			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 			if err != nil {
 				return nil, err
 			}
-
 			inbound.Settings = string(modifiedSettings)
 		}
 
@@ -195,10 +245,110 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			inbound.StreamSettings = string(newStream)
 		}
 
+		if inbound.Protocol == model.Shadowsocks {
+			if healed, ok := healShadowsocksClientMethods(inbound.Settings); ok {
+				inbound.Settings = healed
+			}
+		}
+
 		inboundConfig := inbound.GenXrayInboundConfig()
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
 	}
 	return xrayConfig, nil
+}
+
+// resolveXrayLogPaths rewrites relative `log.access` / `log.error` values to
+// absolute paths under config.GetLogFolder(), so Xray writes those files
+// alongside the panel's other logs regardless of the working directory the
+// panel was launched from. Values that are empty, "none", or already absolute
+// are left untouched, as are unparseable log blocks.
+func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
+	if len(logCfg) == 0 {
+		return logCfg
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(logCfg, &parsed); err != nil {
+		return logCfg
+	}
+	changed := false
+	for _, key := range []string{"access", "error"} {
+		v, ok := parsed[key].(string)
+		if !ok {
+			continue
+		}
+		trimmed := strings.TrimSpace(v)
+		if trimmed == "" || strings.EqualFold(trimmed, "none") {
+			continue
+		}
+		if filepath.IsAbs(trimmed) {
+			continue
+		}
+		cleaned := filepath.ToSlash(filepath.Clean(trimmed))
+		base := filepath.Base(cleaned)
+		if base == "" || base == "." || base == string(filepath.Separator) {
+			continue
+		}
+		// Only rewrite bare names ("./access.log", "access.log").
+		// A nested relative path like "./logs/foo.log" is treated as
+		// a deliberate user choice and left alone.
+		if cleaned != base {
+			continue
+		}
+		parsed[key] = filepath.Join(config.GetLogFolder(), base)
+		changed = true
+	}
+	if !changed {
+		return logCfg
+	}
+	out, err := json.Marshal(parsed)
+	if err != nil {
+		return logCfg
+	}
+	return out
+}
+
+// healShadowsocksClientMethods is the same idea as applyShadowsocksClientMethod
+// (see client.go) but applied at xray-config-build time, to backfill the
+// per-client method field for legacy shadowsocks inbounds whose clients were
+// stored before applyShadowsocksClientMethod existed. Returns the rewritten
+// settings string and true when anything actually changed.
+func healShadowsocksClientMethods(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	method, _ := parsed["method"].(string)
+	if method == "" || strings.HasPrefix(method, "2022-blake3-") {
+		return settings, false
+	}
+	clients, ok := parsed["clients"].([]any)
+	if !ok {
+		return settings, false
+	}
+	changed := false
+	for i := range clients {
+		cm, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		if existing, _ := cm["method"].(string); existing != "" {
+			continue
+		}
+		cm["method"] = method
+		clients[i] = cm
+		changed = true
+	}
+	if !changed {
+		return settings, false
+	}
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
 }
 
 // GetXrayTraffic fetches the current traffic statistics from the running Xray process.

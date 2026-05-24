@@ -12,7 +12,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
-	github.com/mymmrac/telego v1.8.0
+	github.com/mymmrac/telego v1.9.0
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/robfig/cron/v3 v3.0.1
@@ -22,11 +22,12 @@ require (
 	github.com/xlzd/gotp v0.1.0
 	github.com/xtls/xray-core v1.260327.0
 	go.uber.org/atomic v1.11.0
-	golang.org/x/crypto v0.51.0
-	golang.org/x/sys v0.44.0
+	golang.org/x/crypto v0.52.0
+	golang.org/x/sys v0.45.0
 	golang.org/x/text v0.37.0
-	google.golang.org/grpc v1.81.0
+	google.golang.org/grpc v1.81.1
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
+	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
 )
@@ -53,6 +54,10 @@ require (
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/sessions v1.4.0 // indirect
 	github.com/grbit/go-json v0.11.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/pgx/v5 v5.9.2 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -90,13 +95,13 @@ require (
 	golang.org/x/arch v0.27.0 // indirect
 	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a // indirect
 	golang.org/x/mod v0.36.0 // indirect
-	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.45.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
-	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260511170946-3700d4141b60 // indirect
+	golang.zx2c4.com/wireguard v0.0.0-20260522210424-ecfc5a8d5446 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260523011958-0a33c5d7ca68 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gvisor.dev/gvisor v0.0.0-20260122175437-89a5d21be8f0 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect

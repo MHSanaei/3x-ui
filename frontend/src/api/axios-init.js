@@ -51,7 +51,12 @@ export function setupAxios() {
   axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
   axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-  const basePath = window.X_UI_BASE_PATH;
+  // Read base path from window object or fallback to meta tag (for Cloudflare Rocket Loader compatibility)
+  let basePath = window.X_UI_BASE_PATH;
+  if (!basePath) {
+    const metaTag = document.querySelector('meta[name="base-path"]');
+    basePath = metaTag ? metaTag.getAttribute('content') : null;
+  }
   if (typeof basePath === 'string' && basePath !== '' && basePath !== '/') {
     axios.defaults.baseURL = basePath;
   }
@@ -71,7 +76,14 @@ export function setupAxios() {
       if (config.data instanceof FormData) {
         config.headers['Content-Type'] = 'multipart/form-data';
       } else {
-        config.data = qs.stringify(config.data, { arrayFormat: 'repeat' });
+        const declaredType = String(config.headers['Content-Type'] || config.headers['content-type'] || '');
+        if (declaredType.toLowerCase().startsWith('application/json')) {
+          if (config.data !== undefined && typeof config.data !== 'string') {
+            config.data = JSON.stringify(config.data);
+          }
+        } else {
+          config.data = qs.stringify(config.data, { arrayFormat: 'repeat' });
+        }
       }
       return config;
     },
@@ -99,9 +111,14 @@ export function setupAxios() {
         if (token) {
           cfg.headers = cfg.headers || {};
           cfg.headers['X-CSRF-Token'] = token;
-          // axios re-stringifies on retry, so unwind our qs.stringify before
-          // letting the same request flow through the interceptor again.
-          if (typeof cfg.data === 'string') cfg.data = qs.parse(cfg.data);
+          const declaredType = String(cfg.headers['Content-Type'] || cfg.headers['content-type'] || '');
+          if (typeof cfg.data === 'string') {
+            if (declaredType.toLowerCase().startsWith('application/json')) {
+              try { cfg.data = JSON.parse(cfg.data); } catch (_e) { /* keep as-is */ }
+            } else {
+              cfg.data = qs.parse(cfg.data);
+            }
+          }
           return axios(cfg);
         }
       }
