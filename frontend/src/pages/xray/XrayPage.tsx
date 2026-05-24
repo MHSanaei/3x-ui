@@ -31,7 +31,6 @@ import {
 
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { useXraySetting } from '@/hooks/useXraySetting';
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
 import AppSidebar from '@/components/AppSidebar';
@@ -89,15 +88,12 @@ export default function XrayPage() {
     testingAll,
     fetchAll,
     resetOutboundsTraffic,
-    applyOutboundsEvent,
     testOutbound,
     testAllOutbounds,
     saveAll,
     resetToDefault,
     restartXray,
   } = xs;
-
-  useWebSocket({ outbounds: applyOutboundsEvent as never });
 
   const [modal, modalContextHolder] = Modal.useModal();
   const [warpOpen, setWarpOpen] = useState(false);

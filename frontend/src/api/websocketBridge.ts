@@ -44,7 +44,7 @@ export function useWebSocketBridge() {
     };
 
     const onOutbounds: Handler = (payload) => {
-      queryClient.setQueryData(['xray', 'outboundsTraffic'], payload);
+      queryClient.setQueryData(keys.xray.outboundsTraffic(), payload);
     };
 
     const onNodes: Handler = (payload) => {

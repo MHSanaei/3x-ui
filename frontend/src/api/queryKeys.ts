@@ -22,4 +22,9 @@ export const keys = {
     onlines: () => ['clients', 'onlines'] as const,
     lastOnline: () => ['clients', 'lastOnline'] as const,
   },
+  xray: {
+    root: () => ['xray'] as const,
+    config: () => ['xray', 'config'] as const,
+    outboundsTraffic: () => ['xray', 'outboundsTraffic'] as const,
+  },
 } as const;
