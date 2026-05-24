@@ -74,11 +74,8 @@ export default function InboundsPage() {
     remarkModel,
     refresh,
     hydrateInbound,
-    fetchDefaultSettings,
     applyTrafficEvent,
     applyClientStatsEvent,
-    applyInvalidate,
-    applyInboundsEvent,
   } = useInbounds();
 
   const [modal, modalContextHolder] = Modal.useModal();
@@ -105,14 +102,7 @@ export default function InboundsPage() {
   useWebSocket({
     traffic: applyTrafficEvent,
     client_stats: applyClientStatsEvent,
-    invalidate: applyInvalidate,
-    inbounds: applyInboundsEvent,
   });
-
-  useEffect(() => {
-    fetchDefaultSettings().then(() => refresh());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');

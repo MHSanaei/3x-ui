@@ -52,15 +52,22 @@ export function useWebSocketBridge() {
       queryClient.setQueryData(keys.nodes.list(), payload);
     };
 
+    const onInbounds: Handler = (payload) => {
+      if (!Array.isArray(payload)) return;
+      queryClient.setQueryData(keys.inbounds.slim(), payload);
+    };
+
     client.on('invalidate', onInvalidate);
     client.on('outbounds', onOutbounds);
     client.on('nodes', onNodes);
+    client.on('inbounds', onInbounds);
     client.connect();
 
     return () => {
       client.off('invalidate', onInvalidate);
       client.off('outbounds', onOutbounds);
       client.off('nodes', onNodes);
+      client.off('inbounds', onInbounds);
       if (invalidateTimer != null) {
         clearTimeout(invalidateTimer);
         invalidateTimer = null;
