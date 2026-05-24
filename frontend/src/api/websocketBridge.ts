@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { WebSocketClient } from '@/api/websocket.js';
+import { WebSocketClient } from '@/api/websocket';
 import { keys } from '@/api/queryKeys';
 
 type Handler = (payload: unknown) => void;
