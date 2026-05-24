@@ -1,0 +1,81 @@
+.mb-10 {
+  margin-bottom: 10px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.custom-geo-count {
+  margin-left: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+body.dark .custom-geo-count {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.custom-geo-alias-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.custom-geo-alias {
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.custom-geo-type-tag {
+  margin: 0;
+}
+
+.custom-geo-url {
+  word-break: break-all;
+}
+
+.custom-geo-ext-code {
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  user-select: all;
+}
+
+.custom-geo-copyable:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+body.dark .custom-geo-ext-code {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body.dark .custom-geo-copyable:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.custom-geo-muted {
+  opacity: 0.5;
+}
+
+.custom-geo-empty {
+  text-align: center;
+  padding: 18px 0;
+  opacity: 0.6;
+}
+
+.custom-geo-empty-icon {
+  font-size: 32px;
+  margin-bottom: 6px;
+  display: block;
+}

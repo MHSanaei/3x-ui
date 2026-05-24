@@ -1,0 +1,192 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Button, Checkbox, Form, Modal, Select, Space } from 'antd';
+import { DownloadOutlined, SyncOutlined } from '@ant-design/icons';
+
+import { HttpUtil, FileManager, PromiseUtil } from '@/utils';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import './LogModal.css';
+
+interface LogModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+interface ParsedLog {
+  date: string;
+  time: string;
+  stamp: string;
+  levelText: string;
+  levelClass: string;
+  service: string;
+  body: string;
+}
+
+const LEVELS = ['DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR'];
+const LEVEL_CLASSES = ['level-debug', 'level-info', 'level-notice', 'level-warning', 'level-error'];
+
+function parseLogLine(line: string): ParsedLog {
+  const [head, ...rest] = (line || '').split(' - ');
+  const message = rest.join(' - ');
+  const parts = head.split(' ');
+
+  let date = '';
+  let time = '';
+  let levelText: string;
+  if (parts.length >= 3) {
+    [date, time, levelText] = parts;
+  } else {
+    levelText = head;
+  }
+
+  const li = LEVELS.indexOf(levelText);
+  const levelClass = li >= 0 ? LEVEL_CLASSES[li] : 'level-unknown';
+
+  let service = '';
+  let body = message || '';
+  if (body.startsWith('XRAY:')) {
+    service = 'XRAY:';
+    body = body.slice('XRAY:'.length).trimStart();
+  } else if (body) {
+    service = 'X-UI:';
+  }
+
+  const stamp = [date, time].filter(Boolean).join(' ');
+
+  return { date, time, stamp, levelText, levelClass, service, body };
+}
+
+export default function LogModal({ open, onClose }: LogModalProps) {
+  const { t } = useTranslation();
+  const { isMobile } = useMediaQuery();
+  const [rows, setRows] = useState('20');
+  const [level, setLevel] = useState('info');
+  const [syslog, setSyslog] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const openRef = useRef(open);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const msg = await HttpUtil.post(`/panel/api/server/logs/${rows}`, {
+        level,
+        syslog,
+      });
+      if (msg?.success) {
+        setLogs(msg.obj || []);
+      }
+      await PromiseUtil.sleep(300);
+    } finally {
+      setLoading(false);
+    }
+  }, [rows, level, syslog]);
+
+  useEffect(() => {
+    openRef.current = open;
+    if (open) refresh();
+  }, [open, refresh]);
+
+  useEffect(() => {
+    if (openRef.current) refresh();
+  }, [rows, level, syslog, refresh]);
+
+  const parsedLogs = useMemo(() => logs.map(parseLogLine), [logs]);
+
+  function download() {
+    FileManager.downloadTextFile(logs.join('\n'), 'x-ui.log');
+  }
+
+  const titleNode = (
+    <>
+      {t('pages.index.logs')}
+      <SyncOutlined spin={loading} className="reload-icon" onClick={refresh} />
+    </>
+  );
+
+  return (
+    <Modal
+      open={open}
+      footer={null}
+      width={isMobile ? '100vw' : 800}
+      className={isMobile ? 'logmodal-mobile' : undefined}
+      onCancel={onClose}
+      title={titleNode}
+    >
+      <Form layout="inline" className="log-toolbar">
+        <Form.Item>
+          <Space.Compact>
+            <Select value={rows} size="small" style={{ width: 70 }} onChange={setRows}>
+              <Select.Option value="10">10</Select.Option>
+              <Select.Option value="20">20</Select.Option>
+              <Select.Option value="50">50</Select.Option>
+              <Select.Option value="100">100</Select.Option>
+              <Select.Option value="500">500</Select.Option>
+            </Select>
+            <Select value={level} size="small" style={{ width: 95 }} onChange={setLevel}>
+              <Select.Option value="debug">Debug</Select.Option>
+              <Select.Option value="info">Info</Select.Option>
+              <Select.Option value="notice">Notice</Select.Option>
+              <Select.Option value="warning">Warning</Select.Option>
+              <Select.Option value="err">Error</Select.Option>
+            </Select>
+          </Space.Compact>
+        </Form.Item>
+        <Form.Item>
+          <Checkbox checked={syslog} onChange={(e) => setSyslog(e.target.checked)}>
+            SysLog
+          </Checkbox>
+        </Form.Item>
+        <Form.Item className="download-item">
+          <Button type="primary" onClick={download} icon={<DownloadOutlined />} />
+        </Form.Item>
+      </Form>
+
+      <div className={`log-container ${isMobile ? 'log-container-mobile' : ''}`}>
+        {parsedLogs.length === 0 ? (
+          <div className="log-empty">No Record...</div>
+        ) : isMobile ? (
+          parsedLogs.map((log, idx) => (
+            <div key={idx} className="log-card">
+              <div className="log-card-head">
+                {log.stamp && (
+                  <span className="log-time">
+                    {log.time && <span>{log.time}</span>}
+                    {log.time && log.date ? ' ' : ''}
+                    {log.date && <span className="log-date">{log.date}</span>}
+                  </span>
+                )}
+                {log.levelText && (
+                  <span className={`log-level-badge ${log.levelClass}`}>{log.levelText}</span>
+                )}
+              </div>
+              {(log.body || log.service) && (
+                <div className="log-body">
+                  {log.service && <b>{log.service}</b>}
+                  {log.service && log.body ? ' ' : ''}
+                  {log.body && <span className="log-body-text">{log.body}</span>}
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          parsedLogs.map((log, idx) => (
+            <div key={idx} className="log-line">
+              {log.stamp && <span className="log-stamp">{log.stamp}</span>}
+              {log.stamp && log.levelText ? ' ' : ''}
+              {log.levelText && <span className={`log-level ${log.levelClass}`}>{log.levelText}</span>}
+              {(log.body || log.service) && (
+                <>
+                  <span> - </span>
+                  {log.service && <b>{log.service}</b>}
+                  {log.service && log.body ? ' ' : ''}
+                  <span>{log.body}</span>
+                </>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </Modal>
+  );
+}

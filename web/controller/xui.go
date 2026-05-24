@@ -33,6 +33,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 
 	g.GET("/", a.index)
 	g.GET("/inbounds", a.inbounds)
+	g.GET("/clients", a.clients)
 	g.GET("/nodes", a.nodes)
 	g.GET("/settings", a.settings)
 	g.GET("/xray", a.xraySettings)
@@ -47,7 +48,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	a.xraySettingController = NewXraySettingController(g)
 }
 
-// All four panel pages now serve the Vue 3 builds from web/dist/
+// The main panel's HTML routes serve the pre-built SPA pages from distFS,
 // instead of rendering the legacy Go templates. Each handler is a
 // thin wrapper around serveDistPage so the basePath injection +
 // no-cache headers stay centralised.
@@ -60,6 +61,10 @@ func (a *XUIController) index(c *gin.Context) {
 // inbounds renders the inbounds management page.
 func (a *XUIController) inbounds(c *gin.Context) {
 	serveDistPage(c, "inbounds.html")
+}
+
+func (a *XUIController) clients(c *gin.Context) {
+	serveDistPage(c, "clients.html")
 }
 
 // nodes renders the multi-panel nodes management page.

@@ -13,9 +13,9 @@ type InboundConfig struct {
 	Port           int                  `json:"port"`
 	Protocol       string               `json:"protocol"`
 	Settings       json_util.RawMessage `json:"settings"`
-	StreamSettings json_util.RawMessage `json:"streamSettings"`
+	StreamSettings json_util.RawMessage `json:"streamSettings,omitempty"`
 	Tag            string               `json:"tag"`
-	Sniffing       json_util.RawMessage `json:"sniffing"`
+	Sniffing       json_util.RawMessage `json:"sniffing,omitempty"`
 }
 
 // Equals compares two InboundConfig instances for deep equality.

@@ -87,6 +87,8 @@ func TestAPIRoutesDocumented(t *testing.T) {
 			basePath = "/panel/api"
 		case "inbound.go":
 			basePath = "/panel/api/inbounds"
+		case "client.go":
+			basePath = "/panel/api/clients"
 		case "server.go":
 			basePath = "/panel/api/server"
 		case "node.go":
@@ -127,7 +129,8 @@ func TestAPIRoutesDocumented(t *testing.T) {
 		// Skip SPA page routes (these are UI pages, not API endpoints)
 		spaPages := map[string]bool{
 			"/": true, "/panel/": true, "/panel/inbounds": true,
-			"/panel/nodes": true, "/panel/settings": true,
+			"/panel/clients": true,
+			"/panel/nodes":   true, "/panel/settings": true,
 			"/panel/xray": true, "/panel/api-docs": true,
 		}
 		if spaPages[r.Path] {

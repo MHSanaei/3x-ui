@@ -1,0 +1,5 @@
+.random-icon {
+  margin-left: 4px;
+  cursor: pointer;
+  color: var(--ant-color-primary, #1677ff);
+}

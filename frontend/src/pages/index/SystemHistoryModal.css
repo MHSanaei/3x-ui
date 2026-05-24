@@ -1,0 +1,36 @@
+.bucket-select {
+  width: 80px;
+  margin-left: 10px;
+}
+
+.history-tabs {
+  margin-bottom: 4px;
+}
+
+.cpu-chart-wrap {
+  margin: 8px 8px 16px;
+  padding: 16px 18px 18px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.05), rgba(99, 102, 241, 0));
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.06);
+}
+
+body.dark .cpu-chart-wrap {
+  background: linear-gradient(180deg, rgba(129, 140, 248, 0.08), rgba(129, 140, 248, 0));
+  border-color: rgba(129, 140, 248, 0.16);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+}
+
+html[data-theme='ultra-dark'] .cpu-chart-wrap {
+  background: linear-gradient(180deg, rgba(129, 140, 248, 0.05), rgba(129, 140, 248, 0));
+  border-color: rgba(129, 140, 248, 0.10);
+}
+
+.cpu-chart-meta {
+  margin-bottom: 12px;
+  font-size: 11.5px;
+  opacity: 0.65;
+  letter-spacing: 0.3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}

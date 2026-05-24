@@ -65,7 +65,7 @@ func TestUnwrapXrayTemplateConfig(t *testing.T) {
 		// non-wrapped, and confirm we end up at some valid JSON (we
 		// don't loop forever and we don't blow the stack).
 		s := real
-		for i := 0; i < 16; i++ {
+		for range 16 {
 			s = `{"xraySetting":` + s + `}`
 		}
 		got := UnwrapXrayTemplateConfig(s)
