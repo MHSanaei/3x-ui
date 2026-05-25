@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
 
-import { genVmessLink } from '@/lib/xray/inbound-link';
+import { genVlessLink, genVmessLink } from '@/lib/xray/inbound-link';
 import { Inbound as LegacyInbound } from '@/models/inbound';
 import { InboundSchema } from '@/schemas/api/inbound';
 
@@ -58,6 +58,39 @@ describe('genVmessLink parity', () => {
 
       const legacy = LegacyInbound.fromJson(raw);
       const legacyLink = legacy.genVmessLink(address, port, 'same', remark, client.id, client.security, null);
+
+      expect(newLink).toBe(legacyLink);
+    });
+  }
+});
+
+describe('genVlessLink parity', () => {
+  const fixtures = fixturesForProtocol('vless');
+  expect(fixtures.length, 'need at least one vless full-inbound fixture').toBeGreaterThan(0);
+
+  for (const [name, raw] of fixtures) {
+    it(`${name}: matches legacy Inbound.genVLESSLink`, () => {
+      const typed = InboundSchema.parse(raw);
+      const settings = (raw as { settings: { clients: Array<{ id: string; flow?: string }> } }).settings;
+      const client = settings.clients[0];
+
+      const address = 'example.test';
+      const port = typed.port;
+      const remark = 'parity-test';
+
+      const newLink = genVlessLink({
+        inbound: typed,
+        address,
+        port,
+        forceTls: 'same',
+        remark,
+        clientId: client.id,
+        flow: client.flow as never,
+        externalProxy: null,
+      });
+
+      const legacy = LegacyInbound.fromJson(raw);
+      const legacyLink = legacy.genVLESSLink(address, port, 'same', remark, client.id, client.flow, null);
 
       expect(newLink).toBe(legacyLink);
     });

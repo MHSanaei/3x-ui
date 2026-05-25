@@ -1,5 +1,88 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`InboundSchema (full) fixtures > parses vless-tcp-reality byte-stably 1`] = `
+{
+  "down": 0,
+  "enable": true,
+  "expiryTime": 0,
+  "id": 9,
+  "listen": "",
+  "port": 443,
+  "protocol": "vless",
+  "remark": "dave-vless-tcp-reality",
+  "settings": {
+    "clients": [
+      {
+        "comment": "",
+        "email": "dave@example.test",
+        "enable": true,
+        "expiryTime": 0,
+        "flow": "xtls-rprx-vision",
+        "id": "22222222-3333-4444-9555-666666666666",
+        "limitIp": 0,
+        "reset": 0,
+        "subId": "vless-reality-001",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
+    "decryption": "none",
+    "encryption": "none",
+    "fallbacks": [],
+  },
+  "sniffing": {
+    "destOverride": [
+      "http",
+      "tls",
+      "quic",
+      "fakedns",
+    ],
+    "domainsExcluded": [],
+    "enabled": true,
+    "ipsExcluded": [],
+    "metadataOnly": false,
+    "routeOnly": false,
+  },
+  "streamSettings": {
+    "network": "tcp",
+    "realitySettings": {
+      "maxClientVer": "",
+      "maxTimediff": 0,
+      "minClientVer": "",
+      "mldsa65Seed": "",
+      "privateKey": "wM-2_oQRWXyLcXhV5q1ifTBcS3K8mYR3wQI3PqGFK1k",
+      "serverNames": [
+        "yahoo.com",
+        "www.yahoo.com",
+      ],
+      "settings": {
+        "fingerprint": "chrome",
+        "mldsa65Verify": "",
+        "publicKey": "Tx5yj1bRcOPHkdvT2pIAQ2zh0gQ8m4OPdnzqXJxxV3o",
+        "serverName": "",
+        "spiderX": "/",
+      },
+      "shortIds": [
+        "a3f1",
+        "b8c2",
+      ],
+      "show": false,
+      "target": "yahoo.com:443",
+      "xver": 0,
+    },
+    "security": "reality",
+    "tcpSettings": {
+      "header": {
+        "type": "none",
+      },
+    },
+  },
+  "tag": "inbound-vless-reality",
+  "total": 0,
+  "up": 0,
+}
+`;
+
 exports[`InboundSchema (full) fixtures > parses vless-ws-tls byte-stably 1`] = `
 {
   "down": 0,
