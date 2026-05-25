@@ -469,8 +469,7 @@ export default function OutboundFormModal({
   );
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type OB = any;
+type OB = Outbound;
 
 interface FieldProps {
   ob: OB;
