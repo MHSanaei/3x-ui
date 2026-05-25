@@ -34,9 +34,9 @@
 
 .advanced-panel {
   padding: 14px;
-  border: 1px solid rgba(128, 128, 128, 0.18);
+  border: 1px solid var(--ant-color-border-secondary);
   border-radius: 12px;
-  background: rgba(128, 128, 128, 0.04);
+  background: var(--ant-color-fill-quaternary);
 }
 
 .advanced-panel__header {
@@ -78,10 +78,4 @@
   .advanced-inner-tabs .ant-tabs-tab {
     padding-inline: 10px;
   }
-}
-
-body.dark .advanced-panel,
-html[data-theme='ultra-dark'] .advanced-panel {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.03);
 }
