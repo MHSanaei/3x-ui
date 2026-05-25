@@ -53,7 +53,6 @@ const SystemHistoryModal = lazy(() => import('./SystemHistoryModal'));
 const XrayMetricsModal = lazy(() => import('./XrayMetricsModal'));
 const XrayLogModal = lazy(() => import('./XrayLogModal'));
 const VersionModal = lazy(() => import('./VersionModal'));
-import '@/styles/page-cards.css';
 import './IndexPage.css';
 
 export default function IndexPage() {

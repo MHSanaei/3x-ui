@@ -36,7 +36,6 @@ import LazyMount from '@/components/LazyMount';
 const InboundFormModal = lazy(() => import('./InboundFormModal'));
 const InboundInfoModal = lazy(() => import('./InboundInfoModal'));
 const QrCodeModal = lazy(() => import('./QrCodeModal'));
-import '@/styles/page-cards.css';
 import './InboundsPage.css';
 
 type RowAction =

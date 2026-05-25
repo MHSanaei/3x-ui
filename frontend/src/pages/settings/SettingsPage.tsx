@@ -35,7 +35,6 @@ import SecurityTab from './SecurityTab';
 import TelegramTab from './TelegramTab';
 import SubscriptionGeneralTab from './SubscriptionGeneralTab';
 import SubscriptionFormatsTab from './SubscriptionFormatsTab';
-import '@/styles/page-cards.css';
 import './SettingsPage.css';
 
 interface ApiMsg {

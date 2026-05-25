@@ -1,29 +1,3 @@
-.clients-page {
-  --bg-page: #e6e8ec;
-  --bg-card: #ffffff;
-  min-height: 100vh;
-  background: var(--bg-page);
-}
-
-.clients-page.is-dark {
-  --bg-page: #1a1b1f;
-  --bg-card: #23252b;
-}
-
-.clients-page.is-dark.is-ultra {
-  --bg-page: #000;
-  --bg-card: #101013;
-}
-
-.clients-page .ant-layout,
-.clients-page .ant-layout-content {
-  background: transparent;
-}
-
-.clients-page .content-shell {
-  background: transparent;
-}
-
 .clients-page .content-area {
   padding: 24px;
 }
@@ -37,10 +11,6 @@
 .clients-page .ant-pagination-options-size-changer,
 .clients-page .ant-pagination-options-size-changer .ant-select-selector {
   min-width: 100px;
-}
-
-.clients-page .loading-spacer {
-  min-height: calc(100vh - 120px);
 }
 
 .clients-page .summary-card {

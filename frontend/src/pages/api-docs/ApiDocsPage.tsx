@@ -5,7 +5,6 @@ import 'swagger-ui-react/swagger-ui.css';
 
 import { useTheme } from '@/hooks/useTheme';
 import AppSidebar from '@/components/AppSidebar';
-import '@/styles/page-cards.css';
 import './ApiDocsPage.css';
 
 const basePath = window.X_UI_BASE_PATH || '';

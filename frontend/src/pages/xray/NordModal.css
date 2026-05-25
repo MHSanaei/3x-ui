@@ -22,10 +22,6 @@
   background: var(--ant-color-fill-tertiary);
 }
 
-.zero-margin {
-  margin: 0;
-}
-
 .server-row {
   display: inline-flex;
   align-items: center;

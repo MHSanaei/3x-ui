@@ -58,7 +58,6 @@ const ClientInfoModal = lazy(() => import('./ClientInfoModal'));
 const ClientQrModal = lazy(() => import('./ClientQrModal'));
 const ClientBulkAddModal = lazy(() => import('./ClientBulkAddModal'));
 const ClientBulkAdjustModal = lazy(() => import('./ClientBulkAdjustModal'));
-import '@/styles/page-cards.css';
 import './ClientsPage.css';
 
 const FILTER_STATE_KEY = 'clientsFilterState';

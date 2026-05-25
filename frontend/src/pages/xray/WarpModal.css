@@ -22,10 +22,6 @@
   background: var(--ant-color-fill-tertiary);
 }
 
-.zero-margin {
-  margin: 0;
-}
-
 .license-actions {
   display: flex;
   align-items: center;
