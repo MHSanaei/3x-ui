@@ -8,11 +8,11 @@ import {
   Descriptions,
   Dropdown,
   Layout,
+  Menu,
   message,
   Popover,
   QRCode,
   Row,
-  Select,
   Space,
   Tag,
 } from 'antd';
@@ -21,7 +21,7 @@ import {
   AppleOutlined,
   CopyOutlined,
   DownOutlined,
-  SettingOutlined,
+  TranslationOutlined,
 } from '@ant-design/icons';
 
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
@@ -206,14 +206,14 @@ export default function SubPage() {
     { key: 'ios-happ', label: 'Happ', onClick: () => open(happUrl) },
   ], [copy, open, shadowrocketUrl, v2boxUrl, streisandUrl, happUrl]);
 
-  const langOptions = useMemo(
-    () => LanguageManager.supportedLanguages.map((l: { value: string; name: string; icon: string }) => ({
-      value: l.value,
+  const langMenuItems = useMemo(
+    () => (LanguageManager.supportedLanguages as { value: string; name: string; icon: string }[]).map((l) => ({
+      key: l.value,
       label: (
-        <>
-          <span aria-label={l.name}>{l.icon}</span>
-          &nbsp;&nbsp;<span>{l.name}</span>
-        </>
+        <Space size={8}>
+          <span aria-hidden="true">{l.icon}</span>
+          <span>{l.name}</span>
+        </Space>
       ),
     })),
     [],
@@ -244,32 +244,39 @@ export default function SubPage() {
 
   const cardExtra = (
     <Space size={8} align="center">
-      <button
-        type="button"
-        id="sub-theme-cycle"
-        className="theme-cycle"
+      <Button
+        shape="circle"
+        size="large"
+        className="toolbar-btn"
         aria-label={t('menu.theme')}
         title={t('menu.theme')}
         onClick={cycleTheme}
       >
         {themeIcon}
-      </button>
+      </Button>
       <Popover
-        title={t('pages.settings.language')}
+        rootClassName={isDark ? 'dark' : 'light'}
         placement="bottomRight"
         trigger="click"
+        styles={{ content: { padding: 4 } }}
         content={
-          <Space orientation="vertical" size={10} className="settings-popover">
-            <Select
-              className="lang-select"
-              value={lang}
-              onChange={onLangChange}
-              options={langOptions}
-            />
-          </Space>
+          <Menu
+            mode="vertical"
+            selectable
+            selectedKeys={[lang]}
+            items={langMenuItems}
+            onClick={({ key }) => onLangChange(key)}
+            style={{ border: 'none', minWidth: 160 }}
+          />
         }
       >
-        <Button shape="circle" icon={<SettingOutlined />} />
+        <Button
+          shape="circle"
+          size="large"
+          className="toolbar-btn"
+          aria-label={t('pages.settings.language')}
+          icon={<TranslationOutlined />}
+        />
       </Popover>
     </Space>
   );
