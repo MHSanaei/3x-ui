@@ -1,0 +1,73 @@
+{
+  "id": 13,
+  "up": 0,
+  "down": 0,
+  "total": 0,
+  "remark": "eve-trojan-ws-tls",
+  "enable": true,
+  "expiryTime": 0,
+  "listen": "",
+  "port": 443,
+  "tag": "inbound-trojan-ws",
+  "sniffing": {
+    "enabled": true,
+    "destOverride": ["http", "tls", "quic", "fakedns"],
+    "metadataOnly": false,
+    "routeOnly": false,
+    "ipsExcluded": [],
+    "domainsExcluded": []
+  },
+  "protocol": "trojan",
+  "settings": {
+    "clients": [
+      {
+        "password": "trojan-test-pw-XYZ",
+        "email": "eve@example.test",
+        "limitIp": 0,
+        "totalGB": 0,
+        "expiryTime": 0,
+        "enable": true,
+        "tgId": 0,
+        "subId": "trj-001",
+        "comment": "",
+        "reset": 0
+      }
+    ],
+    "fallbacks": []
+  },
+  "streamSettings": {
+    "network": "ws",
+    "wsSettings": {
+      "acceptProxyProtocol": false,
+      "path": "/trojan",
+      "host": "trojan.example.test",
+      "headers": {},
+      "heartbeatPeriod": 0
+    },
+    "security": "tls",
+    "tlsSettings": {
+      "serverName": "trojan.example.test",
+      "minVersion": "1.2",
+      "maxVersion": "1.3",
+      "cipherSuites": "",
+      "rejectUnknownSni": false,
+      "disableSystemRoot": false,
+      "enableSessionResumption": false,
+      "certificates": [
+        {
+          "certificateFile": "/etc/ssl/certs/trojan.crt",
+          "keyFile": "/etc/ssl/private/trojan.key",
+          "oneTimeLoading": false,
+          "usage": "encipherment",
+          "buildChain": false
+        }
+      ],
+      "alpn": ["h2", "http/1.1"],
+      "echServerKeys": "",
+      "settings": {
+        "fingerprint": "chrome",
+        "echConfigList": ""
+      }
+    }
+  }
+}

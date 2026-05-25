@@ -371,3 +371,173 @@ export function genVlessLink(input: GenVlessLinkInput): string {
   url.hash = encodeURIComponent(remark);
   return url.toString();
 }
+
+// Shared network-branch writer used by trojan + shadowsocks links.
+// VLESS and VMess don't call this because they have minor per-protocol
+// quirks inline (vmess maps `multi` differently into obj.type; vless sets
+// encryption=none up-front).
+function writeNetworkParams(stream: NonNullable<Inbound['streamSettings']>, params: URLSearchParams): void {
+  if (stream.network === 'tcp') {
+    const tcp = stream.tcpSettings;
+    if (tcp.header?.type === 'http') {
+      const request = tcp.header.request;
+      if (request) {
+        params.set('path', request.path.join(','));
+        const host = getHeaderValue(request.headers, 'host');
+        if (host) params.set('host', host);
+        params.set('headerType', 'http');
+      }
+    }
+  } else if (stream.network === 'kcp') {
+    const kcp = stream.kcpSettings;
+    params.set('mtu', String(kcp.mtu));
+    params.set('tti', String(kcp.tti));
+  } else if (stream.network === 'ws') {
+    const ws = stream.wsSettings;
+    params.set('path', ws.path);
+    params.set('host', ws.host.length > 0 ? ws.host : getHeaderValue(ws.headers, 'host'));
+  } else if (stream.network === 'grpc') {
+    const grpc = stream.grpcSettings;
+    params.set('serviceName', grpc.serviceName);
+    params.set('authority', grpc.authority);
+    if (grpc.multiMode) params.set('mode', 'multi');
+  } else if (stream.network === 'httpupgrade') {
+    const hu = stream.httpupgradeSettings;
+    params.set('path', hu.path);
+    params.set('host', hu.host.length > 0 ? hu.host : getHeaderValue(hu.headers, 'host'));
+  } else if (stream.network === 'xhttp') {
+    applyXhttpExtraToParams(stream.xhttpSettings, params);
+  }
+}
+
+function writeTlsParams(stream: NonNullable<Inbound['streamSettings']>, params: URLSearchParams): void {
+  if (stream.security !== 'tls') return;
+  const tls = stream.tlsSettings;
+  params.set('fp', tls.settings.fingerprint);
+  params.set('alpn', tls.alpn.join(','));
+  if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
+  if (tls.serverName.length > 0) params.set('sni', tls.serverName);
+}
+
+// Reality query-string writer shared by VLESS and Trojan. Preserves the
+// legacy SNI-omission quirk (see genVlessLink for the full story).
+function writeRealityParams(stream: NonNullable<Inbound['streamSettings']>, params: URLSearchParams): void {
+  if (stream.security !== 'reality') return;
+  const reality = stream.realitySettings;
+  params.set('pbk', reality.settings.publicKey);
+  params.set('fp', reality.settings.fingerprint);
+  if (reality.shortIds.length > 0) params.set('sid', reality.shortIds[0]);
+  if (reality.settings.spiderX.length > 0) params.set('spx', reality.settings.spiderX);
+  if (reality.settings.mldsa65Verify.length > 0) params.set('pqv', reality.settings.mldsa65Verify);
+}
+
+export interface GenTrojanLinkInput {
+  inbound: Inbound;
+  address: string;
+  port?: number;
+  forceTls?: ForceTls;
+  remark?: string;
+  clientPassword: string;
+  externalProxy?: ExternalProxyEntry | null;
+}
+
+// Trojan share link: trojan://<password>@<host>:<port>?<query>#<remark>.
+// Same query-string shape as VLESS minus the `encryption` and `flow`
+// fields. Returns '' if the inbound isn't trojan.
+export function genTrojanLink(input: GenTrojanLinkInput): string {
+  const {
+    inbound,
+    address,
+    port = inbound.port,
+    forceTls = 'same',
+    remark = '',
+    clientPassword,
+    externalProxy = null,
+  } = input;
+
+  if (inbound.protocol !== 'trojan') return '';
+  const stream = inbound.streamSettings;
+  if (!stream) return '';
+
+  const security = forceTls === 'same' ? stream.security : forceTls;
+  const params = new URLSearchParams();
+  params.set('type', stream.network);
+
+  writeNetworkParams(stream, params);
+  applyFinalMaskToParams(stream.finalmask, params);
+
+  if (security === 'tls') {
+    params.set('security', 'tls');
+    writeTlsParams(stream, params);
+    applyExternalProxyTLSParams(externalProxy, params, security);
+  } else if (security === 'reality') {
+    params.set('security', 'reality');
+    writeRealityParams(stream, params);
+  } else {
+    params.set('security', 'none');
+  }
+
+  const url = new URL(`trojan://${clientPassword}@${address}:${port}`);
+  for (const [key, value] of params) url.searchParams.set(key, value);
+  url.hash = encodeURIComponent(remark);
+  return url.toString();
+}
+
+export interface GenShadowsocksLinkInput {
+  inbound: Inbound;
+  address: string;
+  port?: number;
+  forceTls?: ForceTls;
+  remark?: string;
+  clientPassword?: string;
+  externalProxy?: ExternalProxyEntry | null;
+}
+
+// Shadowsocks 2022 share link. The userinfo portion is base64(method:pw)
+// for single-user and base64(method:settingsPw:clientPw) for multi-user
+// 2022-blake3. Legacy SS (non-2022) leaves the password out of the
+// userinfo entirely — matches the legacy class's password-array logic.
+// Note: legacy `isSSMultiUser` returns true for everything except
+// 2022-blake3-chacha20-poly1305 (a curious classification, but we
+// preserve it for byte-stable parity).
+export function genShadowsocksLink(input: GenShadowsocksLinkInput): string {
+  const {
+    inbound,
+    address,
+    port = inbound.port,
+    forceTls = 'same',
+    remark = '',
+    clientPassword = '',
+    externalProxy = null,
+  } = input;
+
+  if (inbound.protocol !== 'shadowsocks') return '';
+  const stream = inbound.streamSettings;
+  if (!stream) return '';
+  const settings = inbound.settings;
+
+  const security = forceTls === 'same' ? stream.security : forceTls;
+  const params = new URLSearchParams();
+  params.set('type', stream.network);
+
+  writeNetworkParams(stream, params);
+  applyFinalMaskToParams(stream.finalmask, params);
+
+  if (security === 'tls') {
+    params.set('security', 'tls');
+    writeTlsParams(stream, params);
+    applyExternalProxyTLSParams(externalProxy, params, security);
+  }
+
+  const isSS2022 = settings.method.substring(0, 4) === '2022';
+  const isSSMultiUser = settings.method !== '2022-blake3-chacha20-poly1305';
+  const passwords: string[] = [];
+  if (isSS2022) passwords.push(settings.password);
+  if (isSSMultiUser) passwords.push(clientPassword);
+
+  const userinfo = Base64.encode(`${settings.method}:${passwords.join(':')}`, true);
+  const url = new URL(`ss://${userinfo}@${address}:${port}`);
+  for (const [key, value] of params) url.searchParams.set(key, value);
+  url.hash = encodeURIComponent(remark);
+  return url.toString();
+}

@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
 
-import { genVlessLink, genVmessLink } from '@/lib/xray/inbound-link';
+import { genShadowsocksLink, genTrojanLink, genVlessLink, genVmessLink } from '@/lib/xray/inbound-link';
 import { Inbound as LegacyInbound } from '@/models/inbound';
 import { InboundSchema } from '@/schemas/api/inbound';
 
@@ -91,6 +91,71 @@ describe('genVlessLink parity', () => {
 
       const legacy = LegacyInbound.fromJson(raw);
       const legacyLink = legacy.genVLESSLink(address, port, 'same', remark, client.id, client.flow, null);
+
+      expect(newLink).toBe(legacyLink);
+    });
+  }
+});
+
+describe('genTrojanLink parity', () => {
+  const fixtures = fixturesForProtocol('trojan');
+  expect(fixtures.length, 'need at least one trojan full-inbound fixture').toBeGreaterThan(0);
+
+  for (const [name, raw] of fixtures) {
+    it(`${name}: matches legacy Inbound.genTrojanLink`, () => {
+      const typed = InboundSchema.parse(raw);
+      const settings = (raw as { settings: { clients: Array<{ password: string }> } }).settings;
+      const client = settings.clients[0];
+
+      const address = 'example.test';
+      const port = typed.port;
+      const remark = 'parity-test';
+
+      const newLink = genTrojanLink({
+        inbound: typed,
+        address,
+        port,
+        forceTls: 'same',
+        remark,
+        clientPassword: client.password,
+        externalProxy: null,
+      });
+
+      const legacy = LegacyInbound.fromJson(raw);
+      const legacyLink = legacy.genTrojanLink(address, port, 'same', remark, client.password, null);
+
+      expect(newLink).toBe(legacyLink);
+    });
+  }
+});
+
+describe('genShadowsocksLink parity', () => {
+  const fixtures = fixturesForProtocol('shadowsocks');
+  expect(fixtures.length, 'need at least one shadowsocks full-inbound fixture').toBeGreaterThan(0);
+
+  for (const [name, raw] of fixtures) {
+    it(`${name}: matches legacy Inbound.genSSLink`, () => {
+      const typed = InboundSchema.parse(raw);
+      const settings = (raw as { settings: { clients?: Array<{ password: string }> } }).settings;
+      const client = settings.clients?.[0];
+
+      const address = 'example.test';
+      const port = typed.port;
+      const remark = 'parity-test';
+      const clientPassword = client?.password ?? '';
+
+      const newLink = genShadowsocksLink({
+        inbound: typed,
+        address,
+        port,
+        forceTls: 'same',
+        remark,
+        clientPassword,
+        externalProxy: null,
+      });
+
+      const legacy = LegacyInbound.fromJson(raw);
+      const legacyLink = legacy.genSSLink(address, port, 'same', remark, clientPassword, null);
 
       expect(newLink).toBe(legacyLink);
     });
