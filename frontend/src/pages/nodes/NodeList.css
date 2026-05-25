@@ -61,7 +61,7 @@
   gap: 8px;
 }
 
-body.dark .node-card {
+.nodes-page.is-dark .node-card {
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.1);
 }

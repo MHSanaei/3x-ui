@@ -32,29 +32,29 @@
   font-size: 12px;
 }
 
-.ant-table {
+.inbounds-page .ant-table {
   border-radius: 8px;
   overflow: hidden;
 }
 
-.ant-table-container {
+.inbounds-page .ant-table-container {
   border-radius: 8px;
   overflow: hidden;
 }
 
-.ant-table-thead > tr:first-child > *:first-child {
+.inbounds-page .ant-table-thead > tr:first-child > *:first-child {
   border-start-start-radius: 8px;
 }
 
-.ant-table-thead > tr:first-child > *:last-child {
+.inbounds-page .ant-table-thead > tr:first-child > *:last-child {
   border-start-end-radius: 8px;
 }
 
-.ant-table-tbody > tr:last-child > *:first-child {
+.inbounds-page .ant-table-tbody > tr:last-child > *:first-child {
   border-end-start-radius: 8px;
 }
 
-.ant-table-tbody > tr:last-child > *:last-child {
+.inbounds-page .ant-table-tbody > tr:last-child > *:last-child {
   border-end-end-radius: 8px;
 }
 
@@ -75,7 +75,7 @@
   gap: 8px;
 }
 
-body.dark .inbound-card {
+.inbounds-page.is-dark .inbound-card {
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.1);
 }
@@ -142,21 +142,21 @@ body.dark .inbound-card {
 }
 
 @media (max-width: 768px) {
-  .ant-card-head {
+  .inbounds-page .ant-card-head {
     padding: 0 12px;
     min-height: 44px;
   }
 
-  .ant-card-head-title,
-  .ant-card-extra {
+  .inbounds-page .ant-card-head-title,
+  .inbounds-page .ant-card-extra {
     padding: 8px 0;
   }
 
-  .ant-card-body {
+  .inbounds-page .ant-card-body {
     padding: 8px;
   }
 
-  .row-action-trigger {
+  .inbounds-page .row-action-trigger {
     font-size: 22px;
     padding: 4px;
   }

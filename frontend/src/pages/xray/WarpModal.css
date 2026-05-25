@@ -18,12 +18,8 @@
   width: 130px;
 }
 
-.row-odd {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-body.dark .row-odd {
-  background: rgba(255, 255, 255, 0.04);
+.warp-data-table .row-odd {
+  background: rgba(128, 128, 128, 0.06);
 }
 
 .zero-margin {

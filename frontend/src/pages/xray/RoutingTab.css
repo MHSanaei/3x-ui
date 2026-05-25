@@ -81,7 +81,7 @@
   background: rgba(0, 0, 0, 0.06);
 }
 
-body.dark .criterion-more {
+.xray-page.is-dark .criterion-more {
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -222,11 +222,11 @@ body.dark .criterion-more {
   opacity: 0.4;
 }
 
-body.dark .rule-card {
+.xray-page.is-dark .rule-card {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-body.dark .criterion-chip {
+.xray-page.is-dark .criterion-chip {
   background: rgba(255, 255, 255, 0.06);
 }
