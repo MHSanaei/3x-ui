@@ -1,5 +1,47 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`InboundSettingsSchema fixtures > parses http-basic byte-stably 1`] = `
+{
+  "protocol": "http",
+  "settings": {
+    "accounts": [
+      {
+        "pass": "proxypass",
+        "user": "proxyuser",
+      },
+      {
+        "pass": "guest123",
+        "user": "guest",
+      },
+    ],
+    "allowTransparent": false,
+  },
+}
+`;
+
+exports[`InboundSettingsSchema fixtures > parses hysteria-basic byte-stably 1`] = `
+{
+  "protocol": "hysteria",
+  "settings": {
+    "clients": [
+      {
+        "auth": "hyst3ria-v1-token-XYZ",
+        "comment": "legacy v1",
+        "email": "hy1-client@example.test",
+        "enable": true,
+        "expiryTime": 0,
+        "limitIp": 0,
+        "reset": 0,
+        "subId": "hy1-001",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
+    "version": 1,
+  },
+}
+`;
+
 exports[`InboundSettingsSchema fixtures > parses hysteria2-basic byte-stably 1`] = `
 {
   "protocol": "hysteria2",
@@ -19,6 +61,23 @@ exports[`InboundSettingsSchema fixtures > parses hysteria2-basic byte-stably 1`]
       },
     ],
     "version": 2,
+  },
+}
+`;
+
+exports[`InboundSettingsSchema fixtures > parses mixed-basic byte-stably 1`] = `
+{
+  "protocol": "mixed",
+  "settings": {
+    "accounts": [
+      {
+        "pass": "sockspass",
+        "user": "socksuser",
+      },
+    ],
+    "auth": "password",
+    "ip": "127.0.0.1",
+    "udp": true,
   },
 }
 `;
@@ -69,6 +128,22 @@ exports[`InboundSettingsSchema fixtures > parses trojan-basic byte-stably 1`] = 
       },
     ],
     "fallbacks": [],
+  },
+}
+`;
+
+exports[`InboundSettingsSchema fixtures > parses tunnel-basic byte-stably 1`] = `
+{
+  "protocol": "tunnel",
+  "settings": {
+    "allowedNetwork": "tcp,udp",
+    "followRedirect": false,
+    "portMap": {
+      "8080": "10.0.0.5:80",
+      "8443": "10.0.0.5:443",
+    },
+    "rewriteAddress": "1.1.1.1",
+    "rewritePort": 53,
   },
 }
 `;

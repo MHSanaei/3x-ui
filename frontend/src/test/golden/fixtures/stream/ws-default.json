@@ -1,0 +1,12 @@
+{
+  "network": "ws",
+  "wsSettings": {
+    "acceptProxyProtocol": false,
+    "path": "/api/v2",
+    "host": "cdn.example.test",
+    "headers": {
+      "X-Forwarded-Proto": "https"
+    },
+    "heartbeatPeriod": 30
+  }
+}

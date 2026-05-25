@@ -1,0 +1,72 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SecuritySettingsSchema fixtures > parses none byte-stably 1`] = `
+{
+  "security": "none",
+}
+`;
+
+exports[`SecuritySettingsSchema fixtures > parses reality-basic byte-stably 1`] = `
+{
+  "realitySettings": {
+    "maxClientVer": "",
+    "maxTimediff": 0,
+    "minClientVer": "",
+    "mldsa65Seed": "",
+    "privateKey": "wM-2_oQRWXyLcXhV5q1ifTBcS3K8mYR3wQI3PqGFK1k",
+    "serverNames": [
+      "yahoo.com",
+      "www.yahoo.com",
+    ],
+    "settings": {
+      "fingerprint": "chrome",
+      "mldsa65Verify": "",
+      "publicKey": "Tx5yj1bRcOPHkdvT2pIAQ2zh0gQ8m4OPdnzqXJxxV3o",
+      "serverName": "",
+      "spiderX": "/",
+    },
+    "shortIds": [
+      "a3f1",
+      "b8c2",
+      "d9e4",
+    ],
+    "show": false,
+    "target": "yahoo.com:443",
+    "xver": 0,
+  },
+  "security": "reality",
+}
+`;
+
+exports[`SecuritySettingsSchema fixtures > parses tls-cert-file byte-stably 1`] = `
+{
+  "security": "tls",
+  "tlsSettings": {
+    "alpn": [
+      "h2",
+      "http/1.1",
+    ],
+    "certificates": [
+      {
+        "buildChain": false,
+        "certificateFile": "/etc/ssl/certs/cdn.example.test.crt",
+        "keyFile": "/etc/ssl/private/cdn.example.test.key",
+        "oneTimeLoading": false,
+        "usage": "encipherment",
+      },
+    ],
+    "cipherSuites": "",
+    "disableSystemRoot": false,
+    "echServerKeys": "",
+    "enableSessionResumption": false,
+    "maxVersion": "1.3",
+    "minVersion": "1.2",
+    "rejectUnknownSni": false,
+    "serverName": "cdn.example.test",
+    "settings": {
+      "echConfigList": "",
+      "fingerprint": "chrome",
+    },
+  },
+}
+`;

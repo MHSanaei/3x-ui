@@ -1,0 +1,34 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`NetworkSettingsSchema fixtures > parses grpc-basic byte-stably 1`] = `
+{
+  "grpcSettings": {
+    "authority": "grpc.example.test",
+    "multiMode": false,
+    "serviceName": "GunService",
+  },
+  "network": "grpc",
+}
+`;
+
+exports[`NetworkSettingsSchema fixtures > parses tcp-none byte-stably 1`] = `
+{
+  "network": "tcp",
+  "tcpSettings": {},
+}
+`;
+
+exports[`NetworkSettingsSchema fixtures > parses ws-default byte-stably 1`] = `
+{
+  "network": "ws",
+  "wsSettings": {
+    "acceptProxyProtocol": false,
+    "headers": {
+      "X-Forwarded-Proto": "https",
+    },
+    "heartbeatPeriod": 30,
+    "host": "cdn.example.test",
+    "path": "/api/v2",
+  },
+}
+`;
