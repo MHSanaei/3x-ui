@@ -216,13 +216,12 @@ export default function ClientsPage() {
     return 'active';
   }, [expireDiff, trafficDiff]);
 
-  function bucketBadgeColor(bucket: Bucket | null): string {
+  function bucketBadgeStatus(bucket: Bucket | null): 'success' | 'warning' | 'error' | 'default' {
     switch (bucket) {
-      case 'depleted': return '#ff4d4f';
-      case 'expiring': return '#fa8c16';
-      case 'deactive': return 'rgba(128,128,128,0.6)';
-      case 'active': return '#52c41a';
-      default: return 'rgba(128,128,128,0.6)';
+      case 'depleted': return 'error';
+      case 'expiring': return 'warning';
+      case 'active': return 'success';
+      default: return 'default';
     }
   }
 
@@ -838,7 +837,7 @@ export default function ClientsPage() {
                                       checked={selectedRowKeys.includes(row.email)}
                                       onChange={(e) => toggleSelect(row.email, e.target.checked)}
                                     />
-                                    <Badge color={bucketBadgeColor(bucket)} />
+                                    <Badge status={bucketBadgeStatus(bucket)} />
                                     <span className="tag-name">{row.email}</span>
                                     {bucket === 'depleted' && <Tag color="red" className="status-tag">{t('depleted')}</Tag>}
                                     {bucket === 'expiring' && <Tag color="orange" className="status-tag">{t('depletingSoon')}</Tag>}

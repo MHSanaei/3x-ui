@@ -39,7 +39,7 @@
   align-items: center;
   gap: 12px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.12);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
 }
 
 .info-row:last-child {
@@ -108,7 +108,7 @@
 .share-buttons {
   margin-inline-start: 4px;
   padding-inline-start: 8px;
-  border-inline-start: 1px solid rgba(128, 128, 128, 0.25);
+  border-inline-start: 1px solid var(--ant-color-border);
 }
 
 .summary-table {
@@ -153,7 +153,7 @@
 }
 
 .link-panel {
-  border: 1px solid rgba(128, 128, 128, 0.2);
+  border: 1px solid var(--ant-color-border);
   border-radius: 8px;
   padding: 10px;
   margin-bottom: 10px;

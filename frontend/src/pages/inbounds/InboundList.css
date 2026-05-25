@@ -66,18 +66,13 @@
 }
 
 .inbound-card {
-  border: 1px solid rgba(128, 128, 128, 0.2);
+  border: 1px solid var(--ant-color-border-secondary);
   border-radius: 10px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--ant-color-fill-quaternary);
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.inbounds-page.is-dark .inbound-card {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .card-head {

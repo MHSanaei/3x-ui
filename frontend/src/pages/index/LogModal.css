@@ -32,7 +32,7 @@
   word-break: break-word;
   max-height: 60vh;
   overflow-y: auto;
-  border: 1px solid rgba(128, 128, 128, 0.25);
+  border: 1px solid var(--ant-color-border);
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.04);
 }

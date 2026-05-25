@@ -22,7 +22,7 @@
 }
 
 .api-token-row {
-  border: 1px solid rgba(128, 128, 128, 0.18);
+  border: 1px solid var(--ant-color-border-secondary);
   border-radius: 8px;
   padding: 10px 12px;
   display: flex;
@@ -78,7 +78,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12.5px;
   padding: 4px 8px;
-  background: rgba(128, 128, 128, 0.08);
+  background: var(--ant-color-fill-tertiary);
   border-radius: 4px;
   word-break: break-all;
 }

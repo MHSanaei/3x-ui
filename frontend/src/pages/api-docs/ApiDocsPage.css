@@ -51,7 +51,7 @@
 .api-docs-page .docs-wrapper {
   background: var(--bg-card);
   border-radius: 8px;
-  border: 1px solid rgba(128, 128, 128, 0.12);
+  border: 1px solid var(--ant-color-border-secondary);
   overflow: hidden;
 }
 
