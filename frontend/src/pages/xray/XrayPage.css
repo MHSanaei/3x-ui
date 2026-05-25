@@ -51,7 +51,7 @@
 .xray-page .restart-icon {
   font-size: 16px;
   cursor: pointer;
-  color: var(--ant-primary-color, #1890ff);
+  color: var(--ant-color-primary);
 }
 
 .xray-page .restart-result {

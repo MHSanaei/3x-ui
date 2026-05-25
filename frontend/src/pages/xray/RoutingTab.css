@@ -27,11 +27,11 @@
 }
 
 .drop-before > td {
-  box-shadow: inset 0 2px 0 0 #1677ff;
+  box-shadow: inset 0 2px 0 0 var(--ant-color-primary);
 }
 
 .drop-after > td {
-  box-shadow: inset 0 -2px 0 0 #1677ff;
+  box-shadow: inset 0 -2px 0 0 var(--ant-color-primary);
 }
 
 .row-index {

@@ -1,12 +1,12 @@
 .random-icon {
   cursor: pointer;
-  color: var(--ant-primary-color, #1890ff);
+  color: var(--ant-color-primary);
   margin-left: 4px;
 }
 
 .danger-icon {
   cursor: pointer;
-  color: #ff4d4f;
+  color: var(--ant-color-error);
   margin-left: 8px;
 }
 
