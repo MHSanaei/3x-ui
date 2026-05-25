@@ -35,7 +35,8 @@
     "react-i18next": "^17.0.8",
     "react-router-dom": "^7.15.1",
     "recharts": "^3.8.1",
-    "swagger-ui-react": "^5.32.6"
+    "swagger-ui-react": "^5.32.6",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

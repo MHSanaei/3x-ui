@@ -1,20 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { HttpUtil } from '@/utils';
+import { HttpUtil, Msg } from '@/utils';
+import { parseMsg } from '@/utils/zodValidate';
 import { AllSetting } from '@/models/setting';
+import { AllSettingSchema, type AllSettingInput } from '@/schemas/setting';
 import { keys } from '@/api/queryKeys';
 
-interface ApiMsg<T = unknown> {
-  success?: boolean;
-  obj?: T;
-  msg?: string;
-}
-
-async function fetchAllSetting(): Promise<unknown> {
-  const msg = await HttpUtil.post('/panel/setting/all', undefined, { silent: true }) as ApiMsg;
+async function fetchAllSetting(): Promise<AllSettingInput | null> {
+  const msg = await HttpUtil.post('/panel/setting/all', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch settings');
-  return msg.obj;
+  const validated = parseMsg(msg, AllSettingSchema, 'setting/all');
+  return validated.obj;
 }
 
 export function useAllSettings() {
@@ -45,8 +42,13 @@ export function useAllSettings() {
   }, []);
 
   const saveMut = useMutation({
-    mutationFn: async (next: AllSetting) =>
-      HttpUtil.post('/panel/setting/update', next) as Promise<ApiMsg>,
+    mutationFn: async (next: AllSetting): Promise<Msg<unknown>> => {
+      const body = AllSettingSchema.partial().safeParse(next);
+      if (!body.success) {
+        console.warn('[zod] setting/update body failed validation', body.error.issues);
+      }
+      return HttpUtil.post('/panel/setting/update', body.success ? body.data : next);
+    },
     onSuccess: (msg) => {
       if (msg?.success) queryClient.invalidateQueries({ queryKey: keys.settings.all() });
     },
