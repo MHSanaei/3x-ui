@@ -130,7 +130,7 @@ export default function OutboundsTab({
   const [existingTags, setExistingTags] = useState<string[]>([]);
 
   const outbounds = useMemo(
-    () => (templateSettings?.outbounds || []) as OutboundRow[],
+    () => (templateSettings?.outbounds || []) as unknown as OutboundRow[],
     [templateSettings?.outbounds],
   );
 

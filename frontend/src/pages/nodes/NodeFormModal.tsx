@@ -14,27 +14,18 @@ import {
   message,
 } from 'antd';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
+import type { Msg } from '@/utils';
+import type { ProbeResult } from '@/schemas/node';
 import './NodeFormModal.css';
 
 type Mode = 'add' | 'edit';
-
-interface ApiMsg<T = unknown> {
-  success?: boolean;
-  msg?: string;
-  obj?: T;
-}
 
 interface NodeFormModalProps {
   open: boolean;
   mode: Mode;
   node: NodeRecord | null;
-  testConnection: (payload: Partial<NodeRecord>) => Promise<ApiMsg<{
-    status: string;
-    latencyMs?: number;
-    xrayVersion?: string;
-    error?: string;
-  }>>;
-  save: (payload: Partial<NodeRecord>) => Promise<ApiMsg>;
+  testConnection: (payload: Partial<NodeRecord>) => Promise<Msg<ProbeResult>>;
+  save: (payload: Partial<NodeRecord>) => Promise<Msg<unknown>>;
   onOpenChange: (open: boolean) => void;
 }
 

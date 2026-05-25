@@ -1,54 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { HttpUtil } from '@/utils';
+import { HttpUtil, Msg } from '@/utils';
+import { parseMsg } from '@/utils/zodValidate';
 import { keys } from '@/api/queryKeys';
+import {
+  ClientHydrateSchema,
+  ClientPageResponseSchema,
+  InboundOptionsSchema,
+  OnlinesSchema,
+  BulkAdjustResultSchema,
+  DelDepletedResultSchema,
+  type ClientHydrate,
+  type ClientRecord,
+  type ClientTraffic,
+  type ClientsSummary,
+  type ClientPageResponse,
+  type InboundOption,
+  type BulkAdjustResult,
+} from '@/schemas/client';
+import { DefaultsPayloadSchema } from '@/schemas/defaults';
+
+export type { ClientRecord, ClientTraffic, ClientsSummary, InboundOption };
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
-
-export interface ClientTraffic {
-  up?: number;
-  down?: number;
-  total?: number;
-  expiryTime?: number;
-  enable?: boolean;
-  lastOnline?: number;
-}
-
-export interface ClientRecord {
-  email: string;
-  subId?: string;
-  uuid?: string;
-  password?: string;
-  auth?: string;
-  flow?: string;
-  totalGB?: number;
-  expiryTime?: number;
-  limitIp?: number;
-  tgId?: number | string;
-  comment?: string;
-  enable?: boolean;
-  inboundIds?: number[];
-  traffic?: ClientTraffic;
-  reverse?: { tag?: string };
-  createdAt?: number;
-  updatedAt?: number;
-  [key: string]: unknown;
-}
-
-export interface InboundOption {
-  id: number;
-  remark?: string;
-  protocol?: string;
-  port?: number;
-  tlsFlowCapable?: boolean;
-}
-
-interface ApiMsg<T = unknown> {
-  success?: boolean;
-  msg?: string;
-  obj?: T;
-}
 
 interface SubSettings {
   enable: boolean;
@@ -66,24 +41,6 @@ export interface ClientQueryParams {
   inbound?: number;
   sort?: string;
   order?: 'ascend' | 'descend';
-}
-
-export interface ClientsSummary {
-  total: number;
-  active: number;
-  online: string[];
-  depleted: string[];
-  expiring: string[];
-  deactive: string[];
-}
-
-interface ClientPageResponse {
-  items: ClientRecord[];
-  total: number;
-  filtered: number;
-  page: number;
-  pageSize: number;
-  summary?: ClientsSummary;
 }
 
 const DEFAULT_QUERY: ClientQueryParams = { page: 1, pageSize: 25 };
@@ -106,21 +63,25 @@ function buildQS(p: ClientQueryParams): string {
 
 async function fetchClientPage(params: ClientQueryParams): Promise<ClientPageResponse> {
   const qs = buildQS(params);
-  const msg = await HttpUtil.get(`/panel/api/clients/list/paged?${qs}`, undefined, { silent: true }) as ApiMsg<ClientPageResponse>;
+  const msg = await HttpUtil.get(`/panel/api/clients/list/paged?${qs}`, undefined, { silent: true });
   if (!msg?.success || !msg.obj) throw new Error(msg?.msg || 'Failed to fetch clients');
-  return msg.obj;
+  const validated = parseMsg(msg, ClientPageResponseSchema, 'clients/list/paged');
+  if (!validated.obj) throw new Error('Empty clients response');
+  return validated.obj;
 }
 
 async function fetchInboundOptions(): Promise<InboundOption[]> {
-  const msg = await HttpUtil.get('/panel/api/inbounds/options', undefined, { silent: true }) as ApiMsg<InboundOption[]>;
+  const msg = await HttpUtil.get('/panel/api/inbounds/options', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch inbound options');
-  return Array.isArray(msg.obj) ? msg.obj : [];
+  const validated = parseMsg(msg, InboundOptionsSchema, 'inbounds/options');
+  return Array.isArray(validated.obj) ? validated.obj : [];
 }
 
 async function fetchDefaults(): Promise<Record<string, unknown>> {
-  const msg = await HttpUtil.post('/panel/setting/defaultSettings', undefined, { silent: true }) as ApiMsg<Record<string, unknown>>;
+  const msg = await HttpUtil.post('/panel/setting/defaultSettings', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch defaults');
-  return msg.obj || {};
+  const validated = parseMsg(msg, DefaultsPayloadSchema, 'setting/defaultSettings');
+  return validated.obj || {};
 }
 
 export function useClients() {
@@ -168,9 +129,10 @@ export function useClients() {
   const onlinesQuery = useQuery({
     queryKey: keys.clients.onlines(),
     queryFn: async () => {
-      const msg = await HttpUtil.post('/panel/api/clients/onlines', undefined, { silent: true }) as ApiMsg<string[]>;
+      const msg = await HttpUtil.post('/panel/api/clients/onlines', undefined, { silent: true });
       if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch onlines');
-      return Array.isArray(msg.obj) ? msg.obj : [];
+      const validated = parseMsg(msg, OnlinesSchema, 'clients/onlines');
+      return Array.isArray(validated.obj) ? validated.obj : [];
     },
     staleTime: Infinity,
   });
@@ -208,22 +170,23 @@ export function useClients() {
     await invalidateAll();
   }, [invalidateAll]);
 
-  const hydrate = useCallback(async (email: string): Promise<{ client: ClientRecord; inboundIds: number[] } | null> => {
+  const hydrate = useCallback(async (email: string): Promise<ClientHydrate | null> => {
     if (!email) return null;
-    const msg = await HttpUtil.get(`/panel/api/clients/get/${encodeURIComponent(email)}`) as ApiMsg<{ client: ClientRecord; inboundIds: number[] }>;
+    const msg = await HttpUtil.get(`/panel/api/clients/get/${encodeURIComponent(email)}`);
     if (!msg?.success || !msg.obj) return null;
-    return msg.obj;
+    const validated = parseMsg(msg, ClientHydrateSchema, 'clients/get');
+    return validated.obj;
   }, []);
 
   const createMut = useMutation({
     mutationFn: (payload: unknown) =>
-      HttpUtil.post('/panel/api/clients/add', payload, JSON_HEADERS) as Promise<ApiMsg>,
+      HttpUtil.post('/panel/api/clients/add', payload, JSON_HEADERS),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
   const updateMut = useMutation({
     mutationFn: ({ email, client }: { email: string; client: unknown }) =>
-      HttpUtil.post(`/panel/api/clients/update/${encodeURIComponent(email)}`, client, JSON_HEADERS) as Promise<ApiMsg>,
+      HttpUtil.post(`/panel/api/clients/update/${encodeURIComponent(email)}`, client, JSON_HEADERS),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
@@ -232,7 +195,7 @@ export function useClients() {
       const url = keepTraffic
         ? `/panel/api/clients/del/${encodeURIComponent(email)}?keepTraffic=1`
         : `/panel/api/clients/del/${encodeURIComponent(email)}`;
-      return HttpUtil.post(url) as Promise<ApiMsg>;
+      return HttpUtil.post(url);
     },
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
@@ -242,7 +205,7 @@ export function useClients() {
       const suffix = keepTraffic ? '?keepTraffic=1' : '';
       const results = await Promise.all(emails.map((email) => {
         const url = `/panel/api/clients/del/${encodeURIComponent(email)}${suffix}`;
-        return HttpUtil.post(url, undefined, { silent: true }) as Promise<ApiMsg>;
+        return HttpUtil.post(url, undefined, { silent: true });
       }));
       return results;
     },
@@ -250,54 +213,55 @@ export function useClients() {
   });
 
   const bulkAdjustMut = useMutation({
-    mutationFn: (payload: { emails: string[]; addDays: number; addBytes: number }) =>
-      HttpUtil.post(
-        '/panel/api/clients/bulkAdjust',
-        payload,
-        JSON_HEADERS,
-      ) as Promise<ApiMsg<{ adjusted: number; skipped?: { email: string; reason: string }[] }>>,
+    mutationFn: async (payload: { emails: string[]; addDays: number; addBytes: number }): Promise<Msg<BulkAdjustResult>> => {
+      const raw = await HttpUtil.post('/panel/api/clients/bulkAdjust', payload, JSON_HEADERS);
+      return parseMsg(raw, BulkAdjustResultSchema, 'clients/bulkAdjust');
+    },
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
   const attachMut = useMutation({
     mutationFn: ({ email, inboundIds }: { email: string; inboundIds: number[] }) =>
-      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/attach`, { inboundIds }, JSON_HEADERS) as Promise<ApiMsg>,
+      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/attach`, { inboundIds }, JSON_HEADERS),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
   const detachMut = useMutation({
     mutationFn: ({ email, inboundIds }: { email: string; inboundIds: number[] }) =>
-      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/detach`, { inboundIds }, JSON_HEADERS) as Promise<ApiMsg>,
+      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/detach`, { inboundIds }, JSON_HEADERS),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
   const resetTrafficMut = useMutation({
     mutationFn: (email: string) =>
-      HttpUtil.post(`/panel/api/clients/resetTraffic/${encodeURIComponent(email)}`) as Promise<ApiMsg>,
+      HttpUtil.post(`/panel/api/clients/resetTraffic/${encodeURIComponent(email)}`),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
   const resetAllTrafficsMut = useMutation({
-    mutationFn: () => HttpUtil.post('/panel/api/clients/resetAllTraffics') as Promise<ApiMsg>,
+    mutationFn: () => HttpUtil.post('/panel/api/clients/resetAllTraffics'),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
   const delDepletedMut = useMutation({
-    mutationFn: () => HttpUtil.post('/panel/api/clients/delDepleted') as Promise<ApiMsg<{ deleted?: number }>>,
+    mutationFn: async () => {
+      const raw = await HttpUtil.post('/panel/api/clients/delDepleted');
+      return parseMsg(raw, DelDepletedResultSchema, 'clients/delDepleted');
+    },
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
   const create = useCallback((payload: unknown) => createMut.mutateAsync(payload), [createMut]);
   const update = useCallback((email: string, client: unknown) => {
-    if (!email) return Promise.resolve(null as unknown as ApiMsg);
+    if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return updateMut.mutateAsync({ email, client });
   }, [updateMut]);
   const remove = useCallback((email: string, keepTraffic = false) => {
-    if (!email) return Promise.resolve(null as unknown as ApiMsg);
+    if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return removeMut.mutateAsync({ email, keepTraffic });
   }, [removeMut]);
   const removeMany = useCallback((emails: string[], keepTraffic = false) => {
-    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve([] as ApiMsg[]);
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve([] as Msg<unknown>[]);
     return removeManyMut.mutateAsync({ emails, keepTraffic });
   }, [removeManyMut]);
   const bulkAdjust = useCallback((emails: string[], addDays: number, addBytes: number) => {
@@ -305,15 +269,15 @@ export function useClients() {
     return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes });
   }, [bulkAdjustMut]);
   const attach = useCallback((email: string, inboundIds: number[]) => {
-    if (!email) return Promise.resolve(null as unknown as ApiMsg);
+    if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return attachMut.mutateAsync({ email, inboundIds });
   }, [attachMut]);
   const detach = useCallback((email: string, inboundIds: number[]) => {
-    if (!email) return Promise.resolve(null as unknown as ApiMsg);
+    if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return detachMut.mutateAsync({ email, inboundIds });
   }, [detachMut]);
   const resetTraffic = useCallback((client: ClientRecord) => {
-    if (!client?.email) return Promise.resolve(null as unknown as ApiMsg);
+    if (!client?.email) return Promise.resolve(null as unknown as Msg<unknown>);
     return resetTrafficMut.mutateAsync(client.email);
   }, [resetTrafficMut]);
   const resetAllTraffics = useCallback(() => resetAllTrafficsMut.mutateAsync(), [resetAllTrafficsMut]);

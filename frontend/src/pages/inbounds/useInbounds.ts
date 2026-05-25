@@ -2,10 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { HttpUtil } from '@/utils';
+import { parseMsg } from '@/utils/zodValidate';
 import { DBInbound } from '@/models/dbinbound';
 import { Protocols } from '@/models/inbound';
 import { setDatepicker } from '@/hooks/useDatepicker';
 import { keys } from '@/api/queryKeys';
+import { SlimInboundListSchema, LastOnlineMapSchema, InboundDetailSchema } from '@/schemas/inbound';
+import { OnlinesSchema } from '@/schemas/client';
+import { DefaultsPayloadSchema, type DefaultsPayload } from '@/schemas/defaults';
 
 export interface SubSettings {
   enable: boolean;
@@ -27,27 +31,6 @@ interface ClientRollup {
   comments: Map<string, string>;
 }
 
-interface ApiMsg<T = unknown> {
-  success?: boolean;
-  obj?: T;
-  msg?: string;
-}
-
-interface DefaultsPayload {
-  expireDiff?: number;
-  trafficDiff?: number;
-  tgBotEnable?: boolean;
-  subEnable?: boolean;
-  subTitle?: string;
-  subURI?: string;
-  subJsonURI?: string;
-  subJsonEnable?: boolean;
-  pageSize?: number;
-  remarkModel?: string;
-  datepicker?: string;
-  ipLimitEnable?: boolean;
-}
-
 const TRACKED_PROTOCOLS = [
   Protocols.VMESS,
   Protocols.VLESS,
@@ -57,27 +40,31 @@ const TRACKED_PROTOCOLS = [
 ];
 
 async function fetchSlimInbounds(): Promise<unknown[]> {
-  const msg = await HttpUtil.get('/panel/api/inbounds/list/slim', undefined, { silent: true }) as ApiMsg<unknown[]>;
+  const msg = await HttpUtil.get('/panel/api/inbounds/list/slim', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch inbounds');
-  return Array.isArray(msg.obj) ? msg.obj : [];
+  const validated = parseMsg(msg, SlimInboundListSchema, 'inbounds/list/slim');
+  return Array.isArray(validated.obj) ? validated.obj : [];
 }
 
 async function fetchOnlineClients(): Promise<string[]> {
-  const msg = await HttpUtil.post('/panel/api/clients/onlines', undefined, { silent: true }) as ApiMsg<string[]>;
+  const msg = await HttpUtil.post('/panel/api/clients/onlines', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch onlines');
-  return Array.isArray(msg.obj) ? msg.obj : [];
+  const validated = parseMsg(msg, OnlinesSchema, 'clients/onlines');
+  return Array.isArray(validated.obj) ? validated.obj : [];
 }
 
 async function fetchLastOnlineMap(): Promise<Record<string, number>> {
-  const msg = await HttpUtil.post('/panel/api/clients/lastOnline', undefined, { silent: true }) as ApiMsg<Record<string, number>>;
+  const msg = await HttpUtil.post('/panel/api/clients/lastOnline', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch lastOnline');
-  return (msg.obj && typeof msg.obj === 'object') ? msg.obj : {};
+  const validated = parseMsg(msg, LastOnlineMapSchema, 'clients/lastOnline');
+  return (validated.obj && typeof validated.obj === 'object') ? validated.obj : {};
 }
 
 async function fetchDefaultSettings(): Promise<DefaultsPayload> {
-  const msg = await HttpUtil.post('/panel/setting/defaultSettings', undefined, { silent: true }) as ApiMsg<DefaultsPayload>;
+  const msg = await HttpUtil.post('/panel/setting/defaultSettings', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch defaults');
-  return (msg.obj as DefaultsPayload) || {};
+  const validated = parseMsg(msg, DefaultsPayloadSchema, 'setting/defaultSettings');
+  return validated.obj ?? {};
 }
 
 export function useInbounds() {
@@ -272,8 +259,9 @@ export function useInbounds() {
   const hydrateInbound = useCallback(async (id: number) => {
     const msg = await HttpUtil.get(`/panel/api/inbounds/get/${id}`);
     if (!msg?.success || !msg.obj) return null;
-    const full = msg.obj as { id: number; protocol: string };
-    const dbInbound = new DBInbound(full) as DBInboundInstance;
+    const validated = parseMsg(msg, InboundDetailSchema, `inbounds/get/${id}`);
+    if (!validated.obj) return null;
+    const dbInbound = new DBInbound(validated.obj) as DBInboundInstance;
     setDbInbounds((prev) => {
       const next = prev.map((row) => (
         (row as unknown as { id: number }).id === id ? dbInbound : row

@@ -28,4 +28,12 @@ export const NodeRecordSchema = z.object({
 
 export const NodeListSchema = z.array(NodeRecordSchema);
 
+export const ProbeResultSchema = z.object({
+  status: z.string(),
+  latencyMs: z.number().optional(),
+  xrayVersion: z.string().optional(),
+  error: z.string().optional(),
+}).loose();
+
 export type NodeRecord = z.infer<typeof NodeRecordSchema>;
+export type ProbeResult = z.infer<typeof ProbeResultSchema>;
