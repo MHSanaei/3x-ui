@@ -1,0 +1,79 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`createDefaultHysteriaClient > produces a Zod-valid client 1`] = `
+{
+  "auth": "fixed-hyst-auth",
+  "comment": "",
+  "email": "fixture@example.test",
+  "enable": true,
+  "expiryTime": 0,
+  "limitIp": 0,
+  "reset": 0,
+  "subId": "fixed-sub-id-1234",
+  "tgId": 0,
+  "totalGB": 0,
+}
+`;
+
+exports[`createDefaultShadowsocksClient > produces a Zod-valid client 1`] = `
+{
+  "comment": "",
+  "email": "fixture@example.test",
+  "enable": true,
+  "expiryTime": 0,
+  "limitIp": 0,
+  "method": "",
+  "password": "ZmFrZS1zcy1wYXNzd29yZA==",
+  "reset": 0,
+  "subId": "fixed-sub-id-1234",
+  "tgId": 0,
+  "totalGB": 0,
+}
+`;
+
+exports[`createDefaultTrojanClient > produces a Zod-valid client 1`] = `
+{
+  "comment": "",
+  "email": "fixture@example.test",
+  "enable": true,
+  "expiryTime": 0,
+  "limitIp": 0,
+  "password": "fixed-trojan-pw",
+  "reset": 0,
+  "subId": "fixed-sub-id-1234",
+  "tgId": 0,
+  "totalGB": 0,
+}
+`;
+
+exports[`createDefaultVlessClient > produces a Zod-valid client 1`] = `
+{
+  "comment": "",
+  "email": "fixture@example.test",
+  "enable": true,
+  "expiryTime": 0,
+  "flow": "",
+  "id": "11111111-2222-4333-8444-555555555555",
+  "limitIp": 0,
+  "reset": 0,
+  "subId": "fixed-sub-id-1234",
+  "tgId": 0,
+  "totalGB": 0,
+}
+`;
+
+exports[`createDefaultVmessClient > produces a Zod-valid client 1`] = `
+{
+  "comment": "",
+  "email": "fixture@example.test",
+  "enable": true,
+  "expiryTime": 0,
+  "id": "aaaaaaaa-bbbb-4ccc-9ddd-eeeeeeeeeeee",
+  "limitIp": 0,
+  "reset": 0,
+  "security": "auto",
+  "subId": "fixed-sub-id-1234",
+  "tgId": 0,
+  "totalGB": 0,
+}
+`;
