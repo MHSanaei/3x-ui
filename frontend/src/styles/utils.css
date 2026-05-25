@@ -15,3 +15,9 @@
 .my-10 { margin: 10px 0; }
 
 .zero-margin { margin: 0; }
+
+.random-icon {
+  margin-left: 4px;
+  cursor: pointer;
+  color: var(--ant-color-primary);
+}
