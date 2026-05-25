@@ -78,11 +78,7 @@
   font-size: 11px;
   padding: 0 5px;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.06);
-}
-
-.xray-page.is-dark .criterion-more {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--ant-color-fill-tertiary);
 }
 
 .criterion-empty {
@@ -222,11 +218,3 @@
   opacity: 0.4;
 }
 
-.xray-page.is-dark .rule-card {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.xray-page.is-dark .criterion-chip {
-  background: rgba(255, 255, 255, 0.06);
-}
