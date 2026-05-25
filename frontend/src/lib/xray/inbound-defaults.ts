@@ -225,3 +225,36 @@ export function createDefaultWireguardInboundSettings(
     noKernelTun: seed.noKernelTun ?? false,
   };
 }
+
+// Protocol-aware dispatch over every inbound-settings factory. Mirrors
+// the legacy `Inbound.Settings.getSettings(protocol)` dispatcher, but
+// returns a plain Zod-parsable object instead of a class instance.
+// Callers swapping off the class hierarchy use this in place of
+// `getSettings(p)` + `.toJson()`.
+export type AnyInboundSettings =
+  | VlessInboundSettings
+  | VmessInboundSettings
+  | TrojanInboundSettings
+  | ShadowsocksInboundSettings
+  | HysteriaInboundSettings
+  | Hysteria2InboundSettings
+  | HttpInboundSettings
+  | MixedInboundSettings
+  | TunnelInboundSettings
+  | WireguardInboundSettings;
+
+export function createDefaultInboundSettings(protocol: string): AnyInboundSettings | null {
+  switch (protocol) {
+    case 'vless':       return createDefaultVlessInboundSettings();
+    case 'vmess':       return createDefaultVmessInboundSettings();
+    case 'trojan':      return createDefaultTrojanInboundSettings();
+    case 'shadowsocks': return createDefaultShadowsocksInboundSettings();
+    case 'hysteria':    return createDefaultHysteriaInboundSettings();
+    case 'hysteria2':   return createDefaultHysteria2InboundSettings();
+    case 'http':        return createDefaultHttpInboundSettings();
+    case 'mixed':       return createDefaultMixedInboundSettings();
+    case 'tunnel':      return createDefaultTunnelInboundSettings();
+    case 'wireguard':   return createDefaultWireguardInboundSettings();
+    default:            return null;
+  }
+}

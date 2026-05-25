@@ -20,7 +20,7 @@ import {
 } from '@ant-design/icons';
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
-import { Inbound } from '@/models/inbound';
+import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -354,7 +354,8 @@ export default function InboundsPage() {
           raw.clients = [];
           clonedSettings = JSON.stringify(raw);
         } catch {
-          clonedSettings = Inbound.Settings.getSettings(baseInbound.protocol).toString();
+          const fallback = createDefaultInboundSettings(baseInbound.protocol);
+          clonedSettings = fallback ? JSON.stringify(fallback, null, 2) : '{}';
         }
         const data = {
           up: 0,
