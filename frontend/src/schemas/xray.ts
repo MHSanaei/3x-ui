@@ -114,6 +114,11 @@ export const BalancerFormSchema = z.object({
   fallbackTag: z.string(),
 });
 
+export const OutboundTagSchema = z
+  .string()
+  .trim()
+  .min(1, 'pages.xray.outboundTagRequired');
+
 export type BalancerFormValues = z.infer<typeof BalancerFormSchema>;
 export type RuleFormValues = z.infer<typeof RuleFormSchema>;
 export type CustomGeoFormValues = z.infer<typeof CustomGeoFormSchema>;

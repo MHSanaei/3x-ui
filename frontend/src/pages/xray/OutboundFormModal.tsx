@@ -35,6 +35,7 @@ import {
 } from '@/models/outbound';
 import FinalMaskForm from '@/components/FinalMaskForm';
 import JsonEditor from '@/components/JsonEditor';
+import { OutboundTagSchema } from '@/schemas/xray';
 import './OutboundFormModal.css';
 
 interface OutboundFormModalProps {
@@ -223,8 +224,10 @@ export default function OutboundFormModal({
   function onOk() {
     if (!ob) return;
     if (activeKey === '2' && !applyAdvancedJsonToForm()) return;
-    if (!ob.tag?.trim()) {
-      messageApi.error('Tag is required');
+    const tagOk = OutboundTagSchema.safeParse(ob.tag);
+    if (!tagOk.success) {
+      const msgKey = tagOk.error.issues[0]?.message ?? 'Tag is required';
+      messageApi.error(t(msgKey, { defaultValue: 'Tag is required' }));
       return;
     }
     if (duplicateTag) {

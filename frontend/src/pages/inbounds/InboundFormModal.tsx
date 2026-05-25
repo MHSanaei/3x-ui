@@ -60,6 +60,7 @@ import FinalMaskForm from '@/components/FinalMaskForm';
 import DateTimePicker from '@/components/DateTimePicker';
 import JsonEditor from '@/components/JsonEditor';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
+import { InboundFormSchema } from '@/schemas/inbound';
 import './InboundFormModal.css';
 
 const { TextArea } = Input;
@@ -931,6 +932,19 @@ export default function InboundFormModal({
         settings = compactAdvancedJson(advancedTextRef.current.settings, ib.settings.toString(), t('pages.inbounds.advanced.settings'));
       } catch { return; }
 
+      const baseCheck = InboundFormSchema.safeParse({
+        remark: form.remark ?? '',
+        enable: !!form.enable,
+        port: Number(ib.port),
+        listen: ib.listen ?? '',
+        protocol: ib.protocol ?? '',
+      });
+      if (!baseCheck.success) {
+        const issue = baseCheck.error.issues[0];
+        messageApi.error(t(issue?.message ?? 'somethingWentWrong', { defaultValue: issue?.message ?? 'invalid' }));
+        return;
+      }
+
       const payload: Record<string, unknown> = {
         up: form.up || 0,
         down: form.down || 0,
@@ -967,7 +981,7 @@ export default function InboundFormModal({
     } finally {
       setSaving(false);
     }
-  }, [canEnableStream, compactAdvancedJson, t, mode, dbInbound, isFallbackHost, saveFallbacks, onSaved, onClose]);
+  }, [canEnableStream, compactAdvancedJson, t, messageApi, mode, dbInbound, isFallbackHost, saveFallbacks, onSaved, onClose]);
 
   const protocolSnapshot = inboundRef.current?.protocol;
   const streamSnapshot = JSON.stringify(inboundRef.current?.stream?.toJson?.() || {});
