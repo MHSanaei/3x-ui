@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { toHeaders, toV2Headers, type HeaderEntry } from '@/lib/xray/headers';
+import { getHeaderValue, toHeaders, toV2Headers, type HeaderEntry } from '@/lib/xray/headers';
 import { XrayCommonClass } from '@/models/inbound';
 
 // Shadow harness: the new pure helpers must agree byte-for-byte with the
@@ -56,4 +56,29 @@ describe('toV2Headers parity (arr=false)', () => {
       expect(toV2Headers(input, false)).toEqual(XrayCommonClass.toV2Headers(input, false));
     });
   }
+});
+
+describe('getHeaderValue lookups', () => {
+  it('returns empty string for missing map', () => {
+    expect(getHeaderValue(undefined, 'host')).toBe('');
+    expect(getHeaderValue(null, 'host')).toBe('');
+    expect(getHeaderValue({}, 'host')).toBe('');
+  });
+
+  it('finds a string-valued header case-insensitively', () => {
+    expect(getHeaderValue({ Host: 'example.test' }, 'host')).toBe('example.test');
+    expect(getHeaderValue({ host: 'example.test' }, 'HOST')).toBe('example.test');
+  });
+
+  it('returns first value when the header is an array', () => {
+    expect(getHeaderValue({ Accept: ['text/html', 'application/json'] }, 'accept')).toBe('text/html');
+  });
+
+  it('returns empty string when the header has empty array', () => {
+    expect(getHeaderValue({ Host: [] }, 'host')).toBe('');
+  });
+
+  it('returns empty string for missing header name', () => {
+    expect(getHeaderValue({ Host: 'x' }, 'origin')).toBe('');
+  });
 });

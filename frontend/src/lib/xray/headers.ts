@@ -32,6 +32,27 @@ export function toHeaders(v2Headers: unknown): HeaderEntry[] {
   return out;
 }
 
+// Case-insensitive lookup against a wire-shape header map. The legacy
+// `Inbound.getHeader(obj, name)` iterated `obj.headers` as a HeaderEntry[];
+// this version reads the Record map our Zod schemas store. For repeated
+// header names (string[] in TCP/WS-style maps) the first value wins —
+// matches the legacy iteration order. Returns '' when missing, mirroring
+// the legacy fallback so link-generator call sites stay simple.
+export function getHeaderValue(
+  headers: Readonly<Record<string, string | string[]>> | undefined | null,
+  name: string,
+): string {
+  if (!headers || typeof headers !== 'object') return '';
+  const lower = name.toLowerCase();
+  for (const key of Object.keys(headers)) {
+    if (key.toLowerCase() !== lower) continue;
+    const value = headers[key];
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) return value[0] ?? '';
+  }
+  return '';
+}
+
 // Collapse a HeaderEntry[] back into a V2-style header map. When `arr` is
 // true (the default — matches Xray's TCP/WS/HTTP request/response shape),
 // duplicate header names accumulate into a string[]. When false (used for
