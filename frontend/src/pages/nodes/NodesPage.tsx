@@ -118,14 +118,14 @@ export default function NodesPage() {
                           <Statistic
                             title={t('pages.nodes.onlineNodes')}
                             value={String(totals.online)}
-                            prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                            prefix={<CheckCircleOutlined style={{ color: 'var(--ant-color-success)' }} />}
                           />
                         </Col>
                         <Col xs={12} sm={12} md={6}>
                           <Statistic
                             title={t('pages.nodes.offlineNodes')}
                             value={String(totals.offline)}
-                            prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
+                            prefix={<CloseCircleOutlined style={{ color: 'var(--ant-color-error)' }} />}
                           />
                         </Col>
                         <Col xs={12} sm={12} md={6}>

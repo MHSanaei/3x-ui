@@ -196,7 +196,7 @@ export default function NodeList({
           <span>{t(`pages.nodes.statusValues.${record.status || 'unknown'}`)}</span>
           {record.lastError && (
             <Tooltip title={record.lastError}>
-              <ExclamationCircleOutlined style={{ color: '#faad14' }} />
+              <ExclamationCircleOutlined style={{ color: 'var(--ant-color-warning)' }} />
             </Tooltip>
           )}
         </Space>
@@ -378,7 +378,7 @@ export default function NodeList({
                   <span>{t(`pages.nodes.statusValues.${statsNode.status || 'unknown'}`)}</span>
                   {statsNode.lastError && (
                     <Tooltip title={statsNode.lastError}>
-                      <ExclamationCircleOutlined style={{ color: '#faad14' }} />
+                      <ExclamationCircleOutlined style={{ color: 'var(--ant-color-warning)' }} />
                     </Tooltip>
                   )}
                 </div>
