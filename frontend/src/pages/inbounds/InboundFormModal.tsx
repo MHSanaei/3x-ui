@@ -41,10 +41,9 @@ import {
 } from '@/utils';
 import InputAddon from '@/components/InputAddon';
 import { getRandomRealityTarget } from '@/models/reality-targets';
+import { Inbound, SSMethods } from '@/models/inbound';
 import {
-  Inbound,
   Protocols,
-  SSMethods,
   SNIFFING_OPTION,
   TLS_VERSION_OPTION,
   TLS_CIPHER_OPTION,
@@ -54,7 +53,7 @@ import {
   DOMAIN_STRATEGY_OPTION,
   TCP_CONGESTION_OPTION,
   MODE_OPTION,
-} from '@/models/inbound';
+} from '@/schemas/primitives';
 import { DBInbound } from '@/models/dbinbound';
 import FinalMaskForm from '@/components/FinalMaskForm';
 import DateTimePicker from '@/components/DateTimePicker';
@@ -151,7 +150,7 @@ const DOMAIN_STRATEGIES = Object.values(DOMAIN_STRATEGY_OPTION) as string[];
 const TCP_CONGESTIONS = Object.values(TCP_CONGESTION_OPTION) as string[];
 const MODE_OPTIONS = Object.values(MODE_OPTION) as string[];
 
-const NODE_ELIGIBLE_PROTOCOLS = new Set([
+const NODE_ELIGIBLE_PROTOCOLS = new Set<string>([
   Protocols.VLESS,
   Protocols.VMESS,
   Protocols.TROJAN,
