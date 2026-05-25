@@ -3,7 +3,7 @@ import { Button, Divider, Form, Input, InputNumber, Select, Switch } from 'antd'
 import { DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { RandomUtil } from '@/utils';
-import { Protocols } from '@/models/outbound';
+import { OutboundProtocols } from '@/schemas/primitives';
 
 interface StreamShape {
   network?: string;
@@ -84,7 +84,7 @@ function newNoiseItem(): ItemRow {
 }
 
 export default function FinalMaskForm({ stream, protocol, onChange }: FinalMaskFormProps) {
-  const isHysteria = protocol === Protocols.Hysteria || protocol === 'hysteria';
+  const isHysteria = protocol === OutboundProtocols.Hysteria || protocol === 'hysteria';
   const network = stream?.network || '';
 
   const showTcp = useMemo(
