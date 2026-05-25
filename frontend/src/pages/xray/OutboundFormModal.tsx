@@ -18,10 +18,9 @@ import { SyncOutlined, PlusOutlined, MinusOutlined, DeleteOutlined } from '@ant-
 
 import { Wireguard } from '@/utils';
 import InputAddon from '@/components/InputAddon';
+import { Outbound, SSMethods } from '@/models/outbound';
 import {
-  Outbound,
-  Protocols,
-  SSMethods,
+  OutboundProtocols as Protocols,
   TLS_FLOW_CONTROL,
   UTLS_FINGERPRINT,
   ALPN_OPTION,
@@ -32,7 +31,7 @@ import {
   Address_Port_Strategy,
   MODE_OPTION,
   DNSRuleActions,
-} from '@/models/outbound';
+} from '@/schemas/primitives';
 import FinalMaskForm from '@/components/FinalMaskForm';
 import JsonEditor from '@/components/JsonEditor';
 import { OutboundTagSchema } from '@/schemas/xray';
@@ -494,7 +493,7 @@ function FreedomFields({ ob, refresh }: FieldProps) {
         <Select
           value={ob.settings.domainStrategy}
           onChange={(v) => { ob.settings.domainStrategy = v; refresh(); }}
-          options={(OutboundDomainStrategies as string[]).map((s) => ({ value: s, label: s }))}
+          options={OutboundDomainStrategies.map((s) => ({ value: s, label: s }))}
         />
       </Form.Item>
       <Form.Item label="Redirect">
@@ -722,7 +721,7 @@ function DnsFields({ ob, refresh, t }: TFieldProps) {
             <Select
               value={rule.action}
               onChange={(v) => { rule.action = v; refresh(); }}
-              options={(DNSRuleActions as string[]).map((a) => ({ value: a, label: a }))}
+              options={DNSRuleActions.map((a) => ({ value: a, label: a }))}
             />
           </Form.Item>
           <Form.Item label="QType">
@@ -775,7 +774,7 @@ function WireguardFields({ ob, refresh, regenerate, t }: TFieldProps & { regener
         <Select
           value={ob.settings.domainStrategy || ''}
           onChange={(v) => { ob.settings.domainStrategy = v; refresh(); }}
-          options={['', ...(WireguardDomainStrategy as string[])].map((x) => ({ value: x, label: x || `(${t('none')})` }))}
+          options={['', ...WireguardDomainStrategy].map((x) => ({ value: x, label: x || `(${t('none')})` }))}
         />
       </Form.Item>
       <Form.Item label="MTU">
