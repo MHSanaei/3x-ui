@@ -8,6 +8,7 @@ import {
   Modal,
   Row,
   Spin,
+  Statistic,
   message,
 } from 'antd';
 
@@ -26,7 +27,6 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import AppSidebar from '@/components/AppSidebar';
-import CustomStatistic from '@/components/CustomStatistic';
 const TextModal = lazy(() => import('@/components/TextModal'));
 const PromptModal = lazy(() => import('@/components/PromptModal'));
 
@@ -463,21 +463,21 @@ export default function InboundsPage() {
                     <Card size="small" hoverable className="summary-card">
                       <Row gutter={[16, 12]}>
                         <Col xs={12} sm={12} md={8}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.inbounds.totalDownUp')}
                             value={`${SizeFormatter.sizeFormat(totals.up)} / ${SizeFormatter.sizeFormat(totals.down)}`}
                             prefix={<SwapOutlined />}
                           />
                         </Col>
                         <Col xs={12} sm={12} md={8}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.inbounds.totalUsage')}
                             value={SizeFormatter.sizeFormat(totals.up + totals.down)}
                             prefix={<PieChartOutlined />}
                           />
                         </Col>
                         <Col xs={24} sm={24} md={8}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.inbounds.inboundCount')}
                             value={String(dbInbounds.length)}
                             prefix={<BarsOutlined />}

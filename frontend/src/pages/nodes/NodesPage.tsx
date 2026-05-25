@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Col, ConfigProvider, Layout, Modal, Row, Spin, message } from 'antd';
+import { Card, Col, ConfigProvider, Layout, Modal, Row, Spin, Statistic, message } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -14,7 +14,6 @@ import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import { useNodeMutations } from '@/api/queries/useNodeMutations';
 import AppSidebar from '@/components/AppSidebar';
-import CustomStatistic from '@/components/CustomStatistic';
 import NodeList from './NodeList';
 import NodeFormModal from './NodeFormModal';
 import { setMessageInstance } from '@/utils/messageBus';
@@ -109,28 +108,28 @@ export default function NodesPage() {
                     <Card size="small" hoverable className="summary-card">
                       <Row gutter={[16, isMobile ? 16 : 12]}>
                         <Col xs={12} sm={12} md={6}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.nodes.totalNodes')}
                             value={String(totals.total)}
                             prefix={<CloudServerOutlined />}
                           />
                         </Col>
                         <Col xs={12} sm={12} md={6}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.nodes.onlineNodes')}
                             value={String(totals.online)}
                             prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
                           />
                         </Col>
                         <Col xs={12} sm={12} md={6}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.nodes.offlineNodes')}
                             value={String(totals.offline)}
                             prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
                           />
                         </Col>
                         <Col xs={12} sm={12} md={6}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.nodes.avgLatency')}
                             value={totals.avgLatency > 0 ? `${totals.avgLatency} ms` : '-'}
                             prefix={<ThunderboltOutlined />}
