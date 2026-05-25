@@ -62,7 +62,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post(`/panel/api/server/xraylogs/${rows}`, {
+      const msg = await HttpUtil.post<XrayLogEntry[]>(`/panel/api/server/xraylogs/${rows}`, {
         filter,
         showDirect,
         showBlocked,

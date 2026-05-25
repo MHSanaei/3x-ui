@@ -69,7 +69,7 @@ export default function LogModal({ open, onClose }: LogModalProps) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post(`/panel/api/server/logs/${rows}`, {
+      const msg = await HttpUtil.post<string[]>(`/panel/api/server/logs/${rows}`, {
         level,
         syslog,
       });

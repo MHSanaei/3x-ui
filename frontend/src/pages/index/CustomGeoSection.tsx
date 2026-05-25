@@ -116,7 +116,7 @@ export default function CustomGeoSection({ active }: CustomGeoSectionProps) {
   async function updateAll() {
     setUpdatingAll(true);
     try {
-      const msg = await HttpUtil.post('/panel/api/custom-geo/update-all');
+      const msg = await HttpUtil.post<{ succeeded?: unknown[]; failed?: unknown[] }>('/panel/api/custom-geo/update-all');
       const ok = msg?.obj?.succeeded?.length || 0;
       const failed = msg?.obj?.failed?.length || 0;
       if (msg?.success || ok > 0) {

@@ -86,10 +86,10 @@ export default function IndexPage() {
   const [loadingTip, setLoadingTip] = useState(t('loading'));
 
   useEffect(() => {
-    HttpUtil.post('/panel/setting/defaultSettings').then((msg) => {
+    HttpUtil.post<{ ipLimitEnable?: boolean }>('/panel/setting/defaultSettings').then((msg) => {
       if (msg?.success && msg.obj) setIpLimitEnable(!!msg.obj.ipLimitEnable);
     });
-    HttpUtil.get('/panel/api/server/getPanelUpdateInfo').then((msg) => {
+    HttpUtil.get<PanelUpdateInfo>('/panel/api/server/getPanelUpdateInfo').then((msg) => {
       if (msg?.success && msg.obj) setPanelUpdateInfo(msg.obj);
     });
   }, []);

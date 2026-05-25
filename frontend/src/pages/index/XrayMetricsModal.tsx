@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Modal, Select, Tabs, Tag } from 'antd';
 
-import { HttpUtil, SizeFormatter } from '@/utils';
+import { HttpUtil, Msg, SizeFormatter } from '@/utils';
 import Sparkline from '@/components/Sparkline';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import './XrayMetricsModal.css';
@@ -90,7 +90,7 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
 
   const activeObsTag = obsTags.find((tg) => tg.tag === obsActiveTag) || null;
 
-  const applyHistory = useCallback((msg: { success?: boolean; obj?: { t: number; v: number }[] }, currentBucket: number) => {
+  const applyHistory = useCallback((msg: Msg<{ t: number; v: number }[]> | null | undefined, currentBucket: number) => {
     if (msg?.success && Array.isArray(msg.obj)) {
       const vals: number[] = [];
       const labs: string[] = [];
@@ -112,7 +112,7 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
 
   const fetchState = useCallback(async () => {
     try {
-      const msg = await HttpUtil.get('/panel/api/server/xrayMetricsState');
+      const msg = await HttpUtil.get<XrayState>('/panel/api/server/xrayMetricsState');
       if (msg?.success && msg.obj) setState(msg.obj);
     } catch (e) {
       console.error('Failed to fetch xray metrics state', e);
@@ -121,12 +121,13 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
 
   const fetchObservatory = useCallback(async () => {
     try {
-      const msg = await HttpUtil.get('/panel/api/server/xrayObservatory');
+      const msg = await HttpUtil.get<ObservatoryTag[]>('/panel/api/server/xrayObservatory');
       if (msg?.success && Array.isArray(msg.obj)) {
-        setObsTags(msg.obj);
+        const tags = msg.obj;
+        setObsTags(tags);
         setObsActiveTag((prev) => {
-          if (msg.obj.find((tg: ObservatoryTag) => tg.tag === prev)) return prev;
-          return msg.obj[0]?.tag || '';
+          if (tags.find((tg) => tg.tag === prev)) return prev;
+          return tags[0]?.tag || '';
         });
       } else {
         setObsTags([]);
@@ -141,7 +142,7 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
     if (!activeMetric) return;
     try {
       const url = `/panel/api/server/xrayMetricsHistory/${activeMetric.key}/${bucket}`;
-      const msg = await HttpUtil.get(url);
+      const msg = await HttpUtil.get<{ t: number; v: number }[]>(url);
       applyHistory(msg, bucket);
     } catch (e) {
       console.error('Failed to fetch xray metrics bucket', e);
@@ -158,7 +159,7 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
     }
     try {
       const url = `/panel/api/server/xrayObservatoryHistory/${encodeURIComponent(obsActiveTag)}/${bucket}`;
-      const msg = await HttpUtil.get(url);
+      const msg = await HttpUtil.get<{ t: number; v: number }[]>(url);
       applyHistory(msg, bucket);
     } catch (e) {
       console.error('Failed to fetch observatory bucket', e);
