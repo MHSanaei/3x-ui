@@ -321,7 +321,6 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
         <Sparkline
           data={points}
           labels={labels}
-          vbWidth={840}
           height={220}
           stroke={strokeColor}
           strokeWidth={2.2}

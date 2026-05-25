@@ -2,30 +2,3 @@
   display: block;
   width: 100%;
 }
-
-.sparkline-svg .cpu-grid-y-text,
-.sparkline-svg .cpu-grid-x-text {
-  fill: var(--ant-color-text-tertiary);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.2px;
-}
-
-.sparkline-svg .cpu-grid-text {
-  fill: var(--ant-color-text);
-}
-
-.sparkline-svg .cpu-grid-line {
-  stroke: var(--ant-color-border-secondary);
-}
-
-.sparkline-svg .cpu-tooltip-text {
-  pointer-events: none;
-}
-
-.sparkline-svg .cpu-tooltip-pill {
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.18));
-}
-
-body.dark .sparkline-svg .cpu-tooltip-pill {
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
-}

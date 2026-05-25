@@ -91,7 +91,6 @@ export default function NodeHistoryPanel({ node, bucket = 30 }: NodeHistoryPanel
         <Sparkline
           data={cpuPoints}
           labels={cpuLabels}
-          vbWidth={640}
           height={120}
           stroke="#008771"
           showGrid
@@ -108,7 +107,6 @@ export default function NodeHistoryPanel({ node, bucket = 30 }: NodeHistoryPanel
         <Sparkline
           data={memPoints}
           labels={memLabels}
-          vbWidth={640}
           height={120}
           stroke="#7c4dff"
           showGrid
