@@ -9,6 +9,7 @@ import { HttpUtil, RandomUtil, SizeFormatter } from '@/utils';
 import { TLS_FLOW_CONTROL } from '@/models/inbound';
 import DateTimePicker from '@/components/DateTimePicker';
 import type { InboundOption } from '@/hooks/useClients';
+import { ClientBulkAddFormSchema, type ClientBulkAddFormValues } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
@@ -16,11 +17,6 @@ const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as cons
 const MULTI_CLIENT_PROTOCOLS = new Set([
   'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'hysteria2',
 ]);
-
-interface ApiMsg {
-  success?: boolean;
-  msg?: string;
-}
 
 interface ClientBulkAddModalProps {
   open: boolean;
@@ -30,21 +26,7 @@ interface ClientBulkAddModalProps {
   onSaved?: () => void;
 }
 
-interface FormState {
-  emailMethod: number;
-  firstNum: number;
-  lastNum: number;
-  emailPrefix: string;
-  emailPostfix: string;
-  quantity: number;
-  subId: string;
-  comment: string;
-  flow: string;
-  limitIp: number;
-  totalGB: number;
-  expiryTime: number;
-  inboundIds: number[];
-}
+type FormState = ClientBulkAddFormValues;
 
 function emptyForm(): FormState {
   return {
@@ -152,8 +134,9 @@ export default function ClientBulkAddModal({
   }
 
   async function submit() {
-    if (!Array.isArray(form.inboundIds) || form.inboundIds.length === 0) {
-      messageApi.error(t('pages.clients.selectInbound'));
+    const validated = ClientBulkAddFormSchema.safeParse(form);
+    if (!validated.success) {
+      messageApi.error(t(validated.error.issues[0]?.message ?? 'somethingWentWrong'));
       return;
     }
     const emails = buildEmails();
@@ -177,7 +160,7 @@ export default function ClientBulkAddModal({
           enable: true,
         };
         const payload = { client, inboundIds: form.inboundIds };
-        return HttpUtil.post('/panel/api/clients/add', payload, silentJsonOpts) as Promise<ApiMsg>;
+        return HttpUtil.post('/panel/api/clients/add', payload, silentJsonOpts);
       }));
       let ok = 0;
       let failed = 0;

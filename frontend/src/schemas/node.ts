@@ -35,5 +35,19 @@ export const ProbeResultSchema = z.object({
   error: z.string().optional(),
 }).loose();
 
+export const NodeFormSchema = z.object({
+  id: z.number().optional(),
+  name: z.string().trim().min(1, 'pages.nodes.toasts.fillRequired'),
+  remark: z.string().optional(),
+  scheme: z.enum(['http', 'https']),
+  address: z.string().trim().min(1, 'pages.nodes.toasts.fillRequired'),
+  port: z.number().int().min(1).max(65535),
+  basePath: z.string(),
+  apiToken: z.string().trim().min(1, 'pages.nodes.toasts.fillRequired'),
+  enable: z.boolean(),
+  allowPrivateAddress: z.boolean(),
+});
+
 export type NodeRecord = z.infer<typeof NodeRecordSchema>;
 export type ProbeResult = z.infer<typeof ProbeResultSchema>;
+export type NodeFormValues = z.infer<typeof NodeFormSchema>;

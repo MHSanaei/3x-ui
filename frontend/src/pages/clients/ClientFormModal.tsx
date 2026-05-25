@@ -21,6 +21,7 @@ import { HttpUtil, RandomUtil } from '@/utils';
 import DateTimePicker from '@/components/DateTimePicker';
 import { TLS_FLOW_CONTROL } from '@/models/inbound';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import { ClientFormSchema, ClientCreateFormSchema } from '@/schemas/client';
 import './ClientFormModal.css';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
@@ -268,12 +269,27 @@ export default function ClientFormModal({
   }
 
   async function onSubmit() {
-    if (!form.email || form.email.trim() === '') {
-      messageApi.error(`${t('pages.clients.email')} *`);
-      return;
-    }
-    if (!isEdit && (!form.inboundIds || form.inboundIds.length === 0)) {
-      messageApi.error(t('pages.clients.selectInbound'));
+    const schema = isEdit ? ClientFormSchema : ClientCreateFormSchema;
+    const validated = schema.safeParse({
+      email: form.email,
+      subId: form.subId,
+      uuid: form.uuid,
+      password: form.password,
+      auth: form.auth,
+      flow: form.flow,
+      reverseTag: form.reverseTag,
+      totalGB: form.totalGB,
+      delayedStart: form.delayedStart,
+      delayedDays: form.delayedDays,
+      limitIp: form.limitIp,
+      tgId: form.tgId,
+      comment: form.comment,
+      enable: form.enable,
+      inboundIds: form.inboundIds,
+    });
+    if (!validated.success) {
+      const issue = validated.error.issues[0];
+      messageApi.error(t(issue?.message ?? 'somethingWentWrong'));
       return;
     }
     const expiryTime = form.delayedStart

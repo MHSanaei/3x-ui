@@ -83,6 +83,44 @@ export const DelDepletedResultSchema = z.object({
 
 export const OnlinesSchema = nullableStringArray;
 
+export const ClientFormSchema = z.object({
+  email: z.string().trim().min(1, 'pages.clients.email'),
+  subId: z.string(),
+  uuid: z.string(),
+  password: z.string(),
+  auth: z.string(),
+  flow: z.string(),
+  reverseTag: z.string(),
+  totalGB: z.number().min(0),
+  delayedStart: z.boolean(),
+  delayedDays: z.number().int().min(0),
+  limitIp: z.number().int().min(0),
+  tgId: z.number().int().min(0),
+  comment: z.string(),
+  enable: z.boolean(),
+  inboundIds: z.array(z.number()),
+});
+
+export const ClientCreateFormSchema = ClientFormSchema.extend({
+  inboundIds: z.array(z.number()).min(1, 'pages.clients.selectInbound'),
+});
+
+export const ClientBulkAddFormSchema = z.object({
+  emailMethod: z.number().int().min(0).max(4),
+  firstNum: z.number().int().min(1),
+  lastNum: z.number().int().min(1),
+  emailPrefix: z.string(),
+  emailPostfix: z.string(),
+  quantity: z.number().int().min(1).max(100),
+  subId: z.string(),
+  comment: z.string(),
+  flow: z.string(),
+  limitIp: z.number().int().min(0),
+  totalGB: z.number().min(0),
+  expiryTime: z.number(),
+  inboundIds: z.array(z.number()).min(1, 'pages.clients.selectInbound'),
+});
+
 export type ClientRecord = z.infer<typeof ClientRecordSchema>;
 export type ClientTraffic = z.infer<typeof ClientTrafficSchema>;
 export type InboundOption = z.infer<typeof InboundOptionSchema>;
@@ -90,3 +128,5 @@ export type ClientsSummary = z.infer<typeof ClientsSummarySchema>;
 export type ClientPageResponse = z.infer<typeof ClientPageResponseSchema>;
 export type ClientHydrate = z.infer<typeof ClientHydrateSchema>;
 export type BulkAdjustResult = z.infer<typeof BulkAdjustResultSchema>;
+export type ClientBulkAddFormValues = z.infer<typeof ClientBulkAddFormSchema>;
+export type ClientFormValues = z.infer<typeof ClientFormSchema>;
