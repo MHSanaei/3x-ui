@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
+	"github.com/mhsanaei/3x-ui/v3/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 	"github.com/mhsanaei/3x-ui/v3/web/session"
 	"github.com/mhsanaei/3x-ui/v3/web/websocket"
@@ -129,10 +130,8 @@ func (a *InboundController) getInbound(c *gin.Context) {
 
 // addInbound creates a new inbound configuration.
 func (a *InboundController) addInbound(c *gin.Context) {
-	inbound := &model.Inbound{}
-	err := c.ShouldBind(inbound)
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundCreateSuccess"), err)
+	inbound, ok := middleware.BindAndValidate[model.Inbound](c)
+	if !ok {
 		return
 	}
 	user := session.GetLoginUser(c)
@@ -200,9 +199,7 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	inbound := &model.Inbound{
 		Id: id,
 	}
-	err = c.ShouldBind(inbound)
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
+	if !middleware.BindAndValidateInto(c, inbound) {
 		return
 	}
 	// Same NodeID=0 → nil normalisation as addInbound. UpdateInbound

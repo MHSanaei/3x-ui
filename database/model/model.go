@@ -53,14 +53,14 @@ type Inbound struct {
 	Remark               string               `json:"remark" form:"remark"`                                                                            // Human-readable remark
 	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1"`                           // Whether the inbound is enabled
 	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                    // Expiration timestamp
-	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2"` // Traffic reset schedule
+	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2" validate:"omitempty,oneof=never hourly daily weekly monthly"` // Traffic reset schedule
 	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                               // Last traffic reset timestamp
 	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                        // Client traffic statistics
 
 	// Xray configuration fields
 	Listen         string   `json:"listen" form:"listen"`
-	Port           int      `json:"port" form:"port"`
-	Protocol       Protocol `json:"protocol" form:"protocol"`
+	Port           int      `json:"port" form:"port" validate:"gte=1,lte=65535"`
+	Protocol       Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria hysteria2 http mixed tunnel"`
 	Settings       string   `json:"settings" form:"settings"`
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
@@ -247,13 +247,13 @@ type Setting struct {
 // status fields below.
 type Node struct {
 	Id                  int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	Name                string `json:"name" form:"name" gorm:"uniqueIndex"`
+	Name                string `json:"name" form:"name" gorm:"uniqueIndex" validate:"required"`
 	Remark              string `json:"remark" form:"remark"`
-	Scheme              string `json:"scheme" form:"scheme"`
-	Address             string `json:"address" form:"address"`
-	Port                int    `json:"port" form:"port"`
+	Scheme              string `json:"scheme" form:"scheme" validate:"omitempty,oneof=http https"`
+	Address             string `json:"address" form:"address" validate:"required"`
+	Port                int    `json:"port" form:"port" validate:"gte=1,lte=65535"`
 	BasePath            string `json:"basePath" form:"basePath"`
-	ApiToken            string `json:"apiToken" form:"apiToken"`
+	ApiToken            string `json:"apiToken" form:"apiToken" validate:"required"`
 	Enable              bool   `json:"enable" form:"enable" gorm:"default:true"`
 	AllowPrivateAddress bool   `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
 
