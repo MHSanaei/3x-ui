@@ -1,10 +1,15 @@
-import { RandomUtil } from '@/utils';
+import { RandomUtil, Wireguard } from '@/utils';
 
-import type { HysteriaClient } from '@/schemas/protocols/inbound/hysteria';
-import type { ShadowsocksClient } from '@/schemas/protocols/inbound/shadowsocks';
-import type { TrojanClient } from '@/schemas/protocols/inbound/trojan';
-import type { VlessClient } from '@/schemas/protocols/inbound/vless';
-import type { VmessClient } from '@/schemas/protocols/inbound/vmess';
+import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
+import type { Hysteria2InboundSettings } from '@/schemas/protocols/inbound/hysteria2';
+import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
+import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
+import type { ShadowsocksClient, ShadowsocksInboundSettings } from '@/schemas/protocols/inbound/shadowsocks';
+import type { TrojanClient, TrojanInboundSettings } from '@/schemas/protocols/inbound/trojan';
+import type { TunnelInboundSettings } from '@/schemas/protocols/inbound/tunnel';
+import type { VlessClient, VlessInboundSettings } from '@/schemas/protocols/inbound/vless';
+import type { VmessClient, VmessInboundSettings } from '@/schemas/protocols/inbound/vmess';
+import type { WireguardInboundSettings } from '@/schemas/protocols/inbound/wireguard';
 
 // Plain-object factories for protocol clients. Each returns a Zod-parsable
 // object matching the wire shape. Random fields (id, password, auth,
@@ -118,5 +123,105 @@ export function createDefaultHysteriaClient(seed: HysteriaClientSeed = {}): Hyst
   return {
     auth: seed.auth ?? RandomUtil.randomSeq(10),
     ...clientBase(seed),
+  };
+}
+
+// Inbound-settings factories. Each returns a Zod-parsable wire-shape with
+// schema defaults already applied — no class instance, no XrayCommonClass.
+// Callers (form modals via Step 4, InboundsPage clone via Step 5) call
+// these instead of the legacy `Inbound.Settings.getSettings(protocol)`.
+
+export function createDefaultVlessInboundSettings(): VlessInboundSettings {
+  return {
+    clients: [],
+    decryption: 'none',
+    encryption: 'none',
+    fallbacks: [],
+  };
+}
+
+export function createDefaultVmessInboundSettings(): VmessInboundSettings {
+  return { clients: [] };
+}
+
+export function createDefaultTrojanInboundSettings(): TrojanInboundSettings {
+  return { clients: [], fallbacks: [] };
+}
+
+export interface ShadowsocksInboundSeed {
+  method?: ShadowsocksInboundSettings['method'];
+  password?: string;
+  network?: ShadowsocksInboundSettings['network'];
+  ivCheck?: boolean;
+}
+
+export function createDefaultShadowsocksInboundSettings(
+  seed: ShadowsocksInboundSeed = {},
+): ShadowsocksInboundSettings {
+  const method = seed.method ?? '2022-blake3-aes-256-gcm';
+  return {
+    method,
+    password: seed.password ?? RandomUtil.randomShadowsocksPassword(method),
+    network: seed.network ?? 'tcp',
+    clients: [],
+    ivCheck: seed.ivCheck ?? false,
+  };
+}
+
+// Hysteria v1 defaults still emit `version: 2` to match the legacy panel
+// constructor — the field discriminates v1 vs v2 inside the same settings
+// shape. Callers that explicitly want v1 pass `{ version: 1 }`.
+export interface HysteriaInboundSeed {
+  version?: number;
+}
+
+export function createDefaultHysteriaInboundSettings(
+  seed: HysteriaInboundSeed = {},
+): HysteriaInboundSettings {
+  return {
+    version: seed.version ?? 2,
+    clients: [],
+  };
+}
+
+export function createDefaultHysteria2InboundSettings(): Hysteria2InboundSettings {
+  return { version: 2, clients: [] };
+}
+
+export function createDefaultHttpInboundSettings(): HttpInboundSettings {
+  return { accounts: [], allowTransparent: false };
+}
+
+export function createDefaultMixedInboundSettings(): MixedInboundSettings {
+  return {
+    auth: 'password',
+    accounts: [],
+    udp: false,
+    ip: '127.0.0.1',
+  };
+}
+
+export function createDefaultTunnelInboundSettings(): TunnelInboundSettings {
+  return {
+    portMap: {},
+    allowedNetwork: 'tcp,udp',
+    followRedirect: false,
+  };
+}
+
+export interface WireguardInboundSeed {
+  mtu?: number;
+  secretKey?: string;
+  noKernelTun?: boolean;
+}
+
+export function createDefaultWireguardInboundSettings(
+  seed: WireguardInboundSeed = {},
+): WireguardInboundSettings {
+  return {
+    mtu: seed.mtu ?? 1420,
+    secretKey: seed.secretKey ?? Wireguard.generateKeypair().privateKey,
+    peers: [],
+    noKernelTun: seed.noKernelTun ?? false,
   };
 }
