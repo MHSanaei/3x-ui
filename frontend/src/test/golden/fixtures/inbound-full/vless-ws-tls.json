@@ -1,0 +1,76 @@
+{
+  "id": 42,
+  "up": 0,
+  "down": 0,
+  "total": 0,
+  "remark": "alice-vless-ws-tls",
+  "enable": true,
+  "expiryTime": 0,
+  "listen": "",
+  "port": 443,
+  "tag": "inbound-vless-1",
+  "sniffing": {
+    "enabled": true,
+    "destOverride": ["http", "tls", "quic", "fakedns"],
+    "metadataOnly": false,
+    "routeOnly": false,
+    "ipsExcluded": [],
+    "domainsExcluded": []
+  },
+  "protocol": "vless",
+  "settings": {
+    "clients": [
+      {
+        "id": "8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02",
+        "email": "alice@example.test",
+        "flow": "",
+        "limitIp": 0,
+        "totalGB": 0,
+        "expiryTime": 0,
+        "enable": true,
+        "tgId": 0,
+        "subId": "abc123def",
+        "comment": "",
+        "reset": 0
+      }
+    ],
+    "decryption": "none",
+    "encryption": "none",
+    "fallbacks": []
+  },
+  "streamSettings": {
+    "network": "ws",
+    "wsSettings": {
+      "acceptProxyProtocol": false,
+      "path": "/ws",
+      "host": "cdn.example.test",
+      "headers": {},
+      "heartbeatPeriod": 0
+    },
+    "security": "tls",
+    "tlsSettings": {
+      "serverName": "cdn.example.test",
+      "minVersion": "1.2",
+      "maxVersion": "1.3",
+      "cipherSuites": "",
+      "rejectUnknownSni": false,
+      "disableSystemRoot": false,
+      "enableSessionResumption": false,
+      "certificates": [
+        {
+          "certificateFile": "/etc/ssl/certs/cdn.example.test.crt",
+          "keyFile": "/etc/ssl/private/cdn.example.test.key",
+          "oneTimeLoading": false,
+          "usage": "encipherment",
+          "buildChain": false
+        }
+      ],
+      "alpn": ["h2", "http/1.1"],
+      "echServerKeys": "",
+      "settings": {
+        "fingerprint": "chrome",
+        "echConfigList": ""
+      }
+    }
+  }
+}

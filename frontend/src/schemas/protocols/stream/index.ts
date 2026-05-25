@@ -1,15 +1,21 @@
 import { z } from 'zod';
 
+import { ExternalProxyEntrySchema } from './external-proxy';
+import { FinalMaskStreamSettingsSchema } from './finalmask';
 import { GrpcStreamSettingsSchema } from './grpc';
 import { HttpUpgradeStreamSettingsSchema } from './httpupgrade';
 import { KcpStreamSettingsSchema } from './kcp';
+import { SockoptStreamSettingsSchema } from './sockopt';
 import { TcpStreamSettingsSchema } from './tcp';
 import { WsStreamSettingsSchema } from './ws';
 import { XHttpStreamSettingsSchema } from './xhttp';
 
+export * from './external-proxy';
+export * from './finalmask';
 export * from './grpc';
 export * from './httpupgrade';
 export * from './kcp';
+export * from './sockopt';
 export * from './tcp';
 export * from './ws';
 export * from './xhttp';
@@ -31,3 +37,14 @@ export const NetworkSettingsSchema = z.discriminatedUnion('network', [
   z.object({ network: z.literal('xhttp'),       xhttpSettings:       XHttpStreamSettingsSchema }),
 ]);
 export type NetworkSettings = z.infer<typeof NetworkSettingsSchema>;
+
+// Orthogonal extras that ride alongside the network and security branches.
+// All optional on the wire — legacy toJson() omits any field whose value
+// is empty. The shadow harness treats absent and empty-array as the same
+// canonical state.
+export const StreamExtrasSchema = z.object({
+  externalProxy: z.array(ExternalProxyEntrySchema).optional(),
+  finalmask: FinalMaskStreamSettingsSchema.optional(),
+  sockopt: SockoptStreamSettingsSchema.optional(),
+});
+export type StreamExtras = z.infer<typeof StreamExtrasSchema>;
