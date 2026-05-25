@@ -289,7 +289,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 		model.Hysteria:    true,
 		model.Hysteria2:   true,
 	}
-	
+
 	if !protocolsWithStream[inbound.Protocol] {
 		inbound.StreamSettings = ""
 	}
@@ -302,7 +302,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
-	
+
 	exist, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
 		return inbound, false, err
@@ -558,7 +558,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
-	
+
 	exist, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {
 		return inbound, false, err
@@ -840,6 +840,26 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 }
 
 func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
+	// Account-based inbounds (Socks/Mixed/HTTP) store credentials under
+	// settings.accounts[] (an array of {user, pass} objects), not
+	// settings.clients[]. The whole client lifecycle (this method, plus
+	// UpdateInboundClient/DelInboundClient/CopyInboundClients, depletion,
+	// traffic reset, Telegram 'add client' keyboard, sub-link generation)
+	// assumes the latter shape. Resolving the inbound up front lets us
+	// reject account-based protocols with a clear error instead of
+	// panicking on the unchecked `settings["clients"].([]any)` cast below.
+	targetInbound, err := s.GetInbound(data.Id)
+	if err != nil {
+		return false, err
+	}
+	if model.IsAccountBased(targetInbound.Protocol) {
+		return false, common.NewError(
+			"client lifecycle is not supported for account-based protocol:",
+			string(targetInbound.Protocol),
+			"— update the inbound directly with settings.accounts[] instead",
+		)
+	}
+
 	clients, err := s.GetClients(data)
 	if err != nil {
 		return false, err
@@ -871,10 +891,8 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 		return false, common.NewError("Duplicate email:", existEmail)
 	}
 
-	oldInbound, err := s.GetInbound(data.Id)
-	if err != nil {
-		return false, err
-	}
+	// Already loaded above as part of the account-based guard.
+	oldInbound := targetInbound
 
 	// Secure client ID
 	for _, client := range clients {
@@ -1091,6 +1109,28 @@ func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID
 		return result, false, err
 	}
 
+	// Account-based inbounds (Socks/Mixed/HTTP) don't participate in the
+	// client-copy flow: they don't store per-client metadata (sub-id,
+	// totalGB, expiry, …) — just plain {user, pass} accounts. Trying to
+	// copy clients into or out of them would either downcast a rich
+	// client to a bare account (losing data silently) or upcast an
+	// account into a client that the runtime can't actually use. Refuse
+	// the operation explicitly on either side.
+	if model.IsAccountBased(sourceInbound.Protocol) {
+		return result, false, common.NewError(
+			"copy clients: source inbound uses account-based protocol:",
+			string(sourceInbound.Protocol),
+			"— manage settings.accounts[] directly via inbound update",
+		)
+	}
+	if model.IsAccountBased(targetInbound.Protocol) {
+		return result, false, common.NewError(
+			"copy clients: target inbound uses account-based protocol:",
+			string(targetInbound.Protocol),
+			"— manage settings.accounts[] directly via inbound update",
+		)
+	}
+
 	sourceClients, err := s.GetClients(sourceInbound)
 	if err != nil {
 		return result, false, err
@@ -1184,6 +1224,16 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 	if err != nil {
 		logger.Error("Load Old Data Error")
 		return false, err
+	}
+	// See AddInboundClient: account-based inbounds (Socks/Mixed/HTTP) have
+	// no settings.clients[] to delete from. Refuse early with a clear error
+	// instead of panicking on the type assertion below.
+	if model.IsAccountBased(oldInbound.Protocol) {
+		return false, common.NewError(
+			"client lifecycle is not supported for account-based protocol:",
+			string(oldInbound.Protocol),
+			"— update the inbound directly with settings.accounts[] instead",
+		)
 	}
 	var settings map[string]any
 	err = json.Unmarshal([]byte(oldInbound.Settings), &settings)
@@ -1296,6 +1346,22 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 
 func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId string) (bool, error) {
 	// TODO: check if TrafficReset field is updating
+
+	// Resolve the inbound first so we can refuse account-based protocols
+	// (Socks/Mixed/HTTP) before touching the settings["clients"] cast.
+	// See AddInboundClient for the rationale.
+	oldInbound, err := s.GetInbound(data.Id)
+	if err != nil {
+		return false, err
+	}
+	if model.IsAccountBased(oldInbound.Protocol) {
+		return false, common.NewError(
+			"client lifecycle is not supported for account-based protocol:",
+			string(oldInbound.Protocol),
+			"— update the inbound directly with settings.accounts[] instead",
+		)
+	}
+
 	clients, err := s.GetClients(data)
 	if err != nil {
 		return false, err
@@ -1308,11 +1374,6 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 	}
 
 	interfaceClients := settings["clients"].([]any)
-
-	oldInbound, err := s.GetInbound(data.Id)
-	if err != nil {
-		return false, err
-	}
 
 	oldClients, err := s.GetClients(oldInbound)
 	if err != nil {

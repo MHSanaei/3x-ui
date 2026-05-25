@@ -59,3 +59,45 @@ func TestIsSocksLike(t *testing.T) {
 		}
 	}
 }
+
+// TestIsAccountBased pins the set of inbounds that route credentials
+// through settings.accounts[] rather than settings.clients[]. Anything
+// that returns true here is OFF-LIMITS for the client-lifecycle code
+// paths (AddInboundClient / UpdateInboundClient / DelInboundClient,
+// depletion, traffic reset, telegram 'add client' keyboard).
+//
+// HTTP is intentionally included even though the panel UI doesn't
+// currently surface it as a standalone protocol — the runtime API
+// AddUser branch in xray/api.go handles it symmetrically with socks,
+// and any future UI work plugging HTTP back in inherits the same
+// safety net for free.
+//
+// WireGuard is intentionally EXCLUDED: its peers live under
+// settings.peers[] and are managed through a separate path; treating
+// it as account-based would lock out the existing wireguard UI.
+func TestIsAccountBased(t *testing.T) {
+	cases := []struct {
+		in   Protocol
+		want bool
+	}{
+		{Socks, true},
+		{Mixed, true},
+		{HTTP, true},
+
+		{VLESS, false},
+		{VMESS, false},
+		{Trojan, false},
+		{Shadowsocks, false},
+		{WireGuard, false}, // peers, not accounts; managed separately
+		{Hysteria, false},
+		{Hysteria2, false},
+		{Tunnel, false},
+		{Protocol(""), false},
+		{Protocol("SOCKS"), false}, // case-sensitive lowercase invariant
+	}
+	for _, c := range cases {
+		if got := IsAccountBased(c.in); got != c.want {
+			t.Errorf("IsAccountBased(%q) = %v, want %v", c.in, got, c.want)
+		}
+	}
+}

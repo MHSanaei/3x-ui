@@ -49,6 +49,26 @@ func IsSocksLike(p Protocol) bool {
 	return p == Socks || p == Mixed
 }
 
+// IsAccountBased returns true for protocols whose Xray inbound config
+// stores user credentials under settings.accounts[] (an array of
+// {user, pass} objects) rather than settings.clients[] (the
+// Client struct with id/password/auth/email/etc.).
+//
+// This currently covers Socks, Mixed, and HTTP — all three inbounds
+// share the same proxy/socks-style Account wire type. The panel's
+// client-lifecycle code paths (AddInboundClient / UpdateInboundClient /
+// DelInboundClient, depletion, traffic reset, telegram bot 'add client'
+// keyboard, …) all assume settings.clients[] and would either panic
+// or silently corrupt the JSON if pointed at an account-based inbound,
+// so they bail out early on this helper.
+//
+// WireGuard is intentionally NOT in this set: its peers live under
+// settings.peers[] and the panel manages them through a separate
+// dedicated path, not the client lifecycle covered here.
+func IsAccountBased(p Protocol) bool {
+	return p == Socks || p == Mixed || p == HTTP
+}
+
 // User represents a user account in the 3x-ui panel.
 type User struct {
 	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
