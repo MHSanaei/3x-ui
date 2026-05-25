@@ -36,7 +36,7 @@
 
 .clients-page .ant-pagination-options-size-changer,
 .clients-page .ant-pagination-options-size-changer .ant-select-selector {
-  min-width: 100px !important;
+  min-width: 100px;
 }
 
 .clients-page .loading-spacer {
@@ -154,7 +154,7 @@
 
 .card-pagination .ant-pagination-options-size-changer,
 .card-pagination .ant-pagination-options-size-changer .ant-select-selector {
-  min-width: 88px !important;
+  min-width: 88px;
 }
 
 .bulk-count {
@@ -177,7 +177,7 @@
   background: rgba(22, 119, 255, 0.06);
 }
 
-body.dark .client-card {
+.clients-page.is-dark .client-card {
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.1);
 }

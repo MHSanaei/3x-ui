@@ -125,12 +125,6 @@ html[data-theme="ultra-dark"] .log-container {
   --log-divider: rgba(255, 255, 255, 0.12);
 }
 
-.xraylog-modal-mobile {
-  top: 0 !important;
-  padding-bottom: 0 !important;
-  max-width: 100vw !important;
-}
-
 .xraylog-modal-mobile .ant-modal-content {
   border-radius: 0;
   height: 100vh;
