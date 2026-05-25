@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { HttpUtil } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
 import { DBInbound } from '@/models/dbinbound';
-import { Protocols } from '@/models/inbound';
+import { Protocols } from '@/schemas/primitives';
 import { setDatepicker } from '@/hooks/useDatepicker';
 import { keys } from '@/api/queryKeys';
 import { SlimInboundListSchema, LastOnlineMapSchema, InboundDetailSchema } from '@/schemas/inbound';
@@ -31,7 +31,7 @@ interface ClientRollup {
   comments: Map<string, string>;
 }
 
-const TRACKED_PROTOCOLS = [
+const TRACKED_PROTOCOLS: readonly string[] = [
   Protocols.VMESS,
   Protocols.VLESS,
   Protocols.TROJAN,

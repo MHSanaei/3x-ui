@@ -19,7 +19,7 @@ import type { Dayjs } from 'dayjs';
 
 import { HttpUtil, RandomUtil } from '@/utils';
 import DateTimePicker from '@/components/DateTimePicker';
-import { TLS_FLOW_CONTROL } from '@/models/inbound';
+import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { ClientFormSchema, ClientCreateFormSchema } from '@/schemas/client';
 import './ClientFormModal.css';
