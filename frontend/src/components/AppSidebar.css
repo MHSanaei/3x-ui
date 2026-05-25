@@ -10,7 +10,7 @@
   font-weight: 600;
   font-size: 18px;
   letter-spacing: 0.5px;
-  color: rgba(0, 0, 0, 0.88);
+  color: var(--ant-color-text);
 }
 
 .sider-brand {
@@ -19,7 +19,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 14px 14px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
   user-select: none;
 }
 
@@ -74,7 +74,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: rgba(0, 0, 0, 0.75);
+  color: var(--ant-color-text-secondary);
   text-decoration: none;
   flex-shrink: 0;
   transition: background-color 0.2s, transform 0.15s, color 0.2s;
@@ -102,7 +102,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: rgba(0, 0, 0, 0.75);
+  color: var(--ant-color-text-secondary);
   padding: 0;
   flex-shrink: 0;
   transition: background-color 0.2s, transform 0.15s, color 0.2s;
@@ -110,15 +110,14 @@
 
 .sidebar-theme-cycle:hover,
 .sidebar-theme-cycle:focus-visible {
-  background-color: rgba(64, 150, 255, 0.1);
-  color: #4096ff;
+  background-color: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+  color: var(--ant-color-primary);
   transform: scale(1.08);
   outline: none;
 }
 
-.sidebar-theme-cycle svg {
-  width: 16px;
-  height: 16px;
+.sidebar-theme-cycle .anticon {
+  font-size: 16px;
 }
 
 .drawer-header-actions {
@@ -151,7 +150,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
 }
 
 .drawer-close {
@@ -165,12 +164,12 @@
   justify-content: center;
   cursor: pointer;
   font-size: 16px;
-  color: rgba(0, 0, 0, 0.65);
+  color: var(--ant-color-text-secondary);
 }
 
 .drawer-close:hover,
 .drawer-close:focus-visible {
-  background: rgba(128, 128, 128, 0.18);
+  background: var(--ant-color-fill-tertiary);
 }
 
 .drawer-menu .ant-menu-item {
@@ -186,7 +185,7 @@
 
 .drawer-utility {
   margin-top: auto;
-  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  border-top: 1px solid var(--ant-color-border-secondary);
 }
 
 .ant-sidebar > .ant-layout-sider .ant-layout-sider-children {
@@ -204,7 +203,7 @@
 
 .sider-utility {
   flex: 0 0 auto;
-  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  border-top: 1px solid var(--ant-color-border-secondary);
 }
 
 @media (max-width: 768px) {
@@ -225,55 +224,11 @@
   }
 }
 
-body.dark .drawer-brand,
-body.dark .sider-brand {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-html[data-theme='ultra-dark'] .drawer-brand,
-html[data-theme='ultra-dark'] .sider-brand {
-  color: #ffffff;
-}
-
-body.dark .drawer-close {
-  color: rgba(255, 255, 255, 0.75);
-}
-
-html[data-theme='ultra-dark'] .drawer-close {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-body.dark .sidebar-theme-cycle {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-html[data-theme='ultra-dark'] .sidebar-theme-cycle {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-body.dark .sidebar-donate {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-html[data-theme='ultra-dark'] .sidebar-donate {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-body.dark .ant-drawer .ant-drawer-content,
-body.dark .ant-drawer .ant-drawer-body {
-  background: #252526 !important;
-}
-
-html[data-theme='ultra-dark'] .ant-drawer .ant-drawer-content,
-html[data-theme='ultra-dark'] .ant-drawer .ant-drawer-body {
-  background: #0a0a0a !important;
-}
-
 .sider-nav .ant-menu-item-selected,
 .sider-utility .ant-menu-item-selected,
 .drawer-menu .ant-menu-item-selected {
-  background-color: rgba(64, 150, 255, 0.2) !important;
-  color: #4096ff !important;
+  background-color: color-mix(in srgb, var(--ant-color-primary) 20%, transparent) !important;
+  color: var(--ant-color-primary) !important;
 }
 
 .sider-nav .ant-menu-item-active:not(.ant-menu-item-selected),
@@ -282,6 +237,6 @@ html[data-theme='ultra-dark'] .ant-drawer .ant-drawer-body {
 .sider-nav .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover,
 .sider-utility .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover,
 .drawer-menu .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover {
-  background-color: rgba(64, 150, 255, 0.1) !important;
-  color: #4096ff !important;
+  background-color: color-mix(in srgb, var(--ant-color-primary) 10%, transparent) !important;
+  color: var(--ant-color-primary) !important;
 }
