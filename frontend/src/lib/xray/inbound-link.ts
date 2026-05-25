@@ -678,3 +678,247 @@ export function genWireguardConfig(input: GenWireguardLinkInput): string {
 }
 
 export type { WireguardInboundPeer };
+
+// Orchestrators.
+// resolveAddr picks the host that goes into share/sub links. Order:
+//   1. hostOverride (caller supplies node address for node-managed inbounds)
+//   2. inbound's bind listen (when explicit, not 0.0.0.0)
+//   3. fallbackHostname (caller-supplied — typically window.location.hostname
+//      in the browser; tests pass a fixed value)
+export function resolveAddr(inbound: Inbound, hostOverride: string, fallbackHostname: string): string {
+  if (hostOverride.length > 0) return hostOverride;
+  if (inbound.listen.length > 0 && inbound.listen !== '0.0.0.0') return inbound.listen;
+  return fallbackHostname;
+}
+
+// Returns the client array for protocols that have one. SS returns its
+// clients only in 2022-blake3 multi-user mode (matches the legacy
+// `this.clients` getter, which used isSSMultiUser to gate). Returns null
+// for SS single-user, http, mixed, tunnel, wireguard, hysteria2-without-
+// clients, and any protocol without a clients array.
+type ClientShape = { id?: string; security?: VmessSecurity; flow?: VlessClient['flow']; password?: string; auth?: string; email?: string };
+
+export function getInboundClients(inbound: Inbound): ClientShape[] | null {
+  switch (inbound.protocol) {
+    case 'vmess':
+      return (inbound.settings.clients ?? []) as ClientShape[];
+    case 'vless':
+      return (inbound.settings.clients ?? []) as ClientShape[];
+    case 'trojan':
+      return (inbound.settings.clients ?? []) as ClientShape[];
+    case 'hysteria':
+    case 'hysteria2':
+      return (inbound.settings.clients ?? []) as ClientShape[];
+    case 'shadowsocks': {
+      const isMultiUser = inbound.settings.method !== '2022-blake3-chacha20-poly1305';
+      return isMultiUser ? ((inbound.settings.clients ?? []) as ClientShape[]) : null;
+    }
+    default:
+      return null;
+  }
+}
+
+export interface GenLinkInput {
+  inbound: Inbound;
+  address: string;
+  port?: number;
+  forceTls?: ForceTls;
+  remark?: string;
+  client: ClientShape;
+  externalProxy?: ExternalProxyEntry | null;
+}
+
+// Per-protocol dispatcher matching the legacy `genLink` switch. Returns
+// '' for protocols that don't have client-based share links (wireguard
+// goes through genWireguardLinks/Configs separately, http/mixed/tunnel
+// don't have share URLs).
+export function genLink(input: GenLinkInput): string {
+  const { inbound, address, port = inbound.port, forceTls = 'same', remark = '', client, externalProxy = null } = input;
+  switch (inbound.protocol) {
+    case 'vmess':
+      return genVmessLink({
+        inbound, address, port, forceTls, remark,
+        clientId: client.id ?? '',
+        security: client.security,
+        externalProxy,
+      });
+    case 'vless':
+      return genVlessLink({
+        inbound, address, port, forceTls, remark,
+        clientId: client.id ?? '',
+        flow: client.flow,
+        externalProxy,
+      });
+    case 'shadowsocks': {
+      const isMultiUser = inbound.settings.method !== '2022-blake3-chacha20-poly1305';
+      return genShadowsocksLink({
+        inbound, address, port, forceTls, remark,
+        clientPassword: isMultiUser ? (client.password ?? '') : '',
+        externalProxy,
+      });
+    }
+    case 'trojan':
+      return genTrojanLink({
+        inbound, address, port, forceTls, remark,
+        clientPassword: client.password ?? '',
+        externalProxy,
+      });
+    case 'hysteria':
+    case 'hysteria2':
+      return genHysteriaLink({
+        inbound, address, port, remark,
+        clientAuth: client.auth ?? '',
+      });
+    default:
+      return '';
+  }
+}
+
+export interface GenAllLinksEntry {
+  remark: string;
+  link: string;
+}
+
+export interface GenAllLinksInput {
+  inbound: Inbound;
+  remark?: string;
+  remarkModel?: string;
+  client: ClientShape;
+  hostOverride?: string;
+  fallbackHostname: string;
+}
+
+// Fans out a single client's link per externalProxy entry, or just one
+// link when there are no external proxies. remarkModel is a 4-char
+// string: first char is the separator, remaining chars pick which
+// pieces to compose into the per-link remark — 'i' = inbound remark,
+// 'e' = client email, 'o' = externalProxy remark. Defaults to '-ieo'
+// (dash-separated, inbound + email + proxy).
+export function genAllLinks(input: GenAllLinksInput): GenAllLinksEntry[] {
+  const {
+    inbound,
+    remark = '',
+    remarkModel = '-ieo',
+    client,
+    hostOverride = '',
+    fallbackHostname,
+  } = input;
+
+  const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
+  const port = inbound.port;
+  const separationChar = remarkModel.charAt(0);
+  const orderChars = remarkModel.slice(1);
+  const email = client.email ?? '';
+
+  const composeRemark = (proxyRemark: string): string => {
+    const orders: Record<string, string> = { i: remark, e: email, o: proxyRemark };
+    return orderChars.split('')
+      .map((c) => orders[c] ?? '')
+      .filter((x) => x.length > 0)
+      .join(separationChar);
+  };
+
+  const externals = inbound.streamSettings?.externalProxy;
+  if (!externals || externals.length === 0) {
+    const r = composeRemark('');
+    return [{ remark: r, link: genLink({ inbound, address: addr, port, forceTls: 'same', remark: r, client }) }];
+  }
+  return externals.map((ep) => {
+    const r = composeRemark(ep.remark);
+    return {
+      remark: r,
+      link: genLink({
+        inbound,
+        address: ep.dest,
+        port: ep.port,
+        forceTls: ep.forceTls,
+        remark: r,
+        client,
+        externalProxy: ep,
+      }),
+    };
+  });
+}
+
+export interface GenInboundLinksInput {
+  inbound: Inbound;
+  remark?: string;
+  remarkModel?: string;
+  hostOverride?: string;
+  fallbackHostname: string;
+}
+
+// Top-level entrypoint that produces the full \r\n-joined block a user
+// pastes into a client. Iterates per-client for protocols with clients,
+// falls back to a single SS link for single-user 2022-blake3-chacha20,
+// and emits per-peer .conf blocks for wireguard. Returns '' for the
+// other clientless protocols (http, mixed, tunnel).
+export function genInboundLinks(input: GenInboundLinksInput): string {
+  const {
+    inbound,
+    remark = '',
+    remarkModel = '-ieo',
+    hostOverride = '',
+    fallbackHostname,
+  } = input;
+  const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
+  const clients = getInboundClients(inbound);
+  if (clients) {
+    const links: string[] = [];
+    for (const client of clients) {
+      const entries = genAllLinks({ inbound, remark, remarkModel, client, hostOverride, fallbackHostname });
+      for (const e of entries) links.push(e.link);
+    }
+    return links.join('\r\n');
+  }
+  if (inbound.protocol === 'shadowsocks') {
+    return genShadowsocksLink({ inbound, address: addr, port: inbound.port, forceTls: 'same', remark });
+  }
+  if (inbound.protocol === 'wireguard') {
+    return genWireguardConfigs({ inbound, remark, remarkModel, hostOverride, fallbackHostname });
+  }
+  return '';
+}
+
+// Per-peer wireguard fanout. Each peer gets its own link (or .conf
+// block) with an index-suffixed remark, joined by \r\n. Matches the
+// legacy genWireguardLinks / genWireguardConfigs exactly.
+export interface GenWireguardFanoutInput {
+  inbound: Inbound;
+  remark?: string;
+  remarkModel?: string;
+  hostOverride?: string;
+  fallbackHostname: string;
+}
+
+export function genWireguardLinks(input: GenWireguardFanoutInput): string {
+  const { inbound, remark = '', remarkModel = '-ieo', hostOverride = '', fallbackHostname } = input;
+  if (inbound.protocol !== 'wireguard') return '';
+  const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
+  const sep = remarkModel.charAt(0);
+  return inbound.settings.peers
+    .map((_p, i) => genWireguardLink({
+      settings: inbound.settings as WireguardInboundSettings,
+      address: addr,
+      port: inbound.port,
+      remark: `${remark}${sep}${i + 1}`,
+      peerIndex: i,
+    }))
+    .join('\r\n');
+}
+
+export function genWireguardConfigs(input: GenWireguardFanoutInput): string {
+  const { inbound, remark = '', remarkModel = '-ieo', hostOverride = '', fallbackHostname } = input;
+  if (inbound.protocol !== 'wireguard') return '';
+  const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
+  const sep = remarkModel.charAt(0);
+  return inbound.settings.peers
+    .map((_p, i) => genWireguardConfig({
+      settings: inbound.settings as WireguardInboundSettings,
+      address: addr,
+      port: inbound.port,
+      remark: `${remark}${sep}${i + 1}`,
+      peerIndex: i,
+    }))
+    .join('\r\n');
+}

@@ -3,12 +3,14 @@ import { describe, expect, it } from 'vitest';
 
 import {
   genHysteriaLink,
+  genInboundLinks,
   genShadowsocksLink,
   genTrojanLink,
   genVlessLink,
   genVmessLink,
   genWireguardConfig,
   genWireguardLink,
+  resolveAddr,
 } from '@/lib/xray/inbound-link';
 import { Inbound as LegacyInbound } from '@/models/inbound';
 import { InboundSchema } from '@/schemas/api/inbound';
@@ -195,6 +197,83 @@ describe('genWireguardLink + genWireguardConfig parity', () => {
 
       expect(newLink).toBe(legacyLink);
       expect(newConfig).toBe(legacyConfig);
+    });
+  }
+});
+
+describe('resolveAddr precedence', () => {
+  const baseInbound = {
+    listen: '',
+    port: 443,
+    protocol: 'vless' as const,
+  };
+
+  it('prefers hostOverride over listen and fallback', () => {
+    expect(resolveAddr(
+      { ...baseInbound, listen: '10.0.0.1' } as never,
+      'cdn.example.test',
+      'fallback.test',
+    )).toBe('cdn.example.test');
+  });
+
+  it('uses listen when override is empty and listen is explicit', () => {
+    expect(resolveAddr(
+      { ...baseInbound, listen: '10.0.0.1' } as never,
+      '',
+      'fallback.test',
+    )).toBe('10.0.0.1');
+  });
+
+  it('skips listen when it is 0.0.0.0 and falls through to fallbackHostname', () => {
+    expect(resolveAddr(
+      { ...baseInbound, listen: '0.0.0.0' } as never,
+      '',
+      'fallback.test',
+    )).toBe('fallback.test');
+  });
+
+  it('falls through to fallbackHostname when listen is empty', () => {
+    expect(resolveAddr(
+      baseInbound as never,
+      '',
+      'fallback.test',
+    )).toBe('fallback.test');
+  });
+});
+
+describe('genInboundLinks orchestrator parity', () => {
+  // Every full-inbound fixture should produce the same \r\n-joined link
+  // block as the legacy Inbound.genInboundLinks. Pass hostOverride
+  // explicitly so neither pipeline reaches for location.hostname.
+  const fixtures = Object.entries(fullFixtures)
+    .map(([path, raw]): [string, Record<string, unknown>] => [fixtureName(path), raw as Record<string, unknown>])
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  for (const [name, raw] of fixtures) {
+    const protocol = (raw as { protocol?: string }).protocol;
+    // Skip protocols the legacy class can't dispatch (hysteria2 has no
+    // dispatch case; getSettings(protocol) returns null and crashes
+    // genHysteriaLink). Orchestrator-level parity covers the others.
+    if (protocol === 'hysteria2') continue;
+
+    it(`${name}: matches legacy Inbound.genInboundLinks`, () => {
+      const typed = InboundSchema.parse(raw);
+
+      const remark = 'parity-test';
+      const hostOverride = 'override.test';
+      const fallbackHostname = 'fallback.test';
+
+      const newBlock = genInboundLinks({
+        inbound: typed,
+        remark,
+        hostOverride,
+        fallbackHostname,
+      });
+
+      const legacy = LegacyInbound.fromJson(raw);
+      const legacyBlock = legacy.genInboundLinks(remark, '-ieo', hostOverride);
+
+      expect(newBlock).toBe(legacyBlock);
     });
   }
 });
