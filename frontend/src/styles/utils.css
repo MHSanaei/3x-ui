@@ -21,3 +21,9 @@
   cursor: pointer;
   color: var(--ant-color-primary);
 }
+
+.danger-icon {
+  margin-left: 8px;
+  cursor: pointer;
+  color: var(--ant-color-error);
+}
