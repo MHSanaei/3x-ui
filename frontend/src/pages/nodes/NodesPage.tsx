@@ -17,7 +17,6 @@ import AppSidebar from '@/components/AppSidebar';
 import NodeList from './NodeList';
 import NodeFormModal from './NodeFormModal';
 import { setMessageInstance } from '@/utils/messageBus';
-import './NodesPage.css';
 
 export default function NodesPage() {
   const { t } = useTranslation();

@@ -3,16 +3,6 @@
   min-width: 100px;
 }
 
-.clients-page .summary-card {
-  padding: 16px;
-}
-
-@media (max-width: 768px) {
-  .clients-page .summary-card {
-    padding: 8px;
-  }
-}
-
 .client-email-list {
   max-height: 280px;
   min-width: 160px;

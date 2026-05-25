@@ -1,9 +1,0 @@
-.nodes-page .summary-card {
-  padding: 16px;
-}
-
-@media (max-width: 768px) {
-  .nodes-page .summary-card {
-    padding: 8px;
-  }
-}
