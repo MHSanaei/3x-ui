@@ -32,9 +32,10 @@
   word-break: break-word;
   max-height: 60vh;
   overflow-y: auto;
-  border: 1px solid rgba(128, 128, 128, 0.25);
+  border: 1px solid var(--ant-color-border);
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--ant-color-fill-tertiary);
+  color: var(--ant-color-text);
 }
 
 .log-stamp {
@@ -140,10 +141,6 @@
 }
 
 body.dark .log-container {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.88);
-
   --log-stamp: #6aa6ee;
   --log-debug: #6aa6ee;
   --log-info: #4ed3a6;
@@ -163,12 +160,6 @@ html[data-theme="ultra-dark"] .log-container {
   --log-error: #ff8a8a;
   --log-unknown: #c4c4c4;
   --log-divider: rgba(255, 255, 255, 0.12);
-}
-
-.logmodal-mobile {
-  top: 0 !important;
-  padding-bottom: 0 !important;
-  max-width: 100vw !important;
 }
 
 .logmodal-mobile .ant-modal-content {

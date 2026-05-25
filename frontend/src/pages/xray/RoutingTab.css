@@ -27,11 +27,11 @@
 }
 
 .drop-before > td {
-  box-shadow: inset 0 2px 0 0 #1677ff;
+  box-shadow: inset 0 2px 0 0 var(--ant-color-primary);
 }
 
 .drop-after > td {
-  box-shadow: inset 0 -2px 0 0 #1677ff;
+  box-shadow: inset 0 -2px 0 0 var(--ant-color-primary);
 }
 
 .row-index {
@@ -78,11 +78,7 @@
   font-size: 11px;
   padding: 0 5px;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.06);
-}
-
-body.dark .criterion-more {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--ant-color-fill-tertiary);
 }
 
 .criterion-empty {
@@ -113,7 +109,7 @@ body.dark .criterion-more {
   gap: 8px;
   padding: 10px 12px;
   background: var(--bg-card, #fff);
-  border: 1px solid rgba(128, 128, 128, 0.15);
+  border: 1px solid var(--ant-color-border-secondary);
   border-radius: 8px;
   transition: opacity 0.15s, box-shadow 0.15s;
 }
@@ -123,11 +119,11 @@ body.dark .criterion-more {
 }
 
 .rule-card.drop-before {
-  box-shadow: inset 0 2px 0 0 #1677ff;
+  box-shadow: inset 0 2px 0 0 var(--ant-color-primary);
 }
 
 .rule-card.drop-after {
-  box-shadow: inset 0 -2px 0 0 #1677ff;
+  box-shadow: inset 0 -2px 0 0 var(--ant-color-primary);
 }
 
 .rule-card-head {
@@ -188,7 +184,7 @@ body.dark .criterion-more {
   flex-wrap: wrap;
   gap: 4px;
   padding-top: 6px;
-  border-top: 1px dashed rgba(128, 128, 128, 0.2);
+  border-top: 1px dashed var(--ant-color-border);
 }
 
 .criterion-chip {
@@ -197,7 +193,7 @@ body.dark .criterion-more {
   gap: 4px;
   padding: 1px 6px;
   font-size: 11px;
-  background: rgba(128, 128, 128, 0.08);
+  background: var(--ant-color-fill-tertiary);
   border-radius: 4px;
   max-width: 100%;
   overflow: hidden;
@@ -222,11 +218,3 @@ body.dark .criterion-more {
   opacity: 0.4;
 }
 
-body.dark .rule-card {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-body.dark .criterion-chip {
-  background: rgba(255, 255, 255, 0.06);
-}

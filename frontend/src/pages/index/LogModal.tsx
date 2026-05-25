@@ -109,6 +109,7 @@ export default function LogModal({ open, onClose }: LogModalProps) {
       open={open}
       footer={null}
       width={isMobile ? '100vw' : 800}
+      style={isMobile ? { top: 0, paddingBottom: 0, maxWidth: '100vw' } : undefined}
       className={isMobile ? 'logmodal-mobile' : undefined}
       onCancel={onClose}
       title={titleNode}

@@ -5,20 +5,13 @@
   height: 32px;
   font-size: 14px;
   line-height: 30px;
-  background-color: rgba(0, 0, 0, 0.02);
-  border: 1px solid #d9d9d9;
+  background-color: var(--ant-color-fill-tertiary);
+  border: 1px solid var(--ant-color-border);
   border-radius: 6px;
   position: relative;
   z-index: 1;
-  color: rgba(0, 0, 0, 0.88);
+  color: var(--ant-color-text);
   white-space: nowrap;
-}
-
-body.dark .input-addon,
-html[data-theme='ultra-dark'] .input-addon {
-  background-color: rgba(255, 255, 255, 0.04);
-  border-color: #424242;
-  color: rgba(255, 255, 255, 0.85);
 }
 
 .ant-space-compact > .input-addon:not(:first-child) {

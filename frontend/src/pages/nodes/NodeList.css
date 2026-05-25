@@ -52,18 +52,13 @@
 }
 
 .node-card {
-  border: 1px solid rgba(128, 128, 128, 0.2);
+  border: 1px solid var(--ant-color-border-secondary);
   border-radius: 10px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--ant-color-fill-quaternary);
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-body.dark .node-card {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .card-head {
@@ -135,7 +130,7 @@ body.dark .node-card {
 .card-history {
   margin-top: 4px;
   padding-top: 8px;
-  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  border-top: 1px solid var(--ant-color-border-secondary);
 }
 
 .card-empty {

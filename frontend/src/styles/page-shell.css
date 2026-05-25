@@ -1,0 +1,143 @@
+.index-page,
+.clients-page,
+.inbounds-page,
+.xray-page,
+.settings-page,
+.nodes-page,
+.api-docs-page {
+  --bg-page: #e6e8ec;
+  --bg-card: #ffffff;
+  min-height: 100vh;
+  background: var(--bg-page);
+}
+
+.index-page.is-dark,
+.clients-page.is-dark,
+.inbounds-page.is-dark,
+.xray-page.is-dark,
+.settings-page.is-dark,
+.nodes-page.is-dark,
+.api-docs-page.is-dark {
+  --bg-page: #1a1b1f;
+  --bg-card: #23252b;
+}
+
+.index-page.is-dark.is-ultra,
+.clients-page.is-dark.is-ultra,
+.inbounds-page.is-dark.is-ultra,
+.xray-page.is-dark.is-ultra,
+.settings-page.is-dark.is-ultra,
+.nodes-page.is-dark.is-ultra,
+.api-docs-page.is-dark.is-ultra {
+  --bg-page: #000;
+  --bg-card: #101013;
+}
+
+.index-page .ant-layout,
+.index-page .ant-layout-content,
+.clients-page .ant-layout,
+.clients-page .ant-layout-content,
+.inbounds-page .ant-layout,
+.inbounds-page .ant-layout-content,
+.xray-page .ant-layout,
+.xray-page .ant-layout-content,
+.settings-page .ant-layout,
+.settings-page .ant-layout-content,
+.nodes-page .ant-layout,
+.nodes-page .ant-layout-content,
+.api-docs-page .ant-layout,
+.api-docs-page .ant-layout-content {
+  background: transparent;
+}
+
+.index-page .content-shell,
+.clients-page .content-shell,
+.inbounds-page .content-shell,
+.xray-page .content-shell,
+.settings-page .content-shell,
+.nodes-page .content-shell,
+.api-docs-page .content-shell {
+  background: transparent;
+}
+
+.index-page .content-area,
+.clients-page .content-area,
+.inbounds-page .content-area,
+.xray-page .content-area,
+.settings-page .content-area,
+.nodes-page .content-area {
+  padding: 24px;
+}
+
+@media (max-width: 768px) {
+  .clients-page .content-area,
+  .inbounds-page .content-area,
+  .nodes-page .content-area {
+    padding: 8px;
+  }
+}
+
+.loading-spacer {
+  min-height: calc(100vh - 120px);
+}
+
+.settings-page .header-row,
+.xray-page .header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.settings-page .header-actions,
+.xray-page .header-actions {
+  padding: 4px;
+}
+
+.settings-page .header-info,
+.xray-page .header-info {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.icons-only .ant-tabs-nav {
+  margin-bottom: 8px;
+}
+
+.icons-only .ant-tabs-nav-wrap {
+  width: 100%;
+}
+
+.icons-only .ant-tabs-nav-list {
+  display: flex;
+  width: 100%;
+}
+
+.icons-only .ant-tabs-tab {
+  flex: 1 1 0;
+  justify-content: center;
+  margin: 0;
+  padding: 10px 0;
+}
+
+.icons-only .ant-tabs-tab .anticon {
+  margin: 0;
+  font-size: 18px;
+}
+
+.icons-only .ant-tabs-nav-operations {
+  display: none;
+}
+
+.clients-page .summary-card,
+.inbounds-page .summary-card,
+.nodes-page .summary-card {
+  padding: 16px;
+}
+
+@media (max-width: 768px) {
+  .clients-page .summary-card,
+  .inbounds-page .summary-card,
+  .nodes-page .summary-card {
+    padding: 8px;
+  }
+}

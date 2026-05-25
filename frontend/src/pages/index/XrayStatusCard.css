@@ -12,33 +12,3 @@
 .cursor-pointer {
   cursor: pointer;
 }
-
-.xray-processing-animation .ant-badge-status-dot {
-  animation: xray-pulse 1.2s linear infinite;
-}
-
-.xray-running-animation .ant-badge-status-processing::after {
-  border-color: #1677ff;
-}
-
-.xray-stop-animation .ant-badge-status-processing::after {
-  border-color: #fa8c16;
-}
-
-.xray-error-animation .ant-badge-status-processing::after {
-  border-color: #f5222d;
-}
-
-@keyframes xray-pulse {
-  0%,
-  50%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  10% {
-    transform: scale(1.5);
-    opacity: 0.2;
-  }
-}

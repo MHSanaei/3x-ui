@@ -1,18 +1,21 @@
 import axios from 'axios';
+import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import qs from 'qs';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 const CSRF_TOKEN_PATH = '/csrf-token';
 
-let csrfToken = null;
-let csrfFetchPromise = null;
+let csrfToken: string | null = null;
+let csrfFetchPromise: Promise<string | null> | null = null;
 let sessionExpired = false;
 
-function readMetaToken() {
+type CsrfAwareConfig = InternalAxiosRequestConfig & { __csrfRetried?: boolean };
+
+function readMetaToken(): string | null {
   return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || null;
 }
 
-async function fetchCsrfToken() {
+async function fetchCsrfToken(): Promise<string | null> {
   try {
     const basePath = window.X_UI_BASE_PATH;
     const url = (typeof basePath === 'string' && basePath !== '' && basePath !== '/'
@@ -24,14 +27,14 @@ async function fetchCsrfToken() {
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
     });
     if (!res.ok) return null;
-    const json = await res.json();
+    const json = (await res.json()) as { success?: boolean; obj?: unknown } | null;
     return json?.success && typeof json.obj === 'string' ? json.obj : null;
-  } catch (_e) {
+  } catch {
     return null;
   }
 }
 
-async function ensureCsrfToken() {
+async function ensureCsrfToken(): Promise<string | null> {
   if (csrfToken) return csrfToken;
   const meta = readMetaToken();
   if (meta) {
@@ -45,14 +48,11 @@ async function ensureCsrfToken() {
   return csrfToken;
 }
 
-// Apply the panel's axios defaults + interceptors. Call once at app
-// startup before any HTTP call goes out.
-export function setupAxios() {
+export function setupAxios(): void {
   axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
   axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-  // Read base path from window object or fallback to meta tag (for Cloudflare Rocket Loader compatibility)
-  let basePath = window.X_UI_BASE_PATH;
+  let basePath: string | null | undefined = window.X_UI_BASE_PATH;
   if (!basePath) {
     const metaTag = document.querySelector('meta[name="base-path"]');
     basePath = metaTag ? metaTag.getAttribute('content') : null;
@@ -61,22 +61,19 @@ export function setupAxios() {
     axios.defaults.baseURL = basePath;
   }
 
-  // Seed the cache from the meta tag if a server-rendered page injected
-  // one — saves a round trip on legacy templates that still embed it.
   csrfToken = readMetaToken();
 
   axios.interceptors.request.use(
-    async (config) => {
-      config.headers = config.headers || {};
+    async (config: InternalAxiosRequestConfig) => {
       const method = (config.method || 'get').toUpperCase();
       if (!SAFE_METHODS.has(method)) {
         const token = await ensureCsrfToken();
-        if (token) config.headers['X-CSRF-Token'] = token;
+        if (token) config.headers.set('X-CSRF-Token', token);
       }
       if (config.data instanceof FormData) {
-        config.headers['Content-Type'] = 'multipart/form-data';
+        config.headers.set('Content-Type', 'multipart/form-data');
       } else {
-        const declaredType = String(config.headers['Content-Type'] || config.headers['content-type'] || '');
+        const declaredType = String(config.headers.get('Content-Type') || config.headers.get('content-type') || '');
         if (declaredType.toLowerCase().startsWith('application/json')) {
           if (config.data !== undefined && typeof config.data !== 'string') {
             config.data = JSON.stringify(config.data);
@@ -87,12 +84,12 @@ export function setupAxios() {
       }
       return config;
     },
-    (error) => Promise.reject(error),
+    (error: unknown) => Promise.reject(error),
   );
 
   axios.interceptors.response.use(
-    (response) => response,
-    async (error) => {
+    (response: AxiosResponse) => response,
+    async (error: AxiosError) => {
       const status = error.response?.status;
       if (status === 401) {
         if (!sessionExpired) {
@@ -100,21 +97,19 @@ export function setupAxios() {
           const basePath = window.X_UI_BASE_PATH || '/';
           window.location.replace(basePath);
         }
-        return new Promise(() => { });
+        return new Promise(() => {});
       }
-      // 403 with a stale/missing CSRF token: drop the cache, re-fetch, retry once.
-      const cfg = error.config;
+      const cfg = error.config as CsrfAwareConfig | undefined;
       if (status === 403 && cfg && !cfg.__csrfRetried) {
         csrfToken = null;
         cfg.__csrfRetried = true;
         const token = await ensureCsrfToken();
         if (token) {
-          cfg.headers = cfg.headers || {};
-          cfg.headers['X-CSRF-Token'] = token;
-          const declaredType = String(cfg.headers['Content-Type'] || cfg.headers['content-type'] || '');
+          cfg.headers.set('X-CSRF-Token', token);
+          const declaredType = String(cfg.headers.get('Content-Type') || cfg.headers.get('content-type') || '');
           if (typeof cfg.data === 'string') {
             if (declaredType.toLowerCase().startsWith('application/json')) {
-              try { cfg.data = JSON.parse(cfg.data); } catch (_e) { /* keep as-is */ }
+              try { cfg.data = JSON.parse(cfg.data); } catch {}
             } else {
               cfg.data = qs.parse(cfg.data);
             }

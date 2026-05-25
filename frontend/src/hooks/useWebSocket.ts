@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { WebSocketClient } from '@/api/websocket.js';
+import { WebSocketClient } from '@/api/websocket';
 
 type Handler = (payload: unknown) => void;
 

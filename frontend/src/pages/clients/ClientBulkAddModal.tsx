@@ -9,7 +9,6 @@ import { HttpUtil, RandomUtil, SizeFormatter } from '@/utils';
 import { TLS_FLOW_CONTROL } from '@/models/inbound';
 import DateTimePicker from '@/components/DateTimePicker';
 import type { InboundOption } from '@/hooks/useClients';
-import './ClientBulkAddModal.css';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;

@@ -11,6 +11,7 @@ import {
   Row,
   Space,
   Spin,
+  Statistic,
   Tag,
   Tooltip,
 } from 'antd';
@@ -39,7 +40,6 @@ import { useTheme } from '@/hooks/useTheme';
 import { useStatusQuery } from '@/api/queries/useStatusQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import AppSidebar from '@/components/AppSidebar';
-import CustomStatistic from '@/components/CustomStatistic';
 import LazyMount from '@/components/LazyMount';
 import { setMessageInstance } from '@/utils/messageBus';
 import StatusCard from './StatusCard';
@@ -53,7 +53,6 @@ const SystemHistoryModal = lazy(() => import('./SystemHistoryModal'));
 const XrayMetricsModal = lazy(() => import('./XrayMetricsModal'));
 const XrayLogModal = lazy(() => import('./XrayLogModal'));
 const VersionModal = lazy(() => import('./VersionModal'));
-import '@/styles/page-cards.css';
 import './IndexPage.css';
 
 export default function IndexPage() {
@@ -285,14 +284,14 @@ export default function IndexPage() {
                     <Card title={t('pages.index.operationHours')} hoverable>
                       <Row gutter={isMobile ? [8, 8] : 0}>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title="Xray"
                             value={TimeFormatter.formatSecond(status.appStats.uptime)}
                             prefix={<ThunderboltOutlined />}
                           />
                         </Col>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title="OS"
                             value={TimeFormatter.formatSecond(status.uptime)}
                             prefix={<DesktopOutlined />}
@@ -306,14 +305,14 @@ export default function IndexPage() {
                     <Card title={t('usage')} hoverable>
                       <Row gutter={isMobile ? [8, 8] : 0}>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.index.memory')}
                             value={SizeFormatter.sizeFormat(status.appStats.mem)}
                             prefix={<DatabaseOutlined />}
                           />
                         </Col>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.index.threads')}
                             value={status.appStats.threads}
                             prefix={<ForkOutlined />}
@@ -327,7 +326,7 @@ export default function IndexPage() {
                     <Card title={t('pages.index.overallSpeed')} hoverable>
                       <Row gutter={isMobile ? [8, 8] : 0}>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.index.upload')}
                             value={SizeFormatter.sizeFormat(status.netIO.up)}
                             prefix={<ArrowUpOutlined />}
@@ -335,7 +334,7 @@ export default function IndexPage() {
                           />
                         </Col>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.index.download')}
                             value={SizeFormatter.sizeFormat(status.netIO.down)}
                             prefix={<ArrowDownOutlined />}
@@ -350,14 +349,14 @@ export default function IndexPage() {
                     <Card title={t('pages.index.totalData')} hoverable>
                       <Row gutter={isMobile ? [8, 8] : 0}>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.index.sent')}
                             value={SizeFormatter.sizeFormat(status.netTraffic.sent)}
                             prefix={<CloudUploadOutlined />}
                           />
                         </Col>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.index.received')}
                             value={SizeFormatter.sizeFormat(status.netTraffic.recv)}
                             prefix={<CloudDownloadOutlined />}
@@ -392,14 +391,14 @@ export default function IndexPage() {
                     >
                       <Row className={showIp ? 'ip-visible' : 'ip-hidden'} gutter={isMobile ? [8, 8] : 0}>
                         <Col span={isMobile ? 24 : 12}>
-                          <CustomStatistic
+                          <Statistic
                             title="IPv4"
                             value={status.publicIP.ipv4}
                             prefix={<GlobalOutlined />}
                           />
                         </Col>
                         <Col span={isMobile ? 24 : 12}>
-                          <CustomStatistic
+                          <Statistic
                             title="IPv6"
                             value={status.publicIP.ipv6}
                             prefix={<GlobalOutlined />}
@@ -413,14 +412,14 @@ export default function IndexPage() {
                     <Card title={t('pages.index.connectionCount')} hoverable>
                       <Row gutter={isMobile ? [8, 8] : 0}>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title="TCP"
                             value={status.tcpCount}
                             prefix={<SwapOutlined />}
                           />
                         </Col>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title="UDP"
                             value={status.udpCount}
                             prefix={<SwapOutlined />}

@@ -203,6 +203,11 @@ export default defineConfig({
             || id.includes('/node_modules/swagger-ui/')
             || id.includes('/node_modules/swagger-client/')
           ) return 'vendor-swagger';
+          if (
+            id.includes('/node_modules/recharts/')
+            || id.includes('/node_modules/victory-vendor/')
+            || id.includes('/node_modules/d3-')
+          ) return 'vendor-recharts';
           if (id.includes('dayjs')) return 'vendor-dayjs';
           if (id.includes('axios')) return 'vendor-axios';
           return 'vendor';

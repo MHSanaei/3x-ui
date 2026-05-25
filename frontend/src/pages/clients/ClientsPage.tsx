@@ -18,6 +18,7 @@ import {
   Select,
   Space,
   Spin,
+  Statistic,
   Switch,
   Table,
   Tag,
@@ -49,7 +50,6 @@ import { useClients } from '@/hooks/useClients';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import AppSidebar from '@/components/AppSidebar';
-import CustomStatistic from '@/components/CustomStatistic';
 import { IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import LazyMount from '@/components/LazyMount';
@@ -58,7 +58,6 @@ const ClientInfoModal = lazy(() => import('./ClientInfoModal'));
 const ClientQrModal = lazy(() => import('./ClientQrModal'));
 const ClientBulkAddModal = lazy(() => import('./ClientBulkAddModal'));
 const ClientBulkAdjustModal = lazy(() => import('./ClientBulkAdjustModal'));
-import '@/styles/page-cards.css';
 import './ClientsPage.css';
 
 const FILTER_STATE_KEY = 'clientsFilterState';
@@ -216,13 +215,12 @@ export default function ClientsPage() {
     return 'active';
   }, [expireDiff, trafficDiff]);
 
-  function bucketBadgeColor(bucket: Bucket | null): string {
+  function bucketBadgeStatus(bucket: Bucket | null): 'success' | 'warning' | 'error' | 'default' {
     switch (bucket) {
-      case 'depleted': return '#ff4d4f';
-      case 'expiring': return '#fa8c16';
-      case 'deactive': return 'rgba(128,128,128,0.6)';
-      case 'active': return '#52c41a';
-      default: return 'rgba(128,128,128,0.6)';
+      case 'depleted': return 'error';
+      case 'expiring': return 'warning';
+      case 'active': return 'success';
+      default: return 'default';
     }
   }
 
@@ -624,7 +622,7 @@ export default function ClientsPage() {
                     <Card size="small" hoverable className="summary-card">
                       <Row gutter={[16, 12]}>
                         <Col xs={12} sm={8} md={4}>
-                          <CustomStatistic title={t('clients')} value={String(summary.total)} prefix={<TeamOutlined />} />
+                          <Statistic title={t('clients')} value={String(summary.total)} prefix={<TeamOutlined />} />
                         </Col>
                         <Col xs={12} sm={8} md={4}>
                           <Popover
@@ -632,7 +630,7 @@ export default function ClientsPage() {
                             open={summary.online.length ? undefined : false}
                             content={<div className="client-email-list">{summary.online.map((e) => <div key={e}>{e}</div>)}</div>}
                           >
-                            <CustomStatistic title={t('online')} value={String(summary.online.length)} prefix={<span className="dot dot-blue" />} />
+                            <Statistic title={t('online')} value={String(summary.online.length)} prefix={<span className="dot dot-blue" />} />
                           </Popover>
                         </Col>
                         <Col xs={12} sm={8} md={4}>
@@ -641,7 +639,7 @@ export default function ClientsPage() {
                             open={summary.depleted.length ? undefined : false}
                             content={<div className="client-email-list">{summary.depleted.map((e) => <div key={e}>{e}</div>)}</div>}
                           >
-                            <CustomStatistic title={t('depleted')} value={String(summary.depleted.length)} prefix={<span className="dot dot-red" />} />
+                            <Statistic title={t('depleted')} value={String(summary.depleted.length)} prefix={<span className="dot dot-red" />} />
                           </Popover>
                         </Col>
                         <Col xs={12} sm={8} md={4}>
@@ -650,7 +648,7 @@ export default function ClientsPage() {
                             open={summary.expiring.length ? undefined : false}
                             content={<div className="client-email-list">{summary.expiring.map((e) => <div key={e}>{e}</div>)}</div>}
                           >
-                            <CustomStatistic title={t('depletingSoon')} value={String(summary.expiring.length)} prefix={<span className="dot dot-orange" />} />
+                            <Statistic title={t('depletingSoon')} value={String(summary.expiring.length)} prefix={<span className="dot dot-orange" />} />
                           </Popover>
                         </Col>
                         <Col xs={12} sm={8} md={4}>
@@ -659,11 +657,11 @@ export default function ClientsPage() {
                             open={summary.deactive.length ? undefined : false}
                             content={<div className="client-email-list">{summary.deactive.map((e) => <div key={e}>{e}</div>)}</div>}
                           >
-                            <CustomStatistic title={t('disabled')} value={String(summary.deactive.length)} prefix={<span className="dot dot-gray" />} />
+                            <Statistic title={t('disabled')} value={String(summary.deactive.length)} prefix={<span className="dot dot-gray" />} />
                           </Popover>
                         </Col>
                         <Col xs={12} sm={8} md={4}>
-                          <CustomStatistic title={t('subscription.active')} value={String(summary.active)} prefix={<span className="dot dot-green" />} />
+                          <Statistic title={t('subscription.active')} value={String(summary.active)} prefix={<span className="dot dot-green" />} />
                         </Col>
                       </Row>
                     </Card>
@@ -838,7 +836,7 @@ export default function ClientsPage() {
                                       checked={selectedRowKeys.includes(row.email)}
                                       onChange={(e) => toggleSelect(row.email, e.target.checked)}
                                     />
-                                    <Badge color={bucketBadgeColor(bucket)} />
+                                    <Badge status={bucketBadgeStatus(bucket)} />
                                     <span className="tag-name">{row.email}</span>
                                     {bucket === 'depleted' && <Tag color="red" className="status-tag">{t('depleted')}</Tag>}
                                     {bucket === 'expiring' && <Tag color="orange" className="status-tag">{t('depletingSoon')}</Tag>}

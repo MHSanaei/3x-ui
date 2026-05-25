@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Collapse, Input, Modal, Select, Space, Switch } from 'antd';
-import { ExclamationCircleFilled, CloudOutlined, ApiOutlined } from '@ant-design/icons';
+import { CloudOutlined, ApiOutlined } from '@ant-design/icons';
 
-import { OutboundDomainStrategies } from '@/models/outbound.js';
+import { OutboundDomainStrategies } from '@/models/outbound';
 import SettingListItem from '@/components/SettingListItem';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
 import './BasicsTab.css';
@@ -205,9 +205,9 @@ export default function BasicsTab({
         <>
           <Alert
             type="warning"
+            showIcon
             className="mb-12 hint-alert"
             title={t('pages.xray.generalConfigsDesc')}
-            icon={<ExclamationCircleFilled style={{ color: '#FFA031' }} />}
           />
           <SettingListItem
             title={t('pages.xray.FreedomStrategy')}
@@ -299,9 +299,9 @@ export default function BasicsTab({
         <>
           <Alert
             type="warning"
+            showIcon
             className="mb-12 hint-alert"
             title={t('pages.xray.logConfigsDesc')}
-            icon={<ExclamationCircleFilled style={{ color: '#FFA031' }} />}
           />
           <SettingListItem
             title={t('pages.xray.logLevel')}
@@ -376,9 +376,9 @@ export default function BasicsTab({
         <>
           <Alert
             type="warning"
+            showIcon
             className="mb-12 hint-alert"
             title={t('pages.xray.blockConnectionsConfigsDesc')}
-            icon={<ExclamationCircleFilled style={{ color: '#FFA031' }} />}
           />
 
           <SettingListItem
@@ -427,9 +427,9 @@ export default function BasicsTab({
 
           <Alert
             type="warning"
+            showIcon
             className="mb-12 hint-alert"
             title={t('pages.xray.directConnectionsConfigsDesc')}
-            icon={<ExclamationCircleFilled style={{ color: '#FFA031' }} />}
           />
 
           <SettingListItem

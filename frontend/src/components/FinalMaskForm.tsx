@@ -3,7 +3,7 @@ import { Button, Divider, Form, Input, InputNumber, Select, Switch } from 'antd'
 import { DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { RandomUtil } from '@/utils';
-import { Protocols } from '@/models/outbound.js';
+import { Protocols } from '@/models/outbound';
 
 interface StreamShape {
   network?: string;
@@ -138,7 +138,7 @@ export default function FinalMaskForm({ stream, protocol, onChange }: FinalMaskF
               <Divider style={{ margin: 0 }}>
                 TCP Mask {mIdx + 1}
                 <DeleteOutlined
-                  style={{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: 8 }}
+                  className="danger-icon"
                   onClick={() => {
                     stream.delTcpMask(mIdx);
                     notify();
@@ -238,7 +238,7 @@ export default function FinalMaskForm({ stream, protocol, onChange }: FinalMaskF
               <Divider style={{ margin: 0 }}>
                 UDP Mask {mIdx + 1}
                 <DeleteOutlined
-                  style={{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: 8 }}
+                  className="danger-icon"
                   onClick={() => {
                     stream.delUdpMask(mIdx);
                     notify();
@@ -403,7 +403,7 @@ function HeaderCustomGroups({
               <Divider style={{ margin: 0 }}>
                 {groupKey === 'clients' ? 'Clients' : 'Servers'} Group {gi + 1}
                 <DeleteOutlined
-                  style={{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: 8 }}
+                  className="danger-icon"
                   onClick={() => {
                     (settings[groupKey] as ItemRow[][]).splice(gi, 1);
                     onChange();
@@ -445,7 +445,7 @@ function UdpHeaderCustom({ mask, onChange }: { mask: MaskRow; onChange: () => vo
               <Divider style={{ margin: 0 }}>
                 {groupKey === 'client' ? 'Client' : 'Server'} {ci + 1}
                 <DeleteOutlined
-                  style={{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: 8 }}
+                  className="danger-icon"
                   onClick={() => {
                     (settings[groupKey] as ItemRow[]).splice(ci, 1);
                     onChange();
@@ -493,7 +493,7 @@ function NoiseItems({ mask, onChange }: { mask: MaskRow; onChange: () => void })
           <Divider style={{ margin: 0 }}>
             Noise {ni + 1}
             <DeleteOutlined
-              style={{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: 8 }}
+              className="danger-icon"
               onClick={() => {
                 (settings.noise as ItemRow[]).splice(ni, 1);
                 onChange();

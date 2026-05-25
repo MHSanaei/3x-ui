@@ -1,13 +1,4 @@
-.api-docs-page {
-  --bg-page: #e6e8ec;
-  --bg-card: #ffffff;
-  min-height: 100vh;
-  background: var(--bg-page);
-}
-
 .api-docs-page.is-dark {
-  --bg-page: #1a1b1f;
-  --bg-card: #23252b;
   --sw-bg: #1f2026;
   --sw-bg-soft: #25272e;
   --sw-bg-input: #15161a;
@@ -22,8 +13,6 @@
 }
 
 .api-docs-page.is-dark.is-ultra {
-  --bg-page: #000;
-  --bg-card: #101013;
   --sw-bg: #0a0a0d;
   --sw-bg-soft: #131316;
   --sw-bg-input: #050507;
@@ -51,7 +40,7 @@
 .api-docs-page .docs-wrapper {
   background: var(--bg-card);
   border-radius: 8px;
-  border: 1px solid rgba(128, 128, 128, 0.12);
+  border: 1px solid var(--ant-color-border-secondary);
   overflow: hidden;
 }
 

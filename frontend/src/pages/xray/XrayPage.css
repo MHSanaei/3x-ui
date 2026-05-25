@@ -1,57 +1,7 @@
-.xray-page {
-  --bg-page: #e6e8ec;
-  --bg-card: #ffffff;
-
-  min-height: 100vh;
-  background: var(--bg-page);
-}
-
-.xray-page.is-dark {
-  --bg-page: #1a1b1f;
-  --bg-card: #23252b;
-}
-
-.xray-page.is-dark.is-ultra {
-  --bg-page: #000;
-  --bg-card: #101013;
-}
-
-.xray-page .ant-layout,
-.xray-page .ant-layout-content {
-  background: transparent;
-}
-
-.xray-page .content-shell {
-  background: transparent;
-}
-
-.xray-page .content-area {
-  padding: 24px;
-}
-
-.xray-page .loading-spacer {
-  min-height: calc(100vh - 120px);
-}
-
-.xray-page .header-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.xray-page .header-actions {
-  padding: 4px;
-}
-
-.xray-page .header-info {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .xray-page .restart-icon {
   font-size: 16px;
   cursor: pointer;
-  color: var(--ant-primary-color, #1890ff);
+  color: var(--ant-color-primary);
 }
 
 .xray-page .restart-result {
@@ -68,33 +18,4 @@
 .xray-page .advanced-meta p {
   margin: 0;
   opacity: 0.7;
-}
-
-.xray-page .icons-only .ant-tabs-nav {
-  margin-bottom: 8px;
-}
-
-.xray-page .icons-only .ant-tabs-nav-wrap {
-  width: 100%;
-}
-
-.xray-page .icons-only .ant-tabs-nav-list {
-  display: flex;
-  width: 100%;
-}
-
-.xray-page .icons-only .ant-tabs-tab {
-  flex: 1 1 0;
-  justify-content: center;
-  margin: 0;
-  padding: 10px 0;
-}
-
-.xray-page .icons-only .ant-tabs-tab .anticon {
-  margin: 0;
-  font-size: 18px;
-}
-
-.xray-page .icons-only .ant-tabs-nav-operations {
-  display: none;
 }

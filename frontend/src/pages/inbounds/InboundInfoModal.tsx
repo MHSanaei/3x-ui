@@ -12,7 +12,7 @@ import {
   ClipboardManager,
   FileManager,
 } from '@/utils';
-import { Protocols } from '@/models/inbound.js';
+import { Protocols } from '@/models/inbound';
 import InfinityIcon from '@/components/InfinityIcon';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { SubSettings } from './useInbounds';

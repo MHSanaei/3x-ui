@@ -53,47 +53,10 @@
 
 .qr-code {
   cursor: pointer;
-  padding: 0 !important;
-  background: #fff;
-  border-radius: 4px;
 }
 
 .info-table {
   margin-top: 12px;
-}
-
-.info-table .ant-descriptions-view,
-.info-table .ant-descriptions-view table,
-.info-table .ant-descriptions-view th,
-.info-table .ant-descriptions-view td {
-  border-color: rgba(0, 0, 0, 0.18) !important;
-}
-
-.info-table tbody > tr > th,
-.info-table tbody > tr > td {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.18) !important;
-}
-
-.info-table tbody > tr:last-child > th,
-.info-table tbody > tr:last-child > td {
-  border-bottom: none !important;
-}
-
-.is-dark .info-table .ant-descriptions-view,
-.is-dark .info-table .ant-descriptions-view table,
-.is-dark .info-table .ant-descriptions-view th,
-.is-dark .info-table .ant-descriptions-view td {
-  border-color: rgba(255, 255, 255, 0.18) !important;
-}
-
-.is-dark .info-table tbody > tr > th,
-.is-dark .info-table tbody > tr > td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.18) !important;
-}
-
-.is-dark .info-table tbody > tr:last-child > th,
-.is-dark .info-table tbody > tr:last-child > td {
-  border-bottom: none !important;
 }
 
 .links-section {
@@ -158,49 +121,15 @@
   text-align: center;
 }
 
-.settings-popover {
-  min-width: 220px;
-}
-
-.theme-cycle {
-  width: 32px;
-  height: 32px;
+.toolbar-btn {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: var(--bg-card);
-  color: rgba(0, 0, 0, 0.65);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
   padding: 0;
-  transition: background-color 0.2s, transform 0.15s, color 0.2s;
 }
 
-.theme-cycle:hover,
-.theme-cycle:focus-visible {
-  background-color: rgba(64, 150, 255, 0.1);
-  color: #4096ff;
-  transform: scale(1.05);
-  outline: none;
+.toolbar-btn .anticon {
+  font-size: 18px;
 }
 
-.theme-cycle svg {
-  width: 16px;
-  height: 16px;
-}
-
-.is-dark .theme-cycle {
-  border-color: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.is-dark .theme-cycle:hover,
-.is-dark .theme-cycle:focus-visible {
-  background-color: rgba(64, 150, 255, 0.1);
-  color: #4096ff;
-}
-
-.lang-select {
-  width: 100%;
-}

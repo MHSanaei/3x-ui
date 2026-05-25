@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import dayjs from 'dayjs';
 import { ObjectUtil, RandomUtil, Base64, NumberFormatter, SizeFormatter, Wireguard } from '@/utils';
 import { getRandomRealityTarget } from '@/models/reality-targets';
@@ -136,25 +137,33 @@ Object.freeze(TCP_CONGESTION_OPTION);
 Object.freeze(USERS_SECURITY);
 Object.freeze(MODE_OPTION);
 
-export class XrayCommonClass {
+export type JsonObject = Record<string, unknown>;
+export interface HeaderEntry { name: string; value: string }
+export interface FallbackEntry {
+    dest?: string | number;
+    name?: string;
+    alpn?: string;
+    path?: string;
+    xver?: number | string;
+}
 
-    static toJsonArray(arr) {
-        return arr.map(obj => obj.toJson());
+export class XrayCommonClass {
+    [key: string]: any;
+
+    static toJsonArray<T extends { toJson(): unknown }>(arr: T[]): unknown[] {
+        return arr.map((obj) => obj.toJson());
     }
 
-    static fromJson() {
+    static fromJson(..._args: unknown[]): XrayCommonClass | undefined {
         return new XrayCommonClass();
     }
 
-    toJson() {
+    toJson(): unknown {
         return this;
     }
 
-    // Build a clean Xray fallback entry. Per docs, name/alpn/path empty = "any",
-    // and xver=0 means PROXY protocol off — omit them so the generated config
-    // stays minimal and readable. dest is required and always emitted.
-    static fallbackToJson(fb) {
-        const out = { dest: fb.dest };
+    static fallbackToJson(fb: FallbackEntry): JsonObject {
+        const out: JsonObject = { dest: fb.dest };
         if (fb.name) out.name = fb.name;
         if (fb.alpn) out.alpn = fb.alpn;
         if (fb.path) out.path = fb.path;
@@ -163,18 +172,19 @@ export class XrayCommonClass {
         return out;
     }
 
-    toString(format = true) {
+    toString(format: boolean = true): string {
         return format ? JSON.stringify(this.toJson(), null, 2) : JSON.stringify(this.toJson());
     }
 
-    static toHeaders(v2Headers) {
-        let newHeaders = [];
-        if (v2Headers) {
-            Object.keys(v2Headers).forEach(key => {
-                let values = v2Headers[key];
-                if (typeof (values) === 'string') {
+    static toHeaders(v2Headers: unknown): HeaderEntry[] {
+        const newHeaders: HeaderEntry[] = [];
+        if (v2Headers && typeof v2Headers === 'object') {
+            const map = v2Headers as Record<string, string | string[]>;
+            Object.keys(map).forEach((key: string) => {
+                const values = map[key];
+                if (typeof values === 'string') {
                     newHeaders.push({ name: key, value: values });
-                } else {
+                } else if (Array.isArray(values)) {
                     for (let i = 0; i < values.length; ++i) {
                         newHeaders.push({ name: key, value: values[i] });
                     }
@@ -184,19 +194,20 @@ export class XrayCommonClass {
         return newHeaders;
     }
 
-    static toV2Headers(headers, arr = true) {
-        let v2Headers = {};
+    static toV2Headers(headers: HeaderEntry[], arr: boolean = true): Record<string, string | string[]> {
+        const v2Headers: Record<string, string | string[]> = {};
         for (let i = 0; i < headers.length; ++i) {
-            let name = headers[i].name;
-            let value = headers[i].value;
+            const name = headers[i].name;
+            const value = headers[i].value;
             if (ObjectUtil.isEmpty(name) || ObjectUtil.isEmpty(value)) {
                 continue;
             }
             if (!(name in v2Headers)) {
                 v2Headers[name] = arr ? [value] : value;
             } else {
-                if (arr) {
-                    v2Headers[name].push(value);
+                const existing = v2Headers[name];
+                if (arr && Array.isArray(existing)) {
+                    existing.push(value);
                 } else {
                     v2Headers[name] = value;
                 }
@@ -207,10 +218,13 @@ export class XrayCommonClass {
 }
 
 export class TcpStreamSettings extends XrayCommonClass {
+    static TcpRequest: any;
+    static TcpResponse: any;
+
     constructor(
-        acceptProxyProtocol = false,
-        type = 'none',
-        request = new TcpStreamSettings.TcpRequest(),
+        acceptProxyProtocol: any = false,
+        type: any = 'none',
+        request: any = new TcpStreamSettings.TcpRequest(),
         response = new TcpStreamSettings.TcpResponse(),
     ) {
         super();
@@ -220,7 +234,7 @@ export class TcpStreamSettings extends XrayCommonClass {
         this.response = response;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         let header = json.header;
         if (!header) {
             header = {};
@@ -233,7 +247,7 @@ export class TcpStreamSettings extends XrayCommonClass {
     }
 
     toJson() {
-        const json = {};
+        const json: any = {};
         if (this.acceptProxyProtocol) {
             json.acceptProxyProtocol = true;
         }
@@ -255,7 +269,7 @@ TcpStreamSettings.TcpRequest = class extends XrayCommonClass {
         version = '1.1',
         method = 'GET',
         path = ['/'],
-        headers = [],
+        headers: any[] = [],
     ) {
         super();
         this.version = version;
@@ -264,23 +278,23 @@ TcpStreamSettings.TcpRequest = class extends XrayCommonClass {
         this.headers = headers;
     }
 
-    addPath(path) {
+    addPath(path: any) {
         this.path.push(path);
     }
 
-    removePath(index) {
+    removePath(index: number) {
         this.path.splice(index, 1);
     }
 
-    addHeader(name, value) {
+    addHeader(name: any, value: any) {
         this.headers.push({ name: name, value: value });
     }
 
-    removeHeader(index) {
+    removeHeader(index: number) {
         this.headers.splice(index, 1);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new TcpStreamSettings.TcpRequest(
             json.version,
             json.method,
@@ -304,7 +318,7 @@ TcpStreamSettings.TcpResponse = class extends XrayCommonClass {
         version = '1.1',
         status = '200',
         reason = 'OK',
-        headers = [],
+        headers: any[] = [],
     ) {
         super();
         this.version = version;
@@ -313,15 +327,15 @@ TcpStreamSettings.TcpResponse = class extends XrayCommonClass {
         this.headers = headers;
     }
 
-    addHeader(name, value) {
+    addHeader(name: any, value: any) {
         this.headers.push({ name: name, value: value });
     }
 
-    removeHeader(index) {
+    removeHeader(index: number) {
         this.headers.splice(index, 1);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new TcpStreamSettings.TcpResponse(
             json.version,
             json.status,
@@ -358,7 +372,7 @@ export class KcpStreamSettings extends XrayCommonClass {
         this.maxSendingWindow = maxSendingWindow;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new KcpStreamSettings(
             json.mtu,
             json.tti,
@@ -383,10 +397,10 @@ export class KcpStreamSettings extends XrayCommonClass {
 
 export class WsStreamSettings extends XrayCommonClass {
     constructor(
-        acceptProxyProtocol = false,
+        acceptProxyProtocol: any = false,
         path = '/',
         host = '',
-        headers = [],
+        headers: any[] = [],
         heartbeatPeriod = 0,
     ) {
         super();
@@ -397,15 +411,15 @@ export class WsStreamSettings extends XrayCommonClass {
         this.heartbeatPeriod = heartbeatPeriod;
     }
 
-    addHeader(name, value) {
+    addHeader(name: any, value: any) {
         this.headers.push({ name: name, value: value });
     }
 
-    removeHeader(index) {
+    removeHeader(index: number) {
         this.headers.splice(index, 1);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new WsStreamSettings(
             json.acceptProxyProtocol,
             json.path,
@@ -438,7 +452,7 @@ export class GrpcStreamSettings extends XrayCommonClass {
         this.multiMode = multiMode;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new GrpcStreamSettings(
             json.serviceName,
             json.authority,
@@ -457,10 +471,10 @@ export class GrpcStreamSettings extends XrayCommonClass {
 
 export class HTTPUpgradeStreamSettings extends XrayCommonClass {
     constructor(
-        acceptProxyProtocol = false,
+        acceptProxyProtocol: any = false,
         path = '/',
         host = '',
-        headers = []
+        headers: any[] = []
     ) {
         super();
         this.acceptProxyProtocol = acceptProxyProtocol;
@@ -469,15 +483,15 @@ export class HTTPUpgradeStreamSettings extends XrayCommonClass {
         this.headers = headers;
     }
 
-    addHeader(name, value) {
+    addHeader(name: any, value: any) {
         this.headers.push({ name: name, value: value });
     }
 
-    removeHeader(index) {
+    removeHeader(index: number) {
         this.headers.splice(index, 1);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new HTTPUpgradeStreamSettings(
             json.acceptProxyProtocol,
             json.path,
@@ -533,7 +547,7 @@ export class xHTTPStreamSettings extends XrayCommonClass {
         // URL-share only — embedded in the link's `extra` blob so clients
         // pick them up; xray's listener ignores them at runtime.
         uplinkHTTPMethod = '',
-        headers = [],
+        headers: any[] = [],
     ) {
         super();
         this.path = path;
@@ -560,15 +574,15 @@ export class xHTTPStreamSettings extends XrayCommonClass {
         this.headers = headers;
     }
 
-    addHeader(name, value) {
+    addHeader(name: any, value: any) {
         this.headers.push({ name: name, value: value });
     }
 
-    removeHeader(index) {
+    removeHeader(index: number) {
         this.headers.splice(index, 1);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new xHTTPStreamSettings(
             json.path,
             json.host,
@@ -625,20 +639,21 @@ export class xHTTPStreamSettings extends XrayCommonClass {
 
 export class HysteriaStreamSettings extends XrayCommonClass {
     constructor(
-        protocol,
-        version = 2,
-        auth = '',
-        udpIdleTimeout = 60,
-        masquerade,
+        protocol?: any,
+        version: any = 2,
+        auth: any = '',
+        udpIdleTimeout: any = 60,
+        masquerade?: any,
     ) {
-        super(protocol);
+        super();
+        this.protocol = protocol;
         this.version = version;
         this.auth = auth;
         this.udpIdleTimeout = udpIdleTimeout;
         this.masquerade = masquerade;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new HysteriaStreamSettings(
             json.protocol,
             json.version ?? 2,
@@ -675,7 +690,7 @@ export class HysteriaMasquerade extends XrayCommonClass {
         rewriteHost = false,
         insecure = false,
         content = '',
-        headers = [],
+        headers: any[] = [],
         statusCode = 0,
     ) {
         super();
@@ -689,15 +704,15 @@ export class HysteriaMasquerade extends XrayCommonClass {
         this.statusCode = statusCode;
     }
 
-    addHeader(name, value) {
+    addHeader(name: any, value: any) {
         this.headers.push({ name: name, value: value });
     }
 
-    removeHeader(index) {
+    removeHeader(index: number) {
         this.headers.splice(index, 1);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         const type = ['proxy', 'file', 'string'].includes(json.type) ? json.type : 'proxy';
         return new HysteriaMasquerade(
             type,
@@ -725,8 +740,11 @@ export class HysteriaMasquerade extends XrayCommonClass {
     }
 };
 export class TlsStreamSettings extends XrayCommonClass {
+    static Cert: any;
+    static Settings: any;
+
     constructor(
-        serverName = '',
+        serverName: any = '',
         minVersion = TLS_VERSION_OPTION.TLS12,
         maxVersion = TLS_VERSION_OPTION.TLS13,
         cipherSuites = '',
@@ -756,15 +774,15 @@ export class TlsStreamSettings extends XrayCommonClass {
         this.certs.push(new TlsStreamSettings.Cert());
     }
 
-    removeCert(index) {
+    removeCert(index: number) {
         this.certs.splice(index, 1);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         let certs;
         let settings;
         if (!ObjectUtil.isEmpty(json.certificates)) {
-            certs = json.certificates.map(cert => TlsStreamSettings.Cert.fromJson(cert));
+            certs = json.certificates.map((cert: any) => TlsStreamSettings.Cert.fromJson(cert));
         }
 
         if (!ObjectUtil.isEmpty(json.settings)) {
@@ -824,7 +842,7 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
         this.buildChain = buildChain
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         if ('certificateFile' in json && 'keyFile' in json) {
             return new TlsStreamSettings.Cert(
                 true,
@@ -876,7 +894,7 @@ TlsStreamSettings.Settings = class extends XrayCommonClass {
         this.fingerprint = fingerprint;
         this.echConfigList = echConfigList;
     }
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new TlsStreamSettings.Settings(
             json.fingerprint,
             json.echConfigList,
@@ -892,8 +910,10 @@ TlsStreamSettings.Settings = class extends XrayCommonClass {
 
 
 export class RealityStreamSettings extends XrayCommonClass {
+    static Settings: any;
+
     constructor(
-        show = false,
+        show: any = false,
         xver = 0,
         target = '',
         serverNames = '',
@@ -925,7 +945,7 @@ export class RealityStreamSettings extends XrayCommonClass {
         this.settings = settings;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         let settings;
         if (!ObjectUtil.isEmpty(json.settings)) {
             settings = new RealityStreamSettings.Settings(
@@ -983,7 +1003,7 @@ RealityStreamSettings.Settings = class extends XrayCommonClass {
         this.spiderX = spiderX;
         this.mldsa65Verify = mldsa65Verify;
     }
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new RealityStreamSettings.Settings(
             json.publicKey,
             json.fingerprint,
@@ -1005,7 +1025,7 @@ RealityStreamSettings.Settings = class extends XrayCommonClass {
 
 export class SockoptStreamSettings extends XrayCommonClass {
     constructor(
-        acceptProxyProtocol = false,
+        acceptProxyProtocol: any = false,
         tcpFastOpen = false,
         mark = 0,
         tproxy = "off",
@@ -1043,7 +1063,7 @@ export class SockoptStreamSettings extends XrayCommonClass {
         this.trustedXForwardedFor = trustedXForwardedFor;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         if (Object.keys(json).length === 0) return undefined;
         return new SockoptStreamSettings(
             json.acceptProxyProtocol,
@@ -1067,7 +1087,7 @@ export class SockoptStreamSettings extends XrayCommonClass {
     }
 
     toJson() {
-        const result = {
+        const result: any = {
             acceptProxyProtocol: this.acceptProxyProtocol,
             tcpFastOpen: this.tcpFastOpen,
             mark: this.mark,
@@ -1093,13 +1113,13 @@ export class SockoptStreamSettings extends XrayCommonClass {
 }
 
 export class UdpMask extends XrayCommonClass {
-    constructor(type = 'salamander', settings = {}) {
+    constructor(type: any = 'salamander', settings: any = {}) {
         super();
         this.type = type;
         this.settings = this._getDefaultSettings(type, settings);
     }
 
-    _getDefaultSettings(type, settings = {}) {
+    _getDefaultSettings(type: any, settings: any = {}): any {
         switch (type) {
             case 'salamander':
             case 'mkcp-aes128gcm':
@@ -1132,7 +1152,7 @@ export class UdpMask extends XrayCommonClass {
         }
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new UdpMask(
             json.type || 'salamander',
             json.settings || {}
@@ -1140,7 +1160,7 @@ export class UdpMask extends XrayCommonClass {
     }
 
     toJson() {
-        const cleanItem = item => {
+        const cleanItem = (item: any) => {
             const out = { ...item };
             if (out.type === 'array') {
                 delete out.packet;
@@ -1170,13 +1190,13 @@ export class UdpMask extends XrayCommonClass {
 }
 
 export class TcpMask extends XrayCommonClass {
-    constructor(type = 'fragment', settings = {}) {
+    constructor(type: any = 'fragment', settings: any = {}) {
         super();
         this.type = type;
         this.settings = this._getDefaultSettings(type, settings);
     }
 
-    _getDefaultSettings(type, settings = {}) {
+    _getDefaultSettings(type: any, settings: any = {}): any {
         switch (type) {
             case 'fragment':
                 return {
@@ -1204,7 +1224,7 @@ export class TcpMask extends XrayCommonClass {
         }
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new TcpMask(
             json.type || 'fragment',
             json.settings || {}
@@ -1212,7 +1232,7 @@ export class TcpMask extends XrayCommonClass {
     }
 
     toJson() {
-        const cleanItem = item => {
+        const cleanItem = (item: any) => {
             const out = { ...item };
             if (out.type === 'array') {
                 delete out.packet;
@@ -1225,7 +1245,7 @@ export class TcpMask extends XrayCommonClass {
 
         let settings = this.settings;
         if (this.type === 'header-custom' && settings) {
-            const cleanGroup = group => Array.isArray(group) ? group.map(cleanItem) : group;
+            const cleanGroup = (group: any) => Array.isArray(group) ? group.map(cleanItem) : group;
             settings = {
                 ...settings,
                 clients: Array.isArray(settings.clients) ? settings.clients.map(cleanGroup) : settings.clients,
@@ -1242,18 +1262,18 @@ export class TcpMask extends XrayCommonClass {
 
 export class QuicParams extends XrayCommonClass {
     constructor(
-        congestion = 'bbr',
-        debug = false,
-        brutalUp = 65537,
-        brutalDown = 65537,
-        udpHop = undefined,
-        initStreamReceiveWindow = 8388608,
-        maxStreamReceiveWindow = 8388608,
-        initConnectionReceiveWindow = 20971520,
-        maxConnectionReceiveWindow = 20971520,
-        maxIdleTimeout = 30,
-        keepAlivePeriod = 5,
-        disablePathMTUDiscovery = false,
+        congestion: any = 'bbr',
+        debug: any = false,
+        brutalUp: any = 65537,
+        brutalDown: any = 65537,
+        udpHop: any = undefined,
+        initStreamReceiveWindow: any = 8388608,
+        maxStreamReceiveWindow: any = 8388608,
+        initConnectionReceiveWindow: any = 20971520,
+        maxConnectionReceiveWindow: any = 20971520,
+        maxIdleTimeout: any = 30,
+        keepAlivePeriod: any = 5,
+        disablePathMTUDiscovery: any = false,
         maxIncomingStreams = 1024,
     ) {
         super();
@@ -1280,7 +1300,7 @@ export class QuicParams extends XrayCommonClass {
         this.udpHop = value ? (this.udpHop || { ports: '20000-50000', interval: '5-10' }) : undefined;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         if (!json || Object.keys(json).length === 0) return undefined;
         return new QuicParams(
             json.congestion,
@@ -1300,7 +1320,7 @@ export class QuicParams extends XrayCommonClass {
     }
 
     toJson() {
-        const result = { congestion: this.congestion };
+        const result: any = { congestion: this.congestion };
         if (this.debug) result.debug = this.debug;
         if (['brutal', 'force-brutal'].includes(this.congestion)) {
             if (this.brutalUp) result.brutalUp = this.brutalUp;
@@ -1320,10 +1340,10 @@ export class QuicParams extends XrayCommonClass {
 }
 
 export class FinalMaskStreamSettings extends XrayCommonClass {
-    constructor(tcp = [], udp = [], quicParams = undefined) {
+    constructor(tcp: any[] = [], udp: any[] = [], quicParams: any = undefined) {
         super();
-        this.tcp = Array.isArray(tcp) ? tcp.map(t => t instanceof TcpMask ? t : new TcpMask(t.type, t.settings)) : [];
-        this.udp = Array.isArray(udp) ? udp.map(u => new UdpMask(u.type, u.settings)) : [new UdpMask(udp.type, udp.settings)];
+        this.tcp = Array.isArray(tcp) ? tcp.map((t: any) => t instanceof TcpMask ? t : new TcpMask(t.type, t.settings)) : [];
+        this.udp = Array.isArray(udp) ? udp.map((u: any) => new UdpMask(u.type, u.settings)) : [new UdpMask((udp as any).type, (udp as any).settings)];
         this.quicParams = quicParams instanceof QuicParams ? quicParams : (quicParams ? QuicParams.fromJson(quicParams) : undefined);
     }
 
@@ -1335,7 +1355,7 @@ export class FinalMaskStreamSettings extends XrayCommonClass {
         this.quicParams = value ? (this.quicParams || new QuicParams()) : undefined;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new FinalMaskStreamSettings(
             json.tcp || [],
             json.udp || [],
@@ -1344,12 +1364,12 @@ export class FinalMaskStreamSettings extends XrayCommonClass {
     }
 
     toJson() {
-        const result = {};
+        const result: any = {} as any;
         if (this.tcp && this.tcp.length > 0) {
-            result.tcp = this.tcp.map(t => t.toJson());
+            result.tcp = this.tcp.map((t: any) => t.toJson());
         }
         if (this.udp && this.udp.length > 0) {
-            result.udp = this.udp.map(udp => udp.toJson());
+            result.udp = this.udp.map((udp: any) => udp.toJson());
         }
         if (this.quicParams) {
             result.quicParams = this.quicParams.toJson();
@@ -1372,7 +1392,7 @@ export class StreamSettings extends XrayCommonClass {
         xhttpSettings = new xHTTPStreamSettings(),
         hysteriaSettings = new HysteriaStreamSettings(),
         finalmask = new FinalMaskStreamSettings(),
-        sockopt = undefined,
+        sockopt: any = undefined,
     ) {
         super();
         this.network = network;
@@ -1395,7 +1415,7 @@ export class StreamSettings extends XrayCommonClass {
         this.finalmask.tcp.push(new TcpMask(type));
     }
 
-    delTcpMask(index) {
+    delTcpMask(index: number) {
         if (this.finalmask.tcp) {
             this.finalmask.tcp.splice(index, 1);
         }
@@ -1405,7 +1425,7 @@ export class StreamSettings extends XrayCommonClass {
         this.finalmask.udp.push(new UdpMask(type));
     }
 
-    delUdpMask(index) {
+    delUdpMask(index: number) {
         if (this.finalmask.udp) {
             this.finalmask.udp.splice(index, 1);
         }
@@ -1451,7 +1471,7 @@ export class StreamSettings extends XrayCommonClass {
         this.sockopt = value ? new SockoptStreamSettings() : undefined;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new StreamSettings(
             json.network,
             json.security,
@@ -1510,7 +1530,7 @@ export class Sniffing extends XrayCommonClass {
         this.domainsExcluded = Array.isArray(domainsExcluded) ? domainsExcluded : [];
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         let destOverride = ObjectUtil.clone(json.destOverride);
         if (ObjectUtil.isEmpty(destOverride) || ObjectUtil.isArrEmpty(destOverride) || ObjectUtil.isEmpty(destOverride[0])) {
             destOverride = ['http', 'tls', 'quic', 'fakedns'];
@@ -1541,8 +1561,21 @@ export class Sniffing extends XrayCommonClass {
 }
 
 export class Inbound extends XrayCommonClass {
+    static Settings: any;
+    static ClientBase: any;
+    static VmessSettings: any;
+    static VLESSSettings: any;
+    static TrojanSettings: any;
+    static ShadowsocksSettings: any;
+    static HysteriaSettings: any;
+    static TunnelSettings: any;
+    static MixedSettings: any;
+    static HttpSettings: any;
+    static WireguardSettings: any;
+    static TunSettings: any;
+
     constructor(
-        port = RandomUtil.randomInteger(10000, 60000),
+        port: any = RandomUtil.randomInteger(10000, 60000),
         listen = '',
         protocol = Protocols.VLESS,
         settings = null,
@@ -1568,7 +1601,7 @@ export class Inbound extends XrayCommonClass {
     // Looks for a "host"-named entry in xhttp.headers and returns its value,
     // or '' if not found. Used as a fallback when xhttp.host is empty so the
     // share URL still carries a usable Host hint.
-    static xhttpHostFallback(xhttp) {
+    static xhttpHostFallback(xhttp: any): string {
         if (!xhttp || !Array.isArray(xhttp.headers)) return '';
         for (const h of xhttp.headers) {
             if (h && typeof h.name === 'string' && h.name.toLowerCase() === 'host') {
@@ -1593,16 +1626,16 @@ export class Inbound extends XrayCommonClass {
     //
     // Truthy-only guards keep default inbounds emitting the same compact
     // URL they did before this helper grew.
-    static buildXhttpExtra(xhttp) {
+    static buildXhttpExtra(xhttp: any): any {
         if (!xhttp) return null;
-        const extra = {};
+        const extra: any = {};
 
         if (typeof xhttp.xPaddingBytes === 'string' && xhttp.xPaddingBytes.length > 0) {
             extra.xPaddingBytes = xhttp.xPaddingBytes;
         }
         if (xhttp.xPaddingObfsMode === true) {
             extra.xPaddingObfsMode = true;
-            ["xPaddingKey", "xPaddingHeader", "xPaddingPlacement", "xPaddingMethod"].forEach(k => {
+            ["xPaddingKey", "xPaddingHeader", "xPaddingPlacement", "xPaddingMethod"].forEach((k: string) => {
                 if (typeof xhttp[k] === 'string' && xhttp[k].length > 0) {
                     extra[k] = xhttp[k];
                 }
@@ -1642,7 +1675,7 @@ export class Inbound extends XrayCommonClass {
         // expects. The server runtime ignores this field, but the client
         // (consuming the share link) honors it.
         if (Array.isArray(xhttp.headers) && xhttp.headers.length > 0) {
-            const headersMap = {};
+            const headersMap: any = {};
             for (const h of xhttp.headers) {
                 if (h && h.name && h.name.toLowerCase() !== 'host') {
                     headersMap[h.name] = h.value || '';
@@ -1663,7 +1696,7 @@ export class Inbound extends XrayCommonClass {
     // Without this, the admin's custom xPaddingBytes / sessionKey / etc.
     // never reach the client and handshakes are silently rejected with
     // `invalid padding (...) length: 0`.
-    static applyXhttpExtraToParams(xhttp, params) {
+    static applyXhttpExtraToParams(xhttp: any, params: any): void {
         if (!xhttp) return;
         params.set("path", xhttp.path);
         const host = xhttp.host?.length > 0 ? xhttp.host : Inbound.xhttpHostFallback(xhttp);
@@ -1684,7 +1717,7 @@ export class Inbound extends XrayCommonClass {
     // of building a query string. (The base VMess link generator already
     // sets net/type/path/host, so we only contribute the SplitHTTPConfig
     // extra side here.)
-    static applyXhttpExtraToObj(xhttp, obj) {
+    static applyXhttpExtraToObj(xhttp: any, obj: any): void {
         if (!xhttp || !obj) return;
         if (typeof xhttp.xPaddingBytes === 'string' && xhttp.xPaddingBytes.length > 0) {
             obj.x_padding_bytes = xhttp.xPaddingBytes;
@@ -1696,12 +1729,12 @@ export class Inbound extends XrayCommonClass {
         }
     }
 
-    static externalProxyAlpn(value) {
+    static externalProxyAlpn(value: any): any {
         if (Array.isArray(value)) return value.filter(Boolean).join(',');
         return typeof value === 'string' ? value : '';
     }
 
-    static applyExternalProxyTLSParams(externalProxy, params, security) {
+    static applyExternalProxyTLSParams(externalProxy: any, params: any, security: any): void {
         if (!externalProxy || security !== 'tls') return;
         const sni = externalProxy.sni?.length > 0 ? externalProxy.sni : externalProxy.dest;
         if (sni?.length > 0) params.set("sni", sni);
@@ -1710,7 +1743,7 @@ export class Inbound extends XrayCommonClass {
         if (alpn.length > 0) params.set("alpn", alpn);
     }
 
-    static applyExternalProxyTLSObj(externalProxy, obj, security) {
+    static applyExternalProxyTLSObj(externalProxy: any, obj: any, security: any): void {
         if (!externalProxy || !obj || security !== 'tls') return;
         const sni = externalProxy.sni?.length > 0 ? externalProxy.sni : externalProxy.dest;
         if (sni?.length > 0) obj.sni = sni;
@@ -1719,15 +1752,15 @@ export class Inbound extends XrayCommonClass {
         if (alpn.length > 0) obj.alpn = alpn;
     }
 
-    static hasShareableFinalMaskValue(value) {
+    static hasShareableFinalMaskValue(value: any): boolean {
         if (value == null) {
             return false;
         }
         if (Array.isArray(value)) {
-            return value.some(item => Inbound.hasShareableFinalMaskValue(item));
+            return value.some((item: any) => Inbound.hasShareableFinalMaskValue(item));
         }
         if (typeof value === 'object') {
-            return Object.values(value).some(item => Inbound.hasShareableFinalMaskValue(item));
+            return Object.values(value).some((item: any) => Inbound.hasShareableFinalMaskValue(item));
         }
         if (typeof value === 'string') {
             return value.length > 0;
@@ -1735,7 +1768,7 @@ export class Inbound extends XrayCommonClass {
         return true;
     }
 
-    static serializeFinalMask(finalmask) {
+    static serializeFinalMask(finalmask: any): any {
         if (!finalmask) {
             return '';
         }
@@ -1745,7 +1778,7 @@ export class Inbound extends XrayCommonClass {
 
     // Export finalmask with the same compact JSON payload shape that
     // v2rayN-compatible share links use: fm=<json>.
-    static applyFinalMaskToParams(finalmask, params) {
+    static applyFinalMaskToParams(finalmask: any, params: any): void {
         if (!params) return;
         const payload = Inbound.serializeFinalMask(finalmask);
         if (payload.length > 0) {
@@ -1755,7 +1788,7 @@ export class Inbound extends XrayCommonClass {
 
     // VMess links are a base64 JSON object, so keep the same fm payload
     // under a flat property instead of a URL query string.
-    static applyFinalMaskToObj(finalmask, obj) {
+    static applyFinalMaskToObj(finalmask: any, obj: any): void {
         if (!obj) return;
         const payload = Inbound.serializeFinalMask(finalmask);
         if (payload.length > 0) {
@@ -1847,7 +1880,7 @@ export class Inbound extends XrayCommonClass {
         return "";
     }
 
-    getHeader(obj, name) {
+    getHeader(obj: any, name: any) {
         for (const header of obj.headers) {
             if (header.name.toLowerCase() === name.toLowerCase()) {
                 return header.value;
@@ -1886,8 +1919,8 @@ export class Inbound extends XrayCommonClass {
         return this.stream.grpc.serviceName;
     }
 
-    isExpiry(index) {
-        let exp = this.clients[index].expiryTime;
+    isExpiry(index: number) {
+        const exp = this.clients[index].expiryTime;
         return exp > 0 ? exp < new Date().getTime() : false;
     }
 
@@ -1911,7 +1944,7 @@ export class Inbound extends XrayCommonClass {
         if (!this.canEnableTlsFlow()) return false;
         const clients = this.settings?.vlesses;
         if (!Array.isArray(clients)) return false;
-        return clients.some(c => c?.flow === TLS_FLOW_CONTROL.VISION);
+        return clients.some((c: any) => c?.flow === TLS_FLOW_CONTROL.VISION);
     }
 
     canEnableReality() {
@@ -1933,12 +1966,12 @@ export class Inbound extends XrayCommonClass {
         this.sniffing = new Sniffing();
     }
 
-    genVmessLink(address = '', port = this.port, forceTls, remark = '', clientId, security, externalProxy = null) {
+    genVmessLink(address: any = '', port: any = this.port, forceTls?: any, remark: any = '', clientId?: any, security?: any, externalProxy: any = null) {
         if (this.protocol !== Protocols.VMESS) {
             return '';
         }
         const tls = forceTls == 'same' ? this.stream.security : forceTls;
-        let obj = {
+        const obj: any = {
             v: '2',
             ps: remark,
             add: address,
@@ -2002,7 +2035,7 @@ export class Inbound extends XrayCommonClass {
         return 'vmess://' + Base64.encode(JSON.stringify(obj, null, 2));
     }
 
-    genVLESSLink(address = '', port = this.port, forceTls, remark = '', clientId, flow, externalProxy = null) {
+    genVLESSLink(address: any = '', port: any = this.port, forceTls?: any, remark: any = '', clientId?: any, flow?: any, externalProxy: any = null) {
         const uuid = clientId;
         const type = this.stream.network;
         const security = forceTls == 'same' ? this.stream.security : forceTls;
@@ -2010,12 +2043,12 @@ export class Inbound extends XrayCommonClass {
         params.set("type", this.stream.network);
         params.set("encryption", this.settings.encryption);
         switch (type) {
-            case "tcp":
+            case "tcp": {
                 const tcp = this.stream.tcp;
                 if (tcp.type === 'http') {
                     const request = tcp.request;
                     params.set("path", request.path.join(','));
-                    const index = request.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                    const index = request.headers.findIndex((header: any) => header.name.toLowerCase() === 'host');
                     if (index >= 0) {
                         const host = request.headers[index].value;
                         params.set("host", host);
@@ -2023,17 +2056,20 @@ export class Inbound extends XrayCommonClass {
                     params.set("headerType", 'http');
                 }
                 break;
-            case "kcp":
+            }
+            case "kcp": {
                 const kcp = this.stream.kcp;
                 params.set("mtu", kcp.mtu);
                 params.set("tti", kcp.tti);
                 break;
-            case "ws":
+            }
+            case "ws": {
                 const ws = this.stream.ws;
                 params.set("path", ws.path);
                 params.set("host", ws.host?.length > 0 ? ws.host : this.getHeader(ws, 'host'));
                 break;
-            case "grpc":
+            }
+            case "grpc": {
                 const grpc = this.stream.grpc;
                 params.set("serviceName", grpc.serviceName);
                 params.set("authority", grpc.authority);
@@ -2041,11 +2077,13 @@ export class Inbound extends XrayCommonClass {
                     params.set("mode", "multi");
                 }
                 break;
-            case "httpupgrade":
+            }
+            case "httpupgrade": {
                 const httpupgrade = this.stream.httpupgrade;
                 params.set("path", httpupgrade.path);
                 params.set("host", httpupgrade.host?.length > 0 ? httpupgrade.host : this.getHeader(httpupgrade, 'host'));
                 break;
+            }
             case "xhttp":
                 Inbound.applyXhttpExtraToParams(this.stream.xhttp, params);
                 break;
@@ -2105,19 +2143,19 @@ export class Inbound extends XrayCommonClass {
         return url.toString();
     }
 
-    genSSLink(address = '', port = this.port, forceTls, remark = '', clientPassword, externalProxy = null) {
-        let settings = this.settings;
+    genSSLink(address: any = '', port: any = this.port, forceTls?: any, remark: any = '', clientPassword?: any, externalProxy: any = null) {
+        const settings = this.settings;
         const type = this.stream.network;
         const security = forceTls == 'same' ? this.stream.security : forceTls;
         const params = new Map();
         params.set("type", this.stream.network);
         switch (type) {
-            case "tcp":
+            case "tcp": {
                 const tcp = this.stream.tcp;
                 if (tcp.type === 'http') {
                     const request = tcp.request;
                     params.set("path", request.path.join(','));
-                    const index = request.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                    const index = request.headers.findIndex((header: any) => header.name.toLowerCase() === 'host');
                     if (index >= 0) {
                         const host = request.headers[index].value;
                         params.set("host", host);
@@ -2125,17 +2163,20 @@ export class Inbound extends XrayCommonClass {
                     params.set("headerType", 'http');
                 }
                 break;
-            case "kcp":
+            }
+            case "kcp": {
                 const kcp = this.stream.kcp;
                 params.set("mtu", kcp.mtu);
                 params.set("tti", kcp.tti);
                 break;
-            case "ws":
+            }
+            case "ws": {
                 const ws = this.stream.ws;
                 params.set("path", ws.path);
                 params.set("host", ws.host?.length > 0 ? ws.host : this.getHeader(ws, 'host'));
                 break;
-            case "grpc":
+            }
+            case "grpc": {
                 const grpc = this.stream.grpc;
                 params.set("serviceName", grpc.serviceName);
                 params.set("authority", grpc.authority);
@@ -2143,11 +2184,13 @@ export class Inbound extends XrayCommonClass {
                     params.set("mode", "multi");
                 }
                 break;
-            case "httpupgrade":
+            }
+            case "httpupgrade": {
                 const httpupgrade = this.stream.httpupgrade;
                 params.set("path", httpupgrade.path);
                 params.set("host", httpupgrade.host?.length > 0 ? httpupgrade.host : this.getHeader(httpupgrade, 'host'));
                 break;
+            }
             case "xhttp":
                 Inbound.applyXhttpExtraToParams(this.stream.xhttp, params);
                 break;
@@ -2171,11 +2214,11 @@ export class Inbound extends XrayCommonClass {
         }
 
 
-        let password = new Array();
+        const password: string[] = [];
         if (this.isSS2022) password.push(settings.password);
         if (this.isSSMultiUser) password.push(clientPassword);
 
-        let link = `ss://${Base64.encode(`${settings.method}:${password.join(':')}`, true)}@${address}:${port}`;
+        const link = `ss://${Base64.encode(`${settings.method}:${password.join(':')}`, true)}@${address}:${port}`;
         const url = new URL(link);
         for (const [key, value] of params) {
             url.searchParams.set(key, value)
@@ -2184,18 +2227,18 @@ export class Inbound extends XrayCommonClass {
         return url.toString();
     }
 
-    genTrojanLink(address = '', port = this.port, forceTls, remark = '', clientPassword, externalProxy = null) {
+    genTrojanLink(address: any = '', port: any = this.port, forceTls?: any, remark: any = '', clientPassword?: any, externalProxy: any = null) {
         const security = forceTls == 'same' ? this.stream.security : forceTls;
         const type = this.stream.network;
         const params = new Map();
         params.set("type", this.stream.network);
         switch (type) {
-            case "tcp":
+            case "tcp": {
                 const tcp = this.stream.tcp;
                 if (tcp.type === 'http') {
                     const request = tcp.request;
                     params.set("path", request.path.join(','));
-                    const index = request.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                    const index = request.headers.findIndex((header: any) => header.name.toLowerCase() === 'host');
                     if (index >= 0) {
                         const host = request.headers[index].value;
                         params.set("host", host);
@@ -2203,17 +2246,20 @@ export class Inbound extends XrayCommonClass {
                     params.set("headerType", 'http');
                 }
                 break;
-            case "kcp":
+            }
+            case "kcp": {
                 const kcp = this.stream.kcp;
                 params.set("mtu", kcp.mtu);
                 params.set("tti", kcp.tti);
                 break;
-            case "ws":
+            }
+            case "ws": {
                 const ws = this.stream.ws;
                 params.set("path", ws.path);
                 params.set("host", ws.host?.length > 0 ? ws.host : this.getHeader(ws, 'host'));
                 break;
-            case "grpc":
+            }
+            case "grpc": {
                 const grpc = this.stream.grpc;
                 params.set("serviceName", grpc.serviceName);
                 params.set("authority", grpc.authority);
@@ -2221,11 +2267,13 @@ export class Inbound extends XrayCommonClass {
                     params.set("mode", "multi");
                 }
                 break;
-            case "httpupgrade":
+            }
+            case "httpupgrade": {
                 const httpupgrade = this.stream.httpupgrade;
                 params.set("path", httpupgrade.path);
                 params.set("host", httpupgrade.host?.length > 0 ? httpupgrade.host : this.getHeader(httpupgrade, 'host'));
                 break;
+            }
             case "xhttp":
                 Inbound.applyXhttpExtraToParams(this.stream.xhttp, params);
                 break;
@@ -2279,7 +2327,7 @@ export class Inbound extends XrayCommonClass {
         return url.toString();
     }
 
-    genHysteriaLink(address = '', port = this.port, remark = '', clientAuth) {
+    genHysteriaLink(address: any = '', port: any = this.port, remark: any = '', clientAuth?: any) {
         const protocol = this.settings.version == 2 ? "hysteria2" : "hysteria";
         const link = `${protocol}://${clientAuth}@${address}:${port}`;
 
@@ -2293,7 +2341,7 @@ export class Inbound extends XrayCommonClass {
 
         const udpMasks = this.stream?.finalmask?.udp;
         if (Array.isArray(udpMasks)) {
-            const salamanderMask = udpMasks.find(mask => mask?.type === 'salamander');
+            const salamanderMask = udpMasks.find((mask: any) => mask?.type === 'salamander');
             const obfsPassword = salamanderMask?.settings?.password;
             if (typeof obfsPassword === 'string' && obfsPassword.length > 0) {
                 params.set("obfs", "salamander");
@@ -2311,7 +2359,7 @@ export class Inbound extends XrayCommonClass {
         return url.toString();
     }
 
-    getWireguardTxt(address, port, remark, peerId) {
+    getWireguardTxt(address: any, port: any, remark: any, peerId: any) {
         let txt = `[Interface]\n`
         txt += `PrivateKey = ${this.settings.peers[peerId].privateKey}\n`
         txt += `Address = ${this.settings.peers[peerId].allowedIPs[0]}\n`
@@ -2333,7 +2381,7 @@ export class Inbound extends XrayCommonClass {
         return txt;
     }
 
-    getWireguardLink(address, port, remark, peerId) {
+    getWireguardLink(address: any, port: any, remark: any, peerId: any) {
         const peer = this.settings?.peers?.[peerId];
         if (!peer) return '';
 
@@ -2370,8 +2418,8 @@ export class Inbound extends XrayCommonClass {
     genWireguardLinks(remark = '', remarkModel = '-ieo', hostOverride = '') {
         const addr = this._resolveAddr(hostOverride);
         const separationChar = remarkModel.charAt(0);
-        let links = [];
-        this.settings.peers.forEach((p, index) => {
+        const links: any[] = [];
+        this.settings.peers.forEach((_p: any, index: number) => {
             links.push(this.getWireguardLink(addr, this.port, remark + separationChar + (index + 1), index));
         });
         return links.join('\r\n');
@@ -2380,14 +2428,14 @@ export class Inbound extends XrayCommonClass {
     genWireguardConfigs(remark = '', remarkModel = '-ieo', hostOverride = '') {
         const addr = this._resolveAddr(hostOverride);
         const separationChar = remarkModel.charAt(0);
-        let links = [];
-        this.settings.peers.forEach((p, index) => {
+        const links: any[] = [];
+        this.settings.peers.forEach((_p: any, index: number) => {
             links.push(this.getWireguardTxt(addr, this.port, remark + separationChar + (index + 1), index));
         });
         return links.join('\r\n');
     }
 
-    genLink(address = '', port = this.port, forceTls = 'same', remark = '', client, externalProxy = null) {
+    genLink(address: any = '', port: any = this.port, forceTls: any = 'same', remark: any = '', client?: any, externalProxy: any = null) {
         switch (this.protocol) {
             case Protocols.VMESS:
                 return this.genVmessLink(address, port, forceTls, remark, client.id, client.security, externalProxy);
@@ -2403,28 +2451,28 @@ export class Inbound extends XrayCommonClass {
         }
     }
 
-    genAllLinks(remark = '', remarkModel = '-ieo', client, hostOverride = '') {
-        let result = [];
-        let email = client ? client.email : '';
-        let addr = this._resolveAddr(hostOverride);
-        let port = this.port;
+    genAllLinks(remark: any = '', remarkModel: any = '-ieo', client?: any, hostOverride: any = '') {
+        const result: any[] = [];
+        const email = client ? client.email : '';
+        const addr = this._resolveAddr(hostOverride);
+        const port = this.port;
         const separationChar = remarkModel.charAt(0);
         const orderChars = remarkModel.slice(1);
-        let orders = {
+        const orders: any = {
             'i': remark,
             'e': email,
             'o': '',
         };
         if (ObjectUtil.isArrEmpty(this.stream.externalProxy)) {
-            let r = orderChars.split('').map(char => orders[char]).filter(x => x.length > 0).join(separationChar);
+            const r = orderChars.split('').map((char: string) => orders[char]).filter((x: any) => x.length > 0).join(separationChar);
             result.push({
                 remark: r,
                 link: this.genLink(addr, port, 'same', r, client)
             });
         } else {
-            this.stream.externalProxy.forEach((ep) => {
+            this.stream.externalProxy.forEach((ep: any) => {
                 orders['o'] = ep.remark;
-                let r = orderChars.split('').map(char => orders[char]).filter(x => x.length > 0).join(separationChar);
+                const r = orderChars.split('').map((char: string) => orders[char]).filter((x: any) => x.length > 0).join(separationChar);
                 result.push({
                     remark: r,
                     link: this.genLink(ep.dest, ep.port, ep.forceTls, r, client, ep)
@@ -2435,11 +2483,11 @@ export class Inbound extends XrayCommonClass {
     }
 
     genInboundLinks(remark = '', remarkModel = '-ieo', hostOverride = '') {
-        let addr = this._resolveAddr(hostOverride);
+        const addr = this._resolveAddr(hostOverride);
         if (this.clients) {
-            let links = [];
-            this.clients.forEach((client) => {
-                this.genAllLinks(remark, remarkModel, client, hostOverride).forEach(l => {
+            const links: any[] = [];
+            this.clients.forEach((client: any) => {
+                this.genAllLinks(remark, remarkModel, client, hostOverride).forEach((l: any) => {
                     links.push(l.link);
                 })
             });
@@ -2453,7 +2501,7 @@ export class Inbound extends XrayCommonClass {
         }
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound(
             json.port,
             json.listen,
@@ -2470,7 +2518,7 @@ export class Inbound extends XrayCommonClass {
         // Only these protocols use streamSettings
         const streamProtocols = [Protocols.VLESS, Protocols.VMESS, Protocols.TROJAN, Protocols.SHADOWSOCKS, Protocols.HYSTERIA];
 
-        const result = {
+        const result: any = {
             port: this.port,
             listen: this.listen,
             protocol: this.protocol,
@@ -2490,12 +2538,12 @@ export class Inbound extends XrayCommonClass {
 }
 
 Inbound.Settings = class extends XrayCommonClass {
-    constructor(protocol) {
+    constructor(protocol: any) {
         super();
         this.protocol = protocol;
     }
 
-    static getSettings(protocol) {
+    static getSettings(protocol: any): any {
         switch (protocol) {
             case Protocols.VMESS: return new Inbound.VmessSettings(protocol);
             case Protocols.VLESS: return new Inbound.VLESSSettings(protocol);
@@ -2511,7 +2559,7 @@ Inbound.Settings = class extends XrayCommonClass {
         }
     }
 
-    static fromJson(protocol, json) {
+    static fromJson(protocol: any, json: any): any {
         switch (protocol) {
             case Protocols.VMESS: return Inbound.VmessSettings.fromJson(json);
             case Protocols.VLESS: return Inbound.VLESSSettings.fromJson(json);
@@ -2535,17 +2583,17 @@ Inbound.Settings = class extends XrayCommonClass {
 /** Shared user-quota fields and UI helpers for multi-user protocol clients. */
 Inbound.ClientBase = class extends XrayCommonClass {
     constructor(
-        email = RandomUtil.randomLowerAndNum(8),
-        limitIp = 0,
-        totalGB = 0,
-        expiryTime = 0,
-        enable = true,
-        tgId = '',
-        subId = RandomUtil.randomLowerAndNum(16),
-        comment = '',
-        reset = 0,
-        created_at = undefined,
-        updated_at = undefined,
+        email: any = RandomUtil.randomLowerAndNum(8),
+        limitIp: any = 0,
+        totalGB: any = 0,
+        expiryTime: any = 0,
+        enable: any = true,
+        tgId: any = '',
+        subId: any = RandomUtil.randomLowerAndNum(16),
+        comment: any = '',
+        reset: any = 0,
+        created_at: any = undefined,
+        updated_at: any = undefined,
     ) {
         super();
         this.email = email;
@@ -2561,7 +2609,7 @@ Inbound.ClientBase = class extends XrayCommonClass {
         this.updated_at = updated_at;
     }
 
-    static commonArgsFromJson(json = {}) {
+    static commonArgsFromJson(json: any = {}) {
         return [
             json.email,
             json.limitIp,
@@ -2603,7 +2651,7 @@ Inbound.ClientBase = class extends XrayCommonClass {
         return dayjs(this.expiryTime);
     }
 
-    set _expiryTime(t) {
+    set _expiryTime(t: any) {
         if (t == null || t === '') {
             this.expiryTime = 0;
         } else {
@@ -2621,34 +2669,34 @@ Inbound.ClientBase = class extends XrayCommonClass {
 };
 
 Inbound.VmessSettings = class extends Inbound.Settings {
-    constructor(protocol,
-        vmesses = []) {
+    constructor(protocol: any,
+        vmesses: any[] = []) {
         super(protocol);
         this.vmesses = vmesses;
     }
 
-    indexOfVmessById(id) {
-        return this.vmesses.findIndex(VMESS => VMESS.id === id);
+    indexOfVmessById(id: any) {
+        return this.vmesses.findIndex((VMESS: any) => VMESS.id === id);
     }
 
-    addVmess(VMESS) {
+    addVmess(VMESS: any) {
         if (this.indexOfVmessById(VMESS.id) >= 0) {
             return false;
         }
         this.vmesses.push(VMESS);
     }
 
-    delVmess(VMESS) {
+    delVmess(VMESS: any) {
         const i = this.indexOfVmessById(VMESS.id);
         if (i >= 0) {
             this.vmesses.splice(i, 1);
         }
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.VmessSettings(
             Protocols.VMESS,
-            (json.clients || []).map(client => Inbound.VmessSettings.VMESS.fromJson(client)),
+            (json.clients || []).map((client: any) => Inbound.VmessSettings.VMESS.fromJson(client)),
         );
     }
 
@@ -2661,16 +2709,16 @@ Inbound.VmessSettings = class extends Inbound.Settings {
 
 Inbound.VmessSettings.VMESS = class extends Inbound.ClientBase {
     constructor(
-        id = RandomUtil.randomUUID(),
-        security = USERS_SECURITY.AUTO,
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        id: any = RandomUtil.randomUUID(),
+        security: any = USERS_SECURITY.AUTO,
+        email?: any, limitIp?: any, totalGB?: any, expiryTime?: any, enable?: any, tgId?: any, subId?: any, comment?: any, reset?: any, created_at?: any, updated_at?: any,
     ) {
         super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
         this.id = id;
         this.security = security;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.VmessSettings.VMESS(
             json.id,
             json.security,
@@ -2689,12 +2737,12 @@ Inbound.VmessSettings.VMESS = class extends Inbound.ClientBase {
 
 Inbound.VLESSSettings = class extends Inbound.Settings {
     constructor(
-        protocol,
-        vlesses = [],
-        decryption = "none",
-        encryption = "none",
-        fallbacks = [],
-        testseed = [],
+        protocol: any,
+        vlesses: any[] = [],
+        decryption: any = "none",
+        encryption: any = "none",
+        fallbacks: any[] = [],
+        testseed: any[] = [],
     ) {
         super(protocol);
         this.vlesses = vlesses;
@@ -2708,31 +2756,31 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         this.fallbacks.push(new Inbound.VLESSSettings.Fallback());
     }
 
-    delFallback(index) {
+    delFallback(index: number) {
         this.fallbacks.splice(index, 1);
     }
 
     // Empty array means "use server defaults" (won't be sent).
     // Anything else must be exactly 4 positive integers.
-    static isValidTestseed(arr) {
+    static isValidTestseed(arr: any): boolean {
         if (!Array.isArray(arr) || arr.length === 0) return true;
         if (arr.length !== 4) return false;
-        return arr.every(v => Number.isInteger(v) && v > 0);
+        return arr.every((v: any) => Number.isInteger(v) && v > 0);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         // Preserve a saved testseed only if it's a valid 4-positive-int array; otherwise leave empty
         // so toJson omits it and the form falls back to placeholder defaults.
         const saved = json.testseed;
         const testseed = (Array.isArray(saved)
             && saved.length === 4
-            && saved.every(v => Number.isInteger(v) && v > 0))
+            && saved.every((v: any) => Number.isInteger(v) && v > 0))
             ? saved
             : [];
 
         const obj = new Inbound.VLESSSettings(
             Protocols.VLESS,
-            (json.clients || []).map(client => Inbound.VLESSSettings.VLESS.fromJson(client)),
+            (json.clients || []).map((client: any) => Inbound.VLESSSettings.VLESS.fromJson(client)),
             json.decryption,
             json.encryption,
             Inbound.VLESSSettings.Fallback.fromJson(json.fallbacks || []),
@@ -2743,7 +2791,7 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
 
 
     toJson() {
-        const json = {
+        const json: any = {
             clients: Inbound.VLESSSettings.toJsonArray(this.vlesses),
         };
 
@@ -2762,11 +2810,11 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         // testseed is only meaningful for the exact xtls-rprx-vision flow, and only when
         // the user supplied a complete 4-positive-int array. Otherwise omit and let the
         // backend fall back to its safe defaults.
-        const hasVisionFlow = this.vlesses && this.vlesses.some(v => v.flow === TLS_FLOW_CONTROL.VISION);
+        const hasVisionFlow = this.vlesses && this.vlesses.some((v: any) => v.flow === TLS_FLOW_CONTROL.VISION);
         if (hasVisionFlow
             && Array.isArray(this.testseed)
             && this.testseed.length === 4
-            && this.testseed.every(v => Number.isInteger(v) && v > 0)) {
+            && this.testseed.every((v: any) => Number.isInteger(v) && v > 0)) {
             json.testseed = this.testseed;
         }
 
@@ -2776,11 +2824,11 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
 
 Inbound.VLESSSettings.VLESS = class extends Inbound.ClientBase {
     constructor(
-        id = RandomUtil.randomUUID(),
-        flow = '',
-        reverseTag = '',
-        reverseSniffing = new Sniffing(),
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        id: any = RandomUtil.randomUUID(),
+        flow: any = '',
+        reverseTag: any = '',
+        reverseSniffing: any = new Sniffing(),
+        email?: any, limitIp?: any, totalGB?: any, expiryTime?: any, enable?: any, tgId?: any, subId?: any, comment?: any, reset?: any, created_at?: any, updated_at?: any,
     ) {
         super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
         this.id = id;
@@ -2789,7 +2837,7 @@ Inbound.VLESSSettings.VLESS = class extends Inbound.ClientBase {
         this.reverseSniffing = reverseSniffing;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.VLESSSettings.VLESS(
             json.id,
             json.flow,
@@ -2800,7 +2848,7 @@ Inbound.VLESSSettings.VLESS = class extends Inbound.ClientBase {
     }
 
     toJson() {
-        const json = {
+        const json: any = {
             id: this.id,
             flow: this.flow,
             ...this._clientBaseToJson(),
@@ -2825,20 +2873,20 @@ Inbound.VLESSSettings.Fallback = class extends XrayCommonClass {
     }
 
     toJson() {
-        return XrayCommonClass.fallbackToJson(this);
+        return XrayCommonClass.fallbackToJson(this as unknown as FallbackEntry);
     }
 
-    static fromJson(json = []) {
-        return (json || []).map(f => new Inbound.VLESSSettings.Fallback(
+    static fromJson(json: any = []) {
+        return (json || []).map((f: any) => new Inbound.VLESSSettings.Fallback(
             f.name, f.alpn, f.path, f.dest, f.xver,
         ));
     }
 };
 
 Inbound.TrojanSettings = class extends Inbound.Settings {
-    constructor(protocol,
-        trojans = [],
-        fallbacks = [],) {
+    constructor(protocol: any,
+        trojans: any[] = [],
+        fallbacks: any[] = [],) {
         super(protocol);
         this.trojans = trojans;
         this.fallbacks = fallbacks;
@@ -2848,19 +2896,19 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
         this.fallbacks.push(new Inbound.TrojanSettings.Fallback());
     }
 
-    delFallback(index) {
+    delFallback(index: number) {
         this.fallbacks.splice(index, 1);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.TrojanSettings(
             Protocols.TROJAN,
-            (json.clients || []).map(client => Inbound.TrojanSettings.Trojan.fromJson(client)),
+            (json.clients || []).map((client: any) => Inbound.TrojanSettings.Trojan.fromJson(client)),
             Inbound.TrojanSettings.Fallback.fromJson(json.fallbacks),);
     }
 
     toJson() {
-        const json = {
+        const json: any = {
             clients: Inbound.TrojanSettings.toJsonArray(this.trojans),
         };
         if (this.fallbacks && this.fallbacks.length > 0) {
@@ -2873,7 +2921,7 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
 Inbound.TrojanSettings.Trojan = class extends Inbound.ClientBase {
     constructor(
         password = RandomUtil.randomSeq(10),
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        email?: any, limitIp?: any, totalGB?: any, expiryTime?: any, enable?: any, tgId?: any, subId?: any, comment?: any, reset?: any, created_at?: any, updated_at?: any,
     ) {
         super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
         this.password = password;
@@ -2886,7 +2934,7 @@ Inbound.TrojanSettings.Trojan = class extends Inbound.ClientBase {
         };
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.TrojanSettings.Trojan(
             json.password,
             ...Inbound.ClientBase.commonArgsFromJson(json),
@@ -2905,22 +2953,22 @@ Inbound.TrojanSettings.Fallback = class extends XrayCommonClass {
     }
 
     toJson() {
-        return XrayCommonClass.fallbackToJson(this);
+        return XrayCommonClass.fallbackToJson(this as unknown as FallbackEntry);
     }
 
-    static fromJson(json = []) {
-        return (json || []).map(f => new Inbound.TrojanSettings.Fallback(
+    static fromJson(json: any = []) {
+        return (json || []).map((f: any) => new Inbound.TrojanSettings.Fallback(
             f.name, f.alpn, f.path, f.dest, f.xver,
         ));
     }
 };
 
 Inbound.ShadowsocksSettings = class extends Inbound.Settings {
-    constructor(protocol,
-        method = SSMethods.BLAKE3_AES_256_GCM,
-        password = RandomUtil.randomShadowsocksPassword(),
-        network = 'tcp',
-        shadowsockses = [],
+    constructor(protocol: any,
+        method: any = SSMethods.BLAKE3_AES_256_GCM,
+        password: any = RandomUtil.randomShadowsocksPassword(),
+        network: any = 'tcp',
+        shadowsockses: any[] = [],
         ivCheck = false,
     ) {
         super(protocol);
@@ -2931,13 +2979,13 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
         this.ivCheck = ivCheck;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.ShadowsocksSettings(
             Protocols.SHADOWSOCKS,
             json.method,
             json.password,
             json.network,
-            (json.clients || []).map(client => Inbound.ShadowsocksSettings.Shadowsocks.fromJson(client)),
+            (json.clients || []).map((client: any) => Inbound.ShadowsocksSettings.Shadowsocks.fromJson(client)),
             json.ivCheck,
         );
     }
@@ -2957,7 +3005,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends Inbound.ClientBase {
     constructor(
         method = '',
         password = RandomUtil.randomShadowsocksPassword(),
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        email?: any, limitIp?: any, totalGB?: any, expiryTime?: any, enable?: any, tgId?: any, subId?: any, comment?: any, reset?: any, created_at?: any, updated_at?: any,
     ) {
         super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
         this.method = method;
@@ -2972,7 +3020,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends Inbound.ClientBase {
         };
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.ShadowsocksSettings.Shadowsocks(
             json.method,
             json.password,
@@ -2982,17 +3030,17 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends Inbound.ClientBase {
 };
 
 Inbound.HysteriaSettings = class extends Inbound.Settings {
-    constructor(protocol, version = 2, hysterias = []) {
+    constructor(protocol: any, version: any = 2, hysterias: any[] = []) {
         super(protocol);
         this.version = version;
         this.hysterias = hysterias;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.HysteriaSettings(
             Protocols.HYSTERIA,
             json.version ?? 2,
-            (json.clients || []).map(client => Inbound.HysteriaSettings.Hysteria.fromJson(client)),
+            (json.clients || []).map((client: any) => Inbound.HysteriaSettings.Hysteria.fromJson(client)),
         );
     }
 
@@ -3007,7 +3055,7 @@ Inbound.HysteriaSettings = class extends Inbound.Settings {
 Inbound.HysteriaSettings.Hysteria = class extends Inbound.ClientBase {
     constructor(
         auth = RandomUtil.randomSeq(10),
-        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+        email?: any, limitIp?: any, totalGB?: any, expiryTime?: any, enable?: any, tgId?: any, subId?: any, comment?: any, reset?: any, created_at?: any, updated_at?: any,
     ) {
         super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
         this.auth = auth;
@@ -3020,7 +3068,7 @@ Inbound.HysteriaSettings.Hysteria = class extends Inbound.ClientBase {
         };
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.HysteriaSettings.Hysteria(
             json.auth,
             ...Inbound.ClientBase.commonArgsFromJson(json),
@@ -3030,12 +3078,12 @@ Inbound.HysteriaSettings.Hysteria = class extends Inbound.ClientBase {
 
 Inbound.TunnelSettings = class extends Inbound.Settings {
     constructor(
-        protocol,
-        rewriteAddress,
-        rewritePort,
-        portMap = [],
-        allowedNetwork = 'tcp,udp',
-        followRedirect = false
+        protocol: any,
+        rewriteAddress?: any,
+        rewritePort?: any,
+        portMap: any[] = [],
+        allowedNetwork: any = 'tcp,udp',
+        followRedirect: any = false
     ) {
         super(protocol);
         this.rewriteAddress = rewriteAddress;
@@ -3049,11 +3097,11 @@ Inbound.TunnelSettings = class extends Inbound.Settings {
         this.portMap.push({ name: port, value: target });
     }
 
-    removePortMap(index) {
+    removePortMap(index: number) {
         this.portMap.splice(index, 1);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.TunnelSettings(
             Protocols.TUNNEL,
             json.rewriteAddress,
@@ -3076,7 +3124,7 @@ Inbound.TunnelSettings = class extends Inbound.Settings {
 };
 
 Inbound.MixedSettings = class extends Inbound.Settings {
-    constructor(protocol, auth = 'password', accounts = [new Inbound.MixedSettings.SocksAccount()], udp = false, ip = '127.0.0.1') {
+    constructor(protocol: any, auth: any = 'password', accounts: any[] = [new Inbound.MixedSettings.SocksAccount()], udp: any = false, ip: any = '127.0.0.1') {
         super(protocol);
         this.auth = auth;
         this.accounts = accounts;
@@ -3084,19 +3132,19 @@ Inbound.MixedSettings = class extends Inbound.Settings {
         this.ip = ip;
     }
 
-    addAccount(account) {
+    addAccount(account: any) {
         this.accounts.push(account);
     }
 
-    delAccount(index) {
+    delAccount(index: number) {
         this.accounts.splice(index, 1);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         let accounts;
         if (json.auth === 'password') {
             accounts = json.accounts.map(
-                account => Inbound.MixedSettings.SocksAccount.fromJson(account)
+                (account: any) => Inbound.MixedSettings.SocksAccount.fromJson(account)
             )
         }
         return new Inbound.MixedSettings(
@@ -3111,7 +3159,7 @@ Inbound.MixedSettings = class extends Inbound.Settings {
     toJson() {
         return {
             auth: this.auth,
-            accounts: this.auth === 'password' ? this.accounts.map(account => account.toJson()) : undefined,
+            accounts: this.auth === 'password' ? this.accounts.map((account: any) => account.toJson()) : undefined,
             udp: this.udp,
             ip: this.ip,
         };
@@ -3124,34 +3172,34 @@ Inbound.MixedSettings.SocksAccount = class extends XrayCommonClass {
         this.pass = pass;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.MixedSettings.SocksAccount(json.user, json.pass);
     }
 };
 
 Inbound.HttpSettings = class extends Inbound.Settings {
     constructor(
-        protocol,
-        accounts = [new Inbound.HttpSettings.HttpAccount()],
-        allowTransparent = false,
+        protocol: any,
+        accounts: any[] = [new Inbound.HttpSettings.HttpAccount()],
+        allowTransparent: any = false,
     ) {
         super(protocol);
         this.accounts = accounts;
         this.allowTransparent = allowTransparent;
     }
 
-    addAccount(account) {
+    addAccount(account: any) {
         this.accounts.push(account);
     }
 
-    delAccount(index) {
+    delAccount(index: number) {
         this.accounts.splice(index, 1);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.HttpSettings(
             Protocols.HTTP,
-            json.accounts.map(account => Inbound.HttpSettings.HttpAccount.fromJson(account)),
+            json.accounts.map((account: any) => Inbound.HttpSettings.HttpAccount.fromJson(account)),
             json.allowTransparent,
         );
     }
@@ -3171,20 +3219,21 @@ Inbound.HttpSettings.HttpAccount = class extends XrayCommonClass {
         this.pass = pass;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.HttpSettings.HttpAccount(json.user, json.pass);
     }
 };
 
 Inbound.WireguardSettings = class extends XrayCommonClass {
     constructor(
-        protocol,
-        mtu = 1420,
-        secretKey = Wireguard.generateKeypair().privateKey,
-        peers = [new Inbound.WireguardSettings.Peer()],
-        noKernelTun = false
+        protocol?: any,
+        mtu: any = 1420,
+        secretKey: any = Wireguard.generateKeypair().privateKey,
+        peers: any[] = [new Inbound.WireguardSettings.Peer()],
+        noKernelTun: any = false
     ) {
-        super(protocol);
+        super();
+        this.protocol = protocol;
         this.mtu = mtu;
         this.secretKey = secretKey;
         this.pubKey = secretKey.length > 0 ? Wireguard.generateKeypair(secretKey).publicKey : '';
@@ -3196,16 +3245,16 @@ Inbound.WireguardSettings = class extends XrayCommonClass {
         this.peers.push(new Inbound.WireguardSettings.Peer(null, null, '', ['10.0.0.' + (this.peers.length + 2)]));
     }
 
-    delPeer(index) {
+    delPeer(index: number) {
         this.peers.splice(index, 1);
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.WireguardSettings(
             Protocols.WIREGUARD,
             json.mtu,
             json.secretKey,
-            json.peers.map(peer => Inbound.WireguardSettings.Peer.fromJson(peer)),
+            json.peers.map((peer: any) => Inbound.WireguardSettings.Peer.fromJson(peer)),
             json.noKernelTun,
         );
     }
@@ -3221,7 +3270,7 @@ Inbound.WireguardSettings = class extends XrayCommonClass {
 };
 
 Inbound.WireguardSettings.Peer = class extends XrayCommonClass {
-    constructor(privateKey, publicKey, psk = '', allowedIPs = ['10.0.0.2/32'], keepAlive = 0) {
+    constructor(privateKey?: any, publicKey?: any, psk: any = '', allowedIPs: any[] = ['10.0.0.2/32'], keepAlive: any = 0) {
         super();
         this.privateKey = privateKey
         this.publicKey = publicKey;
@@ -3229,14 +3278,14 @@ Inbound.WireguardSettings.Peer = class extends XrayCommonClass {
             [this.publicKey, this.privateKey] = Object.values(Wireguard.generateKeypair())
         }
         this.psk = psk;
-        allowedIPs.forEach((a, index) => {
+        allowedIPs.forEach((a: any, index: number) => {
             if (a.length > 0 && !a.includes('/')) allowedIPs[index] += '/32';
         })
         this.allowedIPs = allowedIPs;
         this.keepAlive = keepAlive;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         return new Inbound.WireguardSettings.Peer(
             json.privateKey,
             json.publicKey,
@@ -3247,7 +3296,7 @@ Inbound.WireguardSettings.Peer = class extends XrayCommonClass {
     }
 
     toJson() {
-        this.allowedIPs.forEach((a, index) => {
+        this.allowedIPs.forEach((a: any, index: number) => {
             if (a.length > 0 && !a.includes('/')) this.allowedIPs[index] += '/32';
         });
         return {
@@ -3262,13 +3311,13 @@ Inbound.WireguardSettings.Peer = class extends XrayCommonClass {
 
 Inbound.TunSettings = class extends Inbound.Settings {
     constructor(
-        protocol,
-        name = 'xray0',
-        mtu = 1500,
-        gateway = [],
-        dns = [],
-        userLevel = 0,
-        autoSystemRoutingTable = [],
+        protocol: any,
+        name: any = 'xray0',
+        mtu: any = 1500,
+        gateway: any[] = [],
+        dns: any[] = [],
+        userLevel: any = 0,
+        autoSystemRoutingTable: any[] = [],
         autoOutboundsInterface = 'auto'
     ) {
         super(protocol);
@@ -3281,7 +3330,7 @@ Inbound.TunSettings = class extends Inbound.Settings {
         this.autoOutboundsInterface = autoOutboundsInterface;
     }
 
-    static fromJson(json = {}) {
+    static fromJson(json: any = {}) {
         const rawMtu = json.mtu ?? json.MTU;
         const mtu = Array.isArray(rawMtu) ? rawMtu[0] : rawMtu;
         return new Inbound.TunSettings(

@@ -44,7 +44,6 @@ import BalancersTab from './BalancersTab';
 import DnsTab from './DnsTab';
 import WarpModal from './WarpModal';
 import NordModal from './NordModal';
-import '@/styles/page-cards.css';
 import './XrayPage.css';
 
 const TAB_KEYS = ['tpl-basic', 'tpl-routing', 'tpl-outbound', 'tpl-balancer', 'tpl-dns', 'tpl-advanced'];

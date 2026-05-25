@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Collapse, Modal } from 'antd';
 import type { CollapseProps } from 'antd';
 
-import { Protocols } from '@/models/inbound.js';
+import { Protocols } from '@/models/inbound';
 import QrPanel from './QrPanel';
 import type { SubSettings } from './useInbounds';
 

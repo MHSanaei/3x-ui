@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -55,8 +54,8 @@ import {
   DOMAIN_STRATEGY_OPTION,
   TCP_CONGESTION_OPTION,
   MODE_OPTION,
-} from '@/models/inbound.js';
-import { DBInbound } from '@/models/dbinbound.js';
+} from '@/models/inbound';
+import { DBInbound } from '@/models/dbinbound';
 import FinalMaskForm from '@/components/FinalMaskForm';
 import DateTimePicker from '@/components/DateTimePicker';
 import JsonEditor from '@/components/JsonEditor';
@@ -71,9 +70,73 @@ interface InboundFormModalProps {
   onClose: () => void;
   onSaved: () => void;
   mode: 'add' | 'edit';
-  dbInbound: any;
-  dbInbounds: any[];
+  dbInbound: DBInbound | null;
+  dbInbounds: DBInbound[];
   availableNodes?: NodeRecord[];
+}
+
+interface StreamLike {
+  network?: string;
+  tcp?: { type?: string; request?: { path?: string[] }; acceptProxyProtocol?: boolean };
+  ws?: { path?: string; acceptProxyProtocol?: boolean };
+  grpc?: { serviceName?: string; multiMode?: boolean };
+  httpupgrade?: { path?: string; acceptProxyProtocol?: boolean };
+  xhttp?: { path?: string };
+  security?: string;
+  tls?: { certs?: TlsCert[] };
+  reality?: unknown;
+  externalProxy?: unknown;
+}
+
+interface TlsCert {
+  useFile?: boolean;
+  certFile?: string;
+  keyFile?: string;
+  cert?: string;
+  key?: string;
+  ocspStapling?: number;
+  oneTimeLoading?: boolean;
+  usage?: string;
+  buildChain?: boolean;
+}
+
+interface VlessClient {
+  id?: string;
+  email?: string;
+  flow?: string;
+  enable?: boolean;
+  subId?: string;
+  totalGB?: number;
+  expiryTime?: number;
+  limitIp?: number;
+  comment?: string;
+  tgId?: string;
+}
+
+interface ShadowsocksClient {
+  email?: string;
+  password?: string;
+  method?: string;
+  enable?: boolean;
+  subId?: string;
+  totalGB?: number;
+  expiryTime?: number;
+  limitIp?: number;
+  comment?: string;
+  tgId?: string;
+}
+
+interface HttpAccount {
+  user?: string;
+  pass?: string;
+}
+
+interface WireguardPeer {
+  privateKey?: string;
+  publicKey?: string;
+  psk?: string;
+  allowedIPs: string[];
+  keepAlive?: number;
 }
 
 const TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'];
@@ -107,12 +170,12 @@ interface FallbackRow {
   xver: number;
 }
 
-function deriveFallbackDefaults(childDb: any): Omit<FallbackRow, 'rowKey' | 'childId'> {
+function deriveFallbackDefaults(childDb: DBInbound | null | undefined): Omit<FallbackRow, 'rowKey' | 'childId'> {
   const out = { name: '', alpn: '', path: '', xver: 0 };
   if (!childDb) return out;
-  let stream: any;
+  let stream: StreamLike | undefined;
   try {
-    stream = childDb.toInbound()?.stream;
+    stream = childDb.toInbound()?.stream as StreamLike | undefined;
   } catch {
     return out;
   }
@@ -166,7 +229,9 @@ export default function InboundFormModal({
     [availableNodes],
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const inboundRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const dbFormRef = useRef<any>(null);
   const fallbackKeyRef = useRef(0);
   const advancedTextRef = useRef({ stream: '', sniffing: '', settings: '' });
@@ -279,9 +344,9 @@ export default function InboundFormModal({
     if (!open) return;
     setFallbackEditing(new Set());
     if (mode === 'edit' && dbInbound) {
-      const parsed = (Inbound as any).fromJson(dbInbound.toInbound().toJson());
+      const parsed = Inbound.fromJson(dbInbound.toInbound().toJson());
       inboundRef.current = parsed;
-      dbFormRef.current = new (DBInbound as any)(dbInbound);
+      dbFormRef.current = new DBInbound(dbInbound);
       primeAdvancedJson();
       if (dbInbound.protocol === Protocols.VLESS || dbInbound.protocol === Protocols.TROJAN) {
         loadFallbacks(dbInbound.id);
@@ -289,12 +354,12 @@ export default function InboundFormModal({
         setFallbacks([]);
       }
     } else {
-      const ib = new (Inbound as any)();
+      const ib = new Inbound();
       ib.protocol = Protocols.VLESS;
-      ib.settings = (Inbound as any).Settings.getSettings(Protocols.VLESS);
+      ib.settings = Inbound.Settings.getSettings(Protocols.VLESS);
       ib.port = RandomUtil.randomInteger(10000, 60000);
       inboundRef.current = ib;
-      const form = new (DBInbound as any)();
+      const form = new DBInbound();
       form.enable = true;
       form.remark = '';
       form.total = 0;
@@ -333,7 +398,7 @@ export default function InboundFormModal({
     const ib = inboundRef.current;
     if (mode === 'edit' || !ib) return;
     ib.protocol = next;
-    ib.settings = (Inbound as any).Settings.getSettings(next);
+    ib.settings = Inbound.Settings.getSettings(next);
     if (!NODE_ELIGIBLE_PROTOCOLS.has(next) && dbFormRef.current) {
       dbFormRef.current.nodeId = null;
     }
@@ -352,7 +417,7 @@ export default function InboundFormModal({
       && !ib.canEnableTlsFlow()
       && Array.isArray(ib.settings.vlesses)
     ) {
-      ib.settings.vlesses.forEach((c: any) => { c.flow = ''; });
+      ib.settings.vlesses.forEach((c: VlessClient) => { c.flow = ''; });
     }
     if (next !== 'kcp' && ib.stream.finalmask) {
       ib.stream.finalmask.udp = [];
@@ -379,7 +444,7 @@ export default function InboundFormModal({
       xver: 0,
     };
     if (childId) {
-      const child = (dbInbounds || []).find((ib: any) => ib.id === childId);
+      const child = (dbInbounds || []).find((ib) => ib.id === childId);
       Object.assign(row, deriveFallbackDefaults(child));
     }
     setFallbacks((prev) => [...prev, row]);
@@ -402,7 +467,7 @@ export default function InboundFormModal({
   const onFallbackChildPicked = useCallback((rowKey: string, childId: number) => {
     setFallbacks((prev) => prev.map((row) => {
       if (row.rowKey !== rowKey) return row;
-      const child = (dbInbounds || []).find((ib: any) => ib.id === childId);
+      const child = (dbInbounds || []).find((ib) => ib.id === childId);
       const defaults = deriveFallbackDefaults(child);
       return { ...row, childId, ...defaults };
     }));
@@ -415,7 +480,7 @@ export default function InboundFormModal({
   const rederiveFallback = useCallback((rowKey: string) => {
     setFallbacks((prev) => prev.map((row) => {
       if (row.rowKey !== rowKey || !row.childId) return row;
-      const child = (dbInbounds || []).find((ib: any) => ib.id === row.childId);
+      const child = (dbInbounds || []).find((ib) => ib.id === row.childId);
       const defaults = deriveFallbackDefaults(child);
       return { ...row, ...defaults };
     }));
@@ -432,9 +497,9 @@ export default function InboundFormModal({
       for (const ib of list) {
         if (ib.id === masterId) continue;
         if (existing.has(ib.id)) continue;
-        let stream: any;
-        try { stream = ib.toInbound()?.stream; } catch { continue; }
-        if (!stream || !FALLBACK_ELIGIBLE_TRANSPORTS.has(stream.network)) continue;
+        let stream: StreamLike | undefined;
+        try { stream = ib.toInbound()?.stream as StreamLike | undefined; } catch { continue; }
+        if (!stream || !FALLBACK_ELIGIBLE_TRANSPORTS.has(stream.network ?? '')) continue;
         const row: FallbackRow = {
           rowKey: `fb-${++fallbackKeyRef.current}`,
           childId: ib.id,
@@ -456,8 +521,8 @@ export default function InboundFormModal({
     const list = dbInbounds || [];
     const masterId = dbInbound?.id;
     return list
-      .filter((ib: any) => ib.id !== masterId)
-      .map((ib: any) => ({
+      .filter((ib) => ib.id !== masterId)
+      .map((ib) => ({
         label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
         value: ib.id,
       }));
@@ -488,22 +553,22 @@ export default function InboundFormModal({
     try { return await fn(); } finally { setSaving(false); }
   }, []);
 
-  const randomSSPassword = useCallback((target: any) => {
+  const randomSSPassword = useCallback((target: ShadowsocksClient) => {
     if (target) {
-      target.password = (RandomUtil as any).randomShadowsocksPassword(inboundRef.current.settings.method);
+      target.password = RandomUtil.randomShadowsocksPassword(inboundRef.current.settings.method);
       refresh();
     }
   }, [refresh]);
 
-  const regenWgKeypair = useCallback((target: any) => {
-    const kp = (Wireguard as any).generateKeypair();
+  const regenWgKeypair = useCallback((target: WireguardPeer) => {
+    const kp = Wireguard.generateKeypair();
     target.publicKey = kp.publicKey;
     target.privateKey = kp.privateKey;
     refresh();
   }, [refresh]);
 
   const regenInboundWg = useCallback(() => {
-    const kp = (Wireguard as any).generateKeypair();
+    const kp = Wireguard.generateKeypair();
     inboundRef.current.settings.pubKey = kp.publicKey;
     inboundRef.current.settings.secretKey = kp.privateKey;
     refresh();
@@ -557,7 +622,7 @@ export default function InboundFormModal({
 
   const randomizeShortIds = useCallback(() => {
     if (!inboundRef.current?.stream?.reality) return;
-    inboundRef.current.stream.reality.shortIds = (RandomUtil as any).randomShortIds();
+    inboundRef.current.stream.reality.shortIds = RandomUtil.randomShortIds();
     refresh();
   }, [refresh]);
 
@@ -590,7 +655,7 @@ export default function InboundFormModal({
     refresh();
   }, [defaultCert, defaultKey, refresh]);
 
-  const matchesVlessAuth = useCallback((block: any, authId: string) => {
+  const matchesVlessAuth = useCallback((block: { id?: string; label?: string } | undefined | null, authId: string) => {
     if (block?.id === authId) return true;
     const label = (block?.label || '').toLowerCase().replace(/[-_\s]/g, '');
     if (authId === 'mlkem768') return label.includes('mlkem768');
@@ -633,11 +698,11 @@ export default function InboundFormModal({
 
   const onSSMethodChange = useCallback(() => {
     const ib = inboundRef.current;
-    ib.settings.password = (RandomUtil as any).randomShadowsocksPassword(ib.settings.method);
+    ib.settings.password = RandomUtil.randomShadowsocksPassword(ib.settings.method);
     if (ib.isSSMultiUser) {
-      ib.settings.shadowsockses.forEach((c: any) => {
+      ib.settings.shadowsockses.forEach((c: ShadowsocksClient) => {
         c.method = ib.isSS2022 ? '' : ib.settings.method;
-        c.password = (RandomUtil as any).randomShadowsocksPassword(ib.settings.method);
+        c.password = RandomUtil.randomShadowsocksPassword(ib.settings.method);
       });
     } else {
       ib.settings.shadowsockses = [];
@@ -686,7 +751,7 @@ export default function InboundFormModal({
       return false;
     }
     try {
-      inboundRef.current = (Inbound as any).fromJson({
+      inboundRef.current = Inbound.fromJson({
         port: ib.port,
         listen: ib.listen,
         protocol: ib.protocol,
@@ -781,17 +846,26 @@ export default function InboundFormModal({
   })();
 
   const setAdvancedAllValue = (next: string) => {
-    let parsed: any;
+    let parsedRaw: unknown;
     try {
-      parsed = JSON.parse(next);
+      parsedRaw = JSON.parse(next);
     } catch (e) {
       messageApi.error(`All JSON invalid: ${(e as Error).message}`);
       return;
     }
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    if (!parsedRaw || typeof parsedRaw !== 'object' || Array.isArray(parsedRaw)) {
       messageApi.error('All JSON must be an inbound object.');
       return;
     }
+    const parsed = parsedRaw as {
+      listen?: string;
+      port?: number | string;
+      protocol?: string;
+      tag?: string;
+      settings?: unknown;
+      sniffing?: unknown;
+      streamSettings?: unknown;
+    };
     const ib = inboundRef.current;
     try {
       if (typeof parsed.listen === 'string') ib.listen = parsed.listen;
@@ -857,7 +931,7 @@ export default function InboundFormModal({
         settings = compactAdvancedJson(advancedTextRef.current.settings, ib.settings.toString(), t('pages.inbounds.advanced.settings'));
       } catch { return; }
 
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         up: form.up || 0,
         down: form.down || 0,
         total: form.total,
@@ -876,14 +950,15 @@ export default function InboundFormModal({
       if (form.nodeId != null) payload.nodeId = form.nodeId;
 
       const url = mode === 'edit'
-        ? `/panel/api/inbounds/update/${dbInbound.id}`
+        ? `/panel/api/inbounds/update/${dbInbound!.id}`
         : '/panel/api/inbounds/add';
       const msg = await HttpUtil.post(url, payload);
       if (msg?.success) {
         if (isFallbackHost) {
+          const obj = msg.obj as { id?: number; Id?: number } | null;
           const masterId = mode === 'edit'
-            ? dbInbound.id
-            : ((msg.obj as any)?.id || (msg.obj as any)?.Id);
+            ? dbInbound!.id
+            : (obj?.id || obj?.Id);
           if (masterId) await saveFallbacks(masterId);
         }
         onSaved();
@@ -1155,8 +1230,8 @@ export default function InboundFormModal({
           <Form.Item label="Accounts">
             <Button size="small" onClick={() => {
               const Account = ib.protocol === Protocols.HTTP
-                ? (Inbound as any).HttpSettings.HttpAccount
-                : (Inbound as any).MixedSettings.SocksAccount;
+                ? Inbound.HttpSettings.HttpAccount
+                : Inbound.MixedSettings.SocksAccount;
               ib.settings.addAccount(new Account());
               refresh();
             }}>
@@ -1164,7 +1239,7 @@ export default function InboundFormModal({
             </Button>
           </Form.Item>
           <Form.Item wrapperCol={{ span: 24 }}>
-            {(ib.settings.accounts || []).map((account: any, idx: number) => (
+            {(ib.settings.accounts || []).map((account: HttpAccount, idx: number) => (
               <Space.Compact key={idx} className="mb-8" block>
                 <InputAddon>{String(idx + 1)}</InputAddon>
                 <Input value={account.user} placeholder="Username"
@@ -1337,7 +1412,7 @@ export default function InboundFormModal({
               <PlusOutlined /> Add peer
             </Button>
           </Form.Item>
-          {(ib.settings.peers || []).map((peer: any, idx: number) => (
+          {(ib.settings.peers || []).map((peer: WireguardPeer, idx: number) => (
             <div key={idx} className="wg-peer">
               <Divider style={{ margin: '8px 0' }}>
                 Peer {idx + 1}
@@ -1906,7 +1981,7 @@ export default function InboundFormModal({
           <Form.Item label="Disable System Root"><Switch checked={!!ib.stream.tls.disableSystemRoot} onChange={(v) => { ib.stream.tls.disableSystemRoot = v; refresh(); }} /></Form.Item>
           <Form.Item label="Session Resumption"><Switch checked={!!ib.stream.tls.enableSessionResumption} onChange={(v) => { ib.stream.tls.enableSessionResumption = v; refresh(); }} /></Form.Item>
 
-          {(ib.stream.tls.certs || []).map((cert: any, idx: number) => (
+          {(ib.stream.tls.certs || []).map((cert: TlsCert, idx: number) => (
             <div key={`cert-${idx}`}>
               <Form.Item label={t('certificate')}>
                 <Radio.Group value={cert.useFile} buttonStyle="solid" onChange={(e) => { cert.useFile = e.target.value; refresh(); }}>

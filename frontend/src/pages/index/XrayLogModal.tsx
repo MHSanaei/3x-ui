@@ -112,6 +112,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
       open={open}
       footer={null}
       width={isMobile ? '100vw' : '80vw'}
+      style={isMobile ? { top: 0, paddingBottom: 0, maxWidth: '100vw' } : undefined}
       className={isMobile ? 'xraylog-modal-mobile' : undefined}
       onCancel={onClose}
       title={

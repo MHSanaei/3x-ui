@@ -34,7 +34,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 
 import { SizeFormatter } from '@/utils';
-import { Protocols } from '@/models/outbound.js';
+import { Protocols } from '@/models/outbound';
 import OutboundFormModal from './OutboundFormModal';
 import type { XraySettingsValue, SetTemplate, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 import './OutboundsTab.css';

@@ -11,20 +11,9 @@
   margin: 8px 8px 16px;
   padding: 16px 18px 18px;
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.05), rgba(99, 102, 241, 0));
-  border: 1px solid rgba(99, 102, 241, 0.12);
-  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.06);
-}
-
-body.dark .cpu-chart-wrap {
-  background: linear-gradient(180deg, rgba(129, 140, 248, 0.08), rgba(129, 140, 248, 0));
-  border-color: rgba(129, 140, 248, 0.16);
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
-}
-
-html[data-theme='ultra-dark'] .cpu-chart-wrap {
-  background: linear-gradient(180deg, rgba(129, 140, 248, 0.05), rgba(129, 140, 248, 0));
-  border-color: rgba(129, 140, 248, 0.10);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ant-color-primary) 6%, transparent), transparent);
+  border: 1px solid var(--ant-color-border-secondary);
+  box-shadow: 0 2px 12px var(--ant-color-fill-quaternary);
 }
 
 .cpu-chart-meta {

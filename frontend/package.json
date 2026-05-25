@@ -34,6 +34,7 @@
     "react-dom": "^19.2.6",
     "react-i18next": "^17.0.8",
     "react-router-dom": "^7.15.1",
+    "recharts": "^3.8.1",
     "swagger-ui-react": "^5.32.6"
   },
   "devDependencies": {

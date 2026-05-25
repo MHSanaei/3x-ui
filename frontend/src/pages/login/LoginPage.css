@@ -228,36 +228,6 @@
   font-size: 18px;
 }
 
-.theme-cycle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--color-border);
-  background: var(--bg-card);
-  color: var(--color-text);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  transition: background-color 0.2s, transform 0.15s, color 0.2s;
-}
-
-.theme-cycle:hover,
-.theme-cycle:focus-visible {
-  background-color: rgba(99, 102, 241, 0.15);
-  color: var(--color-accent);
-  transform: scale(1.05);
-  outline: none;
-}
-
-.theme-cycle svg {
-  width: 18px;
-  height: 18px;
-}
-
 .login-wrapper {
   position: relative;
   min-height: 100vh;
@@ -402,44 +372,3 @@
   margin-bottom: 0;
 }
 
-.lang-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  min-width: 160px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.lang-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
-}
-
-.lang-item:hover,
-.lang-item:focus-visible {
-  background-color: rgba(99, 102, 241, 0.12);
-  outline: none;
-}
-
-.lang-item.is-active {
-  color: var(--color-accent);
-  font-weight: 600;
-}
-
-.lang-item-icon {
-  font-size: 16px;
-  line-height: 1;
-}

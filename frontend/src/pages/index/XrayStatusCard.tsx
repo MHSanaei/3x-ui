@@ -28,13 +28,6 @@ const XRAY_STATE_KEYS: Record<string, string> = {
   error: 'pages.index.xrayStatusError',
 };
 
-function badgeAnimationClass(color: string): string {
-  if (color === 'green') return 'xray-running-animation';
-  if (color === 'orange') return 'xray-stop-animation';
-  if (color === 'red') return 'xray-error-animation';
-  return 'xray-processing-animation';
-}
-
 export default function XrayStatusCard({
   status,
   isMobile,
@@ -65,12 +58,7 @@ export default function XrayStatusCard({
 
   const extra =
     status.xray.state !== 'error' ? (
-      <Badge
-        status="processing"
-        className={`xray-processing-animation ${badgeAnimationClass(status.xray.color)}`}
-        text={stateText}
-        color={status.xray.color}
-      />
+      <Badge status="processing" text={stateText} color={status.xray.color} />
     ) : (
       <Popover
         title={
@@ -93,12 +81,7 @@ export default function XrayStatusCard({
           </>
         }
       >
-        <Badge
-          status="processing"
-          text={stateText}
-          color={status.xray.color}
-          className="xray-processing-animation xray-error-animation"
-        />
+        <Badge status="processing" text={stateText} color={status.xray.color} />
       </Popover>
     );
 

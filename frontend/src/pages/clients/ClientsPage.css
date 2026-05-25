@@ -1,56 +1,6 @@
-.clients-page {
-  --bg-page: #e6e8ec;
-  --bg-card: #ffffff;
-  min-height: 100vh;
-  background: var(--bg-page);
-}
-
-.clients-page.is-dark {
-  --bg-page: #1a1b1f;
-  --bg-card: #23252b;
-}
-
-.clients-page.is-dark.is-ultra {
-  --bg-page: #000;
-  --bg-card: #101013;
-}
-
-.clients-page .ant-layout,
-.clients-page .ant-layout-content {
-  background: transparent;
-}
-
-.clients-page .content-shell {
-  background: transparent;
-}
-
-.clients-page .content-area {
-  padding: 24px;
-}
-
-@media (max-width: 768px) {
-  .clients-page .content-area {
-    padding: 8px;
-  }
-}
-
 .clients-page .ant-pagination-options-size-changer,
 .clients-page .ant-pagination-options-size-changer .ant-select-selector {
-  min-width: 100px !important;
-}
-
-.clients-page .loading-spacer {
-  min-height: calc(100vh - 120px);
-}
-
-.clients-page .summary-card {
-  padding: 16px;
-}
-
-@media (max-width: 768px) {
-  .clients-page .summary-card {
-    padding: 8px;
-  }
+  min-width: 100px;
 }
 
 .client-email-list {
@@ -92,11 +42,11 @@
   vertical-align: middle;
 }
 
-.dot-green { background: #52c41a; }
-.dot-blue { background: #1677ff; }
-.dot-red { background: #ff4d4f; }
-.dot-orange { background: #fa8c16; }
-.dot-gray { background: rgba(128, 128, 128, 0.6); }
+.dot-green { background: var(--ant-color-success); }
+.dot-blue { background: var(--ant-color-primary); }
+.dot-red { background: var(--ant-color-error); }
+.dot-orange { background: var(--ant-color-warning); }
+.dot-gray { background: var(--ant-color-text-quaternary); }
 
 .status-tag {
   margin: 0 0 0 4px;
@@ -154,32 +104,27 @@
 
 .card-pagination .ant-pagination-options-size-changer,
 .card-pagination .ant-pagination-options-size-changer .ant-select-selector {
-  min-width: 88px !important;
+  min-width: 88px;
 }
 
 .bulk-count {
   font-size: 12px;
-  background: rgba(22, 119, 255, 0.12);
-  color: var(--ant-color-primary, #1677ff);
+  background: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+  color: var(--ant-color-primary);
   padding: 1px 8px;
   border-radius: 10px;
 }
 
 .client-card {
-  border: 1px solid rgba(128, 128, 128, 0.2);
+  border: 1px solid var(--ant-color-border-secondary);
   border-radius: 10px;
   padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--ant-color-fill-quaternary);
 }
 
 .client-card.is-selected {
-  border-color: var(--ant-color-primary, #1677ff);
-  background: rgba(22, 119, 255, 0.06);
-}
-
-body.dark .client-card {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--ant-color-primary);
+  background: color-mix(in srgb, var(--ant-color-primary) 6%, transparent);
 }
 
 .card-head {

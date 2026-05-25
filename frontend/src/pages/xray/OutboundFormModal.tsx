@@ -32,7 +32,7 @@ import {
   Address_Port_Strategy,
   MODE_OPTION,
   DNSRuleActions,
-} from '@/models/outbound.js';
+} from '@/models/outbound';
 import FinalMaskForm from '@/components/FinalMaskForm';
 import JsonEditor from '@/components/JsonEditor';
 import './OutboundFormModal.css';
@@ -469,8 +469,7 @@ export default function OutboundFormModal({
   );
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type OB = any;
+type OB = Outbound;
 
 interface FieldProps {
   ob: OB;
