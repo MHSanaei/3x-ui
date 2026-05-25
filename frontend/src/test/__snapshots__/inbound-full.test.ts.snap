@@ -86,3 +86,85 @@ exports[`InboundSchema (full) fixtures > parses vless-ws-tls byte-stably 1`] = `
   "up": 0,
 }
 `;
+
+exports[`InboundSchema (full) fixtures > parses vmess-tcp-tls byte-stably 1`] = `
+{
+  "down": 0,
+  "enable": true,
+  "expiryTime": 0,
+  "id": 7,
+  "listen": "",
+  "port": 8443,
+  "protocol": "vmess",
+  "remark": "carol-vmess-tcp-tls",
+  "settings": {
+    "clients": [
+      {
+        "comment": "",
+        "email": "carol@example.test",
+        "enable": true,
+        "expiryTime": 0,
+        "id": "11111111-2222-4333-8444-555555555555",
+        "limitIp": 0,
+        "reset": 0,
+        "security": "auto",
+        "subId": "vmess-001",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
+  },
+  "sniffing": {
+    "destOverride": [
+      "http",
+      "tls",
+      "quic",
+      "fakedns",
+    ],
+    "domainsExcluded": [],
+    "enabled": true,
+    "ipsExcluded": [],
+    "metadataOnly": false,
+    "routeOnly": false,
+  },
+  "streamSettings": {
+    "network": "tcp",
+    "security": "tls",
+    "tcpSettings": {
+      "header": {
+        "type": "none",
+      },
+    },
+    "tlsSettings": {
+      "alpn": [
+        "h2",
+        "http/1.1",
+      ],
+      "certificates": [
+        {
+          "buildChain": false,
+          "certificateFile": "/etc/ssl/certs/vmess.crt",
+          "keyFile": "/etc/ssl/private/vmess.key",
+          "oneTimeLoading": false,
+          "usage": "encipherment",
+        },
+      ],
+      "cipherSuites": "",
+      "disableSystemRoot": false,
+      "echServerKeys": "",
+      "enableSessionResumption": false,
+      "maxVersion": "1.3",
+      "minVersion": "1.2",
+      "rejectUnknownSni": false,
+      "serverName": "vmess.example.test",
+      "settings": {
+        "echConfigList": "",
+        "fingerprint": "chrome",
+      },
+    },
+  },
+  "tag": "inbound-vmess-1",
+  "total": 0,
+  "up": 0,
+}
+`;
