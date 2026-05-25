@@ -2,12 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Modal, Select } from 'antd';
 
-export interface BalancerFormValue {
-  tag: string;
-  strategy: string;
-  selector: string[];
-  fallbackTag: string;
-}
+import { BalancerFormSchema, type BalancerFormValues } from '@/schemas/xray';
+
+export type BalancerFormValue = BalancerFormValues;
 
 interface BalancerFormModalProps {
   open: boolean;
@@ -56,28 +53,40 @@ export default function BalancerFormModal({
     }
   }, [open, balancer]);
 
-  const tagEmpty = !tag.trim();
-  const duplicateTag = !!tag && otherTags.includes(tag.trim());
-  const emptySelector = selector.length === 0;
-  const isValid = !tagEmpty && !duplicateTag && !emptySelector;
+  const parsed = useMemo(
+    () => BalancerFormSchema.safeParse({ tag, strategy, selector, fallbackTag }),
+    [tag, strategy, selector, fallbackTag],
+  );
+  const duplicateTag = !!tag.trim() && otherTags.includes(tag.trim());
+  const issuesByField = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const key = String(issue.path[0] ?? '');
+        if (!map[key]) map[key] = issue.message;
+      }
+    }
+    return map;
+  }, [parsed]);
+  const isValid = parsed.success && !duplicateTag;
 
-  const tagValidateStatus: 'error' | 'warning' | 'success' = tagEmpty
+  const tagValidateStatus: 'error' | 'warning' | 'success' = issuesByField.tag
     ? 'error'
     : duplicateTag
       ? 'warning'
       : 'success';
-  const tagHelp = tagEmpty
+  const tagHelp = issuesByField.tag
     ? 'Tag is required'
     : duplicateTag
       ? 'Tag already used by another balancer'
       : '';
 
-  const selectorValidateStatus: 'error' | 'success' = emptySelector ? 'error' : 'success';
-  const selectorHelp = emptySelector ? 'Pick at least one outbound' : '';
+  const selectorValidateStatus: 'error' | 'success' = issuesByField.selector ? 'error' : 'success';
+  const selectorHelp = issuesByField.selector ? 'Pick at least one outbound' : '';
 
   function submit() {
-    if (!isValid) return;
-    onConfirm({ tag, strategy, selector, fallbackTag });
+    if (!parsed.success || duplicateTag) return;
+    onConfirm(parsed.data);
   }
 
   const title = isEdit

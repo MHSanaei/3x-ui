@@ -71,6 +71,52 @@ export const OutboundTestResultSchema = z.object({
     .optional(),
 }).loose();
 
+export const CustomGeoFormSchema = z.object({
+  type: z.enum(['geosite', 'geoip']),
+  alias: z.string().regex(/^[a-z0-9_-]+$/, 'pages.index.customGeoValidationAlias'),
+  url: z
+    .string()
+    .trim()
+    .refine(
+      (u) => {
+        if (!/^https?:\/\//i.test(u)) return false;
+        try {
+          const parsed = new URL(u);
+          return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch {
+          return false;
+        }
+      },
+      { message: 'pages.index.customGeoValidationUrl' },
+    ),
+});
+
+export const RuleFormSchema = z.object({
+  domain: z.string(),
+  ip: z.string(),
+  port: z.string(),
+  sourcePort: z.string(),
+  vlessRoute: z.string(),
+  network: z.string(),
+  sourceIP: z.string(),
+  user: z.string(),
+  inboundTag: z.array(z.string()),
+  protocol: z.array(z.string()),
+  attrs: z.array(z.tuple([z.string(), z.string()])),
+  outboundTag: z.string(),
+  balancerTag: z.string(),
+});
+
+export const BalancerFormSchema = z.object({
+  tag: z.string().trim().min(1, 'pages.xray.balancerTagRequired'),
+  strategy: z.string(),
+  selector: z.array(z.string()).min(1, 'pages.xray.balancerSelectorRequired'),
+  fallbackTag: z.string(),
+});
+
+export type BalancerFormValues = z.infer<typeof BalancerFormSchema>;
+export type RuleFormValues = z.infer<typeof RuleFormSchema>;
+export type CustomGeoFormValues = z.infer<typeof CustomGeoFormSchema>;
 export type XraySettingsValue = z.infer<typeof XraySettingsValueSchema>;
 export type XrayConfigPayload = z.infer<typeof XrayConfigPayloadSchema>;
 export type OutboundTrafficRow = z.infer<typeof OutboundTrafficRowSchema>;

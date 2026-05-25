@@ -8,4 +8,8 @@ export const LoginFormSchema = z.object({
 
 export const TwoFactorCodeSchema = z.string().min(1, 'twoFactorCode');
 
+export const TotpCodeSchema = z
+  .string()
+  .regex(/^\d{6}$/, 'pages.settings.security.twoFactorModalError');
+
 export type LoginFormValues = z.infer<typeof LoginFormSchema>;

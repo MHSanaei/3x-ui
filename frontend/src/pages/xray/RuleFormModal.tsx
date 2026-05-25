@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, Modal, Select, Space, Tooltip } from 'antd';
 import { PlusOutlined, MinusOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import InputAddon from '@/components/InputAddon';
+import { RuleFormSchema, type RuleFormValues } from '@/schemas/xray';
 
 export interface RoutingRule {
   type?: string;
@@ -32,21 +33,7 @@ interface RuleFormModalProps {
   onConfirm: (rule: Record<string, unknown>) => void;
 }
 
-interface FormState {
-  domain: string;
-  ip: string;
-  port: string;
-  sourcePort: string;
-  vlessRoute: string;
-  network: string;
-  sourceIP: string;
-  user: string;
-  inboundTag: string[];
-  protocol: string[];
-  attrs: [string, string][];
-  outboundTag: string;
-  balancerTag: string;
-}
+type FormState = RuleFormValues;
 
 const initialForm = (): FormState => ({
   domain: '',
@@ -112,21 +99,24 @@ export default function RuleFormModal({
     setForm((prev) => ({ ...prev, [key]: value }));
 
   function submit() {
+    const validated = RuleFormSchema.safeParse(form);
+    if (!validated.success) return;
+    const v = validated.data;
     const built: Record<string, unknown> = {
       type: 'field',
-      domain: csv(form.domain),
-      ip: csv(form.ip),
-      port: form.port,
-      sourcePort: form.sourcePort,
-      vlessRoute: form.vlessRoute,
-      network: form.network,
-      sourceIP: csv(form.sourceIP),
-      user: csv(form.user),
-      inboundTag: form.inboundTag,
-      protocol: form.protocol,
-      attrs: Object.fromEntries(form.attrs.filter(([k]) => k)),
-      outboundTag: form.outboundTag === '' ? undefined : form.outboundTag,
-      balancerTag: form.balancerTag === '' ? undefined : form.balancerTag,
+      domain: csv(v.domain),
+      ip: csv(v.ip),
+      port: v.port,
+      sourcePort: v.sourcePort,
+      vlessRoute: v.vlessRoute,
+      network: v.network,
+      sourceIP: csv(v.sourceIP),
+      user: csv(v.user),
+      inboundTag: v.inboundTag,
+      protocol: v.protocol,
+      attrs: Object.fromEntries(v.attrs.filter(([k]) => k)),
+      outboundTag: v.outboundTag === '' ? undefined : v.outboundTag,
+      balancerTag: v.balancerTag === '' ? undefined : v.balancerTag,
     };
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(built)) {

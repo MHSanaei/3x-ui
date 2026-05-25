@@ -105,6 +105,15 @@ export const ClientCreateFormSchema = ClientFormSchema.extend({
   inboundIds: z.array(z.number()).min(1, 'pages.clients.selectInbound'),
 });
 
+export const ClientBulkAdjustFormSchema = z
+  .object({
+    addDays: z.number().int(),
+    addGB: z.number(),
+  })
+  .refine((v) => v.addDays !== 0 || v.addGB !== 0, {
+    message: 'pages.clients.bulkAdjustNothing',
+  });
+
 export const ClientBulkAddFormSchema = z.object({
   emailMethod: z.number().int().min(0).max(4),
   firstNum: z.number().int().min(1),
@@ -129,4 +138,5 @@ export type ClientPageResponse = z.infer<typeof ClientPageResponseSchema>;
 export type ClientHydrate = z.infer<typeof ClientHydrateSchema>;
 export type BulkAdjustResult = z.infer<typeof BulkAdjustResultSchema>;
 export type ClientBulkAddFormValues = z.infer<typeof ClientBulkAddFormSchema>;
+export type ClientBulkAdjustFormValues = z.infer<typeof ClientBulkAdjustFormSchema>;
 export type ClientFormValues = z.infer<typeof ClientFormSchema>;
