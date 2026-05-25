@@ -60,6 +60,23 @@
   background: transparent;
 }
 
+.index-page .content-area,
+.clients-page .content-area,
+.inbounds-page .content-area,
+.xray-page .content-area,
+.settings-page .content-area,
+.nodes-page .content-area {
+  padding: 24px;
+}
+
+@media (max-width: 768px) {
+  .clients-page .content-area,
+  .inbounds-page .content-area,
+  .nodes-page .content-area {
+    padding: 8px;
+  }
+}
+
 .loading-spacer {
   min-height: calc(100vh - 120px);
 }

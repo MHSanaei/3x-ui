@@ -1,7 +1,3 @@
-.index-page .content-area {
-  padding: 24px;
-}
-
 @media (max-width: 768px) {
   .index-page .content-area {
     padding: 12px;

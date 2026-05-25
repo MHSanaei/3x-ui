@@ -1,13 +1,3 @@
-.nodes-page .content-area {
-  padding: 24px;
-}
-
-@media (max-width: 768px) {
-  .nodes-page .content-area {
-    padding: 8px;
-  }
-}
-
 .nodes-page .summary-card {
   padding: 16px;
 }

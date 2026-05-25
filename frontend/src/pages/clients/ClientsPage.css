@@ -1,13 +1,3 @@
-.clients-page .content-area {
-  padding: 24px;
-}
-
-@media (max-width: 768px) {
-  .clients-page .content-area {
-    padding: 8px;
-  }
-}
-
 .clients-page .ant-pagination-options-size-changer,
 .clients-page .ant-pagination-options-size-changer .ant-select-selector {
   min-width: 100px;
