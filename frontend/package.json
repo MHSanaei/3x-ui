@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "gen:api": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/build-openapi.mjs"
+    "gen:api": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/build-openapi.mjs",
+    "gen:zod": "cd .. && go run ./tools/openapigen"
   },
   "dependencies": {
     "@ant-design/icons": "^6.2.3",
