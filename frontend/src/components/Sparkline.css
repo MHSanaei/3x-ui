@@ -5,17 +5,17 @@
 
 .sparkline-svg .cpu-grid-y-text,
 .sparkline-svg .cpu-grid-x-text {
-  fill: rgba(0, 0, 0, 0.55);
+  fill: var(--ant-color-text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: 0.2px;
 }
 
 .sparkline-svg .cpu-grid-text {
-  fill: rgba(0, 0, 0, 0.88);
+  fill: var(--ant-color-text);
 }
 
 .sparkline-svg .cpu-grid-line {
-  stroke: rgba(0, 0, 0, 0.08);
+  stroke: var(--ant-color-border-secondary);
 }
 
 .sparkline-svg .cpu-tooltip-text {
@@ -24,19 +24,6 @@
 
 .sparkline-svg .cpu-tooltip-pill {
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.18));
-}
-
-body.dark .sparkline-svg .cpu-grid-y-text,
-body.dark .sparkline-svg .cpu-grid-x-text {
-  fill: rgba(255, 255, 255, 0.7);
-}
-
-body.dark .sparkline-svg .cpu-grid-text {
-  fill: rgba(255, 255, 255, 0.95);
-}
-
-body.dark .sparkline-svg .cpu-grid-line {
-  stroke: rgba(255, 255, 255, 0.10);
 }
 
 body.dark .sparkline-svg .cpu-tooltip-pill {
