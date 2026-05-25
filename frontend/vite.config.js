@@ -87,7 +87,9 @@ function bypassMigratedRoute(req) {
   if (url.startsWith(basePath)) {
     const stripped = url.slice(basePath.length);
     for (const prefix of PANEL_API_PREFIXES) {
-      if (stripped === prefix.replace(/\/$/, '') || stripped.startsWith(prefix)) {
+      if (prefix.endsWith('/')) {
+        if (stripped.startsWith(prefix)) return undefined;
+      } else if (stripped === prefix || stripped.startsWith(prefix + '/')) {
         return undefined;
       }
     }
