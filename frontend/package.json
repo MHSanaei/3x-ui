@@ -14,6 +14,8 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "gen:api": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/build-openapi.mjs",
     "gen:zod": "cd .. && go run ./tools/openapigen"
   },
@@ -50,7 +52,8 @@
     "globals": "^17.6.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.4",
-    "vite": "8.0.13"
+    "vite": "8.0.13",
+    "vitest": "^4.1.7"
   },
   "overrides": {
     "react-copy-to-clipboard": "^5.1.1",
