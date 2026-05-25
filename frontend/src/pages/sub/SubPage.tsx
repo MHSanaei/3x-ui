@@ -21,6 +21,9 @@ import {
   AppleOutlined,
   CopyOutlined,
   DownOutlined,
+  MoonFilled,
+  MoonOutlined,
+  SunOutlined,
   TranslationOutlined,
 } from '@ant-design/icons';
 
@@ -219,21 +222,7 @@ export default function SubPage() {
     [],
   );
 
-  const themeIcon = !isDark ? (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-    </svg>
-  ) : !isUltra ? (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-    </svg>
-  ) : (
-    <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-      <path fill="none" d="M19 3l0.7 1.4 1.4 0.7-1.4 0.7L19 7.2l-0.7-1.4-1.4-0.7 1.4-0.7z" />
-    </svg>
-  );
+  const themeIcon = !isDark ? <SunOutlined /> : !isUltra ? <MoonOutlined /> : <MoonFilled />;
 
   const cardTitle = (
     <Space>
@@ -250,10 +239,9 @@ export default function SubPage() {
         className="toolbar-btn"
         aria-label={t('menu.theme')}
         title={t('menu.theme')}
+        icon={themeIcon}
         onClick={cycleTheme}
-      >
-        {themeIcon}
-      </Button>
+      />
       <Popover
         rootClassName={isDark ? 'dark' : 'light'}
         placement="bottomRight"
