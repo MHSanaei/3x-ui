@@ -55,12 +55,12 @@
 }
 
 .index-page .action-update {
-  color: #fa8c16;
+  color: var(--ant-color-warning);
   font-weight: 600;
 }
 
 .index-page .action-update .anticon {
-  color: #fa8c16;
+  color: var(--ant-color-warning);
 }
 
 .index-page .history-tag {

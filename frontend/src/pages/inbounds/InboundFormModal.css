@@ -8,13 +8,13 @@
 .random-icon {
   margin-left: 4px;
   cursor: pointer;
-  color: var(--ant-color-primary, #1890ff);
+  color: var(--ant-color-primary);
 }
 
 .danger-icon {
   margin-left: 6px;
   cursor: pointer;
-  color: #ff4d4f;
+  color: var(--ant-color-error);
 }
 
 .vless-auth-state {

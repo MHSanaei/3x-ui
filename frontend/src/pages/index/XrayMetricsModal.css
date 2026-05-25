@@ -40,23 +40,23 @@
   border-radius: 50%;
   margin-right: 6px;
   vertical-align: middle;
-  box-shadow: 0 0 0 3px rgba(82, 196, 26, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ant-color-success) 18%, transparent);
 }
 
 .obs-dot.is-alive {
-  background: #52c41a;
-  box-shadow: 0 0 0 3px rgba(82, 196, 26, 0.22);
+  background: var(--ant-color-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ant-color-success) 22%, transparent);
   animation: obs-dot-pulse 2.2s ease-in-out infinite;
 }
 
 .obs-dot.is-dead {
-  background: #f5222d;
-  box-shadow: 0 0 0 3px rgba(245, 34, 45, 0.22);
+  background: var(--ant-color-error);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ant-color-error) 22%, transparent);
 }
 
 @keyframes obs-dot-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(82, 196, 26, 0.22); }
-  50% { box-shadow: 0 0 0 6px rgba(82, 196, 26, 0.06); }
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ant-color-success) 22%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--ant-color-success) 6%, transparent); }
 }
 
 @media (prefers-reduced-motion: reduce) {
