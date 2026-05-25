@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, no-var, prefer-const */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ObjectUtil, Base64, Wireguard } from '@/utils';
 
 export const Protocols = {
@@ -262,7 +262,7 @@ export class TcpStreamSettings extends CommonClass {
     }
 
     static fromJson(json: any = {}): any {
-        let header = json.header;
+        const header = json.header;
         if (!header) return new TcpStreamSettings();
         if (header.type == 'http' && header.request) {
             return new TcpStreamSettings(
@@ -1349,14 +1349,14 @@ export class Outbound extends CommonClass {
     }
 
     toJson() {
-        var stream;
+        let stream;
         if (this.canEnableStream()) {
             stream = this.stream.toJson();
         } else {
             if (this.stream?.sockopt)
                 stream = { sockopt: this.stream.sockopt.toJson() };
         }
-        let settingsOut = this.settings instanceof CommonClass ? this.settings.toJson() : this.settings;
+        const settingsOut = this.settings instanceof CommonClass ? this.settings.toJson() : this.settings;
         return {
             protocol: this.protocol,
             settings: settingsOut,
@@ -1387,9 +1387,9 @@ export class Outbound extends CommonClass {
     }
 
     static fromVmessLink(json: any = {}) {
-        let stream = new StreamSettings(json.net, json.tls);
+        const stream = new StreamSettings(json.net, json.tls);
 
-        let network = json.net;
+        const network = json.net;
         if (network === 'tcp') {
             stream.tcp = new TcpStreamSettings(
                 json.type,
@@ -1470,15 +1470,15 @@ export class Outbound extends CommonClass {
 
     static fromParamLink(link: any) {
         const url = new URL(link);
-        let type = url.searchParams.get('type') ?? 'tcp';
-        let security = url.searchParams.get('security') ?? 'none';
-        let stream = new StreamSettings(type, security);
+        const type = url.searchParams.get('type') ?? 'tcp';
+        const security = url.searchParams.get('security') ?? 'none';
+        const stream = new StreamSettings(type, security);
 
-        let headerType = url.searchParams.get('headerType') ?? undefined;
-        let host = url.searchParams.get('host') ?? undefined;
-        let path = url.searchParams.get('path') ?? undefined;
-        let seed = url.searchParams.get('seed') ?? path ?? undefined;
-        let mode = url.searchParams.get('mode') ?? undefined;
+        const headerType = url.searchParams.get('headerType') ?? undefined;
+        const host = url.searchParams.get('host') ?? undefined;
+        const path = url.searchParams.get('path') ?? undefined;
+        const seed = url.searchParams.get('seed') ?? path ?? undefined;
+        const mode = url.searchParams.get('mode') ?? undefined;
 
         if (type === 'tcp' || type === 'none') {
             stream.tcp = new TcpStreamSettings(headerType ?? 'none', host, path);
@@ -1546,20 +1546,20 @@ export class Outbound extends CommonClass {
         }
 
         if (security == 'tls') {
-            let fp = url.searchParams.get('fp') ?? 'none';
-            let alpn = url.searchParams.get('alpn');
-            let sni = url.searchParams.get('sni') ?? '';
-            let ech = url.searchParams.get('ech') ?? '';
+            const fp = url.searchParams.get('fp') ?? 'none';
+            const alpn = url.searchParams.get('alpn');
+            const sni = url.searchParams.get('sni') ?? '';
+            const ech = url.searchParams.get('ech') ?? '';
             stream.tls = new TlsStreamSettings(sni, alpn ? alpn.split(',') : [], fp, ech);
         }
 
         if (security == 'reality') {
-            let pbk = url.searchParams.get('pbk');
-            let fp = url.searchParams.get('fp');
-            let sni = url.searchParams.get('sni') ?? '';
-            let sid = url.searchParams.get('sid') ?? '';
-            let spx = url.searchParams.get('spx') ?? '';
-            let pqv = url.searchParams.get('pqv') ?? '';
+            const pbk = url.searchParams.get('pbk');
+            const fp = url.searchParams.get('fp');
+            const sni = url.searchParams.get('sni') ?? '';
+            const sid = url.searchParams.get('sid') ?? '';
+            const spx = url.searchParams.get('spx') ?? '';
+            const pqv = url.searchParams.get('pqv') ?? '';
             stream.reality = new RealityStreamSettings(pbk, fp, sni, sid, spx, pqv);
         }
 
@@ -1567,13 +1567,16 @@ export class Outbound extends CommonClass {
         const match = link.match(regex);
 
         if (!match) return null;
-        let [, protocol, userData, address, port,] = match;
+        const address = match[3];
+        let protocol = match[1];
+        let userData: any = match[2];
+        let port: any = match[4];
         port *= 1;
         if (protocol == 'ss') {
             protocol = 'shadowsocks';
             userData = atob(userData).split(':');
         }
-        var settings;
+        let settings;
         switch (protocol) {
             case Protocols.VLESS:
                 settings = new Outbound.VLESSSettings(address, port, userData, url.searchParams.get('flow') ?? '', url.searchParams.get('encryption') ?? 'none');
@@ -1610,22 +1613,23 @@ export class Outbound extends CommonClass {
 
         if (!match) return null;
 
-        let [, password, address, port, params, hash] = match;
+        const password = match[1];
+        const address = match[2];
+        let port: any = match[3];
+        const params = match[4];
+        const hash = match[5];
         port = parseInt(port);
 
-        // Parse URL parameters if present
-        let urlParams = new URLSearchParams(params);
+        const urlParams = new URLSearchParams(params);
 
-        // Create stream settings with hysteria network
-        let security = urlParams.get('security') ?? 'none';
-        let stream = new StreamSettings('hysteria', security);
+        const security = urlParams.get('security') ?? 'none';
+        const stream = new StreamSettings('hysteria', security);
 
-        // Parse TLS settings when security=tls
         if (security === 'tls') {
-            let fp = urlParams.get('fp') ?? 'none';
-            let alpn = urlParams.get('alpn');
-            let sni = urlParams.get('sni') ?? '';
-            let ech = urlParams.get('ech') ?? '';
+            const fp = urlParams.get('fp') ?? 'none';
+            const alpn = urlParams.get('alpn');
+            const sni = urlParams.get('sni') ?? '';
+            const ech = urlParams.get('ech') ?? '';
             stream.tls = new TlsStreamSettings(sni, alpn ? alpn.split(',') : [], fp, ech);
         }
 
@@ -1700,11 +1704,9 @@ export class Outbound extends CommonClass {
             } catch (_) { /* ignore malformed fm */ }
         }
 
-        // Create settings
-        let settings = new Outbound.HysteriaSettings(address, port, 2);
+        const settings = new Outbound.HysteriaSettings(address, port, 2);
 
-        // Extract remark from hash
-        let remark = hash ? decodeURIComponent(hash.substring(1)) : `out-hysteria-${port}`;
+        const remark = hash ? decodeURIComponent(hash.substring(1)) : `out-hysteria-${port}`;
 
         return new Outbound(remark, Protocols.Hysteria, settings, stream);
     }
