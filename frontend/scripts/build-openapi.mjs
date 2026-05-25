@@ -3,7 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { sections } from '../src/pages/api-docs/endpoints.js';
+import { sections } from '../src/pages/api-docs/endpoints.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outPath = join(__dirname, '..', 'public', 'openapi.json');

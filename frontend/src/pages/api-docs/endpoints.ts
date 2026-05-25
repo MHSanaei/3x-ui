@@ -1,29 +1,59 @@
-export function safeInlineHtml(input) {
-  if (!input) return '';
-  const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const open = '<code>';
-  const close = '</code>';
-  let out = '';
-  let i = 0;
-  while (i < input.length) {
-    const oIdx = input.indexOf(open, i);
-    if (oIdx === -1) {
-      out += escape(input.slice(i));
-      break;
-    }
-    out += escape(input.slice(i, oIdx));
-    const cIdx = input.indexOf(close, oIdx + open.length);
-    if (cIdx === -1) {
-      out += escape(input.slice(oIdx));
-      break;
-    }
-    out += '<code>' + escape(input.slice(oIdx + open.length, cIdx)) + '</code>';
-    i = cIdx + close.length;
-  }
-  return out;
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'WS';
+export type ParamLocation =
+  | 'path'
+  | 'query'
+  | 'header'
+  | 'body'
+  | 'body (form)'
+  | 'body (json)'
+  | 'body (multipart)';
+export type ParamType =
+  | 'string'
+  | 'integer'
+  | 'integer[]'
+  | 'number'
+  | 'boolean'
+  | 'object'
+  | 'object[]'
+  | 'array'
+  | 'file';
+
+export interface EndpointParam {
+  name: string;
+  in: ParamLocation;
+  type: ParamType;
+  desc?: string;
+  optional?: boolean;
+  defaultValue?: string | number | boolean;
 }
 
-export const sections = [
+export interface Endpoint {
+  method: HttpMethod;
+  path: string;
+  summary: string;
+  description?: string;
+  deprecated?: boolean;
+  params?: EndpointParam[];
+  body?: string;
+  response?: string;
+  errorResponse?: string;
+  errorStatus?: number;
+}
+
+export interface SubscriptionHeader {
+  name: string;
+  desc: string;
+}
+
+export interface Section {
+  id: string;
+  title: string;
+  description?: string;
+  subHeader?: SubscriptionHeader[];
+  endpoints: Endpoint[];
+}
+
+export const sections: readonly Section[] = [
   {
     id: 'authentication',
     title: 'Authentication',
@@ -975,12 +1005,3 @@ export const sections = [
     ],
   },
 ];
-
-export const methodColors = {
-  GET: 'blue',
-  POST: 'green',
-  PUT: 'orange',
-  PATCH: 'orange',
-  DELETE: 'red',
-  WS: 'purple',
-};

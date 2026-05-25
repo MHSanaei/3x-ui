@@ -16,10 +16,10 @@ type routeDef struct {
 // routePattern matches route registrations like g.GET("/path", handler) or api.GET("/path", handler)
 var routePattern = regexp.MustCompile(`\b(g|api)\.(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\("([^"]+)"`)
 
-// docRoutePattern matches { method: 'X', path: 'Y' ... } entries in endpoints.js.
+// docRoutePattern matches { method: 'X', path: 'Y' ... } entries in endpoints.ts.
 var docRoutePattern = regexp.MustCompile(`method:\s*'([A-Z]+)'\s*,\s*path:\s*'([^']+)'`)
 
-// buildDocSet parses frontend/src/pages/api-docs/endpoints.js and returns the
+// buildDocSet parses frontend/src/pages/api-docs/endpoints.ts and returns the
 // set of documented "METHOD PATH" keys. WS pseudo-routes and subscription
 // placeholders (paths starting with /{...}) are skipped because they aren't
 // registered on the main Gin engine.
@@ -29,10 +29,10 @@ func buildDocSet(t *testing.T) map[string]bool {
 	if err != nil {
 		t.Fatalf("failed to get current dir: %v", err)
 	}
-	endpointsPath := filepath.Join(controllerDir, "..", "..", "frontend", "src", "pages", "api-docs", "endpoints.js")
+	endpointsPath := filepath.Join(controllerDir, "..", "..", "frontend", "src", "pages", "api-docs", "endpoints.ts")
 	data, err := os.ReadFile(endpointsPath)
 	if err != nil {
-		t.Fatalf("failed to read endpoints.js at %s: %v", endpointsPath, err)
+		t.Fatalf("failed to read endpoints.ts at %s: %v", endpointsPath, err)
 	}
 	docSet := make(map[string]bool)
 	for _, m := range docRoutePattern.FindAllStringSubmatch(string(data), -1) {
@@ -150,7 +150,7 @@ func TestAPIRoutesDocumented(t *testing.T) {
 			foundInDoc++
 		} else {
 			missingFromDocs++
-			t.Errorf("Route not documented in endpoints.js: %s %s", r.Method, r.Path)
+			t.Errorf("Route not documented in endpoints.ts: %s %s", r.Method, r.Path)
 		}
 	}
 
@@ -158,6 +158,6 @@ func TestAPIRoutesDocumented(t *testing.T) {
 		len(sourceSet), len(docSet), foundInDoc, missingFromDocs)
 
 	if missingFromDocs > 0 {
-		t.Errorf("Found %d undocumented route(s). Update endpoints.js to match.", missingFromDocs)
+		t.Errorf("Found %d undocumented route(s). Update endpoints.ts to match.", missingFromDocs)
 	}
 }
