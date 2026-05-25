@@ -1,10 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-this-alias */
 import axios from 'axios';
 import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { getMessage } from './messageBus';
 
 type RespEnvelope = { success?: unknown; msg?: unknown; obj?: unknown };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class Msg<T = any> {
   success: boolean;
   msg: string;
@@ -50,6 +50,7 @@ export class HttpUtil {
     return typeof data === 'object' ? (data as Msg) : new Msg(false, 'unknown data:', data);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async get<T = any>(url: string, params?: unknown, options: HttpOptions = {}): Promise<Msg<T>> {
     const { silent, ...axiosOpts } = options;
     try {
@@ -66,6 +67,7 @@ export class HttpUtil {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async post<T = any>(url: string, data?: unknown, options: HttpOptions = {}): Promise<Msg<T>> {
     const { silent, ...axiosOpts } = options;
     try {
@@ -82,6 +84,7 @@ export class HttpUtil {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async postWithModal<T = any>(url: string, data?: unknown, modal?: HttpModal | null): Promise<Msg<T>> {
     if (modal) {
       modal.loading(true);
@@ -262,51 +265,53 @@ export class ObjectUtil {
     }
   }
 
-  static clone(obj: any): any {
+  static clone<T>(obj: T): T {
     if (obj instanceof Array) {
       const newArr: unknown[] = [];
       this.copyArr(newArr, obj);
-      return newArr;
+      return newArr as unknown as T;
     }
     if (obj instanceof Object) {
       const newObj: AnyRecord = {};
-      const rec = obj as AnyRecord;
+      const rec = obj as unknown as AnyRecord;
       for (const key of Object.keys(rec)) {
         newObj[key] = rec[key];
       }
-      return newObj;
+      return newObj as unknown as T;
     }
     return obj;
   }
 
-  static deepClone(obj: any): any {
+  static deepClone<T>(obj: T): T {
     if (obj instanceof Array) {
       const newArr: unknown[] = [];
       for (const item of obj) {
         newArr.push(this.deepClone(item));
       }
-      return newArr;
+      return newArr as unknown as T;
     }
     if (obj instanceof Object) {
       const newObj: AnyRecord = {};
-      const rec = obj as AnyRecord;
+      const rec = obj as unknown as AnyRecord;
       for (const key of Object.keys(rec)) {
         newObj[key] = this.deepClone(rec[key]);
       }
-      return newObj;
+      return newObj as unknown as T;
     }
     return obj;
   }
 
-  static cloneProps(dest: any, src: any, ...ignoreProps: string[]): void {
+  static cloneProps(dest: object, src: object, ...ignoreProps: string[]): void {
     if (dest == null || src == null) return;
     const ignoreEmpty = this.isArrEmpty(ignoreProps);
-    for (const key of Object.keys(src)) {
-      if (!Object.prototype.hasOwnProperty.call(src, key)) continue;
-      if (!Object.prototype.hasOwnProperty.call(dest, key)) continue;
-      if (src[key] === undefined) continue;
+    const d = dest as AnyRecord;
+    const s = src as AnyRecord;
+    for (const key of Object.keys(s)) {
+      if (!Object.prototype.hasOwnProperty.call(s, key)) continue;
+      if (!Object.prototype.hasOwnProperty.call(d, key)) continue;
+      if (s[key] === undefined) continue;
       if (ignoreEmpty) {
-        dest[key] = src[key];
+        d[key] = s[key];
       } else {
         let ignore = false;
         for (let i = 0; i < ignoreProps.length; ++i) {
@@ -316,16 +321,17 @@ export class ObjectUtil {
           }
         }
         if (!ignore) {
-          dest[key] = src[key];
+          d[key] = s[key];
         }
       }
     }
   }
 
-  static delProps(obj: any, ...props: string[]): void {
+  static delProps(obj: object, ...props: string[]): void {
+    const o = obj as AnyRecord;
     for (const prop of props) {
-      if (prop in obj) {
-        delete obj[prop];
+      if (prop in o) {
+        delete o[prop];
       }
     }
   }
@@ -341,13 +347,18 @@ export class ObjectUtil {
     return obj;
   }
 
-  static equals(a: any, b: any): boolean {
-    const aKeys = Object.keys(a);
-    const bKeys = Object.keys(b);
+  static equals(a: unknown, b: unknown): boolean {
+    if (a == null || b == null || typeof a !== 'object' || typeof b !== 'object') {
+      return a === b;
+    }
+    const ra = a as AnyRecord;
+    const rb = b as AnyRecord;
+    const aKeys = Object.keys(ra);
+    const bKeys = Object.keys(rb);
     if (aKeys.length !== bKeys.length) return false;
     for (const key of aKeys) {
-      if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
-      if (a[key] !== b[key]) return false;
+      if (!Object.prototype.hasOwnProperty.call(rb, key)) return false;
+      if (ra[key] !== rb[key]) return false;
     }
     return true;
   }
@@ -669,8 +680,7 @@ export class Utils {
     let timeoutID: ReturnType<typeof setTimeout> | null = null;
     return function (this: unknown, ...args: A) {
       if (timeoutID !== null) clearTimeout(timeoutID);
-      const self = this;
-      timeoutID = setTimeout(() => fn.apply(self, args), delay);
+      timeoutID = setTimeout(() => fn.apply(this, args), delay);
     };
   }
 }
@@ -720,7 +730,11 @@ export interface ExpiryClient {
 }
 
 export class ColorUtils {
-  static usageColor(data: any, threshold: number, total: any): UsageColor {
+  static usageColor(
+    data: number | null | undefined,
+    threshold: number,
+    total: number | { valueOf(): number } | null | undefined,
+  ): UsageColor {
     const t = Number(total ?? 0);
     const d = Number(data);
     switch (true) {

@@ -57,7 +57,7 @@ interface DBInboundRecord extends ProtocolFlags {
   down: number;
   total: number;
   expiryTime: number;
-  _expiryTime: unknown;
+  _expiryTime: { valueOf(): number } | null;
   nodeId?: number | null;
   toInbound: () => {
     stream?: { network?: string; isTls?: boolean; isReality?: boolean };
