@@ -1,0 +1,34 @@
+{
+  "id": 25,
+  "up": 0,
+  "down": 0,
+  "total": 0,
+  "remark": "wg-server",
+  "enable": true,
+  "expiryTime": 0,
+  "listen": "",
+  "port": 51820,
+  "tag": "inbound-wg-1",
+  "sniffing": {
+    "enabled": false,
+    "destOverride": ["http", "tls", "quic", "fakedns"],
+    "metadataOnly": false,
+    "routeOnly": false,
+    "ipsExcluded": [],
+    "domainsExcluded": []
+  },
+  "protocol": "wireguard",
+  "settings": {
+    "mtu": 1420,
+    "secretKey": "iJ2cBkrSGqRwIfYIDIxk7hr5RXfdR93MfJUL7yqkkH8=",
+    "peers": [
+      {
+        "privateKey": "QGVlb2dXc1ZTWGw0ZXBzZndsWmtMaUM5MUlNYjBHWFdYbz0=",
+        "publicKey": "DGSYIcEKAUkA7HhzGSjxLZuV67BR3LeyU0BMLJzNVHQ=",
+        "allowedIPs": ["10.0.0.2/32"],
+        "keepAlive": 25
+      }
+    ],
+    "noKernelTun": false
+  }
+}

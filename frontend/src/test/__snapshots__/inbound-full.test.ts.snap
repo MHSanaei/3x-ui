@@ -1,5 +1,82 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`InboundSchema (full) fixtures > parses hysteria-v1-tls byte-stably 1`] = `
+{
+  "down": 0,
+  "enable": true,
+  "expiryTime": 0,
+  "id": 21,
+  "listen": "",
+  "port": 36715,
+  "protocol": "hysteria",
+  "remark": "gina-hysteria-v1",
+  "settings": {
+    "clients": [
+      {
+        "auth": "hyst-v1-auth-XYZ",
+        "comment": "",
+        "email": "gina@example.test",
+        "enable": true,
+        "expiryTime": 0,
+        "limitIp": 0,
+        "reset": 0,
+        "subId": "hy1-001",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
+    "version": 1,
+  },
+  "sniffing": {
+    "destOverride": [
+      "http",
+      "tls",
+      "quic",
+      "fakedns",
+    ],
+    "domainsExcluded": [],
+    "enabled": false,
+    "ipsExcluded": [],
+    "metadataOnly": false,
+    "routeOnly": false,
+  },
+  "streamSettings": {
+    "network": "tcp",
+    "security": "tls",
+    "tcpSettings": {},
+    "tlsSettings": {
+      "alpn": [
+        "h3",
+      ],
+      "certificates": [
+        {
+          "buildChain": false,
+          "certificateFile": "/etc/ssl/certs/hysteria.crt",
+          "keyFile": "/etc/ssl/private/hysteria.key",
+          "oneTimeLoading": false,
+          "usage": "encipherment",
+        },
+      ],
+      "cipherSuites": "",
+      "disableSystemRoot": false,
+      "echServerKeys": "",
+      "enableSessionResumption": false,
+      "maxVersion": "1.3",
+      "minVersion": "1.2",
+      "rejectUnknownSni": false,
+      "serverName": "hysteria.example.test",
+      "settings": {
+        "echConfigList": "",
+        "fingerprint": "chrome",
+      },
+    },
+  },
+  "tag": "inbound-hysteria-v1",
+  "total": 0,
+  "up": 0,
+}
+`;
+
 exports[`InboundSchema (full) fixtures > parses shadowsocks-tcp-2022 byte-stably 1`] = `
 {
   "down": 0,
@@ -390,6 +467,50 @@ exports[`InboundSchema (full) fixtures > parses vmess-tcp-tls byte-stably 1`] = 
     },
   },
   "tag": "inbound-vmess-1",
+  "total": 0,
+  "up": 0,
+}
+`;
+
+exports[`InboundSchema (full) fixtures > parses wireguard-server byte-stably 1`] = `
+{
+  "down": 0,
+  "enable": true,
+  "expiryTime": 0,
+  "id": 25,
+  "listen": "",
+  "port": 51820,
+  "protocol": "wireguard",
+  "remark": "wg-server",
+  "settings": {
+    "mtu": 1420,
+    "noKernelTun": false,
+    "peers": [
+      {
+        "allowedIPs": [
+          "10.0.0.2/32",
+        ],
+        "keepAlive": 25,
+        "privateKey": "QGVlb2dXc1ZTWGw0ZXBzZndsWmtMaUM5MUlNYjBHWFdYbz0=",
+        "publicKey": "DGSYIcEKAUkA7HhzGSjxLZuV67BR3LeyU0BMLJzNVHQ=",
+      },
+    ],
+    "secretKey": "iJ2cBkrSGqRwIfYIDIxk7hr5RXfdR93MfJUL7yqkkH8=",
+  },
+  "sniffing": {
+    "destOverride": [
+      "http",
+      "tls",
+      "quic",
+      "fakedns",
+    ],
+    "domainsExcluded": [],
+    "enabled": false,
+    "ipsExcluded": [],
+    "metadataOnly": false,
+    "routeOnly": false,
+  },
+  "tag": "inbound-wg-1",
   "total": 0,
   "up": 0,
 }

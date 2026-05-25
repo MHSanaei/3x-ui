@@ -1,8 +1,12 @@
-import { Base64 } from '@/utils';
+import { Base64, Wireguard } from '@/utils';
 
 import type { Inbound } from '@/schemas/api/inbound';
 import type { VlessClient } from '@/schemas/protocols/inbound/vless';
 import type { VmessSecurity } from '@/schemas/protocols/inbound/vmess';
+import type {
+  WireguardInboundPeer,
+  WireguardInboundSettings,
+} from '@/schemas/protocols/inbound/wireguard';
 import type { ExternalProxyEntry } from '@/schemas/protocols/stream/external-proxy';
 import type { FinalMaskStreamSettings } from '@/schemas/protocols/stream/finalmask';
 import type { XHttpStreamSettings } from '@/schemas/protocols/stream/xhttp';
@@ -541,3 +545,136 @@ export function genShadowsocksLink(input: GenShadowsocksLinkInput): string {
   url.hash = encodeURIComponent(remark);
   return url.toString();
 }
+
+export interface GenHysteriaLinkInput {
+  inbound: Inbound;
+  address: string;
+  port?: number;
+  remark?: string;
+  clientAuth: string;
+}
+
+// Hysteria share link: hysteria://<auth>@<host>:<port>?<query>#<remark>.
+// The URL scheme is "hysteria2" when settings.version === 2 (hysteria v2
+// AKA hysteria2), "hysteria" otherwise. Salamander obfuscation pulls its
+// password from finalmask.udp[type=salamander] when present; the broader
+// finalmask payload still rides under `fm` like the other links.
+//
+// Note: legacy genHysteriaLink reads stream.tls.settings.allowInsecure,
+// which isn't a field on TlsStreamSettings.Settings — the guard is always
+// false. We omit the `insecure` param here to stay byte-stable.
+export function genHysteriaLink(input: GenHysteriaLinkInput): string {
+  const {
+    inbound,
+    address,
+    port = inbound.port,
+    remark = '',
+    clientAuth,
+  } = input;
+
+  if (inbound.protocol !== 'hysteria' && inbound.protocol !== 'hysteria2') return '';
+  const stream = inbound.streamSettings;
+  if (!stream || stream.security !== 'tls') return '';
+
+  const settings = inbound.settings;
+  const scheme = settings.version === 2 ? 'hysteria2' : 'hysteria';
+
+  const params = new URLSearchParams();
+  params.set('security', 'tls');
+  const tls = stream.tlsSettings;
+  if (tls.settings.fingerprint.length > 0) params.set('fp', tls.settings.fingerprint);
+  if (tls.alpn.length > 0) params.set('alpn', tls.alpn.join(','));
+  if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
+  if (tls.serverName.length > 0) params.set('sni', tls.serverName);
+
+  const udpMasks = stream.finalmask?.udp;
+  if (Array.isArray(udpMasks)) {
+    const salamander = udpMasks.find((m) => m?.type === 'salamander');
+    const obfsPassword = salamander?.settings?.password;
+    if (typeof obfsPassword === 'string' && obfsPassword.length > 0) {
+      params.set('obfs', 'salamander');
+      params.set('obfs-password', obfsPassword);
+    }
+  }
+
+  applyFinalMaskToParams(stream.finalmask, params);
+
+  const url = new URL(`${scheme}://${clientAuth}@${address}:${port}`);
+  for (const [key, value] of params) url.searchParams.set(key, value);
+  url.hash = encodeURIComponent(remark);
+  return url.toString();
+}
+
+export interface GenWireguardLinkInput {
+  settings: WireguardInboundSettings;
+  address: string;
+  port: number;
+  remark?: string;
+  peerIndex: number;
+}
+
+// Wireguard share link: wireguard://<peerPrivKey>@<host>:<port>
+//   ?publickey=<serverPub>&address=<peerAllowedIP>&mtu=<mtu>#<remark>
+// pubKey is derived from the server's secretKey via Wireguard.generateKeypair
+// at call time (Zod's schema stores secretKey only — pubKey isn't on the
+// wire). Returns '' when the peer index is out of bounds.
+export function genWireguardLink(input: GenWireguardLinkInput): string {
+  const { settings, address, port, remark = '', peerIndex } = input;
+  const peer = settings.peers[peerIndex];
+  if (!peer) return '';
+
+  const url = new URL(`wireguard://${address}:${port}`);
+  url.username = peer.privateKey ?? '';
+
+  const pubKey = settings.secretKey.length > 0
+    ? Wireguard.generateKeypair(settings.secretKey).publicKey
+    : '';
+  if (pubKey.length > 0) url.searchParams.set('publickey', pubKey);
+  if (peer.allowedIPs.length > 0 && peer.allowedIPs[0]) {
+    url.searchParams.set('address', peer.allowedIPs[0]);
+  }
+  if (typeof settings.mtu === 'number' && settings.mtu > 0) {
+    url.searchParams.set('mtu', String(settings.mtu));
+  }
+
+  url.hash = encodeURIComponent(remark);
+  return url.toString();
+}
+
+// Plain-text WireGuard client config (.conf format). Mirrors the legacy
+// getWireguardTxt — same DNS defaults (1.1.1.1, 1.0.0.1), MTU optional,
+// presharedKey + keepAlive only emitted when present on the peer. The
+// final newline structure follows the legacy: no newline after Endpoint,
+// optional preSharedKey appended with leading \n, keepAlive appended
+// with leading \n AND trailing \n.
+export function genWireguardConfig(input: GenWireguardLinkInput): string {
+  const { settings, address, port, remark = '', peerIndex } = input;
+  const peer = settings.peers[peerIndex];
+  if (!peer) return '';
+
+  const pubKey = settings.secretKey.length > 0
+    ? Wireguard.generateKeypair(settings.secretKey).publicKey
+    : '';
+
+  let txt = `[Interface]\n`;
+  txt += `PrivateKey = ${peer.privateKey ?? ''}\n`;
+  txt += `Address = ${peer.allowedIPs[0] ?? ''}\n`;
+  txt += `DNS = 1.1.1.1, 1.0.0.1\n`;
+  if (typeof settings.mtu === 'number' && settings.mtu > 0) {
+    txt += `MTU = ${settings.mtu}\n`;
+  }
+  txt += `\n# ${remark}\n`;
+  txt += `[Peer]\n`;
+  txt += `PublicKey = ${pubKey}\n`;
+  txt += `AllowedIPs = 0.0.0.0/0, ::/0\n`;
+  txt += `Endpoint = ${address}:${port}`;
+  if (peer.preSharedKey && peer.preSharedKey.length > 0) {
+    txt += `\nPresharedKey = ${peer.preSharedKey}`;
+  }
+  if (typeof peer.keepAlive === 'number' && peer.keepAlive > 0) {
+    txt += `\nPersistentKeepalive = ${peer.keepAlive}\n`;
+  }
+  return txt;
+}
+
+export type { WireguardInboundPeer };

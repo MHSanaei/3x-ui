@@ -1,9 +1,18 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
 
-import { genShadowsocksLink, genTrojanLink, genVlessLink, genVmessLink } from '@/lib/xray/inbound-link';
+import {
+  genHysteriaLink,
+  genShadowsocksLink,
+  genTrojanLink,
+  genVlessLink,
+  genVmessLink,
+  genWireguardConfig,
+  genWireguardLink,
+} from '@/lib/xray/inbound-link';
 import { Inbound as LegacyInbound } from '@/models/inbound';
 import { InboundSchema } from '@/schemas/api/inbound';
+import type { WireguardInboundSettings } from '@/schemas/protocols/inbound/wireguard';
 
 // Parity harness for the share-link extraction. For each full inbound
 // fixture matching the protocol under test, we:
@@ -125,6 +134,67 @@ describe('genTrojanLink parity', () => {
       const legacyLink = legacy.genTrojanLink(address, port, 'same', remark, client.password, null);
 
       expect(newLink).toBe(legacyLink);
+    });
+  }
+});
+
+describe('genHysteriaLink parity', () => {
+  const fixtures = fixturesForProtocol('hysteria');
+  expect(fixtures.length, 'need at least one hysteria full-inbound fixture').toBeGreaterThan(0);
+
+  for (const [name, raw] of fixtures) {
+    it(`${name}: matches legacy Inbound.genHysteriaLink`, () => {
+      const typed = InboundSchema.parse(raw);
+      const settings = (raw as { settings: { clients: Array<{ auth: string }> } }).settings;
+      const client = settings.clients[0];
+
+      const address = 'example.test';
+      const port = typed.port;
+      const remark = 'parity-test';
+
+      const newLink = genHysteriaLink({
+        inbound: typed,
+        address,
+        port,
+        remark,
+        clientAuth: client.auth,
+      });
+
+      const legacy = LegacyInbound.fromJson(raw);
+      const legacyLink = legacy.genHysteriaLink(address, port, remark, client.auth);
+
+      expect(newLink).toBe(legacyLink);
+    });
+  }
+});
+
+describe('genWireguardLink + genWireguardConfig parity', () => {
+  const fixtures = fixturesForProtocol('wireguard');
+  expect(fixtures.length, 'need at least one wireguard full-inbound fixture').toBeGreaterThan(0);
+
+  for (const [name, raw] of fixtures) {
+    it(`${name}: matches legacy getWireguardLink + getWireguardTxt`, () => {
+      const typed = InboundSchema.parse(raw);
+      if (typed.protocol !== 'wireguard') throw new Error('not a wireguard fixture');
+      // InboundSchema is an intersection of two DUs, so TS can't auto-narrow
+      // `settings` from `protocol`. The runtime guard above is the real
+      // check; this cast just helps the type checker.
+      const settings = typed.settings as WireguardInboundSettings;
+
+      const address = 'wg.example.test';
+      const port = typed.port;
+      const remark = 'wg-peer-1';
+      const peerIndex = 0;
+
+      const newLink = genWireguardLink({ settings, address, port, remark, peerIndex });
+      const newConfig = genWireguardConfig({ settings, address, port, remark, peerIndex });
+
+      const legacy = LegacyInbound.fromJson(raw);
+      const legacyLink = legacy.getWireguardLink(address, port, remark, peerIndex);
+      const legacyConfig = legacy.getWireguardTxt(address, port, remark, peerIndex);
+
+      expect(newLink).toBe(legacyLink);
+      expect(newConfig).toBe(legacyConfig);
     });
   }
 });
