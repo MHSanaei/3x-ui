@@ -31,7 +31,9 @@ func (b transportBits) conflicts(o transportBits) bool { return b&o != 0 }
 //   - hysteria, hysteria2, wireguard: udp regardless of streamSettings
 //   - streamSettings.network=kcp: udp
 //   - shadowsocks: whatever settings.network says ("tcp" / "udp" / "tcp,udp")
-//   - mixed (socks/http combo): tcp + udp when settings.udp is true
+//   - mixed (socks/http combo) and socks: tcp + udp when settings.udp is true
+//     (xray's dedicated socks5 inbound supports UDP ASSOCIATE on the same
+//     port via settings.udp, exactly the same shape as mixed)
 //   - everything else: tcp
 func inboundTransports(protocol model.Protocol, streamSettings, settings string) transportBits {
 	// protocols that ignore streamSettings entirely.
@@ -81,9 +83,13 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 						}
 					}
 				}
-			case model.Mixed:
-				// socks/http "mixed" inbound: settings.udp=true means it
-				// also relays udp on the same port (socks5 udp associate).
+			case model.Mixed, model.Socks:
+				// socks/http "mixed" inbound and the dedicated socks5
+				// inbound: settings.udp=true means the inbound also relays
+				// udp on the same port (socks5 udp associate). Mixed and
+				// Socks share the exact same settings shape here, so we
+				// route them through the same branch instead of duplicating
+				// the type-assertion.
 				if udpOn, _ := st["udp"].(bool); udpOn {
 					bits |= transportUDP
 				}

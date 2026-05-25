@@ -2983,9 +2983,16 @@ func (t *Tgbot) getInboundsAddClient() (*telego.InlineKeyboardMarkup, error) {
 		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
 	}
 
+	// Protocols listed here are skipped when the bot asks "which inbound do
+	// you want to add a client to?". They're inbounds that either don't
+	// have per-client subscription links (Mixed/HTTP/Socks/Tunnel) or
+	// don't have per-client credentials at all (WireGuard), so attaching
+	// a tg-managed client to them would produce something the user can't
+	// actually subscribe to.
 	excludedProtocols := map[model.Protocol]bool{
 		model.Tunnel:    true,
 		model.Mixed:     true,
+		model.Socks:     true,
 		model.WireGuard: true,
 		model.HTTP:      true,
 	}

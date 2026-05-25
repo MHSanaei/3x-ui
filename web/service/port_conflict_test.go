@@ -87,6 +87,17 @@ func TestInboundTransports(t *testing.T) {
 		{"mixed udp on", model.Mixed, `{"network":"tcp"}`, `{"udp":true}`, transportTCP | transportUDP},
 		{"mixed udp off", model.Mixed, `{"network":"tcp"}`, `{"udp":false}`, transportTCP},
 		{"mixed udp missing", model.Mixed, `{"network":"tcp"}`, `{}`, transportTCP},
+
+		// SOCKS (the dedicated socks5 inbound) shares the udp-associate
+		// shape with Mixed: settings.udp=true means the same port also
+		// accepts UDP. These cases pin that the port-conflict check
+		// treats Socks the same way Mixed is treated above, so a
+		// stale tcp neighbour won't silently block UDP-only socks
+		// traffic (or vice versa).
+		{"socks udp on", model.Socks, ``, `{"udp":true}`, transportTCP | transportUDP},
+		{"socks udp off", model.Socks, ``, `{"udp":false}`, transportTCP},
+		{"socks udp missing", model.Socks, ``, `{}`, transportTCP},
+		{"socks empty settings", model.Socks, ``, ``, transportTCP},
 	}
 
 	for _, c := range cases {
@@ -467,6 +478,47 @@ func TestResolveInboundTag_RegeneratesOnCollision(t *testing.T) {
 	}
 	if got == "inbound-5000-tcp" {
 		t.Fatalf("colliding caller tag must be replaced, but resolver kept %q", got)
+	}
+}
+
+// the dedicated socks5 inbound with settings.udp=true takes both tcp
+// and udp on the same port (same UDP-ASSOCIATE shape as Mixed). pinning
+// that here so a future refactor of inboundTransports can't silently
+// drop the Socks branch and start letting a hysteria2 udp inbound
+// coexist with a dual-transport socks listener.
+func TestCheckPortConflict_SocksUDPBlocksUDPNeighbour(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "socks-443-dual", "0.0.0.0", 443, model.Socks, ``, `{"udp":true}`)
+
+	svc := &InboundService{}
+	udpClash := &model.Inbound{
+		Tag:      "hyst2-443",
+		Listen:   "0.0.0.0",
+		Port:     443,
+		Protocol: model.Hysteria2,
+	}
+	if exist, err := svc.checkPortConflict(udpClash, 0); err != nil || !exist {
+		t.Fatalf("hysteria2/udp must clash with socks+udp on same port; exist=%v err=%v", exist, err)
+	}
+}
+
+// counterpart of the above: socks with udp=false (the default) only
+// holds the tcp socket, so a udp-only neighbour on the same port must
+// still be allowed. mirrors the vless/tcp + hysteria2/udp coexistence
+// case from #4103.
+func TestCheckPortConflict_SocksTCPCoexistsWithUDPNeighbour(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "socks-443-tcp", "0.0.0.0", 443, model.Socks, ``, `{"udp":false}`)
+
+	svc := &InboundService{}
+	udpOnly := &model.Inbound{
+		Tag:      "hyst2-443",
+		Listen:   "0.0.0.0",
+		Port:     443,
+		Protocol: model.Hysteria2,
+	}
+	if exist, err := svc.checkPortConflict(udpOnly, 0); err != nil || exist {
+		t.Fatalf("socks-tcp and hysteria2-udp on same port must coexist; exist=%v err=%v", exist, err)
 	}
 }
 

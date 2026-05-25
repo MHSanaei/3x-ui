@@ -19,9 +19,11 @@ import (
 	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/infra/conf"
+	httpProxy "github.com/xtls/xray-core/proxy/http"
 	hysteriaAccount "github.com/xtls/xray-core/proxy/hysteria/account"
 	"github.com/xtls/xray-core/proxy/shadowsocks"
 	"github.com/xtls/xray-core/proxy/shadowsocks_2022"
+	"github.com/xtls/xray-core/proxy/socks"
 	"github.com/xtls/xray-core/proxy/trojan"
 	"github.com/xtls/xray-core/proxy/vless"
 	"github.com/xtls/xray-core/proxy/vmess"
@@ -239,6 +241,56 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 
 		account = serial.ToTypedMessage(&hysteriaAccount.Account{
 			Auth: auth,
+		})
+	case "socks":
+		// Xray's dedicated socks5 inbound. Live add-user via the gRPC
+		// HandlerService takes a socks.Account whose fields are
+		// {username, password} — distinct from the JSON inbound config,
+		// where the same data lives under settings.accounts[].{user,pass}.
+		// We map the panel-side "user"/"pass" (matching the SocksSettings
+		// model in frontend/src/models/inbound.js) onto those wire-level
+		// field names here so the runtime sees the credentials in the
+		// shape xray-core expects.
+		//
+		// "username" is treated as required: the dedicated socks inbound
+		// in noauth mode doesn't have per-user accounts at all, so any
+		// AddUser request we see here is a password-mode user and must
+		// carry a non-empty username.
+		username, err := getRequiredUserString(user, "user")
+		if err != nil {
+			return err
+		}
+		password, err := getOptionalUserString(user, "pass")
+		if err != nil {
+			return err
+		}
+
+		account = serial.ToTypedMessage(&socks.Account{
+			Username: username,
+			Password: password,
+		})
+	case "http":
+		// Xray's dedicated http inbound exposes its own
+		// {username, password} Account in proxy/http. Same wire-level
+		// shape as socks (and the same panel-side "user"/"pass" mapping
+		// from HttpSettings), but the proto types are distinct, so we
+		// can't share one branch — the typed-message wrapper needs the
+		// exact proto.Message type the runtime registered under
+		// proxy.http inbound. Adding HTTP here keeps the dispatch table
+		// symmetric with socks and lets the panel push live-add-user
+		// for the dedicated HTTP inbound just like it does for socks.
+		username, err := getRequiredUserString(user, "user")
+		if err != nil {
+			return err
+		}
+		password, err := getOptionalUserString(user, "pass")
+		if err != nil {
+			return err
+		}
+
+		account = serial.ToTypedMessage(&httpProxy.Account{
+			Username: username,
+			Password: password,
 		})
 	default:
 		return nil
