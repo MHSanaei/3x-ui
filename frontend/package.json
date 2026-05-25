@@ -50,5 +50,12 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.4",
     "vite": "8.0.13"
+  },
+  "overrides": {
+    "react-copy-to-clipboard": "^5.1.1",
+    "react-inspector": "^9.0.0",
+    "react-debounce-input": {
+      "react": "^19.0.0"
+    }
   }
 }
