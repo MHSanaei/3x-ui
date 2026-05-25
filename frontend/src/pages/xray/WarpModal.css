@@ -26,22 +26,6 @@
   margin: 0;
 }
 
-.my-8 {
-  margin: 8px 0;
-}
-
-.mt-8 {
-  margin-top: 8px;
-}
-
-.my-10 {
-  margin: 10px 0;
-}
-
-.ml-8 {
-  margin-left: 8px;
-}
-
 .license-actions {
   display: flex;
   align-items: center;

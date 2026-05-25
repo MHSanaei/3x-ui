@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { message } from 'antd';
 import 'antd/dist/reset.css';
+import '@/styles/utils.css';
 
 import { setupAxios } from '@/api/axios-init';
 import { readyI18n } from '@/i18n/react';

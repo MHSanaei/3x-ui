@@ -26,26 +26,6 @@
   margin: 0;
 }
 
-.mt-8 {
-  margin-top: 8px;
-}
-
-.mt-10 {
-  margin-top: 10px;
-}
-
-.mt-20 {
-  margin-top: 20px;
-}
-
-.my-10 {
-  margin: 10px 0;
-}
-
-.ml-8 {
-  margin-left: 8px;
-}
-
 .server-row {
   display: inline-flex;
   align-items: center;
