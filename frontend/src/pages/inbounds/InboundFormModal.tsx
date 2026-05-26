@@ -510,6 +510,28 @@ export default function InboundFormModal({
       if (!NODE_ELIGIBLE_PROTOCOLS.has(next)) {
         form.setFieldValue('nodeId', null);
       }
+      // Hysteria uses its dedicated transport — force the network branch
+      // so the stream tab renders the hysteria sub-form, not the leftover
+      // tcpSettings from the previous protocol. When leaving hysteria,
+      // snap back to TCP so the standard network selector has a valid
+      // starting point.
+      if (next === Protocols.HYSTERIA) {
+        form.setFieldValue('streamSettings', {
+          network: 'hysteria',
+          security: 'tls',
+          hysteriaSettings: {
+            version: 2,
+            auth: '',
+            udpIdleTimeout: 60,
+          },
+          tlsSettings: {},
+        });
+      } else {
+        const current = form.getFieldValue('streamSettings') as { network?: string } | undefined;
+        if (current?.network === 'hysteria') {
+          form.setFieldValue('streamSettings', { network: 'tcp', security: 'none', tcpSettings: {} });
+        }
+      }
     }
   };
 
@@ -1196,6 +1218,141 @@ export default function InboundFormModal({
             <Select.Option value="xhttp">XHTTP</Select.Option>
           </Select>
         </Form.Item>
+      )}
+
+      {/* Inbound Hysteria stream sub-form. The transport for hysteria
+          isn't user-selectable (always 'hysteria'), so the network
+          dropdown is hidden above. Fields here mirror the legacy
+          HysteriaStreamSettings inbound class: version is locked to 2,
+          auth + udpIdleTimeout are required, masquerade is an optional
+          sub-object that lets xray-core disguise the listener as an
+          HTTP server when probed. */}
+      {protocol === Protocols.HYSTERIA && (
+        <>
+          <Form.Item
+            label="Version"
+            name={['streamSettings', 'hysteriaSettings', 'version']}
+          >
+            <InputNumber min={2} max={2} disabled />
+          </Form.Item>
+          <Form.Item
+            label="Auth password"
+            name={['streamSettings', 'hysteriaSettings', 'auth']}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="UDP idle timeout (s)"
+            name={['streamSettings', 'hysteriaSettings', 'udpIdleTimeout']}
+          >
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item label="Masquerade">
+            <Form.Item shouldUpdate noStyle>
+              {() => {
+                const m = form.getFieldValue([
+                  'streamSettings', 'hysteriaSettings', 'masquerade',
+                ]);
+                return (
+                  <Switch
+                    checked={!!m}
+                    onChange={(checked) =>
+                      form.setFieldValue(
+                        ['streamSettings', 'hysteriaSettings', 'masquerade'],
+                        checked
+                          ? {
+                              type: 'proxy', dir: '', url: '',
+                              rewriteHost: false, insecure: false,
+                              content: '', headers: {}, statusCode: 0,
+                            }
+                          : undefined,
+                      )
+                    }
+                  />
+                );
+              }}
+            </Form.Item>
+          </Form.Item>
+          <Form.Item shouldUpdate noStyle>
+            {() => {
+              const m = form.getFieldValue([
+                'streamSettings', 'hysteriaSettings', 'masquerade',
+              ]) as { type?: string } | undefined;
+              if (!m) return null;
+              return (
+                <>
+                  <Form.Item
+                    label="Type"
+                    name={['streamSettings', 'hysteriaSettings', 'masquerade', 'type']}
+                  >
+                    <Select
+                      options={[
+                        { value: 'proxy', label: 'proxy (reverse proxy)' },
+                        { value: 'file', label: 'file (serve directory)' },
+                        { value: 'string', label: 'string (fixed body)' },
+                      ]}
+                    />
+                  </Form.Item>
+                  {m.type === 'proxy' && (
+                    <>
+                      <Form.Item
+                        label="Upstream URL"
+                        name={['streamSettings', 'hysteriaSettings', 'masquerade', 'url']}
+                      >
+                        <Input placeholder="https://www.example.com" />
+                      </Form.Item>
+                      <Form.Item
+                        label="Rewrite Host"
+                        name={['streamSettings', 'hysteriaSettings', 'masquerade', 'rewriteHost']}
+                        valuePropName="checked"
+                      >
+                        <Switch />
+                      </Form.Item>
+                      <Form.Item
+                        label="Skip TLS verify"
+                        name={['streamSettings', 'hysteriaSettings', 'masquerade', 'insecure']}
+                        valuePropName="checked"
+                      >
+                        <Switch />
+                      </Form.Item>
+                    </>
+                  )}
+                  {m.type === 'file' && (
+                    <Form.Item
+                      label="Directory"
+                      name={['streamSettings', 'hysteriaSettings', 'masquerade', 'dir']}
+                    >
+                      <Input placeholder="/var/www/html" />
+                    </Form.Item>
+                  )}
+                  {m.type === 'string' && (
+                    <>
+                      <Form.Item
+                        label="Status code"
+                        name={['streamSettings', 'hysteriaSettings', 'masquerade', 'statusCode']}
+                      >
+                        <InputNumber min={0} max={599} style={{ width: '100%' }} />
+                      </Form.Item>
+                      <Form.Item
+                        label="Body"
+                        name={['streamSettings', 'hysteriaSettings', 'masquerade', 'content']}
+                      >
+                        <Input.TextArea autoSize={{ minRows: 3 }} />
+                      </Form.Item>
+                      <Form.Item
+                        label="Headers"
+                        name={['streamSettings', 'hysteriaSettings', 'masquerade', 'headers']}
+                      >
+                        <HeaderMapEditor mode="v1" />
+                      </Form.Item>
+                    </>
+                  )}
+                </>
+              );
+            }}
+          </Form.Item>
+        </>
       )}
 
       {network === 'tcp' && (
