@@ -2752,7 +2752,13 @@ export default function InboundFormModal({
           onValuesChange={onValuesChange}
         >
           <Tabs items={[
-            { key: 'basic', label: t('pages.xray.basicTemplate'), children: basicTab },
+            // forceRender on every tab so all Form.Items register at modal
+            // open, not lazily on first visit. Without it, AntD's items API
+            // lazy-mounts inactive tabs — their fields don't register, so
+            // Form.useWatch on a parent path (e.g. 'sniffing') returns the
+            // partial-view {} until the user touches the tab and the
+            // inner Form.Item for `sniffing.enabled` registers.
+            { key: 'basic', label: t('pages.xray.basicTemplate'), children: basicTab, forceRender: true },
             ...(([
               Protocols.VLESS,
               Protocols.SHADOWSOCKS,
@@ -2762,16 +2768,16 @@ export default function InboundFormModal({
               Protocols.TUN,
               Protocols.WIREGUARD,
             ] as string[]).includes(protocol) || isFallbackHost
-              ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab }]
+              ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab, forceRender: true }]
               : []),
             ...(streamEnabled
               ? [
-                  { key: 'stream', label: t('pages.inbounds.streamTab'), children: streamTab },
-                  { key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab },
+                  { key: 'stream', label: t('pages.inbounds.streamTab'), children: streamTab, forceRender: true },
+                  { key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab, forceRender: true },
                 ]
               : []),
-            { key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab },
-            { key: 'advanced', label: t('pages.xray.advancedTemplate'), children: advancedTab },
+            { key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab, forceRender: true },
+            { key: 'advanced', label: t('pages.xray.advancedTemplate'), children: advancedTab, forceRender: true },
           ]} />
         </Form>
       </Modal>
