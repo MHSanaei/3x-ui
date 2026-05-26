@@ -1,532 +1,503 @@
-import { useMemo } from 'react';
 import { Button, Divider, Form, Input, InputNumber, Select, Switch } from 'antd';
 import { DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import type { FormInstance } from 'antd/es/form';
+import type { NamePath } from 'antd/es/form/interface';
 
 import { RandomUtil } from '@/utils';
 import { OutboundProtocols } from '@/schemas/primitives';
 
-interface StreamShape {
-  network?: string;
-  kcp?: { mtu?: number };
-  finalmask: {
-    tcp?: MaskRow[];
-    udp?: MaskRow[];
-    enableQuicParams?: boolean;
-    quicParams?: QuicParams;
-  };
-  addTcpMask: (type?: string) => void;
-  delTcpMask: (index: number) => void;
-  addUdpMask: (type?: string) => void;
-  delUdpMask: (index: number) => void;
-}
+// Pattern A FinalMaskForm. Renders a Fragment of Form.Items at absolute
+// paths under `name`; the parent modal owns the Form instance and the
+// surrounding layout. The legacy class-coupled component (which mutated
+// `stream.finalmask.*` via .addTcpMask/.delTcpMask methods) is gone — all
+// state lives in the parent form values, accessed via the `form` and
+// `name` props.
 
-interface MaskRow {
-  type: string;
-  settings: Record<string, unknown>;
-  _getDefaultSettings: (type: string, settings: Record<string, unknown>) => Record<string, unknown>;
-}
-
-interface ItemRow {
-  type: string;
-  packet: string | unknown[];
-  delay?: number | string;
-  rand?: number | string;
-  randRange?: string;
-}
-
-interface QuicParams {
-  congestion: string;
-  debug?: boolean;
-  brutalUp?: number | string;
-  brutalDown?: number | string;
-  hasUdpHop?: boolean;
-  udpHop?: { ports: string; interval: string | number };
-  maxIdleTimeout?: number;
-  keepAlivePeriod?: number;
-  disablePathMTUDiscovery?: boolean;
-  maxIncomingStreams?: number;
-  initStreamReceiveWindow?: number;
-  maxStreamReceiveWindow?: number;
-  initConnectionReceiveWindow?: number;
-  maxConnectionReceiveWindow?: number;
-}
-
-interface FinalMaskFormProps {
-  stream: StreamShape;
+export interface FinalMaskFormProps {
+  name: NamePath;
+  network: string;
   protocol: string;
-  onChange: () => void;
+  form: FormInstance;
 }
 
-function changeMaskType(mask: MaskRow, type: string) {
-  mask.type = type;
-  mask.settings = mask._getDefaultSettings(type, {});
+const TCP_NETWORKS = ['raw', 'tcp', 'httpupgrade', 'ws', 'grpc', 'xhttp'];
+
+function asPath(name: NamePath): (string | number)[] {
+  return Array.isArray(name) ? [...name] : [name];
 }
 
-function changeItemType(item: ItemRow, type: string) {
-  item.type = type;
-  if (type === 'base64') item.packet = RandomUtil.randomBase64();
-  else if (type === 'array') {
-    item.rand = 0;
-    item.packet = [];
-  } else item.packet = '';
+function defaultTcpMaskSettings(type: string): Record<string, unknown> {
+  switch (type) {
+    case 'fragment':
+      return { packets: '1-3', length: '', delay: '', maxSplit: '' };
+    case 'sudoku':
+      return {
+        password: '', ascii: '', customTable: '', customTables: '',
+        paddingMin: 0, paddingMax: 0,
+      };
+    case 'header-custom':
+      return { clients: [], servers: [] };
+    default:
+      return {};
+  }
 }
 
-function newClientServerItem(): ItemRow {
+function defaultUdpMaskSettings(type: string): Record<string, unknown> {
+  switch (type) {
+    case 'salamander':
+    case 'mkcp-aes128gcm':
+      return { password: '' };
+    case 'header-dns':
+      return { domain: '' };
+    case 'xdns':
+      return { domains: [] };
+    case 'xicmp':
+      return { ip: '0.0.0.0', id: 0 };
+    case 'header-custom':
+      return { client: [], server: [] };
+    case 'noise':
+      return { reset: 0, noise: [] };
+    default:
+      return {};
+  }
+}
+
+function defaultClientServerItem(): Record<string, unknown> {
   return { delay: 0, rand: 0, randRange: '0-255', type: 'array', packet: [] };
 }
 
-function newUdpClientServerItem(): ItemRow {
+function defaultUdpClientServerItem(): Record<string, unknown> {
   return { rand: 0, randRange: '0-255', type: 'array', packet: [] };
 }
 
-function newNoiseItem(): ItemRow {
-  return { rand: '1-8192', randRange: '0-255', type: 'array', packet: [], delay: '10-20' };
+function defaultNoiseItem(): Record<string, unknown> {
+  return {
+    rand: '1-8192', randRange: '0-255', type: 'array', packet: [], delay: '10-20',
+  };
 }
 
-export default function FinalMaskForm({ stream, protocol, onChange }: FinalMaskFormProps) {
-  const isHysteria = protocol === OutboundProtocols.Hysteria || protocol === 'hysteria';
-  const network = stream?.network || '';
+function defaultQuicParams(): Record<string, unknown> {
+  return {
+    congestion: 'bbr',
+    debug: false,
+    udpHop: { ports: '20000-50000', interval: 5 },
+  };
+}
 
-  const showTcp = useMemo(
-    () => ['raw', 'tcp', 'httpupgrade', 'ws', 'grpc', 'xhttp'].includes(network),
-    [network],
-  );
+export default function FinalMaskForm({ name, network, protocol, form }: FinalMaskFormProps) {
+  const base = asPath(name);
+  const isHysteria = protocol === OutboundProtocols.Hysteria || protocol === 'hysteria';
+  const showTcp = TCP_NETWORKS.includes(network);
   const showUdp = isHysteria || network === 'kcp';
   const showQuic = isHysteria || network === 'xhttp';
-
-  function notify() {
-    onChange();
-  }
-
-  function changeUdpMaskType(mask: MaskRow, type: string) {
-    changeMaskType(mask, type);
-    if (network === 'kcp' && stream.kcp) {
-      stream.kcp.mtu = type === 'xdns' ? 900 : 1350;
-    }
-    notify();
-  }
-
-  function addUdpMaskWithDefault() {
-    const def = isHysteria ? 'salamander' : 'mkcp-aes128gcm';
-    stream.addUdpMask(def);
-    notify();
-  }
-
-  const tcpMasks = stream.finalmask.tcp || [];
-  const udpMasks = stream.finalmask.udp || [];
+  const enableQuic = Form.useWatch([...base, 'enableQuicParams'], form);
 
   if (!showTcp && !showUdp && !showQuic) return null;
 
   return (
-    <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 14 } }}>
-      {showTcp && (
+    <>
+      {showTcp && <TcpMasksList base={base} form={form} />}
+      {showUdp && <UdpMasksList base={base} form={form} isHysteria={isHysteria} />}
+      {showQuic && (
+        <>
+          <Form.Item label="QUIC Params" name={[...base, 'enableQuicParams']} valuePropName="checked">
+            <Switch
+              onChange={(v) => {
+                if (v) {
+                  const current = form.getFieldValue([...base, 'quicParams']);
+                  if (!current) form.setFieldValue([...base, 'quicParams'], defaultQuicParams());
+                }
+              }}
+            />
+          </Form.Item>
+          {enableQuic && <QuicParamsForm base={[...base, 'quicParams']} form={form} />}
+        </>
+      )}
+    </>
+  );
+}
+
+function TcpMasksList({ base, form }: { base: (string | number)[]; form: FormInstance }) {
+  return (
+    <Form.List name={[...base, 'tcp']}>
+      {(fields, { add, remove }) => (
         <>
           <Form.Item label="TCP Masks">
             <Button
               type="primary"
               size="small"
               icon={<PlusOutlined />}
-              onClick={() => {
-                stream.addTcpMask('fragment');
-                notify();
-              }}
+              onClick={() => add({ type: 'fragment', settings: defaultTcpMaskSettings('fragment') })}
             />
           </Form.Item>
-
-          {tcpMasks.map((mask, mIdx) => (
-            <div key={`tcp-${mIdx}`}>
-              <Divider style={{ margin: 0 }}>
-                TCP Mask {mIdx + 1}
-                <DeleteOutlined
-                  className="danger-icon"
-                  onClick={() => {
-                    stream.delTcpMask(mIdx);
-                    notify();
-                  }}
-                />
-              </Divider>
-
-              <Form.Item label="Type">
-                <Select
-                  value={mask.type}
-                  onChange={(v) => {
-                    changeMaskType(mask, v);
-                    notify();
-                  }}
-                  options={[
-                    { value: 'fragment', label: 'Fragment' },
-                    { value: 'header-custom', label: 'Header Custom' },
-                    { value: 'sudoku', label: 'Sudoku' },
-                  ]}
-                />
-              </Form.Item>
-
-              {mask.type === 'fragment' && (
-                <>
-                  <Form.Item label="Packets">
-                    <Select
-                      value={mask.settings.packets as string}
-                      onChange={(v) => {
-                        (mask.settings as Record<string, unknown>).packets = v;
-                        notify();
-                      }}
-                      options={[
-                        { value: 'tlshello', label: 'tlshello' },
-                        { value: '1-3', label: '1-3' },
-                        { value: '1-5', label: '1-5' },
-                      ]}
-                    />
-                  </Form.Item>
-                  {(['length', 'delay', 'maxSplit'] as const).map((field) => (
-                    <Form.Item key={field} label={field === 'maxSplit' ? 'Max Split' : field.charAt(0).toUpperCase() + field.slice(1)}>
-                      <Input
-                        value={(mask.settings[field] as string) || ''}
-                        onChange={(e) => {
-                          (mask.settings as Record<string, unknown>)[field] = e.target.value;
-                          notify();
-                        }}
-                      />
-                    </Form.Item>
-                  ))}
-                </>
-              )}
-
-              {mask.type === 'sudoku' && (
-                <>
-                  {(['password', 'ascii', 'customTable', 'customTables'] as const).map((field) => (
-                    <Form.Item key={field} label={field === 'customTable' ? 'Custom Table' : field === 'customTables' ? 'Custom Tables' : field.charAt(0).toUpperCase() + field.slice(1)}>
-                      <Input
-                        value={(mask.settings[field] as string) || ''}
-                        onChange={(e) => {
-                          (mask.settings as Record<string, unknown>)[field] = e.target.value;
-                          notify();
-                        }}
-                      />
-                    </Form.Item>
-                  ))}
-                  {(['paddingMin', 'paddingMax'] as const).map((field) => (
-                    <Form.Item key={field} label={field === 'paddingMin' ? 'Padding Min' : 'Padding Max'}>
-                      <InputNumber
-                        value={(mask.settings[field] as number) || 0}
-                        min={0}
-                        onChange={(v) => {
-                          (mask.settings as Record<string, unknown>)[field] = Number(v) || 0;
-                          notify();
-                        }}
-                      />
-                    </Form.Item>
-                  ))}
-                </>
-              )}
-
-              {mask.type === 'header-custom' && (
-                <HeaderCustomGroups mask={mask} kind="tcp" onChange={notify} />
-              )}
-            </div>
+          {fields.map((field, mIdx) => (
+            <TcpMaskItem
+              key={field.key}
+              base={base}
+              index={field.name}
+              displayIndex={mIdx + 1}
+              form={form}
+              onRemove={() => remove(field.name)}
+            />
           ))}
         </>
       )}
-
-      {showUdp && (
-        <>
-          <Form.Item label="UDP Masks">
-            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={addUdpMaskWithDefault} />
-          </Form.Item>
-
-          {udpMasks.map((mask, mIdx) => (
-            <div key={`udp-${mIdx}`}>
-              <Divider style={{ margin: 0 }}>
-                UDP Mask {mIdx + 1}
-                <DeleteOutlined
-                  className="danger-icon"
-                  onClick={() => {
-                    stream.delUdpMask(mIdx);
-                    notify();
-                  }}
-                />
-              </Divider>
-
-              <Form.Item label="Type">
-                <Select
-                  value={mask.type}
-                  onChange={(v) => changeUdpMaskType(mask, v)}
-                  options={
-                    isHysteria
-                      ? [{ value: 'salamander', label: 'Salamander (Hysteria2)' }]
-                      : [
-                          { value: 'mkcp-aes128gcm', label: 'mKCP AES-128-GCM' },
-                          { value: 'header-dns', label: 'Header DNS' },
-                          { value: 'header-dtls', label: 'Header DTLS 1.2' },
-                          { value: 'header-srtp', label: 'Header SRTP' },
-                          { value: 'header-utp', label: 'Header uTP' },
-                          { value: 'header-wechat', label: 'Header WeChat Video' },
-                          { value: 'header-wireguard', label: 'Header WireGuard' },
-                          { value: 'mkcp-original', label: 'mKCP Original' },
-                          { value: 'xdns', label: 'xDNS' },
-                          { value: 'xicmp', label: 'xICMP' },
-                          { value: 'header-custom', label: 'Header Custom' },
-                          { value: 'noise', label: 'Noise' },
-                        ]
-                  }
-                />
-              </Form.Item>
-
-              {['mkcp-aes128gcm', 'salamander'].includes(mask.type) && (
-                <Form.Item label="Password">
-                  <Input
-                    value={(mask.settings.password as string) || ''}
-                    placeholder="Obfuscation password"
-                    onChange={(e) => {
-                      (mask.settings as Record<string, unknown>).password = e.target.value;
-                      notify();
-                    }}
-                  />
-                </Form.Item>
-              )}
-
-              {mask.type === 'header-dns' && (
-                <Form.Item label="Domain">
-                  <Input
-                    value={(mask.settings.domain as string) || ''}
-                    placeholder="e.g., www.example.com"
-                    onChange={(e) => {
-                      (mask.settings as Record<string, unknown>).domain = e.target.value;
-                      notify();
-                    }}
-                  />
-                </Form.Item>
-              )}
-
-              {mask.type === 'xdns' && (
-                <Form.Item label="Domains">
-                  <Select
-                    mode="tags"
-                    value={(mask.settings.domains as string[]) || []}
-                    style={{ width: '100%' }}
-                    tokenSeparators={[',']}
-                    placeholder="e.g., www.example.com"
-                    onChange={(v) => {
-                      (mask.settings as Record<string, unknown>).domains = v;
-                      notify();
-                    }}
-                  />
-                </Form.Item>
-              )}
-
-              {mask.type === 'noise' && (
-                <NoiseItems mask={mask} onChange={notify} />
-              )}
-
-              {mask.type === 'header-custom' && (
-                <UdpHeaderCustom mask={mask} onChange={notify} />
-              )}
-
-              {mask.type === 'xicmp' && (
-                <>
-                  <Form.Item label="IP">
-                    <Input
-                      value={(mask.settings.ip as string) || ''}
-                      placeholder="0.0.0.0"
-                      onChange={(e) => {
-                        (mask.settings as Record<string, unknown>).ip = e.target.value;
-                        notify();
-                      }}
-                    />
-                  </Form.Item>
-                  <Form.Item label="ID">
-                    <InputNumber
-                      value={(mask.settings.id as number) || 0}
-                      min={0}
-                      onChange={(v) => {
-                        (mask.settings as Record<string, unknown>).id = Number(v) || 0;
-                        notify();
-                      }}
-                    />
-                  </Form.Item>
-                </>
-              )}
-            </div>
-          ))}
-        </>
-      )}
-
-      {showQuic && (
-        <>
-          <Form.Item label="QUIC Params">
-            <Switch
-              checked={!!stream.finalmask.enableQuicParams}
-              onChange={(v) => {
-                stream.finalmask.enableQuicParams = v;
-                notify();
-              }}
-            />
-          </Form.Item>
-          {stream.finalmask.enableQuicParams && stream.finalmask.quicParams && (
-            <QuicParamsForm params={stream.finalmask.quicParams} onChange={notify} />
-          )}
-        </>
-      )}
-    </Form>
+    </Form.List>
   );
 }
 
-function HeaderCustomGroups({
-  mask,
-  kind: _kind,
-  onChange,
+function TcpMaskItem({
+  base, index, displayIndex, form, onRemove,
 }: {
-  mask: MaskRow;
-  kind: 'tcp';
-  onChange: () => void;
+  base: (string | number)[];
+  index: number;
+  displayIndex: number;
+  form: FormInstance;
+  onRemove: () => void;
 }) {
-  const settings = mask.settings as { clients?: ItemRow[][]; servers?: ItemRow[][] };
-  if (!settings.clients) settings.clients = [];
-  if (!settings.servers) settings.servers = [];
+  const path = [...base, 'tcp', index];
+  const type = Form.useWatch([...path, 'type'], form) as string | undefined;
 
+  return (
+    <div>
+      <Divider style={{ margin: 0 }}>
+        TCP Mask {displayIndex}
+        <DeleteOutlined className="danger-icon" onClick={onRemove} />
+      </Divider>
+
+      <Form.Item label="Type" name={[...path, 'type']}>
+        <Select
+          onChange={(v) => form.setFieldValue([...path, 'settings'], defaultTcpMaskSettings(v))}
+          options={[
+            { value: 'fragment', label: 'Fragment' },
+            { value: 'header-custom', label: 'Header Custom' },
+            { value: 'sudoku', label: 'Sudoku' },
+          ]}
+        />
+      </Form.Item>
+
+      {type === 'fragment' && (
+        <>
+          <Form.Item label="Packets" name={[...path, 'settings', 'packets']}>
+            <Select
+              options={[
+                { value: 'tlshello', label: 'tlshello' },
+                { value: '1-3', label: '1-3' },
+                { value: '1-5', label: '1-5' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item label="Length" name={[...path, 'settings', 'length']}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Delay" name={[...path, 'settings', 'delay']}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Max Split" name={[...path, 'settings', 'maxSplit']}>
+            <Input />
+          </Form.Item>
+        </>
+      )}
+
+      {type === 'sudoku' && (
+        <>
+          <Form.Item label="Password" name={[...path, 'settings', 'password']}><Input /></Form.Item>
+          <Form.Item label="ASCII" name={[...path, 'settings', 'ascii']}><Input /></Form.Item>
+          <Form.Item label="Custom Table" name={[...path, 'settings', 'customTable']}><Input /></Form.Item>
+          <Form.Item label="Custom Tables" name={[...path, 'settings', 'customTables']}><Input /></Form.Item>
+          <Form.Item label="Padding Min" name={[...path, 'settings', 'paddingMin']}>
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.Item label="Padding Max" name={[...path, 'settings', 'paddingMax']}>
+            <InputNumber min={0} />
+          </Form.Item>
+        </>
+      )}
+
+      {type === 'header-custom' && (
+        <HeaderCustomGroups base={[...path, 'settings']} form={form} />
+      )}
+    </div>
+  );
+}
+
+function HeaderCustomGroups({ base, form }: { base: (string | number)[]; form: FormInstance }) {
   return (
     <>
       {(['clients', 'servers'] as const).map((groupKey) => (
-        <div key={groupKey}>
-          <Form.Item label={groupKey === 'clients' ? 'Clients' : 'Servers'}>
-            <Button
-              type="primary"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                (settings[groupKey] as ItemRow[][]).push([newClientServerItem()]);
-                onChange();
-              }}
-            />
-          </Form.Item>
-          {(settings[groupKey] as ItemRow[][]).map((group, gi) => (
-            <div key={`${groupKey}-${gi}`}>
-              <Divider style={{ margin: 0 }}>
-                {groupKey === 'clients' ? 'Clients' : 'Servers'} Group {gi + 1}
-                <DeleteOutlined
-                  className="danger-icon"
-                  onClick={() => {
-                    (settings[groupKey] as ItemRow[][]).splice(gi, 1);
-                    onChange();
-                  }}
+        <Form.List key={groupKey} name={[...base, groupKey]}>
+          {(groups, { add: addGroup, remove: removeGroup }) => (
+            <>
+              <Form.Item label={groupKey === 'clients' ? 'Clients' : 'Servers'}>
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={() => addGroup([defaultClientServerItem()])}
                 />
-              </Divider>
-              {group.map((item, _ii) => (
-                <ItemEditor key={_ii} item={item} onChange={onChange} delayAsNumber />
+              </Form.Item>
+              {groups.map((group, gi) => (
+                <div key={group.key}>
+                  <Divider style={{ margin: 0 }}>
+                    {groupKey === 'clients' ? 'Clients' : 'Servers'} Group {gi + 1}
+                    <DeleteOutlined className="danger-icon" onClick={() => removeGroup(group.name)} />
+                  </Divider>
+                  <Form.List name={[...base, groupKey, group.name]}>
+                    {(items, { add: addItem, remove: removeItem }) => (
+                      <>
+                        <Form.Item label="Items">
+                          <Button
+                            size="small"
+                            icon={<PlusOutlined />}
+                            onClick={() => addItem(defaultClientServerItem())}
+                          />
+                        </Form.Item>
+                        {items.map((item) => (
+                          <ItemEditor
+                            key={item.key}
+                            base={[...base, groupKey, group.name, item.name]}
+                            form={form}
+                            delayMode="number"
+                            onRemove={() => removeItem(item.name)}
+                          />
+                        ))}
+                      </>
+                    )}
+                  </Form.List>
+                </div>
               ))}
-            </div>
-          ))}
-        </div>
+            </>
+          )}
+        </Form.List>
       ))}
     </>
   );
 }
 
-function UdpHeaderCustom({ mask, onChange }: { mask: MaskRow; onChange: () => void }) {
-  const settings = mask.settings as { client?: ItemRow[]; server?: ItemRow[] };
-  if (!settings.client) settings.client = [];
-  if (!settings.server) settings.server = [];
+function UdpMasksList({
+  base, form, isHysteria,
+}: { base: (string | number)[]; form: FormInstance; isHysteria: boolean }) {
+  return (
+    <Form.List name={[...base, 'udp']}>
+      {(fields, { add, remove }) => (
+        <>
+          <Form.Item label="UDP Masks">
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                const def = isHysteria ? 'salamander' : 'mkcp-aes128gcm';
+                add({ type: def, settings: defaultUdpMaskSettings(def) });
+              }}
+            />
+          </Form.Item>
+          {fields.map((field, mIdx) => (
+            <UdpMaskItem
+              key={field.key}
+              base={base}
+              index={field.name}
+              displayIndex={mIdx + 1}
+              form={form}
+              isHysteria={isHysteria}
+              onRemove={() => remove(field.name)}
+            />
+          ))}
+        </>
+      )}
+    </Form.List>
+  );
+}
+
+function UdpMaskItem({
+  base, index, displayIndex, form, isHysteria, onRemove,
+}: {
+  base: (string | number)[];
+  index: number;
+  displayIndex: number;
+  form: FormInstance;
+  isHysteria: boolean;
+  onRemove: () => void;
+}) {
+  const path = [...base, 'udp', index];
+  const type = Form.useWatch([...path, 'type'], form) as string | undefined;
+  const network = Form.useWatch([...base.slice(0, -1), 'network'], form) as string | undefined;
+
+  const onTypeChange = (v: string) => {
+    form.setFieldValue([...path, 'settings'], defaultUdpMaskSettings(v));
+    if (network === 'kcp') {
+      const kcpPath = [...base.slice(0, -1), 'kcpSettings', 'mtu'];
+      form.setFieldValue(kcpPath, v === 'xdns' ? 900 : 1350);
+    }
+  };
+
+  const options = isHysteria
+    ? [{ value: 'salamander', label: 'Salamander (Hysteria2)' }]
+    : [
+        { value: 'mkcp-aes128gcm', label: 'mKCP AES-128-GCM' },
+        { value: 'header-dns', label: 'Header DNS' },
+        { value: 'header-dtls', label: 'Header DTLS 1.2' },
+        { value: 'header-srtp', label: 'Header SRTP' },
+        { value: 'header-utp', label: 'Header uTP' },
+        { value: 'header-wechat', label: 'Header WeChat Video' },
+        { value: 'header-wireguard', label: 'Header WireGuard' },
+        { value: 'mkcp-original', label: 'mKCP Original' },
+        { value: 'xdns', label: 'xDNS' },
+        { value: 'xicmp', label: 'xICMP' },
+        { value: 'header-custom', label: 'Header Custom' },
+        { value: 'noise', label: 'Noise' },
+      ];
+
+  return (
+    <div>
+      <Divider style={{ margin: 0 }}>
+        UDP Mask {displayIndex}
+        <DeleteOutlined className="danger-icon" onClick={onRemove} />
+      </Divider>
+
+      <Form.Item label="Type" name={[...path, 'type']}>
+        <Select onChange={onTypeChange} options={options} />
+      </Form.Item>
+
+      {(type === 'mkcp-aes128gcm' || type === 'salamander') && (
+        <Form.Item label="Password" name={[...path, 'settings', 'password']}>
+          <Input placeholder="Obfuscation password" />
+        </Form.Item>
+      )}
+
+      {type === 'header-dns' && (
+        <Form.Item label="Domain" name={[...path, 'settings', 'domain']}>
+          <Input placeholder="e.g., www.example.com" />
+        </Form.Item>
+      )}
+
+      {type === 'xdns' && (
+        <Form.Item label="Domains" name={[...path, 'settings', 'domains']}>
+          <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
+        </Form.Item>
+      )}
+
+      {type === 'xicmp' && (
+        <>
+          <Form.Item label="IP" name={[...path, 'settings', 'ip']}>
+            <Input placeholder="0.0.0.0" />
+          </Form.Item>
+          <Form.Item label="ID" name={[...path, 'settings', 'id']}>
+            <InputNumber min={0} />
+          </Form.Item>
+        </>
+      )}
+
+      {type === 'header-custom' && (
+        <UdpHeaderCustom base={[...path, 'settings']} form={form} />
+      )}
+
+      {type === 'noise' && (
+        <NoiseItems base={[...path, 'settings']} form={form} />
+      )}
+    </div>
+  );
+}
+
+function UdpHeaderCustom({ base, form }: { base: (string | number)[]; form: FormInstance }) {
   return (
     <>
       {(['client', 'server'] as const).map((groupKey) => (
-        <div key={groupKey}>
-          <Form.Item label={groupKey === 'client' ? 'Client' : 'Server'}>
-            <Button
-              type="primary"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                (settings[groupKey] as ItemRow[]).push(newUdpClientServerItem());
-                onChange();
-              }}
-            />
-          </Form.Item>
-          {(settings[groupKey] as ItemRow[]).map((item, ci) => (
-            <div key={ci}>
-              <Divider style={{ margin: 0 }}>
-                {groupKey === 'client' ? 'Client' : 'Server'} {ci + 1}
-                <DeleteOutlined
-                  className="danger-icon"
-                  onClick={() => {
-                    (settings[groupKey] as ItemRow[]).splice(ci, 1);
-                    onChange();
-                  }}
+        <Form.List key={groupKey} name={[...base, groupKey]}>
+          {(items, { add, remove }) => (
+            <>
+              <Form.Item label={groupKey === 'client' ? 'Client' : 'Server'}>
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={() => add(defaultUdpClientServerItem())}
                 />
-              </Divider>
-              <ItemEditor item={item} onChange={onChange} />
-            </div>
-          ))}
-        </div>
+              </Form.Item>
+              {items.map((item, ci) => (
+                <div key={item.key}>
+                  <Divider style={{ margin: 0 }}>
+                    {groupKey === 'client' ? 'Client' : 'Server'} {ci + 1}
+                    <DeleteOutlined className="danger-icon" onClick={() => remove(item.name)} />
+                  </Divider>
+                  <ItemEditor
+                    base={[...base, groupKey, item.name]}
+                    form={form}
+                    onRemove={() => remove(item.name)}
+                  />
+                </div>
+              ))}
+            </>
+          )}
+        </Form.List>
       ))}
     </>
   );
 }
 
-function NoiseItems({ mask, onChange }: { mask: MaskRow; onChange: () => void }) {
-  const settings = mask.settings as { reset?: number; noise?: ItemRow[] };
-  if (!settings.noise) settings.noise = [];
-
+function NoiseItems({ base, form }: { base: (string | number)[]; form: FormInstance }) {
   return (
     <>
-      <Form.Item label="Reset">
-        <InputNumber
-          value={settings.reset || 0}
-          min={0}
-          onChange={(v) => {
-            settings.reset = Number(v) || 0;
-            onChange();
-          }}
-        />
+      <Form.Item label="Reset" name={[...base, 'reset']}>
+        <InputNumber min={0} />
       </Form.Item>
-      <Form.Item label="Noise">
-        <Button
-          type="primary"
-          size="small"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            (settings.noise as ItemRow[]).push(newNoiseItem());
-            onChange();
-          }}
-        />
-      </Form.Item>
-      {(settings.noise as ItemRow[]).map((n, ni) => (
-        <div key={ni}>
-          <Divider style={{ margin: 0 }}>
-            Noise {ni + 1}
-            <DeleteOutlined
-              className="danger-icon"
-              onClick={() => {
-                (settings.noise as ItemRow[]).splice(ni, 1);
-                onChange();
-              }}
-            />
-          </Divider>
-          <ItemEditor item={n} onChange={onChange} delayAsString />
-        </div>
-      ))}
+      <Form.List name={[...base, 'noise']}>
+        {(items, { add, remove }) => (
+          <>
+            <Form.Item label="Noise">
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={() => add(defaultNoiseItem())}
+              />
+            </Form.Item>
+            {items.map((item, ni) => (
+              <div key={item.key}>
+                <Divider style={{ margin: 0 }}>
+                  Noise {ni + 1}
+                  <DeleteOutlined className="danger-icon" onClick={() => remove(item.name)} />
+                </Divider>
+                <ItemEditor
+                  base={[...base, 'noise', item.name]}
+                  form={form}
+                  delayMode="string"
+                  onRemove={() => remove(item.name)}
+                />
+              </div>
+            ))}
+          </>
+        )}
+      </Form.List>
     </>
   );
 }
 
 function ItemEditor({
-  item,
-  onChange,
-  delayAsNumber,
-  delayAsString,
+  base, form, delayMode, onRemove: _onRemove,
 }: {
-  item: ItemRow;
-  onChange: () => void;
-  delayAsNumber?: boolean;
-  delayAsString?: boolean;
+  base: (string | number)[];
+  form: FormInstance;
+  delayMode?: 'number' | 'string';
+  onRemove?: () => void;
 }) {
+  const type = Form.useWatch([...base, 'type'], form) as string | undefined;
+
+  const onTypeChange = (v: string) => {
+    if (v === 'base64') form.setFieldValue([...base, 'packet'], RandomUtil.randomBase64());
+    else if (v === 'array') {
+      form.setFieldValue([...base, 'rand'], delayMode === 'string' ? '1-8192' : 0);
+      form.setFieldValue([...base, 'packet'], []);
+    } else {
+      form.setFieldValue([...base, 'packet'], '');
+    }
+  };
+
   return (
     <>
-      <Form.Item label="Type">
+      <Form.Item label="Type" name={[...base, 'type']}>
         <Select
-          value={item.type}
-          onChange={(v) => {
-            changeItemType(item, v);
-            onChange();
-          }}
+          onChange={onTypeChange}
           options={[
             { value: 'array', label: 'Array' },
             { value: 'str', label: 'String' },
@@ -535,112 +506,60 @@ function ItemEditor({
           ]}
         />
       </Form.Item>
-      {delayAsNumber && (
-        <Form.Item label="Delay (ms)">
-          <InputNumber
-            value={typeof item.delay === 'number' ? item.delay : 0}
-            min={0}
-            onChange={(v) => {
-              item.delay = Number(v) || 0;
-              onChange();
-            }}
-          />
+
+      {delayMode === 'number' && (
+        <Form.Item label="Delay (ms)" name={[...base, 'delay']}>
+          <InputNumber min={0} />
         </Form.Item>
       )}
-      {item.type === 'array' ? (
+      {delayMode === 'string' && (
+        <Form.Item label="Delay" name={[...base, 'delay']}>
+          <Input placeholder="10-20" />
+        </Form.Item>
+      )}
+
+      {type === 'array' ? (
         <>
-          <Form.Item label="Rand">
-            {delayAsString ? (
-              <Input
-                value={String(item.rand ?? '')}
-                onChange={(e) => {
-                  item.rand = e.target.value;
-                  onChange();
-                }}
-                placeholder="0 or 1-8192"
-              />
+          <Form.Item label="Rand" name={[...base, 'rand']}>
+            {delayMode === 'string' ? (
+              <Input placeholder="0 or 1-8192" />
             ) : (
-              <InputNumber
-                value={typeof item.rand === 'number' ? item.rand : 0}
-                min={0}
-                onChange={(v) => {
-                  item.rand = Number(v) || 0;
-                  onChange();
-                }}
-              />
+              <InputNumber min={0} />
             )}
           </Form.Item>
-          <Form.Item label="Rand Range">
-            <Input
-              value={item.randRange || ''}
-              placeholder="0-255"
-              onChange={(e) => {
-                item.randRange = e.target.value;
-                onChange();
-              }}
-            />
+          <Form.Item label="Rand Range" name={[...base, 'randRange']}>
+            <Input placeholder="0-255" />
           </Form.Item>
         </>
-      ) : (
+      ) : type === 'base64' ? (
         <Form.Item label="Packet">
-          {item.type === 'base64' ? (
-            <Input.Group compact>
-              <Input
-                value={String(item.packet ?? '')}
-                placeholder="binary data"
-                style={{ width: 'calc(100% - 32px)' }}
-                onChange={(e) => {
-                  item.packet = e.target.value;
-                  onChange();
-                }}
-              />
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => {
-                  item.packet = RandomUtil.randomBase64();
-                  onChange();
-                }}
-              />
-            </Input.Group>
-          ) : (
-            <Input
-              value={String(item.packet ?? '')}
-              placeholder="binary data"
-              onChange={(e) => {
-                item.packet = e.target.value;
-                onChange();
-              }}
+          <Input.Group compact>
+            <Form.Item name={[...base, 'packet']} noStyle>
+              <Input placeholder="binary data" style={{ width: 'calc(100% - 32px)' }} />
+            </Form.Item>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => form.setFieldValue([...base, 'packet'], RandomUtil.randomBase64())}
             />
-          )}
+          </Input.Group>
         </Form.Item>
-      )}
-      {delayAsString && (
-        <Form.Item label="Delay">
-          <Input
-            value={typeof item.delay === 'string' ? item.delay : ''}
-            placeholder="10-20"
-            onChange={(e) => {
-              item.delay = e.target.value;
-              onChange();
-            }}
-          />
+      ) : (
+        <Form.Item label="Packet" name={[...base, 'packet']}>
+          <Input placeholder="binary data" />
         </Form.Item>
       )}
     </>
   );
 }
 
-function QuicParamsForm({ params, onChange }: { params: QuicParams; onChange: () => void }) {
-  function update<K extends keyof QuicParams>(key: K, value: QuicParams[K]) {
-    params[key] = value;
-    onChange();
-  }
+function QuicParamsForm({ base, form }: { base: (string | number)[]; form: FormInstance }) {
+  const congestion = Form.useWatch([...base, 'congestion'], form) as string | undefined;
+  const hasUdpHop = Form.useWatch([...base, 'hasUdpHop'], form) as boolean | undefined;
+
   return (
     <>
-      <Form.Item label="Congestion">
+      <Form.Item label="Congestion" name={[...base, 'congestion']}>
         <Select
-          value={params.congestion}
-          onChange={(v) => update('congestion', v)}
           options={[
             { value: 'reno', label: 'Reno' },
             { value: 'bbr', label: 'BBR' },
@@ -649,90 +568,60 @@ function QuicParamsForm({ params, onChange }: { params: QuicParams; onChange: ()
           ]}
         />
       </Form.Item>
-      <Form.Item label="Debug">
-        <Switch checked={!!params.debug} onChange={(v) => update('debug', v)} />
+      <Form.Item label="Debug" name={[...base, 'debug']} valuePropName="checked">
+        <Switch />
       </Form.Item>
-      {['brutal', 'force-brutal'].includes(params.congestion) && (
+
+      {(congestion === 'brutal' || congestion === 'force-brutal') && (
         <>
-          <Form.Item label="Brutal Up">
-            <Input
-              value={String(params.brutalUp ?? '')}
-              placeholder="65537"
-              onChange={(e) => update('brutalUp', e.target.value)}
-            />
+          <Form.Item label="Brutal Up" name={[...base, 'brutalUp']}>
+            <Input placeholder="65537" />
           </Form.Item>
-          <Form.Item label="Brutal Down">
-            <Input
-              value={String(params.brutalDown ?? '')}
-              placeholder="65537"
-              onChange={(e) => update('brutalDown', e.target.value)}
-            />
+          <Form.Item label="Brutal Down" name={[...base, 'brutalDown']}>
+            <Input placeholder="65537" />
           </Form.Item>
         </>
       )}
-      <Form.Item label="UDP Hop">
-        <Switch checked={!!params.hasUdpHop} onChange={(v) => update('hasUdpHop', v)} />
+
+      <Form.Item label="UDP Hop" name={[...base, 'hasUdpHop']} valuePropName="checked">
+        <Switch />
       </Form.Item>
-      {params.hasUdpHop && params.udpHop && (
+      {hasUdpHop && (
         <>
-          <Form.Item label="Hop Ports">
-            <Input
-              value={params.udpHop.ports || ''}
-              placeholder="e.g. 20000-50000"
-              onChange={(e) => {
-                params.udpHop!.ports = e.target.value;
-                onChange();
-              }}
-            />
+          <Form.Item label="Hop Ports" name={[...base, 'udpHop', 'ports']}>
+            <Input placeholder="e.g. 20000-50000" />
           </Form.Item>
-          <Form.Item label="Hop Interval (s)">
-            <InputNumber
-              value={Number(params.udpHop.interval) || 5}
-              min={5}
-              onChange={(v) => {
-                params.udpHop!.interval = Number(v) || 5;
-                onChange();
-              }}
-            />
+          <Form.Item label="Hop Interval (s)" name={[...base, 'udpHop', 'interval']}>
+            <InputNumber min={5} />
           </Form.Item>
         </>
       )}
-      {(
-        [
-          ['maxIdleTimeout', 'Max Idle Timeout (s)', 4, 120],
-          ['keepAlivePeriod', 'Keep Alive Period (s)', 2, 60],
-        ] as const
-      ).map(([key, label, min, max]) => (
-        <Form.Item key={key} label={label}>
-          <InputNumber
-            value={params[key] as number}
-            min={min}
-            max={max}
-            onChange={(v) => update(key, Number(v) || min)}
-          />
-        </Form.Item>
-      ))}
-      <Form.Item label="Disable Path MTU Dis">
-        <Switch checked={!!params.disablePathMTUDiscovery} onChange={(v) => update('disablePathMTUDiscovery', v)} />
+
+      <Form.Item label="Max Idle Timeout (s)" name={[...base, 'maxIdleTimeout']}>
+        <InputNumber min={4} max={120} />
       </Form.Item>
-      {(
-        [
-          ['maxIncomingStreams', 'Max Incoming Streams', 8, '1024 = default'],
-          ['initStreamReceiveWindow', 'Init Stream Window', 16384, '8388608 = default'],
-          ['maxStreamReceiveWindow', 'Max Stream Window', 16384, '8388608 = default'],
-          ['initConnectionReceiveWindow', 'Init Conn Window', 16384, '20971520 = default'],
-          ['maxConnectionReceiveWindow', 'Max Conn Window', 16384, '20971520 = default'],
-        ] as const
-      ).map(([key, label, min, placeholder]) => (
-        <Form.Item key={key} label={label}>
-          <InputNumber
-            value={params[key] as number}
-            min={min}
-            placeholder={placeholder}
-            onChange={(v) => update(key, Number(v) || 0)}
-          />
-        </Form.Item>
-      ))}
+      <Form.Item label="Keep Alive Period (s)" name={[...base, 'keepAlivePeriod']}>
+        <InputNumber min={2} max={60} />
+      </Form.Item>
+      <Form.Item label="Disable Path MTU Dis" name={[...base, 'disablePathMTUDiscovery']} valuePropName="checked">
+        <Switch />
+      </Form.Item>
+
+      <Form.Item label="Max Incoming Streams" name={[...base, 'maxIncomingStreams']}>
+        <InputNumber min={8} placeholder="1024 = default" />
+      </Form.Item>
+      <Form.Item label="Init Stream Window" name={[...base, 'initStreamReceiveWindow']}>
+        <InputNumber min={16384} placeholder="8388608 = default" />
+      </Form.Item>
+      <Form.Item label="Max Stream Window" name={[...base, 'maxStreamReceiveWindow']}>
+        <InputNumber min={16384} placeholder="8388608 = default" />
+      </Form.Item>
+      <Form.Item label="Init Conn Window" name={[...base, 'initConnectionReceiveWindow']}>
+        <InputNumber min={16384} placeholder="20971520 = default" />
+      </Form.Item>
+      <Form.Item label="Max Conn Window" name={[...base, 'maxConnectionReceiveWindow']}>
+        <InputNumber min={16384} placeholder="20971520 = default" />
+      </Form.Item>
     </>
   );
 }

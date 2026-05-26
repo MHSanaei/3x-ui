@@ -64,6 +64,7 @@ import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt'
 import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
 import { RealityStreamSettingsSchema } from '@/schemas/protocols/security/reality';
 import DateTimePicker from '@/components/DateTimePicker';
+import FinalMaskForm from '@/components/FinalMaskForm';
 import HeaderMapEditor from '@/components/HeaderMapEditor';
 import InputAddon from '@/components/InputAddon';
 import JsonEditor from '@/components/JsonEditor';
@@ -2022,6 +2023,13 @@ export default function InboundFormModal({
           </Form.Item>
         </>
       )}
+
+      <FinalMaskForm
+        name={['streamSettings', 'finalmask']}
+        network={network as string}
+        protocol={protocol}
+        form={form}
+      />
     </>
   );
 

@@ -15,6 +15,7 @@ import {
 } from 'antd';
 import { DeleteOutlined, MinusOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 
+import FinalMaskForm from '@/components/FinalMaskForm';
 import HeaderMapEditor from '@/components/HeaderMapEditor';
 import InputAddon from '@/components/InputAddon';
 import JsonEditor from '@/components/JsonEditor';
@@ -2139,6 +2140,13 @@ export default function OutboundFormModal({
                         }}
                       </Form.Item>
                     )}
+
+                    <FinalMaskForm
+                      name={['streamSettings', 'finalmask']}
+                      network={network}
+                      protocol={protocol}
+                      form={form}
+                    />
 
                     {(() => {
                       const flow = (form.getFieldValue(['settings', 'flow']) ?? '') as string;
