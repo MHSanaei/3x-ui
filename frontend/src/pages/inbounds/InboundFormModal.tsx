@@ -69,6 +69,7 @@ import FinalMaskForm from '@/components/FinalMaskForm';
 import HeaderMapEditor from '@/components/HeaderMapEditor';
 import InputAddon from '@/components/InputAddon';
 import JsonEditor from '@/components/JsonEditor';
+import './InboundFormModal.css';
 import type { FormInstance } from 'antd';
 import type { NamePath } from 'antd/es/form/interface';
 
