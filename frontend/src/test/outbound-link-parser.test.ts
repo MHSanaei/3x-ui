@@ -1,0 +1,159 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  parseOutboundLink,
+  parseShadowsocksLink,
+  parseTrojanLink,
+  parseVlessLink,
+  parseVmessLink,
+  parseHysteria2Link,
+} from '@/lib/xray/outbound-link-parser';
+import { Base64 } from '@/utils';
+
+// Focused acceptance tests for the share-link parsers — one happy-path
+// case per protocol family, plus a few common edge cases. The parsers
+// produce wire-shape outbound rows; the modal hands them to
+// rawOutboundToFormValues to seed Form.useForm.
+
+describe('parseVmessLink', () => {
+  it('parses a vmess:// link with ws + tls', () => {
+    const json = {
+      v: '2', ps: 'imported-vmess', add: '1.2.3.4', port: 8443,
+      id: '11111111-2222-4333-8444-555555555555', aid: 0, scy: 'auto',
+      net: 'ws', host: 'example.com', path: '/ws',
+      tls: 'tls', sni: 'example.com', fp: 'chrome', alpn: 'h2,http/1.1',
+    };
+    const link = `vmess://${Base64.encode(JSON.stringify(json))}`;
+    const out = parseVmessLink(link);
+    expect(out).not.toBeNull();
+    expect(out?.protocol).toBe('vmess');
+    expect(out?.tag).toBe('imported-vmess');
+    const settings = out?.settings as { vnext: Array<{ address: string; port: number; users: Array<{ id: string; security: string }> }> };
+    expect(settings.vnext[0].address).toBe('1.2.3.4');
+    expect(settings.vnext[0].port).toBe(8443);
+    expect(settings.vnext[0].users[0].id).toBe('11111111-2222-4333-8444-555555555555');
+    const stream = out?.streamSettings as Record<string, unknown>;
+    expect(stream.network).toBe('ws');
+    expect(stream.security).toBe('tls');
+    expect((stream.wsSettings as Record<string, unknown>).path).toBe('/ws');
+    expect((stream.tlsSettings as Record<string, unknown>).serverName).toBe('example.com');
+    expect((stream.tlsSettings as Record<string, unknown>).alpn).toEqual(['h2', 'http/1.1']);
+  });
+
+  it('returns null for non-vmess links', () => {
+    expect(parseVmessLink('vless://x@y:1')).toBeNull();
+  });
+
+  it('returns null for malformed base64', () => {
+    expect(parseVmessLink('vmess://!!!not-base64!!!')).toBeNull();
+  });
+});
+
+describe('parseVlessLink', () => {
+  it('parses a vless:// link with reality', () => {
+    const link
+      = 'vless://11111111-2222-4333-8444-555555555555@srv.example:443'
+      + '?type=tcp&security=reality&pbk=pubkey&sid=abcd&fp=chrome&sni=cloudflare.com&flow=xtls-rprx-vision'
+      + '#imported-vless';
+    const out = parseVlessLink(link);
+    expect(out?.protocol).toBe('vless');
+    expect(out?.tag).toBe('imported-vless');
+    const settings = out?.settings as { id: string; flow: string; address: string; port: number };
+    expect(settings.id).toBe('11111111-2222-4333-8444-555555555555');
+    expect(settings.address).toBe('srv.example');
+    expect(settings.port).toBe(443);
+    expect(settings.flow).toBe('xtls-rprx-vision');
+    const stream = out?.streamSettings as Record<string, unknown>;
+    expect(stream.security).toBe('reality');
+    const reality = stream.realitySettings as Record<string, unknown>;
+    expect(reality.publicKey).toBe('pubkey');
+    expect(reality.shortId).toBe('abcd');
+    expect(reality.serverName).toBe('cloudflare.com');
+  });
+});
+
+describe('parseTrojanLink', () => {
+  it('parses a trojan:// link with ws + tls', () => {
+    const link = 'trojan://secret-pw@srv.example:8443?type=ws&security=tls&host=example.com&path=/tj&sni=example.com#imported-trojan';
+    const out = parseTrojanLink(link);
+    expect(out?.protocol).toBe('trojan');
+    const settings = out?.settings as { servers: Array<{ address: string; port: number; password: string }> };
+    expect(settings.servers[0].address).toBe('srv.example');
+    expect(settings.servers[0].port).toBe(8443);
+    expect(settings.servers[0].password).toBe('secret-pw');
+    const stream = out?.streamSettings as Record<string, unknown>;
+    expect(stream.network).toBe('ws');
+    expect((stream.wsSettings as Record<string, unknown>).path).toBe('/tj');
+  });
+});
+
+describe('parseShadowsocksLink', () => {
+  it('parses the modern userinfo@host:port form', () => {
+    // ss://base64(method:password)@host:port#remark
+    const userinfo = Base64.encode('2022-blake3-aes-128-gcm:supersecret');
+    const link = `ss://${userinfo}@1.2.3.4:8388#imported-ss`;
+    const out = parseShadowsocksLink(link);
+    expect(out?.protocol).toBe('shadowsocks');
+    expect(out?.tag).toBe('imported-ss');
+    const settings = out?.settings as { servers: Array<{ address: string; port: number; method: string; password: string }> };
+    expect(settings.servers[0].address).toBe('1.2.3.4');
+    expect(settings.servers[0].port).toBe(8388);
+    expect(settings.servers[0].method).toBe('2022-blake3-aes-128-gcm');
+    expect(settings.servers[0].password).toBe('supersecret');
+  });
+
+  it('parses the legacy base64-of-whole form', () => {
+    // ss://base64(method:password@host:port)#remark
+    const inner = Base64.encode('aes-256-gcm:legacypw@10.0.0.1:1080');
+    const link = `ss://${inner}#imported-legacy`;
+    const out = parseShadowsocksLink(link);
+    const settings = out?.settings as { servers: Array<{ address: string; port: number; method: string; password: string }> };
+    expect(settings.servers[0].address).toBe('10.0.0.1');
+    expect(settings.servers[0].port).toBe(1080);
+    expect(settings.servers[0].method).toBe('aes-256-gcm');
+    expect(settings.servers[0].password).toBe('legacypw');
+  });
+});
+
+describe('parseHysteria2Link', () => {
+  it('parses a hysteria2:// link with sni', () => {
+    const link = 'hysteria2://auth-secret@srv.example:443?sni=example.com#imported-hy2';
+    const out = parseHysteria2Link(link);
+    expect(out?.protocol).toBe('hysteria');
+    expect(out?.tag).toBe('imported-hy2');
+    const settings = out?.settings as { address: string; port: number; version: number };
+    expect(settings.address).toBe('srv.example');
+    expect(settings.port).toBe(443);
+    expect(settings.version).toBe(2);
+    const stream = out?.streamSettings as Record<string, unknown>;
+    const hys = stream.hysteriaSettings as Record<string, unknown>;
+    expect(hys.auth).toBe('auth-secret');
+    expect((stream.tlsSettings as Record<string, unknown>).serverName).toBe('example.com');
+  });
+
+  it('also accepts hy2:// alias', () => {
+    const out = parseHysteria2Link('hy2://auth@srv:443?sni=example.com');
+    expect(out?.protocol).toBe('hysteria');
+  });
+});
+
+describe('parseOutboundLink dispatcher', () => {
+  it('dispatches vmess via base64 JSON', () => {
+    const json = { v: '2', ps: 'x', add: '1.1.1.1', port: 443, id: '11111111-2222-4333-8444-555555555555', net: 'tcp', tls: 'none' };
+    const link = `vmess://${Base64.encode(JSON.stringify(json))}`;
+    expect(parseOutboundLink(link)?.protocol).toBe('vmess');
+  });
+
+  it('dispatches vless via URL', () => {
+    expect(parseOutboundLink('vless://uuid@host:443?type=tcp&security=none')?.protocol).toBe('vless');
+  });
+
+  it('returns null for an unknown scheme', () => {
+    expect(parseOutboundLink('socks5://user:pass@host:1080')).toBeNull();
+  });
+
+  it('returns null for empty input', () => {
+    expect(parseOutboundLink('')).toBeNull();
+    expect(parseOutboundLink('   ')).toBeNull();
+  });
+});

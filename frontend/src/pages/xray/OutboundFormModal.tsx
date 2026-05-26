@@ -23,6 +23,7 @@ import {
   formValuesToWirePayload,
   rawOutboundToFormValues,
 } from '@/lib/xray/outbound-form-adapter';
+import { parseOutboundLink } from '@/lib/xray/outbound-link-parser';
 import {
   OutboundFormBaseSchema,
   ShadowsocksOutboundFormSettingsSchema,
@@ -189,6 +190,30 @@ export default function OutboundFormModal({
   const [activeKey, setActiveKey] = useState('1');
   const [jsonText, setJsonText] = useState('');
   const [jsonDirty, setJsonDirty] = useState(false);
+  const [linkInput, setLinkInput] = useState('');
+
+  // Parse a share link (vmess:// / vless:// / trojan:// / ss:// /
+  // hysteria2://) and replace form state with the result. The current
+  // tag is preserved when the parsed link doesn't carry one.
+  function importLink() {
+    const link = linkInput.trim();
+    if (!link) return;
+    const parsed = parseOutboundLink(link);
+    if (!parsed) {
+      messageApi.error('Wrong Link!');
+      return;
+    }
+    const currentTag = form.getFieldValue('tag') as string | undefined;
+    if (!parsed.tag && currentTag) parsed.tag = currentTag;
+    const next = rawOutboundToFormValues(parsed);
+    form.resetFields();
+    form.setFieldsValue(next);
+    setJsonText(JSON.stringify(formValuesToWirePayload(next), null, 2));
+    setJsonDirty(false);
+    setLinkInput('');
+    messageApi.success('Link imported successfully');
+    setActiveKey('1');
+  }
 
   const isEdit = outboundProp != null;
   const title = isEdit
@@ -2081,6 +2106,13 @@ export default function OutboundFormModal({
                 label: 'JSON',
                 children: (
                   <Space orientation="vertical" size={10} style={{ width: '100%', marginTop: 10 }}>
+                    <Input.Search
+                      value={linkInput}
+                      placeholder="vmess:// vless:// trojan:// ss:// hysteria2://"
+                      enterButton="Import"
+                      onChange={(e) => setLinkInput(e.target.value)}
+                      onSearch={importLink}
+                    />
                     <JsonEditor
                       value={jsonText}
                       onChange={(next) => {
