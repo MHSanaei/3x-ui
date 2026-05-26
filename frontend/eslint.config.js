@@ -29,6 +29,12 @@ export default [
         varsIgnorePattern: '^_',
         caughtErrorsIgnorePattern: '^_',
       }],
+      // Zod migration goal (Step 7): every production module is held to
+      // strict no-explicit-any. The two legacy class files at the bottom
+      // of the rule list keep their existing file-level eslint-disable
+      // until DBInbound is migrated off Inbound.toInbound() — see the
+      // migration spec Non-Goals section.
+      '@typescript-eslint/no-explicit-any': 'error',
       'no-empty': ['error', { allowEmptyCatch: true }],
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/purity': 'off',
