@@ -227,8 +227,14 @@ export default function OutboundFormModal({
 
   const tag = Form.useWatch('tag', form) ?? '';
   const protocol = (Form.useWatch('protocol', form) ?? 'vless') as string;
-  const network = (Form.useWatch(['streamSettings', 'network'], form) ?? '') as string;
-  const security = (Form.useWatch(['streamSettings', 'security'], form) ?? 'none') as string;
+  // preserve: true — without it useWatch only reflects values whose
+  // Form.Item is currently mounted. The streamSettings selectors live
+  // INSIDE `{streamAllowed && network && (...)}`, so the moment that
+  // conditional gates them out, useWatch returns undefined, the gate
+  // keeps returning false, and the stream block never renders even
+  // though streamSettings is in the form store.
+  const network = (Form.useWatch(['streamSettings', 'network'], { form, preserve: true }) ?? '') as string;
+  const security = (Form.useWatch(['streamSettings', 'security'], { form, preserve: true }) ?? 'none') as string;
 
   const streamAllowed = canEnableStream({ protocol });
   const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
@@ -1856,7 +1862,7 @@ export default function OutboundFormModal({
                       </>
                     )}
 
-                    {streamAllowed && network && (
+                    {((streamAllowed && network) || !streamAllowed) && (
                       <Form.Item shouldUpdate noStyle>
                         {() => {
                           const hasSockopt = !!form.getFieldValue([

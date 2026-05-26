@@ -480,7 +480,9 @@ export default function IndexPage() {
             open={configTextOpen}
             title={t('pages.index.config')}
             width={isMobile ? '100%' : 900}
-            style={isMobile ? { top: 20, maxWidth: 'calc(100vw - 16px)' } : undefined}
+            style={isMobile
+              ? { top: 20, maxWidth: 'calc(100vw - 16px)' }
+              : { top: 20 }}
             onCancel={() => setConfigTextOpen(false)}
             footer={[
               <Button
@@ -505,8 +507,8 @@ export default function IndexPage() {
             <JsonEditor
               value={configText}
               onChange={setConfigText}
-              minHeight={isMobile ? '300px' : '420px'}
-              maxHeight={isMobile ? '500px' : '720px'}
+              minHeight={isMobile ? '300px' : 'calc(100vh - 220px)'}
+              maxHeight={isMobile ? '70vh' : 'calc(100vh - 220px)'}
               readOnly
             />
           </Modal>

@@ -3,8 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { HttpUtil } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
-import { DBInbound } from '@/models/dbinbound';
+import { DBInbound, coerceInboundJsonField } from '@/models/dbinbound';
 import { Protocols } from '@/schemas/primitives';
+import { isSSMultiUser } from '@/lib/xray/protocol-capabilities';
 import { setDatepicker } from '@/hooks/useDatepicker';
 import { keys } from '@/api/queryKeys';
 import { SlimInboundListSchema, LastOnlineMapSchema, InboundDetailSchema } from '@/schemas/inbound';
@@ -201,12 +202,14 @@ export function useInbounds() {
   const rebuildClientCount = useCallback(() => {
     const counts: Record<number, ClientRollup> = {};
     for (const dbInbound of dbInboundsRef.current) {
-      const parsed = (dbInbound as unknown as { toInbound: () => { clients?: unknown[]; isSSMultiUser?: boolean }; isSS: boolean; protocol: string }).toInbound();
-      const protocol = (dbInbound as unknown as { protocol: string }).protocol;
+      const protocol = dbInbound.protocol;
       if (!TRACKED_PROTOCOLS.includes(protocol)) continue;
-      const isSS = (dbInbound as unknown as { isSS: boolean }).isSS;
-      if (isSS && !parsed.isSSMultiUser) continue;
-      counts[(dbInbound as unknown as { id: number }).id] = rollupClients(dbInbound, parsed as { clients?: { email?: string; enable?: boolean; comment?: string }[] });
+      const settings = coerceInboundJsonField(dbInbound.settings) as {
+        method?: string;
+        clients?: Array<{ email?: string; enable?: boolean; comment?: string }>;
+      };
+      if (protocol === Protocols.SHADOWSOCKS && !isSSMultiUser({ protocol, settings })) continue;
+      counts[dbInbound.id] = rollupClients(dbInbound, { clients: settings.clients });
     }
     setClientCount(counts);
   }, [rollupClients]);
@@ -219,11 +222,14 @@ export function useInbounds() {
     const counts: Record<number, ClientRollup> = {};
     for (const row of slimQuery.data as { protocol: string; id: number }[]) {
       const dbInbound = new DBInbound(row) as DBInboundInstance;
-      const parsed = (dbInbound as unknown as { toInbound: () => { clients?: unknown[]; isSSMultiUser?: boolean } }).toInbound();
       next.push(dbInbound);
       if (TRACKED_PROTOCOLS.includes(row.protocol)) {
-        if ((dbInbound as unknown as { isSS: boolean }).isSS && !parsed.isSSMultiUser) continue;
-        counts[row.id] = rollupClients(dbInbound, parsed as { clients?: { email?: string; enable?: boolean; comment?: string }[] });
+        const settings = coerceInboundJsonField(dbInbound.settings) as {
+          method?: string;
+          clients?: Array<{ email?: string; enable?: boolean; comment?: string }>;
+        };
+        if (row.protocol === Protocols.SHADOWSOCKS && !isSSMultiUser({ protocol: row.protocol, settings })) continue;
+        counts[row.id] = rollupClients(dbInbound, { clients: settings.clients });
       }
     }
     dbInboundsRef.current = next;
@@ -245,8 +251,12 @@ export function useInbounds() {
   const fetched = slimQuery.data !== undefined && defaultsQuery.data !== undefined;
 
   const refresh = useCallback(async () => {
+    // Invalidate at the inbounds root so both `slim` (this page's list)
+    // and `options` (the Clients page's inbound picker) refetch. Without
+    // the options bucket, a freshly-created inbound stays invisible in
+    // the client add/edit modal until a full page reload.
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: keys.inbounds.slim() }),
+      queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
       queryClient.invalidateQueries({ queryKey: keys.clients.onlines() }),
       queryClient.invalidateQueries({ queryKey: keys.clients.lastOnline() }),
     ]);

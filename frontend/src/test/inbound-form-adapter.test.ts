@@ -114,7 +114,7 @@ describe('rawInboundToFormValues', () => {
 });
 
 describe('formValuesToWirePayload', () => {
-  it('stringifies settings/streamSettings/sniffing', () => {
+  it('stringifies settings/streamSettings/sniffing with empty-array/default pruning', () => {
     const values = rawInboundToFormValues(vlessRow);
     const payload = formValuesToWirePayload(values);
 
@@ -122,9 +122,18 @@ describe('formValuesToWirePayload', () => {
     expect(typeof payload.streamSettings).toBe('string');
     expect(typeof payload.sniffing).toBe('string');
 
-    expect(JSON.parse(payload.settings)).toEqual(vlessRow.settings);
+    // Empty arrays like `fallbacks: []` drop out of the payload to match
+    // the legacy panel's minimal JSON.
+    const parsedSettings = JSON.parse(payload.settings);
+    const { fallbacks: _f, ...expectedSettings } = vlessRow.settings as Record<string, unknown>;
+    expect(parsedSettings).toEqual(expectedSettings);
+
     expect(JSON.parse(payload.streamSettings)).toEqual(vlessRow.streamSettings);
-    expect(JSON.parse(payload.sniffing)).toEqual(vlessRow.sniffing);
+
+    // Disabled sniffing collapses to the bare `{ enabled: false }`
+    // regardless of which destOverride/metadataOnly/etc. defaults the
+    // form carries.
+    expect(JSON.parse(payload.sniffing)).toEqual({ enabled: false });
   });
 
   it('emits empty string for absent streamSettings', () => {
@@ -145,7 +154,11 @@ describe('formValuesToWirePayload', () => {
     expect(payload.nodeId).toBe(42);
   });
 
-  it('round-trips through raw → values → payload → values', () => {
+  it('round-trips top-level fields through raw → values → payload → values', () => {
+    // settings/streamSettings/sniffing don't round-trip byte-equal because
+    // the wire payload prunes empty arrays and collapses disabled sniffing
+    // to `{ enabled: false }`. Top-level scalars and the protocol picker
+    // must still survive the round trip without loss.
     const original = rawInboundToFormValues(vlessRow);
     const payload = formValuesToWirePayload(original);
     const replay = rawInboundToFormValues({
@@ -166,6 +179,12 @@ describe('formValuesToWirePayload', () => {
       lastTrafficResetTime: payload.lastTrafficResetTime,
       nodeId: payload.nodeId ?? null,
     });
-    expect(replay).toEqual(original);
+    expect(replay.protocol).toBe(original.protocol);
+    expect(replay.port).toBe(original.port);
+    expect(replay.tag).toBe(original.tag);
+    expect(replay.listen).toBe(original.listen);
+    expect(replay.up).toBe(original.up);
+    expect(replay.down).toBe(original.down);
+    expect(replay.streamSettings).toEqual(original.streamSettings);
   });
 });

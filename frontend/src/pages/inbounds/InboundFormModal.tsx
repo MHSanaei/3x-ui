@@ -33,6 +33,10 @@ import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from 
 import {
   rawInboundToFormValues,
   formValuesToWirePayload,
+  pruneEmpty,
+  normalizeSniffing,
+  normalizeClients,
+  dropLegacyOptionalEmpties,
 } from '@/lib/xray/inbound-form-adapter';
 import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
 import {
@@ -82,7 +86,7 @@ import type { FormInstance } from 'antd';
 import type { NamePath } from 'antd/es/form/interface';
 
 const { TextArea } = Input;
-import type { DBInbound } from '@/models/dbinbound';
+import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 
 // Pattern A rewrite of InboundFormModal. Built as a sibling file so the
@@ -121,7 +125,12 @@ function AdvancedSliceEditor({
     return JSON.stringify(wrapKey ? { [wrapKey]: inner } : inner, null, 2);
   };
 
-  const watched = Form.useWatch(path, form);
+  // preserve: true so useWatch returns the full subtree from the form
+  // store — without it, useWatch goes through getFieldsValue() which
+  // filters out unregistered fields. Slices like `settings` would lose
+  // their `clients` / `fallbacks` sub-trees because those aren't bound
+  // to any Form.Item.
+  const watched = Form.useWatch(path, { form, preserve: true });
   const lastEmitRef = useRef<string>('');
   const [text, setText] = useState(() => {
     const initial = serialize(form.getFieldValue(path));
@@ -172,24 +181,40 @@ function AdvancedAllEditor({
   form: FormInstance<InboundFormValues>;
   streamEnabled: boolean;
 }) {
-  const wListen = Form.useWatch('listen', form);
-  const wPort = Form.useWatch('port', form);
-  const wProtocol = Form.useWatch('protocol', form);
-  const wTag = Form.useWatch('tag', form);
-  const wSettings = Form.useWatch('settings', form);
-  const wSniffing = Form.useWatch('sniffing', form);
-  const wStream = Form.useWatch('streamSettings', form);
+  // preserve: true — default useWatch returns only registered fields, so
+  // sub-trees we never bound (settings.clients/fallbacks, sniffing
+  // defaults, etc.) wouldn't show up. preserve switches the read to
+  // getFieldsValue(true) which returns the full form store.
+  const wListen = Form.useWatch('listen', { form, preserve: true });
+  const wPort = Form.useWatch('port', { form, preserve: true });
+  const wProtocol = Form.useWatch('protocol', { form, preserve: true });
+  const wTag = Form.useWatch('tag', { form, preserve: true });
+  const wSettings = Form.useWatch('settings', { form, preserve: true });
+  const wSniffing = Form.useWatch('sniffing', { form, preserve: true });
+  const wStream = Form.useWatch('streamSettings', { form, preserve: true });
 
   const serialize = () => {
+    // Apply the same prune/normalize as the wire payload so the JSON
+    // shown here is what the panel actually POSTs (no empty defaults,
+    // disabled sniffing as { enabled: false }, finalmask dropped when
+    // there are no masks).
+    const settingsView = (pruneEmpty(wSettings ?? {}) ?? {}) as Record<string, unknown>;
+    if (typeof wProtocol === 'string' && Array.isArray(settingsView.clients)) {
+      settingsView.clients = normalizeClients(wProtocol, settingsView.clients);
+    }
+    const streamView = streamEnabled
+      ? ((pruneEmpty(wStream ?? {}) ?? {}) as Record<string, unknown>)
+      : undefined;
+    dropLegacyOptionalEmpties(settingsView, streamView);
     const out: Record<string, unknown> = {
       listen: wListen ?? '',
       port: wPort ?? 0,
       protocol: wProtocol ?? '',
       tag: wTag ?? '',
-      settings: wSettings ?? {},
-      sniffing: wSniffing ?? {},
+      settings: settingsView,
+      sniffing: normalizeSniffing(wSniffing as Parameters<typeof normalizeSniffing>[0]),
     };
-    if (streamEnabled) out.streamSettings = wStream ?? {};
+    if (streamView) out.streamSettings = streamView;
     return JSON.stringify(out, null, 2);
   };
 
@@ -368,6 +393,39 @@ export default function InboundFormModal({
     return !!msg?.success;
   };
 
+  // Derive a fallback row's SNI / ALPN / Path / xver from a child
+  // inbound's streamSettings — what the legacy panel auto-filled when an
+  // operator wired a fallback target. SNI/ALPN come straight off the
+  // child's TLS block; path depends on the child's transport (ws/grpc
+  // /httpupgrade carry an explicit path; tcp/kcp/xhttp have no path of
+  // their own). xver stays 0 unless the child explicitly opts in via
+  // PROXY-protocol sockopt.
+  const deriveFallbackDefaults = (childId: number): Partial<FallbackRow> => {
+    const child = (dbInbounds || []).find((ib) => ib.id === childId);
+    if (!child) return {};
+    const stream = coerceInboundJsonField(child.streamSettings);
+    const tls = (stream.tlsSettings as Record<string, unknown> | undefined) ?? {};
+    const network = typeof stream.network === 'string' ? stream.network : '';
+    const sni = typeof tls.serverName === 'string' ? tls.serverName : '';
+    const alpnArr = Array.isArray(tls.alpn) ? tls.alpn : [];
+    const alpn = alpnArr.filter((v) => typeof v === 'string').join(',');
+    let path = '';
+    if (network === 'ws') {
+      const ws = (stream.wsSettings as Record<string, unknown> | undefined) ?? {};
+      if (typeof ws.path === 'string') path = ws.path;
+    } else if (network === 'grpc') {
+      const grpc = (stream.grpcSettings as Record<string, unknown> | undefined) ?? {};
+      if (typeof grpc.serviceName === 'string') path = grpc.serviceName;
+    } else if (network === 'httpupgrade') {
+      const hu = (stream.httpupgradeSettings as Record<string, unknown> | undefined) ?? {};
+      if (typeof hu.path === 'string') path = hu.path;
+    } else if (network === 'xhttp') {
+      const xh = (stream.xhttpSettings as Record<string, unknown> | undefined) ?? {};
+      if (typeof xh.path === 'string') path = xh.path;
+    }
+    return { name: sni, alpn, path, xver: 0 };
+  };
+
   const addFallback = () => {
     setFallbacks((prev) => [...prev, {
       rowKey: `fb-${++fallbackKeyRef.current}`,
@@ -380,7 +438,18 @@ export default function InboundFormModal({
   };
 
   const updateFallback = (rowKey: string, patch: Partial<FallbackRow>) => {
-    setFallbacks((prev) => prev.map((r) => r.rowKey === rowKey ? { ...r, ...patch } : r));
+    setFallbacks((prev) => prev.map((r) => {
+      if (r.rowKey !== rowKey) return r;
+      // When the picker selects a new child inbound and the row hasn't
+      // been hand-edited yet (sni/alpn/path all blank, xver = 0), pull
+      // the SNI/ALPN/Path defaults off that child. Operators who
+      // intentionally typed values keep them — we only fill the empties.
+      if (typeof patch.childId === 'number' && patch.childId !== r.childId) {
+        const isPristine = !r.name && !r.alpn && !r.path && r.xver === 0;
+        if (isPristine) return { ...r, ...patch, ...deriveFallbackDefaults(patch.childId) };
+      }
+      return { ...r, ...patch };
+    }));
   };
 
   const removeFallback = (idx: number) => {
@@ -409,14 +478,17 @@ export default function InboundFormModal({
       const alreadyHave = new Set(prev.map((r) => r.childId));
       const additions = fallbackChildOptions
         .filter((opt) => !alreadyHave.has(opt.value))
-        .map<FallbackRow>((opt) => ({
-          rowKey: `fb-${++fallbackKeyRef.current}`,
-          childId: opt.value,
-          name: '',
-          alpn: '',
-          path: '',
-          xver: 0,
-        }));
+        .map<FallbackRow>((opt) => {
+          const derived = deriveFallbackDefaults(opt.value);
+          return {
+            rowKey: `fb-${++fallbackKeyRef.current}`,
+            childId: opt.value,
+            name: derived.name ?? '',
+            alpn: derived.alpn ?? '',
+            path: derived.path ?? '',
+            xver: derived.xver ?? 0,
+          };
+        });
       if (additions.length === 0) return prev;
       return [...prev, ...additions];
     });
@@ -697,20 +769,34 @@ export default function InboundFormModal({
   };
 
   const submit = async () => {
-    let values: InboundFormValues;
     try {
-      values = await form.validateFields();
+      await form.validateFields();
     } catch {
       return;
     }
+    // Why getFieldsValue(true) instead of the validateFields return value:
+    // rc-component/form's validateFields filters its output by REGISTERED
+    // name paths. settings.clients and settings.fallbacks have no Form.Item
+    // bound to them (clients are managed via the standalone Client modal,
+    // not inside this inbound modal) — so validateFields would drop them
+    // and the update wire payload would silently delete every client on
+    // every save. getFieldsValue(true) returns the entire form store and
+    // keeps those sub-trees intact.
+    const values = form.getFieldsValue(true) as InboundFormValues;
     const parsed = InboundFormSchema.safeParse(values);
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
-      messageApi.error(
-        t(issue?.message ?? 'somethingWentWrong', {
-          defaultValue: issue?.message ?? 'invalid',
-        }),
-      );
+      const path = Array.isArray(issue?.path) && issue.path.length > 0
+        ? issue.path.join('.')
+        : '';
+      const baseMsg = issue?.message ?? 'somethingWentWrong';
+      const display = path ? `${path}: ${baseMsg}` : baseMsg;
+      messageApi.error(t(baseMsg, { defaultValue: display }));
+      console.error('[InboundFormModal] schema validation failed', {
+        path: issue?.path,
+        message: issue?.message,
+        values,
+      });
       return;
     }
     setSaving(true);

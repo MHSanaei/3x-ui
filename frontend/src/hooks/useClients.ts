@@ -161,8 +161,17 @@ export function useClients() {
   const trafficDiff = ((defaults.trafficDiff as number) ?? 0) * 1073741824;
   const pageSize = (defaults.pageSize as number) ?? 0;
 
+  // Client mutations (add/update/remove/attach/detach/resetTraffic/…) all
+  // mutate inbound rows server-side too — adding a client appends to
+  // settings.clients on each attached inbound, the slim list's per-inbound
+  // client count is derived from that. Invalidate both buckets so the
+  // Inbounds page and any open edit modal pick up the new shape without
+  // a manual reload.
   const invalidateAll = useCallback(
-    () => queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
+    () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
+      queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
+    ]),
     [queryClient],
   );
 

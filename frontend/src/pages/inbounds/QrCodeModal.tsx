@@ -4,6 +4,12 @@ import { Collapse, Modal } from 'antd';
 import type { CollapseProps } from 'antd';
 
 import { Protocols } from '@/schemas/primitives';
+import {
+  genAllLinks,
+  genWireguardConfigs,
+  genWireguardLinks,
+} from '@/lib/xray/inbound-link';
+import { inboundFromDb, type DbInboundLike } from '@/lib/xray/inbound-from-db';
 import QrPanel from './QrPanel';
 import type { SubSettings } from './useInbounds';
 
@@ -13,22 +19,10 @@ interface ClientSetting {
   [k: string]: unknown;
 }
 
-interface DBInboundLike {
-  remark?: string;
-  toInbound: () => InboundLike;
-}
-
-interface InboundLike {
-  protocol: string;
-  genWireguardConfigs: (remark: string, model: string, host: string) => string;
-  genWireguardLinks: (remark: string, model: string, host: string) => string;
-  genAllLinks: (remark: string, model: string, client: ClientSetting | null, host: string) => { remark?: string; link: string }[];
-}
-
 interface QrCodeModalProps {
   open: boolean;
   onClose: () => void;
-  dbInbound: DBInboundLike | null;
+  dbInbound: (DbInboundLike & { remark?: string }) | null;
   client?: ClientSetting | null;
   remarkModel?: string;
   nodeAddress?: string;
@@ -61,16 +55,42 @@ export default function QrCodeModal({
 
   useEffect(() => {
     if (!open || !dbInbound) return;
-    const inbound = dbInbound.toInbound();
+    const inbound = inboundFromDb(dbInbound);
+    const fallbackHostname = window.location.hostname;
     if (inbound.protocol === Protocols.WIREGUARD) {
       const peerRemark = client?.email
         ? `${dbInbound.remark}-${client.email}`
         : dbInbound.remark || '';
-      setWireguardConfigs(inbound.genWireguardConfigs(peerRemark, '-ieo', nodeAddress).split('\r\n'));
-      setWireguardLinks(inbound.genWireguardLinks(peerRemark, '-ieo', nodeAddress).split('\r\n'));
+      setWireguardConfigs(
+        genWireguardConfigs({
+          inbound,
+          remark: peerRemark,
+          remarkModel: '-ieo',
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }).split('\r\n'),
+      );
+      setWireguardLinks(
+        genWireguardLinks({
+          inbound,
+          remark: peerRemark,
+          remarkModel: '-ieo',
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }).split('\r\n'),
+      );
       setLinks([]);
     } else {
-      setLinks(inbound.genAllLinks(dbInbound.remark || '', remarkModel, client, nodeAddress) as { remark?: string; link: string }[]);
+      setLinks(
+        genAllLinks({
+          inbound,
+          remark: dbInbound.remark || '',
+          remarkModel,
+          client: client ?? {},
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }),
+      );
       setWireguardConfigs([]);
       setWireguardLinks([]);
     }

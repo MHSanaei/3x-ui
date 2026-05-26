@@ -1,7 +1,15 @@
 import type { InboundFormValues, TrafficReset } from '@/schemas/forms/inbound-form';
 import type { InboundSettings } from '@/schemas/protocols/inbound';
+import {
+  HysteriaClientSchema,
+  ShadowsocksClientSchema,
+  TrojanClientSchema,
+  VlessClientSchema,
+  VmessClientSchema,
+} from '@/schemas/protocols/inbound';
 import type { StreamSettings } from '@/schemas/api/inbound';
 import type { Sniffing } from '@/schemas/primitives';
+import type { z } from 'zod';
 
 // Plain-data adapter between the panel's stored inbound row shape and
 // the typed InboundFormValues that Form.useForm<T> carries inside
@@ -79,6 +87,31 @@ function coerceTrafficReset(v: unknown): TrafficReset {
     : 'never';
 }
 
+// Network values that map to a required `${network}Settings` key in
+// NetworkSettingsSchema. Older saved inbounds may be missing the per-
+// network sub-object (the legacy panel sometimes emitted streamSettings
+// without it, and an earlier panel-side prune wrongly stripped empty
+// `tcpSettings: {}` out of the wire payload). Reseat an empty object
+// here so InboundFormSchema.safeParse doesn't blow up at edit time.
+const NETWORK_SETTINGS_KEY: Record<string, string> = {
+  tcp: 'tcpSettings',
+  kcp: 'kcpSettings',
+  ws: 'wsSettings',
+  grpc: 'grpcSettings',
+  httpupgrade: 'httpupgradeSettings',
+  xhttp: 'xhttpSettings',
+  hysteria: 'hysteriaSettings',
+};
+
+function healStreamNetworkKey(stream: Record<string, unknown>): void {
+  const network = typeof stream.network === 'string' ? stream.network : '';
+  const key = NETWORK_SETTINGS_KEY[network];
+  if (!key) return;
+  if (stream[key] == null || typeof stream[key] !== 'object') {
+    stream[key] = {};
+  }
+}
+
 // Map a raw DB row (settings/streamSettings/sniffing as string OR object)
 // into the typed InboundFormValues. Does NOT validate against the schema —
 // callers that want a hard guarantee should follow up with
@@ -90,6 +123,9 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
   const streamSettings = Object.keys(rawStream).length > 0
     ? (rawStream as StreamSettings)
     : undefined;
+  if (streamSettings) {
+    healStreamNetworkKey(streamSettings as unknown as Record<string, unknown>);
+  }
   const sniffing = coerceJsonObject(row.sniffing) as unknown as Sniffing;
 
   return {
@@ -112,7 +148,107 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
   } as InboundFormValues;
 }
 
+// Recursively strip undefined leaves from the wire payload. Empty arrays
+// and empty objects are PRESERVED — legacy XrayCommonClass.toJson() kept
+// shells like `tcpSettings: {}` so xray-core picks up its built-in
+// defaults, and stripping them led the FE to lose required-but-empty
+// arrays (vless clients, wireguard peers, etc.) which the Go side then
+// serialized back as `null`. Primitive values (including 0, false, '')
+// are kept verbatim.
+export function pruneEmpty(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(pruneEmpty);
+  }
+  if (value !== null && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      const p = pruneEmpty(v);
+      if (p === undefined) continue;
+      out[k] = p;
+    }
+    return out;
+  }
+  return value;
+}
+
+// Per-protocol client field whitelist — the Zod schemas in
+// schemas/protocols/inbound/<proto>.ts define which keys a given
+// protocol's clients accept on the wire. When a global client is created
+// the panel may persist cross-protocol fields on the same row (`auth` for
+// hysteria, `password` for trojan, `security` for vmess, etc.); rendering
+// those inside a vless inbound's settings.clients is confusing and rides
+// dead weight in the wire payload. Parsing through the protocol's schema
+// gives us the canonical projection.
+function clientSchemaForProtocol(protocol: string): z.ZodTypeAny | null {
+  switch (protocol) {
+    case 'vless':       return VlessClientSchema;
+    case 'vmess':       return VmessClientSchema;
+    case 'trojan':      return TrojanClientSchema;
+    case 'shadowsocks': return ShadowsocksClientSchema;
+    case 'hysteria':    return HysteriaClientSchema;
+    default:            return null;
+  }
+}
+
+export function normalizeClients(protocol: string, clients: unknown): unknown {
+  const schema = clientSchemaForProtocol(protocol);
+  if (!schema || !Array.isArray(clients)) return clients;
+  return clients.map((c) => {
+    const parsed = schema.safeParse(c);
+    return parsed.success ? parsed.data : c;
+  });
+}
+
+// Sniffing normalizer matching the legacy Sniffing.toJson(): when
+// disabled the payload is the bare `{ enabled: false }` regardless of
+// what the form holds; when enabled, only non-default fields ride.
+export function normalizeSniffing(s: Sniffing | undefined): Record<string, unknown> {
+  if (!s || !s.enabled) return { enabled: false };
+  const out: Record<string, unknown> = {
+    enabled: true,
+    destOverride: s.destOverride,
+  };
+  if (s.metadataOnly) out.metadataOnly = true;
+  if (s.routeOnly) out.routeOnly = true;
+  if (s.ipsExcluded?.length) out.ipsExcluded = s.ipsExcluded;
+  if (s.domainsExcluded?.length) out.domainsExcluded = s.domainsExcluded;
+  return out;
+}
+
+// Drops cosmetic empty-array keys that legacy XrayCommonClass.toJson()
+// explicitly skipped (fallbacks/finalmask). Mutates the pruned settings
+// objects in place; called AFTER pruneEmpty so we can lean on the
+// already-shallow shape.
+export function dropLegacyOptionalEmpties(
+  settings: Record<string, unknown>,
+  stream: Record<string, unknown> | undefined,
+): void {
+  // VLESS/Trojan emit `fallbacks` only when non-empty.
+  const fb = settings.fallbacks;
+  if (Array.isArray(fb) && fb.length === 0) delete settings.fallbacks;
+
+  // StreamSettings emits `finalmask` only when at least one transport
+  // mask exists (legacy `hasFinalMask`). Otherwise drop the whole block.
+  if (stream) {
+    const fm = stream.finalmask as { tcp?: unknown[]; udp?: unknown[]; quicParams?: unknown } | undefined;
+    if (fm && typeof fm === 'object') {
+      const hasTcp = Array.isArray(fm.tcp) && fm.tcp.length > 0;
+      const hasUdp = Array.isArray(fm.udp) && fm.udp.length > 0;
+      const hasQuic = fm.quicParams != null;
+      if (!hasTcp && !hasUdp && !hasQuic) delete stream.finalmask;
+    }
+  }
+}
+
 export function formValuesToWirePayload(values: InboundFormValues): WireInboundPayload {
+  const settingsPruned = (pruneEmpty(values.settings ?? {}) ?? {}) as Record<string, unknown>;
+  if (Array.isArray(settingsPruned.clients)) {
+    settingsPruned.clients = normalizeClients(values.protocol, settingsPruned.clients);
+  }
+  const streamPruned = values.streamSettings
+    ? ((pruneEmpty(values.streamSettings) ?? {}) as Record<string, unknown>)
+    : undefined;
+  dropLegacyOptionalEmpties(settingsPruned, streamPruned);
   const payload: WireInboundPayload = {
     up: values.up,
     down: values.down,
@@ -125,9 +261,9 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     listen: values.listen,
     port: values.port,
     protocol: values.protocol,
-    settings: JSON.stringify(values.settings ?? {}),
-    streamSettings: values.streamSettings ? JSON.stringify(values.streamSettings) : '',
-    sniffing: JSON.stringify(values.sniffing ?? {}),
+    settings: JSON.stringify(settingsPruned),
+    streamSettings: streamPruned ? JSON.stringify(streamPruned) : '',
+    sniffing: JSON.stringify(normalizeSniffing(values.sniffing)),
     tag: values.tag,
   };
   if (values.nodeId != null) payload.nodeId = values.nodeId;
