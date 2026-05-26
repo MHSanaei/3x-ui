@@ -31,6 +31,7 @@ import {
 } from '@/schemas/forms/outbound-form';
 import {
   DNSRuleActions,
+  MODE_OPTION,
   OutboundDomainStrategies,
   OutboundProtocols as Protocols,
   SNIFFING_OPTION,
@@ -38,6 +39,11 @@ import {
   USERS_SECURITY,
   WireguardDomainStrategy,
 } from '@/schemas/primitives';
+import {
+  canEnableReality,
+  canEnableStream,
+  canEnableTls,
+} from '@/lib/xray/protocol-capabilities';
 import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
 import { antdRule } from '@/utils/zodForm';
 import './OutboundFormModal.css';
@@ -59,6 +65,58 @@ const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label:
 const SECURITY_OPTIONS = Object.values(USERS_SECURITY).map((v) => ({ value: v, label: v }));
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL).map((v) => ({ value: v, label: v }));
 const SS_METHOD_OPTIONS = SSMethodSchema.options.map((v) => ({ value: v, label: v }));
+const MODE_OPTIONS = Object.values(MODE_OPTION).map((v) => ({ value: v, label: v }));
+
+const NETWORK_OPTIONS: { value: string; label: string }[] = [
+  { value: 'tcp', label: 'TCP (RAW)' },
+  { value: 'kcp', label: 'mKCP' },
+  { value: 'ws', label: 'WebSocket' },
+  { value: 'grpc', label: 'gRPC' },
+  { value: 'httpupgrade', label: 'HTTPUpgrade' },
+  { value: 'xhttp', label: 'XHTTP' },
+];
+
+// Per-network bootstrap. Mirrors the legacy class constructors so the
+// initial state for each transport matches what xray-core expects.
+function newStreamSlice(network: string): Record<string, unknown> {
+  switch (network) {
+    case 'tcp':
+      return { network: 'tcp', tcpSettings: { header: { type: 'none' } } };
+    case 'kcp':
+      return {
+        network: 'kcp',
+        kcpSettings: {
+          mtu: 1350, tti: 20, uplinkCapacity: 5, downlinkCapacity: 20,
+          cwndMultiplier: 1, maxSendingWindow: 2097152,
+        },
+      };
+    case 'ws':
+      return {
+        network: 'ws',
+        wsSettings: { path: '/', host: '', headers: {}, heartbeatPeriod: 0 },
+      };
+    case 'grpc':
+      return {
+        network: 'grpc',
+        grpcSettings: { serviceName: '', authority: '', multiMode: false },
+      };
+    case 'httpupgrade':
+      return {
+        network: 'httpupgrade',
+        httpupgradeSettings: { path: '/', host: '', headers: {} },
+      };
+    case 'xhttp':
+      return {
+        network: 'xhttp',
+        xhttpSettings: {
+          path: '/', host: '', mode: '', headers: [],
+          xPaddingBytes: '100-1000', scMaxEachPostBytes: '1000000',
+        },
+      };
+    default:
+      return { network: 'tcp', tcpSettings: { header: { type: 'none' } } };
+  }
+}
 
 // Protocols whose form schema carries a flat connect target — these all
 // get the shared "server" sub-block (address + port) at the top of the
@@ -106,6 +164,19 @@ export default function OutboundFormModalNew({
 
   const tag = Form.useWatch('tag', form) ?? '';
   const protocol = (Form.useWatch('protocol', form) ?? 'vless') as string;
+  const network = (Form.useWatch(['streamSettings', 'network'], form) ?? '') as string;
+
+  const streamAllowed = canEnableStream({ protocol });
+
+  // Seed streamSettings when the user picks a protocol that supports
+  // streams but the form does not yet have a stream slice (new outbound,
+  // or wire payload arrived without streamSettings).
+  useEffect(() => {
+    if (!streamAllowed) return;
+    if (network) return;
+    form.setFieldValue('streamSettings', { ...newStreamSlice('tcp'), security: 'none' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streamAllowed, network]);
 
   // Switching protocol resets the settings sub-object to fresh defaults
   // so leftover fields from the previous protocol do not bleed through.
@@ -117,6 +188,22 @@ export default function OutboundFormModalNew({
       const next = rawOutboundToFormValues({ protocol: changed.protocol });
       form.setFieldValue('settings', next.settings);
     }
+  }
+
+  // Network change cascade: swap the per-network sub-key (tcpSettings,
+  // wsSettings, etc.) so the DU branch matches. Preserve security if
+  // the new network supports it, otherwise force back to 'none'.
+  function onNetworkChange(next: string) {
+    const currentSecurity = form.getFieldValue(['streamSettings', 'security']) ?? 'none';
+    const stillAllowed = canEnableTls({ protocol, streamSettings: { network: next, security: currentSecurity } });
+    const stillReality = canEnableReality({ protocol, streamSettings: { network: next, security: currentSecurity } });
+    const newSecurity =
+      currentSecurity === 'tls' && !stillAllowed
+        ? 'none'
+        : currentSecurity === 'reality' && !stillReality
+          ? 'none'
+          : currentSecurity;
+    form.setFieldValue('streamSettings', { ...newStreamSlice(next), security: newSecurity });
   }
 
   const duplicateTag = useMemo(() => {
@@ -883,6 +970,179 @@ export default function OutboundFormModalNew({
                             </>
                           )}
                         </Form.List>
+                      </>
+                    )}
+
+                    {streamAllowed && network && (
+                      <>
+                        <Form.Item
+                          label={t('transmission')}
+                          name={['streamSettings', 'network']}
+                        >
+                          <Select
+                            value={network}
+                            onChange={onNetworkChange}
+                            options={NETWORK_OPTIONS}
+                          />
+                        </Form.Item>
+
+                        {network === 'tcp' && (
+                          <Form.Item shouldUpdate noStyle>
+                            {() => {
+                              const type =
+                                form.getFieldValue([
+                                  'streamSettings',
+                                  'tcpSettings',
+                                  'header',
+                                  'type',
+                                ]) ?? 'none';
+                              return (
+                                <>
+                                  <Form.Item label={`HTTP ${t('camouflage')}`}>
+                                    <Switch
+                                      checked={type === 'http'}
+                                      onChange={(checked) =>
+                                        form.setFieldValue(
+                                          ['streamSettings', 'tcpSettings', 'header'],
+                                          checked
+                                            ? { type: 'http', request: undefined, response: undefined }
+                                            : { type: 'none' },
+                                        )
+                                      }
+                                    />
+                                  </Form.Item>
+                                </>
+                              );
+                            }}
+                          </Form.Item>
+                        )}
+
+                        {network === 'kcp' && (
+                          <>
+                            <Form.Item label="MTU" name={['streamSettings', 'kcpSettings', 'mtu']}>
+                              <InputNumber min={0} />
+                            </Form.Item>
+                            <Form.Item label="TTI (ms)" name={['streamSettings', 'kcpSettings', 'tti']}>
+                              <InputNumber min={0} />
+                            </Form.Item>
+                            <Form.Item
+                              label="Uplink (MB/s)"
+                              name={['streamSettings', 'kcpSettings', 'uplinkCapacity']}
+                            >
+                              <InputNumber min={0} />
+                            </Form.Item>
+                            <Form.Item
+                              label="Downlink (MB/s)"
+                              name={['streamSettings', 'kcpSettings', 'downlinkCapacity']}
+                            >
+                              <InputNumber min={0} />
+                            </Form.Item>
+                            <Form.Item
+                              label="CWND multiplier"
+                              name={['streamSettings', 'kcpSettings', 'cwndMultiplier']}
+                            >
+                              <InputNumber min={1} />
+                            </Form.Item>
+                            <Form.Item
+                              label="Max sending window"
+                              name={['streamSettings', 'kcpSettings', 'maxSendingWindow']}
+                            >
+                              <InputNumber min={0} />
+                            </Form.Item>
+                          </>
+                        )}
+
+                        {network === 'ws' && (
+                          <>
+                            <Form.Item label={t('host')} name={['streamSettings', 'wsSettings', 'host']}>
+                              <Input />
+                            </Form.Item>
+                            <Form.Item label={t('path')} name={['streamSettings', 'wsSettings', 'path']}>
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="Heartbeat (s)"
+                              name={['streamSettings', 'wsSettings', 'heartbeatPeriod']}
+                            >
+                              <InputNumber min={0} />
+                            </Form.Item>
+                          </>
+                        )}
+
+                        {network === 'grpc' && (
+                          <>
+                            <Form.Item
+                              label="Service name"
+                              name={['streamSettings', 'grpcSettings', 'serviceName']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="Authority"
+                              name={['streamSettings', 'grpcSettings', 'authority']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="Multi mode"
+                              name={['streamSettings', 'grpcSettings', 'multiMode']}
+                              valuePropName="checked"
+                            >
+                              <Switch />
+                            </Form.Item>
+                          </>
+                        )}
+
+                        {network === 'httpupgrade' && (
+                          <>
+                            <Form.Item
+                              label={t('host')}
+                              name={['streamSettings', 'httpupgradeSettings', 'host']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label={t('path')}
+                              name={['streamSettings', 'httpupgradeSettings', 'path']}
+                            >
+                              <Input />
+                            </Form.Item>
+                          </>
+                        )}
+
+                        {network === 'xhttp' && (
+                          <>
+                            <Form.Item
+                              label={t('host')}
+                              name={['streamSettings', 'xhttpSettings', 'host']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label={t('path')}
+                              name={['streamSettings', 'xhttpSettings', 'path']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="Mode"
+                              name={['streamSettings', 'xhttpSettings', 'mode']}
+                            >
+                              <Select options={MODE_OPTIONS} />
+                            </Form.Item>
+                            <Form.Item
+                              label="Padding Bytes"
+                              name={['streamSettings', 'xhttpSettings', 'xPaddingBytes']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <div style={{ marginTop: 4, opacity: 0.6, fontStyle: 'italic' }}>
+                              XHTTP advanced fields (XMUX, sequence/session placement,
+                              padding obfs) are still being migrated — edit them via
+                              the JSON tab.
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
                   </>
