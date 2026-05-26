@@ -204,7 +204,7 @@ export default function OutboundFormModal({
     setJsonDirty(false);
     setLinkInput('');
     messageApi.success('Link imported successfully');
-    setActiveKey('1');
+    switchTab('1');
   }
 
   const isEdit = outboundProp != null;
@@ -358,28 +358,32 @@ export default function OutboundFormModal({
     return true;
   }
 
-  function onTabChange(key: string) {
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
+  // Wrap every tab switch with a blur of the active element. AntD marks
+  // the outgoing panel `aria-hidden="true"` synchronously when the
+  // controlled activeKey flips; if a focused input is still inside that
+  // panel (e.g. Input.Search on the JSON tab after user hits Enter to
+  // import), Chrome logs a WAI-ARIA warning. Doing the blur right
+  // before setActiveKey ensures the panel is unfocused by the time
+  // AntD applies the attribute.
+  function switchTab(key: string) {
+    if (typeof document !== 'undefined') {
+      (document.activeElement as HTMLElement | null)?.blur?.();
     }
+    setActiveKey(key);
+  }
+
+  function onTabChange(key: string) {
     if (key === '2') {
       const values = form.getFieldsValue(true) as OutboundFormValues;
       setJsonText(JSON.stringify(formValuesToWirePayload(values), null, 2));
       setJsonDirty(false);
-      setActiveKey(key);
+      switchTab(key);
       return;
     }
     if (key === '1' && activeKey === '2') {
       if (!applyJsonToForm()) return;
     }
-    // Blur the currently focused element before AntD marks the outgoing
-    // tab panel aria-hidden. Without this, a focused input inside the
-    // hidden panel triggers a Chrome a11y warning ("Blocked aria-hidden
-    // on an element because its descendant retained focus").
-    if (typeof document !== 'undefined') {
-      (document.activeElement as HTMLElement | null)?.blur?.();
-    }
-    setActiveKey(key);
+    switchTab(key);
   }
 
   async function onOk() {
