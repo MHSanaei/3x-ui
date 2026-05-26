@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import {
   Button,
+  Card,
   Checkbox,
+  Empty,
   Form,
   Input,
   InputNumber,
@@ -17,7 +19,7 @@ import {
   Typography,
   message,
 } from 'antd';
-import { MinusOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import { DeleteOutlined, MinusOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
 import {
@@ -36,6 +38,7 @@ import { getRandomRealityTarget } from '@/models/reality-targets';
 import {
   InboundFormBaseSchema,
   InboundFormSchema,
+  type FallbackRow,
   type InboundFormValues,
 } from '@/schemas/forms/inbound-form';
 import { antdRule } from '@/utils/zodForm';
@@ -150,12 +153,15 @@ export default function InboundFormModalNew({
   onSaved,
   mode,
   dbInbound,
+  dbInbounds,
   availableNodes,
 }: InboundFormModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [form] = Form.useForm<InboundFormValues>();
   const [saving, setSaving] = useState(false);
+  const fallbackKeyRef = useRef(0);
+  const [fallbacks, setFallbacks] = useState<FallbackRow[]>([]);
 
   const selectableNodes = (availableNodes || []).filter((n) => n.enable);
   const protocol = (Form.useWatch('protocol', form) ?? '') as string;
@@ -173,6 +179,79 @@ export default function InboundFormModalNew({
   const streamEnabled = canEnableStream({ protocol });
   const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
   const realityAllowed = canEnableReality({ protocol, streamSettings: { network, security } });
+  const isFallbackHost =
+    (protocol === Protocols.VLESS || protocol === Protocols.TROJAN)
+    && network === 'tcp'
+    && (security === 'tls' || security === 'reality');
+
+  const fallbackChildOptions = (dbInbounds || [])
+    .filter((ib) => ib.id !== dbInbound?.id)
+    .map((ib) => ({
+      label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
+      value: ib.id,
+    }));
+
+  const loadFallbacks = async (masterId: number | null) => {
+    if (!masterId) {
+      setFallbacks([]);
+      return;
+    }
+    const msg = await HttpUtil.get(`/panel/api/inbounds/${masterId}/fallbacks`);
+    if (!msg?.success || !Array.isArray(msg.obj)) {
+      setFallbacks([]);
+      return;
+    }
+    setFallbacks(
+      (msg.obj as { childId: number; name?: string; alpn?: string; path?: string; xver?: number }[])
+        .map((r) => ({
+          rowKey: `fb-${++fallbackKeyRef.current}`,
+          childId: r.childId,
+          name: r.name || '',
+          alpn: r.alpn || '',
+          path: r.path || '',
+          xver: r.xver || 0,
+        })),
+    );
+  };
+
+  const saveFallbacks = async (masterId: number) => {
+    if (!masterId) return true;
+    const payload = {
+      fallbacks: fallbacks.filter((c) => c.childId).map((c, i) => ({
+        childId: c.childId,
+        name: c.name,
+        alpn: c.alpn,
+        path: c.path,
+        xver: Number(c.xver) || 0,
+        sortOrder: i,
+      })),
+    };
+    const msg = await HttpUtil.post(
+      `/panel/api/inbounds/${masterId}/fallbacks`,
+      payload,
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+    return !!msg?.success;
+  };
+
+  const addFallback = () => {
+    setFallbacks((prev) => [...prev, {
+      rowKey: `fb-${++fallbackKeyRef.current}`,
+      childId: null,
+      name: '',
+      alpn: '',
+      path: '',
+      xver: 0,
+    }]);
+  };
+
+  const updateFallback = (rowKey: string, patch: Partial<FallbackRow>) => {
+    setFallbacks((prev) => prev.map((r) => r.rowKey === rowKey ? { ...r, ...patch } : r));
+  };
+
+  const removeFallback = (idx: number) => {
+    setFallbacks((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const genRealityKeypair = async () => {
     setSaving(true);
@@ -362,6 +441,16 @@ export default function InboundFormModalNew({
       : buildAddModeValues();
     form.resetFields();
     form.setFieldsValue(initial);
+    if (
+      mode === 'edit'
+      && dbInbound
+      && (dbInbound.protocol === Protocols.VLESS || dbInbound.protocol === Protocols.TROJAN)
+    ) {
+      loadFallbacks(dbInbound.id);
+    } else {
+      setFallbacks([]);
+    }
+
   }, [open, mode, dbInbound, form]);
 
   // Why: protocol picker reset cascades through the form — clearing the
@@ -406,6 +495,13 @@ export default function InboundFormModalNew({
         : '/panel/api/inbounds/add';
       const msg = await HttpUtil.post(url, payload);
       if (msg?.success) {
+        if (isFallbackHost) {
+          const obj = msg.obj as { id?: number; Id?: number } | null;
+          const masterId = mode === 'edit'
+            ? dbInbound!.id
+            : (obj?.id ?? obj?.Id ?? 0);
+          if (masterId) await saveFallbacks(masterId);
+        }
         onSaved();
         onClose();
       }
@@ -536,6 +632,71 @@ export default function InboundFormModalNew({
         </Form.Item>
       </Form.Item>
     </>
+  );
+
+  const fallbacksCard = (
+    <Card size="small" className="mt-12" title={t('pages.inbounds.fallbacks.title') || 'Fallbacks'}>
+      {fallbacks.length === 0 && (
+        <Empty
+          description={t('pages.inbounds.fallbacks.empty') || 'No fallbacks yet'}
+          styles={{ image: { height: 40 } }}
+          style={{ margin: '8px 0 12px' }}
+        />
+      )}
+      {fallbacks.map((record, idx) => (
+        <div
+          key={record.rowKey}
+          style={{ border: '1px solid var(--app-border-tertiary)', borderRadius: 6, padding: '10px 12px', marginBottom: 8 }}
+        >
+          <Space.Compact block style={{ marginBottom: 6 }}>
+            <Select
+              value={record.childId}
+              options={fallbackChildOptions}
+              showSearch
+              placeholder={t('pages.inbounds.fallbacks.pickInbound') || 'Pick an inbound'}
+              filterOption={(input, option) =>
+                ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase())
+              }
+              style={{ width: '100%' }}
+              onChange={(v) => updateFallback(record.rowKey, { childId: v })}
+            />
+            <Button danger onClick={() => removeFallback(idx)}>
+              <DeleteOutlined />
+            </Button>
+          </Space.Compact>
+          <Space.Compact block>
+            <InputAddon>SNI</InputAddon>
+            <Input
+              placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
+              value={record.name}
+              onChange={(e) => updateFallback(record.rowKey, { name: e.target.value })}
+            />
+            <InputAddon>ALPN</InputAddon>
+            <Input
+              placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
+              value={record.alpn}
+              onChange={(e) => updateFallback(record.rowKey, { alpn: e.target.value })}
+            />
+            <InputAddon>Path</InputAddon>
+            <Input
+              placeholder="/"
+              value={record.path}
+              onChange={(e) => updateFallback(record.rowKey, { path: e.target.value })}
+            />
+            <InputAddon>xver</InputAddon>
+            <InputNumber
+              min={0}
+              max={2}
+              value={record.xver}
+              onChange={(v) => updateFallback(record.rowKey, { xver: Number(v) || 0 })}
+            />
+          </Space.Compact>
+        </div>
+      ))}
+      <Button size="small" onClick={addFallback}>
+        <PlusOutlined /> {t('pages.inbounds.fallbacks.add') || 'Add fallback'}
+      </Button>
+    </Card>
   );
 
   const protocolTab = (
@@ -930,6 +1091,8 @@ export default function InboundFormModalNew({
           </Form.Item>
         </>
       )}
+
+      {isFallbackHost && fallbacksCard}
     </>
   );
 
@@ -2033,7 +2196,7 @@ export default function InboundFormModalNew({
               Protocols.TUNNEL,
               Protocols.TUN,
               Protocols.WIREGUARD,
-            ] as string[]).includes(protocol)
+            ] as string[]).includes(protocol) || isFallbackHost
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab }]
               : []),
             ...(streamEnabled
