@@ -91,7 +91,7 @@ function defaultQuicParams(): Record<string, unknown> {
     brutalUp: 0,
     brutalDown: 0,
     hasUdpHop: false,
-    udpHop: { ports: '20000-50000', interval: 5 },
+    udpHop: { ports: '20000-50000', interval: '5-10' },
     maxIdleTimeout: 30,
     keepAlivePeriod: 10,
     disablePathMTUDiscovery: false,
@@ -707,7 +707,7 @@ function QuicParamsForm({ base, form }: { base: (string | number)[]; form: FormI
             <Input placeholder="e.g. 20000-50000" />
           </Form.Item>
           <Form.Item label="Hop Interval (s)" name={[...base, 'udpHop', 'interval']}>
-            <InputNumber min={5} />
+            <Input placeholder="e.g. 5-10" />
           </Form.Item>
         </>
       )}

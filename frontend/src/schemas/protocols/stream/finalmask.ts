@@ -47,10 +47,16 @@ export type QuicCongestion = z.infer<typeof QuicCongestionSchema>;
 
 // udpHop randomizes the QUIC port between a range every `interval` seconds
 // to dodge port-based blocking. Both fields are dash-range strings on the
-// wire (e.g. '20000-50000', '5-10').
+// wire (e.g. '20000-50000', '5-10'). preprocess coerces legacy DB rows
+// where interval was stored as a number (UI bug — see B19 in commit history).
+const StringRangeSchema = z.preprocess(
+  (v) => (typeof v === 'number' ? String(v) : v),
+  z.string(),
+);
+
 export const QuicUdpHopSchema = z.object({
-  ports: z.string().default('20000-50000'),
-  interval: z.string().default('5-10'),
+  ports: StringRangeSchema.default('20000-50000'),
+  interval: StringRangeSchema.default('5-10'),
 });
 export type QuicUdpHop = z.infer<typeof QuicUdpHopSchema>;
 
