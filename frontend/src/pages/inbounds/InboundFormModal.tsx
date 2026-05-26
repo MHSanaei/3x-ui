@@ -19,7 +19,14 @@ import {
   Typography,
   message,
 } from 'antd';
-import { DeleteOutlined, MinusOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
+  DeleteOutlined,
+  MinusOutlined,
+  PlusOutlined,
+  SyncOutlined,
+} from '@ant-design/icons';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
 import {
@@ -252,6 +259,41 @@ export default function InboundFormModal({
 
   const removeFallback = (idx: number) => {
     setFallbacks((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  // Move a fallback row up/down by swapping adjacent indices. The order
+  // is persisted via the fallback row's sortOrder (rebuilt by index on
+  // save), so reordering survives reloads.
+  const moveFallback = (idx: number, direction: -1 | 1) => {
+    setFallbacks((prev) => {
+      const target = idx + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = prev.slice();
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next;
+    });
+  };
+
+  // One-shot: add a fresh fallback row for every eligible inbound (i.e.
+  // every option in fallbackChildOptions) that is not already wired up.
+  // Convenient for operators who want catch-all routing to every host
+  // they manage on the panel.
+  const addAllFallbacks = () => {
+    setFallbacks((prev) => {
+      const alreadyHave = new Set(prev.map((r) => r.childId));
+      const additions = fallbackChildOptions
+        .filter((opt) => !alreadyHave.has(opt.value))
+        .map<FallbackRow>((opt) => ({
+          rowKey: `fb-${++fallbackKeyRef.current}`,
+          childId: opt.value,
+          name: '',
+          alpn: '',
+          path: '',
+          xver: 0,
+        }));
+      if (additions.length === 0) return prev;
+      return [...prev, ...additions];
+    });
   };
 
   const genRealityKeypair = async () => {
@@ -661,6 +703,20 @@ export default function InboundFormModal({
               style={{ width: '100%' }}
               onChange={(v) => updateFallback(record.rowKey, { childId: v })}
             />
+            <Button
+              disabled={idx === 0}
+              onClick={() => moveFallback(idx, -1)}
+              title="Move up"
+            >
+              <ArrowUpOutlined />
+            </Button>
+            <Button
+              disabled={idx === fallbacks.length - 1}
+              onClick={() => moveFallback(idx, 1)}
+              title="Move down"
+            >
+              <ArrowDownOutlined />
+            </Button>
             <Button danger onClick={() => removeFallback(idx)}>
               <DeleteOutlined />
             </Button>
@@ -694,9 +750,20 @@ export default function InboundFormModal({
           </Space.Compact>
         </div>
       ))}
-      <Button size="small" onClick={addFallback}>
-        <PlusOutlined /> {t('pages.inbounds.fallbacks.add') || 'Add fallback'}
-      </Button>
+      <Space>
+        <Button size="small" onClick={addFallback}>
+          <PlusOutlined /> {t('pages.inbounds.fallbacks.add') || 'Add fallback'}
+        </Button>
+        <Button
+          size="small"
+          onClick={addAllFallbacks}
+          disabled={fallbackChildOptions.length === 0
+            || fallbacks.length >= fallbackChildOptions.length}
+          title="Add a fallback row for every eligible inbound not yet wired up"
+        >
+          Add all
+        </Button>
+      </Space>
     </Card>
   );
 
