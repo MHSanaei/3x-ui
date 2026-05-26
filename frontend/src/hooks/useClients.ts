@@ -212,10 +212,12 @@ export function useClients() {
   const removeManyMut = useMutation({
     mutationFn: async ({ emails, keepTraffic }: { emails: string[]; keepTraffic?: boolean }) => {
       const suffix = keepTraffic ? '?keepTraffic=1' : '';
-      const results = await Promise.all(emails.map((email) => {
+      const results: Msg<unknown>[] = [];
+      for (const email of emails) {
         const url = `/panel/api/clients/del/${encodeURIComponent(email)}${suffix}`;
-        return HttpUtil.post(url, undefined, { silent: true });
-      }));
+        const res = await HttpUtil.post(url, undefined, { silent: true });
+        results.push(res);
+      }
       return results;
     },
     onSuccess: () => invalidateAll(),

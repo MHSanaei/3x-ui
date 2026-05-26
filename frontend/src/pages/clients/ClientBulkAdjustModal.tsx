@@ -75,7 +75,7 @@ export default function ClientBulkAdjustModal({ open, count, onOpenChange, onSub
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message={t('pages.clients.bulkAdjustHint')}
+          title={t('pages.clients.bulkAdjustHint')}
         />
         <Form layout="vertical">
           <Form.Item label={t('pages.clients.addDays')}>
