@@ -24,7 +24,7 @@ import {
   formValuesToWirePayload,
 } from '@/lib/xray/inbound-form-adapter';
 import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
-import { isSS2022 } from '@/lib/xray/protocol-capabilities';
+import { canEnableStream, isSS2022 } from '@/lib/xray/protocol-capabilities';
 import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
 import {
   InboundFormBaseSchema,
@@ -105,6 +105,8 @@ export default function InboundFormModalNew({
     settings: typeof ssMethod === 'string' ? { method: ssMethod } : {},
   });
   const mixedUdpOn = Form.useWatch(['settings', 'udp'], form) ?? false;
+  const network = Form.useWatch(['streamSettings', 'network'], form) ?? '';
+  const streamEnabled = canEnableStream({ protocol });
   const wgSecretKey = Form.useWatch(['settings', 'secretKey'], form);
   const wgPubKey = typeof wgSecretKey === 'string' && wgSecretKey.length > 0
     ? Wireguard.generateKeypair(wgSecretKey).publicKey
@@ -744,6 +746,109 @@ export default function InboundFormModalNew({
     </>
   );
 
+  // Switching `network` swaps which per-network key (tcpSettings, wsSettings,
+  // grpcSettings, ...) appears on the wire. We clear the previously selected
+  // network's settings blob and seed a default empty object for the new one
+  // so AntD's Form.Items aren't pointed at undefined nested paths.
+  const onNetworkChange = (next: string) => {
+    const ALL = ['tcpSettings', 'kcpSettings', 'wsSettings', 'grpcSettings', 'httpupgradeSettings', 'xhttpSettings'];
+    const current = (form.getFieldValue('streamSettings') as Record<string, unknown>) ?? {};
+    const cleaned: Record<string, unknown> = { ...current, network: next };
+    for (const k of ALL) {
+      if (k !== `${next}Settings`) delete cleaned[k];
+    }
+    cleaned[`${next}Settings`] = {};
+    form.setFieldValue('streamSettings', cleaned);
+  };
+
+  const streamTab = (
+    <>
+      {protocol !== Protocols.HYSTERIA && (
+        <Form.Item label="Transmission">
+          <Select
+            value={network}
+            style={{ width: '75%' }}
+            onChange={onNetworkChange}
+          >
+            <Select.Option value="tcp">TCP (RAW)</Select.Option>
+            <Select.Option value="kcp">mKCP</Select.Option>
+            <Select.Option value="ws">WebSocket</Select.Option>
+            <Select.Option value="grpc">gRPC</Select.Option>
+            <Select.Option value="httpupgrade">HTTPUpgrade</Select.Option>
+            <Select.Option value="xhttp">XHTTP</Select.Option>
+          </Select>
+        </Form.Item>
+      )}
+
+      {network === 'tcp' && (
+        <>
+          <Form.Item
+            name={['streamSettings', 'tcpSettings', 'acceptProxyProtocol']}
+            label="Proxy Protocol"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item label={`HTTP ${t('camouflage')}`}>
+            <Form.Item
+              noStyle
+              shouldUpdate={(prev, curr) =>
+                prev.streamSettings?.tcpSettings?.header?.type
+                !== curr.streamSettings?.tcpSettings?.header?.type
+              }
+            >
+              {({ getFieldValue, setFieldValue }) => {
+                const headerType = getFieldValue(
+                  ['streamSettings', 'tcpSettings', 'header', 'type'],
+                ) as string | undefined;
+                return (
+                  <Switch
+                    checked={headerType === 'http'}
+                    onChange={(v) => {
+                      setFieldValue(
+                        ['streamSettings', 'tcpSettings', 'header'],
+                        v ? { type: 'http' } : { type: 'none' },
+                      );
+                    }}
+                  />
+                );
+              }}
+            </Form.Item>
+          </Form.Item>
+        </>
+      )}
+
+      {network === 'kcp' && (
+        <>
+          <Form.Item name={['streamSettings', 'kcpSettings', 'mtu']} label="MTU">
+            <InputNumber min={576} max={1460} />
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'kcpSettings', 'tti']} label="TTI (ms)">
+            <InputNumber min={10} max={100} />
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'kcpSettings', 'upCap']} label="Uplink (MB/s)">
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'kcpSettings', 'downCap']} label="Downlink (MB/s)">
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'kcpSettings', 'cwndMultiplier']}
+            label="CWND Multiplier"
+          >
+            <InputNumber min={1} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'kcpSettings', 'maxSendingWindow']}
+            label="Max Sending Window"
+          >
+            <InputNumber min={0} />
+          </Form.Item>
+        </>
+      )}
+    </>
+  );
+
   const sniffingTab = (
     <>
       <Form.Item name={['sniffing', 'enabled']} label={t('enable')} valuePropName="checked">
@@ -838,6 +943,9 @@ export default function InboundFormModalNew({
               Protocols.WIREGUARD,
             ] as string[]).includes(protocol)
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab }]
+              : []),
+            ...(streamEnabled
+              ? [{ key: 'stream', label: t('pages.inbounds.streamTab'), children: streamTab }]
               : []),
             { key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab },
           ]} />
