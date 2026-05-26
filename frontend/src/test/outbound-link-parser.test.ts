@@ -75,6 +75,36 @@ describe('parseVmessLink — XHTTP advanced fields', () => {
     expect(xhttp.uplinkChunkSize).toBe(8192);
     expect(xhttp.noGRPCHeader).toBe(true);
   });
+
+  it('round-trips xhttp padding-obfs knobs from the vmess JSON', () => {
+    const json = {
+      v: '2', ps: 'imported-pad', add: '1.2.3.4', port: 443,
+      id: '11111111-2222-4333-8444-555555555555', aid: 0, scy: 'auto',
+      net: 'xhttp', host: 'edge.example', path: '/sp',
+      xPaddingObfsMode: true,
+      xPaddingKey: 'secret-key',
+      xPaddingHeader: 'X-Pad',
+      xPaddingPlacement: 'header',
+      xPaddingMethod: 'random',
+      sessionKey: 'X-Session',
+      seqKey: 'X-Seq',
+      noSSEHeader: true,
+      scMaxBufferedPosts: 50,
+      tls: 'tls',
+    };
+    const link = `vmess://${Base64.encode(JSON.stringify(json))}`;
+    const out = parseVmessLink(link);
+    const xhttp = (out?.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    expect(xhttp.xPaddingObfsMode).toBe(true);
+    expect(xhttp.xPaddingKey).toBe('secret-key');
+    expect(xhttp.xPaddingHeader).toBe('X-Pad');
+    expect(xhttp.xPaddingPlacement).toBe('header');
+    expect(xhttp.xPaddingMethod).toBe('random');
+    expect(xhttp.sessionKey).toBe('X-Session');
+    expect(xhttp.seqKey).toBe('X-Seq');
+    expect(xhttp.noSSEHeader).toBe(true);
+    expect(xhttp.scMaxBufferedPosts).toBe(50);
+  });
 });
 
 describe('parseVlessLink — XHTTP advanced fields', () => {
@@ -96,6 +126,28 @@ describe('parseVlessLink — XHTTP advanced fields', () => {
     expect(xhttp.scMinPostsIntervalMs).toBe('60');
     expect(xhttp.uplinkChunkSize).toBe(8192);
     expect(xhttp.noGRPCHeader).toBe(true);
+  });
+
+  it('round-trips xhttp padding-obfs knobs from URL query params', () => {
+    const link
+      = 'vless://uuid@srv.example:443'
+      + '?type=xhttp&security=tls&host=edge.example&path=%2Fsp'
+      + '&xPaddingObfsMode=true&xPaddingKey=secret-key&xPaddingHeader=X-Pad'
+      + '&xPaddingPlacement=header&xPaddingMethod=random'
+      + '&sessionKey=X-Session&seqKey=X-Seq&noSSEHeader=true'
+      + '&scMaxBufferedPosts=50'
+      + '#imported-pad';
+    const out = parseVlessLink(link);
+    const xhttp = (out?.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    expect(xhttp.xPaddingObfsMode).toBe(true);
+    expect(xhttp.xPaddingKey).toBe('secret-key');
+    expect(xhttp.xPaddingHeader).toBe('X-Pad');
+    expect(xhttp.xPaddingPlacement).toBe('header');
+    expect(xhttp.xPaddingMethod).toBe('random');
+    expect(xhttp.sessionKey).toBe('X-Session');
+    expect(xhttp.seqKey).toBe('X-Seq');
+    expect(xhttp.noSSEHeader).toBe(true);
+    expect(xhttp.scMaxBufferedPosts).toBe(50);
   });
 });
 

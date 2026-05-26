@@ -17,6 +17,55 @@ import { Base64 } from '@/utils';
 
 type Raw = Record<string, unknown>;
 
+// XHTTP knob keys grouped by wire type. Used by both the URL query-param
+// (vless/trojan) branch and the vmess JSON branch to consistently pull
+// the same set of advanced fields when present. Keep order ~stable to
+// match the schema's authoring order so diffs read naturally.
+const XHTTP_STRING_KEYS = [
+  'xPaddingBytes', 'xPaddingKey', 'xPaddingHeader', 'xPaddingPlacement',
+  'xPaddingMethod', 'sessionPlacement', 'sessionKey', 'seqPlacement',
+  'seqKey', 'uplinkDataPlacement', 'uplinkDataKey', 'scMaxEachPostBytes',
+  'scMinPostsIntervalMs', 'scStreamUpServerSecs', 'uplinkHTTPMethod',
+] as const;
+const XHTTP_NUMBER_KEYS = [
+  'scMaxBufferedPosts', 'serverMaxHeaderBytes', 'uplinkChunkSize',
+] as const;
+const XHTTP_BOOL_KEYS = [
+  'xPaddingObfsMode', 'noSSEHeader', 'noGRPCHeader',
+] as const;
+
+function asBool(s: string | null): boolean | undefined {
+  if (s === null) return undefined;
+  return s === 'true' || s === '1';
+}
+
+function applyXhttpStringFromParams(xhttp: Raw, params: URLSearchParams): void {
+  for (const k of XHTTP_STRING_KEYS) {
+    const v = params.get(k);
+    if (v !== null && v !== '') xhttp[k] = v;
+  }
+  for (const k of XHTTP_NUMBER_KEYS) {
+    const v = params.get(k);
+    if (v !== null && v !== '') xhttp[k] = Number(v) || 0;
+  }
+  for (const k of XHTTP_BOOL_KEYS) {
+    const v = params.get(k);
+    if (v !== null && v !== '') xhttp[k] = asBool(v);
+  }
+}
+
+function applyXhttpStringFromJson(xhttp: Raw, json: Record<string, unknown>): void {
+  for (const k of XHTTP_STRING_KEYS) {
+    if (typeof json[k] === 'string') xhttp[k] = json[k];
+  }
+  for (const k of XHTTP_NUMBER_KEYS) {
+    if (typeof json[k] === 'number') xhttp[k] = json[k];
+  }
+  for (const k of XHTTP_BOOL_KEYS) {
+    if (typeof json[k] === 'boolean') xhttp[k] = json[k];
+  }
+}
+
 function buildStream(network: string, security: string): Raw {
   const stream: Raw = { network, security };
   switch (network) {
@@ -87,16 +136,7 @@ function applyTransportParams(stream: Raw, params: URLSearchParams): void {
       xhttp.host = host;
       xhttp.path = path;
       if (params.get('mode')) xhttp.mode = params.get('mode');
-      const xPad = params.get('xPaddingBytes');
-      if (xPad) xhttp.xPaddingBytes = xPad;
-      const scMax = params.get('scMaxEachPostBytes');
-      if (scMax) xhttp.scMaxEachPostBytes = scMax;
-      const scMin = params.get('scMinPostsIntervalMs');
-      if (scMin) xhttp.scMinPostsIntervalMs = scMin;
-      const upChunk = params.get('uplinkChunkSize');
-      if (upChunk) xhttp.uplinkChunkSize = Number(upChunk) || 0;
-      const noGrpc = params.get('noGRPCHeader');
-      if (noGrpc) xhttp.noGRPCHeader = noGrpc === 'true' || noGrpc === '1';
+      applyXhttpStringFromParams(xhttp, params);
       break;
     }
     case 'tcp':
@@ -174,11 +214,7 @@ export function parseVmessLink(link: string): Raw | null {
       xhttp.host = json.host ?? '';
       xhttp.path = json.path ?? '/';
       if (json.mode) xhttp.mode = json.mode;
-      if (typeof json.xPaddingBytes === 'string') xhttp.xPaddingBytes = json.xPaddingBytes;
-      if (typeof json.scMaxEachPostBytes === 'string') xhttp.scMaxEachPostBytes = json.scMaxEachPostBytes;
-      if (typeof json.scMinPostsIntervalMs === 'string') xhttp.scMinPostsIntervalMs = json.scMinPostsIntervalMs;
-      if (typeof json.uplinkChunkSize === 'number') xhttp.uplinkChunkSize = json.uplinkChunkSize;
-      if (typeof json.noGRPCHeader === 'boolean') xhttp.noGRPCHeader = json.noGRPCHeader;
+      applyXhttpStringFromJson(xhttp, json);
     }
     if (security === 'tls') {
       const tls = stream.tlsSettings as Raw;
