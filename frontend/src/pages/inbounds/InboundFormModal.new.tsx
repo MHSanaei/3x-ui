@@ -31,6 +31,7 @@ import {
   isSS2022,
 } from '@/lib/xray/protocol-capabilities';
 import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
+import { getRandomRealityTarget } from '@/models/reality-targets';
 import {
   InboundFormBaseSchema,
   InboundFormSchema,
@@ -127,6 +128,80 @@ export default function InboundFormModalNew({
   const streamEnabled = canEnableStream({ protocol });
   const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
   const realityAllowed = canEnableReality({ protocol, streamSettings: { network, security } });
+
+  const genRealityKeypair = async () => {
+    setSaving(true);
+    try {
+      const msg = await HttpUtil.get('/panel/api/server/getNewX25519Cert');
+      if (msg?.success) {
+        const obj = msg.obj as { privateKey: string; publicKey: string };
+        form.setFieldValue(['streamSettings', 'realitySettings', 'privateKey'], obj.privateKey);
+        form.setFieldValue(['streamSettings', 'realitySettings', 'settings', 'publicKey'], obj.publicKey);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearRealityKeypair = () => {
+    form.setFieldValue(['streamSettings', 'realitySettings', 'privateKey'], '');
+    form.setFieldValue(['streamSettings', 'realitySettings', 'settings', 'publicKey'], '');
+  };
+
+  const genMldsa65 = async () => {
+    setSaving(true);
+    try {
+      const msg = await HttpUtil.get('/panel/api/server/getNewmldsa65');
+      if (msg?.success) {
+        const obj = msg.obj as { seed: string; verify: string };
+        form.setFieldValue(['streamSettings', 'realitySettings', 'mldsa65Seed'], obj.seed);
+        form.setFieldValue(['streamSettings', 'realitySettings', 'settings', 'mldsa65Verify'], obj.verify);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearMldsa65 = () => {
+    form.setFieldValue(['streamSettings', 'realitySettings', 'mldsa65Seed'], '');
+    form.setFieldValue(['streamSettings', 'realitySettings', 'settings', 'mldsa65Verify'], '');
+  };
+
+  const randomizeRealityTarget = () => {
+    const tgt = getRandomRealityTarget() as { target: string; sni: string };
+    form.setFieldValue(['streamSettings', 'realitySettings', 'target'], tgt.target);
+    form.setFieldValue(
+      ['streamSettings', 'realitySettings', 'serverNames'],
+      tgt.sni.split(',').map((s) => s.trim()).filter(Boolean),
+    );
+  };
+
+  const randomizeShortIds = () => {
+    form.setFieldValue(
+      ['streamSettings', 'realitySettings', 'shortIds'],
+      RandomUtil.randomShortIds().split(',').map((s) => s.trim()).filter(Boolean),
+    );
+  };
+
+  const getNewEchCert = async () => {
+    const sni = form.getFieldValue(['streamSettings', 'tlsSettings', 'serverName']);
+    setSaving(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/server/getNewEchCert', { sni });
+      if (msg?.success) {
+        const obj = msg.obj as { echServerKeys: string; echConfigList: string };
+        form.setFieldValue(['streamSettings', 'tlsSettings', 'echServerKeys'], obj.echServerKeys);
+        form.setFieldValue(['streamSettings', 'tlsSettings', 'settings', 'echConfigList'], obj.echConfigList);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearEchCert = () => {
+    form.setFieldValue(['streamSettings', 'tlsSettings', 'echServerKeys'], '');
+    form.setFieldValue(['streamSettings', 'tlsSettings', 'settings', 'echConfigList'], '');
+  };
 
   const onSecurityChange = (next: string) => {
     const current = (form.getFieldValue('streamSettings') as Record<string, unknown>) ?? {};
@@ -1479,6 +1554,146 @@ export default function InboundFormModalNew({
             valuePropName="checked"
           >
             <Switch />
+          </Form.Item>
+
+          <Form.Item name={['streamSettings', 'tlsSettings', 'echServerKeys']} label="ECH key">
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'tlsSettings', 'settings', 'echConfigList']}
+            label="ECH config"
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item label=" ">
+            <Space>
+              <Button type="primary" loading={saving} onClick={getNewEchCert}>
+                Get New ECH Cert
+              </Button>
+              <Button danger onClick={clearEchCert}>Clear</Button>
+            </Space>
+          </Form.Item>
+        </>
+      )}
+
+      {security === 'reality' && (
+        <>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'show']}
+            label="Show"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'realitySettings', 'xver']} label="Xver">
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'settings', 'fingerprint']}
+            label="uTLS"
+          >
+            <Select>
+              {Object.values(UTLS_FINGERPRINT).map((fp) => (
+                <Select.Option key={fp} value={fp}>{fp}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'target']}
+            label={
+              <>
+                Target{' '}
+                <SyncOutlined className="random-icon" onClick={randomizeRealityTarget} />
+              </>
+            }
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'serverNames']}
+            label={
+              <>
+                SNI{' '}
+                <SyncOutlined className="random-icon" onClick={randomizeRealityTarget} />
+              </>
+            }
+          >
+            <Select mode="tags" tokenSeparators={[',']} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'maxTimediff']}
+            label="Max Time Diff (ms)"
+          >
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'minClientVer']}
+            label="Min Client Ver"
+          >
+            <Input placeholder="25.9.11" />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'maxClientVer']}
+            label="Max Client Ver"
+          >
+            <Input placeholder="25.9.11" />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'shortIds']}
+            label={
+              <>
+                Short IDs{' '}
+                <SyncOutlined className="random-icon" onClick={randomizeShortIds} />
+              </>
+            }
+          >
+            <Select mode="tags" tokenSeparators={[',']} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'settings', 'spiderX']}
+            label="SpiderX"
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'settings', 'publicKey']}
+            label={t('pages.inbounds.publicKey')}
+          >
+            <Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'privateKey']}
+            label={t('pages.inbounds.privatekey')}
+          >
+            <Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} />
+          </Form.Item>
+          <Form.Item label=" ">
+            <Space>
+              <Button type="primary" loading={saving} onClick={genRealityKeypair}>
+                Get New Cert
+              </Button>
+              <Button danger onClick={clearRealityKeypair}>Clear</Button>
+            </Space>
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'mldsa65Seed']}
+            label="mldsa65 Seed"
+          >
+            <Input.TextArea autoSize={{ minRows: 2, maxRows: 6 }} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'settings', 'mldsa65Verify']}
+            label="mldsa65 Verify"
+          >
+            <Input.TextArea autoSize={{ minRows: 2, maxRows: 6 }} />
+          </Form.Item>
+          <Form.Item label=" ">
+            <Space>
+              <Button type="primary" loading={saving} onClick={genMldsa65}>
+                Get New Seed
+              </Button>
+              <Button danger onClick={clearMldsa65}>Clear</Button>
+            </Space>
           </Form.Item>
         </>
       )}
