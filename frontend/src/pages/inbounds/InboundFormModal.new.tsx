@@ -8,6 +8,7 @@ import {
   Input,
   InputNumber,
   Modal,
+  Radio,
   Select,
   Space,
   Switch,
@@ -46,6 +47,7 @@ import {
   TCP_CONGESTION_OPTION,
   TLS_CIPHER_OPTION,
   TLS_VERSION_OPTION,
+  USAGE_OPTION,
   UTLS_FINGERPRINT,
 } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
@@ -53,6 +55,8 @@ import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
 import { RealityStreamSettingsSchema } from '@/schemas/protocols/security/reality';
 import DateTimePicker from '@/components/DateTimePicker';
 import InputAddon from '@/components/InputAddon';
+
+const { TextArea } = Input;
 import type { DBInbound } from '@/models/dbinbound';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 
@@ -1555,6 +1559,157 @@ export default function InboundFormModalNew({
           >
             <Switch />
           </Form.Item>
+
+          <Form.List name={['streamSettings', 'tlsSettings', 'certificates']}>
+            {(certFields, { add, remove }) => (
+              <>
+                <Form.Item label={t('certificate')}>
+                  <Button
+                    type="primary"
+                    size="small"
+                    onClick={() => add({
+                      useFile: true,
+                      certificateFile: '',
+                      keyFile: '',
+                      certificate: [],
+                      key: [],
+                      oneTimeLoading: false,
+                      usage: 'encipherment',
+                      buildChain: false,
+                    })}
+                  >
+                    <PlusOutlined />
+                  </Button>
+                </Form.Item>
+                {certFields.map((certField, idx) => (
+                  <div key={certField.key}>
+                    <Form.Item
+                      name={[certField.name, 'useFile']}
+                      label={`${t('certificate')} ${idx + 1}`}
+                    >
+                      <Radio.Group buttonStyle="solid">
+                        <Radio.Button value={true}>
+                          {t('pages.inbounds.certificatePath')}
+                        </Radio.Button>
+                        <Radio.Button value={false}>
+                          {t('pages.inbounds.certificateContent')}
+                        </Radio.Button>
+                      </Radio.Group>
+                    </Form.Item>
+                    {certFields.length > 1 && (
+                      <Form.Item label=" ">
+                        <Button
+                          size="small"
+                          danger
+                          onClick={() => remove(certField.name)}
+                        >
+                          <MinusOutlined /> Remove
+                        </Button>
+                      </Form.Item>
+                    )}
+                    <Form.Item
+                      noStyle
+                      shouldUpdate={(prev, curr) =>
+                        prev.streamSettings?.tlsSettings?.certificates?.[certField.name]?.useFile
+                        !== curr.streamSettings?.tlsSettings?.certificates?.[certField.name]?.useFile
+                      }
+                    >
+                      {({ getFieldValue }) => {
+                        const useFile = getFieldValue([
+                          'streamSettings', 'tlsSettings', 'certificates',
+                          certField.name, 'useFile',
+                        ]);
+                        return useFile ? (
+                          <>
+                            <Form.Item
+                              name={[certField.name, 'certificateFile']}
+                              label={t('pages.inbounds.publicKey')}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              name={[certField.name, 'keyFile']}
+                              label={t('pages.inbounds.privatekey')}
+                            >
+                              <Input />
+                            </Form.Item>
+                          </>
+                        ) : (
+                          <>
+                            <Form.Item
+                              name={[certField.name, 'certificate']}
+                              label={t('pages.inbounds.publicKey')}
+                              normalize={(v) => typeof v === 'string'
+                                ? v.split('\n')
+                                : v}
+                              getValueProps={(v) => ({
+                                value: Array.isArray(v) ? v.join('\n') : v,
+                              })}
+                            >
+                              <TextArea autoSize={{ minRows: 3, maxRows: 8 }} />
+                            </Form.Item>
+                            <Form.Item
+                              name={[certField.name, 'key']}
+                              label={t('pages.inbounds.privatekey')}
+                              normalize={(v) => typeof v === 'string'
+                                ? v.split('\n')
+                                : v}
+                              getValueProps={(v) => ({
+                                value: Array.isArray(v) ? v.join('\n') : v,
+                              })}
+                            >
+                              <TextArea autoSize={{ minRows: 3, maxRows: 8 }} />
+                            </Form.Item>
+                          </>
+                        );
+                      }}
+                    </Form.Item>
+                    <Form.Item
+                      name={[certField.name, 'oneTimeLoading']}
+                      label="One Time Loading"
+                      valuePropName="checked"
+                    >
+                      <Switch />
+                    </Form.Item>
+                    <Form.Item
+                      name={[certField.name, 'usage']}
+                      label="Usage Option"
+                    >
+                      <Select style={{ width: '50%' }}>
+                        {Object.values(USAGE_OPTION).map((u) => (
+                          <Select.Option key={u} value={u}>{u}</Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                    <Form.Item
+                      noStyle
+                      shouldUpdate={(prev, curr) =>
+                        prev.streamSettings?.tlsSettings?.certificates?.[certField.name]?.usage
+                        !== curr.streamSettings?.tlsSettings?.certificates?.[certField.name]?.usage
+                      }
+                    >
+                      {({ getFieldValue }) => {
+                        const usage = getFieldValue([
+                          'streamSettings', 'tlsSettings', 'certificates',
+                          certField.name, 'usage',
+                        ]);
+                        if (usage !== 'issue') return null;
+                        return (
+                          <Form.Item
+                            name={[certField.name, 'buildChain']}
+                            label="Build Chain"
+                            valuePropName="checked"
+                          >
+                            <Switch />
+                          </Form.Item>
+                        );
+                      }}
+                    </Form.Item>
+                  </div>
+                ))}
+              </>
+            )}
+          </Form.List>
 
           <Form.Item name={['streamSettings', 'tlsSettings', 'echServerKeys']} label="ECH key">
             <Input />
