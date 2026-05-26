@@ -77,6 +77,20 @@ export const BulkAdjustResultSchema = z.object({
     .optional(),
 });
 
+export const BulkDeleteResultSchema = z.object({
+  deleted: z.number(),
+  skipped: z
+    .array(z.object({ email: z.string(), reason: z.string() }))
+    .optional(),
+});
+
+export const BulkCreateResultSchema = z.object({
+  created: z.number(),
+  skipped: z
+    .array(z.object({ email: z.string(), reason: z.string() }))
+    .optional(),
+});
+
 export const DelDepletedResultSchema = z.object({
   deleted: z.number().optional(),
 });
@@ -137,6 +151,8 @@ export type ClientsSummary = z.infer<typeof ClientsSummarySchema>;
 export type ClientPageResponse = z.infer<typeof ClientPageResponseSchema>;
 export type ClientHydrate = z.infer<typeof ClientHydrateSchema>;
 export type BulkAdjustResult = z.infer<typeof BulkAdjustResultSchema>;
+export type BulkDeleteResult = z.infer<typeof BulkDeleteResultSchema>;
+export type BulkCreateResult = z.infer<typeof BulkCreateResultSchema>;
 export type ClientBulkAddFormValues = z.infer<typeof ClientBulkAddFormSchema>;
 export type ClientBulkAdjustFormValues = z.infer<typeof ClientBulkAdjustFormSchema>;
 export type ClientFormValues = z.infer<typeof ClientFormSchema>;

@@ -103,7 +103,7 @@ export default function ClientsPage() {
     setQuery,
     inbounds, onlines, loading, fetched, subSettings,
     ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
-    create, update, remove, removeMany, bulkAdjust, attach, detach,
+    create, update, remove, bulkDelete, bulkAdjust, attach, detach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
     hydrate,
@@ -406,19 +406,13 @@ export default function ClientsPage() {
       okType: 'danger',
       cancelText: t('cancel'),
       onOk: async () => {
-        const results = await removeMany(emails);
+        const msg = await bulkDelete(emails);
         setSelectedRowKeys([]);
-        let ok = 0;
-        let failed = 0;
-        let firstError = '';
-        for (const msg of results) {
-          if (msg?.success) ok++;
-          else {
-            failed++;
-            if (!firstError && msg?.msg) firstError = msg.msg;
-          }
-        }
-        if (failed === 0) {
+        const ok = msg?.obj?.deleted ?? 0;
+        const skipped = msg?.obj?.skipped ?? [];
+        const failed = skipped.length;
+        const firstError = skipped[0]?.reason ?? msg?.msg ?? '';
+        if (failed === 0 && msg?.success) {
           messageApi.success(t('pages.clients.toasts.bulkDeleted', { count: ok }));
         } else {
           messageApi.warning(firstError

@@ -5,14 +5,13 @@ import { SyncOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
-import { HttpUtil, RandomUtil, SizeFormatter } from '@/utils';
+import { RandomUtil, SizeFormatter } from '@/utils';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import DateTimePicker from '@/components/DateTimePicker';
-import type { InboundOption } from '@/hooks/useClients';
+import { useClients, type InboundOption } from '@/hooks/useClients';
 import { ClientBulkAddFormSchema, type ClientBulkAddFormValues } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
-const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
   'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria',
@@ -55,6 +54,7 @@ export default function ClientBulkAddModal({
 }: ClientBulkAddModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
+  const { bulkCreate } = useClients();
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [delayedStart, setDelayedStart] = useState(false);
@@ -143,10 +143,9 @@ export default function ClientBulkAddModal({
     if (emails.length === 0) return;
 
     setSaving(true);
-    const silentJsonOpts = { ...JSON_HEADERS, silent: true };
     try {
-      const results = await Promise.all(emails.map((email) => {
-        const client = {
+      const payloads = emails.map((email) => ({
+        client: {
           email,
           subId: form.subId || RandomUtil.randomLowerAndNum(16),
           id: RandomUtil.randomUUID(),
@@ -158,21 +157,15 @@ export default function ClientBulkAddModal({
           limitIp: Number(form.limitIp) || 0,
           comment: form.comment,
           enable: true,
-        };
-        const payload = { client, inboundIds: form.inboundIds };
-        return HttpUtil.post('/panel/api/clients/add', payload, silentJsonOpts);
+        },
+        inboundIds: form.inboundIds,
       }));
-      let ok = 0;
-      let failed = 0;
-      let firstError = '';
-      for (const msg of results) {
-        if (msg?.success) ok++;
-        else {
-          failed++;
-          if (!firstError && msg?.msg) firstError = msg.msg;
-        }
-      }
-      if (failed === 0) {
+      const msg = await bulkCreate(payloads);
+      const ok = msg?.obj?.created ?? 0;
+      const skipped = msg?.obj?.skipped ?? [];
+      const failed = skipped.length;
+      const firstError = skipped[0]?.reason ?? msg?.msg ?? '';
+      if (failed === 0 && msg?.success) {
         messageApi.success(t('pages.clients.toasts.bulkCreated', { count: ok }));
       } else {
         messageApi.warning(firstError

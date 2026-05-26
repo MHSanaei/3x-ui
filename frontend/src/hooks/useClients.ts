@@ -10,6 +10,8 @@ import {
   InboundOptionsSchema,
   OnlinesSchema,
   BulkAdjustResultSchema,
+  BulkCreateResultSchema,
+  BulkDeleteResultSchema,
   DelDepletedResultSchema,
   type ClientHydrate,
   type ClientRecord,
@@ -18,6 +20,8 @@ import {
   type ClientPageResponse,
   type InboundOption,
   type BulkAdjustResult,
+  type BulkCreateResult,
+  type BulkDeleteResult,
 } from '@/schemas/client';
 import { DefaultsPayloadSchema } from '@/schemas/defaults';
 
@@ -209,18 +213,20 @@ export function useClients() {
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
-  const removeManyMut = useMutation({
-    mutationFn: async ({ emails, keepTraffic }: { emails: string[]; keepTraffic?: boolean }) => {
-      const suffix = keepTraffic ? '?keepTraffic=1' : '';
-      const results: Msg<unknown>[] = [];
-      for (const email of emails) {
-        const url = `/panel/api/clients/del/${encodeURIComponent(email)}${suffix}`;
-        const res = await HttpUtil.post(url, undefined, { silent: true });
-        results.push(res);
-      }
-      return results;
+  const bulkDeleteMut = useMutation({
+    mutationFn: async (payload: { emails: string[]; keepTraffic?: boolean }): Promise<Msg<BulkDeleteResult>> => {
+      const raw = await HttpUtil.post('/panel/api/clients/bulkDel', payload, JSON_HEADERS);
+      return parseMsg(raw, BulkDeleteResultSchema, 'clients/bulkDel');
     },
-    onSuccess: () => invalidateAll(),
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
+  const bulkCreateMut = useMutation({
+    mutationFn: async (payloads: unknown[]): Promise<Msg<BulkCreateResult>> => {
+      const raw = await HttpUtil.post('/panel/api/clients/bulkCreate', payloads, JSON_HEADERS);
+      return parseMsg(raw, BulkCreateResultSchema, 'clients/bulkCreate');
+    },
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
   const bulkAdjustMut = useMutation({
@@ -271,10 +277,14 @@ export function useClients() {
     if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return removeMut.mutateAsync({ email, keepTraffic });
   }, [removeMut]);
-  const removeMany = useCallback((emails: string[], keepTraffic = false) => {
-    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve([] as Msg<unknown>[]);
-    return removeManyMut.mutateAsync({ emails, keepTraffic });
-  }, [removeManyMut]);
+  const bulkDelete = useCallback((emails: string[], keepTraffic = false) => {
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkDeleteResult>);
+    return bulkDeleteMut.mutateAsync({ emails, keepTraffic });
+  }, [bulkDeleteMut]);
+  const bulkCreate = useCallback((payloads: unknown[]) => {
+    if (!Array.isArray(payloads) || payloads.length === 0) return Promise.resolve(null as unknown as Msg<BulkCreateResult>);
+    return bulkCreateMut.mutateAsync(payloads);
+  }, [bulkCreateMut]);
   const bulkAdjust = useCallback((emails: string[], addDays: number, addBytes: number) => {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
     return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes });
@@ -379,9 +389,10 @@ export function useClients() {
     pageSize,
     refresh,
     create,
+    bulkCreate,
     update,
     remove,
-    removeMany,
+    bulkDelete,
     bulkAdjust,
     attach,
     detach,
