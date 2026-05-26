@@ -80,18 +80,11 @@ function defaultNoiseItem(): Record<string, unknown> {
 }
 
 function defaultQuicParams(): Record<string, unknown> {
-  // Seeded with the xray-core / hysteria recommended defaults so the QUIC
-  // Params sub-form doesn't show blank InputNumber fields when first
-  // enabled. The schema declares these as .optional() (no Zod default)
-  // because the wire shape omits them when xray's built-in default
-  // applies — but the panel needs values to render the controls.
   return {
     congestion: 'bbr',
     debug: false,
     brutalUp: 0,
     brutalDown: 0,
-    hasUdpHop: false,
-    udpHop: { ports: '20000-50000', interval: '5-10' },
     maxIdleTimeout: 30,
     keepAlivePeriod: 10,
     disablePathMTUDiscovery: false,
@@ -103,13 +96,18 @@ function defaultQuicParams(): Record<string, unknown> {
   };
 }
 
+function defaultUdpHop(): Record<string, unknown> {
+  return { ports: '20000-50000', interval: '5-10' };
+}
+
 export default function FinalMaskForm({ name, network, protocol, form }: FinalMaskFormProps) {
   const base = asPath(name);
   const isHysteria = protocol === OutboundProtocols.Hysteria || protocol === 'hysteria';
   const showTcp = TCP_NETWORKS.includes(network);
   const showUdp = isHysteria || network === 'kcp';
   const showQuic = isHysteria || network === 'xhttp';
-  const enableQuic = Form.useWatch([...base, 'enableQuicParams'], form);
+  const quicParams = Form.useWatch([...base, 'quicParams'], { form, preserve: true });
+  const hasQuicParams = quicParams != null;
 
   if (!showTcp && !showUdp && !showQuic) return null;
 
@@ -119,17 +117,15 @@ export default function FinalMaskForm({ name, network, protocol, form }: FinalMa
       {showUdp && <UdpMasksList base={base} form={form} isHysteria={isHysteria} network={network} />}
       {showQuic && (
         <>
-          <Form.Item label="QUIC Params" name={[...base, 'enableQuicParams']} valuePropName="checked">
+          <Form.Item label="QUIC Params">
             <Switch
+              checked={hasQuicParams}
               onChange={(v) => {
-                if (v) {
-                  const current = form.getFieldValue([...base, 'quicParams']);
-                  if (!current) form.setFieldValue([...base, 'quicParams'], defaultQuicParams());
-                }
+                form.setFieldValue([...base, 'quicParams'], v ? defaultQuicParams() : undefined);
               }}
             />
           </Form.Item>
-          {enableQuic && <QuicParamsForm base={[...base, 'quicParams']} form={form} />}
+          {hasQuicParams && <QuicParamsForm base={[...base, 'quicParams']} form={form} />}
         </>
       )}
     </>
@@ -669,7 +665,8 @@ function ItemEditor({
 
 function QuicParamsForm({ base, form }: { base: (string | number)[]; form: FormInstance }) {
   const congestion = Form.useWatch([...base, 'congestion'], form) as string | undefined;
-  const hasUdpHop = Form.useWatch([...base, 'hasUdpHop'], form) as boolean | undefined;
+  const udpHop = Form.useWatch([...base, 'udpHop'], { form, preserve: true }) as Record<string, unknown> | undefined;
+  const hasUdpHop = udpHop != null;
 
   return (
     <>
@@ -698,8 +695,13 @@ function QuicParamsForm({ base, form }: { base: (string | number)[]; form: FormI
         </>
       )}
 
-      <Form.Item label="UDP Hop" name={[...base, 'hasUdpHop']} valuePropName="checked">
-        <Switch />
+      <Form.Item label="UDP Hop">
+        <Switch
+          checked={hasUdpHop}
+          onChange={(v) => {
+            form.setFieldValue([...base, 'udpHop'], v ? defaultUdpHop() : undefined);
+          }}
+        />
       </Form.Item>
       {hasUdpHop && (
         <>
