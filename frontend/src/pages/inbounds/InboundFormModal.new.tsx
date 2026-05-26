@@ -16,7 +16,7 @@ import {
   Typography,
   message,
 } from 'antd';
-import { SyncOutlined } from '@ant-design/icons';
+import { MinusOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter } from '@/utils';
 import {
@@ -34,6 +34,7 @@ import {
 import { antdRule } from '@/utils/zodForm';
 import { Protocols, SNIFFING_OPTION } from '@/schemas/primitives';
 import DateTimePicker from '@/components/DateTimePicker';
+import InputAddon from '@/components/InputAddon';
 import type { DBInbound } from '@/models/dbinbound';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 
@@ -103,6 +104,7 @@ export default function InboundFormModalNew({
     protocol,
     settings: typeof ssMethod === 'string' ? { method: ssMethod } : {},
   });
+  const mixedUdpOn = Form.useWatch(['settings', 'udp'], form) ?? false;
 
   const matchesVlessAuth = (
     block: { id?: string; label?: string } | undefined | null,
@@ -334,6 +336,71 @@ export default function InboundFormModalNew({
 
   const protocolTab = (
     <>
+      {(protocol === Protocols.HTTP || protocol === Protocols.MIXED) && (
+        <>
+          <Form.List name={['settings', 'accounts']}>
+            {(fields, { add, remove }) => (
+              <>
+                <Form.Item label="Accounts">
+                  <Button size="small" onClick={() => add({ user: '', pass: '' })}>
+                    <PlusOutlined /> Add
+                  </Button>
+                </Form.Item>
+                {fields.length > 0 && (
+                  <Form.Item wrapperCol={{ span: 24 }}>
+                    {fields.map((field, idx) => (
+                      <Space.Compact key={field.key} className="mb-8" block>
+                        <InputAddon>{String(idx + 1)}</InputAddon>
+                        <Form.Item name={[field.name, 'user']} noStyle>
+                          <Input placeholder="Username" />
+                        </Form.Item>
+                        <Form.Item name={[field.name, 'pass']} noStyle>
+                          <Input placeholder="Password" />
+                        </Form.Item>
+                        <Button onClick={() => remove(field.name)}>
+                          <MinusOutlined />
+                        </Button>
+                      </Space.Compact>
+                    ))}
+                  </Form.Item>
+                )}
+              </>
+            )}
+          </Form.List>
+          {protocol === Protocols.HTTP && (
+            <Form.Item
+              name={['settings', 'allowTransparent']}
+              label="Allow transparent"
+              valuePropName="checked"
+            >
+              <Switch />
+            </Form.Item>
+          )}
+          {protocol === Protocols.MIXED && (
+            <>
+              <Form.Item name={['settings', 'auth']} label="Auth">
+                <Select>
+                  <Select.Option value="noauth">noauth</Select.Option>
+                  <Select.Option value="password">password</Select.Option>
+                </Select>
+              </Form.Item>
+              <Form.Item
+                name={['settings', 'udp']}
+                label="UDP"
+                valuePropName="checked"
+              >
+                <Switch />
+              </Form.Item>
+              {mixedUdpOn && (
+                <Form.Item name={['settings', 'ip']} label="UDP IP">
+                  <Input />
+                </Form.Item>
+              )}
+            </>
+          )}
+        </>
+      )}
+
       {protocol === Protocols.SHADOWSOCKS && (
         <>
           <Form.Item name={['settings', 'method']} label="Encryption method">
@@ -500,7 +567,12 @@ export default function InboundFormModalNew({
         >
           <Tabs items={[
             { key: 'basic', label: t('pages.xray.basicTemplate'), children: basicTab },
-            ...(protocol === Protocols.VLESS || protocol === Protocols.SHADOWSOCKS
+            ...(([
+              Protocols.VLESS,
+              Protocols.SHADOWSOCKS,
+              Protocols.HTTP,
+              Protocols.MIXED,
+            ] as string[]).includes(protocol)
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab }]
               : []),
             { key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab },
