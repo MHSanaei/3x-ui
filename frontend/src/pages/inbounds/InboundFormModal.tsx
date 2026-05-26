@@ -1311,9 +1311,9 @@ export default function InboundFormModal({
         return { header: { type: 'none' } };
       case 'kcp':
         return {
-          mtu: 1350, tti: 20, uplinkCapacity: 5, downlinkCapacity: 20,
-          congestion: false, readBufferSize: 2, writeBufferSize: 2,
-          header: { type: 'none' }, seed: '',
+          mtu: 1350, tti: 20,
+          uplinkCapacity: 5, downlinkCapacity: 20,
+          cwndMultiplier: 1, maxSendingWindow: 2097152,
         };
       case 'ws':
         return { path: '/', host: '', headers: {}, heartbeatPeriod: 0 };
@@ -1545,10 +1545,13 @@ export default function InboundFormModal({
               }}
             </Form.Item>
           </Form.Item>
-          {/* Host + path camouflage inputs only render when the Switch
-              above is on. Both are string[] on the wire; normalize +
-              getValueProps translate to/from comma-joined input. Mirrors
-              the symmetric outbound side. */}
+          {/* Per Xray docs (transports/raw.html#httpheaderobject), the
+              `request` object is honored only by outbound proxies; the
+              inbound listener reads `response`. Showing Host / Path /
+              Method / Version / request-headers on the inbound side was
+              a regression from this modal's earlier iteration — those
+              inputs wrote to the wire but xray-core ignored them. The
+              inbound modal now only exposes the response side. */}
           <Form.Item
             noStyle
             shouldUpdate={(prev, curr) =>
@@ -1563,54 +1566,6 @@ export default function InboundFormModal({
               if (headerType !== 'http') return null;
               return (
                 <>
-                  <Form.Item
-                    label={t('host')}
-                    name={[
-                      'streamSettings', 'tcpSettings', 'header',
-                      'request', 'headers', 'Host',
-                    ]}
-                    normalize={(v: unknown) =>
-                      typeof v === 'string'
-                        ? v.split(',').map((s) => s.trim()).filter(Boolean)
-                        : Array.isArray(v) ? v : []
-                    }
-                    getValueProps={(v: unknown) => ({
-                      value: Array.isArray(v) ? v.join(',') : '',
-                    })}
-                  >
-                    <Input placeholder="example.com,cdn.example.com" />
-                  </Form.Item>
-                  <Form.Item
-                    label={t('path')}
-                    name={[
-                      'streamSettings', 'tcpSettings', 'header',
-                      'request', 'path',
-                    ]}
-                    normalize={(v: unknown) =>
-                      typeof v === 'string'
-                        ? v.split(',').map((s) => s.trim()).filter(Boolean)
-                        : Array.isArray(v) ? v : ['/']
-                    }
-                    getValueProps={(v: unknown) => ({
-                      value: Array.isArray(v) ? v.join(',') : '/',
-                    })}
-                  >
-                    <Input placeholder="/,/api,/static" />
-                  </Form.Item>
-                  <Form.Item
-                    label="Request headers"
-                    name={[
-                      'streamSettings', 'tcpSettings', 'header',
-                      'request', 'headers',
-                    ]}
-                  >
-                    <HeaderMapEditor mode="v2" />
-                  </Form.Item>
-
-                  {/* Response side: shaped as a separate sub-object on the
-                      wire ({version, status, reason, headers}). Inbound is
-                      the server, so the response side is the one the panel
-                      sends back to clients during HTTP camouflage. */}
                   <Form.Item
                     label="Response version"
                     name={[
@@ -1929,10 +1884,10 @@ export default function InboundFormModal({
           <Form.Item name={['streamSettings', 'kcpSettings', 'tti']} label="TTI (ms)">
             <InputNumber min={10} max={100} />
           </Form.Item>
-          <Form.Item name={['streamSettings', 'kcpSettings', 'upCap']} label="Uplink (MB/s)">
+          <Form.Item name={['streamSettings', 'kcpSettings', 'uplinkCapacity']} label="Uplink (MB/s)">
             <InputNumber min={0} />
           </Form.Item>
-          <Form.Item name={['streamSettings', 'kcpSettings', 'downCap']} label="Downlink (MB/s)">
+          <Form.Item name={['streamSettings', 'kcpSettings', 'downlinkCapacity']} label="Downlink (MB/s)">
             <InputNumber min={0} />
           </Form.Item>
           <Form.Item
