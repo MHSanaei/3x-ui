@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Input, Space } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
 
@@ -74,10 +74,29 @@ function rowsToMap(rows: HeaderRow[], mode: HeaderMapMode): Record<string, strin
 }
 
 export default function HeaderMapEditor({ mode, value, onChange }: HeaderMapEditorProps) {
-  const rows = useMemo(() => mapToRows(value), [value]);
+  // Local state holds rows including blanks. Without it, addRow() would
+  // append a {name:'', value:''} that rowsToMap immediately filters out
+  // before reaching the form, so the new row would never reach UI. The
+  // form-bound map only sees rows with non-empty names; blank rows live
+  // here until the user fills them in.
+  const [rows, setRows] = useState<HeaderRow[]>(() => mapToRows(value));
+  const lastEmittedRef = useRef<string>(JSON.stringify(rowsToMap(rows, mode)));
+
+  // Re-sync local rows when the form value changes from outside (modal
+  // re-open with edit data, JSON tab edits, etc.) but not when it's our
+  // own emission echoing back.
+  useEffect(() => {
+    const incoming = JSON.stringify(value ?? {});
+    if (incoming === lastEmittedRef.current) return;
+    setRows(mapToRows(value));
+    lastEmittedRef.current = incoming;
+  }, [value]);
 
   function commit(next: HeaderRow[]) {
-    onChange?.(rowsToMap(next, mode));
+    setRows(next);
+    const map = rowsToMap(next, mode);
+    lastEmittedRef.current = JSON.stringify(map);
+    onChange?.(map);
   }
 
   function setRow(index: number, patch: Partial<HeaderRow>) {

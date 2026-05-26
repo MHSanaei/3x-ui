@@ -63,6 +63,7 @@ import {
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
 import { RealityStreamSettingsSchema } from '@/schemas/protocols/security/reality';
+import { SniffingSchema } from '@/schemas/primitives/sniffing';
 import DateTimePicker from '@/components/DateTimePicker';
 import FinalMaskForm from '@/components/FinalMaskForm';
 import HeaderMapEditor from '@/components/HeaderMapEditor';
@@ -100,9 +101,26 @@ function AdvancedSliceEditor({
   minHeight?: string;
   maxHeight?: string;
 }) {
-  const [text, setText] = useState(() =>
-    JSON.stringify(form.getFieldValue(path) ?? {}, null, 2),
-  );
+  // The editor keeps a local text buffer so partial / invalid JSON typing
+  // doesn't clobber the form. lastEmitRef tracks the serialized form value
+  // at the moment we last accepted a write — if useWatch later fires with
+  // a different value than that, the form was changed from elsewhere
+  // (Stream tab toggle, sibling JSON tab edit), and we re-sync.
+  const watched = Form.useWatch(path, form);
+  const lastEmitRef = useRef<string>('');
+  const [text, setText] = useState(() => {
+    const initial = JSON.stringify(form.getFieldValue(path) ?? {}, null, 2);
+    lastEmitRef.current = initial;
+    return initial;
+  });
+
+  useEffect(() => {
+    const formStr = JSON.stringify(watched ?? {}, null, 2);
+    if (formStr === lastEmitRef.current) return;
+    setText(formStr);
+    lastEmitRef.current = formStr;
+  }, [watched]);
+
   return (
     <JsonEditor
       value={text}
@@ -111,10 +129,96 @@ function AdvancedSliceEditor({
       onChange={(next) => {
         setText(next);
         try {
-          form.setFieldValue(path, JSON.parse(next));
+          const parsed = JSON.parse(next);
+          form.setFieldValue(path, parsed);
+          lastEmitRef.current = JSON.stringify(parsed, null, 2);
         } catch {
-
+          // invalid JSON; keep buffer, don't push to form
         }
+      }}
+    />
+  );
+}
+
+// The "All" editor shows the full inbound JSON in one editor: top-level
+// connection fields plus the three nested sub-objects (settings,
+// streamSettings, sniffing). Edits round-trip back to the form's slices,
+// mirroring the legacy modal's setAdvancedAllValue behavior. Reactivity
+// works the same way as AdvancedSliceEditor: useWatch on the slices we
+// care about, lastEmitRef as the "we wrote this" guard.
+function AdvancedAllEditor({
+  form,
+  streamEnabled,
+}: {
+  form: FormInstance<InboundFormValues>;
+  streamEnabled: boolean;
+}) {
+  const wListen = Form.useWatch('listen', form);
+  const wPort = Form.useWatch('port', form);
+  const wProtocol = Form.useWatch('protocol', form);
+  const wTag = Form.useWatch('tag', form);
+  const wSettings = Form.useWatch('settings', form);
+  const wSniffing = Form.useWatch('sniffing', form);
+  const wStream = Form.useWatch('streamSettings', form);
+
+  const serialize = () => {
+    const out: Record<string, unknown> = {
+      listen: wListen ?? '',
+      port: wPort ?? 0,
+      protocol: wProtocol ?? '',
+      tag: wTag ?? '',
+      settings: wSettings ?? {},
+      sniffing: wSniffing ?? {},
+    };
+    if (streamEnabled) out.streamSettings = wStream ?? {};
+    return JSON.stringify(out, null, 2);
+  };
+
+  const lastEmitRef = useRef<string>('');
+  const [text, setText] = useState(() => {
+    const initial = serialize();
+    lastEmitRef.current = initial;
+    return initial;
+  });
+
+  useEffect(() => {
+    const formStr = serialize();
+    if (formStr === lastEmitRef.current) return;
+    setText(formStr);
+    lastEmitRef.current = formStr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wListen, wPort, wProtocol, wTag, wSettings, wSniffing, wStream, streamEnabled]);
+
+  return (
+    <JsonEditor
+      value={text}
+      minHeight="340px"
+      maxHeight="560px"
+      onChange={(next) => {
+        setText(next);
+        let parsed: Record<string, unknown>;
+        try {
+          parsed = JSON.parse(next) as Record<string, unknown>;
+        } catch {
+          return;
+        }
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+        if (typeof parsed.listen === 'string') form.setFieldValue('listen', parsed.listen);
+        if (typeof parsed.port === 'number' && Number.isFinite(parsed.port)) {
+          form.setFieldValue('port', parsed.port);
+        }
+        if (typeof parsed.protocol === 'string') form.setFieldValue('protocol', parsed.protocol);
+        if (typeof parsed.tag === 'string') form.setFieldValue('tag', parsed.tag);
+        if (parsed.settings && typeof parsed.settings === 'object') {
+          form.setFieldValue('settings', parsed.settings);
+        }
+        if (parsed.sniffing && typeof parsed.sniffing === 'object') {
+          form.setFieldValue('sniffing', parsed.sniffing);
+        }
+        if (streamEnabled && parsed.streamSettings && typeof parsed.streamSettings === 'object') {
+          form.setFieldValue('streamSettings', parsed.streamSettings);
+        }
+        lastEmitRef.current = next;
       }}
     />
   );
@@ -147,7 +251,7 @@ function buildAddModeValues(): InboundFormValues {
     protocol: 'vless',
     settings,
     streamSettings: { network: 'tcp', security: 'none' },
-    sniffing: {},
+    sniffing: SniffingSchema.parse({}),
     port: RandomUtil.randomInteger(10000, 60000),
     listen: '',
     tag: '',
@@ -186,8 +290,6 @@ export default function InboundFormModal({
   const network = Form.useWatch(['streamSettings', 'network'], form) ?? '';
   const security = Form.useWatch(['streamSettings', 'security'], form) ?? 'none';
   const streamEnabled = canEnableStream({ protocol });
-  const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
-  const realityAllowed = canEnableReality({ protocol, streamSettings: { network, security } });
   const isFallbackHost =
     (protocol === Protocols.VLESS || protocol === Protocols.TROJAN)
     && network === 'tcp'
@@ -385,10 +487,6 @@ export default function InboundFormModal({
   const xhttpSessionPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'sessionPlacement'], form);
   const xhttpSeqPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'seqPlacement'], form);
   const xhttpUplinkPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'uplinkDataPlacement'], form);
-  const externalProxyArr = Form.useWatch(['streamSettings', 'externalProxy'], form);
-  const externalProxyOn = Array.isArray(externalProxyArr) && externalProxyArr.length > 0;
-  const sockoptValue = Form.useWatch(['streamSettings', 'sockopt'], form);
-  const sockoptOn = !!sockoptValue && typeof sockoptValue === 'object' && Object.keys(sockoptValue as object).length > 0;
 
   const toggleExternalProxy = (on: boolean) => {
     if (on) {
@@ -1205,9 +1303,8 @@ export default function InboundFormModal({
   const streamTab = (
     <>
       {protocol !== Protocols.HYSTERIA && (
-        <Form.Item label="Transmission">
+        <Form.Item label="Transmission" name={['streamSettings', 'network']}>
           <Select
-            value={network}
             style={{ width: '75%' }}
             onChange={onNetworkChange}
           >
@@ -1812,103 +1909,133 @@ export default function InboundFormModal({
         </>
       )}
 
-      <Form.Item label="External Proxy">
-        <Switch checked={externalProxyOn} onChange={toggleExternalProxy} />
-      </Form.Item>
-      {externalProxyOn && (
-        <Form.List name={['streamSettings', 'externalProxy']}>
-          {(fields, { add, remove }) => (
+      <Form.Item
+        noStyle
+        shouldUpdate={(prev, curr) => {
+          const a = (prev.streamSettings as { externalProxy?: unknown[] } | undefined)?.externalProxy;
+          const b = (curr.streamSettings as { externalProxy?: unknown[] } | undefined)?.externalProxy;
+          return (Array.isArray(a) ? a.length : 0) !== (Array.isArray(b) ? b.length : 0);
+        }}
+      >
+        {({ getFieldValue }) => {
+          const arr = getFieldValue(['streamSettings', 'externalProxy']);
+          const on = Array.isArray(arr) && arr.length > 0;
+          return (
             <>
-              <Form.Item label=" " colon={false}>
-                <Button
-                  size="small"
-                  type="primary"
-                  onClick={() => add({
-                    forceTls: 'same',
-                    dest: '',
-                    port: 443,
-                    remark: '',
-                    sni: '',
-                    fingerprint: '',
-                    alpn: [],
-                  })}
-                >
-                  <PlusOutlined />
-                </Button>
+              <Form.Item label="External Proxy">
+                <Switch checked={on} onChange={toggleExternalProxy} />
               </Form.Item>
-              <Form.Item wrapperCol={{ span: 24 }}>
-                {fields.map((field) => (
-                  <div key={field.key} style={{ margin: '8px 0' }}>
-                    <Space.Compact block>
-                      <Form.Item name={[field.name, 'forceTls']} noStyle>
-                        <Select style={{ width: '20%' }}>
-                          <Select.Option value="same">{t('pages.inbounds.same')}</Select.Option>
-                          <Select.Option value="none">{t('none')}</Select.Option>
-                          <Select.Option value="tls">TLS</Select.Option>
-                        </Select>
+              {on && (
+                <Form.List name={['streamSettings', 'externalProxy']}>
+                  {(fields, { add, remove }) => (
+                    <>
+                      <Form.Item label=" " colon={false}>
+                        <Button
+                          size="small"
+                          type="primary"
+                          onClick={() => add({
+                            forceTls: 'same',
+                            dest: '',
+                            port: 443,
+                            remark: '',
+                            sni: '',
+                            fingerprint: '',
+                            alpn: [],
+                          })}
+                        >
+                          <PlusOutlined />
+                        </Button>
                       </Form.Item>
-                      <Form.Item name={[field.name, 'dest']} noStyle>
-                        <Input style={{ width: '30%' }} placeholder={t('host')} />
-                      </Form.Item>
-                      <Form.Item name={[field.name, 'port']} noStyle>
-                        <InputNumber style={{ width: '15%' }} min={1} max={65535} />
-                      </Form.Item>
-                      <Form.Item name={[field.name, 'remark']} noStyle>
-                        <Input style={{ width: '25%' }} placeholder={t('pages.inbounds.remark')} />
-                      </Form.Item>
-                      <InputAddon onClick={() => remove(field.name)}>
-                        <MinusOutlined />
-                      </InputAddon>
-                    </Space.Compact>
-                    <Form.Item
-                      noStyle
-                      shouldUpdate={(prev, curr) =>
-                        prev.streamSettings?.externalProxy?.[field.name]?.forceTls
-                        !== curr.streamSettings?.externalProxy?.[field.name]?.forceTls
-                      }
-                    >
-                      {({ getFieldValue }) => {
-                        const ft = getFieldValue([
-                          'streamSettings', 'externalProxy', field.name, 'forceTls',
-                        ]);
-                        if (ft !== 'tls') return null;
-                        return (
-                          <Space.Compact style={{ marginTop: 6 }} block>
-                            <Form.Item name={[field.name, 'sni']} noStyle>
-                              <Input style={{ width: '30%' }} placeholder="SNI (defaults to host)" />
+                      <Form.Item wrapperCol={{ span: 24 }}>
+                        {fields.map((field) => (
+                          <div key={field.key} style={{ margin: '8px 0' }}>
+                            <Space.Compact block>
+                              <Form.Item name={[field.name, 'forceTls']} noStyle>
+                                <Select style={{ width: '20%' }}>
+                                  <Select.Option value="same">{t('pages.inbounds.same')}</Select.Option>
+                                  <Select.Option value="none">{t('none')}</Select.Option>
+                                  <Select.Option value="tls">TLS</Select.Option>
+                                </Select>
+                              </Form.Item>
+                              <Form.Item name={[field.name, 'dest']} noStyle>
+                                <Input style={{ width: '30%' }} placeholder={t('host')} />
+                              </Form.Item>
+                              <Form.Item name={[field.name, 'port']} noStyle>
+                                <InputNumber style={{ width: '15%' }} min={1} max={65535} />
+                              </Form.Item>
+                              <Form.Item name={[field.name, 'remark']} noStyle>
+                                <Input style={{ width: '25%' }} placeholder={t('pages.inbounds.remark')} />
+                              </Form.Item>
+                              <InputAddon onClick={() => remove(field.name)}>
+                                <MinusOutlined />
+                              </InputAddon>
+                            </Space.Compact>
+                            <Form.Item
+                              noStyle
+                              shouldUpdate={(prev, curr) =>
+                                prev.streamSettings?.externalProxy?.[field.name]?.forceTls
+                                !== curr.streamSettings?.externalProxy?.[field.name]?.forceTls
+                              }
+                            >
+                              {({ getFieldValue }) => {
+                                const ft = getFieldValue([
+                                  'streamSettings', 'externalProxy', field.name, 'forceTls',
+                                ]);
+                                if (ft !== 'tls') return null;
+                                return (
+                                  <Space.Compact style={{ marginTop: 6 }} block>
+                                    <Form.Item name={[field.name, 'sni']} noStyle>
+                                      <Input style={{ width: '30%' }} placeholder="SNI (defaults to host)" />
+                                    </Form.Item>
+                                    <Form.Item name={[field.name, 'fingerprint']} noStyle>
+                                      <Select style={{ width: '30%' }} placeholder="Fingerprint">
+                                        <Select.Option value="">Default</Select.Option>
+                                        {Object.values(UTLS_FINGERPRINT).map((fp) => (
+                                          <Select.Option key={fp} value={fp}>{fp}</Select.Option>
+                                        ))}
+                                      </Select>
+                                    </Form.Item>
+                                    <Form.Item name={[field.name, 'alpn']} noStyle>
+                                      <Select mode="multiple" style={{ width: '40%' }} placeholder="ALPN">
+                                        {Object.values(ALPN_OPTION).map((a) => (
+                                          <Select.Option key={a} value={a}>{a}</Select.Option>
+                                        ))}
+                                      </Select>
+                                    </Form.Item>
+                                  </Space.Compact>
+                                );
+                              }}
                             </Form.Item>
-                            <Form.Item name={[field.name, 'fingerprint']} noStyle>
-                              <Select style={{ width: '30%' }} placeholder="Fingerprint">
-                                <Select.Option value="">Default</Select.Option>
-                                {Object.values(UTLS_FINGERPRINT).map((fp) => (
-                                  <Select.Option key={fp} value={fp}>{fp}</Select.Option>
-                                ))}
-                              </Select>
-                            </Form.Item>
-                            <Form.Item name={[field.name, 'alpn']} noStyle>
-                              <Select mode="multiple" style={{ width: '40%' }} placeholder="ALPN">
-                                {Object.values(ALPN_OPTION).map((a) => (
-                                  <Select.Option key={a} value={a}>{a}</Select.Option>
-                                ))}
-                              </Select>
-                            </Form.Item>
-                          </Space.Compact>
-                        );
-                      }}
-                    </Form.Item>
-                  </div>
-                ))}
-              </Form.Item>
+                          </div>
+                        ))}
+                      </Form.Item>
+                    </>
+                  )}
+                </Form.List>
+              )}
             </>
-          )}
-        </Form.List>
-      )}
-
-      <Form.Item label="Sockopt">
-        <Switch checked={sockoptOn} onChange={toggleSockopt} />
+          );
+        }}
       </Form.Item>
-      {sockoptOn && (
-        <>
+
+      <Form.Item
+        noStyle
+        shouldUpdate={(prev, curr) => {
+          const a = (prev.streamSettings as { sockopt?: object } | undefined)?.sockopt;
+          const b = (curr.streamSettings as { sockopt?: object } | undefined)?.sockopt;
+          return !!a !== !!b;
+        }}
+      >
+        {({ getFieldValue }) => {
+          const sock = getFieldValue(['streamSettings', 'sockopt']);
+          const on = !!sock && typeof sock === 'object' && Object.keys(sock).length > 0;
+          return (
+            <>
+              <Form.Item label="Sockopt">
+                <Switch checked={on} onChange={toggleSockopt} />
+              </Form.Item>
+              {on && (
+                <>
           <Form.Item name={['streamSettings', 'sockopt', 'mark']} label="Route Mark">
             <InputNumber min={0} />
           </Form.Item>
@@ -2021,8 +2148,12 @@ export default function InboundFormModal({
               <Select.Option value="X-Client-IP">X-Client-IP</Select.Option>
             </Select>
           </Form.Item>
-        </>
-      )}
+                </>
+              )}
+            </>
+          );
+        }}
+      </Form.Item>
 
       <FinalMaskForm
         name={['streamSettings', 'finalmask']}
@@ -2040,29 +2171,44 @@ export default function InboundFormModal({
           noStyle
           shouldUpdate={(prev, curr) =>
             prev.streamSettings?.security !== curr.streamSettings?.security
+            || prev.streamSettings?.network !== curr.streamSettings?.network
+            || prev.protocol !== curr.protocol
           }
         >
           {({ getFieldValue }) => {
             const sec = getFieldValue(['streamSettings', 'security']) ?? 'none';
+            const net = getFieldValue(['streamSettings', 'network']) ?? '';
+            const proto = getFieldValue('protocol') ?? '';
+            const tlsOk = canEnableTls({ protocol: proto, streamSettings: { network: net, security: sec } });
+            const realityOk = canEnableReality({ protocol: proto, streamSettings: { network: net, security: sec } });
             return (
-              <Select
+              <Radio.Group
                 value={sec}
-                disabled={!tlsAllowed}
-                onChange={onSecurityChange}
-                style={{ width: 180 }}
+                buttonStyle="solid"
+                disabled={!tlsOk}
+                onChange={(e) => onSecurityChange(e.target.value)}
               >
-                <Select.Option value="none">none</Select.Option>
-                <Select.Option value="tls">tls</Select.Option>
-                {realityAllowed && <Select.Option value="reality">reality</Select.Option>}
-              </Select>
+                <Radio.Button value="none">none</Radio.Button>
+                <Radio.Button value="tls">tls</Radio.Button>
+                {realityOk && <Radio.Button value="reality">reality</Radio.Button>}
+              </Radio.Group>
             );
           }}
         </Form.Item>
       </Form.Item>
 
-      {security === 'tls' && (
-        <>
-          <Form.Item name={['streamSettings', 'tlsSettings', 'serverName']} label="SNI">
+      <Form.Item
+        noStyle
+        shouldUpdate={(prev, curr) =>
+          prev.streamSettings?.security !== curr.streamSettings?.security
+        }
+      >
+        {({ getFieldValue }) => {
+          const sec = getFieldValue(['streamSettings', 'security']);
+          if (sec !== 'tls') return null;
+          return (
+            <>
+              <Form.Item name={['streamSettings', 'tlsSettings', 'serverName']} label="SNI">
             <Input placeholder="Server Name Indication" />
           </Form.Item>
           <Form.Item name={['streamSettings', 'tlsSettings', 'cipherSuites']} label="Cipher Suites">
@@ -2299,11 +2445,22 @@ export default function InboundFormModal({
               <Button danger onClick={clearEchCert}>Clear</Button>
             </Space>
           </Form.Item>
-        </>
-      )}
+            </>
+          );
+        }}
+      </Form.Item>
 
-      {security === 'reality' && (
-        <>
+      <Form.Item
+        noStyle
+        shouldUpdate={(prev, curr) =>
+          prev.streamSettings?.security !== curr.streamSettings?.security
+        }
+      >
+        {({ getFieldValue }) => {
+          const sec = getFieldValue(['streamSettings', 'security']);
+          if (sec !== 'reality') return null;
+          return (
+            <>
           <Form.Item
             name={['streamSettings', 'realitySettings', 'show']}
             label="Show"
@@ -2421,54 +2578,97 @@ export default function InboundFormModal({
               <Button danger onClick={clearMldsa65}>Clear</Button>
             </Space>
           </Form.Item>
-        </>
-      )}
+            </>
+          );
+        }}
+      </Form.Item>
     </>
   );
 
   const advancedTab = (
-    <Tabs
-      items={[
-        {
-          key: 'settings',
-          label: t('pages.inbounds.advanced.settings'),
-          children: (
-            <AdvancedSliceEditor
-              form={form}
-              path="settings"
-              minHeight="320px"
-              maxHeight="540px"
-            />
-          ),
-        },
-        ...(streamEnabled
-          ? [{
-            key: 'stream',
-            label: t('pages.inbounds.advanced.stream'),
-            children: (
-              <AdvancedSliceEditor
-                form={form}
-                path="streamSettings"
-                minHeight="320px"
-                maxHeight="540px"
-              />
-            ),
-          }]
-          : []),
-        {
-          key: 'sniffing',
-          label: t('pages.inbounds.advanced.sniffing'),
-          children: (
-            <AdvancedSliceEditor
-              form={form}
-              path="sniffing"
-              minHeight="240px"
-              maxHeight="420px"
-            />
-          ),
-        },
-      ]}
-    />
+    <div className="advanced-shell">
+      <div className="advanced-panel">
+        <div className="advanced-panel__header">
+          <div>
+            <div className="advanced-panel__title">{t('pages.inbounds.advanced.title')}</div>
+            <div className="advanced-panel__subtitle">{t('pages.inbounds.advanced.subtitle')}</div>
+          </div>
+        </div>
+        <Tabs
+          className="advanced-inner-tabs"
+          items={[
+            {
+              key: 'all',
+              label: t('pages.inbounds.advanced.all'),
+              children: (
+                <>
+                  <div className="advanced-editor-meta">
+                    {t('pages.inbounds.advanced.allHelp')}
+                  </div>
+                  <AdvancedAllEditor form={form} streamEnabled={streamEnabled} />
+                </>
+              ),
+            },
+            {
+              key: 'settings',
+              label: t('pages.inbounds.advanced.settings'),
+              children: (
+                <>
+                  <div className="advanced-editor-meta">
+                    {t('pages.inbounds.advanced.settingsHelp')}{' '}
+                    <code>{'{ settings: { ... } }'}</code>.
+                  </div>
+                  <AdvancedSliceEditor
+                    form={form}
+                    path="settings"
+                    minHeight="320px"
+                    maxHeight="540px"
+                  />
+                </>
+              ),
+            },
+            ...(streamEnabled
+              ? [{
+                key: 'stream',
+                label: t('pages.inbounds.advanced.stream'),
+                children: (
+                  <>
+                    <div className="advanced-editor-meta">
+                      {t('pages.inbounds.advanced.streamHelp')}{' '}
+                      <code>{'{ streamSettings: { ... } }'}</code>.
+                    </div>
+                    <AdvancedSliceEditor
+                      form={form}
+                      path="streamSettings"
+                      minHeight="320px"
+                      maxHeight="540px"
+                    />
+                  </>
+                ),
+              }]
+              : []),
+            {
+              key: 'sniffing',
+              label: t('pages.inbounds.advanced.sniffing'),
+              children: (
+                <>
+                  <div className="advanced-editor-meta">
+                    {t('pages.inbounds.advanced.sniffingHelp')}{' '}
+                    <code>{'{ sniffing: { ... } }'}</code>.
+                  </div>
+                  <AdvancedSliceEditor
+                    form={form}
+                    path="sniffing"
+                    minHeight="240px"
+                    maxHeight="420px"
+                  />
+                </>
+              ),
+            },
+          ]}
+        />
+      </div>
+    </div>
   );
 
   const sniffingTab = (
