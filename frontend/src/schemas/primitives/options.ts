@@ -51,12 +51,12 @@ export const WireguardDomainStrategy = Object.freeze([
 
 export const Address_Port_Strategy = Object.freeze({
   NONE: 'none',
-  SrvPortOnly: 'srvportonly',
-  SrvAddressOnly: 'srvaddressonly',
-  SrvPortAndAddress: 'srvportandaddress',
-  TxtPortOnly: 'txtportonly',
-  TxtAddressOnly: 'txtaddressonly',
-  TxtPortAndAddress: 'txtportandaddress',
+  SRV_PORT_ONLY: 'SrvPortOnly',
+  SRV_ADDRESS_ONLY: 'SrvAddressOnly',
+  SRV_PORT_AND_ADDRESS: 'SrvPortAndAddress',
+  TXT_PORT_ONLY: 'TxtPortOnly',
+  TXT_ADDRESS_ONLY: 'TxtAddressOnly',
+  TXT_PORT_AND_ADDRESS: 'TxtPortAndAddress',
 });
 
 export const DNSRuleActions = Object.freeze(['direct', 'drop', 'reject', 'hijack'] as const);

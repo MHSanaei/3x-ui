@@ -83,8 +83,6 @@ function defaultQuicParams(): Record<string, unknown> {
   return {
     congestion: 'bbr',
     debug: false,
-    brutalUp: 0,
-    brutalDown: 0,
     maxIdleTimeout: 30,
     keepAlivePeriod: 10,
     disablePathMTUDiscovery: false,
@@ -680,6 +678,19 @@ function QuicParamsForm({ base, form }: { base: (string | number)[]; form: FormI
           ]}
         />
       </Form.Item>
+      {congestion === 'bbr' && (
+        <Form.Item label="BBR Profile" name={[...base, 'bbrProfile']}>
+          <Select
+            allowClear
+            placeholder="standard"
+            options={[
+              { value: 'conservative', label: 'Conservative' },
+              { value: 'standard', label: 'Standard' },
+              { value: 'aggressive', label: 'Aggressive' },
+            ]}
+          />
+        </Form.Item>
+      )}
       <Form.Item label="Debug" name={[...base, 'debug']} valuePropName="checked">
         <Switch />
       </Form.Item>
@@ -687,10 +698,10 @@ function QuicParamsForm({ base, form }: { base: (string | number)[]; form: FormI
       {(congestion === 'brutal' || congestion === 'force-brutal') && (
         <>
           <Form.Item label="Brutal Up" name={[...base, 'brutalUp']}>
-            <Input placeholder="65537" />
+            <Input placeholder="e.g. 60 mbps" />
           </Form.Item>
           <Form.Item label="Brutal Down" name={[...base, 'brutalDown']}>
-            <Input placeholder="65537" />
+            <Input placeholder="e.g. 100 mbps" />
           </Form.Item>
         </>
       )}

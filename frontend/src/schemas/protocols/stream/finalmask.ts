@@ -33,6 +33,7 @@ export const UdpMaskTypeSchema = z.enum([
   'xdns',
   'xicmp',
   'noise',
+  'sudoku',
 ]);
 export type UdpMaskType = z.infer<typeof UdpMaskTypeSchema>;
 
@@ -42,8 +43,11 @@ export const UdpMaskSchema = z.object({
 });
 export type UdpMask = z.infer<typeof UdpMaskSchema>;
 
-export const QuicCongestionSchema = z.enum(['bbr', 'cubic', 'reno', 'brutal', 'force-brutal']);
+export const QuicCongestionSchema = z.enum(['reno', 'bbr', 'brutal', 'force-brutal']);
 export type QuicCongestion = z.infer<typeof QuicCongestionSchema>;
+
+export const BbrProfileSchema = z.enum(['conservative', 'standard', 'aggressive']);
+export type BbrProfile = z.infer<typeof BbrProfileSchema>;
 
 // udpHop randomizes the QUIC port between a range every `interval` seconds
 // to dodge port-based blocking. Both fields are dash-range strings on the
@@ -62,18 +66,19 @@ export type QuicUdpHop = z.infer<typeof QuicUdpHopSchema>;
 
 export const QuicParamsSchema = z.object({
   congestion: QuicCongestionSchema.default('bbr'),
+  bbrProfile: BbrProfileSchema.optional(),
   debug: z.boolean().optional(),
-  brutalUp: z.number().int().min(0).optional(),
-  brutalDown: z.number().int().min(0).optional(),
+  brutalUp: z.string().optional(),
+  brutalDown: z.string().optional(),
   udpHop: QuicUdpHopSchema.optional(),
   initStreamReceiveWindow: z.number().int().min(0).optional(),
   maxStreamReceiveWindow: z.number().int().min(0).optional(),
   initConnectionReceiveWindow: z.number().int().min(0).optional(),
   maxConnectionReceiveWindow: z.number().int().min(0).optional(),
-  maxIdleTimeout: z.number().int().min(0).optional(),
-  keepAlivePeriod: z.number().int().min(0).optional(),
+  maxIdleTimeout: z.number().int().min(4).max(120).optional(),
+  keepAlivePeriod: z.number().int().min(2).max(60).optional(),
   disablePathMTUDiscovery: z.boolean().optional(),
-  maxIncomingStreams: z.number().int().min(0).optional(),
+  maxIncomingStreams: z.number().int().min(8).optional(),
 });
 export type QuicParams = z.infer<typeof QuicParamsSchema>;
 

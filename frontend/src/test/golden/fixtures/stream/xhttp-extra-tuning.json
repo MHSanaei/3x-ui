@@ -1,0 +1,29 @@
+{
+  "network": "xhttp",
+  "xhttpSettings": {
+    "path": "/sp",
+    "host": "edge.example.test",
+    "mode": "packet-up",
+    "uplinkHTTPMethod": "PUT",
+    "scMaxEachPostBytes": "2000000",
+    "scMaxBufferedPosts": 50,
+    "scStreamUpServerSecs": "30-90",
+    "scMinPostsIntervalMs": "60",
+    "noSSEHeader": true,
+    "serverMaxHeaderBytes": 16384,
+    "uplinkChunkSize": 8192,
+    "noGRPCHeader": true,
+    "headers": {
+      "X-Real-IP": "1.2.3.4",
+      "X-Forwarded-For": "10.0.0.1"
+    },
+    "xmux": {
+      "maxConcurrency": "16-32",
+      "maxConnections": 4,
+      "cMaxReuseTimes": 0,
+      "hMaxRequestTimes": "600-900",
+      "hMaxReusableSecs": "1800-3000",
+      "hKeepAlivePeriod": 30
+    }
+  }
+}

@@ -37,6 +37,7 @@ import {
   ALPN_OPTION,
   Address_Port_Strategy,
   DNSRuleActions,
+  DOMAIN_STRATEGY_OPTION,
   MODE_OPTION,
   OutboundDomainStrategies,
   OutboundProtocols as Protocols,
@@ -47,6 +48,10 @@ import {
   UTLS_FINGERPRINT,
   WireguardDomainStrategy,
 } from '@/schemas/primitives';
+import {
+  HappyEyeballsSchema,
+  SockoptStreamSettingsSchema,
+} from '@/schemas/protocols/stream/sockopt';
 import {
   canEnableReality,
   canEnableStream,
@@ -1897,27 +1902,7 @@ export default function OutboundFormModal({
                                   onChange={(checked) => {
                                     form.setFieldValue(
                                       ['streamSettings', 'sockopt'],
-                                      checked
-                                        ? {
-                                            acceptProxyProtocol: false,
-                                            tcpFastOpen: false,
-                                            mark: 0,
-                                            tproxy: 'off',
-                                            tcpMptcp: false,
-                                            penetrate: false,
-                                            domainStrategy: 'UseIP',
-                                            tcpMaxSeg: 1440,
-                                            dialerProxy: '',
-                                            tcpKeepAliveInterval: 0,
-                                            tcpKeepAliveIdle: 300,
-                                            tcpUserTimeout: 10000,
-                                            tcpcongestion: 'bbr',
-                                            V6Only: false,
-                                            tcpWindowClamp: 600,
-                                            interfaceName: '',
-                                            trustedXForwardedFor: [],
-                                          }
-                                        : undefined,
+                                      checked ? SockoptStreamSettingsSchema.parse({}) : undefined,
                                     );
                                   }}
                                 />
@@ -1935,8 +1920,17 @@ export default function OutboundFormModal({
                                     name={['streamSettings', 'sockopt', 'domainStrategy']}
                                   >
                                     <Select
-                                      options={ADDRESS_PORT_STRATEGY_OPTIONS}
+                                      options={Object.values(DOMAIN_STRATEGY_OPTION).map((v) => ({
+                                        value: v,
+                                        label: v,
+                                      }))}
                                     />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Address+port strategy"
+                                    name={['streamSettings', 'sockopt', 'addressPortStrategy']}
+                                  >
+                                    <Select options={ADDRESS_PORT_STRATEGY_OPTIONS} />
                                   </Form.Item>
                                   <Form.Item
                                     label="Keep alive interval"
@@ -2048,6 +2042,108 @@ export default function OutboundFormModal({
                                       placeholder="trusted-proxy.example,10.0.0.0/8"
                                     />
                                   </Form.Item>
+                                  <Form.Item shouldUpdate noStyle>
+                                    {() => {
+                                      const he = form.getFieldValue([
+                                        'streamSettings', 'sockopt', 'happyEyeballs',
+                                      ]);
+                                      const hasHe = he != null;
+                                      return (
+                                        <>
+                                          <Form.Item label="Happy Eyeballs">
+                                            <Switch
+                                              checked={hasHe}
+                                              onChange={(v) => {
+                                                form.setFieldValue(
+                                                  ['streamSettings', 'sockopt', 'happyEyeballs'],
+                                                  v ? HappyEyeballsSchema.parse({}) : undefined,
+                                                );
+                                              }}
+                                            />
+                                          </Form.Item>
+                                          {hasHe && (
+                                            <>
+                                              <Form.Item
+                                                label="Try delay (ms)"
+                                                name={['streamSettings', 'sockopt', 'happyEyeballs', 'tryDelayMs']}
+                                              >
+                                                <InputNumber min={0} style={{ width: '100%' }} placeholder="0 (disabled) — 250 recommended" />
+                                              </Form.Item>
+                                              <Form.Item
+                                                label="Prioritize IPv6"
+                                                name={['streamSettings', 'sockopt', 'happyEyeballs', 'prioritizeIPv6']}
+                                                valuePropName="checked"
+                                              >
+                                                <Switch />
+                                              </Form.Item>
+                                              <Form.Item
+                                                label="Interleave"
+                                                name={['streamSettings', 'sockopt', 'happyEyeballs', 'interleave']}
+                                              >
+                                                <InputNumber min={1} style={{ width: '100%' }} />
+                                              </Form.Item>
+                                              <Form.Item
+                                                label="Max concurrent try"
+                                                name={['streamSettings', 'sockopt', 'happyEyeballs', 'maxConcurrentTry']}
+                                              >
+                                                <InputNumber min={0} style={{ width: '100%' }} />
+                                              </Form.Item>
+                                            </>
+                                          )}
+                                        </>
+                                      );
+                                    }}
+                                  </Form.Item>
+                                  <Form.List name={['streamSettings', 'sockopt', 'customSockopt']}>
+                                    {(fields, { add, remove }) => (
+                                      <>
+                                        <Form.Item label="Custom sockopt">
+                                          <Button
+                                            type="dashed"
+                                            size="small"
+                                            onClick={() => add({ type: 'int', level: '6', opt: '', value: '' })}
+                                          >
+                                            + Add custom option
+                                          </Button>
+                                        </Form.Item>
+                                        {fields.map((field) => (
+                                          <Space.Compact key={field.key} style={{ display: 'flex', marginBottom: 8 }}>
+                                            <Form.Item name={[field.name, 'system']} noStyle>
+                                              <Select
+                                                placeholder="all"
+                                                allowClear
+                                                style={{ width: 100 }}
+                                                options={[
+                                                  { value: 'linux', label: 'linux' },
+                                                  { value: 'windows', label: 'windows' },
+                                                  { value: 'darwin', label: 'darwin' },
+                                                ]}
+                                              />
+                                            </Form.Item>
+                                            <Form.Item name={[field.name, 'type']} noStyle>
+                                              <Select
+                                                style={{ width: 80 }}
+                                                options={[
+                                                  { value: 'int', label: 'int' },
+                                                  { value: 'str', label: 'str' },
+                                                ]}
+                                              />
+                                            </Form.Item>
+                                            <Form.Item name={[field.name, 'level']} noStyle>
+                                              <Input placeholder="level (6=TCP)" style={{ width: 100 }} />
+                                            </Form.Item>
+                                            <Form.Item name={[field.name, 'opt']} noStyle>
+                                              <Input placeholder="opt (decimal)" style={{ width: 120 }} />
+                                            </Form.Item>
+                                            <Form.Item name={[field.name, 'value']} noStyle>
+                                              <Input placeholder="value" style={{ flex: 1 }} />
+                                            </Form.Item>
+                                            <Button danger onClick={() => remove(field.name)}>−</Button>
+                                          </Space.Compact>
+                                        ))}
+                                      </>
+                                    )}
+                                  </Form.List>
                                 </>
                               )}
                             </>
