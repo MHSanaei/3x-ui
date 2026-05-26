@@ -15,6 +15,7 @@ import {
 } from 'antd';
 import { DeleteOutlined, MinusOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 
+import HeaderMapEditor from '@/components/HeaderMapEditor';
 import InputAddon from '@/components/InputAddon';
 import JsonEditor from '@/components/JsonEditor';
 import { Wireguard } from '@/utils';
@@ -1196,6 +1197,12 @@ export default function OutboundFormModal({
                             >
                               <InputNumber min={0} />
                             </Form.Item>
+                            <Form.Item
+                              label="Headers"
+                              name={['streamSettings', 'wsSettings', 'headers']}
+                            >
+                              <HeaderMapEditor mode="v1" />
+                            </Form.Item>
                           </>
                         )}
 
@@ -1236,6 +1243,12 @@ export default function OutboundFormModal({
                               name={['streamSettings', 'httpupgradeSettings', 'path']}
                             >
                               <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="Headers"
+                              name={['streamSettings', 'httpupgradeSettings', 'headers']}
+                            >
+                              <HeaderMapEditor mode="v1" />
                             </Form.Item>
                           </>
                         )}

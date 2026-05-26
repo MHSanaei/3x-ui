@@ -57,6 +57,7 @@ import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt'
 import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
 import { RealityStreamSettingsSchema } from '@/schemas/protocols/security/reality';
 import DateTimePicker from '@/components/DateTimePicker';
+import HeaderMapEditor from '@/components/HeaderMapEditor';
 import InputAddon from '@/components/InputAddon';
 import JsonEditor from '@/components/JsonEditor';
 import type { FormInstance } from 'antd';
@@ -1255,6 +1256,12 @@ export default function InboundFormModal({
           >
             <InputNumber min={0} />
           </Form.Item>
+          <Form.Item
+            label="Headers"
+            name={['streamSettings', 'wsSettings', 'headers']}
+          >
+            <HeaderMapEditor mode="v1" />
+          </Form.Item>
         </>
       )}
 
@@ -1485,6 +1492,12 @@ export default function InboundFormModal({
             label={t('path')}
           >
             <Input />
+          </Form.Item>
+          <Form.Item
+            label="Headers"
+            name={['streamSettings', 'httpupgradeSettings', 'headers']}
+          >
+            <HeaderMapEditor mode="v1" />
           </Form.Item>
         </>
       )}
