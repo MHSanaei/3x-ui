@@ -2041,6 +2041,34 @@ export default function OutboundFormModal({
                                   >
                                     <InputNumber min={0} style={{ width: '100%' }} />
                                   </Form.Item>
+                                  <Form.Item
+                                    label="TCP keep-alive idle (s)"
+                                    name={['streamSettings', 'sockopt', 'tcpKeepAliveIdle']}
+                                  >
+                                    <InputNumber min={0} style={{ width: '100%' }} />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TCP max segment"
+                                    name={['streamSettings', 'sockopt', 'tcpMaxSeg']}
+                                  >
+                                    <InputNumber min={0} style={{ width: '100%' }} />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TCP window clamp"
+                                    name={['streamSettings', 'sockopt', 'tcpWindowClamp']}
+                                  >
+                                    <InputNumber min={0} style={{ width: '100%' }} />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Trusted X-Forwarded-For"
+                                    name={['streamSettings', 'sockopt', 'trustedXForwardedFor']}
+                                  >
+                                    <Select
+                                      mode="tags"
+                                      tokenSeparators={[',', ' ']}
+                                      placeholder="trusted-proxy.example,10.0.0.0/8"
+                                    />
+                                  </Form.Item>
                                 </>
                               )}
                             </>
