@@ -572,7 +572,7 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
     clientAuth,
   } = input;
 
-  if (inbound.protocol !== 'hysteria' && inbound.protocol !== 'hysteria2') return '';
+  if (inbound.protocol !== 'hysteria') return '';
   const stream = inbound.streamSettings;
   if (!stream || stream.security !== 'tls') return '';
 
@@ -707,7 +707,6 @@ export function getInboundClients(inbound: Inbound): ClientShape[] | null {
     case 'trojan':
       return (inbound.settings.clients ?? []) as ClientShape[];
     case 'hysteria':
-    case 'hysteria2':
       return (inbound.settings.clients ?? []) as ClientShape[];
     case 'shadowsocks': {
       const isMultiUser = inbound.settings.method !== '2022-blake3-chacha20-poly1305';
@@ -764,7 +763,6 @@ export function genLink(input: GenLinkInput): string {
         externalProxy,
       });
     case 'hysteria':
-    case 'hysteria2':
       return genHysteriaLink({
         inbound, address, port, remark,
         clientAuth: client.auth ?? '',

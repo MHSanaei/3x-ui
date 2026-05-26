@@ -213,12 +213,6 @@ describe('genInboundLinks orchestrator', () => {
     .sort(([a], [b]) => a.localeCompare(b));
 
   for (const [name, raw] of fixtures) {
-    const protocol = (raw as { protocol?: string }).protocol;
-    // Skip hysteria2 — the legacy class had no dispatch case at the time
-    // the baseline was locked, so no snapshot exists. The new orchestrator
-    // covers it via its own logic and the genHysteriaLink unit test.
-    if (protocol === 'hysteria2') continue;
-
     it(`${name}: byte-stable`, () => {
       const typed = InboundSchema.parse(raw);
       const block = genInboundLinks({

@@ -27,7 +27,7 @@ import './ClientFormModal.css';
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'hysteria2',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria',
 ]);
 
 interface ApiMsg<T = unknown> {

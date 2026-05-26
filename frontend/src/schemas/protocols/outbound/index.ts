@@ -4,7 +4,6 @@ import { BlackholeOutboundSettingsSchema } from './blackhole';
 import { DNSOutboundSettingsSchema } from './dns';
 import { FreedomOutboundSettingsSchema } from './freedom';
 import { HttpOutboundSettingsSchema } from './http';
-import { Hysteria2OutboundSettingsSchema } from './hysteria2';
 import { HysteriaOutboundSettingsSchema } from './hysteria';
 import { LoopbackOutboundSettingsSchema } from './loopback';
 import { ShadowsocksOutboundSettingsSchema } from './shadowsocks';
@@ -19,7 +18,6 @@ export * from './dns';
 export * from './freedom';
 export * from './http';
 export * from './hysteria';
-export * from './hysteria2';
 export * from './loopback';
 export * from './shadowsocks';
 export * from './socks';
@@ -39,7 +37,6 @@ export const OutboundSettingsSchema = z.discriminatedUnion('protocol', [
   z.object({ protocol: z.literal('shadowsocks'), settings: ShadowsocksOutboundSettingsSchema }),
   z.object({ protocol: z.literal('wireguard'),   settings: WireguardOutboundSettingsSchema }),
   z.object({ protocol: z.literal('hysteria'),    settings: HysteriaOutboundSettingsSchema }),
-  z.object({ protocol: z.literal('hysteria2'),   settings: Hysteria2OutboundSettingsSchema }),
   z.object({ protocol: z.literal('http'),        settings: HttpOutboundSettingsSchema }),
   z.object({ protocol: z.literal('socks'),       settings: SocksOutboundSettingsSchema }),
   z.object({ protocol: z.literal('freedom'),     settings: FreedomOutboundSettingsSchema }),

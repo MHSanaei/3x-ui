@@ -7,10 +7,10 @@ export const ProtocolSchema = z.enum([
   'shadowsocks',
   'wireguard',
   'hysteria',
-  'hysteria2',
   'http',
   'mixed',
   'tunnel',
+  'tun',
 ]);
 export type Protocol = z.infer<typeof ProtocolSchema>;
 
@@ -27,7 +27,6 @@ export const Protocols = Object.freeze({
   SHADOWSOCKS: 'shadowsocks',
   WIREGUARD: 'wireguard',
   HYSTERIA: 'hysteria',
-  HYSTERIA2: 'hysteria2',
   HTTP: 'http',
   MIXED: 'mixed',
   TUNNEL: 'tunnel',

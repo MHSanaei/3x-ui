@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Checkbox,
+  Divider,
   Empty,
   Form,
   Input,
@@ -61,6 +62,7 @@ import {
   UTLS_FINGERPRINT,
 } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
+import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
 import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
 import { RealityStreamSettingsSchema } from '@/schemas/protocols/security/reality';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
@@ -494,14 +496,46 @@ export default function InboundFormModal({
     form.setFieldValue(['streamSettings', 'tlsSettings', 'settings', 'echConfigList'], '');
   };
 
-  const onSecurityChange = (next: string) => {
+  const onSecurityChange = async (next: string) => {
     const current = (form.getFieldValue('streamSettings') as Record<string, unknown>) ?? {};
     const cleaned: Record<string, unknown> = { ...current, security: next };
     delete cleaned.tlsSettings;
     delete cleaned.realitySettings;
-    if (next === 'tls') cleaned.tlsSettings = TlsStreamSettingsSchema.parse({});
-    if (next === 'reality') cleaned.realitySettings = RealityStreamSettingsSchema.parse({});
+    if (next === 'tls') {
+      const tls = TlsStreamSettingsSchema.parse({}) as Record<string, unknown>;
+      tls.certificates = [{
+        useFile: true,
+        certificateFile: '',
+        keyFile: '',
+        certificate: [],
+        key: [],
+        oneTimeLoading: false,
+        usage: 'encipherment',
+        buildChain: false,
+      }];
+      cleaned.tlsSettings = tls;
+    }
+    if (next === 'reality') {
+      const reality = RealityStreamSettingsSchema.parse({}) as Record<string, unknown>;
+      const tgt = getRandomRealityTarget() as { target: string; sni: string };
+      reality.target = tgt.target;
+      reality.serverNames = tgt.sni.split(',').map((s) => s.trim()).filter(Boolean);
+      reality.shortIds = RandomUtil.randomShortIds().split(',').map((s) => s.trim()).filter(Boolean);
+      cleaned.realitySettings = reality;
+    }
     form.setFieldValue('streamSettings', cleaned);
+    if (next === 'reality') {
+      try {
+        const msg = await HttpUtil.get('/panel/api/server/getNewX25519Cert');
+        if (msg?.success) {
+          const obj = msg.obj as { privateKey: string; publicKey: string };
+          form.setFieldValue(['streamSettings', 'realitySettings', 'privateKey'], obj.privateKey);
+          form.setFieldValue(['streamSettings', 'realitySettings', 'settings', 'publicKey'], obj.publicKey);
+        }
+      } catch {
+        // best-effort: leave keypair fields empty if server call fails
+      }
+    }
   };
   const xhttpMode = Form.useWatch(['streamSettings', 'xhttpSettings', 'mode'], form);
   const xhttpObfsMode = Form.useWatch(['streamSettings', 'xhttpSettings', 'xPaddingObfsMode'], form) ?? false;
@@ -636,15 +670,22 @@ export default function InboundFormModal({
       // snap back to TCP so the standard network selector has a valid
       // starting point.
       if (next === Protocols.HYSTERIA) {
+        const tls = TlsStreamSettingsSchema.parse({}) as Record<string, unknown>;
+        tls.certificates = [{
+          useFile: true,
+          certificateFile: '',
+          keyFile: '',
+          certificate: [],
+          key: [],
+          oneTimeLoading: false,
+          usage: 'encipherment',
+          buildChain: false,
+        }];
         form.setFieldValue('streamSettings', {
           network: 'hysteria',
           security: 'tls',
-          hysteriaSettings: {
-            version: 2,
-            auth: '',
-            udpIdleTimeout: 60,
-          },
-          tlsSettings: {},
+          hysteriaSettings: HysteriaStreamSettingsSchema.parse({}),
+          tlsSettings: tls,
         });
       } else {
         const current = form.getFieldValue('streamSettings') as { network?: string } | undefined;
@@ -705,6 +746,14 @@ export default function InboundFormModal({
 
   const basicTab = (
     <>
+      <Form.Item name="tag" hidden noStyle><Input /></Form.Item>
+      <Form.Item name="up" hidden noStyle><InputNumber /></Form.Item>
+      <Form.Item name="down" hidden noStyle><InputNumber /></Form.Item>
+      <Form.Item name="total" hidden noStyle><InputNumber /></Form.Item>
+      <Form.Item name="expiryTime" hidden noStyle><InputNumber /></Form.Item>
+      <Form.Item name="lastTrafficResetTime" hidden noStyle><InputNumber /></Form.Item>
+      <Form.Item name="clientStats" hidden noStyle><Input /></Form.Item>
+
       <Form.Item name="enable" label={t('enable')} valuePropName="checked">
         <Switch />
       </Form.Item>
@@ -943,27 +992,34 @@ export default function InboundFormModal({
                 <Form.Item label="Peers">
                   <Button
                     size="small"
-                    onClick={() => add({
-                      publicKey: '',
-                      allowedIPs: [],
-                    })}
+                    onClick={() => {
+                      const kp = Wireguard.generateKeypair();
+                      add({
+                        privateKey: kp.privateKey,
+                        publicKey: kp.publicKey,
+                        allowedIPs: ['10.0.0.2/32'],
+                        keepAlive: 0,
+                      });
+                    }}
                   >
                     <PlusOutlined /> Add peer
                   </Button>
                 </Form.Item>
                 {fields.map((field, idx) => (
                   <div key={field.key} className="wg-peer">
-                    <Form.Item label={`Peer ${idx + 1}`}>
-                      {fields.length > 1 && (
-                        <Button
-                          size="small"
-                          danger
-                          onClick={() => remove(field.name)}
-                        >
-                          <MinusOutlined />
-                        </Button>
-                      )}
-                    </Form.Item>
+                    <Divider titlePlacement="center">
+                      <Space>
+                        <span>Peer {idx + 1}</span>
+                        {fields.length > 1 && (
+                          <Button
+                            size="small"
+                            danger
+                            icon={<MinusOutlined />}
+                            onClick={() => remove(field.name)}
+                          />
+                        )}
+                      </Space>
+                    </Divider>
                     <Form.Item
                       name={[field.name, 'privateKey']}
                       label={
@@ -1118,35 +1174,9 @@ export default function InboundFormModal({
               <Select.Option value="udp">UDP</Select.Option>
             </Select>
           </Form.Item>
-          <Form.List name={['settings', 'portMap']}>
-            {(fields, { add, remove }) => (
-              <>
-                <Form.Item label="Port map">
-                  <Button size="small" onClick={() => add({ name: '', value: '' })}>
-                    <PlusOutlined />
-                  </Button>
-                </Form.Item>
-                {fields.length > 0 && (
-                  <Form.Item wrapperCol={{ span: 24 }}>
-                    {fields.map((field, idx) => (
-                      <Space.Compact key={field.key} className="mb-8" block>
-                        <InputAddon>{String(idx + 1)}</InputAddon>
-                        <Form.Item name={[field.name, 'name']} noStyle>
-                          <Input placeholder="5555" />
-                        </Form.Item>
-                        <Form.Item name={[field.name, 'value']} noStyle>
-                          <Input placeholder="1.1.1.1:7777" />
-                        </Form.Item>
-                        <Button onClick={() => remove(field.name)}>
-                          <MinusOutlined />
-                        </Button>
-                      </Space.Compact>
-                    ))}
-                  </Form.Item>
-                )}
-              </>
-            )}
-          </Form.List>
+          <Form.Item label="Port map" name={['settings', 'portMap']}>
+            <HeaderMapEditor mode="v1" />
+          </Form.Item>
           <Form.Item
             name={['settings', 'followRedirect']}
             label="Follow redirect"
@@ -1163,7 +1193,13 @@ export default function InboundFormModal({
             {(fields, { add, remove }) => (
               <>
                 <Form.Item label="Accounts">
-                  <Button size="small" onClick={() => add({ user: '', pass: '' })}>
+                  <Button
+                    size="small"
+                    onClick={() => add({
+                      user: RandomUtil.randomLowerAndNum(8),
+                      pass: RandomUtil.randomLowerAndNum(12),
+                    })}
+                  >
                     <PlusOutlined /> Add
                   </Button>
                 </Form.Item>
@@ -1374,12 +1410,6 @@ export default function InboundFormModal({
             <InputNumber min={2} max={2} disabled />
           </Form.Item>
           <Form.Item
-            label="Auth password"
-            name={['streamSettings', 'hysteriaSettings', 'auth']}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
             label="UDP idle timeout (s)"
             name={['streamSettings', 'hysteriaSettings', 'udpIdleTimeout']}
           >
@@ -1400,7 +1430,7 @@ export default function InboundFormModal({
                         ['streamSettings', 'hysteriaSettings', 'masquerade'],
                         checked
                           ? {
-                              type: 'proxy', dir: '', url: '',
+                              type: '', dir: '', url: '',
                               rewriteHost: false, insecure: false,
                               content: '', headers: {}, statusCode: 0,
                             }
@@ -1426,6 +1456,7 @@ export default function InboundFormModal({
                   >
                     <Select
                       options={[
+                        { value: '', label: 'default (404 page)' },
                         { value: 'proxy', label: 'proxy (reverse proxy)' },
                         { value: 'file', label: 'file (serve directory)' },
                         { value: 'string', label: 'string (fixed body)' },
@@ -2161,6 +2192,9 @@ export default function InboundFormModal({
 
   const securityTab = (
     <>
+      <Form.Item name={['streamSettings', 'security']} hidden noStyle>
+        <Input />
+      </Form.Item>
       <Form.Item label={t('pages.inbounds.securityTab')}>
         <Form.Item
           noStyle
@@ -2176,6 +2210,7 @@ export default function InboundFormModal({
             const proto = getFieldValue('protocol') ?? '';
             const tlsOk = canEnableTls({ protocol: proto, streamSettings: { network: net, security: sec } });
             const realityOk = canEnableReality({ protocol: proto, streamSettings: { network: net, security: sec } });
+            const tlsOnly = proto === Protocols.HYSTERIA;
             return (
               <Radio.Group
                 value={sec}
@@ -2183,7 +2218,7 @@ export default function InboundFormModal({
                 disabled={!tlsOk}
                 onChange={(e) => onSecurityChange(e.target.value)}
               >
-                <Radio.Button value="none">none</Radio.Button>
+                {!tlsOnly && <Radio.Button value="none">none</Radio.Button>}
                 <Radio.Button value="tls">tls</Radio.Button>
                 {realityOk && <Radio.Button value="reality">reality</Radio.Button>}
               </Radio.Group>

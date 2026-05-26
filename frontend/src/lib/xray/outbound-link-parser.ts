@@ -363,10 +363,7 @@ export function parseHysteria2Link(link: string): Raw | null {
     network: 'hysteria',
     security: 'tls',
     hysteriaSettings: {
-      version: 2, auth, congestion: '', up: '0', down: '0',
-      initStreamReceiveWindow: 8388608, maxStreamReceiveWindow: 8388608,
-      initConnectionReceiveWindow: 20971520, maxConnectionReceiveWindow: 20971520,
-      maxIdleTimeout: 30, keepAlivePeriod: 2, disablePathMTUDiscovery: false,
+      version: 2, auth, udpIdleTimeout: 60,
     },
     tlsSettings: {
       serverName: params.get('sni') ?? '',

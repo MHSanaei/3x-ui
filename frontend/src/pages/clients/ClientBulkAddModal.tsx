@@ -15,7 +15,7 @@ const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'hysteria2',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria',
 ]);
 
 interface ClientBulkAddModalProps {

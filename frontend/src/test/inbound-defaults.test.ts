@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createDefaultHttpInboundSettings,
-  createDefaultHysteria2InboundSettings,
   createDefaultHysteriaClient,
   createDefaultHysteriaInboundSettings,
   createDefaultMixedInboundSettings,
@@ -18,7 +17,6 @@ import {
   createDefaultWireguardInboundSettings,
 } from '@/lib/xray/inbound-defaults';
 import { HttpInboundSettingsSchema } from '@/schemas/protocols/inbound/http';
-import { Hysteria2InboundSettingsSchema } from '@/schemas/protocols/inbound/hysteria2';
 import { HysteriaClientSchema, HysteriaInboundSettingsSchema } from '@/schemas/protocols/inbound/hysteria';
 import { MixedInboundSettingsSchema } from '@/schemas/protocols/inbound/mixed';
 import { ShadowsocksClientSchema, ShadowsocksInboundSettingsSchema } from '@/schemas/protocols/inbound/shadowsocks';
@@ -112,12 +110,6 @@ describe('createDefault*InboundSettings factories', () => {
     expect(HysteriaInboundSettingsSchema.parse(s)).toEqual(s);
   });
 
-  it('hysteria2', () => {
-    const s = createDefaultHysteria2InboundSettings();
-    expect(s).toMatchSnapshot();
-    expect(Hysteria2InboundSettingsSchema.parse(s)).toEqual(s);
-  });
-
   it('http', () => {
     const s = createDefaultHttpInboundSettings();
     expect(s).toMatchSnapshot();
@@ -139,6 +131,7 @@ describe('createDefault*InboundSettings factories', () => {
   it('wireguard', () => {
     const s = createDefaultWireguardInboundSettings({
       secretKey: 'QGVlb2dXc1ZTWGw0ZXBzZndsWmtMaUM5MUlNYjBHWFdYbz0=',
+      peerPrivateKey: 'cGVlci1maXh0dXJlLXByaXZhdGUta2V5LWZvci10ZXN0cw==',
     });
     expect(s).toMatchSnapshot();
     expect(WireguardInboundSettingsSchema.parse(s)).toEqual(s);

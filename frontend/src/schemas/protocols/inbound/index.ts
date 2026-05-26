@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
 import { HttpInboundSettingsSchema } from './http';
-import { Hysteria2InboundSettingsSchema } from './hysteria2';
 import { HysteriaInboundSettingsSchema } from './hysteria';
 import { MixedInboundSettingsSchema } from './mixed';
 import { ShadowsocksInboundSettingsSchema } from './shadowsocks';
 import { TrojanInboundSettingsSchema } from './trojan';
+import { TunInboundSettingsSchema } from './tun';
 import { TunnelInboundSettingsSchema } from './tunnel';
 import { VlessInboundSettingsSchema } from './vless';
 import { VmessInboundSettingsSchema } from './vmess';
@@ -13,10 +13,10 @@ import { WireguardInboundSettingsSchema } from './wireguard';
 
 export * from './http';
 export * from './hysteria';
-export * from './hysteria2';
 export * from './mixed';
 export * from './shadowsocks';
 export * from './trojan';
+export * from './tun';
 export * from './tunnel';
 export * from './vless';
 export * from './vmess';
@@ -34,9 +34,9 @@ export const InboundSettingsSchema = z.discriminatedUnion('protocol', [
   z.object({ protocol: z.literal('shadowsocks'), settings: ShadowsocksInboundSettingsSchema }),
   z.object({ protocol: z.literal('wireguard'),   settings: WireguardInboundSettingsSchema }),
   z.object({ protocol: z.literal('hysteria'),    settings: HysteriaInboundSettingsSchema }),
-  z.object({ protocol: z.literal('hysteria2'),   settings: Hysteria2InboundSettingsSchema }),
   z.object({ protocol: z.literal('http'),        settings: HttpInboundSettingsSchema }),
   z.object({ protocol: z.literal('mixed'),       settings: MixedInboundSettingsSchema }),
   z.object({ protocol: z.literal('tunnel'),      settings: TunnelInboundSettingsSchema }),
+  z.object({ protocol: z.literal('tun'),         settings: TunInboundSettingsSchema }),
 ]);
 export type InboundSettings = z.infer<typeof InboundSettingsSchema>;

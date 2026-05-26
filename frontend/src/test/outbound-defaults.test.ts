@@ -5,7 +5,6 @@ import {
   createDefaultDNSOutboundSettings,
   createDefaultFreedomOutboundSettings,
   createDefaultHttpOutboundSettings,
-  createDefaultHysteria2OutboundSettings,
   createDefaultHysteriaOutboundSettings,
   createDefaultLoopbackOutboundSettings,
   createDefaultShadowsocksOutboundSettings,
@@ -21,7 +20,6 @@ import {
   DNSOutboundSettingsSchema,
   FreedomOutboundSettingsSchema,
   HttpOutboundSettingsSchema,
-  Hysteria2OutboundSettingsSchema,
   HysteriaOutboundSettingsSchema,
   LoopbackOutboundSettingsSchema,
   ShadowsocksOutboundSettingsSchema,
@@ -132,12 +130,6 @@ describe('outbound default factories: shape snapshots', () => {
       address: '', port: 443, version: 2,
     });
   });
-
-  it('hysteria2 mirrors hysteria with literal version 2', () => {
-    expect(createDefaultHysteria2OutboundSettings()).toEqual({
-      address: '', port: 443, version: 2,
-    });
-  });
 });
 
 describe('outbound default factories: schema acceptance after stub fill-in', () => {
@@ -219,18 +211,12 @@ describe('outbound default factories: schema acceptance after stub fill-in', () 
     def.address = SAMPLE_ADDRESS;
     expect(HysteriaOutboundSettingsSchema.safeParse(def).success).toBe(true);
   });
-
-  it('hysteria2 parses once address is filled', () => {
-    const def = createDefaultHysteria2OutboundSettings();
-    def.address = SAMPLE_ADDRESS;
-    expect(Hysteria2OutboundSettingsSchema.safeParse(def).success).toBe(true);
-  });
 });
 
 describe('createDefaultOutboundSettings dispatcher', () => {
   const PROTOCOLS = [
     'freedom', 'blackhole', 'dns', 'vmess', 'vless', 'trojan', 'shadowsocks',
-    'socks', 'http', 'wireguard', 'hysteria', 'hysteria2', 'loopback',
+    'socks', 'http', 'wireguard', 'hysteria', 'loopback',
   ];
 
   for (const protocol of PROTOCOLS) {

@@ -14,13 +14,6 @@ exports[`createDefault*InboundSettings factories > hysteria (v1, defaults to v2 
 }
 `;
 
-exports[`createDefault*InboundSettings factories > hysteria2 1`] = `
-{
-  "clients": [],
-  "version": 2,
-}
-`;
-
 exports[`createDefault*InboundSettings factories > mixed 1`] = `
 {
   "accounts": [],
@@ -74,7 +67,16 @@ exports[`createDefault*InboundSettings factories > wireguard 1`] = `
 {
   "mtu": 1420,
   "noKernelTun": false,
-  "peers": [],
+  "peers": [
+    {
+      "allowedIPs": [
+        "10.0.0.2/32",
+      ],
+      "keepAlive": 0,
+      "privateKey": "cGVlci1maXh0dXJlLXByaXZhdGUta2V5LWZvci10ZXN0cw==",
+      "publicKey": "RNa/H++60PStnhoiiU/vIuwFimZUBuIkLkbrmEoDz34=",
+    },
+  ],
   "secretKey": "QGVlb2dXc1ZTWGw0ZXBzZndsWmtMaUM5MUlNYjBHWFdYbz0=",
 }
 `;

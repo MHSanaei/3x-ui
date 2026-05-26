@@ -1,11 +1,11 @@
 import { RandomUtil, Wireguard } from '@/utils';
 
 import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
-import type { Hysteria2InboundSettings } from '@/schemas/protocols/inbound/hysteria2';
 import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
 import type { ShadowsocksClient, ShadowsocksInboundSettings } from '@/schemas/protocols/inbound/shadowsocks';
 import type { TrojanClient, TrojanInboundSettings } from '@/schemas/protocols/inbound/trojan';
+import type { TunInboundSettings } from '@/schemas/protocols/inbound/tun';
 import type { TunnelInboundSettings } from '@/schemas/protocols/inbound/tunnel';
 import type { VlessClient, VlessInboundSettings } from '@/schemas/protocols/inbound/vless';
 import type { VmessClient, VmessInboundSettings } from '@/schemas/protocols/inbound/vmess';
@@ -184,10 +184,6 @@ export function createDefaultHysteriaInboundSettings(
   };
 }
 
-export function createDefaultHysteria2InboundSettings(): Hysteria2InboundSettings {
-  return { version: 2, clients: [] };
-}
-
 export function createDefaultHttpInboundSettings(): HttpInboundSettings {
   return { accounts: [], allowTransparent: false };
 }
@@ -209,19 +205,40 @@ export function createDefaultTunnelInboundSettings(): TunnelInboundSettings {
   };
 }
 
+export function createDefaultTunInboundSettings(): TunInboundSettings {
+  return {
+    name: 'xray0',
+    mtu: 1500,
+    gateway: [],
+    dns: [],
+    userLevel: 0,
+    autoSystemRoutingTable: [],
+    autoOutboundsInterface: 'auto',
+  };
+}
+
 export interface WireguardInboundSeed {
   mtu?: number;
   secretKey?: string;
   noKernelTun?: boolean;
+  peerPrivateKey?: string;
 }
 
 export function createDefaultWireguardInboundSettings(
   seed: WireguardInboundSeed = {},
 ): WireguardInboundSettings {
+  const peerKp = seed.peerPrivateKey
+    ? { privateKey: seed.peerPrivateKey, publicKey: Wireguard.generateKeypair(seed.peerPrivateKey).publicKey }
+    : Wireguard.generateKeypair();
   return {
     mtu: seed.mtu ?? 1420,
     secretKey: seed.secretKey ?? Wireguard.generateKeypair().privateKey,
-    peers: [],
+    peers: [{
+      privateKey: peerKp.privateKey,
+      publicKey: peerKp.publicKey,
+      allowedIPs: ['10.0.0.2/32'],
+      keepAlive: 0,
+    }],
     noKernelTun: seed.noKernelTun ?? false,
   };
 }
@@ -237,9 +254,9 @@ export type AnyInboundSettings =
   | TrojanInboundSettings
   | ShadowsocksInboundSettings
   | HysteriaInboundSettings
-  | Hysteria2InboundSettings
   | HttpInboundSettings
   | MixedInboundSettings
+  | TunInboundSettings
   | TunnelInboundSettings
   | WireguardInboundSettings;
 
@@ -250,10 +267,10 @@ export function createDefaultInboundSettings(protocol: string): AnyInboundSettin
     case 'trojan':      return createDefaultTrojanInboundSettings();
     case 'shadowsocks': return createDefaultShadowsocksInboundSettings();
     case 'hysteria':    return createDefaultHysteriaInboundSettings();
-    case 'hysteria2':   return createDefaultHysteria2InboundSettings();
     case 'http':        return createDefaultHttpInboundSettings();
     case 'mixed':       return createDefaultMixedInboundSettings();
     case 'tunnel':      return createDefaultTunnelInboundSettings();
+    case 'tun':         return createDefaultTunInboundSettings();
     case 'wireguard':   return createDefaultWireguardInboundSettings();
     default:            return null;
   }

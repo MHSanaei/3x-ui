@@ -42,29 +42,6 @@ exports[`InboundSettingsSchema fixtures > parses hysteria-basic byte-stably 1`] 
 }
 `;
 
-exports[`InboundSettingsSchema fixtures > parses hysteria2-basic byte-stably 1`] = `
-{
-  "protocol": "hysteria2",
-  "settings": {
-    "clients": [
-      {
-        "auth": "hyst3ria2-auth-token-XYZ",
-        "comment": "",
-        "email": "hy2-client@example.test",
-        "enable": true,
-        "expiryTime": 0,
-        "limitIp": 0,
-        "reset": 0,
-        "subId": "hy2-001",
-        "tgId": 0,
-        "totalGB": 0,
-      },
-    ],
-    "version": 2,
-  },
-}
-`;
-
 exports[`InboundSettingsSchema fixtures > parses mixed-basic byte-stably 1`] = `
 {
   "protocol": "mixed",

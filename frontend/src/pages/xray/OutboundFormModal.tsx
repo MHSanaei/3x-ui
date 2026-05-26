@@ -149,16 +149,7 @@ function newStreamSlice(network: string): Record<string, unknown> {
         hysteriaSettings: {
           version: 2,
           auth: '',
-          congestion: '',
-          up: '0',
-          down: '0',
-          initStreamReceiveWindow: 8388608,
-          maxStreamReceiveWindow: 8388608,
-          initConnectionReceiveWindow: 20971520,
-          maxConnectionReceiveWindow: 20971520,
-          maxIdleTimeout: 30,
-          keepAlivePeriod: 2,
-          disablePathMTUDiscovery: false,
+          udpIdleTimeout: 60,
         },
       };
     default:
@@ -1709,113 +1700,11 @@ export default function OutboundFormModal({
                               <Input />
                             </Form.Item>
                             <Form.Item
-                              label="Congestion"
-                              name={['streamSettings', 'hysteriaSettings', 'congestion']}
+                              label="UDP idle timeout (s)"
+                              name={['streamSettings', 'hysteriaSettings', 'udpIdleTimeout']}
                             >
-                              <Select
-                                options={[
-                                  { value: '', label: 'BBR (auto)' },
-                                  { value: 'brutal', label: 'Brutal' },
-                                ]}
-                              />
+                              <InputNumber min={1} style={{ width: '100%' }} />
                             </Form.Item>
-                            <Form.Item
-                              label="Upload"
-                              name={['streamSettings', 'hysteriaSettings', 'up']}
-                            >
-                              <Input placeholder="100 mbps" />
-                            </Form.Item>
-                            <Form.Item
-                              label="Download"
-                              name={['streamSettings', 'hysteriaSettings', 'down']}
-                            >
-                              <Input placeholder="100 mbps" />
-                            </Form.Item>
-                            <Form.Item label="UDP hop">
-                              <Form.Item
-                                shouldUpdate
-                                noStyle
-                              >
-                                {() => {
-                                  const udphop = form.getFieldValue([
-                                    'streamSettings', 'hysteriaSettings', 'udphop',
-                                  ]) as { port?: string } | undefined;
-                                  return (
-                                    <Switch
-                                      checked={!!udphop}
-                                      onChange={(checked) =>
-                                        form.setFieldValue(
-                                          ['streamSettings', 'hysteriaSettings', 'udphop'],
-                                          checked
-                                            ? { port: '', intervalMin: 30, intervalMax: 30 }
-                                            : undefined,
-                                        )
-                                      }
-                                    />
-                                  );
-                                }}
-                              </Form.Item>
-                            </Form.Item>
-                            <Form.Item shouldUpdate noStyle>
-                              {() => {
-                                const udphop = form.getFieldValue([
-                                  'streamSettings', 'hysteriaSettings', 'udphop',
-                                ]) as { port?: string } | undefined;
-                                if (!udphop) return null;
-                                return (
-                                  <>
-                                    <Form.Item
-                                      label="UDP hop port"
-                                      name={['streamSettings', 'hysteriaSettings', 'udphop', 'port']}
-                                    >
-                                      <Input placeholder="1145-1919" />
-                                    </Form.Item>
-                                    <Form.Item
-                                      label="UDP hop interval min (s)"
-                                      name={[
-                                        'streamSettings', 'hysteriaSettings',
-                                        'udphop', 'intervalMin',
-                                      ]}
-                                    >
-                                      <InputNumber min={1} />
-                                    </Form.Item>
-                                    <Form.Item
-                                      label="UDP hop interval max (s)"
-                                      name={[
-                                        'streamSettings', 'hysteriaSettings',
-                                        'udphop', 'intervalMax',
-                                      ]}
-                                    >
-                                      <InputNumber min={1} />
-                                    </Form.Item>
-                                  </>
-                                );
-                              }}
-                            </Form.Item>
-                            <Form.Item
-                              label="Max idle (s)"
-                              name={['streamSettings', 'hysteriaSettings', 'maxIdleTimeout']}
-                            >
-                              <InputNumber min={1} />
-                            </Form.Item>
-                            <Form.Item
-                              label="Keep alive (s)"
-                              name={['streamSettings', 'hysteriaSettings', 'keepAlivePeriod']}
-                            >
-                              <InputNumber min={1} />
-                            </Form.Item>
-                            <Form.Item
-                              label="Disable Path MTU"
-                              name={['streamSettings', 'hysteriaSettings', 'disablePathMTUDiscovery']}
-                              valuePropName="checked"
-                            >
-                              <Switch />
-                            </Form.Item>
-                            <div style={{ marginTop: 4, opacity: 0.6, fontStyle: 'italic' }}>
-                              Receive-window tuning (init/maxStreamReceiveWindow,
-                              init/maxConnectionReceiveWindow) is rarely changed
-                              — edit via the JSON tab if needed.
-                            </div>
                           </>
                         )}
                       </>
