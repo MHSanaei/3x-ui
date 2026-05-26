@@ -32,6 +32,7 @@ import {
 } from '@/schemas/forms/outbound-form';
 import {
   ALPN_OPTION,
+  Address_Port_Strategy,
   DNSRuleActions,
   MODE_OPTION,
   OutboundDomainStrategies,
@@ -72,6 +73,20 @@ const SS_METHOD_OPTIONS = SSMethodSchema.options.map((v) => ({ value: v, label: 
 const MODE_OPTIONS = Object.values(MODE_OPTION).map((v) => ({ value: v, label: v }));
 const UTLS_OPTIONS = Object.values(UTLS_FINGERPRINT).map((v) => ({ value: v, label: v }));
 const ALPN_OPTIONS = Object.values(ALPN_OPTION).map((v) => ({ value: v, label: v }));
+const ADDRESS_PORT_STRATEGY_OPTIONS = Object.values(Address_Port_Strategy).map((v) => ({
+  value: v,
+  label: v,
+}));
+
+// canEnableMux mirrors the adapter's helper but lives here so the modal
+// can show/hide the Mux section without going through the adapter.
+const MUX_PROTOCOLS = new Set<string>(['vmess', 'vless', 'trojan', 'shadowsocks', 'http', 'socks']);
+function isMuxAllowed(protocol: string, flow: string, network: string): boolean {
+  if (!MUX_PROTOCOLS.has(protocol)) return false;
+  if (protocol === 'vless' && flow) return false;
+  if (network === 'xhttp') return false;
+  return true;
+}
 
 const NETWORK_OPTIONS: { value: string; label: string }[] = [
   { value: 'tcp', label: 'TCP (RAW)' },
@@ -1289,6 +1304,159 @@ export default function OutboundFormModalNew({
                         </Form.Item>
                       </>
                     )}
+
+                    {streamAllowed && network && (
+                      <Form.Item shouldUpdate noStyle>
+                        {() => {
+                          const hasSockopt = !!form.getFieldValue([
+                            'streamSettings',
+                            'sockopt',
+                          ]);
+                          return (
+                            <>
+                              <Form.Item label="Sockopts">
+                                <Switch
+                                  checked={hasSockopt}
+                                  onChange={(checked) => {
+                                    form.setFieldValue(
+                                      ['streamSettings', 'sockopt'],
+                                      checked
+                                        ? {
+                                            acceptProxyProtocol: false,
+                                            tcpFastOpen: false,
+                                            mark: 0,
+                                            tproxy: 'off',
+                                            tcpMptcp: false,
+                                            penetrate: false,
+                                            domainStrategy: 'UseIP',
+                                            tcpMaxSeg: 1440,
+                                            dialerProxy: '',
+                                            tcpKeepAliveInterval: 0,
+                                            tcpKeepAliveIdle: 300,
+                                            tcpUserTimeout: 10000,
+                                            tcpcongestion: 'bbr',
+                                            V6Only: false,
+                                            tcpWindowClamp: 600,
+                                            interfaceName: '',
+                                            trustedXForwardedFor: [],
+                                          }
+                                        : undefined,
+                                    );
+                                  }}
+                                />
+                              </Form.Item>
+                              {hasSockopt && (
+                                <>
+                                  <Form.Item
+                                    label="Dialer proxy"
+                                    name={['streamSettings', 'sockopt', 'dialerProxy']}
+                                  >
+                                    <Input />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Domain strategy"
+                                    name={['streamSettings', 'sockopt', 'domainStrategy']}
+                                  >
+                                    <Select
+                                      options={ADDRESS_PORT_STRATEGY_OPTIONS}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Keep alive interval"
+                                    name={['streamSettings', 'sockopt', 'tcpKeepAliveInterval']}
+                                  >
+                                    <InputNumber min={0} />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TCP Fast Open"
+                                    name={['streamSettings', 'sockopt', 'tcpFastOpen']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Multipath TCP"
+                                    name={['streamSettings', 'sockopt', 'tcpMptcp']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Penetrate"
+                                    name={['streamSettings', 'sockopt', 'penetrate']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Mark (fwmark)"
+                                    name={['streamSettings', 'sockopt', 'mark']}
+                                  >
+                                    <InputNumber min={0} />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Interface"
+                                    name={['streamSettings', 'sockopt', 'interfaceName']}
+                                  >
+                                    <Input />
+                                  </Form.Item>
+                                </>
+                              )}
+                            </>
+                          );
+                        }}
+                      </Form.Item>
+                    )}
+
+                    {(() => {
+                      const flow = (form.getFieldValue(['settings', 'flow']) ?? '') as string;
+                      if (!isMuxAllowed(protocol, flow, network)) return null;
+                      return (
+                        <Form.Item shouldUpdate noStyle>
+                          {() => {
+                            const muxEnabled = !!form.getFieldValue(['mux', 'enabled']);
+                            return (
+                              <>
+                                <Form.Item
+                                  label={t('pages.settings.mux')}
+                                  name={['mux', 'enabled']}
+                                  valuePropName="checked"
+                                >
+                                  <Switch />
+                                </Form.Item>
+                                {muxEnabled && (
+                                  <>
+                                    <Form.Item
+                                      label="Concurrency"
+                                      name={['mux', 'concurrency']}
+                                    >
+                                      <InputNumber min={-1} max={1024} />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="xudp concurrency"
+                                      name={['mux', 'xudpConcurrency']}
+                                    >
+                                      <InputNumber min={-1} max={1024} />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="xudp UDP 443"
+                                      name={['mux', 'xudpProxyUDP443']}
+                                    >
+                                      <Select
+                                        options={['reject', 'allow', 'skip'].map((v) => ({
+                                          value: v,
+                                          label: v,
+                                        }))}
+                                      />
+                                    </Form.Item>
+                                  </>
+                                )}
+                              </>
+                            );
+                          }}
+                        </Form.Item>
+                      );
+                    })()}
                   </>
                 ),
               },
