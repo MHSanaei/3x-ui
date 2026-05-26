@@ -38,6 +38,7 @@ import {
   OutboundDomainStrategies,
   OutboundProtocols as Protocols,
   SNIFFING_OPTION,
+  TCP_CONGESTION_OPTION,
   TLS_FLOW_CONTROL,
   USERS_SECURITY,
   UTLS_FINGERPRINT,
@@ -1515,6 +1516,49 @@ export default function OutboundFormModal({
                                     name={['streamSettings', 'sockopt', 'interfaceName']}
                                   >
                                     <Input />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TProxy"
+                                    name={['streamSettings', 'sockopt', 'tproxy']}
+                                  >
+                                    <Select
+                                      options={[
+                                        { value: 'off', label: 'off' },
+                                        { value: 'redirect', label: 'redirect' },
+                                        { value: 'tproxy', label: 'tproxy' },
+                                      ]}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TCP congestion"
+                                    name={['streamSettings', 'sockopt', 'tcpcongestion']}
+                                  >
+                                    <Select
+                                      options={Object.values(TCP_CONGESTION_OPTION).map((v) => ({
+                                        value: v,
+                                        label: v,
+                                      }))}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="IPv6 only"
+                                    name={['streamSettings', 'sockopt', 'V6Only']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Accept proxy protocol"
+                                    name={['streamSettings', 'sockopt', 'acceptProxyProtocol']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TCP user timeout (ms)"
+                                    name={['streamSettings', 'sockopt', 'tcpUserTimeout']}
+                                  >
+                                    <InputNumber min={0} style={{ width: '100%' }} />
                                   </Form.Item>
                                 </>
                               )}

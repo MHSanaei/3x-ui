@@ -1157,13 +1157,79 @@ export default function InboundFormModal({
                     onChange={(v) => {
                       setFieldValue(
                         ['streamSettings', 'tcpSettings', 'header'],
-                        v ? { type: 'http' } : { type: 'none' },
+                        v
+                          ? {
+                              type: 'http',
+                              request: {
+                                version: '1.1',
+                                method: 'GET',
+                                path: ['/'],
+                                headers: {},
+                              },
+                            }
+                          : { type: 'none' },
                       );
                     }}
                   />
                 );
               }}
             </Form.Item>
+          </Form.Item>
+          {/* Host + path camouflage inputs only render when the Switch
+              above is on. Both are string[] on the wire; normalize +
+              getValueProps translate to/from comma-joined input. Mirrors
+              the symmetric outbound side. */}
+          <Form.Item
+            noStyle
+            shouldUpdate={(prev, curr) =>
+              prev.streamSettings?.tcpSettings?.header?.type
+              !== curr.streamSettings?.tcpSettings?.header?.type
+            }
+          >
+            {({ getFieldValue }) => {
+              const headerType = getFieldValue(
+                ['streamSettings', 'tcpSettings', 'header', 'type'],
+              ) as string | undefined;
+              if (headerType !== 'http') return null;
+              return (
+                <>
+                  <Form.Item
+                    label={t('host')}
+                    name={[
+                      'streamSettings', 'tcpSettings', 'header',
+                      'request', 'headers', 'Host',
+                    ]}
+                    normalize={(v: unknown) =>
+                      typeof v === 'string'
+                        ? v.split(',').map((s) => s.trim()).filter(Boolean)
+                        : Array.isArray(v) ? v : []
+                    }
+                    getValueProps={(v: unknown) => ({
+                      value: Array.isArray(v) ? v.join(',') : '',
+                    })}
+                  >
+                    <Input placeholder="example.com,cdn.example.com" />
+                  </Form.Item>
+                  <Form.Item
+                    label={t('path')}
+                    name={[
+                      'streamSettings', 'tcpSettings', 'header',
+                      'request', 'path',
+                    ]}
+                    normalize={(v: unknown) =>
+                      typeof v === 'string'
+                        ? v.split(',').map((s) => s.trim()).filter(Boolean)
+                        : Array.isArray(v) ? v : ['/']
+                    }
+                    getValueProps={(v: unknown) => ({
+                      value: Array.isArray(v) ? v.join(',') : '/',
+                    })}
+                  >
+                    <Input placeholder="/,/api,/static" />
+                  </Form.Item>
+                </>
+              );
+            }}
           </Form.Item>
         </>
       )}
