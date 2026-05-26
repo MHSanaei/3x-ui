@@ -6,6 +6,7 @@ import {
   Input,
   InputNumber,
   Modal,
+  Radio,
   Select,
   Space,
   Switch,
@@ -30,6 +31,7 @@ import {
   type OutboundFormValues,
 } from '@/schemas/forms/outbound-form';
 import {
+  ALPN_OPTION,
   DNSRuleActions,
   MODE_OPTION,
   OutboundDomainStrategies,
@@ -37,12 +39,14 @@ import {
   SNIFFING_OPTION,
   TLS_FLOW_CONTROL,
   USERS_SECURITY,
+  UTLS_FINGERPRINT,
   WireguardDomainStrategy,
 } from '@/schemas/primitives';
 import {
   canEnableReality,
   canEnableStream,
   canEnableTls,
+  canEnableTlsFlow,
 } from '@/lib/xray/protocol-capabilities';
 import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
 import { antdRule } from '@/utils/zodForm';
@@ -66,6 +70,8 @@ const SECURITY_OPTIONS = Object.values(USERS_SECURITY).map((v) => ({ value: v, l
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL).map((v) => ({ value: v, label: v }));
 const SS_METHOD_OPTIONS = SSMethodSchema.options.map((v) => ({ value: v, label: v }));
 const MODE_OPTIONS = Object.values(MODE_OPTION).map((v) => ({ value: v, label: v }));
+const UTLS_OPTIONS = Object.values(UTLS_FINGERPRINT).map((v) => ({ value: v, label: v }));
+const ALPN_OPTIONS = Object.values(ALPN_OPTION).map((v) => ({ value: v, label: v }));
 
 const NETWORK_OPTIONS: { value: string; label: string }[] = [
   { value: 'tcp', label: 'TCP (RAW)' },
@@ -165,8 +171,12 @@ export default function OutboundFormModalNew({
   const tag = Form.useWatch('tag', form) ?? '';
   const protocol = (Form.useWatch('protocol', form) ?? 'vless') as string;
   const network = (Form.useWatch(['streamSettings', 'network'], form) ?? '') as string;
+  const security = (Form.useWatch(['streamSettings', 'security'], form) ?? 'none') as string;
 
   const streamAllowed = canEnableStream({ protocol });
+  const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
+  const realityAllowed = canEnableReality({ protocol, streamSettings: { network, security } });
+  const tlsFlowAllowed = canEnableTlsFlow({ protocol, streamSettings: { network, security } });
 
   // Seed streamSettings when the user picks a protocol that supports
   // streams but the form does not yet have a stream slice (new outbound,
@@ -188,6 +198,37 @@ export default function OutboundFormModalNew({
       const next = rawOutboundToFormValues({ protocol: changed.protocol });
       form.setFieldValue('settings', next.settings);
     }
+  }
+
+  // Security change cascade: swap the security sub-key so the DU branch
+  // matches. Seed default field values when entering tls/reality so the
+  // sub-forms render without `undefined` field references.
+  function onSecurityChange(next: string) {
+    const stream = form.getFieldValue('streamSettings') ?? {};
+    const cleaned = { ...stream } as Record<string, unknown>;
+    delete cleaned.tlsSettings;
+    delete cleaned.realitySettings;
+    if (next === 'tls') {
+      cleaned.tlsSettings = {
+        serverName: '',
+        alpn: [],
+        fingerprint: '',
+        echConfigList: '',
+        verifyPeerCertByName: '',
+        pinnedPeerCertSha256: '',
+      };
+    } else if (next === 'reality') {
+      cleaned.realitySettings = {
+        publicKey: '',
+        fingerprint: 'chrome',
+        serverName: '',
+        shortId: '',
+        spiderX: '',
+        mldsa65Verify: '',
+      };
+    }
+    cleaned.security = next;
+    form.setFieldValue('streamSettings', cleaned);
   }
 
   // Network change cascade: swap the per-network sub-key (tcpSettings,
@@ -368,13 +409,6 @@ export default function OutboundFormModalNew({
                           rules={[antdRule(VlessOutboundFormSettingsSchema.shape.encryption, t)]}
                         >
                           <Input />
-                        </Form.Item>
-                        <Form.Item label="Flow" name={['settings', 'flow']}>
-                          <Select
-                            allowClear
-                            placeholder={t('none')}
-                            options={FLOW_OPTIONS}
-                          />
                         </Form.Item>
                         <Form.Item label="Reverse tag" name={['settings', 'reverseTag']}>
                           <Input placeholder="optional" />
@@ -1143,6 +1177,116 @@ export default function OutboundFormModalNew({
                             </div>
                           </>
                         )}
+                      </>
+                    )}
+
+                    {tlsFlowAllowed && (
+                      <Form.Item label="Flow" name={['settings', 'flow']}>
+                        <Select
+                          allowClear
+                          placeholder={t('none')}
+                          options={FLOW_OPTIONS}
+                        />
+                      </Form.Item>
+                    )}
+
+                    {streamAllowed && network && (
+                      <Form.Item label={t('security')}>
+                        <Radio.Group
+                          value={security}
+                          buttonStyle="solid"
+                          onChange={(e) => onSecurityChange(e.target.value as string)}
+                        >
+                          <Radio.Button value="none">{t('none')}</Radio.Button>
+                          {tlsAllowed && <Radio.Button value="tls">TLS</Radio.Button>}
+                          {realityAllowed && <Radio.Button value="reality">Reality</Radio.Button>}
+                        </Radio.Group>
+                      </Form.Item>
+                    )}
+
+                    {security === 'tls' && tlsAllowed && (
+                      <>
+                        <Form.Item
+                          label="SNI"
+                          name={['streamSettings', 'tlsSettings', 'serverName']}
+                        >
+                          <Input placeholder="server name" />
+                        </Form.Item>
+                        <Form.Item
+                          label="uTLS"
+                          name={['streamSettings', 'tlsSettings', 'fingerprint']}
+                        >
+                          <Select
+                            allowClear
+                            placeholder={t('none')}
+                            options={UTLS_OPTIONS}
+                          />
+                        </Form.Item>
+                        <Form.Item
+                          label="ALPN"
+                          name={['streamSettings', 'tlsSettings', 'alpn']}
+                        >
+                          <Select mode="multiple" options={ALPN_OPTIONS} />
+                        </Form.Item>
+                        <Form.Item
+                          label="ECH"
+                          name={['streamSettings', 'tlsSettings', 'echConfigList']}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          label="Verify peer name"
+                          name={['streamSettings', 'tlsSettings', 'verifyPeerCertByName']}
+                        >
+                          <Input placeholder="cloudflare-dns.com" />
+                        </Form.Item>
+                        <Form.Item
+                          label="Pinned SHA256"
+                          name={['streamSettings', 'tlsSettings', 'pinnedPeerCertSha256']}
+                        >
+                          <Input placeholder="base64 SHA256" />
+                        </Form.Item>
+                      </>
+                    )}
+
+                    {security === 'reality' && realityAllowed && (
+                      <>
+                        <Form.Item
+                          label="SNI"
+                          name={['streamSettings', 'realitySettings', 'serverName']}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          label="uTLS"
+                          name={['streamSettings', 'realitySettings', 'fingerprint']}
+                        >
+                          <Select options={UTLS_OPTIONS} />
+                        </Form.Item>
+                        <Form.Item
+                          label="Short ID"
+                          name={['streamSettings', 'realitySettings', 'shortId']}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          label="SpiderX"
+                          name={['streamSettings', 'realitySettings', 'spiderX']}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          label={t('pages.inbounds.publicKey')}
+                          name={['streamSettings', 'realitySettings', 'publicKey']}
+                        >
+                          <Input.TextArea autoSize={{ minRows: 2 }} />
+                        </Form.Item>
+                        <Form.Item
+                          label="mldsa65 verify"
+                          name={['streamSettings', 'realitySettings', 'mldsa65Verify']}
+                        >
+                          <Input.TextArea autoSize={{ minRows: 2 }} />
+                        </Form.Item>
                       </>
                     )}
                   </>
