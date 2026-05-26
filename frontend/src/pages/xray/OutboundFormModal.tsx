@@ -1306,11 +1306,308 @@ export default function OutboundFormModal({
                             >
                               <Input />
                             </Form.Item>
-                            <div style={{ marginTop: 4, opacity: 0.6, fontStyle: 'italic' }}>
-                              XHTTP advanced fields (XMUX, sequence/session placement,
-                              padding obfs) are still being migrated — edit them via
-                              the JSON tab.
-                            </div>
+                            <Form.Item
+                              label="Headers"
+                              name={['streamSettings', 'xhttpSettings', 'headers']}
+                            >
+                              <HeaderMapEditor mode="v1" />
+                            </Form.Item>
+
+                            {/* Padding obfs sub-section: gated by a Switch.
+                                When on, four extra knobs (key/header/placement/
+                                method) tune how Xray injects random padding to
+                                disguise the post body shape. */}
+                            <Form.Item
+                              label="Padding obfs mode"
+                              name={['streamSettings', 'xhttpSettings', 'xPaddingObfsMode']}
+                              valuePropName="checked"
+                            >
+                              <Switch />
+                            </Form.Item>
+                            <Form.Item shouldUpdate noStyle>
+                              {() => {
+                                const obfs = !!form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'xPaddingObfsMode',
+                                ]);
+                                if (!obfs) return null;
+                                return (
+                                  <>
+                                    <Form.Item
+                                      label="Padding key"
+                                      name={['streamSettings', 'xhttpSettings', 'xPaddingKey']}
+                                    >
+                                      <Input placeholder="x_padding" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Padding header"
+                                      name={['streamSettings', 'xhttpSettings', 'xPaddingHeader']}
+                                    >
+                                      <Input placeholder="X-Padding" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Padding placement"
+                                      name={['streamSettings', 'xhttpSettings', 'xPaddingPlacement']}
+                                    >
+                                      <Select
+                                        options={[
+                                          { value: '', label: 'Default (queryInHeader)' },
+                                          { value: 'queryInHeader', label: 'queryInHeader' },
+                                          { value: 'header', label: 'header' },
+                                          { value: 'cookie', label: 'cookie' },
+                                          { value: 'query', label: 'query' },
+                                        ]}
+                                      />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Padding method"
+                                      name={['streamSettings', 'xhttpSettings', 'xPaddingMethod']}
+                                    >
+                                      <Select
+                                        options={[
+                                          { value: '', label: 'Default (repeat-x)' },
+                                          { value: 'repeat-x', label: 'repeat-x' },
+                                          { value: 'tokenish', label: 'tokenish' },
+                                        ]}
+                                      />
+                                    </Form.Item>
+                                  </>
+                                );
+                              }}
+                            </Form.Item>
+
+                            <Form.Item
+                              label="Uplink HTTP method"
+                              name={['streamSettings', 'xhttpSettings', 'uplinkHTTPMethod']}
+                            >
+                              <Form.Item shouldUpdate noStyle>
+                                {() => {
+                                  const mode = form.getFieldValue([
+                                    'streamSettings', 'xhttpSettings', 'mode',
+                                  ]);
+                                  return (
+                                    <Select
+                                      options={[
+                                        { value: '', label: 'Default (POST)' },
+                                        { value: 'POST', label: 'POST' },
+                                        { value: 'PUT', label: 'PUT' },
+                                        { value: 'GET', label: 'GET (packet-up only)', disabled: mode !== 'packet-up' },
+                                      ]}
+                                    />
+                                  );
+                                }}
+                              </Form.Item>
+                            </Form.Item>
+
+                            {/* Session + sequence + uplinkData placements:
+                                three orthogonal slots Xray uses to thread
+                                request metadata through the transport
+                                (path / header / cookie / query). Key field
+                                only matters when placement is not 'path'. */}
+                            <Form.Item
+                              label="Session placement"
+                              name={['streamSettings', 'xhttpSettings', 'sessionPlacement']}
+                            >
+                              <Select
+                                options={[
+                                  { value: '', label: 'Default (path)' },
+                                  { value: 'path', label: 'path' },
+                                  { value: 'header', label: 'header' },
+                                  { value: 'cookie', label: 'cookie' },
+                                  { value: 'query', label: 'query' },
+                                ]}
+                              />
+                            </Form.Item>
+                            <Form.Item shouldUpdate noStyle>
+                              {() => {
+                                const placement = form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'sessionPlacement',
+                                ]);
+                                if (!placement || placement === 'path') return null;
+                                return (
+                                  <Form.Item
+                                    label="Session key"
+                                    name={['streamSettings', 'xhttpSettings', 'sessionKey']}
+                                  >
+                                    <Input placeholder="x_session" />
+                                  </Form.Item>
+                                );
+                              }}
+                            </Form.Item>
+                            <Form.Item
+                              label="Sequence placement"
+                              name={['streamSettings', 'xhttpSettings', 'seqPlacement']}
+                            >
+                              <Select
+                                options={[
+                                  { value: '', label: 'Default (path)' },
+                                  { value: 'path', label: 'path' },
+                                  { value: 'header', label: 'header' },
+                                  { value: 'cookie', label: 'cookie' },
+                                  { value: 'query', label: 'query' },
+                                ]}
+                              />
+                            </Form.Item>
+                            <Form.Item shouldUpdate noStyle>
+                              {() => {
+                                const placement = form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'seqPlacement',
+                                ]);
+                                if (!placement || placement === 'path') return null;
+                                return (
+                                  <Form.Item
+                                    label="Sequence key"
+                                    name={['streamSettings', 'xhttpSettings', 'seqKey']}
+                                  >
+                                    <Input placeholder="x_seq" />
+                                  </Form.Item>
+                                );
+                              }}
+                            </Form.Item>
+
+                            {/* Mode-conditional sub-sections. */}
+                            <Form.Item shouldUpdate noStyle>
+                              {() => {
+                                const mode = form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'mode',
+                                ]);
+                                if (mode !== 'packet-up') return null;
+                                return (
+                                  <>
+                                    <Form.Item
+                                      label="Min upload interval (ms)"
+                                      name={['streamSettings', 'xhttpSettings', 'scMinPostsIntervalMs']}
+                                    >
+                                      <Input placeholder="30" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Max upload size (bytes)"
+                                      name={['streamSettings', 'xhttpSettings', 'scMaxEachPostBytes']}
+                                    >
+                                      <Input placeholder="1000000" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Uplink data placement"
+                                      name={['streamSettings', 'xhttpSettings', 'uplinkDataPlacement']}
+                                    >
+                                      <Select
+                                        options={[
+                                          { value: '', label: 'Default (body)' },
+                                          { value: 'body', label: 'body' },
+                                          { value: 'header', label: 'header' },
+                                          { value: 'cookie', label: 'cookie' },
+                                          { value: 'query', label: 'query' },
+                                        ]}
+                                      />
+                                    </Form.Item>
+                                    <Form.Item shouldUpdate noStyle>
+                                      {() => {
+                                        const place = form.getFieldValue([
+                                          'streamSettings', 'xhttpSettings', 'uplinkDataPlacement',
+                                        ]);
+                                        if (!place || place === 'body') return null;
+                                        return (
+                                          <>
+                                            <Form.Item
+                                              label="Uplink data key"
+                                              name={['streamSettings', 'xhttpSettings', 'uplinkDataKey']}
+                                            >
+                                              <Input placeholder="x_data" />
+                                            </Form.Item>
+                                            <Form.Item
+                                              label="Uplink chunk size"
+                                              name={['streamSettings', 'xhttpSettings', 'uplinkChunkSize']}
+                                            >
+                                              <InputNumber
+                                                min={0}
+                                                placeholder="0 (unlimited)"
+                                                style={{ width: '100%' }}
+                                              />
+                                            </Form.Item>
+                                          </>
+                                        );
+                                      }}
+                                    </Form.Item>
+                                  </>
+                                );
+                              }}
+                            </Form.Item>
+                            <Form.Item shouldUpdate noStyle>
+                              {() => {
+                                const mode = form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'mode',
+                                ]);
+                                if (mode !== 'stream-up' && mode !== 'stream-one') return null;
+                                return (
+                                  <Form.Item
+                                    label="No gRPC header"
+                                    name={['streamSettings', 'xhttpSettings', 'noGRPCHeader']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                );
+                              }}
+                            </Form.Item>
+
+                            {/* XMUX is the connection-multiplexing layer
+                                xHTTP uses to fan out parallel requests over
+                                a small pool of upstream connections. UI-only
+                                toggle (enableXmux) hides the 6 nested knobs
+                                when off. */}
+                            <Form.Item
+                              label="XMUX"
+                              name={['streamSettings', 'xhttpSettings', 'enableXmux']}
+                              valuePropName="checked"
+                            >
+                              <Switch />
+                            </Form.Item>
+                            <Form.Item shouldUpdate noStyle>
+                              {() => {
+                                if (!form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'enableXmux',
+                                ])) return null;
+                                return (
+                                  <>
+                                    <Form.Item
+                                      label="Max concurrency"
+                                      name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConcurrency']}
+                                    >
+                                      <Input placeholder="16-32" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Max connections"
+                                      name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConnections']}
+                                    >
+                                      <Input placeholder="0" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Max reuse times"
+                                      name={['streamSettings', 'xhttpSettings', 'xmux', 'cMaxReuseTimes']}
+                                    >
+                                      <Input />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Max request times"
+                                      name={['streamSettings', 'xhttpSettings', 'xmux', 'hMaxRequestTimes']}
+                                    >
+                                      <Input placeholder="600-900" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Max reusable secs"
+                                      name={['streamSettings', 'xhttpSettings', 'xmux', 'hMaxReusableSecs']}
+                                    >
+                                      <Input placeholder="1800-3000" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Keep alive period"
+                                      name={['streamSettings', 'xhttpSettings', 'xmux', 'hKeepAlivePeriod']}
+                                    >
+                                      <InputNumber min={0} style={{ width: '100%' }} />
+                                    </Form.Item>
+                                  </>
+                                );
+                              }}
+                            </Form.Item>
                           </>
                         )}
 

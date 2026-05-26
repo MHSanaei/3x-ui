@@ -554,6 +554,22 @@ function loopbackToWire(s: LoopbackOutboundFormSettings) {
 const MUX_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'http', 'socks']);
 const STREAM_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'hysteria']);
 
+// Strip UI-only fields the form layered into streamSettings (e.g. the
+// XHTTP modal's enableXmux toggle that controls section visibility but
+// has no meaning on the wire). xray-core would ignore unknown fields
+// anyway but the panel reads back its own emitted JSON, so we keep
+// the wire shape clean.
+function stripUiOnlyStreamFields(stream: unknown): Raw {
+  const next = { ...(stream as Raw) };
+  const xh = next.xhttpSettings;
+  if (xh && typeof xh === 'object') {
+    const cleaned = { ...(xh as Raw) };
+    delete cleaned.enableXmux;
+    next.xhttpSettings = cleaned;
+  }
+  return next;
+}
+
 function muxAllowed(values: OutboundFormValues): boolean {
   if (!MUX_PROTOCOLS.has(values.protocol)) return false;
   const flow = values.protocol === 'vless'
@@ -596,7 +612,7 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
   // still emit just `sockopt` if that key is present (legacy behavior).
   if (values.streamSettings) {
     if (STREAM_PROTOCOLS.has(values.protocol)) {
-      result.streamSettings = values.streamSettings;
+      result.streamSettings = stripUiOnlyStreamFields(values.streamSettings);
     } else {
       const sockopt = (values.streamSettings as { sockopt?: unknown }).sockopt;
       if (sockopt) result.streamSettings = { sockopt };
