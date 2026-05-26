@@ -55,6 +55,9 @@ import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
 import { RealityStreamSettingsSchema } from '@/schemas/protocols/security/reality';
 import DateTimePicker from '@/components/DateTimePicker';
 import InputAddon from '@/components/InputAddon';
+import JsonEditor from '@/components/JsonEditor';
+import type { FormInstance } from 'antd';
+import type { NamePath } from 'antd/es/form/interface';
 
 const { TextArea } = Input;
 import type { DBInbound } from '@/models/dbinbound';
@@ -66,6 +69,44 @@ import type { NodeRecord } from '@/api/queries/useNodesQuery';
 // atomic swap at the end (Core Decision 7).
 
 const { Text } = Typography;
+
+// Sub-editor for one slice of the form (settings, streamSettings, sniffing).
+// Holds a local text buffer so the user can type freely; on every keystroke
+// we try to JSON.parse and forward the result to form state. Invalid JSON
+// is held in the buffer until the next valid moment — no panic on partial
+// input. The buffer seeds once on mount; the modal's destroyOnHidden makes
+// each open a fresh editor instance, so we don't need to re-sync on outer
+// form changes.
+function AdvancedSliceEditor({
+  form,
+  path,
+  minHeight,
+  maxHeight,
+}: {
+  form: FormInstance<InboundFormValues>;
+  path: NamePath;
+  minHeight?: string;
+  maxHeight?: string;
+}) {
+  const [text, setText] = useState(() =>
+    JSON.stringify(form.getFieldValue(path) ?? {}, null, 2),
+  );
+  return (
+    <JsonEditor
+      value={text}
+      minHeight={minHeight}
+      maxHeight={maxHeight}
+      onChange={(next) => {
+        setText(next);
+        try {
+          form.setFieldValue(path, JSON.parse(next));
+        } catch {
+
+        }
+      }}
+    />
+  );
+}
 
 const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
 const TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'] as const;
@@ -1855,6 +1896,51 @@ export default function InboundFormModalNew({
     </>
   );
 
+  const advancedTab = (
+    <Tabs
+      items={[
+        {
+          key: 'settings',
+          label: t('pages.inbounds.advanced.settings'),
+          children: (
+            <AdvancedSliceEditor
+              form={form}
+              path="settings"
+              minHeight="320px"
+              maxHeight="540px"
+            />
+          ),
+        },
+        ...(streamEnabled
+          ? [{
+            key: 'stream',
+            label: t('pages.inbounds.advanced.stream'),
+            children: (
+              <AdvancedSliceEditor
+                form={form}
+                path="streamSettings"
+                minHeight="320px"
+                maxHeight="540px"
+              />
+            ),
+          }]
+          : []),
+        {
+          key: 'sniffing',
+          label: t('pages.inbounds.advanced.sniffing'),
+          children: (
+            <AdvancedSliceEditor
+              form={form}
+              path="sniffing"
+              minHeight="240px"
+              maxHeight="420px"
+            />
+          ),
+        },
+      ]}
+    />
+  );
+
   const sniffingTab = (
     <>
       <Form.Item name={['sniffing', 'enabled']} label={t('enable')} valuePropName="checked">
@@ -1957,6 +2043,7 @@ export default function InboundFormModalNew({
                 ]
               : []),
             { key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab },
+            { key: 'advanced', label: t('pages.xray.advancedTemplate'), children: advancedTab },
           ]} />
         </Form>
       </Modal>
