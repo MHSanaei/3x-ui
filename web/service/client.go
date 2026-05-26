@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -70,7 +71,7 @@ func clientKeyForProtocol(p model.Protocol, rec *model.ClientRecord) string {
 		return rec.Password
 	case model.Shadowsocks:
 		return rec.Email
-	case model.Hysteria, model.Hysteria2:
+	case model.Hysteria:
 		return rec.Auth
 	default:
 		return rec.UUID
@@ -478,7 +479,7 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 		if c.Password == "" || !validShadowsocksClientKey(method, c.Password) {
 			c.Password = randomShadowsocksClientKey(method)
 		}
-	case model.Hysteria, model.Hysteria2:
+	case model.Hysteria:
 		if c.Auth == "" {
 			c.Auth = strings.ReplaceAll(uuid.NewString(), "-", "")
 		}
@@ -1064,12 +1065,7 @@ func clientMatchesInbound(c ClientWithAttachments, inboundId int) bool {
 	if inboundId <= 0 {
 		return true
 	}
-	for _, id := range c.InboundIds {
-		if id == inboundId {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.InboundIds, inboundId)
 }
 
 func clientMatchesBucket(c ClientWithAttachments, bucket string, onlineSet map[string]struct{}, nowMs, expireDiffMs, trafficDiffBytes int64) bool {
@@ -1284,10 +1280,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 					skippedReasons[email] = "unlimited traffic"
 				}
 			} else {
-				next := rec.TotalGB + addBytes
-				if next < 0 {
-					next = 0
-				}
+				next := max(rec.TotalGB+addBytes, 0)
 				entry.applyTotal = true
 				entry.newTotal = next
 			}
@@ -1410,7 +1403,7 @@ func (s *ClientService) bulkAdjustInboundClients(
 		clientKey = "password"
 	case model.Shadowsocks:
 		clientKey = "email"
-	case model.Hysteria, model.Hysteria2:
+	case model.Hysteria:
 		clientKey = "auth"
 	}
 
@@ -1690,7 +1683,7 @@ func (s *ClientService) bulkDelInboundClients(
 		clientKey = "password"
 	case model.Shadowsocks:
 		clientKey = "email"
-	case model.Hysteria, model.Hysteria2:
+	case model.Hysteria:
 		clientKey = "auth"
 	}
 
@@ -2105,7 +2098,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			if client.Email == "" {
 				return false, common.NewError("empty client ID")
 			}
-		case "hysteria", "hysteria2":
+		case "hysteria":
 			if client.Auth == "" {
 				return false, common.NewError("empty client ID")
 			}
@@ -2252,7 +2245,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		case "shadowsocks":
 			oldClientId = oldClient.Email
 			newClientId = clients[0].Email
-		case "hysteria", "hysteria2":
+		case "hysteria":
 			oldClientId = oldClient.Auth
 			newClientId = clients[0].Auth
 		default:
@@ -2274,7 +2267,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			lookupErr = database.GetDB().Where("password = ?", clientId).First(&rec).Error
 		case "shadowsocks":
 			lookupErr = database.GetDB().Where("email = ?", clientId).First(&rec).Error
-		case "hysteria", "hysteria2":
+		case "hysteria":
 			lookupErr = database.GetDB().Where("auth = ?", clientId).First(&rec).Error
 		default:
 			lookupErr = database.GetDB().Where("uuid = ?", clientId).First(&rec).Error
@@ -2512,7 +2505,7 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 		client_key = "password"
 	case "shadowsocks":
 		client_key = "email"
-	case "hysteria", "hysteria2":
+	case "hysteria":
 		client_key = "auth"
 	}
 

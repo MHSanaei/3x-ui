@@ -233,7 +233,7 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 				Email: userEmail,
 			})
 		}
-	case "hysteria", "hysteria2":
+	case "hysteria":
 		auth, err := getRequiredUserString(user, "auth")
 		if err != nil {
 			return err

@@ -14,7 +14,11 @@ import (
 // Protocol represents the protocol type for Xray inbounds.
 type Protocol string
 
-// Protocol constants for different Xray inbound protocols
+// Protocol constants for different Xray inbound protocols.
+// Hysteria v2 is not a distinct protocol — it is plain "hysteria"
+// with streamSettings.version = 2. The share-link URI scheme
+// "hysteria2://" is independent of this and is still emitted by the
+// link generator when the stream version is 2.
 const (
 	VMESS       Protocol = "vmess"
 	VLESS       Protocol = "vless"
@@ -25,15 +29,7 @@ const (
 	Mixed       Protocol = "mixed"
 	WireGuard   Protocol = "wireguard"
 	Hysteria    Protocol = "hysteria"
-	Hysteria2   Protocol = "hysteria2"
 )
-
-// IsHysteria returns true for both "hysteria" and "hysteria2".
-// Use instead of a bare ==model.Hysteria check: a v2 inbound stored
-// with the literal v2 string would otherwise fall through (#4081).
-func IsHysteria(p Protocol) bool {
-	return p == Hysteria || p == Hysteria2
-}
 
 // User represents a user account in the 3x-ui panel.
 type User struct {
@@ -60,7 +56,7 @@ type Inbound struct {
 	// Xray configuration fields
 	Listen         string   `json:"listen" form:"listen"`
 	Port           int      `json:"port" form:"port" validate:"gte=1,lte=65535"`
-	Protocol       Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria hysteria2 http mixed tunnel"`
+	Protocol       Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel"`
 	Settings       string   `json:"settings" form:"settings"`
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`

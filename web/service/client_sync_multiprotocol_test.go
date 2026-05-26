@@ -22,7 +22,7 @@ func TestSyncInbound_PreservesCredentialsAcrossProtocols(t *testing.T) {
 	if err := db.Create(vlessInbound).Error; err != nil {
 		t.Fatalf("create vless inbound: %v", err)
 	}
-	hysteriaInbound := &model.Inbound{Tag: "hy-in", Enable: true, Port: 10002, Protocol: model.Hysteria2}
+	hysteriaInbound := &model.Inbound{Tag: "hy-in", Enable: true, Port: 10002, Protocol: model.Hysteria}
 	if err := db.Create(hysteriaInbound).Error; err != nil {
 		t.Fatalf("create hysteria inbound: %v", err)
 	}

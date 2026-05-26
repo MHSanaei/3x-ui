@@ -103,15 +103,17 @@ func applyZodValidations(expr string, t TypeRef, rules []ValidateRule) string {
 				expr += fmt.Sprintf(".lt(%s)", r.Param)
 			}
 		case "min":
-			if t.Kind == KindString {
+			switch t.Kind {
+			case KindString:
 				expr += fmt.Sprintf(".min(%s)", r.Param)
-			} else if t.Kind == KindInt || t.Kind == KindNumber {
+			case KindInt, KindNumber:
 				expr += fmt.Sprintf(".min(%s)", r.Param)
 			}
 		case "max":
-			if t.Kind == KindString {
+			switch t.Kind {
+			case KindString:
 				expr += fmt.Sprintf(".max(%s)", r.Param)
-			} else if t.Kind == KindInt || t.Kind == KindNumber {
+			case KindInt, KindNumber:
 				expr += fmt.Sprintf(".max(%s)", r.Param)
 			}
 		case "url":

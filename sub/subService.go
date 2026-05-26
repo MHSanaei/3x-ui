@@ -152,7 +152,7 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
 		JOIN clients ON clients.id = client_inbounds.client_id
 		WHERE
-			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','hysteria2')
+			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria')
 			AND clients.sub_id = ? AND inbounds.enable = ?
 	)`, subId, true).Find(&inbounds).Error
 	if err != nil {
@@ -279,7 +279,7 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 		return s.genTrojanLink(inbound, email)
 	case "shadowsocks":
 		return s.genShadowsocksLink(inbound, email)
-	case "hysteria", "hysteria2":
+	case "hysteria":
 		return s.genHysteriaLink(inbound, email)
 	}
 	return ""
@@ -492,7 +492,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 }
 
 func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) string {
-	if !model.IsHysteria(inbound.Protocol) {
+	if inbound.Protocol != model.Hysteria {
 		return ""
 	}
 	var stream map[string]any

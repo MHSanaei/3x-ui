@@ -298,9 +298,9 @@ func extractOutboundEndpoints(ob map[string]any) []outboundEndpoint {
 		return nil
 	}
 
-	// Hysteria (and hysteria2 over trojan) is QUIC/UDP. Detect it via the
-	// outer protocol or via streamSettings.network so trojan-with-hysteria2
-	// transport gets probed over UDP too. kcp and quic are also UDP-based.
+	// Hysteria is QUIC/UDP — detect via the outer protocol or via
+	// streamSettings.network so a trojan-with-hysteria transport gets
+	// probed over UDP too. kcp and quic are also UDP-based.
 	network := "tcp"
 	if protocol == "hysteria" || protocol == "wireguard" {
 		network = "udp"

@@ -183,7 +183,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				if c.Security != "" {
 					entry["method"] = c.Security
 				}
-			case model.Hysteria, model.Hysteria2:
+			case model.Hysteria:
 				if c.Auth != "" {
 					entry["auth"] = c.Auth
 				}
