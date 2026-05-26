@@ -1,4 +1,11 @@
 import { z } from 'zod';
+import { DnsObjectSchema } from './dns';
+import {
+  BalancerObjectSchema,
+  BalancerStrategySettingsSchema,
+  BalancerStrategyTypeSchema,
+  RuleObjectSchema,
+} from './routing';
 
 export const XraySettingsValueSchema = z.object({
   inbounds: z.array(z.unknown()).optional(),
@@ -13,18 +20,11 @@ export const XraySettingsValueSchema = z.object({
     )
     .optional(),
   routing: z.object({
-    rules: z.array(z.object({
-      type: z.string().optional(),
-      outboundTag: z.string().optional(),
-      balancerTag: z.string().optional(),
-    }).loose()).optional(),
-    balancers: z.array(z.unknown()).optional(),
+    rules: z.array(RuleObjectSchema).optional(),
+    balancers: z.array(BalancerObjectSchema).optional(),
     domainStrategy: z.string().optional(),
   }).loose().optional(),
-  dns: z.object({
-    tag: z.string().optional(),
-    servers: z.array(z.unknown()).optional(),
-  }).loose().optional(),
+  dns: DnsObjectSchema.optional(),
   log: z.record(z.string(), z.unknown()).optional(),
   policy: z.object({
     system: z.record(z.string(), z.boolean()).optional(),
@@ -109,9 +109,10 @@ export const RuleFormSchema = z.object({
 
 export const BalancerFormSchema = z.object({
   tag: z.string().trim().min(1, 'pages.xray.balancerTagRequired'),
-  strategy: z.string(),
+  strategy: BalancerStrategyTypeSchema.default('random'),
   selector: z.array(z.string()).min(1, 'pages.xray.balancerSelectorRequired'),
-  fallbackTag: z.string(),
+  fallbackTag: z.string().default(''),
+  settings: BalancerStrategySettingsSchema.optional(),
 });
 
 export const OutboundTagSchema = z

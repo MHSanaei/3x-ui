@@ -791,6 +791,8 @@
       "InboundsDesc": "Accepting the specific clients.",
       "Outbounds": "Outbounds",
       "Balancers": "Balancers",
+      "balancerTagRequired": "Tag is required",
+      "balancerSelectorRequired": "Pick at least one outbound",
       "OutboundsDesc": "Set the outgoing traffic pathway.",
       "Routings": "Routing Rules",
       "RoutingsDesc": "The priority of each rule is important!",

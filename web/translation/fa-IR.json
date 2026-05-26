@@ -791,6 +791,8 @@
       "InboundsDesc": "پذیرش کلاینت خاص",
       "Outbounds": "خروجی‌ها",
       "Balancers": "بالانسرها",
+      "balancerTagRequired": "تگ الزامی است",
+      "balancerSelectorRequired": "حداقل یک outbound انتخاب کنید",
       "OutboundsDesc": "مسیر ترافیک خروجی را تنظیم کنید",
       "Routings": "قوانین مسیریابی",
       "RoutingsDesc": "اولویت هر قانون مهم است",

@@ -8,6 +8,11 @@ import BalancerFormModal from './BalancerFormModal';
 import type { BalancerFormValue } from './BalancerFormModal';
 import JsonEditor from '@/components/JsonEditor';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
+import type {
+  BalancerObject,
+  BalancerStrategySettings,
+  BalancerStrategyType,
+} from '@/schemas/routing';
 
 interface BalancersTabProps {
   templateSettings: XraySettingsValue | null;
@@ -16,19 +21,15 @@ interface BalancersTabProps {
   isMobile: boolean;
 }
 
-interface BalancerRecord {
-  tag: string;
-  selector?: string[];
-  fallbackTag?: string;
-  strategy?: { type?: string };
-}
+type BalancerRecord = BalancerObject;
 
 interface BalancerRow {
   key: number;
   tag: string;
-  strategy: string;
+  strategy: BalancerStrategyType;
   selector: string[];
   fallbackTag: string;
+  settings?: BalancerStrategySettings;
 }
 
 const STRATEGY_LABELS: Record<string, string> = {
@@ -102,9 +103,10 @@ export default function BalancersTab({
     return list.map((b, idx) => ({
       key: idx,
       tag: b.tag || '',
-      strategy: b.strategy?.type || 'random',
+      strategy: (b.strategy?.type ?? 'random') as BalancerStrategyType,
       selector: b.selector || [],
       fallbackTag: b.fallbackTag || '',
+      settings: b.strategy?.settings,
     }));
   }, [templateSettings?.routing?.balancers]);
 
@@ -159,6 +161,9 @@ export default function BalancersTab({
       };
       if (form.strategy && form.strategy !== 'random') {
         wire.strategy = { type: form.strategy };
+        if (form.strategy === 'leastLoad' && form.settings) {
+          wire.strategy.settings = form.settings;
+        }
       }
       if (editingIndex == null) {
         list.push(wire);
@@ -192,84 +197,80 @@ export default function BalancersTab({
     });
   }
 
-  const columns: ColumnsType<BalancerRow> = useMemo(
-    () => [
-      {
-        title: '#',
-        key: 'action',
-        align: 'center',
-        width: 100,
-        render: (_v, _record, index) => (
-          <div className="action-cell">
-            <span className="row-index">{index + 1}</span>
-            <div className={!isMobile ? 'action-buttons' : ''}>
-              {!isMobile && (
-                <Button shape="circle" size="small" icon={<EditOutlined />} onClick={() => openEdit(index)} />
-              )}
-              <Dropdown
-                trigger={['click']}
-                menu={{
-                  items: [
-                    ...(isMobile
-                      ? [
-                          {
-                            key: 'edit',
-                            label: (
-                              <>
-                                <EditOutlined /> {t('edit')}
-                              </>
-                            ),
-                            onClick: () => openEdit(index),
-                          },
-                        ]
-                      : []),
-                    {
-                      key: 'del',
-                      danger: true,
-                      label: (
-                        <>
-                          <DeleteOutlined /> {t('delete')}
-                        </>
-                      ),
-                      onClick: () => confirmDelete(index),
-                    },
-                  ],
-                }}
-              >
-                <Button shape="circle" size="small" icon={<MoreOutlined />} />
-              </Dropdown>
-            </div>
+  const columns: ColumnsType<BalancerRow> = [
+    {
+      title: '#',
+      key: 'action',
+      align: 'center',
+      width: 100,
+      render: (_v, _record, index) => (
+        <div className="action-cell">
+          <span className="row-index">{index + 1}</span>
+          <div className={!isMobile ? 'action-buttons' : ''}>
+            {!isMobile && (
+              <Button shape="circle" size="small" icon={<EditOutlined />} onClick={() => openEdit(index)} />
+            )}
+            <Dropdown
+              trigger={['click']}
+              menu={{
+                items: [
+                  ...(isMobile
+                    ? [
+                        {
+                          key: 'edit',
+                          label: (
+                            <>
+                              <EditOutlined /> {t('edit')}
+                            </>
+                          ),
+                          onClick: () => openEdit(index),
+                        },
+                      ]
+                    : []),
+                  {
+                    key: 'del',
+                    danger: true,
+                    label: (
+                      <>
+                        <DeleteOutlined /> {t('delete')}
+                      </>
+                    ),
+                    onClick: () => confirmDelete(index),
+                  },
+                ],
+              }}
+            >
+              <Button shape="circle" size="small" icon={<MoreOutlined />} />
+            </Dropdown>
           </div>
-        ),
-      },
-      { title: 'Tag', dataIndex: 'tag', key: 'tag', align: 'center', width: 160 },
-      {
-        title: 'Strategy',
-        key: 'strategy',
-        align: 'center',
-        width: 140,
-        render: (_v, record) => (
-          <Tag color={record.strategy === 'random' ? 'purple' : 'green'}>
-            {STRATEGY_LABELS[record.strategy] || record.strategy}
+        </div>
+      ),
+    },
+    { title: 'Tag', dataIndex: 'tag', key: 'tag', align: 'center', width: 160 },
+    {
+      title: 'Strategy',
+      key: 'strategy',
+      align: 'center',
+      width: 140,
+      render: (_v, record) => (
+        <Tag color={record.strategy === 'random' ? 'purple' : 'green'}>
+          {STRATEGY_LABELS[record.strategy] || record.strategy}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Selector',
+      key: 'selector',
+      align: 'center',
+      render: (_v, record) =>
+        (record.selector || []).map((sel) => (
+          <Tag key={sel} className="info-large-tag">
+            {sel}
           </Tag>
-        ),
-      },
-      {
-        title: 'Selector',
-        key: 'selector',
-        align: 'center',
-        render: (_v, record) =>
-          (record.selector || []).map((sel) => (
-            <Tag key={sel} className="info-large-tag">
-              {sel}
-            </Tag>
-          )),
-      },
-      { title: 'Fallback', dataIndex: 'fallbackTag', key: 'fallbackTag', align: 'center', width: 160 },
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, isMobile],
-  );
+        )),
+    },
+    { title: 'Fallback', dataIndex: 'fallbackTag', key: 'fallbackTag', align: 'center', width: 160 },
+  ];
 
   const hasObservatory = !!templateSettings?.observatory;
   const hasBurstObservatory = !!templateSettings?.burstObservatory;
@@ -354,6 +355,7 @@ export default function BalancersTab({
       </Space>
 
       <BalancerFormModal
+        key={modalOpen ? `${editingIndex ?? 'new'}-${editingBalancer?.tag ?? ''}` : 'closed'}
         open={modalOpen}
         balancer={editingBalancer}
         outboundTags={outboundTags}
