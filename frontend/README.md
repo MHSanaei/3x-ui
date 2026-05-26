@@ -1,8 +1,15 @@
 # 3x-ui frontend
 
-React 19 + Ant Design 6 + TypeScript + Vite 8. Multi-page app — one HTML
-entry per panel route — built into `../web/dist/` and embedded into the
-Go binary via `embed.FS`.
+React 19 + Ant Design 6 + TypeScript + Vite 8. Three SPA bundles —
+`index.html` (admin panel SPA, all `/panel/*` routes), `login.html`
+(login + 2FA), and `subpage.html` (public subscription viewer). All
+three are built into `../web/dist/` and embedded into the Go binary
+via `embed.FS`.
+
+State is split between local `useState`, TanStack Query for server
+state, and `useTheme` / `useWebSocket` contexts. Form validation,
+API parsing, and the xray config model all run through a single
+shared Zod schema tree (see [Schemas](#schemas)).
 
 ## Dev
 
@@ -11,14 +18,43 @@ npm install
 npm run dev
 ```
 
-Vite serves on `http://localhost:5173/`. API calls and `/panel/*` routes
-proxy to the Go panel at `http://localhost:2053/`, so start the Go panel
-first (`go run main.go`) and then Vite.
-
-The proxy auto-rewrites `/panel`, `/panel/settings`, `/panel/inbounds`,
-`/panel/xray` to the matching Vite-served HTML in dev mode (see
-`MIGRATED_ROUTES` in `vite.config.js`), so the sidebar's
+Vite serves on `http://localhost:5173/`. API calls and `/panel/*`
+routes proxy to the Go panel at `http://localhost:2053/`, so start
+the Go panel first (`go run main.go`) and then Vite. The proxy
+auto-rewrites `/panel`, `/panel/settings`, `/panel/inbounds`,
+`/panel/xray` to the matching Vite-served HTML, so the sidebar's
 production-style links work without round-tripping through Go.
+
+## Scripts
+
+| Command | What |
+|---|---|
+| `npm run dev` | Vite dev server with API + WS proxy to Go |
+| `npm run build` | Regenerates OpenAPI + Zod, then builds into `../web/dist/` |
+| `npm run preview` | Serve the built bundle locally |
+| `npm run typecheck` | `tsc --noEmit` (strict, no emit) |
+| `npm run lint` | ESLint flat config (`@typescript-eslint` + `react-hooks`) |
+| `npm run test` | Vitest single run (schema fixtures, link parsers, …) |
+| `npm run test:watch` | Vitest watch mode |
+| `npm run gen:api` | Build `public/openapi.json` from `pages/api-docs/endpoints.ts` |
+| `npm run gen:zod` | Run the Go-side openapigen tool → `src/generated/{zod,types}.ts` |
+
+CI runs `typecheck`, `lint`, `test`, and `build` on every PR
+(see `../.github/workflows/ci.yml`).
+
+### One-off: scan for deprecated APIs
+
+Run this command to sweep the codebase for usages of APIs marked
+with the JSDoc `@deprecated` tag (AntD prop renames, Zod renames,
+removed Web APIs, etc.):
+
+```sh
+npx eslint --config eslint.deprecated.config.js src
+```
+
+It's a type-aware ESLint run against `eslint.deprecated.config.js`
+and is not wired into `npm run lint` because typed linting triples
+the wall-clock time.
 
 ## Production build
 
@@ -27,57 +63,139 @@ npm run build
 ```
 
 Outputs to `../web/dist/` (HTML at the root, hashed JS/CSS under
-`assets/`). The Go binary embeds this directory at compile time and
-`web/controller/dist.go` serves the per-page HTML.
-
-## Type check and lint
-
-```sh
-npm run typecheck
-npm run lint
-```
-
-`tsc --noEmit` against `tsconfig.json` (strict mode, `jsx: "react-jsx"`,
-`@/*` → `src/*` alias). ESLint 10 with `eslint.config.js` (flat config)
-— `@eslint/js` recommended plus `typescript-eslint` and
-`eslint-plugin-react-hooks` rules.
+`assets/`). `manualChunks` splits AntD, icons, codemirror, and
+react-query into separate vendor bundles to keep the per-page
+initial JS small. The Go binary embeds this directory at compile
+time and `web/controller/dist.go` serves the per-page HTML.
 
 ## Layout
 
 ```
 frontend/
-├── *.html                 # Vite entry HTML, one per panel route
+├── index.html, login.html, subpage.html  # 3 Vite entries
 ├── tsconfig.json
 ├── eslint.config.js
+├── eslint.deprecated.config.js           # On-demand type-aware lint config that flags
+│                                         #   usages of APIs marked with JSDoc @deprecated
+├── vitest.config.ts
 ├── vite.config.js
+├── scripts/
+│   └── build-openapi.mjs                 # endpoints.ts → openapi.json
 └── src/
-    ├── entries/           # Per-page bootstrap (createRoot + render)
-    ├── pages/             # One folder per route, each with the page
-    │   ├── index/         # component + helpers + sub-components
-    │   ├── login/
-    │   ├── inbounds/
-    │   ├── clients/
-    │   ├── xray/
-    │   ├── nodes/
-    │   ├── settings/
-    │   ├── api-docs/
-    │   └── sub/
-    ├── components/        # Cross-page React components
-    ├── hooks/             # Reusable hooks (useTheme, useWebSocket, …)
-    ├── api/               # Axios setup, CSRF interceptor, WebSocket
-    ├── i18n/              # react-i18next init (locales live in web/translation/)
-    ├── models/            # Inbound, Outbound, Status, … domain classes
-    ├── styles/            # Shared CSS modules (page-cards, …)
-    └── utils/             # HttpUtil, ObjectUtil, LanguageManager, …
+    ├── entries/         # Per-page bootstrap (createRoot + render)
+    ├── main.tsx         # Shared root for the admin SPA (index.html)
+    ├── routes.tsx       # react-router routes mounted under /panel/
+    ├── pages/           # One folder per route, page component + helpers
+    │   ├── index/, login/, inbounds/, clients/, xray/, nodes/,
+    │   ├── settings/, api-docs/, sub/
+    ├── layouts/         # AdminLayout (sidebar + header + outlet)
+    ├── components/      # Cross-page React components
+    ├── hooks/           # useClients, useTheme, useWebSocket, …
+    ├── api/             # Axios + CSRF interceptor, TanStack Query bridge,
+    │                    #   WebSocket client + queryClient.ts
+    ├── i18n/            # react-i18next init (locales in web/translation/)
+    ├── lib/xray/        # Pure functions: link generation, defaults,
+    │                    #   form ⇄ wire adapters, protocol capabilities
+    ├── schemas/         # Zod source-of-truth (see "Schemas" below)
+    ├── generated/       # Code-generated zod + ts types from Go
+    │                    #   (DO NOT hand-edit — regenerated by gen:zod)
+    ├── models/          # Thin legacy types still in transit
+    │                    #   (DBInbound, Status, AllSetting, reality-targets)
+    ├── styles/          # Shared CSS modules
+    ├── test/            # Vitest specs + golden fixtures
+    │   ├── *.test.ts
+    │   ├── __snapshots__/
+    │   └── golden/fixtures/  # Per-(protocol × network × security) JSON
+    └── utils/           # HttpUtil, ClipboardManager, SizeFormatter, …
 ```
+
+## Schemas
+
+`src/schemas/` is the single source of truth for the xray
+configuration model. Every API response is parsed through it,
+every form field is validated against it, and TypeScript types
+are inferred via `z.infer<typeof X>` — never hand-written.
+
+```
+schemas/
+├── primitives/      # Atomic reusable schemas (port, protocol, sniffing, …)
+├── api/             # Backend response shapes (e.g. SlimInboundSchema)
+├── forms/           # User-facing form shapes (narrower than api/)
+├── protocols/
+│   ├── inbound/     # Per-protocol settings (vmess, vless, trojan, …)
+│   ├── outbound/
+│   ├── stream/      # Network transports (tcp, ws, grpc, xhttp, kcp, …)
+│   └── security/    # TLS, Reality, none
+├── client.ts, dns.ts, routing.ts, setting.ts, status.ts, xray.ts
+└── _envelope.ts     # Generic `Msg<T>` envelope wrapper
+```
+
+Patterns:
+
+- **Discriminated unions** for polymorphic data — inbound `settings`
+  is `z.discriminatedUnion('protocol', […])`, same for stream and
+  security.
+- **Three validation layers**, non-overlapping:
+  - API boundary: `parseMsg(msg, schema, ctx)` inside TanStack
+    Query `queryFn` — warn-only in prod, throws in dev
+  - Form input: `antdRule(schema.shape.field)` on every `<Form.Item>` —
+    blocks submit + per-field inline error
+  - Wire request: `Schema.parse(payload)` inside `mutationFn` — throws,
+    because a malformed payload here is always a developer bug
+- **No `.loose()` or `[key: string]: any`** in production schemas.
+  `@typescript-eslint/no-explicit-any: error` is enforced.
+
+## Form pattern (Pattern A)
+
+All non-trivial modals use this single pattern:
+
+```tsx
+const [form] = Form.useForm<InboundFormValues>();
+
+const onFinish = async () => {
+  const values = await form.validateFields();
+  await createInbound.mutateAsync(values);
+};
+
+<Form form={form} onFinish={onFinish}>
+  <Form.Item
+    name="port"
+    label="Port"
+    rules={[antdRule(InboundFormSchema.shape.port, t)]}
+  >
+    <InputNumber min={1} max={65535} />
+  </Form.Item>
+</Form>
+```
+
+No `safeParse`-on-submit handlers, no `useRef<any>` for form
+references, no inline `z.string().min(1)` in rules. Conditional
+fields use `<Form.Item dependencies={...} shouldUpdate>` with the
+nested protocol schema.
+
+## Testing
+
+Vitest runs everything under `src/test/`. Schemas have **golden
+fixture suites** — one JSON per `(protocol × network × security)`
+combination round-tripped through `schema.parse` → link generator
+→ snapshot. Regenerate snapshots after intentional changes:
+
+```sh
+npx vitest run -u
+```
+
+Fixtures live in `src/test/golden/fixtures/` and are auto-discovered
+via `import.meta.glob`.
 
 ## Adding a new page
 
-1. Add `frontend/<page>.html` referencing `/src/entries/<page>.tsx`.
-2. Add `src/entries/<page>.tsx` that imports the page component and
-   mounts it with `createRoot(...).render(...)`.
-3. Add the page component under `src/pages/<page>/`.
-4. Register the entry in `rollupOptions.input` in `vite.config.js`.
-5. If the page is reachable from the sidebar at `/panel/<route>`, add
-   it to `MIGRATED_ROUTES` so the dev proxy serves the Vite HTML.
-6. Wire the Go controller to `serveDistPage(c, "<page>.html")`.
+Most new routes go inside the admin SPA (`index.html`) via
+`routes.tsx` — no new HTML or Vite entry needed.
+
+1. Add the page component under `src/pages/<page>/`.
+2. Register it in `src/routes.tsx` under the `/panel/...` tree.
+3. If you need a brand-new top-level bundle (login-style standalone
+   page), add the HTML at `frontend/<page>.html`, an entry at
+   `src/entries/<page>.tsx`, and register it in `rollupOptions.input`
+   in `vite.config.js`. Then add the Go controller call to
+   `serveDistPage(c, "<page>.html")`.
