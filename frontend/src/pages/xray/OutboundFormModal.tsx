@@ -203,6 +203,26 @@ export default function OutboundFormModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamAllowed, network]);
 
+  // Wireguard pubKey is a UI-only field derived from secretKey on every
+  // edit. The legacy modal did the same on every keystroke. We re-derive
+  // here so paste-in secret keys immediately surface the matching pub.
+  const wgSecretKey = Form.useWatch(['settings', 'secretKey'], form) as string | undefined;
+  useEffect(() => {
+    if (protocol !== 'wireguard') return;
+    const sk = (wgSecretKey ?? '').trim();
+    if (!sk) {
+      form.setFieldValue(['settings', 'pubKey'], '');
+      return;
+    }
+    try {
+      const { publicKey } = Wireguard.generateKeypair(sk);
+      form.setFieldValue(['settings', 'pubKey'], publicKey);
+    } catch {
+      form.setFieldValue(['settings', 'pubKey'], '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [protocol, wgSecretKey]);
+
   // Switching protocol resets the settings sub-object to fresh defaults
   // so leftover fields from the previous protocol do not bleed through.
   // The adapter's rawOutboundToFormValues seeds whatever the new protocol
@@ -1054,12 +1074,72 @@ export default function OutboundFormModal({
                                         form.setFieldValue(
                                           ['streamSettings', 'tcpSettings', 'header'],
                                           checked
-                                            ? { type: 'http', request: undefined, response: undefined }
+                                            ? {
+                                                type: 'http',
+                                                request: {
+                                                  version: '1.1',
+                                                  method: 'GET',
+                                                  path: ['/'],
+                                                  headers: {},
+                                                },
+                                                response: undefined,
+                                              }
                                             : { type: 'none' },
                                         )
                                       }
                                     />
                                   </Form.Item>
+                                  {type === 'http' && (
+                                    <>
+                                      {/* Host is stored as a string[] on the
+                                          wire (V2 header map: { Host: [...] }).
+                                          The form-level normalize/getValueProps
+                                          translate to/from a comma-joined input
+                                          so the user types one Host:contentReference[oaicite:0]{index=0} value per
+                                          server they want camouflaged. */}
+                                      <Form.Item
+                                        label={t('host')}
+                                        name={[
+                                          'streamSettings',
+                                          'tcpSettings',
+                                          'header',
+                                          'request',
+                                          'headers',
+                                          'Host',
+                                        ]}
+                                        normalize={(v: unknown) =>
+                                          typeof v === 'string'
+                                            ? v.split(',').map((s) => s.trim()).filter(Boolean)
+                                            : Array.isArray(v) ? v : []
+                                        }
+                                        getValueProps={(v: unknown) => ({
+                                          value: Array.isArray(v) ? v.join(',') : '',
+                                        })}
+                                      >
+                                        <Input placeholder="example.com,cdn.example.com" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label={t('path')}
+                                        name={[
+                                          'streamSettings',
+                                          'tcpSettings',
+                                          'header',
+                                          'request',
+                                          'path',
+                                        ]}
+                                        normalize={(v: unknown) =>
+                                          typeof v === 'string'
+                                            ? v.split(',').map((s) => s.trim()).filter(Boolean)
+                                            : Array.isArray(v) ? v : ['/']
+                                        }
+                                        getValueProps={(v: unknown) => ({
+                                          value: Array.isArray(v) ? v.join(',') : '/',
+                                        })}
+                                      >
+                                        <Input placeholder="/,/api,/static" />
+                                      </Form.Item>
+                                    </>
+                                  )}
                                 </>
                               );
                             }}
@@ -1204,6 +1284,42 @@ export default function OutboundFormModal({
                         />
                       </Form.Item>
                     )}
+
+                    {/* Vision seed knobs only meaningful for the exact
+                        xtls-rprx-vision flow, on TCP+(tls|reality). The
+                        legacy class gated this on `canEnableVisionSeed()`
+                        — same condition encoded inline here. */}
+                    <Form.Item shouldUpdate noStyle>
+                      {() => {
+                        const flow =
+                          (form.getFieldValue(['settings', 'flow']) ?? '') as string;
+                        if (!(tlsFlowAllowed && flow === 'xtls-rprx-vision')) return null;
+                        return (
+                          <>
+                            <Form.Item label="Vision testpre" name={['settings', 'testpre']}>
+                              <InputNumber min={0} style={{ width: '100%' }} />
+                            </Form.Item>
+                            <Form.Item
+                              label="Vision testseed"
+                              name={['settings', 'testseed']}
+                              normalize={(v: unknown) =>
+                                Array.isArray(v)
+                                  ? v
+                                      .map((x) => Number(x))
+                                      .filter((n) => Number.isInteger(n) && n > 0)
+                                  : []
+                              }
+                            >
+                              <Select
+                                mode="tags"
+                                tokenSeparators={[',', ' ']}
+                                placeholder="four positive integers"
+                              />
+                            </Form.Item>
+                          </>
+                        );
+                      }}
+                    </Form.Item>
 
                     {streamAllowed && network && (
                       <Form.Item label={t('security')}>
