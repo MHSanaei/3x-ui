@@ -32,7 +32,15 @@ import {
   type InboundFormValues,
 } from '@/schemas/forms/inbound-form';
 import { antdRule } from '@/utils/zodForm';
-import { Protocols, SNIFFING_OPTION } from '@/schemas/primitives';
+import {
+  ALPN_OPTION,
+  DOMAIN_STRATEGY_OPTION,
+  Protocols,
+  SNIFFING_OPTION,
+  TCP_CONGESTION_OPTION,
+  UTLS_FINGERPRINT,
+} from '@/schemas/primitives';
+import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import DateTimePicker from '@/components/DateTimePicker';
 import InputAddon from '@/components/InputAddon';
 import type { DBInbound } from '@/models/dbinbound';
@@ -112,6 +120,38 @@ export default function InboundFormModalNew({
   const xhttpSessionPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'sessionPlacement'], form);
   const xhttpSeqPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'seqPlacement'], form);
   const xhttpUplinkPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'uplinkDataPlacement'], form);
+  const externalProxyArr = Form.useWatch(['streamSettings', 'externalProxy'], form);
+  const externalProxyOn = Array.isArray(externalProxyArr) && externalProxyArr.length > 0;
+  const sockoptValue = Form.useWatch(['streamSettings', 'sockopt'], form);
+  const sockoptOn = !!sockoptValue && typeof sockoptValue === 'object' && Object.keys(sockoptValue as object).length > 0;
+
+  const toggleExternalProxy = (on: boolean) => {
+    if (on) {
+      const port = (form.getFieldValue('port') as number) ?? 443;
+      form.setFieldValue(['streamSettings', 'externalProxy'], [{
+        forceTls: 'same',
+        dest: typeof window !== 'undefined' ? window.location.hostname : '',
+        port,
+        remark: '',
+        sni: '',
+        fingerprint: '',
+        alpn: [],
+      }]);
+    } else {
+      form.setFieldValue(['streamSettings', 'externalProxy'], []);
+    }
+  };
+
+  const toggleSockopt = (on: boolean) => {
+    if (on) {
+      form.setFieldValue(
+        ['streamSettings', 'sockopt'],
+        SockoptStreamSettingsSchema.parse({}),
+      );
+    } else {
+      form.setFieldValue(['streamSettings', 'sockopt'], undefined);
+    }
+  };
   const wgSecretKey = Form.useWatch(['settings', 'secretKey'], form);
   const wgPubKey = typeof wgSecretKey === 'string' && wgSecretKey.length > 0
     ? Wireguard.generateKeypair(wgSecretKey).publicKey
@@ -1103,6 +1143,218 @@ export default function InboundFormModalNew({
             label="Max Sending Window"
           >
             <InputNumber min={0} />
+          </Form.Item>
+        </>
+      )}
+
+      <Form.Item label="External Proxy">
+        <Switch checked={externalProxyOn} onChange={toggleExternalProxy} />
+      </Form.Item>
+      {externalProxyOn && (
+        <Form.List name={['streamSettings', 'externalProxy']}>
+          {(fields, { add, remove }) => (
+            <>
+              <Form.Item label=" " colon={false}>
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => add({
+                    forceTls: 'same',
+                    dest: '',
+                    port: 443,
+                    remark: '',
+                    sni: '',
+                    fingerprint: '',
+                    alpn: [],
+                  })}
+                >
+                  <PlusOutlined />
+                </Button>
+              </Form.Item>
+              <Form.Item wrapperCol={{ span: 24 }}>
+                {fields.map((field) => (
+                  <div key={field.key} style={{ margin: '8px 0' }}>
+                    <Space.Compact block>
+                      <Form.Item name={[field.name, 'forceTls']} noStyle>
+                        <Select style={{ width: '20%' }}>
+                          <Select.Option value="same">{t('pages.inbounds.same')}</Select.Option>
+                          <Select.Option value="none">{t('none')}</Select.Option>
+                          <Select.Option value="tls">TLS</Select.Option>
+                        </Select>
+                      </Form.Item>
+                      <Form.Item name={[field.name, 'dest']} noStyle>
+                        <Input style={{ width: '30%' }} placeholder={t('host')} />
+                      </Form.Item>
+                      <Form.Item name={[field.name, 'port']} noStyle>
+                        <InputNumber style={{ width: '15%' }} min={1} max={65535} />
+                      </Form.Item>
+                      <Form.Item name={[field.name, 'remark']} noStyle>
+                        <Input style={{ width: '25%' }} placeholder={t('pages.inbounds.remark')} />
+                      </Form.Item>
+                      <InputAddon onClick={() => remove(field.name)}>
+                        <MinusOutlined />
+                      </InputAddon>
+                    </Space.Compact>
+                    <Form.Item
+                      noStyle
+                      shouldUpdate={(prev, curr) =>
+                        prev.streamSettings?.externalProxy?.[field.name]?.forceTls
+                        !== curr.streamSettings?.externalProxy?.[field.name]?.forceTls
+                      }
+                    >
+                      {({ getFieldValue }) => {
+                        const ft = getFieldValue([
+                          'streamSettings', 'externalProxy', field.name, 'forceTls',
+                        ]);
+                        if (ft !== 'tls') return null;
+                        return (
+                          <Space.Compact style={{ marginTop: 6 }} block>
+                            <Form.Item name={[field.name, 'sni']} noStyle>
+                              <Input style={{ width: '30%' }} placeholder="SNI (defaults to host)" />
+                            </Form.Item>
+                            <Form.Item name={[field.name, 'fingerprint']} noStyle>
+                              <Select style={{ width: '30%' }} placeholder="Fingerprint">
+                                <Select.Option value="">Default</Select.Option>
+                                {Object.values(UTLS_FINGERPRINT).map((fp) => (
+                                  <Select.Option key={fp} value={fp}>{fp}</Select.Option>
+                                ))}
+                              </Select>
+                            </Form.Item>
+                            <Form.Item name={[field.name, 'alpn']} noStyle>
+                              <Select mode="multiple" style={{ width: '40%' }} placeholder="ALPN">
+                                {Object.values(ALPN_OPTION).map((a) => (
+                                  <Select.Option key={a} value={a}>{a}</Select.Option>
+                                ))}
+                              </Select>
+                            </Form.Item>
+                          </Space.Compact>
+                        );
+                      }}
+                    </Form.Item>
+                  </div>
+                ))}
+              </Form.Item>
+            </>
+          )}
+        </Form.List>
+      )}
+
+      <Form.Item label="Sockopt">
+        <Switch checked={sockoptOn} onChange={toggleSockopt} />
+      </Form.Item>
+      {sockoptOn && (
+        <>
+          <Form.Item name={['streamSettings', 'sockopt', 'mark']} label="Route Mark">
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'tcpKeepAliveInterval']}
+            label="TCP Keep Alive Interval"
+          >
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'tcpKeepAliveIdle']}
+            label="TCP Keep Alive Idle"
+          >
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'sockopt', 'tcpMaxSeg']} label="TCP Max Seg">
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'tcpUserTimeout']}
+            label="TCP User Timeout"
+          >
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'tcpWindowClamp']}
+            label="TCP Window Clamp"
+          >
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'acceptProxyProtocol']}
+            label="Proxy Protocol"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'tcpFastOpen']}
+            label="TCP Fast Open"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'tcpMptcp']}
+            label="Multipath TCP"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'penetrate']}
+            label="Penetrate"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'V6Only']}
+            label="V6 Only"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'domainStrategy']}
+            label="Domain Strategy"
+          >
+            <Select style={{ width: '50%' }}>
+              {Object.values(DOMAIN_STRATEGY_OPTION).map((d) => (
+                <Select.Option key={d} value={d}>{d}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'tcpcongestion']}
+            label="TCP Congestion"
+          >
+            <Select style={{ width: '50%' }}>
+              {Object.values(TCP_CONGESTION_OPTION).map((c) => (
+                <Select.Option key={c} value={c}>{c}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'sockopt', 'tproxy']} label="TProxy">
+            <Select style={{ width: '50%' }}>
+              <Select.Option value="off">Off</Select.Option>
+              <Select.Option value="redirect">Redirect</Select.Option>
+              <Select.Option value="tproxy">TProxy</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'sockopt', 'dialerProxy']} label="Dialer Proxy">
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'interfaceName']}
+            label="Interface Name"
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'sockopt', 'trustedXForwardedFor']}
+            label="Trusted X-Forwarded-For"
+          >
+            <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']}>
+              <Select.Option value="CF-Connecting-IP">CF-Connecting-IP</Select.Option>
+              <Select.Option value="X-Real-IP">X-Real-IP</Select.Option>
+              <Select.Option value="True-Client-IP">True-Client-IP</Select.Option>
+              <Select.Option value="X-Client-IP">X-Client-IP</Select.Option>
+            </Select>
           </Form.Item>
         </>
       )}
