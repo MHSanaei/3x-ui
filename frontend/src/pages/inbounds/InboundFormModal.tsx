@@ -1234,6 +1234,12 @@ export default function InboundFormModal({
                                 path: ['/'],
                                 headers: {},
                               },
+                              response: {
+                                version: '1.1',
+                                status: '200',
+                                reason: 'OK',
+                                headers: {},
+                              },
                             }
                           : { type: 'none' },
                       );
@@ -1294,6 +1300,56 @@ export default function InboundFormModal({
                     })}
                   >
                     <Input placeholder="/,/api,/static" />
+                  </Form.Item>
+                  <Form.Item
+                    label="Request headers"
+                    name={[
+                      'streamSettings', 'tcpSettings', 'header',
+                      'request', 'headers',
+                    ]}
+                  >
+                    <HeaderMapEditor mode="v2" />
+                  </Form.Item>
+
+                  {/* Response side: shaped as a separate sub-object on the
+                      wire ({version, status, reason, headers}). Inbound is
+                      the server, so the response side is the one the panel
+                      sends back to clients during HTTP camouflage. */}
+                  <Form.Item
+                    label="Response version"
+                    name={[
+                      'streamSettings', 'tcpSettings', 'header',
+                      'response', 'version',
+                    ]}
+                  >
+                    <Input placeholder="1.1" />
+                  </Form.Item>
+                  <Form.Item
+                    label="Response status"
+                    name={[
+                      'streamSettings', 'tcpSettings', 'header',
+                      'response', 'status',
+                    ]}
+                  >
+                    <Input placeholder="200" />
+                  </Form.Item>
+                  <Form.Item
+                    label="Response reason"
+                    name={[
+                      'streamSettings', 'tcpSettings', 'header',
+                      'response', 'reason',
+                    ]}
+                  >
+                    <Input placeholder="OK" />
+                  </Form.Item>
+                  <Form.Item
+                    label="Response headers"
+                    name={[
+                      'streamSettings', 'tcpSettings', 'header',
+                      'response', 'headers',
+                    ]}
+                  >
+                    <HeaderMapEditor mode="v2" />
                   </Form.Item>
                 </>
               );
