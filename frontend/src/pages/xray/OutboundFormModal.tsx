@@ -1136,7 +1136,12 @@ export default function OutboundFormModal({
                                                   path: ['/'],
                                                   headers: {},
                                                 },
-                                                response: undefined,
+                                                response: {
+                                                  version: '1.1',
+                                                  status: '200',
+                                                  reason: 'OK',
+                                                  headers: {},
+                                                },
                                               }
                                             : { type: 'none' },
                                         )
@@ -1145,12 +1150,24 @@ export default function OutboundFormModal({
                                   </Form.Item>
                                   {type === 'http' && (
                                     <>
-                                      {/* Host is stored as a string[] on the
-                                          wire (V2 header map: { Host: [...] }).
-                                          The form-level normalize/getValueProps
-                                          translate to/from a comma-joined input
-                                          so the user types one Host:contentReference[oaicite:0]{index=0} value per
-                                          server they want camouflaged. */}
+                                      <Form.Item
+                                        label="Request method"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'request', 'method',
+                                        ]}
+                                      >
+                                        <Input placeholder="GET" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label="Request version"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'request', 'version',
+                                        ]}
+                                      >
+                                        <Input placeholder="1.1" />
+                                      </Form.Item>
                                       <Form.Item
                                         label={t('host')}
                                         name={[
@@ -1191,6 +1208,52 @@ export default function OutboundFormModal({
                                         })}
                                       >
                                         <Input placeholder="/,/api,/static" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label="Request headers"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'request', 'headers',
+                                        ]}
+                                      >
+                                        <HeaderMapEditor mode="v2" />
+                                      </Form.Item>
+
+                                      <Form.Item
+                                        label="Response version"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'response', 'version',
+                                        ]}
+                                      >
+                                        <Input placeholder="1.1" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label="Response status"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'response', 'status',
+                                        ]}
+                                      >
+                                        <Input placeholder="200" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label="Response reason"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'response', 'reason',
+                                        ]}
+                                      >
+                                        <Input placeholder="OK" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label="Response headers"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'response', 'headers',
+                                        ]}
+                                      >
+                                        <HeaderMapEditor mode="v2" />
                                       </Form.Item>
                                     </>
                                   )}
