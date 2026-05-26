@@ -95,7 +95,7 @@ export default function InboundFormModalNew({
   const [saving, setSaving] = useState(false);
 
   const selectableNodes = (availableNodes || []).filter((n) => n.enable);
-  const protocol = Form.useWatch('protocol', form) ?? '';
+  const protocol = (Form.useWatch('protocol', form) ?? '') as string;
   const isNodeEligible = NODE_ELIGIBLE_PROTOCOLS.has(protocol);
   const sniffingEnabled = Form.useWatch(['sniffing', 'enabled'], form) ?? false;
   const vlessEncryption = Form.useWatch(['settings', 'encryption'], form) ?? '';
@@ -336,6 +336,93 @@ export default function InboundFormModalNew({
 
   const protocolTab = (
     <>
+      {protocol === Protocols.TUN && (
+        <>
+          <Form.Item name={['settings', 'name']} label="Interface name">
+            <Input placeholder="xray0" />
+          </Form.Item>
+          <Form.Item name={['settings', 'mtu']} label="MTU">
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.List name={['settings', 'gateway']}>
+            {(fields, { add, remove }) => (
+              <Form.Item label="Gateway">
+                <Button size="small" onClick={() => add('')}>
+                  <PlusOutlined />
+                </Button>
+                {fields.map((field, j) => (
+                  <Space.Compact key={field.key} block className="mt-4">
+                    <Form.Item name={field.name} noStyle>
+                      <Input placeholder={j === 0 ? '10.0.0.1/16' : 'fc00::1/64'} />
+                    </Form.Item>
+                    <Button size="small" onClick={() => remove(field.name)}>
+                      <MinusOutlined />
+                    </Button>
+                  </Space.Compact>
+                ))}
+              </Form.Item>
+            )}
+          </Form.List>
+          <Form.List name={['settings', 'dns']}>
+            {(fields, { add, remove }) => (
+              <Form.Item label="DNS">
+                <Button size="small" onClick={() => add('')}>
+                  <PlusOutlined />
+                </Button>
+                {fields.map((field, j) => (
+                  <Space.Compact key={field.key} block className="mt-4">
+                    <Form.Item name={field.name} noStyle>
+                      <Input placeholder={j === 0 ? '1.1.1.1' : '8.8.8.8'} />
+                    </Form.Item>
+                    <Button size="small" onClick={() => remove(field.name)}>
+                      <MinusOutlined />
+                    </Button>
+                  </Space.Compact>
+                ))}
+              </Form.Item>
+            )}
+          </Form.List>
+          <Form.Item name={['settings', 'userLevel']} label="User level">
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.List name={['settings', 'autoSystemRoutingTable']}>
+            {(fields, { add, remove }) => (
+              <Form.Item
+                label={
+                  <Tooltip title="Windows-only. CIDRs added to the system routing table automatically so matching traffic goes through TUN.">
+                    Auto system routes
+                  </Tooltip>
+                }
+              >
+                <Button size="small" onClick={() => add('')}>
+                  <PlusOutlined />
+                </Button>
+                {fields.map((field, j) => (
+                  <Space.Compact key={field.key} block className="mt-4">
+                    <Form.Item name={field.name} noStyle>
+                      <Input placeholder={j === 0 ? '0.0.0.0/0' : '::/0'} />
+                    </Form.Item>
+                    <Button size="small" onClick={() => remove(field.name)}>
+                      <MinusOutlined />
+                    </Button>
+                  </Space.Compact>
+                ))}
+              </Form.Item>
+            )}
+          </Form.List>
+          <Form.Item
+            name={['settings', 'autoOutboundsInterface']}
+            label={
+              <Tooltip title="Physical interface for outbound traffic. Use 'auto' to detect; auto-enabled when Auto system routes is set.">
+                Auto outbounds interface
+              </Tooltip>
+            }
+          >
+            <Input placeholder="auto" />
+          </Form.Item>
+        </>
+      )}
+
       {protocol === Protocols.TUNNEL && (
         <>
           <Form.Item name={['settings', 'rewriteAddress']} label="Rewrite address">
@@ -627,6 +714,7 @@ export default function InboundFormModalNew({
               Protocols.HTTP,
               Protocols.MIXED,
               Protocols.TUNNEL,
+              Protocols.TUN,
             ] as string[]).includes(protocol)
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab }]
               : []),
