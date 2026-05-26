@@ -524,6 +524,7 @@ export default function ClientsPage() {
           <div className="email-cell">
             <span className="email">{record.email}</span>
             {record.subId && <span className="sub" title={record.subId}>{record.subId}</span>}
+            {record.comment && <span className="sub" title={record.comment}>{record.comment}</span>}
           </div>
         ),
       }, 'email'),
