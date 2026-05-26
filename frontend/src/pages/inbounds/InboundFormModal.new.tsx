@@ -107,6 +107,11 @@ export default function InboundFormModalNew({
   const mixedUdpOn = Form.useWatch(['settings', 'udp'], form) ?? false;
   const network = Form.useWatch(['streamSettings', 'network'], form) ?? '';
   const streamEnabled = canEnableStream({ protocol });
+  const xhttpMode = Form.useWatch(['streamSettings', 'xhttpSettings', 'mode'], form);
+  const xhttpObfsMode = Form.useWatch(['streamSettings', 'xhttpSettings', 'xPaddingObfsMode'], form) ?? false;
+  const xhttpSessionPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'sessionPlacement'], form);
+  const xhttpSeqPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'seqPlacement'], form);
+  const xhttpUplinkPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'uplinkDataPlacement'], form);
   const wgSecretKey = Form.useWatch(['settings', 'secretKey'], form);
   const wgPubKey = typeof wgSecretKey === 'string' && wgSecretKey.length > 0
     ? Wireguard.generateKeypair(wgSecretKey).publicKey
@@ -859,6 +864,189 @@ export default function InboundFormModalNew({
           <Form.Item
             name={['streamSettings', 'grpcSettings', 'multiMode']}
             label="Multi Mode"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </>
+      )}
+
+      {network === 'xhttp' && (
+        <>
+          <Form.Item name={['streamSettings', 'xhttpSettings', 'host']} label={t('host')}>
+            <Input />
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'xhttpSettings', 'path']} label={t('path')}>
+            <Input />
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'xhttpSettings', 'mode']} label="Mode">
+            <Select style={{ width: '50%' }}>
+              {(['auto', 'packet-up', 'stream-up', 'stream-one'] as const).map((m) => (
+                <Select.Option key={m} value={m}>{m}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          {xhttpMode === 'packet-up' && (
+            <>
+              <Form.Item
+                name={['streamSettings', 'xhttpSettings', 'scMaxBufferedPosts']}
+                label="Max Buffered Upload"
+              >
+                <InputNumber />
+              </Form.Item>
+              <Form.Item
+                name={['streamSettings', 'xhttpSettings', 'scMaxEachPostBytes']}
+                label="Max Upload Size (Byte)"
+              >
+                <Input />
+              </Form.Item>
+            </>
+          )}
+          {xhttpMode === 'stream-up' && (
+            <Form.Item
+              name={['streamSettings', 'xhttpSettings', 'scStreamUpServerSecs']}
+              label="Stream-Up Server"
+            >
+              <Input />
+            </Form.Item>
+          )}
+          <Form.Item
+            name={['streamSettings', 'xhttpSettings', 'serverMaxHeaderBytes']}
+            label="Server Max Header Bytes"
+          >
+            <InputNumber min={0} placeholder="0 (default)" />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'xhttpSettings', 'xPaddingBytes']}
+            label="Padding Bytes"
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'xhttpSettings', 'uplinkHTTPMethod']}
+            label="Uplink HTTP Method"
+          >
+            <Select>
+              <Select.Option value="">Default (POST)</Select.Option>
+              <Select.Option value="POST">POST</Select.Option>
+              <Select.Option value="PUT">PUT</Select.Option>
+              <Select.Option value="GET" disabled={xhttpMode !== 'packet-up'}>
+                GET (packet-up only)
+              </Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'xhttpSettings', 'xPaddingObfsMode']}
+            label="Padding Obfs Mode"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          {xhttpObfsMode && (
+            <>
+              <Form.Item
+                name={['streamSettings', 'xhttpSettings', 'xPaddingKey']}
+                label="Padding Key"
+              >
+                <Input placeholder="x_padding" />
+              </Form.Item>
+              <Form.Item
+                name={['streamSettings', 'xhttpSettings', 'xPaddingHeader']}
+                label="Padding Header"
+              >
+                <Input placeholder="X-Padding" />
+              </Form.Item>
+              <Form.Item
+                name={['streamSettings', 'xhttpSettings', 'xPaddingPlacement']}
+                label="Padding Placement"
+              >
+                <Select>
+                  <Select.Option value="">Default (queryInHeader)</Select.Option>
+                  <Select.Option value="queryInHeader">queryInHeader</Select.Option>
+                  <Select.Option value="header">header</Select.Option>
+                  <Select.Option value="cookie">cookie</Select.Option>
+                  <Select.Option value="query">query</Select.Option>
+                </Select>
+              </Form.Item>
+              <Form.Item
+                name={['streamSettings', 'xhttpSettings', 'xPaddingMethod']}
+                label="Padding Method"
+              >
+                <Select>
+                  <Select.Option value="">Default (repeat-x)</Select.Option>
+                  <Select.Option value="repeat-x">repeat-x</Select.Option>
+                  <Select.Option value="tokenish">tokenish</Select.Option>
+                </Select>
+              </Form.Item>
+            </>
+          )}
+          <Form.Item
+            name={['streamSettings', 'xhttpSettings', 'sessionPlacement']}
+            label="Session Placement"
+          >
+            <Select>
+              <Select.Option value="">Default (path)</Select.Option>
+              <Select.Option value="path">path</Select.Option>
+              <Select.Option value="header">header</Select.Option>
+              <Select.Option value="cookie">cookie</Select.Option>
+              <Select.Option value="query">query</Select.Option>
+            </Select>
+          </Form.Item>
+          {xhttpSessionPlacement && xhttpSessionPlacement !== 'path' && (
+            <Form.Item
+              name={['streamSettings', 'xhttpSettings', 'sessionKey']}
+              label="Session Key"
+            >
+              <Input placeholder="x_session" />
+            </Form.Item>
+          )}
+          <Form.Item
+            name={['streamSettings', 'xhttpSettings', 'seqPlacement']}
+            label="Sequence Placement"
+          >
+            <Select>
+              <Select.Option value="">Default (path)</Select.Option>
+              <Select.Option value="path">path</Select.Option>
+              <Select.Option value="header">header</Select.Option>
+              <Select.Option value="cookie">cookie</Select.Option>
+              <Select.Option value="query">query</Select.Option>
+            </Select>
+          </Form.Item>
+          {xhttpSeqPlacement && xhttpSeqPlacement !== 'path' && (
+            <Form.Item
+              name={['streamSettings', 'xhttpSettings', 'seqKey']}
+              label="Sequence Key"
+            >
+              <Input placeholder="x_seq" />
+            </Form.Item>
+          )}
+          {xhttpMode === 'packet-up' && (
+            <>
+              <Form.Item
+                name={['streamSettings', 'xhttpSettings', 'uplinkDataPlacement']}
+                label="Uplink Data Placement"
+              >
+                <Select>
+                  <Select.Option value="">Default (body)</Select.Option>
+                  <Select.Option value="body">body</Select.Option>
+                  <Select.Option value="header">header</Select.Option>
+                  <Select.Option value="cookie">cookie</Select.Option>
+                  <Select.Option value="query">query</Select.Option>
+                </Select>
+              </Form.Item>
+              {xhttpUplinkPlacement && xhttpUplinkPlacement !== 'body' && (
+                <Form.Item
+                  name={['streamSettings', 'xhttpSettings', 'uplinkDataKey']}
+                  label="Uplink Data Key"
+                >
+                  <Input placeholder="x_data" />
+                </Form.Item>
+              )}
+            </>
+          )}
+          <Form.Item
+            name={['streamSettings', 'xhttpSettings', 'noSSEHeader']}
+            label="No SSE Header"
             valuePropName="checked"
           >
             <Switch />
