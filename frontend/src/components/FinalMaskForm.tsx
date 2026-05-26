@@ -156,7 +156,6 @@ function TcpMaskItem({
   onRemove: () => void;
 }) {
   const path = [...base, 'tcp', index];
-  const type = Form.useWatch([...path, 'type'], form) as string | undefined;
 
   return (
     <div>
@@ -176,47 +175,60 @@ function TcpMaskItem({
         />
       </Form.Item>
 
-      {type === 'fragment' && (
-        <>
-          <Form.Item label="Packets" name={[...path, 'settings', 'packets']}>
-            <Select
-              options={[
-                { value: 'tlshello', label: 'tlshello' },
-                { value: '1-3', label: '1-3' },
-                { value: '1-5', label: '1-5' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item label="Length" name={[...path, 'settings', 'length']}>
-            <Input />
-          </Form.Item>
-          <Form.Item label="Delay" name={[...path, 'settings', 'delay']}>
-            <Input />
-          </Form.Item>
-          <Form.Item label="Max Split" name={[...path, 'settings', 'maxSplit']}>
-            <Input />
-          </Form.Item>
-        </>
-      )}
-
-      {type === 'sudoku' && (
-        <>
-          <Form.Item label="Password" name={[...path, 'settings', 'password']}><Input /></Form.Item>
-          <Form.Item label="ASCII" name={[...path, 'settings', 'ascii']}><Input /></Form.Item>
-          <Form.Item label="Custom Table" name={[...path, 'settings', 'customTable']}><Input /></Form.Item>
-          <Form.Item label="Custom Tables" name={[...path, 'settings', 'customTables']}><Input /></Form.Item>
-          <Form.Item label="Padding Min" name={[...path, 'settings', 'paddingMin']}>
-            <InputNumber min={0} />
-          </Form.Item>
-          <Form.Item label="Padding Max" name={[...path, 'settings', 'paddingMax']}>
-            <InputNumber min={0} />
-          </Form.Item>
-        </>
-      )}
-
-      {type === 'header-custom' && (
-        <HeaderCustomGroups base={[...path, 'settings']} form={form} />
-      )}
+      <Form.Item
+        noStyle
+        shouldUpdate={(prev, curr) =>
+          (prev as Record<string, unknown>)[String(path[0])] !== (curr as Record<string, unknown>)[String(path[0])]
+        }
+      >
+        {({ getFieldValue }) => {
+          const type = getFieldValue([...path, 'type']) as string | undefined;
+          if (type === 'fragment') {
+            return (
+              <>
+                <Form.Item label="Packets" name={[...path, 'settings', 'packets']}>
+                  <Select
+                    options={[
+                      { value: 'tlshello', label: 'tlshello' },
+                      { value: '1-3', label: '1-3' },
+                      { value: '1-5', label: '1-5' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="Length" name={[...path, 'settings', 'length']}>
+                  <Input />
+                </Form.Item>
+                <Form.Item label="Delay" name={[...path, 'settings', 'delay']}>
+                  <Input />
+                </Form.Item>
+                <Form.Item label="Max Split" name={[...path, 'settings', 'maxSplit']}>
+                  <Input />
+                </Form.Item>
+              </>
+            );
+          }
+          if (type === 'sudoku') {
+            return (
+              <>
+                <Form.Item label="Password" name={[...path, 'settings', 'password']}><Input /></Form.Item>
+                <Form.Item label="ASCII" name={[...path, 'settings', 'ascii']}><Input /></Form.Item>
+                <Form.Item label="Custom Table" name={[...path, 'settings', 'customTable']}><Input /></Form.Item>
+                <Form.Item label="Custom Tables" name={[...path, 'settings', 'customTables']}><Input /></Form.Item>
+                <Form.Item label="Padding Min" name={[...path, 'settings', 'paddingMin']}>
+                  <InputNumber min={0} />
+                </Form.Item>
+                <Form.Item label="Padding Max" name={[...path, 'settings', 'paddingMax']}>
+                  <InputNumber min={0} />
+                </Form.Item>
+              </>
+            );
+          }
+          if (type === 'header-custom') {
+            return <HeaderCustomGroups base={[...path, 'settings']} form={form} />;
+          }
+          return null;
+        }}
+      </Form.Item>
     </div>
   );
 }

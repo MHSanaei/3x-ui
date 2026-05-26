@@ -93,33 +93,40 @@ const { Text } = Typography;
 function AdvancedSliceEditor({
   form,
   path,
+  wrapKey,
   minHeight,
   maxHeight,
 }: {
   form: FormInstance<InboundFormValues>;
   path: NamePath;
+  // When set, the editor wraps the inner value with `{ [wrapKey]: ... }` so
+  // the JSON the user sees matches the wire shape's slice envelope (e.g.
+  // `{ "settings": { ... } }`). Edits unwrap the outer key before writing
+  // back to the form. Mirrors the legacy modal's wrappedConfigValue.
+  wrapKey?: string;
   minHeight?: string;
   maxHeight?: string;
 }) {
-  // The editor keeps a local text buffer so partial / invalid JSON typing
-  // doesn't clobber the form. lastEmitRef tracks the serialized form value
-  // at the moment we last accepted a write — if useWatch later fires with
-  // a different value than that, the form was changed from elsewhere
-  // (Stream tab toggle, sibling JSON tab edit), and we re-sync.
+  const serialize = (value: unknown): string => {
+    const inner = value ?? {};
+    return JSON.stringify(wrapKey ? { [wrapKey]: inner } : inner, null, 2);
+  };
+
   const watched = Form.useWatch(path, form);
   const lastEmitRef = useRef<string>('');
   const [text, setText] = useState(() => {
-    const initial = JSON.stringify(form.getFieldValue(path) ?? {}, null, 2);
+    const initial = serialize(form.getFieldValue(path));
     lastEmitRef.current = initial;
     return initial;
   });
 
   useEffect(() => {
-    const formStr = JSON.stringify(watched ?? {}, null, 2);
+    const formStr = serialize(watched);
     if (formStr === lastEmitRef.current) return;
     setText(formStr);
     lastEmitRef.current = formStr;
-  }, [watched]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watched, wrapKey]);
 
   return (
     <JsonEditor
@@ -130,8 +137,11 @@ function AdvancedSliceEditor({
         setText(next);
         try {
           const parsed = JSON.parse(next);
-          form.setFieldValue(path, parsed);
-          lastEmitRef.current = JSON.stringify(parsed, null, 2);
+          const toWrite = wrapKey && parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+            ? (parsed as Record<string, unknown>)[wrapKey] ?? {}
+            : parsed;
+          form.setFieldValue(path, toWrite);
+          lastEmitRef.current = JSON.stringify(wrapKey ? { [wrapKey]: toWrite } : toWrite, null, 2);
         } catch {
           // invalid JSON; keep buffer, don't push to form
         }
@@ -2621,6 +2631,7 @@ export default function InboundFormModal({
                   <AdvancedSliceEditor
                     form={form}
                     path="settings"
+                    wrapKey="settings"
                     minHeight="320px"
                     maxHeight="540px"
                   />
@@ -2640,6 +2651,7 @@ export default function InboundFormModal({
                     <AdvancedSliceEditor
                       form={form}
                       path="streamSettings"
+                      wrapKey="streamSettings"
                       minHeight="320px"
                       maxHeight="540px"
                     />
@@ -2659,6 +2671,7 @@ export default function InboundFormModal({
                   <AdvancedSliceEditor
                     form={form}
                     path="sniffing"
+                    wrapKey="sniffing"
                     minHeight="240px"
                     maxHeight="420px"
                   />
