@@ -620,7 +620,10 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
   }
 
   if (values.sendThrough) result.sendThrough = values.sendThrough;
-  if (values.mux.enabled && muxAllowed(values)) {
+  // mux may be absent when the modal didn't render the Mux switch (non-
+  // stream protocols or when isMuxAllowed gated it out). validateFields()
+  // only returns registered fields, so values.mux can be undefined.
+  if (values.mux?.enabled && muxAllowed(values)) {
     result.mux = values.mux;
   }
   return result;

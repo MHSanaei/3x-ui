@@ -372,6 +372,13 @@ export default function OutboundFormModal({
     if (key === '1' && activeKey === '2') {
       if (!applyJsonToForm()) return;
     }
+    // Blur the currently focused element before AntD marks the outgoing
+    // tab panel aria-hidden. Without this, a focused input inside the
+    // hidden panel triggers a Chrome a11y warning ("Blocked aria-hidden
+    // on an element because its descendant retained focus").
+    if (typeof document !== 'undefined') {
+      (document.activeElement as HTMLElement | null)?.blur?.();
+    }
     setActiveKey(key);
   }
 
