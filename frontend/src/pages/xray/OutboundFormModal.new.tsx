@@ -1,14 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Modal, Select, Space, Tabs, message } from 'antd';
+import { Form, Input, InputNumber, Modal, Select, Space, Switch, Tabs, message } from 'antd';
 
 import JsonEditor from '@/components/JsonEditor';
 import {
   formValuesToWirePayload,
   rawOutboundToFormValues,
 } from '@/lib/xray/outbound-form-adapter';
-import { OutboundFormBaseSchema, type OutboundFormValues } from '@/schemas/forms/outbound-form';
-import { OutboundProtocols as Protocols } from '@/schemas/primitives';
+import {
+  OutboundFormBaseSchema,
+  ShadowsocksOutboundFormSettingsSchema,
+  TrojanOutboundFormSettingsSchema,
+  VlessOutboundFormSettingsSchema,
+  VmessOutboundFormSettingsSchema,
+  type OutboundFormValues,
+} from '@/schemas/forms/outbound-form';
+import {
+  OutboundProtocols as Protocols,
+  TLS_FLOW_CONTROL,
+  USERS_SECURITY,
+} from '@/schemas/primitives';
+import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
 import { antdRule } from '@/utils/zodForm';
 import './OutboundFormModal.css';
 
@@ -26,6 +38,17 @@ interface OutboundFormModalProps {
 }
 
 const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
+const SECURITY_OPTIONS = Object.values(USERS_SECURITY).map((v) => ({ value: v, label: v }));
+const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL).map((v) => ({ value: v, label: v }));
+const SS_METHOD_OPTIONS = SSMethodSchema.options.map((v) => ({ value: v, label: v }));
+
+// Protocols whose form schema carries a flat connect target — these all
+// get the shared "server" sub-block (address + port) at the top of the
+// protocol section. Wireguard has an address but no port. DNS/freedom/
+// blackhole/loopback have no connect target.
+const SERVER_PROTOCOLS = new Set<string>([
+  'vmess', 'vless', 'trojan', 'shadowsocks', 'socks', 'http', 'hysteria',
+]);
 
 function buildAddModeValues(): OutboundFormValues {
   return rawOutboundToFormValues({});
@@ -65,6 +88,18 @@ export default function OutboundFormModalNew({
 
   const tag = Form.useWatch('tag', form) ?? '';
   const protocol = (Form.useWatch('protocol', form) ?? 'vless') as string;
+
+  // Switching protocol resets the settings sub-object to fresh defaults
+  // so leftover fields from the previous protocol do not bleed through.
+  // The adapter's rawOutboundToFormValues seeds whatever the new protocol
+  // expects (vless flat shape, vmess flat shape, wireguard with secretKey
+  // placeholder, etc.).
+  function onValuesChange(changed: Partial<OutboundFormValues>) {
+    if ('protocol' in changed && changed.protocol) {
+      const next = rawOutboundToFormValues({ protocol: changed.protocol });
+      form.setFieldValue('settings', next.settings);
+    }
+  }
 
   const duplicateTag = useMemo(() => {
     const myTag = tag.trim();
@@ -145,6 +180,7 @@ export default function OutboundFormModalNew({
           colon={false}
           labelCol={{ md: { span: 8 } }}
           wrapperCol={{ md: { span: 14 } }}
+          onValuesChange={onValuesChange}
         >
           <Tabs
             activeKey={activeKey}
@@ -179,12 +215,106 @@ export default function OutboundFormModalNew({
                       <Input placeholder="local IP" />
                     </Form.Item>
 
-                    {/* Protocol-specific sub-forms come in subsequent commits. */}
-                    <div style={{ marginTop: 12, opacity: 0.6, fontStyle: 'italic' }}>
-                      Protocol-specific fields for {protocol} are still being
-                      migrated. Use the JSON tab to edit settings until the
-                      relevant section lands.
-                    </div>
+                    {/* Shared connect target (address + port) for protocols
+                        whose form schema carries them flat at settings root.
+                        Hidden for freedom/blackhole/dns/loopback/wireguard. */}
+                    {SERVER_PROTOCOLS.has(protocol) && (
+                      <>
+                        <Form.Item
+                          label={t('pages.inbounds.address')}
+                          name={['settings', 'address']}
+                          rules={[{ required: true, message: 'Address is required' }]}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          label={t('pages.inbounds.port')}
+                          name={['settings', 'port']}
+                          rules={[{ required: true, message: 'Port is required' }]}
+                        >
+                          <InputNumber min={1} max={65535} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </>
+                    )}
+
+                    {(protocol === 'vmess' || protocol === 'vless') && (
+                      <Form.Item
+                        label="ID"
+                        name={['settings', 'id']}
+                        rules={[antdRule(VmessOutboundFormSettingsSchema.shape.id, t)]}
+                      >
+                        <Input placeholder="UUID" />
+                      </Form.Item>
+                    )}
+                    {protocol === 'vmess' && (
+                      <Form.Item
+                        label={t('security')}
+                        name={['settings', 'security']}
+                        rules={[antdRule(VmessOutboundFormSettingsSchema.shape.security, t)]}
+                      >
+                        <Select options={SECURITY_OPTIONS} />
+                      </Form.Item>
+                    )}
+                    {protocol === 'vless' && (
+                      <>
+                        <Form.Item
+                          label={t('encryption')}
+                          name={['settings', 'encryption']}
+                          rules={[antdRule(VlessOutboundFormSettingsSchema.shape.encryption, t)]}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item label="Flow" name={['settings', 'flow']}>
+                          <Select
+                            allowClear
+                            placeholder={t('none')}
+                            options={FLOW_OPTIONS}
+                          />
+                        </Form.Item>
+                        <Form.Item label="Reverse tag" name={['settings', 'reverseTag']}>
+                          <Input placeholder="optional" />
+                        </Form.Item>
+                      </>
+                    )}
+
+                    {(protocol === 'trojan' || protocol === 'shadowsocks') && (
+                      <Form.Item
+                        label={t('password')}
+                        name={['settings', 'password']}
+                        rules={[
+                          antdRule(
+                            protocol === 'trojan'
+                              ? TrojanOutboundFormSettingsSchema.shape.password
+                              : ShadowsocksOutboundFormSettingsSchema.shape.password,
+                            t,
+                          ),
+                        ]}
+                      >
+                        <Input />
+                      </Form.Item>
+                    )}
+
+                    {protocol === 'shadowsocks' && (
+                      <>
+                        <Form.Item
+                          label={t('encryption')}
+                          name={['settings', 'method']}
+                          rules={[antdRule(SSMethodSchema, t)]}
+                        >
+                          <Select options={SS_METHOD_OPTIONS} />
+                        </Form.Item>
+                        <Form.Item
+                          label="UDP over TCP"
+                          name={['settings', 'uot']}
+                          valuePropName="checked"
+                        >
+                          <Switch />
+                        </Form.Item>
+                        <Form.Item label="UoT version" name={['settings', 'UoTVersion']}>
+                          <InputNumber min={1} max={2} />
+                        </Form.Item>
+                      </>
+                    )}
                   </>
                 ),
               },
