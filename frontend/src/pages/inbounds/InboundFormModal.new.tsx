@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import {
+  Checkbox,
   Form,
   Input,
   InputNumber,
@@ -25,7 +26,7 @@ import {
   type InboundFormValues,
 } from '@/schemas/forms/inbound-form';
 import { antdRule } from '@/utils/zodForm';
-import { Protocols } from '@/schemas/primitives';
+import { Protocols, SNIFFING_OPTION } from '@/schemas/primitives';
 import DateTimePicker from '@/components/DateTimePicker';
 import type { DBInbound } from '@/models/dbinbound';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
@@ -87,6 +88,7 @@ export default function InboundFormModalNew({
   const selectableNodes = (availableNodes || []).filter((n) => n.enable);
   const protocol = Form.useWatch('protocol', form) ?? '';
   const isNodeEligible = NODE_ELIGIBLE_PROTOCOLS.has(protocol);
+  const sniffingEnabled = Form.useWatch(['sniffing', 'enabled'], form) ?? false;
 
   useEffect(() => {
     if (!open) return;
@@ -271,6 +273,66 @@ export default function InboundFormModalNew({
     </>
   );
 
+  const sniffingTab = (
+    <>
+      <Form.Item name={['sniffing', 'enabled']} label={t('enable')} valuePropName="checked">
+        <Switch />
+      </Form.Item>
+
+      {sniffingEnabled && (
+        <>
+          <Form.Item name={['sniffing', 'destOverride']} wrapperCol={{ span: 24 }}>
+            <Checkbox.Group>
+              {Object.entries(SNIFFING_OPTION).map(([key, value]) => (
+                <Checkbox key={key} value={value}>{key}</Checkbox>
+              ))}
+            </Checkbox.Group>
+          </Form.Item>
+
+          <Form.Item
+            name={['sniffing', 'metadataOnly']}
+            label={t('pages.inbounds.sniffingMetadataOnly')}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+
+          <Form.Item
+            name={['sniffing', 'routeOnly']}
+            label={t('pages.inbounds.sniffingRouteOnly')}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+
+          <Form.Item
+            name={['sniffing', 'ipsExcluded']}
+            label={t('pages.inbounds.sniffingIpsExcluded')}
+          >
+            <Select
+              mode="tags"
+              tokenSeparators={[',']}
+              placeholder="IP/CIDR/geoip:*/ext:*"
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name={['sniffing', 'domainsExcluded']}
+            label={t('pages.inbounds.sniffingDomainsExcluded')}
+          >
+            <Select
+              mode="tags"
+              tokenSeparators={[',']}
+              placeholder="domain:*/ext:*"
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+        </>
+      )}
+    </>
+  );
+
   return (
     <>
       {messageContextHolder}
@@ -293,7 +355,10 @@ export default function InboundFormModalNew({
           wrapperCol={{ sm: { span: 14 } }}
           onValuesChange={onValuesChange}
         >
-          <Tabs items={[{ key: 'basic', label: t('pages.xray.basicTemplate'), children: basicTab }]} />
+          <Tabs items={[
+            { key: 'basic', label: t('pages.xray.basicTemplate'), children: basicTab },
+            { key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab },
+          ]} />
         </Form>
       </Modal>
     </>
