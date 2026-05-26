@@ -18,7 +18,7 @@ import {
 } from 'antd';
 import { MinusOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 
-import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter } from '@/utils';
+import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
 import {
   rawInboundToFormValues,
   formValuesToWirePayload,
@@ -105,6 +105,21 @@ export default function InboundFormModalNew({
     settings: typeof ssMethod === 'string' ? { method: ssMethod } : {},
   });
   const mixedUdpOn = Form.useWatch(['settings', 'udp'], form) ?? false;
+  const wgSecretKey = Form.useWatch(['settings', 'secretKey'], form);
+  const wgPubKey = typeof wgSecretKey === 'string' && wgSecretKey.length > 0
+    ? Wireguard.generateKeypair(wgSecretKey).publicKey
+    : '';
+
+  const regenInboundWg = () => {
+    const kp = Wireguard.generateKeypair();
+    form.setFieldValue(['settings', 'secretKey'], kp.privateKey);
+  };
+
+  const regenWgPeerKeypair = (peerName: number) => {
+    const kp = Wireguard.generateKeypair();
+    form.setFieldValue(['settings', 'peers', peerName, 'privateKey'], kp.privateKey);
+    form.setFieldValue(['settings', 'peers', peerName, 'publicKey'], kp.publicKey);
+  };
 
   const matchesVlessAuth = (
     block: { id?: string; label?: string } | undefined | null,
@@ -336,6 +351,111 @@ export default function InboundFormModalNew({
 
   const protocolTab = (
     <>
+      {protocol === Protocols.WIREGUARD && (
+        <>
+          <Form.Item
+            name={['settings', 'secretKey']}
+            label={
+              <>
+                Secret key{' '}
+                <SyncOutlined className="random-icon" onClick={regenInboundWg} />
+              </>
+            }
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item label="Public key">
+            <Input value={wgPubKey} disabled />
+          </Form.Item>
+          <Form.Item name={['settings', 'mtu']} label="MTU">
+            <InputNumber />
+          </Form.Item>
+          <Form.Item
+            name={['settings', 'noKernelTun']}
+            label="No-kernel TUN"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.List name={['settings', 'peers']}>
+            {(fields, { add, remove }) => (
+              <>
+                <Form.Item label="Peers">
+                  <Button
+                    size="small"
+                    onClick={() => add({
+                      publicKey: '',
+                      allowedIPs: [],
+                    })}
+                  >
+                    <PlusOutlined /> Add peer
+                  </Button>
+                </Form.Item>
+                {fields.map((field, idx) => (
+                  <div key={field.key} className="wg-peer">
+                    <Form.Item label={`Peer ${idx + 1}`}>
+                      {fields.length > 1 && (
+                        <Button
+                          size="small"
+                          danger
+                          onClick={() => remove(field.name)}
+                        >
+                          <MinusOutlined />
+                        </Button>
+                      )}
+                    </Form.Item>
+                    <Form.Item
+                      name={[field.name, 'privateKey']}
+                      label={
+                        <>
+                          Secret key{' '}
+                          <SyncOutlined
+                            className="random-icon"
+                            onClick={() => regenWgPeerKeypair(field.name)}
+                          />
+                        </>
+                      }
+                    >
+                      <Input />
+                    </Form.Item>
+                    <Form.Item name={[field.name, 'publicKey']} label="Public key">
+                      <Input />
+                    </Form.Item>
+                    <Form.Item name={[field.name, 'preSharedKey']} label="PSK">
+                      <Input />
+                    </Form.Item>
+                    <Form.List name={[field.name, 'allowedIPs']}>
+                      {(ipFields, { add: addIp, remove: removeIp }) => (
+                        <Form.Item label="Allowed IPs">
+                          <Button size="small" onClick={() => addIp('')}>
+                            <PlusOutlined />
+                          </Button>
+                          {ipFields.map((ipField) => (
+                            <Space.Compact key={ipField.key} block className="mt-4">
+                              <Form.Item name={ipField.name} noStyle>
+                                <Input />
+                              </Form.Item>
+                              {ipFields.length > 1 && (
+                                <Button size="small" onClick={() => removeIp(ipField.name)}>
+                                  <MinusOutlined />
+                                </Button>
+                              )}
+                            </Space.Compact>
+                          ))}
+                        </Form.Item>
+                      )}
+                    </Form.List>
+                    <Form.Item name={[field.name, 'keepAlive']} label="Keep-alive">
+                      <InputNumber min={0} />
+                    </Form.Item>
+                  </div>
+                ))}
+              </>
+            )}
+          </Form.List>
+        </>
+      )}
+
       {protocol === Protocols.TUN && (
         <>
           <Form.Item name={['settings', 'name']} label="Interface name">
@@ -715,6 +835,7 @@ export default function InboundFormModalNew({
               Protocols.MIXED,
               Protocols.TUNNEL,
               Protocols.TUN,
+              Protocols.WIREGUARD,
             ] as string[]).includes(protocol)
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab }]
               : []),
