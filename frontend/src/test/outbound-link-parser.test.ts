@@ -49,6 +49,56 @@ describe('parseVmessLink', () => {
   });
 });
 
+describe('parseVmessLink — XHTTP advanced fields', () => {
+  it('round-trips xhttp knobs from the vmess JSON', () => {
+    const json = {
+      v: '2', ps: 'imported-xhttp', add: '1.2.3.4', port: 443,
+      id: '11111111-2222-4333-8444-555555555555', aid: 0, scy: 'auto',
+      net: 'xhttp', host: 'edge.example', path: '/sp', mode: 'stream-up',
+      xPaddingBytes: '500-1500',
+      scMaxEachPostBytes: '2000000',
+      scMinPostsIntervalMs: '60',
+      uplinkChunkSize: 8192,
+      noGRPCHeader: true,
+      tls: 'tls', sni: 'edge.example',
+    };
+    const link = `vmess://${Base64.encode(JSON.stringify(json))}`;
+    const out = parseVmessLink(link);
+    const stream = out?.streamSettings as Record<string, unknown>;
+    const xhttp = stream.xhttpSettings as Record<string, unknown>;
+    expect(xhttp.host).toBe('edge.example');
+    expect(xhttp.path).toBe('/sp');
+    expect(xhttp.mode).toBe('stream-up');
+    expect(xhttp.xPaddingBytes).toBe('500-1500');
+    expect(xhttp.scMaxEachPostBytes).toBe('2000000');
+    expect(xhttp.scMinPostsIntervalMs).toBe('60');
+    expect(xhttp.uplinkChunkSize).toBe(8192);
+    expect(xhttp.noGRPCHeader).toBe(true);
+  });
+});
+
+describe('parseVlessLink — XHTTP advanced fields', () => {
+  it('round-trips xhttp knobs from URL query params', () => {
+    const link
+      = 'vless://uuid@srv.example:443'
+      + '?type=xhttp&security=tls&host=edge.example&path=%2Fsp&mode=stream-up'
+      + '&xPaddingBytes=500-1500&scMaxEachPostBytes=2000000'
+      + '&scMinPostsIntervalMs=60&uplinkChunkSize=8192&noGRPCHeader=true'
+      + '#imported-xhttp';
+    const out = parseVlessLink(link);
+    const stream = out?.streamSettings as Record<string, unknown>;
+    const xhttp = stream.xhttpSettings as Record<string, unknown>;
+    expect(xhttp.host).toBe('edge.example');
+    expect(xhttp.path).toBe('/sp');
+    expect(xhttp.mode).toBe('stream-up');
+    expect(xhttp.xPaddingBytes).toBe('500-1500');
+    expect(xhttp.scMaxEachPostBytes).toBe('2000000');
+    expect(xhttp.scMinPostsIntervalMs).toBe('60');
+    expect(xhttp.uplinkChunkSize).toBe(8192);
+    expect(xhttp.noGRPCHeader).toBe(true);
+  });
+});
+
 describe('parseVlessLink', () => {
   it('parses a vless:// link with reality', () => {
     const link

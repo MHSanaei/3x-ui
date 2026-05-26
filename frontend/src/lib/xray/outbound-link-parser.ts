@@ -7,12 +7,13 @@ import { Base64 } from '@/utils';
 //
 // Scope: address + port + auth + remark, plus the network/security
 // fields the common vmess:// / vless:// links carry as query params.
-// Advanced transport fields (xmux, padding obfs, hysteria udphop,
-// reality short IDs, etc.) are not parsed — the user finishes them
-// in the form after import. This is intentional: a focused parser
-// keeps the surface small; the legacy Outbound.fromLink was ~250
-// lines of dense edge-case handling we don't need to replicate
-// verbatim for the common phone-to-panel workflow.
+// XHTTP advanced fields (xPaddingBytes, scMaxEachPostBytes,
+// scMinPostsIntervalMs, uplinkChunkSize, noGRPCHeader) round-trip when
+// present in either the JSON or URL params. xmux, reality shortIds,
+// padding obfs key/header/placement, hysteria udphop are still left
+// to the user to fill in after import — the legacy Outbound.fromLink
+// was ~250 lines of dense edge-case handling we don't need to
+// replicate verbatim for the common phone-to-panel workflow.
 
 type Raw = Record<string, unknown>;
 
@@ -81,11 +82,23 @@ function applyTransportParams(stream: Raw, params: URLSearchParams): void {
       (stream.httpupgradeSettings as Raw).host = host;
       (stream.httpupgradeSettings as Raw).path = path;
       break;
-    case 'xhttp':
-      (stream.xhttpSettings as Raw).host = host;
-      (stream.xhttpSettings as Raw).path = path;
-      if (params.get('mode')) (stream.xhttpSettings as Raw).mode = params.get('mode');
+    case 'xhttp': {
+      const xhttp = stream.xhttpSettings as Raw;
+      xhttp.host = host;
+      xhttp.path = path;
+      if (params.get('mode')) xhttp.mode = params.get('mode');
+      const xPad = params.get('xPaddingBytes');
+      if (xPad) xhttp.xPaddingBytes = xPad;
+      const scMax = params.get('scMaxEachPostBytes');
+      if (scMax) xhttp.scMaxEachPostBytes = scMax;
+      const scMin = params.get('scMinPostsIntervalMs');
+      if (scMin) xhttp.scMinPostsIntervalMs = scMin;
+      const upChunk = params.get('uplinkChunkSize');
+      if (upChunk) xhttp.uplinkChunkSize = Number(upChunk) || 0;
+      const noGrpc = params.get('noGRPCHeader');
+      if (noGrpc) xhttp.noGRPCHeader = noGrpc === 'true' || noGrpc === '1';
       break;
+    }
     case 'tcp':
       // vless/trojan TCP HTTP camouflage rides on header=http+host+path
       if (params.get('headerType') === 'http' || params.get('type') === 'http') {
@@ -157,9 +170,15 @@ export function parseVmessLink(link: string): Raw | null {
       (stream.httpupgradeSettings as Raw).host = json.host ?? '';
       (stream.httpupgradeSettings as Raw).path = json.path ?? '/';
     } else if (network === 'xhttp') {
-      (stream.xhttpSettings as Raw).host = json.host ?? '';
-      (stream.xhttpSettings as Raw).path = json.path ?? '/';
-      if (json.mode) (stream.xhttpSettings as Raw).mode = json.mode;
+      const xhttp = stream.xhttpSettings as Raw;
+      xhttp.host = json.host ?? '';
+      xhttp.path = json.path ?? '/';
+      if (json.mode) xhttp.mode = json.mode;
+      if (typeof json.xPaddingBytes === 'string') xhttp.xPaddingBytes = json.xPaddingBytes;
+      if (typeof json.scMaxEachPostBytes === 'string') xhttp.scMaxEachPostBytes = json.scMaxEachPostBytes;
+      if (typeof json.scMinPostsIntervalMs === 'string') xhttp.scMinPostsIntervalMs = json.scMinPostsIntervalMs;
+      if (typeof json.uplinkChunkSize === 'number') xhttp.uplinkChunkSize = json.uplinkChunkSize;
+      if (typeof json.noGRPCHeader === 'boolean') xhttp.noGRPCHeader = json.noGRPCHeader;
     }
     if (security === 'tls') {
       const tls = stream.tlsSettings as Raw;
