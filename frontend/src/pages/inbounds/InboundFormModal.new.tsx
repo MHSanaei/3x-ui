@@ -336,6 +336,60 @@ export default function InboundFormModalNew({
 
   const protocolTab = (
     <>
+      {protocol === Protocols.TUNNEL && (
+        <>
+          <Form.Item name={['settings', 'rewriteAddress']} label="Rewrite address">
+            <Input />
+          </Form.Item>
+          <Form.Item name={['settings', 'rewritePort']} label="Rewrite port">
+            <InputNumber min={0} max={65535} />
+          </Form.Item>
+          <Form.Item name={['settings', 'allowedNetwork']} label="Allowed network">
+            <Select>
+              <Select.Option value="tcp,udp">TCP, UDP</Select.Option>
+              <Select.Option value="tcp">TCP</Select.Option>
+              <Select.Option value="udp">UDP</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.List name={['settings', 'portMap']}>
+            {(fields, { add, remove }) => (
+              <>
+                <Form.Item label="Port map">
+                  <Button size="small" onClick={() => add({ name: '', value: '' })}>
+                    <PlusOutlined />
+                  </Button>
+                </Form.Item>
+                {fields.length > 0 && (
+                  <Form.Item wrapperCol={{ span: 24 }}>
+                    {fields.map((field, idx) => (
+                      <Space.Compact key={field.key} className="mb-8" block>
+                        <InputAddon>{String(idx + 1)}</InputAddon>
+                        <Form.Item name={[field.name, 'name']} noStyle>
+                          <Input placeholder="5555" />
+                        </Form.Item>
+                        <Form.Item name={[field.name, 'value']} noStyle>
+                          <Input placeholder="1.1.1.1:7777" />
+                        </Form.Item>
+                        <Button onClick={() => remove(field.name)}>
+                          <MinusOutlined />
+                        </Button>
+                      </Space.Compact>
+                    ))}
+                  </Form.Item>
+                )}
+              </>
+            )}
+          </Form.List>
+          <Form.Item
+            name={['settings', 'followRedirect']}
+            label="Follow redirect"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </>
+      )}
+
       {(protocol === Protocols.HTTP || protocol === Protocols.MIXED) && (
         <>
           <Form.List name={['settings', 'accounts']}>
@@ -572,6 +626,7 @@ export default function InboundFormModalNew({
               Protocols.SHADOWSOCKS,
               Protocols.HTTP,
               Protocols.MIXED,
+              Protocols.TUNNEL,
             ] as string[]).includes(protocol)
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab }]
               : []),
