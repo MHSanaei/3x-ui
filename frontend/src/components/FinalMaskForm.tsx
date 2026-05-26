@@ -7,11 +7,14 @@ import { RandomUtil } from '@/utils';
 import { OutboundProtocols } from '@/schemas/primitives';
 
 // Pattern A FinalMaskForm. Renders a Fragment of Form.Items at absolute
-// paths under `name`; the parent modal owns the Form instance and the
-// surrounding layout. The legacy class-coupled component (which mutated
-// `stream.finalmask.*` via .addTcpMask/.delTcpMask methods) is gone — all
-// state lives in the parent form values, accessed via the `form` and
-// `name` props.
+// paths under `name`; the parent modal owns the Form instance.
+//
+// Naming convention inside Form.List: AntD prefixes Form.Item `name`
+// with the Form.List's own `name`. So Form.Items inside the render
+// prop use RELATIVE paths (e.g. `[field.name, 'type']`). Nested
+// Form.Lists also use relative names. Using absolute paths here would
+// double up the prefix and silently route reads/writes to the wrong
+// storage path.
 
 export interface FinalMaskFormProps {
   name: NamePath;
@@ -97,7 +100,7 @@ export default function FinalMaskForm({ name, network, protocol, form }: FinalMa
   return (
     <>
       {showTcp && <TcpMasksList base={base} form={form} />}
-      {showUdp && <UdpMasksList base={base} form={form} isHysteria={isHysteria} />}
+      {showUdp && <UdpMasksList base={base} form={form} isHysteria={isHysteria} network={network} />}
       {showQuic && (
         <>
           <Form.Item label="QUIC Params" name={[...base, 'enableQuicParams']} valuePropName="checked">
@@ -133,10 +136,10 @@ function TcpMasksList({ base, form }: { base: (string | number)[]; form: FormIns
           {fields.map((field, mIdx) => (
             <TcpMaskItem
               key={field.key}
-              base={base}
-              index={field.name}
+              fieldName={field.name}
               displayIndex={mIdx + 1}
               form={form}
+              listPath={[...base, 'tcp']}
               onRemove={() => remove(field.name)}
             />
           ))}
@@ -147,15 +150,18 @@ function TcpMasksList({ base, form }: { base: (string | number)[]; form: FormIns
 }
 
 function TcpMaskItem({
-  base, index, displayIndex, form, onRemove,
+  fieldName, displayIndex, form, listPath, onRemove,
 }: {
-  base: (string | number)[];
-  index: number;
+  fieldName: number;
   displayIndex: number;
   form: FormInstance;
+  listPath: (string | number)[];
   onRemove: () => void;
 }) {
-  const path = [...base, 'tcp', index];
+  // Absolute path for setFieldValue side effects (resetting settings on
+  // type change). All Form.Item `name=` use RELATIVE paths within the
+  // outer Form.List context.
+  const absolutePath = [...listPath, fieldName];
 
   return (
     <div>
@@ -164,9 +170,11 @@ function TcpMaskItem({
         <DeleteOutlined className="danger-icon" onClick={onRemove} />
       </Divider>
 
-      <Form.Item label="Type" name={[...path, 'type']}>
+      <Form.Item label="Type" name={[fieldName, 'type']}>
         <Select
-          onChange={(v) => form.setFieldValue([...path, 'settings'], defaultTcpMaskSettings(v))}
+          onChange={(v) =>
+            form.setFieldValue([...absolutePath, 'settings'], defaultTcpMaskSettings(v))
+          }
           options={[
             { value: 'fragment', label: 'Fragment' },
             { value: 'header-custom', label: 'Header Custom' },
@@ -177,16 +185,18 @@ function TcpMaskItem({
 
       <Form.Item
         noStyle
-        shouldUpdate={(prev, curr) =>
-          (prev as Record<string, unknown>)[String(path[0])] !== (curr as Record<string, unknown>)[String(path[0])]
-        }
+        shouldUpdate={(prev, curr) => {
+          const a = getDeep(prev, [...absolutePath, 'type']);
+          const b = getDeep(curr, [...absolutePath, 'type']);
+          return a !== b;
+        }}
       >
         {({ getFieldValue }) => {
-          const type = getFieldValue([...path, 'type']) as string | undefined;
+          const type = getFieldValue([...absolutePath, 'type']) as string | undefined;
           if (type === 'fragment') {
             return (
               <>
-                <Form.Item label="Packets" name={[...path, 'settings', 'packets']}>
+                <Form.Item label="Packets" name={[fieldName, 'settings', 'packets']}>
                   <Select
                     options={[
                       { value: 'tlshello', label: 'tlshello' },
@@ -195,13 +205,13 @@ function TcpMaskItem({
                     ]}
                   />
                 </Form.Item>
-                <Form.Item label="Length" name={[...path, 'settings', 'length']}>
+                <Form.Item label="Length" name={[fieldName, 'settings', 'length']}>
                   <Input />
                 </Form.Item>
-                <Form.Item label="Delay" name={[...path, 'settings', 'delay']}>
+                <Form.Item label="Delay" name={[fieldName, 'settings', 'delay']}>
                   <Input />
                 </Form.Item>
-                <Form.Item label="Max Split" name={[...path, 'settings', 'maxSplit']}>
+                <Form.Item label="Max Split" name={[fieldName, 'settings', 'maxSplit']}>
                   <Input />
                 </Form.Item>
               </>
@@ -210,21 +220,27 @@ function TcpMaskItem({
           if (type === 'sudoku') {
             return (
               <>
-                <Form.Item label="Password" name={[...path, 'settings', 'password']}><Input /></Form.Item>
-                <Form.Item label="ASCII" name={[...path, 'settings', 'ascii']}><Input /></Form.Item>
-                <Form.Item label="Custom Table" name={[...path, 'settings', 'customTable']}><Input /></Form.Item>
-                <Form.Item label="Custom Tables" name={[...path, 'settings', 'customTables']}><Input /></Form.Item>
-                <Form.Item label="Padding Min" name={[...path, 'settings', 'paddingMin']}>
+                <Form.Item label="Password" name={[fieldName, 'settings', 'password']}><Input /></Form.Item>
+                <Form.Item label="ASCII" name={[fieldName, 'settings', 'ascii']}><Input /></Form.Item>
+                <Form.Item label="Custom Table" name={[fieldName, 'settings', 'customTable']}><Input /></Form.Item>
+                <Form.Item label="Custom Tables" name={[fieldName, 'settings', 'customTables']}><Input /></Form.Item>
+                <Form.Item label="Padding Min" name={[fieldName, 'settings', 'paddingMin']}>
                   <InputNumber min={0} />
                 </Form.Item>
-                <Form.Item label="Padding Max" name={[...path, 'settings', 'paddingMax']}>
+                <Form.Item label="Padding Max" name={[fieldName, 'settings', 'paddingMax']}>
                   <InputNumber min={0} />
                 </Form.Item>
               </>
             );
           }
           if (type === 'header-custom') {
-            return <HeaderCustomGroups base={[...path, 'settings']} form={form} />;
+            return (
+              <HeaderCustomGroups
+                tcpFieldName={fieldName}
+                form={form}
+                absoluteSettingsPath={[...absolutePath, 'settings']}
+              />
+            );
           }
           return null;
         }}
@@ -233,11 +249,29 @@ function TcpMaskItem({
   );
 }
 
-function HeaderCustomGroups({ base, form }: { base: (string | number)[]; form: FormInstance }) {
+// Walks a deep object path safely. Used inside shouldUpdate which gets
+// the whole form values blob; we need to compare a deep field across
+// prev/curr without crashing on missing intermediates.
+function getDeep(obj: unknown, path: (string | number)[]): unknown {
+  let cur: unknown = obj;
+  for (const key of path) {
+    if (cur == null || typeof cur !== 'object') return undefined;
+    cur = (cur as Record<string | number, unknown>)[key];
+  }
+  return cur;
+}
+
+function HeaderCustomGroups({
+  tcpFieldName, form, absoluteSettingsPath,
+}: {
+  tcpFieldName: number;
+  form: FormInstance;
+  absoluteSettingsPath: (string | number)[];
+}) {
   return (
     <>
       {(['clients', 'servers'] as const).map((groupKey) => (
-        <Form.List key={groupKey} name={[...base, groupKey]}>
+        <Form.List key={groupKey} name={[tcpFieldName, 'settings', groupKey]}>
           {(groups, { add: addGroup, remove: removeGroup }) => (
             <>
               <Form.Item label={groupKey === 'clients' ? 'Clients' : 'Servers'}>
@@ -254,7 +288,7 @@ function HeaderCustomGroups({ base, form }: { base: (string | number)[]; form: F
                     {groupKey === 'clients' ? 'Clients' : 'Servers'} Group {gi + 1}
                     <DeleteOutlined className="danger-icon" onClick={() => removeGroup(group.name)} />
                   </Divider>
-                  <Form.List name={[...base, groupKey, group.name]}>
+                  <Form.List name={[group.name]}>
                     {(items, { add: addItem, remove: removeItem }) => (
                       <>
                         <Form.Item label="Items">
@@ -267,8 +301,9 @@ function HeaderCustomGroups({ base, form }: { base: (string | number)[]; form: F
                         {items.map((item) => (
                           <ItemEditor
                             key={item.key}
-                            base={[...base, groupKey, group.name, item.name]}
+                            fieldName={item.name}
                             form={form}
+                            absoluteItemPath={[...absoluteSettingsPath, groupKey, group.name, item.name]}
                             delayMode="number"
                             onRemove={() => removeItem(item.name)}
                           />
@@ -287,8 +322,8 @@ function HeaderCustomGroups({ base, form }: { base: (string | number)[]; form: F
 }
 
 function UdpMasksList({
-  base, form, isHysteria,
-}: { base: (string | number)[]; form: FormInstance; isHysteria: boolean }) {
+  base, form, isHysteria, network,
+}: { base: (string | number)[]; form: FormInstance; isHysteria: boolean; network: string }) {
   return (
     <Form.List name={[...base, 'udp']}>
       {(fields, { add, remove }) => (
@@ -307,11 +342,12 @@ function UdpMasksList({
           {fields.map((field, mIdx) => (
             <UdpMaskItem
               key={field.key}
-              base={base}
-              index={field.name}
+              fieldName={field.name}
               displayIndex={mIdx + 1}
               form={form}
+              listPath={[...base, 'udp']}
               isHysteria={isHysteria}
+              network={network}
               onRemove={() => remove(field.name)}
             />
           ))}
@@ -322,24 +358,23 @@ function UdpMasksList({
 }
 
 function UdpMaskItem({
-  base, index, displayIndex, form, isHysteria, onRemove,
+  fieldName, displayIndex, form, listPath, isHysteria, network, onRemove,
 }: {
-  base: (string | number)[];
-  index: number;
+  fieldName: number;
   displayIndex: number;
   form: FormInstance;
+  listPath: (string | number)[];
   isHysteria: boolean;
+  network: string;
   onRemove: () => void;
 }) {
-  const path = [...base, 'udp', index];
-  const type = Form.useWatch([...path, 'type'], form) as string | undefined;
-  const network = Form.useWatch([...base.slice(0, -1), 'network'], form) as string | undefined;
+  const absolutePath = [...listPath, fieldName];
 
   const onTypeChange = (v: string) => {
-    form.setFieldValue([...path, 'settings'], defaultUdpMaskSettings(v));
+    form.setFieldValue([...absolutePath, 'settings'], defaultUdpMaskSettings(v));
     if (network === 'kcp') {
-      const kcpPath = [...base.slice(0, -1), 'kcpSettings', 'mtu'];
-      form.setFieldValue(kcpPath, v === 'xdns' ? 900 : 1350);
+      const kcpMtuPath = [...listPath.slice(0, -1), 'kcpSettings', 'mtu'];
+      form.setFieldValue(kcpMtuPath, v === 'xdns' ? 900 : 1350);
     }
   };
 
@@ -367,55 +402,85 @@ function UdpMaskItem({
         <DeleteOutlined className="danger-icon" onClick={onRemove} />
       </Divider>
 
-      <Form.Item label="Type" name={[...path, 'type']}>
+      <Form.Item label="Type" name={[fieldName, 'type']}>
         <Select onChange={onTypeChange} options={options} />
       </Form.Item>
 
-      {(type === 'mkcp-aes128gcm' || type === 'salamander') && (
-        <Form.Item label="Password" name={[...path, 'settings', 'password']}>
-          <Input placeholder="Obfuscation password" />
-        </Form.Item>
-      )}
-
-      {type === 'header-dns' && (
-        <Form.Item label="Domain" name={[...path, 'settings', 'domain']}>
-          <Input placeholder="e.g., www.example.com" />
-        </Form.Item>
-      )}
-
-      {type === 'xdns' && (
-        <Form.Item label="Domains" name={[...path, 'settings', 'domains']}>
-          <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
-        </Form.Item>
-      )}
-
-      {type === 'xicmp' && (
-        <>
-          <Form.Item label="IP" name={[...path, 'settings', 'ip']}>
-            <Input placeholder="0.0.0.0" />
-          </Form.Item>
-          <Form.Item label="ID" name={[...path, 'settings', 'id']}>
-            <InputNumber min={0} />
-          </Form.Item>
-        </>
-      )}
-
-      {type === 'header-custom' && (
-        <UdpHeaderCustom base={[...path, 'settings']} form={form} />
-      )}
-
-      {type === 'noise' && (
-        <NoiseItems base={[...path, 'settings']} form={form} />
-      )}
+      <Form.Item
+        noStyle
+        shouldUpdate={(prev, curr) => getDeep(prev, [...absolutePath, 'type']) !== getDeep(curr, [...absolutePath, 'type'])}
+      >
+        {({ getFieldValue }) => {
+          const type = getFieldValue([...absolutePath, 'type']) as string | undefined;
+          if (type === 'mkcp-aes128gcm' || type === 'salamander') {
+            return (
+              <Form.Item label="Password" name={[fieldName, 'settings', 'password']}>
+                <Input placeholder="Obfuscation password" />
+              </Form.Item>
+            );
+          }
+          if (type === 'header-dns') {
+            return (
+              <Form.Item label="Domain" name={[fieldName, 'settings', 'domain']}>
+                <Input placeholder="e.g., www.example.com" />
+              </Form.Item>
+            );
+          }
+          if (type === 'xdns') {
+            return (
+              <Form.Item label="Domains" name={[fieldName, 'settings', 'domains']}>
+                <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
+              </Form.Item>
+            );
+          }
+          if (type === 'xicmp') {
+            return (
+              <>
+                <Form.Item label="IP" name={[fieldName, 'settings', 'ip']}>
+                  <Input placeholder="0.0.0.0" />
+                </Form.Item>
+                <Form.Item label="ID" name={[fieldName, 'settings', 'id']}>
+                  <InputNumber min={0} />
+                </Form.Item>
+              </>
+            );
+          }
+          if (type === 'header-custom') {
+            return (
+              <UdpHeaderCustom
+                udpFieldName={fieldName}
+                form={form}
+                absoluteSettingsPath={[...absolutePath, 'settings']}
+              />
+            );
+          }
+          if (type === 'noise') {
+            return (
+              <NoiseItems
+                udpFieldName={fieldName}
+                form={form}
+                absoluteSettingsPath={[...absolutePath, 'settings']}
+              />
+            );
+          }
+          return null;
+        }}
+      </Form.Item>
     </div>
   );
 }
 
-function UdpHeaderCustom({ base, form }: { base: (string | number)[]; form: FormInstance }) {
+function UdpHeaderCustom({
+  udpFieldName, form, absoluteSettingsPath,
+}: {
+  udpFieldName: number;
+  form: FormInstance;
+  absoluteSettingsPath: (string | number)[];
+}) {
   return (
     <>
       {(['client', 'server'] as const).map((groupKey) => (
-        <Form.List key={groupKey} name={[...base, groupKey]}>
+        <Form.List key={groupKey} name={[udpFieldName, 'settings', groupKey]}>
           {(items, { add, remove }) => (
             <>
               <Form.Item label={groupKey === 'client' ? 'Client' : 'Server'}>
@@ -433,8 +498,9 @@ function UdpHeaderCustom({ base, form }: { base: (string | number)[]; form: Form
                     <DeleteOutlined className="danger-icon" onClick={() => remove(item.name)} />
                   </Divider>
                   <ItemEditor
-                    base={[...base, groupKey, item.name]}
+                    fieldName={item.name}
                     form={form}
+                    absoluteItemPath={[...absoluteSettingsPath, groupKey, item.name]}
                     onRemove={() => remove(item.name)}
                   />
                 </div>
@@ -447,13 +513,19 @@ function UdpHeaderCustom({ base, form }: { base: (string | number)[]; form: Form
   );
 }
 
-function NoiseItems({ base, form }: { base: (string | number)[]; form: FormInstance }) {
+function NoiseItems({
+  udpFieldName, form, absoluteSettingsPath,
+}: {
+  udpFieldName: number;
+  form: FormInstance;
+  absoluteSettingsPath: (string | number)[];
+}) {
   return (
     <>
-      <Form.Item label="Reset" name={[...base, 'reset']}>
+      <Form.Item label="Reset" name={[udpFieldName, 'settings', 'reset']}>
         <InputNumber min={0} />
       </Form.Item>
-      <Form.List name={[...base, 'noise']}>
+      <Form.List name={[udpFieldName, 'settings', 'noise']}>
         {(items, { add, remove }) => (
           <>
             <Form.Item label="Noise">
@@ -471,8 +543,9 @@ function NoiseItems({ base, form }: { base: (string | number)[]; form: FormInsta
                   <DeleteOutlined className="danger-icon" onClick={() => remove(item.name)} />
                 </Divider>
                 <ItemEditor
-                  base={[...base, 'noise', item.name]}
+                  fieldName={item.name}
                   form={form}
+                  absoluteItemPath={[...absoluteSettingsPath, 'noise', item.name]}
                   delayMode="string"
                   onRemove={() => remove(item.name)}
                 />
@@ -486,28 +559,28 @@ function NoiseItems({ base, form }: { base: (string | number)[]; form: FormInsta
 }
 
 function ItemEditor({
-  base, form, delayMode, onRemove: _onRemove,
+  fieldName, form, absoluteItemPath, delayMode, onRemove: _onRemove,
 }: {
-  base: (string | number)[];
+  fieldName: number;
   form: FormInstance;
+  absoluteItemPath: (string | number)[];
   delayMode?: 'number' | 'string';
   onRemove?: () => void;
 }) {
-  const type = Form.useWatch([...base, 'type'], form) as string | undefined;
-
   const onTypeChange = (v: string) => {
-    if (v === 'base64') form.setFieldValue([...base, 'packet'], RandomUtil.randomBase64());
-    else if (v === 'array') {
-      form.setFieldValue([...base, 'rand'], delayMode === 'string' ? '1-8192' : 0);
-      form.setFieldValue([...base, 'packet'], []);
+    if (v === 'base64') {
+      form.setFieldValue([...absoluteItemPath, 'packet'], RandomUtil.randomBase64());
+    } else if (v === 'array') {
+      form.setFieldValue([...absoluteItemPath, 'rand'], delayMode === 'string' ? '1-8192' : 0);
+      form.setFieldValue([...absoluteItemPath, 'packet'], []);
     } else {
-      form.setFieldValue([...base, 'packet'], '');
+      form.setFieldValue([...absoluteItemPath, 'packet'], '');
     }
   };
 
   return (
     <>
-      <Form.Item label="Type" name={[...base, 'type']}>
+      <Form.Item label="Type" name={[fieldName, 'type']}>
         <Select
           onChange={onTypeChange}
           options={[
@@ -520,46 +593,60 @@ function ItemEditor({
       </Form.Item>
 
       {delayMode === 'number' && (
-        <Form.Item label="Delay (ms)" name={[...base, 'delay']}>
+        <Form.Item label="Delay (ms)" name={[fieldName, 'delay']}>
           <InputNumber min={0} />
         </Form.Item>
       )}
       {delayMode === 'string' && (
-        <Form.Item label="Delay" name={[...base, 'delay']}>
+        <Form.Item label="Delay" name={[fieldName, 'delay']}>
           <Input placeholder="10-20" />
         </Form.Item>
       )}
 
-      {type === 'array' ? (
-        <>
-          <Form.Item label="Rand" name={[...base, 'rand']}>
-            {delayMode === 'string' ? (
-              <Input placeholder="0 or 1-8192" />
-            ) : (
-              <InputNumber min={0} />
-            )}
-          </Form.Item>
-          <Form.Item label="Rand Range" name={[...base, 'randRange']}>
-            <Input placeholder="0-255" />
-          </Form.Item>
-        </>
-      ) : type === 'base64' ? (
-        <Form.Item label="Packet">
-          <Input.Group compact>
-            <Form.Item name={[...base, 'packet']} noStyle>
-              <Input placeholder="binary data" style={{ width: 'calc(100% - 32px)' }} />
+      <Form.Item
+        noStyle
+        shouldUpdate={(prev, curr) => getDeep(prev, [...absoluteItemPath, 'type']) !== getDeep(curr, [...absoluteItemPath, 'type'])}
+      >
+        {({ getFieldValue }) => {
+          const type = getFieldValue([...absoluteItemPath, 'type']) as string | undefined;
+          if (type === 'array') {
+            return (
+              <>
+                <Form.Item label="Rand" name={[fieldName, 'rand']}>
+                  {delayMode === 'string' ? (
+                    <Input placeholder="0 or 1-8192" />
+                  ) : (
+                    <InputNumber min={0} />
+                  )}
+                </Form.Item>
+                <Form.Item label="Rand Range" name={[fieldName, 'randRange']}>
+                  <Input placeholder="0-255" />
+                </Form.Item>
+              </>
+            );
+          }
+          if (type === 'base64') {
+            return (
+              <Form.Item label="Packet">
+                <Input.Group compact>
+                  <Form.Item name={[fieldName, 'packet']} noStyle>
+                    <Input placeholder="binary data" style={{ width: 'calc(100% - 32px)' }} />
+                  </Form.Item>
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={() => form.setFieldValue([...absoluteItemPath, 'packet'], RandomUtil.randomBase64())}
+                  />
+                </Input.Group>
+              </Form.Item>
+            );
+          }
+          return (
+            <Form.Item label="Packet" name={[fieldName, 'packet']}>
+              <Input placeholder="binary data" />
             </Form.Item>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => form.setFieldValue([...base, 'packet'], RandomUtil.randomBase64())}
-            />
-          </Input.Group>
-        </Form.Item>
-      ) : (
-        <Form.Item label="Packet" name={[...base, 'packet']}>
-          <Input placeholder="binary data" />
-        </Form.Item>
-      )}
+          );
+        }}
+      </Form.Item>
     </>
   );
 }

@@ -261,7 +261,11 @@ function buildAddModeValues(): InboundFormValues {
   return rawInboundToFormValues({
     protocol: 'vless',
     settings,
-    streamSettings: { network: 'tcp', security: 'none' },
+    streamSettings: {
+      network: 'tcp',
+      security: 'none',
+      tcpSettings: { header: { type: 'none' } },
+    },
     sniffing: SniffingSchema.parse({}),
     port: RandomUtil.randomInteger(10000, 60000),
     listen: '',
@@ -1296,10 +1300,36 @@ export default function InboundFormModal({
     </>
   );
 
-  // Switching `network` swaps which per-network key (tcpSettings, wsSettings,
-  // grpcSettings, ...) appears on the wire. We clear the previously selected
-  // network's settings blob and seed a default empty object for the new one
-  // so AntD's Form.Items aren't pointed at undefined nested paths.
+  // Switching `network` swaps which per-network key (tcpSettings,
+  // wsSettings, grpcSettings, ...) appears on the wire. Clear the old
+  // network's blob and seed the new one with the schema defaults so the
+  // Form.Items inside it have valid initial values (KCP needs MTU=1350
+  // etc., not empty strings).
+  const newStreamSlice = (n: string): Record<string, unknown> => {
+    switch (n) {
+      case 'tcp':
+        return { header: { type: 'none' } };
+      case 'kcp':
+        return {
+          mtu: 1350, tti: 20, uplinkCapacity: 5, downlinkCapacity: 20,
+          congestion: false, readBufferSize: 2, writeBufferSize: 2,
+          header: { type: 'none' }, seed: '',
+        };
+      case 'ws':
+        return { path: '/', host: '', headers: {}, heartbeatPeriod: 0 };
+      case 'grpc':
+        return { serviceName: '', authority: '', multiMode: false };
+      case 'httpupgrade':
+        return { path: '/', host: '', headers: {} };
+      case 'xhttp':
+        return {
+          path: '/', host: '', mode: 'auto', headers: {},
+          xPaddingBytes: '100-1000', scMaxEachPostBytes: '1000000',
+        };
+      default:
+        return {};
+    }
+  };
   const onNetworkChange = (next: string) => {
     const ALL = ['tcpSettings', 'kcpSettings', 'wsSettings', 'grpcSettings', 'httpupgradeSettings', 'xhttpSettings'];
     const current = (form.getFieldValue('streamSettings') as Record<string, unknown>) ?? {};
@@ -1307,7 +1337,7 @@ export default function InboundFormModal({
     for (const k of ALL) {
       if (k !== `${next}Settings`) delete cleaned[k];
     }
-    cleaned[`${next}Settings`] = {};
+    cleaned[`${next}Settings`] = newStreamSlice(next);
     form.setFieldValue('streamSettings', cleaned);
   };
 
