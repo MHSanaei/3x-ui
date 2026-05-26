@@ -2,15 +2,18 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import {
+  Button,
   Checkbox,
   Form,
   Input,
   InputNumber,
   Modal,
   Select,
+  Space,
   Switch,
   Tabs,
   Tooltip,
+  Typography,
   message,
 } from 'antd';
 
@@ -35,6 +38,8 @@ import type { NodeRecord } from '@/api/queries/useNodesQuery';
 // build stays green while the rewrite progresses section by section.
 // InboundsPage continues to render the old InboundFormModal.tsx until the
 // atomic swap at the end (Core Decision 7).
+
+const { Text } = Typography;
 
 const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
 const TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'] as const;
@@ -89,6 +94,52 @@ export default function InboundFormModalNew({
   const protocol = Form.useWatch('protocol', form) ?? '';
   const isNodeEligible = NODE_ELIGIBLE_PROTOCOLS.has(protocol);
   const sniffingEnabled = Form.useWatch(['sniffing', 'enabled'], form) ?? false;
+  const vlessEncryption = Form.useWatch(['settings', 'encryption'], form) ?? '';
+
+  const matchesVlessAuth = (
+    block: { id?: string; label?: string } | undefined | null,
+    authId: string,
+  ) => {
+    if (block?.id === authId) return true;
+    const label = (block?.label || '').toLowerCase().replace(/[-_\s]/g, '');
+    if (authId === 'mlkem768') return label.includes('mlkem768');
+    if (authId === 'x25519') return label.includes('x25519');
+    return false;
+  };
+
+  const getNewVlessEnc = async (authId: string) => {
+    if (!authId) return;
+    setSaving(true);
+    try {
+      const msg = await HttpUtil.get('/panel/api/server/getNewVlessEnc');
+      if (!msg?.success) return;
+      const obj = msg.obj as {
+        auths?: { decryption: string; encryption: string; label?: string; id?: string }[];
+      };
+      const block = (obj.auths || []).find((a) => matchesVlessAuth(a, authId));
+      if (!block) return;
+      form.setFieldValue(['settings', 'decryption'], block.decryption);
+      form.setFieldValue(['settings', 'encryption'], block.encryption);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearVlessEnc = () => {
+    form.setFieldValue(['settings', 'decryption'], 'none');
+    form.setFieldValue(['settings', 'encryption'], 'none');
+  };
+
+  const selectedVlessAuth = (() => {
+    const enc = typeof vlessEncryption === 'string' ? vlessEncryption : '';
+    if (!enc || enc === 'none') return 'None';
+    const parts = enc.split('.').filter(Boolean);
+    const authKey = parts[parts.length - 1] || '';
+    if (!authKey) return t('pages.inbounds.vlessAuthCustom');
+    return authKey.length > 300
+      ? t('pages.inbounds.vlessAuthMlkem768')
+      : t('pages.inbounds.vlessAuthX25519');
+  })();
 
   useEffect(() => {
     if (!open) return;
@@ -273,6 +324,35 @@ export default function InboundFormModalNew({
     </>
   );
 
+  const protocolTab = (
+    <>
+      {protocol === Protocols.VLESS && (
+        <>
+          <Form.Item name={['settings', 'decryption']} label={t('pages.inbounds.decryption')}>
+            <Input />
+          </Form.Item>
+          <Form.Item name={['settings', 'encryption']} label={t('pages.inbounds.encryption')}>
+            <Input />
+          </Form.Item>
+          <Form.Item label=" ">
+            <Space size={8} wrap>
+              <Button type="primary" loading={saving} onClick={() => getNewVlessEnc('x25519')}>
+                {t('pages.inbounds.vlessAuthX25519')}
+              </Button>
+              <Button type="primary" loading={saving} onClick={() => getNewVlessEnc('mlkem768')}>
+                {t('pages.inbounds.vlessAuthMlkem768')}
+              </Button>
+              <Button danger onClick={clearVlessEnc}>{t('clear')}</Button>
+            </Space>
+            <Text type="secondary" className="vless-auth-state">
+              {t('pages.inbounds.vlessAuthSelected', { auth: selectedVlessAuth })}
+            </Text>
+          </Form.Item>
+        </>
+      )}
+    </>
+  );
+
   const sniffingTab = (
     <>
       <Form.Item name={['sniffing', 'enabled']} label={t('enable')} valuePropName="checked">
@@ -357,6 +437,9 @@ export default function InboundFormModalNew({
         >
           <Tabs items={[
             { key: 'basic', label: t('pages.xray.basicTemplate'), children: basicTab },
+            ...(protocol === Protocols.VLESS
+              ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab }]
+              : []),
             { key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab },
           ]} />
         </Form>
