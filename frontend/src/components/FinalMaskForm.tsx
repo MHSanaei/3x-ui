@@ -80,10 +80,26 @@ function defaultNoiseItem(): Record<string, unknown> {
 }
 
 function defaultQuicParams(): Record<string, unknown> {
+  // Seeded with the xray-core / hysteria recommended defaults so the QUIC
+  // Params sub-form doesn't show blank InputNumber fields when first
+  // enabled. The schema declares these as .optional() (no Zod default)
+  // because the wire shape omits them when xray's built-in default
+  // applies — but the panel needs values to render the controls.
   return {
     congestion: 'bbr',
     debug: false,
+    brutalUp: 0,
+    brutalDown: 0,
+    hasUdpHop: false,
     udpHop: { ports: '20000-50000', interval: 5 },
+    maxIdleTimeout: 30,
+    keepAlivePeriod: 10,
+    disablePathMTUDiscovery: false,
+    maxIncomingStreams: 1024,
+    initStreamReceiveWindow: 8388608,
+    maxStreamReceiveWindow: 8388608,
+    initConnectionReceiveWindow: 20971520,
+    maxConnectionReceiveWindow: 20971520,
   };
 }
 

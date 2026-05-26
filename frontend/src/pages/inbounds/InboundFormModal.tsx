@@ -64,6 +64,12 @@ import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt'
 import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
 import { RealityStreamSettingsSchema } from '@/schemas/protocols/security/reality';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
+import { TcpStreamSettingsSchema } from '@/schemas/protocols/stream/tcp';
+import { KcpStreamSettingsSchema } from '@/schemas/protocols/stream/kcp';
+import { WsStreamSettingsSchema } from '@/schemas/protocols/stream/ws';
+import { GrpcStreamSettingsSchema } from '@/schemas/protocols/stream/grpc';
+import { HttpUpgradeStreamSettingsSchema } from '@/schemas/protocols/stream/httpupgrade';
+import { XHttpStreamSettingsSchema } from '@/schemas/protocols/stream/xhttp';
 import DateTimePicker from '@/components/DateTimePicker';
 import FinalMaskForm from '@/components/FinalMaskForm';
 import HeaderMapEditor from '@/components/HeaderMapEditor';
@@ -264,7 +270,7 @@ function buildAddModeValues(): InboundFormValues {
     streamSettings: {
       network: 'tcp',
       security: 'none',
-      tcpSettings: { header: { type: 'none' } },
+      tcpSettings: TcpStreamSettingsSchema.parse({ header: { type: 'none' } }),
     },
     sniffing: SniffingSchema.parse({}),
     port: RandomUtil.randomInteger(10000, 60000),
@@ -1305,29 +1311,22 @@ export default function InboundFormModal({
   // network's blob and seed the new one with the schema defaults so the
   // Form.Items inside it have valid initial values (KCP needs MTU=1350
   // etc., not empty strings).
+  // Seed each network's settings blob with its Zod schema defaults so
+  // every Form.Item inside the network sub-form has a defined starting
+  // value. XHTTP in particular has ~20 fields (sessionPlacement,
+  // seqPlacement, xPaddingMethod, uplinkHTTPMethod, ...) whose value
+  // is the literal "" sentinel meaning "let xray-core pick its
+  // default". Without seeding "", the Form.Item reads `undefined` and
+  // the Select shows blank instead of the "Default (path)" option.
   const newStreamSlice = (n: string): Record<string, unknown> => {
     switch (n) {
-      case 'tcp':
-        return { header: { type: 'none' } };
-      case 'kcp':
-        return {
-          mtu: 1350, tti: 20,
-          uplinkCapacity: 5, downlinkCapacity: 20,
-          cwndMultiplier: 1, maxSendingWindow: 2097152,
-        };
-      case 'ws':
-        return { path: '/', host: '', headers: {}, heartbeatPeriod: 0 };
-      case 'grpc':
-        return { serviceName: '', authority: '', multiMode: false };
-      case 'httpupgrade':
-        return { path: '/', host: '', headers: {} };
-      case 'xhttp':
-        return {
-          path: '/', host: '', mode: 'auto', headers: {},
-          xPaddingBytes: '100-1000', scMaxEachPostBytes: '1000000',
-        };
-      default:
-        return {};
+      case 'tcp':         return TcpStreamSettingsSchema.parse({ header: { type: 'none' } });
+      case 'kcp':         return KcpStreamSettingsSchema.parse({});
+      case 'ws':          return WsStreamSettingsSchema.parse({});
+      case 'grpc':        return GrpcStreamSettingsSchema.parse({});
+      case 'httpupgrade': return HttpUpgradeStreamSettingsSchema.parse({});
+      case 'xhttp':       return XHttpStreamSettingsSchema.parse({});
+      default:            return {};
     }
   };
   const onNetworkChange = (next: string) => {
