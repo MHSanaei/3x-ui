@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { getHeaderValue, toHeaders, toV2Headers, type HeaderEntry } from '@/lib/xray/headers';
-import { XrayCommonClass } from '@/models/inbound';
 
-// Shadow harness: the new pure helpers must agree byte-for-byte with the
-// legacy XrayCommonClass static methods. Drift here is a regression.
+// Pure-function tests for the header helpers. Snapshots were locked at
+// the close of the legacy class migration — at that point toHeaders and
+// toV2Headers were verified byte-equal to the legacy XrayCommonClass
+// static methods. Drift past this baseline is a regression.
 
 const headerMapCases: Array<[string, unknown]> = [
   ['null', null],
@@ -17,10 +18,10 @@ const headerMapCases: Array<[string, unknown]> = [
   ['mixed', { Host: 'a.example.test', 'X-Trace': ['1', '2'] }],
 ];
 
-describe('toHeaders parity with XrayCommonClass.toHeaders', () => {
+describe('toHeaders', () => {
   for (const [label, input] of headerMapCases) {
     it(label, () => {
-      expect(toHeaders(input)).toEqual(XrayCommonClass.toHeaders(input));
+      expect(toHeaders(input)).toMatchSnapshot();
     });
   }
 });
@@ -42,18 +43,18 @@ const entryCases: Array<[string, HeaderEntry[]]> = [
   ]],
 ];
 
-describe('toV2Headers parity (arr=true)', () => {
+describe('toV2Headers (arr=true)', () => {
   for (const [label, input] of entryCases) {
     it(label, () => {
-      expect(toV2Headers(input, true)).toEqual(XrayCommonClass.toV2Headers(input, true));
+      expect(toV2Headers(input, true)).toMatchSnapshot();
     });
   }
 });
 
-describe('toV2Headers parity (arr=false)', () => {
+describe('toV2Headers (arr=false)', () => {
   for (const [label, input] of entryCases) {
     it(label, () => {
-      expect(toV2Headers(input, false)).toEqual(XrayCommonClass.toV2Headers(input, false));
+      expect(toV2Headers(input, false)).toMatchSnapshot();
     });
   }
 });

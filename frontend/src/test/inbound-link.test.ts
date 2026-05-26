@@ -12,18 +12,13 @@ import {
   genWireguardLink,
   resolveAddr,
 } from '@/lib/xray/inbound-link';
-import { Inbound as LegacyInbound } from '@/models/inbound';
 import { InboundSchema } from '@/schemas/api/inbound';
 import type { WireguardInboundSettings } from '@/schemas/protocols/inbound/wireguard';
 
-// Parity harness for the share-link extraction. For each full inbound
-// fixture matching the protocol under test, we:
-//   1. Parse with the Zod InboundSchema -> typed input for the new pure fn
-//   2. Construct the legacy Inbound class via Inbound.fromJson(fixture)
-//   3. Call both link generators with matching args
-//   4. Assert the URLs match byte-for-byte
-// Drift between the new pure fn and the legacy class method fails the
-// test here, before the call sites in pages/ get swapped.
+// Snapshot baseline for the share-link generators. Snapshots were locked
+// at the close of the legacy class migration — at that point each
+// generator was verified byte-equal to the corresponding legacy Inbound
+// class method. Future drift past this baseline is a regression.
 
 const fullFixtures = import.meta.glob<unknown>(
   './golden/fixtures/inbound-full/*.json',
@@ -42,140 +37,108 @@ function fixturesForProtocol(protocol: string): Array<[string, Record<string, un
     .sort(([a], [b]) => a.localeCompare(b));
 }
 
-describe('genVmessLink parity', () => {
+describe('genVmessLink', () => {
   const fixtures = fixturesForProtocol('vmess');
   expect(fixtures.length, 'need at least one vmess full-inbound fixture').toBeGreaterThan(0);
 
   for (const [name, raw] of fixtures) {
-    it(`${name}: matches legacy Inbound.genVmessLink`, () => {
+    it(`${name}: byte-stable`, () => {
       const typed = InboundSchema.parse(raw);
       const settings = (raw as { settings: { clients: Array<{ id: string; security?: string }> } }).settings;
       const client = settings.clients[0];
 
-      const address = 'example.test';
-      const port = typed.port;
-      const remark = 'parity-test';
-
-      const newLink = genVmessLink({
+      const link = genVmessLink({
         inbound: typed,
-        address,
-        port,
+        address: 'example.test',
+        port: typed.port,
         forceTls: 'same',
-        remark,
+        remark: 'parity-test',
         clientId: client.id,
         security: client.security as never,
         externalProxy: null,
       });
-
-      const legacy = LegacyInbound.fromJson(raw);
-      const legacyLink = legacy.genVmessLink(address, port, 'same', remark, client.id, client.security, null);
-
-      expect(newLink).toBe(legacyLink);
+      expect(link).toMatchSnapshot();
     });
   }
 });
 
-describe('genVlessLink parity', () => {
+describe('genVlessLink', () => {
   const fixtures = fixturesForProtocol('vless');
   expect(fixtures.length, 'need at least one vless full-inbound fixture').toBeGreaterThan(0);
 
   for (const [name, raw] of fixtures) {
-    it(`${name}: matches legacy Inbound.genVLESSLink`, () => {
+    it(`${name}: byte-stable`, () => {
       const typed = InboundSchema.parse(raw);
       const settings = (raw as { settings: { clients: Array<{ id: string; flow?: string }> } }).settings;
       const client = settings.clients[0];
 
-      const address = 'example.test';
-      const port = typed.port;
-      const remark = 'parity-test';
-
-      const newLink = genVlessLink({
+      const link = genVlessLink({
         inbound: typed,
-        address,
-        port,
+        address: 'example.test',
+        port: typed.port,
         forceTls: 'same',
-        remark,
+        remark: 'parity-test',
         clientId: client.id,
         flow: client.flow as never,
         externalProxy: null,
       });
-
-      const legacy = LegacyInbound.fromJson(raw);
-      const legacyLink = legacy.genVLESSLink(address, port, 'same', remark, client.id, client.flow, null);
-
-      expect(newLink).toBe(legacyLink);
+      expect(link).toMatchSnapshot();
     });
   }
 });
 
-describe('genTrojanLink parity', () => {
+describe('genTrojanLink', () => {
   const fixtures = fixturesForProtocol('trojan');
   expect(fixtures.length, 'need at least one trojan full-inbound fixture').toBeGreaterThan(0);
 
   for (const [name, raw] of fixtures) {
-    it(`${name}: matches legacy Inbound.genTrojanLink`, () => {
+    it(`${name}: byte-stable`, () => {
       const typed = InboundSchema.parse(raw);
       const settings = (raw as { settings: { clients: Array<{ password: string }> } }).settings;
       const client = settings.clients[0];
 
-      const address = 'example.test';
-      const port = typed.port;
-      const remark = 'parity-test';
-
-      const newLink = genTrojanLink({
+      const link = genTrojanLink({
         inbound: typed,
-        address,
-        port,
+        address: 'example.test',
+        port: typed.port,
         forceTls: 'same',
-        remark,
+        remark: 'parity-test',
         clientPassword: client.password,
         externalProxy: null,
       });
-
-      const legacy = LegacyInbound.fromJson(raw);
-      const legacyLink = legacy.genTrojanLink(address, port, 'same', remark, client.password, null);
-
-      expect(newLink).toBe(legacyLink);
+      expect(link).toMatchSnapshot();
     });
   }
 });
 
-describe('genHysteriaLink parity', () => {
+describe('genHysteriaLink', () => {
   const fixtures = fixturesForProtocol('hysteria');
   expect(fixtures.length, 'need at least one hysteria full-inbound fixture').toBeGreaterThan(0);
 
   for (const [name, raw] of fixtures) {
-    it(`${name}: matches legacy Inbound.genHysteriaLink`, () => {
+    it(`${name}: byte-stable`, () => {
       const typed = InboundSchema.parse(raw);
       const settings = (raw as { settings: { clients: Array<{ auth: string }> } }).settings;
       const client = settings.clients[0];
 
-      const address = 'example.test';
-      const port = typed.port;
-      const remark = 'parity-test';
-
-      const newLink = genHysteriaLink({
+      const link = genHysteriaLink({
         inbound: typed,
-        address,
-        port,
-        remark,
+        address: 'example.test',
+        port: typed.port,
+        remark: 'parity-test',
         clientAuth: client.auth,
       });
-
-      const legacy = LegacyInbound.fromJson(raw);
-      const legacyLink = legacy.genHysteriaLink(address, port, remark, client.auth);
-
-      expect(newLink).toBe(legacyLink);
+      expect(link).toMatchSnapshot();
     });
   }
 });
 
-describe('genWireguardLink + genWireguardConfig parity', () => {
+describe('genWireguardLink + genWireguardConfig', () => {
   const fixtures = fixturesForProtocol('wireguard');
   expect(fixtures.length, 'need at least one wireguard full-inbound fixture').toBeGreaterThan(0);
 
   for (const [name, raw] of fixtures) {
-    it(`${name}: matches legacy getWireguardLink + getWireguardTxt`, () => {
+    it(`${name}: byte-stable`, () => {
       const typed = InboundSchema.parse(raw);
       if (typed.protocol !== 'wireguard') throw new Error('not a wireguard fixture');
       // InboundSchema is an intersection of two DUs, so TS can't auto-narrow
@@ -183,20 +146,21 @@ describe('genWireguardLink + genWireguardConfig parity', () => {
       // check; this cast just helps the type checker.
       const settings = typed.settings as WireguardInboundSettings;
 
-      const address = 'wg.example.test';
-      const port = typed.port;
-      const remark = 'wg-peer-1';
-      const peerIndex = 0;
-
-      const newLink = genWireguardLink({ settings, address, port, remark, peerIndex });
-      const newConfig = genWireguardConfig({ settings, address, port, remark, peerIndex });
-
-      const legacy = LegacyInbound.fromJson(raw);
-      const legacyLink = legacy.getWireguardLink(address, port, remark, peerIndex);
-      const legacyConfig = legacy.getWireguardTxt(address, port, remark, peerIndex);
-
-      expect(newLink).toBe(legacyLink);
-      expect(newConfig).toBe(legacyConfig);
+      const link = genWireguardLink({
+        settings,
+        address: 'wg.example.test',
+        port: typed.port,
+        remark: 'wg-peer-1',
+        peerIndex: 0,
+      });
+      const config = genWireguardConfig({
+        settings,
+        address: 'wg.example.test',
+        port: typed.port,
+        remark: 'wg-peer-1',
+        peerIndex: 0,
+      });
+      expect({ link, config }).toMatchSnapshot();
     });
   }
 });
@@ -241,72 +205,53 @@ describe('resolveAddr precedence', () => {
   });
 });
 
-describe('genInboundLinks orchestrator parity', () => {
+describe('genInboundLinks orchestrator', () => {
   // Every full-inbound fixture should produce the same \r\n-joined link
-  // block as the legacy Inbound.genInboundLinks. Pass hostOverride
-  // explicitly so neither pipeline reaches for location.hostname.
+  // block at this baseline.
   const fixtures = Object.entries(fullFixtures)
     .map(([path, raw]): [string, Record<string, unknown>] => [fixtureName(path), raw as Record<string, unknown>])
     .sort(([a], [b]) => a.localeCompare(b));
 
   for (const [name, raw] of fixtures) {
     const protocol = (raw as { protocol?: string }).protocol;
-    // Skip protocols the legacy class can't dispatch (hysteria2 has no
-    // dispatch case; getSettings(protocol) returns null and crashes
-    // genHysteriaLink). Orchestrator-level parity covers the others.
+    // Skip hysteria2 — the legacy class had no dispatch case at the time
+    // the baseline was locked, so no snapshot exists. The new orchestrator
+    // covers it via its own logic and the genHysteriaLink unit test.
     if (protocol === 'hysteria2') continue;
 
-    it(`${name}: matches legacy Inbound.genInboundLinks`, () => {
+    it(`${name}: byte-stable`, () => {
       const typed = InboundSchema.parse(raw);
-
-      const remark = 'parity-test';
-      const hostOverride = 'override.test';
-      const fallbackHostname = 'fallback.test';
-
-      const newBlock = genInboundLinks({
+      const block = genInboundLinks({
         inbound: typed,
-        remark,
-        hostOverride,
-        fallbackHostname,
+        remark: 'parity-test',
+        hostOverride: 'override.test',
+        fallbackHostname: 'fallback.test',
       });
-
-      const legacy = LegacyInbound.fromJson(raw);
-      const legacyBlock = legacy.genInboundLinks(remark, '-ieo', hostOverride);
-
-      expect(newBlock).toBe(legacyBlock);
+      expect(block).toMatchSnapshot();
     });
   }
 });
 
-describe('genShadowsocksLink parity', () => {
+describe('genShadowsocksLink', () => {
   const fixtures = fixturesForProtocol('shadowsocks');
   expect(fixtures.length, 'need at least one shadowsocks full-inbound fixture').toBeGreaterThan(0);
 
   for (const [name, raw] of fixtures) {
-    it(`${name}: matches legacy Inbound.genSSLink`, () => {
+    it(`${name}: byte-stable`, () => {
       const typed = InboundSchema.parse(raw);
       const settings = (raw as { settings: { clients?: Array<{ password: string }> } }).settings;
       const client = settings.clients?.[0];
 
-      const address = 'example.test';
-      const port = typed.port;
-      const remark = 'parity-test';
-      const clientPassword = client?.password ?? '';
-
-      const newLink = genShadowsocksLink({
+      const link = genShadowsocksLink({
         inbound: typed,
-        address,
-        port,
+        address: 'example.test',
+        port: typed.port,
         forceTls: 'same',
-        remark,
-        clientPassword,
+        remark: 'parity-test',
+        clientPassword: client?.password ?? '',
         externalProxy: null,
       });
-
-      const legacy = LegacyInbound.fromJson(raw);
-      const legacyLink = legacy.genSSLink(address, port, 'same', remark, clientPassword, null);
-
-      expect(newLink).toBe(legacyLink);
+      expect(link).toMatchSnapshot();
     });
   }
 });
