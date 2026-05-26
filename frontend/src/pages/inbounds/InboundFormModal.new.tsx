@@ -24,7 +24,12 @@ import {
   formValuesToWirePayload,
 } from '@/lib/xray/inbound-form-adapter';
 import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
-import { canEnableStream, isSS2022 } from '@/lib/xray/protocol-capabilities';
+import {
+  canEnableReality,
+  canEnableStream,
+  canEnableTls,
+  isSS2022,
+} from '@/lib/xray/protocol-capabilities';
 import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
 import {
   InboundFormBaseSchema,
@@ -38,9 +43,13 @@ import {
   Protocols,
   SNIFFING_OPTION,
   TCP_CONGESTION_OPTION,
+  TLS_CIPHER_OPTION,
+  TLS_VERSION_OPTION,
   UTLS_FINGERPRINT,
 } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
+import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
+import { RealityStreamSettingsSchema } from '@/schemas/protocols/security/reality';
 import DateTimePicker from '@/components/DateTimePicker';
 import InputAddon from '@/components/InputAddon';
 import type { DBInbound } from '@/models/dbinbound';
@@ -114,7 +123,20 @@ export default function InboundFormModalNew({
   });
   const mixedUdpOn = Form.useWatch(['settings', 'udp'], form) ?? false;
   const network = Form.useWatch(['streamSettings', 'network'], form) ?? '';
+  const security = Form.useWatch(['streamSettings', 'security'], form) ?? 'none';
   const streamEnabled = canEnableStream({ protocol });
+  const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
+  const realityAllowed = canEnableReality({ protocol, streamSettings: { network, security } });
+
+  const onSecurityChange = (next: string) => {
+    const current = (form.getFieldValue('streamSettings') as Record<string, unknown>) ?? {};
+    const cleaned: Record<string, unknown> = { ...current, security: next };
+    delete cleaned.tlsSettings;
+    delete cleaned.realitySettings;
+    if (next === 'tls') cleaned.tlsSettings = TlsStreamSettingsSchema.parse({});
+    if (next === 'reality') cleaned.realitySettings = RealityStreamSettingsSchema.parse({});
+    form.setFieldValue('streamSettings', cleaned);
+  };
   const xhttpMode = Form.useWatch(['streamSettings', 'xhttpSettings', 'mode'], form);
   const xhttpObfsMode = Form.useWatch(['streamSettings', 'xhttpSettings', 'xPaddingObfsMode'], form) ?? false;
   const xhttpSessionPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'sessionPlacement'], form);
@@ -1361,6 +1383,108 @@ export default function InboundFormModalNew({
     </>
   );
 
+  const securityTab = (
+    <>
+      <Form.Item label={t('pages.inbounds.securityTab')}>
+        <Form.Item
+          noStyle
+          shouldUpdate={(prev, curr) =>
+            prev.streamSettings?.security !== curr.streamSettings?.security
+          }
+        >
+          {({ getFieldValue }) => {
+            const sec = getFieldValue(['streamSettings', 'security']) ?? 'none';
+            return (
+              <Select
+                value={sec}
+                disabled={!tlsAllowed}
+                onChange={onSecurityChange}
+                style={{ width: 180 }}
+              >
+                <Select.Option value="none">none</Select.Option>
+                <Select.Option value="tls">tls</Select.Option>
+                {realityAllowed && <Select.Option value="reality">reality</Select.Option>}
+              </Select>
+            );
+          }}
+        </Form.Item>
+      </Form.Item>
+
+      {security === 'tls' && (
+        <>
+          <Form.Item name={['streamSettings', 'tlsSettings', 'serverName']} label="SNI">
+            <Input placeholder="Server Name Indication" />
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'tlsSettings', 'cipherSuites']} label="Cipher Suites">
+            <Select>
+              <Select.Option value="">Auto</Select.Option>
+              {Object.entries(TLS_CIPHER_OPTION).map(([k, v]) => (
+                <Select.Option key={v} value={v}>{k}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item label="Min/Max Version">
+            <Space.Compact block>
+              <Form.Item name={['streamSettings', 'tlsSettings', 'minVersion']} noStyle>
+                <Select style={{ width: '50%' }}>
+                  {Object.values(TLS_VERSION_OPTION).map((v) => (
+                    <Select.Option key={v} value={v}>{v}</Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name={['streamSettings', 'tlsSettings', 'maxVersion']} noStyle>
+                <Select style={{ width: '50%' }}>
+                  {Object.values(TLS_VERSION_OPTION).map((v) => (
+                    <Select.Option key={v} value={v}>{v}</Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Space.Compact>
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'tlsSettings', 'settings', 'fingerprint']}
+            label="uTLS"
+          >
+            <Select>
+              <Select.Option value="">None</Select.Option>
+              {Object.values(UTLS_FINGERPRINT).map((fp) => (
+                <Select.Option key={fp} value={fp}>{fp}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'tlsSettings', 'alpn']} label="ALPN">
+            <Select mode="multiple" tokenSeparators={[',']} style={{ width: '100%' }}>
+              {Object.values(ALPN_OPTION).map((a) => (
+                <Select.Option key={a} value={a}>{a}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'tlsSettings', 'rejectUnknownSni']}
+            label="Reject Unknown SNI"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'tlsSettings', 'disableSystemRoot']}
+            label="Disable System Root"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'tlsSettings', 'enableSessionResumption']}
+            label="Session Resumption"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </>
+      )}
+    </>
+  );
+
   const sniffingTab = (
     <>
       <Form.Item name={['sniffing', 'enabled']} label={t('enable')} valuePropName="checked">
@@ -1457,7 +1581,10 @@ export default function InboundFormModalNew({
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab }]
               : []),
             ...(streamEnabled
-              ? [{ key: 'stream', label: t('pages.inbounds.streamTab'), children: streamTab }]
+              ? [
+                  { key: 'stream', label: t('pages.inbounds.streamTab'), children: streamTab },
+                  { key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab },
+                ]
               : []),
             { key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab },
           ]} />
