@@ -1473,16 +1473,23 @@ export default function OutboundFormModal({
                             </Form.Item>
 
                             <Form.Item
-                              label="Uplink HTTP method"
-                              name={['streamSettings', 'xhttpSettings', 'uplinkHTTPMethod']}
+                              noStyle
+                              shouldUpdate={(prev, curr) =>
+                                prev?.streamSettings?.xhttpSettings?.mode !==
+                                curr?.streamSettings?.xhttpSettings?.mode
+                              }
                             >
-                              <Form.Item shouldUpdate noStyle>
-                                {() => {
-                                  const mode = form.getFieldValue([
-                                    'streamSettings', 'xhttpSettings', 'mode',
-                                  ]);
-                                  return (
+                              {() => {
+                                const mode = form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'mode',
+                                ]);
+                                return (
+                                  <Form.Item
+                                    label="Uplink HTTP method"
+                                    name={['streamSettings', 'xhttpSettings', 'uplinkHTTPMethod']}
+                                  >
                                     <Select
+                                      placeholder="Default (POST)"
                                       options={[
                                         { value: '', label: 'Default (POST)' },
                                         { value: 'POST', label: 'POST' },
@@ -1490,9 +1497,9 @@ export default function OutboundFormModal({
                                         { value: 'GET', label: 'GET (packet-up only)', disabled: mode !== 'packet-up' },
                                       ]}
                                     />
-                                  );
-                                }}
-                              </Form.Item>
+                                  </Form.Item>
+                                );
+                              }}
                             </Form.Item>
 
                             {/* Session + sequence + uplinkData placements:
@@ -1505,6 +1512,7 @@ export default function OutboundFormModal({
                               name={['streamSettings', 'xhttpSettings', 'sessionPlacement']}
                             >
                               <Select
+                                placeholder="Default (path)"
                                 options={[
                                   { value: '', label: 'Default (path)' },
                                   { value: 'path', label: 'path' },
@@ -1535,6 +1543,7 @@ export default function OutboundFormModal({
                               name={['streamSettings', 'xhttpSettings', 'seqPlacement']}
                             >
                               <Select
+                                placeholder="Default (path)"
                                 options={[
                                   { value: '', label: 'Default (path)' },
                                   { value: 'path', label: 'path' },

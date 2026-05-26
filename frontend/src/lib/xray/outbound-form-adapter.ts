@@ -20,13 +20,6 @@ import type {
   WireguardOutboundFormSettings,
 } from '@/schemas/forms/outbound-form';
 
-// Adapter between the wire-shape outbound JSON the panel stores in
-// templateSettings.outbounds[] and the typed OutboundFormValues the modal
-// holds in Form.useForm<T>. No dependency on the legacy Outbound class
-// hierarchy — the modal hands a wire-shape object in, takes typed values
-// out, and on submit calls formValuesToWirePayload() to get a plain JS
-// object ready to pass to onConfirm().
-
 type Raw = Record<string, unknown>;
 
 function asObject(value: unknown): Raw {
@@ -348,20 +341,12 @@ export interface RawOutboundRow {
   mux?: unknown;
 }
 
-// Convert wire-shape outbound (the object stored in
-// templateSettings.outbounds[]) into typed form values. Stream + mux are
-// minimal placeholders for now — the modal will fold the real stream sub-
-// form in when those sections come online.
 export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues {
   const protocol = asString(raw.protocol, 'vless');
   const settings = asObject(raw.settings);
   const tag = asString(raw.tag);
   const sendThrough = asString(raw.sendThrough);
   const mux = muxFromWire(raw.mux);
-  // Leave streamSettings undefined when missing or empty — the modal's
-  // stream tab seeds it when the user opens the relevant section. This
-  // keeps Form.useForm from receiving a value that doesn't match the
-  // NetworkSettings DU.
   const hasStream = raw.streamSettings
     && typeof raw.streamSettings === 'object'
     && Object.keys(raw.streamSettings as Raw).length > 0;
@@ -554,18 +539,22 @@ function loopbackToWire(s: LoopbackOutboundFormSettings) {
 const MUX_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'http', 'socks']);
 const STREAM_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'hysteria']);
 
-// Strip UI-only fields the form layered into streamSettings (e.g. the
-// XHTTP modal's enableXmux toggle that controls section visibility but
-// has no meaning on the wire). xray-core would ignore unknown fields
-// anyway but the panel reads back its own emitted JSON, so we keep
-// the wire shape clean.
+function dropEmptyStrings(obj: Raw): Raw {
+  const out: Raw = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === '') continue;
+    out[k] = v;
+  }
+  return out;
+}
+
 function stripUiOnlyStreamFields(stream: unknown): Raw {
   const next = { ...(stream as Raw) };
   const xh = next.xhttpSettings;
   if (xh && typeof xh === 'object') {
     const cleaned = { ...(xh as Raw) };
     delete cleaned.enableXmux;
-    next.xhttpSettings = cleaned;
+    next.xhttpSettings = dropEmptyStrings(cleaned);
   }
   return next;
 }
