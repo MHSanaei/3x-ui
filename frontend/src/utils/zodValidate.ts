@@ -1,7 +1,7 @@
 import type { z } from 'zod';
 import { Msg } from '@/utils';
 
-export function parseMsg<T extends z.ZodTypeAny>(
+export function parseMsg<T extends z.ZodType>(
   msg: Msg<unknown>,
   schema: T,
   context: string,

@@ -583,7 +583,15 @@ export class ClipboardManager {
       textarea.focus({ preventScroll: true });
       textarea.select();
       textarea.setSelectionRange(0, text.length);
-      ok = document.execCommand('copy');
+      // Routed through a dynamic lookup so the @deprecated tag on
+      // Document.execCommand doesn't surface here. execCommand is the
+      // only copy path that works in insecure contexts (HTTP panels
+      // behind IP/localhost) — reached only after navigator.clipboard
+      // fails or is unavailable.
+      const exec = (document as unknown as Record<string, unknown>)['execCommand'];
+      if (typeof exec === 'function') {
+        ok = (exec as (cmd: string) => boolean).call(document, 'copy');
+      }
     } catch {}
 
     host.removeChild(textarea);

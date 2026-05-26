@@ -2,7 +2,7 @@ import type { Rule } from 'antd/es/form';
 import type { TFunction } from 'i18next';
 import type { z } from 'zod';
 
-export function antdRule<T extends z.ZodTypeAny>(schema: T, t: TFunction): Rule {
+export function antdRule<T extends z.ZodType>(schema: T, t: TFunction): Rule {
   return {
     validator: async (_rule, value) => {
       const result = schema.safeParse(value);

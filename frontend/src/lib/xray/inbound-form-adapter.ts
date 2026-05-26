@@ -179,7 +179,7 @@ export function pruneEmpty(value: unknown): unknown {
 // those inside a vless inbound's settings.clients is confusing and rides
 // dead weight in the wire payload. Parsing through the protocol's schema
 // gives us the canonical projection.
-function clientSchemaForProtocol(protocol: string): z.ZodTypeAny | null {
+function clientSchemaForProtocol(protocol: string): z.ZodType | null {
   switch (protocol) {
     case 'vless':       return VlessClientSchema;
     case 'vmess':       return VmessClientSchema;

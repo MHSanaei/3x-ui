@@ -1,4 +1,4 @@
-import { Button, Divider, Form, Input, InputNumber, Select, Switch } from 'antd';
+import { Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { FormInstance } from 'antd/es/form';
 import type { NamePath } from 'antd/es/form/interface';
@@ -638,7 +638,7 @@ function ItemEditor({
           if (type === 'base64') {
             return (
               <Form.Item label="Packet">
-                <Input.Group compact>
+                <Space.Compact block>
                   <Form.Item name={[fieldName, 'packet']} noStyle>
                     <Input placeholder="binary data" style={{ width: 'calc(100% - 32px)' }} />
                   </Form.Item>
@@ -646,7 +646,7 @@ function ItemEditor({
                     icon={<ReloadOutlined />}
                     onClick={() => form.setFieldValue([...absoluteItemPath, 'packet'], RandomUtil.randomBase64())}
                   />
-                </Input.Group>
+                </Space.Compact>
               </Form.Item>
             );
           }

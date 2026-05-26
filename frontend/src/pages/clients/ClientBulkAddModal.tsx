@@ -62,10 +62,10 @@ export default function ClientBulkAddModal({
 
   useEffect(() => {
     if (!open) return;
-     
+
     setForm(emptyForm());
     setDelayedStart(false);
-     
+
   }, [open]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -87,7 +87,7 @@ export default function ClientBulkAddModal({
 
   useEffect(() => {
     if (!showFlow && form.flow) {
-       
+
       update('flow', '');
     }
   }, [showFlow, form.flow]);
@@ -186,130 +186,131 @@ export default function ClientBulkAddModal({
         open={open}
         title={t('pages.clients.bulk')}
         okText={t('create')}
-      cancelText={t('close')}
-      confirmLoading={saving}
-      mask={{ closable: false }}
-      width={640}
-      onOk={submit}
-      onCancel={() => onOpenChange(false)}
-    >
-      <Form colon={false} labelCol={{ sm: { span: 8 } }} wrapperCol={{ sm: { span: 14 } }}>
-        <Form.Item label={t('pages.clients.attachedInbounds')} required>
-          <Select
-            mode="multiple"
-            value={form.inboundIds}
-            onChange={(v) => update('inboundIds', v)}
-            options={inboundOptions}
-            placeholder={t('pages.clients.selectInbound')}
-            showSearch
-            filterOption={(input, option) => ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase())}
-          />
-        </Form.Item>
-
-        <Form.Item label={t('pages.clients.method')}>
-          <Select
-            value={form.emailMethod}
-            onChange={(v) => update('emailMethod', v)}
-            options={[
-              { value: 0, label: 'Random' },
-              { value: 1, label: 'Random + Prefix' },
-              { value: 2, label: 'Random + Prefix + Num' },
-              { value: 3, label: 'Random + Prefix + Num + Postfix' },
-              { value: 4, label: 'Prefix + Num + Postfix' },
-            ]}
-          />
-        </Form.Item>
-
-        {form.emailMethod > 1 && (
-          <>
-            <Form.Item label={t('pages.clients.first')}>
-              <InputNumber value={form.firstNum} min={1} onChange={(v) => update('firstNum', Number(v) || 1)} />
-            </Form.Item>
-            <Form.Item label={t('pages.clients.last')}>
-              <InputNumber value={form.lastNum} min={form.firstNum} onChange={(v) => update('lastNum', Number(v) || 1)} />
-            </Form.Item>
-          </>
-        )}
-        {form.emailMethod > 0 && (
-          <Form.Item label={t('pages.clients.prefix')}>
-            <Input value={form.emailPrefix} onChange={(e) => update('emailPrefix', e.target.value)} />
-          </Form.Item>
-        )}
-        {form.emailMethod > 2 && (
-          <Form.Item label={t('pages.clients.postfix')}>
-            <Input value={form.emailPostfix} onChange={(e) => update('emailPostfix', e.target.value)} />
-          </Form.Item>
-        )}
-        {form.emailMethod < 2 && (
-          <Form.Item label={t('pages.clients.clientCount')}>
-            <InputNumber value={form.quantity} min={1} max={100} onChange={(v) => update('quantity', Number(v) || 1)} />
-          </Form.Item>
-        )}
-
-        <Form.Item label={
-          <>
-            {t('subscription.title')}
-            <SyncOutlined
-              className="random-icon"
-              onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))}
-            />
-          </>
-        }>
-          <Input value={form.subId} onChange={(e) => update('subId', e.target.value)} />
-        </Form.Item>
-
-        <Form.Item label={t('comment')}>
-          <Input value={form.comment} onChange={(e) => update('comment', e.target.value)} />
-        </Form.Item>
-
-        {showFlow && (
-          <Form.Item label={t('pages.clients.flow')}>
+        cancelText={t('close')}
+        confirmLoading={saving}
+        mask={{ closable: false }}
+        width={640}
+        onOk={submit}
+        onCancel={() => onOpenChange(false)}
+      >
+        <Form colon={false} labelCol={{ sm: { span: 8 } }} wrapperCol={{ sm: { span: 14 } }}>
+          <Form.Item label={t('pages.clients.attachedInbounds')} required>
             <Select
-              value={form.flow}
-              onChange={(v) => update('flow', v)}
-              style={{ width: 220 }}
+              mode="multiple"
+              value={form.inboundIds}
+              onChange={(v) => update('inboundIds', v)}
+              options={inboundOptions}
+              placeholder={t('pages.clients.selectInbound')}
+              showSearch={{
+                filterOption: (input, option) => ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase()),
+              }}
+            />
+          </Form.Item>
+
+          <Form.Item label={t('pages.clients.method')}>
+            <Select
+              value={form.emailMethod}
+              onChange={(v) => update('emailMethod', v)}
               options={[
-                { value: '', label: t('none') },
-                ...FLOW_OPTIONS.map((k) => ({ value: k, label: k })),
+                { value: 0, label: 'Random' },
+                { value: 1, label: 'Random + Prefix' },
+                { value: 2, label: 'Random + Prefix + Num' },
+                { value: 3, label: 'Random + Prefix + Num + Postfix' },
+                { value: 4, label: 'Prefix + Num + Postfix' },
               ]}
             />
           </Form.Item>
-        )}
 
-        {ipLimitEnable && (
-          <Form.Item label={t('pages.clients.limitIp')}>
-            <InputNumber value={form.limitIp} min={0} onChange={(v) => update('limitIp', Number(v) || 0)} />
+          {form.emailMethod > 1 && (
+            <>
+              <Form.Item label={t('pages.clients.first')}>
+                <InputNumber value={form.firstNum} min={1} onChange={(v) => update('firstNum', Number(v) || 1)} />
+              </Form.Item>
+              <Form.Item label={t('pages.clients.last')}>
+                <InputNumber value={form.lastNum} min={form.firstNum} onChange={(v) => update('lastNum', Number(v) || 1)} />
+              </Form.Item>
+            </>
+          )}
+          {form.emailMethod > 0 && (
+            <Form.Item label={t('pages.clients.prefix')}>
+              <Input value={form.emailPrefix} onChange={(e) => update('emailPrefix', e.target.value)} />
+            </Form.Item>
+          )}
+          {form.emailMethod > 2 && (
+            <Form.Item label={t('pages.clients.postfix')}>
+              <Input value={form.emailPostfix} onChange={(e) => update('emailPostfix', e.target.value)} />
+            </Form.Item>
+          )}
+          {form.emailMethod < 2 && (
+            <Form.Item label={t('pages.clients.clientCount')}>
+              <InputNumber value={form.quantity} min={1} max={100} onChange={(v) => update('quantity', Number(v) || 1)} />
+            </Form.Item>
+          )}
+
+          <Form.Item label={
+            <>
+              {t('subscription.title')}
+              <SyncOutlined
+                className="random-icon"
+                onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))}
+              />
+            </>
+          }>
+            <Input value={form.subId} onChange={(e) => update('subId', e.target.value)} />
           </Form.Item>
-        )}
 
-        <Form.Item label={t('pages.clients.totalGB')}>
-          <InputNumber value={form.totalGB} min={0} step={1} onChange={(v) => update('totalGB', Number(v) || 0)} />
-        </Form.Item>
+          <Form.Item label={t('comment')}>
+            <Input value={form.comment} onChange={(e) => update('comment', e.target.value)} />
+          </Form.Item>
 
-        <Form.Item label={t('pages.clients.delayedStart')}>
-          <Switch
-            checked={delayedStart}
-            onClick={() => { setDelayedStart(!delayedStart); update('expiryTime', 0); }}
-          />
-        </Form.Item>
+          {showFlow && (
+            <Form.Item label={t('pages.clients.flow')}>
+              <Select
+                value={form.flow}
+                onChange={(v) => update('flow', v)}
+                style={{ width: 220 }}
+                options={[
+                  { value: '', label: t('none') },
+                  ...FLOW_OPTIONS.map((k) => ({ value: k, label: k })),
+                ]}
+              />
+            </Form.Item>
+          )}
 
-        {delayedStart ? (
-          <Form.Item label={t('pages.clients.expireDays')}>
-            <InputNumber
-              value={delayedExpireDays}
-              min={0}
-              onChange={(v) => update('expiryTime', -86400000 * (Number(v) || 0))}
+          {ipLimitEnable && (
+            <Form.Item label={t('pages.clients.limitIp')}>
+              <InputNumber value={form.limitIp} min={0} onChange={(v) => update('limitIp', Number(v) || 0)} />
+            </Form.Item>
+          )}
+
+          <Form.Item label={t('pages.clients.totalGB')}>
+            <InputNumber value={form.totalGB} min={0} step={1} onChange={(v) => update('totalGB', Number(v) || 0)} />
+          </Form.Item>
+
+          <Form.Item label={t('pages.clients.delayedStart')}>
+            <Switch
+              checked={delayedStart}
+              onClick={() => { setDelayedStart(!delayedStart); update('expiryTime', 0); }}
             />
           </Form.Item>
-        ) : (
-          <Form.Item label={t('pages.inbounds.expireDate')}>
-            <DateTimePicker
-              value={expiryDate}
-              onChange={(next) => update('expiryTime', next ? next.valueOf() : 0)}
-            />
-          </Form.Item>
-        )}
-      </Form>
+
+          {delayedStart ? (
+            <Form.Item label={t('pages.clients.expireDays')}>
+              <InputNumber
+                value={delayedExpireDays}
+                min={0}
+                onChange={(v) => update('expiryTime', -86400000 * (Number(v) || 0))}
+              />
+            </Form.Item>
+          ) : (
+            <Form.Item label={t('pages.inbounds.expireDate')}>
+              <DateTimePicker
+                value={expiryDate}
+                onChange={(next) => update('expiryTime', next ? next.valueOf() : 0)}
+              />
+            </Form.Item>
+          )}
+        </Form>
       </Modal>
     </>
   );

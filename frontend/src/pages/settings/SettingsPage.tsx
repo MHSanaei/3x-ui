@@ -293,9 +293,8 @@ export default function SettingsPage() {
                     <Alert
                       type="error"
                       showIcon
-                      closable
+                      closable={{ onClose: () => setAlertVisible(false) }}
                       className="conf-alert"
-                      onClose={() => setAlertVisible(false)}
                       title={t('pages.settings.securityWarnings')}
                       description={(
                         <>

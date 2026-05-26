@@ -318,8 +318,7 @@ export default function NordModal({
             <Form.Item label="Country">
               <Select
                 value={countryId ?? undefined}
-                showSearch
-                optionFilterProp="label"
+                showSearch={{ optionFilterProp: 'label' }}
                 onChange={(v) => fetchServers(v)}
                 options={countries.map((c) => ({
                   value: c.id,
@@ -332,8 +331,7 @@ export default function NordModal({
               <Form.Item label="City">
                 <Select
                   value={cityId}
-                  showSearch
-                  optionFilterProp="label"
+                  showSearch={{ optionFilterProp: 'label' }}
                   onChange={setCityId}
                   options={[{ value: null, label: 'All cities' }, ...cities.map((c) => ({ value: c.id, label: c.name }))]}
                 />
@@ -344,8 +342,7 @@ export default function NordModal({
               <Form.Item label="Server">
                 <Select
                   value={serverId}
-                  showSearch
-                  optionFilterProp="label"
+                  showSearch={{ optionFilterProp: 'label' }}
                   onChange={setServerId}
                   options={filteredServers.map((s) => ({
                     value: s.id,

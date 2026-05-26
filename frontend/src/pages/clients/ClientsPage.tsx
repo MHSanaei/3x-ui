@@ -174,7 +174,7 @@ export default function ClientsPage() {
 
   useEffect(() => {
     if (pageSize > 0) {
-       
+
       setTablePageSize(pageSize);
     }
   }, [pageSize]);
@@ -744,8 +744,7 @@ export default function ClientsPage() {
                           value={inboundFilter}
                           onChange={(v) => setInboundFilter(v)}
                           allowClear
-                          showSearch
-                          optionFilterProp="label"
+                          showSearch={{ optionFilterProp: 'label' }}
                           placeholder={t('inbounds')}
                           size={isMobile ? 'small' : 'middle'}
                           style={{ minWidth: 160, maxWidth: 240 }}

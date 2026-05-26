@@ -858,18 +858,15 @@ export default function InboundFormModal({
             disabled={mode === 'edit'}
             placeholder={t('pages.inbounds.localPanel')}
             allowClear
-          >
-            <Select.Option value={null}>{t('pages.inbounds.localPanel')}</Select.Option>
-            {selectableNodes.map((n) => (
-              <Select.Option
-                key={n.id}
-                value={n.id}
-                disabled={n.status === 'offline'}
-              >
-                {n.name}{n.status === 'offline' ? ' (offline)' : ''}
-              </Select.Option>
-            ))}
-          </Select>
+            options={[
+              { value: null, label: t('pages.inbounds.localPanel') },
+              ...selectableNodes.map((n) => ({
+                value: n.id,
+                label: `${n.name}${n.status === 'offline' ? ' (offline)' : ''}`,
+                disabled: n.status === 'offline',
+              })),
+            ]}
+          />
         </Form.Item>
       )}
 
@@ -924,13 +921,12 @@ export default function InboundFormModal({
       </Form.Item>
 
       <Form.Item name="trafficReset" label={t('pages.inbounds.periodicTrafficResetTitle')}>
-        <Select>
-          {TRAFFIC_RESETS.map((r) => (
-            <Select.Option key={r} value={r}>
-              {t(`pages.inbounds.periodicTrafficReset.${r}`)}
-            </Select.Option>
-          ))}
-        </Select>
+        <Select
+          options={TRAFFIC_RESETS.map((r) => ({
+            value: r,
+            label: t(`pages.inbounds.periodicTrafficReset.${r}`),
+          }))}
+        />
       </Form.Item>
 
       <Form.Item
@@ -976,11 +972,11 @@ export default function InboundFormModal({
             <Select
               value={record.childId}
               options={fallbackChildOptions}
-              showSearch
               placeholder={t('pages.inbounds.fallbacks.pickInbound') || 'Pick an inbound'}
-              filterOption={(input, option) =>
-                ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase())
-              }
+              showSearch={{
+                filterOption: (input, option) =>
+                  ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase()),
+              }}
               style={{ width: '100%' }}
               onChange={(v) => updateFallback(record.rowKey, { childId: v })}
             />
@@ -1258,11 +1254,13 @@ export default function InboundFormModal({
             <InputNumber min={0} max={65535} />
           </Form.Item>
           <Form.Item name={['settings', 'allowedNetwork']} label="Allowed network">
-            <Select>
-              <Select.Option value="tcp,udp">TCP, UDP</Select.Option>
-              <Select.Option value="tcp">TCP</Select.Option>
-              <Select.Option value="udp">UDP</Select.Option>
-            </Select>
+            <Select
+              options={[
+                { value: 'tcp,udp', label: 'TCP, UDP' },
+                { value: 'tcp', label: 'TCP' },
+                { value: 'udp', label: 'UDP' },
+              ]}
+            />
           </Form.Item>
           <Form.Item label="Port map" name={['settings', 'portMap']}>
             <HeaderMapEditor mode="v1" />
@@ -1326,10 +1324,12 @@ export default function InboundFormModal({
           {protocol === Protocols.MIXED && (
             <>
               <Form.Item name={['settings', 'auth']} label="Auth">
-                <Select>
-                  <Select.Option value="noauth">noauth</Select.Option>
-                  <Select.Option value="password">password</Select.Option>
-                </Select>
+                <Select
+                  options={[
+                    { value: 'noauth', label: 'noauth' },
+                    { value: 'password', label: 'password' },
+                  ]}
+                />
               </Form.Item>
               <Form.Item
                 name={['settings', 'udp']}
@@ -1358,11 +1358,8 @@ export default function InboundFormModal({
                   RandomUtil.randomShadowsocksPassword(v as string),
                 );
               }}
-            >
-              {SSMethodSchema.options.map((m) => (
-                <Select.Option key={m} value={m}>{m}</Select.Option>
-              ))}
-            </Select>
+              options={SSMethodSchema.options.map((m) => ({ value: m, label: m }))}
+            />
           </Form.Item>
           {isSSWith2022 && (
             <Form.Item
@@ -1387,11 +1384,14 @@ export default function InboundFormModal({
             </Form.Item>
           )}
           <Form.Item name={['settings', 'network']} label="Network">
-            <Select style={{ width: 120 }}>
-              <Select.Option value="tcp,udp">TCP, UDP</Select.Option>
-              <Select.Option value="tcp">TCP</Select.Option>
-              <Select.Option value="udp">UDP</Select.Option>
-            </Select>
+            <Select
+              style={{ width: 120 }}
+              options={[
+                { value: 'tcp,udp', label: 'TCP, UDP' },
+                { value: 'tcp', label: 'TCP' },
+                { value: 'udp', label: 'UDP' },
+              ]}
+            />
           </Form.Item>
           <Form.Item
             name={['settings', 'ivCheck']}
@@ -1473,14 +1473,15 @@ export default function InboundFormModal({
           <Select
             style={{ width: '75%' }}
             onChange={onNetworkChange}
-          >
-            <Select.Option value="tcp">TCP (RAW)</Select.Option>
-            <Select.Option value="kcp">mKCP</Select.Option>
-            <Select.Option value="ws">WebSocket</Select.Option>
-            <Select.Option value="grpc">gRPC</Select.Option>
-            <Select.Option value="httpupgrade">HTTPUpgrade</Select.Option>
-            <Select.Option value="xhttp">XHTTP</Select.Option>
-          </Select>
+            options={[
+              { value: 'tcp', label: 'TCP (RAW)' },
+              { value: 'kcp', label: 'mKCP' },
+              { value: 'ws', label: 'WebSocket' },
+              { value: 'grpc', label: 'gRPC' },
+              { value: 'httpupgrade', label: 'HTTPUpgrade' },
+              { value: 'xhttp', label: 'XHTTP' },
+            ]}
+          />
         </Form.Item>
       )}
 
@@ -1792,11 +1793,13 @@ export default function InboundFormModal({
             <Input />
           </Form.Item>
           <Form.Item name={['streamSettings', 'xhttpSettings', 'mode']} label="Mode">
-            <Select style={{ width: '50%' }}>
-              {(['auto', 'packet-up', 'stream-up', 'stream-one'] as const).map((m) => (
-                <Select.Option key={m} value={m}>{m}</Select.Option>
-              ))}
-            </Select>
+            <Select
+              style={{ width: '50%' }}
+              options={(['auto', 'packet-up', 'stream-up', 'stream-one'] as const).map((m) => ({
+                value: m,
+                label: m,
+              }))}
+            />
           </Form.Item>
           {xhttpMode === 'packet-up' && (
             <>
@@ -1838,14 +1841,18 @@ export default function InboundFormModal({
             name={['streamSettings', 'xhttpSettings', 'uplinkHTTPMethod']}
             label="Uplink HTTP Method"
           >
-            <Select>
-              <Select.Option value="">Default (POST)</Select.Option>
-              <Select.Option value="POST">POST</Select.Option>
-              <Select.Option value="PUT">PUT</Select.Option>
-              <Select.Option value="GET" disabled={xhttpMode !== 'packet-up'}>
-                GET (packet-up only)
-              </Select.Option>
-            </Select>
+            <Select
+              options={[
+                { value: '', label: 'Default (POST)' },
+                { value: 'POST', label: 'POST' },
+                { value: 'PUT', label: 'PUT' },
+                {
+                  value: 'GET',
+                  label: 'GET (packet-up only)',
+                  disabled: xhttpMode !== 'packet-up',
+                },
+              ]}
+            />
           </Form.Item>
           <Form.Item
             name={['streamSettings', 'xhttpSettings', 'xPaddingObfsMode']}
@@ -1872,23 +1879,27 @@ export default function InboundFormModal({
                 name={['streamSettings', 'xhttpSettings', 'xPaddingPlacement']}
                 label="Padding Placement"
               >
-                <Select>
-                  <Select.Option value="">Default (queryInHeader)</Select.Option>
-                  <Select.Option value="queryInHeader">queryInHeader</Select.Option>
-                  <Select.Option value="header">header</Select.Option>
-                  <Select.Option value="cookie">cookie</Select.Option>
-                  <Select.Option value="query">query</Select.Option>
-                </Select>
+                <Select
+                  options={[
+                    { value: '', label: 'Default (queryInHeader)' },
+                    { value: 'queryInHeader', label: 'queryInHeader' },
+                    { value: 'header', label: 'header' },
+                    { value: 'cookie', label: 'cookie' },
+                    { value: 'query', label: 'query' },
+                  ]}
+                />
               </Form.Item>
               <Form.Item
                 name={['streamSettings', 'xhttpSettings', 'xPaddingMethod']}
                 label="Padding Method"
               >
-                <Select>
-                  <Select.Option value="">Default (repeat-x)</Select.Option>
-                  <Select.Option value="repeat-x">repeat-x</Select.Option>
-                  <Select.Option value="tokenish">tokenish</Select.Option>
-                </Select>
+                <Select
+                  options={[
+                    { value: '', label: 'Default (repeat-x)' },
+                    { value: 'repeat-x', label: 'repeat-x' },
+                    { value: 'tokenish', label: 'tokenish' },
+                  ]}
+                />
               </Form.Item>
             </>
           )}
@@ -1896,13 +1907,15 @@ export default function InboundFormModal({
             name={['streamSettings', 'xhttpSettings', 'sessionPlacement']}
             label="Session Placement"
           >
-            <Select>
-              <Select.Option value="">Default (path)</Select.Option>
-              <Select.Option value="path">path</Select.Option>
-              <Select.Option value="header">header</Select.Option>
-              <Select.Option value="cookie">cookie</Select.Option>
-              <Select.Option value="query">query</Select.Option>
-            </Select>
+            <Select
+              options={[
+                { value: '', label: 'Default (path)' },
+                { value: 'path', label: 'path' },
+                { value: 'header', label: 'header' },
+                { value: 'cookie', label: 'cookie' },
+                { value: 'query', label: 'query' },
+              ]}
+            />
           </Form.Item>
           {xhttpSessionPlacement && xhttpSessionPlacement !== 'path' && (
             <Form.Item
@@ -1916,13 +1929,15 @@ export default function InboundFormModal({
             name={['streamSettings', 'xhttpSettings', 'seqPlacement']}
             label="Sequence Placement"
           >
-            <Select>
-              <Select.Option value="">Default (path)</Select.Option>
-              <Select.Option value="path">path</Select.Option>
-              <Select.Option value="header">header</Select.Option>
-              <Select.Option value="cookie">cookie</Select.Option>
-              <Select.Option value="query">query</Select.Option>
-            </Select>
+            <Select
+              options={[
+                { value: '', label: 'Default (path)' },
+                { value: 'path', label: 'path' },
+                { value: 'header', label: 'header' },
+                { value: 'cookie', label: 'cookie' },
+                { value: 'query', label: 'query' },
+              ]}
+            />
           </Form.Item>
           {xhttpSeqPlacement && xhttpSeqPlacement !== 'path' && (
             <Form.Item
@@ -1938,13 +1953,15 @@ export default function InboundFormModal({
                 name={['streamSettings', 'xhttpSettings', 'uplinkDataPlacement']}
                 label="Uplink Data Placement"
               >
-                <Select>
-                  <Select.Option value="">Default (body)</Select.Option>
-                  <Select.Option value="body">body</Select.Option>
-                  <Select.Option value="header">header</Select.Option>
-                  <Select.Option value="cookie">cookie</Select.Option>
-                  <Select.Option value="query">query</Select.Option>
-                </Select>
+                <Select
+                  options={[
+                    { value: '', label: 'Default (body)' },
+                    { value: 'body', label: 'body' },
+                    { value: 'header', label: 'header' },
+                    { value: 'cookie', label: 'cookie' },
+                    { value: 'query', label: 'query' },
+                  ]}
+                />
               </Form.Item>
               {xhttpUplinkPlacement && xhttpUplinkPlacement !== 'body' && (
                 <Form.Item
@@ -2067,11 +2084,14 @@ export default function InboundFormModal({
                           <div key={field.key} style={{ margin: '8px 0' }}>
                             <Space.Compact block>
                               <Form.Item name={[field.name, 'forceTls']} noStyle>
-                                <Select style={{ width: '20%' }}>
-                                  <Select.Option value="same">{t('pages.inbounds.same')}</Select.Option>
-                                  <Select.Option value="none">{t('none')}</Select.Option>
-                                  <Select.Option value="tls">TLS</Select.Option>
-                                </Select>
+                                <Select
+                                  style={{ width: '20%' }}
+                                  options={[
+                                    { value: 'same', label: t('pages.inbounds.same') },
+                                    { value: 'none', label: t('none') },
+                                    { value: 'tls', label: 'TLS' },
+                                  ]}
+                                />
                               </Form.Item>
                               <Form.Item name={[field.name, 'dest']} noStyle>
                                 <Input style={{ width: '30%' }} placeholder={t('host')} />
@@ -2104,19 +2124,28 @@ export default function InboundFormModal({
                                       <Input style={{ width: '30%' }} placeholder="SNI (defaults to host)" />
                                     </Form.Item>
                                     <Form.Item name={[field.name, 'fingerprint']} noStyle>
-                                      <Select style={{ width: '30%' }} placeholder="Fingerprint">
-                                        <Select.Option value="">Default</Select.Option>
-                                        {Object.values(UTLS_FINGERPRINT).map((fp) => (
-                                          <Select.Option key={fp} value={fp}>{fp}</Select.Option>
-                                        ))}
-                                      </Select>
+                                      <Select
+                                        style={{ width: '30%' }}
+                                        placeholder="Fingerprint"
+                                        options={[
+                                          { value: '', label: 'Default' },
+                                          ...Object.values(UTLS_FINGERPRINT).map((fp) => ({
+                                            value: fp,
+                                            label: fp,
+                                          })),
+                                        ]}
+                                      />
                                     </Form.Item>
                                     <Form.Item name={[field.name, 'alpn']} noStyle>
-                                      <Select mode="multiple" style={{ width: '40%' }} placeholder="ALPN">
-                                        {Object.values(ALPN_OPTION).map((a) => (
-                                          <Select.Option key={a} value={a}>{a}</Select.Option>
-                                        ))}
-                                      </Select>
+                                      <Select
+                                        mode="multiple"
+                                        style={{ width: '40%' }}
+                                        placeholder="ALPN"
+                                        options={Object.values(ALPN_OPTION).map((a) => ({
+                                          value: a,
+                                          label: a,
+                                        }))}
+                                      />
                                     </Form.Item>
                                   </Space.Compact>
                                 );
@@ -2221,28 +2250,29 @@ export default function InboundFormModal({
             name={['streamSettings', 'sockopt', 'domainStrategy']}
             label="Domain Strategy"
           >
-            <Select style={{ width: '50%' }}>
-              {Object.values(DOMAIN_STRATEGY_OPTION).map((d) => (
-                <Select.Option key={d} value={d}>{d}</Select.Option>
-              ))}
-            </Select>
+            <Select
+              style={{ width: '50%' }}
+              options={Object.values(DOMAIN_STRATEGY_OPTION).map((d) => ({ value: d, label: d }))}
+            />
           </Form.Item>
           <Form.Item
             name={['streamSettings', 'sockopt', 'tcpcongestion']}
             label="TCP Congestion"
           >
-            <Select style={{ width: '50%' }}>
-              {Object.values(TCP_CONGESTION_OPTION).map((c) => (
-                <Select.Option key={c} value={c}>{c}</Select.Option>
-              ))}
-            </Select>
+            <Select
+              style={{ width: '50%' }}
+              options={Object.values(TCP_CONGESTION_OPTION).map((c) => ({ value: c, label: c }))}
+            />
           </Form.Item>
           <Form.Item name={['streamSettings', 'sockopt', 'tproxy']} label="TProxy">
-            <Select style={{ width: '50%' }}>
-              <Select.Option value="off">Off</Select.Option>
-              <Select.Option value="redirect">Redirect</Select.Option>
-              <Select.Option value="tproxy">TProxy</Select.Option>
-            </Select>
+            <Select
+              style={{ width: '50%' }}
+              options={[
+                { value: 'off', label: 'Off' },
+                { value: 'redirect', label: 'Redirect' },
+                { value: 'tproxy', label: 'TProxy' },
+              ]}
+            />
           </Form.Item>
           <Form.Item name={['streamSettings', 'sockopt', 'dialerProxy']} label="Dialer Proxy">
             <Input />
@@ -2257,22 +2287,26 @@ export default function InboundFormModal({
             name={['streamSettings', 'sockopt', 'trustedXForwardedFor']}
             label="Trusted X-Forwarded-For"
           >
-            <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']}>
-              <Select.Option value="CF-Connecting-IP">CF-Connecting-IP</Select.Option>
-              <Select.Option value="X-Real-IP">X-Real-IP</Select.Option>
-              <Select.Option value="True-Client-IP">True-Client-IP</Select.Option>
-              <Select.Option value="X-Client-IP">X-Client-IP</Select.Option>
-            </Select>
+            <Select
+              mode="tags"
+              style={{ width: '100%' }}
+              tokenSeparators={[',']}
+              options={[
+                { value: 'CF-Connecting-IP', label: 'CF-Connecting-IP' },
+                { value: 'X-Real-IP', label: 'X-Real-IP' },
+                { value: 'True-Client-IP', label: 'True-Client-IP' },
+                { value: 'X-Client-IP', label: 'X-Client-IP' },
+              ]}
+            />
           </Form.Item>
           <Form.Item
             name={['streamSettings', 'sockopt', 'addressPortStrategy']}
             label="Address+port strategy"
           >
-            <Select style={{ width: '50%' }}>
-              {Object.values(Address_Port_Strategy).map((v) => (
-                <Select.Option key={v} value={v}>{v}</Select.Option>
-              ))}
-            </Select>
+            <Select
+              style={{ width: '50%' }}
+              options={Object.values(Address_Port_Strategy).map((v) => ({ value: v, label: v }))}
+            />
           </Form.Item>
           <Form.Item shouldUpdate noStyle>
             {({ getFieldValue, setFieldValue }) => {
@@ -2442,28 +2476,26 @@ export default function InboundFormModal({
             <Input placeholder="Server Name Indication" />
           </Form.Item>
           <Form.Item name={['streamSettings', 'tlsSettings', 'cipherSuites']} label="Cipher Suites">
-            <Select>
-              <Select.Option value="">Auto</Select.Option>
-              {Object.entries(TLS_CIPHER_OPTION).map(([k, v]) => (
-                <Select.Option key={v} value={v}>{k}</Select.Option>
-              ))}
-            </Select>
+            <Select
+              options={[
+                { value: '', label: 'Auto' },
+                ...Object.entries(TLS_CIPHER_OPTION).map(([k, v]) => ({ value: v, label: k })),
+              ]}
+            />
           </Form.Item>
           <Form.Item label="Min/Max Version">
             <Space.Compact block>
               <Form.Item name={['streamSettings', 'tlsSettings', 'minVersion']} noStyle>
-                <Select style={{ width: '50%' }}>
-                  {Object.values(TLS_VERSION_OPTION).map((v) => (
-                    <Select.Option key={v} value={v}>{v}</Select.Option>
-                  ))}
-                </Select>
+                <Select
+                  style={{ width: '50%' }}
+                  options={Object.values(TLS_VERSION_OPTION).map((v) => ({ value: v, label: v }))}
+                />
               </Form.Item>
               <Form.Item name={['streamSettings', 'tlsSettings', 'maxVersion']} noStyle>
-                <Select style={{ width: '50%' }}>
-                  {Object.values(TLS_VERSION_OPTION).map((v) => (
-                    <Select.Option key={v} value={v}>{v}</Select.Option>
-                  ))}
-                </Select>
+                <Select
+                  style={{ width: '50%' }}
+                  options={Object.values(TLS_VERSION_OPTION).map((v) => ({ value: v, label: v }))}
+                />
               </Form.Item>
             </Space.Compact>
           </Form.Item>
@@ -2471,19 +2503,20 @@ export default function InboundFormModal({
             name={['streamSettings', 'tlsSettings', 'settings', 'fingerprint']}
             label="uTLS"
           >
-            <Select>
-              <Select.Option value="">None</Select.Option>
-              {Object.values(UTLS_FINGERPRINT).map((fp) => (
-                <Select.Option key={fp} value={fp}>{fp}</Select.Option>
-              ))}
-            </Select>
+            <Select
+              options={[
+                { value: '', label: 'None' },
+                ...Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp })),
+              ]}
+            />
           </Form.Item>
           <Form.Item name={['streamSettings', 'tlsSettings', 'alpn']} label="ALPN">
-            <Select mode="multiple" tokenSeparators={[',']} style={{ width: '100%' }}>
-              {Object.values(ALPN_OPTION).map((a) => (
-                <Select.Option key={a} value={a}>{a}</Select.Option>
-              ))}
-            </Select>
+            <Select
+              mode="multiple"
+              tokenSeparators={[',']}
+              style={{ width: '100%' }}
+              options={Object.values(ALPN_OPTION).map((a) => ({ value: a, label: a }))}
+            />
           </Form.Item>
           <Form.Item
             name={['streamSettings', 'tlsSettings', 'rejectUnknownSni']}
@@ -2622,11 +2655,10 @@ export default function InboundFormModal({
                       name={[certField.name, 'usage']}
                       label="Usage Option"
                     >
-                      <Select style={{ width: '50%' }}>
-                        {Object.values(USAGE_OPTION).map((u) => (
-                          <Select.Option key={u} value={u}>{u}</Select.Option>
-                        ))}
-                      </Select>
+                      <Select
+                        style={{ width: '50%' }}
+                        options={Object.values(USAGE_OPTION).map((u) => ({ value: u, label: u }))}
+                      />
                     </Form.Item>
                     <Form.Item
                       noStyle
@@ -2705,11 +2737,9 @@ export default function InboundFormModal({
             name={['streamSettings', 'realitySettings', 'settings', 'fingerprint']}
             label="uTLS"
           >
-            <Select>
-              {Object.values(UTLS_FINGERPRINT).map((fp) => (
-                <Select.Option key={fp} value={fp}>{fp}</Select.Option>
-              ))}
-            </Select>
+            <Select
+              options={Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp }))}
+            />
           </Form.Item>
           <Form.Item
             name={['streamSettings', 'realitySettings', 'target']}
