@@ -147,7 +147,7 @@ function buildAddModeValues(): InboundFormValues {
   });
 }
 
-export default function InboundFormModalNew({
+export default function InboundFormModal({
   open,
   onClose,
   onSaved,
