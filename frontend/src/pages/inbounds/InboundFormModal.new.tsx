@@ -16,6 +16,7 @@ import {
   Typography,
   message,
 } from 'antd';
+import { SyncOutlined } from '@ant-design/icons';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter } from '@/utils';
 import {
@@ -23,6 +24,8 @@ import {
   formValuesToWirePayload,
 } from '@/lib/xray/inbound-form-adapter';
 import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
+import { isSS2022 } from '@/lib/xray/protocol-capabilities';
+import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
 import {
   InboundFormBaseSchema,
   InboundFormSchema,
@@ -95,6 +98,11 @@ export default function InboundFormModalNew({
   const isNodeEligible = NODE_ELIGIBLE_PROTOCOLS.has(protocol);
   const sniffingEnabled = Form.useWatch(['sniffing', 'enabled'], form) ?? false;
   const vlessEncryption = Form.useWatch(['settings', 'encryption'], form) ?? '';
+  const ssMethod = Form.useWatch(['settings', 'method'], form);
+  const isSSWith2022 = isSS2022({
+    protocol,
+    settings: typeof ssMethod === 'string' ? { method: ssMethod } : {},
+  });
 
   const matchesVlessAuth = (
     block: { id?: string; label?: string } | undefined | null,
@@ -326,6 +334,61 @@ export default function InboundFormModalNew({
 
   const protocolTab = (
     <>
+      {protocol === Protocols.SHADOWSOCKS && (
+        <>
+          <Form.Item name={['settings', 'method']} label="Encryption method">
+            <Select
+              onChange={(v) => {
+                form.setFieldValue(
+                  ['settings', 'password'],
+                  RandomUtil.randomShadowsocksPassword(v as string),
+                );
+              }}
+            >
+              {SSMethodSchema.options.map((m) => (
+                <Select.Option key={m} value={m}>{m}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          {isSSWith2022 && (
+            <Form.Item
+              name={['settings', 'password']}
+              label={
+                <>
+                  Password{' '}
+                  <SyncOutlined
+                    className="random-icon"
+                    onClick={() => {
+                      const method = form.getFieldValue(['settings', 'method']);
+                      form.setFieldValue(
+                        ['settings', 'password'],
+                        RandomUtil.randomShadowsocksPassword(method as string),
+                      );
+                    }}
+                  />
+                </>
+              }
+            >
+              <Input />
+            </Form.Item>
+          )}
+          <Form.Item name={['settings', 'network']} label="Network">
+            <Select style={{ width: 120 }}>
+              <Select.Option value="tcp,udp">TCP, UDP</Select.Option>
+              <Select.Option value="tcp">TCP</Select.Option>
+              <Select.Option value="udp">UDP</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name={['settings', 'ivCheck']}
+            label="ivCheck"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </>
+      )}
+
       {protocol === Protocols.VLESS && (
         <>
           <Form.Item name={['settings', 'decryption']} label={t('pages.inbounds.decryption')}>
@@ -437,7 +500,7 @@ export default function InboundFormModalNew({
         >
           <Tabs items={[
             { key: 'basic', label: t('pages.xray.basicTemplate'), children: basicTab },
-            ...(protocol === Protocols.VLESS
+            ...(protocol === Protocols.VLESS || protocol === Protocols.SHADOWSOCKS
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab }]
               : []),
             { key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab },
