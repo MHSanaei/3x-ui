@@ -358,7 +358,16 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
   const tag = asString(raw.tag);
   const sendThrough = asString(raw.sendThrough);
   const mux = muxFromWire(raw.mux);
-  const streamSettings = asObject(raw.streamSettings) as unknown as OutboundStreamFormValues | undefined;
+  // Leave streamSettings undefined when missing or empty — the modal's
+  // stream tab seeds it when the user opens the relevant section. This
+  // keeps Form.useForm from receiving a value that doesn't match the
+  // NetworkSettings DU.
+  const hasStream = raw.streamSettings
+    && typeof raw.streamSettings === 'object'
+    && Object.keys(raw.streamSettings as Raw).length > 0;
+  const streamSettings = hasStream
+    ? (raw.streamSettings as unknown as OutboundStreamFormValues)
+    : undefined;
 
   let typed: OutboundFormSettings;
   switch (protocol) {
