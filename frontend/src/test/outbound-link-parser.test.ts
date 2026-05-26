@@ -239,6 +239,73 @@ describe('parseHysteria2Link', () => {
   });
 });
 
+describe('parseVlessLink — extra / fm / x_padding_bytes (B20)', () => {
+  it('round-trips a real inbound-generated link with extra+fm+reality+xhttp', () => {
+    // Real user-reported link — bundled xhttp knobs via `extra` JSON,
+    // full finalmask via `fm` JSON, reality auth, snake_case
+    // x_padding_bytes alias. All three parse-paths must combine.
+    const link = 'vless://b622ac2f-f155-47db-a3b2-b64e8d7f6342@localhost:37723?'
+      + 'encryption=none&'
+      + 'extra=%7B%22scMaxEachPostBytes%22%3A%221000000%22%2C%22scMinPostsIntervalMs%22%3A%2230%22%2C%22xPaddingBytes%22%3A%22100-1000%22%7D&'
+      + 'fm=%7B%22quicParams%22%3A%7B%22congestion%22%3A%22bbr%22%2C%22maxIdleTimeout%22%3A30%2C%22udpHop%22%3A%7B%22interval%22%3A%225-10%22%2C%22ports%22%3A%2220000-50000%22%7D%7D%7D&'
+      + 'fp=chrome&host=&mode=auto&path=%2F&'
+      + 'pbk=nJw4k4CPf5jf64V8nnDwWa8iClDnUvQ1lCI4iKzfJ0o&'
+      + 'security=reality&sid=14ebccc4d3&sni=aws.amazon.com&'
+      + 'spx=%2F97L2FjycXEwrE67&type=xhttp&x_padding_bytes=100-1000'
+      + '#sda-8ud3us6rt';
+    const parsed = parseVlessLink(link);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.tag).toBe('sda-8ud3us6rt');
+
+    const stream = parsed!.streamSettings as Record<string, unknown>;
+    expect(stream.network).toBe('xhttp');
+    expect(stream.security).toBe('reality');
+
+    const xhttp = stream.xhttpSettings as Record<string, unknown>;
+    expect(xhttp.xPaddingBytes).toBe('100-1000');
+    expect(xhttp.scMaxEachPostBytes).toBe('1000000');
+    expect(xhttp.scMinPostsIntervalMs).toBe('30');
+
+    const reality = stream.realitySettings as Record<string, unknown>;
+    expect(reality.publicKey).toBe('nJw4k4CPf5jf64V8nnDwWa8iClDnUvQ1lCI4iKzfJ0o');
+    expect(reality.shortId).toBe('14ebccc4d3');
+    expect(reality.spiderX).toBe('/97L2FjycXEwrE67');
+    expect(reality.serverName).toBe('aws.amazon.com');
+
+    const finalmask = stream.finalmask as Record<string, unknown>;
+    expect(finalmask).toBeDefined();
+    const quicParams = finalmask.quicParams as Record<string, unknown>;
+    expect(quicParams.congestion).toBe('bbr');
+    expect(quicParams.maxIdleTimeout).toBe(30);
+    expect((quicParams.udpHop as Record<string, unknown>).interval).toBe('5-10');
+    expect((quicParams.udpHop as Record<string, unknown>).ports).toBe('20000-50000');
+  });
+
+  it('falls back to x_padding_bytes when extra has no xPaddingBytes', () => {
+    const link = 'vless://u@h:1?type=xhttp&security=none&path=%2F&host=&mode=auto&x_padding_bytes=200-2000#t';
+    const parsed = parseVlessLink(link);
+    const xhttp = (parsed!.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    expect(xhttp.xPaddingBytes).toBe('200-2000');
+  });
+
+  it('extra takes precedence — camelCase wins over snake_case alias', () => {
+    const link = 'vless://u@h:1?type=xhttp&security=none&path=%2F&host=&mode=auto'
+      + '&xPaddingBytes=900-9000&x_padding_bytes=100-1000#t';
+    const parsed = parseVlessLink(link);
+    const xhttp = (parsed!.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    expect(xhttp.xPaddingBytes).toBe('900-9000');
+  });
+
+  it('ignores malformed extra JSON without breaking the rest of the link', () => {
+    const link = 'vless://u@h:1?type=xhttp&security=none&path=%2F&host=&mode=auto'
+      + '&extra=not-json&fp=chrome#t';
+    const parsed = parseVlessLink(link);
+    expect(parsed).not.toBeNull();
+    const stream = parsed!.streamSettings as Record<string, unknown>;
+    expect((stream.xhttpSettings as Record<string, unknown>).mode).toBe('auto');
+  });
+});
+
 describe('parseOutboundLink dispatcher', () => {
   it('dispatches vmess via base64 JSON', () => {
     const json = { v: '2', ps: 'x', add: '1.1.1.1', port: 443, id: '11111111-2222-4333-8444-555555555555', net: 'tcp', tls: 'none' };

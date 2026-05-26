@@ -40,6 +40,30 @@ function asBool(s: string | null): boolean | undefined {
 }
 
 function applyXhttpStringFromParams(xhttp: Raw, params: URLSearchParams): void {
+  // Precedence from lowest to highest: stream-init default →
+  // x_padding_bytes snake_case alias → extra JSON payload →
+  // explicit camelCase URL param. Apply in that order so each tier
+  // overwrites the previous when present.
+  const padBytesAlt = params.get('x_padding_bytes');
+  if (padBytesAlt !== null && padBytesAlt !== '') {
+    xhttp.xPaddingBytes = padBytesAlt;
+  }
+  // The inbound link bundles advanced xhttp knobs into `extra=<json>`.
+  // Decode and merge so re-importing a share link round-trips the full
+  // xhttp config (xPaddingBytes, scMaxEachPostBytes, sessionKey, etc.).
+  const extra = params.get('extra');
+  if (extra) {
+    try {
+      const parsed = JSON.parse(extra) as Record<string, unknown>;
+      applyXhttpStringFromJson(xhttp, parsed);
+      if (parsed.headers && typeof parsed.headers === 'object') {
+        xhttp.headers = parsed.headers;
+      }
+    } catch {
+      // malformed extra — silently ignore, the panel can still operate
+      // on the rest of the link
+    }
+  }
   for (const k of XHTTP_STRING_KEYS) {
     const v = params.get(k);
     if (v !== null && v !== '') xhttp[k] = v;
@@ -156,6 +180,22 @@ function applyTransportParams(stream: Raw, params: URLSearchParams): void {
   }
 }
 
+// The inbound link emits the entire finalmask object as a JSON-encoded
+// `fm` query param. Decode and attach to streamSettings so udpHop /
+// quicParams / tcp+udp masks round-trip on outbound import.
+function applyFinalMaskParam(stream: Raw, params: URLSearchParams): void {
+  const fm = params.get('fm');
+  if (!fm) return;
+  try {
+    const parsed = JSON.parse(fm) as Record<string, unknown>;
+    if (parsed && typeof parsed === 'object') {
+      stream.finalmask = parsed;
+    }
+  } catch {
+    // malformed fm — leave streamSettings.finalmask absent
+  }
+}
+
 function applySecurityParams(stream: Raw, params: URLSearchParams): void {
   if (stream.security === 'tls') {
     const tls = stream.tlsSettings as Raw;
@@ -263,6 +303,7 @@ export function parseVlessLink(link: string): Raw | null {
   const stream = buildStream(network, security);
   applyTransportParams(stream, params);
   applySecurityParams(stream, params);
+  applyFinalMaskParam(stream, params);
   return {
     protocol: 'vless',
     tag: decodeRemark(url),
@@ -289,6 +330,7 @@ export function parseTrojanLink(link: string): Raw | null {
   const stream = buildStream(network, security);
   applyTransportParams(stream, params);
   applySecurityParams(stream, params);
+  applyFinalMaskParam(stream, params);
   return {
     protocol: 'trojan',
     tag: decodeRemark(url),
