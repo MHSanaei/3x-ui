@@ -818,6 +818,78 @@ export default function InboundFormModalNew({
         </>
       )}
 
+      {network === 'ws' && (
+        <>
+          <Form.Item
+            name={['streamSettings', 'wsSettings', 'acceptProxyProtocol']}
+            label="Proxy Protocol"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'wsSettings', 'host']} label={t('host')}>
+            <Input />
+          </Form.Item>
+          <Form.Item name={['streamSettings', 'wsSettings', 'path']} label={t('path')}>
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'wsSettings', 'heartbeatPeriod']}
+            label="Heartbeat Period"
+          >
+            <InputNumber min={0} />
+          </Form.Item>
+        </>
+      )}
+
+      {network === 'grpc' && (
+        <>
+          <Form.Item
+            name={['streamSettings', 'grpcSettings', 'serviceName']}
+            label="Service Name"
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'grpcSettings', 'authority']}
+            label="Authority"
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'grpcSettings', 'multiMode']}
+            label="Multi Mode"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </>
+      )}
+
+      {network === 'httpupgrade' && (
+        <>
+          <Form.Item
+            name={['streamSettings', 'httpupgradeSettings', 'acceptProxyProtocol']}
+            label="Proxy Protocol"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'httpupgradeSettings', 'host']}
+            label={t('host')}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'httpupgradeSettings', 'path']}
+            label={t('path')}
+          >
+            <Input />
+          </Form.Item>
+        </>
+      )}
+
       {network === 'kcp' && (
         <>
           <Form.Item name={['streamSettings', 'kcpSettings', 'mtu']} label="MTU">
