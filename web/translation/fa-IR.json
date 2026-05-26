@@ -305,6 +305,7 @@
       "monitorDesc": "به‌طور پیش‌فرض خالی‌بگذارید",
       "meansNoLimit": "0 = واحد: گیگابایت) نامحدود)",
       "totalFlow": "ترافیک کل",
+      "trafficMultiplier": "ضریب ترافیک",
       "leaveBlankToNeverExpire": "برای منقضی‌نشدن خالی‌بگذارید",
       "noRecommendKeepDefault": "توصیه‌می‌شود به‌طور پیش‌فرض حفظ‌شود",
       "certificatePath": "مسیر فایل",

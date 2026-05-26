@@ -305,6 +305,7 @@
       "monitorDesc": "Оставьте пустым для прослушивания всех IP-адресов",
       "meansNoLimit": "= Без ограничений (значение: ГБ)",
       "totalFlow": "Общий расход",
+      "trafficMultiplier": "Множитель трафика",
       "leaveBlankToNeverExpire": "Оставьте пустым, чтобы было бесконечным",
       "noRecommendKeepDefault": "Рекомендуется оставить настройки по умолчанию",
       "certificatePath": "Путь к сертификату",

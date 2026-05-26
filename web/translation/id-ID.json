@@ -305,6 +305,7 @@
       "monitorDesc": "Biarkan kosong untuk mendengarkan semua IP",
       "meansNoLimit": "= Unlimited. (unit: GB)",
       "totalFlow": "Total Aliran",
+      "trafficMultiplier": "Pengali Lalu Lintas",
       "leaveBlankToNeverExpire": "Biarkan kosong untuk tidak pernah kedaluwarsa",
       "noRecommendKeepDefault": "Disarankan untuk tetap menggunakan pengaturan default",
       "certificatePath": "Path Berkas",

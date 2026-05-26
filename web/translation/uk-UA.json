@@ -305,6 +305,7 @@
       "monitorDesc": "Залиште порожнім, щоб слухати всі IP-адреси",
       "meansNoLimit": "= Необмежено. (одиниця: ГБ)",
       "totalFlow": "Загальна витрата",
+      "trafficMultiplier": "Множник трафіку",
       "leaveBlankToNeverExpire": "Залиште порожнім, щоб ніколи не закінчувався",
       "noRecommendKeepDefault": "Рекомендується зберегти значення за замовчуванням",
       "certificatePath": "Шлях до файлу",

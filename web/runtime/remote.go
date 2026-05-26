@@ -357,6 +357,7 @@ func wireInbound(ib *model.Inbound) url.Values {
 	v.Set("remark", ib.Remark)
 	v.Set("enable", strconv.FormatBool(ib.Enable))
 	v.Set("expiryTime", strconv.FormatInt(ib.ExpiryTime, 10))
+	v.Set("trafficMultiplier", strconv.FormatFloat(ib.TrafficMultiplier, 'f', -1, 64))
 	v.Set("listen", ib.Listen)
 	v.Set("port", strconv.Itoa(ib.Port))
 	v.Set("protocol", string(ib.Protocol))

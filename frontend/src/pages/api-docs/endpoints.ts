@@ -108,7 +108,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/inbounds/list',
         summary: 'List every inbound owned by the authenticated user, including each inbound’s clientStats traffic counters. settings, streamSettings, and sniffing are returned as nested JSON objects (no escaped strings); legacy callers that send them back as JSON-encoded strings are still accepted on write.',
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "userId": 1,\n      "up": 0,\n      "down": 0,\n      "total": 0,\n      "remark": "VLESS-443",\n      "enable": true,\n      "expiryTime": 0,\n      "listen": "",\n      "port": 443,\n      "protocol": "vless",\n      "settings": {\n        "clients": [],\n        "decryption": "none"\n      },\n      "streamSettings": {\n        "network": "tcp",\n        "security": "reality",\n        "realitySettings": { "show": false, "dest": "..." }\n      },\n      "tag": "inbound-443",\n      "sniffing": {\n        "enabled": true,\n        "destOverride": ["http", "tls"]\n      },\n      "clientStats": []\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "userId": 1,\n      "up": 0,\n      "down": 0,\n      "total": 0,\n      "remark": "VLESS-443",\n      "enable": true,\n      "expiryTime": 0,\n      "trafficMultiplier": 1,\n      "listen": "",\n      "port": 443,\n      "protocol": "vless",\n      "settings": {\n        "clients": [],\n        "decryption": "none"\n      },\n      "streamSettings": {\n        "network": "tcp",\n        "security": "reality",\n        "realitySettings": { "show": false, "dest": "..." }\n      },\n      "tag": "inbound-443",\n      "sniffing": {\n        "enabled": true,\n        "destOverride": ["http", "tls"]\n      },\n      "clientStats": []\n    }\n  ]\n}',
       },
       {
         method: 'GET',
@@ -137,7 +137,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/inbounds/add',
         summary: 'Create a new inbound. Send the full inbound payload (protocol, port, settings, streamSettings, sniffing, remark, expiryTime, total, enable). settings, streamSettings, and sniffing may be sent as nested JSON objects (preferred) or as JSON-encoded strings (legacy).',
         body:
-          '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": {\n    "clients": [{ "id": "...", "email": "user1" }],\n    "decryption": "none",\n    "fallbacks": []\n  },\n  "streamSettings": {\n    "network": "tcp",\n    "security": "reality",\n    "realitySettings": { "show": false, "dest": "..." }\n  },\n  "sniffing": {\n    "enabled": true,\n    "destOverride": ["http", "tls"]\n  }\n}',
+          '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "trafficMultiplier": 1,\n  "settings": {\n    "clients": [{ "id": "...", "email": "user1" }],\n    "decryption": "none",\n    "fallbacks": []\n  },\n  "streamSettings": {\n    "network": "tcp",\n    "security": "reality",\n    "realitySettings": { "show": false, "dest": "..." }\n  },\n  "sniffing": {\n    "enabled": true,\n    "destOverride": ["http", "tls"]\n  }\n}',
         errorResponse:
           '{\n  "success": false,\n  "msg": "Port 443 is already in use"\n}',
       },

@@ -305,6 +305,7 @@
       "monitorDesc": "留空表示監聽所有 IP",
       "meansNoLimit": "= 無限制（單位：GB)",
       "totalFlow": "總流量",
+      "trafficMultiplier": "流量倍率",
       "leaveBlankToNeverExpire": "留空表示永不過期",
       "noRecommendKeepDefault": "建議保留預設值",
       "certificatePath": "檔案路徑",

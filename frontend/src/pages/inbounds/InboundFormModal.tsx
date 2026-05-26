@@ -940,6 +940,7 @@ export default function InboundFormModal({
         expiryTime: form.expiryTime,
         trafficReset: form.trafficReset,
         lastTrafficResetTime: form.lastTrafficResetTime || 0,
+        trafficMultiplier: form.trafficMultiplier || 1,
         listen: ib.listen,
         port: ib.port,
         protocol: ib.protocol,
@@ -1048,6 +1049,18 @@ export default function InboundFormModal({
           step={1}
           onChange={(v) => {
             form.total = NumberFormatter.toFixed((Number(v) || 0) * SizeFormatter.ONE_GB, 0);
+            refresh();
+          }}
+        />
+      </Form.Item>
+      <Form.Item label={t('pages.inbounds.trafficMultiplier')}>
+        <InputNumber
+          value={form.trafficMultiplier || 1}
+          min={0.01}
+          step={0.1}
+          onChange={(v) => {
+            const next = Number(v);
+            form.trafficMultiplier = next > 0 ? next : 1;
             refresh();
           }}
         />

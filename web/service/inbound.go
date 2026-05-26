@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,6 +28,69 @@ type InboundService struct {
 	xrayApi         xray.XrayAPI
 	clientService   ClientService
 	fallbackService FallbackService
+}
+
+func normalizeTrafficMultiplier(multiplier float64) float64 {
+	if multiplier <= 0 || math.IsNaN(multiplier) || math.IsInf(multiplier, 0) {
+		return 1
+	}
+	return multiplier
+}
+
+func scaleTraffic(value int64, multiplier float64) int64 {
+	if value == 0 {
+		return 0
+	}
+	scaled := float64(value) * normalizeTrafficMultiplier(multiplier)
+	if scaled >= float64(math.MaxInt64) {
+		return math.MaxInt64
+	}
+	if scaled <= float64(math.MinInt64) {
+		return math.MinInt64
+	}
+	return int64(math.Round(scaled))
+}
+
+func addScaledTraffic(current int64, value int64, multiplier float64) int64 {
+	delta := scaleTraffic(value, multiplier)
+	if delta > 0 && current > math.MaxInt64-delta {
+		return math.MaxInt64
+	}
+	if delta == math.MinInt64 && current < 0 {
+		return math.MinInt64
+	}
+	if delta < 0 && current < math.MinInt64-delta {
+		return math.MinInt64
+	}
+	return current + delta
+}
+
+func saturatedTrafficAddExpr(column string, delta int64) clause.Expr {
+	if delta > 0 {
+		return gorm.Expr(
+			"CASE WHEN "+column+" > ? THEN ? ELSE "+column+" + ? END",
+			math.MaxInt64-delta,
+			int64(math.MaxInt64),
+			delta,
+		)
+	}
+	if delta < 0 {
+		if delta == math.MinInt64 {
+			return gorm.Expr(
+				"CASE WHEN "+column+" < ? THEN ? ELSE "+column+" + ? END",
+				int64(0),
+				int64(math.MinInt64),
+				delta,
+			)
+		}
+		return gorm.Expr(
+			"CASE WHEN "+column+" < ? THEN ? ELSE "+column+" + ? END",
+			math.MinInt64-delta,
+			int64(math.MinInt64),
+			delta,
+		)
+	}
+	return gorm.Expr(column+" + ?", delta)
 }
 
 func (s *InboundService) runtimeFor(ib *model.Inbound) (runtime.Runtime, error) {
@@ -467,6 +531,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	inbound.TrafficMultiplier = normalizeTrafficMultiplier(inbound.TrafficMultiplier)
 
 	exist, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
@@ -735,6 +800,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	inbound.TrafficMultiplier = normalizeTrafficMultiplier(inbound.TrafficMultiplier)
 
 	exist, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {
@@ -831,6 +897,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.Enable = inbound.Enable
 	oldInbound.ExpiryTime = inbound.ExpiryTime
 	oldInbound.TrafficReset = inbound.TrafficReset
+	oldInbound.TrafficMultiplier = inbound.TrafficMultiplier
 	oldInbound.Listen = inbound.Listen
 	oldInbound.Port = inbound.Port
 	oldInbound.Protocol = inbound.Protocol
@@ -1315,22 +1382,23 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		c, ok := tagToCentral[snapIb.Tag]
 		if !ok {
 			newIb := model.Inbound{
-				UserId:         defaultUserId,
-				NodeID:         &nodeID,
-				Tag:            snapIb.Tag,
-				Listen:         snapIb.Listen,
-				Port:           snapIb.Port,
-				Protocol:       snapIb.Protocol,
-				Settings:       snapIb.Settings,
-				StreamSettings: snapIb.StreamSettings,
-				Sniffing:       snapIb.Sniffing,
-				TrafficReset:   snapIb.TrafficReset,
-				Enable:         snapIb.Enable,
-				Remark:         snapIb.Remark,
-				Total:          snapIb.Total,
-				ExpiryTime:     snapIb.ExpiryTime,
-				Up:             snapIb.Up,
-				Down:           snapIb.Down,
+				UserId:            defaultUserId,
+				NodeID:            &nodeID,
+				Tag:               snapIb.Tag,
+				Listen:            snapIb.Listen,
+				Port:              snapIb.Port,
+				Protocol:          snapIb.Protocol,
+				Settings:          snapIb.Settings,
+				StreamSettings:    snapIb.StreamSettings,
+				Sniffing:          snapIb.Sniffing,
+				TrafficReset:      snapIb.TrafficReset,
+				Enable:            snapIb.Enable,
+				Remark:            snapIb.Remark,
+				Total:             snapIb.Total,
+				ExpiryTime:        snapIb.ExpiryTime,
+				TrafficMultiplier: normalizeTrafficMultiplier(snapIb.TrafficMultiplier),
+				Up:                snapIb.Up,
+				Down:              snapIb.Down,
 			}
 			if err := tx.Create(&newIb).Error; err != nil {
 				logger.Warning("setRemoteTraffic: create central inbound for tag", snapIb.Tag, "failed:", err)
@@ -1342,19 +1410,21 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 
 		inGrace := c.LastTrafficResetTime > 0 && now-c.LastTrafficResetTime < resetGracePeriodMs
+		snapMultiplier := normalizeTrafficMultiplier(snapIb.TrafficMultiplier)
 
 		updates := map[string]any{
-			"enable":          snapIb.Enable,
-			"remark":          snapIb.Remark,
-			"listen":          snapIb.Listen,
-			"port":            snapIb.Port,
-			"protocol":        snapIb.Protocol,
-			"total":           snapIb.Total,
-			"expiry_time":     snapIb.ExpiryTime,
-			"settings":        snapIb.Settings,
-			"stream_settings": snapIb.StreamSettings,
-			"sniffing":        snapIb.Sniffing,
-			"traffic_reset":   snapIb.TrafficReset,
+			"enable":             snapIb.Enable,
+			"remark":             snapIb.Remark,
+			"listen":             snapIb.Listen,
+			"port":               snapIb.Port,
+			"protocol":           snapIb.Protocol,
+			"total":              snapIb.Total,
+			"expiry_time":        snapIb.ExpiryTime,
+			"traffic_multiplier": snapMultiplier,
+			"settings":           snapIb.Settings,
+			"stream_settings":    snapIb.StreamSettings,
+			"sniffing":           snapIb.Sniffing,
+			"traffic_reset":      snapIb.TrafficReset,
 		}
 		if !inGrace || (snapIb.Up+snapIb.Down) <= (c.Up+c.Down) {
 			updates["up"] = snapIb.Up
@@ -1367,6 +1437,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			c.Port != snapIb.Port ||
 			c.Total != snapIb.Total ||
 			c.ExpiryTime != snapIb.ExpiryTime ||
+			c.TrafficMultiplier != snapMultiplier ||
 			c.Enable != snapIb.Enable {
 			structuralChange = true
 		}
@@ -1640,13 +1711,49 @@ func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic
 	}
 
 	var err error
+	tags := make([]string, 0, len(traffics))
+	seenTags := make(map[string]struct{}, len(traffics))
+	for _, traffic := range traffics {
+		if traffic == nil || !traffic.IsInbound || traffic.Tag == "" {
+			continue
+		}
+		if _, ok := seenTags[traffic.Tag]; ok {
+			continue
+		}
+		seenTags[traffic.Tag] = struct{}{}
+		tags = append(tags, traffic.Tag)
+	}
+
+	multiplierByTag := make(map[string]float64, len(tags))
+	if len(tags) > 0 {
+		var rows []struct {
+			Tag               string
+			TrafficMultiplier float64
+		}
+		err = tx.Model(&model.Inbound{}).
+			Select("tag, traffic_multiplier").
+			Where("tag IN ? AND node_id IS NULL", tags).
+			Find(&rows).Error
+		if err != nil {
+			return err
+		}
+		for _, row := range rows {
+			multiplierByTag[row.Tag] = normalizeTrafficMultiplier(row.TrafficMultiplier)
+		}
+	}
 
 	for _, traffic := range traffics {
+		if traffic == nil {
+			continue
+		}
 		if traffic.IsInbound {
+			multiplier := multiplierByTag[traffic.Tag]
+			up := scaleTraffic(traffic.Up, multiplier)
+			down := scaleTraffic(traffic.Down, multiplier)
 			err = tx.Model(&model.Inbound{}).Where("tag = ? AND node_id IS NULL", traffic.Tag).
 				Updates(map[string]any{
-					"up":   gorm.Expr("up + ?", traffic.Up),
-					"down": gorm.Expr("down + ?", traffic.Down),
+					"up":   saturatedTrafficAddExpr("up", up),
+					"down": saturatedTrafficAddExpr("down", down),
 				}).Error
 			if err != nil {
 				return err
@@ -1684,6 +1791,36 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		return err
 	}
 
+	inboundIDs := make([]int, 0, len(dbClientTraffics))
+	seenInboundIDs := make(map[int]struct{}, len(dbClientTraffics))
+	for _, dbClientTraffic := range dbClientTraffics {
+		if dbClientTraffic == nil {
+			continue
+		}
+		if _, ok := seenInboundIDs[dbClientTraffic.InboundId]; ok {
+			continue
+		}
+		seenInboundIDs[dbClientTraffic.InboundId] = struct{}{}
+		inboundIDs = append(inboundIDs, dbClientTraffic.InboundId)
+	}
+	multiplierByInboundID := make(map[int]float64, len(inboundIDs))
+	if len(inboundIDs) > 0 {
+		var rows []struct {
+			Id                int
+			TrafficMultiplier float64
+		}
+		err = tx.Model(&model.Inbound{}).
+			Select("id, traffic_multiplier").
+			Where("id IN ?", inboundIDs).
+			Find(&rows).Error
+		if err != nil {
+			return err
+		}
+		for _, row := range rows {
+			multiplierByInboundID[row.Id] = normalizeTrafficMultiplier(row.TrafficMultiplier)
+		}
+	}
+
 	// Index by email for O(N) merge — the previous nested loop was O(N²)
 	// and dominated each cron tick on inbounds with thousands of active
 	// clients (7500 × 7500 = 56M string comparisons every 10 seconds).
@@ -1699,8 +1836,9 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		if !ok {
 			continue
 		}
-		dbClientTraffics[dbTraffic_index].Up += t.Up
-		dbClientTraffics[dbTraffic_index].Down += t.Down
+		multiplier := multiplierByInboundID[dbClientTraffics[dbTraffic_index].InboundId]
+		dbClientTraffics[dbTraffic_index].Up = addScaledTraffic(dbClientTraffics[dbTraffic_index].Up, t.Up, multiplier)
+		dbClientTraffics[dbTraffic_index].Down = addScaledTraffic(dbClientTraffics[dbTraffic_index].Down, t.Down, multiplier)
 		if t.Up+t.Down > 0 {
 			dbClientTraffics[dbTraffic_index].LastOnline = now
 		}

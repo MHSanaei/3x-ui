@@ -55,6 +55,7 @@ type Inbound struct {
 	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                    // Expiration timestamp
 	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2"` // Traffic reset schedule
 	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                               // Last traffic reset timestamp
+	TrafficMultiplier    float64              `json:"trafficMultiplier" form:"trafficMultiplier" gorm:"default:1"`                                     // Multiplier for inbound/client traffic accounting
 	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                        // Client traffic statistics
 
 	// Xray configuration fields

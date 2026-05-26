@@ -312,6 +312,7 @@
                       "remark": "VLESS-443",
                       "enable": true,
                       "expiryTime": 0,
+                      "trafficMultiplier": 1,
                       "listen": "",
                       "port": 443,
                       "protocol": "vless",
@@ -500,6 +501,7 @@
                 "protocol": "vless",
                 "expiryTime": 0,
                 "total": 0,
+                "trafficMultiplier": 1,
                 "settings": {
                   "clients": [
                     {

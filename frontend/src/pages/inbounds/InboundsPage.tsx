@@ -363,6 +363,7 @@ export default function InboundsPage() {
           remark: `${dbInbound.remark} (clone)`,
           enable: false,
           expiryTime: 0,
+          trafficMultiplier: dbInbound.trafficMultiplier || 1,
           listen: '',
           port: RandomUtil.randomInteger(10000, 60000),
           protocol: baseInbound.protocol,

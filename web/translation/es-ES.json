@@ -305,6 +305,7 @@
       "monitorDesc": "Dejar en blanco por defecto",
       "meansNoLimit": " = illimitata. (unidad: GB)",
       "totalFlow": "Flujo Total",
+      "trafficMultiplier": "Multiplicador de Tráfico",
       "leaveBlankToNeverExpire": "Dejar en Blanco para Nunca Expirar",
       "noRecommendKeepDefault": "No hay requisitos especiales para mantener la configuración predeterminada",
       "certificatePath": "Ruta Cert",

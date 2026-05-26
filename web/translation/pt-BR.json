@@ -305,6 +305,7 @@
       "monitorDesc": "Deixe em branco para ouvir todos os IPs",
       "meansNoLimit": "= Ilimitado. (unidade: GB)",
       "totalFlow": "Fluxo Total",
+      "trafficMultiplier": "Multiplicador de Tráfego",
       "leaveBlankToNeverExpire": "Deixe em branco para nunca expirar",
       "noRecommendKeepDefault": "Recomenda-se manter o padrão",
       "certificatePath": "Caminho",

@@ -305,6 +305,7 @@
       "monitorDesc": "سيبها فاضية لو عايز تستمع على كل الـ IPs",
       "meansNoLimit": "= غير محدود. (الوحدة: جيجابايت)",
       "totalFlow": "إجمالي التدفق",
+      "trafficMultiplier": "مضاعف حركة المرور",
       "leaveBlankToNeverExpire": "سيبها فاضية عشان ماتنتهيش",
       "noRecommendKeepDefault": "ننصح باستخدام الافتراضي",
       "certificatePath": "مسار الملف",
