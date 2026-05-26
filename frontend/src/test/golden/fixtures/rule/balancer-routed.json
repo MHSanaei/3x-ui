@@ -1,0 +1,6 @@
+{
+  "type": "field",
+  "domain": ["geosite:geolocation-!cn"],
+  "balancerTag": "balancer-load",
+  "ruleTag": "outbound-load-balance"
+}

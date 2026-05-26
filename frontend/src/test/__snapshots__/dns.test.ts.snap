@@ -1,0 +1,116 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DnsObjectSchema fixtures > parses full byte-stably 1`] = `
+{
+  "clientIp": "1.2.3.4",
+  "disableCache": false,
+  "disableFallback": false,
+  "disableFallbackIfMatch": true,
+  "enableParallelQuery": true,
+  "hosts": {
+    "domain:example.com": [
+      "10.0.0.1",
+      "10.0.0.2",
+    ],
+    "full:dns.google": "8.8.8.8",
+    "geosite:category-ads-all": "127.0.0.1",
+  },
+  "queryStrategy": "UseIP",
+  "serveExpiredTTL": 300,
+  "serveStale": true,
+  "servers": [
+    "fakedns",
+    "localhost",
+    "https://dns.google/dns-query",
+    {
+      "address": "tcp://1.1.1.1",
+      "clientIP": "8.8.4.4",
+      "domains": [
+        "geosite:cn",
+      ],
+      "expectedIPs": [
+        "geoip:cn",
+      ],
+      "port": 53,
+      "queryStrategy": "UseIPv4",
+      "skipFallback": true,
+      "tag": "cn-dns",
+      "timeoutMs": 3000,
+    },
+    {
+      "address": "quic+local://dns.adguard.com",
+      "disableCache": true,
+      "finalQuery": true,
+      "port": 53,
+      "serveExpiredTTL": 60,
+      "serveStale": false,
+      "timeoutMs": 5000,
+      "unexpectedIPs": [
+        "geoip:private",
+      ],
+    },
+  ],
+  "tag": "dns_inbound",
+  "useSystemHosts": true,
+}
+`;
+
+exports[`DnsObjectSchema fixtures > parses minimal byte-stably 1`] = `
+{
+  "disableCache": false,
+  "disableFallback": false,
+  "disableFallbackIfMatch": false,
+  "enableParallelQuery": false,
+  "queryStrategy": "UseIP",
+  "serveExpiredTTL": 0,
+  "serveStale": false,
+  "servers": [
+    "8.8.8.8",
+    "1.1.1.1",
+  ],
+  "useSystemHosts": false,
+}
+`;
+
+exports[`DnsServerObjectSchema fixtures > parses full byte-stably 1`] = `
+{
+  "address": "https://dns.google/dns-query",
+  "clientIP": "9.9.9.9",
+  "disableCache": false,
+  "domains": [
+    "domain:google.com",
+    "domain:youtube.com",
+    "geosite:google",
+  ],
+  "expectedIPs": [
+    "geoip:us",
+    "1.2.3.0/24",
+  ],
+  "finalQuery": false,
+  "port": 443,
+  "queryStrategy": "UseIPv6",
+  "serveExpiredTTL": 600,
+  "serveStale": true,
+  "skipFallback": false,
+  "tag": "google-doh",
+  "timeoutMs": 4000,
+  "unexpectedIPs": [
+    "geoip:private",
+  ],
+}
+`;
+
+exports[`DnsServerObjectSchema fixtures > parses legacy-expectips byte-stably 1`] = `
+{
+  "address": "8.8.8.8",
+  "domains": [
+    "geosite:cn",
+  ],
+  "expectedIPs": [
+    "geoip:cn",
+    "10.0.0.0/8",
+  ],
+  "port": 53,
+  "timeoutMs": 4000,
+}
+`;

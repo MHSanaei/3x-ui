@@ -1,0 +1,60 @@
+{
+  "type": "field",
+  "domain": [
+    "domain:google.com",
+    "full:example.com",
+    "keyword:cdn",
+    "regexp:^api\\.example\\.com$",
+    "geosite:cn"
+  ],
+  "ip": [
+    "10.0.0.0/8",
+    "geoip:cn",
+    "geoip:private",
+    "!geoip:cn"
+  ],
+  "port": "80,443,1000-2000",
+  "sourcePort": "53",
+  "localPort": "5353",
+  "network": "tcp,udp",
+  "sourceIP": [
+    "192.168.0.0/16",
+    "geoip:private"
+  ],
+  "localIP": [
+    "10.10.10.0/24"
+  ],
+  "user": [
+    "user@example.com",
+    "regexp:^.+@admin\\..+$"
+  ],
+  "vlessRoute": "443,8443",
+  "inboundTag": [
+    "inbound-1",
+    "inbound-2"
+  ],
+  "protocol": [
+    "http",
+    "tls",
+    "quic",
+    "bittorrent"
+  ],
+  "attrs": {
+    "User-Agent": "regexp:^Mozilla.*",
+    "Host": "example.com"
+  },
+  "process": [
+    "chrome.exe",
+    "curl",
+    "self/"
+  ],
+  "outboundTag": "proxy-out",
+  "ruleTag": "main-policy-rule",
+  "webhook": {
+    "url": "https://hook.example.com/events",
+    "deduplication": 30,
+    "headers": {
+      "X-Auth-Token": "secret"
+    }
+  }
+}

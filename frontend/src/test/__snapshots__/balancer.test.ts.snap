@@ -1,0 +1,73 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`BalancerObjectSchema fixtures > parses leastload-full byte-stably 1`] = `
+{
+  "fallbackTag": "fallback-out",
+  "selector": [
+    "proxy-",
+  ],
+  "strategy": {
+    "settings": {
+      "baselines": [
+        "500ms",
+        "1s",
+        "2s",
+      ],
+      "costs": [
+        {
+          "match": "proxy-premium",
+          "regexp": false,
+          "value": 0.1,
+        },
+        {
+          "match": "^proxy-cheap-.+$",
+          "regexp": true,
+          "value": 5,
+        },
+      ],
+      "expected": 3,
+      "maxRTT": "1s",
+      "tolerance": 0.05,
+    },
+    "type": "leastLoad",
+  },
+  "tag": "balancer-load",
+}
+`;
+
+exports[`BalancerObjectSchema fixtures > parses leastping byte-stably 1`] = `
+{
+  "fallbackTag": "fallback-out",
+  "selector": [
+    "proxy-",
+  ],
+  "strategy": {
+    "type": "leastPing",
+  },
+  "tag": "balancer-ping",
+}
+`;
+
+exports[`BalancerObjectSchema fixtures > parses random-minimal byte-stably 1`] = `
+{
+  "selector": [
+    "proxy-",
+  ],
+  "tag": "balancer-random",
+}
+`;
+
+exports[`BalancerObjectSchema fixtures > parses roundrobin byte-stably 1`] = `
+{
+  "fallbackTag": "direct",
+  "selector": [
+    "proxy-a",
+    "proxy-b",
+    "proxy-c",
+  ],
+  "strategy": {
+    "type": "roundRobin",
+  },
+  "tag": "balancer-rr",
+}
+`;
