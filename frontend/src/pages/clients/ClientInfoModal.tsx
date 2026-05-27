@@ -33,6 +33,20 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
 
 const INBOUND_CHIP_LIMIT = 1;
 
+// Post-quantum keys blow up the encoded URL past what a single QR can
+// hold. In VLESS share links the algorithm names don't appear as plain
+// text — they ride inside query params:
+//   - mldsa65Verify becomes `pqv=<base64>` (sub/subService.go:841)
+//   - ML-KEM-768 becomes `encryption=mlkem768x25519plus.<...>`
+// We also keep the literal substrings so configs that DO embed them
+// directly (e.g. wireguard config text) still match.
+function isPostQuantumLink(link: string): boolean {
+  if (/[?&]pqv=/.test(link)) return true;
+  if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
+  if (link.includes('ML-KEM-768')) return true;
+  return false;
+}
+
 // 3x-ui's genRemark concatenates inbound remark + client email (and an
 // optional extra) using a configurable separator. The email half is
 // redundant in the row title — the modal already names the client by
@@ -356,6 +370,7 @@ export default function ClientInfoModal({
                   const qrRemark = meta.remark || `${t('pages.clients.link')} ${idx + 1}`;
                   const rowTitle = trimEmail(meta.remark, client.email)
                     || `${t('pages.clients.link')} ${idx + 1}`;
+                  const canQr = !isPostQuantumLink(link);
                   return (
                     <div key={idx} className="link-row">
                       <Tag color={PROTOCOL_COLORS[meta.protocol] ?? 'default'} className="link-row-tag">
@@ -366,16 +381,18 @@ export default function ClientInfoModal({
                         <Tooltip title={t('copy')}>
                           <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(link)} />
                         </Tooltip>
-                        <Popover
-                          trigger="click"
-                          placement="left"
-                          destroyOnHidden
-                          content={<QrPanel value={link} remark={qrRemark} size={220} />}
-                        >
-                          <Tooltip title={t('pages.clients.qrCode')}>
-                            <Button size="small" icon={<QrcodeOutlined />} />
-                          </Tooltip>
-                        </Popover>
+                        {canQr && (
+                          <Popover
+                            trigger="click"
+                            placement="left"
+                            destroyOnHidden
+                            content={<QrPanel value={link} remark={qrRemark} size={220} />}
+                          >
+                            <Tooltip title={t('pages.clients.qrCode')}>
+                              <Button size="small" icon={<QrcodeOutlined />} />
+                            </Tooltip>
+                          </Popover>
+                        )}
                       </div>
                     </div>
                   );
