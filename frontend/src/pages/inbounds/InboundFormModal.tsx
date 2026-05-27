@@ -2473,9 +2473,9 @@ export default function InboundFormModal({
                 disabled={!tlsOk}
                 onChange={(e) => onSecurityChange(e.target.value)}
               >
-                {!tlsOnly && <Radio.Button value="none">none</Radio.Button>}
-                <Radio.Button value="tls">tls</Radio.Button>
-                {realityOk && <Radio.Button value="reality">reality</Radio.Button>}
+                {!tlsOnly && <Radio.Button value="none">None</Radio.Button>}
+                <Radio.Button value="tls">TLS</Radio.Button>
+                {realityOk && <Radio.Button value="reality">Reality</Radio.Button>}
               </Radio.Group>
             );
           }}

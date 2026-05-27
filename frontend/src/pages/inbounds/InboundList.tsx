@@ -28,6 +28,8 @@ import {
   BlockOutlined,
   DeleteOutlined,
   InfoCircleOutlined,
+  TagsOutlined,
+  UsergroupAddOutlined,
   UsergroupDeleteOutlined,
 } from '@ant-design/icons';
 
@@ -108,7 +110,7 @@ function readSettings(settings: unknown): { method?: string; network?: string; a
   return coerceInboundJsonField(settings) as { method?: string; network?: string; allowedNetwork?: string };
 }
 
-function isInboundMultiUser(record: { protocol: string; settings: unknown }): boolean {
+export function isInboundMultiUser(record: { protocol: string; settings: unknown }): boolean {
   switch (record.protocol) {
     case 'vmess':
     case 'vless':
@@ -259,6 +261,8 @@ function buildRowActionsMenu({ record, subEnable, t, isMobile, hasClients }: { r
   items.push({ key: 'resetTraffic', icon: <RetweetOutlined />, label: t('pages.inbounds.resetTraffic') });
   items.push({ key: 'clone', icon: <BlockOutlined />, label: t('pages.inbounds.clone') });
   if (isInboundMultiUser(record) && hasClients) {
+    items.push({ key: 'attachClients', icon: <UsergroupAddOutlined />, label: t('pages.inbounds.attachClients') });
+    items.push({ key: 'assignGroup', icon: <TagsOutlined />, label: t('pages.inbounds.assignClientsGroup') });
     items.push({ key: 'delAllClients', icon: <UsergroupDeleteOutlined />, danger: true, label: t('pages.inbounds.delAllClients') });
   }
   items.push({ key: 'delete', icon: <DeleteOutlined />, danger: true, label: t('delete') });

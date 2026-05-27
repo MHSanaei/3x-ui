@@ -791,6 +791,99 @@ func (s *ClientService) AttachByEmail(inboundSvc *InboundService, email string, 
 	return s.Attach(inboundSvc, rec.Id, inboundIds)
 }
 
+// BulkAttachResult reports the outcome of a bulk attach across target inbounds.
+type BulkAttachResult struct {
+	Attached []string `json:"attached"`
+	Skipped  []string `json:"skipped"`
+	Errors   []string `json:"errors"`
+}
+
+// BulkAttach attaches the given existing clients (by email) to each target inbound,
+// reusing their identity (email/UUID/password/subId) and a shared traffic row. It adds
+// all clients to a target in a single AddInboundClient call, and reports clients already
+// present on a target as skipped.
+func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, inboundIds []int) (*BulkAttachResult, bool, error) {
+	result := &BulkAttachResult{}
+	if len(emails) == 0 || len(inboundIds) == 0 {
+		return result, false, nil
+	}
+
+	records := make([]*model.ClientRecord, 0, len(emails))
+	seenEmail := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		if email == "" {
+			continue
+		}
+		key := strings.ToLower(email)
+		if _, ok := seenEmail[key]; ok {
+			continue
+		}
+		seenEmail[key] = struct{}{}
+		rec, err := s.GetRecordByEmail(nil, email)
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", email, err))
+			continue
+		}
+		records = append(records, rec)
+	}
+
+	needRestart := false
+	for _, ibId := range inboundIds {
+		inbound, err := inboundSvc.GetInbound(ibId)
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("inbound %d: %v", ibId, err))
+			continue
+		}
+		existingClients, err := inboundSvc.GetClients(inbound)
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("inbound %d: %v", ibId, err))
+			continue
+		}
+		have := make(map[string]struct{}, len(existingClients))
+		for _, c := range existingClients {
+			have[strings.ToLower(c.Email)] = struct{}{}
+		}
+
+		clientsToAdd := make([]model.Client, 0, len(records))
+		for _, rec := range records {
+			if _, attached := have[strings.ToLower(rec.Email)]; attached {
+				result.Skipped = append(result.Skipped, rec.Email)
+				continue
+			}
+			client := *rec.ToClient()
+			client.UpdatedAt = time.Now().UnixMilli()
+			if err := s.fillProtocolDefaults(&client, inbound); err != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("%s -> inbound %d: %v", rec.Email, ibId, err))
+				continue
+			}
+			clientsToAdd = append(clientsToAdd, client)
+		}
+
+		if len(clientsToAdd) == 0 {
+			continue
+		}
+
+		payload, err := json.Marshal(map[string][]model.Client{"clients": clientsToAdd})
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("inbound %d: %v", ibId, err))
+			continue
+		}
+		nr, err := s.AddInboundClient(inboundSvc, &model.Inbound{Id: ibId, Settings: string(payload)})
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("inbound %d: %v", ibId, err))
+			continue
+		}
+		if nr {
+			needRestart = true
+		}
+		for _, c := range clientsToAdd {
+			result.Attached = append(result.Attached, c.Email)
+		}
+	}
+
+	return result, needRestart, nil
+}
+
 func (s *ClientService) DetachByEmailMany(inboundSvc *InboundService, email string, inboundIds []int) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")

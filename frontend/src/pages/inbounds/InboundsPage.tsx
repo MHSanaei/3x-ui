@@ -38,6 +38,8 @@ import LazyMount from '@/components/LazyMount';
 const InboundFormModal = lazy(() => import('./InboundFormModal'));
 const InboundInfoModal = lazy(() => import('./InboundInfoModal'));
 const QrCodeModal = lazy(() => import('./QrCodeModal'));
+const AttachClientsModal = lazy(() => import('./AttachClientsModal'));
+const AssignClientsGroupModal = lazy(() => import('./AssignClientsGroupModal'));
 
 type RowAction =
   | 'edit'
@@ -49,6 +51,8 @@ type RowAction =
   | 'delete'
   | 'resetTraffic'
   | 'delAllClients'
+  | 'attachClients'
+  | 'assignGroup'
   | 'clone';
 
 type GeneralAction = 'import' | 'export' | 'subs' | 'resetInbounds';
@@ -120,6 +124,12 @@ export default function InboundsPage() {
 
   const [qrOpen, setQrOpen] = useState(false);
   const [qrDbInbound, setQrDbInbound] = useState<DBInbound | null>(null);
+
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [attachSource, setAttachSource] = useState<DBInbound | null>(null);
+
+  const [groupOpen, setGroupOpen] = useState(false);
+  const [groupSource, setGroupSource] = useState<DBInbound | null>(null);
 
   const [textOpen, setTextOpen] = useState(false);
   const [textTitle, setTextTitle] = useState('');
@@ -438,7 +448,7 @@ export default function InboundsPage() {
     // Actions that touch per-client secrets (uuid, password, flow, ...) need
     // the full payload that the slim list view does not ship. Hydrate first
     // and then operate on the rehydrated record.
-    const hydratingKeys: RowAction[] = ['edit', 'showInfo', 'qrcode', 'export', 'subs', 'clipboard', 'clone'];
+    const hydratingKeys: RowAction[] = ['edit', 'showInfo', 'qrcode', 'export', 'subs', 'clipboard', 'clone', 'attachClients', 'assignGroup'];
     let target = dbInbound;
     if (hydratingKeys.includes(key)) {
       const hydrated = await hydrateInbound(dbInbound.id);
@@ -474,6 +484,14 @@ export default function InboundsPage() {
         break;
       case 'delAllClients':
         confirmDelAllClients(target);
+        break;
+      case 'attachClients':
+        setAttachSource(target);
+        setAttachOpen(true);
+        break;
+      case 'assignGroup':
+        setGroupSource(target);
+        setGroupOpen(true);
         break;
       case 'clone':
         confirmClone(target);
@@ -585,6 +603,23 @@ export default function InboundsPage() {
             remarkModel={remarkModel}
             nodeAddress={qrNodeAddress}
             subSettings={subSettings}
+          />
+        </LazyMount>
+        <LazyMount when={attachOpen}>
+          <AttachClientsModal
+            open={attachOpen}
+            onClose={() => setAttachOpen(false)}
+            onAttached={refresh}
+            source={attachSource}
+            dbInbounds={dbInbounds}
+          />
+        </LazyMount>
+        <LazyMount when={groupOpen}>
+          <AssignClientsGroupModal
+            open={groupOpen}
+            onClose={() => setGroupOpen(false)}
+            onAssigned={refresh}
+            source={groupSource}
           />
         </LazyMount>
 
