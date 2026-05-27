@@ -269,13 +269,11 @@ func TestCheckPortConflict_ListenOverlapPreserved(t *testing.T) {
 	}
 }
 
-// when the base "inbound-<port>" tag is already taken on a coexisting
-// transport, generateInboundTag must disambiguate with a transport
-// suffix so the unique-tag DB constraint stays satisfied.
+// even with a stale legacy tag owning "in-443", a new UDP-side
+// inbound gets a fully qualified canonical tag and does not collide.
 func TestGenerateInboundTag_DisambiguatesByTransportOnSamePort(t *testing.T) {
 	setupConflictDB(t)
-	// existing tcp inbound owns "inbound-443".
-	seedInboundConflict(t, "inbound-443", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`)
+	seedInboundConflict(t, "in-443", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`)
 
 	svc := &InboundService{}
 	udp := &model.Inbound{
@@ -287,14 +285,13 @@ func TestGenerateInboundTag_DisambiguatesByTransportOnSamePort(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generateInboundTag: %v", err)
 	}
-	if got != "inbound-443-udp" {
-		t.Fatalf("expected disambiguated tag inbound-443-udp, got %q", got)
+	if got != "in-443-hy-udp" {
+		t.Fatalf("expected in-443-hy-udp, got %q", got)
 	}
 }
 
-// when the port is free, the canonical tag includes the transport
-// suffix so tcp/8443 and udp/8443 get distinct tags out of the box
-// (no collision-driven retry needed at INSERT time).
+// when the port is free, the canonical tag carries protocol + transport
+// so tcp/8443 and udp/8443 get distinct tags out of the box.
 func TestGenerateInboundTag_KeepsBaseTagWhenFree(t *testing.T) {
 	setupConflictDB(t)
 
@@ -308,21 +305,19 @@ func TestGenerateInboundTag_KeepsBaseTagWhenFree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generateInboundTag: %v", err)
 	}
-	if got != "inbound-8443-tcp" {
-		t.Fatalf("expected inbound-8443-tcp, got %q", got)
+	if got != "in-8443-vl-tcp" {
+		t.Fatalf("expected in-8443-vl-tcp, got %q", got)
 	}
 }
 
-// updating an inbound on its own port must not flag its own tag as
-// taken, that's what ignoreId is for. Seeds with the canonical
-// "inbound-<port>-<transport>" shape so the self-update returns the
-// same tag verbatim.
+// updating an inbound on its own port must not flag its own tag as taken;
+// that's what ignoreId is for.
 func TestGenerateInboundTag_IgnoresSelfOnUpdate(t *testing.T) {
 	setupConflictDB(t)
-	seedInboundConflict(t, "inbound-443-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`)
+	seedInboundConflict(t, "in-443-vl-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`)
 
 	var existing model.Inbound
-	if err := database.GetDB().Where("tag = ?", "inbound-443-tcp").First(&existing).Error; err != nil {
+	if err := database.GetDB().Where("tag = ?", "in-443-vl-tcp").First(&existing).Error; err != nil {
 		t.Fatalf("read seeded row: %v", err)
 	}
 
@@ -331,16 +326,15 @@ func TestGenerateInboundTag_IgnoresSelfOnUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generateInboundTag: %v", err)
 	}
-	if got != "inbound-443-tcp" {
+	if got != "in-443-vl-tcp" {
 		t.Fatalf("self-update must keep base tag, got %q", got)
 	}
 }
 
-// specific listen address gets the listen-prefixed shape and same
-// disambiguation rules.
+// specific listen address gets the listen-prefixed shape and same suffix.
 func TestGenerateInboundTag_SpecificListenSameDisambiguation(t *testing.T) {
 	setupConflictDB(t)
-	seedInboundConflict(t, "inbound-1.2.3.4:443", "1.2.3.4", 443, model.VLESS, `{"network":"tcp"}`, `{}`)
+	seedInboundConflict(t, "in-1.2.3.4:443", "1.2.3.4", 443, model.VLESS, `{"network":"tcp"}`, `{}`)
 
 	svc := &InboundService{}
 	udp := &model.Inbound{
@@ -352,8 +346,8 @@ func TestGenerateInboundTag_SpecificListenSameDisambiguation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generateInboundTag: %v", err)
 	}
-	if got != "inbound-1.2.3.4:443-udp" {
-		t.Fatalf("expected inbound-1.2.3.4:443-udp, got %q", got)
+	if got != "in-1.2.3.4:443-hy-udp" {
+		t.Fatalf("expected in-1.2.3.4:443-hy-udp, got %q", got)
 	}
 }
 
@@ -405,12 +399,12 @@ func TestCheckPortConflict_NodeScope(t *testing.T) {
 // panels diverged, causing a UNIQUE constraint failure on sync.
 func TestResolveInboundTag_RespectsCallerTagWhenFree(t *testing.T) {
 	setupConflictDB(t)
-	seedInboundConflictNode(t, "inbound-5000", "0.0.0.0", 5000, model.VLESS, `{"network":"tcp"}`, `{}`, nil)
-	seedInboundConflictNode(t, "inbound-5000-udp", "0.0.0.0", 5000, model.Hysteria, ``, ``, nil)
+	seedInboundConflictNode(t, "in-5000-vl-tcp", "0.0.0.0", 5000, model.VLESS, `{"network":"tcp"}`, `{}`, nil)
+	seedInboundConflictNode(t, "in-5000-hy-udp", "0.0.0.0", 5000, model.Hysteria, ``, ``, nil)
 
 	svc := &InboundService{}
 	pushed := &model.Inbound{
-		Tag:            "inbound-5000-tcp",
+		Tag:            "custom-pushed-tag",
 		Listen:         "0.0.0.0",
 		Port:           5000,
 		Protocol:       model.VLESS,
@@ -421,14 +415,14 @@ func TestResolveInboundTag_RespectsCallerTagWhenFree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolveInboundTag: %v", err)
 	}
-	if got != "inbound-5000-tcp" {
+	if got != "custom-pushed-tag" {
 		t.Fatalf("caller tag must be preserved when free, got %q", got)
 	}
 }
 
 // when the caller leaves Tag empty (the local UI path) resolveInboundTag
 // falls back to generateInboundTag, which emits the canonical
-// "inbound-<port>-<transport>" shape.
+// "in-<port>-<transport>" shape.
 func TestResolveInboundTag_GeneratesWhenTagEmpty(t *testing.T) {
 	setupConflictDB(t)
 
@@ -442,8 +436,8 @@ func TestResolveInboundTag_GeneratesWhenTagEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolveInboundTag: %v", err)
 	}
-	if got != "inbound-8443-tcp" {
-		t.Fatalf("expected generated inbound-8443-tcp, got %q", got)
+	if got != "in-8443-vl-tcp" {
+		t.Fatalf("expected generated in-8443-vl-tcp, got %q", got)
 	}
 }
 
@@ -454,11 +448,11 @@ func TestResolveInboundTag_GeneratesWhenTagEmpty(t *testing.T) {
 // tag that the central will pick up via the AddInbound response.
 func TestResolveInboundTag_RegeneratesOnCollision(t *testing.T) {
 	setupConflictDB(t)
-	seedInboundConflictNode(t, "inbound-5000-tcp", "0.0.0.0", 5000, model.VLESS, `{"network":"tcp"}`, `{}`, nil)
+	seedInboundConflictNode(t, "in-5000-vl-tcp", "0.0.0.0", 5000, model.VLESS, `{"network":"tcp"}`, `{}`, nil)
 
 	svc := &InboundService{}
 	pushed := &model.Inbound{
-		Tag:            "inbound-5000-tcp",
+		Tag:            "in-5000-vl-tcp",
 		Listen:         "0.0.0.0",
 		Port:           5000,
 		Protocol:       model.Hysteria,
@@ -469,7 +463,7 @@ func TestResolveInboundTag_RegeneratesOnCollision(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolveInboundTag: %v", err)
 	}
-	if got == "inbound-5000-tcp" {
+	if got == "in-5000-vl-tcp" {
 		t.Fatalf("colliding caller tag must be replaced, but resolver kept %q", got)
 	}
 }
@@ -492,8 +486,8 @@ func TestGenerateInboundTag_NodePrefix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generateInboundTag: %v", err)
 	}
-	if got != "n1-inbound-443-tcp" {
-		t.Fatalf("expected n1-inbound-443-tcp, got %q", got)
+	if got != "n1-in-443-vl-tcp" {
+		t.Fatalf("expected n1-in-443-vl-tcp, got %q", got)
 	}
 }
 
@@ -501,7 +495,7 @@ func TestGenerateInboundTag_NodePrefix(t *testing.T) {
 // the prefix scopes the tag to that specific node.
 func TestGenerateInboundTag_NodePrefixedDoesNotCollideWithLocal(t *testing.T) {
 	setupConflictDB(t)
-	seedInboundConflict(t, "inbound-443-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`)
+	seedInboundConflict(t, "in-443-vl-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`)
 
 	svc := &InboundService{}
 	in := &model.Inbound{
@@ -514,8 +508,8 @@ func TestGenerateInboundTag_NodePrefixedDoesNotCollideWithLocal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generateInboundTag: %v", err)
 	}
-	if got != "n1-inbound-443-tcp" {
-		t.Fatalf("expected n1-inbound-443-tcp, got %q", got)
+	if got != "n1-in-443-vl-tcp" {
+		t.Fatalf("expected n1-in-443-vl-tcp, got %q", got)
 	}
 }
 

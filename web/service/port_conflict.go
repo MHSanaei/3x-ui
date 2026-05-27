@@ -223,14 +223,14 @@ func sameNode(a, b *int) bool {
 	return *a == *b
 }
 
-// baseInboundTag is the legacy "inbound-<port>" / "inbound-<listen>:<port>"
-// shape still emitted by node-side xray imports that pre-date the
-// transport-aware naming; kept as a probe shape in setRemoteTrafficLocked.
+// baseInboundTag is the "in-<port>" / "in-<listen>:<port>" core used
+// by composeInboundTag and as a probe shape in setRemoteTrafficLocked
+// for node-side xray imports that pre-date the canonical naming.
 func baseInboundTag(listen string, port int) string {
 	if isAnyListen(listen) {
-		return fmt.Sprintf("inbound-%v", port)
+		return fmt.Sprintf("in-%v", port)
 	}
-	return fmt.Sprintf("inbound-%v:%v", listen, port)
+	return fmt.Sprintf("in-%v:%v", listen, port)
 }
 
 func transportTagSuffix(b transportBits) string {
@@ -240,7 +240,7 @@ func transportTagSuffix(b transportBits) string {
 	case transportUDP:
 		return "udp"
 	case transportTCP | transportUDP:
-		return "mixed"
+		return "tcpudp"
 	}
 	return "any"
 }
@@ -255,12 +255,44 @@ func nodeTagPrefix(nodeID *int) string {
 	return fmt.Sprintf("n%d-", *nodeID)
 }
 
+// protocolShortName collapses the full protocol identifier into a 2–4
+// char tag-friendly token (shadowsocks → ss, wireguard → wg, …). Falls
+// back to the raw identifier for anything not in the table so future
+// protocols don't need a code change just to get a tag.
+func protocolShortName(p model.Protocol) string {
+	switch p {
+	case model.VMESS:
+		return "vm"
+	case model.VLESS:
+		return "vl"
+	case model.Trojan:
+		return "tr"
+	case model.Shadowsocks:
+		return "ss"
+	case model.Mixed:
+		return "mx"
+	case model.WireGuard:
+		return "wg"
+	case model.Hysteria:
+		return "hy"
+	case model.Tunnel:
+		return "tn"
+	case model.HTTP:
+		return "http"
+	}
+	if p == "" {
+		return "any"
+	}
+	return string(p)
+}
+
 // composeInboundTag returns the canonical
-// "[n<id>-]inbound-[<listen>:]<port>-<transport>" shape used for every
-// newly created inbound. The transport segment lets tcp/443 and udp/443
-// coexist; the node prefix lets the same port live on local + node.
-func composeInboundTag(listen string, port int, nodeID *int, bits transportBits) string {
-	return nodeTagPrefix(nodeID) + baseInboundTag(listen, port) + "-" + transportTagSuffix(bits)
+// "[n<id>-]inbound-[<listen>:]<port>-<protocol>-<network>" shape used
+// for every newly created inbound. The protocol + network segments
+// disambiguate tcp/443 and udp/443 sharing a listener; the node prefix
+// lets the same port live on local + node.
+func composeInboundTag(listen string, port int, protocol model.Protocol, nodeID *int, bits transportBits) string {
+	return nodeTagPrefix(nodeID) + baseInboundTag(listen, port) + "-" + protocolShortName(protocol) + "-" + transportTagSuffix(bits)
 }
 
 // generateInboundTag returns a free tag in the canonical shape. ignoreId
@@ -269,7 +301,7 @@ func composeInboundTag(listen string, port int, nodeID *int, bits transportBits)
 // should have already blocked an exact-collision insert.
 func (s *InboundService) generateInboundTag(inbound *model.Inbound, ignoreId int) (string, error) {
 	bits := inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings)
-	candidate := composeInboundTag(inbound.Listen, inbound.Port, inbound.NodeID, bits)
+	candidate := composeInboundTag(inbound.Listen, inbound.Port, inbound.Protocol, inbound.NodeID, bits)
 	exists, err := s.tagExists(candidate, ignoreId)
 	if err != nil {
 		return "", err
