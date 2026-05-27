@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
-import { SyncOutlined } from '@ant-design/icons';
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Switch, message } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
@@ -41,6 +41,7 @@ function emptyForm(): FormState {
     limitIp: 0,
     totalGB: 0,
     expiryTime: 0,
+    reset: 0,
     inboundIds: [],
   };
 }
@@ -154,6 +155,7 @@ export default function ClientBulkAddModal({
           flow: showFlow ? (form.flow || '') : '',
           totalGB: Math.round((form.totalGB || 0) * SizeFormatter.ONE_GB),
           expiryTime: form.expiryTime,
+          reset: Number(form.reset) || 0,
           limitIp: Number(form.limitIp) || 0,
           comment: form.comment,
           enable: true,
@@ -247,16 +249,18 @@ export default function ClientBulkAddModal({
             </Form.Item>
           )}
 
-          <Form.Item label={
-            <>
-              {t('subscription.title')}
-              <SyncOutlined
-                className="random-icon"
+          <Form.Item label={t('pages.clients.subId')}>
+            <Space.Compact style={{ display: 'flex' }}>
+              <Input
+                value={form.subId}
+                onChange={(e) => update('subId', e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <Button
+                icon={<ReloadOutlined />}
                 onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))}
               />
-            </>
-          }>
-            <Input value={form.subId} onChange={(e) => update('subId', e.target.value)} />
+            </Space.Compact>
           </Form.Item>
 
           <Form.Item label={t('comment')}>
@@ -310,6 +314,17 @@ export default function ClientBulkAddModal({
               />
             </Form.Item>
           )}
+
+          <Form.Item
+            label={t('pages.clients.renew')}
+            tooltip={t('pages.clients.renewDesc')}
+          >
+            <InputNumber
+              value={form.reset}
+              min={0}
+              onChange={(v) => update('reset', Number(v) || 0)}
+            />
+          </Form.Item>
         </Form>
       </Modal>
     </>

@@ -227,15 +227,32 @@ export function dropLegacyOptionalEmpties(
   const fb = settings.fallbacks;
   if (Array.isArray(fb) && fb.length === 0) delete settings.fallbacks;
 
-  // StreamSettings emits `finalmask` only when at least one transport
-  // mask exists (legacy `hasFinalMask`). Otherwise drop the whole block.
   if (stream) {
+    // StreamSettings emits `finalmask` only when at least one transport
+    // mask exists (legacy `hasFinalMask`). Drop the whole block when all
+    // sub-fields are empty; otherwise drop only the empty sub-arrays so
+    // the wire payload doesn't carry a stray `"tcp": []` next to a
+    // populated UDP mask list (and vice versa).
     const fm = stream.finalmask as { tcp?: unknown[]; udp?: unknown[]; quicParams?: unknown } | undefined;
     if (fm && typeof fm === 'object') {
       const hasTcp = Array.isArray(fm.tcp) && fm.tcp.length > 0;
       const hasUdp = Array.isArray(fm.udp) && fm.udp.length > 0;
       const hasQuic = fm.quicParams != null;
-      if (!hasTcp && !hasUdp && !hasQuic) delete stream.finalmask;
+      if (!hasTcp && !hasUdp && !hasQuic) {
+        delete stream.finalmask;
+      } else {
+        if (!hasTcp) delete fm.tcp;
+        if (!hasUdp) delete fm.udp;
+      }
+    }
+
+    // Hysteria's per-client auth lives in settings.clients[*].auth; the
+    // streamSettings.hysteriaSettings.auth slot is a holdover from older
+    // hysteria builds and serves no purpose on the inbound side, so an
+    // empty value shouldn't ride along in the JSON payload.
+    const hs = stream.hysteriaSettings as { auth?: string } | undefined;
+    if (hs && typeof hs === 'object' && (hs.auth === '' || hs.auth == null)) {
+      delete hs.auth;
     }
   }
 }

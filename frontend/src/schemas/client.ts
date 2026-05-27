@@ -142,6 +142,7 @@ export const ClientBulkAddFormSchema = z.object({
   limitIp: z.number().int().min(0),
   totalGB: z.number().min(0),
   expiryTime: z.number(),
+  reset: z.number().int().min(0),
   inboundIds: z.array(z.number()).min(1, 'pages.clients.selectInbound'),
 });
 
