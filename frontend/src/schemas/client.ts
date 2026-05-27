@@ -108,6 +108,7 @@ export const ClientFormSchema = z.object({
   totalGB: z.number().min(0),
   delayedStart: z.boolean(),
   delayedDays: z.number().int().min(0),
+  reset: z.number().int().min(0),
   limitIp: z.number().int().min(0),
   tgId: z.number().int().min(0),
   comment: z.string(),
