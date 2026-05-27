@@ -98,7 +98,7 @@ function isMuxAllowed(protocol: string, flow: string, network: string): boolean 
 }
 
 const NETWORK_OPTIONS: { value: string; label: string }[] = [
-  { value: 'tcp', label: 'TCP (RAW)' },
+  { value: 'tcp', label: 'RAW' },
   { value: 'kcp', label: 'mKCP' },
   { value: 'ws', label: 'WebSocket' },
   { value: 'grpc', label: 'gRPC' },
@@ -684,11 +684,11 @@ export default function OutboundFormModal({
                                         ['settings', 'fragment'],
                                         checked
                                           ? {
-                                              packets: 'tlshello',
-                                              length: '100-200',
-                                              interval: '10-20',
-                                              maxSplit: '300-400',
-                                            }
+                                            packets: 'tlshello',
+                                            length: '100-200',
+                                            interval: '10-20',
+                                            maxSplit: '300-400',
+                                          }
                                           : { packets: '', length: '', interval: '', maxSplit: '' },
                                       );
                                     }}
@@ -1143,20 +1143,20 @@ export default function OutboundFormModal({
                                           ['streamSettings', 'tcpSettings', 'header'],
                                           checked
                                             ? {
-                                                type: 'http',
-                                                request: {
-                                                  version: '1.1',
-                                                  method: 'GET',
-                                                  path: ['/'],
-                                                  headers: {},
-                                                },
-                                                response: {
-                                                  version: '1.1',
-                                                  status: '200',
-                                                  reason: 'OK',
-                                                  headers: {},
-                                                },
-                                              }
+                                              type: 'http',
+                                              request: {
+                                                version: '1.1',
+                                                method: 'GET',
+                                                path: ['/'],
+                                                headers: {},
+                                              },
+                                              response: {
+                                                version: '1.1',
+                                                status: '200',
+                                                reason: 'OK',
+                                                headers: {},
+                                              },
+                                            }
                                             : { type: 'none' },
                                         )
                                       }
@@ -1771,8 +1771,8 @@ export default function OutboundFormModal({
                               normalize={(v: unknown) =>
                                 Array.isArray(v)
                                   ? v
-                                      .map((x) => Number(x))
-                                      .filter((n) => Number.isInteger(n) && n > 0)
+                                    .map((x) => Number(x))
+                                    .filter((n) => Number.isInteger(n) && n > 0)
                                   : []
                               }
                             >

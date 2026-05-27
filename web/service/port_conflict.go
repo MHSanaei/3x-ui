@@ -20,17 +20,17 @@ const (
 	transportUDP
 )
 
-// conflicts is true when the two masks share any L4 transport.
-func (b transportBits) conflicts(o transportBits) bool { return b&o != 0 }
-
 // inboundTransports returns the L4 transports the given inbound listens on.
 // always returns at least one bit (falls back to tcp on parse errors), so
-// the validator never gets looser than the old port-only check.
+// no parse failure can silently let a real socket collision through.
 //
 // the rules:
 //   - hysteria, wireguard: udp regardless of streamSettings
-//   - streamSettings.network=kcp: udp
-//   - shadowsocks: whatever settings.network says ("tcp" / "udp" / "tcp,udp")
+//   - streamSettings.network=kcp or quic: udp (both ride on udp at L4)
+//   - shadowsocks: settings.network ("tcp" / "udp" / "tcp,udp"), overrides
+//     the streamSettings-derived bit when present
+//   - tunnel (xray dokodemo-door): same shape via settings.allowedNetwork
+//     (3x-ui's wrapper renames the field)
 //   - mixed (socks/http combo): tcp + udp when settings.udp is true
 //   - everything else: tcp
 func inboundTransports(protocol model.Protocol, streamSettings, settings string) transportBits {
@@ -42,7 +42,7 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 
 	var bits transportBits
 
-	// peek at streamSettings.network to spot udp transports like kcp.
+	// peek at streamSettings.network to spot udp-based transports.
 	// parse errors are non-fatal: missing or weird streamSettings just
 	// keeps the default tcp bit below.
 	network := ""
@@ -54,23 +54,31 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 			}
 		}
 	}
-	if network == "kcp" {
+	switch network {
+	case "kcp", "quic":
 		bits |= transportUDP
-	} else {
+	default:
 		bits |= transportTCP
 	}
 
-	// some protocols also listen on udp on the same port via their own
-	// settings json. parse and merge.
+	// a few protocols carry their L4 choice in settings instead of (or in
+	// addition to) streamSettings: SS / Tunnel via a CSV field that wins
+	// outright, Mixed via an additive udp boolean.
 	if settings != "" {
 		var st map[string]any
 		if json.Unmarshal([]byte(settings), &st) == nil {
 			switch protocol {
-			case model.Shadowsocks:
-				// shadowsocks settings.network controls both tcp and udp,
-				// independently of streamSettings. the field takes "tcp",
-				// "udp", or "tcp,udp". if it's set, it wins outright.
-				if n, ok := st["network"].(string); ok && n != "" {
+			case model.Shadowsocks, model.Tunnel:
+				// shadowsocks exposes settings.network, tunnel exposes
+				// settings.allowedNetwork (3x-ui's wrapper around xray's
+				// dokodemo-door). both carry "tcp" / "udp" / "tcp,udp"
+				// and, when present, win outright over the streamSettings-
+				// derived default; absent/empty keeps the inferred bit (tcp).
+				key := "network"
+				if protocol == model.Tunnel {
+					key = "allowedNetwork"
+				}
+				if n, ok := st[key].(string); ok && n != "" {
 					bits = 0
 					for part := range strings.SplitSeq(n, ",") {
 						switch strings.TrimSpace(part) {
@@ -113,10 +121,47 @@ func isAnyListen(s string) bool {
 	return s == "" || s == "0.0.0.0" || s == "::" || s == "::0"
 }
 
-// checkPortConflict reports whether adding/updating an inbound on
-// (listen, port) would clash with an existing inbound. unlike the old
-// port-only check, this one understands that tcp/443 and udp/443 are
-// independent sockets in linux and may coexist on the same address.
+// portConflictDetail describes the existing inbound that an add/update
+// would collide with. it carries enough context for the API layer to
+// render a user-actionable error ("port 443 (tcp) already used by
+// inbound 'my-vless' (#7) on *") instead of the historical opaque
+// "Port exists". Transports holds only the bits the two inbounds
+// actually share, not the existing inbound's full transport mask.
+type portConflictDetail struct {
+	InboundID  int
+	Remark     string
+	Tag        string
+	Listen     string
+	Port       int
+	Transports transportBits
+}
+
+// String renders the detail as a single-line, user-facing summary.
+func (d *portConflictDetail) String() string {
+	name := d.Remark
+	if name == "" {
+		name = d.Tag
+	}
+	if name == "" {
+		name = fmt.Sprintf("#%d", d.InboundID)
+	} else {
+		name = fmt.Sprintf("'%s' (#%d)", name, d.InboundID)
+	}
+	listen := d.Listen
+	if isAnyListen(listen) {
+		listen = "*"
+	}
+	return fmt.Sprintf("port %d (%s) already used by inbound %s on %s",
+		d.Port, transportTagSuffix(d.Transports), name, listen)
+}
+
+// checkPortConflict reports the existing inbound (if any) that adding
+// or updating an inbound on (listen, port) would clash with. nil result
+// means no conflict.
+//
+// unlike the old port-only check, this one understands that tcp/443 and
+// udp/443 are independent sockets in linux and may coexist on the same
+// address.
 //
 // node scope: inbounds with different NodeID run on different physical
 // machines (local panel xray vs a remote node, or two remote nodes),
@@ -125,7 +170,7 @@ func isAnyListen(s string) bool {
 //
 // the listen-overlap rule (specific addr conflicts with any-addr on the
 // same port, both directions) is preserved from the previous check.
-func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int) (bool, error) {
+func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int) (*portConflictDetail, error) {
 	db := database.GetDB()
 
 	var candidates []*model.Inbound
@@ -134,7 +179,7 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 		q = q.Where("id != ?", ignoreId)
 	}
 	if err := q.Find(&candidates).Error; err != nil {
-		return false, err
+		return nil, err
 	}
 
 	newBits := inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings)
@@ -145,11 +190,21 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 		if !listenOverlaps(c.Listen, inbound.Listen) {
 			continue
 		}
-		if inboundTransports(c.Protocol, c.StreamSettings, c.Settings).conflicts(newBits) {
-			return true, nil
+		existingBits := inboundTransports(c.Protocol, c.StreamSettings, c.Settings)
+		shared := existingBits & newBits
+		if shared == 0 {
+			continue
 		}
+		return &portConflictDetail{
+			InboundID:  c.Id,
+			Remark:     c.Remark,
+			Tag:        c.Tag,
+			Listen:     c.Listen,
+			Port:       c.Port,
+			Transports: shared,
+		}, nil
 	}
-	return false, nil
+	return nil, nil
 }
 
 // sameNode reports whether two NodeID pointers refer to the same xray
