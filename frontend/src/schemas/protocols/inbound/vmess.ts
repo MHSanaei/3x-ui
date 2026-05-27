@@ -1,13 +1,22 @@
 import { z } from 'zod';
 
-export const VmessSecuritySchema = z.enum([
+const VmessSecurityEnum = z.enum([
   'aes-128-gcm',
   'chacha20-poly1305',
   'auto',
   'none',
   'zero',
 ]);
-export type VmessSecurity = z.infer<typeof VmessSecuritySchema>;
+
+// Legacy rows persisted `security: ""` (especially on VMess inbounds
+// created before the enum was nailed down). Preprocess maps the empty
+// string back to the documented default so existing data parses cleanly
+// — subsequent writes serialize the normalized value.
+export const VmessSecuritySchema = z.preprocess(
+  (val) => (val === '' ? 'auto' : val),
+  VmessSecurityEnum,
+);
+export type VmessSecurity = z.infer<typeof VmessSecurityEnum>;
 
 export const VmessClientSchema = z.object({
   id: z.uuid(),

@@ -1,12 +1,84 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Divider, Modal, Tag, Tooltip, message } from 'antd';
-import { CopyOutlined } from '@ant-design/icons';
+import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
+import { CopyOutlined, QrcodeOutlined } from '@ant-design/icons';
 
 import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import QrPanel from '@/pages/inbounds/QrPanel';
 import './ClientInfoModal.css';
+
+const PROTOCOL_COLORS: Record<string, string> = {
+  VLESS: 'blue',
+  VMESS: 'geekblue',
+  TROJAN: 'volcano',
+  SS: 'magenta',
+  HYSTERIA: 'cyan',
+  HY2: 'green',
+};
+
+const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
+  vless: 'blue',
+  vmess: 'geekblue',
+  trojan: 'volcano',
+  shadowsocks: 'magenta',
+  hysteria: 'cyan',
+  hysteria2: 'green',
+  wireguard: 'gold',
+  http: 'purple',
+  mixed: 'lime',
+  tunnel: 'orange',
+};
+
+const INBOUND_CHIP_LIMIT = 1;
+
+// 3x-ui's genRemark concatenates inbound remark + client email (and an
+// optional extra) using a configurable separator. The email half is
+// redundant in the row title — the modal already names the client by
+// email at the top — so trimEmail strips it back out for the row only.
+// The original remark is preserved for the QR (it's the QR's own name).
+function trimEmail(remark: string, email: string): string {
+  if (!email) return remark;
+  const e = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return remark
+    .replace(new RegExp(`[-_.\\s|]+${e}$`), '')
+    .replace(new RegExp(`^${e}[-_.\\s|]+`), '')
+    .trim();
+}
+
+function parseLinkMeta(link: string): { protocol: string; remark: string } {
+  const schemeMatch = /^([a-z0-9]+):\/\//i.exec(link);
+  const scheme = schemeMatch?.[1]?.toLowerCase() ?? '';
+  const protocolMap: Record<string, string> = {
+    vless: 'VLESS',
+    vmess: 'VMESS',
+    trojan: 'TROJAN',
+    ss: 'SS',
+    hysteria: 'HYSTERIA',
+    hysteria2: 'HY2',
+    hy2: 'HY2',
+  };
+  const protocol = protocolMap[scheme] ?? scheme.toUpperCase() ?? 'LINK';
+
+  let remark = '';
+  if (scheme === 'vmess') {
+    try {
+      const body = link.slice('vmess://'.length).split('#')[0];
+      const json = JSON.parse(atob(body)) as { ps?: unknown };
+      if (typeof json?.ps === 'string') remark = json.ps;
+    } catch { /* fall through to fragment parsing */ }
+  }
+  if (!remark) {
+    const hashIdx = link.indexOf('#');
+    if (hashIdx >= 0) {
+      const raw = link.slice(hashIdx + 1);
+      try { remark = decodeURIComponent(raw); }
+      catch { remark = raw; }
+    }
+  }
+  return { protocol, remark };
+}
 
 interface SubSettings {
   enable: boolean;
@@ -107,192 +179,273 @@ export default function ClientInfoModal({
         footer={null}
         width={640}
         onCancel={() => onOpenChange(false)}
-    >
-      {client && (
-        <>
-          <table className="info-table block">
-            <tbody>
-              <tr>
-                <td>{t('pages.clients.online')}</td>
-                <td>
-                  {client.enable && isOnline
-                    ? <Tag color="green">{t('pages.clients.online')}</Tag>
-                    : <Tag>{t('pages.clients.offline')}</Tag>}
-                  <span className="hint">{t('lastOnline')}: {dateLabel(traffic?.lastOnline)}</span>
-                </td>
-              </tr>
-              <tr>
-                <td>{t('status')}</td>
-                <td>
-                  <Tag color={client.enable ? 'green' : 'default'}>
-                    {client.enable ? t('enabled') : t('disabled')}
-                  </Tag>
-                </td>
-              </tr>
-              <tr>
-                <td>{t('pages.clients.email')}</td>
-                <td>
-                  {client.email
-                    ? <Tag color="green">{client.email}</Tag>
-                    : <Tag color="red">{t('none')}</Tag>}
-                </td>
-              </tr>
-              <tr>
-                <td>{t('pages.clients.subId')}</td>
-                <td>
-                  <Tag className="info-large-tag">{client.subId || '-'}</Tag>
-                  {client.subId && (
-                    <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.subId!)} />
-                  )}
-                </td>
-              </tr>
-              {client.uuid && (
+      >
+        {client && (
+          <>
+            <table className="info-table block">
+              <tbody>
                 <tr>
-                  <td>{t('pages.clients.uuid')}</td>
+                  <td>{t('pages.clients.online')}</td>
                   <td>
-                    <Tag className="info-large-tag">{client.uuid}</Tag>
-                    <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.uuid!)} />
+                    {client.enable && isOnline
+                      ? <Tag color="green">{t('pages.clients.online')}</Tag>
+                      : <Tag>{t('pages.clients.offline')}</Tag>}
+                    <span className="hint">{t('lastOnline')}: {dateLabel(traffic?.lastOnline)}</span>
                   </td>
                 </tr>
-              )}
-              {client.password && (
                 <tr>
-                  <td>{t('password')}</td>
+                  <td>{t('status')}</td>
                   <td>
-                    <Tag className="info-large-tag">{client.password}</Tag>
-                    <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.password!)} />
+                    <Tag color={client.enable ? 'green' : 'default'}>
+                      {client.enable ? t('enabled') : t('disabled')}
+                    </Tag>
                   </td>
                 </tr>
-              )}
-              {client.auth && (
                 <tr>
-                  <td>{t('pages.clients.auth')}</td>
+                  <td>{t('pages.clients.email')}</td>
                   <td>
-                    <Tag className="info-large-tag">{client.auth}</Tag>
-                    <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.auth!)} />
+                    {client.email
+                      ? <Tag color="green">{client.email}</Tag>
+                      : <Tag color="red">{t('none')}</Tag>}
                   </td>
                 </tr>
-              )}
-              <tr>
-                <td>{t('pages.clients.flow')}</td>
-                <td>
-                  {client.flow ? <Tag>{client.flow}</Tag> : <Tag color="orange">{t('none')}</Tag>}
-                </td>
-              </tr>
-              <tr>
-                <td>{t('pages.inbounds.traffic')}</td>
-                <td>
-                  <Tag>
-                    ↑ {SizeFormatter.sizeFormat(traffic?.up || 0)}
-                    {' '}/ ↓ {SizeFormatter.sizeFormat(traffic?.down || 0)}
-                  </Tag>
-                  <span className="hint">
-                    {SizeFormatter.sizeFormat(used)} / {totalBytes > 0 ? SizeFormatter.sizeFormat(totalBytes) : '∞'}
-                  </span>
-                </td>
-              </tr>
-              <tr>
-                <td>{t('remained')}</td>
-                <td>
-                  {remaining < 0
-                    ? <Tag color="purple">∞</Tag>
-                    : <Tag color={remaining > 0 ? '' : 'red'}>{SizeFormatter.sizeFormat(remaining)}</Tag>}
-                </td>
-              </tr>
-              <tr>
-                <td>{t('pages.inbounds.expireDate')}</td>
-                <td>
-                  {!client.expiryTime
-                    ? <Tag color="purple">∞</Tag>
-                    : <Tag color={client.expiryTime < 0 ? 'blue' : undefined}>{expiryLabel(client.expiryTime)}</Tag>}
-                  {(client.expiryTime ?? 0) > 0 && (
-                    <span className="hint">{IntlUtil.formatRelativeTime(client.expiryTime)}</span>
-                  )}
-                </td>
-              </tr>
-              <tr>
-                <td>{t('pages.clients.ipLimit')}</td>
-                <td>{!client.limitIp ? <Tag>∞</Tag> : <Tag>{client.limitIp}</Tag>}</td>
-              </tr>
-              <tr>
-                <td>{t('pages.inbounds.createdAt')}</td>
-                <td><Tag>{dateLabel(client.createdAt)}</Tag></td>
-              </tr>
-              <tr>
-                <td>{t('pages.inbounds.updatedAt')}</td>
-                <td><Tag>{dateLabel(client.updatedAt)}</Tag></td>
-              </tr>
-              {client.comment && (
                 <tr>
-                  <td>{t('pages.clients.comment')}</td>
-                  <td><Tag className="info-large-tag">{client.comment}</Tag></td>
-                </tr>
-              )}
-              <tr>
-                <td>{t('pages.clients.attachedInbounds')}</td>
-                <td>
-                  <div className="chips">
-                    {(client.inboundIds || []).map((id) => {
-                      const ib = inboundsById[id];
-                      return (
-                        <Tag key={id} color="blue">
-                          {ib ? `${ib.remark || `#${id}`} (${ib.protocol}:${ib.port})` : `#${id}`}
-                        </Tag>
-                      );
-                    })}
-                    {(!client.inboundIds || client.inboundIds.length === 0) && (
-                      <span className="hint">—</span>
+                  <td>{t('pages.clients.subId')}</td>
+                  <td>
+                    <Tag className="info-large-tag">{client.subId || '-'}</Tag>
+                    {client.subId && (
+                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.subId!)} />
                     )}
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  </td>
+                </tr>
+                {client.uuid && (
+                  <tr>
+                    <td>{t('pages.clients.uuid')}</td>
+                    <td>
+                      <Tag className="info-large-tag">{client.uuid}</Tag>
+                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.uuid!)} />
+                    </td>
+                  </tr>
+                )}
+                {client.password && (
+                  <tr>
+                    <td>{t('password')}</td>
+                    <td>
+                      <Tag className="info-large-tag">{client.password}</Tag>
+                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.password!)} />
+                    </td>
+                  </tr>
+                )}
+                {client.auth && (
+                  <tr>
+                    <td>{t('pages.clients.auth')}</td>
+                    <td>
+                      <Tag className="info-large-tag">{client.auth}</Tag>
+                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.auth!)} />
+                    </td>
+                  </tr>
+                )}
+                <tr>
+                  <td>{t('pages.clients.flow')}</td>
+                  <td>
+                    {client.flow ? <Tag>{client.flow}</Tag> : <Tag color="orange">{t('none')}</Tag>}
+                  </td>
+                </tr>
+                <tr>
+                  <td>{t('pages.inbounds.traffic')}</td>
+                  <td>
+                    <Tag>
+                      ↑ {SizeFormatter.sizeFormat(traffic?.up || 0)}
+                      {' '}/ ↓ {SizeFormatter.sizeFormat(traffic?.down || 0)}
+                    </Tag>
+                    <span className="hint">
+                      {SizeFormatter.sizeFormat(used)} / {totalBytes > 0 ? SizeFormatter.sizeFormat(totalBytes) : '∞'}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>{t('remained')}</td>
+                  <td>
+                    {remaining < 0
+                      ? <Tag color="purple">∞</Tag>
+                      : <Tag color={remaining > 0 ? '' : 'red'}>{SizeFormatter.sizeFormat(remaining)}</Tag>}
+                  </td>
+                </tr>
+                <tr>
+                  <td>{t('pages.inbounds.expireDate')}</td>
+                  <td>
+                    {!client.expiryTime
+                      ? <Tag color="purple">∞</Tag>
+                      : <Tag color={client.expiryTime < 0 ? 'blue' : undefined}>{expiryLabel(client.expiryTime)}</Tag>}
+                    {(client.expiryTime ?? 0) > 0 && (
+                      <span className="hint">{IntlUtil.formatRelativeTime(client.expiryTime)}</span>
+                    )}
+                  </td>
+                </tr>
+                <tr>
+                  <td>{t('pages.clients.ipLimit')}</td>
+                  <td>{!client.limitIp ? <Tag>∞</Tag> : <Tag>{client.limitIp}</Tag>}</td>
+                </tr>
+                <tr>
+                  <td>{t('pages.inbounds.createdAt')}</td>
+                  <td><Tag>{dateLabel(client.createdAt)}</Tag></td>
+                </tr>
+                <tr>
+                  <td>{t('pages.inbounds.updatedAt')}</td>
+                  <td><Tag>{dateLabel(client.updatedAt)}</Tag></td>
+                </tr>
+                {client.comment && (
+                  <tr>
+                    <td>{t('pages.clients.comment')}</td>
+                    <td><Tag className="info-large-tag">{client.comment}</Tag></td>
+                  </tr>
+                )}
+                <tr>
+                  <td>{t('pages.clients.attachedInbounds')}</td>
+                  <td>
+                    {(() => {
+                      const ids = client.inboundIds || [];
+                      if (ids.length === 0) return <span className="hint">—</span>;
+                      const visible = ids.slice(0, INBOUND_CHIP_LIMIT);
+                      const overflow = ids.slice(INBOUND_CHIP_LIMIT);
+                      const inboundChip = (id: number, compact: boolean) => {
+                        const ib = inboundsById[id];
+                        const proto = (ib?.protocol || '').toLowerCase();
+                        const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
+                        const fullLabel = ib
+                          ? `${ib.remark || `#${id}`} (${ib.protocol}:${ib.port})`
+                          : `#${id}`;
+                        const compactLabel = ib ? `${ib.protocol}:${ib.port}` : `#${id}`;
+                        return (
+                          <Tooltip key={id} title={fullLabel}>
+                            <Tag color={color}>{compact ? compactLabel : fullLabel}</Tag>
+                          </Tooltip>
+                        );
+                      };
+                      return (
+                        <div className="chips">
+                          {visible.map((id) => inboundChip(id, true))}
+                          {overflow.length > 0 && (
+                            <Popover
+                              trigger="click"
+                              placement="bottomRight"
+                              content={
+                                <div className="chips chips-stack">
+                                  {overflow.map((id) => inboundChip(id, false))}
+                                </div>
+                              }
+                            >
+                              <Tag color="default" className="chip-more">
+                                +{overflow.length} {t('more') !== 'more' ? t('more') : 'more'}
+                              </Tag>
+                            </Popover>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
 
-          {links.length > 0 && (
-            <>
-              <Divider>{t('pages.inbounds.copyLink')}</Divider>
-              {links.map((link, idx) => (
-                <div key={idx} className="link-panel">
-                  <div className="link-panel-header">
-                    <Tag color="green">{`${t('pages.clients.link')} ${idx + 1}`}</Tag>
-                    <Tooltip title={t('copy')}>
-                      <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(link)} />
-                    </Tooltip>
-                  </div>
-                  <code className="link-panel-text">{link}</code>
-                </div>
-              ))}
-            </>
-          )}
+            {links.length > 0 && (
+              <>
+                <Divider>{t('pages.inbounds.copyLink')}</Divider>
+                {links.map((link, idx) => {
+                  const meta = parseLinkMeta(link);
+                  const qrRemark = meta.remark || `${t('pages.clients.link')} ${idx + 1}`;
+                  const rowTitle = trimEmail(meta.remark, client.email)
+                    || `${t('pages.clients.link')} ${idx + 1}`;
+                  return (
+                    <div key={idx} className="link-row">
+                      <Tag color={PROTOCOL_COLORS[meta.protocol] ?? 'default'} className="link-row-tag">
+                        {meta.protocol}
+                      </Tag>
+                      <span className="link-row-title" title={qrRemark}>{rowTitle}</span>
+                      <div className="link-row-actions">
+                        <Tooltip title={t('copy')}>
+                          <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(link)} />
+                        </Tooltip>
+                        <Popover
+                          trigger="click"
+                          placement="left"
+                          destroyOnHidden
+                          content={<QrPanel value={link} remark={qrRemark} size={220} />}
+                        >
+                          <Tooltip title={t('pages.clients.qrCode')}>
+                            <Button size="small" icon={<QrcodeOutlined />} />
+                          </Tooltip>
+                        </Popover>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
 
-          {showSubscription && subLink && (
-            <>
-              <Divider>{t('subscription.title')}</Divider>
-              <div className="link-panel">
-                <div className="link-panel-header">
-                  <Tag color="green">{t('subscription.title')}</Tag>
-                  <Tooltip title={t('copy')}>
-                    <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(subLink)} />
-                  </Tooltip>
-                </div>
-                <a href={subLink} target="_blank" rel="noopener noreferrer" className="link-panel-anchor">{subLink}</a>
-              </div>
-              {subJsonLink && (
-                <div className="link-panel">
-                  <div className="link-panel-header">
-                    <Tag color="green">JSON</Tag>
+            {showSubscription && subLink && (
+              <>
+                <Divider>{t('subscription.title')}</Divider>
+                <div className="link-row">
+                  <Tag color="green" className="link-row-tag">SUB</Tag>
+                  <a
+                    href={subLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="link-row-title link-row-title-anchor"
+                    title={subLink}
+                  >
+                    {client.subId}
+                  </a>
+                  <div className="link-row-actions">
                     <Tooltip title={t('copy')}>
-                      <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(subJsonLink)} />
+                      <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(subLink)} />
                     </Tooltip>
+                    <Popover
+                      trigger="click"
+                      placement="left"
+                      destroyOnHidden
+                      content={<QrPanel value={subLink} remark={`${client.email} — ${t('subscription.title')}`} size={220} />}
+                    >
+                      <Tooltip title={t('pages.clients.qrCode')}>
+                        <Button size="small" icon={<QrcodeOutlined />} />
+                      </Tooltip>
+                    </Popover>
                   </div>
-                  <a href={subJsonLink} target="_blank" rel="noopener noreferrer" className="link-panel-anchor">{subJsonLink}</a>
                 </div>
-              )}
-            </>
-          )}
-        </>
-      )}
+                {subJsonLink && (
+                  <div className="link-row">
+                    <Tag color="purple" className="link-row-tag">JSON</Tag>
+                    <a
+                      href={subJsonLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="link-row-title link-row-title-anchor"
+                      title={subJsonLink}
+                    >
+                      {client.subId}
+                    </a>
+                    <div className="link-row-actions">
+                      <Tooltip title={t('copy')}>
+                        <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(subJsonLink)} />
+                      </Tooltip>
+                      <Popover
+                        trigger="click"
+                        placement="left"
+                        destroyOnHidden
+                        content={<QrPanel value={subJsonLink} remark={`${client.email} — JSON`} size={220} />}
+                      >
+                        <Tooltip title={t('pages.clients.qrCode')}>
+                          <Button size="small" icon={<QrcodeOutlined />} />
+                        </Tooltip>
+                      </Popover>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
       </Modal>
     </>
   );
