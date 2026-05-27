@@ -5,10 +5,12 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +24,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+var reportedRemoteTagConflict sync.Map
 
 type InboundService struct {
 	xrayApi         xray.XrayAPI
@@ -1313,6 +1317,24 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 		c, ok := tagToCentral[snapIb.Tag]
 		if !ok {
+			var owner model.Inbound
+			if err := tx.Where("tag = ?", snapIb.Tag).First(&owner).Error; err == nil {
+				key := fmt.Sprintf("%d:%s", nodeID, snapIb.Tag)
+				if _, seen := reportedRemoteTagConflict.LoadOrStore(key, struct{}{}); !seen {
+					ownerLabel := "the local panel"
+					if owner.NodeID != nil {
+						ownerLabel = fmt.Sprintf("node #%d", *owner.NodeID)
+					}
+					logger.Warningf(
+						"setRemoteTraffic: tag %q from node %d collides with inbound owned by %s — skipping (rename one side to remove the duplicate)",
+						snapIb.Tag, nodeID, ownerLabel,
+					)
+				}
+				continue
+			} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+				logger.Warningf("setRemoteTraffic: check tag %q failed: %v", snapIb.Tag, err)
+				continue
+			}
 			newIb := model.Inbound{
 				UserId:         defaultUserId,
 				NodeID:         &nodeID,
@@ -1332,7 +1354,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				Down:           snapIb.Down,
 			}
 			if err := tx.Create(&newIb).Error; err != nil {
-				logger.Warning("setRemoteTraffic: create central inbound for tag", snapIb.Tag, "failed:", err)
+				logger.Warningf("setRemoteTraffic: create central inbound for tag %q failed: %v", snapIb.Tag, err)
 				continue
 			}
 			tagToCentral[snapIb.Tag] = &newIb
@@ -1508,7 +1530,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 		clients, gcErr := s.GetClients(snapIb)
 		if gcErr != nil {
-			logger.Warning("setRemoteTraffic: parse clients for tag", snapIb.Tag, "failed:", gcErr)
+			logger.Warningf("setRemoteTraffic: parse clients for tag %q failed: %v", snapIb.Tag, gcErr)
 			continue
 		}
 		csEnableByEmail := make(map[string]bool, len(snapIb.ClientStats))
@@ -1526,7 +1548,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			filtered = append(filtered, clients[i])
 		}
 		if err := s.clientService.SyncInbound(tx, c.Id, filtered); err != nil {
-			logger.Warning("setRemoteTraffic: sync clients for tag", snapIb.Tag, "failed:", err)
+			logger.Warningf("setRemoteTraffic: sync clients for tag %q failed: %v", snapIb.Tag, err)
 		}
 	}
 
@@ -1557,10 +1579,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				continue
 			}
 			if err := tx.Where("email = ?", email).Delete(&model.ClientRecord{}).Error; err != nil {
-				logger.Warning("setRemoteTraffic: delete ClientRecord", email, "failed:", err)
+				logger.Warningf("setRemoteTraffic: delete ClientRecord %q failed: %v", email, err)
 			}
 			if err := tx.Where("email = ?", email).Delete(&xray.ClientTraffic{}).Error; err != nil {
-				logger.Warning("setRemoteTraffic: delete ClientTraffic", email, "failed:", err)
+				logger.Warningf("setRemoteTraffic: delete ClientTraffic %q failed: %v", email, err)
 			}
 			structuralChange = true
 		}
