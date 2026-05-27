@@ -1258,9 +1258,15 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		Find(&central).Error; err != nil {
 		return false, err
 	}
-	tagToCentral := make(map[string]*model.Inbound, len(central))
+	// Index under both stored tag and the prefix-stripped form so a snap's
+	// bare tag resolves whether or not we rewrote it with n<id>- at create.
+	tagToCentral := make(map[string]*model.Inbound, len(central)*2)
+	prefix := nodeTagPrefix(&nodeID)
 	for i := range central {
 		tagToCentral[central[i].Tag] = &central[i]
+		if prefix != "" && strings.HasPrefix(central[i].Tag, prefix) {
+			tagToCentral[strings.TrimPrefix(central[i].Tag, prefix)] = &central[i]
+		}
 	}
 
 	var centralClientStats []xray.ClientTraffic
@@ -1317,28 +1323,44 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 		c, ok := tagToCentral[snapIb.Tag]
 		if !ok {
-			var owner model.Inbound
-			if err := tx.Where("tag = ?", snapIb.Tag).First(&owner).Error; err == nil {
+			// Try snap.Tag first; on collision fall back to the n<id>-
+			// prefixed form so local+node can both own the same port.
+			pickFreeTag := func() (string, error) {
+				candidates := []string{snapIb.Tag}
+				if prefix != "" && !strings.HasPrefix(snapIb.Tag, prefix) {
+					candidates = append(candidates, prefix+snapIb.Tag)
+				}
+				for _, t := range candidates {
+					var owner model.Inbound
+					err := tx.Where("tag = ?", t).First(&owner).Error
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return t, nil
+					}
+					if err != nil {
+						return "", err
+					}
+				}
+				return "", nil
+			}
+			chosenTag, err := pickFreeTag()
+			if err != nil {
+				logger.Warningf("setRemoteTraffic: check tag %q failed: %v", snapIb.Tag, err)
+				continue
+			}
+			if chosenTag == "" {
 				key := fmt.Sprintf("%d:%s", nodeID, snapIb.Tag)
 				if _, seen := reportedRemoteTagConflict.LoadOrStore(key, struct{}{}); !seen {
-					ownerLabel := "the local panel"
-					if owner.NodeID != nil {
-						ownerLabel = fmt.Sprintf("node #%d", *owner.NodeID)
-					}
 					logger.Warningf(
-						"setRemoteTraffic: tag %q from node %d collides with inbound owned by %s — skipping (rename one side to remove the duplicate)",
-						snapIb.Tag, nodeID, ownerLabel,
+						"setRemoteTraffic: tag %q from node %d collides with an existing inbound even after the n%d- prefix — skipping (rename one side to remove the duplicate)",
+						snapIb.Tag, nodeID, nodeID,
 					)
 				}
-				continue
-			} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-				logger.Warningf("setRemoteTraffic: check tag %q failed: %v", snapIb.Tag, err)
 				continue
 			}
 			newIb := model.Inbound{
 				UserId:         defaultUserId,
 				NodeID:         &nodeID,
-				Tag:            snapIb.Tag,
+				Tag:            chosenTag,
 				Listen:         snapIb.Listen,
 				Port:           snapIb.Port,
 				Protocol:       snapIb.Protocol,
@@ -1358,6 +1380,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				continue
 			}
 			tagToCentral[snapIb.Tag] = &newIb
+			if newIb.Tag != snapIb.Tag {
+				tagToCentral[newIb.Tag] = &newIb
+			}
 			structuralChange = true
 			continue
 		}

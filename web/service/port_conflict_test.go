@@ -292,8 +292,9 @@ func TestGenerateInboundTag_DisambiguatesByTransportOnSamePort(t *testing.T) {
 	}
 }
 
-// when the port is free, the historical "inbound-<port>" shape is kept
-// so existing routing rules don't change shape on upgrade.
+// when the port is free, the canonical tag includes the transport
+// suffix so tcp/8443 and udp/8443 get distinct tags out of the box
+// (no collision-driven retry needed at INSERT time).
 func TestGenerateInboundTag_KeepsBaseTagWhenFree(t *testing.T) {
 	setupConflictDB(t)
 
@@ -307,19 +308,21 @@ func TestGenerateInboundTag_KeepsBaseTagWhenFree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generateInboundTag: %v", err)
 	}
-	if got != "inbound-8443" {
-		t.Fatalf("expected inbound-8443, got %q", got)
+	if got != "inbound-8443-tcp" {
+		t.Fatalf("expected inbound-8443-tcp, got %q", got)
 	}
 }
 
 // updating an inbound on its own port must not flag its own tag as
-// taken, that's what ignoreId is for.
+// taken, that's what ignoreId is for. Seeds with the canonical
+// "inbound-<port>-<transport>" shape so the self-update returns the
+// same tag verbatim.
 func TestGenerateInboundTag_IgnoresSelfOnUpdate(t *testing.T) {
 	setupConflictDB(t)
-	seedInboundConflict(t, "inbound-443", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`)
+	seedInboundConflict(t, "inbound-443-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`)
 
 	var existing model.Inbound
-	if err := database.GetDB().Where("tag = ?", "inbound-443").First(&existing).Error; err != nil {
+	if err := database.GetDB().Where("tag = ?", "inbound-443-tcp").First(&existing).Error; err != nil {
 		t.Fatalf("read seeded row: %v", err)
 	}
 
@@ -328,7 +331,7 @@ func TestGenerateInboundTag_IgnoresSelfOnUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generateInboundTag: %v", err)
 	}
-	if got != "inbound-443" {
+	if got != "inbound-443-tcp" {
 		t.Fatalf("self-update must keep base tag, got %q", got)
 	}
 }
@@ -424,8 +427,8 @@ func TestResolveInboundTag_RespectsCallerTagWhenFree(t *testing.T) {
 }
 
 // when the caller leaves Tag empty (the local UI path) resolveInboundTag
-// falls back to generateInboundTag, which keeps the historical
-// "inbound-<port>" shape so existing routing rules don't change.
+// falls back to generateInboundTag, which emits the canonical
+// "inbound-<port>-<transport>" shape.
 func TestResolveInboundTag_GeneratesWhenTagEmpty(t *testing.T) {
 	setupConflictDB(t)
 
@@ -439,8 +442,8 @@ func TestResolveInboundTag_GeneratesWhenTagEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolveInboundTag: %v", err)
 	}
-	if got != "inbound-8443" {
-		t.Fatalf("expected generated inbound-8443, got %q", got)
+	if got != "inbound-8443-tcp" {
+		t.Fatalf("expected generated inbound-8443-tcp, got %q", got)
 	}
 }
 
@@ -468,6 +471,51 @@ func TestResolveInboundTag_RegeneratesOnCollision(t *testing.T) {
 	}
 	if got == "inbound-5000-tcp" {
 		t.Fatalf("colliding caller tag must be replaced, but resolver kept %q", got)
+	}
+}
+
+// inbounds bound to a remote node get the canonical tag prefixed with
+// "n<id>-" so the same listen+port+transport can live on the central
+// panel and on the node simultaneously without bumping the global
+// UNIQUE(inbounds.tag) constraint.
+func TestGenerateInboundTag_NodePrefix(t *testing.T) {
+	setupConflictDB(t)
+
+	svc := &InboundService{}
+	in := &model.Inbound{
+		Listen:   "0.0.0.0",
+		Port:     443,
+		Protocol: model.VLESS,
+		NodeID:   intPtr(1),
+	}
+	got, err := svc.generateInboundTag(in, 0)
+	if err != nil {
+		t.Fatalf("generateInboundTag: %v", err)
+	}
+	if got != "n1-inbound-443-tcp" {
+		t.Fatalf("expected n1-inbound-443-tcp, got %q", got)
+	}
+}
+
+// a node-prefixed inbound shouldn't collide with a same-port local one:
+// the prefix scopes the tag to that specific node.
+func TestGenerateInboundTag_NodePrefixedDoesNotCollideWithLocal(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "inbound-443-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{}`)
+
+	svc := &InboundService{}
+	in := &model.Inbound{
+		Listen:   "0.0.0.0",
+		Port:     443,
+		Protocol: model.VLESS,
+		NodeID:   intPtr(1),
+	}
+	got, err := svc.generateInboundTag(in, 0)
+	if err != nil {
+		t.Fatalf("generateInboundTag: %v", err)
+	}
+	if got != "n1-inbound-443-tcp" {
+		t.Fatalf("expected n1-inbound-443-tcp, got %q", got)
 	}
 }
 

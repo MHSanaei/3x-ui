@@ -223,9 +223,9 @@ func sameNode(a, b *int) bool {
 	return *a == *b
 }
 
-// baseInboundTag is the historical "inbound-<port>" / "inbound-<listen>:<port>"
-// shape. kept exactly so existing routing rules that reference these tags
-// keep working after the upgrade.
+// baseInboundTag is the legacy "inbound-<port>" / "inbound-<listen>:<port>"
+// shape still emitted by node-side xray imports that pre-date the
+// transport-aware naming; kept as a probe shape in setRemoteTrafficLocked.
 func baseInboundTag(listen string, port int) string {
 	if isAnyListen(listen) {
 		return fmt.Sprintf("inbound-%v", port)
@@ -233,10 +233,6 @@ func baseInboundTag(listen string, port int) string {
 	return fmt.Sprintf("inbound-%v:%v", listen, port)
 }
 
-// transportTagSuffix turns a transport mask into a short, stable string.
-// used both for generateInboundTag's disambiguation ("inbound-443-udp"
-// when the base "inbound-443" is taken on a coexisting transport) and
-// for the L4 hint in portConflictDetail's user-facing error message.
 func transportTagSuffix(b transportBits) string {
 	switch b {
 	case transportTCP:
@@ -249,29 +245,32 @@ func transportTagSuffix(b transportBits) string {
 	return "any"
 }
 
-// generateInboundTag picks a tag for the inbound that doesn't collide with
-// any existing row. for the common single-inbound-per-port case the tag
-// stays exactly as before ("inbound-443"), so user routing rules don't
-// silently change shape on upgrade. only when a same-port neighbour
-// already owns the base tag (now possible because tcp/443 and udp/443 can
-// coexist after the transport-aware port check) does this append a
-// transport suffix like "inbound-443-udp".
-//
-// ignoreId is the inbound's own id during update so it doesn't see itself
-// as a collision; pass 0 on add.
-func (s *InboundService) generateInboundTag(inbound *model.Inbound, ignoreId int) (string, error) {
-	base := baseInboundTag(inbound.Listen, inbound.Port)
-	exists, err := s.tagExists(base, ignoreId)
-	if err != nil {
-		return "", err
+// nodeTagPrefix scopes a tag to one remote node so the same listen+port
+// can live on the central panel and on a node without bumping the global
+// UNIQUE(inbounds.tag) constraint. nil → "" (local panel).
+func nodeTagPrefix(nodeID *int) string {
+	if nodeID == nil {
+		return ""
 	}
-	if !exists {
-		return base, nil
-	}
+	return fmt.Sprintf("n%d-", *nodeID)
+}
 
-	suffix := transportTagSuffix(inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings))
-	candidate := base + "-" + suffix
-	exists, err = s.tagExists(candidate, ignoreId)
+// composeInboundTag returns the canonical
+// "[n<id>-]inbound-[<listen>:]<port>-<transport>" shape used for every
+// newly created inbound. The transport segment lets tcp/443 and udp/443
+// coexist; the node prefix lets the same port live on local + node.
+func composeInboundTag(listen string, port int, nodeID *int, bits transportBits) string {
+	return nodeTagPrefix(nodeID) + baseInboundTag(listen, port) + "-" + transportTagSuffix(bits)
+}
+
+// generateInboundTag returns a free tag in the canonical shape. ignoreId
+// is the inbound's own id on update so it doesn't see itself as taken;
+// pass 0 on add. Numeric suffix fallback is defensive — the port check
+// should have already blocked an exact-collision insert.
+func (s *InboundService) generateInboundTag(inbound *model.Inbound, ignoreId int) (string, error) {
+	bits := inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings)
+	candidate := composeInboundTag(inbound.Listen, inbound.Port, inbound.NodeID, bits)
+	exists, err := s.tagExists(candidate, ignoreId)
 	if err != nil {
 		return "", err
 	}
@@ -279,9 +278,6 @@ func (s *InboundService) generateInboundTag(inbound *model.Inbound, ignoreId int
 		return candidate, nil
 	}
 
-	// the transport-aware port check should have already blocked this
-	// path, but guard anyway so a unique-constraint failure doesn't reach
-	// the user as an opaque sqlite error.
 	for i := 2; i < 100; i++ {
 		c := fmt.Sprintf("%s-%d", candidate, i)
 		exists, err = s.tagExists(c, ignoreId)

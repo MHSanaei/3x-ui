@@ -2,7 +2,6 @@ package controller
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -144,17 +143,6 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	// load Node id=0 and surface "record not found".
 	if inbound.NodeID != nil && *inbound.NodeID == 0 {
 		inbound.NodeID = nil
-	}
-	// When the central panel deploys an inbound to a remote node, it sends
-	// the Tag pre-computed (so both DBs agree on the identifier). Local
-	// UI submits don't include a Tag — we compute one from listen+port
-	// using the original collision-avoiding scheme.
-	if inbound.Tag == "" {
-		if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-			inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
-		} else {
-			inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
-		}
 	}
 
 	inbound, needRestart, err := a.inboundService.AddInbound(inbound)
@@ -337,13 +325,6 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	inbound.UserId = user.Id
 	if inbound.NodeID != nil && *inbound.NodeID == 0 {
 		inbound.NodeID = nil
-	}
-	if inbound.Tag == "" {
-		if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-			inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
-		} else {
-			inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
-		}
 	}
 
 	for index := range inbound.ClientStats {
