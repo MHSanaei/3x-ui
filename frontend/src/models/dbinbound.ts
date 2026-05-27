@@ -1,6 +1,6 @@
 import dayjs, { type Dayjs } from 'dayjs';
 import { ObjectUtil, NumberFormatter, SizeFormatter } from '@/utils';
-import { Inbound, Protocols } from './inbound';
+import { Protocols } from '@/schemas/primitives';
 
 export type RawJsonField = string | Record<string, unknown> | unknown[];
 
@@ -85,7 +85,6 @@ export class DBInbound {
     nodeId: number | null;
     fallbackParent: FallbackParentRef | null;
 
-    private _cachedInbound: Inbound | null = null;
     private _clientStatsMap: Map<string, ClientStats> | null = null;
 
     constructor(data?: DBInboundInit) {
@@ -156,6 +155,10 @@ export class DBInbound {
         return this.protocol === Protocols.HYSTERIA;
     }
 
+    get isTunnel() {
+        return this.protocol === Protocols.TUNNEL;
+    }
+
     get address(): string {
         let address = location.hostname;
         if (!ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0") {
@@ -184,32 +187,7 @@ export class DBInbound {
     }
 
     invalidateCache(): void {
-        this._cachedInbound = null;
         this._clientStatsMap = null;
-    }
-
-    toInbound(): Inbound {
-        if (this._cachedInbound) {
-            return this._cachedInbound;
-        }
-
-        const settings = coerceInboundJsonField(this.settings);
-        const streamSettings = coerceInboundJsonField(this.streamSettings);
-        const sniffing = coerceInboundJsonField(this.sniffing);
-
-        const config = {
-            port: this.port,
-            listen: this.listen,
-            protocol: this.protocol,
-            settings: settings,
-            streamSettings: streamSettings,
-            tag: this.tag,
-            sniffing: sniffing,
-            clientStats: this.clientStats,
-        };
-
-        this._cachedInbound = Inbound.fromJson(config);
-        return this._cachedInbound;
     }
 
     getClientStats(email: string): ClientStats | undefined {
@@ -226,35 +204,4 @@ export class DBInbound {
         return this._clientStatsMap.get(email);
     }
 
-    isMultiUser(): boolean {
-        switch (this.protocol) {
-            case Protocols.VMESS:
-            case Protocols.VLESS:
-            case Protocols.TROJAN:
-            case Protocols.HYSTERIA:
-                return true;
-            case Protocols.SHADOWSOCKS:
-                return this.toInbound().isSSMultiUser;
-            default:
-                return false;
-        }
-    }
-
-    hasLink(): boolean {
-        switch (this.protocol) {
-            case Protocols.VMESS:
-            case Protocols.VLESS:
-            case Protocols.TROJAN:
-            case Protocols.SHADOWSOCKS:
-            case Protocols.HYSTERIA:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    genInboundLinks(remarkModel: string, hostOverride: string = ''): string {
-        const inbound = this.toInbound();
-        return inbound.genInboundLinks(this.remark, remarkModel, hostOverride);
-    }
 }

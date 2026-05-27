@@ -1,0 +1,10 @@
+{
+  "protocol": "http",
+  "settings": {
+    "accounts": [
+      { "user": "proxyuser", "pass": "proxypass" },
+      { "user": "guest", "pass": "guest123" }
+    ],
+    "allowTransparent": false
+  }
+}

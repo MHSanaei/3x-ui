@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
+	"github.com/mhsanaei/3x-ui/v3/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 
 	"github.com/gin-gonic/gin"
@@ -61,9 +62,8 @@ func (a *NodeController) get(c *gin.Context) {
 }
 
 func (a *NodeController) add(c *gin.Context) {
-	n := &model.Node{}
-	if err := c.ShouldBind(n); err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.add"), err)
+	n, ok := middleware.BindAndValidate[model.Node](c)
+	if !ok {
 		return
 	}
 	if err := a.nodeService.Create(n); err != nil {
@@ -79,9 +79,8 @@ func (a *NodeController) update(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "get"), err)
 		return
 	}
-	n := &model.Node{}
-	if err := c.ShouldBind(n); err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.update"), err)
+	n, ok := middleware.BindAndValidate[model.Node](c)
+	if !ok {
 		return
 	}
 	if err := a.nodeService.Update(id, n); err != nil {

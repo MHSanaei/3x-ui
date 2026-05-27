@@ -6,6 +6,7 @@ import {
   Col,
   ConfigProvider,
   Descriptions,
+  Divider,
   Dropdown,
   Layout,
   Menu,
@@ -15,6 +16,7 @@ import {
   Row,
   Space,
   Tag,
+  Tooltip,
 } from 'antd';
 import {
   AndroidOutlined,
@@ -23,6 +25,7 @@ import {
   DownOutlined,
   MoonFilled,
   MoonOutlined,
+  QrcodeOutlined,
   SunOutlined,
   TranslationOutlined,
 } from '@ant-design/icons';
@@ -30,6 +33,7 @@ import {
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+import SubUsageSummary from './SubUsageSummary';
 import './SubPage.css';
 
 const QR_SIZE = 240;
@@ -51,6 +55,7 @@ const subJsonUrl = subData.subJsonUrl || '';
 const subClashUrl = subData.subClashUrl || '';
 const subTitle = subData.subTitle || '';
 const links: string[] = Array.isArray(subData.links) ? subData.links : [];
+const linkEmails: string[] = Array.isArray(subData.emails) ? subData.emails : [];
 const datepicker = subData.datepicker || 'gregorian';
 
 const isUnlimited = totalByte <= 0 && expireMs === 0;
@@ -65,18 +70,83 @@ const isActive = (() => {
   return true;
 })();
 
-function linkName(link: string, idx: number): string {
-  if (!link) return `Link ${idx + 1}`;
-  const hashIdx = link.indexOf('#');
-  if (hashIdx >= 0 && hashIdx + 1 < link.length) {
+const PROTOCOL_COLORS: Record<string, string> = {
+  VLESS: 'blue',
+  VMESS: 'geekblue',
+  TROJAN: 'volcano',
+  SS: 'magenta',
+  HYSTERIA: 'cyan',
+  HY2: 'green',
+};
+
+// Same idea as ClientInfoModal.trimEmail — strip the client email
+// suffix from the remark so the row title isn't ugly twice.
+function trimEmail(remark: string, email: string): string {
+  if (!email) return remark;
+  const e = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return remark
+    .replace(new RegExp(`[-_.\\s|]+${e}$`), '')
+    .replace(new RegExp(`^${e}[-_.\\s|]+`), '')
+    .trim();
+}
+
+// Post-quantum keys blow up the encoded URL past what a single QR can
+// hold. The algorithm names don't appear as plain text in the URL —
+// they ride inside query params: mldsa65Verify → `pqv=<base64>`,
+// ML-KEM-768 → `encryption=mlkem768x25519plus.<...>`. The literal
+// substrings are also matched in case a config (e.g. wireguard) embeds
+// them directly.
+function isPostQuantumLink(link: string): boolean {
+  if (/[?&]pqv=/.test(link)) return true;
+  if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
+  if (link.includes('ML-KEM-768')) return true;
+  return false;
+}
+
+// Decode a base64 string as UTF-8. atob() returns a binary string where
+// each char holds one raw byte (Latin-1 interpretation), which mangles
+// any multi-byte UTF-8 sequence in the payload — most commonly the
+// emoji decorations the panel embeds in remarks (📊, ⏳).
+function base64DecodeUtf8(b64: string): string {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+function parseLinkMeta(link: string, idx: number): { protocol: string; remark: string } {
+  const fallback = `Link ${idx + 1}`;
+  if (!link) return { protocol: 'LINK', remark: fallback };
+  const schemeMatch = /^([a-z0-9]+):\/\//i.exec(link);
+  const scheme = schemeMatch?.[1]?.toLowerCase() ?? '';
+  const protocolMap: Record<string, string> = {
+    vless: 'VLESS',
+    vmess: 'VMESS',
+    trojan: 'TROJAN',
+    ss: 'SS',
+    hysteria: 'HYSTERIA',
+    hysteria2: 'HY2',
+    hy2: 'HY2',
+  };
+  const protocol = protocolMap[scheme] ?? scheme.toUpperCase() ?? 'LINK';
+
+  let remark = '';
+  if (scheme === 'vmess') {
     try {
-      return decodeURIComponent(link.slice(hashIdx + 1));
-    } catch {
-      return link.slice(hashIdx + 1);
+      const body = link.slice('vmess://'.length).split('#')[0];
+      const json = JSON.parse(base64DecodeUtf8(body)) as { ps?: unknown };
+      if (typeof json?.ps === 'string') remark = json.ps;
+    } catch { /* fall through */ }
+  }
+  if (!remark) {
+    const hashIdx = link.indexOf('#');
+    if (hashIdx >= 0 && hashIdx + 1 < link.length) {
+      const raw = link.slice(hashIdx + 1);
+      try { remark = decodeURIComponent(raw); }
+      catch { remark = raw; }
     }
   }
-  const proto = link.split('://')[0];
-  return `${proto.toUpperCase()} ${idx + 1}`;
+  return { protocol, remark: remark || fallback };
 }
 
 export default function SubPage() {
@@ -277,63 +347,6 @@ export default function SubPage() {
           <Row justify="center">
             <Col xs={24} sm={22} md={18} lg={14} xl={12}>
               <Card hoverable className="subscription-card" title={cardTitle} extra={cardExtra}>
-                <Row gutter={[8, 8]} justify="center" className="qr-row">
-                  <Col xs={24} sm={subJsonUrl || subClashUrl ? 12 : 24} className="qr-col">
-                    <div className="qr-box">
-                      <Tag color="purple" className="qr-tag">{t('pages.settings.subSettings')}</Tag>
-                      <QRCode
-                        className="qr-code"
-                        value={subUrl}
-                        size={QR_SIZE}
-                        type="svg"
-                        bordered={false}
-                        color="#000000"
-                        bgColor="#ffffff"
-                        title={t('copy')}
-                        onClick={() => copy(subUrl)}
-                      />
-                    </div>
-                  </Col>
-                  {subJsonUrl && (
-                    <Col xs={24} sm={12} className="qr-col">
-                      <div className="qr-box">
-                        <Tag color="purple" className="qr-tag">
-                          {t('pages.settings.subSettings')} JSON
-                        </Tag>
-                        <QRCode
-                          className="qr-code"
-                          value={subJsonUrl}
-                          size={QR_SIZE}
-                          type="svg"
-                          bordered={false}
-                          color="#000000"
-                          bgColor="#ffffff"
-                          title={t('copy')}
-                          onClick={() => copy(subJsonUrl)}
-                        />
-                      </div>
-                    </Col>
-                  )}
-                  {subClashUrl && (
-                    <Col xs={24} sm={12} className="qr-col">
-                      <div className="qr-box">
-                        <Tag color="purple" className="qr-tag">Clash / Mihomo</Tag>
-                        <QRCode
-                          className="qr-code"
-                          value={subClashUrl}
-                          size={QR_SIZE}
-                          type="svg"
-                          bordered={false}
-                          color="#000000"
-                          bgColor="#ffffff"
-                          title={t('copy')}
-                          onClick={() => copy(subClashUrl)}
-                        />
-                      </div>
-                    </Col>
-                  )}
-                </Row>
-
                 <Descriptions
                   bordered
                   column={1}
@@ -342,18 +355,184 @@ export default function SubPage() {
                   items={descriptionsItems}
                 />
 
-                {links.length > 0 && (
-                  <div className="links-section">
-                    {links.map((link, idx) => (
-                      <div key={link} className="link-row" onClick={() => copy(link)}>
-                        <Tag color="purple" className="link-tag">{linkName(link, idx)}</Tag>
-                        <div className="link-box">
-                          <CopyOutlined className="link-copy-icon" />
-                          {link}
+                <SubUsageSummary
+                  usedByte={Number(subData.usedByte || 0)
+                    || (Number(subData.downloadByte || 0) + Number(subData.uploadByte || 0))}
+                  totalByte={totalByte}
+                  usedLabel={used}
+                  totalLabel={total}
+                  remainedLabel={remained}
+                  expireMs={expireMs}
+                  isActive={isActive}
+                />
+
+                {(subUrl || subJsonUrl || subClashUrl) && (
+                  <>
+                    <Divider>{t('subscription.title')}</Divider>
+                    <div className="links-section">
+                      {subUrl && (
+                        <div className="sub-link-row">
+                          <Tag color="green" className="sub-link-tag">SUB</Tag>
+                          <a
+                            href={subUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="sub-link-title sub-link-anchor"
+                            title={subUrl}
+                          >
+                            {sId}
+                          </a>
+                          <div className="sub-link-actions">
+                            <Button size="small" icon={<CopyOutlined />} onClick={() => copy(subUrl)} aria-label={t('copy')} title={t('copy')} />
+                            <Popover
+                              trigger="click"
+                              placement="left"
+                              destroyOnHidden
+                              content={
+                                <div className="sub-link-qr-popover">
+                                  <Tag color="green" className="qr-tag">{t('pages.settings.subSettings')}</Tag>
+                                  <QRCode value={subUrl} size={QR_SIZE} type="svg" bordered={false} color="#000000" bgColor="#ffffff" />
+                                </div>
+                              }
+                            >
+                              <Button size="small" icon={<QrcodeOutlined />} aria-label="QR" title="QR" />
+                            </Popover>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      )}
+                      {subJsonUrl && (
+                        <div className="sub-link-row">
+                          <Tag color="purple" className="sub-link-tag">JSON</Tag>
+                          <a
+                            href={subJsonUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="sub-link-title sub-link-anchor"
+                            title={subJsonUrl}
+                          >
+                            {sId}
+                          </a>
+                          <div className="sub-link-actions">
+                            <Button size="small" icon={<CopyOutlined />} onClick={() => copy(subJsonUrl)} aria-label={t('copy')} title={t('copy')} />
+                            <Popover
+                              trigger="click"
+                              placement="left"
+                              destroyOnHidden
+                              content={
+                                <div className="sub-link-qr-popover">
+                                  <Tag color="purple" className="qr-tag">{t('pages.settings.subSettings')} JSON</Tag>
+                                  <QRCode value={subJsonUrl} size={QR_SIZE} type="svg" bordered={false} color="#000000" bgColor="#ffffff" />
+                                </div>
+                              }
+                            >
+                              <Button size="small" icon={<QrcodeOutlined />} aria-label="QR" title="QR" />
+                            </Popover>
+                          </div>
+                        </div>
+                      )}
+                      {subClashUrl && (
+                        <div className="sub-link-row">
+                          <Tooltip title="Clash / Mihomo">
+                            <Tag color="gold" className="sub-link-tag">CLASH</Tag>
+                          </Tooltip>
+                          <a
+                            href={subClashUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="sub-link-title sub-link-anchor"
+                            title={subClashUrl}
+                          >
+                            {sId}
+                          </a>
+                          <div className="sub-link-actions">
+                            <Button size="small" icon={<CopyOutlined />} onClick={() => copy(subClashUrl)} aria-label={t('copy')} title={t('copy')} />
+                            <Popover
+                              trigger="click"
+                              placement="left"
+                              destroyOnHidden
+                              content={
+                                <div className="sub-link-qr-popover">
+                                  <Tag color="gold" className="qr-tag">Clash / Mihomo</Tag>
+                                  <QRCode value={subClashUrl} size={QR_SIZE} type="svg" bordered={false} color="#000000" bgColor="#ffffff" />
+                                </div>
+                              }
+                            >
+                              <Button size="small" icon={<QrcodeOutlined />} aria-label="QR" title="QR" />
+                            </Popover>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {links.length > 0 && (
+                  <>
+                    <Divider>{t('pages.inbounds.copyLink')}</Divider>
+                    <div className="links-section">
+                      {links.map((link, idx) => {
+                        const meta = parseLinkMeta(link, idx);
+                        const rowEmail = linkEmails[idx] || '';
+                        const rowTitle = trimEmail(meta.remark, rowEmail) || meta.remark;
+                        const qrLabel = rowEmail ? `${rowTitle}-${rowEmail}` : meta.remark;
+                        const canQr = !isPostQuantumLink(link);
+                        return (
+                          <div key={link} className="sub-link-row">
+                            <Tag
+                              color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
+                              className="sub-link-tag"
+                            >
+                              {meta.protocol}
+                            </Tag>
+                            <span className="sub-link-title" title={meta.remark}>
+                              {rowTitle}
+                            </span>
+                            <div className="sub-link-actions">
+                              <Button
+                                size="small"
+                                icon={<CopyOutlined />}
+                                onClick={() => copy(link)}
+                                aria-label={t('copy')}
+                                title={t('copy')}
+                              />
+                              {canQr && (
+                                <Popover
+                                  trigger="click"
+                                  placement="left"
+                                  destroyOnHidden
+                                  content={
+                                    <div className="sub-link-qr-popover">
+                                      <Tag
+                                        color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
+                                        className="qr-tag"
+                                      >
+                                        {qrLabel}
+                                      </Tag>
+                                      <QRCode
+                                        value={link}
+                                        size={220}
+                                        type="svg"
+                                        bordered={false}
+                                        color="#000000"
+                                        bgColor="#ffffff"
+                                      />
+                                    </div>
+                                  }
+                                >
+                                  <Button
+                                    size="small"
+                                    icon={<QrcodeOutlined />}
+                                    aria-label="QR"
+                                    title="QR"
+                                  />
+                                </Popover>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
 
                 <Row gutter={[8, 8]} justify="center" className="apps-row">

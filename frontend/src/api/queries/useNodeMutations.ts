@@ -1,21 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { HttpUtil } from '@/utils';
+import { HttpUtil, Msg } from '@/utils';
+import { parseMsg } from '@/utils/zodValidate';
 import { keys } from '@/api/queryKeys';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
+import { ProbeResultSchema, type ProbeResult } from '@/schemas/node';
 
-interface ApiMsg<T = unknown> {
-  success?: boolean;
-  msg?: string;
-  obj?: T;
-}
-
-export interface ProbeResult {
-  status: string;
-  latencyMs?: number;
-  xrayVersion?: string;
-  error?: string;
-}
+export type { ProbeResult };
 
 export function useNodeMutations() {
   const queryClient = useQueryClient();
@@ -23,31 +14,33 @@ export function useNodeMutations() {
 
   const createMut = useMutation({
     mutationFn: (payload: Partial<NodeRecord>) =>
-      HttpUtil.post('/panel/api/nodes/add', payload) as Promise<ApiMsg>,
+      HttpUtil.post('/panel/api/nodes/add', payload),
     onSuccess: (msg) => { if (msg?.success) invalidate(); },
   });
 
   const updateMut = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Partial<NodeRecord> }) =>
-      HttpUtil.post(`/panel/api/nodes/update/${id}`, payload) as Promise<ApiMsg>,
+      HttpUtil.post(`/panel/api/nodes/update/${id}`, payload),
     onSuccess: (msg) => { if (msg?.success) invalidate(); },
   });
 
   const removeMut = useMutation({
     mutationFn: (id: number) =>
-      HttpUtil.post(`/panel/api/nodes/del/${id}`) as Promise<ApiMsg>,
+      HttpUtil.post(`/panel/api/nodes/del/${id}`),
     onSuccess: (msg) => { if (msg?.success) invalidate(); },
   });
 
   const setEnableMut = useMutation({
     mutationFn: ({ id, enable }: { id: number; enable: boolean }) =>
-      HttpUtil.post(`/panel/api/nodes/setEnable/${id}`, { enable }) as Promise<ApiMsg>,
+      HttpUtil.post(`/panel/api/nodes/setEnable/${id}`, { enable }),
     onSuccess: (msg) => { if (msg?.success) invalidate(); },
   });
 
   const probeMut = useMutation({
-    mutationFn: (id: number) =>
-      HttpUtil.post(`/panel/api/nodes/probe/${id}`) as Promise<ApiMsg<ProbeResult>>,
+    mutationFn: async (id: number): Promise<Msg<ProbeResult>> => {
+      const raw = await HttpUtil.post(`/panel/api/nodes/probe/${id}`);
+      return parseMsg(raw, ProbeResultSchema, 'nodes/probe');
+    },
     onSuccess: (msg) => { if (msg?.success) invalidate(); },
   });
 
@@ -57,7 +50,9 @@ export function useNodeMutations() {
     remove: (id: number) => removeMut.mutateAsync(id),
     setEnable: (id: number, enable: boolean) => setEnableMut.mutateAsync({ id, enable }),
     probe: (id: number) => probeMut.mutateAsync(id),
-    testConnection: (payload: Partial<NodeRecord>) =>
-      HttpUtil.post('/panel/api/nodes/test', payload) as Promise<ApiMsg<ProbeResult>>,
+    testConnection: async (payload: Partial<NodeRecord>): Promise<Msg<ProbeResult>> => {
+      const raw = await HttpUtil.post('/panel/api/nodes/test', payload);
+      return parseMsg(raw, ProbeResultSchema, 'nodes/test');
+    },
   };
 }

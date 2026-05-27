@@ -68,6 +68,7 @@ func initModels() error {
 		&model.ApiToken{},
 		&model.ClientRecord{},
 		&model.ClientInbound{},
+		&model.ClientGroup{},
 		&model.InboundFallback{},
 	}
 	for _, mdl := range models {
@@ -408,9 +409,19 @@ func InitDB(dbPath string) error {
 	if err != nil {
 		return err
 	}
-	sqlDB.SetMaxOpenConns(8)
-	sqlDB.SetMaxIdleConns(4)
+	var maxOpen, maxIdle int
+	switch config.GetDBKind() {
+	case "postgres":
+		maxOpen = envInt("XUI_DB_MAX_OPEN_CONNS", 25)
+		maxIdle = envInt("XUI_DB_MAX_IDLE_CONNS", 25)
+	default:
+		maxOpen = envInt("XUI_DB_MAX_OPEN_CONNS", 8)
+		maxIdle = envInt("XUI_DB_MAX_IDLE_CONNS", 4)
+	}
+	sqlDB.SetMaxOpenConns(maxOpen)
+	sqlDB.SetMaxIdleConns(maxIdle)
 	sqlDB.SetConnMaxLifetime(time.Hour)
+	sqlDB.SetConnMaxIdleTime(30 * time.Minute)
 
 	if err := initModels(); err != nil {
 		return err
@@ -425,6 +436,18 @@ func InitDB(dbPath string) error {
 		return err
 	}
 	return runSeeders(isUsersEmpty)
+}
+
+func envInt(key string, def int) int {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return def
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n <= 0 {
+		return def
+	}
+	return n
 }
 
 // CloseDB closes the database connection if it exists.

@@ -1,0 +1,18 @@
+{
+  "tag": "balancer-load",
+  "selector": ["proxy-"],
+  "fallbackTag": "fallback-out",
+  "strategy": {
+    "type": "leastLoad",
+    "settings": {
+      "expected": 3,
+      "maxRTT": "1s",
+      "tolerance": 0.05,
+      "baselines": ["500ms", "1s", "2s"],
+      "costs": [
+        { "regexp": false, "match": "proxy-premium", "value": 0.1 },
+        { "regexp": true, "match": "^proxy-cheap-.+$", "value": 5 }
+      ]
+    }
+  }
+}

@@ -115,7 +115,7 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
-	subs, lastOnline, traffic, err := a.subService.GetSubs(subId, host)
+	subs, emails, lastOnline, traffic, err := a.subService.GetSubs(subId, host)
 	if err != nil || len(subs) == 0 {
 		writeSubError(c, err)
 	} else {
@@ -139,7 +139,7 @@ func (a *SUBController) subs(c *gin.Context) {
 				basePath = "/"
 			}
 			basePathStr := basePath.(string)
-			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
+			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
 			a.serveSubPage(c, basePathStr, page)
 			return
 		}
@@ -213,6 +213,7 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 		"subJsonUrl":   page.SubJsonUrl,
 		"subClashUrl":  page.SubClashUrl,
 		"links":        page.Result,
+		"emails":       page.Emails,
 		"datepicker":   datepicker,
 	}
 	subDataJSON, err := json.Marshal(subData)

@@ -170,6 +170,14 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
               />
             </SettingListItem>
 
+            <SettingListItem paddings="small" title={t('pages.settings.panelProxy')} description={t('pages.settings.panelProxyDesc')}>
+              <Input
+                value={allSetting.panelProxy}
+                placeholder="socks5:// or http://user:pass@host:port"
+                onChange={(e) => updateSetting({ panelProxy: e.target.value })}
+              />
+            </SettingListItem>
+
             <SettingListItem paddings="small" title={t('pages.settings.pageSize')} description={t('pages.settings.pageSizeDesc')}>
               <InputNumber value={allSetting.pageSize} min={0} step={5} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ pageSize: Number(v) || 0 })} />

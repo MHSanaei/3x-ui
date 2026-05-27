@@ -9,6 +9,7 @@ import DnsServerModal from './DnsServerModal';
 import type { DnsServerValue } from './DnsServerModal';
 import DnsPresetsModal from './DnsPresetsModal';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
+import { DnsQueryStrategySchema, type DnsObject } from '@/schemas/dns';
 import './DnsTab.css';
 
 interface DnsTabProps {
@@ -16,23 +17,10 @@ interface DnsTabProps {
   setTemplateSettings: SetTemplate;
 }
 
-const STRATEGIES = ['UseSystem', 'UseIP', 'UseIPv4', 'UseIPv6'];
+const STRATEGIES = DnsQueryStrategySchema.options;
 const DEFAULT_FAKEDNS = () => ({ ipPool: '198.18.0.0/15', poolSize: 65535 });
 
-interface DnsConfig {
-  tag?: string;
-  clientIp?: string;
-  queryStrategy?: string;
-  disableCache?: boolean;
-  disableFallback?: boolean;
-  disableFallbackIfMatch?: boolean;
-  enableParallelQuery?: boolean;
-  useSystemHosts?: boolean;
-  serveStale?: boolean;
-  serveExpiredTTL?: number;
-  hosts?: Record<string, string | string[]>;
-  servers?: DnsServerValue[];
-}
+type DnsConfig = Omit<DnsObject, 'servers'> & { servers?: DnsServerValue[] };
 
 interface HostRow {
   domain: string;

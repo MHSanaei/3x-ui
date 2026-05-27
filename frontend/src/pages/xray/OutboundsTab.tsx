@@ -34,7 +34,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 
 import { SizeFormatter } from '@/utils';
-import { Protocols } from '@/models/outbound';
+import { OutboundProtocols as Protocols } from '@/schemas/primitives';
 import OutboundFormModal from './OutboundFormModal';
 import type { XraySettingsValue, SetTemplate, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 import './OutboundsTab.css';
@@ -101,10 +101,10 @@ function showSecurity(security?: string): boolean {
   return security === 'tls' || security === 'reality';
 }
 
-function hasBreakdown(r: { endpoints?: unknown[]; ttfbMs?: number; tlsMs?: number; connectMs?: number; dnsMs?: number; statusCode?: number; error?: string } | null | undefined): boolean {
+function hasBreakdown(r: { endpoints?: unknown[]; error?: string } | null | undefined): boolean {
   if (!r) return false;
   if (r.endpoints?.length) return true;
-  return !!(r.ttfbMs || r.tlsMs || r.connectMs || r.dnsMs || r.statusCode || r.error);
+  return !!r.error;
 }
 
 export default function OutboundsTab({
@@ -130,7 +130,7 @@ export default function OutboundsTab({
   const [existingTags, setExistingTags] = useState<string[]>([]);
 
   const outbounds = useMemo(
-    () => (templateSettings?.outbounds || []) as OutboundRow[],
+    () => (templateSettings?.outbounds || []) as unknown as OutboundRow[],
     [templateSettings?.outbounds],
   );
 
@@ -335,11 +335,6 @@ export default function OutboundsTab({
                   </div>
                   {hasBreakdown(r) && (
                     <>
-                      {r.ttfbMs ? <div>TTFB: {r.ttfbMs} ms</div> : null}
-                      {r.tlsMs ? <div>TLS: {r.tlsMs} ms</div> : null}
-                      {r.connectMs ? <div>Connect: {r.connectMs} ms</div> : null}
-                      {r.dnsMs ? <div>DNS: {r.dnsMs} ms</div> : null}
-                      {r.statusCode ? <div>HTTP {r.statusCode}</div> : null}
                       {(r.endpoints || []).map((ep) => (
                         <div key={ep.address} className="endpoint-row">
                           <span className={ep.success ? 'dot-ok' : 'dot-fail'}>●</span>

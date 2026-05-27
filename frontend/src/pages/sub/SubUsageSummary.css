@@ -1,0 +1,87 @@
+.usage-summary {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: var(--ant-color-fill-alter);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 12px;
+}
+
+.usage-summary.is-inactive {
+  opacity: 0.7;
+  border-color: var(--ant-color-error-border);
+}
+
+.usage-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.usage-summary-labels {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.usage-summary-used {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ant-color-text);
+}
+
+.usage-summary-sep {
+  color: var(--ant-color-text-quaternary);
+  font-size: 16px;
+}
+
+.usage-summary-total {
+  font-size: 14px;
+  color: var(--ant-color-text-secondary);
+  font-weight: 500;
+}
+
+.usage-summary-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.usage-summary-chips .ant-tag {
+  margin: 0;
+}
+
+.usage-summary-bar.ant-progress {
+  margin-bottom: 6px;
+}
+
+.usage-summary-bar .ant-progress-outer {
+  padding-inline-end: 0;
+}
+
+.usage-summary-bar .ant-progress-inner {
+  background: var(--ant-color-fill-secondary);
+}
+
+.usage-summary-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  min-height: 16px;
+}
+
+.usage-summary-remained::before {
+  content: '';
+}
+
+.usage-summary-pct {
+  font-weight: 600;
+  color: var(--ant-color-text-secondary);
+}

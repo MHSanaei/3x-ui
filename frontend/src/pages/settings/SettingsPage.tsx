@@ -29,6 +29,7 @@ import { setMessageInstance } from '@/utils/messageBus';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useAllSettings } from '@/api/queries/useAllSettings';
+import { AllSettingSchema } from '@/schemas/setting';
 import AppSidebar from '@/components/AppSidebar';
 import GeneralTab from './GeneralTab';
 import SecurityTab from './SecurityTab';
@@ -146,6 +147,18 @@ export default function SettingsPage() {
     if (finalPort) url.port = finalPort;
     url.pathname = `/${base}panel/settings`;
     return url.toString();
+  }
+
+  async function onSave() {
+    const result = AllSettingSchema.safeParse(allSetting);
+    if (!result.success) {
+      const issue = result.error.issues[0];
+      const fieldPath = issue?.path.join('.') ?? 'value';
+      const msgKey = issue?.message ?? 'somethingWentWrong';
+      messageApi.error(`${fieldPath}: ${t(msgKey, { defaultValue: msgKey })}`);
+      return;
+    }
+    await saveAll();
   }
 
   function restartPanel() {
@@ -280,9 +293,8 @@ export default function SettingsPage() {
                     <Alert
                       type="error"
                       showIcon
-                      closable
+                      closable={{ onClose: () => setAlertVisible(false) }}
                       className="conf-alert"
-                      onClose={() => setAlertVisible(false)}
                       title={t('pages.settings.securityWarnings')}
                       description={(
                         <>
@@ -301,7 +313,7 @@ export default function SettingsPage() {
                         <Row className="header-row">
                           <Col xs={24} sm={10} className="header-actions">
                             <Space>
-                              <Button type="primary" disabled={saveDisabled} onClick={saveAll}>
+                              <Button type="primary" disabled={saveDisabled} onClick={onSave}>
                                 {t('pages.settings.save')}
                               </Button>
                               <Button type="primary" danger disabled={!saveDisabled} onClick={restartPanel}>

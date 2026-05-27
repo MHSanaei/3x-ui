@@ -15,6 +15,7 @@ import {
 import type { BadgeProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
+  ClusterOutlined,
   DeleteOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
@@ -279,7 +280,10 @@ export default function NodeList({
         <>
           <div className="node-cards">
             {dataSource.length === 0 ? (
-              <div className="card-empty">—</div>
+              <div className="card-empty">
+                <ClusterOutlined style={{ fontSize: 28, opacity: 0.5 }} />
+                <div>{t('noData')}</div>
+              </div>
             ) : (
               dataSource.map((record) => (
                 <div key={record.id} className="node-card">
@@ -435,6 +439,14 @@ export default function NodeList({
           scroll={{ x: 'max-content' }}
           size="middle"
           rowKey="id"
+          locale={{
+            emptyText: (
+              <div className="card-empty">
+                <ClusterOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+                <div>{t('noData')}</div>
+              </div>
+            ),
+          }}
           expandable={{
             expandedRowRender: (record) => <NodeHistoryPanel node={record} />,
           }}

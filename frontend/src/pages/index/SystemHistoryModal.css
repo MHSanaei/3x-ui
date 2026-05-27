@@ -1,6 +1,12 @@
+.metric-modal-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
 .bucket-select {
   width: 80px;
-  margin-left: 10px;
 }
 
 .history-tabs {
@@ -14,12 +20,4 @@
   background: linear-gradient(180deg, color-mix(in srgb, var(--ant-color-primary) 6%, transparent), transparent);
   border: 1px solid var(--ant-color-border-secondary);
   box-shadow: 0 2px 12px var(--ant-color-fill-quaternary);
-}
-
-.cpu-chart-meta {
-  margin-bottom: 12px;
-  font-size: 11.5px;
-  opacity: 0.65;
-  letter-spacing: 0.3px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }

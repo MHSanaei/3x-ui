@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { HttpUtil } from '@/utils';
+import { parseMsg } from '@/utils/zodValidate';
+import { DefaultsPayloadSchema } from '@/schemas/defaults';
 
 type Calendar = 'gregorian' | 'jalalian';
 
@@ -20,12 +22,10 @@ async function loadOnce(): Promise<void> {
   }
   pending = (async () => {
     try {
-      const msg = await HttpUtil.post('/panel/setting/defaultSettings') as {
-        success?: boolean;
-        obj?: { datepicker?: Calendar };
-      };
+      const msg = await HttpUtil.post('/panel/setting/defaultSettings');
       if (msg?.success) {
-        cachedValue = msg.obj?.datepicker || 'gregorian';
+        const validated = parseMsg(msg, DefaultsPayloadSchema, 'setting/defaultSettings');
+        cachedValue = validated.obj?.datepicker || 'gregorian';
         notify(cachedValue);
       }
     } finally {

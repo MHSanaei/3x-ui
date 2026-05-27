@@ -17,6 +17,7 @@ import type { ColumnsType } from 'antd/es/table';
 import RuleFormModal from './RuleFormModal';
 import type { RoutingRule } from './RuleFormModal';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
+import type { RuleObject } from '@/schemas/routing';
 import './RoutingTab.css';
 
 interface RoutingTabProps {
@@ -182,8 +183,9 @@ export default function RoutingTab({
     mutate((tt) => {
       if (!tt.routing) tt.routing = { rules: [] };
       if (!Array.isArray(tt.routing.rules)) tt.routing.rules = [];
-      if (editingIndex == null) tt.routing.rules.push(rule);
-      else tt.routing.rules[editingIndex] = rule;
+      const typed = rule as unknown as RuleObject;
+      if (editingIndex == null) tt.routing.rules.push(typed);
+      else tt.routing.rules[editingIndex] = typed;
     });
     setRuleModalOpen(false);
   }

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Button, Collapse, Input, Modal, Select, Space, Switch } from 'antd';
 import { CloudOutlined, ApiOutlined } from '@ant-design/icons';
 
-import { OutboundDomainStrategies } from '@/models/outbound';
+import { OutboundDomainStrategies } from '@/schemas/primitives';
 import SettingListItem from '@/components/SettingListItem';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
 import './BasicsTab.css';
@@ -217,7 +217,7 @@ export default function BasicsTab({
               <Select
                 value={freedomStrategy}
                 style={{ width: '100%' }}
-                options={(OutboundDomainStrategies as string[]).map((s) => ({ value: s, label: s }))}
+                options={OutboundDomainStrategies.map((s) => ({ value: s, label: s }))}
                 onChange={(next) => mutate((tt) => {
                   if (!tt.outbounds) tt.outbounds = [];
                   const idx = tt.outbounds.findIndex((o) => o?.protocol === 'freedom' && o?.tag === 'direct');

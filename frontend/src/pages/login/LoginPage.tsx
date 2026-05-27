@@ -23,17 +23,15 @@ import {
 } from '@ant-design/icons';
 
 import { HttpUtil, LanguageManager } from '@/utils';
+import { antdRule } from '@/utils/zodForm';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+import { LoginFormSchema, TwoFactorCodeSchema, type LoginFormValues } from '@/schemas/login';
 import './LoginPage.css';
 
 const HEADLINE_INTERVAL_MS = 2000;
 
-interface LoginForm {
-  username: string;
-  password: string;
-  twoFactorCode?: string;
-}
+type LoginForm = LoginFormValues;
 
 const basePath = window.X_UI_BASE_PATH || '';
 
@@ -191,7 +189,7 @@ export default function LoginPage() {
                   <Form.Item
                     label={t('username')}
                     name="username"
-                    rules={[{ required: true, message: t('username') }]}
+                    rules={[antdRule(LoginFormSchema.shape.username, t)]}
                   >
                     <Input
                       prefix={<UserOutlined />}
@@ -205,7 +203,7 @@ export default function LoginPage() {
                   <Form.Item
                     label={t('password')}
                     name="password"
-                    rules={[{ required: true, message: t('password') }]}
+                    rules={[antdRule(LoginFormSchema.shape.password, t)]}
                   >
                     <Input.Password
                       prefix={<LockOutlined />}
@@ -219,7 +217,7 @@ export default function LoginPage() {
                     <Form.Item
                       label={t('twoFactorCode')}
                       name="twoFactorCode"
-                      rules={[{ required: true, message: t('twoFactorCode') }]}
+                      rules={[antdRule(TwoFactorCodeSchema, t)]}
                     >
                       <Input
                         prefix={<KeyOutlined />}

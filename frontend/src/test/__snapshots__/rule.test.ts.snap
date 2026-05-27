@@ -1,0 +1,91 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RuleObjectSchema fixtures > parses balancer-routed byte-stably 1`] = `
+{
+  "balancerTag": "balancer-load",
+  "domain": [
+    "geosite:geolocation-!cn",
+  ],
+  "ruleTag": "outbound-load-balance",
+  "type": "field",
+}
+`;
+
+exports[`RuleObjectSchema fixtures > parses full byte-stably 1`] = `
+{
+  "attrs": {
+    "Host": "example.com",
+    "User-Agent": "regexp:^Mozilla.*",
+  },
+  "domain": [
+    "domain:google.com",
+    "full:example.com",
+    "keyword:cdn",
+    "regexp:^api\\.example\\.com$",
+    "geosite:cn",
+  ],
+  "inboundTag": [
+    "inbound-1",
+    "inbound-2",
+  ],
+  "ip": [
+    "10.0.0.0/8",
+    "geoip:cn",
+    "geoip:private",
+    "!geoip:cn",
+  ],
+  "localIP": [
+    "10.10.10.0/24",
+  ],
+  "localPort": "5353",
+  "network": "tcp,udp",
+  "outboundTag": "proxy-out",
+  "port": "80,443,1000-2000",
+  "process": [
+    "chrome.exe",
+    "curl",
+    "self/",
+  ],
+  "protocol": [
+    "http",
+    "tls",
+    "quic",
+    "bittorrent",
+  ],
+  "ruleTag": "main-policy-rule",
+  "sourceIP": [
+    "192.168.0.0/16",
+    "geoip:private",
+  ],
+  "sourcePort": "53",
+  "type": "field",
+  "user": [
+    "user@example.com",
+    "regexp:^.+@admin\\..+$",
+  ],
+  "vlessRoute": "443,8443",
+  "webhook": {
+    "deduplication": 30,
+    "headers": {
+      "X-Auth-Token": "secret",
+    },
+    "url": "https://hook.example.com/events",
+  },
+}
+`;
+
+exports[`RuleObjectSchema fixtures > parses minimal byte-stably 1`] = `
+{
+  "outboundTag": "direct",
+  "type": "field",
+}
+`;
+
+exports[`RuleObjectSchema fixtures > parses port-number byte-stably 1`] = `
+{
+  "network": "tcp",
+  "outboundTag": "tls-out",
+  "port": 443,
+  "type": "field",
+}
+`;

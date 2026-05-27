@@ -77,6 +77,45 @@ function injectBasePathPlugin() {
   };
 }
 
+// es-toolkit's `./compat/*` exports map only declares a CJS condition, so deep
+// imports like `es-toolkit/compat/get` resolve to a CJS shim. That shim uses a
+// `require_X.Y` pattern that Vite's optimizer and Rolldown both mishandle
+// (TypeError: require_isUnsafeProperty is not a function). The ESM build at
+// `dist/compat/<category>/<name>.mjs` is fine but only carries a named export,
+// while consumers like recharts use default imports — so emit a virtual module
+// that re-exports the named symbol as default.
+const ES_TOOLKIT_COMPAT_DIRS = ['array', 'function', 'math', 'object', 'predicate', 'string', 'util'];
+const ES_TOOLKIT_SHIM_PREFIX = '\0es-toolkit-compat:';
+
+function findEsToolkitCompatMjs(name) {
+  for (const sub of ES_TOOLKIT_COMPAT_DIRS) {
+    const candidate = path.resolve(__dirname, 'node_modules/es-toolkit/dist/compat', sub, `${name}.mjs`);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+function esToolkitCompatEsmResolver() {
+  return {
+    name: 'es-toolkit-compat-esm',
+    enforce: 'pre',
+    resolveId(id) {
+      const m = id.match(/^es-toolkit\/compat\/(.+)$/);
+      if (!m) return null;
+      if (!findEsToolkitCompatMjs(m[1])) return null;
+      return ES_TOOLKIT_SHIM_PREFIX + m[1];
+    },
+    load(id) {
+      if (!id.startsWith(ES_TOOLKIT_SHIM_PREFIX)) return null;
+      const name = id.slice(ES_TOOLKIT_SHIM_PREFIX.length);
+      const target = findEsToolkitCompatMjs(name);
+      if (!target) return null;
+      const url = target.replace(/\\/g, '/');
+      return `import { ${name} } from ${JSON.stringify(url)};\nexport { ${name} };\nexport default ${name};\n`;
+    },
+  };
+}
+
 function bypassMigratedRoute(req) {
   if (req.method !== 'GET') return undefined;
   const url = req.url.split('?')[0];
@@ -87,7 +126,9 @@ function bypassMigratedRoute(req) {
   if (url.startsWith(basePath)) {
     const stripped = url.slice(basePath.length);
     for (const prefix of PANEL_API_PREFIXES) {
-      if (stripped === prefix.replace(/\/$/, '') || stripped.startsWith(prefix)) {
+      if (prefix.endsWith('/')) {
+        if (stripped.startsWith(prefix)) return undefined;
+      } else if (stripped === prefix || stripped.startsWith(prefix + '/')) {
         return undefined;
       }
     }
@@ -138,10 +179,15 @@ function makeBackendProxy(target) {
 }
 
 export default defineConfig({
-  plugins: [react(), injectBasePathPlugin()],
+  plugins: [esToolkitCompatEsmResolver(), react(), injectBasePathPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+    },
+  },
+  optimizeDeps: {
+    rolldownOptions: {
+      plugins: [esToolkitCompatEsmResolver()],
     },
   },
   experimental: {

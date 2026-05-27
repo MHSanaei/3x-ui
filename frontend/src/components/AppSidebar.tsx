@@ -9,16 +9,18 @@ import {
   ClusterOutlined,
   CloseOutlined,
   DashboardOutlined,
+  GithubOutlined,
   HeartOutlined,
+  ImportOutlined,
   LogoutOutlined,
   MenuOutlined,
   MoonFilled,
   MoonOutlined,
   SettingOutlined,
   SunOutlined,
+  TagsOutlined,
   TeamOutlined,
   ToolOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -27,14 +29,16 @@ import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
 const DONATE_URL = 'https://donate.sanaei.dev/';
+const REPO_URL = 'https://github.com/MHSanaei/3x-ui';
 const LOGOUT_KEY = '__logout__';
 
-type IconName = 'dashboard' | 'user' | 'team' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
+type IconName = 'dashboard' | 'inbound' | 'team' | 'groups' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
 
 const iconByName: Record<IconName, ComponentType> = {
   dashboard: DashboardOutlined,
-  user: UserOutlined,
+  inbound: ImportOutlined,
   team: TeamOutlined,
+  groups: TagsOutlined,
   setting: SettingOutlined,
   tool: ToolOutlined,
   cluster: ClusterOutlined,
@@ -61,6 +65,24 @@ function DonateButton({ ariaLabel }: { ariaLabel: string }) {
       title={ariaLabel}
     >
       <HeartOutlined />
+    </a>
+  );
+}
+
+function VersionBadge({ version, collapsed }: { version: string; collapsed?: boolean }) {
+  if (!version) return null;
+  const label = `v${version}`;
+  return (
+    <a
+      href={REPO_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`sider-version${collapsed ? ' is-collapsed' : ''}`}
+      aria-label={`GitHub ${label}`}
+      title={label}
+    >
+      <GithubOutlined />
+      {!collapsed && <span className="sider-version-text">{label}</span>}
     </a>
   );
 }
@@ -101,8 +123,9 @@ export default function AppSidebar() {
 
   const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(() => [
     { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
-    { key: '/inbounds', icon: 'user', title: t('menu.inbounds') },
+    { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
     { key: '/clients', icon: 'team', title: t('menu.clients') },
+    { key: '/groups', icon: 'groups', title: t('menu.groups') },
     { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
     { key: '/settings', icon: 'setting', title: t('menu.settings') },
     { key: '/xray', icon: 'tool', title: t('menu.xray') },
@@ -171,9 +194,6 @@ export default function AppSidebar() {
         <div className={`sider-brand${collapsed ? ' sider-brand-collapsed' : ''}`}>
           <div className="brand-block">
             <span className="brand-text">{collapsed ? '3X' : '3X-UI'}</span>
-            {!collapsed && panelVersion && (
-              <span className="brand-version">v{panelVersion}</span>
-            )}
           </div>
           {!collapsed && (
             <div className="brand-actions">
@@ -204,6 +224,9 @@ export default function AppSidebar() {
           items={toMenuItems(utilItems)}
           onClick={onMenuClick}
         />
+        <div className="sider-footer">
+          <VersionBadge version={panelVersion} collapsed={collapsed} />
+        </div>
       </Layout.Sider>
 
       <Drawer
@@ -222,7 +245,6 @@ export default function AppSidebar() {
         <div className="drawer-header">
           <div className="brand-block">
             <span className="drawer-brand">3X-UI</span>
-            {panelVersion && <span className="brand-version">v{panelVersion}</span>}
           </div>
           <div className="drawer-header-actions">
             <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
@@ -259,6 +281,9 @@ export default function AppSidebar() {
           items={toMenuItems(utilItems)}
           onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}
         />
+        <div className="drawer-footer">
+          <VersionBadge version={panelVersion} />
+        </div>
       </Drawer>
 
       {!drawerOpen && (

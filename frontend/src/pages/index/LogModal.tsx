@@ -69,7 +69,7 @@ export default function LogModal({ open, onClose }: LogModalProps) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post(`/panel/api/server/logs/${rows}`, {
+      const msg = await HttpUtil.post<string[]>(`/panel/api/server/logs/${rows}`, {
         level,
         syslog,
       });
@@ -117,20 +117,32 @@ export default function LogModal({ open, onClose }: LogModalProps) {
       <Form layout="inline" className="log-toolbar">
         <Form.Item>
           <Space.Compact>
-            <Select value={rows} size="small" style={{ width: 70 }} onChange={setRows}>
-              <Select.Option value="10">10</Select.Option>
-              <Select.Option value="20">20</Select.Option>
-              <Select.Option value="50">50</Select.Option>
-              <Select.Option value="100">100</Select.Option>
-              <Select.Option value="500">500</Select.Option>
-            </Select>
-            <Select value={level} size="small" style={{ width: 95 }} onChange={setLevel}>
-              <Select.Option value="debug">Debug</Select.Option>
-              <Select.Option value="info">Info</Select.Option>
-              <Select.Option value="notice">Notice</Select.Option>
-              <Select.Option value="warning">Warning</Select.Option>
-              <Select.Option value="err">Error</Select.Option>
-            </Select>
+            <Select
+              value={rows}
+              size="small"
+              style={{ width: 70 }}
+              onChange={setRows}
+              options={[
+                { value: '10', label: '10' },
+                { value: '20', label: '20' },
+                { value: '50', label: '50' },
+                { value: '100', label: '100' },
+                { value: '500', label: '500' },
+              ]}
+            />
+            <Select
+              value={level}
+              size="small"
+              style={{ width: 95 }}
+              onChange={setLevel}
+              options={[
+                { value: 'debug', label: 'Debug' },
+                { value: 'info', label: 'Info' },
+                { value: 'notice', label: 'Notice' },
+                { value: 'warning', label: 'Warning' },
+                { value: 'err', label: 'Error' },
+              ]}
+            />
           </Space.Compact>
         </Form.Item>
         <Form.Item>
