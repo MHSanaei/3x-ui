@@ -38,10 +38,8 @@ export const TcpHeaderSchema = z.discriminatedUnion('type', [
 ]);
 export type TcpHeader = z.infer<typeof TcpHeaderSchema>;
 
-// Top-level TCP stream payload. `acceptProxyProtocol` only appears on the
-// wire when true (panel omits it when false), so we treat it as optional.
 export const TcpStreamSettingsSchema = z.object({
-  acceptProxyProtocol: z.literal(true).optional(),
+  acceptProxyProtocol: z.boolean().default(false),
   header: TcpHeaderSchema.optional(),
 });
 export type TcpStreamSettings = z.infer<typeof TcpStreamSettingsSchema>;

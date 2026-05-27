@@ -14,7 +14,9 @@ exports[`NetworkSettingsSchema fixtures > parses grpc-basic byte-stably 1`] = `
 exports[`NetworkSettingsSchema fixtures > parses tcp-none byte-stably 1`] = `
 {
   "network": "tcp",
-  "tcpSettings": {},
+  "tcpSettings": {
+    "acceptProxyProtocol": false,
+  },
 }
 `;
 
