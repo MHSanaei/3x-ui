@@ -679,7 +679,6 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		inbound, getErr := inboundSvc.GetInbound(ibId)
 		if getErr != nil {
 			if errors.Is(getErr, gorm.ErrRecordNotFound) {
-				logger.Warningf("Delete: skipping orphan client_inbounds row for client_id=%d, inbound_id=%d (inbound missing)", id, ibId)
 				continue
 			}
 			return needRestart, getErr
