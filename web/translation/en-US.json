@@ -545,6 +545,7 @@
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
       "flow": "Flow",
+      "vmessSecurity": "VMess Security",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "Optional reverse tag",
       "telegramId": "Telegram user ID",

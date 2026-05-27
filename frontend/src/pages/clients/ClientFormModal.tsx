@@ -26,6 +26,7 @@ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { ClientFormSchema, ClientCreateFormSchema } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
+const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305', 'none', 'zero'] as const;
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
   'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria',
@@ -77,6 +78,7 @@ interface FormState {
   password: string;
   auth: string;
   flow: string;
+  security: string;
   reverseTag: string;
   totalGB: number;
   expiryDate: Dayjs | null;
@@ -99,6 +101,7 @@ function emptyForm(): FormState {
     password: '',
     auth: '',
     flow: '',
+    security: 'auto',
     reverseTag: '',
     totalGB: 0,
     expiryDate: null,
@@ -163,6 +166,7 @@ export default function ClientFormModal({
         password: client.password || '',
         auth: client.auth || '',
         flow: client.flow || '',
+        security: client.security || 'auto',
         reverseTag: client.reverse?.tag || '',
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
@@ -214,6 +218,14 @@ export default function ClientFormModal({
     return ids;
   }, [inbounds]);
 
+  const vmessIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const row of inbounds || []) {
+      if (row && row.protocol === 'vmess') ids.add(row.id);
+    }
+    return ids;
+  }, [inbounds]);
+
   const showFlow = useMemo(
     () => (form.inboundIds || []).some((id) => flowCapableIds.has(id)),
     [form.inboundIds, flowCapableIds],
@@ -222,6 +234,11 @@ export default function ClientFormModal({
   const showReverseTag = useMemo(
     () => (form.inboundIds || []).some((id) => vlessLikeIds.has(id)),
     [form.inboundIds, vlessLikeIds],
+  );
+
+  const showSecurity = useMemo(
+    () => (form.inboundIds || []).some((id) => vmessIds.has(id)),
+    [form.inboundIds, vmessIds],
   );
 
   useEffect(() => {
@@ -286,6 +303,7 @@ export default function ClientFormModal({
       password: form.password,
       auth: form.auth,
       flow: form.flow,
+      security: form.security,
       reverseTag: form.reverseTag,
       totalGB: form.totalGB,
       delayedStart: form.delayedStart,
@@ -313,6 +331,7 @@ export default function ClientFormModal({
       password: form.password,
       auth: form.auth,
       flow: showFlow ? (form.flow || '') : '',
+      security: showSecurity ? (form.security || 'auto') : 'auto',
       totalGB: gbToBytes(form.totalGB),
       expiryTime,
       reset: Number(form.reset) || 0,
@@ -493,6 +512,17 @@ export default function ClientFormModal({
                       { value: '', label: t('none') },
                       ...FLOW_OPTIONS.map((k) => ({ value: k, label: k })),
                     ]}
+                  />
+                </Form.Item>
+              </Col>
+            )}
+            {showSecurity && (
+              <Col xs={24} md={12}>
+                <Form.Item label={t('pages.clients.vmessSecurity')}>
+                  <Select
+                    value={form.security}
+                    onChange={(v) => update('security', v)}
+                    options={VMESS_SECURITY_OPTIONS.map((k) => ({ value: k, label: k }))}
                   />
                 </Form.Item>
               </Col>
