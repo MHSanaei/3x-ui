@@ -2415,6 +2415,27 @@ func (s *InboundService) ResetInboundTraffic(id int) error {
 	})
 }
 
+// EmailsByInbound returns the list of client emails currently configured on
+// an inbound's settings.clients[]. Used by the "delete all clients" flow on
+// the inbounds page, which then feeds the list into ClientService.BulkDelete.
+func (s *InboundService) EmailsByInbound(inboundId int) ([]string, error) {
+	inbound, err := s.GetInbound(inboundId)
+	if err != nil {
+		return nil, err
+	}
+	clients, err := s.GetClients(inbound)
+	if err != nil {
+		return nil, err
+	}
+	emails := make([]string, 0, len(clients))
+	for _, c := range clients {
+		if e := strings.TrimSpace(c.Email); e != "" {
+			emails = append(emails, e)
+		}
+	}
+	return emails, nil
+}
+
 func (s *InboundService) DelDepletedClients(id int) (err error) {
 	db := database.GetDB()
 	tx := db.Begin()

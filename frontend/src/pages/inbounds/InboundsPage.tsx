@@ -48,6 +48,7 @@ type RowAction =
   | 'clipboard'
   | 'delete'
   | 'resetTraffic'
+  | 'delAllClients'
   | 'clone';
 
 type GeneralAction = 'import' | 'export' | 'subs' | 'resetInbounds';
@@ -355,6 +356,21 @@ export default function InboundsPage() {
     });
   }, [modal, refresh, t]);
 
+  const confirmDelAllClients = useCallback((dbInbound: DBInbound) => {
+    const count = clientCount[dbInbound.id]?.clients || 0;
+    modal.confirm({
+      title: t('pages.inbounds.delAllClientsConfirmTitle', { remark: dbInbound.remark, count }),
+      content: t('pages.inbounds.delAllClientsConfirmContent'),
+      okText: t('delete'),
+      okType: 'danger',
+      cancelText: t('cancel'),
+      onOk: async () => {
+        const msg = await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/delAllClients`);
+        if (msg?.success) await refresh();
+      },
+    });
+  }, [modal, refresh, t, clientCount]);
+
   const confirmClone = useCallback((dbInbound: DBInbound) => {
     modal.confirm({
       title: t('pages.inbounds.cloneConfirmTitle', { remark: dbInbound.remark }),
@@ -456,13 +472,16 @@ export default function InboundsPage() {
       case 'resetTraffic':
         confirmResetTraffic(target);
         break;
+      case 'delAllClients':
+        confirmDelAllClients(target);
+        break;
       case 'clone':
         confirmClone(target);
         break;
       default:
         messageApi.info(`Action "${key}" — coming in a later 5f subphase`);
     }
-  }, [hydrateInbound, openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmClone, messageApi]);
+  }, [hydrateInbound, openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmDelAllClients, confirmClone, messageApi]);
 
   return (
     <ConfigProvider theme={antdThemeConfig}>

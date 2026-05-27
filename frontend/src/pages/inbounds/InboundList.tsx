@@ -28,6 +28,7 @@ import {
   BlockOutlined,
   DeleteOutlined,
   InfoCircleOutlined,
+  UsergroupDeleteOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil, SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
@@ -167,6 +168,7 @@ export type RowAction =
   | 'clipboard'
   | 'delete'
   | 'resetTraffic'
+  | 'delAllClients'
   | 'clone';
 
 export type GeneralAction = 'import' | 'export' | 'subs' | 'resetInbounds';
@@ -228,11 +230,12 @@ function showQrCodeMenu(dbInbound: DBInboundRecord): boolean {
 interface RowActionsMenuProps {
   record: DBInboundRecord;
   subEnable: boolean;
+  hasClients: boolean;
   onClick: (key: RowAction) => void;
   isMobile?: boolean;
 }
 
-function buildRowActionsMenu({ record, subEnable, t, isMobile }: { record: DBInboundRecord; subEnable: boolean; t: (k: string) => string; isMobile?: boolean }): MenuProps['items'] {
+function buildRowActionsMenu({ record, subEnable, t, isMobile, hasClients }: { record: DBInboundRecord; subEnable: boolean; t: (k: string) => string; isMobile?: boolean; hasClients?: boolean }): MenuProps['items'] {
   const items: MenuProps['items'] = [];
   if (isMobile) {
     items.push({ key: 'edit', icon: <EditOutlined />, label: t('edit') });
@@ -255,11 +258,14 @@ function buildRowActionsMenu({ record, subEnable, t, isMobile }: { record: DBInb
   items.push({ key: 'clipboard', icon: <CopyOutlined />, label: t('pages.inbounds.exportInbound') });
   items.push({ key: 'resetTraffic', icon: <RetweetOutlined />, label: t('pages.inbounds.resetTraffic') });
   items.push({ key: 'clone', icon: <BlockOutlined />, label: t('pages.inbounds.clone') });
+  if (isInboundMultiUser(record) && hasClients) {
+    items.push({ key: 'delAllClients', icon: <UsergroupDeleteOutlined />, danger: true, label: t('pages.inbounds.delAllClients') });
+  }
   items.push({ key: 'delete', icon: <DeleteOutlined />, danger: true, label: t('delete') });
   return items;
 }
 
-function RowActionsCell({ record, subEnable, onClick }: RowActionsMenuProps) {
+function RowActionsCell({ record, subEnable, hasClients, onClick }: RowActionsMenuProps) {
   const { t } = useTranslation();
   return (
     <div className="action-buttons">
@@ -267,7 +273,7 @@ function RowActionsCell({ record, subEnable, onClick }: RowActionsMenuProps) {
       <Dropdown
         trigger={['click']}
         menu={{
-          items: buildRowActionsMenu({ record, subEnable, t }),
+          items: buildRowActionsMenu({ record, subEnable, t, hasClients }),
           onClick: ({ key }) => onClick(key as RowAction),
         }}
       >
@@ -350,6 +356,7 @@ export default function InboundList({
           <RowActionsCell
             record={record}
             subEnable={subEnable}
+            hasClients={(clientCount[record.id]?.clients || 0) > 0}
             onClick={(key) => onRowAction({ key, dbInbound: record })}
           />
         ),
@@ -623,7 +630,7 @@ export default function InboundList({
                         trigger={['click']}
                         placement="bottomRight"
                         menu={{
-                          items: buildRowActionsMenu({ record, subEnable, t, isMobile: true }),
+                          items: buildRowActionsMenu({ record, subEnable, t, isMobile: true, hasClients: (clientCount[record.id]?.clients || 0) > 0 }),
                           onClick: ({ key }) => onRowAction({ key: key as RowAction, dbInbound: record }),
                         }}
                       >
