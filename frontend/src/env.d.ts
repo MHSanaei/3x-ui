@@ -16,6 +16,7 @@ interface SubPageData {
   subClashUrl?: string;
   subTitle?: string;
   links?: string[];
+  emails?: string[];
   datepicker?: 'gregorian' | 'jalalian';
   downloadByte?: string | number;
   uploadByte?: string | number;

@@ -28,7 +28,7 @@ func (p *LinkProvider) build(host string) *SubService {
 
 func (p *LinkProvider) SubLinksForSubId(host, subId string) ([]string, error) {
 	svc := p.build(host)
-	links, _, _, err := svc.GetSubs(subId, host)
+	links, _, _, _, err := svc.GetSubs(subId, host)
 	if err != nil {
 		return nil, err
 	}

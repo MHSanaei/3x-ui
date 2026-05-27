@@ -23,6 +23,7 @@ import {
   DownOutlined,
   MoonFilled,
   MoonOutlined,
+  QrcodeOutlined,
   SunOutlined,
   TranslationOutlined,
 } from '@ant-design/icons';
@@ -51,6 +52,7 @@ const subJsonUrl = subData.subJsonUrl || '';
 const subClashUrl = subData.subClashUrl || '';
 const subTitle = subData.subTitle || '';
 const links: string[] = Array.isArray(subData.links) ? subData.links : [];
+const linkEmails: string[] = Array.isArray(subData.emails) ? subData.emails : [];
 const datepicker = subData.datepicker || 'gregorian';
 
 const isUnlimited = totalByte <= 0 && expireMs === 0;
@@ -65,18 +67,72 @@ const isActive = (() => {
   return true;
 })();
 
-function linkName(link: string, idx: number): string {
-  if (!link) return `Link ${idx + 1}`;
-  const hashIdx = link.indexOf('#');
-  if (hashIdx >= 0 && hashIdx + 1 < link.length) {
+const PROTOCOL_COLORS: Record<string, string> = {
+  VLESS: 'blue',
+  VMESS: 'geekblue',
+  TROJAN: 'volcano',
+  SS: 'magenta',
+  HYSTERIA: 'cyan',
+  HY2: 'green',
+};
+
+// Same idea as ClientInfoModal.trimEmail — strip the client email
+// suffix from the remark so the row title isn't ugly twice.
+function trimEmail(remark: string, email: string): string {
+  if (!email) return remark;
+  const e = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return remark
+    .replace(new RegExp(`[-_.\\s|]+${e}$`), '')
+    .replace(new RegExp(`^${e}[-_.\\s|]+`), '')
+    .trim();
+}
+
+// Post-quantum keys blow up the encoded URL past what a single QR can
+// hold. The algorithm names don't appear as plain text in the URL —
+// they ride inside query params: mldsa65Verify → `pqv=<base64>`,
+// ML-KEM-768 → `encryption=mlkem768x25519plus.<...>`. The literal
+// substrings are also matched in case a config (e.g. wireguard) embeds
+// them directly.
+function isPostQuantumLink(link: string): boolean {
+  if (/[?&]pqv=/.test(link)) return true;
+  if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
+  if (link.includes('ML-KEM-768')) return true;
+  return false;
+}
+
+function parseLinkMeta(link: string, idx: number): { protocol: string; remark: string } {
+  const fallback = `Link ${idx + 1}`;
+  if (!link) return { protocol: 'LINK', remark: fallback };
+  const schemeMatch = /^([a-z0-9]+):\/\//i.exec(link);
+  const scheme = schemeMatch?.[1]?.toLowerCase() ?? '';
+  const protocolMap: Record<string, string> = {
+    vless: 'VLESS',
+    vmess: 'VMESS',
+    trojan: 'TROJAN',
+    ss: 'SS',
+    hysteria: 'HYSTERIA',
+    hysteria2: 'HY2',
+    hy2: 'HY2',
+  };
+  const protocol = protocolMap[scheme] ?? scheme.toUpperCase() ?? 'LINK';
+
+  let remark = '';
+  if (scheme === 'vmess') {
     try {
-      return decodeURIComponent(link.slice(hashIdx + 1));
-    } catch {
-      return link.slice(hashIdx + 1);
+      const body = link.slice('vmess://'.length).split('#')[0];
+      const json = JSON.parse(atob(body)) as { ps?: unknown };
+      if (typeof json?.ps === 'string') remark = json.ps;
+    } catch { /* fall through */ }
+  }
+  if (!remark) {
+    const hashIdx = link.indexOf('#');
+    if (hashIdx >= 0 && hashIdx + 1 < link.length) {
+      const raw = link.slice(hashIdx + 1);
+      try { remark = decodeURIComponent(raw); }
+      catch { remark = raw; }
     }
   }
-  const proto = link.split('://')[0];
-  return `${proto.toUpperCase()} ${idx + 1}`;
+  return { protocol, remark: remark || fallback };
 }
 
 export default function SubPage() {
@@ -344,15 +400,65 @@ export default function SubPage() {
 
                 {links.length > 0 && (
                   <div className="links-section">
-                    {links.map((link, idx) => (
-                      <div key={link} className="link-row" onClick={() => copy(link)}>
-                        <Tag color="purple" className="link-tag">{linkName(link, idx)}</Tag>
-                        <div className="link-box">
-                          <CopyOutlined className="link-copy-icon" />
-                          {link}
+                    {links.map((link, idx) => {
+                      const meta = parseLinkMeta(link, idx);
+                      const rowTitle = trimEmail(meta.remark, linkEmails[idx] || '') || meta.remark;
+                      const canQr = !isPostQuantumLink(link);
+                      return (
+                        <div key={link} className="sub-link-row">
+                          <Tag
+                            color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
+                            className="sub-link-tag"
+                          >
+                            {meta.protocol}
+                          </Tag>
+                          <span className="sub-link-title" title={meta.remark}>
+                            {rowTitle}
+                          </span>
+                          <div className="sub-link-actions">
+                            <Button
+                              size="small"
+                              icon={<CopyOutlined />}
+                              onClick={() => copy(link)}
+                              aria-label={t('copy')}
+                              title={t('copy')}
+                            />
+                            {canQr && (
+                              <Popover
+                                trigger="click"
+                                placement="left"
+                                destroyOnHidden
+                                content={
+                                  <div className="sub-link-qr-popover">
+                                    <Tag
+                                      color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
+                                      className="qr-tag"
+                                    >
+                                      {meta.remark}
+                                    </Tag>
+                                    <QRCode
+                                      value={link}
+                                      size={220}
+                                      type="svg"
+                                      bordered={false}
+                                      color="#000000"
+                                      bgColor="#ffffff"
+                                    />
+                                  </div>
+                                }
+                              >
+                                <Button
+                                  size="small"
+                                  icon={<QrcodeOutlined />}
+                                  aria-label="QR"
+                                  title="QR"
+                                />
+                              </Popover>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 

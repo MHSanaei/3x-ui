@@ -57,20 +57,21 @@ func (s *SubService) PrepareForRequest(host string) {
 }
 
 // GetSubs retrieves subscription links for a given subscription ID and host.
-func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.ClientTraffic, error) {
+func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int64, xray.ClientTraffic, error) {
 	s.PrepareForRequest(host)
 	var result []string
+	var emails []string
 	var traffic xray.ClientTraffic
 	var lastOnline int64
 	var hasEnabledClient bool
 	var clientTraffics []xray.ClientTraffic
 	inbounds, err := s.getInboundsBySubId(subId)
 	if err != nil {
-		return nil, 0, traffic, err
+		return nil, nil, 0, traffic, err
 	}
 
 	if len(inbounds) == 0 {
-		return nil, 0, traffic, nil
+		return nil, nil, 0, traffic, nil
 	}
 
 	s.datepicker, err = s.settingService.GetDatepicker()
@@ -99,6 +100,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 					hasEnabledClient = true
 				}
 				result = append(result, s.GetLink(inbound, client.Email))
+				emails = append(emails, client.Email)
 				var ct xray.ClientTraffic
 				ct, clientTraffics = s.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
 				if ct.LastOnline > lastOnline {
@@ -130,7 +132,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 		}
 	}
 	traffic.Enable = hasEnabledClient
-	return result, lastOnline, traffic, nil
+	return result, emails, lastOnline, traffic, nil
 }
 
 func subscriptionExpiryFromClient(nowMs, expiryTime int64) int64 {
@@ -1708,6 +1710,7 @@ type PageData struct {
 	SubTitle      string
 	SubSupportUrl string
 	Result        []string
+	Emails        []string
 }
 
 // ResolveRequest extracts scheme and host info from request/headers consistently.
@@ -1821,7 +1824,7 @@ func (s *SubService) joinPathWithID(basePath, subId string) string {
 
 // BuildPageData parses header and prepares the template view model.
 // BuildPageData constructs page data for rendering the subscription information page.
-func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, subURL, subJsonURL, subClashURL string, basePath string, subTitle string, subSupportUrl string) PageData {
+func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, emails []string, subURL, subJsonURL, subClashURL string, basePath string, subTitle string, subSupportUrl string) PageData {
 	download := common.FormatTraffic(traffic.Down)
 	upload := common.FormatTraffic(traffic.Up)
 	total := "∞"
@@ -1860,6 +1863,7 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		SubTitle:      subTitle,
 		SubSupportUrl: subSupportUrl,
 		Result:        subs,
+		Emails:        emails,
 	}
 }
 
