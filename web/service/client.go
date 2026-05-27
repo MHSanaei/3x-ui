@@ -242,10 +242,17 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
 				row.CreatedAt = incoming.CreatedAt
 			}
-			if incoming.UpdatedAt > row.UpdatedAt {
-				row.UpdatedAt = incoming.UpdatedAt
+			preservedUpdatedAt := row.UpdatedAt
+			if incoming.UpdatedAt > preservedUpdatedAt {
+				preservedUpdatedAt = incoming.UpdatedAt
 			}
+			row.UpdatedAt = preservedUpdatedAt
 			if err := tx.Save(row).Error; err != nil {
+				return err
+			}
+			if err := tx.Model(&model.ClientRecord{}).
+				Where("id = ?", row.Id).
+				UpdateColumn("updated_at", preservedUpdatedAt).Error; err != nil {
 				return err
 			}
 		}
@@ -648,7 +655,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 
 	if err := database.GetDB().Model(&model.ClientRecord{}).
 		Where("id = ?", id).
-		Update("updated_at", updated.UpdatedAt).Error; err != nil {
+		UpdateColumn("updated_at", time.Now().UnixMilli()).Error; err != nil {
 		return needRestart, err
 	}
 	return needRestart, nil
@@ -1343,6 +1350,29 @@ func sortClients(rows []ClientWithAttachments, sortKey, order string) {
 				eb = b.ExpiryTime
 			}
 			return ea < eb
+		case "createdAt":
+			if a.CreatedAt == b.CreatedAt {
+				return a.Id < b.Id
+			}
+			return a.CreatedAt < b.CreatedAt
+		case "updatedAt":
+			if a.UpdatedAt == b.UpdatedAt {
+				return a.Id < b.Id
+			}
+			return a.UpdatedAt < b.UpdatedAt
+		case "lastOnline":
+			la := int64(0)
+			if a.Traffic != nil {
+				la = a.Traffic.LastOnline
+			}
+			lb := int64(0)
+			if b.Traffic != nil {
+				lb = b.Traffic.LastOnline
+			}
+			if la == lb {
+				return a.Id < b.Id
+			}
+			return la < lb
 		}
 		return false
 	}

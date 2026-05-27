@@ -14,6 +14,7 @@ import {
   Pagination,
   Popover,
   Row,
+  Select,
   Space,
   Spin,
   Statistic,
@@ -36,8 +37,8 @@ import {
   RestOutlined,
   RetweetOutlined,
   SearchOutlined,
+  SortAscendingOutlined,
   TeamOutlined,
-  UserOutlined,
   UsergroupAddOutlined,
 } from '@ant-design/icons';
 
@@ -108,6 +109,25 @@ function gbToBytes(gb: number | undefined): number {
   return Math.round(gb * 1024 * 1024 * 1024);
 }
 
+const SORT_OPTIONS: { value: string; column: string; order: 'ascend' | 'descend'; labelKey: string }[] = [
+  { value: 'createdAt:ascend',    column: 'createdAt',  order: 'ascend',   labelKey: 'pages.clients.sortOldest' },
+  { value: 'createdAt:descend',   column: 'createdAt',  order: 'descend',  labelKey: 'pages.clients.sortNewest' },
+  { value: 'updatedAt:descend',   column: 'updatedAt',  order: 'descend',  labelKey: 'pages.clients.sortRecentlyUpdated' },
+  { value: 'lastOnline:descend',  column: 'lastOnline', order: 'descend',  labelKey: 'pages.clients.sortRecentlyOnline' },
+  { value: 'email:ascend',        column: 'email',      order: 'ascend',   labelKey: 'pages.clients.sortEmailAZ' },
+  { value: 'email:descend',       column: 'email',      order: 'descend',  labelKey: 'pages.clients.sortEmailZA' },
+  { value: 'traffic:descend',     column: 'traffic',    order: 'descend',  labelKey: 'pages.clients.sortMostTraffic' },
+  { value: 'remaining:descend',   column: 'remaining',  order: 'descend',  labelKey: 'pages.clients.sortHighestRemaining' },
+  { value: 'expiryTime:ascend',   column: 'expiryTime', order: 'ascend',   labelKey: 'pages.clients.sortExpiringSoonest' },
+];
+
+const DEFAULT_SORT = SORT_OPTIONS[0];
+
+function sortValueFor(column: string | null, order: 'ascend' | 'descend' | null): string {
+  if (!column || !order) return DEFAULT_SORT.value;
+  return `${column}:${order}`;
+}
+
 export default function ClientsPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
@@ -152,8 +172,8 @@ export default function ClientsPage() {
   const [filters, setFilters] = useState<ClientFilters>(initial.filters);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(null);
+  const [sortColumn, setSortColumn] = useState<string | null>(DEFAULT_SORT.column);
+  const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(DEFAULT_SORT.order);
   const [currentPage, setCurrentPage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(25);
   // debouncedSearch lags behind the input so we don't spam the server on every
@@ -475,151 +495,139 @@ export default function ClientsPage() {
     return classes.join(' ');
   }, [isDark, isUltra]);
 
-  const onTableChange: NonNullable<TableProps<ClientRecord>['onChange']> = (pag, _filters, sorter) => {
+  const onTableChange: NonNullable<TableProps<ClientRecord>['onChange']> = (pag) => {
     if (pag?.current) setCurrentPage(pag.current);
     if (pag?.pageSize) setTablePageSize(pag.pageSize);
-    const s = Array.isArray(sorter) ? sorter[0] : sorter;
-    setSortColumn((s?.columnKey as string) || (s?.field as string) || null);
-    setSortOrder((s?.order as 'ascend' | 'descend' | null) || null);
   };
 
-  const columns = useMemo<ColumnsType<ClientRecord>>(() => {
-    function sortableCol<T extends ColumnsType<ClientRecord>[number]>(col: T, key: string): T {
-      return {
-        ...col,
-        sorter: true,
-        showSorterTooltip: false,
-        sortOrder: sortColumn === key ? sortOrder : null,
-        sortDirections: ['ascend', 'descend'],
-      };
-    }
-    return [
-      {
-        title: t('pages.clients.actions'),
-        key: 'actions',
-        width: 200,
-        render: (_v, record) => (
-          <Space size={4}>
-            <Tooltip title={t('pages.clients.qrCode')}>
-              <Button size="small" type="text" icon={<QrcodeOutlined />} onClick={() => onShowQr(record)} />
-            </Tooltip>
-            <Tooltip title={t('pages.clients.moreInformation')}>
-              <Button size="small" type="text" icon={<InfoCircleOutlined />} onClick={() => onShowInfo(record)} />
-            </Tooltip>
-            <Tooltip title={t('pages.inbounds.resetTraffic')}>
-              <Button size="small" type="text" icon={<RetweetOutlined />} onClick={() => onResetTraffic(record)} />
-            </Tooltip>
-            <Tooltip title={t('edit')}>
-              <Button size="small" type="text" icon={<EditOutlined />} onClick={() => onEdit(record)} />
-            </Tooltip>
-            <Tooltip title={t('delete')}>
-              <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
-            </Tooltip>
-          </Space>
-        ),
-      },
-      sortableCol({
-        title: t('pages.clients.enabled'), key: 'enable', width: 80,
-        render: (_v, record) => (
-          <Switch
-            checked={!!record.enable}
-            size="small"
-            loading={togglingEmail === record.email}
-            onChange={(next) => onToggleEnable(record, next)}
-          />
-        ),
-      }, 'enable'),
-      {
-        title: t('pages.clients.online'),
-        key: 'online',
-        width: 90,
-        render: (_v, record) => {
-          const bucket = clientBucket(record);
-          if (bucket === 'depleted') return <Tag color="red">{t('depleted')}</Tag>;
-          if (record.enable && isOnline(record.email)) return <Tag color="green">{t('pages.clients.online')}</Tag>;
-          if (!record.enable) return <Tag>{t('disabled')}</Tag>;
-          if (bucket === 'expiring') return <Tag color="orange">{t('depletingSoon')}</Tag>;
-          return <Tag>{t('pages.clients.offline')}</Tag>;
-        },
-      },
-      sortableCol({
-        title: t('pages.clients.client'),
-        key: 'email',
-        render: (_v, record) => (
-          <div className="email-cell">
-            <span className="email">{record.email}</span>
-            {record.subId && <span className="sub" title={record.subId}>{record.subId}</span>}
-            {record.comment && <span className="sub" title={record.comment}>{record.comment}</span>}
-          </div>
-        ),
-      }, 'email'),
-      sortableCol({
-        title: t('pages.clients.attachedInbounds'),
-        key: 'inboundIds',
-        width: 170,
-        render: (_v, record) => {
-          const ids = record.inboundIds || [];
-          if (ids.length === 0) return <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>;
-          const visible = ids.slice(0, INBOUND_CHIP_LIMIT);
-          const overflow = ids.slice(INBOUND_CHIP_LIMIT);
-          const chip = (id: number, compact: boolean) => {
-            const ib = inboundsById[id];
-            const proto = (ib?.protocol || '').toLowerCase();
-            const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
-            const compactLabel = ib ? `${ib.protocol}:${ib.port}` : `#${id}`;
-            return (
-              <Tooltip key={id} title={inboundLabel(id)}>
-                <Tag color={color} style={{ margin: 2 }}>
-                  {compact ? compactLabel : inboundLabel(id)}
-                </Tag>
-              </Tooltip>
-            );
-          };
-          return (
-            <>
-              {visible.map((id) => chip(id, true))}
-              {overflow.length > 0 && (
-                <Popover
-                  trigger="click"
-                  placement="bottomRight"
-                  content={
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 280, maxHeight: 280, overflowY: 'auto' }}>
-                      {overflow.map((id) => chip(id, false))}
-                    </div>
-                  }
-                >
-                  <Tag color="default" style={{ margin: 2, cursor: 'pointer' }}>
-                    +{overflow.length}
-                  </Tag>
-                </Popover>
-              )}
-            </>
-          );
-        },
-      }, 'inboundIds'),
-      sortableCol({
-        title: t('pages.clients.traffic'),
-        key: 'traffic',
-        render: (_v, record) => trafficLabel(record),
-      }, 'traffic'),
-      sortableCol({
-        title: t('pages.clients.remaining'),
-        key: 'remaining',
-        width: 130,
-        render: (_v, record) => <Tag color={remainingColor(record)}>{remainingLabel(record)}</Tag>,
-      }, 'remaining'),
-      sortableCol({
-        title: t('pages.clients.duration'),
-        key: 'expiryTime',
-        render: (_v, record) => (
-          <Tooltip title={expiryLabel(record)}>
-            <Tag color={expiryColor(record)}>{record.expiryTime ? expiryRelative(record) : '∞'}</Tag>
+  const columns = useMemo<ColumnsType<ClientRecord>>(() => [
+    {
+      title: t('pages.clients.actions'),
+      key: 'actions',
+      width: 200,
+      render: (_v, record) => (
+        <Space size={4}>
+          <Tooltip title={t('pages.clients.qrCode')}>
+            <Button size="small" type="text" icon={<QrcodeOutlined />} onClick={() => onShowQr(record)} />
           </Tooltip>
-        ),
-      }, 'expiryTime'),
-    ];
+          <Tooltip title={t('pages.clients.moreInformation')}>
+            <Button size="small" type="text" icon={<InfoCircleOutlined />} onClick={() => onShowInfo(record)} />
+          </Tooltip>
+          <Tooltip title={t('pages.inbounds.resetTraffic')}>
+            <Button size="small" type="text" icon={<RetweetOutlined />} onClick={() => onResetTraffic(record)} />
+          </Tooltip>
+          <Tooltip title={t('edit')}>
+            <Button size="small" type="text" icon={<EditOutlined />} onClick={() => onEdit(record)} />
+          </Tooltip>
+          <Tooltip title={t('delete')}>
+            <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
+          </Tooltip>
+        </Space>
+      ),
+    },
+    {
+      title: t('pages.clients.enabled'),
+      key: 'enable',
+      width: 80,
+      render: (_v, record) => (
+        <Switch
+          checked={!!record.enable}
+          size="small"
+          loading={togglingEmail === record.email}
+          onChange={(next) => onToggleEnable(record, next)}
+        />
+      ),
+    },
+    {
+      title: t('pages.clients.online'),
+      key: 'online',
+      width: 90,
+      render: (_v, record) => {
+        const bucket = clientBucket(record);
+        if (bucket === 'depleted') return <Tag color="red">{t('depleted')}</Tag>;
+        if (record.enable && isOnline(record.email)) return <Tag color="green">{t('pages.clients.online')}</Tag>;
+        if (!record.enable) return <Tag>{t('disabled')}</Tag>;
+        if (bucket === 'expiring') return <Tag color="orange">{t('depletingSoon')}</Tag>;
+        return <Tag>{t('pages.clients.offline')}</Tag>;
+      },
+    },
+    {
+      title: t('pages.clients.client'),
+      key: 'email',
+      render: (_v, record) => (
+        <div className="email-cell">
+          <span className="email">{record.email}</span>
+          {record.subId && <span className="sub" title={record.subId}>{record.subId}</span>}
+          {record.comment && <span className="sub" title={record.comment}>{record.comment}</span>}
+        </div>
+      ),
+    },
+    {
+      title: t('pages.clients.attachedInbounds'),
+      key: 'inboundIds',
+      width: 170,
+      render: (_v, record) => {
+        const ids = record.inboundIds || [];
+        if (ids.length === 0) return <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>;
+        const visible = ids.slice(0, INBOUND_CHIP_LIMIT);
+        const overflow = ids.slice(INBOUND_CHIP_LIMIT);
+        const chip = (id: number, compact: boolean) => {
+          const ib = inboundsById[id];
+          const proto = (ib?.protocol || '').toLowerCase();
+          const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
+          const compactLabel = ib ? `${ib.protocol}:${ib.port}` : `#${id}`;
+          return (
+            <Tooltip key={id} title={inboundLabel(id)}>
+              <Tag color={color} style={{ margin: 2 }}>
+                {compact ? compactLabel : inboundLabel(id)}
+              </Tag>
+            </Tooltip>
+          );
+        };
+        return (
+          <>
+            {visible.map((id) => chip(id, true))}
+            {overflow.length > 0 && (
+              <Popover
+                trigger="click"
+                placement="bottomRight"
+                content={
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 280, maxHeight: 280, overflowY: 'auto' }}>
+                    {overflow.map((id) => chip(id, false))}
+                  </div>
+                }
+              >
+                <Tag color="default" style={{ margin: 2, cursor: 'pointer' }}>
+                  +{overflow.length}
+                </Tag>
+              </Popover>
+            )}
+          </>
+        );
+      },
+    },
+    {
+      title: t('pages.clients.traffic'),
+      key: 'traffic',
+      render: (_v, record) => trafficLabel(record),
+    },
+    {
+      title: t('pages.clients.remaining'),
+      key: 'remaining',
+      width: 130,
+      render: (_v, record) => <Tag color={remainingColor(record)}>{remainingLabel(record)}</Tag>,
+    },
+    {
+      title: t('pages.clients.duration'),
+      key: 'expiryTime',
+      render: (_v, record) => (
+        <Tooltip title={expiryLabel(record)}>
+          <Tag color={expiryColor(record)}>{record.expiryTime ? expiryRelative(record) : '∞'}</Tag>
+        </Tooltip>
+      ),
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, togglingEmail, sortColumn, sortOrder, clientBucket, isOnline, inboundsById]);
+  ], [t, togglingEmail, clientBucket, isOnline, inboundsById]);
 
   const tablePagination = {
     current: currentPage,
@@ -777,6 +785,18 @@ export default function ClientsPage() {
                             {!isMobile && t('filter')}
                           </Button>
                         </Badge>
+                        <Select
+                          value={sortValueFor(sortColumn, sortOrder)}
+                          size={isMobile ? 'small' : 'middle'}
+                          suffixIcon={<SortAscendingOutlined />}
+                          style={{ minWidth: isMobile ? 130 : 200 }}
+                          onChange={(value) => {
+                            const opt = SORT_OPTIONS.find((o) => o.value === value);
+                            setSortColumn(opt?.column ?? null);
+                            setSortOrder(opt?.order ?? null);
+                          }}
+                          options={SORT_OPTIONS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
+                        />
                         {activeCount > 0 && (
                           <Button
                             size={isMobile ? 'small' : 'middle'}
@@ -862,8 +882,8 @@ export default function ClientsPage() {
                           locale={{
                             emptyText: (
                               <div className="clients-empty">
-                                <UserOutlined style={{ fontSize: 32, marginBottom: 8 }} />
-                                <div>{t('pages.clients.empty')}</div>
+                                <TeamOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+                                <div>{t('noData')}</div>
                               </div>
                             ),
                           }}
@@ -887,8 +907,8 @@ export default function ClientsPage() {
                             )}
                             {filteredClients.length === 0 && (
                               <div className="card-empty">
-                                <UserOutlined style={{ fontSize: 28, opacity: 0.5 }} />
-                                <div>{t('pages.clients.empty')}</div>
+                                <TeamOutlined style={{ fontSize: 28, opacity: 0.5 }} />
+                                <div>{t('noData')}</div>
                               </div>
                             )}
                             {filteredClients.length > 0 && (

@@ -1745,11 +1745,12 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 							break
 						}
 					}
-					// Backfill created_at and updated_at
 					if _, ok := c["created_at"]; !ok {
 						c["created_at"] = time.Now().Unix() * 1000
 					}
-					c["updated_at"] = time.Now().Unix() * 1000
+					if _, ok := c["updated_at"]; !ok {
+						c["updated_at"] = time.Now().Unix() * 1000
+					}
 					newClients = append(newClients, any(c))
 				}
 				settings["clients"] = newClients
