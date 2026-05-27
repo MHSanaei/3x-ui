@@ -47,6 +47,22 @@ function unitFormatter(unit: string, activeKey: string): (v: number) => string {
   };
 }
 
+function formatFullTimestamp(unixSec: number): string {
+  const d = new Date(unixSec * 1000);
+  const today = new Date();
+  const sameDay = d.getFullYear() === today.getFullYear()
+    && d.getMonth() === today.getMonth()
+    && d.getDate() === today.getDate();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  const time = `${hh}:${mm}:${ss}`;
+  if (sameDay) return time;
+  const MM = String(d.getMonth() + 1).padStart(2, '0');
+  const DD = String(d.getDate()).padStart(2, '0');
+  return `${MM}-${DD} ${time}`;
+}
+
 export default function SystemHistoryModal({ open, status, onClose }: SystemHistoryModalProps) {
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
@@ -54,12 +70,29 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
   const [bucket, setBucket] = useState(2);
   const [points, setPoints] = useState<number[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
+  const [timestamps, setTimestamps] = useState<number[]>([]);
 
   const activeMetric = useMemo(() => METRICS.find((m) => m.key === activeKey), [activeKey]);
   const strokeColor = activeMetric?.stroke || status?.cpu?.color || '#008771';
   const yFormatter = useMemo(
     () => unitFormatter(activeMetric?.unit ?? '', activeKey),
     [activeMetric, activeKey],
+  );
+
+  const tsLookup = useMemo(() => {
+    const m = new Map<string, number>();
+    for (let i = 0; i < labels.length; i++) {
+      m.set(labels[i], timestamps[i]);
+    }
+    return m;
+  }, [labels, timestamps]);
+
+  const tooltipLabelFormatter = useCallback(
+    (label: string) => {
+      const ts = tsLookup.get(label);
+      return ts ? formatFullTimestamp(ts) : label;
+    },
+    [tsLookup],
   );
 
   const fetchBucket = useCallback(async () => {
@@ -70,6 +103,7 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
       if (msg?.success && Array.isArray(msg.obj)) {
         const vals: number[] = [];
         const labs: string[] = [];
+        const tss: number[] = [];
         for (const p of msg.obj) {
           const d = new Date(p.t * 1000);
           const hh = String(d.getHours()).padStart(2, '0');
@@ -77,24 +111,26 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
           const ss = String(d.getSeconds()).padStart(2, '0');
           labs.push(bucket >= 60 ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`);
           vals.push(Number(p.v) || 0);
+          tss.push(Number(p.t) || 0);
         }
         setLabels(labs);
         setPoints(vals);
+        setTimestamps(tss);
       } else {
         setLabels([]);
         setPoints([]);
+        setTimestamps([]);
       }
     } catch (e) {
       console.error('Failed to fetch history bucket', e);
       setLabels([]);
       setPoints([]);
+      setTimestamps([]);
     }
   }, [activeMetric, bucket]);
 
   useEffect(() => {
-    if (open) {
-      setActiveKey('cpu');
-    }
+    if (open) setActiveKey('cpu');
   }, [open]);
 
   useEffect(() => {
@@ -108,8 +144,8 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
       width={isMobile ? '95vw' : 900}
       onCancel={onClose}
       title={
-        <>
-          {t('pages.index.systemHistoryTitle')}
+        <div className="metric-modal-title">
+          <span>{t('pages.index.systemHistoryTitle')}</span>
           <Select
             value={bucket}
             size="small"
@@ -124,7 +160,7 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
               { value: 300, label: '5h' },
             ]}
           />
-        </>
+        </div>
       }
     >
       <Tabs
@@ -136,13 +172,10 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
       />
 
       <div className="cpu-chart-wrap">
-        <div className="cpu-chart-meta">
-          Timeframe: {bucket} sec per point (total {points.length} points)
-        </div>
         <Sparkline
           data={points}
           labels={labels}
-          height={220}
+          height={260}
           stroke={strokeColor}
           strokeWidth={2.2}
           showGrid
@@ -155,6 +188,8 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
           valueMin={0}
           valueMax={activeMetric?.valueMax ?? null}
           yFormatter={yFormatter}
+          tooltipLabelFormatter={tooltipLabelFormatter}
+          extrema={{ show: true, formatter: yFormatter }}
         />
       </div>
     </Modal>
