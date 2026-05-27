@@ -804,10 +804,74 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 		return false, common.NewError("client email is required")
 	}
 	rec, err := s.GetRecordByEmail(nil, email)
-	if err != nil {
+	if err == nil {
+		return s.Delete(inboundSvc, rec.Id, keepTraffic)
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return false, err
 	}
-	return s.Delete(inboundSvc, rec.Id, keepTraffic)
+	inboundIds, idsErr := s.findInboundIdsByClientEmail(email)
+	if idsErr != nil {
+		return false, idsErr
+	}
+	if len(inboundIds) == 0 {
+		return false, common.NewError(fmt.Sprintf("client %q not found in any inbound or client record", email))
+	}
+	needRestart := false
+	for _, ibId := range inboundIds {
+		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, email)
+		if delErr != nil {
+			return needRestart, delErr
+		}
+		if nr {
+			needRestart = true
+		}
+	}
+	if !keepTraffic {
+		db := database.GetDB()
+		if err := db.Where("email = ?", email).Delete(&xray.ClientTraffic{}).Error; err != nil {
+			return needRestart, err
+		}
+		if err := db.Where("client_email = ?", email).Delete(&model.InboundClientIps{}).Error; err != nil {
+			return needRestart, err
+		}
+	}
+	return needRestart, nil
+}
+
+// findInboundIdsByClientEmail returns every inbound whose settings.clients[]
+// JSON contains an entry with the given email. Driver-portable (no JSON
+// operators) by parsing in Go — fine for the rare fallback path.
+func (s *ClientService) findInboundIdsByClientEmail(email string) ([]int, error) {
+	var inbounds []model.Inbound
+	if err := database.GetDB().
+		Select("id, settings").
+		Where("settings LIKE ?", "%"+email+"%").
+		Find(&inbounds).Error; err != nil {
+		return nil, err
+	}
+	out := make([]int, 0, len(inbounds))
+	for _, ib := range inbounds {
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+			continue
+		}
+		clients, ok := settings["clients"].([]any)
+		if !ok {
+			continue
+		}
+		for _, c := range clients {
+			cm, ok := c.(map[string]any)
+			if !ok {
+				continue
+			}
+			if cEmail, _ := cm["email"].(string); cEmail == email {
+				out = append(out, ib.Id)
+				break
+			}
+		}
+	}
+	return out, nil
 }
 
 func (s *ClientService) UpdateByEmail(inboundSvc *InboundService, email string, updated model.Client) (bool, error) {
