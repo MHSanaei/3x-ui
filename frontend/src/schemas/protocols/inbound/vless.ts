@@ -39,8 +39,8 @@ export type VlessClient = z.infer<typeof VlessClientSchema>;
 
 export const VlessInboundSettingsSchema = z.object({
   clients: z.array(VlessClientSchema).default([]),
-  decryption: z.literal('none').default('none'),
-  encryption: z.literal('none').default('none'),
+  decryption: z.string().min(1).default('none'),
+  encryption: z.string().min(1).default('none'),
   fallbacks: z.array(VlessFallbackSchema).default([]),
   // TODO: narrow to flow === 'xtls-rprx-vision' once a per-flow discriminator
   // exists. 4-positive-int padding seed for xtls-rprx-vision; backend uses

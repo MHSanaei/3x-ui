@@ -64,7 +64,7 @@ export const VlessOutboundFormSettingsSchema = z.object({
   port: PortSchema.default(443),
   id: z.string().default(''),
   flow: z.string().default(''),
-  encryption: z.literal('none').default('none'),
+  encryption: z.string().min(1).default('none'),
   reverseTag: z.string().default(''),
   reverseSniffing: ReverseSniffingFormSchema.default({
     enabled: false,

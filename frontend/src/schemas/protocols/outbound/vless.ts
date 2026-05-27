@@ -7,7 +7,7 @@ export const VlessOutboundSettingsSchema = z.object({
   port: z.number().int().min(1).max(65535),
   id: z.uuid(),
   flow: FlowSchema.default(''),
-  encryption: z.literal('none').default('none'),
+  encryption: z.string().min(1).default('none'),
   reverse: z
     .object({
       tag: z.string(),
