@@ -17,7 +17,10 @@ export const ExternalProxyEntrySchema = z.object({
   port: PortSchema.default(443),
   remark: z.string().default(''),
   sni: z.string().optional(),
-  fingerprint: UtlsFingerprintSchema.optional(),
+  fingerprint: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    UtlsFingerprintSchema.optional(),
+  ),
   alpn: z.array(AlpnSchema).optional(),
 });
 export type ExternalProxyEntry = z.infer<typeof ExternalProxyEntrySchema>;
