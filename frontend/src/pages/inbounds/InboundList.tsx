@@ -53,8 +53,58 @@ function readStreamHints(streamSettings: unknown): StreamHints {
   };
 }
 
-function readSettings(settings: unknown): { method?: string } {
-  return coerceInboundJsonField(settings) as { method?: string };
+// Display label for a network value. All known transports render in
+// upper-case for visual consistency with the TCP/UDP/TLS/Reality tags
+// already shown alongside; compound names (`httpupgrade`, `splithttp`,
+// `xhttp`) get a tiny touch of casing so they don't read as one word.
+function networkLabel(network: string): string {
+  const n = (network || '').toLowerCase();
+  if (!n) return 'TCP';
+  switch (n) {
+    case 'httpupgrade': return 'HTTPUpgrade';
+    case 'splithttp': return 'SplitHTTP';
+    case 'xhttp': return 'XHTTP';
+  }
+  return n.toUpperCase();
+}
+
+// Returns the underlying L4 protocol for transports whose name isn't
+// already TCP/UDP. `kcp` and `quic` both ride on UDP; everything else
+// (`ws`, `grpc`, `http`, `httpupgrade`, `xhttp`) is TCP-based and gets
+// no extra tag (the transport name implies TCP).
+function networkL4(network: string): 'UDP' | '' {
+  const n = (network || '').toLowerCase();
+  if (n === 'kcp' || n === 'quic') return 'UDP';
+  return '';
+}
+
+// Shadowsocks settings.network ("tcp" / "udp" / "tcp,udp") and Tunnel
+// settings.allowedNetwork (same shape, different field name) both carry
+// the L4 transport list independent of streamSettings. Returns a
+// comma-separated label.
+function commaNetworkLabel(raw: string): string {
+  const parts = (raw || 'tcp').toLowerCase().split(',').map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 0) return 'TCP';
+  return parts.map(networkLabel).join(',');
+}
+
+function shadowsocksNetworkLabel(settings: unknown): string {
+  return commaNetworkLabel(readSettings(settings).network || '');
+}
+
+function tunnelNetworkLabel(settings: unknown): string {
+  return commaNetworkLabel(readSettings(settings).allowedNetwork || '');
+}
+
+// Mixed (socks+http combo) is always TCP at L4; settings.udp=true adds
+// UDP-associate support on the same port (SOCKS5 UDP).
+function mixedNetworkLabel(settings: unknown): string {
+  const st = coerceInboundJsonField(settings) as { udp?: boolean };
+  return st.udp ? 'TCP,UDP' : 'TCP';
+}
+
+function readSettings(settings: unknown): { method?: string; network?: string; allowedNetwork?: string } {
+  return coerceInboundJsonField(settings) as { method?: string; network?: string; allowedNetwork?: string };
 }
 
 function isInboundMultiUser(record: { protocol: string; settings: unknown }): boolean {
@@ -80,6 +130,7 @@ type ProtocolFlags = {
   isMixed?: boolean;
   isHTTP?: boolean;
   isWireguard?: boolean;
+  isTunnel?: boolean;
 };
 
 interface DBInboundRecord extends ProtocolFlags {
@@ -368,13 +419,21 @@ export default function InboundList({
         ...sorterFor('protocol'),
         render: (_, record) => {
           const tags: ReactElement[] = [<Tag key="p" color="purple">{record.protocol}</Tag>];
-          if (record.isVMess || record.isVLess || record.isTrojan || record.isSS || record.isHysteria) {
+          if (record.isWireguard || record.isHysteria) {
+            tags.push(<Tag key="n" color="green">UDP</Tag>);
+          } else if (record.isSS) {
             const stream = readStreamHints(record.streamSettings);
-            tags.push(
-              <Tag key="n" color="green">
-                {record.isHysteria ? 'UDP' : stream.network}
-              </Tag>,
-            );
+            tags.push(<Tag key="n" color="green">{shadowsocksNetworkLabel(record.settings)}</Tag>);
+            if (stream.isTls) tags.push(<Tag key="tls" color="blue">TLS</Tag>);
+          } else if (record.isTunnel) {
+            tags.push(<Tag key="n" color="green">{tunnelNetworkLabel(record.settings)}</Tag>);
+          } else if (record.isMixed) {
+            tags.push(<Tag key="n" color="green">{mixedNetworkLabel(record.settings)}</Tag>);
+          } else if (record.isVMess || record.isVLess || record.isTrojan) {
+            const stream = readStreamHints(record.streamSettings);
+            tags.push(<Tag key="n" color="green">{networkLabel(stream.network)}</Tag>);
+            const l4 = networkL4(stream.network);
+            if (l4) tags.push(<Tag key="l4" color="green">{l4}</Tag>);
             if (stream.isTls) tags.push(<Tag key="tls" color="blue">TLS</Tag>);
             if (stream.isReality) tags.push(<Tag key="reality" color="blue">Reality</Tag>);
           }
@@ -606,13 +665,31 @@ export default function InboundList({
             <div className="stat-row">
               <span className="stat-label">{t('pages.inbounds.protocol')}</span>
               <Tag color="purple">{statsRecord.protocol}</Tag>
-              {(statsRecord.isVMess || statsRecord.isVLess || statsRecord.isTrojan || statsRecord.isSS || statsRecord.isHysteria) && (() => {
+              {(statsRecord.isWireguard || statsRecord.isHysteria) && (
+                <Tag color="green">UDP</Tag>
+              )}
+              {statsRecord.isSS && (() => {
                 const stream = readStreamHints(statsRecord.streamSettings);
                 return (
                   <>
-                    <Tag color="green">
-                      {statsRecord.isHysteria ? 'UDP' : stream.network}
-                    </Tag>
+                    <Tag color="green">{shadowsocksNetworkLabel(statsRecord.settings)}</Tag>
+                    {stream.isTls && <Tag color="blue">TLS</Tag>}
+                  </>
+                );
+              })()}
+              {statsRecord.isTunnel && (
+                <Tag color="green">{tunnelNetworkLabel(statsRecord.settings)}</Tag>
+              )}
+              {statsRecord.isMixed && (
+                <Tag color="green">{mixedNetworkLabel(statsRecord.settings)}</Tag>
+              )}
+              {(statsRecord.isVMess || statsRecord.isVLess || statsRecord.isTrojan) && (() => {
+                const stream = readStreamHints(statsRecord.streamSettings);
+                const l4 = networkL4(stream.network);
+                return (
+                  <>
+                    <Tag color="green">{networkLabel(stream.network)}</Tag>
+                    {l4 && <Tag color="green">{l4}</Tag>}
                     {stream.isTls && <Tag color="blue">TLS</Tag>}
                     {stream.isReality && <Tag color="blue">Reality</Tag>}
                   </>

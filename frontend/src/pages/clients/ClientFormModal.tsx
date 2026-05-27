@@ -515,6 +515,9 @@ export default function ClientFormModal({
               onChange={(v) => update('inboundIds', v)}
               options={inboundOptions}
               placeholder={t('pages.clients.selectInbound')}
+              maxTagCount="responsive"
+              placement="topLeft"
+              listHeight={220}
               showSearch={{
                 filterOption: (input, option) => ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase()),
               }}

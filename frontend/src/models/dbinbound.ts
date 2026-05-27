@@ -155,6 +155,10 @@ export class DBInbound {
         return this.protocol === Protocols.HYSTERIA;
     }
 
+    get isTunnel() {
+        return this.protocol === Protocols.TUNNEL;
+    }
+
     get address(): string {
         let address = location.hostname;
         if (!ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0") {
