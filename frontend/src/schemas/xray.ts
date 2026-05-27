@@ -54,11 +54,6 @@ export const OutboundTestResultSchema = z.object({
   delay: z.number().optional(),
   error: z.string().optional(),
   mode: z.string().optional(),
-  ttfbMs: z.number().optional(),
-  tlsMs: z.number().optional(),
-  connectMs: z.number().optional(),
-  dnsMs: z.number().optional(),
-  statusCode: z.number().optional(),
   endpoints: z
     .array(
       z.object({
