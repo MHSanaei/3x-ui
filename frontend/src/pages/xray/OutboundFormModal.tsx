@@ -13,7 +13,7 @@ import {
   Tabs,
   message,
 } from 'antd';
-import { DeleteOutlined, MinusOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import { DeleteOutlined, MinusOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import FinalMaskForm from '@/components/FinalMaskForm';
 import HeaderMapEditor from '@/components/HeaderMapEditor';
@@ -977,23 +977,20 @@ export default function OutboundFormModal({
                         <Form.Item label={t('pages.inbounds.address')} name={['settings', 'address']}>
                           <Input placeholder="comma-separated, e.g. 10.0.0.1,fd00::1" />
                         </Form.Item>
-                        <Form.Item
-                          label={
-                            <>
-                              {t('pages.inbounds.privatekey')}
-                              <SyncOutlined
-                                className="random-icon"
-                                onClick={() => {
-                                  const pair = Wireguard.generateKeypair();
-                                  form.setFieldValue(['settings', 'secretKey'], pair.privateKey);
-                                  form.setFieldValue(['settings', 'pubKey'], pair.publicKey);
-                                }}
-                              />
-                            </>
-                          }
-                          name={['settings', 'secretKey']}
-                        >
-                          <Input />
+                        <Form.Item label={t('pages.inbounds.privatekey')}>
+                          <Space.Compact block>
+                            <Form.Item name={['settings', 'secretKey']} noStyle>
+                              <Input style={{ width: 'calc(100% - 32px)' }} />
+                            </Form.Item>
+                            <Button
+                              icon={<ReloadOutlined />}
+                              onClick={() => {
+                                const pair = Wireguard.generateKeypair();
+                                form.setFieldValue(['settings', 'secretKey'], pair.privateKey);
+                                form.setFieldValue(['settings', 'pubKey'], pair.publicKey);
+                              }}
+                            />
+                          </Space.Compact>
                         </Form.Item>
                         <Form.Item label={t('pages.inbounds.publicKey')} name={['settings', 'pubKey']}>
                           <Input disabled />
