@@ -33,6 +33,7 @@ import {
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+import SubUsageSummary from './SubUsageSummary';
 import './SubPage.css';
 
 const QR_SIZE = 240;
@@ -354,72 +355,16 @@ export default function SubPage() {
                   items={descriptionsItems}
                 />
 
-                {links.length > 0 && (
-                  <>
-                    <Divider>{t('pages.inbounds.copyLink')}</Divider>
-                    <div className="links-section">
-                      {links.map((link, idx) => {
-                        const meta = parseLinkMeta(link, idx);
-                        const rowTitle = trimEmail(meta.remark, linkEmails[idx] || '') || meta.remark;
-                        const canQr = !isPostQuantumLink(link);
-                        return (
-                          <div key={link} className="sub-link-row">
-                            <Tag
-                              color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
-                              className="sub-link-tag"
-                            >
-                              {meta.protocol}
-                            </Tag>
-                            <span className="sub-link-title" title={meta.remark}>
-                              {rowTitle}
-                            </span>
-                            <div className="sub-link-actions">
-                              <Button
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => copy(link)}
-                                aria-label={t('copy')}
-                                title={t('copy')}
-                              />
-                              {canQr && (
-                                <Popover
-                                  trigger="click"
-                                  placement="left"
-                                  destroyOnHidden
-                                  content={
-                                    <div className="sub-link-qr-popover">
-                                      <Tag
-                                        color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
-                                        className="qr-tag"
-                                      >
-                                        {meta.remark}
-                                      </Tag>
-                                      <QRCode
-                                        value={link}
-                                        size={220}
-                                        type="svg"
-                                        bordered={false}
-                                        color="#000000"
-                                        bgColor="#ffffff"
-                                      />
-                                    </div>
-                                  }
-                                >
-                                  <Button
-                                    size="small"
-                                    icon={<QrcodeOutlined />}
-                                    aria-label="QR"
-                                    title="QR"
-                                  />
-                                </Popover>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
+                <SubUsageSummary
+                  usedByte={Number(subData.usedByte || 0)
+                    || (Number(subData.downloadByte || 0) + Number(subData.uploadByte || 0))}
+                  totalByte={totalByte}
+                  usedLabel={used}
+                  totalLabel={total}
+                  remainedLabel={remained}
+                  expireMs={expireMs}
+                  isActive={isActive}
+                />
 
                 {(subUrl || subJsonUrl || subClashUrl) && (
                   <>
@@ -517,6 +462,75 @@ export default function SubPage() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  </>
+                )}
+
+                {links.length > 0 && (
+                  <>
+                    <Divider>{t('pages.inbounds.copyLink')}</Divider>
+                    <div className="links-section">
+                      {links.map((link, idx) => {
+                        const meta = parseLinkMeta(link, idx);
+                        const rowEmail = linkEmails[idx] || '';
+                        const rowTitle = trimEmail(meta.remark, rowEmail) || meta.remark;
+                        const qrLabel = rowEmail ? `${rowTitle}-${rowEmail}` : meta.remark;
+                        const canQr = !isPostQuantumLink(link);
+                        return (
+                          <div key={link} className="sub-link-row">
+                            <Tag
+                              color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
+                              className="sub-link-tag"
+                            >
+                              {meta.protocol}
+                            </Tag>
+                            <span className="sub-link-title" title={meta.remark}>
+                              {rowTitle}
+                            </span>
+                            <div className="sub-link-actions">
+                              <Button
+                                size="small"
+                                icon={<CopyOutlined />}
+                                onClick={() => copy(link)}
+                                aria-label={t('copy')}
+                                title={t('copy')}
+                              />
+                              {canQr && (
+                                <Popover
+                                  trigger="click"
+                                  placement="left"
+                                  destroyOnHidden
+                                  content={
+                                    <div className="sub-link-qr-popover">
+                                      <Tag
+                                        color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
+                                        className="qr-tag"
+                                      >
+                                        {qrLabel}
+                                      </Tag>
+                                      <QRCode
+                                        value={link}
+                                        size={220}
+                                        type="svg"
+                                        bordered={false}
+                                        color="#000000"
+                                        bgColor="#ffffff"
+                                      />
+                                    </div>
+                                  }
+                                >
+                                  <Button
+                                    size="small"
+                                    icon={<QrcodeOutlined />}
+                                    aria-label="QR"
+                                    title="QR"
+                                  />
+                                </Popover>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </>
                 )}

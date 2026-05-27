@@ -393,9 +393,11 @@ export default function ClientInfoModal({
                 <Divider>{t('pages.inbounds.copyLink')}</Divider>
                 {links.map((link, idx) => {
                   const meta = parseLinkMeta(link);
-                  const qrRemark = meta.remark || `${t('pages.clients.link')} ${idx + 1}`;
                   const rowTitle = trimEmail(meta.remark, client.email)
                     || `${t('pages.clients.link')} ${idx + 1}`;
+                  const qrRemark = client.email
+                    ? `${rowTitle}-${client.email}`
+                    : (meta.remark || `${t('pages.clients.link')} ${idx + 1}`);
                   const canQr = !isPostQuantumLink(link);
                   return (
                     <div key={idx} className="link-row">
