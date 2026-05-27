@@ -595,6 +595,27 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		updated.CreatedAt = existing.CreatedAt
 	}
 
+	// Rename the ClientRecord row up front when the email changes. SyncInbound
+	// (invoked from UpdateInboundClient below) looks up by email — without
+	// renaming first it would treat the new email as a brand-new client,
+	// insert a duplicate ClientRecord, and leave the original orphaned.
+	if updated.Email != existing.Email {
+		var collisionCount int64
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("email = ? AND id <> ?", updated.Email, id).
+			Count(&collisionCount).Error; err != nil {
+			return false, err
+		}
+		if collisionCount > 0 {
+			return false, common.NewError("Duplicate email:", updated.Email)
+		}
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("id = ?", id).
+			Update("email", updated.Email).Error; err != nil {
+			return false, err
+		}
+	}
+
 	needRestart := false
 	for _, ibId := range inboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
