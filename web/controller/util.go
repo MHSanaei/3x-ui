@@ -5,6 +5,8 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/logger"
@@ -125,6 +127,32 @@ func jsonObj(c *gin.Context, obj any, err error) {
 	jsonMsgObj(c, "", obj, err)
 }
 
+func requestErrorContext(c *gin.Context) string {
+	handler, loc := callerOutsideUtil()
+	return fmt.Sprintf("[%s %s handler=%s %s]", c.Request.Method, c.Request.URL.Path, handler, loc)
+}
+
+func callerOutsideUtil() (string, string) {
+	var pcs [12]uintptr
+	n := runtime.Callers(2, pcs[:])
+	frames := runtime.CallersFrames(pcs[:n])
+	for {
+		frame, more := frames.Next()
+		base := filepath.Base(frame.File)
+		if base != "util.go" {
+			name := frame.Function
+			if idx := strings.LastIndex(name, "/"); idx >= 0 {
+				name = name[idx+1:]
+			}
+			return name, fmt.Sprintf("%s:%d", base, frame.Line)
+		}
+		if !more {
+			break
+		}
+	}
+	return "unknown", "unknown"
+}
+
 // jsonMsgObj sends a JSON response with a message, object, and error status.
 func jsonMsgObj(c *gin.Context, msg string, obj any, err error) {
 	m := entity.Msg{
@@ -137,16 +165,18 @@ func jsonMsgObj(c *gin.Context, msg string, obj any, err error) {
 		}
 	} else {
 		m.Success = false
+		ctx := requestErrorContext(c)
+		fail := I18nWeb(c, "fail")
 		errStr := err.Error()
 		if errStr != "" {
 			m.Msg = msg + " (" + errStr + ")"
-			logger.Warning(msg+" "+I18nWeb(c, "fail")+": ", err)
+			logger.Warningf("%s %s %s: %v", ctx, msg, fail, err)
 		} else if msg != "" {
 			m.Msg = msg
-			logger.Warning(msg + " " + I18nWeb(c, "fail"))
+			logger.Warningf("%s %s %s", ctx, msg, fail)
 		} else {
 			m.Msg = I18nWeb(c, "somethingWentWrong")
-			logger.Warning(I18nWeb(c, "somethingWentWrong") + " " + I18nWeb(c, "fail"))
+			logger.Warningf("%s %s %s", ctx, m.Msg, fail)
 		}
 	}
 	c.JSON(http.StatusOK, m)

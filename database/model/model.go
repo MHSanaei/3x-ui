@@ -220,9 +220,18 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 	listen = fmt.Sprintf("\"%v\"", listen)
 	protocol := string(i.Protocol)
 	settings := i.Settings
-	if i.Protocol == Shadowsocks {
+	switch i.Protocol {
+	case Shadowsocks:
 		if healed, ok := HealShadowsocksClientMethods(settings); ok {
 			settings = healed
+		}
+	case VMESS:
+		if stripped, ok := StripVmessClientSecurity(settings); ok {
+			settings = stripped
+		}
+	case VLESS:
+		if stripped, ok := StripVlessInboundEncryption(settings); ok {
+			settings = stripped
 		}
 	}
 	return &xray.InboundConfig{
@@ -234,6 +243,59 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		Tag:            i.Tag,
 		Sniffing:       json_util.RawMessage(i.Sniffing),
 	}
+}
+
+func StripVmessClientSecurity(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	clients, ok := parsed["clients"].([]any)
+	if !ok {
+		return settings, false
+	}
+	changed := false
+	for i := range clients {
+		cm, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		if _, has := cm["security"]; has {
+			delete(cm, "security")
+			clients[i] = cm
+			changed = true
+		}
+	}
+	if !changed {
+		return settings, false
+	}
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
+}
+
+func StripVlessInboundEncryption(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	if _, has := parsed["encryption"]; !has {
+		return settings, false
+	}
+	delete(parsed, "encryption")
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
 }
 
 // HealShadowsocksClientMethods normalises the per-client `method` field

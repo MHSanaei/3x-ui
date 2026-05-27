@@ -43,7 +43,9 @@ exports[`InboundSchema (full) fixtures > parses hysteria-v1-tls byte-stably 1`] 
   "streamSettings": {
     "network": "tcp",
     "security": "tls",
-    "tcpSettings": {},
+    "tcpSettings": {
+      "acceptProxyProtocol": false,
+    },
     "tlsSettings": {
       "alpn": [
         "h3",
@@ -125,6 +127,7 @@ exports[`InboundSchema (full) fixtures > parses shadowsocks-tcp-2022 byte-stably
     "network": "tcp",
     "security": "none",
     "tcpSettings": {
+      "acceptProxyProtocol": false,
       "header": {
         "type": "none",
       },
@@ -292,6 +295,7 @@ exports[`InboundSchema (full) fixtures > parses vless-tcp-reality byte-stably 1`
     },
     "security": "reality",
     "tcpSettings": {
+      "acceptProxyProtocol": false,
       "header": {
         "type": "none",
       },
@@ -434,6 +438,7 @@ exports[`InboundSchema (full) fixtures > parses vmess-tcp-tls byte-stably 1`] = 
     "network": "tcp",
     "security": "tls",
     "tcpSettings": {
+      "acceptProxyProtocol": false,
       "header": {
         "type": "none",
       },

@@ -509,6 +509,7 @@
       "hysteriaAuth": "Auth (هیستریا)",
       "uuid": "UUID",
       "flow": "Flow",
+      "vmessSecurity": "امنیت VMess",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "Reverse tag اختیاری",
       "telegramId": "شناسه کاربر تلگرام",

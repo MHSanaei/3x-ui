@@ -113,6 +113,7 @@ export const ClientFormSchema = z.object({
   password: z.string(),
   auth: z.string(),
   flow: z.string(),
+  security: z.string(),
   reverseTag: z.string(),
   totalGB: z.number().min(0),
   delayedStart: z.boolean(),
