@@ -112,7 +112,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	RemarkModel, err := s.settingService.GetRemarkModel()
 	if err != nil {
-		RemarkModel = "-ieo"
+		RemarkModel = "-io"
 	}
 
 	SubUpdates, err := s.settingService.GetSubUpdates()

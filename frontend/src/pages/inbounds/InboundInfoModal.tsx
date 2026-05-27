@@ -12,11 +12,95 @@ import {
   ClipboardManager,
   FileManager,
 } from '@/utils';
-import { Protocols } from '@/models/inbound';
+import { Protocols } from '@/schemas/primitives';
 import InfinityIcon from '@/components/InfinityIcon';
 import { useDatepicker } from '@/hooks/useDatepicker';
+import { coerceInboundJsonField } from '@/models/dbinbound';
+import {
+  canEnableTlsFlow,
+  isSS2022 as isSS2022Helper,
+  isSSMultiUser as isSSMultiUserHelper,
+} from '@/lib/xray/protocol-capabilities';
+import {
+  genAllLinks,
+  genWireguardConfigs,
+  genWireguardLinks,
+} from '@/lib/xray/inbound-link';
+import { inboundFromDb } from '@/lib/xray/inbound-from-db';
 import type { SubSettings } from './useInbounds';
 import './InboundInfoModal.css';
+
+const LINK_PROTOCOLS: ReadonlySet<string> = new Set([
+  Protocols.VMESS,
+  Protocols.VLESS,
+  Protocols.TROJAN,
+  Protocols.SHADOWSOCKS,
+  Protocols.HYSTERIA,
+]);
+
+function hasShareLink(protocol: string): boolean {
+  return LINK_PROTOCOLS.has(protocol);
+}
+
+function readHeader(headers: unknown, name: string): string {
+  const needle = name.toLowerCase();
+  if (Array.isArray(headers)) {
+    for (const h of headers) {
+      if (h && typeof h === 'object' && String((h as { name?: string }).name ?? '').toLowerCase() === needle) {
+        return String((h as { value?: unknown }).value ?? '');
+      }
+    }
+    return '';
+  }
+  if (headers && typeof headers === 'object') {
+    for (const [k, v] of Object.entries(headers as Record<string, unknown>)) {
+      if (k.toLowerCase() === needle) {
+        return Array.isArray(v) ? String(v[0] ?? '') : String(v ?? '');
+      }
+    }
+  }
+  return '';
+}
+
+function readNetworkHost(stream: Record<string, unknown>, network: string): string | null {
+  switch (network) {
+    case 'tcp': {
+      const tcp = stream.tcpSettings as { header?: { request?: { headers?: unknown } } } | undefined;
+      return readHeader(tcp?.header?.request?.headers, 'host');
+    }
+    case 'ws': {
+      const ws = stream.wsSettings as { host?: string; headers?: unknown } | undefined;
+      return (ws?.host && ws.host.length > 0) ? ws.host : readHeader(ws?.headers, 'host');
+    }
+    case 'httpupgrade': {
+      const hu = stream.httpupgradeSettings as { host?: string; headers?: unknown } | undefined;
+      return (hu?.host && hu.host.length > 0) ? hu.host : readHeader(hu?.headers, 'host');
+    }
+    case 'xhttp': {
+      const xh = stream.xhttpSettings as { host?: string; headers?: unknown } | undefined;
+      return (xh?.host && xh.host.length > 0) ? xh.host : readHeader(xh?.headers, 'host');
+    }
+    default:
+      return null;
+  }
+}
+
+function readNetworkPath(stream: Record<string, unknown>, network: string): string | null {
+  switch (network) {
+    case 'tcp': {
+      const tcp = stream.tcpSettings as { header?: { request?: { path?: string[] } } } | undefined;
+      return tcp?.header?.request?.path?.[0] ?? null;
+    }
+    case 'ws':
+      return (stream.wsSettings as { path?: string } | undefined)?.path ?? null;
+    case 'httpupgrade':
+      return (stream.httpupgradeSettings as { path?: string } | undefined)?.path ?? null;
+    case 'xhttp':
+      return (stream.xhttpSettings as { path?: string } | undefined)?.path ?? null;
+    default:
+      return null;
+  }
+}
 
 interface ClientStats {
   email: string;
@@ -44,37 +128,35 @@ interface ClientSetting {
   updated_at?: number;
 }
 
-interface InboundLike {
+interface InboundInfo {
   protocol: string;
-  clients?: ClientSetting[];
-  settings?: Record<string, unknown>;
-  serverName?: string;
-  isTcp?: boolean;
-  isWs?: boolean;
-  isHttpupgrade?: boolean;
-  isXHTTP?: boolean;
-  isGrpc?: boolean;
-  isSSMultiUser?: boolean;
-  isSS2022?: boolean;
-  host?: string;
-  path?: string;
-  serviceName?: string;
-  stream?: {
-    network?: string;
-    security?: string;
+  clients: ClientSetting[];
+  settings: Record<string, unknown>;
+  isTcp: boolean;
+  isWs: boolean;
+  isHttpupgrade: boolean;
+  isXHTTP: boolean;
+  isGrpc: boolean;
+  isSSMultiUser: boolean;
+  isSS2022: boolean;
+  isVlessTlsFlow: boolean;
+  host: string | null;
+  path: string | null;
+  serviceName: string;
+  serverName: string;
+  stream: {
+    network: string;
+    security: string;
     xhttp?: { mode?: string };
     grpc?: { multiMode?: boolean };
   };
-  canEnableTlsFlow?: () => boolean;
-  genWireguardConfigs: (remark: string, model: string, host: string) => string;
-  genWireguardLinks: (remark: string, model: string, host: string) => string;
-  genAllLinks: (remark: string, model: string, client: ClientSetting | null, host: string) => { remark?: string; link: string }[];
 }
 
 interface DBInboundLike {
   id: number;
   address: string;
   port: number;
+  listen: string;
   protocol: string;
   remark: string;
   enable?: boolean;
@@ -85,9 +167,64 @@ interface DBInboundLike {
   isMixed?: boolean;
   isHTTP?: boolean;
   isWireguard?: boolean;
+  settings: unknown;
+  streamSettings: unknown;
+  sniffing: unknown;
   clientStats?: ClientStats[];
-  hasLink: () => boolean;
-  toInbound: () => InboundLike;
+}
+
+function buildInboundInfo(dbInbound: DBInboundLike): InboundInfo {
+  const settings = coerceInboundJsonField(dbInbound.settings) as Record<string, unknown>;
+  const stream = coerceInboundJsonField(dbInbound.streamSettings) as Record<string, unknown>;
+  const network = (stream.network as string | undefined) ?? '';
+  const security = (stream.security as string | undefined) ?? 'none';
+  const clients = Array.isArray(settings.clients) ? (settings.clients as ClientSetting[]) : [];
+  const xhttpSettings = stream.xhttpSettings as { mode?: string } | undefined;
+  const grpcSettings = stream.grpcSettings as { multiMode?: boolean; serviceName?: string } | undefined;
+  let serverName = '';
+  if (security === 'tls') {
+    const tls = stream.tlsSettings as { sni?: string; serverName?: string } | undefined;
+    serverName = tls?.sni ?? tls?.serverName ?? '';
+  } else if (security === 'reality') {
+    const reality = stream.realitySettings as { serverNames?: string[]; serverName?: string } | undefined;
+    if (Array.isArray(reality?.serverNames)) {
+      serverName = reality.serverNames.join(', ');
+    } else if (reality?.serverName) {
+      serverName = reality.serverName;
+    }
+  }
+  return {
+    protocol: dbInbound.protocol,
+    clients,
+    settings,
+    isTcp: network === 'tcp',
+    isWs: network === 'ws',
+    isHttpupgrade: network === 'httpupgrade',
+    isXHTTP: network === 'xhttp',
+    isGrpc: network === 'grpc',
+    isSSMultiUser: isSSMultiUserHelper({
+      protocol: dbInbound.protocol,
+      settings: settings as { method?: string },
+    }),
+    isSS2022: isSS2022Helper({
+      protocol: dbInbound.protocol,
+      settings: settings as { method?: string },
+    }),
+    isVlessTlsFlow: canEnableTlsFlow({
+      protocol: dbInbound.protocol,
+      streamSettings: { network, security },
+    }),
+    host: readNetworkHost(stream, network),
+    path: readNetworkPath(stream, network),
+    serviceName: grpcSettings?.serviceName ?? '',
+    serverName,
+    stream: {
+      network,
+      security,
+      xhttp: xhttpSettings ? { mode: xhttpSettings.mode } : undefined,
+      grpc: grpcSettings ? { multiMode: grpcSettings.multiMode } : undefined,
+    },
+  };
 }
 
 interface InboundInfoModalProps {
@@ -143,7 +280,7 @@ export default function InboundInfoModal({
   onClose,
   dbInbound,
   clientIndex = 0,
-  remarkModel = '-ieo',
+  remarkModel = '-io',
   expireDiff = 0,
   trafficDiff = 0,
   ipLimitEnable = false,
@@ -155,7 +292,7 @@ export default function InboundInfoModal({
   const { t } = useTranslation();
   const { datepicker } = useDatepicker();
 
-  const [inbound, setInbound] = useState<InboundLike | null>(null);
+  const [inbound, setInbound] = useState<InboundInfo | null>(null);
   const [clientSettings, setClientSettings] = useState<ClientSetting | null>(null);
   const [clientStats, setClientStats] = useState<ClientStats | null>(null);
   const [links, setLinks] = useState<{ remark?: string; link: string }[]>([]);
@@ -213,24 +350,51 @@ export default function InboundInfoModal({
 
   useEffect(() => {
     if (!open || !dbInbound) return;
-    const parsed = dbInbound.toInbound();
-    setInbound(parsed);
-    setActiveTab((parsed.clients?.length ?? 0) > 0 ? 'client' : 'inbound');
+    const info = buildInboundInfo(dbInbound);
+    setInbound(info);
+    setActiveTab(info.clients.length > 0 ? 'client' : 'inbound');
 
     const idx = clientIndex ?? 0;
-    const clientSet = (parsed.clients?.length ?? 0) > 0 ? (parsed.clients?.[idx] || null) : null;
+    const clientSet = info.clients.length > 0 ? (info.clients[idx] || null) : null;
     setClientSettings(clientSet);
     const stats = clientSet
       ? (dbInbound.clientStats || []).find((s) => s.email === clientSet.email) || null
       : null;
     setClientStats(stats);
 
-    if (parsed.protocol === Protocols.WIREGUARD) {
-      setWireguardConfigs(parsed.genWireguardConfigs(dbInbound.remark, '-ieo', nodeAddress).split('\r\n'));
-      setWireguardLinks(parsed.genWireguardLinks(dbInbound.remark, '-ieo', nodeAddress).split('\r\n'));
+    const inboundForLinks = inboundFromDb(dbInbound);
+    const fallbackHostname = window.location.hostname;
+    if (info.protocol === Protocols.WIREGUARD) {
+      setWireguardConfigs(
+        genWireguardConfigs({
+          inbound: inboundForLinks,
+          remark: dbInbound.remark,
+          remarkModel: '-io',
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }).split('\r\n'),
+      );
+      setWireguardLinks(
+        genWireguardLinks({
+          inbound: inboundForLinks,
+          remark: dbInbound.remark,
+          remarkModel: '-io',
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }).split('\r\n'),
+      );
       setLinks([]);
     } else {
-      setLinks(parsed.genAllLinks(dbInbound.remark, remarkModel, clientSet, nodeAddress));
+      setLinks(
+        genAllLinks({
+          inbound: inboundForLinks,
+          remark: dbInbound.remark,
+          remarkModel,
+          client: (clientSet ?? {}) as Parameters<typeof genAllLinks>[0]['client'],
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }),
+      );
       setWireguardConfigs([]);
       setWireguardLinks([]);
     }
@@ -340,7 +504,7 @@ export default function InboundInfoModal({
           {dbInbound.isVMess && (
             <tr><td>{t('security')}</td><td><Tag>{clientSettings?.security}</Tag></td></tr>
           )}
-          {inbound.canEnableTlsFlow?.() && (
+          {inbound.isVlessTlsFlow && (
             <tr>
               <td>Flow</td>
               <td>
@@ -484,7 +648,7 @@ export default function InboundInfoModal({
         </>
       )}
 
-      {dbInbound.hasLink() && links.length > 0 && (
+      {hasShareLink(dbInbound.protocol) && links.length > 0 && (
         <>
           <Divider>{t('pages.inbounds.copyLink')}</Divider>
           {links.map((link, idx) => (
@@ -584,7 +748,7 @@ export default function InboundInfoModal({
           </>
         )}
 
-        {dbInbound.hasLink() && (
+        {hasShareLink(dbInbound.protocol) && (
           <>
             <div className="info-row">
               <dt>{t('security')}</dt>

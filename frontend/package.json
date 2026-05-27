@@ -14,7 +14,10 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "gen:api": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/build-openapi.mjs"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "gen:api": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/build-openapi.mjs",
+    "gen:zod": "cd .. && go run ./tools/openapigen"
   },
   "dependencies": {
     "@ant-design/icons": "^6.2.3",
@@ -25,8 +28,8 @@
     "antd": "^6.4.3",
     "axios": "^1.16.1",
     "codemirror": "^6.0.2",
-    "dayjs": "^1.11.20",
-    "i18next": "^26.2.0",
+    "dayjs": "^1.11.21",
+    "i18next": "^26.3.0",
     "otpauth": "^9.5.1",
     "persian-calendar-suite": "^1.5.5",
     "qs": "^6.15.2",
@@ -35,7 +38,8 @@
     "react-i18next": "^17.0.8",
     "react-router-dom": "^7.15.1",
     "recharts": "^3.8.1",
-    "swagger-ui-react": "^5.32.6"
+    "swagger-ui-react": "^5.32.6",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -47,7 +51,15 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.4",
-    "vite": "8.0.13"
+    "typescript-eslint": "^8.60.0",
+    "vite": "8.0.14",
+    "vitest": "^4.1.7"
+  },
+  "overrides": {
+    "react-copy-to-clipboard": "^5.1.1",
+    "react-inspector": "^9.0.0",
+    "react-debounce-input": {
+      "react": "^19.0.0"
+    }
   }
 }

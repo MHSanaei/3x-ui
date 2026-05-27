@@ -86,14 +86,14 @@ export default function NordModal({
   }, [filteredServers]);
 
   const fetchCountries = useCallback(async () => {
-    const msg = await HttpUtil.post('/panel/xray/nord/countries');
-    if (msg?.success) setCountries(JSON.parse(msg.obj));
+    const msg = await HttpUtil.post<string>('/panel/xray/nord/countries');
+    if (msg?.success && msg.obj) setCountries(JSON.parse(msg.obj));
   }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post('/panel/xray/nord/data');
+      const msg = await HttpUtil.post<string>('/panel/xray/nord/data');
       if (msg?.success) {
         const next = msg.obj ? JSON.parse(msg.obj) : null;
         setNordData(next);
@@ -111,8 +111,8 @@ export default function NordModal({
   async function login() {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post('/panel/xray/nord/reg', { token });
-      if (msg?.success) {
+      const msg = await HttpUtil.post<string>('/panel/xray/nord/reg', { token });
+      if (msg?.success && msg.obj) {
         setNordData(JSON.parse(msg.obj));
         await fetchCountries();
       }
@@ -124,8 +124,8 @@ export default function NordModal({
   async function saveKey() {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post('/panel/xray/nord/setKey', { key: manualKey });
-      if (msg?.success) {
+      const msg = await HttpUtil.post<string>('/panel/xray/nord/setKey', { key: manualKey });
+      if (msg?.success && msg.obj) {
         setNordData(JSON.parse(msg.obj));
         await fetchCountries();
       }
@@ -164,8 +164,8 @@ export default function NordModal({
     setServerId(null);
     setCityId(null);
     try {
-      const msg = await HttpUtil.post('/panel/xray/nord/servers', { countryId: newCountryId });
-      if (!msg?.success) return;
+      const msg = await HttpUtil.post<string>('/panel/xray/nord/servers', { countryId: newCountryId });
+      if (!msg?.success || !msg.obj) return;
       const data = JSON.parse(msg.obj);
       const locations = data.locations || [];
       const locToCity: Record<number, City> = {};
@@ -318,8 +318,7 @@ export default function NordModal({
             <Form.Item label="Country">
               <Select
                 value={countryId ?? undefined}
-                showSearch
-                optionFilterProp="label"
+                showSearch={{ optionFilterProp: 'label' }}
                 onChange={(v) => fetchServers(v)}
                 options={countries.map((c) => ({
                   value: c.id,
@@ -332,8 +331,7 @@ export default function NordModal({
               <Form.Item label="City">
                 <Select
                   value={cityId}
-                  showSearch
-                  optionFilterProp="label"
+                  showSearch={{ optionFilterProp: 'label' }}
                   onChange={setCityId}
                   options={[{ value: null, label: 'All cities' }, ...cities.map((c) => ({ value: c.id, label: c.name }))]}
                 />
@@ -344,8 +342,7 @@ export default function NordModal({
               <Form.Item label="Server">
                 <Select
                   value={serverId}
-                  showSearch
-                  optionFilterProp="label"
+                  showSearch={{ optionFilterProp: 'label' }}
                   onChange={setServerId}
                   options={filteredServers.map((s) => ({
                     value: s.id,

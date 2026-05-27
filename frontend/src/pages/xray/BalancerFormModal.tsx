@@ -1,13 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Modal, Select } from 'antd';
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Switch } from 'antd';
+import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
 
-export interface BalancerFormValue {
-  tag: string;
-  strategy: string;
-  selector: string[];
-  fallbackTag: string;
-}
+import InputAddon from '@/components/InputAddon';
+import {
+  BalancerFormSchema,
+  type BalancerFormValues,
+} from '@/schemas/xray';
+import {
+  BalancerStrategyTypeSchema,
+  type BalancerStrategySettings,
+  type BalancerStrategyType,
+} from '@/schemas/routing';
+
+export type BalancerFormValue = BalancerFormValues;
 
 interface BalancerFormModalProps {
   open: boolean;
@@ -18,12 +25,38 @@ interface BalancerFormModalProps {
   onConfirm: (value: BalancerFormValue) => void;
 }
 
-const STRATEGIES = [
-  { value: 'random', label: 'Random' },
-  { value: 'roundRobin', label: 'Round robin' },
-  { value: 'leastLoad', label: 'Least load' },
-  { value: 'leastPing', label: 'Least ping' },
-];
+const STRATEGY_LABELS: Record<string, string> = {
+  random: 'Random',
+  roundRobin: 'Round robin',
+  leastLoad: 'Least load',
+  leastPing: 'Least ping',
+};
+
+const STRATEGIES = BalancerStrategyTypeSchema.options.map((value) => ({
+  value,
+  label: STRATEGY_LABELS[value] ?? value,
+}));
+
+interface FormState {
+  tag: string;
+  strategy: BalancerStrategyType;
+  selector: string[];
+  fallbackTag: string;
+  settings?: BalancerStrategySettings;
+}
+
+function initialState(balancer: BalancerFormValue | null): FormState {
+  if (!balancer) {
+    return { tag: '', strategy: 'random', selector: [], fallbackTag: '' };
+  }
+  return {
+    tag: balancer.tag ?? '',
+    strategy: (balancer.strategy ?? 'random') as BalancerStrategyType,
+    selector: [...(balancer.selector ?? [])],
+    fallbackTag: balancer.fallbackTag ?? '',
+    settings: balancer.settings,
+  };
+}
 
 export default function BalancerFormModal({
   open,
@@ -34,61 +67,60 @@ export default function BalancerFormModal({
   onConfirm,
 }: BalancerFormModalProps) {
   const { t } = useTranslation();
-  const [tag, setTag] = useState(() => balancer?.tag || '');
-  const [strategy, setStrategy] = useState(() => balancer?.strategy || 'random');
-  const [selector, setSelector] = useState<string[]>(() => [...(balancer?.selector || [])]);
-  const [fallbackTag, setFallbackTag] = useState(() => balancer?.fallbackTag || '');
-
+  const [state, setState] = useState<FormState>(() => initialState(balancer));
   const isEdit = balancer != null;
 
-  useEffect(() => {
-    if (!open) return;
-    if (balancer) {
-      setTag(balancer.tag || '');
-      setStrategy(balancer.strategy || 'random');
-      setSelector([...(balancer.selector || [])]);
-      setFallbackTag(balancer.fallbackTag || '');
-    } else {
-      setTag('');
-      setStrategy('random');
-      setSelector([]);
-      setFallbackTag('');
+  const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setState((prev) => ({ ...prev, [key]: value }));
+
+  const parsed = useMemo(
+    () => BalancerFormSchema.safeParse(state),
+    [state],
+  );
+  const duplicateTag = !!state.tag.trim() && otherTags.includes(state.tag.trim());
+  const issues = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const key = String(issue.path[0] ?? '');
+        if (!map[key]) map[key] = t(issue.message, { defaultValue: issue.message });
+      }
     }
-  }, [open, balancer]);
-
-  const tagEmpty = !tag.trim();
-  const duplicateTag = !!tag && otherTags.includes(tag.trim());
-  const emptySelector = selector.length === 0;
-  const isValid = !tagEmpty && !duplicateTag && !emptySelector;
-
-  const tagValidateStatus: 'error' | 'warning' | 'success' = tagEmpty
-    ? 'error'
-    : duplicateTag
-      ? 'warning'
-      : 'success';
-  const tagHelp = tagEmpty
-    ? 'Tag is required'
-    : duplicateTag
-      ? 'Tag already used by another balancer'
-      : '';
-
-  const selectorValidateStatus: 'error' | 'success' = emptySelector ? 'error' : 'success';
-  const selectorHelp = emptySelector ? 'Pick at least one outbound' : '';
+    return map;
+  }, [parsed, t]);
 
   function submit() {
-    if (!isValid) return;
-    onConfirm({ tag, strategy, selector, fallbackTag });
+    if (!parsed.success || duplicateTag) return;
+    const values = { ...parsed.data };
+    if (values.strategy !== 'leastLoad') delete values.settings;
+    onConfirm(values);
   }
 
-  const title = isEdit
-    ? `${t('edit')} ${t('pages.xray.Balancers')}`
-    : `+ ${t('pages.xray.Balancers')}`;
-  const okText = isEdit ? t('pages.clients.submitEdit') : t('create');
+  const settings = state.settings;
+  const updateSetting = <K extends keyof BalancerStrategySettings>(
+    key: K,
+    value: BalancerStrategySettings[K],
+  ) => {
+    setState((prev) => ({
+      ...prev,
+      settings: { ...(prev.settings ?? {}), [key]: value },
+    }));
+  };
+  const updateBaselines = (next: string[]) => updateSetting('baselines', next);
+  const updateCosts = (next: NonNullable<BalancerStrategySettings['costs']>) => updateSetting('costs', next);
+
+  const baselines = settings?.baselines ?? [];
+  const costs = settings?.costs ?? [];
 
   const fallbackOptions = useMemo(
     () => ['', ...outboundTags].map((tg) => ({ value: tg, label: tg || `(${t('none')})` })),
     [outboundTags, t],
   );
+
+  const title = isEdit
+    ? `${t('edit')} ${t('pages.xray.Balancers')}`
+    : `+ ${t('pages.xray.Balancers')}`;
+  const okText = isEdit ? t('pages.clients.submitEdit') : t('create');
 
   return (
     <Modal
@@ -96,36 +128,139 @@ export default function BalancerFormModal({
       title={title}
       okText={okText}
       cancelText={t('close')}
-      okButtonProps={{ disabled: !isValid }}
+      okButtonProps={{ disabled: !parsed.success || duplicateTag }}
       mask={{ closable: false }}
-      destroyOnHidden
       onOk={submit}
       onCancel={onClose}
     >
       <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 14 } }}>
-        <Form.Item label="Tag" validateStatus={tagValidateStatus} help={tagHelp} hasFeedback>
-          <Input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="unique balancer tag" />
+        <Form.Item
+          label="Tag"
+          required
+          validateStatus={issues.tag ? 'error' : duplicateTag ? 'warning' : ''}
+          help={issues.tag || (duplicateTag ? 'Tag already used by another balancer' : '')}
+          hasFeedback
+        >
+          <Input
+            value={state.tag}
+            onChange={(e) => update('tag', e.target.value)}
+            placeholder="unique balancer tag"
+          />
         </Form.Item>
         <Form.Item label="Strategy">
-          <Select value={strategy} onChange={setStrategy} options={STRATEGIES} />
+          <Select
+            value={state.strategy}
+            onChange={(v) => update('strategy', v)}
+            options={STRATEGIES}
+          />
         </Form.Item>
         <Form.Item
           label="Selector"
-          validateStatus={selectorValidateStatus}
-          help={selectorHelp}
+          required
+          validateStatus={issues.selector ? 'error' : ''}
+          help={issues.selector || ''}
           hasFeedback
         >
           <Select
             mode="tags"
-            value={selector}
-            onChange={setSelector}
+            value={state.selector}
+            onChange={(v) => update('selector', v)}
             tokenSeparators={[',']}
             options={outboundTags.map((tg) => ({ value: tg, label: tg }))}
           />
         </Form.Item>
         <Form.Item label="Fallback">
-          <Select value={fallbackTag} onChange={setFallbackTag} allowClear options={fallbackOptions} />
+          <Select
+            value={state.fallbackTag}
+            onChange={(v) => update('fallbackTag', v ?? '')}
+            allowClear
+            options={fallbackOptions}
+          />
         </Form.Item>
+
+        {state.strategy === 'leastLoad' && (
+          <>
+            <Form.Item label="Expected">
+              <InputNumber
+                value={settings?.expected}
+                onChange={(v) => updateSetting('expected', typeof v === 'number' ? v : undefined)}
+                min={0}
+                placeholder="optimal node count"
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+            <Form.Item label="Max RTT">
+              <Input
+                value={settings?.maxRTT ?? ''}
+                onChange={(e) => updateSetting('maxRTT', e.target.value || undefined)}
+                placeholder="e.g. 1s"
+              />
+            </Form.Item>
+            <Form.Item label="Tolerance">
+              <InputNumber
+                value={settings?.tolerance}
+                onChange={(v) => updateSetting('tolerance', typeof v === 'number' ? v : undefined)}
+                min={0}
+                max={1}
+                step={0.01}
+                placeholder="0.01 = 1%"
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+            <Form.Item label="Baselines">
+              <Button
+                size="small"
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => updateBaselines([...baselines, ''])}
+              />
+              {baselines.map((b, idx) => (
+                <Space.Compact key={idx} block style={{ marginTop: 4 }}>
+                  <Input
+                    value={b}
+                    placeholder="e.g. 1s"
+                    onChange={(e) => updateBaselines(baselines.map((x, i) => (i === idx ? e.target.value : x)))}
+                  />
+                  <InputAddon onClick={() => updateBaselines(baselines.filter((_, i) => i !== idx))}>
+                    <MinusOutlined />
+                  </InputAddon>
+                </Space.Compact>
+              ))}
+            </Form.Item>
+            <Form.Item label="Costs">
+              <Button
+                size="small"
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => updateCosts([...costs, { regexp: false, match: '', value: 1 }])}
+              />
+              {costs.map((c, idx) => (
+                <Space.Compact key={idx} block style={{ marginTop: 4 }}>
+                  <Switch
+                    checked={c.regexp}
+                    checkedChildren="re"
+                    unCheckedChildren="lit"
+                    onChange={(v) => updateCosts(costs.map((x, i) => (i === idx ? { ...x, regexp: v } : x)))}
+                  />
+                  <Input
+                    value={c.match}
+                    placeholder="tag pattern"
+                    onChange={(e) => updateCosts(costs.map((x, i) => (i === idx ? { ...x, match: e.target.value } : x)))}
+                  />
+                  <InputNumber
+                    value={c.value}
+                    placeholder="weight"
+                    style={{ width: 100 }}
+                    onChange={(v) => updateCosts(costs.map((x, i) => (i === idx ? { ...x, value: typeof v === 'number' ? v : 0 } : x)))}
+                  />
+                  <InputAddon onClick={() => updateCosts(costs.filter((_, i) => i !== idx))}>
+                    <MinusOutlined />
+                  </InputAddon>
+                </Space.Compact>
+              ))}
+            </Form.Item>
+          </>
+        )}
       </Form>
     </Modal>
   );

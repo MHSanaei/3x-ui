@@ -2,10 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { HttpUtil } from '@/utils';
-import { DBInbound } from '@/models/dbinbound';
-import { Protocols } from '@/models/inbound';
+import { parseMsg } from '@/utils/zodValidate';
+import { DBInbound, coerceInboundJsonField } from '@/models/dbinbound';
+import { Protocols } from '@/schemas/primitives';
+import { isSSMultiUser } from '@/lib/xray/protocol-capabilities';
 import { setDatepicker } from '@/hooks/useDatepicker';
 import { keys } from '@/api/queryKeys';
+import { SlimInboundListSchema, LastOnlineMapSchema, InboundDetailSchema } from '@/schemas/inbound';
+import { OnlinesSchema } from '@/schemas/client';
+import { DefaultsPayloadSchema, type DefaultsPayload } from '@/schemas/defaults';
 
 export interface SubSettings {
   enable: boolean;
@@ -27,28 +32,7 @@ interface ClientRollup {
   comments: Map<string, string>;
 }
 
-interface ApiMsg<T = unknown> {
-  success?: boolean;
-  obj?: T;
-  msg?: string;
-}
-
-interface DefaultsPayload {
-  expireDiff?: number;
-  trafficDiff?: number;
-  tgBotEnable?: boolean;
-  subEnable?: boolean;
-  subTitle?: string;
-  subURI?: string;
-  subJsonURI?: string;
-  subJsonEnable?: boolean;
-  pageSize?: number;
-  remarkModel?: string;
-  datepicker?: string;
-  ipLimitEnable?: boolean;
-}
-
-const TRACKED_PROTOCOLS = [
+const TRACKED_PROTOCOLS: readonly string[] = [
   Protocols.VMESS,
   Protocols.VLESS,
   Protocols.TROJAN,
@@ -57,27 +41,31 @@ const TRACKED_PROTOCOLS = [
 ];
 
 async function fetchSlimInbounds(): Promise<unknown[]> {
-  const msg = await HttpUtil.get('/panel/api/inbounds/list/slim', undefined, { silent: true }) as ApiMsg<unknown[]>;
+  const msg = await HttpUtil.get('/panel/api/inbounds/list/slim', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch inbounds');
-  return Array.isArray(msg.obj) ? msg.obj : [];
+  const validated = parseMsg(msg, SlimInboundListSchema, 'inbounds/list/slim');
+  return Array.isArray(validated.obj) ? validated.obj : [];
 }
 
 async function fetchOnlineClients(): Promise<string[]> {
-  const msg = await HttpUtil.post('/panel/api/clients/onlines', undefined, { silent: true }) as ApiMsg<string[]>;
+  const msg = await HttpUtil.post('/panel/api/clients/onlines', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch onlines');
-  return Array.isArray(msg.obj) ? msg.obj : [];
+  const validated = parseMsg(msg, OnlinesSchema, 'clients/onlines');
+  return Array.isArray(validated.obj) ? validated.obj : [];
 }
 
 async function fetchLastOnlineMap(): Promise<Record<string, number>> {
-  const msg = await HttpUtil.post('/panel/api/clients/lastOnline', undefined, { silent: true }) as ApiMsg<Record<string, number>>;
+  const msg = await HttpUtil.post('/panel/api/clients/lastOnline', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch lastOnline');
-  return (msg.obj && typeof msg.obj === 'object') ? msg.obj : {};
+  const validated = parseMsg(msg, LastOnlineMapSchema, 'clients/lastOnline');
+  return (validated.obj && typeof validated.obj === 'object') ? validated.obj : {};
 }
 
 async function fetchDefaultSettings(): Promise<DefaultsPayload> {
-  const msg = await HttpUtil.post('/panel/setting/defaultSettings', undefined, { silent: true }) as ApiMsg<DefaultsPayload>;
+  const msg = await HttpUtil.post('/panel/setting/defaultSettings', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch defaults');
-  return (msg.obj as DefaultsPayload) || {};
+  const validated = parseMsg(msg, DefaultsPayloadSchema, 'setting/defaultSettings');
+  return validated.obj ?? {};
 }
 
 export function useInbounds() {
@@ -113,7 +101,7 @@ export function useInbounds() {
   const tgBotEnable = !!defaults.tgBotEnable;
   const ipLimitEnable = !!defaults.ipLimitEnable;
   const pageSize = defaults.pageSize ?? 0;
-  const remarkModel = defaults.remarkModel || '-ieo';
+  const remarkModel = defaults.remarkModel || '-io';
   const datepicker = (defaults.datepicker as 'gregorian' | 'jalalian') || 'gregorian';
 
   const subSettings: SubSettings = useMemo(() => ({
@@ -214,12 +202,14 @@ export function useInbounds() {
   const rebuildClientCount = useCallback(() => {
     const counts: Record<number, ClientRollup> = {};
     for (const dbInbound of dbInboundsRef.current) {
-      const parsed = (dbInbound as unknown as { toInbound: () => { clients?: unknown[]; isSSMultiUser?: boolean }; isSS: boolean; protocol: string }).toInbound();
-      const protocol = (dbInbound as unknown as { protocol: string }).protocol;
+      const protocol = dbInbound.protocol;
       if (!TRACKED_PROTOCOLS.includes(protocol)) continue;
-      const isSS = (dbInbound as unknown as { isSS: boolean }).isSS;
-      if (isSS && !parsed.isSSMultiUser) continue;
-      counts[(dbInbound as unknown as { id: number }).id] = rollupClients(dbInbound, parsed as { clients?: { email?: string; enable?: boolean; comment?: string }[] });
+      const settings = coerceInboundJsonField(dbInbound.settings) as {
+        method?: string;
+        clients?: Array<{ email?: string; enable?: boolean; comment?: string }>;
+      };
+      if (protocol === Protocols.SHADOWSOCKS && !isSSMultiUser({ protocol, settings })) continue;
+      counts[dbInbound.id] = rollupClients(dbInbound, { clients: settings.clients });
     }
     setClientCount(counts);
   }, [rollupClients]);
@@ -232,11 +222,14 @@ export function useInbounds() {
     const counts: Record<number, ClientRollup> = {};
     for (const row of slimQuery.data as { protocol: string; id: number }[]) {
       const dbInbound = new DBInbound(row) as DBInboundInstance;
-      const parsed = (dbInbound as unknown as { toInbound: () => { clients?: unknown[]; isSSMultiUser?: boolean } }).toInbound();
       next.push(dbInbound);
       if (TRACKED_PROTOCOLS.includes(row.protocol)) {
-        if ((dbInbound as unknown as { isSS: boolean }).isSS && !parsed.isSSMultiUser) continue;
-        counts[row.id] = rollupClients(dbInbound, parsed as { clients?: { email?: string; enable?: boolean; comment?: string }[] });
+        const settings = coerceInboundJsonField(dbInbound.settings) as {
+          method?: string;
+          clients?: Array<{ email?: string; enable?: boolean; comment?: string }>;
+        };
+        if (row.protocol === Protocols.SHADOWSOCKS && !isSSMultiUser({ protocol: row.protocol, settings })) continue;
+        counts[row.id] = rollupClients(dbInbound, { clients: settings.clients });
       }
     }
     dbInboundsRef.current = next;
@@ -258,8 +251,12 @@ export function useInbounds() {
   const fetched = slimQuery.data !== undefined && defaultsQuery.data !== undefined;
 
   const refresh = useCallback(async () => {
+    // Invalidate at the inbounds root so both `slim` (this page's list)
+    // and `options` (the Clients page's inbound picker) refetch. Without
+    // the options bucket, a freshly-created inbound stays invisible in
+    // the client add/edit modal until a full page reload.
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: keys.inbounds.slim() }),
+      queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
       queryClient.invalidateQueries({ queryKey: keys.clients.onlines() }),
       queryClient.invalidateQueries({ queryKey: keys.clients.lastOnline() }),
     ]);
@@ -272,8 +269,9 @@ export function useInbounds() {
   const hydrateInbound = useCallback(async (id: number) => {
     const msg = await HttpUtil.get(`/panel/api/inbounds/get/${id}`);
     if (!msg?.success || !msg.obj) return null;
-    const full = msg.obj as { id: number; protocol: string };
-    const dbInbound = new DBInbound(full) as DBInboundInstance;
+    const validated = parseMsg(msg, InboundDetailSchema, `inbounds/get/${id}`);
+    if (!validated.obj) return null;
+    const dbInbound = new DBInbound(validated.obj) as DBInboundInstance;
     setDbInbounds((prev) => {
       const next = prev.map((row) => (
         (row as unknown as { id: number }).id === id ? dbInbound : row

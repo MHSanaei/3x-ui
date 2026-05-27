@@ -1,0 +1,8 @@
+{
+  "tag": "balancer-ping",
+  "selector": ["proxy-"],
+  "fallbackTag": "fallback-out",
+  "strategy": {
+    "type": "leastPing"
+  }
+}

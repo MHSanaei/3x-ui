@@ -62,7 +62,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post(`/panel/api/server/xraylogs/${rows}`, {
+      const msg = await HttpUtil.post<XrayLogEntry[]>(`/panel/api/server/xraylogs/${rows}`, {
         filter,
         showDirect,
         showBlocked,
@@ -124,13 +124,19 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
     >
       <Form layout="inline" className="log-toolbar">
         <Form.Item>
-          <Select value={rows} size="small" style={{ width: 70 }} onChange={setRows}>
-            <Select.Option value="10">10</Select.Option>
-            <Select.Option value="20">20</Select.Option>
-            <Select.Option value="50">50</Select.Option>
-            <Select.Option value="100">100</Select.Option>
-            <Select.Option value="500">500</Select.Option>
-          </Select>
+          <Select
+            value={rows}
+            size="small"
+            style={{ width: 70 }}
+            onChange={setRows}
+            options={[
+              { value: '10', label: '10' },
+              { value: '20', label: '20' },
+              { value: '50', label: '50' },
+              { value: '100', label: '100' },
+              { value: '500', label: '500' },
+            ]}
+          />
         </Form.Item>
         <Form.Item label={t('filter')} className="filter-item">
           <Input

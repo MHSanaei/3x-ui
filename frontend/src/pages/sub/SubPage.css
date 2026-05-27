@@ -28,89 +28,84 @@
   margin-top: 8px;
 }
 
-.qr-row {
-  margin-bottom: 12px;
-}
-
-.qr-col {
-  display: flex;
-  justify-content: center;
-}
-
-.qr-box {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: 240px;
-}
-
 .qr-tag {
   width: 100%;
   text-align: center;
   margin: 0;
 }
 
-.qr-code {
-  cursor: pointer;
-}
-
 .info-table {
-  margin-top: 12px;
+  margin-top: 4px;
 }
 
 .links-section {
-  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.link-row {
-  position: relative;
-  margin-bottom: 16px;
-  text-align: center;
+.sub-link-anchor {
+  color: inherit;
+  text-decoration: none;
 }
 
-.link-tag {
-  margin-bottom: -10px;
-  position: relative;
-  z-index: 2;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.sub-link-anchor:hover {
+  text-decoration: underline;
 }
 
-.link-box {
-  cursor: pointer;
-  border-radius: 12px;
-  padding: 22px 18px 14px;
-  margin-top: -10px;
-  word-break: break-all;
-  font-size: 13px;
-  line-height: 1.5;
-  text-align: left;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  transition: background 120ms ease, border-color 120ms ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+.sub-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
   background: rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: background 120ms ease, border-color 120ms ease;
 }
 
-.link-box:hover {
+.sub-link-row:hover {
   background: rgba(0, 0, 0, 0.05);
   border-color: rgba(0, 0, 0, 0.14);
 }
 
-.link-copy-icon {
-  margin-right: 6px;
-  opacity: 0.6;
-}
-
-.is-dark .link-box {
+.is-dark .sub-link-row {
   background: rgba(0, 0, 0, 0.2);
   border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.85);
 }
 
-.is-dark .link-box:hover {
+.is-dark .sub-link-row:hover {
   background: rgba(0, 0, 0, 0.3);
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+.sub-link-tag {
+  margin: 0;
+  flex-shrink: 0;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.sub-link-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sub-link-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sub-link-qr-popover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
 .apps-row {

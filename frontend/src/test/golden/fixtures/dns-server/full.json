@@ -1,0 +1,25 @@
+{
+  "address": "https://dns.google/dns-query",
+  "port": 443,
+  "domains": [
+    "domain:google.com",
+    "domain:youtube.com",
+    "geosite:google"
+  ],
+  "expectedIPs": [
+    "geoip:us",
+    "1.2.3.0/24"
+  ],
+  "unexpectedIPs": [
+    "geoip:private"
+  ],
+  "skipFallback": false,
+  "finalQuery": false,
+  "tag": "google-doh",
+  "clientIP": "9.9.9.9",
+  "queryStrategy": "UseIPv6",
+  "disableCache": false,
+  "timeoutMs": 4000,
+  "serveStale": true,
+  "serveExpiredTTL": 600
+}

@@ -1,0 +1,14 @@
+{
+  "network": "xhttp",
+  "xhttpSettings": {
+    "path": "/sp",
+    "host": "edge.example.test",
+    "mode": "stream-up",
+    "xPaddingBytes": "500-1500",
+    "xPaddingObfsMode": true,
+    "xPaddingKey": "secret-key",
+    "xPaddingHeader": "X-Pad",
+    "xPaddingPlacement": "header",
+    "xPaddingMethod": "random"
+  }
+}

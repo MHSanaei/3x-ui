@@ -1,0 +1,174 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`FinalMaskStreamSettingsSchema fixtures > parses combined byte-stably 1`] = `
+{
+  "quicParams": {
+    "brutalDown": "200 mbps",
+    "brutalUp": "100 mbps",
+    "congestion": "brutal",
+    "udpHop": {
+      "interval": "5-10",
+      "ports": "10000-20000",
+    },
+  },
+  "tcp": [
+    {
+      "settings": {
+        "packets": "1-3",
+      },
+      "type": "fragment",
+    },
+  ],
+  "udp": [
+    {
+      "settings": {
+        "password": "swordfish",
+      },
+      "type": "salamander",
+    },
+    {
+      "type": "header-wireguard",
+    },
+  ],
+}
+`;
+
+exports[`FinalMaskStreamSettingsSchema fixtures > parses quic-params byte-stably 1`] = `
+{
+  "quicParams": {
+    "bbrProfile": "standard",
+    "congestion": "bbr",
+    "debug": false,
+    "disablePathMTUDiscovery": false,
+    "initConnectionReceiveWindow": 20971520,
+    "initStreamReceiveWindow": 8388608,
+    "keepAlivePeriod": 10,
+    "maxConnectionReceiveWindow": 20971520,
+    "maxIdleTimeout": 30,
+    "maxIncomingStreams": 1024,
+    "maxStreamReceiveWindow": 8388608,
+    "udpHop": {
+      "interval": "5-10",
+      "ports": "20000-50000",
+    },
+  },
+  "tcp": [],
+  "udp": [],
+}
+`;
+
+exports[`FinalMaskStreamSettingsSchema fixtures > parses tcp-mask byte-stably 1`] = `
+{
+  "tcp": [
+    {
+      "settings": {
+        "delay": "5-10",
+        "length": "10-20",
+        "maxSplit": "0",
+        "packets": "1-3",
+      },
+      "type": "fragment",
+    },
+    {
+      "type": "sudoku",
+    },
+    {
+      "settings": {
+        "clients": [
+          [
+            {
+              "delay": 0,
+              "packet": [
+                "GET / HTTP/1.1",
+              ],
+              "type": "str",
+            },
+          ],
+        ],
+        "errors": [],
+        "servers": [
+          [
+            {
+              "delay": 0,
+              "packet": [
+                "HTTP/1.1 200 OK",
+              ],
+              "type": "str",
+            },
+          ],
+        ],
+      },
+      "type": "header-custom",
+    },
+  ],
+  "udp": [],
+}
+`;
+
+exports[`FinalMaskStreamSettingsSchema fixtures > parses udp-mask byte-stably 1`] = `
+{
+  "tcp": [],
+  "udp": [
+    {
+      "settings": {
+        "password": "swordfish",
+      },
+      "type": "salamander",
+    },
+    {
+      "settings": {
+        "password": "abcdef0123456789",
+      },
+      "type": "mkcp-aes128gcm",
+    },
+    {
+      "settings": {
+        "domain": "cloudflare.com",
+      },
+      "type": "header-dns",
+    },
+    {
+      "type": "header-wireguard",
+    },
+    {
+      "settings": {
+        "noise": [
+          {
+            "delay": "10-16",
+            "rand": "10-20",
+            "type": "rand",
+          },
+          {
+            "delay": "5",
+            "packet": [
+              "ping",
+            ],
+            "type": "str",
+          },
+        ],
+        "reset": "60",
+      },
+      "type": "noise",
+    },
+    {
+      "settings": {
+        "domains": [
+          "example.com:txt",
+          "example.org:a",
+        ],
+        "resolvers": [
+          "example.com:txt+udp://1.1.1.1:53",
+        ],
+      },
+      "type": "xdns",
+    },
+    {
+      "settings": {
+        "id": 0,
+        "listenIp": "0.0.0.0",
+      },
+      "type": "xicmp",
+    },
+  ],
+}
+`;

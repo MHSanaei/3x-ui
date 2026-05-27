@@ -1,41 +1,71 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
   Form,
   Input,
   InputNumber,
-  message,
   Modal,
   Radio,
   Select,
   Space,
   Switch,
   Tabs,
-  Checkbox,
+  message,
 } from 'antd';
-import { SyncOutlined, PlusOutlined, MinusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { DeleteOutlined, MinusOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 
-import { Wireguard } from '@/utils';
-import InputAddon from '@/components/InputAddon';
-import {
-  Outbound,
-  Protocols,
-  SSMethods,
-  TLS_FLOW_CONTROL,
-  UTLS_FINGERPRINT,
-  ALPN_OPTION,
-  SNIFFING_OPTION,
-  USERS_SECURITY,
-  OutboundDomainStrategies,
-  WireguardDomainStrategy,
-  Address_Port_Strategy,
-  MODE_OPTION,
-  DNSRuleActions,
-} from '@/models/outbound';
 import FinalMaskForm from '@/components/FinalMaskForm';
+import HeaderMapEditor from '@/components/HeaderMapEditor';
+import InputAddon from '@/components/InputAddon';
 import JsonEditor from '@/components/JsonEditor';
+import { Wireguard } from '@/utils';
+import {
+  formValuesToWirePayload,
+  rawOutboundToFormValues,
+} from '@/lib/xray/outbound-form-adapter';
+import { parseOutboundLink } from '@/lib/xray/outbound-link-parser';
+import {
+  OutboundFormBaseSchema,
+  ShadowsocksOutboundFormSettingsSchema,
+  TrojanOutboundFormSettingsSchema,
+  VlessOutboundFormSettingsSchema,
+  VmessOutboundFormSettingsSchema,
+  type OutboundFormValues,
+} from '@/schemas/forms/outbound-form';
+import {
+  ALPN_OPTION,
+  Address_Port_Strategy,
+  DNSRuleActions,
+  DOMAIN_STRATEGY_OPTION,
+  MODE_OPTION,
+  OutboundDomainStrategies,
+  OutboundProtocols as Protocols,
+  SNIFFING_OPTION,
+  TCP_CONGESTION_OPTION,
+  TLS_FLOW_CONTROL,
+  USERS_SECURITY,
+  UTLS_FINGERPRINT,
+  WireguardDomainStrategy,
+} from '@/schemas/primitives';
+import {
+  HappyEyeballsSchema,
+  SockoptStreamSettingsSchema,
+} from '@/schemas/protocols/stream/sockopt';
+import {
+  canEnableReality,
+  canEnableStream,
+  canEnableTls,
+  canEnableTlsFlow,
+} from '@/lib/xray/protocol-capabilities';
+import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
+import { antdRule } from '@/utils/zodForm';
 import './OutboundFormModal.css';
+
+// Pattern A rewrite of OutboundFormModal. Built as a sibling `.new.tsx`
+// file so the build stays green section-by-section. The atomic swap at
+// the end of the rewrite replaces the legacy file in one commit
+// (per Core Decision 7 in the migration spec).
 
 interface OutboundFormModalProps {
   open: boolean;
@@ -45,20 +75,104 @@ interface OutboundFormModalProps {
   onConfirm: (outbound: Record<string, unknown>) => void;
 }
 
-const PROTOCOL_OPTIONS = Object.values(Protocols) as string[];
-const SECURITY_OPTIONS = Object.values(USERS_SECURITY) as string[];
-const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL) as string[];
-const UTLS_OPTIONS = Object.values(UTLS_FINGERPRINT) as string[];
-const ALPN_OPTIONS = Object.values(ALPN_OPTION) as string[];
-const NETWORKS = ['tcp', 'kcp', 'ws', 'grpc', 'httpupgrade', 'xhttp'];
-const NETWORK_LABELS: Record<string, string> = {
-  tcp: 'TCP (RAW)',
-  kcp: 'mKCP',
-  ws: 'WebSocket',
-  grpc: 'gRPC',
-  httpupgrade: 'HTTPUpgrade',
-  xhttp: 'XHTTP',
-};
+const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
+const SECURITY_OPTIONS = Object.values(USERS_SECURITY).map((v) => ({ value: v, label: v }));
+const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL).map((v) => ({ value: v, label: v }));
+const SS_METHOD_OPTIONS = SSMethodSchema.options.map((v) => ({ value: v, label: v }));
+const MODE_OPTIONS = Object.values(MODE_OPTION).map((v) => ({ value: v, label: v }));
+const UTLS_OPTIONS = Object.values(UTLS_FINGERPRINT).map((v) => ({ value: v, label: v }));
+const ALPN_OPTIONS = Object.values(ALPN_OPTION).map((v) => ({ value: v, label: v }));
+const ADDRESS_PORT_STRATEGY_OPTIONS = Object.values(Address_Port_Strategy).map((v) => ({
+  value: v,
+  label: v,
+}));
+
+// canEnableMux mirrors the adapter's helper but lives here so the modal
+// can show/hide the Mux section without going through the adapter.
+const MUX_PROTOCOLS = new Set<string>(['vmess', 'vless', 'trojan', 'shadowsocks', 'http', 'socks']);
+function isMuxAllowed(protocol: string, flow: string, network: string): boolean {
+  if (!MUX_PROTOCOLS.has(protocol)) return false;
+  if (protocol === 'vless' && flow) return false;
+  if (network === 'xhttp') return false;
+  return true;
+}
+
+const NETWORK_OPTIONS: { value: string; label: string }[] = [
+  { value: 'tcp', label: 'TCP (RAW)' },
+  { value: 'kcp', label: 'mKCP' },
+  { value: 'ws', label: 'WebSocket' },
+  { value: 'grpc', label: 'gRPC' },
+  { value: 'httpupgrade', label: 'HTTPUpgrade' },
+  { value: 'xhttp', label: 'XHTTP' },
+];
+
+// Hysteria appends an extra `hysteria` network branch to the selector
+// — only when the parent protocol is hysteria. Wire-side this matches
+// the legacy modal's `isHysteria ? [...NETWORKS, 'hysteria'] : NETWORKS`.
+const HYSTERIA_NETWORK_OPTION = { value: 'hysteria', label: 'Hysteria' };
+
+// Per-network bootstrap. Mirrors the legacy class constructors so the
+// initial state for each transport matches what xray-core expects.
+function newStreamSlice(network: string): Record<string, unknown> {
+  switch (network) {
+    case 'tcp':
+      return { network: 'tcp', tcpSettings: { header: { type: 'none' } } };
+    case 'kcp':
+      return {
+        network: 'kcp',
+        kcpSettings: {
+          mtu: 1350, tti: 20, uplinkCapacity: 5, downlinkCapacity: 20,
+          cwndMultiplier: 1, maxSendingWindow: 2097152,
+        },
+      };
+    case 'ws':
+      return {
+        network: 'ws',
+        wsSettings: { path: '/', host: '', headers: {}, heartbeatPeriod: 0 },
+      };
+    case 'grpc':
+      return {
+        network: 'grpc',
+        grpcSettings: { serviceName: '', authority: '', multiMode: false },
+      };
+    case 'httpupgrade':
+      return {
+        network: 'httpupgrade',
+        httpupgradeSettings: { path: '/', host: '', headers: {} },
+      };
+    case 'xhttp':
+      return {
+        network: 'xhttp',
+        xhttpSettings: {
+          path: '/', host: '', mode: '', headers: [],
+          xPaddingBytes: '100-1000', scMaxEachPostBytes: '1000000',
+        },
+      };
+    case 'hysteria':
+      return {
+        network: 'hysteria',
+        hysteriaSettings: {
+          version: 2,
+          auth: '',
+          udpIdleTimeout: 60,
+        },
+      };
+    default:
+      return { network: 'tcp', tcpSettings: { header: { type: 'none' } } };
+  }
+}
+
+// Protocols whose form schema carries a flat connect target — these all
+// get the shared "server" sub-block (address + port) at the top of the
+// protocol section. Wireguard has an address but no port. DNS/freedom/
+// blackhole/loopback have no connect target.
+const SERVER_PROTOCOLS = new Set<string>([
+  'vmess', 'vless', 'trojan', 'shadowsocks', 'socks', 'http', 'hysteria',
+]);
+
+function buildAddModeValues(): OutboundFormValues {
+  return rawOutboundToFormValues({});
+}
 
 export default function OutboundFormModal({
   open,
@@ -69,203 +183,227 @@ export default function OutboundFormModal({
 }: OutboundFormModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const outboundRef = useRef<any>(null);
-  const [, setTick] = useState(0);
+  const [form] = Form.useForm<OutboundFormValues>();
   const [activeKey, setActiveKey] = useState('1');
+  const [jsonText, setJsonText] = useState('');
+  const [jsonDirty, setJsonDirty] = useState(false);
   const [linkInput, setLinkInput] = useState('');
-  const [advancedJson, setAdvancedJson] = useState('');
-  const revertingTabRef = useRef(false);
 
-  const isEdit = outboundProp != null;
-
-  const refresh = useCallback(() => setTick((n) => n + 1), []);
-
-  const primeAdvancedJson = useCallback(() => {
-    const ob = outboundRef.current;
-    if (!ob) {
-      setAdvancedJson('');
+  // Parse a share link (vmess:// / vless:// / trojan:// / ss:// /
+  // hysteria2://) and replace form state with the result. The current
+  // tag is preserved when the parsed link doesn't carry one.
+  function importLink() {
+    const link = linkInput.trim();
+    if (!link) return;
+    const parsed = parseOutboundLink(link);
+    if (!parsed) {
+      messageApi.error('Wrong Link!');
       return;
     }
-    try {
-      setAdvancedJson(JSON.stringify(ob.toJson(), null, 2));
-    } catch {
-      setAdvancedJson('');
-    }
-  }, []);
+    const currentTag = form.getFieldValue('tag') as string | undefined;
+    if (!parsed.tag && currentTag) parsed.tag = currentTag;
+    const next = rawOutboundToFormValues(parsed);
+    form.resetFields();
+    form.setFieldsValue(next);
+    setJsonText(JSON.stringify(formValuesToWirePayload(next), null, 2));
+    setJsonDirty(false);
+    setLinkInput('');
+    messageApi.success('Link imported successfully');
+    switchTab('1');
+  }
+
+  const isEdit = outboundProp != null;
+  const title = isEdit
+    ? `${t('edit')} ${t('pages.xray.Outbounds')}`
+    : `+ ${t('pages.xray.Outbounds')}`;
+  const okText = isEdit ? t('pages.clients.submitEdit') : t('create');
 
   useEffect(() => {
     if (!open) return;
-    outboundRef.current = outboundProp
-      ? Outbound.fromJson(outboundProp)
-      : new Outbound();
+    const initial = outboundProp
+      ? rawOutboundToFormValues(outboundProp)
+      : buildAddModeValues();
+    form.resetFields();
+    form.setFieldsValue(initial);
     setActiveKey('1');
-    setLinkInput('');
-    primeAdvancedJson();
-    refresh();
+    setJsonText(JSON.stringify(formValuesToWirePayload(initial), null, 2));
+    setJsonDirty(false);
+  }, [open, outboundProp, form]);
+
+  const tag = Form.useWatch('tag', form) ?? '';
+  const protocol = (Form.useWatch('protocol', form) ?? 'vless') as string;
+  // preserve: true — without it useWatch only reflects values whose
+  // Form.Item is currently mounted. The streamSettings selectors live
+  // INSIDE `{streamAllowed && network && (...)}`, so the moment that
+  // conditional gates them out, useWatch returns undefined, the gate
+  // keeps returning false, and the stream block never renders even
+  // though streamSettings is in the form store.
+  const network = (Form.useWatch(['streamSettings', 'network'], { form, preserve: true }) ?? '') as string;
+  const security = (Form.useWatch(['streamSettings', 'security'], { form, preserve: true }) ?? 'none') as string;
+
+  const streamAllowed = canEnableStream({ protocol });
+  const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
+  const realityAllowed = canEnableReality({ protocol, streamSettings: { network, security } });
+  const tlsFlowAllowed = canEnableTlsFlow({ protocol, streamSettings: { network, security } });
+
+  // Seed streamSettings when the user picks a protocol that supports
+  // streams but the form does not yet have a stream slice (new outbound,
+  // or wire payload arrived without streamSettings).
+  useEffect(() => {
+    if (!streamAllowed) return;
+    if (network) return;
+    form.setFieldValue('streamSettings', { ...newStreamSlice('tcp'), security: 'none' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, outboundProp]);
+  }, [streamAllowed, network]);
 
-  function applyAdvancedJsonToForm(): boolean {
-    const raw = advancedJson.trim();
-    if (!raw) return true;
-    const ob = outboundRef.current;
-    let currentJson = '';
-    try {
-      currentJson = JSON.stringify(ob?.toJson() ?? {}, null, 2);
-    } catch {
-      /* ignore */
-    }
-    if (raw === currentJson.trim()) return true;
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (e) {
-      messageApi.error(`JSON: ${(e as Error).message}`);
-      return false;
-    }
-    try {
-      const fallbackTag = ob?.tag;
-      const next = Outbound.fromJson(parsed);
-      if (!next.tag && fallbackTag) next.tag = fallbackTag;
-      outboundRef.current = next;
-      refresh();
-      return true;
-    } catch (e) {
-      messageApi.error(`JSON: ${(e as Error).message}`);
-      return false;
-    }
-  }
-
-  function onTabChange(key: string) {
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-    if (revertingTabRef.current) {
-      revertingTabRef.current = false;
-      setActiveKey(key);
+  // Wireguard pubKey is a UI-only field derived from secretKey on every
+  // edit. The legacy modal did the same on every keystroke. We re-derive
+  // here so paste-in secret keys immediately surface the matching pub.
+  const wgSecretKey = Form.useWatch(['settings', 'secretKey'], form) as string | undefined;
+  useEffect(() => {
+    if (protocol !== 'wireguard') return;
+    const sk = (wgSecretKey ?? '').trim();
+    if (!sk) {
+      form.setFieldValue(['settings', 'pubKey'], '');
       return;
     }
-    const prev = activeKey;
-    if (key === '2') {
-      primeAdvancedJson();
-      setActiveKey(key);
-    } else if (key === '1' && prev === '2') {
-      if (!applyAdvancedJsonToForm()) {
-        revertingTabRef.current = true;
-        setActiveKey('2');
-      } else {
-        setActiveKey(key);
-      }
-    } else {
-      setActiveKey(key);
+    try {
+      const { publicKey } = Wireguard.generateKeypair(sk);
+      form.setFieldValue(['settings', 'pubKey'], publicKey);
+    } catch {
+      form.setFieldValue(['settings', 'pubKey'], '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [protocol, wgSecretKey]);
+
+  // Switching protocol resets the settings sub-object to fresh defaults
+  // so leftover fields from the previous protocol do not bleed through.
+  // The adapter's rawOutboundToFormValues seeds whatever the new protocol
+  // expects (vless flat shape, vmess flat shape, wireguard with secretKey
+  // placeholder, etc.).
+  function onValuesChange(changed: Partial<OutboundFormValues>) {
+    if ('protocol' in changed && changed.protocol) {
+      const next = rawOutboundToFormValues({ protocol: changed.protocol });
+      form.setFieldValue('settings', next.settings);
     }
   }
 
-  const ob = outboundRef.current;
-
-  const proto = ob?.protocol;
-  const isVMess = proto === Protocols.VMess;
-  const isVLESS = proto === Protocols.VLESS;
-  const isVMessOrVLess = isVMess || isVLESS;
-  const isTrojan = proto === Protocols.Trojan;
-  const isShadowsocks = proto === Protocols.Shadowsocks;
-  const isFreedom = proto === Protocols.Freedom;
-  const isBlackhole = proto === Protocols.Blackhole;
-  const isDNS = proto === Protocols.DNS;
-  const isWireguard = proto === Protocols.Wireguard;
-  const isHysteria = proto === Protocols.Hysteria;
-  const isLoopback = proto === Protocols.Loopback;
-
-  function onProtocolChange(next: string) {
-    if (!ob) return;
-    ob.protocol = next;
-    refresh();
+  // Security change cascade: swap the security sub-key so the DU branch
+  // matches. Seed default field values when entering tls/reality so the
+  // sub-forms render without `undefined` field references.
+  function onSecurityChange(next: string) {
+    const stream = form.getFieldValue('streamSettings') ?? {};
+    const cleaned = { ...stream } as Record<string, unknown>;
+    delete cleaned.tlsSettings;
+    delete cleaned.realitySettings;
+    if (next === 'tls') {
+      cleaned.tlsSettings = {
+        serverName: '',
+        alpn: [],
+        fingerprint: '',
+        echConfigList: '',
+        verifyPeerCertByName: '',
+        pinnedPeerCertSha256: '',
+      };
+    } else if (next === 'reality') {
+      cleaned.realitySettings = {
+        publicKey: '',
+        fingerprint: 'chrome',
+        serverName: '',
+        shortId: '',
+        spiderX: '',
+        mldsa65Verify: '',
+      };
+    }
+    cleaned.security = next;
+    form.setFieldValue('streamSettings', cleaned);
   }
 
-  function streamNetworkChange(next: string) {
-    if (!ob?.stream) return;
-    ob.stream.network = next;
-    if (!ob.canEnableTls()) ob.stream.security = 'none';
-    refresh();
-  }
-
-  function regenerateWgKeys() {
-    if (!ob?.settings) return;
-    const pair = Wireguard.generateKeypair();
-    ob.settings.secretKey = pair.privateKey;
-    ob.settings.pubKey = pair.publicKey;
-    refresh();
+  // Network change cascade: swap the per-network sub-key (tcpSettings,
+  // wsSettings, etc.) so the DU branch matches. Preserve security if
+  // the new network supports it, otherwise force back to 'none'.
+  function onNetworkChange(next: string) {
+    const currentSecurity = form.getFieldValue(['streamSettings', 'security']) ?? 'none';
+    const stillAllowed = canEnableTls({ protocol, streamSettings: { network: next, security: currentSecurity } });
+    const stillReality = canEnableReality({ protocol, streamSettings: { network: next, security: currentSecurity } });
+    const newSecurity =
+      currentSecurity === 'tls' && !stillAllowed
+        ? 'none'
+        : currentSecurity === 'reality' && !stillReality
+          ? 'none'
+          : currentSecurity;
+    form.setFieldValue('streamSettings', { ...newStreamSlice(next), security: newSecurity });
   }
 
   const duplicateTag = useMemo(() => {
-    if (!ob?.tag) return false;
-    const myTag = ob.tag.trim();
+    const myTag = tag.trim();
     if (!myTag) return false;
     if (isEdit && (outboundProp?.tag as string | undefined) === myTag) return false;
     return (existingTags || []).includes(myTag);
-  }, [ob?.tag, existingTags, isEdit, outboundProp]);
+  }, [tag, existingTags, isEdit, outboundProp]);
 
-  const tagEmpty = !ob?.tag?.trim();
+  // Bridge form ↔ JSON tab: when leaving the JSON tab back to Basic, push
+  // any edits into form state. When entering JSON tab, snapshot current
+  // form values so the user sees the live shape.
+  function applyJsonToForm(): boolean {
+    if (!jsonDirty) return true;
+    const raw = jsonText.trim();
+    if (!raw) return true;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(raw) as Record<string, unknown>;
+    } catch (e) {
+      messageApi.error(`JSON: ${(e as Error).message}`);
+      return false;
+    }
+    const next = rawOutboundToFormValues(parsed);
+    form.resetFields();
+    form.setFieldsValue(next);
+    setJsonDirty(false);
+    return true;
+  }
 
-  const tagValidateStatus: 'error' | 'warning' | 'success' = tagEmpty
-    ? 'error'
-    : duplicateTag
-      ? 'warning'
-      : 'success';
+  // Wrap every tab switch with a blur of the active element. AntD marks
+  // the outgoing panel `aria-hidden="true"` synchronously when the
+  // controlled activeKey flips; if a focused input is still inside that
+  // panel (e.g. Input.Search on the JSON tab after user hits Enter to
+  // import), Chrome logs a WAI-ARIA warning. Doing the blur right
+  // before setActiveKey ensures the panel is unfocused by the time
+  // AntD applies the attribute.
+  function switchTab(key: string) {
+    if (typeof document !== 'undefined') {
+      (document.activeElement as HTMLElement | null)?.blur?.();
+    }
+    setActiveKey(key);
+  }
 
-  const tagHelp = tagEmpty
-    ? 'Tag is required'
-    : duplicateTag
-      ? 'Tag already used by another outbound'
-      : '';
+  function onTabChange(key: string) {
+    if (key === '2') {
+      const values = form.getFieldsValue(true) as OutboundFormValues;
+      setJsonText(JSON.stringify(formValuesToWirePayload(values), null, 2));
+      setJsonDirty(false);
+      switchTab(key);
+      return;
+    }
+    if (key === '1' && activeKey === '2') {
+      if (!applyJsonToForm()) return;
+    }
+    switchTab(key);
+  }
 
-  function onOk() {
-    if (!ob) return;
-    if (activeKey === '2' && !applyAdvancedJsonToForm()) return;
-    if (!ob.tag?.trim()) {
-      messageApi.error('Tag is required');
+  async function onOk() {
+    if (activeKey === '2' && !applyJsonToForm()) return;
+    let values: OutboundFormValues;
+    try {
+      values = await form.validateFields();
+    } catch {
       return;
     }
     if (duplicateTag) {
       messageApi.error('Tag already used by another outbound');
       return;
     }
-    onConfirm(ob.toJson());
-  }
-
-  function convertLink() {
-    const link = linkInput.trim();
-    if (!link) return;
-    try {
-      const next = Outbound.fromLink(link);
-      if (!next) {
-        messageApi.error('Wrong Link!');
-        return;
-      }
-      outboundRef.current = next;
-      primeAdvancedJson();
-      setLinkInput('');
-      messageApi.success('Link imported successfully...');
-      setActiveKey('1');
-      refresh();
-    } catch (e) {
-      messageApi.error(`Link parse: ${(e as Error).message}`);
-    }
-  }
-
-  const title = isEdit
-    ? `${t('edit')} ${t('pages.xray.Outbounds')}`
-    : `+ ${t('pages.xray.Outbounds')}`;
-  const okText = isEdit ? t('pages.clients.submitEdit') : t('create');
-
-  if (!ob) {
-    return (
-      <>
-        {messageContextHolder}
-        <Modal open={open} title={title} footer={null} onCancel={onClose} />
-      </>
-    );
+    onConfirm(formValuesToWirePayload(values));
   }
 
   return (
@@ -280,1192 +418,1827 @@ export default function OutboundFormModal({
         width={780}
         onOk={onOk}
         onCancel={onClose}
+        destroyOnHidden
       >
-      <Tabs
-        activeKey={activeKey}
-        onChange={onTabChange}
-        items={[
-          {
-            key: '1',
-            label: t('pages.xray.basicTemplate'),
-            children: (
-              <>
-              <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 14 } }}>
-                <Form.Item label={t('protocol')}>
-                  <Select
-                    value={proto}
-                    onChange={onProtocolChange}
-                    options={PROTOCOL_OPTIONS.map((p) => ({ value: p, label: p }))}
-                  />
-                </Form.Item>
+        <Form
+          form={form}
+          colon={false}
+          labelCol={{ md: { span: 8 } }}
+          wrapperCol={{ md: { span: 14 } }}
+          onValuesChange={onValuesChange}
+        >
+          <Tabs
+            activeKey={activeKey}
+            onChange={onTabChange}
+            items={[
+              {
+                key: '1',
+                label: t('pages.xray.basicTemplate'),
+                children: (
+                  <>
+                    <Form.Item
+                      label={t('protocol')}
+                      name="protocol"
+                      rules={[antdRule(OutboundFormBaseSchema.shape.tag, t)]}
+                    >
+                      <Select options={PROTOCOL_OPTIONS} />
+                    </Form.Item>
 
-                <Form.Item label="Tag" validateStatus={tagValidateStatus} help={tagHelp} hasFeedback>
-                  <Input
-                    value={ob.tag}
-                    placeholder="unique-tag"
-                    onChange={(e) => {
-                      ob.tag = e.target.value;
-                      refresh();
-                    }}
-                  />
-                </Form.Item>
-
-                <Form.Item label="Send through">
-                  <Input
-                    value={ob.sendThrough || ''}
-                    placeholder="local IP"
-                    onChange={(e) => {
-                      ob.sendThrough = e.target.value;
-                      refresh();
-                    }}
-                  />
-                </Form.Item>
-
-                {isFreedom && <FreedomFields ob={ob} refresh={refresh} />}
-                {isBlackhole && (
-                  <Form.Item label="Response Type">
-                    <Select
-                      value={ob.settings.type || ''}
-                      onChange={(v) => { ob.settings.type = v; refresh(); }}
-                      options={[
-                        { value: '', label: '(empty)' },
-                        { value: 'none', label: 'none' },
-                        { value: 'http', label: 'http' },
+                    <Form.Item
+                      label="Tag"
+                      name="tag"
+                      validateStatus={duplicateTag ? 'warning' : undefined}
+                      help={duplicateTag ? 'Tag already used by another outbound' : undefined}
+                      rules={[
+                        { required: true, message: 'Tag is required' },
                       ]}
+                    >
+                      <Input placeholder="unique-tag" />
+                    </Form.Item>
+
+                    <Form.Item label="Send through" name="sendThrough">
+                      <Input placeholder="local IP" />
+                    </Form.Item>
+
+                    {/* Shared connect target (address + port) for protocols
+                        whose form schema carries them flat at settings root.
+                        Hidden for freedom/blackhole/dns/loopback/wireguard. */}
+                    {SERVER_PROTOCOLS.has(protocol) && (
+                      <>
+                        <Form.Item
+                          label={t('pages.inbounds.address')}
+                          name={['settings', 'address']}
+                          rules={[{ required: true, message: 'Address is required' }]}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          label={t('pages.inbounds.port')}
+                          name={['settings', 'port']}
+                          rules={[{ required: true, message: 'Port is required' }]}
+                        >
+                          <InputNumber min={1} max={65535} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </>
+                    )}
+
+                    {(protocol === 'vmess' || protocol === 'vless') && (
+                      <Form.Item
+                        label="ID"
+                        name={['settings', 'id']}
+                        rules={[antdRule(VmessOutboundFormSettingsSchema.shape.id, t)]}
+                      >
+                        <Input placeholder="UUID" />
+                      </Form.Item>
+                    )}
+                    {protocol === 'vmess' && (
+                      <Form.Item
+                        label={t('security')}
+                        name={['settings', 'security']}
+                        rules={[antdRule(VmessOutboundFormSettingsSchema.shape.security, t)]}
+                      >
+                        <Select options={SECURITY_OPTIONS} />
+                      </Form.Item>
+                    )}
+                    {protocol === 'vless' && (
+                      <>
+                        <Form.Item
+                          label={t('encryption')}
+                          name={['settings', 'encryption']}
+                          rules={[antdRule(VlessOutboundFormSettingsSchema.shape.encryption, t)]}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item label="Reverse tag" name={['settings', 'reverseTag']}>
+                          <Input placeholder="optional" />
+                        </Form.Item>
+                      </>
+                    )}
+
+                    {(protocol === 'trojan' || protocol === 'shadowsocks') && (
+                      <Form.Item
+                        label={t('password')}
+                        name={['settings', 'password']}
+                        rules={[
+                          antdRule(
+                            protocol === 'trojan'
+                              ? TrojanOutboundFormSettingsSchema.shape.password
+                              : ShadowsocksOutboundFormSettingsSchema.shape.password,
+                            t,
+                          ),
+                        ]}
+                      >
+                        <Input />
+                      </Form.Item>
+                    )}
+
+                    {protocol === 'shadowsocks' && (
+                      <>
+                        <Form.Item
+                          label={t('encryption')}
+                          name={['settings', 'method']}
+                          rules={[antdRule(SSMethodSchema, t)]}
+                        >
+                          <Select options={SS_METHOD_OPTIONS} />
+                        </Form.Item>
+                        <Form.Item
+                          label="UDP over TCP"
+                          name={['settings', 'uot']}
+                          valuePropName="checked"
+                        >
+                          <Switch />
+                        </Form.Item>
+                        <Form.Item label="UoT version" name={['settings', 'UoTVersion']}>
+                          <InputNumber min={1} max={2} />
+                        </Form.Item>
+                      </>
+                    )}
+
+                    {(protocol === 'socks' || protocol === 'http') && (
+                      <>
+                        <Form.Item label={t('username')} name={['settings', 'user']}>
+                          <Input />
+                        </Form.Item>
+                        <Form.Item label={t('password')} name={['settings', 'pass']}>
+                          <Input />
+                        </Form.Item>
+                      </>
+                    )}
+
+                    {protocol === 'hysteria' && (
+                      <Form.Item label="Version" name={['settings', 'version']}>
+                        <InputNumber min={2} max={2} disabled />
+                      </Form.Item>
+                    )}
+
+                    {protocol === 'loopback' && (
+                      <Form.Item label="Inbound tag" name={['settings', 'inboundTag']}>
+                        <Input placeholder="inbound tag used in routing rules" />
+                      </Form.Item>
+                    )}
+
+                    {protocol === 'blackhole' && (
+                      <Form.Item label="Response type" name={['settings', 'type']}>
+                        <Select
+                          options={[
+                            { value: '', label: '(empty)' },
+                            { value: 'none', label: 'none' },
+                            { value: 'http', label: 'http' },
+                          ]}
+                        />
+                      </Form.Item>
+                    )}
+
+                    {protocol === 'dns' && (
+                      <>
+                        <Form.Item label="Rewrite network" name={['settings', 'rewriteNetwork']}>
+                          <Select
+                            allowClear
+                            placeholder="(unchanged)"
+                            options={[
+                              { value: 'udp', label: 'udp' },
+                              { value: 'tcp', label: 'tcp' },
+                            ]}
+                          />
+                        </Form.Item>
+                        <Form.Item label="Rewrite address" name={['settings', 'rewriteAddress']}>
+                          <Input placeholder="(unchanged) e.g. 1.1.1.1" />
+                        </Form.Item>
+                        <Form.Item label="Rewrite port" name={['settings', 'rewritePort']}>
+                          <InputNumber min={0} max={65535} style={{ width: '100%' }} />
+                        </Form.Item>
+                        <Form.Item label="User level" name={['settings', 'userLevel']}>
+                          <InputNumber min={0} style={{ width: '100%' }} />
+                        </Form.Item>
+                        <Form.List name={['settings', 'rules']}>
+                          {(fields, { add, remove }) => (
+                            <>
+                              <Form.Item label="Rules">
+                                <Button
+                                  size="small"
+                                  type="primary"
+                                  icon={<PlusOutlined />}
+                                  onClick={() => add({ action: 'direct', qtype: '', domain: '' })}
+                                />
+                              </Form.Item>
+                              {fields.map((field, index) => (
+                                <div key={field.key}>
+                                  <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
+                                    <div className="item-heading">
+                                      <span>Rule {index + 1}</span>
+                                      <DeleteOutlined
+                                        className="danger-icon"
+                                        onClick={() => remove(field.name)}
+                                      />
+                                    </div>
+                                  </Form.Item>
+                                  <Form.Item label="Action" name={[field.name, 'action']}>
+                                    <Select
+                                      options={DNSRuleActions.map((a) => ({ value: a, label: a }))}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item label="QType" name={[field.name, 'qtype']}>
+                                    <Input placeholder="1,3,23-24" />
+                                  </Form.Item>
+                                  <Form.Item label={t('domainName')} name={[field.name, 'domain']}>
+                                    <Input placeholder="domain:example.com" />
+                                  </Form.Item>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </Form.List>
+                      </>
+                    )}
+
+                    {protocol === 'freedom' && (
+                      <>
+                        <Form.Item label="Strategy" name={['settings', 'domainStrategy']}>
+                          <Select
+                            options={[
+                              { value: '', label: `(${t('none')})` },
+                              ...OutboundDomainStrategies.map((s) => ({ value: s, label: s })),
+                            ]}
+                          />
+                        </Form.Item>
+                        <Form.Item label="Redirect" name={['settings', 'redirect']}>
+                          <Input />
+                        </Form.Item>
+
+                        <Form.Item label="Fragment" shouldUpdate noStyle>
+                          {() => {
+                            const fragment = (form.getFieldValue(['settings', 'fragment']) ?? {}) as {
+                              packets?: string;
+                              length?: string;
+                              interval?: string;
+                              maxSplit?: string;
+                            };
+                            const enabled = !!(fragment.length || fragment.interval || fragment.maxSplit);
+                            return (
+                              <>
+                                <Form.Item label="Fragment">
+                                  <Switch
+                                    checked={enabled}
+                                    onChange={(checked) => {
+                                      form.setFieldValue(
+                                        ['settings', 'fragment'],
+                                        checked
+                                          ? {
+                                              packets: 'tlshello',
+                                              length: '100-200',
+                                              interval: '10-20',
+                                              maxSplit: '300-400',
+                                            }
+                                          : { packets: '', length: '', interval: '', maxSplit: '' },
+                                      );
+                                    }}
+                                  />
+                                </Form.Item>
+                                {enabled && (
+                                  <>
+                                    <Form.Item
+                                      label="Packets"
+                                      name={['settings', 'fragment', 'packets']}
+                                    >
+                                      <Select
+                                        options={[
+                                          { value: '1-3', label: '1-3' },
+                                          { value: 'tlshello', label: 'tlshello' },
+                                        ]}
+                                      />
+                                    </Form.Item>
+                                    <Form.Item label="Length" name={['settings', 'fragment', 'length']}>
+                                      <Input />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Interval"
+                                      name={['settings', 'fragment', 'interval']}
+                                    >
+                                      <Input />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Max Split"
+                                      name={['settings', 'fragment', 'maxSplit']}
+                                    >
+                                      <Input />
+                                    </Form.Item>
+                                  </>
+                                )}
+                              </>
+                            );
+                          }}
+                        </Form.Item>
+
+                        <Form.List name={['settings', 'noises']}>
+                          {(fields, { add, remove }) => (
+                            <>
+                              <Form.Item label="Noises">
+                                <Switch
+                                  checked={fields.length > 0}
+                                  onChange={(checked) => {
+                                    if (checked) {
+                                      add({
+                                        type: 'rand',
+                                        packet: '10-20',
+                                        delay: '10-16',
+                                        applyTo: 'ip',
+                                      });
+                                    } else {
+                                      // remove() with no arg is not supported;
+                                      // walk fields in reverse and drop each.
+                                      for (let i = fields.length - 1; i >= 0; i--) {
+                                        remove(fields[i].name);
+                                      }
+                                    }
+                                  }}
+                                />
+                                {fields.length > 0 && (
+                                  <Button
+                                    size="small"
+                                    type="primary"
+                                    className="ml-8"
+                                    icon={<PlusOutlined />}
+                                    onClick={() =>
+                                      add({
+                                        type: 'rand',
+                                        packet: '10-20',
+                                        delay: '10-16',
+                                        applyTo: 'ip',
+                                      })
+                                    }
+                                  />
+                                )}
+                              </Form.Item>
+                              {fields.map((field, index) => (
+                                <div key={field.key}>
+                                  <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
+                                    <div className="item-heading">
+                                      <span>Noise {index + 1}</span>
+                                      {fields.length > 1 && (
+                                        <DeleteOutlined
+                                          className="danger-icon"
+                                          onClick={() => remove(field.name)}
+                                        />
+                                      )}
+                                    </div>
+                                  </Form.Item>
+                                  <Form.Item label="Type" name={[field.name, 'type']}>
+                                    <Select
+                                      options={['rand', 'base64', 'str', 'hex'].map((v) => ({
+                                        value: v,
+                                        label: v,
+                                      }))}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item label="Packet" name={[field.name, 'packet']}>
+                                    <Input />
+                                  </Form.Item>
+                                  <Form.Item label="Delay (ms)" name={[field.name, 'delay']}>
+                                    <Input />
+                                  </Form.Item>
+                                  <Form.Item label="Apply to" name={[field.name, 'applyTo']}>
+                                    <Select
+                                      options={['ip', 'ipv4', 'ipv6'].map((v) => ({
+                                        value: v,
+                                        label: v,
+                                      }))}
+                                    />
+                                  </Form.Item>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </Form.List>
+
+                        <Form.List name={['settings', 'finalRules']}>
+                          {(fields, { add, remove }) => (
+                            <>
+                              <Form.Item label="Final Rules">
+                                <Button
+                                  size="small"
+                                  type="primary"
+                                  icon={<PlusOutlined />}
+                                  onClick={() =>
+                                    add({
+                                      action: 'allow',
+                                      network: '',
+                                      port: '',
+                                      ip: [],
+                                      blockDelay: '',
+                                    })
+                                  }
+                                />
+                                <span className="ml-8" style={{ opacity: 0.6 }}>
+                                  Override Xray&apos;s default private-IP block
+                                </span>
+                              </Form.Item>
+                              {fields.map((field, index) => (
+                                <div key={field.key}>
+                                  <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
+                                    <div className="item-heading">
+                                      <span>Rule {index + 1}</span>
+                                      <DeleteOutlined
+                                        className="danger-icon"
+                                        onClick={() => remove(field.name)}
+                                      />
+                                    </div>
+                                  </Form.Item>
+                                  <Form.Item label="Action" name={[field.name, 'action']}>
+                                    <Select
+                                      options={['allow', 'block'].map((v) => ({
+                                        value: v,
+                                        label: v,
+                                      }))}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item label="Network" name={[field.name, 'network']}>
+                                    <Select
+                                      allowClear
+                                      placeholder="(any)"
+                                      options={['tcp', 'udp', 'tcp,udp'].map((v) => ({
+                                        value: v,
+                                        label: v,
+                                      }))}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item label="Port" name={[field.name, 'port']}>
+                                    <Input placeholder="e.g. 80,443 or 1000-2000" />
+                                  </Form.Item>
+                                  <Form.Item label="IP / CIDR / geoip" name={[field.name, 'ip']}>
+                                    <Select
+                                      mode="tags"
+                                      tokenSeparators={[',', ' ']}
+                                      placeholder="e.g. 10.0.0.0/8, geoip:private"
+                                    />
+                                  </Form.Item>
+                                  <Form.Item shouldUpdate noStyle>
+                                    {() => {
+                                      const ruleAction = form.getFieldValue([
+                                        'settings',
+                                        'finalRules',
+                                        field.name,
+                                        'action',
+                                      ]);
+                                      if (ruleAction !== 'block') return null;
+                                      return (
+                                        <Form.Item
+                                          label="Block delay (ms)"
+                                          name={[field.name, 'blockDelay']}
+                                        >
+                                          <Input placeholder="optional: 5000-10000" />
+                                        </Form.Item>
+                                      );
+                                    }}
+                                  </Form.Item>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </Form.List>
+                      </>
+                    )}
+
+                    {protocol === 'vless' && (
+                      <Form.Item shouldUpdate noStyle>
+                        {() => {
+                          const reverseTag = form.getFieldValue(['settings', 'reverseTag']);
+                          if (!reverseTag) return null;
+                          const sniff = (form.getFieldValue(['settings', 'reverseSniffing']) ?? {}) as {
+                            enabled?: boolean;
+                          };
+                          return (
+                            <>
+                              <Form.Item
+                                label="Reverse Sniffing"
+                                name={['settings', 'reverseSniffing', 'enabled']}
+                                valuePropName="checked"
+                              >
+                                <Switch />
+                              </Form.Item>
+                              {sniff.enabled && (
+                                <>
+                                  <Form.Item
+                                    wrapperCol={{ md: { span: 14, offset: 8 } }}
+                                    name={['settings', 'reverseSniffing', 'destOverride']}
+                                  >
+                                    <Select
+                                      mode="multiple"
+                                      className="sniffing-options"
+                                      options={Object.entries(SNIFFING_OPTION).map(([k, v]) => ({
+                                        value: v,
+                                        label: k,
+                                      }))}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Metadata Only"
+                                    name={['settings', 'reverseSniffing', 'metadataOnly']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Route Only"
+                                    name={['settings', 'reverseSniffing', 'routeOnly']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="IPs Excluded"
+                                    name={['settings', 'reverseSniffing', 'ipsExcluded']}
+                                  >
+                                    <Select
+                                      mode="tags"
+                                      tokenSeparators={[',']}
+                                      placeholder="IP/CIDR/geoip:*"
+                                    />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Domains Excluded"
+                                    name={['settings', 'reverseSniffing', 'domainsExcluded']}
+                                  >
+                                    <Select
+                                      mode="tags"
+                                      tokenSeparators={[',']}
+                                      placeholder="domain:*"
+                                    />
+                                  </Form.Item>
+                                </>
+                              )}
+                            </>
+                          );
+                        }}
+                      </Form.Item>
+                    )}
+
+                    {protocol === 'wireguard' && (
+                      <>
+                        <Form.Item label={t('pages.inbounds.address')} name={['settings', 'address']}>
+                          <Input placeholder="comma-separated, e.g. 10.0.0.1,fd00::1" />
+                        </Form.Item>
+                        <Form.Item
+                          label={
+                            <>
+                              {t('pages.inbounds.privatekey')}
+                              <SyncOutlined
+                                className="random-icon"
+                                onClick={() => {
+                                  const pair = Wireguard.generateKeypair();
+                                  form.setFieldValue(['settings', 'secretKey'], pair.privateKey);
+                                  form.setFieldValue(['settings', 'pubKey'], pair.publicKey);
+                                }}
+                              />
+                            </>
+                          }
+                          name={['settings', 'secretKey']}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item label={t('pages.inbounds.publicKey')} name={['settings', 'pubKey']}>
+                          <Input disabled />
+                        </Form.Item>
+                        <Form.Item label="Domain strategy" name={['settings', 'domainStrategy']}>
+                          <Select
+                            options={[
+                              { value: '', label: `(${t('none')})` },
+                              ...WireguardDomainStrategy.map((s) => ({ value: s, label: s })),
+                            ]}
+                          />
+                        </Form.Item>
+                        <Form.Item label="MTU" name={['settings', 'mtu']}>
+                          <InputNumber min={0} />
+                        </Form.Item>
+                        <Form.Item label="Workers" name={['settings', 'workers']}>
+                          <InputNumber min={0} />
+                        </Form.Item>
+                        <Form.Item
+                          label="No-kernel TUN"
+                          name={['settings', 'noKernelTun']}
+                          valuePropName="checked"
+                        >
+                          <Switch />
+                        </Form.Item>
+                        <Form.Item label="Reserved" name={['settings', 'reserved']}>
+                          <Input placeholder="comma-separated bytes, e.g. 1,2,3" />
+                        </Form.Item>
+                        <Form.List name={['settings', 'peers']}>
+                          {(fields, { add, remove }) => (
+                            <>
+                              <Form.Item label="Peers">
+                                <Button
+                                  size="small"
+                                  type="primary"
+                                  icon={<PlusOutlined />}
+                                  onClick={() =>
+                                    add({
+                                      publicKey: '',
+                                      psk: '',
+                                      allowedIPs: ['0.0.0.0/0', '::/0'],
+                                      endpoint: '',
+                                      keepAlive: 0,
+                                    })
+                                  }
+                                />
+                              </Form.Item>
+                              {fields.map((field, index) => (
+                                <div key={field.key}>
+                                  <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
+                                    <div className="item-heading">
+                                      <span>Peer {index + 1}</span>
+                                      {fields.length > 1 && (
+                                        <DeleteOutlined
+                                          className="danger-icon"
+                                          onClick={() => remove(field.name)}
+                                        />
+                                      )}
+                                    </div>
+                                  </Form.Item>
+                                  <Form.Item label="Endpoint" name={[field.name, 'endpoint']}>
+                                    <Input />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label={t('pages.inbounds.publicKey')}
+                                    name={[field.name, 'publicKey']}
+                                  >
+                                    <Input />
+                                  </Form.Item>
+                                  <Form.Item label="PSK" name={[field.name, 'psk']}>
+                                    <Input />
+                                  </Form.Item>
+                                  <Form.Item label="Allowed IPs">
+                                    <Form.List name={[field.name, 'allowedIPs']}>
+                                      {(ipFields, { add: addIp, remove: removeIp }) => (
+                                        <>
+                                          {ipFields.map((ipField, ipIdx) => (
+                                            <Space.Compact
+                                              key={ipField.key}
+                                              block
+                                              style={{ marginBottom: 4 }}
+                                            >
+                                              <Form.Item noStyle name={ipField.name}>
+                                                <Input />
+                                              </Form.Item>
+                                              {ipFields.length > 1 && (
+                                                <InputAddon onClick={() => removeIp(ipIdx)}>
+                                                  <MinusOutlined />
+                                                </InputAddon>
+                                              )}
+                                            </Space.Compact>
+                                          ))}
+                                          <Button
+                                            size="small"
+                                            icon={<PlusOutlined />}
+                                            onClick={() => addIp('')}
+                                          />
+                                        </>
+                                      )}
+                                    </Form.List>
+                                  </Form.Item>
+                                  <Form.Item label="Keep alive" name={[field.name, 'keepAlive']}>
+                                    <InputNumber min={0} />
+                                  </Form.Item>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </Form.List>
+                      </>
+                    )}
+
+                    {streamAllowed && network && (
+                      <>
+                        <Form.Item
+                          label={t('transmission')}
+                          name={['streamSettings', 'network']}
+                        >
+                          <Select
+                            value={network}
+                            onChange={onNetworkChange}
+                            options={
+                              protocol === 'hysteria'
+                                ? [...NETWORK_OPTIONS, HYSTERIA_NETWORK_OPTION]
+                                : NETWORK_OPTIONS
+                            }
+                          />
+                        </Form.Item>
+
+                        {network === 'tcp' && (
+                          <Form.Item shouldUpdate noStyle>
+                            {() => {
+                              const type =
+                                form.getFieldValue([
+                                  'streamSettings',
+                                  'tcpSettings',
+                                  'header',
+                                  'type',
+                                ]) ?? 'none';
+                              return (
+                                <>
+                                  <Form.Item label={`HTTP ${t('camouflage')}`}>
+                                    <Switch
+                                      checked={type === 'http'}
+                                      onChange={(checked) =>
+                                        form.setFieldValue(
+                                          ['streamSettings', 'tcpSettings', 'header'],
+                                          checked
+                                            ? {
+                                                type: 'http',
+                                                request: {
+                                                  version: '1.1',
+                                                  method: 'GET',
+                                                  path: ['/'],
+                                                  headers: {},
+                                                },
+                                                response: {
+                                                  version: '1.1',
+                                                  status: '200',
+                                                  reason: 'OK',
+                                                  headers: {},
+                                                },
+                                              }
+                                            : { type: 'none' },
+                                        )
+                                      }
+                                    />
+                                  </Form.Item>
+                                  {type === 'http' && (
+                                    <>
+                                      <Form.Item
+                                        label="Request method"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'request', 'method',
+                                        ]}
+                                      >
+                                        <Input placeholder="GET" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label="Request version"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'request', 'version',
+                                        ]}
+                                      >
+                                        <Input placeholder="1.1" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label={t('host')}
+                                        name={[
+                                          'streamSettings',
+                                          'tcpSettings',
+                                          'header',
+                                          'request',
+                                          'headers',
+                                          'Host',
+                                        ]}
+                                        normalize={(v: unknown) =>
+                                          typeof v === 'string'
+                                            ? v.split(',').map((s) => s.trim()).filter(Boolean)
+                                            : Array.isArray(v) ? v : []
+                                        }
+                                        getValueProps={(v: unknown) => ({
+                                          value: Array.isArray(v) ? v.join(',') : '',
+                                        })}
+                                      >
+                                        <Input placeholder="example.com,cdn.example.com" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label={t('path')}
+                                        name={[
+                                          'streamSettings',
+                                          'tcpSettings',
+                                          'header',
+                                          'request',
+                                          'path',
+                                        ]}
+                                        normalize={(v: unknown) =>
+                                          typeof v === 'string'
+                                            ? v.split(',').map((s) => s.trim()).filter(Boolean)
+                                            : Array.isArray(v) ? v : ['/']
+                                        }
+                                        getValueProps={(v: unknown) => ({
+                                          value: Array.isArray(v) ? v.join(',') : '/',
+                                        })}
+                                      >
+                                        <Input placeholder="/,/api,/static" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label="Request headers"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'request', 'headers',
+                                        ]}
+                                      >
+                                        <HeaderMapEditor mode="v2" />
+                                      </Form.Item>
+
+                                      <Form.Item
+                                        label="Response version"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'response', 'version',
+                                        ]}
+                                      >
+                                        <Input placeholder="1.1" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label="Response status"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'response', 'status',
+                                        ]}
+                                      >
+                                        <Input placeholder="200" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label="Response reason"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'response', 'reason',
+                                        ]}
+                                      >
+                                        <Input placeholder="OK" />
+                                      </Form.Item>
+                                      <Form.Item
+                                        label="Response headers"
+                                        name={[
+                                          'streamSettings', 'tcpSettings', 'header',
+                                          'response', 'headers',
+                                        ]}
+                                      >
+                                        <HeaderMapEditor mode="v2" />
+                                      </Form.Item>
+                                    </>
+                                  )}
+                                </>
+                              );
+                            }}
+                          </Form.Item>
+                        )}
+
+                        {network === 'kcp' && (
+                          <>
+                            <Form.Item label="MTU" name={['streamSettings', 'kcpSettings', 'mtu']}>
+                              <InputNumber min={0} />
+                            </Form.Item>
+                            <Form.Item label="TTI (ms)" name={['streamSettings', 'kcpSettings', 'tti']}>
+                              <InputNumber min={0} />
+                            </Form.Item>
+                            <Form.Item
+                              label="Uplink (MB/s)"
+                              name={['streamSettings', 'kcpSettings', 'uplinkCapacity']}
+                            >
+                              <InputNumber min={0} />
+                            </Form.Item>
+                            <Form.Item
+                              label="Downlink (MB/s)"
+                              name={['streamSettings', 'kcpSettings', 'downlinkCapacity']}
+                            >
+                              <InputNumber min={0} />
+                            </Form.Item>
+                            <Form.Item
+                              label="CWND multiplier"
+                              name={['streamSettings', 'kcpSettings', 'cwndMultiplier']}
+                            >
+                              <InputNumber min={1} />
+                            </Form.Item>
+                            <Form.Item
+                              label="Max sending window"
+                              name={['streamSettings', 'kcpSettings', 'maxSendingWindow']}
+                            >
+                              <InputNumber min={0} />
+                            </Form.Item>
+                          </>
+                        )}
+
+                        {network === 'ws' && (
+                          <>
+                            <Form.Item label={t('host')} name={['streamSettings', 'wsSettings', 'host']}>
+                              <Input />
+                            </Form.Item>
+                            <Form.Item label={t('path')} name={['streamSettings', 'wsSettings', 'path']}>
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="Heartbeat (s)"
+                              name={['streamSettings', 'wsSettings', 'heartbeatPeriod']}
+                            >
+                              <InputNumber min={0} />
+                            </Form.Item>
+                            <Form.Item
+                              label="Headers"
+                              name={['streamSettings', 'wsSettings', 'headers']}
+                            >
+                              <HeaderMapEditor mode="v1" />
+                            </Form.Item>
+                          </>
+                        )}
+
+                        {network === 'grpc' && (
+                          <>
+                            <Form.Item
+                              label="Service name"
+                              name={['streamSettings', 'grpcSettings', 'serviceName']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="Authority"
+                              name={['streamSettings', 'grpcSettings', 'authority']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="Multi mode"
+                              name={['streamSettings', 'grpcSettings', 'multiMode']}
+                              valuePropName="checked"
+                            >
+                              <Switch />
+                            </Form.Item>
+                          </>
+                        )}
+
+                        {network === 'httpupgrade' && (
+                          <>
+                            <Form.Item
+                              label={t('host')}
+                              name={['streamSettings', 'httpupgradeSettings', 'host']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label={t('path')}
+                              name={['streamSettings', 'httpupgradeSettings', 'path']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="Headers"
+                              name={['streamSettings', 'httpupgradeSettings', 'headers']}
+                            >
+                              <HeaderMapEditor mode="v1" />
+                            </Form.Item>
+                          </>
+                        )}
+
+                        {network === 'xhttp' && (
+                          <>
+                            <Form.Item
+                              label={t('host')}
+                              name={['streamSettings', 'xhttpSettings', 'host']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label={t('path')}
+                              name={['streamSettings', 'xhttpSettings', 'path']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="Mode"
+                              name={['streamSettings', 'xhttpSettings', 'mode']}
+                            >
+                              <Select options={MODE_OPTIONS} />
+                            </Form.Item>
+                            <Form.Item
+                              label="Padding Bytes"
+                              name={['streamSettings', 'xhttpSettings', 'xPaddingBytes']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="Headers"
+                              name={['streamSettings', 'xhttpSettings', 'headers']}
+                            >
+                              <HeaderMapEditor mode="v1" />
+                            </Form.Item>
+
+                            {/* Padding obfs sub-section: gated by a Switch.
+                                When on, four extra knobs (key/header/placement/
+                                method) tune how Xray injects random padding to
+                                disguise the post body shape. */}
+                            <Form.Item
+                              label="Padding obfs mode"
+                              name={['streamSettings', 'xhttpSettings', 'xPaddingObfsMode']}
+                              valuePropName="checked"
+                            >
+                              <Switch />
+                            </Form.Item>
+                            <Form.Item shouldUpdate noStyle>
+                              {() => {
+                                const obfs = !!form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'xPaddingObfsMode',
+                                ]);
+                                if (!obfs) return null;
+                                return (
+                                  <>
+                                    <Form.Item
+                                      label="Padding key"
+                                      name={['streamSettings', 'xhttpSettings', 'xPaddingKey']}
+                                    >
+                                      <Input placeholder="x_padding" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Padding header"
+                                      name={['streamSettings', 'xhttpSettings', 'xPaddingHeader']}
+                                    >
+                                      <Input placeholder="X-Padding" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Padding placement"
+                                      name={['streamSettings', 'xhttpSettings', 'xPaddingPlacement']}
+                                    >
+                                      <Select
+                                        options={[
+                                          { value: '', label: 'Default (queryInHeader)' },
+                                          { value: 'queryInHeader', label: 'queryInHeader' },
+                                          { value: 'header', label: 'header' },
+                                          { value: 'cookie', label: 'cookie' },
+                                          { value: 'query', label: 'query' },
+                                        ]}
+                                      />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Padding method"
+                                      name={['streamSettings', 'xhttpSettings', 'xPaddingMethod']}
+                                    >
+                                      <Select
+                                        options={[
+                                          { value: '', label: 'Default (repeat-x)' },
+                                          { value: 'repeat-x', label: 'repeat-x' },
+                                          { value: 'tokenish', label: 'tokenish' },
+                                        ]}
+                                      />
+                                    </Form.Item>
+                                  </>
+                                );
+                              }}
+                            </Form.Item>
+
+                            <Form.Item
+                              noStyle
+                              shouldUpdate={(prev, curr) =>
+                                prev?.streamSettings?.xhttpSettings?.mode !==
+                                curr?.streamSettings?.xhttpSettings?.mode
+                              }
+                            >
+                              {() => {
+                                const mode = form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'mode',
+                                ]);
+                                return (
+                                  <Form.Item
+                                    label="Uplink HTTP method"
+                                    name={['streamSettings', 'xhttpSettings', 'uplinkHTTPMethod']}
+                                  >
+                                    <Select
+                                      placeholder="Default (POST)"
+                                      options={[
+                                        { value: '', label: 'Default (POST)' },
+                                        { value: 'POST', label: 'POST' },
+                                        { value: 'PUT', label: 'PUT' },
+                                        { value: 'GET', label: 'GET (packet-up only)', disabled: mode !== 'packet-up' },
+                                      ]}
+                                    />
+                                  </Form.Item>
+                                );
+                              }}
+                            </Form.Item>
+
+                            {/* Session + sequence + uplinkData placements:
+                                three orthogonal slots Xray uses to thread
+                                request metadata through the transport
+                                (path / header / cookie / query). Key field
+                                only matters when placement is not 'path'. */}
+                            <Form.Item
+                              label="Session placement"
+                              name={['streamSettings', 'xhttpSettings', 'sessionPlacement']}
+                            >
+                              <Select
+                                placeholder="Default (path)"
+                                options={[
+                                  { value: '', label: 'Default (path)' },
+                                  { value: 'path', label: 'path' },
+                                  { value: 'header', label: 'header' },
+                                  { value: 'cookie', label: 'cookie' },
+                                  { value: 'query', label: 'query' },
+                                ]}
+                              />
+                            </Form.Item>
+                            <Form.Item shouldUpdate noStyle>
+                              {() => {
+                                const placement = form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'sessionPlacement',
+                                ]);
+                                if (!placement || placement === 'path') return null;
+                                return (
+                                  <Form.Item
+                                    label="Session key"
+                                    name={['streamSettings', 'xhttpSettings', 'sessionKey']}
+                                  >
+                                    <Input placeholder="x_session" />
+                                  </Form.Item>
+                                );
+                              }}
+                            </Form.Item>
+                            <Form.Item
+                              label="Sequence placement"
+                              name={['streamSettings', 'xhttpSettings', 'seqPlacement']}
+                            >
+                              <Select
+                                placeholder="Default (path)"
+                                options={[
+                                  { value: '', label: 'Default (path)' },
+                                  { value: 'path', label: 'path' },
+                                  { value: 'header', label: 'header' },
+                                  { value: 'cookie', label: 'cookie' },
+                                  { value: 'query', label: 'query' },
+                                ]}
+                              />
+                            </Form.Item>
+                            <Form.Item shouldUpdate noStyle>
+                              {() => {
+                                const placement = form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'seqPlacement',
+                                ]);
+                                if (!placement || placement === 'path') return null;
+                                return (
+                                  <Form.Item
+                                    label="Sequence key"
+                                    name={['streamSettings', 'xhttpSettings', 'seqKey']}
+                                  >
+                                    <Input placeholder="x_seq" />
+                                  </Form.Item>
+                                );
+                              }}
+                            </Form.Item>
+
+                            {/* Mode-conditional sub-sections. */}
+                            <Form.Item shouldUpdate noStyle>
+                              {() => {
+                                const mode = form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'mode',
+                                ]);
+                                if (mode !== 'packet-up') return null;
+                                return (
+                                  <>
+                                    <Form.Item
+                                      label="Min upload interval (ms)"
+                                      name={['streamSettings', 'xhttpSettings', 'scMinPostsIntervalMs']}
+                                    >
+                                      <Input placeholder="30" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Max upload size (bytes)"
+                                      name={['streamSettings', 'xhttpSettings', 'scMaxEachPostBytes']}
+                                    >
+                                      <Input placeholder="1000000" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Uplink data placement"
+                                      name={['streamSettings', 'xhttpSettings', 'uplinkDataPlacement']}
+                                    >
+                                      <Select
+                                        options={[
+                                          { value: '', label: 'Default (body)' },
+                                          { value: 'body', label: 'body' },
+                                          { value: 'header', label: 'header' },
+                                          { value: 'cookie', label: 'cookie' },
+                                          { value: 'query', label: 'query' },
+                                        ]}
+                                      />
+                                    </Form.Item>
+                                    <Form.Item shouldUpdate noStyle>
+                                      {() => {
+                                        const place = form.getFieldValue([
+                                          'streamSettings', 'xhttpSettings', 'uplinkDataPlacement',
+                                        ]);
+                                        if (!place || place === 'body') return null;
+                                        return (
+                                          <>
+                                            <Form.Item
+                                              label="Uplink data key"
+                                              name={['streamSettings', 'xhttpSettings', 'uplinkDataKey']}
+                                            >
+                                              <Input placeholder="x_data" />
+                                            </Form.Item>
+                                            <Form.Item
+                                              label="Uplink chunk size"
+                                              name={['streamSettings', 'xhttpSettings', 'uplinkChunkSize']}
+                                            >
+                                              <InputNumber
+                                                min={0}
+                                                placeholder="0 (unlimited)"
+                                                style={{ width: '100%' }}
+                                              />
+                                            </Form.Item>
+                                          </>
+                                        );
+                                      }}
+                                    </Form.Item>
+                                  </>
+                                );
+                              }}
+                            </Form.Item>
+                            <Form.Item shouldUpdate noStyle>
+                              {() => {
+                                const mode = form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'mode',
+                                ]);
+                                if (mode !== 'stream-up' && mode !== 'stream-one') return null;
+                                return (
+                                  <Form.Item
+                                    label="No gRPC header"
+                                    name={['streamSettings', 'xhttpSettings', 'noGRPCHeader']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                );
+                              }}
+                            </Form.Item>
+
+                            {/* XMUX is the connection-multiplexing layer
+                                xHTTP uses to fan out parallel requests over
+                                a small pool of upstream connections. UI-only
+                                toggle (enableXmux) hides the 6 nested knobs
+                                when off. */}
+                            <Form.Item
+                              label="XMUX"
+                              name={['streamSettings', 'xhttpSettings', 'enableXmux']}
+                              valuePropName="checked"
+                            >
+                              <Switch />
+                            </Form.Item>
+                            <Form.Item shouldUpdate noStyle>
+                              {() => {
+                                if (!form.getFieldValue([
+                                  'streamSettings', 'xhttpSettings', 'enableXmux',
+                                ])) return null;
+                                return (
+                                  <>
+                                    <Form.Item
+                                      label="Max concurrency"
+                                      name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConcurrency']}
+                                    >
+                                      <Input placeholder="16-32" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Max connections"
+                                      name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConnections']}
+                                    >
+                                      <Input placeholder="0" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Max reuse times"
+                                      name={['streamSettings', 'xhttpSettings', 'xmux', 'cMaxReuseTimes']}
+                                    >
+                                      <Input />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Max request times"
+                                      name={['streamSettings', 'xhttpSettings', 'xmux', 'hMaxRequestTimes']}
+                                    >
+                                      <Input placeholder="600-900" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Max reusable secs"
+                                      name={['streamSettings', 'xhttpSettings', 'xmux', 'hMaxReusableSecs']}
+                                    >
+                                      <Input placeholder="1800-3000" />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="Keep alive period"
+                                      name={['streamSettings', 'xhttpSettings', 'xmux', 'hKeepAlivePeriod']}
+                                    >
+                                      <InputNumber min={0} style={{ width: '100%' }} />
+                                    </Form.Item>
+                                  </>
+                                );
+                              }}
+                            </Form.Item>
+                          </>
+                        )}
+
+                        {network === 'hysteria' && (
+                          <>
+                            <Form.Item
+                              label="Auth password"
+                              name={['streamSettings', 'hysteriaSettings', 'auth']}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="UDP idle timeout (s)"
+                              name={['streamSettings', 'hysteriaSettings', 'udpIdleTimeout']}
+                            >
+                              <InputNumber min={1} style={{ width: '100%' }} />
+                            </Form.Item>
+                          </>
+                        )}
+                      </>
+                    )}
+
+                    {tlsFlowAllowed && (
+                      <Form.Item label="Flow" name={['settings', 'flow']}>
+                        <Select
+                          allowClear
+                          placeholder={t('none')}
+                          options={FLOW_OPTIONS}
+                        />
+                      </Form.Item>
+                    )}
+
+                    {/* Vision seed knobs only meaningful for the exact
+                        xtls-rprx-vision flow, on TCP+(tls|reality). The
+                        legacy class gated this on `canEnableVisionSeed()`
+                        — same condition encoded inline here. */}
+                    <Form.Item shouldUpdate noStyle>
+                      {() => {
+                        const flow =
+                          (form.getFieldValue(['settings', 'flow']) ?? '') as string;
+                        if (!(tlsFlowAllowed && flow === 'xtls-rprx-vision')) return null;
+                        return (
+                          <>
+                            <Form.Item label="Vision testpre" name={['settings', 'testpre']}>
+                              <InputNumber min={0} style={{ width: '100%' }} />
+                            </Form.Item>
+                            <Form.Item
+                              label="Vision testseed"
+                              name={['settings', 'testseed']}
+                              normalize={(v: unknown) =>
+                                Array.isArray(v)
+                                  ? v
+                                      .map((x) => Number(x))
+                                      .filter((n) => Number.isInteger(n) && n > 0)
+                                  : []
+                              }
+                            >
+                              <Select
+                                mode="tags"
+                                tokenSeparators={[',', ' ']}
+                                placeholder="four positive integers"
+                              />
+                            </Form.Item>
+                          </>
+                        );
+                      }}
+                    </Form.Item>
+
+                    {streamAllowed && network && (
+                      <Form.Item label={t('security')}>
+                        <Radio.Group
+                          value={security}
+                          buttonStyle="solid"
+                          onChange={(e) => onSecurityChange(e.target.value as string)}
+                        >
+                          <Radio.Button value="none">{t('none')}</Radio.Button>
+                          {tlsAllowed && <Radio.Button value="tls">TLS</Radio.Button>}
+                          {realityAllowed && <Radio.Button value="reality">Reality</Radio.Button>}
+                        </Radio.Group>
+                      </Form.Item>
+                    )}
+
+                    {security === 'tls' && tlsAllowed && (
+                      <>
+                        <Form.Item
+                          label="SNI"
+                          name={['streamSettings', 'tlsSettings', 'serverName']}
+                        >
+                          <Input placeholder="server name" />
+                        </Form.Item>
+                        <Form.Item
+                          label="uTLS"
+                          name={['streamSettings', 'tlsSettings', 'fingerprint']}
+                        >
+                          <Select
+                            allowClear
+                            placeholder={t('none')}
+                            options={UTLS_OPTIONS}
+                          />
+                        </Form.Item>
+                        <Form.Item
+                          label="ALPN"
+                          name={['streamSettings', 'tlsSettings', 'alpn']}
+                        >
+                          <Select mode="multiple" options={ALPN_OPTIONS} />
+                        </Form.Item>
+                        <Form.Item
+                          label="ECH"
+                          name={['streamSettings', 'tlsSettings', 'echConfigList']}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          label="Verify peer name"
+                          name={['streamSettings', 'tlsSettings', 'verifyPeerCertByName']}
+                        >
+                          <Input placeholder="cloudflare-dns.com" />
+                        </Form.Item>
+                        <Form.Item
+                          label="Pinned SHA256"
+                          name={['streamSettings', 'tlsSettings', 'pinnedPeerCertSha256']}
+                        >
+                          <Input placeholder="base64 SHA256" />
+                        </Form.Item>
+                      </>
+                    )}
+
+                    {security === 'reality' && realityAllowed && (
+                      <>
+                        <Form.Item
+                          label="SNI"
+                          name={['streamSettings', 'realitySettings', 'serverName']}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          label="uTLS"
+                          name={['streamSettings', 'realitySettings', 'fingerprint']}
+                        >
+                          <Select options={UTLS_OPTIONS} />
+                        </Form.Item>
+                        <Form.Item
+                          label="Short ID"
+                          name={['streamSettings', 'realitySettings', 'shortId']}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          label="SpiderX"
+                          name={['streamSettings', 'realitySettings', 'spiderX']}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          label={t('pages.inbounds.publicKey')}
+                          name={['streamSettings', 'realitySettings', 'publicKey']}
+                        >
+                          <Input.TextArea autoSize={{ minRows: 2 }} />
+                        </Form.Item>
+                        <Form.Item
+                          label="mldsa65 verify"
+                          name={['streamSettings', 'realitySettings', 'mldsa65Verify']}
+                        >
+                          <Input.TextArea autoSize={{ minRows: 2 }} />
+                        </Form.Item>
+                      </>
+                    )}
+
+                    {((streamAllowed && network) || !streamAllowed) && (
+                      <Form.Item shouldUpdate noStyle>
+                        {() => {
+                          const hasSockopt = !!form.getFieldValue([
+                            'streamSettings',
+                            'sockopt',
+                          ]);
+                          return (
+                            <>
+                              <Form.Item label="Sockopts">
+                                <Switch
+                                  checked={hasSockopt}
+                                  onChange={(checked) => {
+                                    form.setFieldValue(
+                                      ['streamSettings', 'sockopt'],
+                                      checked ? SockoptStreamSettingsSchema.parse({}) : undefined,
+                                    );
+                                  }}
+                                />
+                              </Form.Item>
+                              {hasSockopt && (
+                                <>
+                                  <Form.Item
+                                    label="Dialer proxy"
+                                    name={['streamSettings', 'sockopt', 'dialerProxy']}
+                                  >
+                                    <Input />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Domain strategy"
+                                    name={['streamSettings', 'sockopt', 'domainStrategy']}
+                                  >
+                                    <Select
+                                      options={Object.values(DOMAIN_STRATEGY_OPTION).map((v) => ({
+                                        value: v,
+                                        label: v,
+                                      }))}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Address+port strategy"
+                                    name={['streamSettings', 'sockopt', 'addressPortStrategy']}
+                                  >
+                                    <Select options={ADDRESS_PORT_STRATEGY_OPTIONS} />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Keep alive interval"
+                                    name={['streamSettings', 'sockopt', 'tcpKeepAliveInterval']}
+                                  >
+                                    <InputNumber min={0} />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TCP Fast Open"
+                                    name={['streamSettings', 'sockopt', 'tcpFastOpen']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Multipath TCP"
+                                    name={['streamSettings', 'sockopt', 'tcpMptcp']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Penetrate"
+                                    name={['streamSettings', 'sockopt', 'penetrate']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Mark (fwmark)"
+                                    name={['streamSettings', 'sockopt', 'mark']}
+                                  >
+                                    <InputNumber min={0} />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Interface"
+                                    name={['streamSettings', 'sockopt', 'interfaceName']}
+                                  >
+                                    <Input />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TProxy"
+                                    name={['streamSettings', 'sockopt', 'tproxy']}
+                                  >
+                                    <Select
+                                      options={[
+                                        { value: 'off', label: 'off' },
+                                        { value: 'redirect', label: 'redirect' },
+                                        { value: 'tproxy', label: 'tproxy' },
+                                      ]}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TCP congestion"
+                                    name={['streamSettings', 'sockopt', 'tcpcongestion']}
+                                  >
+                                    <Select
+                                      options={Object.values(TCP_CONGESTION_OPTION).map((v) => ({
+                                        value: v,
+                                        label: v,
+                                      }))}
+                                    />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="IPv6 only"
+                                    name={['streamSettings', 'sockopt', 'V6Only']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Accept proxy protocol"
+                                    name={['streamSettings', 'sockopt', 'acceptProxyProtocol']}
+                                    valuePropName="checked"
+                                  >
+                                    <Switch />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TCP user timeout (ms)"
+                                    name={['streamSettings', 'sockopt', 'tcpUserTimeout']}
+                                  >
+                                    <InputNumber min={0} style={{ width: '100%' }} />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TCP keep-alive idle (s)"
+                                    name={['streamSettings', 'sockopt', 'tcpKeepAliveIdle']}
+                                  >
+                                    <InputNumber min={0} style={{ width: '100%' }} />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TCP max segment"
+                                    name={['streamSettings', 'sockopt', 'tcpMaxSeg']}
+                                  >
+                                    <InputNumber min={0} style={{ width: '100%' }} />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="TCP window clamp"
+                                    name={['streamSettings', 'sockopt', 'tcpWindowClamp']}
+                                  >
+                                    <InputNumber min={0} style={{ width: '100%' }} />
+                                  </Form.Item>
+                                  <Form.Item
+                                    label="Trusted X-Forwarded-For"
+                                    name={['streamSettings', 'sockopt', 'trustedXForwardedFor']}
+                                  >
+                                    <Select
+                                      mode="tags"
+                                      tokenSeparators={[',', ' ']}
+                                      placeholder="trusted-proxy.example,10.0.0.0/8"
+                                    />
+                                  </Form.Item>
+                                  <Form.Item shouldUpdate noStyle>
+                                    {() => {
+                                      const he = form.getFieldValue([
+                                        'streamSettings', 'sockopt', 'happyEyeballs',
+                                      ]);
+                                      const hasHe = he != null;
+                                      return (
+                                        <>
+                                          <Form.Item label="Happy Eyeballs">
+                                            <Switch
+                                              checked={hasHe}
+                                              onChange={(v) => {
+                                                form.setFieldValue(
+                                                  ['streamSettings', 'sockopt', 'happyEyeballs'],
+                                                  v ? HappyEyeballsSchema.parse({}) : undefined,
+                                                );
+                                              }}
+                                            />
+                                          </Form.Item>
+                                          {hasHe && (
+                                            <>
+                                              <Form.Item
+                                                label="Try delay (ms)"
+                                                name={['streamSettings', 'sockopt', 'happyEyeballs', 'tryDelayMs']}
+                                              >
+                                                <InputNumber min={0} style={{ width: '100%' }} placeholder="0 (disabled) — 250 recommended" />
+                                              </Form.Item>
+                                              <Form.Item
+                                                label="Prioritize IPv6"
+                                                name={['streamSettings', 'sockopt', 'happyEyeballs', 'prioritizeIPv6']}
+                                                valuePropName="checked"
+                                              >
+                                                <Switch />
+                                              </Form.Item>
+                                              <Form.Item
+                                                label="Interleave"
+                                                name={['streamSettings', 'sockopt', 'happyEyeballs', 'interleave']}
+                                              >
+                                                <InputNumber min={1} style={{ width: '100%' }} />
+                                              </Form.Item>
+                                              <Form.Item
+                                                label="Max concurrent try"
+                                                name={['streamSettings', 'sockopt', 'happyEyeballs', 'maxConcurrentTry']}
+                                              >
+                                                <InputNumber min={0} style={{ width: '100%' }} />
+                                              </Form.Item>
+                                            </>
+                                          )}
+                                        </>
+                                      );
+                                    }}
+                                  </Form.Item>
+                                  <Form.List name={['streamSettings', 'sockopt', 'customSockopt']}>
+                                    {(fields, { add, remove }) => (
+                                      <>
+                                        <Form.Item label="Custom sockopt">
+                                          <Button
+                                            type="dashed"
+                                            size="small"
+                                            onClick={() => add({ type: 'int', level: '6', opt: '', value: '' })}
+                                          >
+                                            + Add custom option
+                                          </Button>
+                                        </Form.Item>
+                                        {fields.map((field) => (
+                                          <Space.Compact key={field.key} style={{ display: 'flex', marginBottom: 8 }}>
+                                            <Form.Item name={[field.name, 'system']} noStyle>
+                                              <Select
+                                                placeholder="all"
+                                                allowClear
+                                                style={{ width: 100 }}
+                                                options={[
+                                                  { value: 'linux', label: 'linux' },
+                                                  { value: 'windows', label: 'windows' },
+                                                  { value: 'darwin', label: 'darwin' },
+                                                ]}
+                                              />
+                                            </Form.Item>
+                                            <Form.Item name={[field.name, 'type']} noStyle>
+                                              <Select
+                                                style={{ width: 80 }}
+                                                options={[
+                                                  { value: 'int', label: 'int' },
+                                                  { value: 'str', label: 'str' },
+                                                ]}
+                                              />
+                                            </Form.Item>
+                                            <Form.Item name={[field.name, 'level']} noStyle>
+                                              <Input placeholder="level (6=TCP)" style={{ width: 100 }} />
+                                            </Form.Item>
+                                            <Form.Item name={[field.name, 'opt']} noStyle>
+                                              <Input placeholder="opt (decimal)" style={{ width: 120 }} />
+                                            </Form.Item>
+                                            <Form.Item name={[field.name, 'value']} noStyle>
+                                              <Input placeholder="value" style={{ flex: 1 }} />
+                                            </Form.Item>
+                                            <Button danger onClick={() => remove(field.name)}>−</Button>
+                                          </Space.Compact>
+                                        ))}
+                                      </>
+                                    )}
+                                  </Form.List>
+                                </>
+                              )}
+                            </>
+                          );
+                        }}
+                      </Form.Item>
+                    )}
+
+                    <FinalMaskForm
+                      name={['streamSettings', 'finalmask']}
+                      network={network}
+                      protocol={protocol}
+                      form={form}
                     />
-                  </Form.Item>
-                )}
-                {isLoopback && (
-                  <Form.Item label="Inbound tag">
-                    <Input
-                      value={ob.settings.inboundTag || ''}
-                      placeholder="inbound tag using in routing rules"
-                      onChange={(e) => { ob.settings.inboundTag = e.target.value; refresh(); }}
+
+                    {(() => {
+                      const flow = (form.getFieldValue(['settings', 'flow']) ?? '') as string;
+                      if (!isMuxAllowed(protocol, flow, network)) return null;
+                      return (
+                        <Form.Item shouldUpdate noStyle>
+                          {() => {
+                            const muxEnabled = !!form.getFieldValue(['mux', 'enabled']);
+                            return (
+                              <>
+                                <Form.Item
+                                  label={t('pages.settings.mux')}
+                                  name={['mux', 'enabled']}
+                                  valuePropName="checked"
+                                >
+                                  <Switch />
+                                </Form.Item>
+                                {muxEnabled && (
+                                  <>
+                                    <Form.Item
+                                      label="Concurrency"
+                                      name={['mux', 'concurrency']}
+                                    >
+                                      <InputNumber min={-1} max={1024} />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="xudp concurrency"
+                                      name={['mux', 'xudpConcurrency']}
+                                    >
+                                      <InputNumber min={-1} max={1024} />
+                                    </Form.Item>
+                                    <Form.Item
+                                      label="xudp UDP 443"
+                                      name={['mux', 'xudpProxyUDP443']}
+                                    >
+                                      <Select
+                                        options={['reject', 'allow', 'skip'].map((v) => ({
+                                          value: v,
+                                          label: v,
+                                        }))}
+                                      />
+                                    </Form.Item>
+                                  </>
+                                )}
+                              </>
+                            );
+                          }}
+                        </Form.Item>
+                      );
+                    })()}
+                  </>
+                ),
+              },
+              {
+                key: '2',
+                label: 'JSON',
+                children: (
+                  <Space orientation="vertical" size={10} style={{ width: '100%', marginTop: 10 }}>
+                    <Input.Search
+                      value={linkInput}
+                      placeholder="vmess:// vless:// trojan:// ss:// hysteria2://"
+                      enterButton="Import"
+                      onChange={(e) => setLinkInput(e.target.value)}
+                      onSearch={importLink}
                     />
-                  </Form.Item>
-                )}
-                {isDNS && <DnsFields ob={ob} refresh={refresh} t={t} />}
-                {isWireguard && <WireguardFields ob={ob} refresh={refresh} regenerate={regenerateWgKeys} t={t} />}
-
-                {ob.hasAddressPort() && (
-                  <>
-                    <Form.Item label={t('pages.inbounds.address')}>
-                      <Input
-                        value={ob.settings.address || ''}
-                        onChange={(e) => { ob.settings.address = e.target.value; refresh(); }}
-                      />
-                    </Form.Item>
-                    <Form.Item label={t('pages.inbounds.port')}>
-                      <InputNumber
-                        value={ob.settings.port || 0}
-                        min={1}
-                        max={65535}
-                        onChange={(v) => { ob.settings.port = Number(v) || 0; refresh(); }}
-                      />
-                    </Form.Item>
-                  </>
-                )}
-
-                {isVMessOrVLess && (
-                  <VMessVLessFields ob={ob} refresh={refresh} isVMess={isVMess} isVLESS={isVLESS} t={t} />
-                )}
-
-                {(isTrojan || isShadowsocks) && (
-                  <Form.Item label={t('password')}>
-                    <Input
-                      value={ob.settings.password || ''}
-                      onChange={(e) => { ob.settings.password = e.target.value; refresh(); }}
+                    <JsonEditor
+                      value={jsonText}
+                      onChange={(next) => {
+                        setJsonText(next);
+                        setJsonDirty(true);
+                      }}
+                      minHeight="360px"
+                      maxHeight="600px"
                     />
-                  </Form.Item>
-                )}
-
-                {isShadowsocks && (
-                  <>
-                    <Form.Item label={t('encryption')}>
-                      <Select
-                        value={ob.settings.method}
-                        onChange={(v) => { ob.settings.method = v; refresh(); }}
-                        options={Object.entries(SSMethods).map(([k, v]) => ({ value: v as string, label: k }))}
-                      />
-                    </Form.Item>
-                    <Form.Item label="UDP over TCP">
-                      <Switch checked={!!ob.settings.uot} onChange={(v) => { ob.settings.uot = v; refresh(); }} />
-                    </Form.Item>
-                    <Form.Item label="UoT version">
-                      <InputNumber
-                        value={ob.settings.UoTVersion ?? 1}
-                        min={1}
-                        max={2}
-                        onChange={(v) => { ob.settings.UoTVersion = Number(v) || 1; refresh(); }}
-                      />
-                    </Form.Item>
-                  </>
-                )}
-
-                {ob.hasUsername() && (
-                  <>
-                    <Form.Item label={t('username')}>
-                      <Input
-                        value={ob.settings.user || ''}
-                        onChange={(e) => { ob.settings.user = e.target.value; refresh(); }}
-                      />
-                    </Form.Item>
-                    <Form.Item label={t('password')}>
-                      <Input
-                        value={ob.settings.pass || ''}
-                        onChange={(e) => { ob.settings.pass = e.target.value; refresh(); }}
-                      />
-                    </Form.Item>
-                  </>
-                )}
-
-                {isHysteria && (
-                  <Form.Item label="Version">
-                    <InputNumber value={ob.settings.version || 2} min={2} max={2} disabled />
-                  </Form.Item>
-                )}
-
-                {ob.canEnableStream() && (
-                  <StreamFields ob={ob} refresh={refresh} streamNetworkChange={streamNetworkChange} isHysteria={isHysteria} t={t} />
-                )}
-
-                {ob.canEnableTls() && <TlsFields ob={ob} refresh={refresh} t={t} />}
-
-                {ob.stream && <SockoptFields ob={ob} refresh={refresh} />}
-
-                {ob.canEnableMux() && <MuxFields ob={ob} refresh={refresh} t={t} />}
-              </Form>
-              {ob.stream && ob.canEnableStream() && (
-                <FinalMaskForm stream={ob.stream} protocol={proto} onChange={refresh} />
-              )}
-              </>
-            ),
-          },
-          {
-            key: '2',
-            label: 'JSON',
-            children: (
-              <Space orientation="vertical" size={10} style={{ width: '100%', marginTop: 10 }}>
-                <Input.Search
-                  value={linkInput}
-                  placeholder="vmess:// vless:// trojan:// ss:// hysteria2://"
-                  enterButton="Convert"
-                  onChange={(e) => setLinkInput(e.target.value)}
-                  onSearch={convertLink}
-                />
-                <JsonEditor
-                  value={advancedJson}
-                  onChange={setAdvancedJson}
-                  minHeight="360px"
-                  maxHeight="600px"
-                />
-              </Space>
-            ),
-          },
-        ]}
-      />
-      </Modal>
-    </>
-  );
-}
-
-type OB = Outbound;
-
-interface FieldProps {
-  ob: OB;
-  refresh: () => void;
-}
-
-interface TFieldProps extends FieldProps {
-  t: (k: string) => string;
-}
-
-function FreedomFields({ ob, refresh }: FieldProps) {
-  const fragment = (ob.settings.fragment || {}) as Record<string, string>;
-  const noises = (ob.settings.noises || []) as Array<{ type: string; packet: string; delay: string; applyTo: string }>;
-  const finalRules = (ob.settings.finalRules || []) as Array<{ action: string; network?: string; port?: string; ip?: string[]; blockDelay?: string }>;
-
-  return (
-    <>
-      <Form.Item label="Strategy">
-        <Select
-          value={ob.settings.domainStrategy}
-          onChange={(v) => { ob.settings.domainStrategy = v; refresh(); }}
-          options={(OutboundDomainStrategies as string[]).map((s) => ({ value: s, label: s }))}
-        />
-      </Form.Item>
-      <Form.Item label="Redirect">
-        <Input
-          value={ob.settings.redirect || ''}
-          onChange={(e) => { ob.settings.redirect = e.target.value; refresh(); }}
-        />
-      </Form.Item>
-
-      <Form.Item label="Fragment">
-        <Switch
-          checked={!!ob.settings.fragment && Object.keys(ob.settings.fragment).length > 0}
-          onChange={(checked) => {
-            ob.settings.fragment = checked
-              ? { packets: 'tlshello', length: '100-200', interval: '10-20', maxSplit: '300-400' }
-              : {};
-            refresh();
-          }}
-        />
-      </Form.Item>
-      {ob.settings.fragment && Object.keys(ob.settings.fragment).length > 0 && (
-        <>
-          <Form.Item label="Packets">
-            <Select
-              value={fragment.packets}
-              onChange={(v) => { (ob.settings.fragment as Record<string, string>).packets = v; refresh(); }}
-              options={[
-                { value: '1-3', label: '1-3' },
-                { value: 'tlshello', label: 'tlshello' },
-              ]}
-            />
-          </Form.Item>
-          {(['length', 'interval', 'maxSplit'] as const).map((field) => (
-            <Form.Item key={field} label={field === 'maxSplit' ? 'Max Split' : field[0].toUpperCase() + field.slice(1)}>
-              <Input
-                value={fragment[field] || ''}
-                onChange={(e) => { (ob.settings.fragment as Record<string, string>)[field] = e.target.value; refresh(); }}
-              />
-            </Form.Item>
-          ))}
-        </>
-      )}
-
-      <Form.Item label="Noises">
-        <Switch
-          checked={noises.length > 0}
-          onChange={(checked) => {
-            ob.settings.noises = checked ? [new Outbound.FreedomSettings.Noise()] : [];
-            refresh();
-          }}
-        />
-        {noises.length > 0 && (
-          <Button
-            size="small"
-            type="primary"
-            className="ml-8"
-            icon={<PlusOutlined />}
-            onClick={() => { (ob.settings.noises as unknown[]).push(new Outbound.FreedomSettings.Noise()); refresh(); }}
-          />
-        )}
-      </Form.Item>
-      {noises.map((noise, index) => (
-        <div key={index}>
-          <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
-            <div className="item-heading">
-              <span>Noise {index + 1}</span>
-              {noises.length > 1 && (
-                <DeleteOutlined
-                  className="danger-icon"
-                  onClick={() => { (ob.settings.noises as unknown[]).splice(index, 1); refresh(); }}
-                />
-              )}
-            </div>
-          </Form.Item>
-          <Form.Item label="Type">
-            <Select
-              value={noise.type}
-              onChange={(v) => { noise.type = v; refresh(); }}
-              options={['rand', 'base64', 'str', 'hex'].map((x) => ({ value: x, label: x }))}
-            />
-          </Form.Item>
-          <Form.Item label="Packet">
-            <Input value={noise.packet} onChange={(e) => { noise.packet = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Delay (ms)">
-            <Input value={noise.delay} onChange={(e) => { noise.delay = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Apply to">
-            <Select
-              value={noise.applyTo}
-              onChange={(v) => { noise.applyTo = v; refresh(); }}
-              options={['ip', 'ipv4', 'ipv6'].map((x) => ({ value: x, label: x }))}
-            />
-          </Form.Item>
-        </div>
-      ))}
-
-      <Form.Item label="Final Rules">
-        <Button
-          size="small"
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => { ob.settings.addFinalRule('allow'); refresh(); }}
-        />
-        <span className="ml-8" style={{ opacity: 0.6 }}>
-          Override Xray&apos;s default private-IP block (needed for LAN access through proxy)
-        </span>
-      </Form.Item>
-      {finalRules.map((rule, index) => (
-        <div key={`fr-${index}`}>
-          <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
-            <div className="item-heading">
-              <span>Rule {index + 1}</span>
-              <DeleteOutlined
-                className="danger-icon"
-                onClick={() => { ob.settings.delFinalRule(index); refresh(); }}
-              />
-            </div>
-          </Form.Item>
-          <Form.Item label="Action">
-            <Select
-              value={rule.action}
-              onChange={(v) => { rule.action = v; refresh(); }}
-              options={['allow', 'block'].map((x) => ({ value: x, label: x }))}
-            />
-          </Form.Item>
-          <Form.Item label="Network">
-            <Select
-              value={rule.network}
-              allowClear
-              placeholder="(any)"
-              onChange={(v) => { rule.network = v; refresh(); }}
-              options={['tcp', 'udp', 'tcp,udp'].map((x) => ({ value: x, label: x }))}
-            />
-          </Form.Item>
-          <Form.Item label="Port">
-            <Input
-              value={rule.port}
-              placeholder="e.g. 80,443 or 1000-2000"
-              onChange={(e) => { rule.port = e.target.value; refresh(); }}
-            />
-          </Form.Item>
-          <Form.Item label="IP / CIDR / geoip">
-            <Select
-              mode="tags"
-              value={rule.ip || []}
-              tokenSeparators={[',', ' ']}
-              placeholder="e.g. 10.0.0.0/8, geoip:private, ext:cn.dat:cn"
-              onChange={(v) => { rule.ip = v as string[]; refresh(); }}
-            />
-          </Form.Item>
-          {rule.action === 'block' && (
-            <Form.Item label="Block delay (ms)">
-              <Input
-                value={rule.blockDelay}
-                placeholder="optional: 5000-10000"
-                onChange={(e) => { rule.blockDelay = e.target.value; refresh(); }}
-              />
-            </Form.Item>
-          )}
-        </div>
-      ))}
-    </>
-  );
-}
-
-function DnsFields({ ob, refresh, t }: TFieldProps) {
-  const rules = (ob.settings.rules || []) as Array<{ action: string; qtype?: string; domain?: string }>;
-  return (
-    <>
-      <Form.Item label="Rewrite network">
-        <Select
-          value={ob.settings.rewriteNetwork}
-          allowClear
-          placeholder="(unchanged)"
-          onChange={(v) => { ob.settings.rewriteNetwork = v; refresh(); }}
-          options={['udp', 'tcp'].map((x) => ({ value: x, label: x }))}
-        />
-      </Form.Item>
-      <Form.Item label="Rewrite address">
-        <Input
-          value={ob.settings.rewriteAddress || ''}
-          placeholder="(unchanged) e.g. 1.1.1.1"
-          onChange={(e) => { ob.settings.rewriteAddress = e.target.value; refresh(); }}
-        />
-      </Form.Item>
-      <Form.Item label="Rewrite port">
-        <InputNumber
-          value={ob.settings.rewritePort || undefined}
-          min={0}
-          max={65535}
-          style={{ width: '100%' }}
-          placeholder="(unchanged)"
-          onChange={(v) => { ob.settings.rewritePort = Number(v) || 0; refresh(); }}
-        />
-      </Form.Item>
-      <Form.Item label="User level">
-        <InputNumber
-          value={ob.settings.userLevel || 0}
-          min={0}
-          style={{ width: '100%' }}
-          onChange={(v) => { ob.settings.userLevel = Number(v) || 0; refresh(); }}
-        />
-      </Form.Item>
-      <Form.Item label="Rules">
-        <Button
-          size="small"
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => { (ob.settings.rules || (ob.settings.rules = [])).push(new Outbound.DNSRule()); refresh(); }}
-        />
-      </Form.Item>
-      {rules.map((rule, index) => (
-        <div key={index}>
-          <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
-            <div className="item-heading">
-              <span>Rule {index + 1}</span>
-              <DeleteOutlined
-                className="danger-icon"
-                onClick={() => { (ob.settings.rules as unknown[]).splice(index, 1); refresh(); }}
-              />
-            </div>
-          </Form.Item>
-          <Form.Item label="Action">
-            <Select
-              value={rule.action}
-              onChange={(v) => { rule.action = v; refresh(); }}
-              options={(DNSRuleActions as string[]).map((a) => ({ value: a, label: a }))}
-            />
-          </Form.Item>
-          <Form.Item label="QType">
-            <Input
-              value={rule.qtype}
-              placeholder="1,3,23-24"
-              onChange={(e) => { rule.qtype = e.target.value; refresh(); }}
-            />
-          </Form.Item>
-          <Form.Item label={t('domainName')}>
-            <Input
-              value={rule.domain}
-              placeholder="domain:example.com"
-              onChange={(e) => { rule.domain = e.target.value; refresh(); }}
-            />
-          </Form.Item>
-        </div>
-      ))}
-    </>
-  );
-}
-
-function WireguardFields({ ob, refresh, regenerate, t }: TFieldProps & { regenerate: () => void }) {
-  const peers = (ob.settings.peers || []) as Array<{ endpoint?: string; publicKey?: string; psk?: string; allowedIPs?: string[]; keepAlive?: number }>;
-  return (
-    <>
-      <Form.Item label={t('pages.inbounds.address')}>
-        <Input
-          value={ob.settings.address || ''}
-          onChange={(e) => { ob.settings.address = e.target.value; refresh(); }}
-        />
-      </Form.Item>
-      <Form.Item
-        label={
-          <>
-            {t('pages.inbounds.privatekey')}
-            <SyncOutlined className="random-icon" onClick={regenerate} />
-          </>
-        }
-      >
-        <Input
-          value={ob.settings.secretKey || ''}
-          onChange={(e) => { ob.settings.secretKey = e.target.value; refresh(); }}
-        />
-      </Form.Item>
-      <Form.Item label={t('pages.inbounds.publicKey')}>
-        <Input value={ob.settings.pubKey || ''} disabled />
-      </Form.Item>
-      <Form.Item label="Domain strategy">
-        <Select
-          value={ob.settings.domainStrategy || ''}
-          onChange={(v) => { ob.settings.domainStrategy = v; refresh(); }}
-          options={['', ...(WireguardDomainStrategy as string[])].map((x) => ({ value: x, label: x || `(${t('none')})` }))}
-        />
-      </Form.Item>
-      <Form.Item label="MTU">
-        <InputNumber value={ob.settings.mtu || 0} min={0} onChange={(v) => { ob.settings.mtu = Number(v) || 0; refresh(); }} />
-      </Form.Item>
-      <Form.Item label="Workers">
-        <InputNumber value={ob.settings.workers || 0} min={0} onChange={(v) => { ob.settings.workers = Number(v) || 0; refresh(); }} />
-      </Form.Item>
-      <Form.Item label="No-kernel TUN">
-        <Switch checked={!!ob.settings.noKernelTun} onChange={(v) => { ob.settings.noKernelTun = v; refresh(); }} />
-      </Form.Item>
-      <Form.Item label="Reserved">
-        <Input value={ob.settings.reserved || ''} onChange={(e) => { ob.settings.reserved = e.target.value; refresh(); }} />
-      </Form.Item>
-      <Form.Item label="Peers">
-        <Button
-          size="small"
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => { (ob.settings.peers || (ob.settings.peers = [])).push(new Outbound.WireguardSettings.Peer()); refresh(); }}
-        />
-      </Form.Item>
-      {peers.map((peer, index) => (
-        <div key={index}>
-          <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
-            <div className="item-heading">
-              <span>Peer {index + 1}</span>
-              {peers.length > 1 && (
-                <DeleteOutlined
-                  className="danger-icon"
-                  onClick={() => { (ob.settings.peers as unknown[]).splice(index, 1); refresh(); }}
-                />
-              )}
-            </div>
-          </Form.Item>
-          <Form.Item label="Endpoint">
-            <Input value={peer.endpoint} onChange={(e) => { peer.endpoint = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label={t('pages.inbounds.publicKey')}>
-            <Input value={peer.publicKey} onChange={(e) => { peer.publicKey = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="PSK">
-            <Input value={peer.psk} onChange={(e) => { peer.psk = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Allowed IPs">
-            {(peer.allowedIPs || []).map((ip, idx) => (
-              <Space.Compact key={idx} block style={{ marginBottom: 4 }}>
-                <Input
-                  value={ip}
-                  onChange={(e) => { peer.allowedIPs![idx] = e.target.value; refresh(); }}
-                />
-                {(peer.allowedIPs || []).length > 1 && (
-                  <InputAddon onClick={() => { peer.allowedIPs!.splice(idx, 1); refresh(); }}>
-                    <MinusOutlined />
-                  </InputAddon>
-                )}
-              </Space.Compact>
-            ))}
-            <Button
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={() => { (peer.allowedIPs = peer.allowedIPs || []).push(''); refresh(); }}
-            />
-          </Form.Item>
-          <Form.Item label="Keep alive">
-            <InputNumber value={peer.keepAlive || 0} min={0} onChange={(v) => { peer.keepAlive = Number(v) || 0; refresh(); }} />
-          </Form.Item>
-        </div>
-      ))}
-    </>
-  );
-}
-
-function VMessVLessFields({ ob, refresh, isVMess, isVLESS, t }: TFieldProps & { isVMess: boolean; isVLESS: boolean }) {
-  const rev = ob.settings.reverseSniffing || {};
-  return (
-    <>
-      <Form.Item label="ID">
-        <Input value={ob.settings.id || ''} onChange={(e) => { ob.settings.id = e.target.value; refresh(); }} />
-      </Form.Item>
-      {isVMess && (
-        <Form.Item label={t('security')}>
-          <Select
-            value={ob.settings.security}
-            onChange={(v) => { ob.settings.security = v; refresh(); }}
-            options={SECURITY_OPTIONS.map((s) => ({ value: s, label: s }))}
-          />
-        </Form.Item>
-      )}
-      {isVLESS && (
-        <Form.Item label={t('encryption')}>
-          <Input
-            value={ob.settings.encryption || ''}
-            onChange={(e) => { ob.settings.encryption = e.target.value; refresh(); }}
-          />
-        </Form.Item>
-      )}
-      {isVLESS && (
-        <Form.Item label="Reverse tag">
-          <Input
-            value={ob.settings.reverseTag || ''}
-            placeholder="optional"
-            onChange={(e) => { ob.settings.reverseTag = e.target.value; refresh(); }}
-          />
-        </Form.Item>
-      )}
-      {isVLESS && ob.settings.reverseTag && (
-        <>
-          <Form.Item label="Reverse Sniffing">
-            <Switch checked={!!rev.enabled} onChange={(v) => { rev.enabled = v; refresh(); }} />
-          </Form.Item>
-          {rev.enabled && (
-            <>
-              <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
-                <Checkbox.Group
-                  className="sniffing-options"
-                  value={rev.destOverride || []}
-                  onChange={(v) => { rev.destOverride = v as string[]; refresh(); }}
-                  options={Object.entries(SNIFFING_OPTION).map(([label, value]) => ({ label, value: value as string }))}
-                />
-              </Form.Item>
-              <Form.Item label="Metadata Only">
-                <Switch checked={!!rev.metadataOnly} onChange={(v) => { rev.metadataOnly = v; refresh(); }} />
-              </Form.Item>
-              <Form.Item label="Route Only">
-                <Switch checked={!!rev.routeOnly} onChange={(v) => { rev.routeOnly = v; refresh(); }} />
-              </Form.Item>
-              <Form.Item label="IPs Excluded">
-                <Select
-                  mode="tags"
-                  value={rev.ipsExcluded || []}
-                  tokenSeparators={[',']}
-                  placeholder="IP/CIDR/geoip:*/ext:*"
-                  style={{ width: '100%' }}
-                  onChange={(v) => { rev.ipsExcluded = v as string[]; refresh(); }}
-                />
-              </Form.Item>
-              <Form.Item label="Domains Excluded">
-                <Select
-                  mode="tags"
-                  value={rev.domainsExcluded || []}
-                  tokenSeparators={[',']}
-                  placeholder="domain:*/ext:*"
-                  style={{ width: '100%' }}
-                  onChange={(v) => { rev.domainsExcluded = v as string[]; refresh(); }}
-                />
-              </Form.Item>
-            </>
-          )}
-        </>
-      )}
-      {ob.canEnableTlsFlow() && (
-        <Form.Item label="Flow">
-          <Select
-            value={ob.settings.flow || ''}
-            onChange={(v) => { ob.settings.flow = v; refresh(); }}
-            options={[{ value: '', label: t('none') }, ...FLOW_OPTIONS.map((k) => ({ value: k, label: k }))]}
-          />
-        </Form.Item>
-      )}
-    </>
-  );
-}
-
-function StreamFields({ ob, refresh, streamNetworkChange, isHysteria, t }: TFieldProps & { streamNetworkChange: (next: string) => void; isHysteria: boolean }) {
-  const networks = isHysteria ? [...NETWORKS, 'hysteria'] : NETWORKS;
-  return (
-    <>
-      <Form.Item label={t('transmission')}>
-        <Select
-          value={ob.stream.network}
-          onChange={streamNetworkChange}
-          options={networks.map((net) => ({ value: net, label: NETWORK_LABELS[net] || net }))}
-        />
-      </Form.Item>
-
-      {ob.stream.network === 'tcp' && (
-        <>
-          <Form.Item label={`HTTP ${t('camouflage')}`}>
-            <Switch
-              checked={ob.stream.tcp.type === 'http'}
-              onChange={(checked) => { ob.stream.tcp.type = checked ? 'http' : 'none'; refresh(); }}
-            />
-          </Form.Item>
-          {ob.stream.tcp.type === 'http' && (
-            <>
-              <Form.Item label={t('host')}>
-                <Input value={ob.stream.tcp.host || ''} onChange={(e) => { ob.stream.tcp.host = e.target.value; refresh(); }} />
-              </Form.Item>
-              <Form.Item label={t('path')}>
-                <Input value={ob.stream.tcp.path || ''} onChange={(e) => { ob.stream.tcp.path = e.target.value; refresh(); }} />
-              </Form.Item>
-            </>
-          )}
-        </>
-      )}
-
-      {ob.stream.network === 'kcp' && (
-        <>
-          {(
-            [
-              ['mtu', 'MTU', 0],
-              ['tti', 'TTI (ms)', 0],
-              ['upCap', 'Uplink (MB/s)', 0],
-              ['downCap', 'Downlink (MB/s)', 0],
-              ['cwndMultiplier', 'CWND multiplier', 1],
-              ['maxSendingWindow', 'Max sending window', 0],
-            ] as const
-          ).map(([field, label, min]) => (
-            <Form.Item key={field} label={label}>
-              <InputNumber
-                value={ob.stream.kcp[field] ?? 0}
-                min={min}
-                onChange={(v) => { ob.stream.kcp[field] = Number(v) || 0; refresh(); }}
-              />
-            </Form.Item>
-          ))}
-        </>
-      )}
-
-      {ob.stream.network === 'ws' && (
-        <>
-          <Form.Item label={t('host')}>
-            <Input value={ob.stream.ws.host || ''} onChange={(e) => { ob.stream.ws.host = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label={t('path')}>
-            <Input value={ob.stream.ws.path || ''} onChange={(e) => { ob.stream.ws.path = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Heartbeat (s)">
-            <InputNumber
-              value={ob.stream.ws.heartbeatPeriod || 0}
-              min={0}
-              onChange={(v) => { ob.stream.ws.heartbeatPeriod = Number(v) || 0; refresh(); }}
-            />
-          </Form.Item>
-        </>
-      )}
-
-      {ob.stream.network === 'grpc' && (
-        <>
-          <Form.Item label="Service name">
-            <Input value={ob.stream.grpc.serviceName || ''} onChange={(e) => { ob.stream.grpc.serviceName = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Authority">
-            <Input value={ob.stream.grpc.authority || ''} onChange={(e) => { ob.stream.grpc.authority = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Multi mode">
-            <Switch checked={!!ob.stream.grpc.multiMode} onChange={(v) => { ob.stream.grpc.multiMode = v; refresh(); }} />
-          </Form.Item>
-        </>
-      )}
-
-      {ob.stream.network === 'httpupgrade' && (
-        <>
-          <Form.Item label={t('host')}>
-            <Input value={ob.stream.httpupgrade.host || ''} onChange={(e) => { ob.stream.httpupgrade.host = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label={t('path')}>
-            <Input value={ob.stream.httpupgrade.path || ''} onChange={(e) => { ob.stream.httpupgrade.path = e.target.value; refresh(); }} />
-          </Form.Item>
-        </>
-      )}
-
-      {ob.stream.network === 'xhttp' && <XhttpFields ob={ob} refresh={refresh} t={t} />}
-
-      {ob.stream.network === 'hysteria' && <HysteriaTransportFields ob={ob} refresh={refresh} />}
-    </>
-  );
-}
-
-function XhttpFields({ ob, refresh, t }: TFieldProps) {
-  const xh = ob.stream.xhttp;
-  return (
-    <>
-      <Form.Item label={t('host')}>
-        <Input value={xh.host || ''} onChange={(e) => { xh.host = e.target.value; refresh(); }} />
-      </Form.Item>
-      <Form.Item label={t('path')}>
-        <Input value={xh.path || ''} onChange={(e) => { xh.path = e.target.value; refresh(); }} />
-      </Form.Item>
-      <Form.Item label={t('pages.inbounds.stream.tcp.requestHeader')}>
-        <Button size="small" icon={<PlusOutlined />} onClick={() => { xh.addHeader('', ''); refresh(); }} />
-      </Form.Item>
-      <Form.Item wrapperCol={{ span: 24 }}>
-        {(xh.headers as Array<{ name: string; value: string }>).map((header, idx) => (
-          <Space.Compact key={idx} block className="mb-8">
-            <InputAddon>{`${idx + 1}`}</InputAddon>
-            <Input
-              value={header.name}
-              placeholder="Name"
-              onChange={(e) => { header.name = e.target.value; refresh(); }}
-            />
-            <Input
-              value={header.value}
-              placeholder="Value"
-              onChange={(e) => { header.value = e.target.value; refresh(); }}
-            />
-            <Button icon={<MinusOutlined />} onClick={() => { xh.removeHeader(idx); refresh(); }} />
-          </Space.Compact>
-        ))}
-      </Form.Item>
-
-      <Form.Item label="Mode">
-        <Select
-          value={xh.mode}
-          onChange={(v) => { xh.mode = v; refresh(); }}
-          options={Object.values(MODE_OPTION).map((m) => ({ value: m as string, label: m as string }))}
-        />
-      </Form.Item>
-      {xh.mode === 'packet-up' && (
-        <>
-          <Form.Item label="Max Upload Size (Byte)">
-            <Input value={xh.scMaxEachPostBytes} onChange={(e) => { xh.scMaxEachPostBytes = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Min Upload Interval (Ms)">
-            <Input value={xh.scMinPostsIntervalMs} onChange={(e) => { xh.scMinPostsIntervalMs = e.target.value; refresh(); }} />
-          </Form.Item>
-        </>
-      )}
-
-      <Form.Item label="Padding Bytes">
-        <Input value={xh.xPaddingBytes} onChange={(e) => { xh.xPaddingBytes = e.target.value; refresh(); }} />
-      </Form.Item>
-      <Form.Item label="Padding Obfs Mode">
-        <Switch checked={!!xh.xPaddingObfsMode} onChange={(v) => { xh.xPaddingObfsMode = v; refresh(); }} />
-      </Form.Item>
-      {xh.xPaddingObfsMode && (
-        <>
-          <Form.Item label="Padding Key">
-            <Input value={xh.xPaddingKey} placeholder="x_padding" onChange={(e) => { xh.xPaddingKey = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Padding Header">
-            <Input value={xh.xPaddingHeader} placeholder="X-Padding" onChange={(e) => { xh.xPaddingHeader = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Padding Placement">
-            <Select
-              value={xh.xPaddingPlacement || ''}
-              onChange={(v) => { xh.xPaddingPlacement = v; refresh(); }}
-              options={[
-                { value: '', label: 'Default (queryInHeader)' },
-                { value: 'queryInHeader', label: 'queryInHeader' },
-                { value: 'header', label: 'header' },
-                { value: 'cookie', label: 'cookie' },
-                { value: 'query', label: 'query' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item label="Padding Method">
-            <Select
-              value={xh.xPaddingMethod || ''}
-              onChange={(v) => { xh.xPaddingMethod = v; refresh(); }}
-              options={[
-                { value: '', label: 'Default (repeat-x)' },
-                { value: 'repeat-x', label: 'repeat-x' },
-                { value: 'tokenish', label: 'tokenish' },
-              ]}
-            />
-          </Form.Item>
-        </>
-      )}
-
-      <Form.Item label="Uplink HTTP Method">
-        <Select
-          value={xh.uplinkHTTPMethod || ''}
-          onChange={(v) => { xh.uplinkHTTPMethod = v; refresh(); }}
-          options={[
-            { value: '', label: 'Default (POST)' },
-            { value: 'POST', label: 'POST' },
-            { value: 'PUT', label: 'PUT' },
-            { value: 'GET', label: 'GET (packet-up only)', disabled: xh.mode !== 'packet-up' },
-          ]}
-        />
-      </Form.Item>
-
-      <Form.Item label="Session Placement">
-        <Select
-          value={xh.sessionPlacement || ''}
-          onChange={(v) => { xh.sessionPlacement = v; refresh(); }}
-          options={[
-            { value: '', label: 'Default (path)' },
-            { value: 'path', label: 'path' },
-            { value: 'header', label: 'header' },
-            { value: 'cookie', label: 'cookie' },
-            { value: 'query', label: 'query' },
-          ]}
-        />
-      </Form.Item>
-      {xh.sessionPlacement && xh.sessionPlacement !== 'path' && (
-        <Form.Item label="Session Key">
-          <Input value={xh.sessionKey} placeholder="x_session" onChange={(e) => { xh.sessionKey = e.target.value; refresh(); }} />
-        </Form.Item>
-      )}
-
-      <Form.Item label="Sequence Placement">
-        <Select
-          value={xh.seqPlacement || ''}
-          onChange={(v) => { xh.seqPlacement = v; refresh(); }}
-          options={[
-            { value: '', label: 'Default (path)' },
-            { value: 'path', label: 'path' },
-            { value: 'header', label: 'header' },
-            { value: 'cookie', label: 'cookie' },
-            { value: 'query', label: 'query' },
-          ]}
-        />
-      </Form.Item>
-      {xh.seqPlacement && xh.seqPlacement !== 'path' && (
-        <Form.Item label="Sequence Key">
-          <Input value={xh.seqKey} placeholder="x_seq" onChange={(e) => { xh.seqKey = e.target.value; refresh(); }} />
-        </Form.Item>
-      )}
-
-      {xh.mode === 'packet-up' && (
-        <Form.Item label="Uplink Data Placement">
-          <Select
-            value={xh.uplinkDataPlacement || ''}
-            onChange={(v) => { xh.uplinkDataPlacement = v; refresh(); }}
-            options={[
-              { value: '', label: 'Default (body)' },
-              { value: 'body', label: 'body' },
-              { value: 'header', label: 'header' },
-              { value: 'cookie', label: 'cookie' },
-              { value: 'query', label: 'query' },
+                  </Space>
+                ),
+              },
             ]}
           />
-        </Form.Item>
-      )}
-      {xh.mode === 'packet-up' && xh.uplinkDataPlacement && xh.uplinkDataPlacement !== 'body' && (
-        <>
-          <Form.Item label="Uplink Data Key">
-            <Input value={xh.uplinkDataKey} placeholder="x_data" onChange={(e) => { xh.uplinkDataKey = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Uplink Chunk Size">
-            <InputNumber
-              value={xh.uplinkChunkSize}
-              min={0}
-              placeholder="0 (unlimited)"
-              onChange={(v) => { xh.uplinkChunkSize = Number(v) || 0; refresh(); }}
-            />
-          </Form.Item>
-        </>
-      )}
-
-      {(xh.mode === 'stream-up' || xh.mode === 'stream-one') && (
-        <Form.Item label="No gRPC Header">
-          <Switch checked={!!xh.noGRPCHeader} onChange={(v) => { xh.noGRPCHeader = v; refresh(); }} />
-        </Form.Item>
-      )}
-
-      <Form.Item label="XMUX">
-        <Switch checked={!!xh.enableXmux} onChange={(v) => { xh.enableXmux = v; refresh(); }} />
-      </Form.Item>
-      {xh.enableXmux && (
-        <>
-          {!xh.xmux.maxConnections && (
-            <Form.Item label="Max Concurrency">
-              <Input value={xh.xmux.maxConcurrency} onChange={(e) => { xh.xmux.maxConcurrency = e.target.value; refresh(); }} />
-            </Form.Item>
-          )}
-          {!xh.xmux.maxConcurrency && (
-            <Form.Item label="Max Connections">
-              <Input value={xh.xmux.maxConnections} onChange={(e) => { xh.xmux.maxConnections = e.target.value; refresh(); }} />
-            </Form.Item>
-          )}
-          <Form.Item label="Max Reuse Times">
-            <Input value={xh.xmux.cMaxReuseTimes} onChange={(e) => { xh.xmux.cMaxReuseTimes = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Max Request Times">
-            <Input value={xh.xmux.hMaxRequestTimes} onChange={(e) => { xh.xmux.hMaxRequestTimes = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Max Reusable Secs">
-            <Input value={xh.xmux.hMaxReusableSecs} onChange={(e) => { xh.xmux.hMaxReusableSecs = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Keep Alive Period">
-            <InputNumber
-              value={xh.xmux.hKeepAlivePeriod}
-              min={0}
-              onChange={(v) => { xh.xmux.hKeepAlivePeriod = Number(v) || 0; refresh(); }}
-            />
-          </Form.Item>
-        </>
-      )}
-    </>
-  );
-}
-
-function HysteriaTransportFields({ ob, refresh }: FieldProps) {
-  const h = ob.stream.hysteria;
-  return (
-    <>
-      <Form.Item label="Auth password">
-        <Input value={h.auth || ''} onChange={(e) => { h.auth = e.target.value; refresh(); }} />
-      </Form.Item>
-      <Form.Item label="Congestion">
-        <Select
-          value={h.congestion || ''}
-          onChange={(v) => { h.congestion = v; refresh(); }}
-          options={[
-            { value: '', label: 'BBR (auto)' },
-            { value: 'brutal', label: 'Brutal' },
-          ]}
-        />
-      </Form.Item>
-      <Form.Item label="Upload">
-        <Input value={h.up} placeholder="100 mbps" onChange={(e) => { h.up = e.target.value; refresh(); }} />
-      </Form.Item>
-      <Form.Item label="Download">
-        <Input value={h.down} placeholder="100 mbps" onChange={(e) => { h.down = e.target.value; refresh(); }} />
-      </Form.Item>
-      <Form.Item label="UDP hop port">
-        <Input value={h.udphopPort} placeholder="1145-1919" onChange={(e) => { h.udphopPort = e.target.value; refresh(); }} />
-      </Form.Item>
-      <Form.Item label="Max idle (s)">
-        <InputNumber value={h.maxIdleTimeout} min={4} max={120} onChange={(v) => { h.maxIdleTimeout = Number(v) || 0; refresh(); }} />
-      </Form.Item>
-      <Form.Item label="Keep alive (s)">
-        <InputNumber value={h.keepAlivePeriod} min={2} max={60} onChange={(v) => { h.keepAlivePeriod = Number(v) || 0; refresh(); }} />
-      </Form.Item>
-      <Form.Item label="Disable Path MTU">
-        <Switch checked={!!h.disablePathMTUDiscovery} onChange={(v) => { h.disablePathMTUDiscovery = v; refresh(); }} />
-      </Form.Item>
-    </>
-  );
-}
-
-function TlsFields({ ob, refresh, t }: TFieldProps) {
-  return (
-    <>
-      <Form.Item label={t('security')}>
-        <Radio.Group
-          value={ob.stream.security}
-          buttonStyle="solid"
-          onChange={(e) => { ob.stream.security = e.target.value; refresh(); }}
-        >
-          <Radio.Button value="none">{t('none')}</Radio.Button>
-          <Radio.Button value="tls">TLS</Radio.Button>
-          {ob.canEnableReality() && <Radio.Button value="reality">Reality</Radio.Button>}
-        </Radio.Group>
-      </Form.Item>
-
-      {ob.stream.isTls && (
-        <>
-          <Form.Item label="SNI">
-            <Input value={ob.stream.tls.serverName} placeholder="server name" onChange={(e) => { ob.stream.tls.serverName = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="uTLS">
-            <Select
-              value={ob.stream.tls.fingerprint || ''}
-              onChange={(v) => { ob.stream.tls.fingerprint = v; refresh(); }}
-              options={[{ value: '', label: t('none') }, ...UTLS_OPTIONS.map((k) => ({ value: k, label: k }))]}
-            />
-          </Form.Item>
-          <Form.Item label="ALPN">
-            <Select
-              mode="multiple"
-              value={ob.stream.tls.alpn || []}
-              onChange={(v) => { ob.stream.tls.alpn = v; refresh(); }}
-              options={ALPN_OPTIONS.map((alpn) => ({ value: alpn, label: alpn }))}
-            />
-          </Form.Item>
-          <Form.Item label="ECH">
-            <Input value={ob.stream.tls.echConfigList} onChange={(e) => { ob.stream.tls.echConfigList = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Verify peer name">
-            <Input value={ob.stream.tls.verifyPeerCertByName} placeholder="cloudflare-dns.com" onChange={(e) => { ob.stream.tls.verifyPeerCertByName = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Pinned SHA256">
-            <Input value={ob.stream.tls.pinnedPeerCertSha256} placeholder="base64 SHA256" onChange={(e) => { ob.stream.tls.pinnedPeerCertSha256 = e.target.value; refresh(); }} />
-          </Form.Item>
-        </>
-      )}
-
-      {ob.stream.isReality && (
-        <>
-          <Form.Item label="SNI">
-            <Input value={ob.stream.reality.serverName} onChange={(e) => { ob.stream.reality.serverName = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="uTLS">
-            <Select
-              value={ob.stream.reality.fingerprint}
-              onChange={(v) => { ob.stream.reality.fingerprint = v; refresh(); }}
-              options={UTLS_OPTIONS.map((k) => ({ value: k, label: k }))}
-            />
-          </Form.Item>
-          <Form.Item label="Short ID">
-            <Input value={ob.stream.reality.shortId} onChange={(e) => { ob.stream.reality.shortId = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="SpiderX">
-            <Input value={ob.stream.reality.spiderX} onChange={(e) => { ob.stream.reality.spiderX = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label={t('pages.inbounds.publicKey')}>
-            <Input.TextArea
-              value={ob.stream.reality.publicKey}
-              autoSize={{ minRows: 2 }}
-              onChange={(e) => { ob.stream.reality.publicKey = e.target.value; refresh(); }}
-            />
-          </Form.Item>
-          <Form.Item label="mldsa65 verify">
-            <Input.TextArea
-              value={ob.stream.reality.mldsa65Verify}
-              autoSize={{ minRows: 2 }}
-              onChange={(e) => { ob.stream.reality.mldsa65Verify = e.target.value; refresh(); }}
-            />
-          </Form.Item>
-        </>
-      )}
-    </>
-  );
-}
-
-function SockoptFields({ ob, refresh }: FieldProps) {
-  return (
-    <>
-      <Form.Item label="Sockopts">
-        <Switch checked={!!ob.stream.sockoptSwitch} onChange={(v) => { ob.stream.sockoptSwitch = v; refresh(); }} />
-      </Form.Item>
-      {ob.stream.sockoptSwitch && (
-        <>
-          <Form.Item label="Dialer proxy">
-            <Input value={ob.stream.sockopt.dialerProxy || ''} onChange={(e) => { ob.stream.sockopt.dialerProxy = e.target.value; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Address+Port strategy">
-            <Select
-              value={ob.stream.sockopt.addressPortStrategy}
-              onChange={(v) => { ob.stream.sockopt.addressPortStrategy = v; refresh(); }}
-              options={Object.values(Address_Port_Strategy).map((k) => ({ value: k as string, label: k as string }))}
-            />
-          </Form.Item>
-          <Form.Item label="Keep alive interval">
-            <InputNumber
-              value={ob.stream.sockopt.tcpKeepAliveInterval}
-              min={0}
-              onChange={(v) => { ob.stream.sockopt.tcpKeepAliveInterval = Number(v) || 0; refresh(); }}
-            />
-          </Form.Item>
-          <Form.Item label="TCP Fast Open">
-            <Switch checked={!!ob.stream.sockopt.tcpFastOpen} onChange={(v) => { ob.stream.sockopt.tcpFastOpen = v; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Multipath TCP">
-            <Switch checked={!!ob.stream.sockopt.tcpMptcp} onChange={(v) => { ob.stream.sockopt.tcpMptcp = v; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Penetrate">
-            <Switch checked={!!ob.stream.sockopt.penetrate} onChange={(v) => { ob.stream.sockopt.penetrate = v; refresh(); }} />
-          </Form.Item>
-          <Form.Item label="Mark (fwmark)">
-            <InputNumber
-              value={ob.stream.sockopt.mark}
-              min={0}
-              onChange={(v) => { ob.stream.sockopt.mark = Number(v) || 0; refresh(); }}
-            />
-          </Form.Item>
-          <Form.Item label="Interface">
-            <Input value={ob.stream.sockopt.interfaceName} onChange={(e) => { ob.stream.sockopt.interfaceName = e.target.value; refresh(); }} />
-          </Form.Item>
-        </>
-      )}
-    </>
-  );
-}
-
-function MuxFields({ ob, refresh, t }: TFieldProps) {
-  return (
-    <>
-      <Form.Item label={t('pages.settings.mux')}>
-        <Switch checked={!!ob.mux.enabled} onChange={(v) => { ob.mux.enabled = v; refresh(); }} />
-      </Form.Item>
-      {ob.mux.enabled && (
-        <>
-          <Form.Item label="Concurrency">
-            <InputNumber
-              value={ob.mux.concurrency}
-              min={-1}
-              max={1024}
-              onChange={(v) => { ob.mux.concurrency = Number(v) || 0; refresh(); }}
-            />
-          </Form.Item>
-          <Form.Item label="xudp concurrency">
-            <InputNumber
-              value={ob.mux.xudpConcurrency}
-              min={-1}
-              max={1024}
-              onChange={(v) => { ob.mux.xudpConcurrency = Number(v) || 0; refresh(); }}
-            />
-          </Form.Item>
-          <Form.Item label="xudp UDP 443">
-            <Select
-              value={ob.mux.xudpProxyUDP443}
-              onChange={(v) => { ob.mux.xudpProxyUDP443 = v; refresh(); }}
-              options={['reject', 'allow', 'skip'].map((x) => ({ value: x, label: x }))}
-            />
-          </Form.Item>
-        </>
-      )}
+        </Form>
+      </Modal>
     </>
   );
 }

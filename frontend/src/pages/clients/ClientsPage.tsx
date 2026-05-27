@@ -72,6 +72,20 @@ interface FilterState {
   inboundFilter?: number;
 }
 
+const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
+  vless: 'blue',
+  vmess: 'geekblue',
+  trojan: 'volcano',
+  shadowsocks: 'magenta',
+  hysteria: 'cyan',
+  hysteria2: 'green',
+  wireguard: 'gold',
+  http: 'purple',
+  mixed: 'lime',
+  tunnel: 'orange',
+};
+const INBOUND_CHIP_LIMIT = 1;
+
 function readFilterState(): FilterState {
   try {
     const raw = JSON.parse(localStorage.getItem(FILTER_STATE_KEY) || '{}');
@@ -103,7 +117,7 @@ export default function ClientsPage() {
     setQuery,
     inbounds, onlines, loading, fetched, subSettings,
     ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
-    create, update, remove, removeMany, bulkAdjust, attach, detach,
+    create, update, remove, bulkDelete, bulkAdjust, attach, detach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
     hydrate,
@@ -174,7 +188,7 @@ export default function ClientsPage() {
 
   useEffect(() => {
     if (pageSize > 0) {
-       
+
       setTablePageSize(pageSize);
     }
   }, [pageSize]);
@@ -406,19 +420,13 @@ export default function ClientsPage() {
       okType: 'danger',
       cancelText: t('cancel'),
       onOk: async () => {
-        const results = await removeMany(emails);
+        const msg = await bulkDelete(emails);
         setSelectedRowKeys([]);
-        let ok = 0;
-        let failed = 0;
-        let firstError = '';
-        for (const msg of results) {
-          if (msg?.success) ok++;
-          else {
-            failed++;
-            if (!firstError && msg?.msg) firstError = msg.msg;
-          }
-        }
-        if (failed === 0) {
+        const ok = msg?.obj?.deleted ?? 0;
+        const skipped = msg?.obj?.skipped ?? [];
+        const failed = skipped.length;
+        const firstError = skipped[0]?.reason ?? msg?.msg ?? '';
+        if (failed === 0 && msg?.success) {
           messageApi.success(t('pages.clients.toasts.bulkDeleted', { count: ok }));
         } else {
           messageApi.warning(firstError
@@ -530,18 +538,52 @@ export default function ClientsPage() {
           <div className="email-cell">
             <span className="email">{record.email}</span>
             {record.subId && <span className="sub" title={record.subId}>{record.subId}</span>}
+            {record.comment && <span className="sub" title={record.comment}>{record.comment}</span>}
           </div>
         ),
       }, 'email'),
       sortableCol({
         title: t('pages.clients.attachedInbounds'),
         key: 'inboundIds',
+        width: 170,
         render: (_v, record) => {
           const ids = record.inboundIds || [];
           if (ids.length === 0) return <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>;
-          return ids.map((id) => (
-            <Tag key={id} color="blue" style={{ margin: 2 }}>{inboundLabel(id)}</Tag>
-          ));
+          const visible = ids.slice(0, INBOUND_CHIP_LIMIT);
+          const overflow = ids.slice(INBOUND_CHIP_LIMIT);
+          const chip = (id: number, compact: boolean) => {
+            const ib = inboundsById[id];
+            const proto = (ib?.protocol || '').toLowerCase();
+            const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
+            const compactLabel = ib ? `${ib.protocol}:${ib.port}` : `#${id}`;
+            return (
+              <Tooltip key={id} title={inboundLabel(id)}>
+                <Tag color={color} style={{ margin: 2 }}>
+                  {compact ? compactLabel : inboundLabel(id)}
+                </Tag>
+              </Tooltip>
+            );
+          };
+          return (
+            <>
+              {visible.map((id) => chip(id, true))}
+              {overflow.length > 0 && (
+                <Popover
+                  trigger="click"
+                  placement="bottomRight"
+                  content={
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 280, maxHeight: 280, overflowY: 'auto' }}>
+                      {overflow.map((id) => chip(id, false))}
+                    </div>
+                  }
+                >
+                  <Tag color="default" style={{ margin: 2, cursor: 'pointer' }}>
+                    +{overflow.length}
+                  </Tag>
+                </Popover>
+              )}
+            </>
+          );
         },
       }, 'inboundIds'),
       sortableCol({
@@ -750,8 +792,7 @@ export default function ClientsPage() {
                           value={inboundFilter}
                           onChange={(v) => setInboundFilter(v)}
                           allowClear
-                          showSearch
-                          optionFilterProp="label"
+                          showSearch={{ optionFilterProp: 'label' }}
                           placeholder={t('inbounds')}
                           size={isMobile ? 'small' : 'middle'}
                           style={{ minWidth: 160, maxWidth: 240 }}

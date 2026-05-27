@@ -20,7 +20,9 @@ import {
 } from '@ant-design/icons';
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
-import { Inbound } from '@/models/inbound';
+import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
+import { genInboundLinks } from '@/lib/xray/inbound-link';
+import { inboundFromDb } from '@/lib/xray/inbound-from-db';
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -179,13 +181,13 @@ export default function InboundsPage() {
     const projected = JSON.parse(JSON.stringify(child)) as DBInbound;
     projected.listen = master.listen;
     projected.port = master.port;
-    const masterStream = master.toInbound().stream;
-    const childInbound = child.toInbound();
-    childInbound.stream.security = masterStream.security;
-    childInbound.stream.tls = masterStream.tls;
-    childInbound.stream.reality = masterStream.reality;
-    childInbound.stream.externalProxy = masterStream.externalProxy;
-    projected.streamSettings = childInbound.stream.toString();
+    const masterStream = coerceInboundJsonField(master.streamSettings) as Record<string, unknown>;
+    const childStream = { ...(coerceInboundJsonField(child.streamSettings) as Record<string, unknown>) };
+    childStream.security = masterStream.security;
+    childStream.tlsSettings = masterStream.tlsSettings;
+    childStream.realitySettings = masterStream.realitySettings;
+    childStream.externalProxy = masterStream.externalProxy;
+    projected.streamSettings = JSON.stringify(childStream);
     const Ctor = child.constructor as new (data: DBInbound) => DBInbound;
     return new Ctor(projected);
   }, []);
@@ -199,11 +201,12 @@ export default function InboundsPage() {
     if (!dbInbound?.listen?.startsWith?.('@')) return dbInbound;
     for (const candidate of dbInbounds) {
       if (candidate.id === dbInbound.id) continue;
-      const parsed = candidate.toInbound();
-      if (!parsed.isTcp) continue;
-      if (!['trojan', 'vless'].includes(parsed.protocol)) continue;
-      const fallbacks = parsed.settings.fallbacks || [];
-      if (!fallbacks.find((f: { dest?: string }) => f.dest === dbInbound.listen)) continue;
+      if (!['trojan', 'vless'].includes(candidate.protocol)) continue;
+      const candStream = coerceInboundJsonField(candidate.streamSettings) as { network?: string };
+      if (candStream.network !== 'tcp') continue;
+      const candSettings = coerceInboundJsonField(candidate.settings) as { fallbacks?: { dest?: string }[] };
+      const fallbacks = candSettings.fallbacks || [];
+      if (!fallbacks.find((f) => f.dest === dbInbound.listen)) continue;
       return projectChildThroughMaster(dbInbound, candidate);
     }
     return dbInbound;
@@ -211,8 +214,8 @@ export default function InboundsPage() {
 
   const findClientIndex = useCallback((dbInbound: DBInbound, client: ClientMatchTarget | null) => {
     if (!client) return 0;
-    const inbound = dbInbound.toInbound();
-    const clients = (inbound?.clients || []) as ClientMatchTarget[];
+    const settings = coerceInboundJsonField(dbInbound.settings) as { clients?: ClientMatchTarget[] };
+    const clients = settings.clients || [];
     const idx = clients.findIndex((c) => {
       if (!c) return false;
       switch (dbInbound.protocol) {
@@ -230,7 +233,13 @@ export default function InboundsPage() {
     const projected = checkFallback(dbInbound);
     openText({
       title: t('pages.inbounds.exportLinksTitle'),
-      content: projected.genInboundLinks(remarkModel, hostOverrideFor(dbInbound)),
+      content: genInboundLinks({
+        inbound: inboundFromDb(projected),
+        remark: projected.remark,
+        remarkModel,
+        hostOverride: hostOverrideFor(dbInbound),
+        fallbackHostname: window.location.hostname,
+      }),
       fileName: projected.remark || 'inbound',
     });
   }, [checkFallback, remarkModel, hostOverrideFor, openText, t]);
@@ -240,8 +249,8 @@ export default function InboundsPage() {
   }, [openText, t]);
 
   const exportInboundSubs = useCallback((dbInbound: DBInbound) => {
-    const inbound = dbInbound.toInbound();
-    const clients = (inbound?.clients || []) as { subId?: string }[];
+    const settings = coerceInboundJsonField(dbInbound.settings) as { clients?: { subId?: string }[] };
+    const clients = settings.clients || [];
     const subLinks: string[] = [];
     for (const c of clients) {
       if (c.subId && subSettings.subURI) {
@@ -262,7 +271,13 @@ export default function InboundsPage() {
     const out: string[] = [];
     for (const ib of hydrated) {
       const projected = checkFallback(ib);
-      out.push(projected.genInboundLinks(remarkModel, hostOverrideFor(ib)));
+      out.push(genInboundLinks({
+        inbound: inboundFromDb(projected),
+        remark: projected.remark,
+        remarkModel,
+        hostOverride: hostOverrideFor(ib),
+        fallbackHostname: window.location.hostname,
+      }));
     }
     openText({ title: t('pages.inbounds.exportAllLinksTitle'), content: out.join('\r\n'), fileName: 'All-Inbounds' });
   }, [dbInbounds, hydrateInbound, checkFallback, remarkModel, hostOverrideFor, openText, t]);
@@ -273,8 +288,8 @@ export default function InboundsPage() {
     );
     const out: string[] = [];
     for (const ib of hydrated) {
-      const inbound = ib.toInbound();
-      const clients = (inbound?.clients || []) as { subId?: string }[];
+      const settings = coerceInboundJsonField(ib.settings) as { clients?: { subId?: string }[] };
+      const clients = settings.clients || [];
       for (const c of clients) {
         if (c.subId && subSettings.subURI) {
           out.push(subSettings.subURI + c.subId);
@@ -347,15 +362,21 @@ export default function InboundsPage() {
       okText: t('pages.inbounds.clone'),
       cancelText: t('cancel'),
       onOk: async () => {
-        const baseInbound = dbInbound.toInbound();
         let clonedSettings: string;
         try {
           const raw = coerceInboundJsonField(dbInbound.settings);
           raw.clients = [];
           clonedSettings = JSON.stringify(raw);
         } catch {
-          clonedSettings = Inbound.Settings.getSettings(baseInbound.protocol).toString();
+          const fallback = createDefaultInboundSettings(dbInbound.protocol);
+          clonedSettings = fallback ? JSON.stringify(fallback, null, 2) : '{}';
         }
+        const streamSettingsString = typeof dbInbound.streamSettings === 'string'
+          ? dbInbound.streamSettings
+          : JSON.stringify(dbInbound.streamSettings ?? {});
+        const sniffingString = typeof dbInbound.sniffing === 'string'
+          ? dbInbound.sniffing
+          : JSON.stringify(dbInbound.sniffing ?? {});
         const data = {
           up: 0,
           down: 0,
@@ -365,10 +386,10 @@ export default function InboundsPage() {
           expiryTime: 0,
           listen: '',
           port: RandomUtil.randomInteger(10000, 60000),
-          protocol: baseInbound.protocol,
+          protocol: dbInbound.protocol,
           settings: clonedSettings,
-          streamSettings: baseInbound.stream.toString(),
-          sniffing: baseInbound.sniffing.toString(),
+          streamSettings: streamSettingsString,
+          sniffing: sniffingString,
         };
         const msg = await HttpUtil.post('/panel/api/inbounds/add', data);
         if (msg?.success) await refresh();

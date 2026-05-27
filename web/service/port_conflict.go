@@ -28,7 +28,7 @@ func (b transportBits) conflicts(o transportBits) bool { return b&o != 0 }
 // the validator never gets looser than the old port-only check.
 //
 // the rules:
-//   - hysteria, hysteria2, wireguard: udp regardless of streamSettings
+//   - hysteria, wireguard: udp regardless of streamSettings
 //   - streamSettings.network=kcp: udp
 //   - shadowsocks: whatever settings.network says ("tcp" / "udp" / "tcp,udp")
 //   - mixed (socks/http combo): tcp + udp when settings.udp is true
@@ -36,7 +36,7 @@ func (b transportBits) conflicts(o transportBits) bool { return b&o != 0 }
 func inboundTransports(protocol model.Protocol, streamSettings, settings string) transportBits {
 	// protocols that ignore streamSettings entirely.
 	switch protocol {
-	case model.Hysteria, model.Hysteria2, model.WireGuard:
+	case model.Hysteria, model.WireGuard:
 		return transportUDP
 	}
 

@@ -2,34 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import { HttpUtil } from '@/utils';
+import { parseMsg } from '@/utils/zodValidate';
+import { NodeListSchema } from '@/schemas/node';
+import type { NodeRecord } from '@/schemas/node';
 import { keys } from '@/api/queryKeys';
 
-export interface NodeRecord {
-  id: number;
-  name?: string;
-  remark?: string;
-  scheme?: string;
-  address?: string;
-  port?: number;
-  basePath?: string;
-  apiToken?: string;
-  enable?: boolean;
-  status?: 'online' | 'offline' | string;
-  latencyMs?: number;
-  cpuPct?: number;
-  memPct?: number;
-  xrayVersion?: string;
-  panelVersion?: string;
-  uptimeSecs?: number;
-  inboundCount?: number;
-  clientCount?: number;
-  onlineCount?: number;
-  depletedCount?: number;
-  lastHeartbeat?: number;
-  lastError?: string;
-  allowPrivateAddress?: boolean;
-  [key: string]: unknown;
-}
+export type { NodeRecord };
 
 export interface NodeTotals {
   total: number;
@@ -42,16 +20,11 @@ export interface NodeTotals {
   depleted: number;
 }
 
-interface ApiMsg<T = unknown> {
-  success?: boolean;
-  msg?: string;
-  obj?: T;
-}
-
 async function fetchNodes(): Promise<NodeRecord[]> {
-  const msg = await HttpUtil.get('/panel/api/nodes/list', undefined, { silent: true }) as ApiMsg<NodeRecord[]>;
+  const msg = await HttpUtil.get('/panel/api/nodes/list', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch nodes');
-  return Array.isArray(msg.obj) ? msg.obj : [];
+  const validated = parseMsg(msg, NodeListSchema, 'nodes/list');
+  return Array.isArray(validated.obj) ? validated.obj : [];
 }
 
 export function useNodesQuery() {

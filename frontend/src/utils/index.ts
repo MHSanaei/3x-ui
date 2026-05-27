@@ -4,8 +4,7 @@ import { getMessage } from './messageBus';
 
 type RespEnvelope = { success?: unknown; msg?: unknown; obj?: unknown };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class Msg<T = any> {
+export class Msg<T = unknown> {
   success: boolean;
   msg: string;
   obj: T | null;
@@ -50,8 +49,7 @@ export class HttpUtil {
     return typeof data === 'object' ? (data as Msg) : new Msg(false, 'unknown data:', data);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async get<T = any>(url: string, params?: unknown, options: HttpOptions = {}): Promise<Msg<T>> {
+  static async get<T = unknown>(url: string, params?: unknown, options: HttpOptions = {}): Promise<Msg<T>> {
     const { silent, ...axiosOpts } = options;
     try {
       const resp = await axios.get(url, { params, ...axiosOpts });
@@ -67,8 +65,7 @@ export class HttpUtil {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async post<T = any>(url: string, data?: unknown, options: HttpOptions = {}): Promise<Msg<T>> {
+  static async post<T = unknown>(url: string, data?: unknown, options: HttpOptions = {}): Promise<Msg<T>> {
     const { silent, ...axiosOpts } = options;
     try {
       const resp = await axios.post(url, data, axiosOpts);
@@ -84,8 +81,7 @@ export class HttpUtil {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async postWithModal<T = any>(url: string, data?: unknown, modal?: HttpModal | null): Promise<Msg<T>> {
+  static async postWithModal<T = unknown>(url: string, data?: unknown, modal?: HttpModal | null): Promise<Msg<T>> {
     if (modal) {
       modal.loading(true);
     }
@@ -587,7 +583,15 @@ export class ClipboardManager {
       textarea.focus({ preventScroll: true });
       textarea.select();
       textarea.setSelectionRange(0, text.length);
-      ok = document.execCommand('copy');
+      // Routed through a dynamic lookup so the @deprecated tag on
+      // Document.execCommand doesn't surface here. execCommand is the
+      // only copy path that works in insecure contexts (HTTP panels
+      // behind IP/localhost) — reached only after navigator.clipboard
+      // fails or is unavailable.
+      const exec = (document as unknown as Record<string, unknown>)['execCommand'];
+      if (typeof exec === 'function') {
+        ok = (exec as (cmd: string) => boolean).call(document, 'copy');
+      }
     } catch {}
 
     host.removeChild(textarea);

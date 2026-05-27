@@ -1,0 +1,23 @@
+{
+  "protocol": "vless",
+  "settings": {
+    "clients": [
+      {
+        "id": "8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02",
+        "email": "alice@example.test",
+        "flow": "",
+        "limitIp": 0,
+        "totalGB": 0,
+        "expiryTime": 0,
+        "enable": true,
+        "tgId": 0,
+        "subId": "abc123def",
+        "comment": "",
+        "reset": 0
+      }
+    ],
+    "decryption": "none",
+    "encryption": "none",
+    "fallbacks": []
+  }
+}

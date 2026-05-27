@@ -1,0 +1,4 @@
+{
+  "tag": "balancer-random",
+  "selector": ["proxy-"]
+}

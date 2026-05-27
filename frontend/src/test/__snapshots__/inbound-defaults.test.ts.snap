@@ -1,0 +1,160 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`createDefault*InboundSettings factories > http 1`] = `
+{
+  "accounts": [],
+  "allowTransparent": false,
+}
+`;
+
+exports[`createDefault*InboundSettings factories > hysteria (v1, defaults to v2 wire version) 1`] = `
+{
+  "clients": [],
+  "version": 2,
+}
+`;
+
+exports[`createDefault*InboundSettings factories > mixed 1`] = `
+{
+  "accounts": [],
+  "auth": "password",
+  "ip": "127.0.0.1",
+  "udp": false,
+}
+`;
+
+exports[`createDefault*InboundSettings factories > shadowsocks 1`] = `
+{
+  "clients": [],
+  "ivCheck": false,
+  "method": "2022-blake3-aes-256-gcm",
+  "network": "tcp",
+  "password": "ZmFrZS1zcy1zZWVk",
+}
+`;
+
+exports[`createDefault*InboundSettings factories > trojan 1`] = `
+{
+  "clients": [],
+  "fallbacks": [],
+}
+`;
+
+exports[`createDefault*InboundSettings factories > tunnel 1`] = `
+{
+  "allowedNetwork": "tcp,udp",
+  "followRedirect": false,
+  "portMap": {},
+}
+`;
+
+exports[`createDefault*InboundSettings factories > vless 1`] = `
+{
+  "clients": [],
+  "decryption": "none",
+  "encryption": "none",
+  "fallbacks": [],
+}
+`;
+
+exports[`createDefault*InboundSettings factories > vmess 1`] = `
+{
+  "clients": [],
+}
+`;
+
+exports[`createDefault*InboundSettings factories > wireguard 1`] = `
+{
+  "mtu": 1420,
+  "noKernelTun": false,
+  "peers": [
+    {
+      "allowedIPs": [
+        "10.0.0.2/32",
+      ],
+      "keepAlive": 0,
+      "privateKey": "cGVlci1maXh0dXJlLXByaXZhdGUta2V5LWZvci10ZXN0cw==",
+      "publicKey": "RNa/H++60PStnhoiiU/vIuwFimZUBuIkLkbrmEoDz34=",
+    },
+  ],
+  "secretKey": "QGVlb2dXc1ZTWGw0ZXBzZndsWmtMaUM5MUlNYjBHWFdYbz0=",
+}
+`;
+
+exports[`createDefaultHysteriaClient > produces a Zod-valid client 1`] = `
+{
+  "auth": "fixed-hyst-auth",
+  "comment": "",
+  "email": "fixture@example.test",
+  "enable": true,
+  "expiryTime": 0,
+  "limitIp": 0,
+  "reset": 0,
+  "subId": "fixed-sub-id-1234",
+  "tgId": 0,
+  "totalGB": 0,
+}
+`;
+
+exports[`createDefaultShadowsocksClient > produces a Zod-valid client 1`] = `
+{
+  "comment": "",
+  "email": "fixture@example.test",
+  "enable": true,
+  "expiryTime": 0,
+  "limitIp": 0,
+  "method": "",
+  "password": "ZmFrZS1zcy1wYXNzd29yZA==",
+  "reset": 0,
+  "subId": "fixed-sub-id-1234",
+  "tgId": 0,
+  "totalGB": 0,
+}
+`;
+
+exports[`createDefaultTrojanClient > produces a Zod-valid client 1`] = `
+{
+  "comment": "",
+  "email": "fixture@example.test",
+  "enable": true,
+  "expiryTime": 0,
+  "limitIp": 0,
+  "password": "fixed-trojan-pw",
+  "reset": 0,
+  "subId": "fixed-sub-id-1234",
+  "tgId": 0,
+  "totalGB": 0,
+}
+`;
+
+exports[`createDefaultVlessClient > produces a Zod-valid client 1`] = `
+{
+  "comment": "",
+  "email": "fixture@example.test",
+  "enable": true,
+  "expiryTime": 0,
+  "flow": "",
+  "id": "11111111-2222-4333-8444-555555555555",
+  "limitIp": 0,
+  "reset": 0,
+  "subId": "fixed-sub-id-1234",
+  "tgId": 0,
+  "totalGB": 0,
+}
+`;
+
+exports[`createDefaultVmessClient > produces a Zod-valid client 1`] = `
+{
+  "comment": "",
+  "email": "fixture@example.test",
+  "enable": true,
+  "expiryTime": 0,
+  "id": "aaaaaaaa-bbbb-4ccc-9ddd-eeeeeeeeeeee",
+  "limitIp": 0,
+  "reset": 0,
+  "security": "auto",
+  "subId": "fixed-sub-id-1234",
+  "tgId": 0,
+  "totalGB": 0,
+}
+`;

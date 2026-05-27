@@ -452,7 +452,6 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 		model.Trojan:      true,
 		model.Shadowsocks: true,
 		model.Hysteria:    true,
-		model.Hysteria2:   true,
 	}
 
 	if !protocolsWithStream[inbound.Protocol] {
@@ -528,7 +527,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.Email == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
-		case "hysteria", "hysteria2":
+		case "hysteria":
 			if client.Auth == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
@@ -2913,7 +2912,7 @@ func (s *InboundService) MigrationRequirements() {
 
 	// Fix inbounds based problems
 	var inbounds []*model.Inbound
-	err = tx.Model(model.Inbound{}).Where("protocol IN (?)", []string{"vmess", "vless", "trojan", "shadowsocks", "hysteria", "hysteria2"}).Find(&inbounds).Error
+	err = tx.Model(model.Inbound{}).Where("protocol IN (?)", []string{"vmess", "vless", "trojan", "shadowsocks", "hysteria"}).Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return
 	}

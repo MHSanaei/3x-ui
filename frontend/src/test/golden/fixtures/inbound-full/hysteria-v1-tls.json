@@ -1,0 +1,67 @@
+{
+  "id": 21,
+  "up": 0,
+  "down": 0,
+  "total": 0,
+  "remark": "gina-hysteria-v1",
+  "enable": true,
+  "expiryTime": 0,
+  "listen": "",
+  "port": 36715,
+  "tag": "inbound-hysteria-v1",
+  "sniffing": {
+    "enabled": false,
+    "destOverride": ["http", "tls", "quic", "fakedns"],
+    "metadataOnly": false,
+    "routeOnly": false,
+    "ipsExcluded": [],
+    "domainsExcluded": []
+  },
+  "protocol": "hysteria",
+  "settings": {
+    "version": 1,
+    "clients": [
+      {
+        "auth": "hyst-v1-auth-XYZ",
+        "email": "gina@example.test",
+        "limitIp": 0,
+        "totalGB": 0,
+        "expiryTime": 0,
+        "enable": true,
+        "tgId": 0,
+        "subId": "hy1-001",
+        "comment": "",
+        "reset": 0
+      }
+    ]
+  },
+  "streamSettings": {
+    "network": "tcp",
+    "tcpSettings": {},
+    "security": "tls",
+    "tlsSettings": {
+      "serverName": "hysteria.example.test",
+      "minVersion": "1.2",
+      "maxVersion": "1.3",
+      "cipherSuites": "",
+      "rejectUnknownSni": false,
+      "disableSystemRoot": false,
+      "enableSessionResumption": false,
+      "certificates": [
+        {
+          "certificateFile": "/etc/ssl/certs/hysteria.crt",
+          "keyFile": "/etc/ssl/private/hysteria.key",
+          "oneTimeLoading": false,
+          "usage": "encipherment",
+          "buildChain": false
+        }
+      ],
+      "alpn": ["h3"],
+      "echServerKeys": "",
+      "settings": {
+        "fingerprint": "chrome",
+        "echConfigList": ""
+      }
+    }
+  }
+}

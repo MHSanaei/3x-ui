@@ -1,0 +1,6 @@
+{
+  "address": "8.8.8.8",
+  "port": 53,
+  "domains": ["geosite:cn"],
+  "expectIPs": ["geoip:cn", "10.0.0.0/8"]
+}

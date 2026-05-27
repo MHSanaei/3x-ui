@@ -34,7 +34,42 @@ import { HttpUtil, SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
 import InfinityIcon from '@/components/InfinityIcon';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
+import { isSSMultiUser } from '@/lib/xray/protocol-capabilities';
+import { coerceInboundJsonField } from '@/models/dbinbound';
 import './InboundList.css';
+
+interface StreamHints {
+  network: string;
+  isTls: boolean;
+  isReality: boolean;
+}
+
+function readStreamHints(streamSettings: unknown): StreamHints {
+  const stream = coerceInboundJsonField(streamSettings) as { network?: string; security?: string };
+  return {
+    network: stream.network ?? '',
+    isTls: stream.security === 'tls',
+    isReality: stream.security === 'reality',
+  };
+}
+
+function readSettings(settings: unknown): { method?: string } {
+  return coerceInboundJsonField(settings) as { method?: string };
+}
+
+function isInboundMultiUser(record: { protocol: string; settings: unknown }): boolean {
+  switch (record.protocol) {
+    case 'vmess':
+    case 'vless':
+    case 'trojan':
+    case 'hysteria':
+      return true;
+    case 'shadowsocks':
+      return isSSMultiUser({ protocol: 'shadowsocks', settings: readSettings(record.settings) });
+    default:
+      return false;
+  }
+}
 
 type ProtocolFlags = {
   isVMess?: boolean;
@@ -59,11 +94,8 @@ interface DBInboundRecord extends ProtocolFlags {
   expiryTime: number;
   _expiryTime: { valueOf(): number } | null;
   nodeId?: number | null;
-  toInbound: () => {
-    stream?: { network?: string; isTls?: boolean; isReality?: boolean };
-    isSSMultiUser?: boolean;
-  };
-  isMultiUser: () => boolean;
+  settings: unknown;
+  streamSettings: unknown;
 }
 
 export interface ClientCountEntry {
@@ -137,11 +169,7 @@ const SORT_FNS: Record<SortKey, (a: DBInboundRecord, b: DBInboundRecord, ctx: { 
 function showQrCodeMenu(dbInbound: DBInboundRecord): boolean {
   if (dbInbound.isWireguard) return true;
   if (dbInbound.isSS) {
-    try {
-      return !dbInbound.toInbound().isSSMultiUser;
-    } catch {
-      return false;
-    }
+    return !isSSMultiUser({ protocol: 'shadowsocks', settings: readSettings(dbInbound.settings) });
   }
   return false;
 }
@@ -161,7 +189,7 @@ function buildRowActionsMenu({ record, subEnable, t, isMobile }: { record: DBInb
   if (showQrCodeMenu(record)) {
     items.push({ key: 'qrcode', icon: <QrcodeOutlined />, label: t('qrCode') });
   }
-  if (record.isMultiUser()) {
+  if (isInboundMultiUser(record)) {
     items.push({ key: 'export', icon: <ExportOutlined />, label: t('pages.inbounds.export') });
     if (subEnable) {
       items.push({
@@ -341,14 +369,14 @@ export default function InboundList({
         render: (_, record) => {
           const tags: ReactElement[] = [<Tag key="p" color="purple">{record.protocol}</Tag>];
           if (record.isVMess || record.isVLess || record.isTrojan || record.isSS || record.isHysteria) {
-            const stream = record.toInbound().stream;
+            const stream = readStreamHints(record.streamSettings);
             tags.push(
               <Tag key="n" color="green">
-                {record.isHysteria ? 'UDP' : stream?.network}
+                {record.isHysteria ? 'UDP' : stream.network}
               </Tag>,
             );
-            if (stream?.isTls) tags.push(<Tag key="tls" color="blue">TLS</Tag>);
-            if (stream?.isReality) tags.push(<Tag key="reality" color="blue">Reality</Tag>);
+            if (stream.isTls) tags.push(<Tag key="tls" color="blue">TLS</Tag>);
+            if (stream.isReality) tags.push(<Tag key="reality" color="blue">Reality</Tag>);
           }
           return <div className="protocol-tags">{tags}</div>;
         },
@@ -578,15 +606,18 @@ export default function InboundList({
             <div className="stat-row">
               <span className="stat-label">{t('pages.inbounds.protocol')}</span>
               <Tag color="purple">{statsRecord.protocol}</Tag>
-              {(statsRecord.isVMess || statsRecord.isVLess || statsRecord.isTrojan || statsRecord.isSS || statsRecord.isHysteria) && (
-                <>
-                  <Tag color="green">
-                    {statsRecord.isHysteria ? 'UDP' : statsRecord.toInbound().stream?.network}
-                  </Tag>
-                  {statsRecord.toInbound().stream?.isTls && <Tag color="blue">TLS</Tag>}
-                  {statsRecord.toInbound().stream?.isReality && <Tag color="blue">Reality</Tag>}
-                </>
-              )}
+              {(statsRecord.isVMess || statsRecord.isVLess || statsRecord.isTrojan || statsRecord.isSS || statsRecord.isHysteria) && (() => {
+                const stream = readStreamHints(statsRecord.streamSettings);
+                return (
+                  <>
+                    <Tag color="green">
+                      {statsRecord.isHysteria ? 'UDP' : stream.network}
+                    </Tag>
+                    {stream.isTls && <Tag color="blue">TLS</Tag>}
+                    {stream.isReality && <Tag color="blue">Reality</Tag>}
+                  </>
+                );
+              })()}
             </div>
             <div className="stat-row">
               <span className="stat-label">{t('pages.inbounds.port')}</span>

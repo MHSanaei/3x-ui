@@ -86,10 +86,10 @@ export default function IndexPage() {
   const [loadingTip, setLoadingTip] = useState(t('loading'));
 
   useEffect(() => {
-    HttpUtil.post('/panel/setting/defaultSettings').then((msg) => {
+    HttpUtil.post<{ ipLimitEnable?: boolean }>('/panel/setting/defaultSettings').then((msg) => {
       if (msg?.success && msg.obj) setIpLimitEnable(!!msg.obj.ipLimitEnable);
     });
-    HttpUtil.get('/panel/api/server/getPanelUpdateInfo').then((msg) => {
+    HttpUtil.get<PanelUpdateInfo>('/panel/api/server/getPanelUpdateInfo').then((msg) => {
       if (msg?.success && msg.obj) setPanelUpdateInfo(msg.obj);
     });
   }, []);
@@ -480,7 +480,9 @@ export default function IndexPage() {
             open={configTextOpen}
             title={t('pages.index.config')}
             width={isMobile ? '100%' : 900}
-            style={isMobile ? { top: 20, maxWidth: 'calc(100vw - 16px)' } : undefined}
+            style={isMobile
+              ? { top: 20, maxWidth: 'calc(100vw - 16px)' }
+              : { top: 20 }}
             onCancel={() => setConfigTextOpen(false)}
             footer={[
               <Button
@@ -505,8 +507,8 @@ export default function IndexPage() {
             <JsonEditor
               value={configText}
               onChange={setConfigText}
-              minHeight={isMobile ? '300px' : '420px'}
-              maxHeight={isMobile ? '500px' : '720px'}
+              minHeight={isMobile ? '300px' : 'calc(100vh - 220px)'}
+              maxHeight={isMobile ? '70vh' : 'calc(100vh - 220px)'}
               readOnly
             />
           </Modal>
