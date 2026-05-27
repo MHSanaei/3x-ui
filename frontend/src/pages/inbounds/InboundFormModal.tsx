@@ -26,7 +26,7 @@ import {
   DeleteOutlined,
   MinusOutlined,
   PlusOutlined,
-  SyncOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
@@ -762,6 +762,18 @@ export default function InboundFormModal({
           security: 'tls',
           hysteriaSettings: HysteriaStreamSettingsSchema.parse({}),
           tlsSettings: tls,
+          // Hysteria2 needs an obfs wrapper on the FinalMask side; seed
+          // it with salamander + a random password so the listener boots
+          // with a usable default. Re-selecting Hysteria from another
+          // protocol re-runs this and refreshes the password — that's
+          // intentional, the form was already being reset.
+          finalmask: {
+            tcp: [],
+            udp: [{
+              type: 'salamander',
+              settings: { password: RandomUtil.randomLowerAndNum(16) },
+            }],
+          },
         });
       } else {
         const current = form.getFieldValue('streamSettings') as { network?: string } | undefined;
@@ -1048,16 +1060,13 @@ export default function InboundFormModal({
     <>
       {protocol === Protocols.WIREGUARD && (
         <>
-          <Form.Item
-            name={['settings', 'secretKey']}
-            label={
-              <>
-                Secret key{' '}
-                <SyncOutlined className="random-icon" onClick={regenInboundWg} />
-              </>
-            }
-          >
-            <Input />
+          <Form.Item label="Secret key">
+            <Space.Compact block>
+              <Form.Item name={['settings', 'secretKey']} noStyle>
+                <Input style={{ width: 'calc(100% - 32px)' }} />
+              </Form.Item>
+              <Button icon={<ReloadOutlined />} onClick={regenInboundWg} />
+            </Space.Compact>
           </Form.Item>
           <Form.Item label="Public key">
             <Input value={wgPubKey} disabled />
@@ -1106,19 +1115,16 @@ export default function InboundFormModal({
                         )}
                       </Space>
                     </Divider>
-                    <Form.Item
-                      name={[field.name, 'privateKey']}
-                      label={
-                        <>
-                          Secret key{' '}
-                          <SyncOutlined
-                            className="random-icon"
-                            onClick={() => regenWgPeerKeypair(field.name)}
-                          />
-                        </>
-                      }
-                    >
-                      <Input />
+                    <Form.Item label="Secret key">
+                      <Space.Compact block>
+                        <Form.Item name={[field.name, 'privateKey']} noStyle>
+                          <Input style={{ width: 'calc(100% - 32px)' }} />
+                        </Form.Item>
+                        <Button
+                          icon={<ReloadOutlined />}
+                          onClick={() => regenWgPeerKeypair(field.name)}
+                        />
+                      </Space.Compact>
                     </Form.Item>
                     <Form.Item name={[field.name, 'publicKey']} label="Public key">
                       <Input />
@@ -1362,25 +1368,22 @@ export default function InboundFormModal({
             />
           </Form.Item>
           {isSSWith2022 && (
-            <Form.Item
-              name={['settings', 'password']}
-              label={
-                <>
-                  Password{' '}
-                  <SyncOutlined
-                    className="random-icon"
-                    onClick={() => {
-                      const method = form.getFieldValue(['settings', 'method']);
-                      form.setFieldValue(
-                        ['settings', 'password'],
-                        RandomUtil.randomShadowsocksPassword(method as string),
-                      );
-                    }}
-                  />
-                </>
-              }
-            >
-              <Input />
+            <Form.Item label="Password">
+              <Space.Compact block>
+                <Form.Item name={['settings', 'password']} noStyle>
+                  <Input style={{ width: 'calc(100% - 32px)' }} />
+                </Form.Item>
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={() => {
+                    const method = form.getFieldValue(['settings', 'method']);
+                    form.setFieldValue(
+                      ['settings', 'password'],
+                      RandomUtil.randomShadowsocksPassword(method as string),
+                    );
+                  }}
+                />
+              </Space.Compact>
             </Form.Item>
           )}
           <Form.Item name={['settings', 'network']} label="Network">
@@ -2759,27 +2762,24 @@ export default function InboundFormModal({
                   options={Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp }))}
                 />
               </Form.Item>
-              <Form.Item
-                name={['streamSettings', 'realitySettings', 'target']}
-                label={
-                  <>
-                    Target{' '}
-                    <SyncOutlined className="random-icon" onClick={randomizeRealityTarget} />
-                  </>
-                }
-              >
-                <Input />
+              <Form.Item label="Target">
+                <Space.Compact block>
+                  <Form.Item name={['streamSettings', 'realitySettings', 'target']} noStyle>
+                    <Input style={{ width: 'calc(100% - 32px)' }} />
+                  </Form.Item>
+                  <Button icon={<ReloadOutlined />} onClick={randomizeRealityTarget} />
+                </Space.Compact>
               </Form.Item>
-              <Form.Item
-                name={['streamSettings', 'realitySettings', 'serverNames']}
-                label={
-                  <>
-                    SNI{' '}
-                    <SyncOutlined className="random-icon" onClick={randomizeRealityTarget} />
-                  </>
-                }
-              >
-                <Select mode="tags" tokenSeparators={[',']} style={{ width: '100%' }} />
+              <Form.Item label="SNI">
+                <Space.Compact block style={{ display: 'flex' }}>
+                  <Form.Item
+                    name={['streamSettings', 'realitySettings', 'serverNames']}
+                    noStyle
+                  >
+                    <Select mode="tags" tokenSeparators={[',']} style={{ flex: 1 }} />
+                  </Form.Item>
+                  <Button icon={<ReloadOutlined />} onClick={randomizeRealityTarget} />
+                </Space.Compact>
               </Form.Item>
               <Form.Item
                 name={['streamSettings', 'realitySettings', 'maxTimediff']}
@@ -2799,16 +2799,16 @@ export default function InboundFormModal({
               >
                 <Input placeholder="25.9.11" />
               </Form.Item>
-              <Form.Item
-                name={['streamSettings', 'realitySettings', 'shortIds']}
-                label={
-                  <>
-                    Short IDs{' '}
-                    <SyncOutlined className="random-icon" onClick={randomizeShortIds} />
-                  </>
-                }
-              >
-                <Select mode="tags" tokenSeparators={[',']} style={{ width: '100%' }} />
+              <Form.Item label="Short IDs">
+                <Space.Compact block style={{ display: 'flex' }}>
+                  <Form.Item
+                    name={['streamSettings', 'realitySettings', 'shortIds']}
+                    noStyle
+                  >
+                    <Select mode="tags" tokenSeparators={[',']} style={{ flex: 1 }} />
+                  </Form.Item>
+                  <Button icon={<ReloadOutlined />} onClick={randomizeShortIds} />
+                </Space.Compact>
               </Form.Item>
               <Form.Item
                 name={['streamSettings', 'realitySettings', 'settings', 'spiderX']}

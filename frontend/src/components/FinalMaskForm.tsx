@@ -424,8 +424,19 @@ function UdpMaskItem({
           const type = getFieldValue([...absolutePath, 'type']) as string | undefined;
           if (type === 'mkcp-aes128gcm' || type === 'salamander') {
             return (
-              <Form.Item label="Password" name={[fieldName, 'settings', 'password']}>
-                <Input placeholder="Obfuscation password" />
+              <Form.Item label="Password">
+                <Space.Compact block>
+                  <Form.Item name={[fieldName, 'settings', 'password']} noStyle>
+                    <Input placeholder="Obfuscation password" style={{ width: 'calc(100% - 32px)' }} />
+                  </Form.Item>
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={() => form.setFieldValue(
+                      [...absolutePath, 'settings', 'password'],
+                      RandomUtil.randomLowerAndNum(16),
+                    )}
+                  />
+                </Space.Compact>
               </Form.Item>
             );
           }
