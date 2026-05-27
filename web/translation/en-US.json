@@ -686,6 +686,8 @@
       "panelUrlPathDesc": "The URI path for the web panel. (begins with ‘/‘ and concludes with ‘/‘)",
       "pageSize": "Pagination Size",
       "pageSizeDesc": "Define page size for inbounds table. (0 = disable)",
+      "panelProxy": "Panel Network Proxy",
+      "panelProxyDesc": "Routes the panel's own outbound requests (geo updates, Xray/panel version checks, Telegram) through this proxy to bypass server-side filtering of GitHub/Telegram. Accepts socks5:// or http(s)://, e.g. a local Xray SOCKS inbound. Leave empty for a direct connection.",
       "remarkModel": "Remark Model & Separation Character",
       "datepicker": "Calendar Type",
       "datepickerPlaceholder": "Select date",

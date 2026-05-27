@@ -911,11 +911,11 @@ export default function InboundInfoModal({
                       <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyText(`${account.user}:${account.pass}`, t)} />
                     </Tooltip>
                     <Space size={4} wrap className="share-buttons">
-                      <Tooltip title={`socks5://${dbInbound.address}:${dbInbound.port}@${account.user}:${account.pass}`}>
-                        <Button size="small" onClick={() => copyText(`socks5://${dbInbound.address}:${dbInbound.port}@${account.user}:${account.pass}`, t)}>SOCKS5</Button>
+                      <Tooltip title={`socks5://${account.user}:${account.pass}@${dbInbound.address}:${dbInbound.port}`}>
+                        <Button size="small" onClick={() => copyText(`socks5://${account.user}:${account.pass}@${dbInbound.address}:${dbInbound.port}`, t)}>SOCKS5</Button>
                       </Tooltip>
-                      <Tooltip title={`http://${dbInbound.address}:${dbInbound.port}@${account.user}:${account.pass}`}>
-                        <Button size="small" onClick={() => copyText(`http://${dbInbound.address}:${dbInbound.port}@${account.user}:${account.pass}`, t)}>HTTP</Button>
+                      <Tooltip title={`http://${account.user}:${account.pass}@${dbInbound.address}:${dbInbound.port}`}>
+                        <Button size="small" onClick={() => copyText(`http://${account.user}:${account.pass}@${dbInbound.address}:${dbInbound.port}`, t)}>HTTP</Button>
                       </Tooltip>
                       <Tooltip title="https://t.me/socks?server=...&port=...&user=...&pass=...">
                         <Button size="small" onClick={() => copyText(`https://t.me/socks?server=${encodeURIComponent(dbInbound.address)}&port=${dbInbound.port}&user=${encodeURIComponent(account.user)}&pass=${encodeURIComponent(account.pass)}`, t)}>Telegram</Button>

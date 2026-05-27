@@ -617,8 +617,6 @@ func (s *ServerService) sampleCPUUtilization() (float64, error) {
 	return s.emaCPU, nil
 }
 
-var xrayVersionsClient = &http.Client{Timeout: 10 * time.Second}
-
 const (
 	maxXrayArchiveBytes = 200 << 20
 	maxXrayBinaryBytes  = 200 << 20
@@ -630,7 +628,7 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 		bufferSize = 8192
 	)
 
-	resp, err := xrayVersionsClient.Get(XrayURL)
+	resp, err := s.settingService.NewProxiedHTTPClient(10 * time.Second).Get(XrayURL)
 	if err != nil {
 		return nil, err
 	}
@@ -729,7 +727,7 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 
 	fileName := fmt.Sprintf("Xray-%s-%s.zip", osName, arch)
 	url := fmt.Sprintf("https://github.com/XTLS/Xray-core/releases/download/%s/%s", version, fileName)
-	client := &http.Client{Timeout: 60 * time.Second}
+	client := s.settingService.NewProxiedHTTPClient(60 * time.Second)
 	resp, err := client.Get(url)
 	if err != nil {
 		return "", err
@@ -1273,6 +1271,8 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 		}
 	}
 
+	client := s.settingService.NewProxiedHTTPClient(0)
+
 	downloadFile := func(url, destPath string) error {
 		var req *http.Request
 		req, err := http.NewRequest("GET", url, nil)
@@ -1288,7 +1288,6 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 			}
 		}
 
-		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
 			return common.NewErrorf("Failed to download Geofile from %s: %v", url, err)
