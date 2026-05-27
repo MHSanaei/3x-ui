@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Modal, Select, Space, Switch, message } from 'antd';
+import { AutoComplete, Button, Form, Input, InputNumber, Modal, Select, Space, Switch, message } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
@@ -21,6 +21,7 @@ interface ClientBulkAddModalProps {
   open: boolean;
   inbounds: InboundOption[];
   ipLimitEnable?: boolean;
+  groups?: string[];
   onOpenChange: (open: boolean) => void;
   onSaved?: () => void;
 }
@@ -36,6 +37,7 @@ function emptyForm(): FormState {
     emailPostfix: '',
     quantity: 1,
     subId: '',
+    group: '',
     comment: '',
     flow: '',
     limitIp: 0,
@@ -50,6 +52,7 @@ export default function ClientBulkAddModal({
   open,
   inbounds,
   ipLimitEnable = false,
+  groups = [],
   onOpenChange,
   onSaved,
 }: ClientBulkAddModalProps) {
@@ -157,6 +160,7 @@ export default function ClientBulkAddModal({
           expiryTime: form.expiryTime,
           reset: Number(form.reset) || 0,
           limitIp: Number(form.limitIp) || 0,
+          group: form.group,
           comment: form.comment,
           enable: true,
         },
@@ -261,6 +265,20 @@ export default function ClientBulkAddModal({
                 onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))}
               />
             </Space.Compact>
+          </Form.Item>
+
+          <Form.Item label={t('pages.clients.group')} tooltip={t('pages.clients.groupDesc')}>
+            <AutoComplete
+              value={form.group}
+              placeholder={t('pages.clients.groupPlaceholder')}
+              options={groups.map((g) => ({ value: g }))}
+              onChange={(v) => update('group', v ?? '')}
+              filterOption={(input, option) =>
+                String(option?.value ?? '').toLowerCase().includes((input || '').toLowerCase())
+              }
+              allowClear
+              style={{ width: '100%' }}
+            />
           </Form.Item>
 
           <Form.Item label={t('comment')}>

@@ -2,6 +2,7 @@ export interface ClientFilters {
   buckets: string[];
   protocols: string[];
   inboundIds: number[];
+  groups: string[];
   expiryFrom?: number;
   expiryTo?: number;
   usageFromGB?: number;
@@ -16,6 +17,7 @@ export function emptyFilters(): ClientFilters {
     buckets: [],
     protocols: [],
     inboundIds: [],
+    groups: [],
     autoRenew: '',
     hasTgId: '',
     hasComment: '',
@@ -27,6 +29,7 @@ export function activeFilterCount(f: ClientFilters): number {
   if (f.buckets.length) n++;
   if (f.protocols.length) n++;
   if (f.inboundIds.length) n++;
+  if (f.groups.length) n++;
   if (f.expiryFrom || f.expiryTo) n++;
   if (f.usageFromGB || f.usageToGB) n++;
   if (f.autoRenew) n++;

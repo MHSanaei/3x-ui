@@ -68,6 +68,7 @@ func initModels() error {
 		&model.ApiToken{},
 		&model.ClientRecord{},
 		&model.ClientInbound{},
+		&model.ClientGroup{},
 		&model.InboundFallback{},
 	}
 	for _, mdl := range models {

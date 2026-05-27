@@ -27,6 +27,7 @@ interface FilterDrawerProps {
   onChange: (next: ClientFilters) => void;
   inbounds: InboundOption[];
   protocols: string[];
+  groups: string[];
 }
 
 const BUCKET_KEYS = ['active', 'expiring', 'depleted', 'deactive', 'online'] as const;
@@ -38,6 +39,7 @@ export default function FilterDrawer({
   onChange,
   inbounds,
   protocols,
+  groups,
 }: FilterDrawerProps) {
   const { t } = useTranslation();
 
@@ -58,6 +60,11 @@ export default function FilterDrawer({
   const protocolOptions = useMemo(
     () => protocols.map((p) => ({ value: p, label: p })),
     [protocols],
+  );
+
+  const groupOptions = useMemo(
+    () => groups.map((g) => ({ value: g, label: g })),
+    [groups],
   );
 
   const dateRange: [Dayjs | null, Dayjs | null] = [
@@ -118,6 +125,21 @@ export default function FilterDrawer({
             onChange={(v) => patch('inboundIds', v as number[])}
             options={inboundOptions}
             placeholder={t('inbounds')}
+            maxTagCount="responsive"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            listHeight={220}
+          />
+        </Form.Item>
+
+        <Form.Item label={t('pages.clients.group')}>
+          <Select
+            mode="multiple"
+            value={filters.groups}
+            onChange={(v) => patch('groups', v as string[])}
+            options={groupOptions}
+            placeholder={t('pages.clients.groupPlaceholder')}
             maxTagCount="responsive"
             allowClear
             showSearch

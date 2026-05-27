@@ -31,6 +31,7 @@ import {
   EditOutlined,
   FilterOutlined,
   InfoCircleOutlined,
+  LinkOutlined,
   MoreOutlined,
   PlusOutlined,
   QrcodeOutlined,
@@ -38,6 +39,7 @@ import {
   RetweetOutlined,
   SearchOutlined,
   SortAscendingOutlined,
+  TagsOutlined,
   TeamOutlined,
   UsergroupAddOutlined,
 } from '@ant-design/icons';
@@ -58,6 +60,8 @@ const ClientQrModal = lazy(() => import('./ClientQrModal'));
 const ClientBulkAddModal = lazy(() => import('./ClientBulkAddModal'));
 const ClientBulkAdjustModal = lazy(() => import('./ClientBulkAdjustModal'));
 const FilterDrawer = lazy(() => import('./FilterDrawer'));
+const SubLinksModal = lazy(() => import('./SubLinksModal'));
+const BulkAssignGroupModal = lazy(() => import('./BulkAssignGroupModal'));
 import { emptyFilters, activeFilterCount } from './filters';
 import type { ClientFilters } from './filters';
 import './ClientsPage.css';
@@ -97,6 +101,7 @@ function readFilterState(): PersistedFilterState {
         buckets: Array.isArray(fromRaw.buckets) ? fromRaw.buckets : [],
         protocols: Array.isArray(fromRaw.protocols) ? fromRaw.protocols : [],
         inboundIds: Array.isArray(fromRaw.inboundIds) ? fromRaw.inboundIds : [],
+        groups: Array.isArray(fromRaw.groups) ? fromRaw.groups : [],
       },
     };
   } catch {
@@ -140,10 +145,11 @@ export default function ClientsPage() {
   const {
     clients, filtered,
     summary: serverSummary,
+    allGroups,
     setQuery,
     inbounds, onlines, loading, fetched, subSettings,
     ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
-    create, update, remove, bulkDelete, bulkAdjust, attach, detach,
+    create, update, remove, bulkDelete, bulkAdjust, bulkAssignGroup, attach, detach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
     hydrate,
@@ -165,6 +171,8 @@ export default function ClientsPage() {
   const [qrClient, setQrClient] = useState<ClientRecord | null>(null);
   const [bulkAddOpen, setBulkAddOpen] = useState(false);
   const [bulkAdjustOpen, setBulkAdjustOpen] = useState(false);
+  const [subLinksOpen, setSubLinksOpen] = useState(false);
+  const [bulkGroupOpen, setBulkGroupOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
   const initial = readFilterState();
@@ -210,6 +218,7 @@ export default function ClientsPage() {
       autoRenew: filters.autoRenew || undefined,
       hasTgId: filters.hasTgId || undefined,
       hasComment: filters.hasComment || undefined,
+      group: filters.groups.join(',') || undefined,
       sort: sortColumn || undefined,
       order: sortOrder || undefined,
     });
@@ -235,6 +244,12 @@ export default function ClientsPage() {
     const values = new Set<string>((inbounds || []).map((i) => i.protocol).filter((x): x is string => !!x));
     return [...values].sort();
   }, [inbounds]);
+
+  const groupOptions = useMemo(() => {
+    const values = new Set<string>(allGroups);
+    for (const g of filters.groups) values.add(g);
+    return [...values].sort((a, b) => a.localeCompare(b));
+  }, [allGroups, filters.groups]);
 
   const isOnline = useCallback((email: string) => !!email && onlineSet.has(email), [onlineSet]);
 
@@ -563,6 +578,29 @@ export default function ClientsPage() {
       ),
     },
     {
+      title: t('pages.clients.group'),
+      key: 'group',
+      width: 130,
+      render: (_v, record) => {
+        if (!record.group) return <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>;
+        const isActive = filters.groups.includes(record.group);
+        return (
+          <Tag
+            color="geekblue"
+            style={{ margin: 0, cursor: 'pointer', opacity: isActive ? 0.6 : 1 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isActive) {
+                setFilters({ ...filters, groups: [...filters.groups, record.group!] });
+              }
+            }}
+          >
+            {record.group}
+          </Tag>
+        );
+      },
+    },
+    {
       title: t('pages.clients.attachedInbounds'),
       key: 'inboundIds',
       width: 170,
@@ -627,7 +665,7 @@ export default function ClientsPage() {
       ),
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, togglingEmail, clientBucket, isOnline, inboundsById]);
+  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters]);
 
   const tablePagination = {
     current: currentPage,
@@ -740,28 +778,56 @@ export default function ClientsPage() {
                       hoverable
                       title={
                         <div className="card-toolbar">
-                          <Button type="primary" size="small" icon={<PlusOutlined />} onClick={onAdd}>
+                          <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
                             {!isMobile && t('pages.clients.addClients')}
-                          </Button>
-                          <Button size="small" icon={<UsergroupAddOutlined />} onClick={() => setBulkAddOpen(true)}>
-                            {!isMobile && t('pages.clients.bulk')}
                           </Button>
                           {selectedRowKeys.length > 0 && (
                             <>
-                              <Button size="small" icon={<ClockCircleOutlined />} onClick={() => setBulkAdjustOpen(true)}>
+                              <Button icon={<ClockCircleOutlined />} onClick={() => setBulkAdjustOpen(true)}>
                                 {t('pages.clients.adjustSelected', { count: selectedRowKeys.length })}
                               </Button>
-                              <Button danger size="small" icon={<DeleteOutlined />} onClick={onBulkDelete}>
+                              <Button icon={<TagsOutlined />} onClick={() => setBulkGroupOpen(true)}>
+                                {t('pages.clients.assignGroupSelected', { count: selectedRowKeys.length })}
+                              </Button>
+                              <Button icon={<LinkOutlined />} onClick={() => setSubLinksOpen(true)}>
+                                {t('pages.clients.subLinksSelected', { count: selectedRowKeys.length })}
+                              </Button>
+                              <Button danger icon={<DeleteOutlined />} onClick={onBulkDelete}>
                                 {t('pages.clients.deleteSelected', { count: selectedRowKeys.length })}
                               </Button>
                             </>
                           )}
-                          <Button size="small" icon={<RetweetOutlined />} onClick={onResetAllTraffics}>
-                            {!isMobile && t('pages.clients.resetAllTraffics')}
-                          </Button>
-                          <Button size="small" danger icon={<RestOutlined />} onClick={onDelDepleted}>
-                            {!isMobile && t('pages.clients.delDepleted')}
-                          </Button>
+                          <Dropdown
+                            trigger={['click']}
+                            placement="bottomRight"
+                            menu={{
+                              items: [
+                                {
+                                  key: 'bulk',
+                                  icon: <UsergroupAddOutlined />,
+                                  label: t('pages.clients.bulk'),
+                                  onClick: () => setBulkAddOpen(true),
+                                },
+                                {
+                                  key: 'resetAll',
+                                  icon: <RetweetOutlined />,
+                                  label: t('pages.clients.resetAllTraffics'),
+                                  onClick: onResetAllTraffics,
+                                },
+                                {
+                                  key: 'delDepleted',
+                                  icon: <RestOutlined />,
+                                  label: t('pages.clients.delDepleted'),
+                                  danger: true,
+                                  onClick: onDelDepleted,
+                                },
+                              ],
+                            }}
+                          >
+                            <Button icon={<MoreOutlined />}>
+                              {!isMobile && t('more')}
+                            </Button>
+                          </Dropdown>
                         </div>
                       }
                     >
@@ -836,6 +902,16 @@ export default function ClientsPage() {
                               onClose={() => setFilters({ ...filters, inboundIds: filters.inboundIds.filter((x) => x !== id) })}
                             >
                               {inboundLabel(id)}
+                            </Tag>
+                          ))}
+                          {filters.groups.map((g) => (
+                            <Tag
+                              key={`g-${g}`}
+                              closable
+                              color="geekblue"
+                              onClose={() => setFilters({ ...filters, groups: filters.groups.filter((x) => x !== g) })}
+                            >
+                              {t('pages.clients.group')}: {g}
                             </Tag>
                           ))}
                           {(filters.expiryFrom || filters.expiryTo) && (
@@ -1008,6 +1084,7 @@ export default function ClientsPage() {
             inbounds={inbounds}
             ipLimitEnable={ipLimitEnable}
             tgBotEnable={tgBotEnable}
+            groups={allGroups}
             save={onSave}
             onOpenChange={setFormOpen}
           />
@@ -1035,6 +1112,7 @@ export default function ClientsPage() {
             open={bulkAddOpen}
             inbounds={inbounds}
             ipLimitEnable={ipLimitEnable}
+            groups={allGroups}
             onOpenChange={setBulkAddOpen}
             onSaved={() => setBulkAddOpen(false)}
           />
@@ -1054,6 +1132,31 @@ export default function ClientsPage() {
             }}
           />
         </LazyMount>
+        <LazyMount when={subLinksOpen}>
+          <SubLinksModal
+            open={subLinksOpen}
+            emails={selectedRowKeys}
+            clients={clients}
+            subSettings={subSettings}
+            onOpenChange={setSubLinksOpen}
+          />
+        </LazyMount>
+        <LazyMount when={bulkGroupOpen}>
+          <BulkAssignGroupModal
+            open={bulkGroupOpen}
+            count={selectedRowKeys.length}
+            groups={allGroups}
+            onOpenChange={setBulkGroupOpen}
+            onSubmit={async (group) => {
+              const msg = await bulkAssignGroup([...selectedRowKeys], group);
+              if (msg?.success) {
+                setSelectedRowKeys([]);
+                return (msg.obj as { affected?: number } | undefined) ?? { affected: 0 };
+              }
+              return null;
+            }}
+          />
+        </LazyMount>
         <LazyMount when={filterDrawerOpen}>
           <FilterDrawer
             open={filterDrawerOpen}
@@ -1062,6 +1165,7 @@ export default function ClientsPage() {
             onChange={setFilters}
             inbounds={inbounds}
             protocols={protocolOptions}
+            groups={groupOptions}
           />
         </LazyMount>
       </Layout>

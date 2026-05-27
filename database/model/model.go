@@ -371,6 +371,7 @@ type Client struct {
 	Enable     bool           `json:"enable" form:"enable"`         // Whether the client is enabled
 	TgID       int64          `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
 	SubID      string         `json:"subId" form:"subId"`           // Subscription identifier
+	Group      string         `json:"group,omitempty" form:"group"` // Logical grouping label
 	Comment    string         `json:"comment" form:"comment"`       // Client comment
 	Reset      int            `json:"reset" form:"reset"`           // Reset period in days
 	CreatedAt  int64          `json:"created_at,omitempty"`         // Creation timestamp
@@ -392,6 +393,7 @@ type ClientRecord struct {
 	ExpiryTime int64  `json:"expiryTime" gorm:"column:expiry_time"`
 	Enable     bool   `json:"enable" gorm:"default:true"`
 	TgID       int64  `json:"tgId" gorm:"column:tg_id"`
+	Group      string `json:"group" gorm:"column:group_name;default:''"`
 	Comment    string `json:"comment"`
 	Reset      int    `json:"reset" gorm:"default:0"`
 	CreatedAt  int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
@@ -399,6 +401,15 @@ type ClientRecord struct {
 }
 
 func (ClientRecord) TableName() string { return "clients" }
+
+type ClientGroup struct {
+	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name      string `json:"name" gorm:"uniqueIndex;not null"`
+	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
+
+func (ClientGroup) TableName() string { return "client_groups" }
 
 // MarshalJSON emits the reverse column as a nested JSON object rather than an
 // escaped JSON-text string, matching the same convention Inbound uses for its
@@ -472,6 +483,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		ExpiryTime: c.ExpiryTime,
 		Enable:     c.Enable,
 		TgID:       c.TgID,
+		Group:      c.Group,
 		Comment:    c.Comment,
 		Reset:      c.Reset,
 		CreatedAt:  c.CreatedAt,
@@ -499,6 +511,7 @@ func (r *ClientRecord) ToClient() *Client {
 		ExpiryTime: r.ExpiryTime,
 		Enable:     r.Enable,
 		TgID:       r.TgID,
+		Group:      r.Group,
 		Comment:    r.Comment,
 		Reset:      r.Reset,
 		CreatedAt:  r.CreatedAt,
@@ -621,6 +634,12 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if incomingNewer || existing.Comment == "" {
 			keep("comment", existing.Comment, incoming.Comment, incoming.Comment)
 			existing.Comment = incoming.Comment
+		}
+	}
+	if existing.Group != incoming.Group && incoming.Group != "" {
+		if incomingNewer || existing.Group == "" {
+			keep("group", existing.Group, incoming.Group, incoming.Group)
+			existing.Group = incoming.Group
 		}
 	}
 	if existing.Enable != incoming.Enable {

@@ -74,6 +74,7 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  padding: 6px 0;
 }
 
 .email-cell {

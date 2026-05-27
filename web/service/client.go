@@ -237,6 +237,7 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			row.ExpiryTime = incoming.ExpiryTime
 			row.Enable = incoming.Enable
 			row.TgID = incoming.TgID
+			row.Group = incoming.Group
 			row.Comment = incoming.Comment
 			row.Reset = incoming.Reset
 			if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
@@ -863,6 +864,7 @@ type ClientSlim struct {
 	ExpiryTime int64               `json:"expiryTime"`
 	LimitIP    int                 `json:"limitIp"`
 	Reset      int                 `json:"reset"`
+	Group      string              `json:"group,omitempty"`
 	Comment    string              `json:"comment,omitempty"`
 	InboundIds []int               `json:"inboundIds"`
 	Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
@@ -894,6 +896,7 @@ type ClientPageParams struct {
 	AutoRenew  string `form:"autoRenew"`
 	HasTgID    string `form:"hasTgId"`
 	HasComment string `form:"hasComment"`
+	Group      string `form:"group"`
 }
 
 // ClientPageResponse is the shape returned by ListPaged. `Total` is the
@@ -908,6 +911,7 @@ type ClientPageResponse struct {
 	Page     int            `json:"page"`
 	PageSize int            `json:"pageSize"`
 	Summary  ClientsSummary `json:"summary"`
+	Groups   []string       `json:"groups"`
 }
 
 // ClientsSummary collects per-bucket counts plus the matching email lists so
@@ -1017,6 +1021,9 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		if !clientMatchesHasComment(c, params.HasComment) {
 			continue
 		}
+		if !clientMatchesAnyGroup(c, params.Group) {
+			continue
+		}
 		filtered = append(filtered, c)
 	}
 
@@ -1038,6 +1045,15 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		items = append(items, toClientSlim(c))
 	}
 
+	groupRows, gErr := s.ListGroups()
+	if gErr != nil {
+		return nil, gErr
+	}
+	groups := make([]string, 0, len(groupRows))
+	for _, g := range groupRows {
+		groups = append(groups, g.Name)
+	}
+
 	return &ClientPageResponse{
 		Items:    items,
 		Total:    total,
@@ -1045,7 +1061,319 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		Page:     page,
 		PageSize: pageSize,
 		Summary:  summary,
+		Groups:   groups,
 	}, nil
+}
+
+type GroupSummary struct {
+	Name        string `json:"name"`
+	ClientCount int    `json:"clientCount"`
+}
+
+func (s *ClientService) ListGroups() ([]GroupSummary, error) {
+	db := database.GetDB()
+	var derived []GroupSummary
+	if err := db.Model(&model.ClientRecord{}).
+		Select("group_name AS name, COUNT(*) AS client_count").
+		Where("group_name <> ''").
+		Group("group_name").
+		Scan(&derived).Error; err != nil {
+		return nil, err
+	}
+	var stored []model.ClientGroup
+	if err := db.Find(&stored).Error; err != nil {
+		return nil, err
+	}
+	merged := make(map[string]int, len(derived)+len(stored))
+	for _, g := range stored {
+		merged[g.Name] = 0
+	}
+	for _, g := range derived {
+		merged[g.Name] = g.ClientCount
+	}
+	out := make([]GroupSummary, 0, len(merged))
+	for name, count := range merged {
+		out = append(out, GroupSummary{Name: name, ClientCount: count})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
+	})
+	return out, nil
+}
+
+func (s *ClientService) EmailsByGroup(name string) ([]string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return []string{}, nil
+	}
+	db := database.GetDB()
+	var emails []string
+	if err := db.Model(&model.ClientRecord{}).
+		Where("group_name = ?", name).
+		Order("email ASC").
+		Pluck("email", &emails).Error; err != nil {
+		return nil, err
+	}
+	if emails == nil {
+		emails = []string{}
+	}
+	return emails, nil
+}
+
+func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []string) (int, error) {
+	if len(emails) == 0 {
+		return 0, nil
+	}
+	count := 0
+	for _, email := range emails {
+		if _, err := s.ResetTrafficByEmail(inboundSvc, email); err != nil {
+			return count, err
+		}
+		count++
+	}
+	return count, nil
+}
+
+func (s *ClientService) CreateGroup(name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return common.NewError("group name is required")
+	}
+	db := database.GetDB()
+	var count int64
+	if err := db.Model(&model.ClientGroup{}).Where("name = ?", name).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return common.NewError("group already exists")
+	}
+	return db.Create(&model.ClientGroup{Name: name}).Error
+}
+
+func (s *ClientService) RenameGroup(oldName, newName string) (int, error) {
+	oldName = strings.TrimSpace(oldName)
+	newName = strings.TrimSpace(newName)
+	if oldName == "" {
+		return 0, common.NewError("old group name is required")
+	}
+	if newName == "" {
+		return 0, common.NewError("new group name is required")
+	}
+	if oldName == newName {
+		return 0, nil
+	}
+	return s.replaceGroupValue(oldName, newName)
+}
+
+func (s *ClientService) DeleteGroup(name string) (int, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return 0, common.NewError("group name is required")
+	}
+	return s.replaceGroupValue(name, "")
+}
+
+func (s *ClientService) AssignGroup(emails []string, group string) (int, error) {
+	group = strings.TrimSpace(group)
+	if len(emails) == 0 {
+		return 0, nil
+	}
+	db := database.GetDB()
+
+	if group != "" {
+		var exists int64
+		if err := db.Model(&model.ClientGroup{}).Where("name = ?", group).Count(&exists).Error; err != nil {
+			return 0, err
+		}
+		if exists == 0 {
+			var derived int64
+			if err := db.Model(&model.ClientRecord{}).Where("group_name = ?", group).Count(&derived).Error; err != nil {
+				return 0, err
+			}
+			if derived == 0 {
+				if err := db.Create(&model.ClientGroup{Name: group}).Error; err != nil {
+					return 0, err
+				}
+			}
+		}
+	}
+
+	var records []model.ClientRecord
+	if err := db.Where("email IN ?", emails).Find(&records).Error; err != nil {
+		return 0, err
+	}
+	if len(records) == 0 {
+		return 0, nil
+	}
+	affectedEmails := make([]string, 0, len(records))
+	for _, r := range records {
+		affectedEmails = append(affectedEmails, r.Email)
+	}
+
+	tx := db.Begin()
+	if err := tx.Model(&model.ClientRecord{}).
+		Where("email IN ?", affectedEmails).
+		UpdateColumn("group_name", group).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	var inboundIDs []int
+	if err := tx.Table("client_inbounds").
+		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+		Where("clients.email IN ?", affectedEmails).
+		Distinct("client_inbounds.inbound_id").
+		Pluck("inbound_id", &inboundIDs).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	emailSet := make(map[string]struct{}, len(affectedEmails))
+	for _, e := range affectedEmails {
+		emailSet[e] = struct{}{}
+	}
+
+	for _, ibID := range inboundIDs {
+		var ib model.Inbound
+		if err := tx.First(&ib, ibID).Error; err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+			continue
+		}
+		clients, ok := settings["clients"].([]any)
+		if !ok {
+			continue
+		}
+		modified := false
+		for i := range clients {
+			cm, ok := clients[i].(map[string]any)
+			if !ok {
+				continue
+			}
+			email, _ := cm["email"].(string)
+			if _, hit := emailSet[email]; !hit {
+				continue
+			}
+			if group == "" {
+				delete(cm, "group")
+			} else {
+				cm["group"] = group
+			}
+			clients[i] = cm
+			modified = true
+		}
+		if modified {
+			settings["clients"] = clients
+			newSettings, err := json.Marshal(settings)
+			if err != nil {
+				continue
+			}
+			ib.Settings = string(newSettings)
+			if err := tx.Save(&ib).Error; err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return 0, err
+	}
+	return len(records), nil
+}
+
+func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) {
+	db := database.GetDB()
+	if newName == "" {
+		if err := db.Where("name = ?", oldName).Delete(&model.ClientGroup{}).Error; err != nil {
+			return 0, err
+		}
+	} else {
+		if err := db.Model(&model.ClientGroup{}).Where("name = ?", oldName).Update("name", newName).Error; err != nil {
+			return 0, err
+		}
+	}
+	var records []model.ClientRecord
+	if err := db.Where("group_name = ?", oldName).Find(&records).Error; err != nil {
+		return 0, err
+	}
+	if len(records) == 0 {
+		return 0, nil
+	}
+	affectedEmails := make([]string, 0, len(records))
+	for _, r := range records {
+		affectedEmails = append(affectedEmails, r.Email)
+	}
+
+	tx := db.Begin()
+	if err := tx.Model(&model.ClientRecord{}).
+		Where("group_name = ?", oldName).
+		UpdateColumn("group_name", newName).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	var inboundIDs []int
+	if err := tx.Table("client_inbounds").
+		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+		Where("clients.email IN ?", affectedEmails).
+		Distinct("client_inbounds.inbound_id").
+		Pluck("inbound_id", &inboundIDs).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	for _, ibID := range inboundIDs {
+		var ib model.Inbound
+		if err := tx.First(&ib, ibID).Error; err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+			continue
+		}
+		clients, ok := settings["clients"].([]any)
+		if !ok {
+			continue
+		}
+		modified := false
+		for i := range clients {
+			cm, ok := clients[i].(map[string]any)
+			if !ok {
+				continue
+			}
+			if g, ok := cm["group"].(string); ok && g == oldName {
+				if newName == "" {
+					delete(cm, "group")
+				} else {
+					cm["group"] = newName
+				}
+				clients[i] = cm
+				modified = true
+			}
+		}
+		if modified {
+			settings["clients"] = clients
+			newSettings, err := json.Marshal(settings)
+			if err != nil {
+				continue
+			}
+			ib.Settings = string(newSettings)
+			if err := tx.Save(&ib).Error; err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return 0, err
+	}
+	return len(records), nil
 }
 
 func buildClientsSummary(all []ClientWithAttachments, onlineSet map[string]struct{}, nowMs, expireDiffMs, trafficDiffBytes int64) ClientsSummary {
@@ -1096,6 +1424,7 @@ func toClientSlim(c ClientWithAttachments) ClientSlim {
 		ExpiryTime: c.ExpiryTime,
 		LimitIP:    c.LimitIP,
 		Reset:      c.Reset,
+		Group:      c.Group,
 		Comment:    c.Comment,
 		InboundIds: c.InboundIds,
 		Traffic:    c.Traffic,
@@ -1259,6 +1588,26 @@ func clientMatchesHasComment(c ClientWithAttachments, mode string) bool {
 		return strings.TrimSpace(c.Comment) == ""
 	}
 	return true
+}
+
+func clientMatchesAnyGroup(c ClientWithAttachments, csv string) bool {
+	groups := parseCSVStrings(csv)
+	if len(groups) == 0 {
+		return true
+	}
+	current := strings.TrimSpace(c.Group)
+	for _, g := range groups {
+		if g == "" {
+			if current == "" {
+				return true
+			}
+			continue
+		}
+		if strings.EqualFold(g, current) {
+			return true
+		}
+	}
+	return false
 }
 
 func clientMatchesBucket(c ClientWithAttachments, bucket string, onlineSet map[string]struct{}, nowMs, expireDiffMs, trafficDiffBytes int64) bool {

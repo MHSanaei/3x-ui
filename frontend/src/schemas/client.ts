@@ -25,6 +25,7 @@ export const ClientRecordSchema = z.object({
   expiryTime: z.number().optional(),
   limitIp: z.number().optional(),
   tgId: z.union([z.number(), z.string()]).optional(),
+  group: z.string().optional(),
   comment: z.string().optional(),
   enable: z.boolean().optional(),
   reset: z.number().optional(),
@@ -63,6 +64,7 @@ export const ClientPageResponseSchema = z.object({
   page: z.number(),
   pageSize: z.number(),
   summary: ClientsSummarySchema.nullable().optional(),
+  groups: nullableStringArray.optional(),
 });
 
 export const ClientHydrateSchema = z.object({
@@ -97,6 +99,13 @@ export const DelDepletedResultSchema = z.object({
 
 export const OnlinesSchema = nullableStringArray;
 
+export const GroupSummarySchema = z.object({
+  name: z.string(),
+  clientCount: z.number(),
+});
+
+export const GroupSummaryListSchema = z.array(GroupSummarySchema).nullable().transform((v) => v ?? []);
+
 export const ClientFormSchema = z.object({
   email: z.string().trim().min(1, 'pages.clients.email'),
   subId: z.string(),
@@ -111,6 +120,7 @@ export const ClientFormSchema = z.object({
   reset: z.number().int().min(0),
   limitIp: z.number().int().min(0),
   tgId: z.number().int().min(0),
+  group: z.string(),
   comment: z.string(),
   enable: z.boolean(),
   inboundIds: z.array(z.number()),
@@ -137,6 +147,7 @@ export const ClientBulkAddFormSchema = z.object({
   emailPostfix: z.string(),
   quantity: z.number().int().min(1).max(100),
   subId: z.string(),
+  group: z.string(),
   comment: z.string(),
   flow: z.string(),
   limitIp: z.number().int().min(0),
@@ -158,3 +169,4 @@ export type BulkCreateResult = z.infer<typeof BulkCreateResultSchema>;
 export type ClientBulkAddFormValues = z.infer<typeof ClientBulkAddFormSchema>;
 export type ClientBulkAdjustFormValues = z.infer<typeof ClientBulkAdjustFormSchema>;
 export type ClientFormValues = z.infer<typeof ClientFormSchema>;
+export type GroupSummary = z.infer<typeof GroupSummarySchema>;

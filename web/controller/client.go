@@ -47,12 +47,20 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/bulkAdjust", a.bulkAdjust)
 	g.POST("/bulkDel", a.bulkDelete)
 	g.POST("/bulkCreate", a.bulkCreate)
+	g.POST("/bulkAssignGroup", a.bulkAssignGroup)
 	g.POST("/resetTraffic/:email", a.resetTrafficByEmail)
 	g.POST("/updateTraffic/:email", a.updateTrafficByEmail)
 	g.POST("/ips/:email", a.getIps)
 	g.POST("/clearIps/:email", a.clearIps)
 	g.POST("/onlines", a.onlines)
 	g.POST("/lastOnline", a.lastOnline)
+
+	g.GET("/groups", a.listGroups)
+	g.GET("/groups/:name/emails", a.groupEmails)
+	g.POST("/groups/create", a.createGroup)
+	g.POST("/groups/rename", a.renameGroup)
+	g.POST("/groups/delete", a.deleteGroup)
+	g.POST("/bulkResetTraffic", a.bulkResetTraffic)
 }
 
 func (a *ClientController) list(c *gin.Context) {
@@ -208,6 +216,27 @@ func (a *ClientController) bulkAdjust(c *gin.Context) {
 type bulkDeleteRequest struct {
 	Emails      []string `json:"emails"`
 	KeepTraffic bool     `json:"keepTraffic"`
+}
+
+type bulkAssignGroupRequest struct {
+	Emails []string `json:"emails"`
+	Group  string   `json:"group"`
+}
+
+func (a *ClientController) bulkAssignGroup(c *gin.Context) {
+	var req bulkAssignGroupRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	affected, err := a.clientService.AssignGroup(req.Emails, req.Group)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, gin.H{"affected": affected}, nil)
+	a.xrayService.SetToNeedRestart()
+	notifyClientsChanged()
 }
 
 func (a *ClientController) bulkDelete(c *gin.Context) {
@@ -391,5 +420,103 @@ func (a *ClientController) detach(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	notifyClientsChanged()
+}
+
+func (a *ClientController) listGroups(c *gin.Context) {
+	rows, err := a.clientService.ListGroups()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, rows, nil)
+}
+
+func (a *ClientController) groupEmails(c *gin.Context) {
+	name := c.Param("name")
+	emails, err := a.clientService.EmailsByGroup(name)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, emails, nil)
+}
+
+type bulkResetRequest struct {
+	Emails []string `json:"emails"`
+}
+
+func (a *ClientController) bulkResetTraffic(c *gin.Context) {
+	var req bulkResetRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	affected, err := a.clientService.BulkResetTraffic(&a.inboundService, req.Emails)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, gin.H{"affected": affected}, nil)
+	a.xrayService.SetToNeedRestart()
+	notifyClientsChanged()
+}
+
+type groupCreateBody struct {
+	Name string `json:"name"`
+}
+
+func (a *ClientController) createGroup(c *gin.Context) {
+	var body groupCreateBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if err := a.clientService.CreateGroup(body.Name); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, gin.H{"name": body.Name}, nil)
+	notifyClientsChanged()
+}
+
+type groupRenameBody struct {
+	OldName string `json:"oldName"`
+	NewName string `json:"newName"`
+}
+
+func (a *ClientController) renameGroup(c *gin.Context) {
+	var body groupRenameBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	affected, err := a.clientService.RenameGroup(body.OldName, body.NewName)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	a.xrayService.SetToNeedRestart()
+	jsonObj(c, gin.H{"affected": affected}, nil)
+	notifyClientsChanged()
+}
+
+type groupDeleteBody struct {
+	Name string `json:"name"`
+}
+
+func (a *ClientController) deleteGroup(c *gin.Context) {
+	var body groupDeleteBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	affected, err := a.clientService.DeleteGroup(body.Name)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	a.xrayService.SetToNeedRestart()
+	jsonObj(c, gin.H{"affected": affected}, nil)
 	notifyClientsChanged()
 }
