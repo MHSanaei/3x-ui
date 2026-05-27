@@ -496,7 +496,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			proxyParams,
 			security,
 			func(dest string, port int) string {
-				return fmt.Sprintf("ss://%s@%s:%d", base64.StdEncoding.EncodeToString([]byte(encPart)), dest, port)
+				return fmt.Sprintf("ss://%s@%s:%d", base64.RawURLEncoding.EncodeToString([]byte(encPart)), dest, port)
 			},
 			func(ep map[string]any) string {
 				return s.genRemark(inbound, email, ep["remark"].(string))
@@ -504,7 +504,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		)
 	}
 
-	link := fmt.Sprintf("ss://%s@%s:%d", base64.StdEncoding.EncodeToString([]byte(encPart)), address, inbound.Port)
+	link := fmt.Sprintf("ss://%s@%s:%d", base64.RawURLEncoding.EncodeToString([]byte(encPart)), address, inbound.Port)
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
 }
 
@@ -601,14 +601,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			epRemark, _ := ep["remark"].(string)
 
 			link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, dest, int(portF))
-			u, _ := url.Parse(link)
-			q := u.Query()
-			for k, v := range params {
-				q.Add(k, v)
-			}
-			u.RawQuery = q.Encode()
-			u.Fragment = s.genRemark(inbound, email, epRemark)
-			links = append(links, u.String())
+			links = append(links, buildLinkWithParams(link, params, s.genRemark(inbound, email, epRemark)))
 		}
 		return strings.Join(links, "\n")
 	}
@@ -616,14 +609,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 	// No external proxy configured — use the inbound's resolved address so
 	// node-managed inbounds get the node's host instead of the central panel's.
 	link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, s.resolveInboundAddress(inbound), inbound.Port)
-	url, _ := url.Parse(link)
-	q := url.Query()
-	for k, v := range params {
-		q.Add(k, v)
-	}
-	url.RawQuery = q.Encode()
-	url.Fragment = s.genRemark(inbound, email, "")
-	return url.String()
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
 }
 
 // loadNodes refreshes nodesByID from the DB. Called once per request so
@@ -1045,32 +1031,58 @@ func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj
 	return links.String()
 }
 
+// buildLinkWithParams appends ?query and #fragment to a pre-built
+// scheme://userinfo@host:port string without re-parsing it. The caller
+// has already escaped userinfo via encodeUserinfo (or chosen a base64
+// alphabet with no reserved chars); a url.Parse + .String() round-trip
+// would silently decode that escaping because Go's userinfo emitter
+// leaves sub-delims (=, +, ;) literal, which breaks Trojan/Hysteria/SS
+// clients that reject those chars in the password.
 func buildLinkWithParams(link string, params map[string]string, fragment string) string {
-	parsedURL, _ := url.Parse(link)
-	q := parsedURL.Query()
-	for k, v := range params {
-		q.Add(k, v)
-	}
-	parsedURL.RawQuery = q.Encode()
-	parsedURL.Fragment = fragment
-	return parsedURL.String()
+	return appendQueryAndFragment(link, params, fragment, "", false)
 }
 
+// buildLinkWithParamsAndSecurity is buildLinkWithParams plus an
+// external-proxy override: the `security` key in params is replaced with
+// the supplied value, and TLS hint fields (alpn/sni/fp) are stripped when
+// the override is `none`.
 func buildLinkWithParamsAndSecurity(link string, params map[string]string, fragment, security string, omitTLSFields bool) string {
-	parsedURL, _ := url.Parse(link)
-	q := parsedURL.Query()
-	for k, v := range params {
-		if k == "security" {
-			v = security
+	return appendQueryAndFragment(link, params, fragment, security, omitTLSFields)
+}
+
+func appendQueryAndFragment(link string, params map[string]string, fragment, securityOverride string, omitTLSFields bool) string {
+	var sb strings.Builder
+	sb.WriteString(link)
+
+	if len(params) > 0 {
+		q := url.Values{}
+		for k, v := range params {
+			if securityOverride != "" && k == "security" {
+				v = securityOverride
+			}
+			if omitTLSFields && (k == "alpn" || k == "sni" || k == "fp") {
+				continue
+			}
+			q.Set(k, v)
 		}
-		if omitTLSFields && (k == "alpn" || k == "sni" || k == "fp") {
-			continue
+		encoded := q.Encode()
+		if encoded != "" {
+			if strings.Contains(link, "?") {
+				sb.WriteByte('&')
+			} else {
+				sb.WriteByte('?')
+			}
+			sb.WriteString(encoded)
 		}
-		q.Add(k, v)
 	}
-	parsedURL.RawQuery = q.Encode()
-	parsedURL.Fragment = fragment
-	return parsedURL.String()
+
+	if fragment != "" {
+		sb.WriteByte('#')
+		// Match the frontend's encodeURIComponent(remark): spaces become
+		// %20 (not + as in query strings).
+		sb.WriteString(strings.ReplaceAll(url.QueryEscape(fragment), "+", "%20"))
+	}
+	return sb.String()
 }
 
 func (s *SubService) buildExternalProxyURLLinks(
