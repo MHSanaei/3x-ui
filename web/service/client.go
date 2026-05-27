@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -864,15 +865,28 @@ type ClientSlim struct {
 
 // ClientPageParams are the query params accepted by /panel/api/clients/list/paged.
 // All fields are optional — the empty value means "no filter" / defaults.
+//
+// Filter / Protocol / Inbound accept either a single value or a comma-separated
+// list; matching is OR within a field and AND across fields. The numeric range
+// fields treat 0 as "unset" on the lower bound and 0 (or negative) as
+// "unbounded" on the upper bound.
 type ClientPageParams struct {
 	Page     int    `form:"page"`
 	PageSize int    `form:"pageSize"`
 	Search   string `form:"search"`
 	Filter   string `form:"filter"`
 	Protocol string `form:"protocol"`
-	Inbound  int    `form:"inbound"`
+	Inbound  string `form:"inbound"`
 	Sort     string `form:"sort"`
 	Order    string `form:"order"`
+
+	ExpiryFrom int64  `form:"expiryFrom"`
+	ExpiryTo   int64  `form:"expiryTo"`
+	UsageFrom  int64  `form:"usageFrom"`
+	UsageTo    int64  `form:"usageTo"`
+	AutoRenew  string `form:"autoRenew"`
+	HasTgID    string `form:"hasTgId"`
+	HasComment string `form:"hasComment"`
 }
 
 // ClientPageResponse is the shape returned by ListPaged. `Total` is the
@@ -931,8 +945,12 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		page = 1
 	}
 
+	protocols := parseCSVStrings(params.Protocol)
+	inboundIDs := parseCSVInts(params.Inbound)
+	buckets := parseCSVStrings(params.Filter)
+
 	var protocolByInbound map[int]string
-	if params.Protocol != "" {
+	if len(protocols) > 0 {
 		inbounds, err := inboundSvc.GetAllInbounds()
 		if err == nil {
 			protocolByInbound = make(map[int]string, len(inbounds))
@@ -968,13 +986,28 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		if needle != "" && !clientMatchesSearch(c, needle) {
 			continue
 		}
-		if params.Protocol != "" && !clientMatchesProtocol(c, params.Protocol, protocolByInbound) {
+		if len(protocols) > 0 && !clientMatchesAnyProtocol(c, protocols, protocolByInbound) {
 			continue
 		}
-		if params.Inbound > 0 && !clientMatchesInbound(c, params.Inbound) {
+		if len(inboundIDs) > 0 && !clientMatchesAnyInbound(c, inboundIDs) {
 			continue
 		}
-		if params.Filter != "" && !clientMatchesBucket(c, params.Filter, onlineSet, nowMs, expireDiffMs, trafficDiffBytes) {
+		if len(buckets) > 0 && !clientMatchesAnyBucket(c, buckets, onlineSet, nowMs, expireDiffMs, trafficDiffBytes) {
+			continue
+		}
+		if !clientMatchesExpiryRange(c, params.ExpiryFrom, params.ExpiryTo) {
+			continue
+		}
+		if !clientMatchesUsageRange(c, params.UsageFrom, params.UsageTo) {
+			continue
+		}
+		if !clientMatchesAutoRenew(c, params.AutoRenew) {
+			continue
+		}
+		if !clientMatchesHasTgID(c, params.HasTgID) {
+			continue
+		}
+		if !clientMatchesHasComment(c, params.HasComment) {
 			continue
 		}
 		filtered = append(filtered, c)
@@ -1068,35 +1101,157 @@ func clientMatchesSearch(c ClientWithAttachments, needle string) bool {
 	if needle == "" {
 		return true
 	}
-	if strings.Contains(strings.ToLower(c.Email), needle) {
-		return true
-	}
-	if strings.Contains(strings.ToLower(c.SubID), needle) {
-		return true
-	}
-	if strings.Contains(strings.ToLower(c.Comment), needle) {
-		return true
-	}
-	return false
-}
-
-func clientMatchesProtocol(c ClientWithAttachments, protocol string, byInbound map[int]string) bool {
-	if protocol == "" {
-		return true
-	}
-	for _, id := range c.InboundIds {
-		if byInbound[id] == protocol {
+	candidates := [...]string{c.Email, c.SubID, c.Comment, c.UUID, c.Password, c.Auth}
+	for _, v := range candidates {
+		if v != "" && strings.Contains(strings.ToLower(v), needle) {
 			return true
 		}
 	}
 	return false
 }
 
-func clientMatchesInbound(c ClientWithAttachments, inboundId int) bool {
-	if inboundId <= 0 {
+// parseCSVStrings splits a comma-separated list, trims/lower-cases each item,
+// and drops blanks. Returns nil when the input has no usable entries — the
+// caller can then skip the predicate entirely.
+func parseCSVStrings(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		s := strings.ToLower(strings.TrimSpace(p))
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// parseCSVInts is parseCSVStrings for positive integer IDs; non-numeric or
+// non-positive entries are silently dropped.
+func parseCSVInts(raw string) []int {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]int, 0, len(parts))
+	for _, p := range parts {
+		s := strings.TrimSpace(p)
+		if s == "" {
+			continue
+		}
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			out = append(out, n)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func clientMatchesAnyProtocol(c ClientWithAttachments, protocols []string, byInbound map[int]string) bool {
+	for _, id := range c.InboundIds {
+		p := byInbound[id]
+		if p == "" {
+			continue
+		}
+		if slices.Contains(protocols, strings.ToLower(p)) {
+			return true
+		}
+	}
+	return false
+}
+
+func clientMatchesAnyInbound(c ClientWithAttachments, inboundIds []int) bool {
+	for _, id := range c.InboundIds {
+		if slices.Contains(inboundIds, id) {
+			return true
+		}
+	}
+	return false
+}
+
+func clientMatchesAnyBucket(c ClientWithAttachments, buckets []string, onlineSet map[string]struct{}, nowMs, expireDiffMs, trafficDiffBytes int64) bool {
+	for _, b := range buckets {
+		if clientMatchesBucket(c, b, onlineSet, nowMs, expireDiffMs, trafficDiffBytes) {
+			return true
+		}
+	}
+	return false
+}
+
+func clientMatchesExpiryRange(c ClientWithAttachments, fromMs, toMs int64) bool {
+	if fromMs <= 0 && toMs <= 0 {
 		return true
 	}
-	return slices.Contains(c.InboundIds, inboundId)
+	// expiryTime of 0 means "never expires"; treat it as outside any bounded
+	// range so users filtering by date see only clients with concrete expiries.
+	if c.ExpiryTime == 0 {
+		return false
+	}
+	// Negative expiry is the "delayed start" sentinel; same treatment as never.
+	if c.ExpiryTime < 0 {
+		return false
+	}
+	if fromMs > 0 && c.ExpiryTime < fromMs {
+		return false
+	}
+	if toMs > 0 && c.ExpiryTime > toMs {
+		return false
+	}
+	return true
+}
+
+func clientMatchesUsageRange(c ClientWithAttachments, fromBytes, toBytes int64) bool {
+	if fromBytes <= 0 && toBytes <= 0 {
+		return true
+	}
+	used := int64(0)
+	if c.Traffic != nil {
+		used = c.Traffic.Up + c.Traffic.Down
+	}
+	if fromBytes > 0 && used < fromBytes {
+		return false
+	}
+	if toBytes > 0 && used > toBytes {
+		return false
+	}
+	return true
+}
+
+func clientMatchesAutoRenew(c ClientWithAttachments, mode string) bool {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "on":
+		return c.Reset > 0
+	case "off":
+		return c.Reset <= 0
+	}
+	return true
+}
+
+func clientMatchesHasTgID(c ClientWithAttachments, mode string) bool {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "yes":
+		return c.TgID != 0
+	case "no":
+		return c.TgID == 0
+	}
+	return true
+}
+
+func clientMatchesHasComment(c ClientWithAttachments, mode string) bool {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "yes":
+		return strings.TrimSpace(c.Comment) != ""
+	case "no":
+		return strings.TrimSpace(c.Comment) == ""
+	}
+	return true
 }
 
 func clientMatchesBucket(c ClientWithAttachments, bucket string, onlineSet map[string]struct{}, nowMs, expireDiffMs, trafficDiffBytes int64) bool {

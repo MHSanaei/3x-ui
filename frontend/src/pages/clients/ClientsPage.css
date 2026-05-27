@@ -33,6 +33,20 @@
   flex: 0 0 auto;
 }
 
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 6px 8px;
+  background: var(--ant-color-fill-quaternary);
+  border-radius: 8px;
+}
+
+.filter-chips .ant-tag {
+  margin: 0;
+}
+
 .dot {
   display: inline-block;
   width: 8px;

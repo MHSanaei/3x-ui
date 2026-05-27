@@ -13,9 +13,7 @@ import {
   Modal,
   Pagination,
   Popover,
-  Radio,
   Row,
-  Select,
   Space,
   Spin,
   Statistic,
@@ -58,18 +56,18 @@ const ClientInfoModal = lazy(() => import('./ClientInfoModal'));
 const ClientQrModal = lazy(() => import('./ClientQrModal'));
 const ClientBulkAddModal = lazy(() => import('./ClientBulkAddModal'));
 const ClientBulkAdjustModal = lazy(() => import('./ClientBulkAdjustModal'));
+const FilterDrawer = lazy(() => import('./FilterDrawer'));
+import { emptyFilters, activeFilterCount } from './filters';
+import type { ClientFilters } from './filters';
 import './ClientsPage.css';
 
 const FILTER_STATE_KEY = 'clientsFilterState';
 
 type Bucket = 'active' | 'deactive' | 'depleted' | 'expiring';
 
-interface FilterState {
-  enableFilter: boolean;
+interface PersistedFilterState {
   searchKey: string;
-  filterBy: string;
-  protocolFilter?: string;
-  inboundFilter?: number;
+  filters: ClientFilters;
 }
 
 const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
@@ -86,20 +84,28 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
 };
 const INBOUND_CHIP_LIMIT = 1;
 
-function readFilterState(): FilterState {
+function readFilterState(): PersistedFilterState {
   try {
     const raw = JSON.parse(localStorage.getItem(FILTER_STATE_KEY) || '{}');
-    const inb = typeof raw.inboundFilter === 'number' && raw.inboundFilter > 0 ? raw.inboundFilter : undefined;
+    const fromRaw = (raw.filters ?? {}) as Partial<ClientFilters>;
     return {
-      enableFilter: !!raw.enableFilter,
-      searchKey: raw.searchKey || '',
-      filterBy: raw.filterBy || '',
-      protocolFilter: raw.protocolFilter,
-      inboundFilter: inb,
+      searchKey: typeof raw.searchKey === 'string' ? raw.searchKey : '',
+      filters: {
+        ...emptyFilters(),
+        ...fromRaw,
+        buckets: Array.isArray(fromRaw.buckets) ? fromRaw.buckets : [],
+        protocols: Array.isArray(fromRaw.protocols) ? fromRaw.protocols : [],
+        inboundIds: Array.isArray(fromRaw.inboundIds) ? fromRaw.inboundIds : [],
+      },
     };
   } catch {
-    return { enableFilter: false, searchKey: '', filterBy: '', protocolFilter: undefined, inboundFilter: undefined };
+    return { searchKey: '', filters: emptyFilters() };
   }
+}
+
+function gbToBytes(gb: number | undefined): number {
+  if (!gb || gb <= 0) return 0;
+  return Math.round(gb * 1024 * 1024 * 1024);
 }
 
 export default function ClientsPage() {
@@ -142,11 +148,9 @@ export default function ClientsPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
   const initial = readFilterState();
-  const [enableFilter, setEnableFilter] = useState(initial.enableFilter);
   const [searchKey, setSearchKey] = useState(initial.searchKey);
-  const [filterBy, setFilterBy] = useState(initial.filterBy);
-  const [protocolFilter, setProtocolFilter] = useState<string | undefined>(initial.protocolFilter);
-  const [inboundFilter, setInboundFilter] = useState<number | undefined>(initial.inboundFilter);
+  const [filters, setFilters] = useState<ClientFilters>(initial.filters);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(null);
@@ -157,10 +161,8 @@ export default function ClientsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState(searchKey);
 
   useEffect(() => {
-    localStorage.setItem(FILTER_STATE_KEY, JSON.stringify({
-      enableFilter, searchKey, filterBy, protocolFilter, inboundFilter,
-    }));
-  }, [enableFilter, searchKey, filterBy, protocolFilter, inboundFilter]);
+    localStorage.setItem(FILTER_STATE_KEY, JSON.stringify({ searchKey, filters }));
+  }, [searchKey, filters]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedSearch(searchKey), 300);
@@ -171,20 +173,29 @@ export default function ClientsPage() {
     // Reset to page 1 whenever a filter or sort changes — otherwise an empty
     // result set on a high page number leaves the user staring at "no clients".
     setCurrentPage(1);
-  }, [debouncedSearch, enableFilter, filterBy, protocolFilter, inboundFilter, sortColumn, sortOrder]);
+  }, [debouncedSearch, filters, sortColumn, sortOrder]);
 
   useEffect(() => {
     setQuery({
       page: currentPage,
       pageSize: tablePageSize,
-      search: enableFilter ? '' : debouncedSearch,
-      filter: enableFilter ? (filterBy || '') : '',
-      protocol: protocolFilter || '',
-      inbound: inboundFilter,
+      search: debouncedSearch,
+      filter: filters.buckets.join(','),
+      protocol: filters.protocols.join(','),
+      inbound: filters.inboundIds.join(','),
+      expiryFrom: filters.expiryFrom,
+      expiryTo: filters.expiryTo,
+      usageFrom: gbToBytes(filters.usageFromGB),
+      usageTo: gbToBytes(filters.usageToGB),
+      autoRenew: filters.autoRenew || undefined,
+      hasTgId: filters.hasTgId || undefined,
+      hasComment: filters.hasComment || undefined,
       sort: sortColumn || undefined,
       order: sortOrder || undefined,
     });
-  }, [setQuery, currentPage, tablePageSize, enableFilter, debouncedSearch, filterBy, protocolFilter, inboundFilter, sortColumn, sortOrder]);
+  }, [setQuery, currentPage, tablePageSize, debouncedSearch, filters, sortColumn, sortOrder]);
+
+  const activeCount = activeFilterCount(filters);
 
   useEffect(() => {
     if (pageSize > 0) {
@@ -640,10 +651,16 @@ export default function ClientsPage() {
   const allSelected = filteredClients.length > 0 && selectedRowKeys.length === filteredClients.length;
   const someSelected = selectedRowKeys.length > 0 && selectedRowKeys.length < filteredClients.length;
 
-  function onToggleFilter(checked: boolean) {
-    setEnableFilter(checked);
-    if (checked) setSearchKey('');
-    else setFilterBy('');
+  function clearOneFilter<K extends keyof ClientFilters>(key: K) {
+    if (key === 'expiryFrom' || key === 'expiryTo') {
+      setFilters({ ...filters, expiryFrom: undefined, expiryTo: undefined });
+      return;
+    }
+    if (key === 'usageFromGB' || key === 'usageToGB') {
+      setFilters({ ...filters, usageFromGB: undefined, usageToGB: undefined });
+      return;
+    }
+    setFilters({ ...filters, [key]: emptyFilters()[key] });
   }
 
   return (
@@ -741,71 +758,95 @@ export default function ClientsPage() {
                       }
                     >
                       <div className={isMobile ? 'filter-bar mobile' : 'filter-bar'}>
-                        <Switch
-                          checked={enableFilter}
-                          onChange={onToggleFilter}
-                          checkedChildren={<SearchOutlined />}
-                          unCheckedChildren={<FilterOutlined />}
+                        <Input
+                          value={searchKey}
+                          onChange={(e) => setSearchKey(e.target.value)}
+                          placeholder={t('pages.clients.searchPlaceholder')}
+                          allowClear
+                          prefix={<SearchOutlined />}
+                          size={isMobile ? 'small' : 'middle'}
+                          style={{ maxWidth: 320 }}
                         />
-                        {!enableFilter && (
-                          <Input
-                            value={searchKey}
-                            onChange={(e) => setSearchKey(e.target.value)}
-                            placeholder={t('search')}
-                            autoFocus
+                        <Badge count={activeCount} size="small" offset={[-4, 4]}>
+                          <Button
+                            icon={<FilterOutlined />}
                             size={isMobile ? 'small' : 'middle'}
-                            style={{ maxWidth: 300 }}
-                          />
-                        )}
-                        {enableFilter && (
-                          <Radio.Group
-                            value={filterBy}
-                            onChange={(e) => setFilterBy(e.target.value)}
-                            optionType="button"
-                            buttonStyle="solid"
-                            size={isMobile ? 'small' : 'middle'}
+                            onClick={() => setFilterDrawerOpen(true)}
+                            type={activeCount > 0 ? 'primary' : 'default'}
                           >
-                            <Radio.Button value="">{t('none')}</Radio.Button>
-                            <Radio.Button value="active">{t('subscription.active')}</Radio.Button>
-                            <Radio.Button value="deactive">{t('disabled')}</Radio.Button>
-                            <Radio.Button value="depleted">{t('depleted')}</Radio.Button>
-                            <Radio.Button value="expiring">{t('depletingSoon')}</Radio.Button>
-                            <Radio.Button value="online">{t('online')}</Radio.Button>
-                          </Radio.Group>
+                            {!isMobile && t('filter')}
+                          </Button>
+                        </Badge>
+                        {activeCount > 0 && (
+                          <Button
+                            size={isMobile ? 'small' : 'middle'}
+                            onClick={() => setFilters(emptyFilters())}
+                          >
+                            {t('pages.clients.clearAllFilters')}
+                          </Button>
                         )}
-                        <Select
-                          value={protocolFilter}
-                          onChange={(v) => {
-                            setProtocolFilter(v);
-                            if (v && inboundFilter) {
-                              const ib = inbounds.find((x) => x.id === inboundFilter);
-                              if (!ib || ib.protocol !== v) setInboundFilter(undefined);
-                            }
-                          }}
-                          allowClear
-                          placeholder={t('pages.inbounds.protocol')}
-                          size={isMobile ? 'small' : 'middle'}
-                          style={{ width: 150 }}
-                          options={protocolOptions.map((p) => ({ value: p, label: p }))}
-                        />
-                        <Select
-                          value={inboundFilter}
-                          onChange={(v) => setInboundFilter(v)}
-                          allowClear
-                          showSearch={{ optionFilterProp: 'label' }}
-                          placeholder={t('inbounds')}
-                          size={isMobile ? 'small' : 'middle'}
-                          style={{ minWidth: 160, maxWidth: 240 }}
-                          options={inbounds
-                            .filter((ib) => !protocolFilter || ib.protocol === protocolFilter)
-                            .map((ib) => ({
-                              value: ib.id,
-                              label: ib.remark
-                                ? `${ib.remark} (${ib.protocol || ''}${ib.port ? `:${ib.port}` : ''})`
-                                : `#${ib.id} ${ib.protocol || ''}${ib.port ? `:${ib.port}` : ''}`,
-                            }))}
-                        />
                       </div>
+
+                      {activeCount > 0 && (
+                        <div className="filter-chips">
+                          {filters.buckets.map((b) => (
+                            <Tag
+                              key={`b-${b}`}
+                              closable
+                              onClose={() => setFilters({ ...filters, buckets: filters.buckets.filter((x) => x !== b) })}
+                            >
+                              {bucketChipLabel(b, t)}
+                            </Tag>
+                          ))}
+                          {filters.protocols.map((p) => (
+                            <Tag
+                              key={`p-${p}`}
+                              closable
+                              color="blue"
+                              onClose={() => setFilters({ ...filters, protocols: filters.protocols.filter((x) => x !== p) })}
+                            >
+                              {p}
+                            </Tag>
+                          ))}
+                          {filters.inboundIds.map((id) => (
+                            <Tag
+                              key={`i-${id}`}
+                              closable
+                              color="cyan"
+                              onClose={() => setFilters({ ...filters, inboundIds: filters.inboundIds.filter((x) => x !== id) })}
+                            >
+                              {inboundLabel(id)}
+                            </Tag>
+                          ))}
+                          {(filters.expiryFrom || filters.expiryTo) && (
+                            <Tag closable color="purple" onClose={() => clearOneFilter('expiryFrom')}>
+                              {t('pages.clients.expiryTime')}: {filters.expiryFrom ? IntlUtil.formatDate(filters.expiryFrom, datepicker) : '…'}
+                              {' → '}
+                              {filters.expiryTo ? IntlUtil.formatDate(filters.expiryTo, datepicker) : '…'}
+                            </Tag>
+                          )}
+                          {(filters.usageFromGB || filters.usageToGB) && (
+                            <Tag closable color="orange" onClose={() => clearOneFilter('usageFromGB')}>
+                              {t('pages.clients.traffic')}: {filters.usageFromGB ?? 0}{filters.usageToGB ? `–${filters.usageToGB}` : '+'} GB
+                            </Tag>
+                          )}
+                          {filters.autoRenew && (
+                            <Tag closable color="gold" onClose={() => clearOneFilter('autoRenew')}>
+                              {t('pages.clients.renew')}: {filters.autoRenew === 'on' ? t('enabled') : t('disabled')}
+                            </Tag>
+                          )}
+                          {filters.hasTgId && (
+                            <Tag closable onClose={() => clearOneFilter('hasTgId')}>
+                              {t('pages.clients.telegramId')}: {filters.hasTgId === 'yes' ? t('pages.clients.has') : t('pages.clients.hasNot')}
+                            </Tag>
+                          )}
+                          {filters.hasComment && (
+                            <Tag closable onClose={() => clearOneFilter('hasComment')}>
+                              {t('pages.clients.comment')}: {filters.hasComment === 'yes' ? t('pages.clients.has') : t('pages.clients.hasNot')}
+                            </Tag>
+                          )}
+                        </div>
+                      )}
 
                       {!isMobile ? (
                         <Table<ClientRecord>
@@ -993,7 +1034,28 @@ export default function ClientsPage() {
             }}
           />
         </LazyMount>
+        <LazyMount when={filterDrawerOpen}>
+          <FilterDrawer
+            open={filterDrawerOpen}
+            onOpenChange={setFilterDrawerOpen}
+            filters={filters}
+            onChange={setFilters}
+            inbounds={inbounds}
+            protocols={protocolOptions}
+          />
+        </LazyMount>
       </Layout>
     </ConfigProvider>
   );
+}
+
+function bucketChipLabel(b: string, t: (k: string) => string): string {
+  switch (b) {
+    case 'active': return t('subscription.active');
+    case 'expiring': return t('depletingSoon');
+    case 'depleted': return t('depleted');
+    case 'deactive': return t('disabled');
+    case 'online': return t('online');
+    default: return b;
+  }
 }
