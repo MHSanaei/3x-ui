@@ -102,6 +102,17 @@ function isPostQuantumLink(link: string): boolean {
   return false;
 }
 
+// Decode a base64 string as UTF-8. atob() returns a binary string where
+// each char holds one raw byte (Latin-1 interpretation), which mangles
+// any multi-byte UTF-8 sequence in the payload — most commonly the
+// emoji decorations the panel embeds in remarks (📊, ⏳).
+function base64DecodeUtf8(b64: string): string {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
 function parseLinkMeta(link: string, idx: number): { protocol: string; remark: string } {
   const fallback = `Link ${idx + 1}`;
   if (!link) return { protocol: 'LINK', remark: fallback };
@@ -122,7 +133,7 @@ function parseLinkMeta(link: string, idx: number): { protocol: string; remark: s
   if (scheme === 'vmess') {
     try {
       const body = link.slice('vmess://'.length).split('#')[0];
-      const json = JSON.parse(atob(body)) as { ps?: unknown };
+      const json = JSON.parse(base64DecodeUtf8(body)) as { ps?: unknown };
       if (typeof json?.ps === 'string') remark = json.ps;
     } catch { /* fall through */ }
   }

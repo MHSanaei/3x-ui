@@ -481,7 +481,7 @@ export function genTrojanLink(input: GenTrojanLinkInput): string {
     params.set('security', 'none');
   }
 
-  const url = new URL(`trojan://${clientPassword}@${address}:${port}`);
+  const url = new URL(`trojan://${encodeURIComponent(clientPassword)}@${address}:${port}`);
   for (const [key, value] of params) url.searchParams.set(key, value);
   url.hash = encodeURIComponent(remark);
   return url.toString();

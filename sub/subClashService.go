@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"strings"
-	"time"
 
 	"github.com/goccy/go-json"
 	yaml "github.com/goccy/go-yaml"
@@ -12,7 +11,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
-	"github.com/mhsanaei/3x-ui/v3/xray"
 )
 
 type SubClashService struct {
@@ -38,8 +36,6 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		return "", "", err
 	}
 
-	var traffic xray.ClientTraffic
-	var clientTraffics []xray.ClientTraffic
 	var proxies []map[string]any
 
 	seenEmails := make(map[string]struct{})
@@ -54,7 +50,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		s.SubService.projectThroughFallbackMaster(inbound)
 		for _, client := range clients {
 			if client.SubID == subId {
-				_, clientTraffics = s.SubService.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
+				seenEmails[client.Email] = struct{}{}
 				proxies = append(proxies, s.getProxies(inbound, client, host)...)
 			}
 		}
@@ -64,27 +60,11 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		return "", "", nil
 	}
 
-	now := time.Now().UnixMilli()
-	for index, clientTraffic := range clientTraffics {
-		if index == 0 {
-			traffic.Up = clientTraffic.Up
-			traffic.Down = clientTraffic.Down
-			traffic.Total = clientTraffic.Total
-			traffic.ExpiryTime = subscriptionExpiryFromClient(now, clientTraffic.ExpiryTime)
-		} else {
-			traffic.Up += clientTraffic.Up
-			traffic.Down += clientTraffic.Down
-			if traffic.Total == 0 || clientTraffic.Total == 0 {
-				traffic.Total = 0
-			} else {
-				traffic.Total += clientTraffic.Total
-			}
-			normalized := subscriptionExpiryFromClient(now, clientTraffic.ExpiryTime)
-			if normalized != traffic.ExpiryTime {
-				traffic.ExpiryTime = 0
-			}
-		}
+	emails := make([]string, 0, len(seenEmails))
+	for e := range seenEmails {
+		emails = append(emails, e)
 	}
+	traffic, _ := s.SubService.AggregateTrafficByEmails(emails)
 
 	proxyNames := make([]string, 0, len(proxies)+1)
 	for _, proxy := range proxies {

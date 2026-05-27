@@ -61,6 +61,17 @@ function trimEmail(remark: string, email: string): string {
     .trim();
 }
 
+// Decode a base64 string as UTF-8. atob() returns a binary string where
+// each char holds one raw byte (Latin-1 interpretation), which mangles
+// any multi-byte UTF-8 sequence in the payload — most commonly the
+// emoji decorations the panel embeds in remarks (📊, ⏳).
+function base64DecodeUtf8(b64: string): string {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
 function parseLinkMeta(link: string): { protocol: string; remark: string } {
   const schemeMatch = /^([a-z0-9]+):\/\//i.exec(link);
   const scheme = schemeMatch?.[1]?.toLowerCase() ?? '';
@@ -79,7 +90,7 @@ function parseLinkMeta(link: string): { protocol: string; remark: string } {
   if (scheme === 'vmess') {
     try {
       const body = link.slice('vmess://'.length).split('#')[0];
-      const json = JSON.parse(atob(body)) as { ps?: unknown };
+      const json = JSON.parse(base64DecodeUtf8(body)) as { ps?: unknown };
       if (typeof json?.ps === 'string') remark = json.ps;
     } catch { /* fall through to fragment parsing */ }
   }

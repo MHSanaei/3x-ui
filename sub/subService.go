@@ -62,9 +62,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 	var result []string
 	var emails []string
 	var traffic xray.ClientTraffic
-	var lastOnline int64
 	var hasEnabledClient bool
-	var clientTraffics []xray.ClientTraffic
 	inbounds, err := s.getInboundsBySubId(subId)
 	if err != nil {
 		return nil, nil, 0, traffic, err
@@ -101,38 +99,66 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 				}
 				result = append(result, s.GetLink(inbound, client.Email))
 				emails = append(emails, client.Email)
-				var ct xray.ClientTraffic
-				ct, clientTraffics = s.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
-				if ct.LastOnline > lastOnline {
-					lastOnline = ct.LastOnline
-				}
+				seenEmails[client.Email] = struct{}{}
 			}
 		}
 	}
 
-	now := time.Now().UnixMilli()
-	for index, clientTraffic := range clientTraffics {
-		if index == 0 {
-			traffic.Up = clientTraffic.Up
-			traffic.Down = clientTraffic.Down
-			traffic.Total = clientTraffic.Total
-			traffic.ExpiryTime = subscriptionExpiryFromClient(now, clientTraffic.ExpiryTime)
-		} else {
-			traffic.Up += clientTraffic.Up
-			traffic.Down += clientTraffic.Down
-			if traffic.Total == 0 || clientTraffic.Total == 0 {
-				traffic.Total = 0
-			} else {
-				traffic.Total += clientTraffic.Total
-			}
-			normalized := subscriptionExpiryFromClient(now, clientTraffic.ExpiryTime)
-			if normalized != traffic.ExpiryTime {
-				traffic.ExpiryTime = 0
-			}
-		}
+	uniqueEmails := make([]string, 0, len(seenEmails))
+	for e := range seenEmails {
+		uniqueEmails = append(uniqueEmails, e)
 	}
+	traffic, lastOnline := s.AggregateTrafficByEmails(uniqueEmails)
 	traffic.Enable = hasEnabledClient
 	return result, emails, lastOnline, traffic, nil
+}
+
+// AggregateTrafficByEmails resolves traffic for every email in one
+// query and folds the rows into a single ClientTraffic + lastOnline.
+// xray.ClientTraffic.Email is globally unique, so a multi-inbound
+// client's single row is attached to exactly one inbound — iterating
+// per-inbound ClientStats would miss it on the others. Used by GetSubs,
+// SubClashService.GetClash, and SubJsonService.GetJson to keep the
+// sub-info header consistent across all three formats.
+func (s *SubService) AggregateTrafficByEmails(emails []string) (xray.ClientTraffic, int64) {
+	var agg xray.ClientTraffic
+	var lastOnline int64
+	if len(emails) == 0 {
+		return agg, 0
+	}
+	var rows []xray.ClientTraffic
+	if err := database.GetDB().
+		Model(&xray.ClientTraffic{}).
+		Where("email IN ?", emails).
+		Find(&rows).Error; err != nil {
+		logger.Warning("SubService - AggregateTrafficByEmails: load by email:", err)
+		return agg, 0
+	}
+	now := time.Now().UnixMilli()
+	for i, ct := range rows {
+		if ct.LastOnline > lastOnline {
+			lastOnline = ct.LastOnline
+		}
+		if i == 0 {
+			agg.Up = ct.Up
+			agg.Down = ct.Down
+			agg.Total = ct.Total
+			agg.ExpiryTime = subscriptionExpiryFromClient(now, ct.ExpiryTime)
+			continue
+		}
+		agg.Up += ct.Up
+		agg.Down += ct.Down
+		if agg.Total == 0 || ct.Total == 0 {
+			agg.Total = 0
+		} else {
+			agg.Total += ct.Total
+		}
+		normalized := subscriptionExpiryFromClient(now, ct.ExpiryTime)
+		if normalized != agg.ExpiryTime {
+			agg.ExpiryTime = 0
+		}
+	}
+	return agg, lastOnline
 }
 
 func subscriptionExpiryFromClient(nowMs, expiryTime int64) int64 {
@@ -161,28 +187,6 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		return nil, err
 	}
 	return inbounds, nil
-}
-
-// appendUniqueTraffic resolves the traffic stats for email and appends them
-// to acc only the first time email is seen. Shared-email mode lets one
-// client_traffics row underpin several inbounds, so without dedupe its
-// quota and usage would be counted once per inbound.
-func (s *SubService) appendUniqueTraffic(seen map[string]struct{}, acc []xray.ClientTraffic, stats []xray.ClientTraffic, email string) (xray.ClientTraffic, []xray.ClientTraffic) {
-	ct := s.getClientTraffics(stats, email)
-	if _, dup := seen[email]; !dup {
-		seen[email] = struct{}{}
-		acc = append(acc, ct)
-	}
-	return ct, acc
-}
-
-func (s *SubService) getClientTraffics(traffics []xray.ClientTraffic, email string) xray.ClientTraffic {
-	for _, traffic := range traffics {
-		if traffic.Email == email {
-			return traffic
-		}
-	}
-	return xray.ClientTraffic{}
 }
 
 // projectThroughFallbackMaster mutates the inbound in place so its
@@ -396,7 +400,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	stream := unmarshalStreamSettings(inbound.StreamSettings)
 	clients, _ := s.inboundService.GetClients(inbound)
 	clientIndex := findClientIndex(clients, email)
-	password := clients[clientIndex].Password
+	password := encodeUserinfo(clients[clientIndex].Password)
 	port := inbound.Port
 	streamNetwork := stream["network"].(string)
 	params := make(map[string]string)
@@ -437,6 +441,17 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 
 	link := fmt.Sprintf("trojan://%s@%s:%d", password, address, port)
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+}
+
+// encodeUserinfo percent-encodes a userinfo (password/auth) value so it
+// can be safely embedded in a `scheme://<value>@host:port` URL. RFC 3986
+// allows `=` in userinfo as a sub-delim, but several Trojan and Hysteria
+// clients reject share-links where the password contains literal `/`
+// or `=` (notably the common base64-with-padding shape produced by the
+// panel). Encode them too — this matches encodeURIComponent() on the
+// frontend and round-trips cleanly through net/url's parser.
+func encodeUserinfo(s string) string {
+	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
 }
 
 func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) string {
@@ -507,7 +522,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			break
 		}
 	}
-	auth := clients[clientIndex].Auth
+	auth := encodeUserinfo(clients[clientIndex].Auth)
 	params := make(map[string]string)
 
 	params["security"] = "tls"
