@@ -280,7 +280,7 @@ export default function InboundInfoModal({
   onClose,
   dbInbound,
   clientIndex = 0,
-  remarkModel = '-ieo',
+  remarkModel = '-io',
   expireDiff = 0,
   trafficDiff = 0,
   ipLimitEnable = false,
@@ -369,7 +369,7 @@ export default function InboundInfoModal({
         genWireguardConfigs({
           inbound: inboundForLinks,
           remark: dbInbound.remark,
-          remarkModel: '-ieo',
+          remarkModel: '-io',
           hostOverride: nodeAddress,
           fallbackHostname,
         }).split('\r\n'),
@@ -378,7 +378,7 @@ export default function InboundInfoModal({
         genWireguardLinks({
           inbound: inboundForLinks,
           remark: dbInbound.remark,
-          remarkModel: '-ieo',
+          remarkModel: '-io',
           hostOverride: nodeAddress,
           fallbackHostname,
         }).split('\r\n'),

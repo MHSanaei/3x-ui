@@ -790,13 +790,13 @@ export interface GenAllLinksInput {
 // link when there are no external proxies. remarkModel is a 4-char
 // string: first char is the separator, remaining chars pick which
 // pieces to compose into the per-link remark — 'i' = inbound remark,
-// 'e' = client email, 'o' = externalProxy remark. Defaults to '-ieo'
+// 'e' = client email, 'o' = externalProxy remark. Defaults to '-io'
 // (dash-separated, inbound + email + proxy).
 export function genAllLinks(input: GenAllLinksInput): GenAllLinksEntry[] {
   const {
     inbound,
     remark = '',
-    remarkModel = '-ieo',
+    remarkModel = '-io',
     client,
     hostOverride = '',
     fallbackHostname,
@@ -855,7 +855,7 @@ export function genInboundLinks(input: GenInboundLinksInput): string {
   const {
     inbound,
     remark = '',
-    remarkModel = '-ieo',
+    remarkModel = '-io',
     hostOverride = '',
     fallbackHostname,
   } = input;
@@ -890,7 +890,7 @@ export interface GenWireguardFanoutInput {
 }
 
 export function genWireguardLinks(input: GenWireguardFanoutInput): string {
-  const { inbound, remark = '', remarkModel = '-ieo', hostOverride = '', fallbackHostname } = input;
+  const { inbound, remark = '', remarkModel = '-io', hostOverride = '', fallbackHostname } = input;
   if (inbound.protocol !== 'wireguard') return '';
   const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
   const sep = remarkModel.charAt(0);
@@ -906,7 +906,7 @@ export function genWireguardLinks(input: GenWireguardFanoutInput): string {
 }
 
 export function genWireguardConfigs(input: GenWireguardFanoutInput): string {
-  const { inbound, remark = '', remarkModel = '-ieo', hostOverride = '', fallbackHostname } = input;
+  const { inbound, remark = '', remarkModel = '-io', hostOverride = '', fallbackHostname } = input;
   if (inbound.protocol !== 'wireguard') return '';
   const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
   const sep = remarkModel.charAt(0);

@@ -2,17 +2,17 @@
 
 exports[`genHysteriaLink > hysteria-v1-tls: byte-stable 1`] = `"hysteria://hyst-v1-auth-XYZ@example.test:36715?security=tls&fp=chrome&alpn=h3&sni=hysteria.example.test#parity-test"`;
 
-exports[`genInboundLinks orchestrator > hysteria-v1-tls: byte-stable 1`] = `"hysteria://hyst-v1-auth-XYZ@override.test:36715?security=tls&fp=chrome&alpn=h3&sni=hysteria.example.test#parity-test-gina%40example.test"`;
+exports[`genInboundLinks orchestrator > hysteria-v1-tls: byte-stable 1`] = `"hysteria://hyst-v1-auth-XYZ@override.test:36715?security=tls&fp=chrome&alpn=h3&sni=hysteria.example.test#parity-test"`;
 
-exports[`genInboundLinks orchestrator > shadowsocks-tcp-2022: byte-stable 1`] = `"ss://MjAyMi1ibGFrZTMtYWVzLTI1Ni1nY206Wm1GclpTMXpaWEoyWlhJdGNHRnpjM2R2Y21RdE1EQXdNUT09OmRHVnpkQzFqYkdsbGJuUXRjR0Z6YzNkdmNtUXRNUT09@override.test:8388?type=tcp#parity-test-frank%40example.test"`;
+exports[`genInboundLinks orchestrator > shadowsocks-tcp-2022: byte-stable 1`] = `"ss://MjAyMi1ibGFrZTMtYWVzLTI1Ni1nY206Wm1GclpTMXpaWEoyWlhJdGNHRnpjM2R2Y21RdE1EQXdNUT09OmRHVnpkQzFqYkdsbGJuUXRjR0Z6YzNkdmNtUXRNUT09@override.test:8388?type=tcp#parity-test"`;
 
-exports[`genInboundLinks orchestrator > trojan-ws-tls: byte-stable 1`] = `"trojan://trojan-test-pw-XYZ@override.test:443?type=ws&path=%2Ftrojan&host=trojan.example.test&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&sni=trojan.example.test#parity-test-eve%40example.test"`;
+exports[`genInboundLinks orchestrator > trojan-ws-tls: byte-stable 1`] = `"trojan://trojan-test-pw-XYZ@override.test:443?type=ws&path=%2Ftrojan&host=trojan.example.test&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&sni=trojan.example.test#parity-test"`;
 
-exports[`genInboundLinks orchestrator > vless-tcp-reality: byte-stable 1`] = `"vless://22222222-3333-4444-9555-666666666666@override.test:443?type=tcp&encryption=none&security=reality&pbk=Tx5yj1bRcOPHkdvT2pIAQ2zh0gQ8m4OPdnzqXJxxV3o&fp=chrome&sid=a3f1&spx=%2F&flow=xtls-rprx-vision#parity-test-dave%40example.test"`;
+exports[`genInboundLinks orchestrator > vless-tcp-reality: byte-stable 1`] = `"vless://22222222-3333-4444-9555-666666666666@override.test:443?type=tcp&encryption=none&security=reality&pbk=Tx5yj1bRcOPHkdvT2pIAQ2zh0gQ8m4OPdnzqXJxxV3o&fp=chrome&sid=a3f1&spx=%2F&flow=xtls-rprx-vision#parity-test"`;
 
-exports[`genInboundLinks orchestrator > vless-ws-tls: byte-stable 1`] = `"vless://8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02@override.test:443?type=ws&encryption=none&path=%2Fws&host=cdn.example.test&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&sni=cdn.example.test#parity-test-alice%40example.test"`;
+exports[`genInboundLinks orchestrator > vless-ws-tls: byte-stable 1`] = `"vless://8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02@override.test:443?type=ws&encryption=none&path=%2Fws&host=cdn.example.test&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&sni=cdn.example.test#parity-test"`;
 
-exports[`genInboundLinks orchestrator > vmess-tcp-tls: byte-stable 1`] = `"vmess://ewogICJ2IjogIjIiLAogICJwcyI6ICJwYXJpdHktdGVzdC1jYXJvbEBleGFtcGxlLnRlc3QiLAogICJhZGQiOiAib3ZlcnJpZGUudGVzdCIsCiAgInBvcnQiOiA4NDQzLAogICJpZCI6ICIxMTExMTExMS0yMjIyLTQzMzMtODQ0NC01NTU1NTU1NTU1NTUiLAogICJzY3kiOiAiYXV0byIsCiAgIm5ldCI6ICJ0Y3AiLAogICJ0bHMiOiAidGxzIiwKICAidHlwZSI6ICJub25lIiwKICAic25pIjogInZtZXNzLmV4YW1wbGUudGVzdCIsCiAgImZwIjogImNocm9tZSIsCiAgImFscG4iOiAiaDIsaHR0cC8xLjEiCn0="`;
+exports[`genInboundLinks orchestrator > vmess-tcp-tls: byte-stable 1`] = `"vmess://ewogICJ2IjogIjIiLAogICJwcyI6ICJwYXJpdHktdGVzdCIsCiAgImFkZCI6ICJvdmVycmlkZS50ZXN0IiwKICAicG9ydCI6IDg0NDMsCiAgImlkIjogIjExMTExMTExLTIyMjItNDMzMy04NDQ0LTU1NTU1NTU1NTU1NSIsCiAgInNjeSI6ICJhdXRvIiwKICAibmV0IjogInRjcCIsCiAgInRscyI6ICJ0bHMiLAogICJ0eXBlIjogIm5vbmUiLAogICJzbmkiOiAidm1lc3MuZXhhbXBsZS50ZXN0IiwKICAiZnAiOiAiY2hyb21lIiwKICAiYWxwbiI6ICJoMixodHRwLzEuMSIKfQ=="`;
 
 exports[`genInboundLinks orchestrator > wireguard-server: byte-stable 1`] = `
 "[Interface]

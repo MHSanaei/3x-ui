@@ -41,7 +41,7 @@ export default function QrCodeModal({
   onClose,
   dbInbound,
   client = null,
-  remarkModel = '-ieo',
+  remarkModel = '-io',
   nodeAddress = '',
   subSettings,
 }: QrCodeModalProps) {
@@ -65,7 +65,7 @@ export default function QrCodeModal({
         genWireguardConfigs({
           inbound,
           remark: peerRemark,
-          remarkModel: '-ieo',
+          remarkModel: '-io',
           hostOverride: nodeAddress,
           fallbackHostname,
         }).split('\r\n'),
@@ -74,7 +74,7 @@ export default function QrCodeModal({
         genWireguardLinks({
           inbound,
           remark: peerRemark,
-          remarkModel: '-ieo',
+          remarkModel: '-io',
           hostOverride: nodeAddress,
           fallbackHostname,
         }).split('\r\n'),

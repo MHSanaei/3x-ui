@@ -94,7 +94,6 @@ describe('inboundFromDb', () => {
       fallbackHostname: FALLBACK_HOST,
     });
     expect(links).toContain('vless://');
-    expect(links).toContain('alice%40test');
     expect(links).toContain('encryption=none');
   });
 

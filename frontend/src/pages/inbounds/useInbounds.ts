@@ -101,7 +101,7 @@ export function useInbounds() {
   const tgBotEnable = !!defaults.tgBotEnable;
   const ipLimitEnable = !!defaults.ipLimitEnable;
   const pageSize = defaults.pageSize ?? 0;
-  const remarkModel = defaults.remarkModel || '-ieo';
+  const remarkModel = defaults.remarkModel || '-io';
   const datepicker = (defaults.datepicker as 'gregorian' | 'jalalian') || 'gregorian';
 
   const subSettings: SubSettings = useMemo(() => ({
