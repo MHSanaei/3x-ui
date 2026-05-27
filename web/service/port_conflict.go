@@ -159,17 +159,18 @@ func (d *portConflictDetail) String() string {
 // or updating an inbound on (listen, port) would clash with. nil result
 // means no conflict.
 //
-// unlike the old port-only check, this one understands that tcp/443 and
-// udp/443 are independent sockets in linux and may coexist on the same
-// address.
+// the check understands that tcp/443 and udp/443 are independent
+// sockets in linux and may coexist on the same address (see
+// inboundTransports for the per-protocol L4 mapping).
 //
 // node scope: inbounds with different NodeID run on different physical
 // machines (local panel xray vs a remote node, or two remote nodes),
 // so their sockets can't collide. only candidates with the same NodeID
 // participate in the listen/transport overlap check.
 //
-// the listen-overlap rule (specific addr conflicts with any-addr on the
-// same port, both directions) is preserved from the previous check.
+// listen overlap: a specific listen address conflicts with any-address
+// on the same port (both directions), otherwise only identical specific
+// addresses overlap.
 func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int) (*portConflictDetail, error) {
 	db := database.GetDB()
 
@@ -232,10 +233,10 @@ func baseInboundTag(listen string, port int) string {
 	return fmt.Sprintf("inbound-%v:%v", listen, port)
 }
 
-// transportTagSuffix turns a transport mask into a short, stable string
-// for tag disambiguation. only used when the base "inbound-<port>" is
-// already taken on a coexisting transport (e.g. tcp inbound already lives
-// on 443 and we're now adding a udp one).
+// transportTagSuffix turns a transport mask into a short, stable string.
+// used both for generateInboundTag's disambiguation ("inbound-443-udp"
+// when the base "inbound-443" is taken on a coexisting transport) and
+// for the L4 hint in portConflictDetail's user-facing error message.
 func transportTagSuffix(b transportBits) string {
 	switch b {
 	case transportTCP:
