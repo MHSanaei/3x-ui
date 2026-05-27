@@ -28,42 +28,29 @@
   margin-top: 8px;
 }
 
-.qr-row {
-  margin-bottom: 12px;
-}
-
-.qr-col {
-  display: flex;
-  justify-content: center;
-}
-
-.qr-box {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: 240px;
-}
-
 .qr-tag {
   width: 100%;
   text-align: center;
   margin: 0;
 }
 
-.qr-code {
-  cursor: pointer;
-}
-
 .info-table {
-  margin-top: 12px;
+  margin-top: 4px;
 }
 
 .links-section {
-  margin-top: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.sub-link-anchor {
+  color: inherit;
+  text-decoration: none;
+}
+
+.sub-link-anchor:hover {
+  text-decoration: underline;
 }
 
 .sub-link-row {

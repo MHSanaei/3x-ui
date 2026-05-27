@@ -99,6 +99,8 @@ interface SubSettings {
   subURI: string;
   subJsonURI: string;
   subJsonEnable: boolean;
+  subClashURI: string;
+  subClashEnable: boolean;
 }
 
 interface ClientInfoModalProps {
@@ -115,7 +117,14 @@ interface ApiMsg<T = unknown> {
   obj?: T;
 }
 
-const DEFAULT_SUB: SubSettings = { enable: false, subURI: '', subJsonURI: '', subJsonEnable: false };
+const DEFAULT_SUB: SubSettings = {
+  enable: false,
+  subURI: '',
+  subJsonURI: '',
+  subJsonEnable: false,
+  subClashURI: '',
+  subClashEnable: false,
+};
 
 export default function ClientInfoModal({
   open,
@@ -175,6 +184,12 @@ export default function ClientInfoModal({
     if (!subSettings?.subJsonEnable || !subSettings?.subJsonURI) return '';
     return subSettings.subJsonURI + client.subId;
   }, [client?.subId, subSettings?.subJsonEnable, subSettings?.subJsonURI]);
+
+  const subClashLink = useMemo(() => {
+    if (!client?.subId) return '';
+    if (!subSettings?.subClashEnable || !subSettings?.subClashURI) return '';
+    return subSettings.subClashURI + client.subId;
+  }, [client?.subId, subSettings?.subClashEnable, subSettings?.subClashURI]);
 
   const showSubscription = !!(subSettings?.enable && client?.subId);
 
@@ -451,6 +466,37 @@ export default function ClientInfoModal({
                         placement="left"
                         destroyOnHidden
                         content={<QrPanel value={subJsonLink} remark={`${client.email} — JSON`} size={220} />}
+                      >
+                        <Tooltip title={t('pages.clients.qrCode')}>
+                          <Button size="small" icon={<QrcodeOutlined />} />
+                        </Tooltip>
+                      </Popover>
+                    </div>
+                  </div>
+                )}
+                {subClashLink && (
+                  <div className="link-row">
+                    <Tooltip title="Clash / Mihomo">
+                      <Tag color="gold" className="link-row-tag">CLASH</Tag>
+                    </Tooltip>
+                    <a
+                      href={subClashLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="link-row-title link-row-title-anchor"
+                      title={subClashLink}
+                    >
+                      {client.subId}
+                    </a>
+                    <div className="link-row-actions">
+                      <Tooltip title={t('copy')}>
+                        <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(subClashLink)} />
+                      </Tooltip>
+                      <Popover
+                        trigger="click"
+                        placement="left"
+                        destroyOnHidden
+                        content={<QrPanel value={subClashLink} remark={`${client.email} — Clash / Mihomo`} size={220} />}
                       >
                         <Tooltip title={t('pages.clients.qrCode')}>
                           <Button size="small" icon={<QrcodeOutlined />} />

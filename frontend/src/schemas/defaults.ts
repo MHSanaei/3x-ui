@@ -9,6 +9,8 @@ export const DefaultsPayloadSchema = z.object({
   subURI: z.string().optional(),
   subJsonURI: z.string().optional(),
   subJsonEnable: z.boolean().optional(),
+  subClashURI: z.string().optional(),
+  subClashEnable: z.boolean().optional(),
   pageSize: z.number().optional(),
   remarkModel: z.string().optional(),
   datepicker: z.enum(['gregorian', 'jalalian']).optional(),

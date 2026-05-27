@@ -6,6 +6,7 @@ import {
   Col,
   ConfigProvider,
   Descriptions,
+  Divider,
   Dropdown,
   Layout,
   Menu,
@@ -15,6 +16,7 @@ import {
   Row,
   Space,
   Tag,
+  Tooltip,
 } from 'antd';
 import {
   AndroidOutlined,
@@ -333,63 +335,6 @@ export default function SubPage() {
           <Row justify="center">
             <Col xs={24} sm={22} md={18} lg={14} xl={12}>
               <Card hoverable className="subscription-card" title={cardTitle} extra={cardExtra}>
-                <Row gutter={[8, 8]} justify="center" className="qr-row">
-                  <Col xs={24} sm={subJsonUrl || subClashUrl ? 12 : 24} className="qr-col">
-                    <div className="qr-box">
-                      <Tag color="purple" className="qr-tag">{t('pages.settings.subSettings')}</Tag>
-                      <QRCode
-                        className="qr-code"
-                        value={subUrl}
-                        size={QR_SIZE}
-                        type="svg"
-                        bordered={false}
-                        color="#000000"
-                        bgColor="#ffffff"
-                        title={t('copy')}
-                        onClick={() => copy(subUrl)}
-                      />
-                    </div>
-                  </Col>
-                  {subJsonUrl && (
-                    <Col xs={24} sm={12} className="qr-col">
-                      <div className="qr-box">
-                        <Tag color="purple" className="qr-tag">
-                          {t('pages.settings.subSettings')} JSON
-                        </Tag>
-                        <QRCode
-                          className="qr-code"
-                          value={subJsonUrl}
-                          size={QR_SIZE}
-                          type="svg"
-                          bordered={false}
-                          color="#000000"
-                          bgColor="#ffffff"
-                          title={t('copy')}
-                          onClick={() => copy(subJsonUrl)}
-                        />
-                      </div>
-                    </Col>
-                  )}
-                  {subClashUrl && (
-                    <Col xs={24} sm={12} className="qr-col">
-                      <div className="qr-box">
-                        <Tag color="purple" className="qr-tag">Clash / Mihomo</Tag>
-                        <QRCode
-                          className="qr-code"
-                          value={subClashUrl}
-                          size={QR_SIZE}
-                          type="svg"
-                          bordered={false}
-                          color="#000000"
-                          bgColor="#ffffff"
-                          title={t('copy')}
-                          onClick={() => copy(subClashUrl)}
-                        />
-                      </div>
-                    </Col>
-                  )}
-                </Row>
-
                 <Descriptions
                   bordered
                   column={1}
@@ -399,67 +344,170 @@ export default function SubPage() {
                 />
 
                 {links.length > 0 && (
-                  <div className="links-section">
-                    {links.map((link, idx) => {
-                      const meta = parseLinkMeta(link, idx);
-                      const rowTitle = trimEmail(meta.remark, linkEmails[idx] || '') || meta.remark;
-                      const canQr = !isPostQuantumLink(link);
-                      return (
-                        <div key={link} className="sub-link-row">
-                          <Tag
-                            color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
-                            className="sub-link-tag"
+                  <>
+                    <Divider>{t('pages.inbounds.copyLink')}</Divider>
+                    <div className="links-section">
+                      {links.map((link, idx) => {
+                        const meta = parseLinkMeta(link, idx);
+                        const rowTitle = trimEmail(meta.remark, linkEmails[idx] || '') || meta.remark;
+                        const canQr = !isPostQuantumLink(link);
+                        return (
+                          <div key={link} className="sub-link-row">
+                            <Tag
+                              color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
+                              className="sub-link-tag"
+                            >
+                              {meta.protocol}
+                            </Tag>
+                            <span className="sub-link-title" title={meta.remark}>
+                              {rowTitle}
+                            </span>
+                            <div className="sub-link-actions">
+                              <Button
+                                size="small"
+                                icon={<CopyOutlined />}
+                                onClick={() => copy(link)}
+                                aria-label={t('copy')}
+                                title={t('copy')}
+                              />
+                              {canQr && (
+                                <Popover
+                                  trigger="click"
+                                  placement="left"
+                                  destroyOnHidden
+                                  content={
+                                    <div className="sub-link-qr-popover">
+                                      <Tag
+                                        color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
+                                        className="qr-tag"
+                                      >
+                                        {meta.remark}
+                                      </Tag>
+                                      <QRCode
+                                        value={link}
+                                        size={220}
+                                        type="svg"
+                                        bordered={false}
+                                        color="#000000"
+                                        bgColor="#ffffff"
+                                      />
+                                    </div>
+                                  }
+                                >
+                                  <Button
+                                    size="small"
+                                    icon={<QrcodeOutlined />}
+                                    aria-label="QR"
+                                    title="QR"
+                                  />
+                                </Popover>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
+                {(subUrl || subJsonUrl || subClashUrl) && (
+                  <>
+                    <Divider>{t('subscription.title')}</Divider>
+                    <div className="links-section">
+                      {subUrl && (
+                        <div className="sub-link-row">
+                          <Tag color="green" className="sub-link-tag">SUB</Tag>
+                          <a
+                            href={subUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="sub-link-title sub-link-anchor"
+                            title={subUrl}
                           >
-                            {meta.protocol}
-                          </Tag>
-                          <span className="sub-link-title" title={meta.remark}>
-                            {rowTitle}
-                          </span>
+                            {sId}
+                          </a>
                           <div className="sub-link-actions">
-                            <Button
-                              size="small"
-                              icon={<CopyOutlined />}
-                              onClick={() => copy(link)}
-                              aria-label={t('copy')}
-                              title={t('copy')}
-                            />
-                            {canQr && (
-                              <Popover
-                                trigger="click"
-                                placement="left"
-                                destroyOnHidden
-                                content={
-                                  <div className="sub-link-qr-popover">
-                                    <Tag
-                                      color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
-                                      className="qr-tag"
-                                    >
-                                      {meta.remark}
-                                    </Tag>
-                                    <QRCode
-                                      value={link}
-                                      size={220}
-                                      type="svg"
-                                      bordered={false}
-                                      color="#000000"
-                                      bgColor="#ffffff"
-                                    />
-                                  </div>
-                                }
-                              >
-                                <Button
-                                  size="small"
-                                  icon={<QrcodeOutlined />}
-                                  aria-label="QR"
-                                  title="QR"
-                                />
-                              </Popover>
-                            )}
+                            <Button size="small" icon={<CopyOutlined />} onClick={() => copy(subUrl)} aria-label={t('copy')} title={t('copy')} />
+                            <Popover
+                              trigger="click"
+                              placement="left"
+                              destroyOnHidden
+                              content={
+                                <div className="sub-link-qr-popover">
+                                  <Tag color="green" className="qr-tag">{t('pages.settings.subSettings')}</Tag>
+                                  <QRCode value={subUrl} size={QR_SIZE} type="svg" bordered={false} color="#000000" bgColor="#ffffff" />
+                                </div>
+                              }
+                            >
+                              <Button size="small" icon={<QrcodeOutlined />} aria-label="QR" title="QR" />
+                            </Popover>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      )}
+                      {subJsonUrl && (
+                        <div className="sub-link-row">
+                          <Tag color="purple" className="sub-link-tag">JSON</Tag>
+                          <a
+                            href={subJsonUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="sub-link-title sub-link-anchor"
+                            title={subJsonUrl}
+                          >
+                            {sId}
+                          </a>
+                          <div className="sub-link-actions">
+                            <Button size="small" icon={<CopyOutlined />} onClick={() => copy(subJsonUrl)} aria-label={t('copy')} title={t('copy')} />
+                            <Popover
+                              trigger="click"
+                              placement="left"
+                              destroyOnHidden
+                              content={
+                                <div className="sub-link-qr-popover">
+                                  <Tag color="purple" className="qr-tag">{t('pages.settings.subSettings')} JSON</Tag>
+                                  <QRCode value={subJsonUrl} size={QR_SIZE} type="svg" bordered={false} color="#000000" bgColor="#ffffff" />
+                                </div>
+                              }
+                            >
+                              <Button size="small" icon={<QrcodeOutlined />} aria-label="QR" title="QR" />
+                            </Popover>
+                          </div>
+                        </div>
+                      )}
+                      {subClashUrl && (
+                        <div className="sub-link-row">
+                          <Tooltip title="Clash / Mihomo">
+                            <Tag color="gold" className="sub-link-tag">CLASH</Tag>
+                          </Tooltip>
+                          <a
+                            href={subClashUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="sub-link-title sub-link-anchor"
+                            title={subClashUrl}
+                          >
+                            {sId}
+                          </a>
+                          <div className="sub-link-actions">
+                            <Button size="small" icon={<CopyOutlined />} onClick={() => copy(subClashUrl)} aria-label={t('copy')} title={t('copy')} />
+                            <Popover
+                              trigger="click"
+                              placement="left"
+                              destroyOnHidden
+                              content={
+                                <div className="sub-link-qr-popover">
+                                  <Tag color="gold" className="qr-tag">Clash / Mihomo</Tag>
+                                  <QRCode value={subClashUrl} size={QR_SIZE} type="svg" bordered={false} color="#000000" bgColor="#ffffff" />
+                                </div>
+                              }
+                            >
+                              <Button size="small" icon={<QrcodeOutlined />} aria-label="QR" title="QR" />
+                            </Popover>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
 
                 <Row gutter={[8, 8]} justify="center" className="apps-row">

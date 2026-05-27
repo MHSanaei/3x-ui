@@ -34,6 +34,8 @@ interface SubSettings {
   subURI: string;
   subJsonURI: string;
   subJsonEnable: boolean;
+  subClashURI: string;
+  subClashEnable: boolean;
 }
 
 export interface ClientQueryParams {
@@ -157,7 +159,16 @@ export function useClients() {
     subURI: (defaults.subURI as string) || '',
     subJsonURI: (defaults.subJsonURI as string) || '',
     subJsonEnable: !!defaults.subJsonEnable,
-  }), [defaults.subEnable, defaults.subURI, defaults.subJsonURI, defaults.subJsonEnable]);
+    subClashURI: (defaults.subClashURI as string) || '',
+    subClashEnable: !!defaults.subClashEnable,
+  }), [
+    defaults.subEnable,
+    defaults.subURI,
+    defaults.subJsonURI,
+    defaults.subJsonEnable,
+    defaults.subClashURI,
+    defaults.subClashEnable,
+  ]);
 
   const ipLimitEnable = !!defaults.ipLimitEnable;
   const tgBotEnable = !!defaults.tgBotEnable;
