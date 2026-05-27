@@ -10,6 +10,7 @@ import {
   CloseOutlined,
   DashboardOutlined,
   HeartOutlined,
+  ImportOutlined,
   LogoutOutlined,
   MenuOutlined,
   MoonFilled,
@@ -18,7 +19,6 @@ import {
   SunOutlined,
   TeamOutlined,
   ToolOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -29,11 +29,11 @@ const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
 const DONATE_URL = 'https://donate.sanaei.dev/';
 const LOGOUT_KEY = '__logout__';
 
-type IconName = 'dashboard' | 'user' | 'team' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
+type IconName = 'dashboard' | 'inbound' | 'team' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
 
 const iconByName: Record<IconName, ComponentType> = {
   dashboard: DashboardOutlined,
-  user: UserOutlined,
+  inbound: ImportOutlined,
   team: TeamOutlined,
   setting: SettingOutlined,
   tool: ToolOutlined,
@@ -101,7 +101,7 @@ export default function AppSidebar() {
 
   const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(() => [
     { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
-    { key: '/inbounds', icon: 'user', title: t('menu.inbounds') },
+    { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
     { key: '/clients', icon: 'team', title: t('menu.clients') },
     { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
     { key: '/settings', icon: 'setting', title: t('menu.settings') },

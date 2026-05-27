@@ -600,7 +600,10 @@ export default function InboundList({
         {isMobile ? (
           <div className="inbound-cards">
             {sortedInbounds.length === 0 ? (
-              <div className="card-empty">—</div>
+              <div className="card-empty">
+                <ImportOutlined style={{ fontSize: 28, opacity: 0.5 }} />
+                <div>{t('noData')}</div>
+              </div>
             ) : (
               sortedInbounds.map((record) => (
                 <div key={record.id} className="inbound-card">
@@ -641,6 +644,14 @@ export default function InboundList({
             scroll={{ x: 1000 }}
             style={{ marginTop: 10 }}
             size="small"
+            locale={{
+              emptyText: (
+                <div className="card-empty">
+                  <ImportOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+                  <div>{t('noData')}</div>
+                </div>
+              ),
+            }}
             onChange={(_p, _f, sorter) => {
               const single = Array.isArray(sorter) ? sorter[0] : sorter;
               const colKey = (single?.columnKey || single?.field) as SortKey | undefined;
