@@ -112,7 +112,6 @@ gen_random_string() {
 
 install_postgres_local() {
     local pg_user pg_pass
-    pg_user=$(gen_random_string 8)
     pg_pass=$(gen_random_string 24)
     local pg_db="xui"
     local pg_host="127.0.0.1"
@@ -172,6 +171,16 @@ install_postgres_local() {
         sleep 1
     done
 
+    local existing_owner=""
+    existing_owner=$(sudo -u postgres psql -tAc \
+        "SELECT pg_catalog.pg_get_userbyid(datdba) FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null \
+        | tr -d '[:space:]')
+    if [[ -n "${existing_owner}" && "${existing_owner}" != "postgres" ]]; then
+        pg_user="${existing_owner}"
+    else
+        pg_user=$(gen_random_string 8)
+    fi
+
     # Idempotent role/db creation. Identifiers are double-quoted because a
     # random username may start with a digit, which Postgres rejects unquoted.
     sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${pg_user}'" 2> /dev/null \
@@ -188,15 +197,21 @@ install_postgres_local() {
     pg_pass_enc=$(printf '%s' "${pg_pass}" | sed -e 's/%/%25/g' -e 's/:/%3A/g' -e 's/@/%40/g' -e 's|/|%2F|g' -e 's/?/%3F/g' -e 's/#/%23/g')
 
     if [[ -n "${PG_CRED_FILE:-}" ]]; then
+        local prev_umask
+        prev_umask=$(umask)
         umask 077
-        cat > "${PG_CRED_FILE}" <<EOF
+        if ! cat > "${PG_CRED_FILE}" << EOF; then
 PG_USER=${pg_user}
 PG_PASS=${pg_pass}
 PG_HOST=${pg_host}
 PG_PORT=${pg_port}
 PG_DB=${pg_db}
 EOF
-        umask 022
+            umask "${prev_umask}"
+            echo -e "${red}Failed to write PostgreSQL credentials to ${PG_CRED_FILE}${plain}" >&2
+            return 1
+        fi
+        umask "${prev_umask}"
     fi
 
     echo "postgres://${pg_user}:${pg_pass_enc}@${pg_host}:${pg_port}/${pg_db}?sslmode=disable"
@@ -875,17 +890,22 @@ config_after_install() {
                     else
                         echo -e "${yellow}Installing PostgreSQL — this may take a moment...${plain}"
                         local pg_cred_file
-                        pg_cred_file="/tmp/x-ui-pg-creds.$$"
-                        rm -f "${pg_cred_file}"
+                        pg_cred_file=$(mktemp 2> /dev/null) || pg_cred_file=$(mktemp -t x-ui-pg-creds.XXXXXXXX)
+                        if [[ -z "${pg_cred_file}" ]]; then
+                            echo -e "${red}Failed to create temporary credentials file.${plain}"
+                            xui_dsn=""
+                            continue
+                        fi
                         if xui_dsn=$(PG_CRED_FILE="${pg_cred_file}" install_postgres_local); then
                             pg_local_installed=1
                             if [[ -r "${pg_cred_file}" ]]; then
                                 # shellcheck disable=SC1090
                                 source "${pg_cred_file}"
-                                rm -f "${pg_cred_file}"
                             fi
+                            rm -f "${pg_cred_file}"
                             db_label="PostgreSQL (${PG_USER}@${PG_HOST}:${PG_PORT}/${PG_DB})"
                         else
+                            rm -f "${pg_cred_file}"
                             echo ""
                             echo -e "${red}PostgreSQL installation failed.${plain}"
                             echo -e "  1) Retry local install"
