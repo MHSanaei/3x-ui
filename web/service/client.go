@@ -538,19 +538,29 @@ func shadowsocksKeyBytes(method string) int {
 	return 0
 }
 
-// applyShadowsocksClientMethod ensures each client entry carries a "method"
-// field for legacy shadowsocks ciphers. xray's multi-user shadowsocks code
-// requires a per-client method; an empty/missing field fails with
-// "unsupported cipher method:". 2022-blake3 ciphers use the top-level
-// method only, so the per-client field must stay absent.
+// applyShadowsocksClientMethod normalises the per-client "method" field
+// when an inbound is created or updated:
+//   - Legacy ciphers: backfill `method` so xray's multi-user code is happy.
+//     "unsupported cipher method:" otherwise.
+//   - 2022-blake3-*: strip the per-client `method` because xray rejects
+//     it with "users must have empty method". This matters after an admin
+//     switches an existing inbound from a legacy cipher to a 2022 one.
 func applyShadowsocksClientMethod(clients []any, settings map[string]any) {
 	method, _ := settings["method"].(string)
-	if method == "" || strings.HasPrefix(method, "2022-blake3-") {
-		return
-	}
+	is2022 := strings.HasPrefix(method, "2022-blake3-")
 	for i := range clients {
 		cm, ok := clients[i].(map[string]any)
 		if !ok {
+			continue
+		}
+		if is2022 {
+			if _, hasKey := cm["method"]; hasKey {
+				delete(cm, "method")
+				clients[i] = cm
+			}
+			continue
+		}
+		if method == "" {
 			continue
 		}
 		if existing, _ := cm["method"].(string); existing != "" {

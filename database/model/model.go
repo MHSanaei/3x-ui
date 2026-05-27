@@ -219,15 +219,80 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 	}
 	listen = fmt.Sprintf("\"%v\"", listen)
 	protocol := string(i.Protocol)
+	settings := i.Settings
+	if i.Protocol == Shadowsocks {
+		if healed, ok := HealShadowsocksClientMethods(settings); ok {
+			settings = healed
+		}
+	}
 	return &xray.InboundConfig{
 		Listen:         json_util.RawMessage(listen),
 		Port:           i.Port,
 		Protocol:       protocol,
-		Settings:       json_util.RawMessage(i.Settings),
+		Settings:       json_util.RawMessage(settings),
 		StreamSettings: json_util.RawMessage(i.StreamSettings),
 		Tag:            i.Tag,
 		Sniffing:       json_util.RawMessage(i.Sniffing),
 	}
+}
+
+// HealShadowsocksClientMethods normalises the per-client `method` field
+// on a shadowsocks inbound's settings JSON before it leaves for xray-core:
+//   - Legacy ciphers (aes-*, chacha20-*): every client must carry a
+//     per-user `method` matching the inbound's top-level method, otherwise
+//     xray fails with "unsupported cipher method:".
+//   - Shadowsocks 2022 (2022-blake3-*): xray's multi-user code rejects the
+//     inbound with "users must have empty method" when a client carries
+//     one — strip stale entries left over from a switch off a legacy
+//     cipher.
+// Returns the rewritten settings string and true when anything changed.
+func HealShadowsocksClientMethods(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	method, _ := parsed["method"].(string)
+	clients, ok := parsed["clients"].([]any)
+	if !ok {
+		return settings, false
+	}
+	is2022 := strings.HasPrefix(method, "2022-blake3-")
+	changed := false
+	for i := range clients {
+		cm, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		if is2022 {
+			if _, hasKey := cm["method"]; hasKey {
+				delete(cm, "method")
+				clients[i] = cm
+				changed = true
+			}
+			continue
+		}
+		if method == "" {
+			continue
+		}
+		existing, _ := cm["method"].(string)
+		if existing == method {
+			continue
+		}
+		cm["method"] = method
+		clients[i] = cm
+		changed = true
+	}
+	if !changed {
+		return settings, false
+	}
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
 }
 
 // Setting stores key-value configuration settings for the 3x-ui panel.
