@@ -258,7 +258,7 @@ export default function OutboundsTab({
         ),
       },
       {
-        title: 'Tag',
+        title: t('pages.xray.outbound.tag'),
         key: 'identity',
         align: 'left',
         render: (_v, record) => (
@@ -316,7 +316,7 @@ export default function OutboundsTab({
         },
       },
       {
-        title: 'Latency',
+        title: t('pages.nodes.latency'),
         key: 'testResult',
         align: 'left',
         width: 140,
@@ -398,14 +398,14 @@ export default function OutboundsTab({
           </Col>
           <Col xs={24} sm={12} className="toolbar-right">
             <Space size="small" wrap>
-              <Tooltip title="TCP: fast dial-only probe. HTTP: full request through xray.">
+              <Tooltip title={t('pages.xray.outbound.testModeTooltip')}>
                 <Radio.Group value={testMode} onChange={(e) => setTestMode(e.target.value)} buttonStyle="solid" size="small">
                   <Radio.Button value="tcp">TCP</Radio.Button>
                   <Radio.Button value="http">HTTP</Radio.Button>
                 </Radio.Group>
               </Tooltip>
               <Button type="primary" loading={testingAll} icon={<PlayCircleOutlined />} onClick={() => onTestAll(testMode)}>
-                {!isMobile && 'Test all'}
+                {!isMobile && t('pages.xray.outbound.testAll')}
               </Button>
               <Popconfirm
                 placement="topRight"

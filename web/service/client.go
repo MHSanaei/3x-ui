@@ -808,6 +808,12 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 		return result, false, nil
 	}
 
+	recordErr := func(format string, args ...any) {
+		msg := fmt.Sprintf(format, args...)
+		result.Errors = append(result.Errors, msg)
+		logger.Warningf("[BulkAttach] %s", msg)
+	}
+
 	records := make([]*model.ClientRecord, 0, len(emails))
 	seenEmail := make(map[string]struct{}, len(emails))
 	for _, email := range emails {
@@ -821,7 +827,7 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 		seenEmail[key] = struct{}{}
 		rec, err := s.GetRecordByEmail(nil, email)
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", email, err))
+			recordErr("%s: %v", email, err)
 			continue
 		}
 		records = append(records, rec)
@@ -831,12 +837,12 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 	for _, ibId := range inboundIds {
 		inbound, err := inboundSvc.GetInbound(ibId)
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("inbound %d: %v", ibId, err))
+			recordErr("inbound %d: %v", ibId, err)
 			continue
 		}
 		existingClients, err := inboundSvc.GetClients(inbound)
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("inbound %d: %v", ibId, err))
+			recordErr("inbound %d: %v", ibId, err)
 			continue
 		}
 		have := make(map[string]struct{}, len(existingClients))
@@ -853,7 +859,7 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 			client := *rec.ToClient()
 			client.UpdatedAt = time.Now().UnixMilli()
 			if err := s.fillProtocolDefaults(&client, inbound); err != nil {
-				result.Errors = append(result.Errors, fmt.Sprintf("%s -> inbound %d: %v", rec.Email, ibId, err))
+				recordErr("%s -> inbound %d: %v", rec.Email, ibId, err)
 				continue
 			}
 			clientsToAdd = append(clientsToAdd, client)
@@ -865,12 +871,12 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 
 		payload, err := json.Marshal(map[string][]model.Client{"clients": clientsToAdd})
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("inbound %d: %v", ibId, err))
+			recordErr("inbound %d: %v", ibId, err)
 			continue
 		}
 		nr, err := s.AddInboundClient(inboundSvc, &model.Inbound{Id: ibId, Settings: string(payload)})
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("inbound %d: %v", ibId, err))
+			recordErr("inbound %d: %v", ibId, err)
 			continue
 		}
 		if nr {
@@ -902,6 +908,12 @@ func (s *ClientService) BulkDetach(inboundSvc *InboundService, emails []string, 
 		return result, false, nil
 	}
 
+	recordErr := func(format string, args ...any) {
+		msg := fmt.Sprintf(format, args...)
+		result.Errors = append(result.Errors, msg)
+		logger.Warningf("[BulkDetach] %s", msg)
+	}
+
 	requested := make(map[int]struct{}, len(inboundIds))
 	for _, id := range inboundIds {
 		requested[id] = struct{}{}
@@ -921,12 +933,12 @@ func (s *ClientService) BulkDetach(inboundSvc *InboundService, emails []string, 
 
 		rec, err := s.GetRecordByEmail(nil, email)
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", email, err))
+			recordErr("%s: %v", email, err)
 			continue
 		}
 		currentIds, err := s.GetInboundIdsForRecord(rec.Id)
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", email, err))
+			recordErr("%s: %v", email, err)
 			continue
 		}
 		intersection := make([]int, 0, len(currentIds))
@@ -941,7 +953,7 @@ func (s *ClientService) BulkDetach(inboundSvc *InboundService, emails []string, 
 		}
 		nr, err := s.Detach(inboundSvc, rec.Id, intersection)
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", rec.Email, err))
+			recordErr("%s: %v", rec.Email, err)
 			continue
 		}
 		if nr {

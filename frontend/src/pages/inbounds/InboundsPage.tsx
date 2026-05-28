@@ -171,7 +171,7 @@ export default function InboundsPage() {
     confirm: (value: string) => Promise<boolean | void> | boolean | void;
   }) => {
     setPromptTitle(opts.title);
-    setPromptOkText(opts.okText || 'OK');
+    setPromptOkText(opts.okText || t('confirm'));
     setPromptType(opts.type || 'textarea');
     setPromptInitial(opts.value || '');
     setPromptHandler(() => opts.confirm);
@@ -316,8 +316,8 @@ export default function InboundsPage() {
 
   const importInbound = useCallback(() => {
     openPrompt({
-      title: 'Import inbound',
-      okText: 'Import',
+      title: t('pages.inbounds.importInbound'),
+      okText: t('pages.inbounds.import'),
       type: 'textarea',
       value: '',
       confirm: async (value) => {
@@ -434,9 +434,9 @@ export default function InboundsPage() {
       case 'subs': exportAllSubs(); break;
       case 'resetInbounds':
         modal.confirm({
-          title: 'Reset all inbound traffic?',
-          okText: 'Reset',
-          cancelText: 'Cancel',
+          title: t('pages.inbounds.resetAllTrafficTitle'),
+          okText: t('reset'),
+          cancelText: t('cancel'),
           onOk: async () => {
             const msg = await HttpUtil.post('/panel/api/inbounds/resetAllTraffics');
             if (msg?.success) await refresh();
@@ -518,7 +518,7 @@ export default function InboundsPage() {
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={!fetched} delay={200} description="Loading…" size="large">
+            <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : (

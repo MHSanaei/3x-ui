@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Button,
@@ -72,6 +73,7 @@ export default function WarpModal({
   onResetOutbound,
   onRemoveOutbound,
 }: WarpModalProps) {
+  const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [warpData, setWarpData] = useState<WarpData | null>(null);
@@ -167,7 +169,7 @@ export default function WarpModal({
         setWarpConfig(null);
         setWarpPlus('');
       } else {
-        setLicenseError(msg?.msg || 'Failed to set WARP license.');
+        setLicenseError(msg?.msg || t('pages.xray.warp.licenseError'));
       }
     } finally {
       setLoading(false);
@@ -192,7 +194,7 @@ export default function WarpModal({
 
   function addOutbound() {
     if (!stagedOutbound) {
-      messageApi.warning('Fetch the WARP config first.');
+      messageApi.warning(t('pages.xray.warp.fetchFirst'));
       return;
     }
     onAddOutbound(stagedOutbound);
@@ -213,49 +215,49 @@ export default function WarpModal({
       <Modal open={open} title="Cloudflare WARP" footer={null} onCancel={onClose}>
       {!hasWarp ? (
         <Button type="primary" loading={loading} icon={<ApiOutlined />} onClick={register}>
-          Create WARP account
+          {t('pages.xray.warp.createAccount')}
         </Button>
       ) : (
         <>
           <table className="warp-data-table">
             <tbody>
               <tr className="row-odd">
-                <td>Access token</td>
+                <td>{t('pages.xray.warp.accessToken')}</td>
                 <td>{warpData?.access_token}</td>
               </tr>
               <tr>
-                <td>Device ID</td>
+                <td>{t('pages.xray.warp.deviceId')}</td>
                 <td>{warpData?.device_id}</td>
               </tr>
               <tr className="row-odd">
-                <td>License key</td>
+                <td>{t('pages.xray.warp.licenseKey')}</td>
                 <td>{warpData?.license_key}</td>
               </tr>
               <tr>
-                <td>Private key</td>
+                <td>{t('pages.xray.warp.privateKey')}</td>
                 <td>{warpData?.private_key}</td>
               </tr>
             </tbody>
           </table>
 
           <Button loading={loading} type="primary" danger className="mt-8" icon={<DeleteOutlined />} onClick={delConfig}>
-            Delete account
+            {t('pages.xray.warp.deleteAccount')}
           </Button>
 
-          <Divider className="zero-margin">Settings</Divider>
+          <Divider className="zero-margin">{t('pages.xray.warp.settings')}</Divider>
 
           <Collapse
             className="my-10"
             items={[
               {
                 key: '1',
-                label: 'WARP / WARP+ license key',
+                label: t('pages.xray.warp.licenseKeyLabel'),
                 children: (
                   <Form colon={false} labelCol={{ md: { span: 6 } }} wrapperCol={{ md: { span: 14 } }}>
-                    <Form.Item label="Key">
+                    <Form.Item label={t('pages.xray.warp.key')}>
                       <Input
                         value={warpPlus}
-                        placeholder="26-char WARP+ key"
+                        placeholder={t('pages.xray.warp.keyPlaceholder')}
                         onChange={(e) => {
                           setWarpPlus(e.target.value);
                           setLicenseError('');
@@ -268,7 +270,7 @@ export default function WarpModal({
                           loading={loading}
                           onClick={updateLicense}
                         >
-                          Update
+                          {t('update')}
                         </Button>
                         {licenseError && (
                           <Alert title={licenseError} type="error" showIcon className="license-error" />
@@ -281,9 +283,9 @@ export default function WarpModal({
             ]}
           />
 
-          <Divider className="zero-margin">Account info</Divider>
+          <Divider className="zero-margin">{t('pages.xray.warp.accountInfo')}</Divider>
           <Button className="my-8" loading={loading} type="primary" icon={<SyncOutlined />} onClick={getConfig}>
-            Refresh
+            {t('refresh')}
           </Button>
 
           {hasConfig && (
@@ -291,38 +293,38 @@ export default function WarpModal({
               <table className="warp-data-table">
                 <tbody>
                   <tr className="row-odd">
-                    <td>Device name</td>
+                    <td>{t('pages.xray.warp.deviceName')}</td>
                     <td>{warpConfig?.name}</td>
                   </tr>
                   <tr>
-                    <td>Device model</td>
+                    <td>{t('pages.xray.warp.deviceModel')}</td>
                     <td>{warpConfig?.model}</td>
                   </tr>
                   <tr className="row-odd">
-                    <td>Device enabled</td>
+                    <td>{t('pages.xray.warp.deviceEnabled')}</td>
                     <td>{String(warpConfig?.enabled)}</td>
                   </tr>
                   {warpConfig?.account && (
                     <>
                       <tr>
-                        <td>Account type</td>
+                        <td>{t('pages.xray.warp.accountType')}</td>
                         <td>{warpConfig.account.account_type}</td>
                       </tr>
                       <tr className="row-odd">
-                        <td>Role</td>
+                        <td>{t('pages.xray.warp.role')}</td>
                         <td>{warpConfig.account.role}</td>
                       </tr>
                       <tr>
-                        <td>WARP+ data</td>
+                        <td>{t('pages.xray.warp.warpPlusData')}</td>
                         <td>{SizeFormatter.sizeFormat(warpConfig.account.premium_data)}</td>
                       </tr>
                       <tr className="row-odd">
-                        <td>Quota</td>
+                        <td>{t('pages.xray.warp.quota')}</td>
                         <td>{SizeFormatter.sizeFormat(warpConfig.account.quota)}</td>
                       </tr>
                       {warpConfig.account.usage != null && (
                         <tr>
-                          <td>Usage</td>
+                          <td>{t('pages.xray.warp.usage')}</td>
                           <td>{SizeFormatter.sizeFormat(warpConfig.account.usage)}</td>
                         </tr>
                       )}
@@ -331,19 +333,19 @@ export default function WarpModal({
                 </tbody>
               </table>
 
-              <Divider className="my-10">Outbound status</Divider>
+              <Divider className="my-10">{t('pages.xray.outbound.outboundStatus')}</Divider>
               {warpOutboundIndex >= 0 ? (
                 <>
-                  <Tag color="green">Enabled</Tag>
+                  <Tag color="green">{t('enabled')}</Tag>
                   <Button type="primary" danger loading={loading} className="ml-8" onClick={resetOutbound}>
-                    Reset
+                    {t('reset')}
                   </Button>
                 </>
               ) : (
                 <>
-                  <Tag color="orange">Disabled</Tag>
+                  <Tag color="orange">{t('disabled')}</Tag>
                   <Button type="primary" loading={loading} className="ml-8" icon={<PlusOutlined />} onClick={addOutbound}>
-                    Add outbound
+                    {t('pages.xray.warp.addOutbound')}
                   </Button>
                 </>
               )}

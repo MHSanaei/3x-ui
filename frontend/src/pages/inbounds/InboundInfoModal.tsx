@@ -506,7 +506,7 @@ export default function InboundInfoModal({
           )}
           {inbound.isVlessTlsFlow && (
             <tr>
-              <td>Flow</td>
+              <td>{t('pages.clients.flow')}</td>
               <td>
                 {clientSettings?.flow ? <Tag>{clientSettings.flow}</Tag> : <Tag color="orange">{t('none')}</Tag>}
               </td>
@@ -729,18 +729,18 @@ export default function InboundInfoModal({
             )}
             {inbound.isXHTTP && (
               <div className="info-row">
-                <dt>Mode</dt>
+                <dt>{t('pages.inbounds.info.mode')}</dt>
                 <dd><Tag>{inbound.stream?.xhttp?.mode}</Tag></dd>
               </div>
             )}
             {inbound.isGrpc && (
               <>
                 <div className="info-row">
-                  <dt>grpc serviceName</dt>
+                  <dt>{t('pages.inbounds.info.grpcServiceName')}</dt>
                   <dd><Tag className="value-tag">{inbound.serviceName}</Tag></dd>
                 </div>
                 <div className="info-row">
-                  <dt>grpc multiMode</dt>
+                  <dt>{t('pages.inbounds.info.grpcMultiMode')}</dt>
                   <dd><Tag>{String(inbound.stream?.grpc?.multiMode)}</Tag></dd>
                 </div>
               </>
@@ -805,16 +805,16 @@ export default function InboundInfoModal({
       {inbound.protocol === Protocols.TUN && inbound.settings && (
         <dl className="info-list info-list-block">
           <div className="info-row">
-            <dt>Interface name</dt>
+            <dt>{t('pages.inbounds.info.interfaceName')}</dt>
             <dd><Tag color="green" className="value-tag">{inbound.settings.name as string}</Tag></dd>
           </div>
           <div className="info-row">
-            <dt>MTU</dt>
+            <dt>{t('pages.inbounds.info.mtu')}</dt>
             <dd><Tag color="green">{inbound.settings.mtu as number}</Tag></dd>
           </div>
           {Array.isArray(inbound.settings.gateway) && (inbound.settings.gateway as string[]).length > 0 && (
             <div className="info-row">
-              <dt>Gateway</dt>
+              <dt>{t('pages.inbounds.info.gateway')}</dt>
               <dd>
                 {(inbound.settings.gateway as string[]).map((ip, j) => (
                   <Tag key={`tun-gw-${j}`} color="green" className="value-tag">{ip}</Tag>
@@ -824,7 +824,7 @@ export default function InboundInfoModal({
           )}
           {Array.isArray(inbound.settings.dns) && (inbound.settings.dns as string[]).length > 0 && (
             <div className="info-row">
-              <dt>DNS</dt>
+              <dt>{t('pages.inbounds.info.dns')}</dt>
               <dd>
                 {(inbound.settings.dns as string[]).map((ip, j) => (
                   <Tag key={`tun-dns-${j}`} color="green">{ip}</Tag>
@@ -833,12 +833,12 @@ export default function InboundInfoModal({
             </div>
           )}
           <div className="info-row">
-            <dt>Outbounds interface</dt>
+            <dt>{t('pages.inbounds.info.outboundsInterface')}</dt>
             <dd><Tag color="green">{(inbound.settings.autoOutboundsInterface as string) || 'auto'}</Tag></dd>
           </div>
           {Array.isArray(inbound.settings.autoSystemRoutingTable) && (inbound.settings.autoSystemRoutingTable as string[]).length > 0 && (
             <div className="info-row">
-              <dt>Auto system routes</dt>
+              <dt>{t('pages.inbounds.info.autoSystemRoutes')}</dt>
               <dd>
                 {(inbound.settings.autoSystemRoutingTable as string[]).map((cidr, j) => (
                   <Tag key={`tun-rt-${j}`} color="green">{cidr}</Tag>
@@ -864,7 +864,7 @@ export default function InboundInfoModal({
             <dd><Tag color="green">{inbound.settings.allowedNetwork as string}</Tag></dd>
           </div>
           <div className="info-row">
-            <dt>FollowRedirect</dt>
+            <dt>{t('pages.inbounds.info.followRedirect')}</dt>
             <dd>
               <Tag color={inbound.settings.followRedirect ? 'green' : 'red'}>
                 {inbound.settings.followRedirect ? t('enabled') : t('disabled')}
@@ -877,7 +877,7 @@ export default function InboundInfoModal({
       {dbInbound.isMixed && inbound.settings && (
         <dl className="info-list info-list-block">
           <div className="info-row">
-            <dt>Auth</dt>
+            <dt>{t('pages.inbounds.info.auth')}</dt>
             <dd>
               <Tag color={inbound.settings.auth === 'password' ? 'green' : 'orange'}>
                 {inbound.settings.auth as string}
@@ -969,19 +969,19 @@ export default function InboundInfoModal({
         <>
           <dl className="info-list info-list-block">
             <div className="info-row">
-              <dt>Secret key</dt>
+              <dt>{t('pages.xray.wireguard.secretKey')}</dt>
               <dd><Tag className="value-tag">{inbound.settings.secretKey as string}</Tag></dd>
             </div>
             <div className="info-row">
-              <dt>Public key</dt>
+              <dt>{t('pages.xray.wireguard.publicKey')}</dt>
               <dd><Tag className="value-tag">{inbound.settings.pubKey as string}</Tag></dd>
             </div>
             <div className="info-row">
-              <dt>MTU</dt>
+              <dt>{t('pages.inbounds.info.mtu')}</dt>
               <dd><Tag>{inbound.settings.mtu as number}</Tag></dd>
             </div>
             <div className="info-row">
-              <dt>No-kernel TUN</dt>
+              <dt>{t('pages.inbounds.info.noKernelTun')}</dt>
               <dd>
                 <Tag color={inbound.settings.noKernelTun ? 'green' : 'default'}>
                   {String(inbound.settings.noKernelTun)}
@@ -991,14 +991,14 @@ export default function InboundInfoModal({
           </dl>
           {Array.isArray(inbound.settings.peers) && (inbound.settings.peers as { privateKey: string; publicKey: string; psk: string; allowedIPs?: string[]; keepAlive?: number }[]).map((peer, idx) => (
             <Fragment key={idx}>
-              <Divider>Peer {idx + 1}</Divider>
+              <Divider>{t('pages.inbounds.info.peerNumber', { n: idx + 1 })}</Divider>
               <dl className="info-list info-list-block">
                 <div className="info-row">
-                  <dt>Secret key</dt>
+                  <dt>{t('pages.xray.wireguard.secretKey')}</dt>
                   <dd><Tag className="value-tag">{peer.privateKey}</Tag></dd>
                 </div>
                 <div className="info-row">
-                  <dt>Public key</dt>
+                  <dt>{t('pages.xray.wireguard.publicKey')}</dt>
                   <dd><Tag className="value-tag">{peer.publicKey}</Tag></dd>
                 </div>
                 <div className="info-row">
@@ -1006,7 +1006,7 @@ export default function InboundInfoModal({
                   <dd><Tag className="value-tag">{peer.psk}</Tag></dd>
                 </div>
                 <div className="info-row">
-                  <dt>Allowed IPs</dt>
+                  <dt>{t('pages.xray.wireguard.allowedIPs')}</dt>
                   <dd>
                     {(peer.allowedIPs || []).map((ip, j) => (
                       <Tag key={`wg-ip-${idx}-${j}`} className="value-tag">{ip}</Tag>
@@ -1014,14 +1014,14 @@ export default function InboundInfoModal({
                   </dd>
                 </div>
                 <div className="info-row">
-                  <dt>Keep alive</dt>
+                  <dt>{t('pages.inbounds.info.keepAlive')}</dt>
                   <dd><Tag>{peer.keepAlive}</Tag></dd>
                 </div>
               </dl>
               {wireguardConfigs[idx] && (
                 <div className="link-panel">
                   <div className="link-panel-header">
-                    <Tag color="green">Peer {idx + 1} config</Tag>
+                    <Tag color="green">{t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}</Tag>
                     <Tooltip title={t('copy')}>
                       <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(wireguardConfigs[idx], t)} />
                     </Tooltip>

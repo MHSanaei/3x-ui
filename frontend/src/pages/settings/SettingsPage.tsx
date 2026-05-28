@@ -284,7 +284,7 @@ export default function SettingsPage() {
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={spinning || !fetched} delay={200} description="Loading…" size="large">
+            <Spin spinning={spinning || !fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : (

@@ -135,19 +135,19 @@ export default function BalancerFormModal({
     >
       <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 14 } }}>
         <Form.Item
-          label="Tag"
+          label={t('pages.xray.balancer.tag')}
           required
           validateStatus={issues.tag ? 'error' : duplicateTag ? 'warning' : ''}
-          help={issues.tag || (duplicateTag ? 'Tag already used by another balancer' : '')}
+          help={issues.tag || (duplicateTag ? t('pages.xray.balancer.tagDuplicate') : '')}
           hasFeedback
         >
           <Input
             value={state.tag}
             onChange={(e) => update('tag', e.target.value)}
-            placeholder="unique balancer tag"
+            placeholder={t('pages.xray.balancer.tagPlaceholder')}
           />
         </Form.Item>
-        <Form.Item label="Strategy">
+        <Form.Item label={t('pages.xray.balancer.balancerStrategy')}>
           <Select
             value={state.strategy}
             onChange={(v) => update('strategy', v)}
@@ -155,7 +155,7 @@ export default function BalancerFormModal({
           />
         </Form.Item>
         <Form.Item
-          label="Selector"
+          label={t('pages.xray.balancer.selector')}
           required
           validateStatus={issues.selector ? 'error' : ''}
           help={issues.selector || ''}
@@ -169,7 +169,7 @@ export default function BalancerFormModal({
             options={outboundTags.map((tg) => ({ value: tg, label: tg }))}
           />
         </Form.Item>
-        <Form.Item label="Fallback">
+        <Form.Item label={t('pages.xray.balancer.fallback')}>
           <Select
             value={state.fallbackTag}
             onChange={(v) => update('fallbackTag', v ?? '')}
@@ -180,23 +180,23 @@ export default function BalancerFormModal({
 
         {state.strategy === 'leastLoad' && (
           <>
-            <Form.Item label="Expected">
+            <Form.Item label={t('pages.xray.balancer.expected')}>
               <InputNumber
                 value={settings?.expected}
                 onChange={(v) => updateSetting('expected', typeof v === 'number' ? v : undefined)}
                 min={0}
-                placeholder="optimal node count"
+                placeholder={t('pages.xray.balancer.expectedPlaceholder')}
                 style={{ width: '100%' }}
               />
             </Form.Item>
-            <Form.Item label="Max RTT">
+            <Form.Item label={t('pages.xray.balancer.maxRtt')}>
               <Input
                 value={settings?.maxRTT ?? ''}
                 onChange={(e) => updateSetting('maxRTT', e.target.value || undefined)}
                 placeholder="e.g. 1s"
               />
             </Form.Item>
-            <Form.Item label="Tolerance">
+            <Form.Item label={t('pages.xray.balancer.tolerance')}>
               <InputNumber
                 value={settings?.tolerance}
                 onChange={(v) => updateSetting('tolerance', typeof v === 'number' ? v : undefined)}
@@ -207,7 +207,7 @@ export default function BalancerFormModal({
                 style={{ width: '100%' }}
               />
             </Form.Item>
-            <Form.Item label="Baselines">
+            <Form.Item label={t('pages.xray.balancer.baselines')}>
               <Button
                 size="small"
                 type="primary"
@@ -227,7 +227,7 @@ export default function BalancerFormModal({
                 </Space.Compact>
               ))}
             </Form.Item>
-            <Form.Item label="Costs">
+            <Form.Item label={t('pages.xray.balancer.costs')}>
               <Button
                 size="small"
                 type="primary"

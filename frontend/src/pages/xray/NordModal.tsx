@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button, Divider, Form, Input, message, Modal, Select, Tabs, Tag } from 'antd';
 import { LoginOutlined, SaveOutlined } from '@ant-design/icons';
 
@@ -58,6 +59,7 @@ export default function NordModal({
   onRemoveOutbound,
   onRemoveRoutingRules,
 }: NordModalProps) {
+  const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [nordData, setNordData] = useState<NordData | null>(null);
@@ -185,7 +187,7 @@ export default function NordModal({
         })
         .sort((a: NordServer, b: NordServer) => a.load - b.load);
       setServers(next);
-      if (next.length === 0) messageApi.warning('No servers found for the selected country');
+      if (next.length === 0) messageApi.warning(t('pages.xray.nord.noServers'));
     } finally {
       setLoading(false);
     }
@@ -197,7 +199,7 @@ export default function NordModal({
     const tech = server.technologies?.find((tt) => tt.id === 35);
     const publicKey = tech?.metadata?.find((m) => m.name === 'public_key')?.value;
     if (!publicKey) {
-      messageApi.error('Selected server does not advertise a NordLynx public key.');
+      messageApi.error(t('pages.xray.nord.noPublicKey'));
       return null;
     }
     return {
@@ -216,7 +218,7 @@ export default function NordModal({
     const ob = buildNordOutbound();
     if (!ob) return;
     onAddOutbound(ob);
-    messageApi.success('NordVPN outbound added');
+    messageApi.success(t('pages.xray.nord.outboundAdded'));
     onClose();
   }
 
@@ -231,7 +233,7 @@ export default function NordModal({
       oldTag,
       newTag: ob.tag as string,
     });
-    messageApi.success('NordVPN outbound updated');
+    messageApi.success(t('pages.xray.nord.outboundUpdated'));
     onClose();
   }
 
@@ -245,7 +247,7 @@ export default function NordModal({
           items={[
             {
               key: 'token',
-              label: 'Access token',
+              label: t('pages.xray.nord.accessToken'),
               children: (
                 <Form
                   colon={false}
@@ -253,14 +255,14 @@ export default function NordModal({
                   wrapperCol={{ md: { span: 18 } }}
                   className="mt-20"
                 >
-                  <Form.Item label="Access token">
+                  <Form.Item label={t('pages.xray.nord.accessToken')}>
                     <Input
                       value={token}
-                      placeholder="Access token"
+                      placeholder={t('pages.xray.nord.accessToken')}
                       onChange={(e) => setToken(e.target.value)}
                     />
                     <Button type="primary" className="mt-10" loading={loading} icon={<LoginOutlined />} onClick={login}>
-                      Login
+                      {t('login')}
                     </Button>
                   </Form.Item>
                 </Form>
@@ -268,7 +270,7 @@ export default function NordModal({
             },
             {
               key: 'key',
-              label: 'Private key',
+              label: t('pages.xray.nord.privateKey'),
               children: (
                 <Form
                   colon={false}
@@ -276,14 +278,14 @@ export default function NordModal({
                   wrapperCol={{ md: { span: 18 } }}
                   className="mt-20"
                 >
-                  <Form.Item label="Private key">
+                  <Form.Item label={t('pages.xray.nord.privateKey')}>
                     <Input
                       value={manualKey}
-                      placeholder="Private key"
+                      placeholder={t('pages.xray.nord.privateKey')}
                       onChange={(e) => setManualKey(e.target.value)}
                     />
                     <Button type="primary" className="mt-10" loading={loading} icon={<SaveOutlined />} onClick={saveKey}>
-                      Save
+                      {t('save')}
                     </Button>
                   </Form.Item>
                 </Form>
@@ -297,25 +299,25 @@ export default function NordModal({
             <tbody>
               {nordData.token && (
                 <tr className="row-odd">
-                  <td>Access token</td>
+                  <td>{t('pages.xray.nord.accessToken')}</td>
                   <td>{nordData.token}</td>
                 </tr>
               )}
               <tr>
-                <td>Private key</td>
+                <td>{t('pages.xray.nord.privateKey')}</td>
                 <td>{nordData.private_key}</td>
               </tr>
             </tbody>
           </table>
 
           <Button loading={loading} type="primary" danger className="mt-8" onClick={logout}>
-            Logout
+            {t('logout')}
           </Button>
 
-          <Divider className="zero-margin">Settings</Divider>
+          <Divider className="zero-margin">{t('pages.xray.warp.settings')}</Divider>
 
           <Form colon={false} labelCol={{ md: { span: 6 } }} wrapperCol={{ md: { span: 18 } }} className="mt-10">
-            <Form.Item label="Country">
+            <Form.Item label={t('pages.xray.outbound.country')}>
               <Select
                 value={countryId ?? undefined}
                 showSearch={{ optionFilterProp: 'label' }}
@@ -328,18 +330,18 @@ export default function NordModal({
             </Form.Item>
 
             {cities.length > 0 && (
-              <Form.Item label="City">
+              <Form.Item label={t('pages.xray.outbound.city')}>
                 <Select
                   value={cityId}
                   showSearch={{ optionFilterProp: 'label' }}
                   onChange={setCityId}
-                  options={[{ value: null, label: 'All cities' }, ...cities.map((c) => ({ value: c.id, label: c.name }))]}
+                  options={[{ value: null, label: t('pages.xray.outbound.allCities') }, ...cities.map((c) => ({ value: c.id, label: c.name }))]}
                 />
               </Form.Item>
             )}
 
             {filteredServers.length > 0 && (
-              <Form.Item label="Server">
+              <Form.Item label={t('pages.xray.outbound.server')}>
                 <Select
                   value={serverId}
                   showSearch={{ optionFilterProp: 'label' }}
@@ -363,17 +365,17 @@ export default function NordModal({
             )}
           </Form>
 
-          <Divider className="my-10">Outbound status</Divider>
+          <Divider className="my-10">{t('pages.xray.outbound.outboundStatus')}</Divider>
           {nordOutboundIndex >= 0 ? (
             <>
-              <Tag color="green">Enabled</Tag>
+              <Tag color="green">{t('enabled')}</Tag>
               <Button type="primary" danger loading={loading} className="ml-8" onClick={resetOutbound}>
-                Reset
+                {t('reset')}
               </Button>
             </>
           ) : (
             <>
-              <Tag color="orange">Disabled</Tag>
+              <Tag color="orange">{t('disabled')}</Tag>
               <Button
                 type="primary"
                 className="ml-8"
@@ -381,7 +383,7 @@ export default function NordModal({
                 loading={loading}
                 onClick={addOutbound}
               >
-                Add outbound
+                {t('pages.xray.warp.addOutbound')}
               </Button>
             </>
           )}

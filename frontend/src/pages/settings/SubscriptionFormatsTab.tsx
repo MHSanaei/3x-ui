@@ -264,19 +264,19 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     label: t('pages.settings.fragmentSett'),
                     children: (
                       <>
-                        <SettingListItem paddings="small" title="Packets">
+                        <SettingListItem paddings="small" title={t('pages.settings.subFormats.packets')}>
                           <Input value={fragmentObj.packets} placeholder="1-1 | 1-3 | tlshello | …"
                             onChange={(e) => setFragmentField('packets', e.target.value)} />
                         </SettingListItem>
-                        <SettingListItem paddings="small" title="Length">
+                        <SettingListItem paddings="small" title={t('pages.settings.subFormats.length')}>
                           <Input value={fragmentObj.length} placeholder="100-200"
                             onChange={(e) => setFragmentField('length', e.target.value)} />
                         </SettingListItem>
-                        <SettingListItem paddings="small" title="Interval">
+                        <SettingListItem paddings="small" title={t('pages.settings.subFormats.interval')}>
                           <Input value={fragmentObj.interval} placeholder="10-20"
                             onChange={(e) => setFragmentField('interval', e.target.value)} />
                         </SettingListItem>
-                        <SettingListItem paddings="small" title="Max split">
+                        <SettingListItem paddings="small" title={t('pages.settings.subFormats.maxSplit')}>
                           <Input value={fragmentObj.maxSplit} placeholder="300-400"
                             onChange={(e) => setFragmentField('maxSplit', e.target.value)} />
                         </SettingListItem>
@@ -291,20 +291,20 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
       },
       {
         key: '3',
-        label: 'Noises',
+        label: t('pages.settings.subFormats.noises'),
         children: (
           <>
-            <SettingListItem paddings="small" title="Noises" description={t('pages.settings.noisesDesc')}>
+            <SettingListItem paddings="small" title={t('pages.settings.subFormats.noises')} description={t('pages.settings.noisesDesc')}>
               <Switch checked={noisesEnabled} onChange={setNoisesEnabled} />
             </SettingListItem>
             {noisesEnabled && (
               <div className="nested-block">
                 <Collapse items={noisesArray.map((noise, index) => ({
                   key: String(index),
-                  label: `Noise №${index + 1}`,
+                  label: t('pages.settings.subFormats.noiseItem', { n: index + 1 }),
                   children: (
                     <>
-                      <SettingListItem paddings="small" title="Type">
+                      <SettingListItem paddings="small" title={t('pages.settings.subFormats.type')}>
                         <Select
                           value={noise.type}
                           style={{ width: '100%' }}
@@ -312,15 +312,15 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                           options={['rand', 'base64', 'str', 'hex'].map((p) => ({ value: p, label: p }))}
                         />
                       </SettingListItem>
-                      <SettingListItem paddings="small" title="Packet">
+                      <SettingListItem paddings="small" title={t('pages.settings.subFormats.packet')}>
                         <Input value={noise.packet} placeholder="5-10"
                           onChange={(e) => updateNoiseField(index, 'packet', e.target.value)} />
                       </SettingListItem>
-                      <SettingListItem paddings="small" title="Delay (ms)">
+                      <SettingListItem paddings="small" title={t('pages.settings.subFormats.delayMs')}>
                         <Input value={noise.delay} placeholder="10-20"
                           onChange={(e) => updateNoiseField(index, 'delay', e.target.value)} />
                       </SettingListItem>
-                      <SettingListItem paddings="small" title="Apply to">
+                      <SettingListItem paddings="small" title={t('pages.settings.subFormats.applyTo')}>
                         <Select
                           value={noise.applyTo}
                           style={{ width: '100%' }}
@@ -338,7 +338,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     </>
                   ),
                 }))} />
-                <Button type="primary" style={{ marginTop: 10 }} onClick={addNoise}>+ Noise</Button>
+                <Button type="primary" style={{ marginTop: 10 }} onClick={addNoise}>{t('pages.settings.subFormats.addNoise')}</Button>
               </div>
             )}
           </>
@@ -360,15 +360,15 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     label: t('pages.settings.muxSett'),
                     children: (
                       <>
-                        <SettingListItem paddings="small" title="Concurrency">
+                        <SettingListItem paddings="small" title={t('pages.settings.subFormats.concurrency')}>
                           <InputNumber value={muxObj.concurrency} min={-1} max={1024} style={{ width: '100%' }}
                             onChange={(v) => setMuxField('concurrency', Number(v) || 0)} />
                         </SettingListItem>
-                        <SettingListItem paddings="small" title="xudp concurrency">
+                        <SettingListItem paddings="small" title={t('pages.settings.subFormats.xudpConcurrency')}>
                           <InputNumber value={muxObj.xudpConcurrency} min={-1} max={1024} style={{ width: '100%' }}
                             onChange={(v) => setMuxField('xudpConcurrency', Number(v) || 0)} />
                         </SettingListItem>
-                        <SettingListItem paddings="small" title="xudp UDP 443">
+                        <SettingListItem paddings="small" title={t('pages.settings.subFormats.xudpUdp443')}>
                           <Select
                             value={muxObj.xudpProxyUDP443}
                             style={{ width: '100%' }}

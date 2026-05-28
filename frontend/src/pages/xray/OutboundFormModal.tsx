@@ -445,19 +445,19 @@ export default function OutboundFormModal({
                     </Form.Item>
 
                     <Form.Item
-                      label="Tag"
+                      label={t('pages.xray.outbound.tag')}
                       name="tag"
                       validateStatus={duplicateTag ? 'warning' : undefined}
-                      help={duplicateTag ? 'Tag already used by another outbound' : undefined}
+                      help={duplicateTag ? t('pages.xray.outboundForm.tagDuplicate') : undefined}
                       rules={[
-                        { required: true, message: 'Tag is required' },
+                        { required: true, message: t('pages.xray.outboundForm.tagRequired') },
                       ]}
                     >
-                      <Input placeholder="unique-tag" />
+                      <Input placeholder={t('pages.xray.outboundForm.tagPlaceholder')} />
                     </Form.Item>
 
-                    <Form.Item label="Send through" name="sendThrough">
-                      <Input placeholder="local IP" />
+                    <Form.Item label={t('pages.xray.outbound.sendThrough')} name="sendThrough">
+                      <Input placeholder={t('pages.xray.outboundForm.localIpPlaceholder')} />
                     </Form.Item>
 
                     {/* Shared connect target (address + port) for protocols
@@ -468,14 +468,14 @@ export default function OutboundFormModal({
                         <Form.Item
                           label={t('pages.inbounds.address')}
                           name={['settings', 'address']}
-                          rules={[{ required: true, message: 'Address is required' }]}
+                          rules={[{ required: true, message: t('pages.xray.outboundForm.addressRequired') }]}
                         >
                           <Input />
                         </Form.Item>
                         <Form.Item
                           label={t('pages.inbounds.port')}
                           name={['settings', 'port']}
-                          rules={[{ required: true, message: 'Port is required' }]}
+                          rules={[{ required: true, message: t('pages.xray.outboundForm.portRequired') }]}
                         >
                           <InputNumber min={1} max={65535} style={{ width: '100%' }} />
                         </Form.Item>
@@ -509,8 +509,8 @@ export default function OutboundFormModal({
                         >
                           <Input />
                         </Form.Item>
-                        <Form.Item label="Reverse tag" name={['settings', 'reverseTag']}>
-                          <Input placeholder="optional" />
+                        <Form.Item label={t('pages.clients.reverseTag')} name={['settings', 'reverseTag']}>
+                          <Input placeholder={t('pages.xray.outboundForm.optional')} />
                         </Form.Item>
                       </>
                     )}
@@ -542,13 +542,13 @@ export default function OutboundFormModal({
                           <Select options={SS_METHOD_OPTIONS} />
                         </Form.Item>
                         <Form.Item
-                          label="UDP over TCP"
+                          label={t('pages.xray.outboundForm.udpOverTcp')}
                           name={['settings', 'uot']}
                           valuePropName="checked"
                         >
                           <Switch />
                         </Form.Item>
-                        <Form.Item label="UoT version" name={['settings', 'UoTVersion']}>
+                        <Form.Item label={t('pages.xray.outboundForm.uotVersion')} name={['settings', 'UoTVersion']}>
                           <InputNumber min={1} max={2} />
                         </Form.Item>
                       </>
@@ -566,19 +566,19 @@ export default function OutboundFormModal({
                     )}
 
                     {protocol === 'hysteria' && (
-                      <Form.Item label="Version" name={['settings', 'version']}>
+                      <Form.Item label={t('pages.inbounds.form.version')} name={['settings', 'version']}>
                         <InputNumber min={2} max={2} disabled />
                       </Form.Item>
                     )}
 
                     {protocol === 'loopback' && (
-                      <Form.Item label="Inbound tag" name={['settings', 'inboundTag']}>
-                        <Input placeholder="inbound tag used in routing rules" />
+                      <Form.Item label={t('pages.xray.outboundForm.inboundTag')} name={['settings', 'inboundTag']}>
+                        <Input placeholder={t('pages.xray.outboundForm.inboundTagPlaceholder')} />
                       </Form.Item>
                     )}
 
                     {protocol === 'blackhole' && (
-                      <Form.Item label="Response type" name={['settings', 'type']}>
+                      <Form.Item label={t('pages.xray.outboundForm.responseType')} name={['settings', 'type']}>
                         <Select
                           options={[
                             { value: '', label: '(empty)' },
@@ -591,29 +591,29 @@ export default function OutboundFormModal({
 
                     {protocol === 'dns' && (
                       <>
-                        <Form.Item label="Rewrite network" name={['settings', 'rewriteNetwork']}>
+                        <Form.Item label={t('pages.xray.outboundForm.rewriteNetwork')} name={['settings', 'rewriteNetwork']}>
                           <Select
                             allowClear
-                            placeholder="(unchanged)"
+                            placeholder={t('pages.xray.outboundForm.unchanged')}
                             options={[
                               { value: 'udp', label: 'udp' },
                               { value: 'tcp', label: 'tcp' },
                             ]}
                           />
                         </Form.Item>
-                        <Form.Item label="Rewrite address" name={['settings', 'rewriteAddress']}>
-                          <Input placeholder="(unchanged) e.g. 1.1.1.1" />
+                        <Form.Item label={t('pages.inbounds.form.rewriteAddress')} name={['settings', 'rewriteAddress']}>
+                          <Input placeholder={t('pages.xray.outboundForm.unchangedAddress')} />
                         </Form.Item>
-                        <Form.Item label="Rewrite port" name={['settings', 'rewritePort']}>
+                        <Form.Item label={t('pages.inbounds.form.rewritePort')} name={['settings', 'rewritePort']}>
                           <InputNumber min={0} max={65535} style={{ width: '100%' }} />
                         </Form.Item>
-                        <Form.Item label="User level" name={['settings', 'userLevel']}>
+                        <Form.Item label={t('pages.xray.tun.userLevel')} name={['settings', 'userLevel']}>
                           <InputNumber min={0} style={{ width: '100%' }} />
                         </Form.Item>
                         <Form.List name={['settings', 'rules']}>
                           {(fields, { add, remove }) => (
                             <>
-                              <Form.Item label="Rules">
+                              <Form.Item label={t('pages.xray.outboundForm.rules')}>
                                 <Button
                                   size="small"
                                   type="primary"
@@ -625,14 +625,14 @@ export default function OutboundFormModal({
                                 <div key={field.key}>
                                   <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
                                     <div className="item-heading">
-                                      <span>Rule {index + 1}</span>
+                                      <span>{t('pages.xray.outboundForm.ruleN', { n: index + 1 })}</span>
                                       <DeleteOutlined
                                         className="danger-icon"
                                         onClick={() => remove(field.name)}
                                       />
                                     </div>
                                   </Form.Item>
-                                  <Form.Item label="Action" name={[field.name, 'action']}>
+                                  <Form.Item label={t('pages.xray.outboundForm.action')} name={[field.name, 'action']}>
                                     <Select
                                       options={DNSRuleActions.map((a) => ({ value: a, label: a }))}
                                     />
@@ -653,7 +653,7 @@ export default function OutboundFormModal({
 
                     {protocol === 'freedom' && (
                       <>
-                        <Form.Item label="Strategy" name={['settings', 'domainStrategy']}>
+                        <Form.Item label={t('pages.xray.balancer.balancerStrategy')} name={['settings', 'domainStrategy']}>
                           <Select
                             options={[
                               { value: '', label: `(${t('none')})` },
@@ -661,11 +661,11 @@ export default function OutboundFormModal({
                             ]}
                           />
                         </Form.Item>
-                        <Form.Item label="Redirect" name={['settings', 'redirect']}>
+                        <Form.Item label={t('pages.xray.outboundForm.redirect')} name={['settings', 'redirect']}>
                           <Input />
                         </Form.Item>
 
-                        <Form.Item label="Fragment" shouldUpdate noStyle>
+                        <Form.Item label={t('pages.xray.outboundForm.fragment')} shouldUpdate noStyle>
                           {() => {
                             const fragment = (form.getFieldValue(['settings', 'fragment']) ?? {}) as {
                               packets?: string;
@@ -697,7 +697,7 @@ export default function OutboundFormModal({
                                 {enabled && (
                                   <>
                                     <Form.Item
-                                      label="Packets"
+                                      label={t('pages.settings.subFormats.packets')}
                                       name={['settings', 'fragment', 'packets']}
                                     >
                                       <Select
@@ -707,17 +707,17 @@ export default function OutboundFormModal({
                                         ]}
                                       />
                                     </Form.Item>
-                                    <Form.Item label="Length" name={['settings', 'fragment', 'length']}>
+                                    <Form.Item label={t('pages.settings.subFormats.length')} name={['settings', 'fragment', 'length']}>
                                       <Input />
                                     </Form.Item>
                                     <Form.Item
-                                      label="Interval"
+                                      label={t('pages.settings.subFormats.interval')}
                                       name={['settings', 'fragment', 'interval']}
                                     >
                                       <Input />
                                     </Form.Item>
                                     <Form.Item
-                                      label="Max Split"
+                                      label={t('pages.settings.subFormats.maxSplit')}
                                       name={['settings', 'fragment', 'maxSplit']}
                                     >
                                       <Input />
@@ -732,7 +732,7 @@ export default function OutboundFormModal({
                         <Form.List name={['settings', 'noises']}>
                           {(fields, { add, remove }) => (
                             <>
-                              <Form.Item label="Noises">
+                              <Form.Item label={t('pages.settings.subFormats.noises')}>
                                 <Switch
                                   checked={fields.length > 0}
                                   onChange={(checked) => {
@@ -773,7 +773,7 @@ export default function OutboundFormModal({
                                 <div key={field.key}>
                                   <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
                                     <div className="item-heading">
-                                      <span>Noise {index + 1}</span>
+                                      <span>{t('pages.settings.subFormats.noiseItem', { n: index + 1 })}</span>
                                       {fields.length > 1 && (
                                         <DeleteOutlined
                                           className="danger-icon"
@@ -782,7 +782,7 @@ export default function OutboundFormModal({
                                       )}
                                     </div>
                                   </Form.Item>
-                                  <Form.Item label="Type" name={[field.name, 'type']}>
+                                  <Form.Item label={t('pages.settings.subFormats.type')} name={[field.name, 'type']}>
                                     <Select
                                       options={['rand', 'base64', 'str', 'hex'].map((v) => ({
                                         value: v,
@@ -790,13 +790,13 @@ export default function OutboundFormModal({
                                       }))}
                                     />
                                   </Form.Item>
-                                  <Form.Item label="Packet" name={[field.name, 'packet']}>
+                                  <Form.Item label={t('pages.settings.subFormats.packet')} name={[field.name, 'packet']}>
                                     <Input />
                                   </Form.Item>
-                                  <Form.Item label="Delay (ms)" name={[field.name, 'delay']}>
+                                  <Form.Item label={t('pages.settings.subFormats.delayMs')} name={[field.name, 'delay']}>
                                     <Input />
                                   </Form.Item>
-                                  <Form.Item label="Apply to" name={[field.name, 'applyTo']}>
+                                  <Form.Item label={t('pages.settings.subFormats.applyTo')} name={[field.name, 'applyTo']}>
                                     <Select
                                       options={['ip', 'ipv4', 'ipv6'].map((v) => ({
                                         value: v,
@@ -813,7 +813,7 @@ export default function OutboundFormModal({
                         <Form.List name={['settings', 'finalRules']}>
                           {(fields, { add, remove }) => (
                             <>
-                              <Form.Item label="Final Rules">
+                              <Form.Item label={t('pages.xray.outboundForm.finalRules')}>
                                 <Button
                                   size="small"
                                   type="primary"
@@ -829,21 +829,21 @@ export default function OutboundFormModal({
                                   }
                                 />
                                 <span className="ml-8" style={{ opacity: 0.6 }}>
-                                  Override Xray&apos;s default private-IP block
+                                  {t('pages.xray.outboundForm.overrideXrayPrivateIp')}
                                 </span>
                               </Form.Item>
                               {fields.map((field, index) => (
                                 <div key={field.key}>
                                   <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
                                     <div className="item-heading">
-                                      <span>Rule {index + 1}</span>
+                                      <span>{t('pages.xray.outboundForm.ruleN', { n: index + 1 })}</span>
                                       <DeleteOutlined
                                         className="danger-icon"
                                         onClick={() => remove(field.name)}
                                       />
                                     </div>
                                   </Form.Item>
-                                  <Form.Item label="Action" name={[field.name, 'action']}>
+                                  <Form.Item label={t('pages.xray.outboundForm.action')} name={[field.name, 'action']}>
                                     <Select
                                       options={['allow', 'block'].map((v) => ({
                                         value: v,
@@ -851,7 +851,7 @@ export default function OutboundFormModal({
                                       }))}
                                     />
                                   </Form.Item>
-                                  <Form.Item label="Network" name={[field.name, 'network']}>
+                                  <Form.Item label={t('pages.inbounds.network')} name={[field.name, 'network']}>
                                     <Select
                                       allowClear
                                       placeholder="(any)"
@@ -861,7 +861,7 @@ export default function OutboundFormModal({
                                       }))}
                                     />
                                   </Form.Item>
-                                  <Form.Item label="Port" name={[field.name, 'port']}>
+                                  <Form.Item label={t('pages.inbounds.port')} name={[field.name, 'port']}>
                                     <Input placeholder="e.g. 80,443 or 1000-2000" />
                                   </Form.Item>
                                   <Form.Item label="IP / CIDR / geoip" name={[field.name, 'ip']}>
@@ -882,7 +882,7 @@ export default function OutboundFormModal({
                                       if (ruleAction !== 'block') return null;
                                       return (
                                         <Form.Item
-                                          label="Block delay (ms)"
+                                          label={t('pages.xray.outboundForm.blockDelay')}
                                           name={[field.name, 'blockDelay']}
                                         >
                                           <Input placeholder="optional: 5000-10000" />
@@ -909,7 +909,7 @@ export default function OutboundFormModal({
                           return (
                             <>
                               <Form.Item
-                                label="Reverse Sniffing"
+                                label={t('pages.xray.outboundForm.reverseSniffing')}
                                 name={['settings', 'reverseSniffing', 'enabled']}
                                 valuePropName="checked"
                               >
@@ -931,21 +931,21 @@ export default function OutboundFormModal({
                                     />
                                   </Form.Item>
                                   <Form.Item
-                                    label="Metadata Only"
+                                    label={t('pages.inbounds.sniffingMetadataOnly')}
                                     name={['settings', 'reverseSniffing', 'metadataOnly']}
                                     valuePropName="checked"
                                   >
                                     <Switch />
                                   </Form.Item>
                                   <Form.Item
-                                    label="Route Only"
+                                    label={t('pages.inbounds.sniffingRouteOnly')}
                                     name={['settings', 'reverseSniffing', 'routeOnly']}
                                     valuePropName="checked"
                                   >
                                     <Switch />
                                   </Form.Item>
                                   <Form.Item
-                                    label="IPs Excluded"
+                                    label={t('pages.inbounds.sniffingIpsExcluded')}
                                     name={['settings', 'reverseSniffing', 'ipsExcluded']}
                                   >
                                     <Select
@@ -955,7 +955,7 @@ export default function OutboundFormModal({
                                     />
                                   </Form.Item>
                                   <Form.Item
-                                    label="Domains Excluded"
+                                    label={t('pages.inbounds.sniffingDomainsExcluded')}
                                     name={['settings', 'reverseSniffing', 'domainsExcluded']}
                                   >
                                     <Select
@@ -995,7 +995,7 @@ export default function OutboundFormModal({
                         <Form.Item label={t('pages.inbounds.publicKey')} name={['settings', 'pubKey']}>
                           <Input disabled />
                         </Form.Item>
-                        <Form.Item label="Domain strategy" name={['settings', 'domainStrategy']}>
+                        <Form.Item label={t('pages.xray.wireguard.domainStrategy')} name={['settings', 'domainStrategy']}>
                           <Select
                             options={[
                               { value: '', label: `(${t('none')})` },
@@ -1006,23 +1006,23 @@ export default function OutboundFormModal({
                         <Form.Item label="MTU" name={['settings', 'mtu']}>
                           <InputNumber min={0} />
                         </Form.Item>
-                        <Form.Item label="Workers" name={['settings', 'workers']}>
+                        <Form.Item label={t('pages.xray.outboundForm.workers')} name={['settings', 'workers']}>
                           <InputNumber min={0} />
                         </Form.Item>
                         <Form.Item
-                          label="No-kernel TUN"
+                          label={t('pages.inbounds.info.noKernelTun')}
                           name={['settings', 'noKernelTun']}
                           valuePropName="checked"
                         >
                           <Switch />
                         </Form.Item>
-                        <Form.Item label="Reserved" name={['settings', 'reserved']}>
+                        <Form.Item label={t('pages.xray.outboundForm.reserved')} name={['settings', 'reserved']}>
                           <Input placeholder="comma-separated bytes, e.g. 1,2,3" />
                         </Form.Item>
                         <Form.List name={['settings', 'peers']}>
                           {(fields, { add, remove }) => (
                             <>
-                              <Form.Item label="Peers">
+                              <Form.Item label={t('pages.inbounds.form.peers')}>
                                 <Button
                                   size="small"
                                   type="primary"
@@ -1042,7 +1042,7 @@ export default function OutboundFormModal({
                                 <div key={field.key}>
                                   <Form.Item wrapperCol={{ md: { span: 14, offset: 8 } }}>
                                     <div className="item-heading">
-                                      <span>Peer {index + 1}</span>
+                                      <span>{t('pages.inbounds.info.peerNumber', { n: index + 1 })}</span>
                                       {fields.length > 1 && (
                                         <DeleteOutlined
                                           className="danger-icon"
@@ -1051,7 +1051,7 @@ export default function OutboundFormModal({
                                       )}
                                     </div>
                                   </Form.Item>
-                                  <Form.Item label="Endpoint" name={[field.name, 'endpoint']}>
+                                  <Form.Item label={t('pages.xray.wireguard.endpoint')} name={[field.name, 'endpoint']}>
                                     <Input />
                                   </Form.Item>
                                   <Form.Item
@@ -1063,7 +1063,7 @@ export default function OutboundFormModal({
                                   <Form.Item label="PSK" name={[field.name, 'psk']}>
                                     <Input />
                                   </Form.Item>
-                                  <Form.Item label="Allowed IPs">
+                                  <Form.Item label={t('pages.xray.wireguard.allowedIPs')}>
                                     <Form.List name={[field.name, 'allowedIPs']}>
                                       {(ipFields, { add: addIp, remove: removeIp }) => (
                                         <>
@@ -1092,7 +1092,7 @@ export default function OutboundFormModal({
                                       )}
                                     </Form.List>
                                   </Form.Item>
-                                  <Form.Item label="Keep alive" name={[field.name, 'keepAlive']}>
+                                  <Form.Item label={t('pages.inbounds.info.keepAlive')} name={[field.name, 'keepAlive']}>
                                     <InputNumber min={0} />
                                   </Form.Item>
                                 </div>
@@ -1162,7 +1162,7 @@ export default function OutboundFormModal({
                                   {type === 'http' && (
                                     <>
                                       <Form.Item
-                                        label="Request method"
+                                        label={t('pages.inbounds.form.requestMethod')}
                                         name={[
                                           'streamSettings', 'tcpSettings', 'header',
                                           'request', 'method',
@@ -1171,7 +1171,7 @@ export default function OutboundFormModal({
                                         <Input placeholder="GET" />
                                       </Form.Item>
                                       <Form.Item
-                                        label="Request version"
+                                        label={t('pages.inbounds.form.requestVersion')}
                                         name={[
                                           'streamSettings', 'tcpSettings', 'header',
                                           'request', 'version',
@@ -1221,7 +1221,7 @@ export default function OutboundFormModal({
                                         <Input placeholder="/,/api,/static" />
                                       </Form.Item>
                                       <Form.Item
-                                        label="Request headers"
+                                        label={t('pages.inbounds.form.requestHeaders')}
                                         name={[
                                           'streamSettings', 'tcpSettings', 'header',
                                           'request', 'headers',
@@ -1231,7 +1231,7 @@ export default function OutboundFormModal({
                                       </Form.Item>
 
                                       <Form.Item
-                                        label="Response version"
+                                        label={t('pages.inbounds.form.responseVersion')}
                                         name={[
                                           'streamSettings', 'tcpSettings', 'header',
                                           'response', 'version',
@@ -1240,7 +1240,7 @@ export default function OutboundFormModal({
                                         <Input placeholder="1.1" />
                                       </Form.Item>
                                       <Form.Item
-                                        label="Response status"
+                                        label={t('pages.inbounds.form.responseStatus')}
                                         name={[
                                           'streamSettings', 'tcpSettings', 'header',
                                           'response', 'status',
@@ -1249,7 +1249,7 @@ export default function OutboundFormModal({
                                         <Input placeholder="200" />
                                       </Form.Item>
                                       <Form.Item
-                                        label="Response reason"
+                                        label={t('pages.inbounds.form.responseReason')}
                                         name={[
                                           'streamSettings', 'tcpSettings', 'header',
                                           'response', 'reason',
@@ -1258,7 +1258,7 @@ export default function OutboundFormModal({
                                         <Input placeholder="OK" />
                                       </Form.Item>
                                       <Form.Item
-                                        label="Response headers"
+                                        label={t('pages.inbounds.form.responseHeaders')}
                                         name={[
                                           'streamSettings', 'tcpSettings', 'header',
                                           'response', 'headers',
@@ -1279,29 +1279,29 @@ export default function OutboundFormModal({
                             <Form.Item label="MTU" name={['streamSettings', 'kcpSettings', 'mtu']}>
                               <InputNumber min={0} />
                             </Form.Item>
-                            <Form.Item label="TTI (ms)" name={['streamSettings', 'kcpSettings', 'tti']}>
+                            <Form.Item label={t('pages.inbounds.form.ttiMs')} name={['streamSettings', 'kcpSettings', 'tti']}>
                               <InputNumber min={0} />
                             </Form.Item>
                             <Form.Item
-                              label="Uplink (MB/s)"
+                              label={t('pages.inbounds.form.uplinkMbps')}
                               name={['streamSettings', 'kcpSettings', 'uplinkCapacity']}
                             >
                               <InputNumber min={0} />
                             </Form.Item>
                             <Form.Item
-                              label="Downlink (MB/s)"
+                              label={t('pages.inbounds.form.downlinkMbps')}
                               name={['streamSettings', 'kcpSettings', 'downlinkCapacity']}
                             >
                               <InputNumber min={0} />
                             </Form.Item>
                             <Form.Item
-                              label="CWND multiplier"
+                              label={t('pages.inbounds.form.cwndMultiplier')}
                               name={['streamSettings', 'kcpSettings', 'cwndMultiplier']}
                             >
                               <InputNumber min={1} />
                             </Form.Item>
                             <Form.Item
-                              label="Max sending window"
+                              label={t('pages.inbounds.form.maxSendingWindow')}
                               name={['streamSettings', 'kcpSettings', 'maxSendingWindow']}
                             >
                               <InputNumber min={0} />
@@ -1318,13 +1318,13 @@ export default function OutboundFormModal({
                               <Input />
                             </Form.Item>
                             <Form.Item
-                              label="Heartbeat (s)"
+                              label={t('pages.inbounds.form.heartbeatPeriod')}
                               name={['streamSettings', 'wsSettings', 'heartbeatPeriod']}
                             >
                               <InputNumber min={0} />
                             </Form.Item>
                             <Form.Item
-                              label="Headers"
+                              label={t('pages.inbounds.form.headers')}
                               name={['streamSettings', 'wsSettings', 'headers']}
                             >
                               <HeaderMapEditor mode="v1" />
@@ -1335,19 +1335,19 @@ export default function OutboundFormModal({
                         {network === 'grpc' && (
                           <>
                             <Form.Item
-                              label="Service name"
+                              label={t('pages.inbounds.form.serviceName')}
                               name={['streamSettings', 'grpcSettings', 'serviceName']}
                             >
                               <Input />
                             </Form.Item>
                             <Form.Item
-                              label="Authority"
+                              label={t('pages.inbounds.form.authority')}
                               name={['streamSettings', 'grpcSettings', 'authority']}
                             >
                               <Input />
                             </Form.Item>
                             <Form.Item
-                              label="Multi mode"
+                              label={t('pages.inbounds.form.multiMode')}
                               name={['streamSettings', 'grpcSettings', 'multiMode']}
                               valuePropName="checked"
                             >
@@ -1371,7 +1371,7 @@ export default function OutboundFormModal({
                               <Input />
                             </Form.Item>
                             <Form.Item
-                              label="Headers"
+                              label={t('pages.inbounds.form.headers')}
                               name={['streamSettings', 'httpupgradeSettings', 'headers']}
                             >
                               <HeaderMapEditor mode="v1" />
@@ -1394,19 +1394,19 @@ export default function OutboundFormModal({
                               <Input />
                             </Form.Item>
                             <Form.Item
-                              label="Mode"
+                              label={t('pages.inbounds.info.mode')}
                               name={['streamSettings', 'xhttpSettings', 'mode']}
                             >
                               <Select options={MODE_OPTIONS} />
                             </Form.Item>
                             <Form.Item
-                              label="Padding Bytes"
+                              label={t('pages.inbounds.form.paddingBytes')}
                               name={['streamSettings', 'xhttpSettings', 'xPaddingBytes']}
                             >
                               <Input />
                             </Form.Item>
                             <Form.Item
-                              label="Headers"
+                              label={t('pages.inbounds.form.headers')}
                               name={['streamSettings', 'xhttpSettings', 'headers']}
                             >
                               <HeaderMapEditor mode="v1" />
@@ -1417,7 +1417,7 @@ export default function OutboundFormModal({
                                 method) tune how Xray injects random padding to
                                 disguise the post body shape. */}
                             <Form.Item
-                              label="Padding obfs mode"
+                              label={t('pages.inbounds.form.paddingObfsMode')}
                               name={['streamSettings', 'xhttpSettings', 'xPaddingObfsMode']}
                               valuePropName="checked"
                             >
@@ -1432,19 +1432,19 @@ export default function OutboundFormModal({
                                 return (
                                   <>
                                     <Form.Item
-                                      label="Padding key"
+                                      label={t('pages.inbounds.form.paddingKey')}
                                       name={['streamSettings', 'xhttpSettings', 'xPaddingKey']}
                                     >
                                       <Input placeholder="x_padding" />
                                     </Form.Item>
                                     <Form.Item
-                                      label="Padding header"
+                                      label={t('pages.inbounds.form.paddingHeader')}
                                       name={['streamSettings', 'xhttpSettings', 'xPaddingHeader']}
                                     >
                                       <Input placeholder="X-Padding" />
                                     </Form.Item>
                                     <Form.Item
-                                      label="Padding placement"
+                                      label={t('pages.inbounds.form.paddingPlacement')}
                                       name={['streamSettings', 'xhttpSettings', 'xPaddingPlacement']}
                                     >
                                       <Select
@@ -1458,7 +1458,7 @@ export default function OutboundFormModal({
                                       />
                                     </Form.Item>
                                     <Form.Item
-                                      label="Padding method"
+                                      label={t('pages.inbounds.form.paddingMethod')}
                                       name={['streamSettings', 'xhttpSettings', 'xPaddingMethod']}
                                     >
                                       <Select
@@ -1487,7 +1487,7 @@ export default function OutboundFormModal({
                                 ]);
                                 return (
                                   <Form.Item
-                                    label="Uplink HTTP method"
+                                    label={t('pages.inbounds.form.uplinkHttpMethod')}
                                     name={['streamSettings', 'xhttpSettings', 'uplinkHTTPMethod']}
                                   >
                                     <Select
@@ -1510,7 +1510,7 @@ export default function OutboundFormModal({
                                 (path / header / cookie / query). Key field
                                 only matters when placement is not 'path'. */}
                             <Form.Item
-                              label="Session placement"
+                              label={t('pages.inbounds.form.sessionPlacement')}
                               name={['streamSettings', 'xhttpSettings', 'sessionPlacement']}
                             >
                               <Select
@@ -1532,7 +1532,7 @@ export default function OutboundFormModal({
                                 if (!placement || placement === 'path') return null;
                                 return (
                                   <Form.Item
-                                    label="Session key"
+                                    label={t('pages.inbounds.form.sessionKey')}
                                     name={['streamSettings', 'xhttpSettings', 'sessionKey']}
                                   >
                                     <Input placeholder="x_session" />
@@ -1541,7 +1541,7 @@ export default function OutboundFormModal({
                               }}
                             </Form.Item>
                             <Form.Item
-                              label="Sequence placement"
+                              label={t('pages.inbounds.form.sequencePlacement')}
                               name={['streamSettings', 'xhttpSettings', 'seqPlacement']}
                             >
                               <Select
@@ -1563,7 +1563,7 @@ export default function OutboundFormModal({
                                 if (!placement || placement === 'path') return null;
                                 return (
                                   <Form.Item
-                                    label="Sequence key"
+                                    label={t('pages.inbounds.form.sequenceKey')}
                                     name={['streamSettings', 'xhttpSettings', 'seqKey']}
                                   >
                                     <Input placeholder="x_seq" />
@@ -1582,19 +1582,19 @@ export default function OutboundFormModal({
                                 return (
                                   <>
                                     <Form.Item
-                                      label="Min upload interval (ms)"
+                                      label={t('pages.xray.outboundForm.minUploadInterval')}
                                       name={['streamSettings', 'xhttpSettings', 'scMinPostsIntervalMs']}
                                     >
                                       <Input placeholder="30" />
                                     </Form.Item>
                                     <Form.Item
-                                      label="Max upload size (bytes)"
+                                      label={t('pages.xray.outboundForm.maxUploadSizeBytes')}
                                       name={['streamSettings', 'xhttpSettings', 'scMaxEachPostBytes']}
                                     >
                                       <Input placeholder="1000000" />
                                     </Form.Item>
                                     <Form.Item
-                                      label="Uplink data placement"
+                                      label={t('pages.inbounds.form.uplinkDataPlacement')}
                                       name={['streamSettings', 'xhttpSettings', 'uplinkDataPlacement']}
                                     >
                                       <Select
@@ -1616,13 +1616,13 @@ export default function OutboundFormModal({
                                         return (
                                           <>
                                             <Form.Item
-                                              label="Uplink data key"
+                                              label={t('pages.inbounds.form.uplinkDataKey')}
                                               name={['streamSettings', 'xhttpSettings', 'uplinkDataKey']}
                                             >
                                               <Input placeholder="x_data" />
                                             </Form.Item>
                                             <Form.Item
-                                              label="Uplink chunk size"
+                                              label={t('pages.xray.outboundForm.uplinkChunkSize')}
                                               name={['streamSettings', 'xhttpSettings', 'uplinkChunkSize']}
                                             >
                                               <InputNumber
@@ -1647,7 +1647,7 @@ export default function OutboundFormModal({
                                 if (mode !== 'stream-up' && mode !== 'stream-one') return null;
                                 return (
                                   <Form.Item
-                                    label="No gRPC header"
+                                    label={t('pages.xray.outboundForm.noGrpcHeader')}
                                     name={['streamSettings', 'xhttpSettings', 'noGRPCHeader']}
                                     valuePropName="checked"
                                   >
@@ -1677,37 +1677,37 @@ export default function OutboundFormModal({
                                 return (
                                   <>
                                     <Form.Item
-                                      label="Max concurrency"
+                                      label={t('pages.xray.outboundForm.maxConcurrency')}
                                       name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConcurrency']}
                                     >
                                       <Input placeholder="16-32" />
                                     </Form.Item>
                                     <Form.Item
-                                      label="Max connections"
+                                      label={t('pages.xray.outboundForm.maxConnections')}
                                       name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConnections']}
                                     >
                                       <Input placeholder="0" />
                                     </Form.Item>
                                     <Form.Item
-                                      label="Max reuse times"
+                                      label={t('pages.xray.outboundForm.maxReuseTimes')}
                                       name={['streamSettings', 'xhttpSettings', 'xmux', 'cMaxReuseTimes']}
                                     >
                                       <Input />
                                     </Form.Item>
                                     <Form.Item
-                                      label="Max request times"
+                                      label={t('pages.xray.outboundForm.maxRequestTimes')}
                                       name={['streamSettings', 'xhttpSettings', 'xmux', 'hMaxRequestTimes']}
                                     >
                                       <Input placeholder="600-900" />
                                     </Form.Item>
                                     <Form.Item
-                                      label="Max reusable secs"
+                                      label={t('pages.xray.outboundForm.maxReusableSecs')}
                                       name={['streamSettings', 'xhttpSettings', 'xmux', 'hMaxReusableSecs']}
                                     >
                                       <Input placeholder="1800-3000" />
                                     </Form.Item>
                                     <Form.Item
-                                      label="Keep alive period"
+                                      label={t('pages.xray.outboundForm.keepAlivePeriod')}
                                       name={['streamSettings', 'xhttpSettings', 'xmux', 'hKeepAlivePeriod']}
                                     >
                                       <InputNumber min={0} style={{ width: '100%' }} />
@@ -1722,13 +1722,13 @@ export default function OutboundFormModal({
                         {network === 'hysteria' && (
                           <>
                             <Form.Item
-                              label="Auth password"
+                              label={t('pages.xray.outboundForm.authPassword')}
                               name={['streamSettings', 'hysteriaSettings', 'auth']}
                             >
                               <Input />
                             </Form.Item>
                             <Form.Item
-                              label="UDP idle timeout (s)"
+                              label={t('pages.inbounds.form.udpIdleTimeout')}
                               name={['streamSettings', 'hysteriaSettings', 'udpIdleTimeout']}
                             >
                               <InputNumber min={1} style={{ width: '100%' }} />
@@ -1739,7 +1739,7 @@ export default function OutboundFormModal({
                     )}
 
                     {tlsFlowAllowed && (
-                      <Form.Item label="Flow" name={['settings', 'flow']}>
+                      <Form.Item label={t('pages.clients.flow')} name={['settings', 'flow']}>
                         <Select
                           allowClear
                           placeholder={t('none')}
@@ -1759,11 +1759,11 @@ export default function OutboundFormModal({
                         if (!(tlsFlowAllowed && flow === 'xtls-rprx-vision')) return null;
                         return (
                           <>
-                            <Form.Item label="Vision testpre" name={['settings', 'testpre']}>
+                            <Form.Item label={t('pages.xray.outboundForm.visionTestpre')} name={['settings', 'testpre']}>
                               <InputNumber min={0} style={{ width: '100%' }} />
                             </Form.Item>
                             <Form.Item
-                              label="Vision testseed"
+                              label={t('pages.inbounds.form.visionTestseed')}
                               name={['settings', 'testseed']}
                               normalize={(v: unknown) =>
                                 Array.isArray(v)
@@ -1804,7 +1804,7 @@ export default function OutboundFormModal({
                           label="SNI"
                           name={['streamSettings', 'tlsSettings', 'serverName']}
                         >
-                          <Input placeholder="server name" />
+                          <Input placeholder={t('pages.xray.outboundForm.serverNamePlaceholder')} />
                         </Form.Item>
                         <Form.Item
                           label="uTLS"
@@ -1829,13 +1829,13 @@ export default function OutboundFormModal({
                           <Input />
                         </Form.Item>
                         <Form.Item
-                          label="Verify peer name"
+                          label={t('pages.xray.outboundForm.verifyPeerName')}
                           name={['streamSettings', 'tlsSettings', 'verifyPeerCertByName']}
                         >
                           <Input placeholder="cloudflare-dns.com" />
                         </Form.Item>
                         <Form.Item
-                          label="Pinned SHA256"
+                          label={t('pages.xray.outboundForm.pinnedSha256')}
                           name={['streamSettings', 'tlsSettings', 'pinnedPeerCertSha256']}
                         >
                           <Input placeholder="base64 SHA256" />
@@ -1858,13 +1858,13 @@ export default function OutboundFormModal({
                           <Select options={UTLS_OPTIONS} />
                         </Form.Item>
                         <Form.Item
-                          label="Short ID"
+                          label={t('pages.xray.outboundForm.shortId')}
                           name={['streamSettings', 'realitySettings', 'shortId']}
                         >
                           <Input />
                         </Form.Item>
                         <Form.Item
-                          label="SpiderX"
+                          label={t('pages.inbounds.form.spiderX')}
                           name={['streamSettings', 'realitySettings', 'spiderX']}
                         >
                           <Input />
@@ -1876,7 +1876,7 @@ export default function OutboundFormModal({
                           <Input.TextArea autoSize={{ minRows: 2 }} />
                         </Form.Item>
                         <Form.Item
-                          label="mldsa65 verify"
+                          label={t('pages.inbounds.form.mldsa65Verify')}
                           name={['streamSettings', 'realitySettings', 'mldsa65Verify']}
                         >
                           <Input.TextArea autoSize={{ minRows: 2 }} />
@@ -1893,7 +1893,7 @@ export default function OutboundFormModal({
                           ]);
                           return (
                             <>
-                              <Form.Item label="Sockopts">
+                              <Form.Item label={t('pages.xray.outboundForm.sockopts')}>
                                 <Switch
                                   checked={hasSockopt}
                                   onChange={(checked) => {
@@ -1907,13 +1907,13 @@ export default function OutboundFormModal({
                               {hasSockopt && (
                                 <>
                                   <Form.Item
-                                    label="Dialer proxy"
+                                    label={t('pages.inbounds.form.dialerProxy')}
                                     name={['streamSettings', 'sockopt', 'dialerProxy']}
                                   >
                                     <Input />
                                   </Form.Item>
                                   <Form.Item
-                                    label="Domain strategy"
+                                    label={t('pages.xray.wireguard.domainStrategy')}
                                     name={['streamSettings', 'sockopt', 'domainStrategy']}
                                   >
                                     <Select
@@ -1924,46 +1924,46 @@ export default function OutboundFormModal({
                                     />
                                   </Form.Item>
                                   <Form.Item
-                                    label="Address+port strategy"
+                                    label={t('pages.inbounds.form.addressPortStrategy')}
                                     name={['streamSettings', 'sockopt', 'addressPortStrategy']}
                                   >
                                     <Select options={ADDRESS_PORT_STRATEGY_OPTIONS} />
                                   </Form.Item>
                                   <Form.Item
-                                    label="Keep alive interval"
+                                    label={t('pages.xray.outboundForm.keepAliveInterval')}
                                     name={['streamSettings', 'sockopt', 'tcpKeepAliveInterval']}
                                   >
                                     <InputNumber min={0} />
                                   </Form.Item>
                                   <Form.Item
-                                    label="TCP Fast Open"
+                                    label={t('pages.inbounds.form.tcpFastOpen')}
                                     name={['streamSettings', 'sockopt', 'tcpFastOpen']}
                                     valuePropName="checked"
                                   >
                                     <Switch />
                                   </Form.Item>
                                   <Form.Item
-                                    label="Multipath TCP"
+                                    label={t('pages.inbounds.form.multipathTcp')}
                                     name={['streamSettings', 'sockopt', 'tcpMptcp']}
                                     valuePropName="checked"
                                   >
                                     <Switch />
                                   </Form.Item>
                                   <Form.Item
-                                    label="Penetrate"
+                                    label={t('pages.inbounds.form.penetrate')}
                                     name={['streamSettings', 'sockopt', 'penetrate']}
                                     valuePropName="checked"
                                   >
                                     <Switch />
                                   </Form.Item>
                                   <Form.Item
-                                    label="Mark (fwmark)"
+                                    label={t('pages.xray.outboundForm.markFwmark')}
                                     name={['streamSettings', 'sockopt', 'mark']}
                                   >
                                     <InputNumber min={0} />
                                   </Form.Item>
                                   <Form.Item
-                                    label="Interface"
+                                    label={t('pages.xray.outboundForm.interface')}
                                     name={['streamSettings', 'sockopt', 'interfaceName']}
                                   >
                                     <Input />
@@ -1981,7 +1981,7 @@ export default function OutboundFormModal({
                                     />
                                   </Form.Item>
                                   <Form.Item
-                                    label="TCP congestion"
+                                    label={t('pages.inbounds.form.tcpCongestion')}
                                     name={['streamSettings', 'sockopt', 'tcpcongestion']}
                                   >
                                     <Select
@@ -1992,45 +1992,45 @@ export default function OutboundFormModal({
                                     />
                                   </Form.Item>
                                   <Form.Item
-                                    label="IPv6 only"
+                                    label={t('pages.xray.outboundForm.ipv6Only')}
                                     name={['streamSettings', 'sockopt', 'V6Only']}
                                     valuePropName="checked"
                                   >
                                     <Switch />
                                   </Form.Item>
                                   <Form.Item
-                                    label="Accept proxy protocol"
+                                    label={t('pages.xray.outboundForm.acceptProxyProtocol')}
                                     name={['streamSettings', 'sockopt', 'acceptProxyProtocol']}
                                     valuePropName="checked"
                                   >
                                     <Switch />
                                   </Form.Item>
                                   <Form.Item
-                                    label="TCP user timeout (ms)"
+                                    label={t('pages.xray.outboundForm.tcpUserTimeoutMs')}
                                     name={['streamSettings', 'sockopt', 'tcpUserTimeout']}
                                   >
                                     <InputNumber min={0} style={{ width: '100%' }} />
                                   </Form.Item>
                                   <Form.Item
-                                    label="TCP keep-alive idle (s)"
+                                    label={t('pages.xray.outboundForm.tcpKeepAliveIdleS')}
                                     name={['streamSettings', 'sockopt', 'tcpKeepAliveIdle']}
                                   >
                                     <InputNumber min={0} style={{ width: '100%' }} />
                                   </Form.Item>
                                   <Form.Item
-                                    label="TCP max segment"
+                                    label={t('pages.inbounds.form.tcpMaxSeg')}
                                     name={['streamSettings', 'sockopt', 'tcpMaxSeg']}
                                   >
                                     <InputNumber min={0} style={{ width: '100%' }} />
                                   </Form.Item>
                                   <Form.Item
-                                    label="TCP window clamp"
+                                    label={t('pages.inbounds.form.tcpWindowClamp')}
                                     name={['streamSettings', 'sockopt', 'tcpWindowClamp']}
                                   >
                                     <InputNumber min={0} style={{ width: '100%' }} />
                                   </Form.Item>
                                   <Form.Item
-                                    label="Trusted X-Forwarded-For"
+                                    label={t('pages.inbounds.form.trustedXForwardedFor')}
                                     name={['streamSettings', 'sockopt', 'trustedXForwardedFor']}
                                   >
                                     <Select
@@ -2061,26 +2061,26 @@ export default function OutboundFormModal({
                                           {hasHe && (
                                             <>
                                               <Form.Item
-                                                label="Try delay (ms)"
+                                                label={t('pages.inbounds.form.tryDelayMs')}
                                                 name={['streamSettings', 'sockopt', 'happyEyeballs', 'tryDelayMs']}
                                               >
                                                 <InputNumber min={0} style={{ width: '100%' }} placeholder="0 (disabled) — 250 recommended" />
                                               </Form.Item>
                                               <Form.Item
-                                                label="Prioritize IPv6"
+                                                label={t('pages.inbounds.form.prioritizeIPv6')}
                                                 name={['streamSettings', 'sockopt', 'happyEyeballs', 'prioritizeIPv6']}
                                                 valuePropName="checked"
                                               >
                                                 <Switch />
                                               </Form.Item>
                                               <Form.Item
-                                                label="Interleave"
+                                                label={t('pages.inbounds.form.interleave')}
                                                 name={['streamSettings', 'sockopt', 'happyEyeballs', 'interleave']}
                                               >
                                                 <InputNumber min={1} style={{ width: '100%' }} />
                                               </Form.Item>
                                               <Form.Item
-                                                label="Max concurrent try"
+                                                label={t('pages.inbounds.form.maxConcurrentTry')}
                                                 name={['streamSettings', 'sockopt', 'happyEyeballs', 'maxConcurrentTry']}
                                               >
                                                 <InputNumber min={0} style={{ width: '100%' }} />
@@ -2094,13 +2094,13 @@ export default function OutboundFormModal({
                                   <Form.List name={['streamSettings', 'sockopt', 'customSockopt']}>
                                     {(fields, { add, remove }) => (
                                       <>
-                                        <Form.Item label="Custom sockopt">
+                                        <Form.Item label={t('pages.inbounds.form.customSockopt')}>
                                           <Button
                                             type="dashed"
                                             size="small"
                                             onClick={() => add({ type: 'int', level: '6', opt: '', value: '' })}
                                           >
-                                            + Add custom option
+                                            + {t('pages.inbounds.form.addCustomOption')}
                                           </Button>
                                         </Form.Item>
                                         {fields.map((field) => (
@@ -2175,19 +2175,19 @@ export default function OutboundFormModal({
                                 {muxEnabled && (
                                   <>
                                     <Form.Item
-                                      label="Concurrency"
+                                      label={t('pages.settings.subFormats.concurrency')}
                                       name={['mux', 'concurrency']}
                                     >
                                       <InputNumber min={-1} max={1024} />
                                     </Form.Item>
                                     <Form.Item
-                                      label="xudp concurrency"
+                                      label={t('pages.settings.subFormats.xudpConcurrency')}
                                       name={['mux', 'xudpConcurrency']}
                                     >
                                       <InputNumber min={-1} max={1024} />
                                     </Form.Item>
                                     <Form.Item
-                                      label="xudp UDP 443"
+                                      label={t('pages.settings.subFormats.xudpUdp443')}
                                       name={['mux', 'xudpProxyUDP443']}
                                     >
                                       <Select

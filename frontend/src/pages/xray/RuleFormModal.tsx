@@ -148,8 +148,8 @@ export default function RuleFormModal({
       <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 14 } }}>
         <Form.Item
           label={
-            <Tooltip title="Comma-separated list">
-              Source IPs <QuestionCircleOutlined />
+            <Tooltip title={t('pages.xray.rules.useComma')}>
+              {t('pages.xray.ruleForm.sourceIps')} <QuestionCircleOutlined />
             </Tooltip>
           }
         >
@@ -158,8 +158,8 @@ export default function RuleFormModal({
 
         <Form.Item
           label={
-            <Tooltip title="Comma-separated list">
-              Source port <QuestionCircleOutlined />
+            <Tooltip title={t('pages.xray.rules.useComma')}>
+              {t('pages.xray.ruleForm.sourcePort')} <QuestionCircleOutlined />
             </Tooltip>
           }
         >
@@ -168,15 +168,15 @@ export default function RuleFormModal({
 
         <Form.Item
           label={
-            <Tooltip title="Comma-separated list">
-              VLESS route <QuestionCircleOutlined />
+            <Tooltip title={t('pages.xray.rules.useComma')}>
+              {t('pages.xray.ruleForm.vlessRoute')} <QuestionCircleOutlined />
             </Tooltip>
           }
         >
           <Input value={form.vlessRoute} onChange={(e) => update('vlessRoute', e.target.value)} placeholder="53,443,1000-2000" />
         </Form.Item>
 
-        <Form.Item label="Network">
+        <Form.Item label={t('pages.inbounds.network')}>
           <Select
             value={form.network}
             onChange={(v) => update('network', v)}
@@ -184,7 +184,7 @@ export default function RuleFormModal({
           />
         </Form.Item>
 
-        <Form.Item label="Protocol">
+        <Form.Item label={t('pages.inbounds.protocol')}>
           <Select
             mode="multiple"
             value={form.protocol}
@@ -193,7 +193,7 @@ export default function RuleFormModal({
           />
         </Form.Item>
 
-        <Form.Item label="Attributes">
+        <Form.Item label={t('pages.xray.ruleForm.attributes')}>
           <Button size="small" icon={<PlusOutlined />} onClick={() => update('attrs', [...form.attrs, ['', '']])} />
         </Form.Item>
         <Form.Item wrapperCol={{ span: 24 }}>
@@ -202,7 +202,7 @@ export default function RuleFormModal({
               <InputAddon>{`${idx + 1}`}</InputAddon>
               <Input
                 value={attr[0]}
-                placeholder="Name"
+                placeholder={t('pages.nodes.name')}
                 onChange={(e) => {
                   const next = form.attrs.map((a, i) => (i === idx ? ([e.target.value, a[1]] as [string, string]) : a));
                   update('attrs', next);
@@ -210,7 +210,7 @@ export default function RuleFormModal({
               />
               <Input
                 value={attr[1]}
-                placeholder="Value"
+                placeholder={t('pages.xray.ruleForm.value')}
                 onChange={(e) => {
                   const next = form.attrs.map((a, i) => (i === idx ? ([a[0], e.target.value] as [string, string]) : a));
                   update('attrs', next);
@@ -226,7 +226,7 @@ export default function RuleFormModal({
 
         <Form.Item
           label={
-            <Tooltip title="Comma-separated list">
+            <Tooltip title={t('pages.xray.rules.useComma')}>
               IP <QuestionCircleOutlined />
             </Tooltip>
           }
@@ -236,8 +236,8 @@ export default function RuleFormModal({
 
         <Form.Item
           label={
-            <Tooltip title="Comma-separated list">
-              Domain <QuestionCircleOutlined />
+            <Tooltip title={t('pages.xray.rules.useComma')}>
+              {t('domainName')} <QuestionCircleOutlined />
             </Tooltip>
           }
         >
@@ -246,8 +246,8 @@ export default function RuleFormModal({
 
         <Form.Item
           label={
-            <Tooltip title="Comma-separated list">
-              User <QuestionCircleOutlined />
+            <Tooltip title={t('pages.xray.rules.useComma')}>
+              {t('pages.xray.ruleForm.user')} <QuestionCircleOutlined />
             </Tooltip>
           }
         >
@@ -256,15 +256,15 @@ export default function RuleFormModal({
 
         <Form.Item
           label={
-            <Tooltip title="Comma-separated list">
-              Port <QuestionCircleOutlined />
+            <Tooltip title={t('pages.xray.rules.useComma')}>
+              {t('pages.inbounds.port')} <QuestionCircleOutlined />
             </Tooltip>
           }
         >
           <Input value={form.port} onChange={(e) => update('port', e.target.value)} placeholder="53,443,1000-2000" />
         </Form.Item>
 
-        <Form.Item label="Inbound tags">
+        <Form.Item label={t('pages.xray.ruleForm.inboundTags')}>
           <Select
             mode="multiple"
             value={form.inboundTag}
@@ -273,7 +273,7 @@ export default function RuleFormModal({
           />
         </Form.Item>
 
-        <Form.Item label="Outbound tag">
+        <Form.Item label={t('pages.xray.ruleForm.outboundTag')}>
           <Select
             value={form.outboundTag}
             onChange={(v) => update('outboundTag', v)}
@@ -283,8 +283,8 @@ export default function RuleFormModal({
 
         <Form.Item
           label={
-            <Tooltip title="Routes traffic through one of the configured load balancers">
-              Balancer tag <QuestionCircleOutlined />
+            <Tooltip title={t('pages.xray.ruleForm.balancerTagTooltip')}>
+              {t('pages.xray.ruleForm.balancerTag')} <QuestionCircleOutlined />
             </Tooltip>
           }
         >
