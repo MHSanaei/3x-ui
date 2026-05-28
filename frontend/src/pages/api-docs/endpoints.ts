@@ -553,6 +553,17 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/clients/bulkAttach',
+        summary: 'Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to a target inbound in a single AddInboundClient call. Clients already present on a target are reported under skipped. Returns per-email attached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.',
+        params: [
+          { name: 'emails', in: 'body (json)', type: 'array', desc: 'Emails of existing clients to attach.' },
+          { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Target inbound IDs to attach every client to.' },
+        ],
+        body: '{\n  "emails": ["alice", "bob"],\n  "inboundIds": [7, 9]\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "attached": ["alice", "bob"],\n    "skipped": ["bob"],\n    "errors": []\n  }\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/clients/bulkResetTraffic',
         summary: 'Zero up/down counters for many clients in one call. Loops the single-reset path so each client is re-enabled across its attached inbounds and pushed to Xray/remote nodes. Returns the count of successfully reset clients.',
         body: '{\n  "emails": ["alice", "bob"]\n}',

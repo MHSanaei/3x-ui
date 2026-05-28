@@ -2905,6 +2905,69 @@
         }
       }
     },
+    "/panel/api/clients/bulkAttach": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to a target inbound in a single AddInboundClient call. Clients already present on a target are reported under skipped. Returns per-email attached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.",
+        "operationId": "post_panel_api_clients_bulkAttach",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "emails": [
+                  "alice",
+                  "bob"
+                ],
+                "inboundIds": [
+                  7,
+                  9
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "attached": [
+                      "alice",
+                      "bob"
+                    ],
+                    "skipped": [
+                      "bob"
+                    ],
+                    "errors": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/bulkResetTraffic": {
       "post": {
         "tags": [
