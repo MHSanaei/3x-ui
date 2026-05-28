@@ -34,6 +34,7 @@ import {
   UsergroupDeleteOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -44,8 +45,15 @@ import { setMessageInstance } from '@/utils/messageBus';
 import AppSidebar from '@/components/AppSidebar';
 import LazyMount from '@/components/LazyMount';
 import { keys } from '@/api/queryKeys';
-import { GroupSummaryListSchema, type GroupSummary } from '@/schemas/client';
+import {
+  ClientRecordSchema,
+  GroupSummaryListSchema,
+  type ClientRecord,
+  type GroupSummary,
+} from '@/schemas/client';
 import { parseMsg } from '@/utils/zodValidate';
+
+const ClientRecordListSchema = z.array(ClientRecordSchema).nullable().transform((v) => v ?? []);
 
 const SubLinksModal = lazy(() => import('../clients/SubLinksModal'));
 const ClientBulkAdjustModal = lazy(() => import('../clients/ClientBulkAdjustModal'));
@@ -81,7 +89,7 @@ export default function GroupsPage() {
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
   const queryClient = useQueryClient();
 
-  const { clients, subSettings, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, bulkDelete } = useClients();
+  const { subSettings, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, bulkDelete } = useClients();
 
   const groupsQuery = useQuery({
     queryKey: keys.clients.groups(),
@@ -132,6 +140,19 @@ export default function GroupsPage() {
   const [removeClientsOpen, setRemoveClientsOpen] = useState(false);
   const [groupEmails, setGroupEmails] = useState<string[]>([]);
   const [groupForAction, setGroupForAction] = useState<GroupSummary | null>(null);
+
+  const allClientsQuery = useQuery<ClientRecord[]>({
+    queryKey: keys.clients.all(),
+    queryFn: async () => {
+      const msg = await HttpUtil.get('/panel/api/clients/list', undefined, { silent: true });
+      if (!msg?.success) throw new Error(msg?.msg || 'Failed to load clients');
+      const validated = parseMsg(msg, ClientRecordListSchema, 'clients/list');
+      return validated.obj ?? [];
+    },
+    enabled: addClientsOpen || removeClientsOpen || subLinksOpen,
+    staleTime: 30_000,
+  });
+  const allClients = allClientsQuery.data ?? [];
 
   const totalGroups = groups.length;
   const totalClients = useMemo(
@@ -529,7 +550,7 @@ export default function GroupsPage() {
           <SubLinksModal
             open={subLinksOpen}
             emails={groupEmails}
-            clients={clients}
+            clients={allClients}
             subSettings={subSettings}
             onOpenChange={setSubLinksOpen}
           />
@@ -561,7 +582,7 @@ export default function GroupsPage() {
           <GroupAddClientsModal
             open={addClientsOpen}
             groupName={groupForAction?.name ?? null}
-            candidates={clients.filter((c) => c.group !== groupForAction?.name)}
+            candidates={allClients.filter((c) => c.group !== groupForAction?.name)}
             onClose={() => setAddClientsOpen(false)}
             onSubmit={async (emails) => {
               const msg = await bulkAddToGroup(emails, groupForAction?.name ?? '');
@@ -577,7 +598,7 @@ export default function GroupsPage() {
           <GroupRemoveClientsModal
             open={removeClientsOpen}
             groupName={groupForAction?.name ?? null}
-            members={clients.filter((c) => c.group === groupForAction?.name)}
+            members={allClients.filter((c) => c.group === groupForAction?.name)}
             onClose={() => setRemoveClientsOpen(false)}
             onSubmit={async (emails) => {
               const msg = await bulkRemoveFromGroup(emails);
