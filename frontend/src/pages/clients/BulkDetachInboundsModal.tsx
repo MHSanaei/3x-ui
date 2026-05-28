@@ -50,6 +50,7 @@ export default function BulkDetachInboundsModal({
       const skipped = result.skipped?.length ?? 0;
       const errors = result.errors?.length ?? 0;
       if (errors > 0) {
+        console.error('[BulkDetach] failures:', result.errors);
         messageApi.warning(
           t('pages.clients.detachFromInboundsResultMixed', { detached, skipped, errors }),
         );

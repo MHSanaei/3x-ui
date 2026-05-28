@@ -50,6 +50,7 @@ export default function BulkAttachInboundsModal({
       const skipped = result.skipped?.length ?? 0;
       const errors = result.errors?.length ?? 0;
       if (errors > 0) {
+        console.error('[BulkAttach] failures:', result.errors);
         messageApi.warning(
           t('pages.inbounds.attachClientsResultMixed', { attached, skipped, errors }),
         );
