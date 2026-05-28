@@ -20,7 +20,7 @@
     "gen:zod": "cd .. && go run ./tools/openapigen"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.2.3",
+    "@ant-design/icons": "^6.2.5",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/theme-one-dark": "^6.1.3",
     "@tanstack/react-query": "^5.100.14",

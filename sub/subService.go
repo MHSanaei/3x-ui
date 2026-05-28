@@ -696,8 +696,17 @@ func applyShareNetworkParams(stream map[string]any, streamNetwork string, params
 			request := header["request"].(map[string]any)
 			requestPath, _ := request["path"].([]any)
 			params["path"] = requestPath[0].(string)
-			headers, _ := request["headers"].(map[string]any)
-			params["host"] = searchHost(headers)
+			host := ""
+			if response, ok := header["response"].(map[string]any); ok {
+				if respHeaders, ok := response["headers"].(map[string]any); ok {
+					host = searchHost(respHeaders)
+				}
+			}
+			if host == "" {
+				headers, _ := request["headers"].(map[string]any)
+				host = searchHost(headers)
+			}
+			params["host"] = host
 			params["headerType"] = "http"
 		}
 	case "kcp":
@@ -743,8 +752,17 @@ func applyVmessNetworkParams(stream map[string]any, network string, obj map[stri
 			request := header["request"].(map[string]any)
 			requestPath, _ := request["path"].([]any)
 			obj["path"] = requestPath[0].(string)
-			headers, _ := request["headers"].(map[string]any)
-			obj["host"] = searchHost(headers)
+			host := ""
+			if response, ok := header["response"].(map[string]any); ok {
+				if respHeaders, ok := response["headers"].(map[string]any); ok {
+					host = searchHost(respHeaders)
+				}
+			}
+			if host == "" {
+				headers, _ := request["headers"].(map[string]any)
+				host = searchHost(headers)
+			}
+			obj["host"] = host
 		}
 	case "kcp":
 		applyKcpShareObj(stream, obj)

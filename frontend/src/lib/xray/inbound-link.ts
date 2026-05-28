@@ -184,7 +184,9 @@ export function genVmessLink(input: GenVmessLinkInput): string {
         const request = header.request;
         if (request) {
           obj.path = request.path.join(',');
-          const host = getHeaderValue(request.headers, 'host');
+          const host =
+            getHeaderValue(header.response?.headers, 'host')
+            || getHeaderValue(request.headers, 'host');
           if (host) obj.host = host;
         }
       }
@@ -309,7 +311,9 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       const request = tcp.header.request;
       if (request) {
         params.set('path', request.path.join(','));
-        const host = getHeaderValue(request.headers, 'host');
+        const host =
+          getHeaderValue(tcp.header.response?.headers, 'host')
+          || getHeaderValue(request.headers, 'host');
         if (host) params.set('host', host);
         params.set('headerType', 'http');
       }
@@ -387,7 +391,9 @@ function writeNetworkParams(stream: NonNullable<Inbound['streamSettings']>, para
       const request = tcp.header.request;
       if (request) {
         params.set('path', request.path.join(','));
-        const host = getHeaderValue(request.headers, 'host');
+        const host =
+          getHeaderValue(tcp.header.response?.headers, 'host')
+          || getHeaderValue(request.headers, 'host');
         if (host) params.set('host', host);
         params.set('headerType', 'http');
       }

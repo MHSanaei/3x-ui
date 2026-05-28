@@ -1759,6 +1759,48 @@ export default function InboundFormModal({
               return (
                 <>
                   <Form.Item
+                    label="Request version"
+                    name={[
+                      'streamSettings', 'tcpSettings', 'header',
+                      'request', 'version',
+                    ]}
+                  >
+                    <Input placeholder="1.1" />
+                  </Form.Item>
+                  <Form.Item
+                    label="Request method"
+                    name={[
+                      'streamSettings', 'tcpSettings', 'header',
+                      'request', 'method',
+                    ]}
+                  >
+                    <Input placeholder="GET" />
+                  </Form.Item>
+                  <Form.Item
+                    label="Request path"
+                    name={[
+                      'streamSettings', 'tcpSettings', 'header',
+                      'request', 'path',
+                    ]}
+                    getValueProps={(v) => ({ value: Array.isArray(v) ? v.join(',') : v })}
+                    getValueFromEvent={(e) => {
+                      const raw = (e?.target?.value ?? '') as string;
+                      const parts = raw.split(',').map((s) => s.trim()).filter(Boolean);
+                      return parts.length > 0 ? parts : ['/'];
+                    }}
+                  >
+                    <Input placeholder="/" />
+                  </Form.Item>
+                  <Form.Item
+                    label="Request headers"
+                    name={[
+                      'streamSettings', 'tcpSettings', 'header',
+                      'request', 'headers',
+                    ]}
+                  >
+                    <HeaderMapEditor mode="v2" />
+                  </Form.Item>
+                  <Form.Item
                     label="Response version"
                     name={[
                       'streamSettings', 'tcpSettings', 'header',
