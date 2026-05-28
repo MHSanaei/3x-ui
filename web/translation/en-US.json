@@ -355,6 +355,7 @@
       "IPLimitlogDesc": "The IP history log. (to re-enable the inbound after disabling, clear the log)",
       "IPLimitlogclear": "Clear the Log",
       "setDefaultCert": "Set Cert from Panel",
+      "setDefaultCertEmpty": "No certificate is configured for the panel. Set one under Settings first.",
       "streamTab": "Stream",
       "securityTab": "Security",
       "sniffingTab": "Sniffing",

@@ -572,6 +572,41 @@ export default function InboundFormModal({
     form.setFieldValue(['streamSettings', 'tlsSettings', 'settings', 'echConfigList'], '');
   };
 
+  const setCertFromPanel = async (certName: number) => {
+    setSaving(true);
+    try {
+      const msg = await HttpUtil.post('/panel/setting/all', undefined, { silent: true });
+      if (msg?.success) {
+        const obj = msg.obj as { webCertFile?: string; webKeyFile?: string };
+        if (!obj.webCertFile && !obj.webKeyFile) {
+          messageApi.warning(t('pages.inbounds.setDefaultCertEmpty'));
+          return;
+        }
+        form.setFieldValue(
+          ['streamSettings', 'tlsSettings', 'certificates', certName, 'certificateFile'],
+          obj.webCertFile ?? '',
+        );
+        form.setFieldValue(
+          ['streamSettings', 'tlsSettings', 'certificates', certName, 'keyFile'],
+          obj.webKeyFile ?? '',
+        );
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearCertFiles = (certName: number) => {
+    form.setFieldValue(
+      ['streamSettings', 'tlsSettings', 'certificates', certName, 'certificateFile'],
+      '',
+    );
+    form.setFieldValue(
+      ['streamSettings', 'tlsSettings', 'certificates', certName, 'keyFile'],
+      '',
+    );
+  };
+
   const onSecurityChange = async (next: string) => {
     const current = (form.getFieldValue('streamSettings') as Record<string, unknown>) ?? {};
     const cleaned: Record<string, unknown> = { ...current, security: next };
@@ -2648,6 +2683,20 @@ export default function InboundFormModal({
                                   label={t('pages.inbounds.privatekey')}
                                 >
                                   <Input />
+                                </Form.Item>
+                                <Form.Item label=" ">
+                                  <Space>
+                                    <Button
+                                      type="primary"
+                                      loading={saving}
+                                      onClick={() => setCertFromPanel(certField.name)}
+                                    >
+                                      {t('pages.inbounds.setDefaultCert')}
+                                    </Button>
+                                    <Button danger onClick={() => clearCertFiles(certField.name)}>
+                                      Clear
+                                    </Button>
+                                  </Space>
                                 </Form.Item>
                               </>
                             ) : (
