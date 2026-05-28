@@ -2620,10 +2620,144 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 
 func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
+
+	var emails []string
+
+	// Prefer the normalized clients table. It is populated for both local
+	// inbounds and remote-node snapshots, and avoids brittle JSON LIKE matching
+	// against settings formatting.
+	err := db.Table("clients").
+		Select("DISTINCT clients.email").
+		Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
+		Joins("JOIN inbounds ON inbounds.id = client_inbounds.inbound_id").
+		Where("clients.tg_id = ? AND clients.email <> ''", tgId).
+		Pluck("clients.email", &emails).Error
+	if err != nil {
+		logger.Errorf("Error retrieving client emails for tgId %d: %v", tgId, err)
+		return nil, err
+	}
+
+	if len(emails) == 0 {
+		emails, err = s.getClientTrafficTgBotFromSettings(tgId)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	uniqEmails := uniqueNonEmptyStrings(emails)
+	if len(uniqEmails) == 0 {
+		logger.Warningf("No clients found for tgId: %d", tgId)
+		return nil, nil
+	}
+
+	trafficsByEmail := make(map[string]*xray.ClientTraffic, len(uniqEmails))
+	for _, batch := range chunkStrings(uniqEmails, sqliteMaxVars) {
+		var page []*xray.ClientTraffic
+		if err = db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				continue
+			}
+			logger.Errorf("Error retrieving ClientTraffic for emails %v: %v", batch, err)
+			return nil, err
+		}
+		for _, traffic := range page {
+			trafficsByEmail[traffic.Email] = traffic
+		}
+	}
+
+	missingEmails := make([]string, 0)
+	for _, email := range uniqEmails {
+		if _, ok := trafficsByEmail[email]; !ok {
+			missingEmails = append(missingEmails, email)
+		}
+	}
+	if len(missingEmails) > 0 {
+		type clientTrafficSeed struct {
+			Email      string
+			InboundId  int
+			Enable     bool
+			TotalGB    int64
+			ExpiryTime int64
+			Reset      int
+			UUID       string
+			SubID      string
+		}
+		var rows []clientTrafficSeed
+		for _, batch := range chunkStrings(missingEmails, sqliteMaxVars) {
+			var page []clientTrafficSeed
+			if err = db.Table("clients").
+				Select(`clients.email,
+					client_inbounds.inbound_id,
+					clients.enable,
+					clients.total_gb,
+					clients.expiry_time,
+					clients.reset,
+					clients.uuid,
+					clients.sub_id`).
+				Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
+				Where("clients.email IN ?", batch).
+				Find(&page).Error; err != nil {
+				logger.Errorf("Error retrieving client records for emails %v: %v", batch, err)
+				return nil, err
+			}
+			rows = append(rows, page...)
+		}
+		for _, row := range rows {
+			if _, ok := trafficsByEmail[row.Email]; ok {
+				continue
+			}
+			trafficsByEmail[row.Email] = &xray.ClientTraffic{
+				InboundId:  row.InboundId,
+				Email:      row.Email,
+				Enable:     row.Enable,
+				Total:      row.TotalGB,
+				ExpiryTime: row.ExpiryTime,
+				Reset:      row.Reset,
+				UUID:       row.UUID,
+				SubId:      row.SubID,
+			}
+		}
+	}
+
+	traffics := make([]*xray.ClientTraffic, 0, len(uniqEmails))
+	for _, email := range uniqEmails {
+		traffic, ok := trafficsByEmail[email]
+		if !ok {
+			continue
+		}
+		if ct, client, e := s.GetClientByEmail(email); e == nil && ct != nil && client != nil {
+			traffic.Enable = client.Enable
+			traffic.UUID = client.ID
+			traffic.SubId = client.SubID
+		} else if traffic.UUID == "" || traffic.SubId == "" {
+			clients, clientErr := s.clientService.ListForInbound(nil, traffic.InboundId)
+			if clientErr != nil {
+				logger.Errorf("Error retrieving clients for inbound %d: %v", traffic.InboundId, clientErr)
+			}
+			for _, client := range clients {
+				if client.Email == email {
+					traffic.Enable = client.Enable
+					traffic.UUID = client.ID
+					traffic.SubId = client.SubID
+					break
+				}
+			}
+		}
+		traffics = append(traffics, traffic)
+	}
+	if len(traffics) == 0 {
+		logger.Warning("No ClientTraffic records found for emails:", emails)
+		return nil, nil
+	}
+
+	return traffics, nil
+}
+
+func (s *InboundService) getClientTrafficTgBotFromSettings(tgId int64) ([]string, error) {
+	db := database.GetDB()
 	var inbounds []*model.Inbound
 
-	// Retrieve inbounds where settings contain the given tgId
-	err := db.Model(model.Inbound{}).Where("settings LIKE ?", fmt.Sprintf(`%%"tgId": %d%%`, tgId)).Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Where("settings LIKE ?", fmt.Sprintf(`%%"tgId"%%%d%%`, tgId)).Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		logger.Errorf("Error retrieving inbounds with tgId %d: %v", tgId, err)
 		return nil, err
@@ -2643,36 +2777,7 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 		}
 	}
 
-	// Chunked to stay under SQLite's bind-variable limit when a single Telegram
-	// account owns thousands of clients across inbounds.
-	uniqEmails := uniqueNonEmptyStrings(emails)
-	traffics := make([]*xray.ClientTraffic, 0, len(uniqEmails))
-	for _, batch := range chunkStrings(uniqEmails, sqliteMaxVars) {
-		var page []*xray.ClientTraffic
-		if err = db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				continue
-			}
-			logger.Errorf("Error retrieving ClientTraffic for emails %v: %v", batch, err)
-			return nil, err
-		}
-		traffics = append(traffics, page...)
-	}
-	if len(traffics) == 0 {
-		logger.Warning("No ClientTraffic records found for emails:", emails)
-		return nil, nil
-	}
-
-	// Populate UUID and other client data for each traffic record
-	for i := range traffics {
-		if ct, client, e := s.GetClientByEmail(traffics[i].Email); e == nil && ct != nil && client != nil {
-			traffics[i].Enable = client.Enable
-			traffics[i].UUID = client.ID
-			traffics[i].SubId = client.SubID
-		}
-	}
-
-	return traffics, nil
+	return emails, nil
 }
 
 // sqliteMaxVars is a safe ceiling for the number of bind parameters in a
