@@ -990,9 +990,6 @@ func externalProxySNI(ep map[string]any) (string, bool) {
 	if sni, ok := ep["sni"].(string); ok && sni != "" {
 		return sni, true
 	}
-	if dest, ok := ep["dest"].(string); ok && dest != "" {
-		return dest, true
-	}
 	return "", false
 }
 

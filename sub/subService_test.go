@@ -484,24 +484,42 @@ func TestApplyExternalProxyTLSParams_UsesProxyDomainAndOverrides(t *testing.T) {
 	}
 }
 
-func TestApplyExternalProxyTLSParams_FallsBackToDestSNI(t *testing.T) {
-	params := map[string]string{"security": "tls"}
+func TestApplyExternalProxyTLSParams_PreservesUpstreamSNI(t *testing.T) {
+	// External-proxy entry has no SNI of its own; its dest must not
+	// clobber the upstream tlsSettings.serverName already written into
+	// params. Regression: the dest fallback used to overwrite "222" with
+	// "111" whenever an operator set forceTls=same and left the proxy's
+	// SNI field blank.
+	params := map[string]string{"security": "tls", "sni": "real.example.com"}
 	ep := map[string]any{"dest": "proxy.example.com"}
 
 	applyExternalProxyTLSParams(ep, params, "tls")
 
-	if params["sni"] != "proxy.example.com" {
-		t.Fatalf("sni = %q, want proxy.example.com", params["sni"])
+	if params["sni"] != "real.example.com" {
+		t.Fatalf("sni = %q, want upstream sni preserved (real.example.com)", params["sni"])
+	}
+}
+
+func TestApplyExternalProxyTLSParams_ExplicitSNIOverridesUpstream(t *testing.T) {
+	params := map[string]string{"security": "tls", "sni": "real.example.com"}
+	ep := map[string]any{"dest": "proxy.example.com", "sni": "edge.example.com"}
+
+	applyExternalProxyTLSParams(ep, params, "tls")
+
+	if params["sni"] != "edge.example.com" {
+		t.Fatalf("sni = %q, want edge.example.com", params["sni"])
 	}
 }
 
 func TestApplyExternalProxyTLSToStream_DoesNotLeakAcrossProxies(t *testing.T) {
 	stream := map[string]any{
-		"security":    "tls",
-		"tlsSettings": map[string]any{},
+		"security": "tls",
+		"tlsSettings": map[string]any{
+			"serverName": "upstream.example.com",
+		},
 	}
 	proxies := []map[string]any{
-		{"dest": "a.example.com", "fingerprint": "chrome", "alpn": []any{"h3"}},
+		{"dest": "a.example.com", "sni": "a-sni.example.com", "fingerprint": "chrome", "alpn": []any{"h3"}},
 		{"dest": "b.example.com"},
 	}
 
@@ -518,11 +536,14 @@ func TestApplyExternalProxyTLSToStream_DoesNotLeakAcrossProxies(t *testing.T) {
 		results = append(results, snapshot)
 	}
 
-	if results[0]["serverName"] != "a.example.com" || results[0]["fingerprint"] != "chrome" {
+	if results[0]["serverName"] != "a-sni.example.com" || results[0]["fingerprint"] != "chrome" {
 		t.Fatalf("proxy A snapshot = %v", results[0])
 	}
-	if results[1]["serverName"] != "b.example.com" {
-		t.Fatalf("proxy B serverName = %v, want b.example.com", results[1]["serverName"])
+	// Proxy B has no SNI of its own — the upstream tlsSettings serverName
+	// must remain in place (no dest fallback) and no fingerprint/alpn
+	// must leak from proxy A.
+	if results[1]["serverName"] != "upstream.example.com" {
+		t.Fatalf("proxy B serverName = %v, want upstream.example.com preserved", results[1]["serverName"])
 	}
 	if results[1]["fingerprint"] != nil {
 		t.Fatalf("proxy B should inherit no fingerprint, got %v (leaked from A)", results[1]["fingerprint"])
