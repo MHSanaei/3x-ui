@@ -88,6 +88,8 @@ export default function RoutingTab({
     () => (templateSettings?.routing?.rules || []) as RoutingRule[],
     [templateSettings?.routing?.rules],
   );
+  const rulesRef = useRef(rules);
+  rulesRef.current = rules;
 
   const rows: RuleRow[] = useMemo(
     () =>
@@ -171,7 +173,7 @@ export default function RoutingTab({
     setRuleModalOpen(true);
   }
   function openEdit(idx: number) {
-    setEditingRule(rules[idx]);
+    setEditingRule(rulesRef.current[idx]);
     setEditingIndex(idx);
     setRuleModalOpen(true);
   }

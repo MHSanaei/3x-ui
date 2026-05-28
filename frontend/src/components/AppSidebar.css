@@ -247,6 +247,24 @@
   }
 }
 
+body.dark .ant-drawer-content,
+body.dark .ant-drawer-body {
+  background-color: #15161a;
+}
+
+html[data-theme="ultra-dark"] body.dark .ant-drawer-content,
+html[data-theme="ultra-dark"] body.dark .ant-drawer-body {
+  background-color: #050507;
+}
+
+body.dark .ant-drawer-body .drawer-menu,
+body.dark .ant-drawer-body .drawer-menu.ant-menu-dark,
+body.dark .ant-drawer-body .drawer-menu .ant-menu-item,
+body.dark .ant-drawer-body .drawer-menu .ant-menu-sub,
+body.dark .ant-drawer-body .drawer-menu .ant-menu-item-group-list {
+  background-color: transparent;
+}
+
 .sider-nav .ant-menu-item-selected,
 .sider-utility .ant-menu-item-selected,
 .drawer-menu .ant-menu-item-selected {

@@ -89,6 +89,24 @@
   min-height: calc(100vh - 120px);
 }
 
+.ant-dropdown-menu-item:not(.ant-dropdown-menu-item-disabled):not(.ant-dropdown-menu-item-danger):hover,
+.ant-dropdown-menu-item:not(.ant-dropdown-menu-item-disabled):not(.ant-dropdown-menu-item-danger):hover .ant-dropdown-menu-title-content,
+.ant-dropdown-menu-item:not(.ant-dropdown-menu-item-disabled):not(.ant-dropdown-menu-item-danger):hover > .anticon {
+  color: var(--ant-color-primary) !important;
+}
+
+.ant-dropdown-menu-item:not(.ant-dropdown-menu-item-disabled):not(.ant-dropdown-menu-item-danger):hover {
+  background-color: color-mix(in srgb, var(--ant-color-primary) 14%, transparent) !important;
+}
+
+.ant-dropdown-menu-item-divider {
+  background-color: var(--ant-color-border) !important;
+}
+
+body.dark .ant-dropdown-menu-item-divider {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
 .settings-page .header-row,
 .xray-page .header-row {
   display: flex;

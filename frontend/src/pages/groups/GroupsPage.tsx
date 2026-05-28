@@ -333,19 +333,19 @@ export default function GroupsPage() {
         onClick: () => openAddClientsFor(row),
       },
       {
+        key: 'rename',
+        icon: <EditOutlined />,
+        label: t('pages.groups.rename'),
+        onClick: () => openRename(row),
+      },
+      { type: 'divider' },
+      {
         key: 'removeClients',
         icon: <UsergroupDeleteOutlined />,
         label: t('pages.groups.removeFromGroup'),
         danger: true,
         disabled: !row.clientCount,
         onClick: () => openRemoveClientsFor(row),
-      },
-      { type: 'divider' },
-      {
-        key: 'rename',
-        icon: <EditOutlined />,
-        label: t('pages.groups.rename'),
-        onClick: () => openRename(row),
       },
       {
         key: 'deleteClients',

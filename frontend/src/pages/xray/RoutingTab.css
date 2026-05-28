@@ -99,7 +99,7 @@
 .rule-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
 }
 
 .rule-card {
@@ -109,9 +109,22 @@
   gap: 8px;
   padding: 10px 12px;
   background: var(--bg-card, #fff);
-  border: 1px solid var(--ant-color-border-secondary);
+  border: 1px solid var(--ant-color-border);
   border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   transition: opacity 0.15s, box-shadow 0.15s;
+}
+
+.rule-list > .rule-card:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 32px;
+  height: 1px;
+  background: var(--ant-color-border);
+  transform: translateX(-50%);
+  opacity: 0.7;
 }
 
 .rule-card.row-dragging {
