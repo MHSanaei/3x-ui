@@ -358,13 +358,14 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       const reality = stream.realitySettings;
       params.set('pbk', reality.settings.publicKey);
       params.set('fp', reality.settings.fingerprint);
-      // Legacy parity quirk: the old class stored realitySettings.serverNames
-      // as a comma-joined string and gated SNI on `!ObjectUtil.isArrEmpty(s)`
-      // — which returns true for any string, so SNI was never written into
-      // Reality share links. Existing deployed clients rely on receiving
-      // the SNI from realitySettings.target instead; we keep the omission
-      // here so this extraction stays byte-stable with the legacy URL.
-      // Fixing the bug is a separate intentional commit.
+
+      const sni =
+        reality.settings.serverName ||
+        reality.serverNames?.[0] ||
+        reality.target?.split(':')[0];
+
+      if (sni && sni.length > 0) params.set('sni', sni);
+
       if (reality.shortIds.length > 0) params.set('sid', reality.shortIds[0]);
       if (reality.settings.spiderX.length > 0) params.set('spx', reality.settings.spiderX);
       if (reality.settings.mldsa65Verify.length > 0) params.set('pqv', reality.settings.mldsa65Verify);
@@ -436,6 +437,14 @@ function writeRealityParams(stream: NonNullable<Inbound['streamSettings']>, para
   const reality = stream.realitySettings;
   params.set('pbk', reality.settings.publicKey);
   params.set('fp', reality.settings.fingerprint);
+
+  const sni =
+    reality.settings.serverName ||
+    reality.serverNames?.[0] ||
+    reality.target?.split(':')[0];
+
+  if (sni && sni.length > 0) params.set('sni', sni);
+
   if (reality.shortIds.length > 0) params.set('sid', reality.shortIds[0]);
   if (reality.settings.spiderX.length > 0) params.set('spx', reality.settings.spiderX);
   if (reality.settings.mldsa65Verify.length > 0) params.set('pqv', reality.settings.mldsa65Verify);
