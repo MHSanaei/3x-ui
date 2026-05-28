@@ -116,7 +116,7 @@ function vlessFromWire(raw: Raw): VlessOutboundFormSettings {
   const testseed = savedSeed.length === 4
     && savedSeed.every((n) => Number.isInteger(n) && (n as number) > 0)
     ? (savedSeed as number[])
-    : [];
+    : [900, 500, 900, 256];
   return {
     address,
     port,

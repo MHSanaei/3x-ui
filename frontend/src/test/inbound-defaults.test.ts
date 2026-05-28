@@ -112,13 +112,23 @@ describe('createDefault*InboundSettings factories', () => {
 
   it('http', () => {
     const s = createDefaultHttpInboundSettings();
-    expect(s).toMatchSnapshot();
+    expect(s.allowTransparent).toBe(false);
+    const accounts = s.accounts ?? [];
+    expect(accounts).toHaveLength(1);
+    expect(accounts[0].user.length).toBe(8);
+    expect(accounts[0].pass.length).toBe(12);
     expect(HttpInboundSettingsSchema.parse(s)).toEqual(s);
   });
 
   it('mixed', () => {
     const s = createDefaultMixedInboundSettings();
-    expect(s).toMatchSnapshot();
+    expect(s.auth).toBe('password');
+    expect(s.udp).toBe(false);
+    expect(s.ip).toBe('127.0.0.1');
+    const accounts = s.accounts ?? [];
+    expect(accounts).toHaveLength(1);
+    expect(accounts[0].user.length).toBe(8);
+    expect(accounts[0].pass.length).toBe(12);
     expect(MixedInboundSettingsSchema.parse(s)).toEqual(s);
   });
 

@@ -1428,6 +1428,21 @@ export default function InboundFormModal({
               {t('pages.inbounds.vlessAuthSelected', { auth: selectedVlessAuth })}
             </Text>
           </Form.Item>
+          {network === 'tcp' && (security === 'tls' || security === 'reality') && (
+            <Form.Item
+              label="Vision testseed"
+              name={['settings', 'testseed']}
+              initialValue={[900, 500, 900, 256]}
+              normalize={(v: unknown) =>
+                Array.isArray(v)
+                  ? v.map((x) => Number(x)).filter((n) => Number.isInteger(n) && n > 0)
+                  : []
+              }
+              extra="Applies only to clients using the xtls-rprx-vision flow; ignored otherwise."
+            >
+              <Select mode="tags" tokenSeparators={[',', ' ']} placeholder="four positive integers" />
+            </Form.Item>
+          )}
         </>
       )}
 

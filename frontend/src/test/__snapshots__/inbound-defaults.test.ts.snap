@@ -1,25 +1,9 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`createDefault*InboundSettings factories > http 1`] = `
-{
-  "accounts": [],
-  "allowTransparent": false,
-}
-`;
-
 exports[`createDefault*InboundSettings factories > hysteria (v1, defaults to v2 wire version) 1`] = `
 {
   "clients": [],
   "version": 2,
-}
-`;
-
-exports[`createDefault*InboundSettings factories > mixed 1`] = `
-{
-  "accounts": [],
-  "auth": "password",
-  "ip": "127.0.0.1",
-  "udp": false,
 }
 `;
 
