@@ -783,28 +783,25 @@ export default function ClientsPage() {
                       hoverable
                       title={
                         <div className="card-toolbar">
-                          <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
-                            {!isMobile && t('pages.clients.addClients')}
-                          </Button>
-                          {selectedRowKeys.length > 0 && (
+                          {selectedRowKeys.length === 0 ? (
+                            <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
+                              {!isMobile && t('pages.clients.addClients')}
+                            </Button>
+                          ) : (
                             <>
-                              <Button icon={<ClockCircleOutlined />} onClick={() => setBulkAdjustOpen(true)}>
-                                {t('pages.clients.adjustSelected', { count: selectedRowKeys.length })}
-                              </Button>
-                              <Button icon={<TagsOutlined />} onClick={() => setBulkGroupOpen(true)}>
-                                {t('pages.clients.assignGroupSelected', { count: selectedRowKeys.length })}
-                              </Button>
+                              <Tag
+                                color="blue"
+                                closable
+                                onClose={() => setSelectedRowKeys([])}
+                                style={{ marginInlineEnd: 0, padding: '4px 8px', fontSize: 13 }}
+                              >
+                                {t('pages.clients.selectedCount', { count: selectedRowKeys.length })}
+                              </Tag>
                               <Button icon={<UsergroupAddOutlined />} onClick={() => setBulkAttachOpen(true)}>
-                                {t('pages.clients.attachSelected', { count: selectedRowKeys.length })}
+                                {!isMobile && t('pages.clients.attach')}
                               </Button>
                               <Button danger icon={<UsergroupDeleteOutlined />} onClick={() => setBulkDetachOpen(true)}>
-                                {t('pages.clients.detachSelected', { count: selectedRowKeys.length })}
-                              </Button>
-                              <Button icon={<LinkOutlined />} onClick={() => setSubLinksOpen(true)}>
-                                {t('pages.clients.subLinksSelected', { count: selectedRowKeys.length })}
-                              </Button>
-                              <Button danger icon={<DeleteOutlined />} onClick={onBulkDelete}>
-                                {t('pages.clients.deleteSelected', { count: selectedRowKeys.length })}
+                                {!isMobile && t('pages.clients.detach')}
                               </Button>
                             </>
                           )}
@@ -812,33 +809,64 @@ export default function ClientsPage() {
                             trigger={['click']}
                             placement="bottomRight"
                             menu={{
-                              items: [
-                                {
-                                  key: 'bulk',
-                                  icon: <UsergroupAddOutlined />,
-                                  label: t('pages.clients.bulk'),
-                                  onClick: () => setBulkAddOpen(true),
-                                },
-                                {
-                                  key: 'resetAll',
-                                  icon: <RetweetOutlined />,
-                                  label: t('pages.clients.resetAllTraffics'),
-                                  onClick: onResetAllTraffics,
-                                },
-                                {
-                                  key: 'delDepleted',
-                                  icon: <RestOutlined />,
-                                  label: t('pages.clients.delDepleted'),
-                                  danger: true,
-                                  onClick: onDelDepleted,
-                                },
-                              ],
+                              items: selectedRowKeys.length > 0
+                                ? [
+                                    {
+                                      key: 'adjust',
+                                      icon: <ClockCircleOutlined />,
+                                      label: t('pages.clients.adjust'),
+                                      onClick: () => setBulkAdjustOpen(true),
+                                    },
+                                    {
+                                      key: 'group',
+                                      icon: <TagsOutlined />,
+                                      label: t('pages.clients.group'),
+                                      onClick: () => setBulkGroupOpen(true),
+                                    },
+                                    {
+                                      key: 'subLinks',
+                                      icon: <LinkOutlined />,
+                                      label: t('pages.clients.subLinks'),
+                                      onClick: () => setSubLinksOpen(true),
+                                    },
+                                  ]
+                                : [
+                                    {
+                                      key: 'bulk',
+                                      icon: <UsergroupAddOutlined />,
+                                      label: t('pages.clients.bulk'),
+                                      onClick: () => setBulkAddOpen(true),
+                                    },
+                                    {
+                                      key: 'resetAll',
+                                      icon: <RetweetOutlined />,
+                                      label: t('pages.clients.resetAllTraffics'),
+                                      onClick: onResetAllTraffics,
+                                    },
+                                    {
+                                      key: 'delDepleted',
+                                      icon: <RestOutlined />,
+                                      label: t('pages.clients.delDepleted'),
+                                      danger: true,
+                                      onClick: onDelDepleted,
+                                    },
+                                  ],
                             }}
                           >
                             <Button icon={<MoreOutlined />}>
                               {!isMobile && t('more')}
                             </Button>
                           </Dropdown>
+                          {selectedRowKeys.length > 0 && (
+                            <Button
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={onBulkDelete}
+                              style={{ marginInlineStart: 'auto' }}
+                            >
+                              {!isMobile && t('delete')}
+                            </Button>
+                          )}
                         </div>
                       }
                     >
