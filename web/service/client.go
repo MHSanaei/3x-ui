@@ -629,6 +629,14 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	for _, ibId := range inboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
 		if getErr != nil {
+			if errors.Is(getErr, gorm.ErrRecordNotFound) {
+				if err := database.GetDB().
+					Where("client_id = ? AND inbound_id = ?", id, ibId).
+					Delete(&model.ClientInbound{}).Error; err != nil {
+					return needRestart, err
+				}
+				continue
+			}
 			return needRestart, getErr
 		}
 		oldKey := clientKeyForProtocol(inbound.Protocol, existing)

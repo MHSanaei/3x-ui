@@ -83,6 +83,21 @@ func initModels() error {
 			return err
 		}
 	}
+	if err := pruneOrphanedClientInbounds(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func pruneOrphanedClientInbounds() error {
+	res := db.Exec("DELETE FROM client_inbounds WHERE inbound_id NOT IN (SELECT id FROM inbounds)")
+	if res.Error != nil {
+		log.Printf("Error pruning orphaned client_inbounds rows: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Pruned %d orphaned client_inbounds row(s)", res.RowsAffected)
+	}
 	return nil
 }
 

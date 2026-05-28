@@ -1432,6 +1432,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			Delete(&xray.ClientTraffic{}).Error; err != nil {
 			return false, err
 		}
+		if err := s.clientService.DetachInbound(tx, c.Id); err != nil {
+			return false, err
+		}
 		if err := tx.Where("id = ?", c.Id).
 			Delete(&model.Inbound{}).Error; err != nil {
 			return false, err
