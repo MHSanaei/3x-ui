@@ -393,9 +393,8 @@ export default function OutboundFormModal({
 
   async function onOk() {
     if (activeKey === '2' && !applyJsonToForm()) return;
-    let values: OutboundFormValues;
     try {
-      values = await form.validateFields();
+      await form.validateFields();
     } catch {
       return;
     }
@@ -403,6 +402,7 @@ export default function OutboundFormModal({
       messageApi.error('Tag already used by another outbound');
       return;
     }
+    const values = form.getFieldsValue(true) as OutboundFormValues;
     onConfirm(formValuesToWirePayload(values));
   }
 
