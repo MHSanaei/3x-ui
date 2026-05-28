@@ -225,6 +225,9 @@ export function genVmessLink(input: GenVmessLinkInput): string {
     if (tlsSettings.serverName.length > 0) obj.sni = tlsSettings.serverName;
     if (tlsSettings.settings.fingerprint.length > 0) obj.fp = tlsSettings.settings.fingerprint;
     if (tlsSettings.alpn.length > 0) obj.alpn = tlsSettings.alpn.join(',');
+    if (tlsSettings.settings.pinnedPeerCertSha256.length > 0) {
+      obj.pcs = tlsSettings.settings.pinnedPeerCertSha256.join(',');
+    }
   }
 
   applyExternalProxyTLSObj(externalProxy, obj, tls);
@@ -349,6 +352,9 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       params.set('alpn', tls.alpn.join(','));
       if (tls.serverName.length > 0) params.set('sni', tls.serverName);
       if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
+      if (tls.settings.pinnedPeerCertSha256.length > 0) {
+        params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
+      }
       if (stream.network === 'tcp' && flow.length > 0) params.set('flow', flow);
     }
     applyExternalProxyTLSParams(externalProxy, params, security);
@@ -428,6 +434,9 @@ function writeTlsParams(stream: NonNullable<Inbound['streamSettings']>, params: 
   params.set('alpn', tls.alpn.join(','));
   if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
+  if (tls.settings.pinnedPeerCertSha256.length > 0) {
+    params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
+  }
 }
 
 // Reality query-string writer shared by VLESS and Trojan. Preserves the

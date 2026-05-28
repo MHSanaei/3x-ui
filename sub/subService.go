@@ -809,6 +809,9 @@ func applyShareTLSParams(stream map[string]any, params map[string]string) {
 		if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
 			params["fp"], _ = fpValue.(string)
 		}
+		if pins, ok := pinnedSha256List(tlsSettings); ok {
+			params["pcs"] = strings.Join(pins, ",")
+		}
 	}
 }
 
@@ -831,7 +834,37 @@ func applyVmessTLSParams(stream map[string]any, obj map[string]any) {
 		if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
 			obj["fp"], _ = fpValue.(string)
 		}
+		if pins, ok := pinnedSha256List(tlsSettings); ok {
+			obj["pcs"] = strings.Join(pins, ",")
+		}
 	}
+}
+
+// pinnedSha256List extracts tlsSettings.settings.pinnedPeerCertSha256 as a
+// []string. The field is panel-only (stripped before the run-config reaches
+// xray-core via web/service/xray.go) but flows into share links so clients
+// can pin the server's certificate hash.
+func pinnedSha256List(tlsClientSettings any) ([]string, bool) {
+	raw, ok := searchKey(tlsClientSettings, "pinnedPeerCertSha256")
+	if !ok {
+		return nil, false
+	}
+	arr, ok := raw.([]any)
+	if !ok || len(arr) == 0 {
+		return nil, false
+	}
+	out := make([]string, 0, len(arr))
+	for _, v := range arr {
+		s, ok := v.(string)
+		if !ok || s == "" {
+			continue
+		}
+		out = append(out, s)
+	}
+	if len(out) == 0 {
+		return nil, false
+	}
+	return out, true
 }
 
 func applyShareRealityParams(stream map[string]any, params map[string]string) {

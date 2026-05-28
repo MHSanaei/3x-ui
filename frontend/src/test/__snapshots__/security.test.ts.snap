@@ -66,6 +66,7 @@ exports[`SecuritySettingsSchema fixtures > parses tls-cert-file byte-stably 1`] 
     "settings": {
       "echConfigList": "",
       "fingerprint": "chrome",
+      "pinnedPeerCertSha256": [],
     },
   },
 }

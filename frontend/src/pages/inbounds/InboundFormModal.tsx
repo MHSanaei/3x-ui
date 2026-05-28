@@ -572,6 +572,21 @@ export default function InboundFormModal({
     form.setFieldValue(['streamSettings', 'tlsSettings', 'settings', 'echConfigList'], '');
   };
 
+  const generateRandomPinHash = () => {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    let binary = '';
+    for (const b of bytes) binary += String.fromCharCode(b);
+    const hash = btoa(binary);
+    const current = (form.getFieldValue(
+      ['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256'],
+    ) as string[] | undefined) ?? [];
+    form.setFieldValue(
+      ['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256'],
+      [...current, hash],
+    );
+  };
+
   const setCertFromPanel = async (certName: number) => {
     setSaving(true);
     try {
@@ -2825,6 +2840,29 @@ export default function InboundFormModal({
                 label={t('pages.inbounds.form.echConfig')}
               >
                 <Input />
+              </Form.Item>
+              <Form.Item
+                label={t('pages.inbounds.form.pinnedPeerCertSha256')}
+                tooltip={t('pages.inbounds.form.pinnedPeerCertSha256Tip')}
+              >
+                <Space.Compact block>
+                  <Form.Item
+                    name={['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256']}
+                    noStyle
+                  >
+                    <Select
+                      mode="tags"
+                      tokenSeparators={[',', ' ']}
+                      placeholder={t('pages.inbounds.form.pinnedPeerCertSha256Placeholder')}
+                      style={{ width: 'calc(100% - 32px)' }}
+                    />
+                  </Form.Item>
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={generateRandomPinHash}
+                    title={t('pages.inbounds.form.generateRandomPin')}
+                  />
+                </Space.Compact>
               </Form.Item>
               <Form.Item label=" ">
                 <Space>
