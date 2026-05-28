@@ -1402,7 +1402,11 @@ func (s *ClientService) DeleteGroup(name string) (int, error) {
 	return s.replaceGroupValue(name, "")
 }
 
-func (s *ClientService) AssignGroup(emails []string, group string) (int, error) {
+func (s *ClientService) RemoveFromGroup(emails []string) (int, error) {
+	return s.AddToGroup(emails, "")
+}
+
+func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 	group = strings.TrimSpace(group)
 	if len(emails) == 0 {
 		return 0, nil

@@ -30,6 +30,8 @@ import {
   RetweetOutlined,
   TagsOutlined,
   TeamOutlined,
+  UsergroupAddOutlined,
+  UsergroupDeleteOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -47,6 +49,8 @@ import { parseMsg } from '@/utils/zodValidate';
 
 const SubLinksModal = lazy(() => import('../clients/SubLinksModal'));
 const ClientBulkAdjustModal = lazy(() => import('../clients/ClientBulkAdjustModal'));
+const GroupAddClientsModal = lazy(() => import('./GroupAddClientsModal'));
+const GroupRemoveClientsModal = lazy(() => import('./GroupRemoveClientsModal'));
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
 
@@ -77,7 +81,7 @@ export default function GroupsPage() {
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
   const queryClient = useQueryClient();
 
-  const { clients, subSettings, bulkAdjust, bulkDelete } = useClients();
+  const { clients, subSettings, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, bulkDelete } = useClients();
 
   const groupsQuery = useQuery({
     queryKey: keys.clients.groups(),
@@ -124,6 +128,8 @@ export default function GroupsPage() {
 
   const [subLinksOpen, setSubLinksOpen] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [addClientsOpen, setAddClientsOpen] = useState(false);
+  const [removeClientsOpen, setRemoveClientsOpen] = useState(false);
   const [groupEmails, setGroupEmails] = useState<string[]>([]);
   const [groupForAction, setGroupForAction] = useState<GroupSummary | null>(null);
 
@@ -228,6 +234,20 @@ export default function GroupsPage() {
     setAdjustOpen(true);
   }
 
+  function openAddClientsFor(g: GroupSummary) {
+    setGroupForAction(g);
+    setAddClientsOpen(true);
+  }
+
+  function openRemoveClientsFor(g: GroupSummary) {
+    if (!g.clientCount) {
+      messageApi.info(t('pages.groups.emptyForAction'));
+      return;
+    }
+    setGroupForAction(g);
+    setRemoveClientsOpen(true);
+  }
+
   function onDeleteClients(g: GroupSummary) {
     if (!g.clientCount) {
       messageApi.info(t('pages.groups.emptyForAction'));
@@ -305,6 +325,20 @@ export default function GroupsPage() {
         label: t('pages.groups.resetTraffic'),
         disabled: !row.clientCount,
         onClick: () => onResetTraffic(row),
+      },
+      {
+        key: 'addClients',
+        icon: <UsergroupAddOutlined />,
+        label: t('pages.groups.addToGroup'),
+        onClick: () => openAddClientsFor(row),
+      },
+      {
+        key: 'removeClients',
+        icon: <UsergroupDeleteOutlined />,
+        label: t('pages.groups.removeFromGroup'),
+        danger: true,
+        disabled: !row.clientCount,
+        onClick: () => openRemoveClientsFor(row),
       },
       { type: 'divider' },
       {
@@ -517,6 +551,38 @@ export default function GroupsPage() {
                   }),
                 );
                 return obj;
+              }
+              return null;
+            }}
+          />
+        </LazyMount>
+
+        <LazyMount when={addClientsOpen}>
+          <GroupAddClientsModal
+            open={addClientsOpen}
+            groupName={groupForAction?.name ?? null}
+            candidates={clients.filter((c) => c.group !== groupForAction?.name)}
+            onClose={() => setAddClientsOpen(false)}
+            onSubmit={async (emails) => {
+              const msg = await bulkAddToGroup(emails, groupForAction?.name ?? '');
+              if (msg?.success) {
+                return (msg.obj as { affected?: number } | undefined) ?? { affected: 0 };
+              }
+              return null;
+            }}
+          />
+        </LazyMount>
+
+        <LazyMount when={removeClientsOpen}>
+          <GroupRemoveClientsModal
+            open={removeClientsOpen}
+            groupName={groupForAction?.name ?? null}
+            members={clients.filter((c) => c.group === groupForAction?.name)}
+            onClose={() => setRemoveClientsOpen(false)}
+            onSubmit={async (emails) => {
+              const msg = await bulkRemoveFromGroup(emails);
+              if (msg?.success) {
+                return (msg.obj as { affected?: number } | undefined) ?? { affected: 0 };
               }
               return null;
             }}

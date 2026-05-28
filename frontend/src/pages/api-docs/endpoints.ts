@@ -546,9 +546,16 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/api/clients/bulkAssignGroup',
-        summary: 'Assign the given group label to many clients in one call. Updates clients.group_name and patches the matching client entry inside every owning inbound\'s settings JSON in a single transaction. Pass an empty group to clear the label. If the group name does not yet exist (in client_groups or as a derived label), it is auto-created as a persistent group.',
+        path: '/panel/api/clients/groups/bulkAdd',
+        summary: 'Add many clients to a group in one call. Updates clients.group_name and patches the matching client entry inside every owning inbound\'s settings JSON in a single transaction. If the group name does not yet exist (in client_groups or as a derived label), it is auto-created as a persistent group. To clear the group label, use /groups/bulkRemove instead.',
         body: '{\n  "emails": ["alice", "bob"],\n  "group": "customer-a"\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "affected": 2\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/groups/bulkRemove',
+        summary: 'Clear the group label on many clients in one call. Inverse of /groups/bulkAdd. Clients themselves are kept — only the group label is cleared from clients.group_name and from each owning inbound\'s settings JSON. Groups become empty if all their members are removed.',
+        body: '{\n  "emails": ["alice", "bob"]\n}',
         response: '{\n  "success": true,\n  "obj": {\n    "affected": 2\n  }\n}',
       },
       {
@@ -598,7 +605,7 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/groups/create',
-        summary: 'Create a new empty (placeholder) group. The group becomes selectable in client forms and the filter drawer even before any client is assigned to it. Errors if a group with the same name already exists.',
+        summary: 'Create a new empty (placeholder) group. The group becomes selectable in client forms and the filter drawer even before any client is added to it. Errors if a group with the same name already exists.',
         body: '{\n  "name": "customer-a"\n}',
         response: '{\n  "success": true,\n  "obj": {\n    "name": "customer-a"\n  }\n}',
       },

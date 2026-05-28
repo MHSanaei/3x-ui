@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { HttpUtil, Msg } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
 import { keys } from '@/api/queryKeys';
+import { markLocalInvalidate } from '@/api/invalidationTracker';
 import {
   ClientHydrateSchema,
   ClientPageResponseSchema,
@@ -213,10 +214,13 @@ export function useClients() {
   // Inbounds page and any open edit modal pick up the new shape without
   // a manual reload.
   const invalidateAll = useCallback(
-    () => Promise.all([
-      queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
-      queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
-    ]),
+    () => {
+      markLocalInvalidate();
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
+        queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
+      ]);
+    },
     [queryClient],
   );
 
@@ -238,9 +242,15 @@ export function useClients() {
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
-  const bulkAssignGroupMut = useMutation({
+  const bulkAddToGroupMut = useMutation({
     mutationFn: (body: { emails: string[]; group: string }) =>
-      HttpUtil.post('/panel/api/clients/bulkAssignGroup', body, JSON_HEADERS),
+      HttpUtil.post('/panel/api/clients/groups/bulkAdd', body, JSON_HEADERS),
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
+  const bulkRemoveFromGroupMut = useMutation({
+    mutationFn: (body: { emails: string[] }) =>
+      HttpUtil.post('/panel/api/clients/groups/bulkRemove', body, JSON_HEADERS),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
@@ -352,10 +362,14 @@ export function useClients() {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
     return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes });
   }, [bulkAdjustMut]);
-  const bulkAssignGroup = useCallback((emails: string[], group: string) => {
+  const bulkAddToGroup = useCallback((emails: string[], group: string) => {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
-    return bulkAssignGroupMut.mutateAsync({ emails, group });
-  }, [bulkAssignGroupMut]);
+    return bulkAddToGroupMut.mutateAsync({ emails, group });
+  }, [bulkAddToGroupMut]);
+  const bulkRemoveFromGroup = useCallback((emails: string[]) => {
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
+    return bulkRemoveFromGroupMut.mutateAsync({ emails });
+  }, [bulkRemoveFromGroupMut]);
   const attach = useCallback((email: string, inboundIds: number[]) => {
     if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return attachMut.mutateAsync({ email, inboundIds });
@@ -472,7 +486,8 @@ export function useClients() {
     remove,
     bulkDelete,
     bulkAdjust,
-    bulkAssignGroup,
+    bulkAddToGroup,
+    bulkRemoveFromGroup,
     attach,
     bulkAttach,
     detach,

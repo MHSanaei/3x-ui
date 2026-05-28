@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { WebSocketClient } from '@/api/websocket';
 import { keys } from '@/api/queryKeys';
+import { isRecentLocalInvalidate } from '@/api/invalidationTracker';
 
 type Handler = (payload: unknown) => void;
 
@@ -35,6 +36,7 @@ export function useWebSocketBridge() {
       if (invalidateTimer != null) clearTimeout(invalidateTimer);
       invalidateTimer = window.setTimeout(() => {
         invalidateTimer = null;
+        if (isRecentLocalInvalidate()) return;
         if (p.type === 'inbounds') {
           queryClient.invalidateQueries({ queryKey: ['inbounds'] });
         } else {

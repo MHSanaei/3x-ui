@@ -2852,13 +2852,13 @@
         }
       }
     },
-    "/panel/api/clients/bulkAssignGroup": {
+    "/panel/api/clients/groups/bulkAdd": {
       "post": {
         "tags": [
           "Clients"
         ],
-        "summary": "Assign the given group label to many clients in one call. Updates clients.group_name and patches the matching client entry inside every owning inbound's settings JSON in a single transaction. Pass an empty group to clear the label. If the group name does not yet exist (in client_groups or as a derived label), it is auto-created as a persistent group.",
-        "operationId": "post_panel_api_clients_bulkAssignGroup",
+        "summary": "Add many clients to a group in one call. Updates clients.group_name and patches the matching client entry inside every owning inbound's settings JSON in a single transaction. If the group name does not yet exist (in client_groups or as a derived label), it is auto-created as a persistent group. To clear the group label, use /groups/bulkRemove instead.",
+        "operationId": "post_panel_api_clients_groups_bulkAdd",
         "requestBody": {
           "required": true,
           "content": {
@@ -2872,6 +2872,58 @@
                   "bob"
                 ],
                 "group": "customer-a"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "affected": 2
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/groups/bulkRemove": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Clear the group label on many clients in one call. Inverse of /groups/bulkAdd. Clients themselves are kept — only the group label is cleared from clients.group_name and from each owning inbound's settings JSON. Groups become empty if all their members are removed.",
+        "operationId": "post_panel_api_clients_groups_bulkRemove",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "emails": [
+                  "alice",
+                  "bob"
+                ]
               }
             }
           }
@@ -3178,7 +3230,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Create a new empty (placeholder) group. The group becomes selectable in client forms and the filter drawer even before any client is assigned to it. Errors if a group with the same name already exists.",
+        "summary": "Create a new empty (placeholder) group. The group becomes selectable in client forms and the filter drawer even before any client is added to it. Errors if a group with the same name already exists.",
         "operationId": "post_panel_api_clients_groups_create",
         "requestBody": {
           "required": true,

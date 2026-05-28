@@ -3,13 +3,13 @@ import { lazy, useEffect, useMemo, useState } from 'react';
 import { HttpUtil } from '@/utils';
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 
-const BulkAssignGroupModal = lazy(() => import('@/pages/clients/BulkAssignGroupModal'));
+const BulkAddToGroupModal = lazy(() => import('@/pages/clients/BulkAddToGroupModal'));
 
-interface AssignClientsGroupModalProps {
+interface AddClientsToGroupModalProps {
   open: boolean;
   source: DBInbound | null;
   onClose: () => void;
-  onAssigned?: () => void;
+  onAdded?: () => void;
 }
 
 function readClientEmails(settings: unknown): string[] {
@@ -18,12 +18,12 @@ function readClientEmails(settings: unknown): string[] {
   return clients.map((c) => (c?.email || '').trim()).filter(Boolean);
 }
 
-export default function AssignClientsGroupModal({
+export default function AddClientsToGroupModal({
   open,
   source,
   onClose,
-  onAssigned,
-}: AssignClientsGroupModalProps) {
+  onAdded,
+}: AddClientsToGroupModalProps) {
   const [groups, setGroups] = useState<string[]>([]);
 
   const emails = useMemo(() => (source ? readClientEmails(source.settings) : []), [source]);
@@ -41,19 +41,19 @@ export default function AssignClientsGroupModal({
   }, [open]);
 
   return (
-    <BulkAssignGroupModal
+    <BulkAddToGroupModal
       open={open}
       count={emails.length}
       groups={groups}
       onOpenChange={(o) => { if (!o) onClose(); }}
       onSubmit={async (group) => {
         const msg = await HttpUtil.post(
-          '/panel/api/clients/bulkAssignGroup',
+          '/panel/api/clients/groups/bulkAdd',
           { emails, group },
           { headers: { 'Content-Type': 'application/json' } },
         );
         if (!msg?.success) return null;
-        onAssigned?.();
+        onAdded?.();
         return (msg.obj as { affected?: number } | undefined) ?? { affected: 0 };
       }}
     />

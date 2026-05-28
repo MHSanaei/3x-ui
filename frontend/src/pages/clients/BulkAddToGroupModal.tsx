@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AutoComplete, Form, Modal, message } from 'antd';
 
-interface BulkAssignGroupModalProps {
+interface BulkAddToGroupModalProps {
   open: boolean;
   count: number;
   groups: string[];
@@ -10,13 +10,13 @@ interface BulkAssignGroupModalProps {
   onSubmit: (group: string) => Promise<{ affected?: number } | null>;
 }
 
-export default function BulkAssignGroupModal({
+export default function BulkAddToGroupModal({
   open,
   count,
   groups,
   onOpenChange,
   onSubmit,
-}: BulkAssignGroupModalProps) {
+}: BulkAddToGroupModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [value, setValue] = useState('');
@@ -28,16 +28,13 @@ export default function BulkAssignGroupModal({
 
   async function submit() {
     const next = value.trim();
+    if (!next) return;
     setSubmitting(true);
     try {
       const result = await onSubmit(next);
       if (result) {
         const affected = result.affected ?? 0;
-        if (next === '') {
-          messageApi.success(t('pages.clients.assignGroupClearedToast', { count: affected }));
-        } else {
-          messageApi.success(t('pages.clients.assignGroupAssignedToast', { count: affected, group: next }));
-        }
+        messageApi.success(t('pages.clients.addToGroupSuccessToast', { count: affected, group: next }));
         onOpenChange(false);
       }
     } finally {
@@ -50,10 +47,11 @@ export default function BulkAssignGroupModal({
       {messageContextHolder}
       <Modal
         open={open}
-        title={t('pages.clients.assignGroupTitle', { count })}
-        okText={t('save')}
+        title={t('pages.clients.addToGroupTitle', { count })}
+        okText={t('add')}
         cancelText={t('cancel')}
         confirmLoading={submitting}
+        okButtonProps={{ disabled: !value.trim() }}
         onCancel={() => onOpenChange(false)}
         onOk={submit}
         destroyOnHidden
@@ -61,11 +59,11 @@ export default function BulkAssignGroupModal({
         <Form layout="vertical">
           <Form.Item
             label={t('pages.clients.group')}
-            tooltip={t('pages.clients.assignGroupTooltip')}
+            tooltip={t('pages.clients.addToGroupTooltip')}
           >
             <AutoComplete
               value={value}
-              placeholder={t('pages.clients.assignGroupPlaceholder')}
+              placeholder={t('pages.clients.addToGroupPlaceholder')}
               options={groups.map((g) => ({ value: g }))}
               onChange={(v) => setValue(v ?? '')}
               filterOption={(input, option) =>

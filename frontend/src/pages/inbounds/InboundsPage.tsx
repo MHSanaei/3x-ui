@@ -40,7 +40,7 @@ const InboundInfoModal = lazy(() => import('./InboundInfoModal'));
 const QrCodeModal = lazy(() => import('./QrCodeModal'));
 const AttachClientsModal = lazy(() => import('./AttachClientsModal'));
 const DetachClientsModal = lazy(() => import('./DetachClientsModal'));
-const AssignClientsGroupModal = lazy(() => import('./AssignClientsGroupModal'));
+const AddClientsToGroupModal = lazy(() => import('./AddClientsToGroupModal'));
 
 type RowAction =
   | 'edit'
@@ -54,7 +54,7 @@ type RowAction =
   | 'delAllClients'
   | 'attachClients'
   | 'detachClients'
-  | 'assignGroup'
+  | 'addToGroup'
   | 'clone';
 
 type GeneralAction = 'import' | 'export' | 'subs' | 'resetInbounds';
@@ -452,7 +452,7 @@ export default function InboundsPage() {
     // Actions that touch per-client secrets (uuid, password, flow, ...) need
     // the full payload that the slim list view does not ship. Hydrate first
     // and then operate on the rehydrated record.
-    const hydratingKeys: RowAction[] = ['edit', 'showInfo', 'qrcode', 'export', 'subs', 'clipboard', 'clone', 'attachClients', 'assignGroup'];
+    const hydratingKeys: RowAction[] = ['edit', 'showInfo', 'qrcode', 'export', 'subs', 'clipboard', 'clone', 'attachClients', 'addToGroup'];
     let target = dbInbound;
     if (hydratingKeys.includes(key)) {
       const hydrated = await hydrateInbound(dbInbound.id);
@@ -497,7 +497,7 @@ export default function InboundsPage() {
         setDetachSource(target);
         setDetachOpen(true);
         break;
-      case 'assignGroup':
+      case 'addToGroup':
         setGroupSource(target);
         setGroupOpen(true);
         break;
@@ -631,10 +631,10 @@ export default function InboundsPage() {
           />
         </LazyMount>
         <LazyMount when={groupOpen}>
-          <AssignClientsGroupModal
+          <AddClientsToGroupModal
             open={groupOpen}
             onClose={() => setGroupOpen(false)}
-            onAssigned={refresh}
+            onAdded={refresh}
             source={groupSource}
           />
         </LazyMount>
