@@ -2411,7 +2411,7 @@ func (t *Tgbot) sendClientQRLinks(chatId int64, email string) {
 	}
 
 	// Inform user
-	t.SendMsgToTgbot(chatId, "QRCode"+":")
+	t.SendMsgToTgbot(chatId, "QRCode for client "+email+":")
 
 	// Send sub URL QR (filename: sub.png)
 	if png, err := createQR(subURL, 320); err == nil {
