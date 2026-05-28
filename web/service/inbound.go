@@ -2301,6 +2301,48 @@ func (s *InboundService) GetClientInboundByEmail(email string) (traffic *xray.Cl
 		inbound, err = s.GetInbound(traffics[0].InboundId)
 		return traffics[0], inbound, err
 	}
+
+	type linkedClient struct {
+		InboundId  int
+		Email      string
+		Enable     bool
+		TotalGB    int64
+		ExpiryTime int64
+		Reset      int
+	}
+	var linked linkedClient
+	err = db.Table("clients").
+		Select(`client_inbounds.inbound_id,
+			clients.email,
+			clients.enable,
+			clients.total_gb,
+			clients.expiry_time,
+			clients.reset`).
+		Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
+		Joins("JOIN inbounds ON inbounds.id = client_inbounds.inbound_id").
+		Where("clients.email = ?", email).
+		Order("client_inbounds.inbound_id ASC").
+		Limit(1).
+		Scan(&linked).Error
+	if err != nil {
+		logger.Warningf("Error retrieving linked client with email %s: %v", email, err)
+		return nil, nil, err
+	}
+	if linked.Email != "" {
+		inbound, err = s.GetInbound(linked.InboundId)
+		if err != nil {
+			return nil, nil, err
+		}
+		return &xray.ClientTraffic{
+			InboundId:  linked.InboundId,
+			Email:      linked.Email,
+			Enable:     linked.Enable,
+			Total:      linked.TotalGB,
+			ExpiryTime: linked.ExpiryTime,
+			Reset:      linked.Reset,
+		}, inbound, nil
+	}
+
 	return nil, nil, nil
 }
 
@@ -2311,6 +2353,19 @@ func (s *InboundService) GetClientByEmail(clientEmail string) (*xray.ClientTraff
 	}
 	if inbound == nil {
 		return nil, nil, common.NewError("Inbound Not Found For Email:", clientEmail)
+	}
+
+	linkedClients, err := s.clientService.ListForInbound(nil, inbound.Id)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, client := range linkedClients {
+		if client.Email == clientEmail {
+			traffic.Enable = client.Enable
+			traffic.UUID = client.ID
+			traffic.SubId = client.SubID
+			return traffic, &client, nil
+		}
 	}
 
 	clients, err := s.GetClients(inbound)

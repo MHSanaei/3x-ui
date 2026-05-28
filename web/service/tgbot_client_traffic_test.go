@@ -53,14 +53,6 @@ func TestGetClientTrafficTgBotUsesNormalizedRemoteNodeClients(t *testing.T) {
 	}}); err != nil {
 		t.Fatalf("SyncInbound: %v", err)
 	}
-	if err := db.Create(&xray.ClientTraffic{
-		InboundId: inbound.Id,
-		Email:     email,
-		Enable:    true,
-		Total:     1024,
-	}).Error; err != nil {
-		t.Fatalf("create traffic: %v", err)
-	}
 
 	traffics, err := (&InboundService{}).GetClientTrafficTgBot(tgID)
 	if err != nil {
@@ -71,6 +63,17 @@ func TestGetClientTrafficTgBotUsesNormalizedRemoteNodeClients(t *testing.T) {
 	}
 	if traffics[0].Email != email || traffics[0].UUID != uuid || traffics[0].SubId != subID {
 		t.Fatalf("unexpected traffic: %#v", traffics[0])
+	}
+
+	traffic, client, err := (&InboundService{}).GetClientByEmail(email)
+	if err != nil {
+		t.Fatalf("GetClientByEmail: %v", err)
+	}
+	if traffic == nil || client == nil {
+		t.Fatalf("expected linked client without traffic row, got traffic=%#v client=%#v", traffic, client)
+	}
+	if client.Email != email || client.ID != uuid || client.SubID != subID {
+		t.Fatalf("unexpected linked client: %#v", client)
 	}
 }
 
