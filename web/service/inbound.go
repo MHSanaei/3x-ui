@@ -2988,10 +2988,13 @@ func (s *InboundService) MigrationRequirements() {
 	for inbound_index := range inbounds {
 		settings := map[string]any{}
 		json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
+		if raw, exists := settings["clients"]; exists && raw == nil {
+			settings["clients"] = []any{}
+		}
 		clients, ok := settings["clients"].([]any)
 		if ok {
 			// Fix Client configuration problems
-			var newClients []any
+			newClients := make([]any, 0, len(clients))
 			hasVisionFlow := false
 			for client_index := range clients {
 				c := clients[client_index].(map[string]any)

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"math"
 	"os"
 	"path"
 	"slices"
@@ -143,7 +144,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -196,7 +197,110 @@ func runSeeders(isUsersEmpty bool) error {
 			return err
 		}
 	}
+
+	if !slices.Contains(seedersHistory, "InboundClientsArrayFix") {
+		if err := normalizeInboundClientsArray(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "InboundClientTgIdFix") {
+		if err := normalizeInboundClientTgId(); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func normalizeInboundClientTgId() error {
+	var inbounds []model.Inbound
+	if err := db.Find(&inbounds).Error; err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, inbound := range inbounds {
+			if strings.TrimSpace(inbound.Settings) == "" {
+				continue
+			}
+			var settings map[string]any
+			if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+				log.Printf("InboundClientTgIdFix: skip inbound %d (invalid settings json): %v", inbound.Id, err)
+				continue
+			}
+			clients, ok := settings["clients"].([]any)
+			if !ok {
+				continue
+			}
+			mutated := false
+			for i, raw := range clients {
+				obj, ok := raw.(map[string]any)
+				if !ok {
+					continue
+				}
+				tgRaw, present := obj["tgId"]
+				if !present {
+					continue
+				}
+				v, isFloat := tgRaw.(float64)
+				if isFloat && !math.IsNaN(v) && !math.IsInf(v, 0) && v == math.Trunc(v) {
+					continue
+				}
+				obj["tgId"] = int64(0)
+				clients[i] = obj
+				mutated = true
+			}
+			if !mutated {
+				continue
+			}
+			settings["clients"] = clients
+			newSettings, err := json.MarshalIndent(settings, "", "  ")
+			if err != nil {
+				log.Printf("InboundClientTgIdFix: skip inbound %d (marshal failed): %v", inbound.Id, err)
+				continue
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+				Update("settings", string(newSettings)).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "InboundClientTgIdFix"}).Error
+	})
+}
+
+func normalizeInboundClientsArray() error {
+	var inbounds []model.Inbound
+	if err := db.Find(&inbounds).Error; err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, inbound := range inbounds {
+			if strings.TrimSpace(inbound.Settings) == "" {
+				continue
+			}
+			var settings map[string]any
+			if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+				log.Printf("InboundClientsArrayFix: skip inbound %d (invalid settings json): %v", inbound.Id, err)
+				continue
+			}
+			raw, exists := settings["clients"]
+			if !exists || raw != nil {
+				continue
+			}
+			settings["clients"] = []any{}
+			newSettings, err := json.MarshalIndent(settings, "", "  ")
+			if err != nil {
+				log.Printf("InboundClientsArrayFix: skip inbound %d (marshal failed): %v", inbound.Id, err)
+				continue
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+				Update("settings", string(newSettings)).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "InboundClientsArrayFix"}).Error
+	})
 }
 
 // normalizeClientJSONFields coerces loosely-typed numeric fields in a raw

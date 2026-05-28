@@ -112,10 +112,26 @@ function healStreamNetworkKey(stream: Record<string, unknown>): void {
   }
 }
 
-// Map a raw DB row (settings/streamSettings/sniffing as string OR object)
-// into the typed InboundFormValues. Does NOT validate against the schema —
-// callers that want a hard guarantee should follow up with
-// InboundFormSchema.safeParse(...).
+function tlsCerts(stream: Record<string, unknown>): Record<string, unknown>[] {
+  const tls = stream.tlsSettings as { certificates?: unknown } | undefined;
+  return Array.isArray(tls?.certificates) ? tls.certificates as Record<string, unknown>[] : [];
+}
+
+function synthesizeTlsCertUseFile(stream: Record<string, unknown>): void {
+  for (const c of tlsCerts(stream)) {
+    if (typeof c.useFile === 'boolean') continue;
+    const hasFile = !!c.certificateFile || !!c.keyFile;
+    const hasInline =
+      (Array.isArray(c.certificate) && c.certificate.length > 0) ||
+      (Array.isArray(c.key) && c.key.length > 0);
+    c.useFile = hasFile || !hasInline;
+  }
+}
+
+function stripTlsCertUseFile(stream: Record<string, unknown>): void {
+  for (const c of tlsCerts(stream)) delete c.useFile;
+}
+
 export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
   const protocol = (row.protocol || 'vless') as InboundSettings['protocol'];
   const settings = coerceJsonObject(row.settings) as InboundSettings['settings'];
@@ -125,6 +141,7 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     : undefined;
   if (streamSettings) {
     healStreamNetworkKey(streamSettings as unknown as Record<string, unknown>);
+    synthesizeTlsCertUseFile(streamSettings as unknown as Record<string, unknown>);
   }
   const sniffing = coerceJsonObject(row.sniffing) as unknown as Sniffing;
 
@@ -181,12 +198,12 @@ export function pruneEmpty(value: unknown): unknown {
 // gives us the canonical projection.
 function clientSchemaForProtocol(protocol: string): z.ZodType | null {
   switch (protocol) {
-    case 'vless':       return VlessClientSchema;
-    case 'vmess':       return VmessClientSchema;
-    case 'trojan':      return TrojanClientSchema;
+    case 'vless': return VlessClientSchema;
+    case 'vmess': return VmessClientSchema;
+    case 'trojan': return TrojanClientSchema;
     case 'shadowsocks': return ShadowsocksClientSchema;
-    case 'hysteria':    return HysteriaClientSchema;
-    default:            return null;
+    case 'hysteria': return HysteriaClientSchema;
+    default: return null;
   }
 }
 
@@ -265,6 +282,7 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
   const streamPruned = values.streamSettings
     ? ((pruneEmpty(values.streamSettings) ?? {}) as Record<string, unknown>)
     : undefined;
+  if (streamPruned) stripTlsCertUseFile(streamPruned);
   dropLegacyOptionalEmpties(settingsPruned, streamPruned);
   const payload: WireInboundPayload = {
     up: values.up,

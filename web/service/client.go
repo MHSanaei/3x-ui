@@ -687,7 +687,7 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		if key == "" {
 			continue
 		}
-		nr, delErr := s.DelInboundClient(inboundSvc, ibId, key)
+		nr, delErr := s.DelInboundClient(inboundSvc, ibId, key, false)
 		if delErr != nil {
 			return needRestart, delErr
 		}
@@ -984,7 +984,7 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 	}
 	needRestart := false
 	for _, ibId := range inboundIds {
-		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, email)
+		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, email, false)
 		if delErr != nil {
 			return needRestart, delErr
 		}
@@ -2393,7 +2393,7 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 
 	needRestart := false
 	for inboundId, ibEmails := range emailsByInbound {
-		ibResult := s.bulkDelInboundClients(inboundSvc, inboundId, ibEmails, recordsByEmail)
+		ibResult := s.bulkDelInboundClients(inboundSvc, inboundId, ibEmails, recordsByEmail, false)
 		if ibResult.needRestart {
 			needRestart = true
 		}
@@ -2453,6 +2453,7 @@ func (s *ClientService) bulkDelInboundClients(
 	inboundId int,
 	emails []string,
 	records map[string]*model.ClientRecord,
+	keepTraffic bool,
 ) bulkInboundDeleteResult {
 	res := bulkInboundDeleteResult{perEmailSkipped: map[string]string{}}
 
@@ -2574,7 +2575,7 @@ func (s *ClientService) bulkDelInboundClients(
 			delete(foundEmails, email)
 			continue
 		}
-		if shared {
+		if shared || keepTraffic {
 			continue
 		}
 		if delErr := inboundSvc.DelClientIPs(db, email); delErr != nil {
@@ -2807,7 +2808,7 @@ func (s *ClientService) Detach(inboundSvc *InboundService, id int, inboundIds []
 		if key == "" {
 			continue
 		}
-		nr, delErr := s.DelInboundClient(inboundSvc, ibId, key)
+		nr, delErr := s.DelInboundClient(inboundSvc, ibId, key, true)
 		if delErr != nil {
 			return needRestart, delErr
 		}
@@ -3282,7 +3283,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	return needRestart, nil
 }
 
-func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId int, clientId string) (bool, error) {
+func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId int, clientId string, keepTraffic bool) (bool, error) {
 	defer lockInbound(inboundId).Unlock()
 
 	oldInbound, err := inboundSvc.GetInbound(inboundId)
@@ -3345,7 +3346,7 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 		return false, err
 	}
 
-	if !emailShared {
+	if !emailShared && !keepTraffic {
 		err = inboundSvc.DelClientIPs(db, email)
 		if err != nil {
 			logger.Error("Error in delete client IPs")
@@ -3362,7 +3363,7 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 			return false, err
 		}
 		notDepleted := len(enables) > 0 && enables[0]
-		if !emailShared {
+		if !emailShared && !keepTraffic {
 			err = inboundSvc.DelClientStat(db, email)
 			if err != nil {
 				logger.Error("Delete stats Data Error")
@@ -3409,7 +3410,7 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 	return needRestart, nil
 }
 
-func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inboundId int, email string) (bool, error) {
+func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inboundId int, email string, keepTraffic bool) (bool, error) {
 	defer lockInbound(inboundId).Unlock()
 
 	oldInbound, err := inboundSvc.GetInbound(inboundId)
@@ -3466,7 +3467,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		return false, err
 	}
 
-	if !emailShared {
+	if !emailShared && !keepTraffic {
 		if err := inboundSvc.DelClientIPs(db, email); err != nil {
 			logger.Error("Error in delete client IPs")
 			return false, err
@@ -3476,14 +3477,16 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	needRestart := false
 
 	if len(email) > 0 && !emailShared {
-		traffic, err := inboundSvc.GetClientTrafficByEmail(email)
-		if err != nil {
-			return false, err
-		}
-		if traffic != nil {
-			if err := inboundSvc.DelClientStat(db, email); err != nil {
-				logger.Error("Delete stats Data Error")
+		if !keepTraffic {
+			traffic, err := inboundSvc.GetClientTrafficByEmail(email)
+			if err != nil {
 				return false, err
+			}
+			if traffic != nil {
+				if err := inboundSvc.DelClientStat(db, email); err != nil {
+					logger.Error("Delete stats Data Error")
+					return false, err
+				}
 			}
 		}
 
