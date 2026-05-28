@@ -42,6 +42,7 @@ import {
   TagsOutlined,
   TeamOutlined,
   UsergroupAddOutlined,
+  UsergroupDeleteOutlined,
 } from '@ant-design/icons';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -62,6 +63,8 @@ const ClientBulkAdjustModal = lazy(() => import('./ClientBulkAdjustModal'));
 const FilterDrawer = lazy(() => import('./FilterDrawer'));
 const SubLinksModal = lazy(() => import('./SubLinksModal'));
 const BulkAssignGroupModal = lazy(() => import('./BulkAssignGroupModal'));
+const BulkAttachInboundsModal = lazy(() => import('./BulkAttachInboundsModal'));
+const BulkDetachInboundsModal = lazy(() => import('./BulkDetachInboundsModal'));
 import { emptyFilters, activeFilterCount } from './filters';
 import type { ClientFilters } from './filters';
 import './ClientsPage.css';
@@ -149,7 +152,7 @@ export default function ClientsPage() {
     setQuery,
     inbounds, onlines, loading, fetched, subSettings,
     ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
-    create, update, remove, bulkDelete, bulkAdjust, bulkAssignGroup, attach, detach,
+    create, update, remove, bulkDelete, bulkAdjust, bulkAssignGroup, attach, bulkAttach, detach, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
     hydrate,
@@ -173,6 +176,8 @@ export default function ClientsPage() {
   const [bulkAdjustOpen, setBulkAdjustOpen] = useState(false);
   const [subLinksOpen, setSubLinksOpen] = useState(false);
   const [bulkGroupOpen, setBulkGroupOpen] = useState(false);
+  const [bulkAttachOpen, setBulkAttachOpen] = useState(false);
+  const [bulkDetachOpen, setBulkDetachOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
   const initial = readFilterState();
@@ -789,6 +794,12 @@ export default function ClientsPage() {
                               <Button icon={<TagsOutlined />} onClick={() => setBulkGroupOpen(true)}>
                                 {t('pages.clients.assignGroupSelected', { count: selectedRowKeys.length })}
                               </Button>
+                              <Button icon={<UsergroupAddOutlined />} onClick={() => setBulkAttachOpen(true)}>
+                                {t('pages.clients.attachSelected', { count: selectedRowKeys.length })}
+                              </Button>
+                              <Button danger icon={<UsergroupDeleteOutlined />} onClick={() => setBulkDetachOpen(true)}>
+                                {t('pages.clients.detachSelected', { count: selectedRowKeys.length })}
+                              </Button>
                               <Button icon={<LinkOutlined />} onClick={() => setSubLinksOpen(true)}>
                                 {t('pages.clients.subLinksSelected', { count: selectedRowKeys.length })}
                               </Button>
@@ -1152,6 +1163,38 @@ export default function ClientsPage() {
               if (msg?.success) {
                 setSelectedRowKeys([]);
                 return (msg.obj as { affected?: number } | undefined) ?? { affected: 0 };
+              }
+              return null;
+            }}
+          />
+        </LazyMount>
+        <LazyMount when={bulkAttachOpen}>
+          <BulkAttachInboundsModal
+            open={bulkAttachOpen}
+            count={selectedRowKeys.length}
+            inbounds={inbounds}
+            onOpenChange={setBulkAttachOpen}
+            onSubmit={async (inboundIds) => {
+              const msg = await bulkAttach([...selectedRowKeys], inboundIds);
+              if (msg?.success) {
+                setSelectedRowKeys([]);
+                return msg.obj ?? { attached: [], skipped: [], errors: [] };
+              }
+              return null;
+            }}
+          />
+        </LazyMount>
+        <LazyMount when={bulkDetachOpen}>
+          <BulkDetachInboundsModal
+            open={bulkDetachOpen}
+            count={selectedRowKeys.length}
+            inbounds={inbounds}
+            onOpenChange={setBulkDetachOpen}
+            onSubmit={async (inboundIds) => {
+              const msg = await bulkDetach([...selectedRowKeys], inboundIds);
+              if (msg?.success) {
+                setSelectedRowKeys([]);
+                return msg.obj ?? { detached: [], skipped: [], errors: [] };
               }
               return null;
             }}

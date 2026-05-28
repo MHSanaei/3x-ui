@@ -10,8 +10,10 @@ import {
   InboundOptionsSchema,
   OnlinesSchema,
   BulkAdjustResultSchema,
+  BulkAttachResultSchema,
   BulkCreateResultSchema,
   BulkDeleteResultSchema,
+  BulkDetachResultSchema,
   DelDepletedResultSchema,
   type ClientHydrate,
   type ClientRecord,
@@ -20,8 +22,10 @@ import {
   type ClientPageResponse,
   type InboundOption,
   type BulkAdjustResult,
+  type BulkAttachResult,
   type BulkCreateResult,
   type BulkDeleteResult,
+  type BulkDetachResult,
 } from '@/schemas/client';
 import { DefaultsPayloadSchema } from '@/schemas/defaults';
 
@@ -286,9 +290,25 @@ export function useClients() {
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
+  const bulkAttachMut = useMutation({
+    mutationFn: async (payload: { emails: string[]; inboundIds: number[] }): Promise<Msg<BulkAttachResult>> => {
+      const raw = await HttpUtil.post('/panel/api/clients/bulkAttach', payload, JSON_HEADERS);
+      return parseMsg(raw, BulkAttachResultSchema, 'clients/bulkAttach');
+    },
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
   const detachMut = useMutation({
     mutationFn: ({ email, inboundIds }: { email: string; inboundIds: number[] }) =>
       HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/detach`, { inboundIds }, JSON_HEADERS),
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
+  const bulkDetachMut = useMutation({
+    mutationFn: async (payload: { emails: string[]; inboundIds: number[] }): Promise<Msg<BulkDetachResult>> => {
+      const raw = await HttpUtil.post('/panel/api/clients/bulkDetach', payload, JSON_HEADERS);
+      return parseMsg(raw, BulkDetachResultSchema, 'clients/bulkDetach');
+    },
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
@@ -340,10 +360,20 @@ export function useClients() {
     if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return attachMut.mutateAsync({ email, inboundIds });
   }, [attachMut]);
+  const bulkAttach = useCallback((emails: string[], inboundIds: number[]) => {
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkAttachResult>);
+    if (!Array.isArray(inboundIds) || inboundIds.length === 0) return Promise.resolve(null as unknown as Msg<BulkAttachResult>);
+    return bulkAttachMut.mutateAsync({ emails, inboundIds });
+  }, [bulkAttachMut]);
   const detach = useCallback((email: string, inboundIds: number[]) => {
     if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return detachMut.mutateAsync({ email, inboundIds });
   }, [detachMut]);
+  const bulkDetach = useCallback((emails: string[], inboundIds: number[]) => {
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkDetachResult>);
+    if (!Array.isArray(inboundIds) || inboundIds.length === 0) return Promise.resolve(null as unknown as Msg<BulkDetachResult>);
+    return bulkDetachMut.mutateAsync({ emails, inboundIds });
+  }, [bulkDetachMut]);
   const resetTraffic = useCallback((client: ClientRecord) => {
     if (!client?.email) return Promise.resolve(null as unknown as Msg<unknown>);
     return resetTrafficMut.mutateAsync(client.email);
@@ -444,7 +474,9 @@ export function useClients() {
     bulkAdjust,
     bulkAssignGroup,
     attach,
+    bulkAttach,
     detach,
+    bulkDetach,
     resetTraffic,
     resetAllTraffics,
     delDepleted,

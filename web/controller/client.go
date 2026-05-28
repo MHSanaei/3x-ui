@@ -49,6 +49,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/bulkCreate", a.bulkCreate)
 	g.POST("/bulkAssignGroup", a.bulkAssignGroup)
 	g.POST("/bulkAttach", a.bulkAttach)
+	g.POST("/bulkDetach", a.bulkDetach)
 	g.POST("/resetTraffic/:email", a.resetTrafficByEmail)
 	g.POST("/updateTraffic/:email", a.updateTrafficByEmail)
 	g.POST("/ips/:email", a.getIps)
@@ -252,6 +253,29 @@ func (a *ClientController) bulkAttach(c *gin.Context) {
 		return
 	}
 	result, needRestart, err := a.clientService.BulkAttach(&a.inboundService, req.Emails, req.InboundIds)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, result, nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	notifyClientsChanged()
+}
+
+type bulkDetachRequest struct {
+	Emails     []string `json:"emails"`
+	InboundIds []int    `json:"inboundIds"`
+}
+
+func (a *ClientController) bulkDetach(c *gin.Context) {
+	var req bulkDetachRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	result, needRestart, err := a.clientService.BulkDetach(&a.inboundService, req.Emails, req.InboundIds)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return

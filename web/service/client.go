@@ -884,6 +884,75 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 	return result, needRestart, nil
 }
 
+// BulkDetachResult reports the outcome of a bulk detach across target inbounds.
+type BulkDetachResult struct {
+	Detached []string `json:"detached"`
+	Skipped  []string `json:"skipped"`
+	Errors   []string `json:"errors"`
+}
+
+// BulkDetach detaches the given existing clients (by email) from each target inbound.
+// (email, inbound) pairs where the client is not currently attached are silently skipped
+// at the inbound level; emails that aren't attached to any of the requested inbounds
+// are reported under skipped. ClientRecord rows are kept even when they become orphaned
+// (matches single-client detach semantics); callers should use bulkDelete for full removal.
+func (s *ClientService) BulkDetach(inboundSvc *InboundService, emails []string, inboundIds []int) (*BulkDetachResult, bool, error) {
+	result := &BulkDetachResult{}
+	if len(emails) == 0 || len(inboundIds) == 0 {
+		return result, false, nil
+	}
+
+	requested := make(map[int]struct{}, len(inboundIds))
+	for _, id := range inboundIds {
+		requested[id] = struct{}{}
+	}
+
+	needRestart := false
+	seenEmail := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		if email == "" {
+			continue
+		}
+		key := strings.ToLower(email)
+		if _, ok := seenEmail[key]; ok {
+			continue
+		}
+		seenEmail[key] = struct{}{}
+
+		rec, err := s.GetRecordByEmail(nil, email)
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", email, err))
+			continue
+		}
+		currentIds, err := s.GetInboundIdsForRecord(rec.Id)
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", email, err))
+			continue
+		}
+		intersection := make([]int, 0, len(currentIds))
+		for _, id := range currentIds {
+			if _, ok := requested[id]; ok {
+				intersection = append(intersection, id)
+			}
+		}
+		if len(intersection) == 0 {
+			result.Skipped = append(result.Skipped, rec.Email)
+			continue
+		}
+		nr, err := s.Detach(inboundSvc, rec.Id, intersection)
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", rec.Email, err))
+			continue
+		}
+		if nr {
+			needRestart = true
+		}
+		result.Detached = append(result.Detached, rec.Email)
+	}
+
+	return result, needRestart, nil
+}
+
 func (s *ClientService) DetachByEmailMany(inboundSvc *InboundService, email string, inboundIds []int) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")

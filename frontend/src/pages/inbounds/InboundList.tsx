@@ -262,6 +262,7 @@ function buildRowActionsMenu({ record, subEnable, t, isMobile, hasClients }: { r
   items.push({ key: 'clone', icon: <BlockOutlined />, label: t('pages.inbounds.clone') });
   if (isInboundMultiUser(record) && hasClients) {
     items.push({ key: 'attachClients', icon: <UsergroupAddOutlined />, label: t('pages.inbounds.attachClients') });
+    items.push({ key: 'detachClients', icon: <UsergroupDeleteOutlined />, label: t('pages.inbounds.detachClients') });
     items.push({ key: 'assignGroup', icon: <TagsOutlined />, label: t('pages.inbounds.assignClientsGroup') });
     items.push({ key: 'delAllClients', icon: <UsergroupDeleteOutlined />, danger: true, label: t('pages.inbounds.delAllClients') });
   }

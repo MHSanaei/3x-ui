@@ -39,6 +39,7 @@ const InboundFormModal = lazy(() => import('./InboundFormModal'));
 const InboundInfoModal = lazy(() => import('./InboundInfoModal'));
 const QrCodeModal = lazy(() => import('./QrCodeModal'));
 const AttachClientsModal = lazy(() => import('./AttachClientsModal'));
+const DetachClientsModal = lazy(() => import('./DetachClientsModal'));
 const AssignClientsGroupModal = lazy(() => import('./AssignClientsGroupModal'));
 
 type RowAction =
@@ -52,6 +53,7 @@ type RowAction =
   | 'resetTraffic'
   | 'delAllClients'
   | 'attachClients'
+  | 'detachClients'
   | 'assignGroup'
   | 'clone';
 
@@ -127,6 +129,8 @@ export default function InboundsPage() {
 
   const [attachOpen, setAttachOpen] = useState(false);
   const [attachSource, setAttachSource] = useState<DBInbound | null>(null);
+  const [detachOpen, setDetachOpen] = useState(false);
+  const [detachSource, setDetachSource] = useState<DBInbound | null>(null);
 
   const [groupOpen, setGroupOpen] = useState(false);
   const [groupSource, setGroupSource] = useState<DBInbound | null>(null);
@@ -489,6 +493,10 @@ export default function InboundsPage() {
         setAttachSource(target);
         setAttachOpen(true);
         break;
+      case 'detachClients':
+        setDetachSource(target);
+        setDetachOpen(true);
+        break;
       case 'assignGroup':
         setGroupSource(target);
         setGroupOpen(true);
@@ -612,6 +620,14 @@ export default function InboundsPage() {
             onAttached={refresh}
             source={attachSource}
             dbInbounds={dbInbounds}
+          />
+        </LazyMount>
+        <LazyMount when={detachOpen}>
+          <DetachClientsModal
+            open={detachOpen}
+            onClose={() => setDetachOpen(false)}
+            onDetached={refresh}
+            source={detachSource}
           />
         </LazyMount>
         <LazyMount when={groupOpen}>

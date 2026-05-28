@@ -1,22 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 import { HttpUtil } from '@/utils';
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
-import { isInboundMultiUser } from './InboundList';
 
-interface AttachClientsModalProps {
+interface DetachClientsModalProps {
   open: boolean;
   source: DBInbound | null;
-  dbInbounds: DBInbound[];
   onClose: () => void;
-  onAttached?: () => void;
+  onDetached?: () => void;
 }
 
-interface BulkAttachResult {
-  attached?: string[];
+interface BulkDetachResult {
+  detached?: string[];
   skipped?: string[];
   errors?: string[];
 }
@@ -41,16 +39,14 @@ function readClientRows(settings: unknown): ClientRow[] {
     .filter((r) => r.email);
 }
 
-export default function AttachClientsModal({
+export default function DetachClientsModal({
   open,
   source,
-  dbInbounds,
   onClose,
-  onAttached,
-}: AttachClientsModalProps) {
+  onDetached,
+}: DetachClientsModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
-  const [targetIds, setTargetIds] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [clientRows, setClientRows] = useState<ClientRow[]>([]);
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
@@ -60,17 +56,9 @@ export default function AttachClientsModal({
     if (!open) return;
     const rows = source ? readClientRows(source.settings) : [];
     setClientRows(rows);
-    setSelectedEmails(rows.map((r) => r.email));
-    setTargetIds([]);
+    setSelectedEmails([]);
     setSearch('');
   }, [open, source]);
-
-  const targetOptions = useMemo(() => {
-    if (!source) return [];
-    return (dbInbounds || [])
-      .filter((ib) => ib.id !== source.id && isInboundMultiUser(ib))
-      .map((ib) => ({ value: ib.id, label: `${ib.remark} (${ib.protocol}@${ib.port})` }));
-  }, [dbInbounds, source]);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -111,28 +99,28 @@ export default function AttachClientsModal({
   );
 
   async function submit() {
-    if (!source || targetIds.length === 0 || selectedEmails.length === 0) return;
+    if (!source || selectedEmails.length === 0) return;
     setSaving(true);
     try {
       const msg = await HttpUtil.post(
-        '/panel/api/clients/bulkAttach',
-        { emails: selectedEmails, inboundIds: targetIds },
+        '/panel/api/clients/bulkDetach',
+        { emails: selectedEmails, inboundIds: [source.id] },
         { headers: { 'Content-Type': 'application/json' } },
       );
       if (!msg?.success) {
         messageApi.error(msg?.msg || t('somethingWentWrong'));
         return;
       }
-      const result = (msg.obj || {}) as BulkAttachResult;
-      const attached = result.attached?.length ?? 0;
+      const result = (msg.obj || {}) as BulkDetachResult;
+      const detached = result.detached?.length ?? 0;
       const skipped = result.skipped?.length ?? 0;
       const errors = result.errors?.length ?? 0;
       if (errors > 0) {
-        messageApi.warning(t('pages.inbounds.attachClientsResultMixed', { attached, skipped, errors }));
+        messageApi.warning(t('pages.inbounds.detachClientsResultMixed', { detached, skipped, errors }));
       } else {
-        messageApi.success(t('pages.inbounds.attachClientsResult', { attached, skipped }));
+        messageApi.success(t('pages.inbounds.detachClientsResult', { detached, skipped }));
       }
-      onAttached?.();
+      onDetached?.();
       onClose();
     } finally {
       setSaving(false);
@@ -145,21 +133,22 @@ export default function AttachClientsModal({
       onCancel={onClose}
       onOk={submit}
       okButtonProps={{
-        disabled: targetIds.length === 0 || selectedEmails.length === 0,
+        danger: true,
+        disabled: selectedEmails.length === 0,
         loading: saving,
       }}
-      okText={t('pages.inbounds.attachClients')}
+      okText={t('pages.inbounds.detachClients')}
       cancelText={t('cancel')}
-      title={t('pages.inbounds.attachClientsTitle', { remark: source?.remark ?? '' })}
+      title={t('pages.inbounds.detachClientsTitle', { remark: source?.remark ?? '' })}
       width={680}
     >
       {messageContextHolder}
       <Typography.Paragraph type="secondary">
-        {t('pages.inbounds.attachClientsDesc', { count: clientRows.length })}
+        {t('pages.inbounds.detachClientsDesc', { count: clientRows.length })}
       </Typography.Paragraph>
 
-      <Space direction="vertical" size="small" style={{ width: '100%', marginBottom: 12 }}>
-        <Typography.Text strong>{t('pages.inbounds.attachClientsSelectLabel')}</Typography.Text>
+      <Space direction="vertical" size="small" style={{ width: '100%' }}>
+        <Typography.Text strong>{t('pages.inbounds.detachClientsSelectLabel')}</Typography.Text>
         <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
           <Input.Search
             allowClear
@@ -189,20 +178,6 @@ export default function AttachClientsModal({
           }}
         />
       </Space>
-
-      {targetOptions.length === 0 ? (
-        <Alert type="info" showIcon message={t('pages.inbounds.attachClientsNoTargets')} />
-      ) : (
-        <Select
-          mode="multiple"
-          style={{ width: '100%' }}
-          value={targetIds}
-          onChange={setTargetIds}
-          options={targetOptions}
-          placeholder={t('pages.inbounds.attachClientsTargets')}
-          optionFilterProp="label"
-        />
-      )}
     </Modal>
   );
 }

@@ -97,6 +97,18 @@ export const DelDepletedResultSchema = z.object({
   deleted: z.number().optional(),
 });
 
+export const BulkAttachResultSchema = z.object({
+  attached: z.array(z.string()).nullable().transform((v) => v ?? []),
+  skipped: z.array(z.string()).nullable().transform((v) => v ?? []),
+  errors: z.array(z.string()).nullable().transform((v) => v ?? []),
+});
+
+export const BulkDetachResultSchema = z.object({
+  detached: z.array(z.string()).nullable().transform((v) => v ?? []),
+  skipped: z.array(z.string()).nullable().transform((v) => v ?? []),
+  errors: z.array(z.string()).nullable().transform((v) => v ?? []),
+});
+
 export const OnlinesSchema = nullableStringArray;
 
 export const GroupSummarySchema = z.object({
@@ -167,6 +179,8 @@ export type ClientHydrate = z.infer<typeof ClientHydrateSchema>;
 export type BulkAdjustResult = z.infer<typeof BulkAdjustResultSchema>;
 export type BulkDeleteResult = z.infer<typeof BulkDeleteResultSchema>;
 export type BulkCreateResult = z.infer<typeof BulkCreateResultSchema>;
+export type BulkAttachResult = z.infer<typeof BulkAttachResultSchema>;
+export type BulkDetachResult = z.infer<typeof BulkDetachResultSchema>;
 export type ClientBulkAddFormValues = z.infer<typeof ClientBulkAddFormSchema>;
 export type ClientBulkAdjustFormValues = z.infer<typeof ClientBulkAdjustFormSchema>;
 export type ClientFormValues = z.infer<typeof ClientFormSchema>;
