@@ -1983,6 +1983,12 @@ export default function InboundFormModal({
             <Input />
           </Form.Item>
           <Form.Item
+            name={['streamSettings', 'xhttpSettings', 'headers']}
+            label={t('pages.inbounds.form.headers')}
+          >
+            <HeaderMapEditor mode="v1" />
+          </Form.Item>
+          <Form.Item
             name={['streamSettings', 'xhttpSettings', 'uplinkHTTPMethod']}
             label={t('pages.inbounds.form.uplinkHttpMethod')}
           >
