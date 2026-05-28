@@ -191,7 +191,7 @@ export default function ClientFormModal({
     } else {
       setForm({
         ...emptyForm(),
-        email: RandomUtil.randomLowerAndNum(9),
+        email: RandomUtil.randomLowerAndNum(10),
         uuid: RandomUtil.randomUUID(),
         subId: RandomUtil.randomLowerAndNum(16),
         password: RandomUtil.randomLowerAndNum(16),

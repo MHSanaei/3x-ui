@@ -130,7 +130,7 @@ export default function ClientBulkAddModal({
     const postfix = method > 2 && form.emailPostfix.length > 0 ? form.emailPostfix : '';
     for (let i = start; i < end; i++) {
       let email = '';
-      if (method !== 4) email = RandomUtil.randomLowerAndNum(6);
+      if (method !== 4) email = RandomUtil.randomLowerAndNum(10);
       email += useNum ? prefix + String(i) + postfix : prefix + postfix;
       out.push(email);
     }
