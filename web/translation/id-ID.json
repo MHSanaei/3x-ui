@@ -266,6 +266,7 @@
         "add": "Tambah fallback",
         "pickInbound": "Pilih inbound",
         "matchAny": "apa pun",
+        "destPlaceholder": "otomatis (listen:port child)",
         "rederive": "Isi ulang dari child",
         "rederived": "Diisi ulang dari child",
         "editAdvanced": "Edit field routing",

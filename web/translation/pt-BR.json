@@ -266,6 +266,7 @@
         "add": "Adicionar fallback",
         "pickInbound": "Escolha um inbound",
         "matchAny": "qualquer",
+        "destPlaceholder": "automático (listen:porta do filho)",
         "rederive": "Preencher a partir do filho",
         "rederived": "Preenchido a partir do filho",
         "editAdvanced": "Editar campos de roteamento",

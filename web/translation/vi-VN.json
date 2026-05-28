@@ -266,6 +266,7 @@
         "add": "Thêm fallback",
         "pickInbound": "Chọn một inbound",
         "matchAny": "bất kỳ",
+        "destPlaceholder": "tự động (listen:port của child)",
         "rederive": "Điền lại từ child",
         "rederived": "Đã điền lại từ child",
         "editAdvanced": "Sửa trường định tuyến",

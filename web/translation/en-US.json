@@ -266,6 +266,7 @@
         "add": "Add fallback",
         "pickInbound": "Pick an inbound",
         "matchAny": "any",
+        "destPlaceholder": "auto (child listen:port)",
         "rederive": "Re-fill from child",
         "rederived": "Re-filled from child",
         "editAdvanced": "Edit routing fields",

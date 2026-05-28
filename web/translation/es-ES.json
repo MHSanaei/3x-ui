@@ -266,6 +266,7 @@
         "add": "Añadir fallback",
         "pickInbound": "Selecciona un inbound",
         "matchAny": "cualquiera",
+        "destPlaceholder": "automático (listen:puerto del hijo)",
         "rederive": "Rellenar desde el hijo",
         "rederived": "Rellenado desde el hijo",
         "editAdvanced": "Editar campos de enrutamiento",

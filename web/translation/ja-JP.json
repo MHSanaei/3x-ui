@@ -266,6 +266,7 @@
         "add": "フォールバックを追加",
         "pickInbound": "インバウンドを選択",
         "matchAny": "任意",
+        "destPlaceholder": "自動（子の listen:port）",
         "rederive": "子から再取得",
         "rederived": "子から再取得しました",
         "editAdvanced": "ルーティング項目を編集",

@@ -266,6 +266,7 @@
         "add": "افزودن فال‌بک",
         "pickInbound": "یک اینباند انتخاب کنید",
         "matchAny": "همه",
+        "destPlaceholder": "خودکار (listen:port فرزند)",
         "rederive": "پر کردن مجدد از فرزند",
         "rederived": "از فرزند پر شد",
         "editAdvanced": "ویرایش فیلدهای مسیریابی",

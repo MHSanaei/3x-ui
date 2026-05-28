@@ -266,6 +266,7 @@
         "add": "إضافة fallback",
         "pickInbound": "اختر inbound",
         "matchAny": "أي",
+        "destPlaceholder": "تلقائي (listen:port للفرع)",
         "rederive": "إعادة الملء من الفرع",
         "rederived": "تم إعادة الملء من الفرع",
         "editAdvanced": "تحرير حقول التوجيه",

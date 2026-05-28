@@ -18,6 +18,7 @@ type FallbackInput struct {
 	Name      string `json:"name"`
 	Alpn      string `json:"alpn"`
 	Path      string `json:"path"`
+	Dest      string `json:"dest"`
 	Xver      int    `json:"xver"`
 	SortOrder int    `json:"sortOrder"`
 }
@@ -71,6 +72,7 @@ func (s *FallbackService) SetByMaster(masterId int, items []FallbackInput) error
 				Name:      c.Name,
 				Alpn:      c.Alpn,
 				Path:      c.Path,
+				Dest:      c.Dest,
 				Xver:      c.Xver,
 				SortOrder: c.SortOrder,
 			}
@@ -85,9 +87,6 @@ func (s *FallbackService) SetByMaster(masterId int, items []FallbackInput) error
 	})
 }
 
-// BuildFallbacksJSON resolves the master's fallback rows into Xray's
-// expected settings.fallbacks shape, looking up each child's listen+port
-// to fill the dest field. Returns nil when the master has no rules.
 func (s *FallbackService) BuildFallbacksJSON(tx *gorm.DB, masterId int) ([]map[string]any, error) {
 	if tx == nil {
 		tx = database.GetDB()
@@ -122,12 +121,16 @@ func (s *FallbackService) BuildFallbacksJSON(tx *gorm.DB, masterId int) ([]map[s
 		if !ok {
 			continue
 		}
-		listen := strings.TrimSpace(child.Listen)
-		if listen == "" || listen == "0.0.0.0" || listen == "::" || listen == "::0" {
-			listen = "127.0.0.1"
+		dest := r.Dest
+		if dest == "" {
+			listen := strings.TrimSpace(child.Listen)
+			if listen == "" || listen == "0.0.0.0" || listen == "::" || listen == "::0" {
+				listen = "127.0.0.1"
+			}
+			dest = fmt.Sprintf("%s:%d", listen, child.Port)
 		}
 		entry := map[string]any{
-			"dest": fmt.Sprintf("%s:%d", listen, child.Port),
+			"dest": dest,
 		}
 		if r.Name != "" {
 			entry["name"] = r.Name

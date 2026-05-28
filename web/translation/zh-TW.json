@@ -266,6 +266,7 @@
         "add": "新增回落",
         "pickInbound": "選擇一個入站",
         "matchAny": "任何",
+        "destPlaceholder": "自動（子入站 listen:port）",
         "rederive": "從子入站重新填入",
         "rederived": "已從子入站重新填入",
         "editAdvanced": "編輯路由欄位",

@@ -78,6 +78,7 @@ export const FallbackRowSchema = z.object({
   name: z.string().default(''),
   alpn: z.string().default(''),
   path: z.string().default(''),
+  dest: z.string().default(''),
   xver: z.number().int().min(0).max(2).default(0),
 });
 export type FallbackRow = z.infer<typeof FallbackRowSchema>;

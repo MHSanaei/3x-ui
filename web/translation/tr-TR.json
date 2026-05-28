@@ -266,6 +266,7 @@
         "add": "Fallback ekle",
         "pickInbound": "Bir inbound seç",
         "matchAny": "herhangi",
+        "destPlaceholder": "otomatik (child listen:port)",
         "rederive": "Child'dan yeniden doldur",
         "rederived": "Child'dan yeniden dolduruldu",
         "editAdvanced": "Yönlendirme alanlarını düzenle",

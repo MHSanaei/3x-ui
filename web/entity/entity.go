@@ -21,34 +21,34 @@ type Msg struct {
 // AllSetting contains all configuration settings for the 3x-ui panel including web server, Telegram bot, and subscription settings.
 type AllSetting struct {
 	// Web server settings
-	WebListen         string `json:"webListen" form:"webListen"`                                       // Web server listen IP address
-	WebDomain         string `json:"webDomain" form:"webDomain"`                                       // Web server domain for domain validation
-	WebPort           int    `json:"webPort" form:"webPort" validate:"gte=1,lte=65535"`                // Web server port number
-	WebCertFile       string `json:"webCertFile" form:"webCertFile"`                                   // Path to SSL certificate file for web server
-	WebKeyFile        string `json:"webKeyFile" form:"webKeyFile"`                                     // Path to SSL private key file for web server
-	WebBasePath       string `json:"webBasePath" form:"webBasePath"`                                   // Base path for web panel URLs
-	SessionMaxAge     int    `json:"sessionMaxAge" form:"sessionMaxAge" validate:"gte=0,lte=525600"`   // Session maximum age in minutes (cap at one year)
-	TrustedProxyCIDRs string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"`                       // Trusted reverse proxy IPs/CIDRs for forwarded headers
-	PanelProxy        string `json:"panelProxy" form:"panelProxy"`                                     // Proxy URL for the panel's own outbound requests (GitHub/Telegram)
+	WebListen         string `json:"webListen" form:"webListen"`                                     // Web server listen IP address
+	WebDomain         string `json:"webDomain" form:"webDomain"`                                     // Web server domain for domain validation
+	WebPort           int    `json:"webPort" form:"webPort" validate:"gte=1,lte=65535"`              // Web server port number
+	WebCertFile       string `json:"webCertFile" form:"webCertFile"`                                 // Path to SSL certificate file for web server
+	WebKeyFile        string `json:"webKeyFile" form:"webKeyFile"`                                   // Path to SSL private key file for web server
+	WebBasePath       string `json:"webBasePath" form:"webBasePath"`                                 // Base path for web panel URLs
+	SessionMaxAge     int    `json:"sessionMaxAge" form:"sessionMaxAge" validate:"gte=0,lte=525600"` // Session maximum age in minutes (cap at one year)
+	TrustedProxyCIDRs string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"`                     // Trusted reverse proxy IPs/CIDRs for forwarded headers
+	PanelProxy        string `json:"panelProxy" form:"panelProxy"`                                   // Proxy URL for the panel's own outbound requests (GitHub/Telegram)
 
 	// UI settings
-	PageSize    int    `json:"pageSize" form:"pageSize" validate:"gte=1,lte=1000"`     // Number of items per page in lists
-	ExpireDiff  int    `json:"expireDiff" form:"expireDiff" validate:"gte=0"`          // Expiration warning threshold in days
-	TrafficDiff int    `json:"trafficDiff" form:"trafficDiff" validate:"gte=0,lte=100"`// Traffic warning threshold percentage
-	RemarkModel string `json:"remarkModel" form:"remarkModel"`                         // Remark model pattern for inbounds
-	Datepicker  string `json:"datepicker" form:"datepicker"`                           // Date picker format
+	PageSize    int    `json:"pageSize" form:"pageSize" validate:"gte=1,lte=1000"`      // Number of items per page in lists
+	ExpireDiff  int    `json:"expireDiff" form:"expireDiff" validate:"gte=0"`           // Expiration warning threshold in days
+	TrafficDiff int    `json:"trafficDiff" form:"trafficDiff" validate:"gte=0,lte=100"` // Traffic warning threshold percentage
+	RemarkModel string `json:"remarkModel" form:"remarkModel"`                          // Remark model pattern for inbounds
+	Datepicker  string `json:"datepicker" form:"datepicker"`                            // Date picker format
 
 	// Telegram bot settings
-	TgBotEnable      bool   `json:"tgBotEnable" form:"tgBotEnable"`           // Enable Telegram bot notifications
-	TgBotToken       string `json:"tgBotToken" form:"tgBotToken"`             // Telegram bot token
-	TgBotProxy       string `json:"tgBotProxy" form:"tgBotProxy"`             // Proxy URL for Telegram bot
-	TgBotAPIServer   string `json:"tgBotAPIServer" form:"tgBotAPIServer"`     // Custom API server for Telegram bot
-	TgBotChatId      string `json:"tgBotChatId" form:"tgBotChatId"`           // Telegram chat ID for notifications
-	TgRunTime        string `json:"tgRunTime" form:"tgRunTime"`               // Cron schedule for Telegram notifications
-	TgBotBackup      bool   `json:"tgBotBackup" form:"tgBotBackup"`           // Enable database backup via Telegram
-	TgBotLoginNotify bool   `json:"tgBotLoginNotify" form:"tgBotLoginNotify"`             // Send login notifications
-	TgCpu            int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"`          // CPU usage threshold for alerts (percent)
-	TgLang           string `json:"tgLang" form:"tgLang"`                                 // Telegram bot language
+	TgBotEnable      bool   `json:"tgBotEnable" form:"tgBotEnable"`              // Enable Telegram bot notifications
+	TgBotToken       string `json:"tgBotToken" form:"tgBotToken"`                // Telegram bot token
+	TgBotProxy       string `json:"tgBotProxy" form:"tgBotProxy"`                // Proxy URL for Telegram bot
+	TgBotAPIServer   string `json:"tgBotAPIServer" form:"tgBotAPIServer"`        // Custom API server for Telegram bot
+	TgBotChatId      string `json:"tgBotChatId" form:"tgBotChatId"`              // Telegram chat ID for notifications
+	TgRunTime        string `json:"tgRunTime" form:"tgRunTime"`                  // Cron schedule for Telegram notifications
+	TgBotBackup      bool   `json:"tgBotBackup" form:"tgBotBackup"`              // Enable database backup via Telegram
+	TgBotLoginNotify bool   `json:"tgBotLoginNotify" form:"tgBotLoginNotify"`    // Send login notifications
+	TgCpu            int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"` // CPU usage threshold for alerts (percent)
+	TgLang           string `json:"tgLang" form:"tgLang"`                        // Telegram bot language
 
 	// Security settings
 	TimeLocation    string `json:"timeLocation" form:"timeLocation"`       // Time zone location

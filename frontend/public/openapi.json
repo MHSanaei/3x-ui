@@ -863,7 +863,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "List the fallback rules attached to a master VLESS/Trojan TCP-TLS inbound. Each rule links one child inbound (the dest) to optional SNI/ALPN/path/xver match criteria.",
+        "summary": "List the fallback rules attached to a master VLESS/Trojan TCP-TLS inbound. Each rule links one child inbound (the dest) to optional SNI/ALPN/path/dest/xver match criteria. When dest is empty the child inbound's listen+port is used.",
         "operationId": "get_panel_api_inbounds_id_fallbacks",
         "parameters": [
           {
@@ -903,6 +903,7 @@
                       "name": "",
                       "alpn": "",
                       "path": "/vlws",
+                      "dest": "",
                       "xver": 2,
                       "sortOrder": 0
                     }
@@ -946,7 +947,8 @@
                   },
                   {
                     "childId": 12,
-                    "alpn": "h2"
+                    "alpn": "h2",
+                    "dest": "8443"
                   }
                 ]
               }
