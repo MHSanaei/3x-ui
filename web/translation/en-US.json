@@ -322,6 +322,8 @@
       "exportSubsTitle": "Export subscription links",
       "exportAllLinksTitle": "Export all inbound links",
       "exportAllSubsTitle": "Export all subscription links",
+      "exportAllLinksFileName": "All-Inbounds",
+      "exportAllSubsFileName": "All-Inbounds-Subs",
       "inboundJsonTitle": "Inbound JSON",
       "deleteClient": "Delete Client",
       "deleteClientContent": "Are you sure you want to delete this client?",
