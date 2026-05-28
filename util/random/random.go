@@ -51,6 +51,19 @@ func Seq(n int) string {
 	return string(runes)
 }
 
+// NumLower generates a random string of length n containing digits and lowercase letters only.
+func NumLower(n int) string {
+	runes := make([]rune, n)
+	for i := range n {
+		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(numLowerSeq))))
+		if err != nil {
+			panic("crypto/rand failed: " + err.Error())
+		}
+		runes[i] = numLowerSeq[idx.Int64()]
+	}
+	return string(runes)
+}
+
 // Num generates a random integer between 0 and n-1.
 func Num(n int) int {
 	bn := big.NewInt(int64(n))

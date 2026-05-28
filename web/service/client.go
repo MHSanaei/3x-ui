@@ -2880,6 +2880,10 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 				cm["created_at"] = nowTs
 			}
 			cm["updated_at"] = nowTs
+			existingSub, _ := cm["subId"].(string)
+			if strings.TrimSpace(existingSub) == "" {
+				cm["subId"] = random.NumLower(16)
+			}
 			interfaceClients[i] = cm
 		}
 	}
@@ -3118,11 +3122,13 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	}
 	settingsClients := oldSettings["clients"].([]any)
 	var preservedCreated any
+	var preservedSubID string
 	if clientIndex >= 0 && clientIndex < len(settingsClients) {
 		if oldMap, ok := settingsClients[clientIndex].(map[string]any); ok {
 			if v, ok2 := oldMap["created_at"]; ok2 {
 				preservedCreated = v
 			}
+			preservedSubID, _ = oldMap["subId"].(string)
 		}
 	}
 	if len(interfaceClients) > 0 {
@@ -3132,6 +3138,14 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			}
 			newMap["created_at"] = preservedCreated
 			newMap["updated_at"] = time.Now().Unix() * 1000
+			newSub, _ := newMap["subId"].(string)
+			if strings.TrimSpace(newSub) == "" {
+				if strings.TrimSpace(preservedSubID) != "" {
+					newMap["subId"] = preservedSubID
+				} else {
+					newMap["subId"] = random.NumLower(16)
+				}
+			}
 			interfaceClients[0] = newMap
 		}
 	}
