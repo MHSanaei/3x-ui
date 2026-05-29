@@ -1209,6 +1209,7 @@
         "interface": "Giao diện",
         "ipv6Only": "Chỉ IPv6",
         "acceptProxyProtocol": "Chấp nhận proxy protocol",
+        "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
         "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
       },

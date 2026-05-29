@@ -1209,6 +1209,7 @@
         "interface": "Interface",
         "ipv6Only": "IPv6 only",
         "acceptProxyProtocol": "Accept proxy protocol",
+        "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
         "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
       },

@@ -1209,6 +1209,7 @@
         "interface": "接口",
         "ipv6Only": "仅 IPv6",
         "acceptProxyProtocol": "接受 proxy protocol",
+        "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
         "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
       },

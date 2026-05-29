@@ -52,6 +52,7 @@ export type FreedomFinalRule = z.infer<typeof FreedomFinalRuleSchema>;
 export const FreedomOutboundSettingsSchema = z.object({
   domainStrategy: OutboundDomainStrategySchema.optional(),
   redirect: z.string().optional(),
+  proxyProtocol: z.number().optional(),
   fragment: FreedomFragmentSchema.optional(),
   noises: z.array(FreedomNoiseSchema).optional(),
   finalRules: z.array(FreedomFinalRuleSchema).optional(),

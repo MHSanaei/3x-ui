@@ -1209,6 +1209,7 @@
         "interface": "インターフェース",
         "ipv6Only": "IPv6 のみ",
         "acceptProxyProtocol": "proxy protocol を受け入れる",
+        "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
         "tcpKeepAliveIdleS": "TCP keep-alive idle (秒)"
       },

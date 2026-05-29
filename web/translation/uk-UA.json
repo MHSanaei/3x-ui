@@ -1209,6 +1209,7 @@
         "interface": "Інтерфейс",
         "ipv6Only": "Лише IPv6",
         "acceptProxyProtocol": "Приймати proxy protocol",
+        "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (мс)",
         "tcpKeepAliveIdleS": "TCP keep-alive idle (с)"
       },

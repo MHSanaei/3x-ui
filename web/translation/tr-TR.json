@@ -1209,6 +1209,7 @@
         "interface": "Arabirim",
         "ipv6Only": "Yalnızca IPv6",
         "acceptProxyProtocol": "Proxy protocol kabul et",
+        "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
         "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
       },

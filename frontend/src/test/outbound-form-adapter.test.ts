@@ -235,14 +235,24 @@ describe('outbound-form-adapter: round-trip', () => {
       settings: {
         domainStrategy: 'UseIPv4',
         redirect: '1.1.1.1',
+        proxyProtocol: 2,
         fragment: { packets: 'tlshello', length: '100-200' },
       },
     }));
     expect(filled.settings).toMatchObject({
       domainStrategy: 'UseIPv4',
       redirect: '1.1.1.1',
+      proxyProtocol: 2,
       fragment: { packets: 'tlshello', length: '100-200' },
     });
+  });
+
+  it('freedom omits proxyProtocol when disabled (0)', () => {
+    const round = formValuesToWirePayload(rawOutboundToFormValues({
+      protocol: 'freedom',
+      settings: { proxyProtocol: 0 },
+    }));
+    expect((round.settings as { proxyProtocol?: number }).proxyProtocol).toBeUndefined();
   });
 
   it('mux is only emitted when enabled AND protocol/network/flow allow it', () => {

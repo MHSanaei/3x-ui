@@ -1209,6 +1209,7 @@
         "interface": "Interface",
         "ipv6Only": "Hanya IPv6",
         "acceptProxyProtocol": "Terima proxy protocol",
+        "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
         "tcpKeepAliveIdleS": "TCP keep-alive idle (d)"
       },

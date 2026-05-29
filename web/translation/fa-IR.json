@@ -1209,6 +1209,7 @@
         "interface": "رابط",
         "ipv6Only": "فقط IPv6",
         "acceptProxyProtocol": "پذیرش Proxy Protocol",
+        "proxyProtocol": "Proxy Protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
         "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
       },

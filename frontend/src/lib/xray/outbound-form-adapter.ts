@@ -265,6 +265,10 @@ function freedomFromWire(raw: Raw): FreedomOutboundFormSettings {
       return (allowed.includes(s) ? s : '') as FreedomOutboundFormSettings['domainStrategy'];
     })(),
     redirect: asString(raw.redirect),
+    proxyProtocol: ((): FreedomOutboundFormSettings['proxyProtocol'] => {
+      const n = asNumber(raw.proxyProtocol, 0);
+      return (n === 1 || n === 2) ? n : 0;
+    })(),
     fragment: wireHasFragment
       ? {
           packets: asString(fragment.packets, '1-3'),
@@ -489,6 +493,7 @@ function freedomToWire(s: FreedomOutboundFormSettings) {
   return {
     domainStrategy: s.domainStrategy || undefined,
     redirect: s.redirect || undefined,
+    proxyProtocol: s.proxyProtocol || undefined,
     fragment: fragmentEnabled ? Object.fromEntries(fragmentEntries) : undefined,
     noises: s.noises.length > 0 ? s.noises : undefined,
     finalRules: s.finalRules.length > 0

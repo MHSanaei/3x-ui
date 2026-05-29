@@ -664,6 +664,15 @@ export default function OutboundFormModal({
                         <Form.Item label={t('pages.xray.outboundForm.redirect')} name={['settings', 'redirect']}>
                           <Input />
                         </Form.Item>
+                        <Form.Item label={t('pages.xray.outboundForm.proxyProtocol')} name={['settings', 'proxyProtocol']}>
+                          <Select
+                            options={[
+                              { value: 0, label: `(${t('none')})` },
+                              { value: 1, label: 'v1' },
+                              { value: 2, label: 'v2' },
+                            ]}
+                          />
+                        </Form.Item>
 
                         <Form.Item label={t('pages.xray.outboundForm.fragment')} shouldUpdate noStyle>
                           {() => {
