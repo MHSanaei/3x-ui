@@ -310,3 +310,99 @@ describe('outbound-form-adapter: round-trip', () => {
     expect(form.protocol).toBe('vless');
   });
 });
+
+describe('outbound-form-adapter: xhttp xmux toggle', () => {
+  const xmuxWire = {
+    protocol: 'vless',
+    tag: 'out-xhttp',
+    settings: {
+      address: 's', port: 443, id: '11111111-2222-4333-8444-555555555555',
+      flow: '', encryption: 'none',
+    },
+    streamSettings: {
+      network: 'xhttp',
+      security: 'none',
+      xhttpSettings: {
+        path: '/', host: '', mode: '',
+        xPaddingBytes: '100-1000', scMaxEachPostBytes: '1000000',
+        xmux: { maxConcurrency: '11', maxConnections: '1', hMaxRequestTimes: '1', hMaxReusableSecs: '1' },
+      },
+    },
+  };
+
+  it('derives enableXmux from a saved xmux object and backfills missing knobs', () => {
+    const form = rawOutboundToFormValues(xmuxWire);
+    const stream = form.streamSettings as Record<string, unknown>;
+    const xhttp = stream.xhttpSettings as Record<string, unknown>;
+    expect(xhttp.enableXmux).toBe(true);
+    expect(xhttp.xmux).toMatchObject({
+      maxConcurrency: '11',
+      maxConnections: '1',
+      hMaxRequestTimes: '1',
+      hMaxReusableSecs: '1',
+      cMaxReuseTimes: 0,
+      hKeepAlivePeriod: 0,
+    });
+  });
+
+  it('round-trips xmux on save and strips the UI-only enableXmux flag', () => {
+    const back = formValuesToWirePayload(rawOutboundToFormValues(xmuxWire));
+    const xhttp = (back.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    expect(xhttp).not.toHaveProperty('enableXmux');
+    expect(xhttp.xmux).toMatchObject({ maxConcurrency: '11', maxConnections: '1' });
+  });
+
+  it('drops xmux on save when the toggle is off', () => {
+    const form = rawOutboundToFormValues(xmuxWire);
+    const xhttp = (form.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    xhttp.enableXmux = false;
+    const back = formValuesToWirePayload(form);
+    const wireXhttp = (back.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    expect(wireXhttp).not.toHaveProperty('xmux');
+  });
+});
+
+describe('outbound-form-adapter: full optional-block round-trip', () => {
+  const wire = {
+    protocol: 'vless',
+    settings: {
+      address: '1', port: 443, id: '1', flow: '', encryption: 'none',
+      reverse: {
+        tag: '1',
+        sniffing: {
+          enabled: true,
+          destOverride: ['http', 'tls', 'quic', 'fakedns'],
+          metadataOnly: true,
+          routeOnly: true,
+          ipsExcluded: ['1'],
+          domainsExcluded: ['1'],
+        },
+      },
+    },
+    tag: '1',
+    streamSettings: {
+      network: 'tcp',
+      tcpSettings: { header: { type: 'http', request: { version: '1.1', method: 'GET', path: ['/'], headers: { '1': ['1'] } }, response: { version: '1.1', status: '200', reason: 'OK', headers: { '1': ['1'] } } } },
+      security: 'none',
+      sockopt: { tcpFastOpen: true, customSockopt: [{ type: 'int', level: '6', opt: '1', value: '1' }] },
+      finalmask: { tcp: [{ type: 'fragment', settings: { packets: '1-3', length: '1', delay: '1', maxSplit: '1' } }] },
+    },
+    sendThrough: '1',
+    mux: { enabled: true, concurrency: 8, xudpConcurrency: 16, xudpProxyUDP443: 'reject' },
+  };
+
+  it('preserves sockopt, finalmask, mux, and reverse excludes', () => {
+    const back = formValuesToWirePayload(rawOutboundToFormValues(wire));
+    const settings = back.settings as Record<string, unknown>;
+    const sniffing = (settings.reverse as Record<string, unknown>).sniffing as Record<string, unknown>;
+    expect(sniffing.ipsExcluded).toEqual(['1']);
+    expect(sniffing.domainsExcluded).toEqual(['1']);
+
+    const stream = back.streamSettings as Record<string, unknown>;
+    expect(stream.sockopt).toMatchObject({ tcpFastOpen: true });
+    expect((stream.sockopt as Record<string, unknown>).customSockopt).toHaveLength(1);
+    expect(stream.finalmask).toMatchObject({ tcp: [{ type: 'fragment' }] });
+
+    expect(back.mux).toMatchObject({ enabled: true });
+  });
+});

@@ -375,7 +375,7 @@ export default function OutboundsTab({
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, testMode, rows.length, outboundTestStates, outboundsTraffic],
+    [t, testMode, rows, outboundTestStates, outboundsTraffic],
   );
 
   return (

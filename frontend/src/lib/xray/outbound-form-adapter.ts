@@ -1,3 +1,4 @@
+import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
 import { Wireguard } from '@/utils';
 
 import type {
@@ -345,6 +346,23 @@ export interface RawOutboundRow {
   mux?: unknown;
 }
 
+export const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
+
+function hydrateStreamForm(stream: Raw): OutboundStreamFormValues {
+  const next = { ...stream };
+  const xh = next.xhttpSettings;
+  if (xh && typeof xh === 'object' && !Array.isArray(xh)) {
+    const xhttp = { ...(xh as Raw) };
+    const xmux = xhttp.xmux;
+    if (xmux && typeof xmux === 'object' && !Array.isArray(xmux)) {
+      xhttp.enableXmux = true;
+      xhttp.xmux = { ...XMUX_DEFAULTS, ...(xmux as Raw) };
+    }
+    next.xhttpSettings = xhttp;
+  }
+  return next as unknown as OutboundStreamFormValues;
+}
+
 export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues {
   const protocol = asString(raw.protocol, 'vless');
   const settings = asObject(raw.settings);
@@ -355,7 +373,7 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
     && typeof raw.streamSettings === 'object'
     && Object.keys(raw.streamSettings as Raw).length > 0;
   const streamSettings = hasStream
-    ? (raw.streamSettings as unknown as OutboundStreamFormValues)
+    ? hydrateStreamForm(raw.streamSettings as Raw)
     : undefined;
 
   let typed: OutboundFormSettings;
@@ -558,7 +576,9 @@ function stripUiOnlyStreamFields(stream: unknown): Raw {
   const xh = next.xhttpSettings;
   if (xh && typeof xh === 'object') {
     const cleaned = { ...(xh as Raw) };
+    const xmuxEnabled = cleaned.enableXmux === true;
     delete cleaned.enableXmux;
+    if (!xmuxEnabled) delete cleaned.xmux;
     next.xhttpSettings = dropEmptyStrings(cleaned);
   }
   return next;

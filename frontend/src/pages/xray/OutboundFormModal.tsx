@@ -21,6 +21,7 @@ import InputAddon from '@/components/InputAddon';
 import JsonEditor from '@/components/JsonEditor';
 import { Wireguard } from '@/utils';
 import {
+  XMUX_DEFAULTS,
   formValuesToWirePayload,
   rawOutboundToFormValues,
 } from '@/lib/xray/outbound-form-adapter';
@@ -335,6 +336,14 @@ export default function OutboundFormModal({
     form.setFieldValue('streamSettings', { ...newStreamSlice(next), security: newSecurity });
   }
 
+  function onXmuxToggle(checked: boolean) {
+    if (!checked) return;
+    const existing = form.getFieldValue(['streamSettings', 'xhttpSettings', 'xmux']);
+    const hasValues = existing && typeof existing === 'object' && Object.keys(existing).length > 0;
+    if (hasValues) return;
+    form.setFieldValue(['streamSettings', 'xhttpSettings', 'xmux'], { ...XMUX_DEFAULTS });
+  }
+
   const duplicateTag = useMemo(() => {
     const myTag = tag.trim();
     if (!myTag) return false;
@@ -392,17 +401,40 @@ export default function OutboundFormModal({
   }
 
   async function onOk() {
-    if (activeKey === '2' && !applyJsonToForm()) return;
-    try {
-      await form.validateFields();
-    } catch {
+    let values: OutboundFormValues;
+    if (activeKey === '2') {
+      const raw = jsonText.trim();
+      if (!raw) return;
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(raw) as Record<string, unknown>;
+      } catch (e) {
+        messageApi.error(`JSON: ${(e as Error).message}`);
+        return;
+      }
+      values = rawOutboundToFormValues(parsed);
+      form.resetFields();
+      form.setFieldsValue(values);
+      setJsonDirty(false);
+    } else {
+      try {
+        await form.validateFields();
+      } catch {
+        return;
+      }
+      values = form.getFieldsValue(true) as OutboundFormValues;
+    }
+    const tagValue = (values.tag ?? '').trim();
+    if (!tagValue) {
+      messageApi.error(t('pages.xray.outboundForm.tagRequired'));
       return;
     }
-    if (duplicateTag) {
+    const isDuplicateTag = (existingTags || []).includes(tagValue)
+      && !(isEdit && (outboundProp?.tag as string | undefined) === tagValue);
+    if (isDuplicateTag) {
       messageApi.error('Tag already used by another outbound');
       return;
     }
-    const values = form.getFieldsValue(true) as OutboundFormValues;
     onConfirm(formValuesToWirePayload(values));
   }
 
@@ -1189,47 +1221,6 @@ export default function OutboundFormModal({
                                         <Input placeholder="1.1" />
                                       </Form.Item>
                                       <Form.Item
-                                        label={t('host')}
-                                        name={[
-                                          'streamSettings',
-                                          'tcpSettings',
-                                          'header',
-                                          'request',
-                                          'headers',
-                                          'Host',
-                                        ]}
-                                        normalize={(v: unknown) =>
-                                          typeof v === 'string'
-                                            ? v.split(',').map((s) => s.trim()).filter(Boolean)
-                                            : Array.isArray(v) ? v : []
-                                        }
-                                        getValueProps={(v: unknown) => ({
-                                          value: Array.isArray(v) ? v.join(',') : '',
-                                        })}
-                                      >
-                                        <Input placeholder="example.com,cdn.example.com" />
-                                      </Form.Item>
-                                      <Form.Item
-                                        label={t('path')}
-                                        name={[
-                                          'streamSettings',
-                                          'tcpSettings',
-                                          'header',
-                                          'request',
-                                          'path',
-                                        ]}
-                                        normalize={(v: unknown) =>
-                                          typeof v === 'string'
-                                            ? v.split(',').map((s) => s.trim()).filter(Boolean)
-                                            : Array.isArray(v) ? v : ['/']
-                                        }
-                                        getValueProps={(v: unknown) => ({
-                                          value: Array.isArray(v) ? v.join(',') : '/',
-                                        })}
-                                      >
-                                        <Input placeholder="/,/api,/static" />
-                                      </Form.Item>
-                                      <Form.Item
                                         label={t('pages.inbounds.form.requestHeaders')}
                                         name={[
                                           'streamSettings', 'tcpSettings', 'header',
@@ -1676,7 +1667,7 @@ export default function OutboundFormModal({
                               name={['streamSettings', 'xhttpSettings', 'enableXmux']}
                               valuePropName="checked"
                             >
-                              <Switch />
+                              <Switch onChange={onXmuxToggle} />
                             </Form.Item>
                             <Form.Item shouldUpdate noStyle>
                               {() => {
