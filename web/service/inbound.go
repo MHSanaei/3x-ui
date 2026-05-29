@@ -1074,7 +1074,7 @@ func (s *InboundService) generateRandomCredential(targetProtocol model.Protocol)
 	}
 }
 
-func (s *InboundService) buildTargetClientFromSource(source model.Client, targetProtocol model.Protocol, email string, flow string) (model.Client, error) {
+func (s *InboundService) buildTargetClientFromSource(source model.Client, targetInbound *model.Inbound, email string, flow string) (model.Client, error) {
 	nowTs := time.Now().UnixMilli()
 	target := source
 	target.Email = email
@@ -1086,12 +1086,14 @@ func (s *InboundService) buildTargetClientFromSource(source model.Client, target
 	target.Auth = ""
 	target.Flow = ""
 
+	targetProtocol := targetInbound.Protocol
 	switch targetProtocol {
 	case model.VMESS:
 		target.ID = s.generateRandomCredential(targetProtocol)
 	case model.VLESS:
 		target.ID = s.generateRandomCredential(targetProtocol)
-		if flow == "xtls-rprx-vision" || flow == "xtls-rprx-vision-udp443" {
+		if (flow == "xtls-rprx-vision" || flow == "xtls-rprx-vision-udp443") &&
+			inboundCanEnableTlsFlow(string(targetProtocol), targetInbound.StreamSettings) {
 			target.Flow = flow
 		}
 	case model.Trojan, model.Shadowsocks:
@@ -1192,7 +1194,7 @@ func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID
 		}
 
 		targetEmail := s.nextAvailableCopiedEmail(originalEmail, targetInboundID, occupiedEmails)
-		targetClient, buildErr := s.buildTargetClientFromSource(sourceClient, targetInbound.Protocol, targetEmail, flow)
+		targetClient, buildErr := s.buildTargetClientFromSource(sourceClient, targetInbound, targetEmail, flow)
 		if buildErr != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", originalEmail, buildErr))
 			continue
