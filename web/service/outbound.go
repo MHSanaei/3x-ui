@@ -151,6 +151,14 @@ type TestEndpointResult struct {
 // sockopt.dialerProxy chains during test).
 func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string, mode string) (*TestOutboundResult, error) {
 	if mode == "tcp" {
+		// A bare TCP dial only proves reachability for TCP-based proxies.
+		// UDP protocols (wireguard, hysteria, kcp/quic transports) ignore
+		// unauthenticated packets, so a raw dial can't tell "reachable" from
+		// "dead" — route them through the authoritative xray handshake probe.
+		var ob map[string]any
+		if json.Unmarshal([]byte(outboundJSON), &ob) == nil && outboundTransportIsUDP(ob) {
+			return s.testOutboundHTTP(outboundJSON, testURL, allOutboundsJSON)
+		}
 		return s.testOutboundTCP(outboundJSON)
 	}
 	return s.testOutboundHTTP(outboundJSON, testURL, allOutboundsJSON)
@@ -178,7 +186,7 @@ func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundRes
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			results[i] = probeEndpoint(endpoints[i], 5*time.Second)
+			results[i] = probeTCPEndpoint(endpoints[i], 5*time.Second)
 		}(i)
 	}
 	wg.Wait()
@@ -195,11 +203,7 @@ func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundRes
 		}
 	}
 
-	mode := "tcp"
-	if endpoints[0].Network == "udp" {
-		mode = "udp"
-	}
-	out := &TestOutboundResult{Mode: mode, Endpoints: results}
+	out := &TestOutboundResult{Mode: "tcp", Endpoints: results}
 	if bestDelay >= 0 {
 		out.Success = true
 		out.Delay = bestDelay
@@ -210,22 +214,6 @@ func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundRes
 		}
 	}
 	return out, nil
-}
-
-// outboundEndpoint is a host:port plus the transport its proxy actually
-// listens on. WireGuard (and WARP, which is WireGuard) is UDP-only, so a
-// TCP dial to its peer endpoint always times out — the probe must match
-// the transport of the outbound being tested.
-type outboundEndpoint struct {
-	Address string
-	Network string
-}
-
-func probeEndpoint(ep outboundEndpoint, timeout time.Duration) TestEndpointResult {
-	if ep.Network == "udp" {
-		return probeUDPEndpoint(ep.Address, timeout)
-	}
-	return probeTCPEndpoint(ep.Address, timeout)
 }
 
 func probeTCPEndpoint(endpoint string, timeout time.Duration) TestEndpointResult {
@@ -242,69 +230,36 @@ func probeTCPEndpoint(endpoint string, timeout time.Duration) TestEndpointResult
 	return r
 }
 
-// probeUDPEndpoint sends a single byte and waits briefly for a reply or
-// an ICMP-driven error. WireGuard won't answer an unauthenticated byte,
-// so a read timeout is the normal "endpoint reachable" outcome; a
-// concrete error (e.g. ECONNREFUSED, "host unreachable") fails the probe.
-func probeUDPEndpoint(endpoint string, timeout time.Duration) TestEndpointResult {
-	r := TestEndpointResult{Address: endpoint}
-	start := time.Now()
-	conn, err := net.DialTimeout("udp", endpoint, timeout)
-	if err != nil {
-		r.Delay = time.Since(start).Milliseconds()
-		r.Error = err.Error()
-		return r
+// outboundTransportIsUDP reports whether the outbound's proxy speaks UDP
+// (wireguard, hysteria, or a kcp/quic/hysteria stream transport). A bare
+// UDP dial can't probe these — they ignore unauthenticated packets, so a
+// dial neither proves reachability nor measures latency. Such outbounds
+// must go through the real xray handshake probe instead.
+func outboundTransportIsUDP(ob map[string]any) bool {
+	if protocol, _ := ob["protocol"].(string); protocol == "hysteria" || protocol == "wireguard" {
+		return true
 	}
-	defer conn.Close()
-
-	if _, werr := conn.Write([]byte{0}); werr != nil {
-		r.Delay = time.Since(start).Milliseconds()
-		r.Error = werr.Error()
-		return r
-	}
-
-	_ = conn.SetReadDeadline(time.Now().Add(timeout))
-	buf := make([]byte, 64)
-	_, rerr := conn.Read(buf)
-	r.Delay = time.Since(start).Milliseconds()
-	if rerr != nil {
-		if nerr, ok := rerr.(net.Error); ok && nerr.Timeout() {
-			r.Success = true
-			return r
+	if stream, ok := ob["streamSettings"].(map[string]any); ok {
+		if n, _ := stream["network"].(string); n == "hysteria" || n == "kcp" || n == "quic" {
+			return true
 		}
-		r.Error = rerr.Error()
-		return r
 	}
-	r.Success = true
-	return r
+	return false
 }
 
-func extractOutboundEndpoints(ob map[string]any) []outboundEndpoint {
+func extractOutboundEndpoints(ob map[string]any) []string {
 	protocol, _ := ob["protocol"].(string)
 	settings, _ := ob["settings"].(map[string]any)
 	if settings == nil {
 		return nil
 	}
 
-	// Hysteria is QUIC/UDP — detect via the outer protocol or via
-	// streamSettings.network so a trojan-with-hysteria transport gets
-	// probed over UDP too. kcp and quic are also UDP-based.
-	network := "tcp"
-	if protocol == "hysteria" || protocol == "wireguard" {
-		network = "udp"
-	}
-	if stream, ok := ob["streamSettings"].(map[string]any); ok {
-		if n, _ := stream["network"].(string); n == "hysteria" || n == "kcp" || n == "quic" {
-			network = "udp"
-		}
-	}
-
-	var out []outboundEndpoint
+	var out []string
 	addServer := func(addr any, port any) {
 		host, _ := addr.(string)
 		p := numAsInt(port)
 		if host != "" && p > 0 {
-			out = append(out, outboundEndpoint{Address: fmt.Sprintf("%s:%d", host, p), Network: network})
+			out = append(out, fmt.Sprintf("%s:%d", host, p))
 		}
 	}
 	switch protocol {
@@ -333,7 +288,7 @@ func extractOutboundEndpoints(ob map[string]any) []outboundEndpoint {
 			for _, p := range peers {
 				if pm, ok := p.(map[string]any); ok {
 					if ep, _ := pm["endpoint"].(string); ep != "" {
-						out = append(out, outboundEndpoint{Address: ep, Network: network})
+						out = append(out, ep)
 					}
 				}
 			}

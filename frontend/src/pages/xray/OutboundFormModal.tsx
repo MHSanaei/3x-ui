@@ -191,8 +191,8 @@ export default function OutboundFormModal({
   const [linkInput, setLinkInput] = useState('');
 
   // Parse a share link (vmess:// / vless:// / trojan:// / ss:// /
-  // hysteria2://) and replace form state with the result. The current
-  // tag is preserved when the parsed link doesn't carry one.
+  // hysteria2:// / wireguard://) and replace form state with the result.
+  // The current tag is preserved when the parsed link doesn't carry one.
   function importLink() {
     const link = linkInput.trim();
     if (!link) return;
@@ -1743,7 +1743,7 @@ export default function OutboundFormModal({
                         <Select
                           allowClear
                           placeholder={t('none')}
-                          options={FLOW_OPTIONS}
+                          options={[{ value: '', label: t('none') }, ...FLOW_OPTIONS]}
                         />
                       </Form.Item>
                     )}
@@ -1762,22 +1762,14 @@ export default function OutboundFormModal({
                             <Form.Item label={t('pages.xray.outboundForm.visionTestpre')} name={['settings', 'testpre']}>
                               <InputNumber min={0} style={{ width: '100%' }} />
                             </Form.Item>
-                            <Form.Item
-                              label={t('pages.inbounds.form.visionTestseed')}
-                              name={['settings', 'testseed']}
-                              normalize={(v: unknown) =>
-                                Array.isArray(v)
-                                  ? v
-                                    .map((x) => Number(x))
-                                    .filter((n) => Number.isInteger(n) && n > 0)
-                                  : []
-                              }
-                            >
-                              <Select
-                                mode="tags"
-                                tokenSeparators={[',', ' ']}
-                                placeholder="four positive integers"
-                              />
+                            <Form.Item label={t('pages.inbounds.form.visionTestseed')}>
+                              <Space.Compact block>
+                                {[900, 500, 900, 256].map((def, i) => (
+                                  <Form.Item key={i} name={['settings', 'testseed', i]} noStyle initialValue={def}>
+                                    <InputNumber min={1} style={{ width: '25%' }} />
+                                  </Form.Item>
+                                ))}
+                              </Space.Compact>
                             </Form.Item>
                           </>
                         );
@@ -2215,7 +2207,7 @@ export default function OutboundFormModal({
                   <Space orientation="vertical" size={10} style={{ width: '100%', marginTop: 10 }}>
                     <Input.Search
                       value={linkInput}
-                      placeholder="vmess:// vless:// trojan:// ss:// hysteria2://"
+                      placeholder="vmess:// vless:// trojan:// ss:// hysteria2:// wireguard://"
                       enterButton="Import"
                       onChange={(e) => setLinkInput(e.target.value)}
                       onSearch={importLink}

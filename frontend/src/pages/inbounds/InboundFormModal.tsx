@@ -931,14 +931,11 @@ export default function InboundFormModal({
             disabled={mode === 'edit'}
             placeholder={t('pages.inbounds.localPanel')}
             allowClear
-            options={[
-              { value: null, label: t('pages.inbounds.localPanel') },
-              ...selectableNodes.map((n) => ({
-                value: n.id,
-                label: `${n.name}${n.status === 'offline' ? ' (offline)' : ''}`,
-                disabled: n.status === 'offline',
-              })),
-            ]}
+            options={selectableNodes.map((n) => ({
+              value: n.id,
+              label: `${n.name}${n.status === 'offline' ? ' (offline)' : ''}`,
+              disabled: n.status === 'offline',
+            }))}
           />
         </Form.Item>
       )}
@@ -1498,16 +1495,15 @@ export default function InboundFormModal({
           {network === 'tcp' && (security === 'tls' || security === 'reality') && (
             <Form.Item
               label={t('pages.inbounds.form.visionTestseed')}
-              name={['settings', 'testseed']}
-              initialValue={[900, 500, 900, 256]}
-              normalize={(v: unknown) =>
-                Array.isArray(v)
-                  ? v.map((x) => Number(x)).filter((n) => Number.isInteger(n) && n > 0)
-                  : []
-              }
               extra="Applies only to clients using the xtls-rprx-vision flow; ignored otherwise."
             >
-              <Select mode="tags" tokenSeparators={[',', ' ']} placeholder="four positive integers" />
+              <Space.Compact block>
+                {[900, 500, 900, 256].map((def, i) => (
+                  <Form.Item key={i} name={['settings', 'testseed', i]} noStyle initialValue={def}>
+                    <InputNumber min={1} style={{ width: '25%' }} />
+                  </Form.Item>
+                ))}
+              </Space.Compact>
             </Form.Item>
           )}
         </>
