@@ -12,15 +12,17 @@ func JSONClientsFromInbound() string {
 	return "FROM inbounds, JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client"
 }
 
-// JSONFieldText returns a SQL expression that extracts the textual value of <key>
-// from a JSON expression. On both backends the result is the raw (unquoted) string,
-// so callers do NOT need to trim surrounding quotes.
 func JSONFieldText(expr, key string) string {
 	if IsPostgres() {
 		return fmt.Sprintf("(%s ->> '%s')", expr, key)
 	}
-	// SQLite's JSON_EXTRACT on a text value returns the JSON-encoded form
-	// (with surrounding quotes). Wrap it in json_extract(json_quote(...)) trick
-	// is fragile; simpler: unwrap quotes with TRIM(BOTH '"').
+
 	return fmt.Sprintf("TRIM(JSON_EXTRACT(%s, '$.%s'), '\"')", expr, key)
+}
+
+func GreatestExpr(a, b string) string {
+	if IsPostgres() {
+		return fmt.Sprintf("GREATEST(%s, %s)", a, b)
+	}
+	return fmt.Sprintf("MAX(%s, %s)", a, b)
 }

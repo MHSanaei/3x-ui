@@ -1503,10 +1503,13 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 
 			if err := tx.Exec(
-				`UPDATE client_traffics
-				 SET up = ?, down = ?, enable = ?, total = ?, expiry_time = ?, reset = ?,
-				     last_online = MAX(last_online, ?)
-				 WHERE email = ?`,
+				fmt.Sprintf(
+					`UPDATE client_traffics
+					 SET up = ?, down = ?, enable = ?, total = ?, expiry_time = ?, reset = ?,
+					     last_online = %s
+					 WHERE email = ?`,
+					database.GreatestExpr("last_online", "?"),
+				),
 				cs.Up, cs.Down, cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset,
 				cs.LastOnline, cs.Email,
 			).Error; err != nil {
