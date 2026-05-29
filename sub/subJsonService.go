@@ -12,7 +12,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/util/random"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
-	"github.com/mhsanaei/3x-ui/v3/xray"
 )
 
 //go:embed default.json
@@ -96,8 +95,6 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	}
 
 	var header string
-	var traffic xray.ClientTraffic
-	var clientTraffics []xray.ClientTraffic
 	var configArray []json_util.RawMessage
 
 	seenEmails := make(map[string]struct{})
@@ -114,7 +111,7 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 
 		for _, client := range clients {
 			if client.SubID == subId {
-				_, clientTraffics = s.SubService.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
+				seenEmails[client.Email] = struct{}{}
 				configArray = append(configArray, s.getConfig(inbound, client, host)...)
 			}
 		}
@@ -124,28 +121,11 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 		return "", "", nil
 	}
 
-	// Prepare statistics
-	for index, clientTraffic := range clientTraffics {
-		if index == 0 {
-			traffic.Up = clientTraffic.Up
-			traffic.Down = clientTraffic.Down
-			traffic.Total = clientTraffic.Total
-			if clientTraffic.ExpiryTime > 0 {
-				traffic.ExpiryTime = clientTraffic.ExpiryTime
-			}
-		} else {
-			traffic.Up += clientTraffic.Up
-			traffic.Down += clientTraffic.Down
-			if traffic.Total == 0 || clientTraffic.Total == 0 {
-				traffic.Total = 0
-			} else {
-				traffic.Total += clientTraffic.Total
-			}
-			if clientTraffic.ExpiryTime != traffic.ExpiryTime {
-				traffic.ExpiryTime = 0
-			}
-		}
+	emails := make([]string, 0, len(seenEmails))
+	for e := range seenEmails {
+		emails = append(emails, e)
 	}
+	traffic, _ := s.SubService.AggregateTrafficByEmails(emails)
 
 	// Combile outbounds
 	var finalJson []byte
@@ -174,7 +154,8 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 	}
 
 	externalProxies, ok := stream["externalProxy"].([]any)
-	if !ok || len(externalProxies) == 0 {
+	hasExternalProxy := ok && len(externalProxies) > 0
+	if !hasExternalProxy {
 		externalProxies = []any{
 			map[string]any{
 				"forceTls": "same",
@@ -191,7 +172,7 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 		extPrxy := ep.(map[string]any)
 		inbound.Listen = extPrxy["dest"].(string)
 		inbound.Port = int(extPrxy["port"].(float64))
-		newStream := stream
+		newStream := cloneStreamForExternalProxy(stream)
 		switch extPrxy["forceTls"].(string) {
 		case "tls":
 			if newStream["security"] != "tls" {
@@ -204,6 +185,10 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 				delete(newStream, "tlsSettings")
 			}
 		}
+		security, _ := newStream["security"].(string)
+		if hasExternalProxy {
+			applyExternalProxyTLSToStream(extPrxy, newStream, security)
+		}
 		streamSettings, _ := json.MarshalIndent(newStream, "", "  ")
 
 		var newOutbounds []json_util.RawMessage
@@ -215,7 +200,7 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 			newOutbounds = append(newOutbounds, s.genVless(inbound, streamSettings, client))
 		case "trojan", "shadowsocks":
 			newOutbounds = append(newOutbounds, s.genServer(inbound, streamSettings, client))
-		case "hysteria", "hysteria2":
+		case "hysteria":
 			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client))
 		}
 
@@ -286,6 +271,9 @@ func (s *SubJsonService) tlsData(tData map[string]any) map[string]any {
 	tlsData["alpn"] = tData["alpn"]
 	if fingerprint, ok := tlsClientSettings["fingerprint"].(string); ok {
 		tlsData["fingerprint"] = fingerprint
+	}
+	if pins, ok := tlsClientSettings["pinnedPeerCertSha256"].([]any); ok && len(pins) > 0 {
+		tlsData["pinnedPeerCertSha256"] = pins
 	}
 	return tlsData
 }

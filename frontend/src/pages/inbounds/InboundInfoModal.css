@@ -39,7 +39,7 @@
   align-items: center;
   gap: 12px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.12);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
 }
 
 .info-row:last-child {
@@ -95,14 +95,10 @@
   word-break: break-all;
   white-space: pre-wrap;
   padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--ant-color-fill-tertiary);
   border-radius: 4px;
   user-select: all;
   min-width: 0;
-}
-
-body.dark .value-code {
-  background: rgba(255, 255, 255, 0.05);
 }
 
 .value-copy {
@@ -112,7 +108,7 @@ body.dark .value-code {
 .share-buttons {
   margin-inline-start: 4px;
   padding-inline-start: 8px;
-  border-inline-start: 1px solid rgba(128, 128, 128, 0.25);
+  border-inline-start: 1px solid var(--ant-color-border);
 }
 
 .summary-table {
@@ -157,7 +153,7 @@ body.dark .value-code {
 }
 
 .link-panel {
-  border: 1px solid rgba(128, 128, 128, 0.2);
+  border: 1px solid var(--ant-color-border);
   border-radius: 8px;
   padding: 10px;
   margin-bottom: 10px;
@@ -179,13 +175,9 @@ body.dark .value-code {
   word-break: break-all;
   white-space: pre-wrap;
   padding: 6px 8px;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--ant-color-fill-tertiary);
   border-radius: 4px;
   user-select: all;
-}
-
-body.dark .link-panel-text {
-  background: rgba(255, 255, 255, 0.05);
 }
 
 .link-panel-anchor {
@@ -193,23 +185,15 @@ body.dark .link-panel-text {
   font-size: 11px;
   word-break: break-all;
   padding: 6px 8px;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--ant-color-fill-tertiary);
   border-radius: 4px;
-  color: var(--ant-color-primary, #1677ff);
+  color: var(--ant-color-primary);
   text-decoration: underline;
-  text-decoration-color: rgba(22, 119, 255, 0.4);
+  text-decoration-color: color-mix(in srgb, var(--ant-color-primary) 40%, transparent);
   transition: background 120ms ease, text-decoration-color 120ms ease;
 }
 
 .link-panel-anchor:hover {
-  background: rgba(22, 119, 255, 0.08);
-  text-decoration-color: var(--ant-color-primary, #1677ff);
-}
-
-body.dark .link-panel-anchor {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-body.dark .link-panel-anchor:hover {
-  background: rgba(22, 119, 255, 0.16);
+  background: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+  text-decoration-color: var(--ant-color-primary);
 }

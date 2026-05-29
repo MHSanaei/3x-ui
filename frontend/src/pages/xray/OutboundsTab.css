@@ -10,7 +10,7 @@
 }
 
 .outbound-card {
-  border: 1px solid rgba(128, 128, 128, 0.2);
+  border: 1px solid var(--ant-color-border-secondary);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 8px;
@@ -65,11 +65,7 @@
   font-size: 11px;
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.05);
-}
-
-body.dark .address-pill {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--ant-color-fill-tertiary);
 }
 
 .action-cell {
@@ -181,8 +177,8 @@ body.dark .address-pill {
   font-weight: 500;
   padding: 0 6px;
   border-radius: 8px;
-  background: rgba(22, 119, 255, 0.12);
-  color: #1677ff;
+  background: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+  color: var(--ant-color-primary);
   margin-left: auto;
 }
 

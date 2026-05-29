@@ -28,22 +28,20 @@ import { HttpUtil, PromiseUtil } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useAllSetting } from '@/hooks/useAllSetting';
+import { useAllSettings } from '@/api/queries/useAllSettings';
+import { AllSettingSchema } from '@/schemas/setting';
 import AppSidebar from '@/components/AppSidebar';
 import GeneralTab from './GeneralTab';
 import SecurityTab from './SecurityTab';
 import TelegramTab from './TelegramTab';
 import SubscriptionGeneralTab from './SubscriptionGeneralTab';
 import SubscriptionFormatsTab from './SubscriptionFormatsTab';
-import '@/styles/page-cards.css';
 import './SettingsPage.css';
 
 interface ApiMsg {
   success?: boolean;
 }
 
-const basePath = window.X_UI_BASE_PATH || '';
-const requestUri = window.location.pathname;
 const tabSlugs = ['general', 'security', 'telegram', 'subscription', 'subscription-formats'];
 
 function slugToKey(slug: string): string {
@@ -94,7 +92,7 @@ export default function SettingsPage() {
     setSpinning,
     saveDisabled,
     saveAll,
-  } = useAllSetting();
+  } = useAllSettings();
 
   const [entryHost, setEntryHost] = useState('');
   const [entryPort, setEntryPort] = useState('');
@@ -149,6 +147,18 @@ export default function SettingsPage() {
     if (finalPort) url.port = finalPort;
     url.pathname = `/${base}panel/settings`;
     return url.toString();
+  }
+
+  async function onSave() {
+    const result = AllSettingSchema.safeParse(allSetting);
+    if (!result.success) {
+      const issue = result.error.issues[0];
+      const fieldPath = issue?.path.join('.') ?? 'value';
+      const msgKey = issue?.message ?? 'somethingWentWrong';
+      messageApi.error(`${fieldPath}: ${t(msgKey, { defaultValue: msgKey })}`);
+      return;
+    }
+    await saveAll();
   }
 
   function restartPanel() {
@@ -270,11 +280,11 @@ export default function SettingsPage() {
       {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={spinning || !fetched} delay={200} description="Loading…" size="large">
+            <Spin spinning={spinning || !fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : (
@@ -283,9 +293,8 @@ export default function SettingsPage() {
                     <Alert
                       type="error"
                       showIcon
-                      closable
+                      closable={{ onClose: () => setAlertVisible(false) }}
                       className="conf-alert"
-                      onClose={() => setAlertVisible(false)}
                       title={t('pages.settings.securityWarnings')}
                       description={(
                         <>
@@ -304,7 +313,7 @@ export default function SettingsPage() {
                         <Row className="header-row">
                           <Col xs={24} sm={10} className="header-actions">
                             <Space>
-                              <Button type="primary" disabled={saveDisabled} onClick={saveAll}>
+                              <Button type="primary" disabled={saveDisabled} onClick={onSave}>
                                 {t('pages.settings.save')}
                               </Button>
                               <Button type="primary" danger disabled={!saveDisabled} onClick={restartPanel}>

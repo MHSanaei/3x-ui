@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Drawer, Layout, Menu } from 'antd';
 import type { MenuProps } from 'antd';
@@ -8,13 +9,18 @@ import {
   ClusterOutlined,
   CloseOutlined,
   DashboardOutlined,
+  GithubOutlined,
   HeartOutlined,
+  ImportOutlined,
   LogoutOutlined,
   MenuOutlined,
+  MoonFilled,
+  MoonOutlined,
   SettingOutlined,
+  SunOutlined,
+  TagsOutlined,
   TeamOutlined,
   ToolOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -23,18 +29,16 @@ import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
 const DONATE_URL = 'https://donate.sanaei.dev/';
+const REPO_URL = 'https://github.com/MHSanaei/3x-ui';
+const LOGOUT_KEY = '__logout__';
 
-interface AppSidebarProps {
-  basePath?: string;
-  requestUri?: string;
-}
-
-type IconName = 'dashboard' | 'user' | 'team' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
+type IconName = 'dashboard' | 'inbound' | 'team' | 'groups' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
 
 const iconByName: Record<IconName, ComponentType> = {
   dashboard: DashboardOutlined,
-  user: UserOutlined,
+  inbound: ImportOutlined,
   team: TeamOutlined,
+  groups: TagsOutlined,
   setting: SettingOutlined,
   tool: ToolOutlined,
   cluster: ClusterOutlined,
@@ -65,6 +69,24 @@ function DonateButton({ ariaLabel }: { ariaLabel: string }) {
   );
 }
 
+function VersionBadge({ version, collapsed }: { version: string; collapsed?: boolean }) {
+  if (!version) return null;
+  const label = `v${version}`;
+  return (
+    <a
+      href={REPO_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`sider-version${collapsed ? ' is-collapsed' : ''}`}
+      aria-label={`GitHub ${label}`}
+      title={label}
+    >
+      <GithubOutlined />
+      {!collapsed && <span className="sider-version-text">{label}</span>}
+    </a>
+  );
+}
+
 function ThemeCycleButton({ id, isDark, isUltra, onCycle, ariaLabel }: {
   id: string;
   isDark: boolean;
@@ -72,6 +94,7 @@ function ThemeCycleButton({ id, isDark, isUltra, onCycle, ariaLabel }: {
   onCycle: () => void;
   ariaLabel: string;
 }) {
+  const icon = !isDark ? <SunOutlined /> : !isUltra ? <MoonOutlined /> : <MoonFilled />;
   return (
     <button
       id={id}
@@ -81,49 +104,39 @@ function ThemeCycleButton({ id, isDark, isUltra, onCycle, ariaLabel }: {
       title={ariaLabel}
       onClick={onCycle}
     >
-      {!isDark ? (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-        </svg>
-      ) : !isUltra ? (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          <path fill="none" d="M19 3l0.7 1.4 1.4 0.7-1.4 0.7L19 7.2l-0.7-1.4-1.4-0.7 1.4-0.7z" />
-        </svg>
-      )}
+      {icon}
     </button>
   );
 }
 
-export default function AppSidebar({ basePath = '', requestUri = '' }: AppSidebarProps) {
+export default function AppSidebar() {
   const { t } = useTranslation();
   const { isDark, isUltra, toggleTheme, toggleUltra } = useTheme();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed());
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const prefix = basePath.startsWith('/') ? basePath : `/${basePath || ''}`;
   const currentTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
   const panelVersion = window.X_UI_CUR_VER || '';
 
   const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(() => [
-    { key: `${prefix}panel/`, icon: 'dashboard', title: t('menu.dashboard') },
-    { key: `${prefix}panel/inbounds`, icon: 'user', title: t('menu.inbounds') },
-    { key: `${prefix}panel/clients`, icon: 'team', title: t('menu.clients') },
-    { key: `${prefix}panel/nodes`, icon: 'cluster', title: t('menu.nodes') },
-    { key: `${prefix}panel/settings`, icon: 'setting', title: t('menu.settings') },
-    { key: `${prefix}panel/xray`, icon: 'tool', title: t('menu.xray') },
-    { key: `${prefix}panel/api-docs`, icon: 'apidocs', title: t('menu.apiDocs') },
-    { key: 'logout', icon: 'logout', title: t('logout') },
-  ], [prefix, t]);
+    { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
+    { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
+    { key: '/clients', icon: 'team', title: t('menu.clients') },
+    { key: '/groups', icon: 'groups', title: t('menu.groups') },
+    { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
+    { key: '/settings', icon: 'setting', title: t('menu.settings') },
+    { key: '/xray', icon: 'tool', title: t('menu.xray') },
+    { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
+    { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
+  ], [t]);
 
   const navItems = useMemo(() => tabs.filter((tab) => tab.icon !== 'logout'), [tabs]);
   const utilItems = useMemo(() => tabs.filter((tab) => tab.icon === 'logout'), [tabs]);
+
+  const selectedKey = pathname === '' ? '/' : pathname;
 
   const toMenuItems = useCallback((items: typeof tabs): MenuProps['items'] =>
     items.map((tab) => {
@@ -137,17 +150,13 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
   []);
 
   const openLink = useCallback(async (key: string) => {
-    if (key === 'logout') {
+    if (key === LOGOUT_KEY) {
       await HttpUtil.post('/logout');
-      window.location.href = basePath || '/';
+      window.location.href = window.X_UI_BASE_PATH || '/';
       return;
     }
-    if (key.startsWith('http')) {
-      window.open(key);
-    } else {
-      window.location.href = key;
-    }
-  }, [basePath]);
+    navigate(key);
+  }, [navigate]);
 
   const onMenuClick = useCallback<NonNullable<MenuProps['onClick']>>(({ key }) => {
     openLink(String(key));
@@ -185,9 +194,6 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         <div className={`sider-brand${collapsed ? ' sider-brand-collapsed' : ''}`}>
           <div className="brand-block">
             <span className="brand-text">{collapsed ? '3X' : '3X-UI'}</span>
-            {!collapsed && panelVersion && (
-              <span className="brand-version">v{panelVersion}</span>
-            )}
           </div>
           {!collapsed && (
             <div className="brand-actions">
@@ -205,7 +211,7 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         <Menu
           theme={currentTheme}
           mode="inline"
-          selectedKeys={[requestUri]}
+          selectedKeys={[selectedKey]}
           className="sider-nav"
           items={toMenuItems(navItems)}
           onClick={onMenuClick}
@@ -213,11 +219,14 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         <Menu
           theme={currentTheme}
           mode="inline"
-          selectedKeys={[requestUri]}
+          selectedKeys={[selectedKey]}
           className="sider-utility"
           items={toMenuItems(utilItems)}
           onClick={onMenuClick}
         />
+        <div className="sider-footer">
+          <VersionBadge version={panelVersion} collapsed={collapsed} />
+        </div>
       </Layout.Sider>
 
       <Drawer
@@ -236,7 +245,6 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         <div className="drawer-header">
           <div className="brand-block">
             <span className="drawer-brand">3X-UI</span>
-            {panelVersion && <span className="brand-version">v{panelVersion}</span>}
           </div>
           <div className="drawer-header-actions">
             <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
@@ -260,7 +268,7 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         <Menu
           theme={currentTheme}
           mode="inline"
-          selectedKeys={[requestUri]}
+          selectedKeys={[selectedKey]}
           className="drawer-menu drawer-nav"
           items={toMenuItems(navItems)}
           onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}
@@ -268,11 +276,14 @@ export default function AppSidebar({ basePath = '', requestUri = '' }: AppSideba
         <Menu
           theme={currentTheme}
           mode="inline"
-          selectedKeys={[requestUri]}
+          selectedKeys={[selectedKey]}
           className="drawer-menu drawer-utility"
           items={toMenuItems(utilItems)}
           onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}
         />
+        <div className="drawer-footer">
+          <VersionBadge version={panelVersion} />
+        </div>
       </Drawer>
 
       {!drawerOpen && (

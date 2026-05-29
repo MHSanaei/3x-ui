@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Form, Input, message, Modal, Select } from 'antd';
 
 import { HttpUtil } from '@/utils';
+import { CustomGeoFormSchema } from '@/schemas/xray';
 
 export interface CustomGeoRecord {
   id: number;
@@ -46,37 +47,18 @@ export default function CustomGeoFormModal({
     }
   }, [open, record]);
 
-  function validate(): boolean {
-    if (!/^[a-z0-9_-]+$/.test(alias || '')) {
-      messageApi.error(t('pages.index.customGeoValidationAlias'));
-      return false;
-    }
-    const u = (url || '').trim();
-    if (!/^https?:\/\//i.test(u)) {
-      messageApi.error(t('pages.index.customGeoValidationUrl'));
-      return false;
-    }
-    try {
-      const parsed = new URL(u);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        messageApi.error(t('pages.index.customGeoValidationUrl'));
-        return false;
-      }
-    } catch {
-      messageApi.error(t('pages.index.customGeoValidationUrl'));
-      return false;
-    }
-    return true;
-  }
-
   async function submit() {
-    if (!validate()) return;
+    const validated = CustomGeoFormSchema.safeParse({ type, alias, url });
+    if (!validated.success) {
+      messageApi.error(t(validated.error.issues[0]?.message ?? 'somethingWentWrong'));
+      return;
+    }
     setSaving(true);
     try {
       const apiUrl = editing
         ? `/panel/api/custom-geo/update/${record!.id}`
         : '/panel/api/custom-geo/add';
-      const msg = await HttpUtil.post(apiUrl, { type, alias, url });
+      const msg = await HttpUtil.post(apiUrl, validated.data);
       if (msg?.success) {
         onSaved();
         onClose();

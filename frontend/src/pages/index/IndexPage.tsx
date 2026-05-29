@@ -11,6 +11,7 @@ import {
   Row,
   Space,
   Spin,
+  Statistic,
   Tag,
   Tooltip,
 } from 'antd';
@@ -36,10 +37,9 @@ import {
 
 import { HttpUtil, SizeFormatter, TimeFormatter, ClipboardManager, FileManager } from '@/utils';
 import { useTheme } from '@/hooks/useTheme';
-import { useStatus } from '@/hooks/useStatus';
+import { useStatusQuery } from '@/api/queries/useStatusQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import AppSidebar from '@/components/AppSidebar';
-import CustomStatistic from '@/components/CustomStatistic';
 import LazyMount from '@/components/LazyMount';
 import { setMessageInstance } from '@/utils/messageBus';
 import StatusCard from './StatusCard';
@@ -53,13 +53,12 @@ const SystemHistoryModal = lazy(() => import('./SystemHistoryModal'));
 const XrayMetricsModal = lazy(() => import('./XrayMetricsModal'));
 const XrayLogModal = lazy(() => import('./XrayLogModal'));
 const VersionModal = lazy(() => import('./VersionModal'));
-import '@/styles/page-cards.css';
 import './IndexPage.css';
 
 export default function IndexPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
-  const { status, fetched, refresh } = useStatus();
+  const { status, fetched, refresh } = useStatusQuery();
   const { isMobile } = useMediaQuery();
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
@@ -72,7 +71,6 @@ export default function IndexPage() {
   });
 
   const basePath = window.X_UI_BASE_PATH || '';
-  const requestUri = window.location.pathname;
 
   const [showIp, setShowIp] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
@@ -88,10 +86,10 @@ export default function IndexPage() {
   const [loadingTip, setLoadingTip] = useState(t('loading'));
 
   useEffect(() => {
-    HttpUtil.post('/panel/setting/defaultSettings').then((msg) => {
+    HttpUtil.post<{ ipLimitEnable?: boolean }>('/panel/setting/defaultSettings').then((msg) => {
       if (msg?.success && msg.obj) setIpLimitEnable(!!msg.obj.ipLimitEnable);
     });
-    HttpUtil.get('/panel/api/server/getPanelUpdateInfo').then((msg) => {
+    HttpUtil.get<PanelUpdateInfo>('/panel/api/server/getPanelUpdateInfo').then((msg) => {
       if (msg?.success && msg.obj) setPanelUpdateInfo(msg.obj);
     });
   }, []);
@@ -158,7 +156,7 @@ export default function IndexPage() {
     <ConfigProvider theme={antdThemeConfig}>
       {messageContextHolder}
       <Layout className={pageClass}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content className="content-area">
@@ -286,14 +284,14 @@ export default function IndexPage() {
                     <Card title={t('pages.index.operationHours')} hoverable>
                       <Row gutter={isMobile ? [8, 8] : 0}>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title="Xray"
                             value={TimeFormatter.formatSecond(status.appStats.uptime)}
                             prefix={<ThunderboltOutlined />}
                           />
                         </Col>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title="OS"
                             value={TimeFormatter.formatSecond(status.uptime)}
                             prefix={<DesktopOutlined />}
@@ -307,14 +305,14 @@ export default function IndexPage() {
                     <Card title={t('usage')} hoverable>
                       <Row gutter={isMobile ? [8, 8] : 0}>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.index.memory')}
                             value={SizeFormatter.sizeFormat(status.appStats.mem)}
                             prefix={<DatabaseOutlined />}
                           />
                         </Col>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.index.threads')}
                             value={status.appStats.threads}
                             prefix={<ForkOutlined />}
@@ -328,7 +326,7 @@ export default function IndexPage() {
                     <Card title={t('pages.index.overallSpeed')} hoverable>
                       <Row gutter={isMobile ? [8, 8] : 0}>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.index.upload')}
                             value={SizeFormatter.sizeFormat(status.netIO.up)}
                             prefix={<ArrowUpOutlined />}
@@ -336,7 +334,7 @@ export default function IndexPage() {
                           />
                         </Col>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.index.download')}
                             value={SizeFormatter.sizeFormat(status.netIO.down)}
                             prefix={<ArrowDownOutlined />}
@@ -351,14 +349,14 @@ export default function IndexPage() {
                     <Card title={t('pages.index.totalData')} hoverable>
                       <Row gutter={isMobile ? [8, 8] : 0}>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.index.sent')}
                             value={SizeFormatter.sizeFormat(status.netTraffic.sent)}
                             prefix={<CloudUploadOutlined />}
                           />
                         </Col>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.index.received')}
                             value={SizeFormatter.sizeFormat(status.netTraffic.recv)}
                             prefix={<CloudDownloadOutlined />}
@@ -393,14 +391,14 @@ export default function IndexPage() {
                     >
                       <Row className={showIp ? 'ip-visible' : 'ip-hidden'} gutter={isMobile ? [8, 8] : 0}>
                         <Col span={isMobile ? 24 : 12}>
-                          <CustomStatistic
+                          <Statistic
                             title="IPv4"
                             value={status.publicIP.ipv4}
                             prefix={<GlobalOutlined />}
                           />
                         </Col>
                         <Col span={isMobile ? 24 : 12}>
-                          <CustomStatistic
+                          <Statistic
                             title="IPv6"
                             value={status.publicIP.ipv6}
                             prefix={<GlobalOutlined />}
@@ -414,14 +412,14 @@ export default function IndexPage() {
                     <Card title={t('pages.index.connectionCount')} hoverable>
                       <Row gutter={isMobile ? [8, 8] : 0}>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title="TCP"
                             value={status.tcpCount}
                             prefix={<SwapOutlined />}
                           />
                         </Col>
                         <Col span={12}>
-                          <CustomStatistic
+                          <Statistic
                             title="UDP"
                             value={status.udpCount}
                             prefix={<SwapOutlined />}
@@ -482,7 +480,9 @@ export default function IndexPage() {
             open={configTextOpen}
             title={t('pages.index.config')}
             width={isMobile ? '100%' : 900}
-            style={isMobile ? { top: 20, maxWidth: 'calc(100vw - 16px)' } : undefined}
+            style={isMobile
+              ? { top: 20, maxWidth: 'calc(100vw - 16px)' }
+              : { top: 20 }}
             onCancel={() => setConfigTextOpen(false)}
             footer={[
               <Button
@@ -507,8 +507,8 @@ export default function IndexPage() {
             <JsonEditor
               value={configText}
               onChange={setConfigText}
-              minHeight={isMobile ? '300px' : '420px'}
-              maxHeight={isMobile ? '500px' : '720px'}
+              minHeight={isMobile ? '300px' : 'calc(100vh - 220px)'}
+              maxHeight={isMobile ? '70vh' : 'calc(100vh - 220px)'}
               readOnly
             />
           </Modal>

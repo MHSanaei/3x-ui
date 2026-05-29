@@ -1,0 +1,16 @@
+{
+  "protocol": "wireguard",
+  "settings": {
+    "mtu": 1420,
+    "secretKey": "QGVlb2dXc1ZTWGw0ZXBzZndsWmtMaUM5MUlNYjBHWFdYbz0=",
+    "peers": [
+      {
+        "privateKey": "iJ2cBkrSGqRwIfYIDIxk7hr5RXfdR93MfJUL7yqkkH8=",
+        "publicKey": "DGSYIcEKAUkA7HhzGSjxLZuV67BR3LeyU0BMLJzNVHQ=",
+        "allowedIPs": ["10.0.0.2/32"],
+        "keepAlive": 25
+      }
+    ],
+    "noKernelTun": false
+  }
+}

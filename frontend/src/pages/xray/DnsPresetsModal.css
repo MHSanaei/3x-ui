@@ -1,12 +1,7 @@
 .preset-list {
-  border: 1px solid rgba(5, 5, 5, 0.06);
+  border: 1px solid var(--ant-color-border-secondary);
   border-radius: 8px;
   overflow: hidden;
-}
-
-body.dark .preset-list,
-html[data-theme='ultra-dark'] .preset-list {
-  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .preset-row {
@@ -15,16 +10,11 @@ html[data-theme='ultra-dark'] .preset-list {
   justify-content: space-between;
   gap: 8px;
   padding: 12px 24px;
-  border-bottom: 1px solid rgba(5, 5, 5, 0.06);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
 }
 
 .preset-row:last-child {
   border-bottom: 0;
-}
-
-body.dark .preset-row,
-html[data-theme='ultra-dark'] .preset-row {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 .preset-name {

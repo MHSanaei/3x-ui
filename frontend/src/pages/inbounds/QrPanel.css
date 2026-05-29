@@ -1,5 +1,5 @@
 .qr-panel {
-  border: 1px solid rgba(128, 128, 128, 0.2);
+  border: 1px solid var(--ant-color-border-secondary);
   border-radius: 8px;
   padding: 10px;
   margin-bottom: 10px;

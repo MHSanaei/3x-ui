@@ -18,36 +18,8 @@
   width: 130px;
 }
 
-.row-odd {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-body.dark .row-odd {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.zero-margin {
-  margin: 0;
-}
-
-.mt-8 {
-  margin-top: 8px;
-}
-
-.mt-10 {
-  margin-top: 10px;
-}
-
-.mt-20 {
-  margin-top: 20px;
-}
-
-.my-10 {
-  margin: 10px 0;
-}
-
-.ml-8 {
-  margin-left: 8px;
+.nord-data-table .row-odd {
+  background: var(--ant-color-fill-tertiary);
 }
 
 .server-row {

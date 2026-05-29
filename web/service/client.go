@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -70,7 +72,7 @@ func clientKeyForProtocol(p model.Protocol, rec *model.ClientRecord) string {
 		return rec.Password
 	case model.Shadowsocks:
 		return rec.Email
-	case model.Hysteria, model.Hysteria2:
+	case model.Hysteria:
 		return rec.Auth
 	default:
 		return rec.UUID
@@ -213,27 +215,45 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			}
 			row = incoming
 		} else {
-			row.UUID = incoming.UUID
-			row.Password = incoming.Password
-			row.Auth = incoming.Auth
+			if incoming.UUID != "" {
+				row.UUID = incoming.UUID
+			}
+			if incoming.Password != "" {
+				row.Password = incoming.Password
+			}
+			if incoming.Auth != "" {
+				row.Auth = incoming.Auth
+			}
 			row.Flow = incoming.Flow
-			row.Security = incoming.Security
-			row.Reverse = incoming.Reverse
+			if incoming.Security != "" {
+				row.Security = incoming.Security
+			}
+			if incoming.Reverse != "" {
+				row.Reverse = incoming.Reverse
+			}
 			row.SubID = incoming.SubID
 			row.LimitIP = incoming.LimitIP
 			row.TotalGB = incoming.TotalGB
 			row.ExpiryTime = incoming.ExpiryTime
 			row.Enable = incoming.Enable
 			row.TgID = incoming.TgID
+			row.Group = incoming.Group
 			row.Comment = incoming.Comment
 			row.Reset = incoming.Reset
 			if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
 				row.CreatedAt = incoming.CreatedAt
 			}
-			if incoming.UpdatedAt > row.UpdatedAt {
-				row.UpdatedAt = incoming.UpdatedAt
+			preservedUpdatedAt := row.UpdatedAt
+			if incoming.UpdatedAt > preservedUpdatedAt {
+				preservedUpdatedAt = incoming.UpdatedAt
 			}
+			row.UpdatedAt = preservedUpdatedAt
 			if err := tx.Save(row).Error; err != nil {
+				return err
+			}
+			if err := tx.Model(&model.ClientRecord{}).
+				Where("id = ?", row.Id).
+				UpdateColumn("updated_at", preservedUpdatedAt).Error; err != nil {
 				return err
 			}
 		}
@@ -468,7 +488,7 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 		if c.Password == "" || !validShadowsocksClientKey(method, c.Password) {
 			c.Password = randomShadowsocksClientKey(method)
 		}
-	case model.Hysteria, model.Hysteria2:
+	case model.Hysteria:
 		if c.Auth == "" {
 			c.Auth = strings.ReplaceAll(uuid.NewString(), "-", "")
 		}
@@ -527,19 +547,29 @@ func shadowsocksKeyBytes(method string) int {
 	return 0
 }
 
-// applyShadowsocksClientMethod ensures each client entry carries a "method"
-// field for legacy shadowsocks ciphers. xray's multi-user shadowsocks code
-// requires a per-client method; an empty/missing field fails with
-// "unsupported cipher method:". 2022-blake3 ciphers use the top-level
-// method only, so the per-client field must stay absent.
+// applyShadowsocksClientMethod normalises the per-client "method" field
+// when an inbound is created or updated:
+//   - Legacy ciphers: backfill `method` so xray's multi-user code is happy.
+//     "unsupported cipher method:" otherwise.
+//   - 2022-blake3-*: strip the per-client `method` because xray rejects
+//     it with "users must have empty method". This matters after an admin
+//     switches an existing inbound from a legacy cipher to a 2022 one.
 func applyShadowsocksClientMethod(clients []any, settings map[string]any) {
 	method, _ := settings["method"].(string)
-	if method == "" || strings.HasPrefix(method, "2022-blake3-") {
-		return
-	}
+	is2022 := strings.HasPrefix(method, "2022-blake3-")
 	for i := range clients {
 		cm, ok := clients[i].(map[string]any)
 		if !ok {
+			continue
+		}
+		if is2022 {
+			if _, hasKey := cm["method"]; hasKey {
+				delete(cm, "method")
+				clients[i] = cm
+			}
+			continue
+		}
+		if method == "" {
 			continue
 		}
 		if existing, _ := cm["method"].(string); existing != "" {
@@ -574,6 +604,27 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		updated.CreatedAt = existing.CreatedAt
 	}
 
+	// Rename the ClientRecord row up front when the email changes. SyncInbound
+	// (invoked from UpdateInboundClient below) looks up by email — without
+	// renaming first it would treat the new email as a brand-new client,
+	// insert a duplicate ClientRecord, and leave the original orphaned.
+	if updated.Email != existing.Email {
+		var collisionCount int64
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("email = ? AND id <> ?", updated.Email, id).
+			Count(&collisionCount).Error; err != nil {
+			return false, err
+		}
+		if collisionCount > 0 {
+			return false, common.NewError("Duplicate email:", updated.Email)
+		}
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("id = ?", id).
+			Update("email", updated.Email).Error; err != nil {
+			return false, err
+		}
+	}
+
 	needRestart := false
 	for _, ibId := range inboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
@@ -605,7 +656,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 
 	if err := database.GetDB().Model(&model.ClientRecord{}).
 		Where("id = ?", id).
-		Update("updated_at", updated.UpdatedAt).Error; err != nil {
+		UpdateColumn("updated_at", time.Now().UnixMilli()).Error; err != nil {
 		return needRestart, err
 	}
 	return needRestart, nil
@@ -627,13 +678,16 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 	for _, ibId := range inboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
 		if getErr != nil {
+			if errors.Is(getErr, gorm.ErrRecordNotFound) {
+				continue
+			}
 			return needRestart, getErr
 		}
 		key := clientKeyForProtocol(inbound.Protocol, existing)
 		if key == "" {
 			continue
 		}
-		nr, delErr := s.DelInboundClient(inboundSvc, ibId, key)
+		nr, delErr := s.DelInboundClient(inboundSvc, ibId, key, false)
 		if delErr != nil {
 			return needRestart, delErr
 		}
@@ -737,6 +791,180 @@ func (s *ClientService) AttachByEmail(inboundSvc *InboundService, email string, 
 	return s.Attach(inboundSvc, rec.Id, inboundIds)
 }
 
+// BulkAttachResult reports the outcome of a bulk attach across target inbounds.
+type BulkAttachResult struct {
+	Attached []string `json:"attached"`
+	Skipped  []string `json:"skipped"`
+	Errors   []string `json:"errors"`
+}
+
+// BulkAttach attaches the given existing clients (by email) to each target inbound,
+// reusing their identity (email/UUID/password/subId) and a shared traffic row. It adds
+// all clients to a target in a single AddInboundClient call, and reports clients already
+// present on a target as skipped.
+func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, inboundIds []int) (*BulkAttachResult, bool, error) {
+	result := &BulkAttachResult{}
+	if len(emails) == 0 || len(inboundIds) == 0 {
+		return result, false, nil
+	}
+
+	recordErr := func(format string, args ...any) {
+		msg := fmt.Sprintf(format, args...)
+		result.Errors = append(result.Errors, msg)
+		logger.Warningf("[BulkAttach] %s", msg)
+	}
+
+	records := make([]*model.ClientRecord, 0, len(emails))
+	seenEmail := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		if email == "" {
+			continue
+		}
+		key := strings.ToLower(email)
+		if _, ok := seenEmail[key]; ok {
+			continue
+		}
+		seenEmail[key] = struct{}{}
+		rec, err := s.GetRecordByEmail(nil, email)
+		if err != nil {
+			recordErr("%s: %v", email, err)
+			continue
+		}
+		records = append(records, rec)
+	}
+
+	needRestart := false
+	for _, ibId := range inboundIds {
+		inbound, err := inboundSvc.GetInbound(ibId)
+		if err != nil {
+			recordErr("inbound %d: %v", ibId, err)
+			continue
+		}
+		existingClients, err := inboundSvc.GetClients(inbound)
+		if err != nil {
+			recordErr("inbound %d: %v", ibId, err)
+			continue
+		}
+		have := make(map[string]struct{}, len(existingClients))
+		for _, c := range existingClients {
+			have[strings.ToLower(c.Email)] = struct{}{}
+		}
+
+		clientsToAdd := make([]model.Client, 0, len(records))
+		for _, rec := range records {
+			if _, attached := have[strings.ToLower(rec.Email)]; attached {
+				result.Skipped = append(result.Skipped, rec.Email)
+				continue
+			}
+			client := *rec.ToClient()
+			client.UpdatedAt = time.Now().UnixMilli()
+			if err := s.fillProtocolDefaults(&client, inbound); err != nil {
+				recordErr("%s -> inbound %d: %v", rec.Email, ibId, err)
+				continue
+			}
+			clientsToAdd = append(clientsToAdd, client)
+		}
+
+		if len(clientsToAdd) == 0 {
+			continue
+		}
+
+		payload, err := json.Marshal(map[string][]model.Client{"clients": clientsToAdd})
+		if err != nil {
+			recordErr("inbound %d: %v", ibId, err)
+			continue
+		}
+		nr, err := s.AddInboundClient(inboundSvc, &model.Inbound{Id: ibId, Settings: string(payload)})
+		if err != nil {
+			recordErr("inbound %d: %v", ibId, err)
+			continue
+		}
+		if nr {
+			needRestart = true
+		}
+		for _, c := range clientsToAdd {
+			result.Attached = append(result.Attached, c.Email)
+		}
+	}
+
+	return result, needRestart, nil
+}
+
+// BulkDetachResult reports the outcome of a bulk detach across target inbounds.
+type BulkDetachResult struct {
+	Detached []string `json:"detached"`
+	Skipped  []string `json:"skipped"`
+	Errors   []string `json:"errors"`
+}
+
+// BulkDetach detaches the given existing clients (by email) from each target inbound.
+// (email, inbound) pairs where the client is not currently attached are silently skipped
+// at the inbound level; emails that aren't attached to any of the requested inbounds
+// are reported under skipped. ClientRecord rows are kept even when they become orphaned
+// (matches single-client detach semantics); callers should use bulkDelete for full removal.
+func (s *ClientService) BulkDetach(inboundSvc *InboundService, emails []string, inboundIds []int) (*BulkDetachResult, bool, error) {
+	result := &BulkDetachResult{}
+	if len(emails) == 0 || len(inboundIds) == 0 {
+		return result, false, nil
+	}
+
+	recordErr := func(format string, args ...any) {
+		msg := fmt.Sprintf(format, args...)
+		result.Errors = append(result.Errors, msg)
+		logger.Warningf("[BulkDetach] %s", msg)
+	}
+
+	requested := make(map[int]struct{}, len(inboundIds))
+	for _, id := range inboundIds {
+		requested[id] = struct{}{}
+	}
+
+	needRestart := false
+	seenEmail := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		if email == "" {
+			continue
+		}
+		key := strings.ToLower(email)
+		if _, ok := seenEmail[key]; ok {
+			continue
+		}
+		seenEmail[key] = struct{}{}
+
+		rec, err := s.GetRecordByEmail(nil, email)
+		if err != nil {
+			recordErr("%s: %v", email, err)
+			continue
+		}
+		currentIds, err := s.GetInboundIdsForRecord(rec.Id)
+		if err != nil {
+			recordErr("%s: %v", email, err)
+			continue
+		}
+		intersection := make([]int, 0, len(currentIds))
+		for _, id := range currentIds {
+			if _, ok := requested[id]; ok {
+				intersection = append(intersection, id)
+			}
+		}
+		if len(intersection) == 0 {
+			result.Skipped = append(result.Skipped, rec.Email)
+			continue
+		}
+		nr, err := s.Detach(inboundSvc, rec.Id, intersection)
+		if err != nil {
+			recordErr("%s: %v", rec.Email, err)
+			continue
+		}
+		if nr {
+			needRestart = true
+		}
+		result.Detached = append(result.Detached, rec.Email)
+	}
+
+	return result, needRestart, nil
+}
+
 func (s *ClientService) DetachByEmailMany(inboundSvc *InboundService, email string, inboundIds []int) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")
@@ -753,10 +981,74 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 		return false, common.NewError("client email is required")
 	}
 	rec, err := s.GetRecordByEmail(nil, email)
-	if err != nil {
+	if err == nil {
+		return s.Delete(inboundSvc, rec.Id, keepTraffic)
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return false, err
 	}
-	return s.Delete(inboundSvc, rec.Id, keepTraffic)
+	inboundIds, idsErr := s.findInboundIdsByClientEmail(email)
+	if idsErr != nil {
+		return false, idsErr
+	}
+	if len(inboundIds) == 0 {
+		return false, common.NewError(fmt.Sprintf("client %q not found in any inbound or client record", email))
+	}
+	needRestart := false
+	for _, ibId := range inboundIds {
+		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, email, false)
+		if delErr != nil {
+			return needRestart, delErr
+		}
+		if nr {
+			needRestart = true
+		}
+	}
+	if !keepTraffic {
+		db := database.GetDB()
+		if err := db.Where("email = ?", email).Delete(&xray.ClientTraffic{}).Error; err != nil {
+			return needRestart, err
+		}
+		if err := db.Where("client_email = ?", email).Delete(&model.InboundClientIps{}).Error; err != nil {
+			return needRestart, err
+		}
+	}
+	return needRestart, nil
+}
+
+// findInboundIdsByClientEmail returns every inbound whose settings.clients[]
+// JSON contains an entry with the given email. Driver-portable (no JSON
+// operators) by parsing in Go — fine for the rare fallback path.
+func (s *ClientService) findInboundIdsByClientEmail(email string) ([]int, error) {
+	var inbounds []model.Inbound
+	if err := database.GetDB().
+		Select("id, settings").
+		Where("settings LIKE ?", "%"+email+"%").
+		Find(&inbounds).Error; err != nil {
+		return nil, err
+	}
+	out := make([]int, 0, len(inbounds))
+	for _, ib := range inbounds {
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+			continue
+		}
+		clients, ok := settings["clients"].([]any)
+		if !ok {
+			continue
+		}
+		for _, c := range clients {
+			cm, ok := c.(map[string]any)
+			if !ok {
+				continue
+			}
+			if cEmail, _ := cm["email"].(string); cEmail == email {
+				out = append(out, ib.Id)
+				break
+			}
+		}
+	}
+	return out, nil
 }
 
 func (s *ClientService) UpdateByEmail(inboundSvc *InboundService, email string, updated model.Client) (bool, error) {
@@ -813,6 +1105,7 @@ type ClientSlim struct {
 	ExpiryTime int64               `json:"expiryTime"`
 	LimitIP    int                 `json:"limitIp"`
 	Reset      int                 `json:"reset"`
+	Group      string              `json:"group,omitempty"`
 	Comment    string              `json:"comment,omitempty"`
 	InboundIds []int               `json:"inboundIds"`
 	Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
@@ -822,15 +1115,29 @@ type ClientSlim struct {
 
 // ClientPageParams are the query params accepted by /panel/api/clients/list/paged.
 // All fields are optional — the empty value means "no filter" / defaults.
+//
+// Filter / Protocol / Inbound accept either a single value or a comma-separated
+// list; matching is OR within a field and AND across fields. The numeric range
+// fields treat 0 as "unset" on the lower bound and 0 (or negative) as
+// "unbounded" on the upper bound.
 type ClientPageParams struct {
 	Page     int    `form:"page"`
 	PageSize int    `form:"pageSize"`
 	Search   string `form:"search"`
 	Filter   string `form:"filter"`
 	Protocol string `form:"protocol"`
-	Inbound  int    `form:"inbound"`
+	Inbound  string `form:"inbound"`
 	Sort     string `form:"sort"`
 	Order    string `form:"order"`
+
+	ExpiryFrom int64  `form:"expiryFrom"`
+	ExpiryTo   int64  `form:"expiryTo"`
+	UsageFrom  int64  `form:"usageFrom"`
+	UsageTo    int64  `form:"usageTo"`
+	AutoRenew  string `form:"autoRenew"`
+	HasTgID    string `form:"hasTgId"`
+	HasComment string `form:"hasComment"`
+	Group      string `form:"group"`
 }
 
 // ClientPageResponse is the shape returned by ListPaged. `Total` is the
@@ -845,6 +1152,7 @@ type ClientPageResponse struct {
 	Page     int            `json:"page"`
 	PageSize int            `json:"pageSize"`
 	Summary  ClientsSummary `json:"summary"`
+	Groups   []string       `json:"groups"`
 }
 
 // ClientsSummary collects per-bucket counts plus the matching email lists so
@@ -889,8 +1197,12 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		page = 1
 	}
 
+	protocols := parseCSVStrings(params.Protocol)
+	inboundIDs := parseCSVInts(params.Inbound)
+	buckets := parseCSVStrings(params.Filter)
+
 	var protocolByInbound map[int]string
-	if params.Protocol != "" {
+	if len(protocols) > 0 {
 		inbounds, err := inboundSvc.GetAllInbounds()
 		if err == nil {
 			protocolByInbound = make(map[int]string, len(inbounds))
@@ -926,13 +1238,31 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		if needle != "" && !clientMatchesSearch(c, needle) {
 			continue
 		}
-		if params.Protocol != "" && !clientMatchesProtocol(c, params.Protocol, protocolByInbound) {
+		if len(protocols) > 0 && !clientMatchesAnyProtocol(c, protocols, protocolByInbound) {
 			continue
 		}
-		if params.Inbound > 0 && !clientMatchesInbound(c, params.Inbound) {
+		if len(inboundIDs) > 0 && !clientMatchesAnyInbound(c, inboundIDs) {
 			continue
 		}
-		if params.Filter != "" && !clientMatchesBucket(c, params.Filter, onlineSet, nowMs, expireDiffMs, trafficDiffBytes) {
+		if len(buckets) > 0 && !clientMatchesAnyBucket(c, buckets, onlineSet, nowMs, expireDiffMs, trafficDiffBytes) {
+			continue
+		}
+		if !clientMatchesExpiryRange(c, params.ExpiryFrom, params.ExpiryTo) {
+			continue
+		}
+		if !clientMatchesUsageRange(c, params.UsageFrom, params.UsageTo) {
+			continue
+		}
+		if !clientMatchesAutoRenew(c, params.AutoRenew) {
+			continue
+		}
+		if !clientMatchesHasTgID(c, params.HasTgID) {
+			continue
+		}
+		if !clientMatchesHasComment(c, params.HasComment) {
+			continue
+		}
+		if !clientMatchesAnyGroup(c, params.Group) {
 			continue
 		}
 		filtered = append(filtered, c)
@@ -956,6 +1286,15 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		items = append(items, toClientSlim(c))
 	}
 
+	groupRows, gErr := s.ListGroups()
+	if gErr != nil {
+		return nil, gErr
+	}
+	groups := make([]string, 0, len(groupRows))
+	for _, g := range groupRows {
+		groups = append(groups, g.Name)
+	}
+
 	return &ClientPageResponse{
 		Items:    items,
 		Total:    total,
@@ -963,7 +1302,323 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		Page:     page,
 		PageSize: pageSize,
 		Summary:  summary,
+		Groups:   groups,
 	}, nil
+}
+
+type GroupSummary struct {
+	Name        string `json:"name"`
+	ClientCount int    `json:"clientCount"`
+}
+
+func (s *ClientService) ListGroups() ([]GroupSummary, error) {
+	db := database.GetDB()
+	var derived []GroupSummary
+	if err := db.Model(&model.ClientRecord{}).
+		Select("group_name AS name, COUNT(*) AS client_count").
+		Where("group_name <> ''").
+		Group("group_name").
+		Scan(&derived).Error; err != nil {
+		return nil, err
+	}
+	var stored []model.ClientGroup
+	if err := db.Find(&stored).Error; err != nil {
+		return nil, err
+	}
+	merged := make(map[string]int, len(derived)+len(stored))
+	for _, g := range stored {
+		merged[g.Name] = 0
+	}
+	for _, g := range derived {
+		merged[g.Name] = g.ClientCount
+	}
+	out := make([]GroupSummary, 0, len(merged))
+	for name, count := range merged {
+		out = append(out, GroupSummary{Name: name, ClientCount: count})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
+	})
+	return out, nil
+}
+
+func (s *ClientService) EmailsByGroup(name string) ([]string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return []string{}, nil
+	}
+	db := database.GetDB()
+	var emails []string
+	if err := db.Model(&model.ClientRecord{}).
+		Where("group_name = ?", name).
+		Order("email ASC").
+		Pluck("email", &emails).Error; err != nil {
+		return nil, err
+	}
+	if emails == nil {
+		emails = []string{}
+	}
+	return emails, nil
+}
+
+func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []string) (int, error) {
+	if len(emails) == 0 {
+		return 0, nil
+	}
+	count := 0
+	for _, email := range emails {
+		if _, err := s.ResetTrafficByEmail(inboundSvc, email); err != nil {
+			return count, err
+		}
+		count++
+	}
+	return count, nil
+}
+
+func (s *ClientService) CreateGroup(name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return common.NewError("group name is required")
+	}
+	db := database.GetDB()
+	var count int64
+	if err := db.Model(&model.ClientGroup{}).Where("name = ?", name).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return common.NewError("group already exists")
+	}
+	return db.Create(&model.ClientGroup{Name: name}).Error
+}
+
+func (s *ClientService) RenameGroup(oldName, newName string) (int, error) {
+	oldName = strings.TrimSpace(oldName)
+	newName = strings.TrimSpace(newName)
+	if oldName == "" {
+		return 0, common.NewError("old group name is required")
+	}
+	if newName == "" {
+		return 0, common.NewError("new group name is required")
+	}
+	if oldName == newName {
+		return 0, nil
+	}
+	return s.replaceGroupValue(oldName, newName)
+}
+
+func (s *ClientService) DeleteGroup(name string) (int, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return 0, common.NewError("group name is required")
+	}
+	return s.replaceGroupValue(name, "")
+}
+
+func (s *ClientService) RemoveFromGroup(emails []string) (int, error) {
+	return s.AddToGroup(emails, "")
+}
+
+func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
+	group = strings.TrimSpace(group)
+	if len(emails) == 0 {
+		return 0, nil
+	}
+	db := database.GetDB()
+
+	if group != "" {
+		var exists int64
+		if err := db.Model(&model.ClientGroup{}).Where("name = ?", group).Count(&exists).Error; err != nil {
+			return 0, err
+		}
+		if exists == 0 {
+			var derived int64
+			if err := db.Model(&model.ClientRecord{}).Where("group_name = ?", group).Count(&derived).Error; err != nil {
+				return 0, err
+			}
+			if derived == 0 {
+				if err := db.Create(&model.ClientGroup{Name: group}).Error; err != nil {
+					return 0, err
+				}
+			}
+		}
+	}
+
+	var records []model.ClientRecord
+	if err := db.Where("email IN ?", emails).Find(&records).Error; err != nil {
+		return 0, err
+	}
+	if len(records) == 0 {
+		return 0, nil
+	}
+	affectedEmails := make([]string, 0, len(records))
+	for _, r := range records {
+		affectedEmails = append(affectedEmails, r.Email)
+	}
+
+	tx := db.Begin()
+	if err := tx.Model(&model.ClientRecord{}).
+		Where("email IN ?", affectedEmails).
+		UpdateColumn("group_name", group).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	var inboundIDs []int
+	if err := tx.Table("client_inbounds").
+		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+		Where("clients.email IN ?", affectedEmails).
+		Distinct("client_inbounds.inbound_id").
+		Pluck("inbound_id", &inboundIDs).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	emailSet := make(map[string]struct{}, len(affectedEmails))
+	for _, e := range affectedEmails {
+		emailSet[e] = struct{}{}
+	}
+
+	for _, ibID := range inboundIDs {
+		var ib model.Inbound
+		if err := tx.First(&ib, ibID).Error; err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+			continue
+		}
+		clients, ok := settings["clients"].([]any)
+		if !ok {
+			continue
+		}
+		modified := false
+		for i := range clients {
+			cm, ok := clients[i].(map[string]any)
+			if !ok {
+				continue
+			}
+			email, _ := cm["email"].(string)
+			if _, hit := emailSet[email]; !hit {
+				continue
+			}
+			if group == "" {
+				delete(cm, "group")
+			} else {
+				cm["group"] = group
+			}
+			clients[i] = cm
+			modified = true
+		}
+		if modified {
+			settings["clients"] = clients
+			newSettings, err := json.Marshal(settings)
+			if err != nil {
+				continue
+			}
+			ib.Settings = string(newSettings)
+			if err := tx.Save(&ib).Error; err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return 0, err
+	}
+	return len(records), nil
+}
+
+func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) {
+	db := database.GetDB()
+	if newName == "" {
+		if err := db.Where("name = ?", oldName).Delete(&model.ClientGroup{}).Error; err != nil {
+			return 0, err
+		}
+	} else {
+		if err := db.Model(&model.ClientGroup{}).Where("name = ?", oldName).Update("name", newName).Error; err != nil {
+			return 0, err
+		}
+	}
+	var records []model.ClientRecord
+	if err := db.Where("group_name = ?", oldName).Find(&records).Error; err != nil {
+		return 0, err
+	}
+	if len(records) == 0 {
+		return 0, nil
+	}
+	affectedEmails := make([]string, 0, len(records))
+	for _, r := range records {
+		affectedEmails = append(affectedEmails, r.Email)
+	}
+
+	tx := db.Begin()
+	if err := tx.Model(&model.ClientRecord{}).
+		Where("group_name = ?", oldName).
+		UpdateColumn("group_name", newName).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	var inboundIDs []int
+	if err := tx.Table("client_inbounds").
+		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+		Where("clients.email IN ?", affectedEmails).
+		Distinct("client_inbounds.inbound_id").
+		Pluck("inbound_id", &inboundIDs).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	for _, ibID := range inboundIDs {
+		var ib model.Inbound
+		if err := tx.First(&ib, ibID).Error; err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+			continue
+		}
+		clients, ok := settings["clients"].([]any)
+		if !ok {
+			continue
+		}
+		modified := false
+		for i := range clients {
+			cm, ok := clients[i].(map[string]any)
+			if !ok {
+				continue
+			}
+			if g, ok := cm["group"].(string); ok && g == oldName {
+				if newName == "" {
+					delete(cm, "group")
+				} else {
+					cm["group"] = newName
+				}
+				clients[i] = cm
+				modified = true
+			}
+		}
+		if modified {
+			settings["clients"] = clients
+			newSettings, err := json.Marshal(settings)
+			if err != nil {
+				continue
+			}
+			ib.Settings = string(newSettings)
+			if err := tx.Save(&ib).Error; err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return 0, err
+	}
+	return len(records), nil
 }
 
 func buildClientsSummary(all []ClientWithAttachments, onlineSet map[string]struct{}, nowMs, expireDiffMs, trafficDiffBytes int64) ClientsSummary {
@@ -1014,6 +1669,7 @@ func toClientSlim(c ClientWithAttachments) ClientSlim {
 		ExpiryTime: c.ExpiryTime,
 		LimitIP:    c.LimitIP,
 		Reset:      c.Reset,
+		Group:      c.Group,
 		Comment:    c.Comment,
 		InboundIds: c.InboundIds,
 		Traffic:    c.Traffic,
@@ -1026,36 +1682,173 @@ func clientMatchesSearch(c ClientWithAttachments, needle string) bool {
 	if needle == "" {
 		return true
 	}
-	if strings.Contains(strings.ToLower(c.Email), needle) {
-		return true
-	}
-	if strings.Contains(strings.ToLower(c.SubID), needle) {
-		return true
-	}
-	if strings.Contains(strings.ToLower(c.Comment), needle) {
-		return true
-	}
-	return false
-}
-
-func clientMatchesProtocol(c ClientWithAttachments, protocol string, byInbound map[int]string) bool {
-	if protocol == "" {
-		return true
-	}
-	for _, id := range c.InboundIds {
-		if byInbound[id] == protocol {
+	candidates := [...]string{c.Email, c.SubID, c.Comment, c.UUID, c.Password, c.Auth}
+	for _, v := range candidates {
+		if v != "" && strings.Contains(strings.ToLower(v), needle) {
 			return true
 		}
 	}
 	return false
 }
 
-func clientMatchesInbound(c ClientWithAttachments, inboundId int) bool {
-	if inboundId <= 0 {
+// parseCSVStrings splits a comma-separated list, trims/lower-cases each item,
+// and drops blanks. Returns nil when the input has no usable entries — the
+// caller can then skip the predicate entirely.
+func parseCSVStrings(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		s := strings.ToLower(strings.TrimSpace(p))
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// parseCSVInts is parseCSVStrings for positive integer IDs; non-numeric or
+// non-positive entries are silently dropped.
+func parseCSVInts(raw string) []int {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]int, 0, len(parts))
+	for _, p := range parts {
+		s := strings.TrimSpace(p)
+		if s == "" {
+			continue
+		}
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			out = append(out, n)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func clientMatchesAnyProtocol(c ClientWithAttachments, protocols []string, byInbound map[int]string) bool {
+	for _, id := range c.InboundIds {
+		p := byInbound[id]
+		if p == "" {
+			continue
+		}
+		if slices.Contains(protocols, strings.ToLower(p)) {
+			return true
+		}
+	}
+	return false
+}
+
+func clientMatchesAnyInbound(c ClientWithAttachments, inboundIds []int) bool {
+	for _, id := range c.InboundIds {
+		if slices.Contains(inboundIds, id) {
+			return true
+		}
+	}
+	return false
+}
+
+func clientMatchesAnyBucket(c ClientWithAttachments, buckets []string, onlineSet map[string]struct{}, nowMs, expireDiffMs, trafficDiffBytes int64) bool {
+	for _, b := range buckets {
+		if clientMatchesBucket(c, b, onlineSet, nowMs, expireDiffMs, trafficDiffBytes) {
+			return true
+		}
+	}
+	return false
+}
+
+func clientMatchesExpiryRange(c ClientWithAttachments, fromMs, toMs int64) bool {
+	if fromMs <= 0 && toMs <= 0 {
 		return true
 	}
-	for _, id := range c.InboundIds {
-		if id == inboundId {
+	// expiryTime of 0 means "never expires"; treat it as outside any bounded
+	// range so users filtering by date see only clients with concrete expiries.
+	if c.ExpiryTime == 0 {
+		return false
+	}
+	// Negative expiry is the "delayed start" sentinel; same treatment as never.
+	if c.ExpiryTime < 0 {
+		return false
+	}
+	if fromMs > 0 && c.ExpiryTime < fromMs {
+		return false
+	}
+	if toMs > 0 && c.ExpiryTime > toMs {
+		return false
+	}
+	return true
+}
+
+func clientMatchesUsageRange(c ClientWithAttachments, fromBytes, toBytes int64) bool {
+	if fromBytes <= 0 && toBytes <= 0 {
+		return true
+	}
+	used := int64(0)
+	if c.Traffic != nil {
+		used = c.Traffic.Up + c.Traffic.Down
+	}
+	if fromBytes > 0 && used < fromBytes {
+		return false
+	}
+	if toBytes > 0 && used > toBytes {
+		return false
+	}
+	return true
+}
+
+func clientMatchesAutoRenew(c ClientWithAttachments, mode string) bool {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "on":
+		return c.Reset > 0
+	case "off":
+		return c.Reset <= 0
+	}
+	return true
+}
+
+func clientMatchesHasTgID(c ClientWithAttachments, mode string) bool {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "yes":
+		return c.TgID != 0
+	case "no":
+		return c.TgID == 0
+	}
+	return true
+}
+
+func clientMatchesHasComment(c ClientWithAttachments, mode string) bool {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "yes":
+		return strings.TrimSpace(c.Comment) != ""
+	case "no":
+		return strings.TrimSpace(c.Comment) == ""
+	}
+	return true
+}
+
+func clientMatchesAnyGroup(c ClientWithAttachments, csv string) bool {
+	groups := parseCSVStrings(csv)
+	if len(groups) == 0 {
+		return true
+	}
+	current := strings.TrimSpace(c.Group)
+	for _, g := range groups {
+		if g == "" {
+			if current == "" {
+				return true
+			}
+			continue
+		}
+		if strings.EqualFold(g, current) {
 			return true
 		}
 	}
@@ -1151,6 +1944,29 @@ func sortClients(rows []ClientWithAttachments, sortKey, order string) {
 				eb = b.ExpiryTime
 			}
 			return ea < eb
+		case "createdAt":
+			if a.CreatedAt == b.CreatedAt {
+				return a.Id < b.Id
+			}
+			return a.CreatedAt < b.CreatedAt
+		case "updatedAt":
+			if a.UpdatedAt == b.UpdatedAt {
+				return a.Id < b.Id
+			}
+			return a.UpdatedAt < b.UpdatedAt
+		case "lastOnline":
+			la := int64(0)
+			if a.Traffic != nil {
+				la = a.Traffic.LastOnline
+			}
+			lb := int64(0)
+			if b.Traffic != nil {
+				lb = b.Traffic.LastOnline
+			}
+			if la == lb {
+				return a.Id < b.Id
+			}
+			return la < lb
 		}
 		return false
 	}
@@ -1175,82 +1991,708 @@ type BulkAdjustReport struct {
 	Reason string `json:"reason"`
 }
 
+type bulkAdjustEntry struct {
+	record      *model.ClientRecord
+	applyExpiry bool
+	newExpiry   int64
+	applyTotal  bool
+	newTotal    int64
+}
+
 // BulkAdjust shifts ExpiryTime by addDays (days) and TotalGB by addBytes
 // for every email in the list. Clients whose corresponding field is
 // unlimited (0) are skipped — bulk extend should not accidentally
 // limit an unlimited client. addDays and addBytes may be negative.
+//
+// Like BulkDelete, the work is grouped by inbound so each inbound's
+// settings JSON is parsed and written exactly once regardless of how
+// many target emails it contains.
 func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, addDays int, addBytes int64) (BulkAdjustResult, bool, error) {
 	result := BulkAdjustResult{}
-	needRestart := false
 	if len(emails) == 0 {
-		return result, needRestart, nil
+		return result, false, nil
 	}
 	if addDays == 0 && addBytes == 0 {
-		return result, needRestart, common.NewError("no adjustment specified")
+		return result, false, common.NewError("no adjustment specified")
 	}
 
 	addExpiryMs := int64(addDays) * 24 * 60 * 60 * 1000
 
-	for _, email := range emails {
-		email = strings.TrimSpace(email)
-		if email == "" {
+	seen := map[string]struct{}{}
+	cleanEmails := make([]string, 0, len(emails))
+	for _, e := range emails {
+		e = strings.TrimSpace(e)
+		if e == "" {
 			continue
 		}
-		rec, err := s.GetRecordByEmail(nil, email)
-		if err != nil {
-			result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: err.Error()})
+		if _, ok := seen[e]; ok {
 			continue
 		}
-		client := rec.ToClient()
+		seen[e] = struct{}{}
+		cleanEmails = append(cleanEmails, e)
+	}
+	if len(cleanEmails) == 0 {
+		return result, false, nil
+	}
 
-		applied := false
+	db := database.GetDB()
+
+	var records []model.ClientRecord
+	if err := db.Where("email IN ?", cleanEmails).Find(&records).Error; err != nil {
+		return result, false, err
+	}
+	recordsByEmail := make(map[string]*model.ClientRecord, len(records))
+	for i := range records {
+		recordsByEmail[records[i].Email] = &records[i]
+	}
+
+	skippedReasons := map[string]string{}
+	for _, email := range cleanEmails {
+		if _, ok := recordsByEmail[email]; !ok {
+			skippedReasons[email] = "client not found"
+		}
+	}
+
+	plan := map[string]*bulkAdjustEntry{}
+	for email, rec := range recordsByEmail {
+		entry := &bulkAdjustEntry{record: rec}
 		if addDays != 0 {
 			switch {
 			case rec.ExpiryTime == 0:
-				result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "unlimited expiry"})
+				if _, exists := skippedReasons[email]; !exists {
+					skippedReasons[email] = "unlimited expiry"
+				}
 			case rec.ExpiryTime > 0:
 				next := rec.ExpiryTime + addExpiryMs
 				if next <= 0 {
-					result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "reduction exceeds remaining time"})
+					if _, exists := skippedReasons[email]; !exists {
+						skippedReasons[email] = "reduction exceeds remaining time"
+					}
 				} else {
-					client.ExpiryTime = next
-					applied = true
+					entry.applyExpiry = true
+					entry.newExpiry = next
 				}
 			default:
 				next := rec.ExpiryTime - addExpiryMs
 				if next >= 0 {
-					result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "reduction exceeds delay window"})
+					if _, exists := skippedReasons[email]; !exists {
+						skippedReasons[email] = "reduction exceeds delay window"
+					}
 				} else {
-					client.ExpiryTime = next
-					applied = true
+					entry.applyExpiry = true
+					entry.newExpiry = next
 				}
 			}
 		}
 		if addBytes != 0 {
 			if rec.TotalGB == 0 {
-				result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "unlimited traffic"})
-			} else {
-				next := rec.TotalGB + addBytes
-				if next < 0 {
-					next = 0
+				if _, exists := skippedReasons[email]; !exists {
+					skippedReasons[email] = "unlimited traffic"
 				}
-				client.TotalGB = next
-				applied = true
+			} else {
+				next := max(rec.TotalGB+addBytes, 0)
+				entry.applyTotal = true
+				entry.newTotal = next
 			}
 		}
-		if !applied {
+		if entry.applyExpiry || entry.applyTotal {
+			plan[email] = entry
+		}
+	}
+
+	if len(plan) == 0 {
+		for email, reason := range skippedReasons {
+			result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: reason})
+		}
+		return result, false, nil
+	}
+
+	plannedIds := make([]int, 0, len(plan))
+	recordIdToEmail := make(map[int]string, len(plan))
+	for email, entry := range plan {
+		plannedIds = append(plannedIds, entry.record.Id)
+		recordIdToEmail[entry.record.Id] = email
+	}
+
+	var mappings []model.ClientInbound
+	if err := db.Where("client_id IN ?", plannedIds).Find(&mappings).Error; err != nil {
+		return result, false, err
+	}
+	emailsByInbound := map[int][]string{}
+	for _, m := range mappings {
+		email, ok := recordIdToEmail[m.ClientId]
+		if !ok {
 			continue
 		}
+		emailsByInbound[m.InboundId] = append(emailsByInbound[m.InboundId], email)
+	}
 
-		nr, err := s.Update(inboundSvc, rec.Id, *client)
+	needRestart := false
+	for inboundId, ibEmails := range emailsByInbound {
+		ibRes := s.bulkAdjustInboundClients(inboundSvc, inboundId, ibEmails, plan)
+		if ibRes.needRestart {
+			needRestart = true
+		}
+		for email, reason := range ibRes.perEmailSkipped {
+			if _, already := skippedReasons[email]; !already {
+				skippedReasons[email] = reason
+			}
+		}
+	}
+
+	for email, entry := range plan {
+		if _, skipped := skippedReasons[email]; skipped {
+			continue
+		}
+		updates := map[string]any{}
+		if entry.applyExpiry {
+			updates["expiry_time"] = entry.newExpiry
+		}
+		if entry.applyTotal {
+			updates["total"] = entry.newTotal
+		}
+		if len(updates) == 0 {
+			continue
+		}
+		if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).Updates(updates).Error; err != nil {
+			if _, already := skippedReasons[email]; !already {
+				skippedReasons[email] = err.Error()
+			}
+			continue
+		}
+		result.Adjusted++
+	}
+
+	for email, reason := range skippedReasons {
+		result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: reason})
+	}
+	return result, needRestart, nil
+}
+
+type bulkInboundAdjustResult struct {
+	perEmailSkipped map[string]string
+	needRestart     bool
+}
+
+// bulkAdjustInboundClients applies expiry/total deltas to multiple clients
+// inside a single inbound's settings JSON. The xray runtime is updated
+// only for remote-node inbounds; local nodes do not need a notification
+// because the AddUser payload does not include totalGB/expiryTime —
+// changing those fields is identity-preserving and the panel's traffic
+// enforcement loop picks up the new limits from ClientTraffic directly.
+func (s *ClientService) bulkAdjustInboundClients(
+	inboundSvc *InboundService,
+	inboundId int,
+	emails []string,
+	plan map[string]*bulkAdjustEntry,
+) bulkInboundAdjustResult {
+	res := bulkInboundAdjustResult{perEmailSkipped: map[string]string{}}
+
+	defer lockInbound(inboundId).Unlock()
+
+	oldInbound, err := inboundSvc.GetInbound(inboundId)
+	if err != nil {
+		logger.Error("Load Old Data Error")
+		for _, e := range emails {
+			res.perEmailSkipped[e] = err.Error()
+		}
+		return res
+	}
+
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
+		for _, e := range emails {
+			res.perEmailSkipped[e] = err.Error()
+		}
+		return res
+	}
+
+	clientKey := "id"
+	switch oldInbound.Protocol {
+	case model.Trojan:
+		clientKey = "password"
+	case model.Shadowsocks:
+		clientKey = "email"
+	case model.Hysteria:
+		clientKey = "auth"
+	}
+
+	keyToEmail := make(map[string]string, len(emails))
+	for _, email := range emails {
+		entry := plan[email]
+		if entry == nil {
+			res.perEmailSkipped[email] = "client not found"
+			continue
+		}
+		key := clientKeyForProtocol(oldInbound.Protocol, entry.record)
+		if key == "" {
+			res.perEmailSkipped[email] = "missing client key for protocol"
+			continue
+		}
+		keyToEmail[key] = email
+	}
+
+	interfaceClients, _ := settings["clients"].([]any)
+	foundEmails := map[string]bool{}
+	nowMs := time.Now().Unix() * 1000
+	for i, client := range interfaceClients {
+		c, ok := client.(map[string]any)
+		if !ok {
+			continue
+		}
+		cKey, _ := c[clientKey].(string)
+		targetEmail, found := keyToEmail[cKey]
+		if !found {
+			continue
+		}
+		entry := plan[targetEmail]
+		if entry.applyExpiry {
+			c["expiryTime"] = entry.newExpiry
+		}
+		if entry.applyTotal {
+			c["totalGB"] = entry.newTotal
+		}
+		c["updated_at"] = nowMs
+		interfaceClients[i] = c
+		foundEmails[targetEmail] = true
+	}
+
+	for _, email := range keyToEmail {
+		if !foundEmails[email] {
+			res.perEmailSkipped[email] = "Client Not Found In Inbound"
+		}
+	}
+
+	if len(foundEmails) == 0 {
+		return res
+	}
+
+	settings["clients"] = interfaceClients
+	newSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		for email := range foundEmails {
+			res.perEmailSkipped[email] = err.Error()
+		}
+		return res
+	}
+	oldInbound.Settings = string(newSettings)
+
+	if oldInbound.NodeID != nil {
+		rt, rterr := inboundSvc.runtimeFor(oldInbound)
+		if rterr != nil {
+			for email := range foundEmails {
+				res.perEmailSkipped[email] = rterr.Error()
+				delete(foundEmails, email)
+			}
+		} else {
+			for email := range foundEmails {
+				entry := plan[email]
+				updated := *entry.record.ToClient()
+				if entry.applyExpiry {
+					updated.ExpiryTime = entry.newExpiry
+				}
+				if entry.applyTotal {
+					updated.TotalGB = entry.newTotal
+				}
+				updated.UpdatedAt = nowMs
+				if err1 := rt.UpdateUser(context.Background(), oldInbound, email, updated); err1 != nil {
+					res.perEmailSkipped[email] = err1.Error()
+					delete(foundEmails, email)
+				}
+			}
+		}
+	}
+
+	db := database.GetDB()
+	if err := db.Save(oldInbound).Error; err != nil {
+		for email := range foundEmails {
+			if _, skip := res.perEmailSkipped[email]; !skip {
+				res.perEmailSkipped[email] = err.Error()
+			}
+		}
+		return res
+	}
+
+	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
+	if gcErr == nil {
+		if syncErr := s.SyncInbound(db, inboundId, finalClients); syncErr != nil {
+			logger.Warning("bulkAdjust SyncInbound:", syncErr)
+		}
+	}
+
+	return res
+}
+
+// BulkDeleteResult mirrors BulkAdjustResult: total deleted plus per-email
+// skip reasons when an email could not be processed.
+type BulkDeleteResult struct {
+	Deleted int                `json:"deleted"`
+	Skipped []BulkDeleteReport `json:"skipped,omitempty"`
+}
+
+type BulkDeleteReport struct {
+	Email  string `json:"email"`
+	Reason string `json:"reason"`
+}
+
+// BulkDelete removes every client in the list in one optimized pass.
+// Instead of running the full single-delete pipeline N times (which would
+// re-read, re-parse, and re-write each inbound's settings JSON for every
+// email), it groups emails by inbound and performs a single
+// read-modify-write per inbound. Per-row DB cleanups are also batched with
+// IN-clause queries at the end. Errors on a particular email are recorded
+// in the Skipped list and processing continues for the rest.
+func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, keepTraffic bool) (BulkDeleteResult, bool, error) {
+	result := BulkDeleteResult{}
+
+	seen := map[string]struct{}{}
+	cleanEmails := make([]string, 0, len(emails))
+	for _, e := range emails {
+		e = strings.TrimSpace(e)
+		if e == "" {
+			continue
+		}
+		if _, ok := seen[e]; ok {
+			continue
+		}
+		seen[e] = struct{}{}
+		cleanEmails = append(cleanEmails, e)
+	}
+	if len(cleanEmails) == 0 {
+		return result, false, nil
+	}
+
+	db := database.GetDB()
+
+	var records []model.ClientRecord
+	if err := db.Where("email IN ?", cleanEmails).Find(&records).Error; err != nil {
+		return result, false, err
+	}
+	recordsByEmail := make(map[string]*model.ClientRecord, len(records))
+	for i := range records {
+		recordsByEmail[records[i].Email] = &records[i]
+		tombstoneClientEmail(records[i].Email)
+	}
+
+	skippedReasons := map[string]string{}
+	for _, email := range cleanEmails {
+		if _, ok := recordsByEmail[email]; !ok {
+			skippedReasons[email] = "client not found"
+		}
+	}
+
+	clientIds := make([]int, 0, len(recordsByEmail))
+	recordIdToEmail := make(map[int]string, len(recordsByEmail))
+	for _, r := range recordsByEmail {
+		clientIds = append(clientIds, r.Id)
+		recordIdToEmail[r.Id] = r.Email
+	}
+
+	emailsByInbound := map[int][]string{}
+	if len(clientIds) > 0 {
+		var mappings []model.ClientInbound
+		if err := db.Where("client_id IN ?", clientIds).Find(&mappings).Error; err != nil {
+			return result, false, err
+		}
+		for _, m := range mappings {
+			email, ok := recordIdToEmail[m.ClientId]
+			if !ok {
+				continue
+			}
+			emailsByInbound[m.InboundId] = append(emailsByInbound[m.InboundId], email)
+		}
+	}
+
+	needRestart := false
+	for inboundId, ibEmails := range emailsByInbound {
+		ibResult := s.bulkDelInboundClients(inboundSvc, inboundId, ibEmails, recordsByEmail, false)
+		if ibResult.needRestart {
+			needRestart = true
+		}
+		for email, reason := range ibResult.perEmailSkipped {
+			if _, already := skippedReasons[email]; !already {
+				skippedReasons[email] = reason
+			}
+		}
+	}
+
+	successEmails := make([]string, 0, len(recordsByEmail))
+	successIds := make([]int, 0, len(recordsByEmail))
+	for email, rec := range recordsByEmail {
+		if _, skipped := skippedReasons[email]; skipped {
+			continue
+		}
+		successEmails = append(successEmails, email)
+		successIds = append(successIds, rec.Id)
+	}
+
+	if len(successIds) > 0 {
+		if err := db.Where("client_id IN ?", successIds).Delete(&model.ClientInbound{}).Error; err != nil {
+			return result, needRestart, err
+		}
+		if !keepTraffic && len(successEmails) > 0 {
+			if err := db.Where("email IN ?", successEmails).Delete(&xray.ClientTraffic{}).Error; err != nil {
+				return result, needRestart, err
+			}
+			if err := db.Where("client_email IN ?", successEmails).Delete(&model.InboundClientIps{}).Error; err != nil {
+				return result, needRestart, err
+			}
+		}
+		if err := db.Where("id IN ?", successIds).Delete(&model.ClientRecord{}).Error; err != nil {
+			return result, needRestart, err
+		}
+	}
+
+	result.Deleted = len(successEmails)
+	for email, reason := range skippedReasons {
+		result.Skipped = append(result.Skipped, BulkDeleteReport{Email: email, Reason: reason})
+	}
+	return result, needRestart, nil
+}
+
+type bulkInboundDeleteResult struct {
+	perEmailSkipped map[string]string
+	needRestart     bool
+}
+
+// bulkDelInboundClients removes multiple clients from a single inbound's
+// settings JSON in one read-modify-write cycle, runs the xray runtime
+// RemoveUser/DeleteUser calls, and persists the inbound. The returned map
+// holds per-email failure reasons; emails not present in the map are
+// considered successful for this inbound.
+func (s *ClientService) bulkDelInboundClients(
+	inboundSvc *InboundService,
+	inboundId int,
+	emails []string,
+	records map[string]*model.ClientRecord,
+	keepTraffic bool,
+) bulkInboundDeleteResult {
+	res := bulkInboundDeleteResult{perEmailSkipped: map[string]string{}}
+
+	defer lockInbound(inboundId).Unlock()
+
+	oldInbound, err := inboundSvc.GetInbound(inboundId)
+	if err != nil {
+		logger.Error("Load Old Data Error")
+		for _, e := range emails {
+			res.perEmailSkipped[e] = err.Error()
+		}
+		return res
+	}
+
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
+		for _, e := range emails {
+			res.perEmailSkipped[e] = err.Error()
+		}
+		return res
+	}
+
+	clientKey := "id"
+	switch oldInbound.Protocol {
+	case model.Trojan:
+		clientKey = "password"
+	case model.Shadowsocks:
+		clientKey = "email"
+	case model.Hysteria:
+		clientKey = "auth"
+	}
+
+	keyToEmail := make(map[string]string, len(emails))
+	for _, email := range emails {
+		rec := records[email]
+		if rec == nil {
+			res.perEmailSkipped[email] = "client not found"
+			continue
+		}
+		key := clientKeyForProtocol(oldInbound.Protocol, rec)
+		if key == "" {
+			res.perEmailSkipped[email] = "missing client key for protocol"
+			continue
+		}
+		keyToEmail[key] = email
+	}
+
+	interfaceClients, _ := settings["clients"].([]any)
+	newClients := make([]any, 0, len(interfaceClients))
+	foundEmails := map[string]bool{}
+	enableByEmail := map[string]bool{}
+	for _, client := range interfaceClients {
+		c, ok := client.(map[string]any)
+		if !ok {
+			newClients = append(newClients, client)
+			continue
+		}
+		cKey, _ := c[clientKey].(string)
+		if targetEmail, found := keyToEmail[cKey]; found {
+			foundEmails[targetEmail] = true
+			if em, _ := c["email"].(string); em != "" {
+				en, _ := c["enable"].(bool)
+				enableByEmail[em] = en
+			}
+			continue
+		}
+		newClients = append(newClients, client)
+	}
+
+	for _, email := range keyToEmail {
+		if !foundEmails[email] {
+			res.perEmailSkipped[email] = "Client Not Found In Inbound"
+		}
+	}
+
+	db := database.GetDB()
+	newClients = compactOrphans(db, newClients)
+	if newClients == nil {
+		newClients = []any{}
+	}
+	settings["clients"] = newClients
+	newSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		for email := range foundEmails {
+			if _, skip := res.perEmailSkipped[email]; !skip {
+				res.perEmailSkipped[email] = err.Error()
+			}
+		}
+		return res
+	}
+	oldInbound.Settings = string(newSettings)
+
+	foundList := make([]string, 0, len(foundEmails))
+	for email := range foundEmails {
+		foundList = append(foundList, email)
+	}
+
+	notDepletedByEmail := map[string]bool{}
+	if len(foundList) > 0 {
+		type trafficRow struct {
+			Email  string
+			Enable bool
+		}
+		var rows []trafficRow
+		if err := db.Model(xray.ClientTraffic{}).
+			Where("email IN ?", foundList).
+			Select("email, enable").
+			Scan(&rows).Error; err == nil {
+			for _, r := range rows {
+				notDepletedByEmail[r.Email] = r.Enable
+			}
+		}
+	}
+
+	for email := range foundEmails {
+		shared, sharedErr := inboundSvc.emailUsedByOtherInbounds(email, inboundId)
+		if sharedErr != nil {
+			res.perEmailSkipped[email] = sharedErr.Error()
+			delete(foundEmails, email)
+			continue
+		}
+		if shared || keepTraffic {
+			continue
+		}
+		if delErr := inboundSvc.DelClientIPs(db, email); delErr != nil {
+			logger.Error("Error in delete client IPs")
+			res.perEmailSkipped[email] = delErr.Error()
+			delete(foundEmails, email)
+			continue
+		}
+		if delErr := inboundSvc.DelClientStat(db, email); delErr != nil {
+			logger.Error("Delete stats Data Error")
+			res.perEmailSkipped[email] = delErr.Error()
+			delete(foundEmails, email)
+			continue
+		}
+	}
+
+	if oldInbound.NodeID == nil {
+		rt, rterr := inboundSvc.runtimeFor(oldInbound)
+		if rterr != nil {
+			res.needRestart = true
+		} else {
+			for email := range foundEmails {
+				if !enableByEmail[email] || !notDepletedByEmail[email] {
+					continue
+				}
+				err1 := rt.RemoveUser(context.Background(), oldInbound, email)
+				if err1 == nil {
+					logger.Debug("Client deleted on", rt.Name(), ":", email)
+				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+					logger.Debug("User is already deleted. Nothing to do more...")
+				} else {
+					logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
+					res.needRestart = true
+				}
+			}
+		}
+	} else {
+		rt, rterr := inboundSvc.runtimeFor(oldInbound)
+		if rterr != nil {
+			for email := range foundEmails {
+				res.perEmailSkipped[email] = rterr.Error()
+				delete(foundEmails, email)
+			}
+		} else {
+			for email := range foundEmails {
+				if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
+					res.perEmailSkipped[email] = err1.Error()
+					delete(foundEmails, email)
+				}
+			}
+		}
+	}
+
+	if err := db.Save(oldInbound).Error; err != nil {
+		for email := range foundEmails {
+			if _, skip := res.perEmailSkipped[email]; !skip {
+				res.perEmailSkipped[email] = err.Error()
+			}
+		}
+		return res
+	}
+
+	finalClients, err := inboundSvc.GetClients(oldInbound)
+	if err != nil {
+		return res
+	}
+	if err := s.SyncInbound(db, inboundId, finalClients); err != nil {
+		return res
+	}
+
+	return res
+}
+
+// BulkCreateResult mirrors BulkAdjustResult for the create flow.
+type BulkCreateResult struct {
+	Created int                `json:"created"`
+	Skipped []BulkCreateReport `json:"skipped,omitempty"`
+}
+
+type BulkCreateReport struct {
+	Email  string `json:"email"`
+	Reason string `json:"reason"`
+}
+
+// BulkCreate iterates payloads sequentially. Each item is the same shape
+// the single-create endpoint accepts, so callers can submit a heterogeneous
+// list (different inboundIds, plans, etc.) in one round-trip.
+func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []ClientCreatePayload) (BulkCreateResult, bool, error) {
+	result := BulkCreateResult{}
+	needRestart := false
+	for i := range payloads {
+		p := payloads[i]
+		email := strings.TrimSpace(p.Client.Email)
+		nr, err := s.Create(inboundSvc, &p)
 		if err != nil {
-			result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: err.Error()})
+			if email == "" {
+				email = "(missing email)"
+			}
+			result.Skipped = append(result.Skipped, BulkCreateReport{Email: email, Reason: err.Error()})
 			continue
 		}
 		if nr {
 			needRestart = true
 		}
-		result.Adjusted++
+		result.Created++
 	}
 	return result, needRestart, nil
 }
@@ -1378,7 +2820,7 @@ func (s *ClientService) Detach(inboundSvc *InboundService, id int, inboundIds []
 		if key == "" {
 			continue
 		}
-		nr, delErr := s.DelInboundClient(inboundSvc, ibId, key)
+		nr, delErr := s.DelInboundClient(inboundSvc, ibId, key, true)
 		if delErr != nil {
 			return needRestart, delErr
 		}
@@ -1438,6 +2880,10 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 				cm["created_at"] = nowTs
 			}
 			cm["updated_at"] = nowTs
+			existingSub, _ := cm["subId"].(string)
+			if strings.TrimSpace(existingSub) == "" {
+				cm["subId"] = random.NumLower(16)
+			}
 			interfaceClients[i] = cm
 		}
 	}
@@ -1467,7 +2913,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			if client.Email == "" {
 				return false, common.NewError("empty client ID")
 			}
-		case "hysteria", "hysteria2":
+		case "hysteria":
 			if client.Auth == "" {
 				return false, common.NewError("empty client ID")
 			}
@@ -1614,7 +3060,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		case "shadowsocks":
 			oldClientId = oldClient.Email
 			newClientId = clients[0].Email
-		case "hysteria", "hysteria2":
+		case "hysteria":
 			oldClientId = oldClient.Auth
 			newClientId = clients[0].Auth
 		default:
@@ -1636,7 +3082,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			lookupErr = database.GetDB().Where("password = ?", clientId).First(&rec).Error
 		case "shadowsocks":
 			lookupErr = database.GetDB().Where("email = ?", clientId).First(&rec).Error
-		case "hysteria", "hysteria2":
+		case "hysteria":
 			lookupErr = database.GetDB().Where("auth = ?", clientId).First(&rec).Error
 		default:
 			lookupErr = database.GetDB().Where("uuid = ?", clientId).First(&rec).Error
@@ -1676,11 +3122,13 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	}
 	settingsClients := oldSettings["clients"].([]any)
 	var preservedCreated any
+	var preservedSubID string
 	if clientIndex >= 0 && clientIndex < len(settingsClients) {
 		if oldMap, ok := settingsClients[clientIndex].(map[string]any); ok {
 			if v, ok2 := oldMap["created_at"]; ok2 {
 				preservedCreated = v
 			}
+			preservedSubID, _ = oldMap["subId"].(string)
 		}
 	}
 	if len(interfaceClients) > 0 {
@@ -1690,6 +3138,14 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			}
 			newMap["created_at"] = preservedCreated
 			newMap["updated_at"] = time.Now().Unix() * 1000
+			newSub, _ := newMap["subId"].(string)
+			if strings.TrimSpace(newSub) == "" {
+				if strings.TrimSpace(preservedSubID) != "" {
+					newMap["subId"] = preservedSubID
+				} else {
+					newMap["subId"] = random.NumLower(16)
+				}
+			}
 			interfaceClients[0] = newMap
 		}
 	}
@@ -1853,7 +3309,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	return needRestart, nil
 }
 
-func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId int, clientId string) (bool, error) {
+func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId int, clientId string, keepTraffic bool) (bool, error) {
 	defer lockInbound(inboundId).Unlock()
 
 	oldInbound, err := inboundSvc.GetInbound(inboundId)
@@ -1874,7 +3330,7 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 		client_key = "password"
 	case "shadowsocks":
 		client_key = "email"
-	case "hysteria", "hysteria2":
+	case "hysteria":
 		client_key = "auth"
 	}
 
@@ -1916,7 +3372,7 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 		return false, err
 	}
 
-	if !emailShared {
+	if !emailShared && !keepTraffic {
 		err = inboundSvc.DelClientIPs(db, email)
 		if err != nil {
 			logger.Error("Error in delete client IPs")
@@ -1933,7 +3389,7 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 			return false, err
 		}
 		notDepleted := len(enables) > 0 && enables[0]
-		if !emailShared {
+		if !emailShared && !keepTraffic {
 			err = inboundSvc.DelClientStat(db, email)
 			if err != nil {
 				logger.Error("Delete stats Data Error")
@@ -1980,7 +3436,7 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 	return needRestart, nil
 }
 
-func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inboundId int, email string) (bool, error) {
+func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inboundId int, email string, keepTraffic bool) (bool, error) {
 	defer lockInbound(inboundId).Unlock()
 
 	oldInbound, err := inboundSvc.GetInbound(inboundId)
@@ -2037,7 +3493,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		return false, err
 	}
 
-	if !emailShared {
+	if !emailShared && !keepTraffic {
 		if err := inboundSvc.DelClientIPs(db, email); err != nil {
 			logger.Error("Error in delete client IPs")
 			return false, err
@@ -2047,14 +3503,16 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	needRestart := false
 
 	if len(email) > 0 && !emailShared {
-		traffic, err := inboundSvc.GetClientTrafficByEmail(email)
-		if err != nil {
-			return false, err
-		}
-		if traffic != nil {
-			if err := inboundSvc.DelClientStat(db, email); err != nil {
-				logger.Error("Delete stats Data Error")
+		if !keepTraffic {
+			traffic, err := inboundSvc.GetClientTrafficByEmail(email)
+			if err != nil {
 				return false, err
+			}
+			if traffic != nil {
+				if err := inboundSvc.DelClientStat(db, email); err != nil {
+					logger.Error("Delete stats Data Error")
+					return false, err
+				}
 			}
 		}
 

@@ -68,10 +68,25 @@ const ULTRA_DARK_MENU_TOKENS = {
   darkSubMenuItemBg: '#000',
   darkPopupBg: '#101013',
 };
+const DARK_CARD_TOKENS = {
+  colorBorderSecondary: 'rgba(255, 255, 255, 0.06)',
+};
+const ULTRA_DARK_CARD_TOKENS = {
+  colorBorderSecondary: 'rgba(255, 255, 255, 0.04)',
+};
+const STATISTIC_TOKENS = {
+  contentFontSize: 17,
+  titleFontSize: 11,
+};
 
 export function buildAntdThemeConfig(isDark: boolean, isUltra: boolean): ThemeConfig {
   if (!isDark) {
-    return { algorithm: antdTheme.defaultAlgorithm };
+    return {
+      algorithm: antdTheme.defaultAlgorithm,
+      components: {
+        Statistic: STATISTIC_TOKENS,
+      },
+    };
   }
   return {
     algorithm: antdTheme.darkAlgorithm,
@@ -79,6 +94,8 @@ export function buildAntdThemeConfig(isDark: boolean, isUltra: boolean): ThemeCo
     components: {
       Layout: isUltra ? ULTRA_DARK_LAYOUT_TOKENS : DARK_LAYOUT_TOKENS,
       Menu: isUltra ? ULTRA_DARK_MENU_TOKENS : DARK_MENU_TOKENS,
+      Card: isUltra ? ULTRA_DARK_CARD_TOKENS : DARK_CARD_TOKENS,
+      Statistic: STATISTIC_TOKENS,
     },
   };
 }

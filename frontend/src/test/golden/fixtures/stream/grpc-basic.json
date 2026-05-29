@@ -1,0 +1,8 @@
+{
+  "network": "grpc",
+  "grpcSettings": {
+    "serviceName": "GunService",
+    "authority": "grpc.example.test",
+    "multiMode": false
+  }
+}

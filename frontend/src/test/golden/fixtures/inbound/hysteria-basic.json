@@ -1,0 +1,20 @@
+{
+  "protocol": "hysteria",
+  "settings": {
+    "version": 1,
+    "clients": [
+      {
+        "auth": "hyst3ria-v1-token-XYZ",
+        "email": "hy1-client@example.test",
+        "limitIp": 0,
+        "totalGB": 0,
+        "expiryTime": 0,
+        "enable": true,
+        "tgId": 0,
+        "subId": "hy1-001",
+        "comment": "legacy v1",
+        "reset": 0
+      }
+    ]
+  }
+}

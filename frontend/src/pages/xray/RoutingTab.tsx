@@ -17,6 +17,7 @@ import type { ColumnsType } from 'antd/es/table';
 import RuleFormModal from './RuleFormModal';
 import type { RoutingRule } from './RuleFormModal';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
+import type { RuleObject } from '@/schemas/routing';
 import './RoutingTab.css';
 
 interface RoutingTabProps {
@@ -87,6 +88,8 @@ export default function RoutingTab({
     () => (templateSettings?.routing?.rules || []) as RoutingRule[],
     [templateSettings?.routing?.rules],
   );
+  const rulesRef = useRef(rules);
+  rulesRef.current = rules;
 
   const rows: RuleRow[] = useMemo(
     () =>
@@ -170,7 +173,7 @@ export default function RoutingTab({
     setRuleModalOpen(true);
   }
   function openEdit(idx: number) {
-    setEditingRule(rules[idx]);
+    setEditingRule(rulesRef.current[idx]);
     setEditingIndex(idx);
     setRuleModalOpen(true);
   }
@@ -182,8 +185,9 @@ export default function RoutingTab({
     mutate((tt) => {
       if (!tt.routing) tt.routing = { rules: [] };
       if (!Array.isArray(tt.routing.rules)) tt.routing.rules = [];
-      if (editingIndex == null) tt.routing.rules.push(rule);
-      else tt.routing.rules[editingIndex] = rule;
+      const typed = rule as unknown as RuleObject;
+      if (editingIndex == null) tt.routing.rules.push(typed);
+      else tt.routing.rules[editingIndex] = typed;
     });
     setRuleModalOpen(false);
   }
@@ -289,7 +293,7 @@ export default function RoutingTab({
           <div className="action-cell">
             <HolderOutlined
               className="drag-handle"
-              title="Drag to reorder"
+              title={t('pages.xray.routing.dragToReorder')}
               onPointerDown={(ev: React.PointerEvent) => onHandlePointerDown(index, ev)}
             />
             <span className="row-index">{index + 1}</span>
@@ -322,7 +326,7 @@ export default function RoutingTab({
         ),
       },
       {
-        title: 'Source',
+        title: t('pages.xray.rules.source'),
         align: 'left',
         width: 180,
         key: 'source',
@@ -350,7 +354,7 @@ export default function RoutingTab({
         ),
       },
       {
-        title: 'Destination',
+        title: t('pages.xray.rules.dest'),
         align: 'left',
         key: 'destination',
         render: (_v, record) => (

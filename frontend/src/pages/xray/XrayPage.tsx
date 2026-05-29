@@ -31,7 +31,6 @@ import {
 
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { useXraySetting } from '@/hooks/useXraySetting';
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
 import AppSidebar from '@/components/AppSidebar';
@@ -45,7 +44,6 @@ import BalancersTab from './BalancersTab';
 import DnsTab from './DnsTab';
 import WarpModal from './WarpModal';
 import NordModal from './NordModal';
-import '@/styles/page-cards.css';
 import './XrayPage.css';
 
 const TAB_KEYS = ['tpl-basic', 'tpl-routing', 'tpl-outbound', 'tpl-balancer', 'tpl-dns', 'tpl-advanced'];
@@ -89,15 +87,12 @@ export default function XrayPage() {
     testingAll,
     fetchAll,
     resetOutboundsTraffic,
-    applyOutboundsEvent,
     testOutbound,
     testAllOutbounds,
     saveAll,
     resetToDefault,
     restartXray,
   } = xs;
-
-  useWebSocket({ outbounds: applyOutboundsEvent as never });
 
   const [modal, modalContextHolder] = Modal.useModal();
   const [warpOpen, setWarpOpen] = useState(false);
@@ -139,9 +134,6 @@ export default function XrayPage() {
 
   const warpExist = !!templateSettings?.outbounds?.find((o) => o?.tag === 'warp');
   const nordExist = !!templateSettings?.outbounds?.find((o) => o?.tag?.startsWith?.('nord-'));
-
-  const basePath = window.X_UI_BASE_PATH || '';
-  const requestUri = window.location.pathname;
 
   async function onTestOutbound(idx: number, mode: string) {
     const outbound = templateSettings?.outbounds?.[idx];
@@ -231,10 +223,10 @@ export default function XrayPage() {
 
   function confirmRestart() {
     modal.confirm({
-      title: 'Restart xray?',
-      content: 'Reloads the xray service with the saved configuration.',
-      okText: 'Restart',
-      cancelText: 'Cancel',
+      title: t('pages.xray.restartConfirmTitle'),
+      content: t('pages.xray.restartConfirmContent'),
+      okText: t('pages.xray.restart'),
+      cancelText: t('cancel'),
       onOk: () => restartXray(),
     });
   }
@@ -259,11 +251,11 @@ export default function XrayPage() {
       {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={spinning || !fetched} delay={200} description="Loading…" size="large">
+            <Spin spinning={spinning || !fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : fetchError ? (
@@ -289,7 +281,7 @@ export default function XrayPage() {
                             {restartResult && (
                               <Popover
                                 placement="rightTop"
-                                title="Xray restart output"
+                                title={t('pages.xray.restartOutputTitle')}
                                 content={<pre className="restart-result">{restartResult}</pre>}
                               >
                                 <QuestionCircleOutlined className="restart-icon" />

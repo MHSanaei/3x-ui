@@ -16,6 +16,7 @@ interface SubPageData {
   subClashUrl?: string;
   subTitle?: string;
   links?: string[];
+  emails?: string[];
   datepicker?: 'gregorian' | 'jalalian';
   downloadByte?: string | number;
   uploadByte?: string | number;
@@ -26,6 +27,28 @@ interface Window {
   X_UI_BASE_PATH?: string;
   X_UI_CUR_VER?: string;
   __SUB_PAGE_DATA__?: SubPageData;
+}
+
+declare module 'qs' {
+  interface StringifyOptions {
+    arrayFormat?: 'indices' | 'brackets' | 'repeat' | 'comma';
+    encode?: boolean;
+    encoder?: (str: unknown, defaultEncoder: (s: unknown) => string, charset: string, type: 'key' | 'value') => string;
+    allowDots?: boolean;
+    skipNulls?: boolean;
+    addQueryPrefix?: boolean;
+  }
+  interface ParseOptions {
+    depth?: number;
+    arrayLimit?: number;
+    allowDots?: boolean;
+    parseArrays?: boolean;
+    ignoreQueryPrefix?: boolean;
+  }
+  export function stringify(obj: unknown, options?: StringifyOptions): string;
+  export function parse(str: string, options?: ParseOptions): Record<string, unknown>;
+  const qs: { stringify: typeof stringify; parse: typeof parse };
+  export default qs;
 }
 
 declare module 'persian-calendar-suite' {

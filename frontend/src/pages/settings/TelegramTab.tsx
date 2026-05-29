@@ -61,6 +61,11 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
                 options={langOptions}
               />
             </SettingListItem>
+
+            <SettingListItem paddings="small" title={t('pages.settings.telegramAPIServer')} description={t('pages.settings.telegramAPIServerDesc')}>
+              <Input value={allSetting.tgBotAPIServer} placeholder="https://api.example.com"
+                onChange={(e) => updateSetting({ tgBotAPIServer: e.target.value })} />
+            </SettingListItem>
           </>
         ),
       },
@@ -81,22 +86,6 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
             <SettingListItem paddings="small" title={t('pages.settings.tgNotifyCpu')} description={t('pages.settings.tgNotifyCpuDesc')}>
               <InputNumber value={allSetting.tgCpu} min={0} max={100} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ tgCpu: Number(v) || 0 })} />
-            </SettingListItem>
-          </>
-        ),
-      },
-      {
-        key: '3',
-        label: t('pages.settings.proxyAndServer'),
-        children: (
-          <>
-            <SettingListItem paddings="small" title={t('pages.settings.telegramProxy')} description={t('pages.settings.telegramProxyDesc')}>
-              <Input value={allSetting.tgBotProxy} placeholder="socks5://user:pass@host:port"
-                onChange={(e) => updateSetting({ tgBotProxy: e.target.value })} />
-            </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.telegramAPIServer')} description={t('pages.settings.telegramAPIServerDesc')}>
-              <Input value={allSetting.tgBotAPIServer} placeholder="https://api.example.com"
-                onChange={(e) => updateSetting({ tgBotAPIServer: e.target.value })} />
             </SettingListItem>
           </>
         ),

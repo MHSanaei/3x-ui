@@ -9,6 +9,23 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 )
 
+func TestSubscriptionExpiryFromClient(t *testing.T) {
+	const now = int64(1_700_000_000_000)
+	const oneDayMs = int64(86_400_000)
+	if got := subscriptionExpiryFromClient(now, 0); got != 0 {
+		t.Fatalf("zero expiry should stay zero, got %d", got)
+	}
+	if got := subscriptionExpiryFromClient(now, 1_700_000_000_000); got != 1_700_000_000_000 {
+		t.Fatalf("positive expiry should pass through, got %d", got)
+	}
+	if got := subscriptionExpiryFromClient(now, -oneDayMs); got != now+oneDayMs {
+		t.Fatalf("delayed-start expiry should be now+|value|, got %d, want %d", got, now+oneDayMs)
+	}
+	if a, b := subscriptionExpiryFromClient(now, -oneDayMs), subscriptionExpiryFromClient(now, -oneDayMs); a != b {
+		t.Fatalf("same now+value should be deterministic across calls, got %d vs %d (#4545 review)", a, b)
+	}
+}
+
 func TestFindClientIndex(t *testing.T) {
 	clients := []model.Client{
 		{Email: "a@example.com"},
@@ -148,6 +165,77 @@ func TestSearchKey_NotFound(t *testing.T) {
 func TestSearchKey_OnScalar(t *testing.T) {
 	if _, ok := searchKey(42, "anything"); ok {
 		t.Fatal("expected ok=false searching on a scalar")
+	}
+}
+
+func TestBuildXhttpExtra_IncludesClientSideFieldsWhenPresent(t *testing.T) {
+	extra := buildXhttpExtra(map[string]any{
+		"path":                 "/xhttp",
+		"host":                 "example.com",
+		"mode":                 "packet-up",
+		"xPaddingBytes":        "100-1000",
+		"uplinkHTTPMethod":     "GET",
+		"uplinkChunkSize":      float64(4096),
+		"noGRPCHeader":         true,
+		"scMinPostsIntervalMs": "20-40",
+		"xmux": map[string]any{
+			"maxConcurrency":   "16-32",
+			"hMaxRequestTimes": "600-900",
+			"hMaxReusableSecs": "1800-3000",
+			"hKeepAlivePeriod": float64(15),
+		},
+		"downloadSettings": map[string]any{
+			"network": "xhttp",
+		},
+		"headers": map[string]any{
+			"Host":         "ignored.example.com",
+			"X-Forwarded":  "1",
+			"X-Test-Empty": "",
+		},
+	})
+
+	if extra["path"] != nil || extra["host"] != nil {
+		t.Fatalf("path/host should stay top-level, got extra %#v", extra)
+	}
+	for _, key := range []string{
+		"xPaddingBytes",
+		"uplinkHTTPMethod",
+		"uplinkChunkSize",
+		"noGRPCHeader",
+		"scMinPostsIntervalMs",
+		"xmux",
+		"downloadSettings",
+	} {
+		if _, ok := extra[key]; !ok {
+			t.Fatalf("extra missing %q: %#v", key, extra)
+		}
+	}
+	if _, ok := extra["mode"]; ok {
+		t.Fatalf("mode should stay as a top-level query parameter, got extra %#v", extra)
+	}
+
+	headers, ok := extra["headers"].(map[string]any)
+	if !ok {
+		t.Fatalf("headers = %#v, want map", extra["headers"])
+	}
+	if _, ok := headers["Host"]; ok {
+		t.Fatalf("headers should not include Host: %#v", headers)
+	}
+	if headers["X-Forwarded"] != "1" {
+		t.Fatalf("headers[X-Forwarded] = %#v, want 1", headers["X-Forwarded"])
+	}
+}
+
+func TestBuildXhttpExtra_LeavesDefaultClientSideFieldsOut(t *testing.T) {
+	extra := buildXhttpExtra(map[string]any{
+		"uplinkHTTPMethod": "",
+		"uplinkChunkSize":  float64(0),
+		"noGRPCHeader":     false,
+		"xmux":             map[string]any{},
+		"downloadSettings": map[string]any{},
+	})
+	if extra != nil {
+		t.Fatalf("default-only xhttp extra = %#v, want nil", extra)
 	}
 }
 
@@ -366,6 +454,126 @@ func TestCloneVmessShareObj_NoneStripsTLSOnlyKeys(t *testing.T) {
 	}
 	if out["v"] != "2" || out["net"] != "tcp" {
 		t.Fatalf("non-TLS keys should remain, got %v", out)
+	}
+}
+
+func TestApplyExternalProxyTLSParams_UsesProxyDomainAndOverrides(t *testing.T) {
+	params := map[string]string{
+		"security": "tls",
+		"sni":      "origin.example.com",
+		"fp":       "firefox",
+		"alpn":     "h2",
+	}
+	ep := map[string]any{
+		"dest":        "proxy.example.com",
+		"sni":         "tls.example.com",
+		"fingerprint": "chrome",
+		"alpn":        []any{"h3", "h2"},
+	}
+
+	applyExternalProxyTLSParams(ep, params, "tls")
+
+	if params["sni"] != "tls.example.com" {
+		t.Fatalf("sni = %q, want tls.example.com", params["sni"])
+	}
+	if params["fp"] != "chrome" {
+		t.Fatalf("fp = %q, want chrome", params["fp"])
+	}
+	if params["alpn"] != "h3,h2" {
+		t.Fatalf("alpn = %q, want h3,h2", params["alpn"])
+	}
+}
+
+func TestApplyExternalProxyTLSParams_PreservesUpstreamSNI(t *testing.T) {
+	// External-proxy entry has no SNI of its own; its dest must not
+	// clobber the upstream tlsSettings.serverName already written into
+	// params. Regression: the dest fallback used to overwrite "222" with
+	// "111" whenever an operator set forceTls=same and left the proxy's
+	// SNI field blank.
+	params := map[string]string{"security": "tls", "sni": "real.example.com"}
+	ep := map[string]any{"dest": "proxy.example.com"}
+
+	applyExternalProxyTLSParams(ep, params, "tls")
+
+	if params["sni"] != "real.example.com" {
+		t.Fatalf("sni = %q, want upstream sni preserved (real.example.com)", params["sni"])
+	}
+}
+
+func TestApplyExternalProxyTLSParams_ExplicitSNIOverridesUpstream(t *testing.T) {
+	params := map[string]string{"security": "tls", "sni": "real.example.com"}
+	ep := map[string]any{"dest": "proxy.example.com", "sni": "edge.example.com"}
+
+	applyExternalProxyTLSParams(ep, params, "tls")
+
+	if params["sni"] != "edge.example.com" {
+		t.Fatalf("sni = %q, want edge.example.com", params["sni"])
+	}
+}
+
+func TestApplyExternalProxyTLSToStream_DoesNotLeakAcrossProxies(t *testing.T) {
+	stream := map[string]any{
+		"security": "tls",
+		"tlsSettings": map[string]any{
+			"serverName": "upstream.example.com",
+		},
+	}
+	proxies := []map[string]any{
+		{"dest": "a.example.com", "sni": "a-sni.example.com", "fingerprint": "chrome", "alpn": []any{"h3"}},
+		{"dest": "b.example.com"},
+	}
+
+	results := make([]map[string]any, 0, len(proxies))
+	for _, ep := range proxies {
+		working := cloneStreamForExternalProxy(stream)
+		applyExternalProxyTLSToStream(ep, working, "tls")
+		ts := working["tlsSettings"].(map[string]any)
+		snapshot := map[string]any{
+			"serverName":  ts["serverName"],
+			"fingerprint": ts["fingerprint"],
+			"alpn":        ts["alpn"],
+		}
+		results = append(results, snapshot)
+	}
+
+	if results[0]["serverName"] != "a-sni.example.com" || results[0]["fingerprint"] != "chrome" {
+		t.Fatalf("proxy A snapshot = %v", results[0])
+	}
+	// Proxy B has no SNI of its own — the upstream tlsSettings serverName
+	// must remain in place (no dest fallback) and no fingerprint/alpn
+	// must leak from proxy A.
+	if results[1]["serverName"] != "upstream.example.com" {
+		t.Fatalf("proxy B serverName = %v, want upstream.example.com preserved", results[1]["serverName"])
+	}
+	if results[1]["fingerprint"] != nil {
+		t.Fatalf("proxy B should inherit no fingerprint, got %v (leaked from A)", results[1]["fingerprint"])
+	}
+	if results[1]["alpn"] != nil {
+		t.Fatalf("proxy B should inherit no alpn, got %v (leaked from A)", results[1]["alpn"])
+	}
+}
+
+func TestApplyExternalProxyTLSParams_DoesNotApplyForNone(t *testing.T) {
+	params := map[string]string{
+		"security": "none",
+		"sni":      "origin.example.com",
+	}
+	ep := map[string]any{
+		"dest":        "proxy.example.com",
+		"fingerprint": "chrome",
+		"alpn":        []any{"h3"},
+	}
+
+	applyExternalProxyTLSParams(ep, params, "none")
+
+	if params["sni"] != "origin.example.com" {
+		t.Fatalf("sni should not change for security=none, got %q", params["sni"])
+	}
+	if _, ok := params["fp"]; ok {
+		t.Fatalf("fp should not be set for security=none, got %v", params)
+	}
+	if _, ok := params["alpn"]; ok {
+		t.Fatalf("alpn should not be set for security=none, got %v", params)
 	}
 }
 

@@ -57,20 +57,19 @@ func (s *SubService) PrepareForRequest(host string) {
 }
 
 // GetSubs retrieves subscription links for a given subscription ID and host.
-func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.ClientTraffic, error) {
+func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int64, xray.ClientTraffic, error) {
 	s.PrepareForRequest(host)
 	var result []string
+	var emails []string
 	var traffic xray.ClientTraffic
-	var lastOnline int64
 	var hasEnabledClient bool
-	var clientTraffics []xray.ClientTraffic
 	inbounds, err := s.getInboundsBySubId(subId)
 	if err != nil {
-		return nil, 0, traffic, err
+		return nil, nil, 0, traffic, err
 	}
 
 	if len(inbounds) == 0 {
-		return nil, 0, traffic, nil
+		return nil, nil, 0, traffic, nil
 	}
 
 	s.datepicker, err = s.settingService.GetDatepicker()
@@ -99,39 +98,77 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 					hasEnabledClient = true
 				}
 				result = append(result, s.GetLink(inbound, client.Email))
-				var ct xray.ClientTraffic
-				ct, clientTraffics = s.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
-				if ct.LastOnline > lastOnline {
-					lastOnline = ct.LastOnline
-				}
+				emails = append(emails, client.Email)
+				seenEmails[client.Email] = struct{}{}
 			}
 		}
 	}
 
-	// Prepare statistics
-	for index, clientTraffic := range clientTraffics {
-		if index == 0 {
-			traffic.Up = clientTraffic.Up
-			traffic.Down = clientTraffic.Down
-			traffic.Total = clientTraffic.Total
-			if clientTraffic.ExpiryTime > 0 {
-				traffic.ExpiryTime = clientTraffic.ExpiryTime
-			}
+	uniqueEmails := make([]string, 0, len(seenEmails))
+	for e := range seenEmails {
+		uniqueEmails = append(uniqueEmails, e)
+	}
+	traffic, lastOnline := s.AggregateTrafficByEmails(uniqueEmails)
+	traffic.Enable = hasEnabledClient
+	return result, emails, lastOnline, traffic, nil
+}
+
+// AggregateTrafficByEmails resolves traffic for every email in one
+// query and folds the rows into a single ClientTraffic + lastOnline.
+// xray.ClientTraffic.Email is globally unique, so a multi-inbound
+// client's single row is attached to exactly one inbound — iterating
+// per-inbound ClientStats would miss it on the others. Used by GetSubs,
+// SubClashService.GetClash, and SubJsonService.GetJson to keep the
+// sub-info header consistent across all three formats.
+func (s *SubService) AggregateTrafficByEmails(emails []string) (xray.ClientTraffic, int64) {
+	var agg xray.ClientTraffic
+	var lastOnline int64
+	if len(emails) == 0 {
+		return agg, 0
+	}
+	var rows []xray.ClientTraffic
+	if err := database.GetDB().
+		Model(&xray.ClientTraffic{}).
+		Where("email IN ?", emails).
+		Find(&rows).Error; err != nil {
+		logger.Warning("SubService - AggregateTrafficByEmails: load by email:", err)
+		return agg, 0
+	}
+	now := time.Now().UnixMilli()
+	for i, ct := range rows {
+		if ct.LastOnline > lastOnline {
+			lastOnline = ct.LastOnline
+		}
+		if i == 0 {
+			agg.Up = ct.Up
+			agg.Down = ct.Down
+			agg.Total = ct.Total
+			agg.ExpiryTime = subscriptionExpiryFromClient(now, ct.ExpiryTime)
+			continue
+		}
+		agg.Up += ct.Up
+		agg.Down += ct.Down
+		if agg.Total == 0 || ct.Total == 0 {
+			agg.Total = 0
 		} else {
-			traffic.Up += clientTraffic.Up
-			traffic.Down += clientTraffic.Down
-			if traffic.Total == 0 || clientTraffic.Total == 0 {
-				traffic.Total = 0
-			} else {
-				traffic.Total += clientTraffic.Total
-			}
-			if clientTraffic.ExpiryTime != traffic.ExpiryTime {
-				traffic.ExpiryTime = 0
-			}
+			agg.Total += ct.Total
+		}
+		normalized := subscriptionExpiryFromClient(now, ct.ExpiryTime)
+		if normalized != agg.ExpiryTime {
+			agg.ExpiryTime = 0
 		}
 	}
-	traffic.Enable = hasEnabledClient
-	return result, lastOnline, traffic, nil
+	return agg, lastOnline
+}
+
+func subscriptionExpiryFromClient(nowMs, expiryTime int64) int64 {
+	if expiryTime > 0 {
+		return expiryTime
+	}
+	if expiryTime < 0 {
+		return nowMs + (-expiryTime)
+	}
+	return 0
 }
 
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
@@ -143,35 +180,13 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
 		JOIN clients ON clients.id = client_inbounds.client_id
 		WHERE
-			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','hysteria2')
+			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria')
 			AND clients.sub_id = ? AND inbounds.enable = ?
 	)`, subId, true).Find(&inbounds).Error
 	if err != nil {
 		return nil, err
 	}
 	return inbounds, nil
-}
-
-// appendUniqueTraffic resolves the traffic stats for email and appends them
-// to acc only the first time email is seen. Shared-email mode lets one
-// client_traffics row underpin several inbounds, so without dedupe its
-// quota and usage would be counted once per inbound.
-func (s *SubService) appendUniqueTraffic(seen map[string]struct{}, acc []xray.ClientTraffic, stats []xray.ClientTraffic, email string) (xray.ClientTraffic, []xray.ClientTraffic) {
-	ct := s.getClientTraffics(stats, email)
-	if _, dup := seen[email]; !dup {
-		seen[email] = struct{}{}
-		acc = append(acc, ct)
-	}
-	return ct, acc
-}
-
-func (s *SubService) getClientTraffics(traffics []xray.ClientTraffic, email string) xray.ClientTraffic {
-	for _, traffic := range traffics {
-		if traffic.Email == email {
-			return traffic
-		}
-	}
-	return xray.ClientTraffic{}
 }
 
 // projectThroughFallbackMaster mutates the inbound in place so its
@@ -270,7 +285,7 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 		return s.genTrojanLink(inbound, email)
 	case "shadowsocks":
 		return s.genShadowsocksLink(inbound, email)
-	case "hysteria", "hysteria2":
+	case "hysteria":
 		return s.genHysteriaLink(inbound, email)
 	}
 	return ""
@@ -385,7 +400,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	stream := unmarshalStreamSettings(inbound.StreamSettings)
 	clients, _ := s.inboundService.GetClients(inbound)
 	clientIndex := findClientIndex(clients, email)
-	password := clients[clientIndex].Password
+	password := encodeUserinfo(clients[clientIndex].Password)
 	port := inbound.Port
 	streamNetwork := stream["network"].(string)
 	params := make(map[string]string)
@@ -426,6 +441,17 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 
 	link := fmt.Sprintf("trojan://%s@%s:%d", password, address, port)
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+}
+
+// encodeUserinfo percent-encodes a userinfo (password/auth) value so it
+// can be safely embedded in a `scheme://<value>@host:port` URL. RFC 3986
+// allows `=` in userinfo as a sub-delim, but several Trojan and Hysteria
+// clients reject share-links where the password contains literal `/`
+// or `=` (notably the common base64-with-padding shape produced by the
+// panel). Encode them too — this matches encodeURIComponent() on the
+// frontend and round-trips cleanly through net/url's parser.
+func encodeUserinfo(s string) string {
+	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
 }
 
 func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) string {
@@ -470,7 +496,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			proxyParams,
 			security,
 			func(dest string, port int) string {
-				return fmt.Sprintf("ss://%s@%s:%d", base64.StdEncoding.EncodeToString([]byte(encPart)), dest, port)
+				return fmt.Sprintf("ss://%s@%s:%d", base64.RawURLEncoding.EncodeToString([]byte(encPart)), dest, port)
 			},
 			func(ep map[string]any) string {
 				return s.genRemark(inbound, email, ep["remark"].(string))
@@ -478,12 +504,12 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		)
 	}
 
-	link := fmt.Sprintf("ss://%s@%s:%d", base64.StdEncoding.EncodeToString([]byte(encPart)), address, inbound.Port)
+	link := fmt.Sprintf("ss://%s@%s:%d", base64.RawURLEncoding.EncodeToString([]byte(encPart)), address, inbound.Port)
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
 }
 
 func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) string {
-	if !model.IsHysteria(inbound.Protocol) {
+	if inbound.Protocol != model.Hysteria {
 		return ""
 	}
 	var stream map[string]any
@@ -496,7 +522,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			break
 		}
 	}
-	auth := clients[clientIndex].Auth
+	auth := encodeUserinfo(clients[clientIndex].Auth)
 	params := make(map[string]string)
 
 	params["security"] = "tls"
@@ -575,14 +601,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			epRemark, _ := ep["remark"].(string)
 
 			link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, dest, int(portF))
-			u, _ := url.Parse(link)
-			q := u.Query()
-			for k, v := range params {
-				q.Add(k, v)
-			}
-			u.RawQuery = q.Encode()
-			u.Fragment = s.genRemark(inbound, email, epRemark)
-			links = append(links, u.String())
+			links = append(links, buildLinkWithParams(link, params, s.genRemark(inbound, email, epRemark)))
 		}
 		return strings.Join(links, "\n")
 	}
@@ -590,14 +609,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 	// No external proxy configured — use the inbound's resolved address so
 	// node-managed inbounds get the node's host instead of the central panel's.
 	link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, s.resolveInboundAddress(inbound), inbound.Port)
-	url, _ := url.Parse(link)
-	q := url.Query()
-	for k, v := range params {
-		q.Add(k, v)
-	}
-	url.RawQuery = q.Encode()
-	url.Fragment = s.genRemark(inbound, email, "")
-	return url.String()
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
 }
 
 // loadNodes refreshes nodesByID from the DB. Called once per request so
@@ -684,8 +696,17 @@ func applyShareNetworkParams(stream map[string]any, streamNetwork string, params
 			request := header["request"].(map[string]any)
 			requestPath, _ := request["path"].([]any)
 			params["path"] = requestPath[0].(string)
-			headers, _ := request["headers"].(map[string]any)
-			params["host"] = searchHost(headers)
+			host := ""
+			if response, ok := header["response"].(map[string]any); ok {
+				if respHeaders, ok := response["headers"].(map[string]any); ok {
+					host = searchHost(respHeaders)
+				}
+			}
+			if host == "" {
+				headers, _ := request["headers"].(map[string]any)
+				host = searchHost(headers)
+			}
+			params["host"] = host
 			params["headerType"] = "http"
 		}
 	case "kcp":
@@ -731,8 +752,17 @@ func applyVmessNetworkParams(stream map[string]any, network string, obj map[stri
 			request := header["request"].(map[string]any)
 			requestPath, _ := request["path"].([]any)
 			obj["path"] = requestPath[0].(string)
-			headers, _ := request["headers"].(map[string]any)
-			obj["host"] = searchHost(headers)
+			host := ""
+			if response, ok := header["response"].(map[string]any); ok {
+				if respHeaders, ok := response["headers"].(map[string]any); ok {
+					host = searchHost(respHeaders)
+				}
+			}
+			if host == "" {
+				headers, _ := request["headers"].(map[string]any)
+				host = searchHost(headers)
+			}
+			obj["host"] = host
 		}
 	case "kcp":
 		applyKcpShareObj(stream, obj)
@@ -779,6 +809,9 @@ func applyShareTLSParams(stream map[string]any, params map[string]string) {
 		if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
 			params["fp"], _ = fpValue.(string)
 		}
+		if pins, ok := pinnedSha256List(tlsSettings); ok {
+			params["pcs"] = strings.Join(pins, ",")
+		}
 	}
 }
 
@@ -801,7 +834,37 @@ func applyVmessTLSParams(stream map[string]any, obj map[string]any) {
 		if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
 			obj["fp"], _ = fpValue.(string)
 		}
+		if pins, ok := pinnedSha256List(tlsSettings); ok {
+			obj["pcs"] = strings.Join(pins, ",")
+		}
 	}
+}
+
+// pinnedSha256List extracts tlsSettings.settings.pinnedPeerCertSha256 as a
+// []string. The field is panel-only (stripped before the run-config reaches
+// xray-core via web/service/xray.go) but flows into share links so clients
+// can pin the server's certificate hash.
+func pinnedSha256List(tlsClientSettings any) ([]string, bool) {
+	raw, ok := searchKey(tlsClientSettings, "pinnedPeerCertSha256")
+	if !ok {
+		return nil, false
+	}
+	arr, ok := raw.([]any)
+	if !ok || len(arr) == 0 {
+		return nil, false
+	}
+	out := make([]string, 0, len(arr))
+	for _, v := range arr {
+		s, ok := v.(string)
+		if !ok || s == "" {
+			continue
+		}
+		out = append(out, s)
+	}
+	if len(out) == 0 {
+		return nil, false
+	}
+	return out, true
 }
 
 func applyShareRealityParams(stream map[string]any, params map[string]string) {
@@ -849,11 +912,156 @@ func cloneVmessShareObj(baseObj map[string]any, newSecurity string) map[string]a
 	return newObj
 }
 
+func applyExternalProxyTLSObj(ep map[string]any, obj map[string]any, security string) {
+	if security != "tls" {
+		return
+	}
+	if sni, ok := externalProxySNI(ep); ok {
+		obj["sni"] = sni
+	}
+	if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
+		obj["fp"] = fp
+	}
+	if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
+		obj["alpn"] = alpn
+	}
+}
+
+func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, security string) {
+	if security != "tls" {
+		return
+	}
+	if sni, ok := externalProxySNI(ep); ok {
+		params["sni"] = sni
+	}
+	if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
+		params["fp"] = fp
+	}
+	if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
+		params["alpn"] = alpn
+	}
+}
+
+// cloneStreamForExternalProxy returns a shallow clone of stream with
+// tlsSettings (and its nested settings map) deep-copied. The external
+// proxy loop mutates tlsSettings per iteration, so without isolating
+// those maps each proxy's SNI/fingerprint/ALPN would leak into the next.
+func cloneStreamForExternalProxy(stream map[string]any) map[string]any {
+	out := cloneMap(stream)
+	ts, ok := out["tlsSettings"].(map[string]any)
+	if !ok || ts == nil {
+		return out
+	}
+	clonedTs := cloneMap(ts)
+	if inner, ok := clonedTs["settings"].(map[string]any); ok && inner != nil {
+		clonedTs["settings"] = cloneMap(inner)
+	}
+	out["tlsSettings"] = clonedTs
+	return out
+}
+
+func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, security string) {
+	if security != "tls" {
+		return
+	}
+	tlsSettings, _ := stream["tlsSettings"].(map[string]any)
+	if tlsSettings == nil {
+		tlsSettings = map[string]any{}
+		stream["tlsSettings"] = tlsSettings
+	}
+	if sni, ok := externalProxySNI(ep); ok {
+		tlsSettings["serverName"] = sni
+	}
+	if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
+		tlsSettings["fingerprint"] = fp
+		settings, _ := tlsSettings["settings"].(map[string]any)
+		if settings == nil {
+			settings = map[string]any{}
+			tlsSettings["settings"] = settings
+		}
+		settings["fingerprint"] = fp
+	}
+	if alpn, ok := externalProxyALPNList(ep["alpn"]); ok {
+		tlsSettings["alpn"] = alpn
+	}
+}
+
+func externalProxySNI(ep map[string]any) (string, bool) {
+	if sni, ok := ep["sni"].(string); ok && sni != "" {
+		return sni, true
+	}
+	return "", false
+}
+
+func externalProxyALPN(value any) (string, bool) {
+	switch v := value.(type) {
+	case string:
+		return v, v != ""
+	case []string:
+		if len(v) == 0 {
+			return "", false
+		}
+		return strings.Join(v, ","), true
+	case []any:
+		alpn := make([]string, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok && s != "" {
+				alpn = append(alpn, s)
+			}
+		}
+		if len(alpn) == 0 {
+			return "", false
+		}
+		return strings.Join(alpn, ","), true
+	default:
+		return "", false
+	}
+}
+
+func externalProxyALPNList(value any) ([]any, bool) {
+	switch v := value.(type) {
+	case string:
+		if v == "" {
+			return nil, false
+		}
+		parts := strings.Split(v, ",")
+		out := make([]any, 0, len(parts))
+		for _, part := range parts {
+			if part = strings.TrimSpace(part); part != "" {
+				out = append(out, part)
+			}
+		}
+		return out, len(out) > 0
+	case []string:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			if item != "" {
+				out = append(out, item)
+			}
+		}
+		return out, len(out) > 0
+	case []any:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok && s != "" {
+				out = append(out, s)
+			}
+		}
+		return out, len(out) > 0
+	default:
+		return nil, false
+	}
+}
+
 func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string) string {
 	var links strings.Builder
 	for index, externalProxy := range externalProxies {
 		ep, _ := externalProxy.(map[string]any)
 		newSecurity, _ := ep["forceTls"].(string)
+		securityToApply := baseObj["tls"].(string)
+		if newSecurity != "same" {
+			securityToApply = newSecurity
+		}
 		newObj := cloneVmessShareObj(baseObj, newSecurity)
 		newObj["ps"] = s.genRemark(inbound, email, ep["remark"].(string))
 		newObj["add"] = ep["dest"].(string)
@@ -862,6 +1070,7 @@ func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj
 		if newSecurity != "same" {
 			newObj["tls"] = newSecurity
 		}
+		applyExternalProxyTLSObj(ep, newObj, securityToApply)
 		if index > 0 {
 			links.WriteString("\n")
 		}
@@ -870,32 +1079,58 @@ func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj
 	return links.String()
 }
 
+// buildLinkWithParams appends ?query and #fragment to a pre-built
+// scheme://userinfo@host:port string without re-parsing it. The caller
+// has already escaped userinfo via encodeUserinfo (or chosen a base64
+// alphabet with no reserved chars); a url.Parse + .String() round-trip
+// would silently decode that escaping because Go's userinfo emitter
+// leaves sub-delims (=, +, ;) literal, which breaks Trojan/Hysteria/SS
+// clients that reject those chars in the password.
 func buildLinkWithParams(link string, params map[string]string, fragment string) string {
-	parsedURL, _ := url.Parse(link)
-	q := parsedURL.Query()
-	for k, v := range params {
-		q.Add(k, v)
-	}
-	parsedURL.RawQuery = q.Encode()
-	parsedURL.Fragment = fragment
-	return parsedURL.String()
+	return appendQueryAndFragment(link, params, fragment, "", false)
 }
 
+// buildLinkWithParamsAndSecurity is buildLinkWithParams plus an
+// external-proxy override: the `security` key in params is replaced with
+// the supplied value, and TLS hint fields (alpn/sni/fp) are stripped when
+// the override is `none`.
 func buildLinkWithParamsAndSecurity(link string, params map[string]string, fragment, security string, omitTLSFields bool) string {
-	parsedURL, _ := url.Parse(link)
-	q := parsedURL.Query()
-	for k, v := range params {
-		if k == "security" {
-			v = security
+	return appendQueryAndFragment(link, params, fragment, security, omitTLSFields)
+}
+
+func appendQueryAndFragment(link string, params map[string]string, fragment, securityOverride string, omitTLSFields bool) string {
+	var sb strings.Builder
+	sb.WriteString(link)
+
+	if len(params) > 0 {
+		q := url.Values{}
+		for k, v := range params {
+			if securityOverride != "" && k == "security" {
+				v = securityOverride
+			}
+			if omitTLSFields && (k == "alpn" || k == "sni" || k == "fp") {
+				continue
+			}
+			q.Set(k, v)
 		}
-		if omitTLSFields && (k == "alpn" || k == "sni" || k == "fp") {
-			continue
+		encoded := q.Encode()
+		if encoded != "" {
+			if strings.Contains(link, "?") {
+				sb.WriteByte('&')
+			} else {
+				sb.WriteByte('?')
+			}
+			sb.WriteString(encoded)
 		}
-		q.Add(k, v)
 	}
-	parsedURL.RawQuery = q.Encode()
-	parsedURL.Fragment = fragment
-	return parsedURL.String()
+
+	if fragment != "" {
+		sb.WriteByte('#')
+		// Match the frontend's encodeURIComponent(remark): spaces become
+		// %20 (not + as in query strings).
+		sb.WriteString(strings.ReplaceAll(url.QueryEscape(fragment), "+", "%20"))
+	}
+	return sb.String()
 }
 
 func (s *SubService) buildExternalProxyURLLinks(
@@ -917,11 +1152,14 @@ func (s *SubService) buildExternalProxyURLLinks(
 			securityToApply = newSecurity
 		}
 
+		nextParams := cloneStringMap(params)
+		applyExternalProxyTLSParams(ep, nextParams, securityToApply)
+
 		links = append(
 			links,
 			buildLinkWithParamsAndSecurity(
 				makeLink(dest, port),
-				params,
+				nextParams,
 				makeRemark(ep),
 				securityToApply,
 				newSecurity == "none",
@@ -1052,10 +1290,9 @@ func searchKey(data any, key string) (any, bool) {
 //   - server-only (noSSEHeader, scMaxBufferedPosts, scStreamUpServerSecs,
 //     serverMaxHeaderBytes) — client wouldn't read them, so emitting
 //     them just bloats the URL.
-//   - client-only (headers, uplinkHTTPMethod, uplinkChunkSize,
-//     noGRPCHeader, scMinPostsIntervalMs, xmux, downloadSettings) — the
-//     inbound config doesn't have them; the client configures them
-//     locally.
+//   - client-only values are included only when present in the inbound
+//     JSON. Some deployments/imported configs carry them there, and the
+//     subscription link is the only place clients can receive them.
 //
 // Truthy-only guards keep default inbounds emitting the same compact URL
 // they did before this helper grew.
@@ -1077,18 +1314,33 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 		}
 	}
 
-	if mode, ok := xhttp["mode"].(string); ok && len(mode) > 0 {
-		extra["mode"] = mode
-	}
-
 	stringFields := []string{
+		"uplinkHTTPMethod",
 		"sessionPlacement", "sessionKey",
 		"seqPlacement", "seqKey",
 		"uplinkDataPlacement", "uplinkDataKey",
-		"scMaxEachPostBytes",
+		"scMaxEachPostBytes", "scMinPostsIntervalMs",
 	}
 	for _, field := range stringFields {
 		if v, ok := xhttp[field].(string); ok && len(v) > 0 {
+			extra[field] = v
+		}
+	}
+
+	for _, field := range []string{"uplinkChunkSize"} {
+		if v, ok := nonZeroShareValue(xhttp[field]); ok {
+			extra[field] = v
+		}
+	}
+
+	for _, field := range []string{"noGRPCHeader"} {
+		if v, ok := xhttp[field].(bool); ok && v {
+			extra[field] = v
+		}
+	}
+
+	for _, field := range []string{"xmux", "downloadSettings"} {
+		if v, ok := nonEmptyShareObject(xhttp[field]); ok {
 			extra[field] = v
 		}
 	}
@@ -1114,6 +1366,38 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 		return nil
 	}
 	return extra
+}
+
+func nonZeroShareValue(v any) (any, bool) {
+	switch value := v.(type) {
+	case string:
+		return value, value != ""
+	case int:
+		return value, value != 0
+	case int32:
+		return value, value != 0
+	case int64:
+		return value, value != 0
+	case float32:
+		return value, value != 0
+	case float64:
+		return value, value != 0
+	default:
+		return nil, false
+	}
+}
+
+func nonEmptyShareObject(v any) (any, bool) {
+	switch value := v.(type) {
+	case map[string]any:
+		return value, len(value) > 0
+	case map[string]string:
+		return value, len(value) > 0
+	case []any:
+		return value, len(value) > 0
+	default:
+		return nil, false
+	}
 }
 
 // applyXhttpExtraParams emits the full xhttp config into the URL query
@@ -1501,6 +1785,7 @@ type PageData struct {
 	SubTitle      string
 	SubSupportUrl string
 	Result        []string
+	Emails        []string
 }
 
 // ResolveRequest extracts scheme and host info from request/headers consistently.
@@ -1614,7 +1899,7 @@ func (s *SubService) joinPathWithID(basePath, subId string) string {
 
 // BuildPageData parses header and prepares the template view model.
 // BuildPageData constructs page data for rendering the subscription information page.
-func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, subURL, subJsonURL, subClashURL string, basePath string, subTitle string, subSupportUrl string) PageData {
+func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, emails []string, subURL, subJsonURL, subClashURL string, basePath string, subTitle string, subSupportUrl string) PageData {
 	download := common.FormatTraffic(traffic.Down)
 	upload := common.FormatTraffic(traffic.Up)
 	total := "∞"
@@ -1653,6 +1938,7 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		SubTitle:      subTitle,
 		SubSupportUrl: subSupportUrl,
 		Result:        subs,
+		Emails:        emails,
 	}
 }
 

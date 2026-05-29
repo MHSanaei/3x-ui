@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Project Wiki
+    url: https://github.com/MHSanaei/3x-ui/wiki
+    about: Setup, install, configuration, and "how do I…" guides live here. Please check before opening a question.
+  - name: 🔍 Search existing issues
+    url: https://github.com/MHSanaei/3x-ui/issues?q=is%3Aissue
+    about: Your bug, feature, or question may already be tracked. Comment on the existing one rather than opening a duplicate.
+  - name: 🚀 Latest release
+    url: https://github.com/MHSanaei/3x-ui/releases/latest
+    about: Reproduce on the latest version before reporting — many bugs are already fixed in the most recent release.

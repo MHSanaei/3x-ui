@@ -1,0 +1,20 @@
+{
+  "protocol": "trojan",
+  "settings": {
+    "clients": [
+      {
+        "password": "tr0jan-passw0rd-XyZ-123!",
+        "email": "carol@example.test",
+        "limitIp": 0,
+        "totalGB": 0,
+        "expiryTime": 0,
+        "enable": true,
+        "tgId": 0,
+        "subId": "trj001",
+        "comment": "",
+        "reset": 0
+      }
+    ],
+    "fallbacks": []
+  }
+}

@@ -4,6 +4,7 @@ import { Button, Divider, Input, Modal, QRCode, message } from 'antd';
 import * as OTPAuth from 'otpauth';
 
 import { ClipboardManager } from '@/utils';
+import { TotpCodeSchema } from '@/schemas/login';
 import './TwoFactorModal.css';
 
 type Type = 'set' | 'confirm';
@@ -61,12 +62,17 @@ export default function TwoFactorModal({
   }
 
   function onOk() {
+    const codeOk = TotpCodeSchema.safeParse(enteredCode);
+    if (!codeOk.success) {
+      messageApi.error(t(codeOk.error.issues[0]?.message ?? 'pages.settings.security.twoFactorModalError'));
+      return;
+    }
     if (type === 'confirm' && !token) {
-      close(true, enteredCode);
+      close(true, codeOk.data);
       return;
     }
     if (!totpRef.current) return;
-    if (totpRef.current.generate() === enteredCode) {
+    if (totpRef.current.generate() === codeOk.data) {
       close(true);
     } else {
       messageApi.error(t('pages.settings.security.twoFactorModalError'));
@@ -92,7 +98,7 @@ export default function TwoFactorModal({
         onCancel={onCancel}
       footer={[
         <Button key="cancel" onClick={onCancel}>{t('cancel')}</Button>,
-        <Button key="ok" type="primary" disabled={enteredCode.length < 6} onClick={onOk}>
+        <Button key="ok" type="primary" disabled={!TotpCodeSchema.safeParse(enteredCode).success} onClick={onOk}>
           {t('confirm')}
         </Button>,
       ]}

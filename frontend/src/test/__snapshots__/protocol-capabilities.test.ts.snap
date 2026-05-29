@@ -1,0 +1,1513 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`protocol capability predicates > http-basic :: grpc/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: grpc/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: grpc/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: httpupgrade/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: httpupgrade/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: kcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: tcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: tcp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: tcp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: ws/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: ws/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: xhttp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: xhttp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > http-basic :: xhttp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: grpc/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: grpc/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: grpc/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: httpupgrade/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: httpupgrade/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: kcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: tcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: tcp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: tcp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: ws/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: ws/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: xhttp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: xhttp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > hysteria-basic :: xhttp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: grpc/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: grpc/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: grpc/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: httpupgrade/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: httpupgrade/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: kcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: tcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: tcp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: tcp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: ws/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: ws/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: xhttp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: xhttp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > mixed-basic :: xhttp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: grpc/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: grpc/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: grpc/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: httpupgrade/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: httpupgrade/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: kcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: tcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: tcp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: tcp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: ws/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: ws/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: xhttp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: xhttp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > shadowsocks-2022 :: xhttp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": true,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: grpc/none 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: grpc/reality 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: grpc/tls 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: httpupgrade/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: httpupgrade/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: kcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: tcp/none 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: tcp/reality 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: tcp/tls 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: ws/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: ws/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: xhttp/none 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: xhttp/reality 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > trojan-basic :: xhttp/tls 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: grpc/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: grpc/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: grpc/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: httpupgrade/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: httpupgrade/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: kcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: tcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: tcp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: tcp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: ws/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: ws/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: xhttp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: xhttp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > tunnel-basic :: xhttp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: grpc/none 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: grpc/reality 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: grpc/tls 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: httpupgrade/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: httpupgrade/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: kcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: tcp/none 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: tcp/reality 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": true,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: tcp/tls 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": true,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: ws/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: ws/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: xhttp/none 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: xhttp/reality 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vless-tcp-none :: xhttp/tls 1`] = `
+{
+  "canEnableReality": true,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: grpc/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: grpc/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: grpc/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: httpupgrade/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: httpupgrade/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: kcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: tcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: tcp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: tcp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: ws/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: ws/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: xhttp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: xhttp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > vmess-basic :: xhttp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": true,
+  "canEnableTls": true,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: grpc/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: grpc/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: grpc/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: httpupgrade/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: httpupgrade/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: kcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: tcp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: tcp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: tcp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: ws/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: ws/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: xhttp/none 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: xhttp/reality 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;
+
+exports[`protocol capability predicates > wireguard-basic :: xhttp/tls 1`] = `
+{
+  "canEnableReality": false,
+  "canEnableStream": false,
+  "canEnableTls": false,
+  "canEnableTlsFlow": false,
+  "canEnableVisionSeed": false,
+  "isSS2022": false,
+  "isSSMultiUser": true,
+}
+`;

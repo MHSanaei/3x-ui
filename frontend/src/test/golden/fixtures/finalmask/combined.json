@@ -1,0 +1,15 @@
+{
+  "tcp": [
+    { "type": "fragment", "settings": { "packets": "1-3" } }
+  ],
+  "udp": [
+    { "type": "salamander", "settings": { "password": "swordfish" } },
+    { "type": "header-wireguard" }
+  ],
+  "quicParams": {
+    "congestion": "brutal",
+    "brutalUp": "100 mbps",
+    "brutalDown": "200 mbps",
+    "udpHop": { "ports": "10000-20000", "interval": "5-10" }
+  }
+}

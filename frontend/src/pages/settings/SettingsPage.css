@@ -1,87 +1,9 @@
-.settings-page {
-  --bg-page: #e6e8ec;
-  --bg-card: #ffffff;
-  min-height: 100vh;
-  background: var(--bg-page);
-}
-
-.settings-page.is-dark {
-  --bg-page: #1a1b1f;
-  --bg-card: #23252b;
-}
-
-.settings-page.is-dark.is-ultra {
-  --bg-page: #000;
-  --bg-card: #101013;
-}
-
-.settings-page .ant-layout,
-.settings-page .ant-layout-content {
-  background: transparent;
-}
-
-.settings-page .content-shell {
-  background: transparent;
-}
-
-.settings-page .content-area {
-  padding: 24px;
-}
-
-.settings-page .loading-spacer {
-  min-height: calc(100vh - 120px);
-}
-
 .settings-page .conf-alert {
   margin-bottom: 10px;
 }
 
-.settings-page .header-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.settings-page .header-actions {
-  padding: 4px;
-}
-
-.settings-page .header-info {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.icons-only .ant-tabs-nav {
-  margin-bottom: 8px;
-}
-
-.icons-only .ant-tabs-nav-wrap {
-  width: 100%;
-}
-
-.icons-only .ant-tabs-nav-list {
-  display: flex;
-  width: 100%;
-}
-
-.icons-only .ant-tabs-tab {
-  flex: 1 1 0;
-  justify-content: center;
-  margin: 0;
-  padding: 10px 0;
-}
-
-.icons-only .ant-tabs-tab .anticon {
-  margin: 0;
-  font-size: 18px;
-}
-
-.icons-only .ant-tabs-nav-operations {
-  display: none;
-}
-
 .ldap-no-inbounds {
   margin-top: 6px;
-  color: #999;
+  color: var(--ant-color-text-tertiary);
   font-size: 12px;
 }

@@ -1,0 +1,67 @@
+{
+  "id": 9,
+  "up": 0,
+  "down": 0,
+  "total": 0,
+  "remark": "dave-vless-tcp-reality",
+  "enable": true,
+  "expiryTime": 0,
+  "listen": "",
+  "port": 443,
+  "tag": "inbound-vless-reality",
+  "sniffing": {
+    "enabled": true,
+    "destOverride": ["http", "tls", "quic", "fakedns"],
+    "metadataOnly": false,
+    "routeOnly": false,
+    "ipsExcluded": [],
+    "domainsExcluded": []
+  },
+  "protocol": "vless",
+  "settings": {
+    "clients": [
+      {
+        "id": "22222222-3333-4444-9555-666666666666",
+        "email": "dave@example.test",
+        "flow": "xtls-rprx-vision",
+        "limitIp": 0,
+        "totalGB": 0,
+        "expiryTime": 0,
+        "enable": true,
+        "tgId": 0,
+        "subId": "vless-reality-001",
+        "comment": "",
+        "reset": 0
+      }
+    ],
+    "decryption": "none",
+    "encryption": "none",
+    "fallbacks": []
+  },
+  "streamSettings": {
+    "network": "tcp",
+    "tcpSettings": {
+      "header": { "type": "none" }
+    },
+    "security": "reality",
+    "realitySettings": {
+      "show": false,
+      "xver": 0,
+      "target": "yahoo.com:443",
+      "serverNames": ["yahoo.com", "www.yahoo.com"],
+      "privateKey": "wM-2_oQRWXyLcXhV5q1ifTBcS3K8mYR3wQI3PqGFK1k",
+      "minClientVer": "",
+      "maxClientVer": "",
+      "maxTimediff": 0,
+      "shortIds": ["a3f1", "b8c2"],
+      "mldsa65Seed": "",
+      "settings": {
+        "publicKey": "Tx5yj1bRcOPHkdvT2pIAQ2zh0gQ8m4OPdnzqXJxxV3o",
+        "fingerprint": "chrome",
+        "serverName": "",
+        "spiderX": "/",
+        "mldsa65Verify": ""
+      }
+    }
+  }
+}

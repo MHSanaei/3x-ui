@@ -11,7 +11,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
-	"github.com/mhsanaei/3x-ui/v3/xray"
 )
 
 type SubClashService struct {
@@ -37,8 +36,6 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		return "", "", err
 	}
 
-	var traffic xray.ClientTraffic
-	var clientTraffics []xray.ClientTraffic
 	var proxies []map[string]any
 
 	seenEmails := make(map[string]struct{})
@@ -53,7 +50,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		s.SubService.projectThroughFallbackMaster(inbound)
 		for _, client := range clients {
 			if client.SubID == subId {
-				_, clientTraffics = s.SubService.appendUniqueTraffic(seenEmails, clientTraffics, inbound.ClientStats, client.Email)
+				seenEmails[client.Email] = struct{}{}
 				proxies = append(proxies, s.getProxies(inbound, client, host)...)
 			}
 		}
@@ -63,27 +60,11 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		return "", "", nil
 	}
 
-	for index, clientTraffic := range clientTraffics {
-		if index == 0 {
-			traffic.Up = clientTraffic.Up
-			traffic.Down = clientTraffic.Down
-			traffic.Total = clientTraffic.Total
-			if clientTraffic.ExpiryTime > 0 {
-				traffic.ExpiryTime = clientTraffic.ExpiryTime
-			}
-		} else {
-			traffic.Up += clientTraffic.Up
-			traffic.Down += clientTraffic.Down
-			if traffic.Total == 0 || clientTraffic.Total == 0 {
-				traffic.Total = 0
-			} else {
-				traffic.Total += clientTraffic.Total
-			}
-			if clientTraffic.ExpiryTime != traffic.ExpiryTime {
-				traffic.ExpiryTime = 0
-			}
-		}
+	emails := make([]string, 0, len(seenEmails))
+	for e := range seenEmails {
+		emails = append(emails, e)
 	}
+	traffic, _ := s.SubService.AggregateTrafficByEmails(emails)
 
 	proxyNames := make([]string, 0, len(proxies)+1)
 	for _, proxy := range proxies {
@@ -122,7 +103,8 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 		defaultDest = host
 	}
 	externalProxies, ok := stream["externalProxy"].([]any)
-	if !ok || len(externalProxies) == 0 {
+	hasExternalProxy := ok && len(externalProxies) > 0
+	if !hasExternalProxy {
 		externalProxies = []any{map[string]any{
 			"forceTls": "same",
 			"dest":     defaultDest,
@@ -138,7 +120,7 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 		workingInbound := *inbound
 		workingInbound.Listen = extPrxy["dest"].(string)
 		workingInbound.Port = int(extPrxy["port"].(float64))
-		workingStream := cloneMap(stream)
+		workingStream := cloneStreamForExternalProxy(stream)
 
 		switch extPrxy["forceTls"].(string) {
 		case "tls":
@@ -153,6 +135,10 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 				delete(workingStream, "realitySettings")
 			}
 		}
+		security, _ := workingStream["security"].(string)
+		if hasExternalProxy {
+			applyExternalProxyTLSToStream(extPrxy, workingStream, security)
+		}
 
 		proxy := s.buildProxy(&workingInbound, client, workingStream, extPrxy["remark"].(string))
 		if len(proxy) > 0 {
@@ -164,9 +150,8 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 
 func (s *SubClashService) buildProxy(inbound *model.Inbound, client model.Client, stream map[string]any, extraRemark string) map[string]any {
 	// Hysteria has its own transport + TLS model, applyTransport /
-	// applySecurity don't fit. IsHysteria also covers the literal
-	// "hysteria2" protocol string (#4081).
-	if model.IsHysteria(inbound.Protocol) {
+	// applySecurity don't fit.
+	if inbound.Protocol == model.Hysteria {
 		return s.buildHysteriaProxy(inbound, client, extraRemark)
 	}
 
@@ -359,6 +344,53 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 			proxy["grpc-opts"] = grpcOpts
 		}
 		return true
+	case "httpupgrade":
+		proxy["network"] = "httpupgrade"
+		hu, _ := stream["httpupgradeSettings"].(map[string]any)
+		opts := map[string]any{}
+		if hu != nil {
+			if path, ok := hu["path"].(string); ok && path != "" {
+				opts["path"] = path
+			}
+			host := ""
+			if v, ok := hu["host"].(string); ok && v != "" {
+				host = v
+			} else if headers, ok := hu["headers"].(map[string]any); ok {
+				host = searchHost(headers)
+			}
+			if host != "" {
+				opts["headers"] = map[string]any{"Host": host}
+			}
+		}
+		if len(opts) > 0 {
+			proxy["http-upgrade-opts"] = opts
+		}
+		return true
+	case "xhttp":
+		proxy["network"] = "xhttp"
+		xhttp, _ := stream["xhttpSettings"].(map[string]any)
+		opts := map[string]any{}
+		if xhttp != nil {
+			if path, ok := xhttp["path"].(string); ok && path != "" {
+				opts["path"] = path
+			}
+			host := ""
+			if v, ok := xhttp["host"].(string); ok && v != "" {
+				host = v
+			} else if headers, ok := xhttp["headers"].(map[string]any); ok {
+				host = searchHost(headers)
+			}
+			if host != "" {
+				opts["host"] = host
+			}
+			if mode, ok := xhttp["mode"].(string); ok && mode != "" {
+				opts["mode"] = mode
+			}
+		}
+		if len(opts) > 0 {
+			proxy["xhttp-opts"] = opts
+		}
+		return true
 	default:
 		return false
 	}
@@ -382,6 +414,17 @@ func (s *SubClashService) applySecurity(proxy map[string]any, security string, s
 			}
 			if fingerprint, ok := tlsSettings["fingerprint"].(string); ok && fingerprint != "" {
 				proxy["client-fingerprint"] = fingerprint
+			}
+			if alpn, ok := externalProxyALPNList(tlsSettings["alpn"]); ok {
+				out := make([]string, 0, len(alpn))
+				for _, item := range alpn {
+					if s, ok := item.(string); ok && s != "" {
+						out = append(out, s)
+					}
+				}
+				if len(out) > 0 {
+					proxy["alpn"] = out
+				}
 			}
 		}
 		return true
@@ -438,6 +481,9 @@ func (s *SubClashService) tlsData(tData map[string]any) map[string]any {
 	tlsData["alpn"] = tData["alpn"]
 	if fingerprint, ok := tlsClientSettings["fingerprint"].(string); ok {
 		tlsData["fingerprint"] = fingerprint
+	}
+	if pins, ok := tlsClientSettings["pinnedPeerCertSha256"].([]any); ok && len(pins) > 0 {
+		tlsData["pin-sha256"] = pins
 	}
 	return tlsData
 }

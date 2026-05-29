@@ -246,6 +246,17 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		logger.Warning("Failed to get Telegram bot proxy URL:", err)
 	}
 
+	// Fall back to the panel-wide proxy when no dedicated bot proxy is set.
+	// The bot's fasthttp dialer only supports SOCKS5, so other schemes are ignored.
+	if tgBotProxy == "" {
+		panelProxy, perr := t.settingService.GetPanelProxy()
+		if perr != nil {
+			logger.Warning("Failed to get panel proxy URL:", perr)
+		} else if strings.HasPrefix(panelProxy, "socks5://") {
+			tgBotProxy = panelProxy
+		}
+	}
+
 	// Get Telegram bot API server URL
 	tgBotAPIServer, err := t.settingService.GetTgBotAPIServer()
 	if err != nil {
@@ -2400,7 +2411,7 @@ func (t *Tgbot) sendClientQRLinks(chatId int64, email string) {
 	}
 
 	// Inform user
-	t.SendMsgToTgbot(chatId, "QRCode"+":")
+	t.SendMsgToTgbot(chatId, "QRCode for client "+email+":")
 
 	// Send sub URL QR (filename: sub.png)
 	if png, err := createQR(subURL, 320); err == nil {

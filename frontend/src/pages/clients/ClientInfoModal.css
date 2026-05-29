@@ -37,10 +37,28 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  align-items: center;
+}
+
+.chips-stack {
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 280px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.chip-more {
+  cursor: pointer;
+  user-select: none;
+}
+
+.chip-more:hover {
+  opacity: 0.85;
 }
 
 .link-panel {
-  border: 1px solid rgba(128, 128, 128, 0.2);
+  border: 1px solid var(--ant-color-border);
   border-radius: 8px;
   padding: 10px;
   margin-bottom: 10px;
@@ -62,13 +80,9 @@
   word-break: break-all;
   white-space: pre-wrap;
   padding: 6px 8px;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--ant-color-fill-tertiary);
   border-radius: 4px;
   user-select: all;
-}
-
-body.dark .link-panel-text {
-  background: rgba(255, 255, 255, 0.05);
 }
 
 .link-panel-anchor {
@@ -76,23 +90,58 @@ body.dark .link-panel-text {
   font-size: 11px;
   word-break: break-all;
   padding: 6px 8px;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--ant-color-fill-tertiary);
   border-radius: 4px;
-  color: var(--ant-color-primary, #1677ff);
+  color: var(--ant-color-primary);
   text-decoration: underline;
-  text-decoration-color: rgba(22, 119, 255, 0.4);
+  text-decoration-color: color-mix(in srgb, var(--ant-color-primary) 40%, transparent);
   transition: background 120ms ease, text-decoration-color 120ms ease;
 }
 
 .link-panel-anchor:hover {
-  background: rgba(22, 119, 255, 0.08);
-  text-decoration-color: var(--ant-color-primary, #1677ff);
+  background: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+  text-decoration-color: var(--ant-color-primary);
 }
 
-body.dark .link-panel-anchor {
-  background: rgba(255, 255, 255, 0.05);
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--ant-color-border);
+  border-radius: 8px;
+  margin-bottom: 8px;
 }
 
-body.dark .link-panel-anchor:hover {
-  background: rgba(22, 119, 255, 0.16);
+.link-row-tag {
+  margin: 0;
+  flex-shrink: 0;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.link-row-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link-row-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.link-row-title-anchor {
+  color: var(--ant-color-primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--ant-color-primary) 35%, transparent);
+  transition: text-decoration-color 120ms ease;
+}
+
+.link-row-title-anchor:hover {
+  text-decoration-color: var(--ant-color-primary);
 }

@@ -1,0 +1,20 @@
+{
+  "protocol": "vmess",
+  "settings": {
+    "clients": [
+      {
+        "id": "c0aa1b9e-4d56-4e8b-9a01-bf2e5d7c4f31",
+        "security": "auto",
+        "email": "bob@example.test",
+        "limitIp": 2,
+        "totalGB": 0,
+        "expiryTime": 0,
+        "enable": true,
+        "tgId": 0,
+        "subId": "vmess001",
+        "comment": "primary tester",
+        "reset": 0
+      }
+    ]
+  }
+}

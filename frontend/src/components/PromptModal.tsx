@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Input, Modal } from 'antd';
 import type { InputRef } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 interface PromptModalProps {
   open: boolean;
@@ -17,12 +18,13 @@ export default function PromptModal({
   open,
   onClose,
   title,
-  okText = 'OK',
+  okText,
   type = 'input',
   initialValue = '',
   loading = false,
   onConfirm,
 }: PromptModalProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const inputRef = useRef<InputRef | null>(null);
@@ -53,8 +55,8 @@ export default function PromptModal({
     <Modal
       open={open}
       title={title}
-      okText={okText}
-      cancelText="Cancel"
+      okText={okText ?? t('confirm')}
+      cancelText={t('cancel')}
       mask={{ closable: false }}
       confirmLoading={loading}
       onOk={() => onConfirm(value)}
