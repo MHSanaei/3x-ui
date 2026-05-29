@@ -17,6 +17,7 @@ import { DeleteOutlined, MinusOutlined, PlusOutlined, ReloadOutlined } from '@an
 
 import FinalMaskForm from '@/components/FinalMaskForm';
 import HeaderMapEditor from '@/components/HeaderMapEditor';
+import HysteriaMasqueradeForm from '@/components/HysteriaMasqueradeForm';
 import InputAddon from '@/components/InputAddon';
 import JsonEditor from '@/components/JsonEditor';
 import { Wireguard } from '@/utils';
@@ -107,9 +108,8 @@ const NETWORK_OPTIONS: { value: string; label: string }[] = [
   { value: 'xhttp', label: 'XHTTP' },
 ];
 
-// Hysteria appends an extra `hysteria` network branch to the selector
-// — only when the parent protocol is hysteria. Wire-side this matches
-// the legacy modal's `isHysteria ? [...NETWORKS, 'hysteria'] : NETWORKS`.
+// The hysteria protocol is locked to its own QUIC transport: the selector
+// shows only this option when the parent protocol is hysteria.
 const HYSTERIA_NETWORK_OPTION = { value: 'hysteria', label: 'Hysteria' };
 
 // Per-network bootstrap. Mirrors the legacy class constructors so the
@@ -161,6 +161,19 @@ function newStreamSlice(network: string): Record<string, unknown> {
     default:
       return { network: 'tcp', tcpSettings: { header: { type: 'none' } } };
   }
+}
+
+// Hysteria2 always rides its own QUIC transport with TLS — the panel never
+// offers another transport or 'none' security for it.
+function hysteriaStreamSlice(): Record<string, unknown> {
+  return {
+    ...newStreamSlice('hysteria'),
+    security: 'tls',
+    tlsSettings: {
+      serverName: '', alpn: ['h3'], fingerprint: '',
+      echConfigList: '', verifyPeerCertByName: '', pinnedPeerCertSha256: '',
+    },
+  };
 }
 
 // Protocols whose form schema carries a flat connect target — these all
@@ -233,23 +246,13 @@ export default function OutboundFormModal({
 
   const tag = Form.useWatch('tag', form) ?? '';
   const protocol = (Form.useWatch('protocol', form) ?? 'vless') as string;
-  // preserve: true — without it useWatch only reflects values whose
-  // Form.Item is currently mounted. The streamSettings selectors live
-  // INSIDE `{streamAllowed && network && (...)}`, so the moment that
-  // conditional gates them out, useWatch returns undefined, the gate
-  // keeps returning false, and the stream block never renders even
-  // though streamSettings is in the form store.
   const network = (Form.useWatch(['streamSettings', 'network'], { form, preserve: true }) ?? '') as string;
   const security = (Form.useWatch(['streamSettings', 'security'], { form, preserve: true }) ?? 'none') as string;
-
   const streamAllowed = canEnableStream({ protocol });
   const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
   const realityAllowed = canEnableReality({ protocol, streamSettings: { network, security } });
   const tlsFlowAllowed = canEnableTlsFlow({ protocol, streamSettings: { network, security } });
 
-  // Seed streamSettings when the user picks a protocol that supports
-  // streams but the form does not yet have a stream slice (new outbound,
-  // or wire payload arrived without streamSettings).
   useEffect(() => {
     if (!streamAllowed) return;
     if (network) return;
@@ -257,9 +260,16 @@ export default function OutboundFormModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamAllowed, network]);
 
-  // Wireguard pubKey is a UI-only field derived from secretKey on every
-  // edit. The legacy modal did the same on every keystroke. We re-derive
-  // here so paste-in secret keys immediately surface the matching pub.
+  useEffect(() => {
+    if (protocol !== 'hysteria') return;
+    if (network === 'hysteria' && security === 'tls') return;
+    const existing = (form.getFieldValue('streamSettings') ?? {}) as Record<string, unknown>;
+    const slice = hysteriaStreamSlice();
+    if (existing.hysteriaSettings) slice.hysteriaSettings = existing.hysteriaSettings;
+    if (existing.tlsSettings) slice.tlsSettings = existing.tlsSettings;
+    form.setFieldValue('streamSettings', slice);
+  }, [protocol, network, security]);
+
   const wgSecretKey = Form.useWatch(['settings', 'secretKey'], form) as string | undefined;
   useEffect(() => {
     if (protocol !== 'wireguard') return;
@@ -277,21 +287,18 @@ export default function OutboundFormModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [protocol, wgSecretKey]);
 
-  // Switching protocol resets the settings sub-object to fresh defaults
-  // so leftover fields from the previous protocol do not bleed through.
-  // The adapter's rawOutboundToFormValues seeds whatever the new protocol
-  // expects (vless flat shape, vmess flat shape, wireguard with secretKey
-  // placeholder, etc.).
   function onValuesChange(changed: Partial<OutboundFormValues>) {
     if ('protocol' in changed && changed.protocol) {
       const next = rawOutboundToFormValues({ protocol: changed.protocol });
       form.setFieldValue('settings', next.settings);
+      if (changed.protocol === 'hysteria') {
+        form.setFieldValue('streamSettings', hysteriaStreamSlice());
+      } else if ((form.getFieldValue(['streamSettings', 'network']) ?? '') === 'hysteria') {
+        form.setFieldValue('streamSettings', { ...newStreamSlice('tcp'), security: 'none' });
+      }
     }
   }
 
-  // Security change cascade: swap the security sub-key so the DU branch
-  // matches. Seed default field values when entering tls/reality so the
-  // sub-forms render without `undefined` field references.
   function onSecurityChange(next: string) {
     const stream = form.getFieldValue('streamSettings') ?? {};
     const cleaned = { ...stream } as Record<string, unknown>;
@@ -324,6 +331,10 @@ export default function OutboundFormModal({
   // wsSettings, etc.) so the DU branch matches. Preserve security if
   // the new network supports it, otherwise force back to 'none'.
   function onNetworkChange(next: string) {
+    if (next === 'hysteria') {
+      form.setFieldValue('streamSettings', hysteriaStreamSlice());
+      return;
+    }
     const currentSecurity = form.getFieldValue(['streamSettings', 'security']) ?? 'none';
     const stillAllowed = canEnableTls({ protocol, streamSettings: { network: next, security: currentSecurity } });
     const stillReality = canEnableReality({ protocol, streamSettings: { network: next, security: currentSecurity } });
@@ -372,13 +383,6 @@ export default function OutboundFormModal({
     return true;
   }
 
-  // Wrap every tab switch with a blur of the active element. AntD marks
-  // the outgoing panel `aria-hidden="true"` synchronously when the
-  // controlled activeKey flips; if a focused input is still inside that
-  // panel (e.g. Input.Search on the JSON tab after user hits Enter to
-  // import), Chrome logs a WAI-ARIA warning. Doing the blur right
-  // before setActiveKey ensures the panel is unfocused by the time
-  // AntD applies the attribute.
   function switchTab(key: string) {
     if (typeof document !== 'undefined') {
       (document.activeElement as HTMLElement | null)?.blur?.();
@@ -595,12 +599,6 @@ export default function OutboundFormModal({
                           <Input />
                         </Form.Item>
                       </>
-                    )}
-
-                    {protocol === 'hysteria' && (
-                      <Form.Item label={t('pages.inbounds.form.version')} name={['settings', 'version']}>
-                        <InputNumber min={2} max={2} disabled />
-                      </Form.Item>
                     )}
 
                     {protocol === 'loopback' && (
@@ -1155,7 +1153,7 @@ export default function OutboundFormModal({
                             onChange={onNetworkChange}
                             options={
                               protocol === 'hysteria'
-                                ? [...NETWORK_OPTIONS, HYSTERIA_NETWORK_OPTION]
+                                ? [HYSTERIA_NETWORK_OPTION]
                                 : NETWORK_OPTIONS
                             }
                           />
@@ -1722,6 +1720,12 @@ export default function OutboundFormModal({
                         {network === 'hysteria' && (
                           <>
                             <Form.Item
+                              label={t('pages.inbounds.form.version')}
+                              name={['streamSettings', 'hysteriaSettings', 'version']}
+                            >
+                              <InputNumber min={2} max={2} disabled style={{ width: '100%' }} />
+                            </Form.Item>
+                            <Form.Item
                               label={t('pages.xray.outboundForm.authPassword')}
                               name={['streamSettings', 'hysteriaSettings', 'auth']}
                             >
@@ -1733,6 +1737,7 @@ export default function OutboundFormModal({
                             >
                               <InputNumber min={1} style={{ width: '100%' }} />
                             </Form.Item>
+                            <HysteriaMasqueradeForm form={form} />
                           </>
                         )}
                       </>
@@ -1783,7 +1788,7 @@ export default function OutboundFormModal({
                           buttonStyle="solid"
                           onChange={(e) => onSecurityChange(e.target.value as string)}
                         >
-                          <Radio.Button value="none">{t('none')}</Radio.Button>
+                          {network !== 'hysteria' && <Radio.Button value="none">{t('none')}</Radio.Button>}
                           {tlsAllowed && <Radio.Button value="tls">TLS</Radio.Button>}
                           {realityAllowed && <Radio.Button value="reality">Reality</Radio.Button>}
                         </Radio.Group>

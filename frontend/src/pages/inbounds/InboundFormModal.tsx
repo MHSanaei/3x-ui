@@ -83,6 +83,7 @@ import { XHttpStreamSettingsSchema } from '@/schemas/protocols/stream/xhttp';
 import DateTimePicker from '@/components/DateTimePicker';
 import FinalMaskForm from '@/components/FinalMaskForm';
 import HeaderMapEditor from '@/components/HeaderMapEditor';
+import HysteriaMasqueradeForm from '@/components/HysteriaMasqueradeForm';
 import InputAddon from '@/components/InputAddon';
 import JsonEditor from '@/components/JsonEditor';
 import './InboundFormModal.css';
@@ -1606,111 +1607,7 @@ export default function InboundFormModal({
             <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
 
-          <Form.Item label={t('pages.inbounds.form.masquerade')}>
-            <Form.Item shouldUpdate noStyle>
-              {() => {
-                const m = form.getFieldValue([
-                  'streamSettings', 'hysteriaSettings', 'masquerade',
-                ]);
-                return (
-                  <Switch
-                    checked={!!m}
-                    onChange={(checked) =>
-                      form.setFieldValue(
-                        ['streamSettings', 'hysteriaSettings', 'masquerade'],
-                        checked
-                          ? {
-                            type: '', dir: '', url: '',
-                            rewriteHost: false, insecure: false,
-                            content: '', headers: {}, statusCode: 0,
-                          }
-                          : undefined,
-                      )
-                    }
-                  />
-                );
-              }}
-            </Form.Item>
-          </Form.Item>
-          <Form.Item shouldUpdate noStyle>
-            {() => {
-              const m = form.getFieldValue([
-                'streamSettings', 'hysteriaSettings', 'masquerade',
-              ]) as { type?: string } | undefined;
-              if (!m) return null;
-              return (
-                <>
-                  <Form.Item
-                    label={t('pages.inbounds.form.type')}
-                    name={['streamSettings', 'hysteriaSettings', 'masquerade', 'type']}
-                  >
-                    <Select
-                      options={[
-                        { value: '', label: 'default (404 page)' },
-                        { value: 'proxy', label: 'proxy (reverse proxy)' },
-                        { value: 'file', label: 'file (serve directory)' },
-                        { value: 'string', label: 'string (fixed body)' },
-                      ]}
-                    />
-                  </Form.Item>
-                  {m.type === 'proxy' && (
-                    <>
-                      <Form.Item
-                        label={t('pages.inbounds.form.upstreamUrl')}
-                        name={['streamSettings', 'hysteriaSettings', 'masquerade', 'url']}
-                      >
-                        <Input placeholder="https://www.example.com" />
-                      </Form.Item>
-                      <Form.Item
-                        label={t('pages.inbounds.form.rewriteHost')}
-                        name={['streamSettings', 'hysteriaSettings', 'masquerade', 'rewriteHost']}
-                        valuePropName="checked"
-                      >
-                        <Switch />
-                      </Form.Item>
-                      <Form.Item
-                        label={t('pages.inbounds.form.skipTlsVerify')}
-                        name={['streamSettings', 'hysteriaSettings', 'masquerade', 'insecure']}
-                        valuePropName="checked"
-                      >
-                        <Switch />
-                      </Form.Item>
-                    </>
-                  )}
-                  {m.type === 'file' && (
-                    <Form.Item
-                      label={t('pages.inbounds.form.directory')}
-                      name={['streamSettings', 'hysteriaSettings', 'masquerade', 'dir']}
-                    >
-                      <Input placeholder="/var/www/html" />
-                    </Form.Item>
-                  )}
-                  {m.type === 'string' && (
-                    <>
-                      <Form.Item
-                        label={t('pages.inbounds.form.statusCode')}
-                        name={['streamSettings', 'hysteriaSettings', 'masquerade', 'statusCode']}
-                      >
-                        <InputNumber min={0} max={599} style={{ width: '100%' }} />
-                      </Form.Item>
-                      <Form.Item
-                        label={t('pages.inbounds.form.body')}
-                        name={['streamSettings', 'hysteriaSettings', 'masquerade', 'content']}
-                      >
-                        <Input.TextArea autoSize={{ minRows: 3 }} />
-                      </Form.Item>
-                      <Form.Item
-                        label={t('pages.inbounds.form.headers')}
-                        name={['streamSettings', 'hysteriaSettings', 'masquerade', 'headers']}
-                      >
-                        <HeaderMapEditor mode="v1" />
-                      </Form.Item>
-                    </>
-                  )}
-                </>
-              );
-            }}
-          </Form.Item>
+          <HysteriaMasqueradeForm form={form} />
         </>
       )}
 
