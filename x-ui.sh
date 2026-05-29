@@ -1371,24 +1371,30 @@ ssl_cert_issue_for_ip() {
     chmod 600 $certPath/privkey.pem 2> /dev/null
     chmod 644 $certPath/fullchain.pem 2> /dev/null
 
-    # Set certificate paths for the panel
+    # Prompt user to set panel paths after successful certificate installation
     local webCertFile="${certPath}/fullchain.pem"
     local webKeyFile="${certPath}/privkey.pem"
 
-    if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-        ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
-        LOGI "Certificate configured for panel"
-        LOGI "  - Certificate File: $webCertFile"
-        LOGI "  - Private Key File: $webKeyFile"
-        LOGI "  - Validity: ~6 days (auto-renews via acme.sh cron)"
-        echo -e "${green}Access URL: https://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
-        LOGI "Panel will restart to apply SSL certificate..."
-        restart
-        return 0
+    read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel
+    if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
+        if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
+            ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+            LOGI "Panel paths set for IP: $server_ip"
+            LOGI "  - Certificate File: $webCertFile"
+            LOGI "  - Private Key File: $webKeyFile"
+            LOGI "  - Validity: ~6 days (auto-renews via acme.sh cron)"
+            echo -e "${green}Access URL: https://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
+            LOGI "Panel will restart to apply SSL certificate..."
+            restart
+        else
+            LOGE "Error: Certificate or private key file not found for IP: $server_ip."
+            return 1
+        fi
     else
-        LOGE "Certificate files not found after installation"
-        return 1
+        LOGI "Skipping panel path setting."
     fi
+
+    return 0
 }
 
 ssl_cert_issue() {
