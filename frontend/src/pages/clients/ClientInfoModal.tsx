@@ -6,6 +6,7 @@ import { CopyOutlined, QrcodeOutlined } from '@ant-design/icons';
 import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import QrPanel from '@/pages/inbounds/QrPanel';
 import './ClientInfoModal.css';
 
@@ -32,20 +33,6 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
 };
 
 const INBOUND_CHIP_LIMIT = 1;
-
-// Post-quantum keys blow up the encoded URL past what a single QR can
-// hold. In VLESS share links the algorithm names don't appear as plain
-// text — they ride inside query params:
-//   - mldsa65Verify becomes `pqv=<base64>` (sub/subService.go:841)
-//   - ML-KEM-768 becomes `encryption=mlkem768x25519plus.<...>`
-// We also keep the literal substrings so configs that DO embed them
-// directly (e.g. wireguard config text) still match.
-function isPostQuantumLink(link: string): boolean {
-  if (/[?&]pqv=/.test(link)) return true;
-  if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
-  if (link.includes('ML-KEM-768')) return true;
-  return false;
-}
 
 // 3x-ui's genRemark concatenates inbound remark + client email (and an
 // optional extra) using a configurable separator. The email half is

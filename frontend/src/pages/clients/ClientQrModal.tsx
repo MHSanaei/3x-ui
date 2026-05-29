@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Collapse, Modal, Spin } from 'antd';
 import { HttpUtil } from '@/utils';
+import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import QrPanel from '@/pages/inbounds/QrPanel';
 import type { ClientRecord } from '@/hooks/useClients';
 
@@ -93,7 +94,13 @@ export default function ClientQrModal({
       out.push({
         key: `l${idx}`,
         label: `${t('pages.clients.link')} ${idx + 1}`,
-        children: <QrPanel value={link} remark={`${client?.email || ''} #${idx + 1}`} />,
+        children: (
+          <QrPanel
+            value={link}
+            remark={`${client?.email || ''} #${idx + 1}`}
+            showQr={!isPostQuantumLink(link)}
+          />
+        ),
       });
     });
     return out;

@@ -944,3 +944,10 @@ export function genWireguardConfigs(input: GenWireguardFanoutInput): string {
     }))
     .join('\r\n');
 }
+
+export function isPostQuantumLink(link: string): boolean {
+  if (/[?&]pqv=/.test(link)) return true;
+  if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
+  if (link.includes('ML-KEM-768')) return true;
+  return false;
+}
