@@ -255,7 +255,7 @@ function buildRowActionsMenu({ record, subEnable, t, isMobile, hasClients }: { r
       });
     }
   } else {
-    items.push({ key: 'showInfo', icon: <InfoCircleOutlined />, label: t('info') });
+    items.push({ key: 'showInfo', icon: <InfoCircleOutlined />, label: t('pages.inbounds.inboundInfo') });
   }
   items.push({ key: 'clipboard', icon: <CopyOutlined />, label: t('pages.inbounds.exportInbound') });
   items.push({ key: 'resetTraffic', icon: <RetweetOutlined />, label: t('pages.inbounds.resetTraffic') });
@@ -626,7 +626,7 @@ export default function InboundList({
                     <span className="card-id">#{record.id}</span>
                     <span className="tag-name">{record.remark}</span>
                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
-                      <Tooltip title={t('info')}>
+                      <Tooltip title={t('pages.inbounds.inboundInfo')}>
                         <InfoCircleOutlined className="row-action-trigger" onClick={() => setStatsRecord(record)} />
                       </Tooltip>
                       <Switch

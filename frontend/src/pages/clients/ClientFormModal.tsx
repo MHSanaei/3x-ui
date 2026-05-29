@@ -15,7 +15,7 @@ import {
   Tag,
   message,
 } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
@@ -148,6 +148,7 @@ export default function ClientFormModal({
   const [clientIps, setClientIps] = useState<string[]>([]);
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
+  const [ipsModalOpen, setIpsModalOpen] = useState(false);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -155,6 +156,7 @@ export default function ClientFormModal({
 
   useEffect(() => {
     if (!open) return;
+    setIpsModalOpen(false);
 
     if (isEdit && client) {
       const et = Number(client.expiryTime) || 0;
@@ -259,9 +261,9 @@ export default function ClientFormModal({
     () => (inbounds || [])
       .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
       .map((ib) => ({
-        label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
+        label: ib.tag ?? '',
         value: ib.id,
-        title: `${ib.remark || ''} (${ib.protocol}:${ib.port})`,
+        title: ib.tag ?? '',
       })),
     [inbounds],
   );
@@ -277,6 +279,11 @@ export default function ClientFormModal({
     } finally {
       setIpsLoading(false);
     }
+  }
+
+  function openIpsModal() {
+    setIpsModalOpen(true);
+    if (clientIps.length === 0) void loadIps();
   }
 
   async function clearIps() {
@@ -376,7 +383,7 @@ export default function ClientFormModal({
       {messageContextHolder}
       <Modal
         open={open}
-        title={isEdit ? t('pages.clients.editTitle') : t('pages.clients.addTitle')}
+        title={isEdit ? t('pages.clients.editClient') : t('pages.clients.addClient')}
         destroyOnHidden
         okText={isEdit ? t('save') : t('create')}
         cancelText={t('cancel')}
@@ -584,24 +591,53 @@ export default function ClientFormModal({
 
           {isEdit && ipLimitEnable && (
             <Form.Item label={t('pages.clients.ipLog')}>
-              <Space style={{ marginBottom: 8 }}>
-                <Button size="small" loading={ipsLoading} onClick={loadIps}>{t('refresh')}</Button>
-                <Button size="small" danger loading={ipsClearing} disabled={clientIps.length === 0} onClick={clearIps}>
-                  {t('pages.clients.clearAll')}
-                </Button>
-              </Space>
-              {clientIps.length > 0 ? (
-                <div>
-                  {clientIps.map((ip, idx) => (
-                    <Tag key={idx} color="blue" style={{ marginBottom: 4 }}>{ip}</Tag>
-                  ))}
-                </div>
-              ) : (
-                <Tag>{t('tgbot.noIpRecord')}</Tag>
-              )}
+              <Button icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
+                {clientIps.length > 0 ? clientIps.length : ''}
+              </Button>
             </Form.Item>
           )}
         </Form>
+      </Modal>
+
+      <Modal
+        open={ipsModalOpen}
+        title={`${t('pages.clients.ipLog')}${client?.email ? ` — ${client.email}` : ''}`}
+        width={440}
+        onCancel={() => setIpsModalOpen(false)}
+        footer={[
+          <Button key="refresh" icon={<ReloadOutlined />} loading={ipsLoading} onClick={loadIps}>
+            {t('refresh')}
+          </Button>,
+          <Button key="clear" danger loading={ipsClearing} disabled={clientIps.length === 0} onClick={clearIps}>
+            {t('pages.clients.clearAll')}
+          </Button>,
+          <Button key="close" type="primary" onClick={() => setIpsModalOpen(false)}>
+            {t('close')}
+          </Button>,
+        ]}
+      >
+        {clientIps.length > 0 ? (
+          <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+            {clientIps.map((ip, idx) => (
+              <Tag
+                key={idx}
+                color="blue"
+                style={{
+                  display: 'block',
+                  width: 'fit-content',
+                  maxWidth: '100%',
+                  marginBottom: 6,
+                  padding: '2px 8px',
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                }}
+              >
+                {ip}
+              </Tag>
+            ))}
+          </div>
+        ) : (
+          <Tag>{t('tgbot.noIpRecord')}</Tag>
+        )}
       </Modal>
     </>
   );

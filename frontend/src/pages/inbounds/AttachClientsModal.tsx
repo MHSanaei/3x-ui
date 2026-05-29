@@ -69,7 +69,7 @@ export default function AttachClientsModal({
     if (!source) return [];
     return (dbInbounds || [])
       .filter((ib) => ib.id !== source.id && isInboundMultiUser(ib))
-      .map((ib) => ({ value: ib.id, label: `${ib.remark} (${ib.protocol}@${ib.port})` }));
+      .map((ib) => ({ value: ib.id, label: ib.tag ?? '' }));
   }, [dbInbounds, source]);
 
   const filteredRows = useMemo(() => {
@@ -150,7 +150,7 @@ export default function AttachClientsModal({
       }}
       okText={t('pages.inbounds.attachClients')}
       cancelText={t('cancel')}
-      title={t('pages.inbounds.attachClientsTitle', { remark: source?.remark ?? '' })}
+      title={t('pages.inbounds.attachClientsTitle', { remark: source?.tag ?? '' })}
       width={680}
     >
       {messageContextHolder}

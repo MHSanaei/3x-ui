@@ -299,8 +299,7 @@ export default function ClientsPage() {
 
   function inboundLabel(id: number) {
     const ib = inboundsById[id];
-    if (!ib) return `#${id}`;
-    return ib.remark ? `${ib.remark} (${ib.protocol}:${ib.port})` : `${ib.protocol}:${ib.port}`;
+    return ib?.tag ?? '';
   }
 
   const clientBucket = useCallback((row: ClientRecord | null | undefined): Bucket | null => {
@@ -589,7 +588,7 @@ export default function ClientsPage() {
           <Tooltip title={t('pages.clients.qrCode')}>
             <Button size="small" type="text" icon={<QrcodeOutlined />} onClick={() => onShowQr(record)} />
           </Tooltip>
-          <Tooltip title={t('pages.clients.moreInformation')}>
+          <Tooltip title={t('pages.clients.clientInfo')}>
             <Button size="small" type="text" icon={<InfoCircleOutlined />} onClick={() => onShowInfo(record)} />
           </Tooltip>
           <Tooltip title={t('pages.inbounds.resetTraffic')}>
@@ -678,7 +677,7 @@ export default function ClientsPage() {
           const ib = inboundsById[id];
           const proto = (ib?.protocol || '').toLowerCase();
           const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
-          const compactLabel = ib ? `${ib.protocol}:${ib.port}` : `#${id}`;
+          const compactLabel = ib?.tag ?? '';
           return (
             <Tooltip key={id} title={inboundLabel(id)}>
               <Tag color={color} style={{ margin: 2 }}>
@@ -1118,7 +1117,7 @@ export default function ClientsPage() {
                                     {bucket === 'depleted' && <Tag color="red" className="status-tag">{t('depleted')}</Tag>}
                                     {bucket === 'expiring' && <Tag color="orange" className="status-tag">{t('depletingSoon')}</Tag>}
                                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
-                                      <Tooltip title={t('pages.clients.moreInformation')}>
+                                      <Tooltip title={t('pages.clients.clientInfo')}>
                                         <InfoCircleOutlined className="row-action-trigger" onClick={() => onShowInfo(row)} />
                                       </Tooltip>
                                       <Switch

@@ -139,7 +139,7 @@ export default function DetachClientsModal({
       }}
       okText={t('pages.inbounds.detachClients')}
       cancelText={t('cancel')}
-      title={t('pages.inbounds.detachClientsTitle', { remark: source?.remark ?? '' })}
+      title={t('pages.inbounds.detachClientsTitle', { remark: source?.tag ?? '' })}
       width={680}
     >
       {messageContextHolder}

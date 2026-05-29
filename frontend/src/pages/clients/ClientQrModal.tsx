@@ -117,7 +117,7 @@ export default function ClientQrModal({
   return (
     <Modal
       open={open}
-      title={client ? client.email : t('qrCode')}
+      title={client ? `${t('qrCode')} — ${client.email}` : t('qrCode')}
       footer={null}
       width={520}
       centered

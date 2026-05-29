@@ -39,6 +39,7 @@ export const ClientRecordSchema = z.object({
 export const InboundOptionSchema = z.object({
   id: z.number(),
   remark: z.string().optional(),
+  tag: z.string().optional(),
   protocol: z.string().optional(),
   port: z.number().optional(),
   tlsFlowCapable: z.boolean().optional(),
