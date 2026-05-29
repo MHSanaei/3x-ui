@@ -260,8 +260,8 @@ func mergeClientIps(old, new []IPWithTimestamp, staleCutoff int64) map[string]in
 // mergeClientIps, and without this split it would keep triggering
 // fail2ban even though it isn't currently connected. see #4077 / #4091.
 //
-// live is sorted ascending (oldest → newest), so we keep the most recent
-// entries at the end of the slice (last IP wins).
+// live is sorted ascending by timestamp (oldest → newest), so we keep
+// the most recent entries at the end of the slice (last IP wins).
 func partitionLiveIps(ipMap map[string]int64, observedThisScan map[string]bool) (live, historical []IPWithTimestamp) {
 	live = make([]IPWithTimestamp, 0, len(observedThisScan))
 	historical = make([]IPWithTimestamp, 0, len(ipMap))
