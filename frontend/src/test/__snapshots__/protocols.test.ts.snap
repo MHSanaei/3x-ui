@@ -1,0 +1,196 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`InboundSettingsSchema fixtures > parses http-basic byte-stably 1`] = `
+{
+  "protocol": "http",
+  "settings": {
+    "accounts": [
+      {
+        "pass": "proxypass",
+        "user": "proxyuser",
+      },
+      {
+        "pass": "guest123",
+        "user": "guest",
+      },
+    ],
+    "allowTransparent": false,
+  },
+}
+`;
+
+exports[`InboundSettingsSchema fixtures > parses hysteria-basic byte-stably 1`] = `
+{
+  "protocol": "hysteria",
+  "settings": {
+    "clients": [
+      {
+        "auth": "hyst3ria-v1-token-XYZ",
+        "comment": "legacy v1",
+        "email": "hy1-client@example.test",
+        "enable": true,
+        "expiryTime": 0,
+        "limitIp": 0,
+        "reset": 0,
+        "subId": "hy1-001",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
+    "version": 1,
+  },
+}
+`;
+
+exports[`InboundSettingsSchema fixtures > parses mixed-basic byte-stably 1`] = `
+{
+  "protocol": "mixed",
+  "settings": {
+    "accounts": [
+      {
+        "pass": "sockspass",
+        "user": "socksuser",
+      },
+    ],
+    "auth": "password",
+    "ip": "127.0.0.1",
+    "udp": true,
+  },
+}
+`;
+
+exports[`InboundSettingsSchema fixtures > parses shadowsocks-2022 byte-stably 1`] = `
+{
+  "protocol": "shadowsocks",
+  "settings": {
+    "clients": [
+      {
+        "comment": "multi-user shadowsocks 2022",
+        "email": "ss-client-1@example.test",
+        "enable": true,
+        "expiryTime": 0,
+        "limitIp": 0,
+        "method": "",
+        "password": "dGVzdC1jbGllbnQtcGFzc3dvcmQtMQ==",
+        "reset": 0,
+        "subId": "ssm001",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
+    "ivCheck": false,
+    "method": "2022-blake3-aes-256-gcm",
+    "network": "tcp,udp",
+    "password": "9oCBhTZxJ5wQa3fLs2vK7nM6pR4tY1uX",
+  },
+}
+`;
+
+exports[`InboundSettingsSchema fixtures > parses trojan-basic byte-stably 1`] = `
+{
+  "protocol": "trojan",
+  "settings": {
+    "clients": [
+      {
+        "comment": "",
+        "email": "carol@example.test",
+        "enable": true,
+        "expiryTime": 0,
+        "limitIp": 0,
+        "password": "tr0jan-passw0rd-XyZ-123!",
+        "reset": 0,
+        "subId": "trj001",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
+    "fallbacks": [],
+  },
+}
+`;
+
+exports[`InboundSettingsSchema fixtures > parses tunnel-basic byte-stably 1`] = `
+{
+  "protocol": "tunnel",
+  "settings": {
+    "allowedNetwork": "tcp,udp",
+    "followRedirect": false,
+    "portMap": {
+      "8080": "10.0.0.5:80",
+      "8443": "10.0.0.5:443",
+    },
+    "rewriteAddress": "1.1.1.1",
+    "rewritePort": 53,
+  },
+}
+`;
+
+exports[`InboundSettingsSchema fixtures > parses vless-tcp-none byte-stably 1`] = `
+{
+  "protocol": "vless",
+  "settings": {
+    "clients": [
+      {
+        "comment": "",
+        "email": "alice@example.test",
+        "enable": true,
+        "expiryTime": 0,
+        "flow": "",
+        "id": "8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02",
+        "limitIp": 0,
+        "reset": 0,
+        "subId": "abc123def",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
+    "decryption": "none",
+    "encryption": "none",
+    "fallbacks": [],
+  },
+}
+`;
+
+exports[`InboundSettingsSchema fixtures > parses vmess-basic byte-stably 1`] = `
+{
+  "protocol": "vmess",
+  "settings": {
+    "clients": [
+      {
+        "comment": "primary tester",
+        "email": "bob@example.test",
+        "enable": true,
+        "expiryTime": 0,
+        "id": "c0aa1b9e-4d56-4e8b-9a01-bf2e5d7c4f31",
+        "limitIp": 2,
+        "reset": 0,
+        "security": "auto",
+        "subId": "vmess001",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
+  },
+}
+`;
+
+exports[`InboundSettingsSchema fixtures > parses wireguard-basic byte-stably 1`] = `
+{
+  "protocol": "wireguard",
+  "settings": {
+    "mtu": 1420,
+    "noKernelTun": false,
+    "peers": [
+      {
+        "allowedIPs": [
+          "10.0.0.2/32",
+        ],
+        "keepAlive": 25,
+        "privateKey": "iJ2cBkrSGqRwIfYIDIxk7hr5RXfdR93MfJUL7yqkkH8=",
+        "publicKey": "DGSYIcEKAUkA7HhzGSjxLZuV67BR3LeyU0BMLJzNVHQ=",
+      },
+    ],
+    "secretKey": "QGVlb2dXc1ZTWGw0ZXBzZndsWmtMaUM5MUlNYjBHWFdYbz0=",
+  },
+}
+`;

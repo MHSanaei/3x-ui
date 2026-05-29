@@ -1,0 +1,29 @@
+{
+  "udp": [
+    { "type": "salamander", "settings": { "password": "swordfish" } },
+    { "type": "mkcp-aes128gcm", "settings": { "password": "abcdef0123456789" } },
+    { "type": "header-dns", "settings": { "domain": "cloudflare.com" } },
+    { "type": "header-wireguard" },
+    {
+      "type": "noise",
+      "settings": {
+        "reset": "60",
+        "noise": [
+          { "type": "rand", "rand": "10-20", "delay": "10-16" },
+          { "type": "str", "packet": ["ping"], "delay": "5" }
+        ]
+      }
+    },
+    {
+      "type": "xdns",
+      "settings": {
+        "domains": ["example.com:txt", "example.org:a"],
+        "resolvers": ["example.com:txt+udp://1.1.1.1:53"]
+      }
+    },
+    {
+      "type": "xicmp",
+      "settings": { "listenIp": "0.0.0.0", "id": 0 }
+    }
+  ]
+}

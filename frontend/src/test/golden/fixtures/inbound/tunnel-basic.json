@@ -1,0 +1,13 @@
+{
+  "protocol": "tunnel",
+  "settings": {
+    "rewriteAddress": "1.1.1.1",
+    "rewritePort": 53,
+    "portMap": {
+      "8080": "10.0.0.5:80",
+      "8443": "10.0.0.5:443"
+    },
+    "allowedNetwork": "tcp,udp",
+    "followRedirect": false
+  }
+}

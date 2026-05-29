@@ -1,0 +1,183 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`NetworkSettingsSchema fixtures > parses grpc-basic byte-stably 1`] = `
+{
+  "grpcSettings": {
+    "authority": "grpc.example.test",
+    "multiMode": false,
+    "serviceName": "GunService",
+  },
+  "network": "grpc",
+}
+`;
+
+exports[`NetworkSettingsSchema fixtures > parses tcp-none byte-stably 1`] = `
+{
+  "network": "tcp",
+  "tcpSettings": {
+    "acceptProxyProtocol": false,
+  },
+}
+`;
+
+exports[`NetworkSettingsSchema fixtures > parses ws-default byte-stably 1`] = `
+{
+  "network": "ws",
+  "wsSettings": {
+    "acceptProxyProtocol": false,
+    "headers": {
+      "X-Forwarded-Proto": "https",
+    },
+    "heartbeatPeriod": 30,
+    "host": "cdn.example.test",
+    "path": "/api/v2",
+  },
+}
+`;
+
+exports[`NetworkSettingsSchema fixtures > parses xhttp-basic byte-stably 1`] = `
+{
+  "network": "xhttp",
+  "xhttpSettings": {
+    "enableXmux": false,
+    "headers": {},
+    "host": "edge.example.test",
+    "mode": "auto",
+    "noGRPCHeader": false,
+    "noSSEHeader": false,
+    "path": "/sp",
+    "scMaxBufferedPosts": 30,
+    "scMaxEachPostBytes": "1000000",
+    "scMinPostsIntervalMs": "30",
+    "scStreamUpServerSecs": "20-80",
+    "seqKey": "",
+    "seqPlacement": "",
+    "serverMaxHeaderBytes": 0,
+    "sessionKey": "",
+    "sessionPlacement": "",
+    "uplinkChunkSize": 0,
+    "uplinkDataKey": "",
+    "uplinkDataPlacement": "",
+    "uplinkHTTPMethod": "",
+    "xPaddingBytes": "100-1000",
+    "xPaddingHeader": "",
+    "xPaddingKey": "",
+    "xPaddingMethod": "",
+    "xPaddingObfsMode": false,
+    "xPaddingPlacement": "",
+  },
+}
+`;
+
+exports[`NetworkSettingsSchema fixtures > parses xhttp-extra-padding byte-stably 1`] = `
+{
+  "network": "xhttp",
+  "xhttpSettings": {
+    "enableXmux": false,
+    "headers": {},
+    "host": "edge.example.test",
+    "mode": "stream-up",
+    "noGRPCHeader": false,
+    "noSSEHeader": false,
+    "path": "/sp",
+    "scMaxBufferedPosts": 30,
+    "scMaxEachPostBytes": "1000000",
+    "scMinPostsIntervalMs": "30",
+    "scStreamUpServerSecs": "20-80",
+    "seqKey": "",
+    "seqPlacement": "",
+    "serverMaxHeaderBytes": 0,
+    "sessionKey": "",
+    "sessionPlacement": "",
+    "uplinkChunkSize": 0,
+    "uplinkDataKey": "",
+    "uplinkDataPlacement": "",
+    "uplinkHTTPMethod": "",
+    "xPaddingBytes": "500-1500",
+    "xPaddingHeader": "X-Pad",
+    "xPaddingKey": "secret-key",
+    "xPaddingMethod": "random",
+    "xPaddingObfsMode": true,
+    "xPaddingPlacement": "header",
+  },
+}
+`;
+
+exports[`NetworkSettingsSchema fixtures > parses xhttp-extra-placement byte-stably 1`] = `
+{
+  "network": "xhttp",
+  "xhttpSettings": {
+    "enableXmux": false,
+    "headers": {},
+    "host": "edge.example.test",
+    "mode": "auto",
+    "noGRPCHeader": false,
+    "noSSEHeader": false,
+    "path": "/sp",
+    "scMaxBufferedPosts": 30,
+    "scMaxEachPostBytes": "1000000",
+    "scMinPostsIntervalMs": "30",
+    "scStreamUpServerSecs": "20-80",
+    "seqKey": "X-Seq",
+    "seqPlacement": "cookie",
+    "serverMaxHeaderBytes": 0,
+    "sessionKey": "X-Session",
+    "sessionPlacement": "header",
+    "uplinkChunkSize": 0,
+    "uplinkDataKey": "u",
+    "uplinkDataPlacement": "query",
+    "uplinkHTTPMethod": "",
+    "xPaddingBytes": "100-1000",
+    "xPaddingHeader": "",
+    "xPaddingKey": "",
+    "xPaddingMethod": "",
+    "xPaddingObfsMode": false,
+    "xPaddingPlacement": "",
+  },
+}
+`;
+
+exports[`NetworkSettingsSchema fixtures > parses xhttp-extra-tuning byte-stably 1`] = `
+{
+  "network": "xhttp",
+  "xhttpSettings": {
+    "enableXmux": false,
+    "headers": {
+      "X-Forwarded-For": "10.0.0.1",
+      "X-Real-IP": "1.2.3.4",
+    },
+    "host": "edge.example.test",
+    "mode": "packet-up",
+    "noGRPCHeader": true,
+    "noSSEHeader": true,
+    "path": "/sp",
+    "scMaxBufferedPosts": 50,
+    "scMaxEachPostBytes": "2000000",
+    "scMinPostsIntervalMs": "60",
+    "scStreamUpServerSecs": "30-90",
+    "seqKey": "",
+    "seqPlacement": "",
+    "serverMaxHeaderBytes": 16384,
+    "sessionKey": "",
+    "sessionPlacement": "",
+    "uplinkChunkSize": 8192,
+    "uplinkDataKey": "",
+    "uplinkDataPlacement": "",
+    "uplinkHTTPMethod": "PUT",
+    "xPaddingBytes": "100-1000",
+    "xPaddingHeader": "",
+    "xPaddingKey": "",
+    "xPaddingMethod": "",
+    "xPaddingObfsMode": false,
+    "xPaddingPlacement": "",
+    "xmux": {
+      "cMaxReuseTimes": 0,
+      "hKeepAlivePeriod": 30,
+      "hMaxRequestTimes": "600-900",
+      "hMaxReusableSecs": "1800-3000",
+      "maxConcurrency": "16-32",
+      "maxConnections": 4,
+    },
+  },
+}
+`;

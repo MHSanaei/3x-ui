@@ -1,15 +1,21 @@
 name: Feature request
-description: Suggest an idea for this project
-title: "Feature request"
-labels: ["enhancement"]
+description: Suggest an idea or improvement for 3x-ui
+title: "[Feature]: "
+labels: ["enhancement", "needs triage"]
 
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest a feature. Please **search
+        [existing issues](../issues?q=is%3Aissue)** first — duplicates will be closed.
+
   - type: textarea
     id: is-related-problem
     attributes:
       label: Is your feature request related to a problem?
-      description: A clear and concise description of what the problem is.
-      placeholder: I'm always frustrated when...
+      description: A clear and concise description of the problem you're hitting today.
+      placeholder: I'm always frustrated when …
     validations:
       required: true
 
@@ -17,23 +23,80 @@ body:
     id: solution
     attributes:
       label: Describe the solution you'd like
-      description: A clear and concise description of what you want to happen.
+      description: |
+        What should the panel do? Be specific — UI placement, API shape,
+        config keys, expected behavior under edge cases.
+      placeholder: |
+        On the Inbounds page, add a button that …
+        The backend should expose a new endpoint at …
     validations:
       required: true
 
   - type: textarea
     id: alternatives
     attributes:
-      label: Describe alternatives you've considered
-      description: A clear and concise description of any alternative solutions or features you've considered.
+      label: Alternatives you've considered
+      description: Other ways you tried to solve this, and why they fell short.
+    validations:
+      required: false
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Concrete use case
+      description: |
+        Walk us through a real scenario where this feature would help.
+        Numbers help (e.g. "I manage 200 clients across 5 inbounds and …").
+    validations:
+      required: false
+
+  - type: textarea
+    id: mockup
+    attributes:
+      label: Mockups, screenshots, or examples
+      description: |
+        Drag images, paste config snippets, or link to similar features in
+        other tools. Helps us understand the shape of the request.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which parts of the panel would this affect?
+      multiple: true
+      options:
+        - Frontend (UI / panel pages)
+        - Backend (API endpoints, login, settings)
+        - Xray config generation
+        - Subscription (share links / Clash / JSON)
+        - Statistics / traffic counters
+        - Database / migrations
+        - Install / upgrade script
+        - Docker image
+        - Multi-node (sub-nodes)
+        - Telegram bot
+        - Other
     validations:
       required: false
 
   - type: checkboxes
+    id: contribution
+    attributes:
+      label: Are you willing to help?
+      description: Optional — but maintainers prioritize requests with community help.
+      options:
+        - label: I'd like to implement this feature myself and open a PR.
+          required: false
+        - label: I can help test once a PR is open.
+          required: false
+
+  - type: checkboxes
     id: checklist
     attributes:
-      label: Checklist
-      description: Please check all the checkboxes
+      label: Before submitting
       options:
-        - label: This feature report is written entirely in English.
+        - label: I searched [existing issues](../issues?q=is%3Aissue) and this feature has not been requested.
+          required: true
+        - label: This feature request is written in English.
           required: true

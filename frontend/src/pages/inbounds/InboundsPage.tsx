@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -9,6 +8,7 @@ import {
   Modal,
   Row,
   Spin,
+  Statistic,
   message,
 } from 'antd';
 
@@ -20,14 +20,15 @@ import {
 } from '@ant-design/icons';
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
-import { Inbound } from '@/models/inbound.js';
-import { coerceInboundJsonField } from '@/models/dbinbound.js';
+import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
+import { genInboundLinks } from '@/lib/xray/inbound-link';
+import { inboundFromDb } from '@/lib/xray/inbound-from-db';
+import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { useNodes } from '@/hooks/useNodes';
+import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import AppSidebar from '@/components/AppSidebar';
-import CustomStatistic from '@/components/CustomStatistic';
 const TextModal = lazy(() => import('@/components/TextModal'));
 const PromptModal = lazy(() => import('@/components/PromptModal'));
 
@@ -37,8 +38,9 @@ import LazyMount from '@/components/LazyMount';
 const InboundFormModal = lazy(() => import('./InboundFormModal'));
 const InboundInfoModal = lazy(() => import('./InboundInfoModal'));
 const QrCodeModal = lazy(() => import('./QrCodeModal'));
-import '@/styles/page-cards.css';
-import './InboundsPage.css';
+const AttachClientsModal = lazy(() => import('./AttachClientsModal'));
+const DetachClientsModal = lazy(() => import('./DetachClientsModal'));
+const AddClientsToGroupModal = lazy(() => import('./AddClientsToGroupModal'));
 
 type RowAction =
   | 'edit'
@@ -49,9 +51,19 @@ type RowAction =
   | 'clipboard'
   | 'delete'
   | 'resetTraffic'
+  | 'delAllClients'
+  | 'attachClients'
+  | 'detachClients'
+  | 'addToGroup'
   | 'clone';
 
 type GeneralAction = 'import' | 'export' | 'subs' | 'resetInbounds';
+
+interface ClientMatchTarget {
+  id?: string;
+  email?: string;
+  password?: string;
+}
 
 export default function InboundsPage() {
   const { t } = useTranslation();
@@ -74,20 +86,17 @@ export default function InboundsPage() {
     remarkModel,
     refresh,
     hydrateInbound,
-    fetchDefaultSettings,
     applyTrafficEvent,
     applyClientStatsEvent,
-    applyInvalidate,
-    applyInboundsEvent,
   } = useInbounds();
 
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
-  const { nodes: nodesList } = useNodes();
+  const { nodes: nodesList } = useNodesQuery();
   const nodesById = useMemo(() => {
-    const map = new Map<number, ReturnType<typeof useNodes>['nodes'][number]>();
+    const map = new Map<number, ReturnType<typeof useNodesQuery>['nodes'][number]>();
     for (const n of nodesList || []) map.set(n.id, n);
     return map;
   }, [nodesList]);
@@ -97,7 +106,7 @@ export default function InboundsPage() {
     [nodesList],
   );
   const hasNodeAttachedInbound = useMemo(
-    () => (dbInbounds || []).some((ib: any) => ib?.nodeId != null),
+    () => (dbInbounds || []).some((ib) => ib?.nodeId != null),
     [dbInbounds],
   );
   const showNodeInfo = hasNodeAttachedInbound || hasActiveNode;
@@ -105,25 +114,26 @@ export default function InboundsPage() {
   useWebSocket({
     traffic: applyTrafficEvent,
     client_stats: applyClientStatsEvent,
-    invalidate: applyInvalidate,
-    inbounds: applyInboundsEvent,
   });
-
-  useEffect(() => {
-    fetchDefaultSettings().then(() => refresh());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
-  const [formDbInbound, setFormDbInbound] = useState<any>(null);
+  const [formDbInbound, setFormDbInbound] = useState<DBInbound | null>(null);
 
   const [infoOpen, setInfoOpen] = useState(false);
-  const [infoDbInbound, setInfoDbInbound] = useState<any>(null);
+  const [infoDbInbound, setInfoDbInbound] = useState<DBInbound | null>(null);
   const [infoClientIndex, setInfoClientIndex] = useState(0);
 
   const [qrOpen, setQrOpen] = useState(false);
-  const [qrDbInbound, setQrDbInbound] = useState<any>(null);
+  const [qrDbInbound, setQrDbInbound] = useState<DBInbound | null>(null);
+
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [attachSource, setAttachSource] = useState<DBInbound | null>(null);
+  const [detachOpen, setDetachOpen] = useState(false);
+  const [detachSource, setDetachSource] = useState<DBInbound | null>(null);
+
+  const [groupOpen, setGroupOpen] = useState(false);
+  const [groupSource, setGroupSource] = useState<DBInbound | null>(null);
 
   const [textOpen, setTextOpen] = useState(false);
   const [textTitle, setTextTitle] = useState('');
@@ -138,7 +148,7 @@ export default function InboundsPage() {
   const [promptLoading, setPromptLoading] = useState(false);
   const [promptHandler, setPromptHandler] = useState<((value: string) => Promise<boolean | void> | boolean | void) | null>(null);
 
-  const hostOverrideFor = useCallback((dbInbound: any) => {
+  const hostOverrideFor = useCallback((dbInbound: DBInbound | null) => {
     if (!dbInbound || dbInbound.nodeId == null) return '';
     return nodesById.get(dbInbound.nodeId)?.address || '';
   }, [nodesById]);
@@ -161,7 +171,7 @@ export default function InboundsPage() {
     confirm: (value: string) => Promise<boolean | void> | boolean | void;
   }) => {
     setPromptTitle(opts.title);
-    setPromptOkText(opts.okText || 'OK');
+    setPromptOkText(opts.okText || t('confirm'));
     setPromptType(opts.type || 'textarea');
     setPromptInitial(opts.value || '');
     setPromptHandler(() => opts.confirm);
@@ -182,44 +192,46 @@ export default function InboundsPage() {
     }
   }, [promptHandler]);
 
-  const projectChildThroughMaster = useCallback((child: any, master: any) => {
-    const projected = JSON.parse(JSON.stringify(child));
+  const projectChildThroughMaster = useCallback((child: DBInbound, master: DBInbound): DBInbound => {
+    const projected = JSON.parse(JSON.stringify(child)) as DBInbound;
     projected.listen = master.listen;
     projected.port = master.port;
-    const masterStream = master.toInbound().stream;
-    const childInbound = child.toInbound();
-    childInbound.stream.security = masterStream.security;
-    childInbound.stream.tls = masterStream.tls;
-    childInbound.stream.reality = masterStream.reality;
-    childInbound.stream.externalProxy = masterStream.externalProxy;
-    projected.streamSettings = childInbound.stream.toString();
-    return new child.constructor(projected);
+    const masterStream = coerceInboundJsonField(master.streamSettings) as Record<string, unknown>;
+    const childStream = { ...(coerceInboundJsonField(child.streamSettings) as Record<string, unknown>) };
+    childStream.security = masterStream.security;
+    childStream.tlsSettings = masterStream.tlsSettings;
+    childStream.realitySettings = masterStream.realitySettings;
+    childStream.externalProxy = masterStream.externalProxy;
+    projected.streamSettings = JSON.stringify(childStream);
+    const Ctor = child.constructor as new (data: DBInbound) => DBInbound;
+    return new Ctor(projected);
   }, []);
 
-  const checkFallback = useCallback((dbInbound: any) => {
+  const checkFallback = useCallback((dbInbound: DBInbound): DBInbound => {
     const parent = dbInbound?.fallbackParent;
     if (parent?.masterId) {
-      const master = (dbInbounds as any[]).find((ib: any) => ib.id === parent.masterId);
+      const master = dbInbounds.find((ib) => ib.id === parent.masterId);
       if (master) return projectChildThroughMaster(dbInbound, master);
     }
-    if (!(dbInbound?.listen as string | undefined)?.startsWith?.('@')) return dbInbound;
-    for (const candidate of dbInbounds as any[]) {
+    if (!dbInbound?.listen?.startsWith?.('@')) return dbInbound;
+    for (const candidate of dbInbounds) {
       if (candidate.id === dbInbound.id) continue;
-      const parsed = candidate.toInbound();
-      if (!parsed.isTcp) continue;
-      if (!['trojan', 'vless'].includes(parsed.protocol)) continue;
-      const fallbacks = parsed.settings.fallbacks || [];
-      if (!fallbacks.find((f: { dest?: string }) => f.dest === dbInbound.listen)) continue;
+      if (!['trojan', 'vless'].includes(candidate.protocol)) continue;
+      const candStream = coerceInboundJsonField(candidate.streamSettings) as { network?: string };
+      if (candStream.network !== 'tcp') continue;
+      const candSettings = coerceInboundJsonField(candidate.settings) as { fallbacks?: { dest?: string }[] };
+      const fallbacks = candSettings.fallbacks || [];
+      if (!fallbacks.find((f) => f.dest === dbInbound.listen)) continue;
       return projectChildThroughMaster(dbInbound, candidate);
     }
     return dbInbound;
   }, [dbInbounds, projectChildThroughMaster]);
 
-  const findClientIndex = useCallback((dbInbound: any, client: any) => {
+  const findClientIndex = useCallback((dbInbound: DBInbound, client: ClientMatchTarget | null) => {
     if (!client) return 0;
-    const inbound = dbInbound.toInbound();
-    const clients = inbound?.clients || [];
-    const idx = clients.findIndex((c: any) => {
+    const settings = coerceInboundJsonField(dbInbound.settings) as { clients?: ClientMatchTarget[] };
+    const clients = settings.clients || [];
+    const idx = clients.findIndex((c) => {
       if (!c) return false;
       switch (dbInbound.protocol) {
         case 'trojan':
@@ -232,22 +244,28 @@ export default function InboundsPage() {
     return idx >= 0 ? idx : 0;
   }, []);
 
-  const exportInboundLinks = useCallback((dbInbound: any) => {
+  const exportInboundLinks = useCallback((dbInbound: DBInbound) => {
     const projected = checkFallback(dbInbound);
     openText({
       title: t('pages.inbounds.exportLinksTitle'),
-      content: projected.genInboundLinks(remarkModel, hostOverrideFor(dbInbound)),
+      content: genInboundLinks({
+        inbound: inboundFromDb(projected),
+        remark: projected.remark,
+        remarkModel,
+        hostOverride: hostOverrideFor(dbInbound),
+        fallbackHostname: window.location.hostname,
+      }),
       fileName: projected.remark || 'inbound',
     });
   }, [checkFallback, remarkModel, hostOverrideFor, openText, t]);
 
-  const exportInboundClipboard = useCallback((dbInbound: any) => {
+  const exportInboundClipboard = useCallback((dbInbound: DBInbound) => {
     openText({ title: t('pages.inbounds.inboundJsonTitle'), content: JSON.stringify(dbInbound, null, 2) });
   }, [openText, t]);
 
-  const exportInboundSubs = useCallback((dbInbound: any) => {
-    const inbound = dbInbound.toInbound();
-    const clients = inbound?.clients || [];
+  const exportInboundSubs = useCallback((dbInbound: DBInbound) => {
+    const settings = coerceInboundJsonField(dbInbound.settings) as { clients?: { subId?: string }[] };
+    const clients = settings.clients || [];
     const subLinks: string[] = [];
     for (const c of clients) {
       if (c.subId && subSettings.subURI) {
@@ -263,37 +281,43 @@ export default function InboundsPage() {
 
   const exportAllLinks = useCallback(async () => {
     const hydrated = await Promise.all(
-      (dbInbounds as any[]).map((ib) => hydrateInbound(ib.id).then((r) => r ?? ib)),
+      dbInbounds.map((ib) => hydrateInbound(ib.id).then((r) => r ?? ib)),
     );
     const out: string[] = [];
     for (const ib of hydrated) {
       const projected = checkFallback(ib);
-      out.push(projected.genInboundLinks(remarkModel, hostOverrideFor(ib)));
+      out.push(genInboundLinks({
+        inbound: inboundFromDb(projected),
+        remark: projected.remark,
+        remarkModel,
+        hostOverride: hostOverrideFor(ib),
+        fallbackHostname: window.location.hostname,
+      }));
     }
-    openText({ title: t('pages.inbounds.exportAllLinksTitle'), content: out.join('\r\n'), fileName: 'All-Inbounds' });
+    openText({ title: t('pages.inbounds.exportAllLinksTitle'), content: out.join('\r\n'), fileName: t('pages.inbounds.exportAllLinksFileName') });
   }, [dbInbounds, hydrateInbound, checkFallback, remarkModel, hostOverrideFor, openText, t]);
 
   const exportAllSubs = useCallback(async () => {
     const hydrated = await Promise.all(
-      (dbInbounds as any[]).map((ib) => hydrateInbound(ib.id).then((r) => r ?? ib)),
+      dbInbounds.map((ib) => hydrateInbound(ib.id).then((r) => r ?? ib)),
     );
     const out: string[] = [];
     for (const ib of hydrated) {
-      const inbound = ib.toInbound();
-      const clients = inbound?.clients || [];
+      const settings = coerceInboundJsonField(ib.settings) as { clients?: { subId?: string }[] };
+      const clients = settings.clients || [];
       for (const c of clients) {
         if (c.subId && subSettings.subURI) {
           out.push(subSettings.subURI + c.subId);
         }
       }
     }
-    openText({ title: t('pages.inbounds.exportAllSubsTitle'), content: [...new Set(out)].join('\r\n'), fileName: 'All-Inbounds-Subs' });
+    openText({ title: t('pages.inbounds.exportAllSubsTitle'), content: [...new Set(out)].join('\r\n'), fileName: t('pages.inbounds.exportAllSubsFileName') });
   }, [dbInbounds, hydrateInbound, subSettings, openText, t]);
 
   const importInbound = useCallback(() => {
     openPrompt({
-      title: 'Import inbound',
-      okText: 'Import',
+      title: t('pages.inbounds.importInbound'),
+      okText: t('pages.inbounds.import'),
       type: 'textarea',
       value: '',
       confirm: async (value) => {
@@ -313,13 +337,13 @@ export default function InboundsPage() {
     setFormOpen(true);
   }, []);
 
-  const openEdit = useCallback((dbInbound: any) => {
+  const openEdit = useCallback((dbInbound: DBInbound) => {
     setFormMode('edit');
     setFormDbInbound(dbInbound);
     setFormOpen(true);
   }, []);
 
-  const confirmDelete = useCallback((dbInbound: any) => {
+  const confirmDelete = useCallback((dbInbound: DBInbound) => {
     modal.confirm({
       title: t('pages.inbounds.deleteConfirmTitle', { remark: dbInbound.remark }),
       content: t('pages.inbounds.deleteConfirmContent'),
@@ -333,7 +357,7 @@ export default function InboundsPage() {
     });
   }, [modal, refresh, t]);
 
-  const confirmResetTraffic = useCallback((dbInbound: any) => {
+  const confirmResetTraffic = useCallback((dbInbound: DBInbound) => {
     modal.confirm({
       title: t('pages.inbounds.resetConfirmTitle', { remark: dbInbound.remark }),
       content: t('pages.inbounds.resetConfirmContent'),
@@ -346,22 +370,43 @@ export default function InboundsPage() {
     });
   }, [modal, refresh, t]);
 
-  const confirmClone = useCallback((dbInbound: any) => {
+  const confirmDelAllClients = useCallback((dbInbound: DBInbound) => {
+    const count = clientCount[dbInbound.id]?.clients || 0;
+    modal.confirm({
+      title: t('pages.inbounds.delAllClientsConfirmTitle', { remark: dbInbound.remark, count }),
+      content: t('pages.inbounds.delAllClientsConfirmContent'),
+      okText: t('delete'),
+      okType: 'danger',
+      cancelText: t('cancel'),
+      onOk: async () => {
+        const msg = await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/delAllClients`);
+        if (msg?.success) await refresh();
+      },
+    });
+  }, [modal, refresh, t, clientCount]);
+
+  const confirmClone = useCallback((dbInbound: DBInbound) => {
     modal.confirm({
       title: t('pages.inbounds.cloneConfirmTitle', { remark: dbInbound.remark }),
       content: t('pages.inbounds.cloneConfirmContent'),
       okText: t('pages.inbounds.clone'),
       cancelText: t('cancel'),
       onOk: async () => {
-        const baseInbound = dbInbound.toInbound();
         let clonedSettings: string;
         try {
           const raw = coerceInboundJsonField(dbInbound.settings);
           raw.clients = [];
           clonedSettings = JSON.stringify(raw);
         } catch {
-          clonedSettings = (Inbound as any).Settings.getSettings(baseInbound.protocol).toString();
+          const fallback = createDefaultInboundSettings(dbInbound.protocol);
+          clonedSettings = fallback ? JSON.stringify(fallback, null, 2) : '{}';
         }
+        const streamSettingsString = typeof dbInbound.streamSettings === 'string'
+          ? dbInbound.streamSettings
+          : JSON.stringify(dbInbound.streamSettings ?? {});
+        const sniffingString = typeof dbInbound.sniffing === 'string'
+          ? dbInbound.sniffing
+          : JSON.stringify(dbInbound.sniffing ?? {});
         const data = {
           up: 0,
           down: 0,
@@ -371,10 +416,10 @@ export default function InboundsPage() {
           expiryTime: 0,
           listen: '',
           port: RandomUtil.randomInteger(10000, 60000),
-          protocol: baseInbound.protocol,
+          protocol: dbInbound.protocol,
           settings: clonedSettings,
-          streamSettings: baseInbound.stream.toString(),
-          sniffing: baseInbound.sniffing.toString(),
+          streamSettings: streamSettingsString,
+          sniffing: sniffingString,
         };
         const msg = await HttpUtil.post('/panel/api/inbounds/add', data);
         if (msg?.success) await refresh();
@@ -389,9 +434,9 @@ export default function InboundsPage() {
       case 'subs': exportAllSubs(); break;
       case 'resetInbounds':
         modal.confirm({
-          title: 'Reset all inbound traffic?',
-          okText: 'Reset',
-          cancelText: 'Cancel',
+          title: t('pages.inbounds.resetAllTrafficTitle'),
+          okText: t('reset'),
+          cancelText: t('cancel'),
           onOk: async () => {
             const msg = await HttpUtil.post('/panel/api/inbounds/resetAllTraffics');
             if (msg?.success) await refresh();
@@ -403,11 +448,11 @@ export default function InboundsPage() {
     }
   }, [modal, importInbound, exportAllLinks, exportAllSubs, refresh, messageApi]);
 
-  const onRowAction = useCallback(async ({ key, dbInbound }: { key: RowAction; dbInbound: any }) => {
+  const onRowAction = useCallback(async ({ key, dbInbound }: { key: RowAction; dbInbound: DBInbound }) => {
     // Actions that touch per-client secrets (uuid, password, flow, ...) need
     // the full payload that the slim list view does not ship. Hydrate first
     // and then operate on the rehydrated record.
-    const hydratingKeys: RowAction[] = ['edit', 'showInfo', 'qrcode', 'export', 'subs', 'clipboard', 'clone'];
+    const hydratingKeys: RowAction[] = ['edit', 'showInfo', 'qrcode', 'export', 'subs', 'clipboard', 'clone', 'attachClients', 'addToGroup'];
     let target = dbInbound;
     if (hydratingKeys.includes(key)) {
       const hydrated = await hydrateInbound(dbInbound.id);
@@ -441,27 +486,39 @@ export default function InboundsPage() {
       case 'resetTraffic':
         confirmResetTraffic(target);
         break;
+      case 'delAllClients':
+        confirmDelAllClients(target);
+        break;
+      case 'attachClients':
+        setAttachSource(target);
+        setAttachOpen(true);
+        break;
+      case 'detachClients':
+        setDetachSource(target);
+        setDetachOpen(true);
+        break;
+      case 'addToGroup':
+        setGroupSource(target);
+        setGroupOpen(true);
+        break;
       case 'clone':
         confirmClone(target);
         break;
       default:
         messageApi.info(`Action "${key}" — coming in a later 5f subphase`);
     }
-  }, [hydrateInbound, openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmClone, messageApi]);
-
-  const basePath = (typeof window !== 'undefined' && window.X_UI_BASE_PATH) || '';
-  const requestUri = typeof window !== 'undefined' ? window.location.pathname : '';
+  }, [hydrateInbound, openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmDelAllClients, confirmClone, messageApi]);
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
       {messageContextHolder}
       {modalContextHolder}
       <Layout className={`inbounds-page${isDark ? ' is-dark' : ''}${isUltra ? ' is-ultra' : ''}`}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={!fetched} delay={200} description="Loading…" size="large">
+            <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : (
@@ -470,21 +527,21 @@ export default function InboundsPage() {
                     <Card size="small" hoverable className="summary-card">
                       <Row gutter={[16, 12]}>
                         <Col xs={12} sm={12} md={8}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.inbounds.totalDownUp')}
                             value={`${SizeFormatter.sizeFormat(totals.up)} / ${SizeFormatter.sizeFormat(totals.down)}`}
                             prefix={<SwapOutlined />}
                           />
                         </Col>
                         <Col xs={12} sm={12} md={8}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.inbounds.totalUsage')}
                             value={SizeFormatter.sizeFormat(totals.up + totals.down)}
                             prefix={<PieChartOutlined />}
                           />
                         </Col>
                         <Col xs={24} sm={24} md={8}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.inbounds.inboundCount')}
                             value={String(dbInbounds.length)}
                             prefix={<BarsOutlined />}
@@ -496,7 +553,7 @@ export default function InboundsPage() {
 
                   <Col span={24}>
                     <InboundList
-                      dbInbounds={dbInbounds as any}
+                      dbInbounds={dbInbounds}
                       clientCount={clientCount}
                       onlineClients={onlineClients}
                       lastOnlineMap={lastOnlineMap}
@@ -509,7 +566,7 @@ export default function InboundsPage() {
                       hasActiveNode={showNodeInfo}
                       onAddInbound={onAddInbound}
                       onGeneralAction={onGeneralAction}
-                      onRowAction={onRowAction}
+                      onRowAction={({ key, dbInbound }) => onRowAction({ key, dbInbound: dbInbound as unknown as DBInbound })}
                     />
                   </Col>
                 </Row>
@@ -525,7 +582,7 @@ export default function InboundsPage() {
             onSaved={refresh}
             mode={formMode}
             dbInbound={formDbInbound}
-            dbInbounds={dbInbounds as any[]}
+            dbInbounds={dbInbounds}
             availableNodes={nodesList}
           />
         </LazyMount>
@@ -554,6 +611,31 @@ export default function InboundsPage() {
             remarkModel={remarkModel}
             nodeAddress={qrNodeAddress}
             subSettings={subSettings}
+          />
+        </LazyMount>
+        <LazyMount when={attachOpen}>
+          <AttachClientsModal
+            open={attachOpen}
+            onClose={() => setAttachOpen(false)}
+            onAttached={refresh}
+            source={attachSource}
+            dbInbounds={dbInbounds}
+          />
+        </LazyMount>
+        <LazyMount when={detachOpen}>
+          <DetachClientsModal
+            open={detachOpen}
+            onClose={() => setDetachOpen(false)}
+            onDetached={refresh}
+            source={detachSource}
+          />
+        </LazyMount>
+        <LazyMount when={groupOpen}>
+          <AddClientsToGroupModal
+            open={groupOpen}
+            onClose={() => setGroupOpen(false)}
+            onAdded={refresh}
+            source={groupSource}
           />
         </LazyMount>
 

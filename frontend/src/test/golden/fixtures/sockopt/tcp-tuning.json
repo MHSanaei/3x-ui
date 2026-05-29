@@ -1,0 +1,10 @@
+{
+  "tcpFastOpen": true,
+  "tcpcongestion": "bbr",
+  "tcpKeepAliveInterval": 30,
+  "tcpKeepAliveIdle": 120,
+  "tcpUserTimeout": 5000,
+  "tcpMaxSeg": 1440,
+  "tcpWindowClamp": 600,
+  "tcpMptcp": true
+}

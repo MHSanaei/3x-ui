@@ -1,0 +1,7 @@
+{
+  "tproxy": "tproxy",
+  "mark": 255,
+  "domainStrategy": "ForceIPv4",
+  "V6Only": false,
+  "penetrate": true
+}

@@ -131,7 +131,7 @@ func (s *PanelService) StartUpdate() error {
 }
 
 func downloadPanelUpdater() (string, error) {
-	client := &http.Client{Timeout: 15 * time.Second}
+	client := (&SettingService{}).NewProxiedHTTPClient(15 * time.Second)
 	resp, err := client.Get(panelUpdaterURL)
 	if err != nil {
 		return "", fmt.Errorf("download panel updater: %w", err)
@@ -169,7 +169,7 @@ func downloadPanelUpdater() (string, error) {
 }
 
 func fetchLatestPanelVersion() (string, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := (&SettingService{}).NewProxiedHTTPClient(10 * time.Second)
 	resp, err := client.Get("https://api.github.com/repos/MHSanaei/3x-ui/releases/latest")
 	if err != nil {
 		return "", err

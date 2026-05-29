@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Col, ConfigProvider, Layout, Modal, Row, Spin, message } from 'antd';
+import { Card, Col, ConfigProvider, Layout, Modal, Row, Spin, Statistic, message } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -10,19 +10,13 @@ import {
 
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useNodes } from '@/hooks/useNodes';
-import type { NodeRecord } from '@/hooks/useNodes';
-import { useWebSocket } from '@/hooks/useWebSocket';
+import { useNodesQuery } from '@/api/queries/useNodesQuery';
+import type { NodeRecord } from '@/api/queries/useNodesQuery';
+import { useNodeMutations } from '@/api/queries/useNodeMutations';
 import AppSidebar from '@/components/AppSidebar';
-import CustomStatistic from '@/components/CustomStatistic';
 import NodeList from './NodeList';
 import NodeFormModal from './NodeFormModal';
 import { setMessageInstance } from '@/utils/messageBus';
-import '@/styles/page-cards.css';
-import './NodesPage.css';
-
-const basePath = window.X_UI_BASE_PATH || '';
-const requestUri = window.location.pathname;
 
 export default function NodesPage() {
   const { t } = useTranslation();
@@ -32,21 +26,8 @@ export default function NodesPage() {
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
-  const {
-    nodes,
-    loading,
-    fetched,
-    totals,
-    applyNodesEvent,
-    create,
-    update,
-    remove,
-    setEnable,
-    testConnection,
-    probe,
-  } = useNodes();
-
-  useWebSocket({ nodes: applyNodesEvent });
+  const { nodes, loading, fetched, totals } = useNodesQuery();
+  const { create, update, remove, setEnable, testConnection, probe } = useNodeMutations();
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
@@ -112,11 +93,11 @@ export default function NodesPage() {
       {messageContextHolder}
       {modalContextHolder}
       <Layout className={pageClass}>
-        <AppSidebar basePath={basePath} requestUri={requestUri} />
+        <AppSidebar />
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={!fetched} delay={200} description="Loading…" size="large">
+            <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : (
@@ -125,28 +106,28 @@ export default function NodesPage() {
                     <Card size="small" hoverable className="summary-card">
                       <Row gutter={[16, isMobile ? 16 : 12]}>
                         <Col xs={12} sm={12} md={6}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.nodes.totalNodes')}
                             value={String(totals.total)}
                             prefix={<CloudServerOutlined />}
                           />
                         </Col>
                         <Col xs={12} sm={12} md={6}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.nodes.onlineNodes')}
                             value={String(totals.online)}
-                            prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                            prefix={<CheckCircleOutlined style={{ color: 'var(--ant-color-success)' }} />}
                           />
                         </Col>
                         <Col xs={12} sm={12} md={6}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.nodes.offlineNodes')}
                             value={String(totals.offline)}
-                            prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
+                            prefix={<CloseCircleOutlined style={{ color: 'var(--ant-color-error)' }} />}
                           />
                         </Col>
                         <Col xs={12} sm={12} md={6}>
-                          <CustomStatistic
+                          <Statistic
                             title={t('pages.nodes.avgLatency')}
                             value={totals.avgLatency > 0 ? `${totals.avgLatency} ms` : '-'}
                             prefix={<ThunderboltOutlined />}

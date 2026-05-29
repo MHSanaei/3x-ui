@@ -1,8 +1,8 @@
 .json-editor-host {
-  border: 1px solid var(--ant-color-border, #d9d9d9);
+  border: 1px solid var(--ant-color-border);
   border-radius: 6px;
   overflow: hidden;
-  background: var(--ant-color-bg-container, #fff);
+  background: var(--ant-color-bg-container);
 }
 
 .json-editor-host .cm-editor,
@@ -11,16 +11,6 @@
 }
 
 .json-editor-host:focus-within {
-  border-color: var(--ant-color-primary, #1677ff);
-  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
-}
-
-body.dark .json-editor-host {
-  border-color: #3a3a3c;
-  background: #1e1e1e;
-}
-
-html[data-theme="ultra-dark"] .json-editor-host {
-  border-color: #1f1f1f;
-  background: #0a0a0a;
+  border-color: var(--ant-color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ant-color-primary) 10%, transparent);
 }

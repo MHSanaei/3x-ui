@@ -1,22 +1,90 @@
 name: Question
-description: Describe this issue template's purpose here.
-title: "Question"
+description: Ask how to do something with 3x-ui
+title: "[Question]: "
 labels: ["question"]
 
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a question, please:
+
+        - Read the [project Wiki](https://github.com/MHSanaei/3x-ui/wiki) —
+          most setup, install, and "how do I …" answers live there.
+        - Search [existing issues](../issues?q=is%3Aissue) — the question
+          may already have been asked.
+
+        Use this template only when you have a usage question that the docs
+        and previous issues don't answer. If you found something **broken**,
+        open a Bug report instead.
+
   - type: textarea
     id: question
     attributes:
-      label: Question
-      placeholder: I have a question, ..., how can I solve it?
+      label: What are you trying to do?
+      description: Describe the goal, not just the symptom. The clearer the goal, the better the answer.
+      placeholder: |
+        I'm trying to … so that …
+        I expected the panel to … but I'm not sure how to configure it.
     validations:
       required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you already tried?
+      description: Pages of the Wiki you read, settings you toggled, commands you ran.
+      placeholder: |
+        - Read the `Reverse Proxy` page of the Wiki
+        - Tried setting `xrayBasePath` to `/proxy` — got 404
+    validations:
+      required: false
+
+  - type: input
+    id: xui-version
+    attributes:
+      label: 3x-ui version
+      description: Shown at the top of the panel sidebar.
+      placeholder: 3.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How did you install 3x-ui?
+      options:
+        - install.sh script
+        - Docker / Docker Compose
+        - Manual build from source
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Ubuntu 24.04 / Debian 12 / CentOS Stream 9 …
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or config snippets
+      description: Drag images or paste relevant config. Redact tokens, real domains, client UUIDs.
+    validations:
+      required: false
 
   - type: checkboxes
     id: checklist
     attributes:
-      label: Checklist
-      description: Please check all the checkboxes
+      label: Before submitting
       options:
-        - label: This question is written entirely in English.
+        - label: I read the [Wiki](https://github.com/MHSanaei/3x-ui/wiki) and searched [existing issues](../issues?q=is%3Aissue).
+          required: true
+        - label: This is a usage question, not a bug report.
+          required: true
+        - label: This question is written in English.
           required: true

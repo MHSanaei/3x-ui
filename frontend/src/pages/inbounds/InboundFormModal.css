@@ -1,22 +1,3 @@
-.mt-4 { margin-top: 4px; }
-.mt-8 { margin-top: 8px; }
-.mt-12 { margin-top: 12px; }
-.mb-4 { margin-bottom: 4px; }
-.mb-8 { margin-bottom: 8px; }
-.mb-12 { margin-bottom: 12px; }
-
-.random-icon {
-  margin-left: 4px;
-  cursor: pointer;
-  color: var(--ant-color-primary, #1890ff);
-}
-
-.danger-icon {
-  margin-left: 6px;
-  cursor: pointer;
-  color: #ff4d4f;
-}
-
 .vless-auth-state {
   display: block;
   margin-top: 6px;
@@ -34,9 +15,9 @@
 
 .advanced-panel {
   padding: 14px;
-  border: 1px solid rgba(128, 128, 128, 0.18);
+  border: 1px solid var(--ant-color-border-secondary);
   border-radius: 12px;
-  background: rgba(128, 128, 128, 0.04);
+  background: var(--ant-color-fill-quaternary);
 }
 
 .advanced-panel__header {
@@ -78,10 +59,4 @@
   .advanced-inner-tabs .ant-tabs-tab {
     padding-inline: 10px;
   }
-}
-
-body.dark .advanced-panel,
-html[data-theme='ultra-dark'] .advanced-panel {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.03);
 }

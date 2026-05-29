@@ -39,7 +39,7 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
   const fetchVersions = useCallback(async () => {
     setLoading(true);
     try {
-      const msg = await HttpUtil.get('/panel/api/server/getXrayVersion');
+      const msg = await HttpUtil.get<string[]>('/panel/api/server/getXrayVersion');
       if (msg?.success) setVersions(msg.obj || []);
     } finally {
       setLoading(false);

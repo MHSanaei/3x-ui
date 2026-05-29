@@ -1,0 +1,42 @@
+{
+  "tag": "dns_inbound",
+  "clientIp": "1.2.3.4",
+  "queryStrategy": "UseIP",
+  "disableCache": false,
+  "disableFallback": false,
+  "disableFallbackIfMatch": true,
+  "enableParallelQuery": true,
+  "useSystemHosts": true,
+  "serveStale": true,
+  "serveExpiredTTL": 300,
+  "hosts": {
+    "geosite:category-ads-all": "127.0.0.1",
+    "domain:example.com": ["10.0.0.1", "10.0.0.2"],
+    "full:dns.google": "8.8.8.8"
+  },
+  "servers": [
+    "fakedns",
+    "localhost",
+    "https://dns.google/dns-query",
+    {
+      "address": "tcp://1.1.1.1",
+      "port": 53,
+      "domains": ["geosite:cn"],
+      "expectedIPs": ["geoip:cn"],
+      "queryStrategy": "UseIPv4",
+      "skipFallback": true,
+      "tag": "cn-dns",
+      "clientIP": "8.8.4.4",
+      "timeoutMs": 3000
+    },
+    {
+      "address": "quic+local://dns.adguard.com",
+      "unexpectedIPs": ["geoip:private"],
+      "finalQuery": true,
+      "disableCache": true,
+      "serveStale": false,
+      "serveExpiredTTL": 60,
+      "timeoutMs": 5000
+    }
+  ]
+}

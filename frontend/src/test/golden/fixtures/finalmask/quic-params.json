@@ -1,0 +1,16 @@
+{
+  "quicParams": {
+    "congestion": "bbr",
+    "bbrProfile": "standard",
+    "debug": false,
+    "udpHop": { "ports": "20000-50000", "interval": "5-10" },
+    "initStreamReceiveWindow": 8388608,
+    "maxStreamReceiveWindow": 8388608,
+    "initConnectionReceiveWindow": 20971520,
+    "maxConnectionReceiveWindow": 20971520,
+    "maxIdleTimeout": 30,
+    "keepAlivePeriod": 10,
+    "disablePathMTUDiscovery": false,
+    "maxIncomingStreams": 1024
+  }
+}

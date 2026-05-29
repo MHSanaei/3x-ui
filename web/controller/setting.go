@@ -7,6 +7,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/util/crypto"
 	"github.com/mhsanaei/3x-ui/v3/web/entity"
+	"github.com/mhsanaei/3x-ui/v3/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 	"github.com/mhsanaei/3x-ui/v3/web/session"
 
@@ -74,14 +75,12 @@ func (a *SettingController) getDefaultSettings(c *gin.Context) {
 
 // updateSetting updates all settings with the provided data.
 func (a *SettingController) updateSetting(c *gin.Context) {
-	allSetting := &entity.AllSetting{}
-	err := c.ShouldBind(allSetting)
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+	allSetting, ok := middleware.BindAndValidate[entity.AllSetting](c)
+	if !ok {
 		return
 	}
 	oldTwoFactor, twoFactorErr := a.settingService.GetTwoFactorEnable()
-	err = a.settingService.UpdateAllSetting(allSetting)
+	err := a.settingService.UpdateAllSetting(allSetting)
 	if err == nil && twoFactorErr == nil && !oldTwoFactor && allSetting.TwoFactorEnable {
 		if bumpErr := a.userService.BumpLoginEpoch(); bumpErr != nil {
 			err = bumpErr

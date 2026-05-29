@@ -2,10 +2,11 @@ import { createRoot } from 'react-dom/client';
 import { message } from 'antd';
 import 'antd/dist/reset.css';
 
-import { setupAxios } from '@/api/axios-init.js';
+import { setupAxios } from '@/api/axios-init';
 import { applyDocumentTitle } from '@/utils';
 import { readyI18n } from '@/i18n/react';
 import { ThemeProvider } from '@/hooks/useTheme';
+import { QueryProvider } from '@/api/QueryProvider';
 import LoginPage from '@/pages/login/LoginPage';
 
 setupAxios();
@@ -21,7 +22,9 @@ readyI18n().then(() => {
   if (root) {
     createRoot(root).render(
       <ThemeProvider>
-        <LoginPage />
+        <QueryProvider>
+          <LoginPage />
+        </QueryProvider>
       </ThemeProvider>,
     );
   }

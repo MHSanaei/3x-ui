@@ -1,5 +1,6 @@
 import { Button, Input, Modal, message } from 'antd';
 import { CopyOutlined, DownloadOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 
 import { ClipboardManager, FileManager } from '@/utils';
 
@@ -12,11 +13,12 @@ interface TextModalProps {
 }
 
 export default function TextModal({ open, onClose, title, content, fileName = '' }: TextModalProps) {
+  const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   async function copy() {
     const ok = await ClipboardManager.copyText(content || '');
     if (ok) {
-      messageApi.success('Copied');
+      messageApi.success(t('copied'));
       onClose();
     }
   }
@@ -39,7 +41,7 @@ export default function TextModal({ open, onClose, title, content, fileName = ''
           {fileName && (
             <Button icon={<DownloadOutlined />} onClick={download}>{fileName}</Button>
           )}
-          <Button type="primary" icon={<CopyOutlined />} onClick={copy}>Copy</Button>
+          <Button type="primary" icon={<CopyOutlined />} onClick={copy}>{t('copy')}</Button>
         </>
       )}
     >

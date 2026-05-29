@@ -101,10 +101,6 @@ func (j *NodeTrafficSyncJob) Run() {
 		j.structural.set()
 	}
 
-	if !websocket.HasClients() {
-		return
-	}
-
 	lastOnline, err := j.inboundService.GetClientsLastOnline()
 	if err != nil {
 		logger.Warning("node traffic sync: get last-online failed:", err)
@@ -114,6 +110,10 @@ func (j *NodeTrafficSyncJob) Run() {
 	}
 
 	j.inboundService.RefreshOnlineClientsFromMap(lastOnline)
+
+	if !websocket.HasClients() {
+		return
+	}
 
 	online := j.inboundService.GetOnlineClients()
 	if online == nil {

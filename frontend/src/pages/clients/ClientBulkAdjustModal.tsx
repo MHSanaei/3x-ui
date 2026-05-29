@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Form, InputNumber, Modal, message } from 'antd';
 
+import { ClientBulkAdjustFormSchema } from '@/schemas/client';
+
 const GB = 1024 * 1024 * 1024;
 
 interface ClientBulkAdjustModalProps {
@@ -26,12 +28,15 @@ export default function ClientBulkAdjustModal({ open, count, onOpenChange, onSub
   }, [open]);
 
   async function handleOk() {
-    const days = Math.trunc(Number(addDays) || 0);
-    const gb = Number(addGB) || 0;
-    if (days === 0 && gb === 0) {
-      messageApi.warning(t('pages.clients.bulkAdjustNothing'));
+    const validated = ClientBulkAdjustFormSchema.safeParse({
+      addDays: Math.trunc(Number(addDays) || 0),
+      addGB: Number(addGB) || 0,
+    });
+    if (!validated.success) {
+      messageApi.warning(t(validated.error.issues[0]?.message ?? 'somethingWentWrong'));
       return;
     }
+    const { addDays: days, addGB: gb } = validated.data;
     setSubmitting(true);
     try {
       const bytes = Math.trunc(gb * GB);
@@ -70,7 +75,7 @@ export default function ClientBulkAdjustModal({ open, count, onOpenChange, onSub
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message={t('pages.clients.bulkAdjustHint')}
+          title={t('pages.clients.bulkAdjustHint')}
         />
         <Form layout="vertical">
           <Form.Item label={t('pages.clients.addDays')}>

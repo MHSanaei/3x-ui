@@ -111,10 +111,11 @@ gen_random_string() {
 }
 
 install_postgres_local() {
-    local pg_user="xui"
-    local pg_db="xui"
-    local pg_pass
+    local pg_user pg_pass
     pg_pass=$(gen_random_string 24)
+    local pg_db="xui"
+    local pg_host="127.0.0.1"
+    local pg_port="5432"
 
     case "${release}" in
         ubuntu | debian | armbian)
@@ -170,20 +171,50 @@ install_postgres_local() {
         sleep 1
     done
 
-    # Idempotent role/db creation.
+    local existing_owner=""
+    existing_owner=$(sudo -u postgres psql -tAc \
+        "SELECT pg_catalog.pg_get_userbyid(datdba) FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null \
+        | tr -d '[:space:]')
+    if [[ -n "${existing_owner}" && "${existing_owner}" != "postgres" ]]; then
+        pg_user="${existing_owner}"
+    else
+        pg_user=$(gen_random_string 8)
+    fi
+
+    # Idempotent role/db creation. Identifiers are double-quoted because a
+    # random username may start with a digit, which Postgres rejects unquoted.
     sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${pg_user}'" 2> /dev/null \
         | grep -q 1 \
-        || sudo -u postgres psql -c "CREATE USER ${pg_user} WITH PASSWORD '${pg_pass}';" >&2 || return 1
+        || sudo -u postgres psql -c "CREATE USER \"${pg_user}\" WITH PASSWORD '${pg_pass}';" >&2 || return 1
 
     sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null \
         | grep -q 1 \
-        || sudo -u postgres psql -c "CREATE DATABASE ${pg_db} OWNER ${pg_user};" >&2 || return 1
+        || sudo -u postgres psql -c "CREATE DATABASE \"${pg_db}\" OWNER \"${pg_user}\";" >&2 || return 1
 
-    sudo -u postgres psql -c "ALTER USER ${pg_user} WITH PASSWORD '${pg_pass}';" >&2 || return 1
+    sudo -u postgres psql -c "ALTER USER \"${pg_user}\" WITH PASSWORD '${pg_pass}';" >&2 || return 1
 
     local pg_pass_enc
     pg_pass_enc=$(printf '%s' "${pg_pass}" | sed -e 's/%/%25/g' -e 's/:/%3A/g' -e 's/@/%40/g' -e 's|/|%2F|g' -e 's/?/%3F/g' -e 's/#/%23/g')
-    echo "postgres://${pg_user}:${pg_pass_enc}@127.0.0.1:5432/${pg_db}?sslmode=disable"
+
+    if [[ -n "${PG_CRED_FILE:-}" ]]; then
+        local prev_umask
+        prev_umask=$(umask)
+        umask 077
+        if ! cat > "${PG_CRED_FILE}" << EOF; then
+PG_USER=${pg_user}
+PG_PASS=${pg_pass}
+PG_HOST=${pg_host}
+PG_PORT=${pg_port}
+PG_DB=${pg_db}
+EOF
+            umask "${prev_umask}"
+            echo -e "${red}Failed to write PostgreSQL credentials to ${PG_CRED_FILE}${plain}" >&2
+            return 1
+        fi
+        umask "${prev_umask}"
+    fi
+
+    echo "postgres://${pg_user}:${pg_pass_enc}@${pg_host}:${pg_port}/${pg_db}?sslmode=disable"
     return 0
 }
 
@@ -823,7 +854,7 @@ config_after_install() {
             echo -e "${green}═══════════════════════════════════════════${plain}"
             echo -e "${green}     Database Selection                    ${plain}"
             echo -e "${green}═══════════════════════════════════════════${plain}"
-            echo -e "  1) SQLite     (default — recommended for < 1000 clients)"
+            echo -e "  1) SQLite     (default — recommended for < 500 clients)"
             echo -e "  2) PostgreSQL (recommended for high client counts / many nodes)"
             read -rp "Choose [1]: " db_choice
             db_choice="${db_choice:-1}"
@@ -843,6 +874,7 @@ config_after_install() {
 
                 local xui_dsn=""
                 local pg_mode=""
+                local pg_local_installed=0
                 while [[ -z "$xui_dsn" ]]; do
                     echo ""
                     echo -e "  1) Install PostgreSQL locally and create a dedicated user/db (recommended)"
@@ -857,9 +889,23 @@ config_after_install() {
                         db_label="PostgreSQL (external)"
                     else
                         echo -e "${yellow}Installing PostgreSQL — this may take a moment...${plain}"
-                        if xui_dsn=$(install_postgres_local); then
-                            db_label="PostgreSQL (xui@127.0.0.1:5432/xui)"
+                        local pg_cred_file
+                        pg_cred_file=$(mktemp 2> /dev/null) || pg_cred_file=$(mktemp -t x-ui-pg-creds.XXXXXXXX)
+                        if [[ -z "${pg_cred_file}" ]]; then
+                            echo -e "${red}Failed to create temporary credentials file.${plain}"
+                            xui_dsn=""
+                            continue
+                        fi
+                        if xui_dsn=$(PG_CRED_FILE="${pg_cred_file}" install_postgres_local); then
+                            pg_local_installed=1
+                            if [[ -r "${pg_cred_file}" ]]; then
+                                # shellcheck disable=SC1090
+                                source "${pg_cred_file}"
+                            fi
+                            rm -f "${pg_cred_file}"
+                            db_label="PostgreSQL (${PG_USER}@${PG_HOST}:${PG_PORT}/${PG_DB})"
                         else
+                            rm -f "${pg_cred_file}"
                             echo ""
                             echo -e "${red}PostgreSQL installation failed.${plain}"
                             echo -e "  1) Retry local install"
@@ -870,8 +916,15 @@ config_after_install() {
                             pg_fail="${pg_fail:-1}"
                             case "$pg_fail" in
                                 2) pg_mode="2" ;;
-                                3) echo -e "${red}Install aborted.${plain}"; exit 1 ;;
-                                4) db_choice="1"; xui_dsn=""; break ;;
+                                3)
+                                    echo -e "${red}Install aborted.${plain}"
+                                    exit 1
+                                    ;;
+                                4)
+                                    db_choice="1"
+                                    xui_dsn=""
+                                    break
+                                    ;;
                                 *) xui_dsn="" ;;
                             esac
                         fi
@@ -934,6 +987,28 @@ EOF
                 echo -e "${yellow}⚠ SSL Certificate: Enabled and configured${plain}"
             else
                 echo -e "${yellow}⚠ SSL Certificate: Skipped — panel is HTTP-only. Use a reverse proxy or SSH tunnel.${plain}"
+            fi
+
+            if [[ "$db_choice" == "2" && "$pg_local_installed" == "1" ]]; then
+                echo ""
+                echo -e "${green}═══════════════════════════════════════════${plain}"
+                echo -e "${green}     PostgreSQL Credentials               ${plain}"
+                echo -e "${green}═══════════════════════════════════════════${plain}"
+                echo -e "${green}DB Name:    ${PG_DB}${plain}"
+                echo -e "${green}Username:   ${PG_USER}${plain}"
+                echo -e "${green}Password:   ${PG_PASS}${plain}"
+                echo -e "${green}Host:       ${PG_HOST}${plain}"
+                echo -e "${green}Port:       ${PG_PORT}${plain}"
+                echo -e "${green}DSN:        ${xui_dsn}${plain}"
+                echo -e "${green}Env file:   ${xui_env_file}${plain}"
+                echo -e "${green}-------------------------------------------${plain}"
+                echo -e "${green}Connect from this server:${plain}"
+                echo -e "  ${blue}sudo -u postgres psql -d ${PG_DB}${plain}      (as the postgres superuser)"
+                echo -e "  ${blue}PGPASSWORD='${PG_PASS}' psql -h ${PG_HOST} -p ${PG_PORT} -U ${PG_USER} -d ${PG_DB}${plain}"
+                echo -e "${green}═══════════════════════════════════════════${plain}"
+                echo -e "${yellow}⚠ The panel reads these credentials from ${xui_env_file}.${plain}"
+                echo -e "${yellow}⚠ Save the password — it is not stored anywhere else in plain text.${plain}"
+                unset PG_USER PG_PASS PG_HOST PG_PORT PG_DB
             fi
         else
             local config_webBasePath=$(gen_random_string 18)

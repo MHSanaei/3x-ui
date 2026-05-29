@@ -15,6 +15,7 @@ import {
 import type { BadgeProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
+  ClusterOutlined,
   DeleteOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
@@ -28,7 +29,7 @@ import {
 } from '@ant-design/icons';
 
 import NodeHistoryPanel from './NodeHistoryPanel';
-import type { NodeRecord } from '@/hooks/useNodes';
+import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import './NodeList.css';
 
 interface NodeListProps {
@@ -196,7 +197,7 @@ export default function NodeList({
           <span>{t(`pages.nodes.statusValues.${record.status || 'unknown'}`)}</span>
           {record.lastError && (
             <Tooltip title={record.lastError}>
-              <ExclamationCircleOutlined style={{ color: '#faad14' }} />
+              <ExclamationCircleOutlined style={{ color: 'var(--ant-color-warning)' }} />
             </Tooltip>
           )}
         </Space>
@@ -279,7 +280,10 @@ export default function NodeList({
         <>
           <div className="node-cards">
             {dataSource.length === 0 ? (
-              <div className="card-empty">—</div>
+              <div className="card-empty">
+                <ClusterOutlined style={{ fontSize: 28, opacity: 0.5 }} />
+                <div>{t('noData')}</div>
+              </div>
             ) : (
               dataSource.map((record) => (
                 <div key={record.id} className="node-card">
@@ -378,7 +382,7 @@ export default function NodeList({
                   <span>{t(`pages.nodes.statusValues.${statsNode.status || 'unknown'}`)}</span>
                   {statsNode.lastError && (
                     <Tooltip title={statsNode.lastError}>
-                      <ExclamationCircleOutlined style={{ color: '#faad14' }} />
+                      <ExclamationCircleOutlined style={{ color: 'var(--ant-color-warning)' }} />
                     </Tooltip>
                   )}
                 </div>
@@ -435,6 +439,14 @@ export default function NodeList({
           scroll={{ x: 'max-content' }}
           size="middle"
           rowKey="id"
+          locale={{
+            emptyText: (
+              <div className="card-empty">
+                <ClusterOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+                <div>{t('noData')}</div>
+              </div>
+            ),
+          }}
           expandable={{
             expandedRowRender: (record) => <NodeHistoryPanel node={record} />,
           }}

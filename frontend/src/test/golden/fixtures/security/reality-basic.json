@@ -1,0 +1,22 @@
+{
+  "security": "reality",
+  "realitySettings": {
+    "show": false,
+    "xver": 0,
+    "target": "yahoo.com:443",
+    "serverNames": ["yahoo.com", "www.yahoo.com"],
+    "privateKey": "wM-2_oQRWXyLcXhV5q1ifTBcS3K8mYR3wQI3PqGFK1k",
+    "minClientVer": "",
+    "maxClientVer": "",
+    "maxTimediff": 0,
+    "shortIds": ["a3f1", "b8c2", "d9e4"],
+    "mldsa65Seed": "",
+    "settings": {
+      "publicKey": "Tx5yj1bRcOPHkdvT2pIAQ2zh0gQ8m4OPdnzqXJxxV3o",
+      "fingerprint": "chrome",
+      "serverName": "",
+      "spiderX": "/",
+      "mldsa65Verify": ""
+    }
+  }
+}

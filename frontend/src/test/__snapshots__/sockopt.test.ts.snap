@@ -1,0 +1,100 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SockoptStreamSettingsSchema fixtures > parses defaults byte-stably 1`] = `
+{
+  "V6Only": false,
+  "acceptProxyProtocol": false,
+  "addressPortStrategy": "none",
+  "customSockopt": [],
+  "dialerProxy": "",
+  "domainStrategy": "AsIs",
+  "interfaceName": "",
+  "mark": 0,
+  "penetrate": false,
+  "tcpFastOpen": false,
+  "tcpKeepAliveIdle": 45,
+  "tcpKeepAliveInterval": 45,
+  "tcpMaxSeg": 1440,
+  "tcpMptcp": false,
+  "tcpUserTimeout": 10000,
+  "tcpWindowClamp": 600,
+  "tcpcongestion": "bbr",
+  "tproxy": "off",
+  "trustedXForwardedFor": [],
+}
+`;
+
+exports[`SockoptStreamSettingsSchema fixtures > parses full byte-stably 1`] = `
+{
+  "V6Only": false,
+  "acceptProxyProtocol": true,
+  "addressPortStrategy": "none",
+  "customSockopt": [],
+  "dialerProxy": "out-proxy-tag",
+  "domainStrategy": "UseIP",
+  "interfaceName": "eth0",
+  "mark": 100,
+  "penetrate": false,
+  "tcpFastOpen": true,
+  "tcpKeepAliveIdle": 300,
+  "tcpKeepAliveInterval": 15,
+  "tcpMaxSeg": 1440,
+  "tcpMptcp": true,
+  "tcpUserTimeout": 10000,
+  "tcpWindowClamp": 600,
+  "tcpcongestion": "cubic",
+  "tproxy": "redirect",
+  "trustedXForwardedFor": [
+    "10.0.0.0/8",
+    "192.168.0.0/16",
+  ],
+}
+`;
+
+exports[`SockoptStreamSettingsSchema fixtures > parses tcp-tuning byte-stably 1`] = `
+{
+  "V6Only": false,
+  "acceptProxyProtocol": false,
+  "addressPortStrategy": "none",
+  "customSockopt": [],
+  "dialerProxy": "",
+  "domainStrategy": "AsIs",
+  "interfaceName": "",
+  "mark": 0,
+  "penetrate": false,
+  "tcpFastOpen": true,
+  "tcpKeepAliveIdle": 120,
+  "tcpKeepAliveInterval": 30,
+  "tcpMaxSeg": 1440,
+  "tcpMptcp": true,
+  "tcpUserTimeout": 5000,
+  "tcpWindowClamp": 600,
+  "tcpcongestion": "bbr",
+  "tproxy": "off",
+  "trustedXForwardedFor": [],
+}
+`;
+
+exports[`SockoptStreamSettingsSchema fixtures > parses tproxy byte-stably 1`] = `
+{
+  "V6Only": false,
+  "acceptProxyProtocol": false,
+  "addressPortStrategy": "none",
+  "customSockopt": [],
+  "dialerProxy": "",
+  "domainStrategy": "ForceIPv4",
+  "interfaceName": "",
+  "mark": 255,
+  "penetrate": true,
+  "tcpFastOpen": false,
+  "tcpKeepAliveIdle": 45,
+  "tcpKeepAliveInterval": 45,
+  "tcpMaxSeg": 1440,
+  "tcpMptcp": false,
+  "tcpUserTimeout": 10000,
+  "tcpWindowClamp": 600,
+  "tcpcongestion": "bbr",
+  "tproxy": "tproxy",
+  "trustedXForwardedFor": [],
+}
+`;

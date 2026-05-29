@@ -1,0 +1,118 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`toHeaders > empty 1`] = `[]`;
+
+exports[`toHeaders > mixed 1`] = `
+[
+  {
+    "name": "Host",
+    "value": "a.example.test",
+  },
+  {
+    "name": "X-Trace",
+    "value": "1",
+  },
+  {
+    "name": "X-Trace",
+    "value": "2",
+  },
+]
+`;
+
+exports[`toHeaders > multi array 1`] = `
+[
+  {
+    "name": "Accept",
+    "value": "text/html",
+  },
+  {
+    "name": "Accept",
+    "value": "application/json",
+  },
+]
+`;
+
+exports[`toHeaders > null 1`] = `[]`;
+
+exports[`toHeaders > primitive 1`] = `[]`;
+
+exports[`toHeaders > single array 1`] = `
+[
+  {
+    "name": "Host",
+    "value": "a.example.test",
+  },
+]
+`;
+
+exports[`toHeaders > single string 1`] = `
+[
+  {
+    "name": "Host",
+    "value": "example.test",
+  },
+]
+`;
+
+exports[`toHeaders > undefined 1`] = `[]`;
+
+exports[`toV2Headers (arr=false) > duplicate name 1`] = `
+{
+  "Accept": "application/json",
+}
+`;
+
+exports[`toV2Headers (arr=false) > empty 1`] = `{}`;
+
+exports[`toV2Headers (arr=false) > empty name skipped 1`] = `
+{
+  "X-Real": "kept",
+}
+`;
+
+exports[`toV2Headers (arr=false) > empty value skipped 1`] = `
+{
+  "X-Real": "kept",
+}
+`;
+
+exports[`toV2Headers (arr=false) > single 1`] = `
+{
+  "Host": "example.test",
+}
+`;
+
+exports[`toV2Headers (arr=true) > duplicate name 1`] = `
+{
+  "Accept": [
+    "text/html",
+    "application/json",
+  ],
+}
+`;
+
+exports[`toV2Headers (arr=true) > empty 1`] = `{}`;
+
+exports[`toV2Headers (arr=true) > empty name skipped 1`] = `
+{
+  "X-Real": [
+    "kept",
+  ],
+}
+`;
+
+exports[`toV2Headers (arr=true) > empty value skipped 1`] = `
+{
+  "X-Real": [
+    "kept",
+  ],
+}
+`;
+
+exports[`toV2Headers (arr=true) > single 1`] = `
+{
+  "Host": [
+    "example.test",
+  ],
+}
+`;

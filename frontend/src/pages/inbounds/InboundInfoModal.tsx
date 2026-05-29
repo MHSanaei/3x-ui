@@ -12,11 +12,95 @@ import {
   ClipboardManager,
   FileManager,
 } from '@/utils';
-import { Protocols } from '@/models/inbound.js';
+import { Protocols } from '@/schemas/primitives';
 import InfinityIcon from '@/components/InfinityIcon';
 import { useDatepicker } from '@/hooks/useDatepicker';
+import { coerceInboundJsonField } from '@/models/dbinbound';
+import {
+  canEnableTlsFlow,
+  isSS2022 as isSS2022Helper,
+  isSSMultiUser as isSSMultiUserHelper,
+} from '@/lib/xray/protocol-capabilities';
+import {
+  genAllLinks,
+  genWireguardConfigs,
+  genWireguardLinks,
+} from '@/lib/xray/inbound-link';
+import { inboundFromDb } from '@/lib/xray/inbound-from-db';
 import type { SubSettings } from './useInbounds';
 import './InboundInfoModal.css';
+
+const LINK_PROTOCOLS: ReadonlySet<string> = new Set([
+  Protocols.VMESS,
+  Protocols.VLESS,
+  Protocols.TROJAN,
+  Protocols.SHADOWSOCKS,
+  Protocols.HYSTERIA,
+]);
+
+function hasShareLink(protocol: string): boolean {
+  return LINK_PROTOCOLS.has(protocol);
+}
+
+function readHeader(headers: unknown, name: string): string {
+  const needle = name.toLowerCase();
+  if (Array.isArray(headers)) {
+    for (const h of headers) {
+      if (h && typeof h === 'object' && String((h as { name?: string }).name ?? '').toLowerCase() === needle) {
+        return String((h as { value?: unknown }).value ?? '');
+      }
+    }
+    return '';
+  }
+  if (headers && typeof headers === 'object') {
+    for (const [k, v] of Object.entries(headers as Record<string, unknown>)) {
+      if (k.toLowerCase() === needle) {
+        return Array.isArray(v) ? String(v[0] ?? '') : String(v ?? '');
+      }
+    }
+  }
+  return '';
+}
+
+function readNetworkHost(stream: Record<string, unknown>, network: string): string | null {
+  switch (network) {
+    case 'tcp': {
+      const tcp = stream.tcpSettings as { header?: { request?: { headers?: unknown } } } | undefined;
+      return readHeader(tcp?.header?.request?.headers, 'host');
+    }
+    case 'ws': {
+      const ws = stream.wsSettings as { host?: string; headers?: unknown } | undefined;
+      return (ws?.host && ws.host.length > 0) ? ws.host : readHeader(ws?.headers, 'host');
+    }
+    case 'httpupgrade': {
+      const hu = stream.httpupgradeSettings as { host?: string; headers?: unknown } | undefined;
+      return (hu?.host && hu.host.length > 0) ? hu.host : readHeader(hu?.headers, 'host');
+    }
+    case 'xhttp': {
+      const xh = stream.xhttpSettings as { host?: string; headers?: unknown } | undefined;
+      return (xh?.host && xh.host.length > 0) ? xh.host : readHeader(xh?.headers, 'host');
+    }
+    default:
+      return null;
+  }
+}
+
+function readNetworkPath(stream: Record<string, unknown>, network: string): string | null {
+  switch (network) {
+    case 'tcp': {
+      const tcp = stream.tcpSettings as { header?: { request?: { path?: string[] } } } | undefined;
+      return tcp?.header?.request?.path?.[0] ?? null;
+    }
+    case 'ws':
+      return (stream.wsSettings as { path?: string } | undefined)?.path ?? null;
+    case 'httpupgrade':
+      return (stream.httpupgradeSettings as { path?: string } | undefined)?.path ?? null;
+    case 'xhttp':
+      return (stream.xhttpSettings as { path?: string } | undefined)?.path ?? null;
+    default:
+      return null;
+  }
+}
 
 interface ClientStats {
   email: string;
@@ -44,37 +128,35 @@ interface ClientSetting {
   updated_at?: number;
 }
 
-interface InboundLike {
+interface InboundInfo {
   protocol: string;
-  clients?: ClientSetting[];
-  settings?: Record<string, unknown>;
-  serverName?: string;
-  isTcp?: boolean;
-  isWs?: boolean;
-  isHttpupgrade?: boolean;
-  isXHTTP?: boolean;
-  isGrpc?: boolean;
-  isSSMultiUser?: boolean;
-  isSS2022?: boolean;
-  host?: string;
-  path?: string;
-  serviceName?: string;
-  stream?: {
-    network?: string;
-    security?: string;
+  clients: ClientSetting[];
+  settings: Record<string, unknown>;
+  isTcp: boolean;
+  isWs: boolean;
+  isHttpupgrade: boolean;
+  isXHTTP: boolean;
+  isGrpc: boolean;
+  isSSMultiUser: boolean;
+  isSS2022: boolean;
+  isVlessTlsFlow: boolean;
+  host: string | null;
+  path: string | null;
+  serviceName: string;
+  serverName: string;
+  stream: {
+    network: string;
+    security: string;
     xhttp?: { mode?: string };
     grpc?: { multiMode?: boolean };
   };
-  canEnableTlsFlow?: () => boolean;
-  genWireguardConfigs: (remark: string, model: string, host: string) => string;
-  genWireguardLinks: (remark: string, model: string, host: string) => string;
-  genAllLinks: (remark: string, model: string, client: ClientSetting | null, host: string) => { remark?: string; link: string }[];
 }
 
 interface DBInboundLike {
   id: number;
   address: string;
   port: number;
+  listen: string;
   protocol: string;
   remark: string;
   enable?: boolean;
@@ -85,9 +167,64 @@ interface DBInboundLike {
   isMixed?: boolean;
   isHTTP?: boolean;
   isWireguard?: boolean;
+  settings: unknown;
+  streamSettings: unknown;
+  sniffing: unknown;
   clientStats?: ClientStats[];
-  hasLink: () => boolean;
-  toInbound: () => InboundLike;
+}
+
+function buildInboundInfo(dbInbound: DBInboundLike): InboundInfo {
+  const settings = coerceInboundJsonField(dbInbound.settings) as Record<string, unknown>;
+  const stream = coerceInboundJsonField(dbInbound.streamSettings) as Record<string, unknown>;
+  const network = (stream.network as string | undefined) ?? '';
+  const security = (stream.security as string | undefined) ?? 'none';
+  const clients = Array.isArray(settings.clients) ? (settings.clients as ClientSetting[]) : [];
+  const xhttpSettings = stream.xhttpSettings as { mode?: string } | undefined;
+  const grpcSettings = stream.grpcSettings as { multiMode?: boolean; serviceName?: string } | undefined;
+  let serverName = '';
+  if (security === 'tls') {
+    const tls = stream.tlsSettings as { sni?: string; serverName?: string } | undefined;
+    serverName = tls?.sni ?? tls?.serverName ?? '';
+  } else if (security === 'reality') {
+    const reality = stream.realitySettings as { serverNames?: string[]; serverName?: string } | undefined;
+    if (Array.isArray(reality?.serverNames)) {
+      serverName = reality.serverNames.join(', ');
+    } else if (reality?.serverName) {
+      serverName = reality.serverName;
+    }
+  }
+  return {
+    protocol: dbInbound.protocol,
+    clients,
+    settings,
+    isTcp: network === 'tcp',
+    isWs: network === 'ws',
+    isHttpupgrade: network === 'httpupgrade',
+    isXHTTP: network === 'xhttp',
+    isGrpc: network === 'grpc',
+    isSSMultiUser: isSSMultiUserHelper({
+      protocol: dbInbound.protocol,
+      settings: settings as { method?: string },
+    }),
+    isSS2022: isSS2022Helper({
+      protocol: dbInbound.protocol,
+      settings: settings as { method?: string },
+    }),
+    isVlessTlsFlow: canEnableTlsFlow({
+      protocol: dbInbound.protocol,
+      streamSettings: { network, security },
+    }),
+    host: readNetworkHost(stream, network),
+    path: readNetworkPath(stream, network),
+    serviceName: grpcSettings?.serviceName ?? '',
+    serverName,
+    stream: {
+      network,
+      security,
+      xhttp: xhttpSettings ? { mode: xhttpSettings.mode } : undefined,
+      grpc: grpcSettings ? { multiMode: grpcSettings.multiMode } : undefined,
+    },
+  };
 }
 
 interface InboundInfoModalProps {
@@ -143,7 +280,7 @@ export default function InboundInfoModal({
   onClose,
   dbInbound,
   clientIndex = 0,
-  remarkModel = '-ieo',
+  remarkModel = '-io',
   expireDiff = 0,
   trafficDiff = 0,
   ipLimitEnable = false,
@@ -155,7 +292,7 @@ export default function InboundInfoModal({
   const { t } = useTranslation();
   const { datepicker } = useDatepicker();
 
-  const [inbound, setInbound] = useState<InboundLike | null>(null);
+  const [inbound, setInbound] = useState<InboundInfo | null>(null);
   const [clientSettings, setClientSettings] = useState<ClientSetting | null>(null);
   const [clientStats, setClientStats] = useState<ClientStats | null>(null);
   const [links, setLinks] = useState<{ remark?: string; link: string }[]>([]);
@@ -213,24 +350,51 @@ export default function InboundInfoModal({
 
   useEffect(() => {
     if (!open || !dbInbound) return;
-    const parsed = dbInbound.toInbound();
-    setInbound(parsed);
-    setActiveTab((parsed.clients?.length ?? 0) > 0 ? 'client' : 'inbound');
+    const info = buildInboundInfo(dbInbound);
+    setInbound(info);
+    setActiveTab(info.clients.length > 0 ? 'client' : 'inbound');
 
     const idx = clientIndex ?? 0;
-    const clientSet = (parsed.clients?.length ?? 0) > 0 ? (parsed.clients?.[idx] || null) : null;
+    const clientSet = info.clients.length > 0 ? (info.clients[idx] || null) : null;
     setClientSettings(clientSet);
     const stats = clientSet
       ? (dbInbound.clientStats || []).find((s) => s.email === clientSet.email) || null
       : null;
     setClientStats(stats);
 
-    if (parsed.protocol === Protocols.WIREGUARD) {
-      setWireguardConfigs(parsed.genWireguardConfigs(dbInbound.remark, '-ieo', nodeAddress).split('\r\n'));
-      setWireguardLinks(parsed.genWireguardLinks(dbInbound.remark, '-ieo', nodeAddress).split('\r\n'));
+    const inboundForLinks = inboundFromDb(dbInbound);
+    const fallbackHostname = window.location.hostname;
+    if (info.protocol === Protocols.WIREGUARD) {
+      setWireguardConfigs(
+        genWireguardConfigs({
+          inbound: inboundForLinks,
+          remark: dbInbound.remark,
+          remarkModel: '-io',
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }).split('\r\n'),
+      );
+      setWireguardLinks(
+        genWireguardLinks({
+          inbound: inboundForLinks,
+          remark: dbInbound.remark,
+          remarkModel: '-io',
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }).split('\r\n'),
+      );
       setLinks([]);
     } else {
-      setLinks(parsed.genAllLinks(dbInbound.remark, remarkModel, clientSet, nodeAddress));
+      setLinks(
+        genAllLinks({
+          inbound: inboundForLinks,
+          remark: dbInbound.remark,
+          remarkModel,
+          client: (clientSet ?? {}) as Parameters<typeof genAllLinks>[0]['client'],
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }),
+      );
       setWireguardConfigs([]);
       setWireguardLinks([]);
     }
@@ -340,9 +504,9 @@ export default function InboundInfoModal({
           {dbInbound.isVMess && (
             <tr><td>{t('security')}</td><td><Tag>{clientSettings?.security}</Tag></td></tr>
           )}
-          {inbound.canEnableTlsFlow?.() && (
+          {inbound.isVlessTlsFlow && (
             <tr>
-              <td>Flow</td>
+              <td>{t('pages.clients.flow')}</td>
               <td>
                 {clientSettings?.flow ? <Tag>{clientSettings.flow}</Tag> : <Tag color="orange">{t('none')}</Tag>}
               </td>
@@ -484,7 +648,7 @@ export default function InboundInfoModal({
         </>
       )}
 
-      {dbInbound.hasLink() && links.length > 0 && (
+      {hasShareLink(dbInbound.protocol) && links.length > 0 && (
         <>
           <Divider>{t('pages.inbounds.copyLink')}</Divider>
           {links.map((link, idx) => (
@@ -565,18 +729,18 @@ export default function InboundInfoModal({
             )}
             {inbound.isXHTTP && (
               <div className="info-row">
-                <dt>Mode</dt>
+                <dt>{t('pages.inbounds.info.mode')}</dt>
                 <dd><Tag>{inbound.stream?.xhttp?.mode}</Tag></dd>
               </div>
             )}
             {inbound.isGrpc && (
               <>
                 <div className="info-row">
-                  <dt>grpc serviceName</dt>
+                  <dt>{t('pages.inbounds.info.grpcServiceName')}</dt>
                   <dd><Tag className="value-tag">{inbound.serviceName}</Tag></dd>
                 </div>
                 <div className="info-row">
-                  <dt>grpc multiMode</dt>
+                  <dt>{t('pages.inbounds.info.grpcMultiMode')}</dt>
                   <dd><Tag>{String(inbound.stream?.grpc?.multiMode)}</Tag></dd>
                 </div>
               </>
@@ -584,7 +748,7 @@ export default function InboundInfoModal({
           </>
         )}
 
-        {dbInbound.hasLink() && (
+        {hasShareLink(dbInbound.protocol) && (
           <>
             <div className="info-row">
               <dt>{t('security')}</dt>
@@ -641,16 +805,16 @@ export default function InboundInfoModal({
       {inbound.protocol === Protocols.TUN && inbound.settings && (
         <dl className="info-list info-list-block">
           <div className="info-row">
-            <dt>Interface name</dt>
+            <dt>{t('pages.inbounds.info.interfaceName')}</dt>
             <dd><Tag color="green" className="value-tag">{inbound.settings.name as string}</Tag></dd>
           </div>
           <div className="info-row">
-            <dt>MTU</dt>
+            <dt>{t('pages.inbounds.info.mtu')}</dt>
             <dd><Tag color="green">{inbound.settings.mtu as number}</Tag></dd>
           </div>
           {Array.isArray(inbound.settings.gateway) && (inbound.settings.gateway as string[]).length > 0 && (
             <div className="info-row">
-              <dt>Gateway</dt>
+              <dt>{t('pages.inbounds.info.gateway')}</dt>
               <dd>
                 {(inbound.settings.gateway as string[]).map((ip, j) => (
                   <Tag key={`tun-gw-${j}`} color="green" className="value-tag">{ip}</Tag>
@@ -660,7 +824,7 @@ export default function InboundInfoModal({
           )}
           {Array.isArray(inbound.settings.dns) && (inbound.settings.dns as string[]).length > 0 && (
             <div className="info-row">
-              <dt>DNS</dt>
+              <dt>{t('pages.inbounds.info.dns')}</dt>
               <dd>
                 {(inbound.settings.dns as string[]).map((ip, j) => (
                   <Tag key={`tun-dns-${j}`} color="green">{ip}</Tag>
@@ -669,12 +833,12 @@ export default function InboundInfoModal({
             </div>
           )}
           <div className="info-row">
-            <dt>Outbounds interface</dt>
+            <dt>{t('pages.inbounds.info.outboundsInterface')}</dt>
             <dd><Tag color="green">{(inbound.settings.autoOutboundsInterface as string) || 'auto'}</Tag></dd>
           </div>
           {Array.isArray(inbound.settings.autoSystemRoutingTable) && (inbound.settings.autoSystemRoutingTable as string[]).length > 0 && (
             <div className="info-row">
-              <dt>Auto system routes</dt>
+              <dt>{t('pages.inbounds.info.autoSystemRoutes')}</dt>
               <dd>
                 {(inbound.settings.autoSystemRoutingTable as string[]).map((cidr, j) => (
                   <Tag key={`tun-rt-${j}`} color="green">{cidr}</Tag>
@@ -700,7 +864,7 @@ export default function InboundInfoModal({
             <dd><Tag color="green">{inbound.settings.allowedNetwork as string}</Tag></dd>
           </div>
           <div className="info-row">
-            <dt>FollowRedirect</dt>
+            <dt>{t('pages.inbounds.info.followRedirect')}</dt>
             <dd>
               <Tag color={inbound.settings.followRedirect ? 'green' : 'red'}>
                 {inbound.settings.followRedirect ? t('enabled') : t('disabled')}
@@ -713,7 +877,7 @@ export default function InboundInfoModal({
       {dbInbound.isMixed && inbound.settings && (
         <dl className="info-list info-list-block">
           <div className="info-row">
-            <dt>Auth</dt>
+            <dt>{t('pages.inbounds.info.auth')}</dt>
             <dd>
               <Tag color={inbound.settings.auth === 'password' ? 'green' : 'orange'}>
                 {inbound.settings.auth as string}
@@ -747,11 +911,11 @@ export default function InboundInfoModal({
                       <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyText(`${account.user}:${account.pass}`, t)} />
                     </Tooltip>
                     <Space size={4} wrap className="share-buttons">
-                      <Tooltip title={`socks5://${dbInbound.address}:${dbInbound.port}@${account.user}:${account.pass}`}>
-                        <Button size="small" onClick={() => copyText(`socks5://${dbInbound.address}:${dbInbound.port}@${account.user}:${account.pass}`, t)}>SOCKS5</Button>
+                      <Tooltip title={`socks5://${account.user}:${account.pass}@${dbInbound.address}:${dbInbound.port}`}>
+                        <Button size="small" onClick={() => copyText(`socks5://${account.user}:${account.pass}@${dbInbound.address}:${dbInbound.port}`, t)}>SOCKS5</Button>
                       </Tooltip>
-                      <Tooltip title={`http://${dbInbound.address}:${dbInbound.port}@${account.user}:${account.pass}`}>
-                        <Button size="small" onClick={() => copyText(`http://${dbInbound.address}:${dbInbound.port}@${account.user}:${account.pass}`, t)}>HTTP</Button>
+                      <Tooltip title={`http://${account.user}:${account.pass}@${dbInbound.address}:${dbInbound.port}`}>
+                        <Button size="small" onClick={() => copyText(`http://${account.user}:${account.pass}@${dbInbound.address}:${dbInbound.port}`, t)}>HTTP</Button>
                       </Tooltip>
                       <Tooltip title="https://t.me/socks?server=...&port=...&user=...&pass=...">
                         <Button size="small" onClick={() => copyText(`https://t.me/socks?server=${encodeURIComponent(dbInbound.address)}&port=${dbInbound.port}&user=${encodeURIComponent(account.user)}&pass=${encodeURIComponent(account.pass)}`, t)}>Telegram</Button>
@@ -805,19 +969,19 @@ export default function InboundInfoModal({
         <>
           <dl className="info-list info-list-block">
             <div className="info-row">
-              <dt>Secret key</dt>
+              <dt>{t('pages.xray.wireguard.secretKey')}</dt>
               <dd><Tag className="value-tag">{inbound.settings.secretKey as string}</Tag></dd>
             </div>
             <div className="info-row">
-              <dt>Public key</dt>
+              <dt>{t('pages.xray.wireguard.publicKey')}</dt>
               <dd><Tag className="value-tag">{inbound.settings.pubKey as string}</Tag></dd>
             </div>
             <div className="info-row">
-              <dt>MTU</dt>
+              <dt>{t('pages.inbounds.info.mtu')}</dt>
               <dd><Tag>{inbound.settings.mtu as number}</Tag></dd>
             </div>
             <div className="info-row">
-              <dt>No-kernel TUN</dt>
+              <dt>{t('pages.inbounds.info.noKernelTun')}</dt>
               <dd>
                 <Tag color={inbound.settings.noKernelTun ? 'green' : 'default'}>
                   {String(inbound.settings.noKernelTun)}
@@ -827,14 +991,14 @@ export default function InboundInfoModal({
           </dl>
           {Array.isArray(inbound.settings.peers) && (inbound.settings.peers as { privateKey: string; publicKey: string; psk: string; allowedIPs?: string[]; keepAlive?: number }[]).map((peer, idx) => (
             <Fragment key={idx}>
-              <Divider>Peer {idx + 1}</Divider>
+              <Divider>{t('pages.inbounds.info.peerNumber', { n: idx + 1 })}</Divider>
               <dl className="info-list info-list-block">
                 <div className="info-row">
-                  <dt>Secret key</dt>
+                  <dt>{t('pages.xray.wireguard.secretKey')}</dt>
                   <dd><Tag className="value-tag">{peer.privateKey}</Tag></dd>
                 </div>
                 <div className="info-row">
-                  <dt>Public key</dt>
+                  <dt>{t('pages.xray.wireguard.publicKey')}</dt>
                   <dd><Tag className="value-tag">{peer.publicKey}</Tag></dd>
                 </div>
                 <div className="info-row">
@@ -842,7 +1006,7 @@ export default function InboundInfoModal({
                   <dd><Tag className="value-tag">{peer.psk}</Tag></dd>
                 </div>
                 <div className="info-row">
-                  <dt>Allowed IPs</dt>
+                  <dt>{t('pages.xray.wireguard.allowedIPs')}</dt>
                   <dd>
                     {(peer.allowedIPs || []).map((ip, j) => (
                       <Tag key={`wg-ip-${idx}-${j}`} className="value-tag">{ip}</Tag>
@@ -850,14 +1014,14 @@ export default function InboundInfoModal({
                   </dd>
                 </div>
                 <div className="info-row">
-                  <dt>Keep alive</dt>
+                  <dt>{t('pages.inbounds.info.keepAlive')}</dt>
                   <dd><Tag>{peer.keepAlive}</Tag></dd>
                 </div>
               </dl>
               {wireguardConfigs[idx] && (
                 <div className="link-panel">
                   <div className="link-panel-header">
-                    <Tag color="green">Peer {idx + 1} config</Tag>
+                    <Tag color="green">{t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}</Tag>
                     <Tooltip title={t('copy')}>
                       <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(wireguardConfigs[idx], t)} />
                     </Tooltip>

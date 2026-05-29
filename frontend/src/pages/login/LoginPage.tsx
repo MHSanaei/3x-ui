@@ -6,29 +6,32 @@ import {
   Form,
   Input,
   Layout,
+  Menu,
   Popover,
+  Space,
   Spin,
   message,
 } from 'antd';
 import {
   KeyOutlined,
   LockOutlined,
+  MoonFilled,
+  MoonOutlined,
+  SunOutlined,
   TranslationOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil, LanguageManager } from '@/utils';
+import { antdRule } from '@/utils/zodForm';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+import { LoginFormSchema, TwoFactorCodeSchema, type LoginFormValues } from '@/schemas/login';
 import './LoginPage.css';
 
 const HEADLINE_INTERVAL_MS = 2000;
 
-interface LoginForm {
-  username: string;
-  password: string;
-  twoFactorCode?: string;
-}
+type LoginForm = LoginFormValues;
 
 const basePath = window.X_UI_BASE_PATH || '';
 
@@ -105,26 +108,20 @@ export default function LoginPage() {
     return classes.join(' ');
   }, [isDark, isUltra]);
 
-  const langList = useMemo(
-    () => LanguageManager.supportedLanguages as { value: string; name: string; icon: string }[],
+  const langMenuItems = useMemo(
+    () => (LanguageManager.supportedLanguages as { value: string; name: string; icon: string }[]).map((l) => ({
+      key: l.value,
+      label: (
+        <Space size={8}>
+          <span aria-hidden="true">{l.icon}</span>
+          <span>{l.name}</span>
+        </Space>
+      ),
+    })),
     [],
   );
 
-  const themeIcon = !isDark ? (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-    </svg>
-  ) : !isUltra ? (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-    </svg>
-  ) : (
-    <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-      <path fill="none" d="M19 3l0.7 1.4 1.4 0.7-1.4 0.7L19 7.2l-0.7-1.4-1.4-0.7 1.4-0.7z" />
-    </svg>
-  );
+  const themeIcon = !isDark ? <SunOutlined /> : !isUltra ? <MoonOutlined /> : <MoonFilled />;
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
@@ -132,35 +129,30 @@ export default function LoginPage() {
       <Layout className={pageClass}>
         <Layout.Content className="login-content">
           <div className="login-toolbar">
-            <button
-              type="button"
+            <Button
               id="login-theme-cycle"
-              className="theme-cycle"
+              shape="circle"
+              size="large"
+              className="toolbar-btn"
               aria-label={t('menu.theme')}
               title={t('menu.theme')}
+              icon={themeIcon}
               onClick={cycleTheme}
-            >
-              {themeIcon}
-            </button>
+            />
             <Popover
               rootClassName={isDark ? 'dark' : 'light'}
               placement="bottomRight"
               trigger="click"
+              styles={{ content: { padding: 4 } }}
               content={
-                <ul className="lang-list">
-                  {langList.map((l) => (
-                    <li key={l.value}>
-                      <button
-                        type="button"
-                        className={`lang-item${lang === l.value ? ' is-active' : ''}`}
-                        onClick={() => onLangChange(l.value)}
-                      >
-                        <span className="lang-item-icon" aria-hidden="true">{l.icon}</span>
-                        <span className="lang-item-name">{l.name}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <Menu
+                  mode="vertical"
+                  selectable
+                  selectedKeys={[lang]}
+                  items={langMenuItems}
+                  onClick={({ key }) => onLangChange(key)}
+                  style={{ border: 'none', minWidth: 160 }}
+                />
               }
             >
               <Button
@@ -197,7 +189,7 @@ export default function LoginPage() {
                   <Form.Item
                     label={t('username')}
                     name="username"
-                    rules={[{ required: true, message: t('username') }]}
+                    rules={[antdRule(LoginFormSchema.shape.username, t)]}
                   >
                     <Input
                       prefix={<UserOutlined />}
@@ -211,7 +203,7 @@ export default function LoginPage() {
                   <Form.Item
                     label={t('password')}
                     name="password"
-                    rules={[{ required: true, message: t('password') }]}
+                    rules={[antdRule(LoginFormSchema.shape.password, t)]}
                   >
                     <Input.Password
                       prefix={<LockOutlined />}
@@ -225,7 +217,7 @@ export default function LoginPage() {
                     <Form.Item
                       label={t('twoFactorCode')}
                       name="twoFactorCode"
-                      rules={[{ required: true, message: t('twoFactorCode') }]}
+                      rules={[antdRule(TwoFactorCodeSchema, t)]}
                     >
                       <Input
                         prefix={<KeyOutlined />}

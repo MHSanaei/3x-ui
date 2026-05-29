@@ -1,9 +1,16 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { HttpUtil } from '@/utils';
-import { DBInbound } from '@/models/dbinbound.js';
-import { Protocols } from '@/models/inbound.js';
+import { parseMsg } from '@/utils/zodValidate';
+import { DBInbound, coerceInboundJsonField } from '@/models/dbinbound';
+import { Protocols } from '@/schemas/primitives';
+import { isSSMultiUser } from '@/lib/xray/protocol-capabilities';
 import { setDatepicker } from '@/hooks/useDatepicker';
+import { keys } from '@/api/queryKeys';
+import { SlimInboundListSchema, LastOnlineMapSchema, InboundDetailSchema } from '@/schemas/inbound';
+import { OnlinesSchema } from '@/schemas/client';
+import { DefaultsPayloadSchema, type DefaultsPayload } from '@/schemas/defaults';
 
 export interface SubSettings {
   enable: boolean;
@@ -25,7 +32,7 @@ interface ClientRollup {
   comments: Map<string, string>;
 }
 
-const TRACKED_PROTOCOLS = [
+const TRACKED_PROTOCOLS: readonly string[] = [
   Protocols.VMESS,
   Protocols.VLESS,
   Protocols.TROJAN,
@@ -33,40 +40,102 @@ const TRACKED_PROTOCOLS = [
   Protocols.HYSTERIA,
 ];
 
+async function fetchSlimInbounds(): Promise<unknown[]> {
+  const msg = await HttpUtil.get('/panel/api/inbounds/list/slim', undefined, { silent: true });
+  if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch inbounds');
+  const validated = parseMsg(msg, SlimInboundListSchema, 'inbounds/list/slim');
+  return Array.isArray(validated.obj) ? validated.obj : [];
+}
+
+async function fetchOnlineClients(): Promise<string[]> {
+  const msg = await HttpUtil.post('/panel/api/clients/onlines', undefined, { silent: true });
+  if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch onlines');
+  const validated = parseMsg(msg, OnlinesSchema, 'clients/onlines');
+  return Array.isArray(validated.obj) ? validated.obj : [];
+}
+
+async function fetchLastOnlineMap(): Promise<Record<string, number>> {
+  const msg = await HttpUtil.post('/panel/api/clients/lastOnline', undefined, { silent: true });
+  if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch lastOnline');
+  const validated = parseMsg(msg, LastOnlineMapSchema, 'clients/lastOnline');
+  return (validated.obj && typeof validated.obj === 'object') ? validated.obj : {};
+}
+
+async function fetchDefaultSettings(): Promise<DefaultsPayload> {
+  const msg = await HttpUtil.post('/panel/setting/defaultSettings', undefined, { silent: true });
+  if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch defaults');
+  const validated = parseMsg(msg, DefaultsPayloadSchema, 'setting/defaultSettings');
+  return validated.obj ?? {};
+}
+
 export function useInbounds() {
-  const [fetched, setFetched] = useState(false);
-  const refreshingRef = useRef(false);
+  const queryClient = useQueryClient();
+
+  const slimQuery = useQuery({
+    queryKey: keys.inbounds.slim(),
+    queryFn: fetchSlimInbounds,
+    staleTime: Infinity,
+  });
+
+  const onlinesQuery = useQuery({
+    queryKey: keys.clients.onlines(),
+    queryFn: fetchOnlineClients,
+    staleTime: Infinity,
+  });
+
+  const lastOnlineQuery = useQuery({
+    queryKey: keys.clients.lastOnline(),
+    queryFn: fetchLastOnlineMap,
+    staleTime: Infinity,
+  });
+
+  const defaultsQuery = useQuery({
+    queryKey: keys.settings.defaults(),
+    queryFn: fetchDefaultSettings,
+    staleTime: Infinity,
+  });
+
+  const defaults = defaultsQuery.data ?? {};
+  const expireDiff = (defaults.expireDiff ?? 0) * 86400000;
+  const trafficDiff = (defaults.trafficDiff ?? 0) * 1073741824;
+  const tgBotEnable = !!defaults.tgBotEnable;
+  const ipLimitEnable = !!defaults.ipLimitEnable;
+  const pageSize = defaults.pageSize ?? 0;
+  const remarkModel = defaults.remarkModel || '-io';
+  const datepicker = (defaults.datepicker as 'gregorian' | 'jalalian') || 'gregorian';
+
+  const subSettings: SubSettings = useMemo(() => ({
+    enable: !!defaults.subEnable,
+    subTitle: defaults.subTitle || '',
+    subURI: defaults.subURI || '',
+    subJsonURI: defaults.subJsonURI || '',
+    subJsonEnable: !!defaults.subJsonEnable,
+  }), [defaults.subEnable, defaults.subTitle, defaults.subURI, defaults.subJsonURI, defaults.subJsonEnable]);
+
+  useEffect(() => {
+    if (defaults.datepicker) setDatepicker(datepicker);
+  }, [datepicker, defaults.datepicker]);
+
+  const expireDiffRef = useRef(expireDiff);
+  expireDiffRef.current = expireDiff;
+  const trafficDiffRef = useRef(trafficDiff);
+  trafficDiffRef.current = trafficDiff;
+
+  // dbInbounds mirrors the slim query data wrapped as DBInbound instances, but
+  // stays mutable so the WS-driven applyClientStatsEvent / applyTrafficEvent
+  // can merge per-row updates without invalidating the entire query.
   const [dbInbounds, setDbInbounds] = useState<DBInboundInstance[]>([]);
   const dbInboundsRef = useRef<DBInboundInstance[]>([]);
   dbInboundsRef.current = dbInbounds;
 
   const [clientCount, setClientCount] = useState<Record<number, ClientRollup>>({});
+  const [statsVersion, setStatsVersion] = useState(0);
+
   const [onlineClients, setOnlineClients] = useState<string[]>([]);
   const onlineClientsRef = useRef<string[]>([]);
   onlineClientsRef.current = onlineClients;
 
   const [lastOnlineMap, setLastOnlineMap] = useState<Record<string, number>>({});
-  const [statsVersion, setStatsVersion] = useState(0);
-
-  const [expireDiff, setExpireDiff] = useState(0);
-  const expireDiffRef = useRef(0);
-  expireDiffRef.current = expireDiff;
-  const [trafficDiff, setTrafficDiff] = useState(0);
-  const trafficDiffRef = useRef(0);
-  trafficDiffRef.current = trafficDiff;
-
-  const [subSettings, setSubSettings] = useState<SubSettings>({
-    enable: false,
-    subTitle: '',
-    subURI: '',
-    subJsonURI: '',
-    subJsonEnable: false,
-  });
-  const [remarkModel, setRemarkModel] = useState('-ieo');
-  const [datepicker, setDatepickerState] = useState('gregorian');
-  const [tgBotEnable, setTgBotEnable] = useState(false);
-  const [ipLimitEnable, setIpLimitEnable] = useState(false);
-  const [pageSize, setPageSize] = useState(0);
 
   const rollupClients = useCallback(
     (dbInbound: DBInboundInstance, inbound: { clients?: { email?: string; enable?: boolean; comment?: string }[] }): ClientRollup => {
@@ -130,91 +199,68 @@ export function useInbounds() {
     [],
   );
 
-  const setInbounds = useCallback(
-    (rows: unknown[]) => {
-      const next: DBInboundInstance[] = [];
-      const counts: Record<number, ClientRollup> = {};
-      for (const row of rows as { protocol: string; id: number }[]) {
-        const dbInbound = new DBInbound(row) as DBInboundInstance;
-        const parsed = (dbInbound as unknown as { toInbound: () => { clients?: unknown[]; isSSMultiUser?: boolean } }).toInbound();
-        next.push(dbInbound);
-        if (TRACKED_PROTOCOLS.includes(row.protocol)) {
-          if ((dbInbound as unknown as { isSS: boolean }).isSS && !parsed.isSSMultiUser) continue;
-          counts[row.id] = rollupClients(dbInbound, parsed as { clients?: { email?: string; enable?: boolean; comment?: string }[] });
-        }
-      }
-      dbInboundsRef.current = next;
-      setDbInbounds(next);
-      setClientCount(counts);
-      setFetched(true);
-    },
-    [rollupClients],
-  );
-
   const rebuildClientCount = useCallback(() => {
     const counts: Record<number, ClientRollup> = {};
     for (const dbInbound of dbInboundsRef.current) {
-      const parsed = (dbInbound as unknown as { toInbound: () => { clients?: unknown[]; isSSMultiUser?: boolean }; isSS: boolean; protocol: string }).toInbound();
-      const protocol = (dbInbound as unknown as { protocol: string }).protocol;
+      const protocol = dbInbound.protocol;
       if (!TRACKED_PROTOCOLS.includes(protocol)) continue;
-      const isSS = (dbInbound as unknown as { isSS: boolean }).isSS;
-      if (isSS && !parsed.isSSMultiUser) continue;
-      counts[(dbInbound as unknown as { id: number }).id] = rollupClients(dbInbound, parsed as { clients?: { email?: string; enable?: boolean; comment?: string }[] });
+      const settings = coerceInboundJsonField(dbInbound.settings) as {
+        method?: string;
+        clients?: Array<{ email?: string; enable?: boolean; comment?: string }>;
+      };
+      if (protocol === Protocols.SHADOWSOCKS && !isSSMultiUser({ protocol, settings })) continue;
+      counts[dbInbound.id] = rollupClients(dbInbound, { clients: settings.clients });
     }
     setClientCount(counts);
   }, [rollupClients]);
 
-  const fetchOnlineUsers = useCallback(async () => {
-    const msg = await HttpUtil.post('/panel/api/clients/onlines');
-    if (msg?.success) {
-      const list = (msg.obj || []) as string[];
-      onlineClientsRef.current = list;
-      setOnlineClients(list);
+  // Seed dbInbounds + clientCount from the slim query. Runs on first fetch and
+  // again every time the query refetches (e.g. invalidate from WS bridge).
+  useEffect(() => {
+    if (!slimQuery.data) return;
+    const next: DBInboundInstance[] = [];
+    const counts: Record<number, ClientRollup> = {};
+    for (const row of slimQuery.data as { protocol: string; id: number }[]) {
+      const dbInbound = new DBInbound(row) as DBInboundInstance;
+      next.push(dbInbound);
+      if (TRACKED_PROTOCOLS.includes(row.protocol)) {
+        const settings = coerceInboundJsonField(dbInbound.settings) as {
+          method?: string;
+          clients?: Array<{ email?: string; enable?: boolean; comment?: string }>;
+        };
+        if (row.protocol === Protocols.SHADOWSOCKS && !isSSMultiUser({ protocol: row.protocol, settings })) continue;
+        counts[row.id] = rollupClients(dbInbound, { clients: settings.clients });
+      }
     }
-  }, []);
+    dbInboundsRef.current = next;
+    setDbInbounds(next);
+    setClientCount(counts);
+  }, [slimQuery.data, rollupClients]);
 
-  const fetchLastOnlineMap = useCallback(async () => {
-    const msg = await HttpUtil.post('/panel/api/clients/lastOnline');
-    if (msg?.success && msg.obj) {
-      setLastOnlineMap(msg.obj as Record<string, number>);
+  useEffect(() => {
+    if (onlinesQuery.data) {
+      onlineClientsRef.current = onlinesQuery.data;
+      setOnlineClients(onlinesQuery.data);
     }
-  }, []);
+  }, [onlinesQuery.data]);
 
-  const fetchDefaultSettings = useCallback(async () => {
-    const msg = await HttpUtil.post('/panel/setting/defaultSettings');
-    if (!msg?.success) return;
-    const s = (msg.obj || {}) as Record<string, unknown>;
-    setExpireDiff((s.expireDiff as number ?? 0) * 86400000);
-    setTrafficDiff((s.trafficDiff as number ?? 0) * 1073741824);
-    setTgBotEnable(!!s.tgBotEnable);
-    setSubSettings({
-      enable: !!s.subEnable,
-      subTitle: (s.subTitle as string) || '',
-      subURI: (s.subURI as string) || '',
-      subJsonURI: (s.subJsonURI as string) || '',
-      subJsonEnable: !!s.subJsonEnable,
-    });
-    setPageSize((s.pageSize as number) ?? 0);
-    setRemarkModel((s.remarkModel as string) || '-ieo');
-    const dp = ((s.datepicker as string) || 'gregorian') as 'gregorian' | 'jalalian';
-    setDatepickerState(dp);
-    setDatepicker(dp);
-    setIpLimitEnable(!!s.ipLimitEnable);
-  }, []);
+  useEffect(() => {
+    if (lastOnlineQuery.data) setLastOnlineMap(lastOnlineQuery.data);
+  }, [lastOnlineQuery.data]);
+
+  const fetched = slimQuery.data !== undefined && defaultsQuery.data !== undefined;
 
   const refresh = useCallback(async () => {
-    if (refreshingRef.current) return;
-    refreshingRef.current = true;
-    try {
-      const msg = await HttpUtil.get('/panel/api/inbounds/list/slim');
-      if (!msg?.success) return;
-      await fetchLastOnlineMap();
-      await fetchOnlineUsers();
-      setInbounds(Array.isArray(msg.obj) ? msg.obj : []);
-    } finally {
-      window.setTimeout(() => { refreshingRef.current = false; }, 500);
-    }
-  }, [fetchLastOnlineMap, fetchOnlineUsers, setInbounds]);
+    // Invalidate at the inbounds root so both `slim` (this page's list)
+    // and `options` (the Clients page's inbound picker) refetch. Without
+    // the options bucket, a freshly-created inbound stays invisible in
+    // the client add/edit modal until a full page reload.
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
+      queryClient.invalidateQueries({ queryKey: keys.clients.onlines() }),
+      queryClient.invalidateQueries({ queryKey: keys.clients.lastOnline() }),
+    ]);
+  }, [queryClient]);
 
   // hydrateInbound fetches the full inbound (including settings.clients with
   // uuid/password/flow/etc.) and swaps it into the cached list. Use this
@@ -223,8 +269,9 @@ export function useInbounds() {
   const hydrateInbound = useCallback(async (id: number) => {
     const msg = await HttpUtil.get(`/panel/api/inbounds/get/${id}`);
     if (!msg?.success || !msg.obj) return null;
-    const full = msg.obj as { id: number; protocol: string };
-    const dbInbound = new DBInbound(full) as DBInboundInstance;
+    const validated = parseMsg(msg, InboundDetailSchema, `inbounds/get/${id}`);
+    if (!validated.obj) return null;
+    const dbInbound = new DBInbound(validated.obj) as DBInboundInstance;
     setDbInbounds((prev) => {
       const next = prev.map((row) => (
         (row as unknown as { id: number }).id === id ? dbInbound : row
@@ -313,25 +360,6 @@ export function useInbounds() {
     [rebuildClientCount],
   );
 
-  const applyInvalidate = useCallback(
-    (payload: unknown) => {
-      if (!payload || typeof payload !== 'object') return;
-      const p = payload as { type?: string };
-      if (p.type === 'inbounds') {
-        refresh();
-      }
-    },
-    [refresh],
-  );
-
-  const applyInboundsEvent = useCallback(
-    (payload: unknown) => {
-      if (!Array.isArray(payload)) return;
-      setInbounds(payload);
-    },
-    [setInbounds],
-  );
-
   const totals = useMemo(() => {
     let up = 0;
     let down = 0;
@@ -361,10 +389,7 @@ export function useInbounds() {
     pageSize,
     refresh,
     hydrateInbound,
-    fetchDefaultSettings,
     applyTrafficEvent,
     applyClientStatsEvent,
-    applyInvalidate,
-    applyInboundsEvent,
   };
 }

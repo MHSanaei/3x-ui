@@ -7,9 +7,6 @@
 
 .qr-code {
   cursor: pointer;
-  padding: 0 !important;
-  background: #fff;
-  border-radius: 6px;
 }
 
 .qr-token {

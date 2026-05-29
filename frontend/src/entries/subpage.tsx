@@ -4,6 +4,7 @@ import 'antd/dist/reset.css';
 
 import { readyI18n } from '@/i18n/react';
 import { ThemeProvider } from '@/hooks/useTheme';
+import { QueryProvider } from '@/api/QueryProvider';
 import SubPage from '@/pages/sub/SubPage';
 
 const messageContainer = document.getElementById('message');
@@ -16,7 +17,9 @@ readyI18n().then(() => {
   if (root) {
     createRoot(root).render(
       <ThemeProvider>
-        <SubPage />
+        <QueryProvider>
+          <SubPage />
+        </QueryProvider>
       </ThemeProvider>,
     );
   }
