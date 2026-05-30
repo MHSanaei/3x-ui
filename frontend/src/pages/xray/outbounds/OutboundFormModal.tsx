@@ -36,18 +36,11 @@ import {
   type OutboundFormValues,
 } from '@/schemas/forms/outbound-form';
 import {
-  ALPN_OPTION,
-  Address_Port_Strategy,
   DNSRuleActions,
   DOMAIN_STRATEGY_OPTION,
-  MODE_OPTION,
   OutboundDomainStrategies,
-  OutboundProtocols as Protocols,
   SNIFFING_OPTION,
   TCP_CONGESTION_OPTION,
-  TLS_FLOW_CONTROL,
-  USERS_SECURITY,
-  UTLS_FINGERPRINT,
   WireguardDomainStrategy,
 } from '@/schemas/primitives';
 import {
@@ -62,6 +55,26 @@ import {
 } from '@/lib/xray/protocol-capabilities';
 import { SSMethodSchema } from '@/schemas/protocols/shared/shadowsocks';
 import { antdRule } from '@/utils/zodForm';
+
+import {
+  ADDRESS_PORT_STRATEGY_OPTIONS,
+  ALPN_OPTIONS,
+  FLOW_OPTIONS,
+  HYSTERIA_NETWORK_OPTION,
+  MODE_OPTIONS,
+  NETWORK_OPTIONS,
+  PROTOCOL_OPTIONS,
+  SECURITY_OPTIONS,
+  SERVER_PROTOCOLS,
+  SS_METHOD_OPTIONS,
+  UTLS_OPTIONS,
+} from './outbound-form-constants';
+import {
+  buildAddModeValues,
+  hysteriaStreamSlice,
+  isMuxAllowed,
+  newStreamSlice,
+} from './outbound-form-helpers';
 import './OutboundFormModal.css';
 
 // Pattern A rewrite of OutboundFormModal. Built as a sibling `.new.tsx`
@@ -77,116 +90,6 @@ interface OutboundFormModalProps {
   onConfirm: (outbound: Record<string, unknown>) => void;
 }
 
-const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
-const SECURITY_OPTIONS = Object.values(USERS_SECURITY).map((v) => ({ value: v, label: v }));
-const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL).map((v) => ({ value: v, label: v }));
-const SS_METHOD_OPTIONS = SSMethodSchema.options.map((v) => ({ value: v, label: v }));
-const MODE_OPTIONS = Object.values(MODE_OPTION).map((v) => ({ value: v, label: v }));
-const UTLS_OPTIONS = Object.values(UTLS_FINGERPRINT).map((v) => ({ value: v, label: v }));
-const ALPN_OPTIONS = Object.values(ALPN_OPTION).map((v) => ({ value: v, label: v }));
-const ADDRESS_PORT_STRATEGY_OPTIONS = Object.values(Address_Port_Strategy).map((v) => ({
-  value: v,
-  label: v,
-}));
-
-// canEnableMux mirrors the adapter's helper but lives here so the modal
-// can show/hide the Mux section without going through the adapter.
-const MUX_PROTOCOLS = new Set<string>(['vmess', 'vless', 'trojan', 'shadowsocks', 'http', 'socks']);
-function isMuxAllowed(protocol: string, flow: string, network: string): boolean {
-  if (!MUX_PROTOCOLS.has(protocol)) return false;
-  if (protocol === 'vless' && flow) return false;
-  if (network === 'xhttp') return false;
-  return true;
-}
-
-const NETWORK_OPTIONS: { value: string; label: string }[] = [
-  { value: 'tcp', label: 'RAW' },
-  { value: 'kcp', label: 'mKCP' },
-  { value: 'ws', label: 'WebSocket' },
-  { value: 'grpc', label: 'gRPC' },
-  { value: 'httpupgrade', label: 'HTTPUpgrade' },
-  { value: 'xhttp', label: 'XHTTP' },
-];
-
-// The hysteria protocol is locked to its own QUIC transport: the selector
-// shows only this option when the parent protocol is hysteria.
-const HYSTERIA_NETWORK_OPTION = { value: 'hysteria', label: 'Hysteria' };
-
-// Per-network bootstrap. Mirrors the legacy class constructors so the
-// initial state for each transport matches what xray-core expects.
-function newStreamSlice(network: string): Record<string, unknown> {
-  switch (network) {
-    case 'tcp':
-      return { network: 'tcp', tcpSettings: { header: { type: 'none' } } };
-    case 'kcp':
-      return {
-        network: 'kcp',
-        kcpSettings: {
-          mtu: 1350, tti: 20, uplinkCapacity: 5, downlinkCapacity: 20,
-          cwndMultiplier: 1, maxSendingWindow: 2097152,
-        },
-      };
-    case 'ws':
-      return {
-        network: 'ws',
-        wsSettings: { path: '/', host: '', headers: {}, heartbeatPeriod: 0 },
-      };
-    case 'grpc':
-      return {
-        network: 'grpc',
-        grpcSettings: { serviceName: '', authority: '', multiMode: false },
-      };
-    case 'httpupgrade':
-      return {
-        network: 'httpupgrade',
-        httpupgradeSettings: { path: '/', host: '', headers: {} },
-      };
-    case 'xhttp':
-      return {
-        network: 'xhttp',
-        xhttpSettings: {
-          path: '/', host: '', mode: '', headers: [],
-          xPaddingBytes: '100-1000', scMaxEachPostBytes: '1000000',
-        },
-      };
-    case 'hysteria':
-      return {
-        network: 'hysteria',
-        hysteriaSettings: {
-          version: 2,
-          auth: '',
-          udpIdleTimeout: 60,
-        },
-      };
-    default:
-      return { network: 'tcp', tcpSettings: { header: { type: 'none' } } };
-  }
-}
-
-// Hysteria2 always rides its own QUIC transport with TLS — the panel never
-// offers another transport or 'none' security for it.
-function hysteriaStreamSlice(): Record<string, unknown> {
-  return {
-    ...newStreamSlice('hysteria'),
-    security: 'tls',
-    tlsSettings: {
-      serverName: '', alpn: ['h3'], fingerprint: '',
-      echConfigList: '', verifyPeerCertByName: '', pinnedPeerCertSha256: '',
-    },
-  };
-}
-
-// Protocols whose form schema carries a flat connect target — these all
-// get the shared "server" sub-block (address + port) at the top of the
-// protocol section. Wireguard has an address but no port. DNS/freedom/
-// blackhole/loopback have no connect target.
-const SERVER_PROTOCOLS = new Set<string>([
-  'vmess', 'vless', 'trojan', 'shadowsocks', 'socks', 'http', 'hysteria',
-]);
-
-function buildAddModeValues(): OutboundFormValues {
-  return rawOutboundToFormValues({});
-}
 
 export default function OutboundFormModal({
   open,
