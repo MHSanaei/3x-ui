@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   Checkbox,
-  Divider,
   Empty,
   Form,
   Input,
@@ -41,7 +40,6 @@ import {
   canEnableTls,
   isSS2022,
 } from '@/lib/xray/protocol-capabilities';
-import { SSMethodSchema } from '@/schemas/protocols/shared/shadowsocks';
 import { getRandomRealityTarget } from '@/models/reality-targets';
 import {
   InboundFormBaseSchema,
@@ -84,7 +82,7 @@ import { InputAddon } from '@/components/ui';
 import './InboundFormModal.css';
 
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
-import { TunFields, TunnelFields } from './protocols';
+import { ShadowsocksFields, TunFields, TunnelFields, WireguardFields } from './protocols';
 
 const { TextArea } = Input;
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
@@ -948,111 +946,7 @@ export default function InboundFormModal({
 
   const protocolTab = (
     <>
-      {protocol === Protocols.WIREGUARD && (
-        <>
-          <Form.Item label={t('pages.xray.wireguard.secretKey')}>
-            <Space.Compact block>
-              <Form.Item name={['settings', 'secretKey']} noStyle>
-                <Input style={{ width: 'calc(100% - 32px)' }} />
-              </Form.Item>
-              <Button icon={<ReloadOutlined />} onClick={regenInboundWg} />
-            </Space.Compact>
-          </Form.Item>
-          <Form.Item label={t('pages.xray.wireguard.publicKey')}>
-            <Input value={wgPubKey} disabled />
-          </Form.Item>
-          <Form.Item name={['settings', 'mtu']} label="MTU">
-            <InputNumber />
-          </Form.Item>
-          <Form.Item
-            name={['settings', 'noKernelTun']}
-            label={t('pages.inbounds.info.noKernelTun')}
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
-          <Form.List name={['settings', 'peers']}>
-            {(fields, { add, remove }) => (
-              <>
-                <Form.Item label={t('pages.inbounds.form.peers')}>
-                  <Button
-                    size="small"
-                    onClick={() => {
-                      const kp = Wireguard.generateKeypair();
-                      add({
-                        privateKey: kp.privateKey,
-                        publicKey: kp.publicKey,
-                        allowedIPs: ['10.0.0.2/32'],
-                        keepAlive: 0,
-                      });
-                    }}
-                  >
-                    <PlusOutlined /> {t('pages.inbounds.form.addPeer')}
-                  </Button>
-                </Form.Item>
-                {fields.map((field, idx) => (
-                  <div key={field.key} className="wg-peer">
-                    <Divider titlePlacement="center">
-                      <Space>
-                        <span>{t('pages.inbounds.info.peerNumber', { n: idx + 1 })}</span>
-                        {fields.length > 1 && (
-                          <Button
-                            size="small"
-                            danger
-                            icon={<MinusOutlined />}
-                            onClick={() => remove(field.name)}
-                          />
-                        )}
-                      </Space>
-                    </Divider>
-                    <Form.Item label={t('pages.xray.wireguard.secretKey')}>
-                      <Space.Compact block>
-                        <Form.Item name={[field.name, 'privateKey']} noStyle>
-                          <Input style={{ width: 'calc(100% - 32px)' }} />
-                        </Form.Item>
-                        <Button
-                          icon={<ReloadOutlined />}
-                          onClick={() => regenWgPeerKeypair(field.name)}
-                        />
-                      </Space.Compact>
-                    </Form.Item>
-                    <Form.Item name={[field.name, 'publicKey']} label={t('pages.xray.wireguard.publicKey')}>
-                      <Input />
-                    </Form.Item>
-                    <Form.Item name={[field.name, 'preSharedKey']} label="PSK">
-                      <Input />
-                    </Form.Item>
-                    <Form.List name={[field.name, 'allowedIPs']}>
-                      {(ipFields, { add: addIp, remove: removeIp }) => (
-                        <Form.Item label={t('pages.xray.wireguard.allowedIPs')}>
-                          <Button size="small" onClick={() => addIp('')}>
-                            <PlusOutlined />
-                          </Button>
-                          {ipFields.map((ipField) => (
-                            <Space.Compact key={ipField.key} block className="mt-4">
-                              <Form.Item name={ipField.name} noStyle>
-                                <Input />
-                              </Form.Item>
-                              {ipFields.length > 1 && (
-                                <Button size="small" onClick={() => removeIp(ipField.name)}>
-                                  <MinusOutlined />
-                                </Button>
-                              )}
-                            </Space.Compact>
-                          ))}
-                        </Form.Item>
-                      )}
-                    </Form.List>
-                    <Form.Item name={[field.name, 'keepAlive']} label={t('pages.inbounds.form.keepAlive')}>
-                      <InputNumber min={0} />
-                    </Form.Item>
-                  </div>
-                ))}
-              </>
-            )}
-          </Form.List>
-        </>
-      )}
+      {protocol === Protocols.WIREGUARD && <WireguardFields wgPubKey={wgPubKey} regenInboundWg={regenInboundWg} regenWgPeerKeypair={regenWgPeerKeypair} />}
 
       {protocol === Protocols.TUN && <TunFields />}
 
@@ -1131,57 +1025,7 @@ export default function InboundFormModal({
         </>
       )}
 
-      {protocol === Protocols.SHADOWSOCKS && (
-        <>
-          <Form.Item name={['settings', 'method']} label={t('pages.inbounds.form.encryptionMethod')}>
-            <Select
-              onChange={(v) => {
-                form.setFieldValue(
-                  ['settings', 'password'],
-                  RandomUtil.randomShadowsocksPassword(v as string),
-                );
-              }}
-              options={SSMethodSchema.options.map((m) => ({ value: m, label: m }))}
-            />
-          </Form.Item>
-          {isSSWith2022 && (
-            <Form.Item label={t('password')}>
-              <Space.Compact block>
-                <Form.Item name={['settings', 'password']} noStyle>
-                  <Input style={{ width: 'calc(100% - 32px)' }} />
-                </Form.Item>
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={() => {
-                    const method = form.getFieldValue(['settings', 'method']);
-                    form.setFieldValue(
-                      ['settings', 'password'],
-                      RandomUtil.randomShadowsocksPassword(method as string),
-                    );
-                  }}
-                />
-              </Space.Compact>
-            </Form.Item>
-          )}
-          <Form.Item name={['settings', 'network']} label={t('pages.inbounds.network')}>
-            <Select
-              style={{ width: 120 }}
-              options={[
-                { value: 'tcp,udp', label: 'TCP, UDP' },
-                { value: 'tcp', label: 'TCP' },
-                { value: 'udp', label: 'UDP' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item
-            name={['settings', 'ivCheck']}
-            label="ivCheck"
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
-        </>
-      )}
+      {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields form={form} isSSWith2022={isSSWith2022} />}
 
       {protocol === Protocols.VLESS && (
         <>
