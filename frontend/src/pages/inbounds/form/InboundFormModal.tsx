@@ -16,7 +16,6 @@ import {
   Switch,
   Tabs,
   Tooltip,
-  Typography,
   message,
 } from 'antd';
 import {
@@ -77,12 +76,20 @@ import { XHttpStreamSettingsSchema } from '@/schemas/protocols/stream/xhttp';
 import { DateTimePicker } from '@/components/form';
 import { FinalMaskForm } from '@/lib/xray/forms/transport';
 import { HeaderMapEditor } from '@/components/form';
-import { HysteriaMasqueradeForm } from '@/lib/xray/forms/protocols/shared';
 import { InputAddon } from '@/components/ui';
 import './InboundFormModal.css';
 
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
-import { ShadowsocksFields, TunFields, TunnelFields, WireguardFields } from './protocols';
+import {
+  HttpFields,
+  HysteriaFields,
+  MixedFields,
+  ShadowsocksFields,
+  TunFields,
+  TunnelFields,
+  VlessFields,
+  WireguardFields,
+} from './protocols';
 
 const { TextArea } = Input;
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
@@ -92,8 +99,6 @@ import type { NodeRecord } from '@/api/queries/useNodesQuery';
 // build stays green while the rewrite progresses section by section.
 // InboundsPage continues to render the old InboundFormModal.tsx until the
 // atomic swap at the end (Core Decision 7).
-
-const { Text } = Typography;
 
 
 const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
@@ -952,119 +957,12 @@ export default function InboundFormModal({
 
       {protocol === Protocols.TUNNEL && <TunnelFields />}
 
-      {(protocol === Protocols.HTTP || protocol === Protocols.MIXED) && (
-        <>
-          <Form.List name={['settings', 'accounts']}>
-            {(fields, { add, remove }) => (
-              <>
-                <Form.Item label={t('pages.inbounds.form.accounts')}>
-                  <Button
-                    size="small"
-                    onClick={() => add({
-                      user: RandomUtil.randomLowerAndNum(8),
-                      pass: RandomUtil.randomLowerAndNum(12),
-                    })}
-                  >
-                    <PlusOutlined /> {t('add')}
-                  </Button>
-                </Form.Item>
-                {fields.length > 0 && (
-                  <Form.Item wrapperCol={{ span: 24 }}>
-                    {fields.map((field, idx) => (
-                      <Space.Compact key={field.key} className="mb-8" block>
-                        <InputAddon>{String(idx + 1)}</InputAddon>
-                        <Form.Item name={[field.name, 'user']} noStyle>
-                          <Input placeholder={t('username')} />
-                        </Form.Item>
-                        <Form.Item name={[field.name, 'pass']} noStyle>
-                          <Input placeholder={t('password')} />
-                        </Form.Item>
-                        <Button onClick={() => remove(field.name)}>
-                          <MinusOutlined />
-                        </Button>
-                      </Space.Compact>
-                    ))}
-                  </Form.Item>
-                )}
-              </>
-            )}
-          </Form.List>
-          {protocol === Protocols.HTTP && (
-            <Form.Item
-              name={['settings', 'allowTransparent']}
-              label={t('pages.inbounds.form.allowTransparent')}
-              valuePropName="checked"
-            >
-              <Switch />
-            </Form.Item>
-          )}
-          {protocol === Protocols.MIXED && (
-            <>
-              <Form.Item name={['settings', 'auth']} label={t('pages.inbounds.info.auth')}>
-                <Select
-                  options={[
-                    { value: 'noauth', label: 'noauth' },
-                    { value: 'password', label: 'password' },
-                  ]}
-                />
-              </Form.Item>
-              <Form.Item
-                name={['settings', 'udp']}
-                label="UDP"
-                valuePropName="checked"
-              >
-                <Switch />
-              </Form.Item>
-              {mixedUdpOn && (
-                <Form.Item name={['settings', 'ip']} label="UDP IP">
-                  <Input />
-                </Form.Item>
-              )}
-            </>
-          )}
-        </>
-      )}
+      {protocol === Protocols.HTTP && <HttpFields />}
+      {protocol === Protocols.MIXED && <MixedFields mixedUdpOn={mixedUdpOn} />}
 
       {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields form={form} isSSWith2022={isSSWith2022} />}
 
-      {protocol === Protocols.VLESS && (
-        <>
-          <Form.Item name={['settings', 'decryption']} label={t('pages.inbounds.decryption')}>
-            <Input />
-          </Form.Item>
-          <Form.Item name={['settings', 'encryption']} label={t('pages.inbounds.encryption')}>
-            <Input />
-          </Form.Item>
-          <Form.Item label=" ">
-            <Space size={8} wrap>
-              <Button type="primary" loading={saving} onClick={() => getNewVlessEnc('x25519')}>
-                {t('pages.inbounds.vlessAuthX25519')}
-              </Button>
-              <Button type="primary" loading={saving} onClick={() => getNewVlessEnc('mlkem768')}>
-                {t('pages.inbounds.vlessAuthMlkem768')}
-              </Button>
-              <Button danger onClick={clearVlessEnc}>{t('clear')}</Button>
-            </Space>
-            <Text type="secondary" className="vless-auth-state">
-              {t('pages.inbounds.vlessAuthSelected', { auth: selectedVlessAuth })}
-            </Text>
-          </Form.Item>
-          {network === 'tcp' && (security === 'tls' || security === 'reality') && (
-            <Form.Item
-              label={t('pages.inbounds.form.visionTestseed')}
-              extra="Applies only to clients using the xtls-rprx-vision flow; ignored otherwise."
-            >
-              <Space.Compact block>
-                {[900, 500, 900, 256].map((def, i) => (
-                  <Form.Item key={i} name={['settings', 'testseed', i]} noStyle initialValue={def}>
-                    <InputNumber min={1} style={{ width: '25%' }} />
-                  </Form.Item>
-                ))}
-              </Space.Compact>
-            </Form.Item>
-          )}
-        </>
-      )}
+      {protocol === Protocols.VLESS && <VlessFields saving={saving} selectedVlessAuth={selectedVlessAuth} network={network} security={security} getNewVlessEnc={getNewVlessEnc} clearVlessEnc={clearVlessEnc} />}
 
       {isFallbackHost && fallbacksCard}
     </>
@@ -1148,24 +1046,7 @@ export default function InboundFormModal({
           auth + udpIdleTimeout are required, masquerade is an optional
           sub-object that lets xray-core disguise the listener as an
           HTTP server when probed. */}
-      {protocol === Protocols.HYSTERIA && (
-        <>
-          <Form.Item
-            label={t('pages.inbounds.form.version')}
-            name={['streamSettings', 'hysteriaSettings', 'version']}
-          >
-            <InputNumber min={2} max={2} disabled />
-          </Form.Item>
-          <Form.Item
-            label={t('pages.inbounds.form.udpIdleTimeout')}
-            name={['streamSettings', 'hysteriaSettings', 'udpIdleTimeout']}
-          >
-            <InputNumber min={1} style={{ width: '100%' }} />
-          </Form.Item>
-
-          <HysteriaMasqueradeForm form={form} />
-        </>
-      )}
+      {protocol === Protocols.HYSTERIA && <HysteriaFields form={form} />}
 
       {network === 'tcp' && (
         <>
