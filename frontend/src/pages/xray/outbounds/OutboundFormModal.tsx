@@ -76,6 +76,13 @@ import {
   VmessFields,
   WireguardFields,
 } from './protocols';
+import {
+  GrpcForm,
+  HttpUpgradeForm,
+  KcpForm,
+  RawForm,
+  WsForm,
+} from './transport';
 import './OutboundFormModal.css';
 
 // Pattern A rewrite of OutboundFormModal. Built as a sibling `.new.tsx`
@@ -507,223 +514,15 @@ export default function OutboundFormModal({
                           />
                         </Form.Item>
 
-                        {network === 'tcp' && (
-                          <Form.Item shouldUpdate noStyle>
-                            {() => {
-                              const type =
-                                form.getFieldValue([
-                                  'streamSettings',
-                                  'tcpSettings',
-                                  'header',
-                                  'type',
-                                ]) ?? 'none';
-                              return (
-                                <>
-                                  <Form.Item label={`HTTP ${t('camouflage')}`}>
-                                    <Switch
-                                      checked={type === 'http'}
-                                      onChange={(checked) =>
-                                        form.setFieldValue(
-                                          ['streamSettings', 'tcpSettings', 'header'],
-                                          checked
-                                            ? {
-                                              type: 'http',
-                                              request: {
-                                                version: '1.1',
-                                                method: 'GET',
-                                                path: ['/'],
-                                                headers: {},
-                                              },
-                                              response: {
-                                                version: '1.1',
-                                                status: '200',
-                                                reason: 'OK',
-                                                headers: {},
-                                              },
-                                            }
-                                            : { type: 'none' },
-                                        )
-                                      }
-                                    />
-                                  </Form.Item>
-                                  {type === 'http' && (
-                                    <>
-                                      <Form.Item
-                                        label={t('pages.inbounds.form.requestMethod')}
-                                        name={[
-                                          'streamSettings', 'tcpSettings', 'header',
-                                          'request', 'method',
-                                        ]}
-                                      >
-                                        <Input placeholder="GET" />
-                                      </Form.Item>
-                                      <Form.Item
-                                        label={t('pages.inbounds.form.requestVersion')}
-                                        name={[
-                                          'streamSettings', 'tcpSettings', 'header',
-                                          'request', 'version',
-                                        ]}
-                                      >
-                                        <Input placeholder="1.1" />
-                                      </Form.Item>
-                                      <Form.Item
-                                        label={t('pages.inbounds.form.requestHeaders')}
-                                        name={[
-                                          'streamSettings', 'tcpSettings', 'header',
-                                          'request', 'headers',
-                                        ]}
-                                      >
-                                        <HeaderMapEditor mode="v2" />
-                                      </Form.Item>
+                        {network === 'tcp' && <RawForm form={form} />}
 
-                                      <Form.Item
-                                        label={t('pages.inbounds.form.responseVersion')}
-                                        name={[
-                                          'streamSettings', 'tcpSettings', 'header',
-                                          'response', 'version',
-                                        ]}
-                                      >
-                                        <Input placeholder="1.1" />
-                                      </Form.Item>
-                                      <Form.Item
-                                        label={t('pages.inbounds.form.responseStatus')}
-                                        name={[
-                                          'streamSettings', 'tcpSettings', 'header',
-                                          'response', 'status',
-                                        ]}
-                                      >
-                                        <Input placeholder="200" />
-                                      </Form.Item>
-                                      <Form.Item
-                                        label={t('pages.inbounds.form.responseReason')}
-                                        name={[
-                                          'streamSettings', 'tcpSettings', 'header',
-                                          'response', 'reason',
-                                        ]}
-                                      >
-                                        <Input placeholder="OK" />
-                                      </Form.Item>
-                                      <Form.Item
-                                        label={t('pages.inbounds.form.responseHeaders')}
-                                        name={[
-                                          'streamSettings', 'tcpSettings', 'header',
-                                          'response', 'headers',
-                                        ]}
-                                      >
-                                        <HeaderMapEditor mode="v2" />
-                                      </Form.Item>
-                                    </>
-                                  )}
-                                </>
-                              );
-                            }}
-                          </Form.Item>
-                        )}
+                        {network === 'kcp' && <KcpForm />}
 
-                        {network === 'kcp' && (
-                          <>
-                            <Form.Item label="MTU" name={['streamSettings', 'kcpSettings', 'mtu']}>
-                              <InputNumber min={0} />
-                            </Form.Item>
-                            <Form.Item label={t('pages.inbounds.form.ttiMs')} name={['streamSettings', 'kcpSettings', 'tti']}>
-                              <InputNumber min={0} />
-                            </Form.Item>
-                            <Form.Item
-                              label={t('pages.inbounds.form.uplinkMbps')}
-                              name={['streamSettings', 'kcpSettings', 'uplinkCapacity']}
-                            >
-                              <InputNumber min={0} />
-                            </Form.Item>
-                            <Form.Item
-                              label={t('pages.inbounds.form.downlinkMbps')}
-                              name={['streamSettings', 'kcpSettings', 'downlinkCapacity']}
-                            >
-                              <InputNumber min={0} />
-                            </Form.Item>
-                            <Form.Item
-                              label={t('pages.inbounds.form.cwndMultiplier')}
-                              name={['streamSettings', 'kcpSettings', 'cwndMultiplier']}
-                            >
-                              <InputNumber min={1} />
-                            </Form.Item>
-                            <Form.Item
-                              label={t('pages.inbounds.form.maxSendingWindow')}
-                              name={['streamSettings', 'kcpSettings', 'maxSendingWindow']}
-                            >
-                              <InputNumber min={0} />
-                            </Form.Item>
-                          </>
-                        )}
+                        {network === 'ws' && <WsForm />}
 
-                        {network === 'ws' && (
-                          <>
-                            <Form.Item label={t('host')} name={['streamSettings', 'wsSettings', 'host']}>
-                              <Input />
-                            </Form.Item>
-                            <Form.Item label={t('path')} name={['streamSettings', 'wsSettings', 'path']}>
-                              <Input />
-                            </Form.Item>
-                            <Form.Item
-                              label={t('pages.inbounds.form.heartbeatPeriod')}
-                              name={['streamSettings', 'wsSettings', 'heartbeatPeriod']}
-                            >
-                              <InputNumber min={0} />
-                            </Form.Item>
-                            <Form.Item
-                              label={t('pages.inbounds.form.headers')}
-                              name={['streamSettings', 'wsSettings', 'headers']}
-                            >
-                              <HeaderMapEditor mode="v1" />
-                            </Form.Item>
-                          </>
-                        )}
+                        {network === 'grpc' && <GrpcForm />}
 
-                        {network === 'grpc' && (
-                          <>
-                            <Form.Item
-                              label={t('pages.inbounds.form.serviceName')}
-                              name={['streamSettings', 'grpcSettings', 'serviceName']}
-                            >
-                              <Input />
-                            </Form.Item>
-                            <Form.Item
-                              label={t('pages.inbounds.form.authority')}
-                              name={['streamSettings', 'grpcSettings', 'authority']}
-                            >
-                              <Input />
-                            </Form.Item>
-                            <Form.Item
-                              label={t('pages.inbounds.form.multiMode')}
-                              name={['streamSettings', 'grpcSettings', 'multiMode']}
-                              valuePropName="checked"
-                            >
-                              <Switch />
-                            </Form.Item>
-                          </>
-                        )}
-
-                        {network === 'httpupgrade' && (
-                          <>
-                            <Form.Item
-                              label={t('host')}
-                              name={['streamSettings', 'httpupgradeSettings', 'host']}
-                            >
-                              <Input />
-                            </Form.Item>
-                            <Form.Item
-                              label={t('path')}
-                              name={['streamSettings', 'httpupgradeSettings', 'path']}
-                            >
-                              <Input />
-                            </Form.Item>
-                            <Form.Item
-                              label={t('pages.inbounds.form.headers')}
-                              name={['streamSettings', 'httpupgradeSettings', 'headers']}
-                            >
-                              <HeaderMapEditor mode="v1" />
-                            </Form.Item>
-                          </>
-                        )}
+                        {network === 'httpupgrade' && <HttpUpgradeForm />}
 
                         {network === 'xhttp' && (
                           <>
