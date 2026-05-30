@@ -1,29 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import {
-  Button,
-  Card,
-  Checkbox,
-  Empty,
   Form,
   Input,
   InputNumber,
   Modal,
   Radio,
   Select,
-  Space,
   Switch,
   Tabs,
   Tooltip,
   message,
 } from 'antd';
-import {
-  ArrowDownOutlined,
-  ArrowUpOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-} from '@ant-design/icons';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
 import {
@@ -37,22 +26,16 @@ import {
   canEnableTls,
   isSS2022,
 } from '@/lib/xray/protocol-capabilities';
-import { getRandomRealityTarget } from '@/models/reality-targets';
 import {
   InboundFormBaseSchema,
   InboundFormSchema,
-  type FallbackRow,
   type InboundFormValues,
 } from '@/schemas/forms/inbound-form';
 import { antdRule } from '@/utils/zodForm';
-import {
-  Protocols,
-  SNIFFING_OPTION,
-} from '@/schemas/primitives';
+import { Protocols } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
 import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
-import { RealityStreamSettingsSchema } from '@/schemas/protocols/security/reality';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
 import { TcpStreamSettingsSchema } from '@/schemas/protocols/stream/tcp';
 import { KcpStreamSettingsSchema } from '@/schemas/protocols/stream/kcp';
@@ -62,7 +45,6 @@ import { HttpUpgradeStreamSettingsSchema } from '@/schemas/protocols/stream/http
 import { XHttpStreamSettingsSchema } from '@/schemas/protocols/stream/xhttp';
 import { DateTimePicker } from '@/components/form';
 import { FinalMaskForm } from '@/lib/xray/forms/transport';
-import { InputAddon } from '@/components/ui';
 import './InboundFormModal.css';
 
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
@@ -87,14 +69,13 @@ import {
   XhttpForm,
 } from './transport';
 import { RealityForm, TlsForm } from './security';
+import { useSecurityActions } from './useSecurityActions';
+import { useInboundFallbacks } from './useInboundFallbacks';
+import FallbacksCard from './FallbacksCard';
+import SniffingTab from './SniffingTab';
 
-import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
+import type { DBInbound } from '@/models/dbinbound';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
-
-// Pattern A rewrite of InboundFormModal. Built as a sibling file so the
-// build stays green while the rewrite progresses section by section.
-// InboundsPage continues to render the old InboundFormModal.tsx until the
-// atomic swap at the end (Core Decision 7).
 
 
 const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
@@ -150,8 +131,17 @@ export default function InboundFormModal({
   const [messageApi, messageContextHolder] = message.useMessage();
   const [form] = Form.useForm<InboundFormValues>();
   const [saving, setSaving] = useState(false);
-  const fallbackKeyRef = useRef(0);
-  const [fallbacks, setFallbacks] = useState<FallbackRow[]>([]);
+  const {
+    fallbacks,
+    fallbackChildOptions,
+    loadFallbacks,
+    saveFallbacks,
+    addFallback,
+    updateFallback,
+    removeFallback,
+    moveFallback,
+    addAllFallbacks,
+  } = useInboundFallbacks(dbInbound, dbInbounds);
 
   const selectableNodes = (availableNodes || []).filter((n) => n.enable);
   const protocol = (Form.useWatch('protocol', form) ?? '') as string;
@@ -172,333 +162,20 @@ export default function InboundFormModal({
     && network === 'tcp'
     && (security === 'tls' || security === 'reality');
 
-  const fallbackChildOptions = (dbInbounds || [])
-    .filter((ib) => ib.id !== dbInbound?.id)
-    .map((ib) => ({
-      label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
-      value: ib.id,
-    }));
-
-  const loadFallbacks = async (masterId: number | null) => {
-    if (!masterId) {
-      setFallbacks([]);
-      return;
-    }
-    const msg = await HttpUtil.get(`/panel/api/inbounds/${masterId}/fallbacks`);
-    if (!msg?.success || !Array.isArray(msg.obj)) {
-      setFallbacks([]);
-      return;
-    }
-    setFallbacks(
-      (msg.obj as {
-        childId: number;
-        name?: string;
-        alpn?: string;
-        path?: string;
-        dest?: string;
-        xver?: number;
-      }[])
-        .map((r) => ({
-          rowKey: `fb-${++fallbackKeyRef.current}`,
-          childId: r.childId,
-          name: r.name || '',
-          alpn: r.alpn || '',
-          path: r.path || '',
-          dest: r.dest || '',
-          xver: r.xver || 0,
-        })),
-    );
-  };
-
-  const saveFallbacks = async (masterId: number) => {
-    if (!masterId) return true;
-    const payload = {
-      fallbacks: fallbacks.filter((c) => c.childId).map((c, i) => ({
-        childId: c.childId,
-        name: c.name,
-        alpn: c.alpn,
-        path: c.path,
-        dest: c.dest,
-        xver: Number(c.xver) || 0,
-        sortOrder: i,
-      })),
-    };
-    const msg = await HttpUtil.post(
-      `/panel/api/inbounds/${masterId}/fallbacks`,
-      payload,
-      { headers: { 'Content-Type': 'application/json' } },
-    );
-    return !!msg?.success;
-  };
-
-  // Derive a fallback row's SNI / ALPN / Path / xver from a child
-  // inbound's streamSettings — what the legacy panel auto-filled when an
-  // operator wired a fallback target. SNI/ALPN come straight off the
-  // child's TLS block; path depends on the child's transport (ws/grpc
-  // /httpupgrade carry an explicit path; tcp/kcp/xhttp have no path of
-  // their own). xver stays 0 unless the child explicitly opts in via
-  // PROXY-protocol sockopt.
-  const deriveFallbackDefaults = (childId: number): Partial<FallbackRow> => {
-    const child = (dbInbounds || []).find((ib) => ib.id === childId);
-    if (!child) return {};
-    const stream = coerceInboundJsonField(child.streamSettings);
-    const tls = (stream.tlsSettings as Record<string, unknown> | undefined) ?? {};
-    const network = typeof stream.network === 'string' ? stream.network : '';
-    const sni = typeof tls.serverName === 'string' ? tls.serverName : '';
-    const alpnArr = Array.isArray(tls.alpn) ? tls.alpn : [];
-    const alpn = alpnArr.filter((v) => typeof v === 'string').join(',');
-    let path = '';
-    if (network === 'ws') {
-      const ws = (stream.wsSettings as Record<string, unknown> | undefined) ?? {};
-      if (typeof ws.path === 'string') path = ws.path;
-    } else if (network === 'grpc') {
-      const grpc = (stream.grpcSettings as Record<string, unknown> | undefined) ?? {};
-      if (typeof grpc.serviceName === 'string') path = grpc.serviceName;
-    } else if (network === 'httpupgrade') {
-      const hu = (stream.httpupgradeSettings as Record<string, unknown> | undefined) ?? {};
-      if (typeof hu.path === 'string') path = hu.path;
-    } else if (network === 'xhttp') {
-      const xh = (stream.xhttpSettings as Record<string, unknown> | undefined) ?? {};
-      if (typeof xh.path === 'string') path = xh.path;
-    }
-    return { name: sni, alpn, path, xver: 0 };
-  };
-
-  const addFallback = () => {
-    setFallbacks((prev) => [...prev, {
-      rowKey: `fb-${++fallbackKeyRef.current}`,
-      childId: null,
-      name: '',
-      alpn: '',
-      path: '',
-      dest: '',
-      xver: 0,
-    }]);
-  };
-
-  const updateFallback = (rowKey: string, patch: Partial<FallbackRow>) => {
-    setFallbacks((prev) => prev.map((r) => {
-      if (r.rowKey !== rowKey) return r;
-      // When the picker selects a new child inbound and the row hasn't
-      // been hand-edited yet (sni/alpn/path/dest all blank, xver = 0),
-      // pull the SNI/ALPN/Path defaults off that child. Operators who
-      // intentionally typed values keep them — we only fill the empties.
-      if (typeof patch.childId === 'number' && patch.childId !== r.childId) {
-        const isPristine = !r.name && !r.alpn && !r.path && !r.dest && r.xver === 0;
-        if (isPristine) return { ...r, ...patch, ...deriveFallbackDefaults(patch.childId) };
-      }
-      return { ...r, ...patch };
-    }));
-  };
-
-  const removeFallback = (idx: number) => {
-    setFallbacks((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  // Move a fallback row up/down by swapping adjacent indices. The order
-  // is persisted via the fallback row's sortOrder (rebuilt by index on
-  // save), so reordering survives reloads.
-  const moveFallback = (idx: number, direction: -1 | 1) => {
-    setFallbacks((prev) => {
-      const target = idx + direction;
-      if (target < 0 || target >= prev.length) return prev;
-      const next = prev.slice();
-      [next[idx], next[target]] = [next[target], next[idx]];
-      return next;
-    });
-  };
-
-  // One-shot: add a fresh fallback row for every eligible inbound (i.e.
-  // every option in fallbackChildOptions) that is not already wired up.
-  // Convenient for operators who want catch-all routing to every host
-  // they manage on the panel.
-  const addAllFallbacks = () => {
-    setFallbacks((prev) => {
-      const alreadyHave = new Set(prev.map((r) => r.childId));
-      const additions = fallbackChildOptions
-        .filter((opt) => !alreadyHave.has(opt.value))
-        .map<FallbackRow>((opt) => {
-          const derived = deriveFallbackDefaults(opt.value);
-          return {
-            rowKey: `fb-${++fallbackKeyRef.current}`,
-            childId: opt.value,
-            name: derived.name ?? '',
-            alpn: derived.alpn ?? '',
-            path: derived.path ?? '',
-            dest: '',
-            xver: derived.xver ?? 0,
-          };
-        });
-      if (additions.length === 0) return prev;
-      return [...prev, ...additions];
-    });
-  };
-
-  const genRealityKeypair = async () => {
-    setSaving(true);
-    try {
-      const msg = await HttpUtil.get('/panel/api/server/getNewX25519Cert');
-      if (msg?.success) {
-        const obj = msg.obj as { privateKey: string; publicKey: string };
-        form.setFieldValue(['streamSettings', 'realitySettings', 'privateKey'], obj.privateKey);
-        form.setFieldValue(['streamSettings', 'realitySettings', 'settings', 'publicKey'], obj.publicKey);
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const clearRealityKeypair = () => {
-    form.setFieldValue(['streamSettings', 'realitySettings', 'privateKey'], '');
-    form.setFieldValue(['streamSettings', 'realitySettings', 'settings', 'publicKey'], '');
-  };
-
-  const genMldsa65 = async () => {
-    setSaving(true);
-    try {
-      const msg = await HttpUtil.get('/panel/api/server/getNewmldsa65');
-      if (msg?.success) {
-        const obj = msg.obj as { seed: string; verify: string };
-        form.setFieldValue(['streamSettings', 'realitySettings', 'mldsa65Seed'], obj.seed);
-        form.setFieldValue(['streamSettings', 'realitySettings', 'settings', 'mldsa65Verify'], obj.verify);
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const clearMldsa65 = () => {
-    form.setFieldValue(['streamSettings', 'realitySettings', 'mldsa65Seed'], '');
-    form.setFieldValue(['streamSettings', 'realitySettings', 'settings', 'mldsa65Verify'], '');
-  };
-
-  const randomizeRealityTarget = () => {
-    const tgt = getRandomRealityTarget() as { target: string; sni: string };
-    form.setFieldValue(['streamSettings', 'realitySettings', 'target'], tgt.target);
-    form.setFieldValue(
-      ['streamSettings', 'realitySettings', 'serverNames'],
-      tgt.sni.split(',').map((s) => s.trim()).filter(Boolean),
-    );
-  };
-
-  const randomizeShortIds = () => {
-    form.setFieldValue(
-      ['streamSettings', 'realitySettings', 'shortIds'],
-      RandomUtil.randomShortIds().split(',').map((s) => s.trim()).filter(Boolean),
-    );
-  };
-
-  const getNewEchCert = async () => {
-    const sni = form.getFieldValue(['streamSettings', 'tlsSettings', 'serverName']);
-    setSaving(true);
-    try {
-      const msg = await HttpUtil.post('/panel/api/server/getNewEchCert', { sni });
-      if (msg?.success) {
-        const obj = msg.obj as { echServerKeys: string; echConfigList: string };
-        form.setFieldValue(['streamSettings', 'tlsSettings', 'echServerKeys'], obj.echServerKeys);
-        form.setFieldValue(['streamSettings', 'tlsSettings', 'settings', 'echConfigList'], obj.echConfigList);
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const clearEchCert = () => {
-    form.setFieldValue(['streamSettings', 'tlsSettings', 'echServerKeys'], '');
-    form.setFieldValue(['streamSettings', 'tlsSettings', 'settings', 'echConfigList'], '');
-  };
-
-  const generateRandomPinHash = () => {
-    const bytes = new Uint8Array(32);
-    crypto.getRandomValues(bytes);
-    let binary = '';
-    for (const b of bytes) binary += String.fromCharCode(b);
-    const hash = btoa(binary);
-    const current = (form.getFieldValue(
-      ['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256'],
-    ) as string[] | undefined) ?? [];
-    form.setFieldValue(
-      ['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256'],
-      [...current, hash],
-    );
-  };
-
-  const setCertFromPanel = async (certName: number) => {
-    setSaving(true);
-    try {
-      const msg = await HttpUtil.post('/panel/setting/all', undefined, { silent: true });
-      if (msg?.success) {
-        const obj = msg.obj as { webCertFile?: string; webKeyFile?: string };
-        if (!obj.webCertFile && !obj.webKeyFile) {
-          messageApi.warning(t('pages.inbounds.setDefaultCertEmpty'));
-          return;
-        }
-        form.setFieldValue(
-          ['streamSettings', 'tlsSettings', 'certificates', certName, 'certificateFile'],
-          obj.webCertFile ?? '',
-        );
-        form.setFieldValue(
-          ['streamSettings', 'tlsSettings', 'certificates', certName, 'keyFile'],
-          obj.webKeyFile ?? '',
-        );
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const clearCertFiles = (certName: number) => {
-    form.setFieldValue(
-      ['streamSettings', 'tlsSettings', 'certificates', certName, 'certificateFile'],
-      '',
-    );
-    form.setFieldValue(
-      ['streamSettings', 'tlsSettings', 'certificates', certName, 'keyFile'],
-      '',
-    );
-  };
-
-  const onSecurityChange = async (next: string) => {
-    const current = (form.getFieldValue('streamSettings') as Record<string, unknown>) ?? {};
-    const cleaned: Record<string, unknown> = { ...current, security: next };
-    delete cleaned.tlsSettings;
-    delete cleaned.realitySettings;
-    if (next === 'tls') {
-      const tls = TlsStreamSettingsSchema.parse({}) as Record<string, unknown>;
-      tls.certificates = [{
-        useFile: true,
-        certificateFile: '',
-        keyFile: '',
-        certificate: [],
-        key: [],
-        oneTimeLoading: false,
-        usage: 'encipherment',
-        buildChain: false,
-      }];
-      cleaned.tlsSettings = tls;
-    }
-    if (next === 'reality') {
-      const reality = RealityStreamSettingsSchema.parse({}) as Record<string, unknown>;
-      const tgt = getRandomRealityTarget() as { target: string; sni: string };
-      reality.target = tgt.target;
-      reality.serverNames = tgt.sni.split(',').map((s) => s.trim()).filter(Boolean);
-      reality.shortIds = RandomUtil.randomShortIds().split(',').map((s) => s.trim()).filter(Boolean);
-      cleaned.realitySettings = reality;
-    }
-    form.setFieldValue('streamSettings', cleaned);
-    if (next === 'reality') {
-      try {
-        const msg = await HttpUtil.get('/panel/api/server/getNewX25519Cert');
-        if (msg?.success) {
-          const obj = msg.obj as { privateKey: string; publicKey: string };
-          form.setFieldValue(['streamSettings', 'realitySettings', 'privateKey'], obj.privateKey);
-          form.setFieldValue(['streamSettings', 'realitySettings', 'settings', 'publicKey'], obj.publicKey);
-        }
-      } catch {
-        // best-effort: leave keypair fields empty if server call fails
-      }
-    }
-  };
+  const {
+    genRealityKeypair,
+    clearRealityKeypair,
+    genMldsa65,
+    clearMldsa65,
+    randomizeRealityTarget,
+    randomizeShortIds,
+    getNewEchCert,
+    clearEchCert,
+    generateRandomPinHash,
+    setCertFromPanel,
+    clearCertFiles,
+    onSecurityChange,
+  } = useSecurityActions({ form, setSaving, messageApi });
 
   const toggleExternalProxy = (on: boolean) => {
     if (on) {
@@ -602,9 +279,10 @@ export default function InboundFormModal({
     ) {
       loadFallbacks(dbInbound.id);
     } else {
-      setFallbacks([]);
+      loadFallbacks(null);
     }
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mode, dbInbound, form]);
 
   // Why: protocol picker reset cascades through the form — clearing the
@@ -845,99 +523,15 @@ export default function InboundFormModal({
   );
 
   const fallbacksCard = (
-    <Card size="small" className="mt-12" title={t('pages.inbounds.fallbacks.title') || 'Fallbacks'}>
-      {fallbacks.length === 0 && (
-        <Empty
-          description={t('pages.inbounds.fallbacks.empty') || 'No fallbacks yet'}
-          styles={{ image: { height: 40 } }}
-          style={{ margin: '8px 0 12px' }}
-        />
-      )}
-      {fallbacks.map((record, idx) => (
-        <div
-          key={record.rowKey}
-          style={{ border: '1px solid var(--app-border-tertiary)', borderRadius: 6, padding: '10px 12px', marginBottom: 8 }}
-        >
-          <Space.Compact block style={{ marginBottom: 6 }}>
-            <Select
-              value={record.childId}
-              options={fallbackChildOptions}
-              placeholder={t('pages.inbounds.fallbacks.pickInbound') || 'Pick an inbound'}
-              showSearch={{
-                filterOption: (input, option) =>
-                  ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase()),
-              }}
-              style={{ width: '100%' }}
-              onChange={(v) => updateFallback(record.rowKey, { childId: v })}
-            />
-            <Button
-              disabled={idx === 0}
-              onClick={() => moveFallback(idx, -1)}
-              title={t('pages.inbounds.form.moveUp')}
-            >
-              <ArrowUpOutlined />
-            </Button>
-            <Button
-              disabled={idx === fallbacks.length - 1}
-              onClick={() => moveFallback(idx, 1)}
-              title={t('pages.inbounds.form.moveDown')}
-            >
-              <ArrowDownOutlined />
-            </Button>
-            <Button danger onClick={() => removeFallback(idx)}>
-              <DeleteOutlined />
-            </Button>
-          </Space.Compact>
-          <Space.Compact block>
-            <InputAddon>SNI</InputAddon>
-            <Input
-              placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
-              value={record.name}
-              onChange={(e) => updateFallback(record.rowKey, { name: e.target.value })}
-            />
-            <InputAddon>ALPN</InputAddon>
-            <Input
-              placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
-              value={record.alpn}
-              onChange={(e) => updateFallback(record.rowKey, { alpn: e.target.value })}
-            />
-            <InputAddon>Path</InputAddon>
-            <Input
-              placeholder="/"
-              value={record.path}
-              onChange={(e) => updateFallback(record.rowKey, { path: e.target.value })}
-            />
-            <InputAddon>Dest</InputAddon>
-            <Input
-              placeholder={t('pages.inbounds.fallbacks.destPlaceholder') || 'auto'}
-              value={record.dest}
-              onChange={(e) => updateFallback(record.rowKey, { dest: e.target.value })}
-            />
-            <InputAddon>xver</InputAddon>
-            <InputNumber
-              min={0}
-              max={2}
-              value={record.xver}
-              onChange={(v) => updateFallback(record.rowKey, { xver: Number(v) || 0 })}
-            />
-          </Space.Compact>
-        </div>
-      ))}
-      <Space>
-        <Button size="small" onClick={addFallback}>
-          <PlusOutlined /> {t('pages.inbounds.fallbacks.add') || 'Add fallback'}
-        </Button>
-        <Button
-          size="small"
-          onClick={addAllFallbacks}
-          disabled={fallbackChildOptions.length === 0
-            || fallbacks.length >= fallbackChildOptions.length}
-          title={t('pages.inbounds.form.addAllFallbackTooltip')}
-        >
-          {t('pages.inbounds.form.addAll')}
-        </Button>
-      </Space>
-    </Card>
+    <FallbacksCard
+      fallbacks={fallbacks}
+      fallbackChildOptions={fallbackChildOptions}
+      addFallback={addFallback}
+      updateFallback={updateFallback}
+      removeFallback={removeFallback}
+      moveFallback={moveFallback}
+      addAllFallbacks={addAllFallbacks}
+    />
   );
 
   const protocolTab = (
@@ -1215,65 +809,7 @@ export default function InboundFormModal({
     </div>
   );
 
-  const sniffingTab = (
-    <>
-      <Form.Item name={['sniffing', 'enabled']} label={t('enable')} valuePropName="checked">
-        <Switch />
-      </Form.Item>
-
-      {sniffingEnabled && (
-        <>
-          <Form.Item name={['sniffing', 'destOverride']} wrapperCol={{ span: 24 }}>
-            <Checkbox.Group>
-              {Object.entries(SNIFFING_OPTION).map(([key, value]) => (
-                <Checkbox key={key} value={value}>{key}</Checkbox>
-              ))}
-            </Checkbox.Group>
-          </Form.Item>
-
-          <Form.Item
-            name={['sniffing', 'metadataOnly']}
-            label={t('pages.inbounds.sniffingMetadataOnly')}
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
-
-          <Form.Item
-            name={['sniffing', 'routeOnly']}
-            label={t('pages.inbounds.sniffingRouteOnly')}
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
-
-          <Form.Item
-            name={['sniffing', 'ipsExcluded']}
-            label={t('pages.inbounds.sniffingIpsExcluded')}
-          >
-            <Select
-              mode="tags"
-              tokenSeparators={[',']}
-              placeholder="IP/CIDR/geoip:*/ext:*"
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name={['sniffing', 'domainsExcluded']}
-            label={t('pages.inbounds.sniffingDomainsExcluded')}
-          >
-            <Select
-              mode="tags"
-              tokenSeparators={[',']}
-              placeholder="domain:*/ext:*"
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-        </>
-      )}
-    </>
-  );
+  const sniffingTab = <SniffingTab sniffingEnabled={sniffingEnabled} />;
 
   return (
     <>
