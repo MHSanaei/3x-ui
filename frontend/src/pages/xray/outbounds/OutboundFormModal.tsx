@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Button,
   Form,
   Input,
   InputNumber,
@@ -13,7 +12,7 @@ import {
   Tabs,
   message,
 } from 'antd';
-import { FinalMaskForm, HysteriaMasqueradeForm } from '@/lib/xray/forms/transport';
+import { FinalMaskForm } from '@/lib/xray/forms/transport';
 import { JsonEditor } from '@/components/form';
 import { Wireguard } from '@/utils';
 import {
@@ -26,15 +25,7 @@ import {
   OutboundFormBaseSchema,
   type OutboundFormValues,
 } from '@/schemas/forms/outbound-form';
-import {
-  DOMAIN_STRATEGY_OPTION,
-  SNIFFING_OPTION,
-  TCP_CONGESTION_OPTION,
-} from '@/schemas/primitives';
-import {
-  HappyEyeballsSchema,
-  SockoptStreamSettingsSchema,
-} from '@/schemas/protocols/stream/sockopt';
+import { SNIFFING_OPTION } from '@/schemas/primitives';
 import {
   canEnableReality,
   canEnableStream,
@@ -44,7 +35,6 @@ import {
 import { antdRule } from '@/utils/zodForm';
 
 import {
-  ADDRESS_PORT_STRATEGY_OPTIONS,
   FLOW_OPTIONS,
   HYSTERIA_NETWORK_OPTION,
   NETWORK_OPTIONS,
@@ -54,7 +44,6 @@ import {
 import {
   buildAddModeValues,
   hysteriaStreamSlice,
-  isMuxAllowed,
   newStreamSlice,
 } from './outbound-form-helpers';
 import {
@@ -74,8 +63,11 @@ import {
 import {
   GrpcForm,
   HttpUpgradeForm,
+  HysteriaForm,
   KcpForm,
+  MuxForm,
   RawForm,
+  SockoptForm,
   WsForm,
   XhttpForm,
 } from './transport';
@@ -523,29 +515,7 @@ export default function OutboundFormModal({
 
                         {network === 'xhttp' && <XhttpForm form={form} onXmuxToggle={onXmuxToggle} />}
 
-                        {network === 'hysteria' && (
-                          <>
-                            <Form.Item
-                              label={t('pages.inbounds.form.version')}
-                              name={['streamSettings', 'hysteriaSettings', 'version']}
-                            >
-                              <InputNumber min={2} max={2} disabled style={{ width: '100%' }} />
-                            </Form.Item>
-                            <Form.Item
-                              label={t('pages.xray.outboundForm.authPassword')}
-                              name={['streamSettings', 'hysteriaSettings', 'auth']}
-                            >
-                              <Input />
-                            </Form.Item>
-                            <Form.Item
-                              label={t('pages.inbounds.form.udpIdleTimeout')}
-                              name={['streamSettings', 'hysteriaSettings', 'udpIdleTimeout']}
-                            >
-                              <InputNumber min={1} style={{ width: '100%' }} />
-                            </Form.Item>
-                            <HysteriaMasqueradeForm form={form} />
-                          </>
-                        )}
+                        {network === 'hysteria' && <HysteriaForm form={form} />}
                       </>
                     )}
 
@@ -605,270 +575,7 @@ export default function OutboundFormModal({
 
                     {security === 'reality' && realityAllowed && <RealityForm />}
 
-                    {((streamAllowed && network) || !streamAllowed) && (
-                      <Form.Item shouldUpdate noStyle>
-                        {() => {
-                          const hasSockopt = !!form.getFieldValue([
-                            'streamSettings',
-                            'sockopt',
-                          ]);
-                          return (
-                            <>
-                              <Form.Item label={t('pages.xray.outboundForm.sockopts')}>
-                                <Switch
-                                  checked={hasSockopt}
-                                  onChange={(checked) => {
-                                    form.setFieldValue(
-                                      ['streamSettings', 'sockopt'],
-                                      checked ? SockoptStreamSettingsSchema.parse({}) : undefined,
-                                    );
-                                  }}
-                                />
-                              </Form.Item>
-                              {hasSockopt && (
-                                <>
-                                  <Form.Item
-                                    label={t('pages.inbounds.form.dialerProxy')}
-                                    name={['streamSettings', 'sockopt', 'dialerProxy']}
-                                  >
-                                    <Input />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.xray.wireguard.domainStrategy')}
-                                    name={['streamSettings', 'sockopt', 'domainStrategy']}
-                                  >
-                                    <Select
-                                      options={Object.values(DOMAIN_STRATEGY_OPTION).map((v) => ({
-                                        value: v,
-                                        label: v,
-                                      }))}
-                                    />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.inbounds.form.addressPortStrategy')}
-                                    name={['streamSettings', 'sockopt', 'addressPortStrategy']}
-                                  >
-                                    <Select options={ADDRESS_PORT_STRATEGY_OPTIONS} />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.xray.outboundForm.keepAliveInterval')}
-                                    name={['streamSettings', 'sockopt', 'tcpKeepAliveInterval']}
-                                  >
-                                    <InputNumber min={0} />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.inbounds.form.tcpFastOpen')}
-                                    name={['streamSettings', 'sockopt', 'tcpFastOpen']}
-                                    valuePropName="checked"
-                                  >
-                                    <Switch />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.inbounds.form.multipathTcp')}
-                                    name={['streamSettings', 'sockopt', 'tcpMptcp']}
-                                    valuePropName="checked"
-                                  >
-                                    <Switch />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.inbounds.form.penetrate')}
-                                    name={['streamSettings', 'sockopt', 'penetrate']}
-                                    valuePropName="checked"
-                                  >
-                                    <Switch />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.xray.outboundForm.markFwmark')}
-                                    name={['streamSettings', 'sockopt', 'mark']}
-                                  >
-                                    <InputNumber min={0} />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.xray.outboundForm.interface')}
-                                    name={['streamSettings', 'sockopt', 'interfaceName']}
-                                  >
-                                    <Input />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label="TProxy"
-                                    name={['streamSettings', 'sockopt', 'tproxy']}
-                                  >
-                                    <Select
-                                      options={[
-                                        { value: 'off', label: 'off' },
-                                        { value: 'redirect', label: 'redirect' },
-                                        { value: 'tproxy', label: 'tproxy' },
-                                      ]}
-                                    />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.inbounds.form.tcpCongestion')}
-                                    name={['streamSettings', 'sockopt', 'tcpcongestion']}
-                                  >
-                                    <Select
-                                      options={Object.values(TCP_CONGESTION_OPTION).map((v) => ({
-                                        value: v,
-                                        label: v,
-                                      }))}
-                                    />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.xray.outboundForm.ipv6Only')}
-                                    name={['streamSettings', 'sockopt', 'V6Only']}
-                                    valuePropName="checked"
-                                  >
-                                    <Switch />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.xray.outboundForm.acceptProxyProtocol')}
-                                    name={['streamSettings', 'sockopt', 'acceptProxyProtocol']}
-                                    valuePropName="checked"
-                                  >
-                                    <Switch />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.xray.outboundForm.tcpUserTimeoutMs')}
-                                    name={['streamSettings', 'sockopt', 'tcpUserTimeout']}
-                                  >
-                                    <InputNumber min={0} style={{ width: '100%' }} />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.xray.outboundForm.tcpKeepAliveIdleS')}
-                                    name={['streamSettings', 'sockopt', 'tcpKeepAliveIdle']}
-                                  >
-                                    <InputNumber min={0} style={{ width: '100%' }} />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.inbounds.form.tcpMaxSeg')}
-                                    name={['streamSettings', 'sockopt', 'tcpMaxSeg']}
-                                  >
-                                    <InputNumber min={0} style={{ width: '100%' }} />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.inbounds.form.tcpWindowClamp')}
-                                    name={['streamSettings', 'sockopt', 'tcpWindowClamp']}
-                                  >
-                                    <InputNumber min={0} style={{ width: '100%' }} />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.inbounds.form.trustedXForwardedFor')}
-                                    name={['streamSettings', 'sockopt', 'trustedXForwardedFor']}
-                                  >
-                                    <Select
-                                      mode="tags"
-                                      tokenSeparators={[',', ' ']}
-                                      placeholder="trusted-proxy.example,10.0.0.0/8"
-                                    />
-                                  </Form.Item>
-                                  <Form.Item shouldUpdate noStyle>
-                                    {() => {
-                                      const he = form.getFieldValue([
-                                        'streamSettings', 'sockopt', 'happyEyeballs',
-                                      ]);
-                                      const hasHe = he != null;
-                                      return (
-                                        <>
-                                          <Form.Item label="Happy Eyeballs">
-                                            <Switch
-                                              checked={hasHe}
-                                              onChange={(v) => {
-                                                form.setFieldValue(
-                                                  ['streamSettings', 'sockopt', 'happyEyeballs'],
-                                                  v ? HappyEyeballsSchema.parse({}) : undefined,
-                                                );
-                                              }}
-                                            />
-                                          </Form.Item>
-                                          {hasHe && (
-                                            <>
-                                              <Form.Item
-                                                label={t('pages.inbounds.form.tryDelayMs')}
-                                                name={['streamSettings', 'sockopt', 'happyEyeballs', 'tryDelayMs']}
-                                              >
-                                                <InputNumber min={0} style={{ width: '100%' }} placeholder="0 (disabled) — 250 recommended" />
-                                              </Form.Item>
-                                              <Form.Item
-                                                label={t('pages.inbounds.form.prioritizeIPv6')}
-                                                name={['streamSettings', 'sockopt', 'happyEyeballs', 'prioritizeIPv6']}
-                                                valuePropName="checked"
-                                              >
-                                                <Switch />
-                                              </Form.Item>
-                                              <Form.Item
-                                                label={t('pages.inbounds.form.interleave')}
-                                                name={['streamSettings', 'sockopt', 'happyEyeballs', 'interleave']}
-                                              >
-                                                <InputNumber min={1} style={{ width: '100%' }} />
-                                              </Form.Item>
-                                              <Form.Item
-                                                label={t('pages.inbounds.form.maxConcurrentTry')}
-                                                name={['streamSettings', 'sockopt', 'happyEyeballs', 'maxConcurrentTry']}
-                                              >
-                                                <InputNumber min={0} style={{ width: '100%' }} />
-                                              </Form.Item>
-                                            </>
-                                          )}
-                                        </>
-                                      );
-                                    }}
-                                  </Form.Item>
-                                  <Form.List name={['streamSettings', 'sockopt', 'customSockopt']}>
-                                    {(fields, { add, remove }) => (
-                                      <>
-                                        <Form.Item label={t('pages.inbounds.form.customSockopt')}>
-                                          <Button
-                                            type="dashed"
-                                            size="small"
-                                            onClick={() => add({ type: 'int', level: '6', opt: '', value: '' })}
-                                          >
-                                            + {t('pages.inbounds.form.addCustomOption')}
-                                          </Button>
-                                        </Form.Item>
-                                        {fields.map((field) => (
-                                          <Space.Compact key={field.key} style={{ display: 'flex', marginBottom: 8 }}>
-                                            <Form.Item name={[field.name, 'system']} noStyle>
-                                              <Select
-                                                placeholder="all"
-                                                allowClear
-                                                style={{ width: 100 }}
-                                                options={[
-                                                  { value: 'linux', label: 'linux' },
-                                                  { value: 'windows', label: 'windows' },
-                                                  { value: 'darwin', label: 'darwin' },
-                                                ]}
-                                              />
-                                            </Form.Item>
-                                            <Form.Item name={[field.name, 'type']} noStyle>
-                                              <Select
-                                                style={{ width: 80 }}
-                                                options={[
-                                                  { value: 'int', label: 'int' },
-                                                  { value: 'str', label: 'str' },
-                                                ]}
-                                              />
-                                            </Form.Item>
-                                            <Form.Item name={[field.name, 'level']} noStyle>
-                                              <Input placeholder="level (6=TCP)" style={{ width: 100 }} />
-                                            </Form.Item>
-                                            <Form.Item name={[field.name, 'opt']} noStyle>
-                                              <Input placeholder="opt (decimal)" style={{ width: 120 }} />
-                                            </Form.Item>
-                                            <Form.Item name={[field.name, 'value']} noStyle>
-                                              <Input placeholder="value" style={{ flex: 1 }} />
-                                            </Form.Item>
-                                            <Button danger onClick={() => remove(field.name)}>−</Button>
-                                          </Space.Compact>
-                                        ))}
-                                      </>
-                                    )}
-                                  </Form.List>
-                                </>
-                              )}
-                            </>
-                          );
-                        }}
-                      </Form.Item>
-                    )}
+                    {((streamAllowed && network) || !streamAllowed) && <SockoptForm form={form} />}
 
                     <FinalMaskForm
                       name={['streamSettings', 'finalmask']}
@@ -877,55 +584,7 @@ export default function OutboundFormModal({
                       form={form}
                     />
 
-                    {(() => {
-                      const flow = (form.getFieldValue(['settings', 'flow']) ?? '') as string;
-                      if (!isMuxAllowed(protocol, flow, network)) return null;
-                      return (
-                        <Form.Item shouldUpdate noStyle>
-                          {() => {
-                            const muxEnabled = !!form.getFieldValue(['mux', 'enabled']);
-                            return (
-                              <>
-                                <Form.Item
-                                  label={t('pages.settings.mux')}
-                                  name={['mux', 'enabled']}
-                                  valuePropName="checked"
-                                >
-                                  <Switch />
-                                </Form.Item>
-                                {muxEnabled && (
-                                  <>
-                                    <Form.Item
-                                      label={t('pages.settings.subFormats.concurrency')}
-                                      name={['mux', 'concurrency']}
-                                    >
-                                      <InputNumber min={-1} max={1024} />
-                                    </Form.Item>
-                                    <Form.Item
-                                      label={t('pages.settings.subFormats.xudpConcurrency')}
-                                      name={['mux', 'xudpConcurrency']}
-                                    >
-                                      <InputNumber min={-1} max={1024} />
-                                    </Form.Item>
-                                    <Form.Item
-                                      label={t('pages.settings.subFormats.xudpUdp443')}
-                                      name={['mux', 'xudpProxyUDP443']}
-                                    >
-                                      <Select
-                                        options={['reject', 'allow', 'skip'].map((v) => ({
-                                          value: v,
-                                          label: v,
-                                        }))}
-                                      />
-                                    </Form.Item>
-                                  </>
-                                )}
-                              </>
-                            );
-                          }}
-                        </Form.Item>
-                      );
-                    })()}
+                    <MuxForm form={form} protocol={protocol} network={network} />
                   </>
                 ),
               },
