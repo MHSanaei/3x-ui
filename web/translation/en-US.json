@@ -646,6 +646,7 @@
       "subId": "Subscription ID",
       "online": "Online",
       "email": "Email",
+      "emailInvalidChars": "Email cannot contain spaces, '/', '\\', or control characters",
       "group": "Group",
       "groupDesc": "Logical label used to bucket related clients (e.g. team, customer, region). Filterable from the toolbar.",
       "groupPlaceholder": "e.g. customer-a",

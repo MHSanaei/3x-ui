@@ -408,6 +408,15 @@ type ClientCreatePayload struct {
 	InboundIds []int        `json:"inboundIds"`
 }
 
+func validateClientEmail(email string) error {
+	for _, r := range email {
+		if r == '/' || r == '\\' || r == ' ' || r < 0x20 || r == 0x7f {
+			return common.NewError("client email contains an invalid character:", email)
+		}
+	}
+	return nil
+}
+
 func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreatePayload) (bool, error) {
 	if payload == nil {
 		return false, common.NewError("empty payload")
@@ -415,6 +424,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	client := payload.Client
 	if strings.TrimSpace(client.Email) == "" {
 		return false, common.NewError("client email is required")
+	}
+	if err := validateClientEmail(client.Email); err != nil {
+		return false, err
 	}
 	if len(payload.InboundIds) == 0 {
 		return false, common.NewError("at least one inbound is required")
@@ -580,6 +592,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 
 	if strings.TrimSpace(updated.Email) == "" {
 		return false, common.NewError("client email is required")
+	}
+	if err := validateClientEmail(updated.Email); err != nil {
+		return false, err
 	}
 	if updated.SubID == "" {
 		updated.SubID = existing.SubID

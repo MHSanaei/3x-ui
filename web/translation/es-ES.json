@@ -646,6 +646,7 @@
       "subId": "ID de suscripción",
       "online": "En línea",
       "email": "Email",
+      "emailInvalidChars": "El correo no puede contener espacios, '/', '\\' ni caracteres de control",
       "group": "Grupo",
       "groupDesc": "Etiqueta lógica para agrupar clientes relacionados (p. ej. equipo, cliente, región). Filtrable desde la barra de herramientas.",
       "groupPlaceholder": "p. ej. customer-a",
