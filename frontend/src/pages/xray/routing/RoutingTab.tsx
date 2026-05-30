@@ -1,21 +1,14 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Dropdown, Modal, Space, Table, Tag, Tooltip } from 'antd';
-import {
-  PlusOutlined,
-  MoreOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  ExportOutlined,
-  ClusterOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined,
-  HolderOutlined,
-} from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+import { Button, Modal, Space, Table } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 
 import RuleFormModal from './RuleFormModal';
 import type { RoutingRule } from './RuleFormModal';
+import RuleCardList from './RuleCardList';
+import { useRoutingColumns } from './useRoutingColumns';
+import { arrJoin } from './helpers';
+import type { RuleRow } from './types';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
 import type { RuleObject } from '@/schemas/routing';
 import './RoutingTab.css';
@@ -26,41 +19,6 @@ interface RoutingTabProps {
   inboundTags: string[];
   clientReverseTags: string[];
   isMobile: boolean;
-}
-
-interface RuleRow {
-  key: number;
-  domain?: string;
-  ip?: string;
-  port?: string;
-  sourcePort?: string;
-  vlessRoute?: string;
-  network?: string;
-  sourceIP?: string;
-  user?: string;
-  inboundTag?: string;
-  protocol?: string;
-  attrs?: string;
-  outboundTag?: string;
-  balancerTag?: string;
-}
-
-function arrJoin(v: unknown): string | undefined {
-  if (v == null) return undefined;
-  if (Array.isArray(v)) return v.join(',');
-  return String(v);
-}
-
-function csv(value?: string): string[] {
-  if (!value) return [];
-  return String(value).split(',').map((s) => s.trim()).filter(Boolean);
-}
-
-function chipPreview(value?: string): string {
-  const parts = csv(value);
-  if (parts.length === 0) return '';
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} +${parts.length - 1}`;
 }
 
 export default function RoutingTab({
@@ -268,151 +226,15 @@ export default function RoutingTab({
     document.addEventListener('pointercancel', onUp);
   }
 
-  function ruleCriteriaChips(rule: RuleRow) {
-    const chips: { label: string; value?: string }[] = [];
-    if (rule.domain) chips.push({ label: 'Domain', value: rule.domain });
-    if (rule.ip) chips.push({ label: 'IP', value: rule.ip });
-    if (rule.port) chips.push({ label: 'Port', value: rule.port });
-    if (rule.sourceIP) chips.push({ label: 'Src IP', value: rule.sourceIP });
-    if (rule.sourcePort) chips.push({ label: 'Src Port', value: rule.sourcePort });
-    if (rule.network) chips.push({ label: 'L4', value: rule.network });
-    if (rule.protocol) chips.push({ label: 'Protocol', value: rule.protocol });
-    if (rule.user) chips.push({ label: 'User', value: rule.user });
-    if (rule.vlessRoute) chips.push({ label: 'VLESS', value: rule.vlessRoute });
-    return chips;
-  }
-
-  const desktopColumns: ColumnsType<RuleRow> = useMemo(
-    () => [
-      {
-        title: '#',
-        align: 'center',
-        width: 100,
-        key: 'action',
-        render: (_v, _r, index) => (
-          <div className="action-cell">
-            <HolderOutlined
-              className="drag-handle"
-              title={t('pages.xray.routing.dragToReorder')}
-              onPointerDown={(ev: React.PointerEvent) => onHandlePointerDown(index, ev)}
-            />
-            <span className="row-index">{index + 1}</span>
-            <div className={!isMobile ? 'action-buttons' : ''}>
-              {!isMobile && (
-                <Button shape="circle" size="small" icon={<EditOutlined />} onClick={() => openEdit(index)} />
-              )}
-              <Dropdown
-                trigger={['click']}
-                menu={{
-                  items: [
-                    ...(isMobile
-                      ? [{ key: 'edit', label: <><EditOutlined /> {t('edit')}</>, onClick: () => openEdit(index) }]
-                      : []),
-                    { key: 'up', label: <ArrowUpOutlined />, disabled: index === 0, onClick: () => moveUp(index) },
-                    {
-                      key: 'down',
-                      label: <ArrowDownOutlined />,
-                      disabled: index === rows.length - 1,
-                      onClick: () => moveDown(index),
-                    },
-                    { key: 'del', danger: true, label: <><DeleteOutlined /> {t('delete')}</>, onClick: () => confirmDelete(index) },
-                  ],
-                }}
-              >
-                <Button shape="circle" size="small" icon={<MoreOutlined />} />
-              </Dropdown>
-            </div>
-          </div>
-        ),
-      },
-      {
-        title: t('pages.xray.rules.source'),
-        align: 'left',
-        width: 180,
-        key: 'source',
-        render: (_v, record) => (
-          <div className="criterion-flow">
-            {record.sourceIP && <CriterionRow label="IP" value={record.sourceIP} title={`Source IP: ${record.sourceIP}`} />}
-            {record.sourcePort && <CriterionRow label="Port" value={record.sourcePort} title={`Source port: ${record.sourcePort}`} />}
-            {record.vlessRoute && <CriterionRow label="VLESS" value={record.vlessRoute} title={`VLESS route: ${record.vlessRoute}`} />}
-            {!record.sourceIP && !record.sourcePort && !record.vlessRoute && <span className="criterion-empty">—</span>}
-          </div>
-        ),
-      },
-      {
-        title: t('pages.inbounds.network'),
-        align: 'left',
-        width: 180,
-        key: 'network',
-        render: (_v, record) => (
-          <div className="criterion-flow">
-            {record.network && <CriterionRow label="L4" value={record.network} title={`L4: ${record.network}`} />}
-            {record.protocol && <CriterionRow label="Protocol" value={record.protocol} title={`Protocol: ${record.protocol}`} />}
-            {record.attrs && <CriterionRow label="Attrs" value={record.attrs} title={`Attrs: ${record.attrs}`} />}
-            {!record.network && !record.protocol && !record.attrs && <span className="criterion-empty">—</span>}
-          </div>
-        ),
-      },
-      {
-        title: t('pages.xray.rules.dest'),
-        align: 'left',
-        key: 'destination',
-        render: (_v, record) => (
-          <div className="criterion-flow">
-            {record.ip && <CriterionRow label="IP" value={record.ip} title={`Destination IP: ${record.ip}`} />}
-            {record.domain && <CriterionRow label="Domain" value={record.domain} title={`Domain: ${record.domain}`} />}
-            {record.port && <CriterionRow label="Port" value={record.port} title={`Destination port: ${record.port}`} />}
-            {!record.ip && !record.domain && !record.port && <span className="criterion-empty">—</span>}
-          </div>
-        ),
-      },
-      {
-        title: t('pages.xray.Inbounds'),
-        align: 'left',
-        width: 180,
-        key: 'inbound',
-        render: (_v, record) => (
-          <div className="criterion-flow">
-            {record.inboundTag && <CriterionRow label="Tag" value={record.inboundTag} title={`Inbound tag: ${record.inboundTag}`} />}
-            {record.user && <CriterionRow label="User" value={record.user} title={`User: ${record.user}`} />}
-            {!record.inboundTag && !record.user && <span className="criterion-empty">—</span>}
-          </div>
-        ),
-      },
-      {
-        title: t('pages.xray.Outbounds'),
-        align: 'left',
-        width: 170,
-        key: 'outbound',
-        render: (_v, record) =>
-          record.outboundTag ? (
-            <div className="target-row">
-              <ExportOutlined className="target-icon" />
-              <Tag color="green">{record.outboundTag}</Tag>
-            </div>
-          ) : (
-            <span className="criterion-empty">—</span>
-          ),
-      },
-      {
-        title: t('pages.xray.Balancers'),
-        align: 'left',
-        width: 150,
-        key: 'balancer',
-        render: (_v, record) =>
-          record.balancerTag ? (
-            <div className="target-row">
-              <ClusterOutlined className="target-icon" />
-              <Tag color="purple">{record.balancerTag}</Tag>
-            </div>
-          ) : (
-            <span className="criterion-empty">—</span>
-          ),
-      },
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, isMobile, rows.length],
-  );
+  const desktopColumns = useRoutingColumns({
+    isMobile,
+    rowsLength: rows.length,
+    onHandlePointerDown,
+    openEdit,
+    moveUp,
+    moveDown,
+    confirmDelete,
+  });
 
   return (
     <>
@@ -423,83 +245,16 @@ export default function RoutingTab({
         </Button>
 
         {isMobile ? (
-          <div className="rule-list">
-            {rows.length === 0 ? (
-              <div className="rule-empty">—</div>
-            ) : (
-              rows.map((rule, index) => (
-                <div
-                  key={rule.key}
-                  className={`rule-card ${draggedIndex === index ? 'row-dragging' : ''} ${
-                    dropTargetIndex === index && draggedIndex != null && index < draggedIndex ? 'drop-before' : ''
-                  } ${dropTargetIndex === index && draggedIndex != null && index > draggedIndex ? 'drop-after' : ''}`}
-                  data-row-key={index}
-                >
-                  <div className="rule-card-head">
-                    <HolderOutlined
-                      className="drag-handle"
-                      onPointerDown={(ev) => onHandlePointerDown(index, ev)}
-                    />
-                    <span className="rule-number">#{index + 1}</span>
-                    <Dropdown
-                      trigger={['click']}
-                      menu={{
-                        items: [
-                          { key: 'edit', label: <><EditOutlined /> {t('edit')}</>, onClick: () => openEdit(index) },
-                          { key: 'up', label: <ArrowUpOutlined />, disabled: index === 0, onClick: () => moveUp(index) },
-                          { key: 'down', label: <ArrowDownOutlined />, disabled: index === rows.length - 1, onClick: () => moveDown(index) },
-                          { key: 'del', danger: true, label: <><DeleteOutlined /> {t('delete')}</>, onClick: () => confirmDelete(index) },
-                        ],
-                      }}
-                    >
-                      <Button shape="circle" size="small" icon={<MoreOutlined />} />
-                    </Dropdown>
-                  </div>
-
-                  <div className="rule-flow">
-                    <div className="flow-side">
-                      <span className="flow-label">{t('pages.xray.Inbounds')}</span>
-                      {rule.inboundTag ? (
-                        <Tag color="blue" className="flow-tag">{chipPreview(rule.inboundTag)}</Tag>
-                      ) : (
-                        <span className="criterion-empty">any</span>
-                      )}
-                    </div>
-                    <span className="flow-arrow">→</span>
-                    <div className="flow-side flow-side-target">
-                      <span className="flow-label">
-                        {rule.balancerTag ? t('pages.xray.balancer') || 'Balancer' : t('pages.xray.Outbounds')}
-                      </span>
-                      {rule.outboundTag ? (
-                        <Tag color="green" className="flow-tag">
-                          <ExportOutlined /> {rule.outboundTag}
-                        </Tag>
-                      ) : rule.balancerTag ? (
-                        <Tag color="purple" className="flow-tag">
-                          <ClusterOutlined /> {rule.balancerTag}
-                        </Tag>
-                      ) : (
-                        <span className="criterion-empty">—</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {ruleCriteriaChips(rule).length > 0 && (
-                    <div className="rule-criteria">
-                      {ruleCriteriaChips(rule).map((chip) => (
-                        <Tooltip key={chip.label} title={`${chip.label}: ${chip.value}`}>
-                          <span className="criterion-chip">
-                            <span className="criterion-chip-label">{chip.label}</span>
-                            <span className="criterion-chip-value">{chipPreview(chip.value)}</span>
-                          </span>
-                        </Tooltip>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
+          <RuleCardList
+            rows={rows}
+            draggedIndex={draggedIndex}
+            dropTargetIndex={dropTargetIndex}
+            onHandlePointerDown={onHandlePointerDown}
+            openEdit={openEdit}
+            moveUp={moveUp}
+            moveDown={moveDown}
+            confirmDelete={confirmDelete}
+          />
         ) : (
           <Table
             columns={desktopColumns}
@@ -532,19 +287,5 @@ export default function RoutingTab({
         />
       </Space>
     </>
-  );
-}
-
-function CriterionRow({ label, value, title }: { label: string; value?: string; title: string }) {
-  const parts = csv(value);
-  if (parts.length === 0) return null;
-  return (
-    <Tooltip title={title}>
-      <span className="criterion-row">
-        <span className="criterion-label">{label}</span>
-        <span className="criterion-value">{parts[0]}</span>
-        {parts.length > 1 && <span className="criterion-more">+{parts.length - 1}</span>}
-      </span>
-    </Tooltip>
   );
 }
