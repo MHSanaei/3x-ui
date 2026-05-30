@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 
 import InboundFormModal from '@/pages/inbounds/form/InboundFormModal';
-import { renderWithProviders, fieldLabels } from './test-utils';
+import {
+  renderWithProviders,
+  fieldLabels,
+  listSelectOptions,
+  chooseSelectOption,
+} from './test-utils';
 
 function renderModal() {
   return renderWithProviders(
@@ -24,8 +29,13 @@ describe('InboundFormModal', () => {
     expect(fieldLabels().length).toBeGreaterThan(0);
   });
 
-  it('add-mode field structure is stable', () => {
+  it('field structure is stable for every protocol', () => {
     renderModal();
-    expect(fieldLabels()).toMatchSnapshot();
+    const protocols = listSelectOptions('protocol');
+    expect(protocols.length).toBeGreaterThan(3);
+    for (const proto of protocols) {
+      chooseSelectOption('protocol', proto);
+      expect(fieldLabels()).toMatchSnapshot(proto);
+    }
   });
 });

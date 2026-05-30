@@ -60,4 +60,5 @@ if (!i18next.isInitialized) {
 
 afterEach(() => {
   cleanup();
+  document.body.innerHTML = '';
 });

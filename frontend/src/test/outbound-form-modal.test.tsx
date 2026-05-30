@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 
 import OutboundFormModal from '@/pages/xray/outbounds/OutboundFormModal';
-import { renderWithProviders, fieldLabels } from './test-utils';
+import {
+  renderWithProviders,
+  fieldLabels,
+  listSelectOptions,
+  chooseSelectOption,
+} from './test-utils';
 
 function renderModal(outbound: Record<string, unknown> | null = null) {
   return renderWithProviders(
@@ -22,8 +27,13 @@ describe('OutboundFormModal', () => {
     expect(fieldLabels().length).toBeGreaterThan(0);
   });
 
-  it('add-mode field structure is stable', () => {
+  it('field structure is stable for every protocol', () => {
     renderModal(null);
-    expect(fieldLabels()).toMatchSnapshot();
+    const protocols = listSelectOptions('protocol');
+    expect(protocols.length).toBeGreaterThan(3);
+    for (const proto of protocols) {
+      chooseSelectOption('protocol', proto);
+      expect(fieldLabels()).toMatchSnapshot(proto);
+    }
   });
 });
