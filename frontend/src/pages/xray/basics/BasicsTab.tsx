@@ -8,6 +8,22 @@ import { SettingListItem } from '@/components/ui';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
 import './BasicsTab.css';
 
+import {
+  ACCESS_LOG,
+  BITTORRENT_PROTOCOLS,
+  BLOCK_DOMAINS_OPTIONS,
+  DOMAINS_OPTIONS,
+  ERROR_LOG,
+  IPS_OPTIONS,
+  LOG_LEVELS,
+  MASK_ADDRESS,
+  ROUTING_DOMAIN_STRATEGIES,
+  SERVICES_OPTIONS,
+  directSettings,
+  ipv4Settings,
+} from './constants';
+import { ruleGetter, ruleSetter, syncOutbound } from './helpers';
+
 interface BasicsTabProps {
   templateSettings: XraySettingsValue | null;
   setTemplateSettings: SetTemplate;
@@ -18,125 +34,6 @@ interface BasicsTabProps {
   onShowWarp: () => void;
   onShowNord: () => void;
   onResetDefault: () => void;
-}
-
-const ROUTING_DOMAIN_STRATEGIES = ['AsIs', 'IPIfNonMatch', 'IPOnDemand'];
-const LOG_LEVELS = ['none', 'debug', 'info', 'warning', 'error'];
-const ACCESS_LOG = ['none', './access.log'];
-const ERROR_LOG = ['none', './error.log'];
-const MASK_ADDRESS = ['quarter', 'half', 'full'];
-const BITTORRENT_PROTOCOLS = ['bittorrent'];
-
-const IPS_OPTIONS = [
-  { label: 'Private IPs', value: 'geoip:private' },
-  { label: '🇮🇷 Iran', value: 'ext:geoip_IR.dat:ir' },
-  { label: '🇨🇳 China', value: 'geoip:cn' },
-  { label: '🇷🇺 Russia', value: 'ext:geoip_RU.dat:ru' },
-  { label: '🇻🇳 Vietnam', value: 'geoip:vn' },
-  { label: '🇪🇸 Spain', value: 'geoip:es' },
-  { label: '🇮🇩 Indonesia', value: 'geoip:id' },
-  { label: '🇺🇦 Ukraine', value: 'geoip:ua' },
-  { label: '🇹🇷 Türkiye', value: 'geoip:tr' },
-  { label: '🇧🇷 Brazil', value: 'geoip:br' },
-];
-const DOMAINS_OPTIONS = [
-  { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
-  { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
-  { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
-  { label: '🇨🇳 China', value: 'geosite:cn' },
-  { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
-  { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:ru-available-only-inside' },
-  { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru$' },
-  { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
-  { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },
-  { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
-];
-const BLOCK_DOMAINS_OPTIONS = [
-  { label: 'Ads All', value: 'geosite:category-ads-all' },
-  { label: 'Ads IR 🇮🇷', value: 'ext:geosite_IR.dat:category-ads-all' },
-  { label: 'Ads RU 🇷🇺', value: 'ext:geosite_RU.dat:category-ads-all' },
-  { label: 'Malware 🇮🇷', value: 'ext:geosite_IR.dat:malware' },
-  { label: 'Phishing 🇮🇷', value: 'ext:geosite_IR.dat:phishing' },
-  { label: 'Cryptominers 🇮🇷', value: 'ext:geosite_IR.dat:cryptominers' },
-  { label: 'Adult +18', value: 'geosite:category-porn' },
-  { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
-  { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
-  { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
-  { label: '🇨🇳 China', value: 'geosite:cn' },
-  { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
-  { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:ru-available-only-inside' },
-  { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru$' },
-  { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
-  { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },
-  { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
-];
-const SERVICES_OPTIONS = [
-  { label: 'Apple', value: 'geosite:apple' },
-  { label: 'Meta', value: 'geosite:meta' },
-  { label: 'Google', value: 'geosite:google' },
-  { label: 'OpenAI', value: 'geosite:openai' },
-  { label: 'Spotify', value: 'geosite:spotify' },
-  { label: 'Netflix', value: 'geosite:netflix' },
-  { label: 'Reddit', value: 'geosite:reddit' },
-  { label: 'Speedtest', value: 'geosite:speedtest' },
-];
-
-const directSettings = { tag: 'direct', protocol: 'freedom' };
-const ipv4Settings = { tag: 'IPv4', protocol: 'freedom', settings: { domainStrategy: 'UseIPv4' } };
-
-function ruleGetter(t: XraySettingsValue | null, outboundTag: string, property: string): string[] {
-  if (!t?.routing?.rules) return [];
-  const out: string[] = [];
-  for (const rule of t.routing.rules) {
-    if (
-      rule &&
-      Object.prototype.hasOwnProperty.call(rule, property) &&
-      Object.prototype.hasOwnProperty.call(rule, 'outboundTag') &&
-      rule.outboundTag === outboundTag
-    ) {
-      const v = (rule as Record<string, unknown>)[property];
-      if (Array.isArray(v)) out.push(...(v as string[]));
-    }
-  }
-  return out;
-}
-
-function ruleSetter(t: XraySettingsValue, outboundTag: string, property: string, data: string[]): void {
-  if (!t.routing) return;
-  if (!Array.isArray(t.routing.rules)) t.routing.rules = [];
-  const current = ruleGetter(t, outboundTag, property);
-  if (current.length === 0) {
-    t.routing.rules.push({ type: 'field', outboundTag, [property]: data });
-    return;
-  }
-  const next: typeof t.routing.rules = [];
-  let inserted = false;
-  for (const rule of t.routing.rules) {
-    const matches =
-      rule &&
-      Object.prototype.hasOwnProperty.call(rule, property) &&
-      Object.prototype.hasOwnProperty.call(rule, 'outboundTag') &&
-      rule.outboundTag === outboundTag;
-    if (matches) {
-      if (!inserted && data.length > 0) {
-        (rule as Record<string, unknown>)[property] = data;
-        next.push(rule);
-        inserted = true;
-      }
-    } else {
-      next.push(rule);
-    }
-  }
-  t.routing.rules = next;
-}
-
-function syncOutbound(t: XraySettingsValue, tag: string, settings: Record<string, unknown>) {
-  if (!t.outbounds || !t.routing) return;
-  const rules = t.routing.rules || [];
-  const haveRules = rules.some((r) => r?.outboundTag === tag);
-  const idx = t.outbounds.findIndex((o) => o?.tag === tag);
-  if (!haveRules && idx > 0) t.outbounds.splice(idx, 1);
-  if (haveRules && idx < 0) t.outbounds.push(settings as never);
 }
 
 export default function BasicsTab({
