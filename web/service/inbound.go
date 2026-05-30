@@ -614,7 +614,23 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		return false, err
 	}
 
-	return needRestart, db.Delete(model.Inbound{}, id).Error
+	if err := db.Delete(model.Inbound{}, id).Error; err != nil {
+		return needRestart, err
+	}
+	if !database.IsPostgres() {
+		var maxId int
+		if err := db.Model(&model.Inbound{}).Select("COALESCE(MAX(id), 0)").Scan(&maxId).Error; err != nil {
+			return needRestart, err
+		}
+		if maxId == 0 {
+			if err := db.Exec("DELETE FROM sqlite_sequence WHERE name = ?", "inbounds").Error; err != nil {
+				return needRestart, err
+			}
+		} else if err := db.Exec("UPDATE sqlite_sequence SET seq = ? WHERE name = ?", maxId, "inbounds").Error; err != nil {
+			return needRestart, err
+		}
+	}
+	return needRestart, nil
 }
 
 type BulkDelInboundResult struct {
