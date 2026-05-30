@@ -1,1 +1,2 @@
-export { default as InboundList, isInboundMultiUser } from './InboundList';
+export { default as InboundList } from './InboundList';
+export { isInboundMultiUser } from './helpers';
