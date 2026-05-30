@@ -101,13 +101,16 @@ func NewSUBController(
 func (a *SUBController) initRouter(g *gin.RouterGroup) {
 	gLink := g.Group(a.subPath)
 	gLink.GET(":subid", a.subs)
+	gLink.HEAD(":subid", a.subs)
 	if a.jsonEnabled {
 		gJson := g.Group(a.subJsonPath)
 		gJson.GET(":subid", a.subJsons)
+		gJson.HEAD(":subid", a.subJsons)
 	}
 	if a.clashEnabled {
 		gClash := g.Group(a.subClashPath)
 		gClash.GET(":subid", a.subClashs)
+		gClash.HEAD(":subid", a.subClashs)
 	}
 }
 
