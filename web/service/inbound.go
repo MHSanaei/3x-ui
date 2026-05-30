@@ -617,6 +617,37 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	return needRestart, db.Delete(model.Inbound{}, id).Error
 }
 
+type BulkDelInboundResult struct {
+	Deleted int                    `json:"deleted"`
+	Skipped []BulkDelInboundReport `json:"skipped,omitempty"`
+}
+
+type BulkDelInboundReport struct {
+	Id     int    `json:"id"`
+	Reason string `json:"reason"`
+}
+
+// DelInbounds removes every inbound in the list, reusing the single-delete
+// path per id. Failures are recorded in Skipped and processing continues for
+// the rest; the aggregated needRestart is returned so the caller restarts
+// xray at most once.
+func (s *InboundService) DelInbounds(ids []int) (BulkDelInboundResult, bool, error) {
+	result := BulkDelInboundResult{}
+	needRestart := false
+	for _, id := range ids {
+		r, err := s.DelInbound(id)
+		if err != nil {
+			result.Skipped = append(result.Skipped, BulkDelInboundReport{Id: id, Reason: err.Error()})
+			continue
+		}
+		result.Deleted++
+		if r {
+			needRestart = true
+		}
+	}
+	return result, needRestart, nil
+}
+
 func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
 	db := database.GetDB()
 	inbound := &model.Inbound{}

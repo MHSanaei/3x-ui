@@ -615,6 +615,65 @@
         }
       }
     },
+    "/panel/api/inbounds/bulkDel": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Delete many inbounds in one call. Processes the list sequentially; failures are reported per id and the rest still proceed. Restarts xray at most once.",
+        "operationId": "post_panel_api_inbounds_bulkDel",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "ids": [
+                  1,
+                  2,
+                  3
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "deleted": 2,
+                    "skipped": [
+                      {
+                        "id": 3,
+                        "reason": "..."
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/inbounds/update/{id}": {
       "post": {
         "tags": [

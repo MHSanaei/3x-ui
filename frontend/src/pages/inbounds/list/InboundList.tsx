@@ -1,12 +1,14 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type Key } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
   Card,
+  Checkbox,
   Dropdown,
   Space,
   Switch,
   Table,
+  Tag,
   Tooltip,
   type MenuProps,
 } from 'antd';
@@ -18,6 +20,7 @@ import {
   ImportOutlined,
   ReloadOutlined,
   InfoCircleOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -43,11 +46,13 @@ export default function InboundList({
   onAddInbound,
   onGeneralAction,
   onRowAction,
+  onBulkDelete,
 }: InboundListProps) {
   const { t } = useTranslation();
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(null);
   const [statsRecord, setStatsRecord] = useState<DBInboundRecord | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
 
   const onSwitchEnable = useCallback(async (dbInbound: DBInboundRecord, next: boolean) => {
     const previous = dbInbound.enable;
@@ -74,6 +79,26 @@ export default function InboundList({
     () => dbInbounds.some((i) => typeof i.remark === 'string' && i.remark.trim() !== ''),
     [dbInbounds],
   );
+
+  const toggleSelect = useCallback((id: number, checked: boolean) => {
+    setSelectedRowKeys((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return Array.from(next);
+    });
+  }, []);
+
+  const selectAll = useCallback((checked: boolean) => {
+    setSelectedRowKeys(checked ? sortedInbounds.map((i) => i.id) : []);
+  }, [sortedInbounds]);
+
+  const allSelected = sortedInbounds.length > 0 && selectedRowKeys.length === sortedInbounds.length;
+  const someSelected = selectedRowKeys.length > 0 && selectedRowKeys.length < sortedInbounds.length;
+
+  const handleBulkDelete = useCallback(async () => {
+    const ok = await onBulkDelete(selectedRowKeys);
+    if (ok) setSelectedRowKeys([]);
+  }, [onBulkDelete, selectedRowKeys]);
 
   const columns = useInboundColumns({
     hasAnyRemark,
@@ -119,6 +144,16 @@ export default function InboundList({
               {!isMobile && t('pages.inbounds.generalActions')}
             </Button>
           </Dropdown>
+          {selectedRowKeys.length > 0 && (
+            <>
+              <Tag color="blue" closable onClose={() => setSelectedRowKeys([])} style={{ marginInlineEnd: 0 }}>
+                {t('pages.inbounds.selectedCount', { count: selectedRowKeys.length })}
+              </Tag>
+              <Button danger icon={<DeleteOutlined />} onClick={handleBulkDelete}>
+                {!isMobile && t('delete')}
+              </Button>
+            </>
+          )}
         </Space>
       )}
     >
@@ -131,9 +166,26 @@ export default function InboundList({
                 <div>{t('noData')}</div>
               </div>
             ) : (
-              sortedInbounds.map((record) => (
-                <div key={record.id} className="inbound-card">
+              <>
+              <div className="card-bulk-bar">
+                <Checkbox
+                  checked={allSelected}
+                  indeterminate={someSelected}
+                  onChange={(e) => selectAll(e.target.checked)}
+                >
+                  {t('pages.inbounds.selectAll')}
+                </Checkbox>
+                {selectedRowKeys.length > 0 && (
+                  <span className="bulk-count">{selectedRowKeys.length}</span>
+                )}
+              </div>
+              {sortedInbounds.map((record) => (
+                <div key={record.id} className={`inbound-card${selectedRowKeys.includes(record.id) ? ' is-selected' : ''}`}>
                   <div className="card-head">
+                    <Checkbox
+                      checked={selectedRowKeys.includes(record.id)}
+                      onChange={(e) => toggleSelect(record.id, e.target.checked)}
+                    />
                     <span className="card-id">#{record.id}</span>
                     <span className="tag-name">{record.remark}</span>
                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
@@ -158,7 +210,8 @@ export default function InboundList({
                     </div>
                   </div>
                 </div>
-              ))
+              ))}
+              </>
             )}
           </div>
         ) : (
@@ -166,6 +219,10 @@ export default function InboundList({
             columns={columns}
             dataSource={sortedInbounds}
             rowKey={(r) => r.id}
+            rowSelection={{
+              selectedRowKeys,
+              onChange: (keys: Key[]) => setSelectedRowKeys(keys as number[]),
+            }}
             pagination={paginationFor(sortedInbounds)}
             scroll={{ x: 1000 }}
             style={{ marginTop: 10 }}

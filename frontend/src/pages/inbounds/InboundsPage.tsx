@@ -357,6 +357,36 @@ export default function InboundsPage() {
     });
   }, [modal, refresh, t]);
 
+  const confirmBulkDelete = useCallback((ids: number[]) => new Promise<boolean>((resolve) => {
+    if (ids.length === 0) {
+      resolve(false);
+      return;
+    }
+    modal.confirm({
+      title: t('pages.inbounds.bulkDeleteConfirmTitle', { count: ids.length }),
+      content: t('pages.inbounds.bulkDeleteConfirmContent'),
+      okText: t('delete'),
+      okType: 'danger',
+      cancelText: t('cancel'),
+      onOk: async () => {
+        const msg = await HttpUtil.post('/panel/api/inbounds/bulkDel', { ids }, { headers: { 'Content-Type': 'application/json' } });
+        const obj = (msg?.obj ?? {}) as { deleted?: number; skipped?: { id: number; reason: string }[] };
+        const ok = obj.deleted ?? 0;
+        const skipped = obj.skipped ?? [];
+        if (msg?.success && skipped.length === 0) {
+          messageApi.success(t('pages.inbounds.toasts.bulkDeleted', { count: ok }));
+        } else {
+          const firstError = skipped[0]?.reason ?? msg?.msg ?? '';
+          const base = t('pages.inbounds.toasts.bulkDeletedMixed', { ok, failed: skipped.length });
+          messageApi.warning(firstError ? `${base} — ${firstError}` : base);
+        }
+        await refresh();
+        resolve(true);
+      },
+      onCancel: () => resolve(false),
+    });
+  }), [modal, refresh, t, messageApi]);
+
   const confirmResetTraffic = useCallback((dbInbound: DBInbound) => {
     modal.confirm({
       title: t('pages.inbounds.resetConfirmTitle', { remark: dbInbound.remark }),
@@ -567,6 +597,7 @@ export default function InboundsPage() {
                       onAddInbound={onAddInbound}
                       onGeneralAction={onGeneralAction}
                       onRowAction={({ key, dbInbound }) => onRowAction({ key, dbInbound: dbInbound as unknown as DBInbound })}
+                      onBulkDelete={confirmBulkDelete}
                     />
                   </Col>
                 </Row>

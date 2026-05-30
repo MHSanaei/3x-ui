@@ -75,6 +75,26 @@
   gap: 8px;
 }
 
+.inbound-card.is-selected {
+  border-color: var(--ant-color-primary);
+  background: color-mix(in srgb, var(--ant-color-primary) 6%, transparent);
+}
+
+.card-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 8px;
+}
+
+.bulk-count {
+  font-size: 12px;
+  background: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+  color: var(--ant-color-primary);
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
 .card-head {
   display: flex;
   align-items: center;
