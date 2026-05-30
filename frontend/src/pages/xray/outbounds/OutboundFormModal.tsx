@@ -26,10 +26,6 @@ import {
 import { parseOutboundLink } from '@/lib/xray/outbound-link-parser';
 import {
   OutboundFormBaseSchema,
-  ShadowsocksOutboundFormSettingsSchema,
-  TrojanOutboundFormSettingsSchema,
-  VlessOutboundFormSettingsSchema,
-  VmessOutboundFormSettingsSchema,
   type OutboundFormValues,
 } from '@/schemas/forms/outbound-form';
 import {
@@ -47,7 +43,6 @@ import {
   canEnableTls,
   canEnableTlsFlow,
 } from '@/lib/xray/protocol-capabilities';
-import { SSMethodSchema } from '@/schemas/protocols/shared/shadowsocks';
 import { antdRule } from '@/utils/zodForm';
 
 import {
@@ -58,9 +53,7 @@ import {
   MODE_OPTIONS,
   NETWORK_OPTIONS,
   PROTOCOL_OPTIONS,
-  SECURITY_OPTIONS,
   SERVER_PROTOCOLS,
-  SS_METHOD_OPTIONS,
   UTLS_OPTIONS,
 } from './outbound-form-constants';
 import {
@@ -69,6 +62,7 @@ import {
   isMuxAllowed,
   newStreamSlice,
 } from './outbound-form-helpers';
+import { OutboundCoreProtocolFields } from './outbound-core-fields';
 import { OutboundOnlyProtocolFields } from './outbound-only-fields';
 import { FreedomOutboundFields } from './outbound-freedom-fields';
 import { WireguardOutboundFields } from './outbound-wireguard-fields';
@@ -418,88 +412,7 @@ export default function OutboundFormModal({
                       </>
                     )}
 
-                    {(protocol === 'vmess' || protocol === 'vless') && (
-                      <Form.Item
-                        label="ID"
-                        name={['settings', 'id']}
-                        rules={[antdRule(VmessOutboundFormSettingsSchema.shape.id, t)]}
-                      >
-                        <Input placeholder="UUID" />
-                      </Form.Item>
-                    )}
-                    {protocol === 'vmess' && (
-                      <Form.Item
-                        label={t('security')}
-                        name={['settings', 'security']}
-                        rules={[antdRule(VmessOutboundFormSettingsSchema.shape.security, t)]}
-                      >
-                        <Select options={SECURITY_OPTIONS} />
-                      </Form.Item>
-                    )}
-                    {protocol === 'vless' && (
-                      <>
-                        <Form.Item
-                          label={t('encryption')}
-                          name={['settings', 'encryption']}
-                          rules={[antdRule(VlessOutboundFormSettingsSchema.shape.encryption, t)]}
-                        >
-                          <Input />
-                        </Form.Item>
-                        <Form.Item label={t('pages.clients.reverseTag')} name={['settings', 'reverseTag']}>
-                          <Input placeholder={t('pages.xray.outboundForm.optional')} />
-                        </Form.Item>
-                      </>
-                    )}
-
-                    {(protocol === 'trojan' || protocol === 'shadowsocks') && (
-                      <Form.Item
-                        label={t('password')}
-                        name={['settings', 'password']}
-                        rules={[
-                          antdRule(
-                            protocol === 'trojan'
-                              ? TrojanOutboundFormSettingsSchema.shape.password
-                              : ShadowsocksOutboundFormSettingsSchema.shape.password,
-                            t,
-                          ),
-                        ]}
-                      >
-                        <Input />
-                      </Form.Item>
-                    )}
-
-                    {protocol === 'shadowsocks' && (
-                      <>
-                        <Form.Item
-                          label={t('encryption')}
-                          name={['settings', 'method']}
-                          rules={[antdRule(SSMethodSchema, t)]}
-                        >
-                          <Select options={SS_METHOD_OPTIONS} />
-                        </Form.Item>
-                        <Form.Item
-                          label={t('pages.xray.outboundForm.udpOverTcp')}
-                          name={['settings', 'uot']}
-                          valuePropName="checked"
-                        >
-                          <Switch />
-                        </Form.Item>
-                        <Form.Item label={t('pages.xray.outboundForm.uotVersion')} name={['settings', 'UoTVersion']}>
-                          <InputNumber min={1} max={2} />
-                        </Form.Item>
-                      </>
-                    )}
-
-                    {(protocol === 'socks' || protocol === 'http') && (
-                      <>
-                        <Form.Item label={t('username')} name={['settings', 'user']}>
-                          <Input />
-                        </Form.Item>
-                        <Form.Item label={t('password')} name={['settings', 'pass']}>
-                          <Input />
-                        </Form.Item>
-                      </>
-                    )}
+                    <OutboundCoreProtocolFields protocol={protocol} />
 
                     <OutboundOnlyProtocolFields protocol={protocol} />
 
