@@ -647,6 +647,7 @@
       "online": "Trực tuyến",
       "email": "Email",
       "emailInvalidChars": "Email không được chứa khoảng trắng, '/', '\\' hoặc ký tự điều khiển",
+      "subIdInvalidChars": "ID đăng ký không được chứa khoảng trắng, '/', '\\' hoặc ký tự điều khiển",
       "group": "Nhóm",
       "groupDesc": "Nhãn logic để gom các client liên quan (nhóm, khách hàng, khu vực). Có thể lọc từ thanh công cụ.",
       "groupPlaceholder": "ví dụ customer-a",

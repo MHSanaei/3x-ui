@@ -647,6 +647,7 @@
       "online": "Online",
       "email": "Email",
       "emailInvalidChars": "O e-mail não pode conter espaços, '/', '\\' ou caracteres de controle",
+      "subIdInvalidChars": "O ID de assinatura não pode conter espaços, '/', '\\' ou caracteres de controle",
       "group": "Grupo",
       "groupDesc": "Rótulo lógico para agrupar clientes relacionados (ex.: equipe, cliente, região). Filtrável pela barra de ferramentas.",
       "groupPlaceholder": "ex.: customer-a",

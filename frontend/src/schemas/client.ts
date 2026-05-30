@@ -119,7 +119,7 @@ export const GroupSummarySchema = z.object({
 
 export const GroupSummaryListSchema = z.array(GroupSummarySchema).nullable().transform((v) => v ?? []);
 
-export function emailHasForbiddenChars(value: string): boolean {
+export function hasForbiddenClientChars(value: string): boolean {
   if (value.includes('/') || value.includes('\\') || value.includes(' ')) return true;
   for (let i = 0; i < value.length; i++) {
     const code = value.charCodeAt(i);
@@ -133,8 +133,8 @@ export const ClientFormSchema = z.object({
     .string()
     .trim()
     .min(1, 'pages.clients.email')
-    .refine((v) => !emailHasForbiddenChars(v), 'pages.clients.emailInvalidChars'),
-  subId: z.string(),
+    .refine((v) => !hasForbiddenClientChars(v), 'pages.clients.emailInvalidChars'),
+  subId: z.string().refine((v) => !hasForbiddenClientChars(v), 'pages.clients.subIdInvalidChars'),
   uuid: z.string(),
   password: z.string(),
   auth: z.string(),

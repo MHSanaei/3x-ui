@@ -30,3 +30,28 @@ func TestValidateClientEmail(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateClientSubID(t *testing.T) {
+	valid := []string{
+		"",
+		"abc123",
+		"sub-id_value",
+	}
+	for _, subID := range valid {
+		if err := validateClientSubID(subID); err != nil {
+			t.Errorf("validateClientSubID(%q) = %v, want nil", subID, err)
+		}
+	}
+
+	invalid := []string{
+		"a/b",
+		"with space",
+		"back\\slash",
+		"new\nline",
+	}
+	for _, subID := range invalid {
+		if err := validateClientSubID(subID); err == nil {
+			t.Errorf("validateClientSubID(%q) = nil, want error", subID)
+		}
+	}
+}

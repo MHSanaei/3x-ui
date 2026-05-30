@@ -647,6 +647,7 @@
       "online": "上線",
       "email": "電子郵件",
       "emailInvalidChars": "電子郵件不能包含空格、'/'、'\\' 或控制字元",
+      "subIdInvalidChars": "訂閱ID不能包含空格、'/'、'\\' 或控制字元",
       "group": "群組",
       "groupDesc": "用於將相關客戶端歸類的邏輯標籤(如團隊、客戶、地區)。可從工具列篩選。",
       "groupPlaceholder": "如 customer-a",

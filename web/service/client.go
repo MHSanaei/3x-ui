@@ -408,11 +408,25 @@ type ClientCreatePayload struct {
 	InboundIds []int        `json:"inboundIds"`
 }
 
-func validateClientEmail(email string) error {
-	for _, r := range email {
+func hasForbiddenClientChar(s string) bool {
+	for _, r := range s {
 		if r == '/' || r == '\\' || r == ' ' || r < 0x20 || r == 0x7f {
-			return common.NewError("client email contains an invalid character:", email)
+			return true
 		}
+	}
+	return false
+}
+
+func validateClientEmail(email string) error {
+	if hasForbiddenClientChar(email) {
+		return common.NewError("client email contains an invalid character:", email)
+	}
+	return nil
+}
+
+func validateClientSubID(subID string) error {
+	if hasForbiddenClientChar(subID) {
+		return common.NewError("client subId contains an invalid character:", subID)
 	}
 	return nil
 }
@@ -426,6 +440,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		return false, common.NewError("client email is required")
 	}
 	if err := validateClientEmail(client.Email); err != nil {
+		return false, err
+	}
+	if err := validateClientSubID(client.SubID); err != nil {
 		return false, err
 	}
 	if len(payload.InboundIds) == 0 {
@@ -594,6 +611,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		return false, common.NewError("client email is required")
 	}
 	if err := validateClientEmail(updated.Email); err != nil {
+		return false, err
+	}
+	if err := validateClientSubID(updated.SubID); err != nil {
 		return false, err
 	}
 	if updated.SubID == "" {

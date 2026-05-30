@@ -647,6 +647,7 @@
       "online": "在线",
       "email": "邮箱",
       "emailInvalidChars": "邮箱不能包含空格、'/'、'\\' 或控制字符",
+      "subIdInvalidChars": "订阅ID不能包含空格、'/'、'\\' 或控制字符",
       "group": "分组",
       "groupDesc": "用于对相关客户端进行分桶的逻辑标签（如团队、客户、地区）。可从工具栏筛选。",
       "groupPlaceholder": "如 customer-a",

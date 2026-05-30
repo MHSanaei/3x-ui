@@ -647,6 +647,7 @@
       "online": "Online",
       "email": "Email",
       "emailInvalidChars": "Email tidak boleh mengandung spasi, '/', '\\', atau karakter kontrol",
+      "subIdInvalidChars": "ID langganan tidak boleh mengandung spasi, '/', '\\', atau karakter kontrol",
       "group": "Grup",
       "groupDesc": "Label logis untuk mengelompokkan klien terkait (mis. tim, pelanggan, wilayah). Dapat difilter dari toolbar.",
       "groupPlaceholder": "mis. customer-a",

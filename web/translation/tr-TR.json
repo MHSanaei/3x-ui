@@ -647,6 +647,7 @@
       "online": "Çevrimiçi",
       "email": "Email",
       "emailInvalidChars": "E-posta boşluk, '/', '\\' veya kontrol karakterleri içeremez",
+      "subIdInvalidChars": "Abonelik kimliği boşluk, '/', '\\' veya kontrol karakterleri içeremez",
       "group": "Grup",
       "groupDesc": "İlgili istemcileri gruplamak için mantıksal etiket (ekip, müşteri, bölge). Araç çubuğundan filtrelenebilir.",
       "groupPlaceholder": "örn. customer-a",
