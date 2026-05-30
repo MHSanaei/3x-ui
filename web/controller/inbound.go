@@ -121,7 +121,7 @@ func (a *InboundController) getInbound(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "get"), err)
 		return
 	}
-	inbound, err := a.inboundService.GetInbound(id)
+	inbound, err := a.inboundService.GetInboundDetail(id)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return

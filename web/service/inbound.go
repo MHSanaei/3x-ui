@@ -238,11 +238,6 @@ func (s *InboundService) annotateFallbackParents(db *gorm.DB, inbounds []*model.
 	}
 }
 
-// InboundOption is the lightweight projection of an inbound used by client UI
-// pickers — only the fields needed to render labels, filter by protocol, and
-// decide whether the XTLS Vision flow selector should appear. Keeping this
-// payload minimal avoids shipping per-client settings and traffic stats just
-// to populate a dropdown.
 type InboundOption struct {
 	Id             int    `json:"id"`
 	Remark         string `json:"remark"`
@@ -252,10 +247,6 @@ type InboundOption struct {
 	TlsFlowCapable bool   `json:"tlsFlowCapable"`
 }
 
-// GetInboundOptions returns the picker-sized projection of the user's inbounds.
-// The TlsFlowCapable flag mirrors Inbound.canEnableTlsFlow() on the frontend
-// (VLESS over TCP with tls or reality) so the client modal does not need
-// StreamSettings to decide whether to show the Flow field.
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
 	db := database.GetDB()
 	var rows []struct {
@@ -619,39 +610,8 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		logger.Debug("DelInbound: inbound not found, id:", id)
 	}
 
-	// Delete client traffics of inbounds
-	err := db.Where("inbound_id = ?", id).Delete(xray.ClientTraffic{}).Error
-	if err != nil {
-		return false, err
-	}
 	if err := s.clientService.DetachInbound(db, id); err != nil {
 		return false, err
-	}
-	inbound, err := s.GetInbound(id)
-	if err != nil {
-		return false, err
-	}
-	clients, err := s.GetClients(inbound)
-	if err != nil {
-		return false, err
-	}
-	// Bulk-delete client IPs for every email in this inbound. The previous
-	// per-client loop fired one DELETE per row — at 7k+ clients that meant
-	// thousands of synchronous SQL roundtrips and a multi-second freeze.
-	// Chunked to stay under SQLite's bind-variable limit on huge inbounds.
-	if len(clients) > 0 {
-		emails := make([]string, 0, len(clients))
-		for i := range clients {
-			if clients[i].Email != "" {
-				emails = append(emails, clients[i].Email)
-			}
-		}
-		for _, batch := range chunkStrings(uniqueNonEmptyStrings(emails), sqliteMaxVars) {
-			if err := db.Where("client_email IN ?", batch).
-				Delete(model.InboundClientIps{}).Error; err != nil {
-				return false, err
-			}
-		}
 	}
 
 	return needRestart, db.Delete(model.Inbound{}, id).Error
@@ -667,15 +627,17 @@ func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
 	return inbound, nil
 }
 
-// SetInboundEnable toggles only the enable flag of an inbound, without
-// rewriting the (potentially multi-MB) settings JSON. Used by the UI's
-// per-row enable switch — for inbounds with thousands of clients the full
-// UpdateInbound path is an order of magnitude too slow for an interactive
-// toggle (parses + reserialises every client, runs O(N) traffic diff).
-//
-// Returns (needRestart, error). needRestart is true when the xray runtime
-// could not be re-synced from the cached config and a full restart is
-// required to pick up the change.
+func (s *InboundService) GetInboundDetail(id int) (*model.Inbound, error) {
+	db := database.GetDB()
+	inbound := &model.Inbound{}
+	err := db.Model(model.Inbound{}).Preload("ClientStats").First(inbound, id).Error
+	if err != nil {
+		return nil, err
+	}
+	s.enrichClientStats(db, []*model.Inbound{inbound})
+	return inbound, nil
+}
+
 func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	inbound, err := s.GetInbound(id)
 	if err != nil {
