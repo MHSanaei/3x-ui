@@ -1,47 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Collapse, Dropdown, Empty, Input, InputNumber, Modal, Select, Space, Switch, Table } from 'antd';
-import { PlusOutlined, MoreOutlined, EditOutlined, DeleteOutlined, MenuOutlined } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+import { Button, Collapse, Empty, Input, InputNumber, Modal, Select, Space, Switch, Table } from 'antd';
+import { PlusOutlined, DeleteOutlined, MenuOutlined } from '@ant-design/icons';
 
 import { SettingListItem } from '@/components/ui';
 import DnsServerModal from './DnsServerModal';
 import type { DnsServerValue } from './DnsServerModal';
 import DnsPresetsModal from './DnsPresetsModal';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
-import { DnsQueryStrategySchema, type DnsObject } from '@/schemas/dns';
 import './DnsTab.css';
+
+import { STRATEGIES, DEFAULT_FAKEDNS } from './helpers';
+import type { DnsConfig, HostRow, FakednsRow } from './types';
+import { useDnsServerColumns, useFakednsColumns } from './useDnsColumns';
 
 interface DnsTabProps {
   templateSettings: XraySettingsValue | null;
   setTemplateSettings: SetTemplate;
-}
-
-const STRATEGIES = DnsQueryStrategySchema.options;
-const DEFAULT_FAKEDNS = () => ({ ipPool: '198.18.0.0/15', poolSize: 65535 });
-
-type DnsConfig = Omit<DnsObject, 'servers'> & { servers?: DnsServerValue[] };
-
-interface HostRow {
-  domain: string;
-  values: string[];
-}
-
-interface FakednsRow {
-  ipPool: string;
-  poolSize: number;
-}
-
-function addrFor(server: DnsServerValue): string {
-  return typeof server === 'string' ? server : server?.address || '';
-}
-function domainsFor(server: DnsServerValue): string {
-  return typeof server === 'object' && server !== null ? (server.domains || []).join(',') : '';
-}
-function expectedIPsFor(server: DnsServerValue): string {
-  if (typeof server !== 'object' || !server) return '';
-  const list = server.expectedIPs || server.expectIPs || [];
-  return Array.isArray(list) ? list.join(',') : '';
 }
 
 export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTabProps) {
@@ -142,52 +117,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
     return list.map((server, idx) => ({ key: idx, server }));
   }, [dns?.servers]);
 
-  const dnsColumns: ColumnsType<{ key: number; server: DnsServerValue }> = useMemo(
-    () => [
-      {
-        title: '#',
-        key: 'action',
-        align: 'center',
-        width: 60,
-        render: (_v, _record, index) => (
-          <Space size={6}>
-            <span className="row-index">{index + 1}</span>
-            <Dropdown
-              trigger={['click']}
-              menu={{
-                items: [
-                  { key: 'edit', label: <><EditOutlined /> {t('edit')}</>, onClick: () => openEditServer(index) },
-                  { key: 'del', danger: true, label: <><DeleteOutlined /> {t('delete')}</>, onClick: () => deleteServer(index) },
-                ],
-              }}
-            >
-              <Button shape="circle" size="small" icon={<MoreOutlined />} />
-            </Dropdown>
-          </Space>
-        ),
-      },
-      {
-        title: t('pages.inbounds.address'),
-        key: 'address',
-        align: 'left',
-        render: (_v, record) => addrFor(record.server),
-      },
-      {
-        title: t('pages.xray.dns.domains'),
-        key: 'domains',
-        align: 'left',
-        render: (_v, record) => <span className="muted">{domainsFor(record.server)}</span>,
-      },
-      {
-        title: t('pages.xray.dns.expectIPs'),
-        key: 'expectedIPs',
-        align: 'left',
-        render: (_v, record) => <span className="muted">{expectedIPsFor(record.server)}</span>,
-      },
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t],
-  );
+  const dnsColumns = useDnsServerColumns({ openEditServer, deleteServer });
 
   function openAddServer() {
     setEditingServer(null);
@@ -241,52 +171,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
     return list.map((entry, idx) => ({ key: idx, ...entry }));
   }, [templateSettings?.fakedns]);
 
-  const fakednsColumns: ColumnsType<{ key: number; ipPool: string; poolSize: number }> = useMemo(
-    () => [
-      {
-        title: '#',
-        key: 'action',
-        align: 'center',
-        width: 60,
-        render: (_v, _record, index) => (
-          <Space size={6}>
-            <span className="row-index">{index + 1}</span>
-            <Button shape="circle" size="small" danger icon={<DeleteOutlined />} onClick={() => deleteFakedns(index)} />
-          </Space>
-        ),
-      },
-      {
-        title: 'IP pool',
-        dataIndex: 'ipPool',
-        key: 'ipPool',
-        align: 'left',
-        render: (_v, record, index) => (
-          <Input
-            value={record.ipPool}
-            size="small"
-            onChange={(e) => updateFakednsField(index, 'ipPool', e.target.value)}
-          />
-        ),
-      },
-      {
-        title: 'Pool size',
-        dataIndex: 'poolSize',
-        key: 'poolSize',
-        align: 'right',
-        width: 120,
-        render: (_v, record, index) => (
-          <InputNumber
-            value={record.poolSize}
-            min={1}
-            size="small"
-            onChange={(v) => updateFakednsField(index, 'poolSize', Number(v) || 0)}
-          />
-        ),
-      },
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
+  const fakednsColumns = useFakednsColumns({ deleteFakedns, updateFakednsField });
 
   function addFakedns() {
     mutate((tt) => {
