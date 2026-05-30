@@ -2,7 +2,7 @@ import { Base64, Wireguard } from '@/utils';
 
 import type { Inbound } from '@/schemas/api/inbound';
 import type { VlessClient } from '@/schemas/protocols/inbound/vless';
-import type { VmessSecurity } from '@/schemas/protocols/inbound/vmess';
+import type { VmessSecurity } from '@/schemas/protocols/shared/vmess';
 import type {
   WireguardInboundPeer,
   WireguardInboundSettings,

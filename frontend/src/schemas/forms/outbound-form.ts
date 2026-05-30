@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 import { PortSchema } from '@/schemas/primitives';
-import { VmessSecuritySchema } from '@/schemas/protocols/inbound/vmess';
-import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
+import { SSMethodSchema } from '@/schemas/protocols/shared/shadowsocks';
+import { VmessSecuritySchema } from '@/schemas/protocols/shared/vmess';
 import { SecuritySettingsSchema } from '@/schemas/protocols/security';
 import { NetworkSettingsSchema, StreamExtrasSchema } from '@/schemas/protocols/stream';
 import {

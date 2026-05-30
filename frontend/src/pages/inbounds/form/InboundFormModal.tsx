@@ -45,7 +45,7 @@ import {
   canEnableTls,
   isSS2022,
 } from '@/lib/xray/protocol-capabilities';
-import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
+import { SSMethodSchema } from '@/schemas/protocols/shared/shadowsocks';
 import { getRandomRealityTarget } from '@/models/reality-targets';
 import {
   InboundFormBaseSchema,

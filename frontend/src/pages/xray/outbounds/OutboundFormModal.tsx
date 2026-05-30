@@ -60,7 +60,7 @@ import {
   canEnableTls,
   canEnableTlsFlow,
 } from '@/lib/xray/protocol-capabilities';
-import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
+import { SSMethodSchema } from '@/schemas/protocols/shared/shadowsocks';
 import { antdRule } from '@/utils/zodForm';
 import './OutboundFormModal.css';
 
