@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`OutboundFormModal > add-mode field structure is stable 1`] = `
+[
+  "Protocol",
+  "Tag",
+  "Send Through",
+  "Address",
+  "Port",
+  "ID",
+  "Encryption",
+  "Reverse tag",
+  "Mux",
+]
+`;

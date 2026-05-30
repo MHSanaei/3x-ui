@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`InboundFormModal > add-mode field structure is stable 1`] = `
+[
+  "Enabled",
+  "Remark",
+  "Protocol",
+  "Address",
+  "Port",
+  "Total Flow",
+  "Traffic Reset",
+  "Duration",
+  "Enabled",
+]
+`;
