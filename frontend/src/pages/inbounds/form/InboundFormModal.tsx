@@ -84,6 +84,7 @@ import { InputAddon } from '@/components/ui';
 import './InboundFormModal.css';
 
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
+import { TunFields, TunnelFields } from './protocols';
 
 const { TextArea } = Input;
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
@@ -1053,122 +1054,9 @@ export default function InboundFormModal({
         </>
       )}
 
-      {protocol === Protocols.TUN && (
-        <>
-          <Form.Item name={['settings', 'name']} label={t('pages.inbounds.info.interfaceName')}>
-            <Input placeholder="xray0" />
-          </Form.Item>
-          <Form.Item name={['settings', 'mtu']} label="MTU">
-            <InputNumber min={0} />
-          </Form.Item>
-          <Form.List name={['settings', 'gateway']}>
-            {(fields, { add, remove }) => (
-              <Form.Item label={t('pages.inbounds.info.gateway')}>
-                <Button size="small" onClick={() => add('')}>
-                  <PlusOutlined />
-                </Button>
-                {fields.map((field, j) => (
-                  <Space.Compact key={field.key} block className="mt-4">
-                    <Form.Item name={field.name} noStyle>
-                      <Input placeholder={j === 0 ? '10.0.0.1/16' : 'fc00::1/64'} />
-                    </Form.Item>
-                    <Button size="small" onClick={() => remove(field.name)}>
-                      <MinusOutlined />
-                    </Button>
-                  </Space.Compact>
-                ))}
-              </Form.Item>
-            )}
-          </Form.List>
-          <Form.List name={['settings', 'dns']}>
-            {(fields, { add, remove }) => (
-              <Form.Item label="DNS">
-                <Button size="small" onClick={() => add('')}>
-                  <PlusOutlined />
-                </Button>
-                {fields.map((field, j) => (
-                  <Space.Compact key={field.key} block className="mt-4">
-                    <Form.Item name={field.name} noStyle>
-                      <Input placeholder={j === 0 ? '1.1.1.1' : '8.8.8.8'} />
-                    </Form.Item>
-                    <Button size="small" onClick={() => remove(field.name)}>
-                      <MinusOutlined />
-                    </Button>
-                  </Space.Compact>
-                ))}
-              </Form.Item>
-            )}
-          </Form.List>
-          <Form.Item name={['settings', 'userLevel']} label={t('pages.xray.tun.userLevel')}>
-            <InputNumber min={0} />
-          </Form.Item>
-          <Form.List name={['settings', 'autoSystemRoutingTable']}>
-            {(fields, { add, remove }) => (
-              <Form.Item
-                label={
-                  <Tooltip title={t('pages.inbounds.form.autoSystemRoutesTooltip')}>
-                    {t('pages.inbounds.info.autoSystemRoutes')}
-                  </Tooltip>
-                }
-              >
-                <Button size="small" onClick={() => add('')}>
-                  <PlusOutlined />
-                </Button>
-                {fields.map((field, j) => (
-                  <Space.Compact key={field.key} block className="mt-4">
-                    <Form.Item name={field.name} noStyle>
-                      <Input placeholder={j === 0 ? '0.0.0.0/0' : '::/0'} />
-                    </Form.Item>
-                    <Button size="small" onClick={() => remove(field.name)}>
-                      <MinusOutlined />
-                    </Button>
-                  </Space.Compact>
-                ))}
-              </Form.Item>
-            )}
-          </Form.List>
-          <Form.Item
-            name={['settings', 'autoOutboundsInterface']}
-            label={
-              <Tooltip title={t('pages.inbounds.form.autoOutboundsInterfaceTooltip')}>
-                {t('pages.inbounds.form.autoOutboundsInterface')}
-              </Tooltip>
-            }
-          >
-            <Input placeholder="auto" />
-          </Form.Item>
-        </>
-      )}
+      {protocol === Protocols.TUN && <TunFields />}
 
-      {protocol === Protocols.TUNNEL && (
-        <>
-          <Form.Item name={['settings', 'rewriteAddress']} label={t('pages.inbounds.form.rewriteAddress')}>
-            <Input />
-          </Form.Item>
-          <Form.Item name={['settings', 'rewritePort']} label={t('pages.inbounds.form.rewritePort')}>
-            <InputNumber min={0} max={65535} />
-          </Form.Item>
-          <Form.Item name={['settings', 'allowedNetwork']} label={t('pages.inbounds.form.allowedNetwork')}>
-            <Select
-              options={[
-                { value: 'tcp,udp', label: 'TCP, UDP' },
-                { value: 'tcp', label: 'TCP' },
-                { value: 'udp', label: 'UDP' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item label={t('pages.inbounds.portMap')} name={['settings', 'portMap']}>
-            <HeaderMapEditor mode="v1" />
-          </Form.Item>
-          <Form.Item
-            name={['settings', 'followRedirect']}
-            label={t('pages.inbounds.form.followRedirect')}
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
-        </>
-      )}
+      {protocol === Protocols.TUNNEL && <TunnelFields />}
 
       {(protocol === Protocols.HTTP || protocol === Protocols.MIXED) && (
         <>
