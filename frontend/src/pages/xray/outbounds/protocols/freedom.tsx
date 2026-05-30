@@ -5,7 +5,7 @@ import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { OutboundDomainStrategies } from '@/schemas/primitives';
 import type { OutboundFormValues } from '@/schemas/forms/outbound-form';
 
-export function FreedomOutboundFields({ form }: { form: FormInstance<OutboundFormValues> }) {
+export default function FreedomFields({ form }: { form: FormInstance<OutboundFormValues> }) {
   const { t } = useTranslation();
   return (
     <>

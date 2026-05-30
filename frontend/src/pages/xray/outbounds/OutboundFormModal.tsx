@@ -62,9 +62,8 @@ import {
   newStreamSlice,
 } from './outbound-form-helpers';
 import { OutboundCoreProtocolFields } from './outbound-core-fields';
-import { OutboundOnlyProtocolFields } from './outbound-only-fields';
-import { FreedomOutboundFields } from './outbound-freedom-fields';
 import { WireguardOutboundFields } from './outbound-wireguard-fields';
+import { BlackholeFields, DnsFields, FreedomFields, LoopbackFields } from './protocols';
 import './OutboundFormModal.css';
 
 // Pattern A rewrite of OutboundFormModal. Built as a sibling `.new.tsx`
@@ -391,9 +390,11 @@ export default function OutboundFormModal({
 
                     <OutboundCoreProtocolFields protocol={protocol} />
 
-                    <OutboundOnlyProtocolFields protocol={protocol} />
+                    {protocol === 'loopback' && <LoopbackFields />}
+                    {protocol === 'blackhole' && <BlackholeFields />}
+                    {protocol === 'dns' && <DnsFields />}
 
-                    {protocol === 'freedom' && <FreedomOutboundFields form={form} />}
+                    {protocol === 'freedom' && <FreedomFields form={form} />}
 
                     {protocol === 'vless' && (
                       <Form.Item shouldUpdate noStyle>
