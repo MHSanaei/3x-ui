@@ -11,6 +11,7 @@ import {
 import type { AllSetting } from '@/models/setting';
 import { HttpUtil, LanguageManager } from '@/utils';
 import { SettingListItem } from '@/components/ui';
+import { sanitizePath } from './uriPath';
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
@@ -150,7 +151,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.panelUrlPath')} description={t('pages.settings.panelUrlPathDesc')}>
-              <Input value={allSetting.webBasePath} onChange={(e) => updateSetting({ webBasePath: e.target.value })} />
+              <Input value={allSetting.webBasePath} onChange={(e) => updateSetting({ webBasePath: sanitizePath(e.target.value) })} />
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.sessionMaxAge')} description={t('pages.settings.sessionMaxAgeDesc')}>

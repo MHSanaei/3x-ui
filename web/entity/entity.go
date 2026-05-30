@@ -128,6 +128,15 @@ type AllSettingView struct {
 }
 
 // CheckValid validates all settings in the AllSetting struct, checking IP addresses, ports, SSL certificates, and other configuration values.
+func pathHasForbiddenChar(s string) bool {
+	for _, r := range s {
+		if r == '\\' || r == ' ' || r < 0x20 || r == 0x7f {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *AllSetting) CheckValid() error {
 	if s.WebListen != "" {
 		ip := net.ParseIP(s.WebListen)
@@ -166,6 +175,20 @@ func (s *AllSetting) CheckValid() error {
 		_, err := tls.LoadX509KeyPair(s.SubCertFile, s.SubKeyFile)
 		if err != nil {
 			return common.NewErrorf("cert file <%v> or key file <%v> invalid: %v", s.SubCertFile, s.SubKeyFile, err)
+		}
+	}
+
+	for _, p := range []struct {
+		name  string
+		value string
+	}{
+		{"web base path", s.WebBasePath},
+		{"subscription path", s.SubPath},
+		{"subscription JSON path", s.SubJsonPath},
+		{"subscription Clash path", s.SubClashPath},
+	} {
+		if pathHasForbiddenChar(p.value) {
+			return common.NewError("URI path contains an invalid character:", p.name)
 		}
 	}
 
