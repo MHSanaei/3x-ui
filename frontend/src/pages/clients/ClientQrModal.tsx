@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Collapse, Modal, Spin } from 'antd';
 import { HttpUtil } from '@/utils';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
-import QrPanel from '@/pages/inbounds/QrPanel';
+import { QrPanel } from '@/pages/inbounds/qr';
 import type { ClientRecord } from '@/hooks/useClients';
 
 interface SubSettings {

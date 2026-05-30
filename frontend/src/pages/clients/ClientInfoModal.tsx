@@ -7,7 +7,7 @@ import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
-import QrPanel from '@/pages/inbounds/QrPanel';
+import { QrPanel } from '@/pages/inbounds/qr';
 import './ClientInfoModal.css';
 
 const PROTOCOL_COLORS: Record<string, string> = {

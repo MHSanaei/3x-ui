@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { PortSchema } from '@/schemas/primitives';
-import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
+import { SSMethodSchema } from '@/schemas/protocols/shared/shadowsocks';
 
 // Shadowsocks outbound persists as { servers: [{ ... }] }, with UDP-over-TCP
 // knobs (uot, UoTVersion) attached per-server when the user enabled them.

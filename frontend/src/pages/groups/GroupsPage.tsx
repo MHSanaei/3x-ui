@@ -42,8 +42,8 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useClients } from '@/hooks/useClients';
 import { HttpUtil } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
-import AppSidebar from '@/components/AppSidebar';
-import LazyMount from '@/components/LazyMount';
+import AppSidebar from '@/layouts/AppSidebar';
+import { LazyMount } from '@/components/utility';
 import { keys } from '@/api/queryKeys';
 import {
   ClientRecordSchema,

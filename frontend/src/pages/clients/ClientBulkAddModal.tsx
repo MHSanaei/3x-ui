@@ -7,7 +7,7 @@ import type { Dayjs } from 'dayjs';
 
 import { RandomUtil, SizeFormatter } from '@/utils';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
-import DateTimePicker from '@/components/DateTimePicker';
+import { DateTimePicker } from '@/components/form';
 import { useClients, type InboundOption } from '@/hooks/useClients';
 import { ClientBulkAddFormSchema, type ClientBulkAddFormValues } from '@/schemas/client';
 

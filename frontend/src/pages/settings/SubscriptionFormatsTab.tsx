@@ -10,7 +10,7 @@ import {
   Switch,
 } from 'antd';
 import type { AllSetting } from '@/models/setting';
-import SettingListItem from '@/components/SettingListItem';
+import { SettingListItem } from '@/components/ui';
 import './SubscriptionFormatsTab.css';
 
 interface SubscriptionFormatsTabProps {
