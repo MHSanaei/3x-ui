@@ -46,13 +46,11 @@ import { antdRule } from '@/utils/zodForm';
 
 import {
   ADDRESS_PORT_STRATEGY_OPTIONS,
-  ALPN_OPTIONS,
   FLOW_OPTIONS,
   HYSTERIA_NETWORK_OPTION,
   NETWORK_OPTIONS,
   PROTOCOL_OPTIONS,
   SERVER_PROTOCOLS,
-  UTLS_OPTIONS,
 } from './outbound-form-constants';
 import {
   buildAddModeValues,
@@ -82,6 +80,7 @@ import {
   WsForm,
   XhttpForm,
 } from './transport';
+import { RealityForm, TlsForm } from './security';
 import './OutboundFormModal.css';
 
 // Pattern A rewrite of OutboundFormModal. Built as a sibling `.new.tsx`
@@ -603,91 +602,9 @@ export default function OutboundFormModal({
                       </Form.Item>
                     )}
 
-                    {security === 'tls' && tlsAllowed && (
-                      <>
-                        <Form.Item
-                          label="SNI"
-                          name={['streamSettings', 'tlsSettings', 'serverName']}
-                        >
-                          <Input placeholder={t('pages.xray.outboundForm.serverNamePlaceholder')} />
-                        </Form.Item>
-                        <Form.Item
-                          label="uTLS"
-                          name={['streamSettings', 'tlsSettings', 'fingerprint']}
-                        >
-                          <Select
-                            allowClear
-                            placeholder={t('none')}
-                            options={UTLS_OPTIONS}
-                          />
-                        </Form.Item>
-                        <Form.Item
-                          label="ALPN"
-                          name={['streamSettings', 'tlsSettings', 'alpn']}
-                        >
-                          <Select mode="multiple" options={ALPN_OPTIONS} />
-                        </Form.Item>
-                        <Form.Item
-                          label="ECH"
-                          name={['streamSettings', 'tlsSettings', 'echConfigList']}
-                        >
-                          <Input />
-                        </Form.Item>
-                        <Form.Item
-                          label={t('pages.xray.outboundForm.verifyPeerName')}
-                          name={['streamSettings', 'tlsSettings', 'verifyPeerCertByName']}
-                        >
-                          <Input placeholder="cloudflare-dns.com" />
-                        </Form.Item>
-                        <Form.Item
-                          label={t('pages.xray.outboundForm.pinnedSha256')}
-                          name={['streamSettings', 'tlsSettings', 'pinnedPeerCertSha256']}
-                        >
-                          <Input placeholder="base64 SHA256" />
-                        </Form.Item>
-                      </>
-                    )}
+                    {security === 'tls' && tlsAllowed && <TlsForm />}
 
-                    {security === 'reality' && realityAllowed && (
-                      <>
-                        <Form.Item
-                          label="SNI"
-                          name={['streamSettings', 'realitySettings', 'serverName']}
-                        >
-                          <Input />
-                        </Form.Item>
-                        <Form.Item
-                          label="uTLS"
-                          name={['streamSettings', 'realitySettings', 'fingerprint']}
-                        >
-                          <Select options={UTLS_OPTIONS} />
-                        </Form.Item>
-                        <Form.Item
-                          label={t('pages.xray.outboundForm.shortId')}
-                          name={['streamSettings', 'realitySettings', 'shortId']}
-                        >
-                          <Input />
-                        </Form.Item>
-                        <Form.Item
-                          label={t('pages.inbounds.form.spiderX')}
-                          name={['streamSettings', 'realitySettings', 'spiderX']}
-                        >
-                          <Input />
-                        </Form.Item>
-                        <Form.Item
-                          label={t('pages.inbounds.publicKey')}
-                          name={['streamSettings', 'realitySettings', 'publicKey']}
-                        >
-                          <Input.TextArea autoSize={{ minRows: 2 }} />
-                        </Form.Item>
-                        <Form.Item
-                          label={t('pages.inbounds.form.mldsa65Verify')}
-                          name={['streamSettings', 'realitySettings', 'mldsa65Verify']}
-                        >
-                          <Input.TextArea autoSize={{ minRows: 2 }} />
-                        </Form.Item>
-                      </>
-                    )}
+                    {security === 'reality' && realityAllowed && <RealityForm />}
 
                     {((streamAllowed && network) || !streamAllowed) && (
                       <Form.Item shouldUpdate noStyle>
