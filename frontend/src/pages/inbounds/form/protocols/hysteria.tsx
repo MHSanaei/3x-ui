@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Form, InputNumber, type FormInstance } from 'antd';
 
-import { HysteriaMasqueradeForm } from '@/lib/xray/forms/protocols/shared';
+import { HysteriaMasqueradeForm } from '@/lib/xray/forms/transport';
 import type { InboundFormValues } from '@/schemas/forms/inbound-form';
 
 export default function HysteriaFields({ form }: { form: FormInstance<InboundFormValues> }) {

@@ -13,8 +13,7 @@ import {
   Tabs,
   message,
 } from 'antd';
-import { FinalMaskForm } from '@/lib/xray/forms/transport';
-import { HysteriaMasqueradeForm } from '@/lib/xray/forms/protocols/shared';
+import { FinalMaskForm, HysteriaMasqueradeForm } from '@/lib/xray/forms/transport';
 import { JsonEditor } from '@/components/form';
 import { Wireguard } from '@/utils';
 import {
