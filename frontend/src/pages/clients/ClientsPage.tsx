@@ -115,6 +115,7 @@ type Bucket = 'active' | 'deactive' | 'depleted' | 'expiring';
 interface PersistedFilterState {
   searchKey: string;
   filters: ClientFilters;
+  sort: string;
 }
 
 const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
@@ -145,9 +146,10 @@ function readFilterState(): PersistedFilterState {
         inboundIds: Array.isArray(fromRaw.inboundIds) ? fromRaw.inboundIds : [],
         groups: Array.isArray(fromRaw.groups) ? fromRaw.groups : [],
       },
+      sort: typeof raw.sort === 'string' ? raw.sort : '',
     };
   } catch {
-    return { searchKey: '', filters: emptyFilters() };
+    return { searchKey: '', filters: emptyFilters(), sort: '' };
   }
 }
 
@@ -224,8 +226,9 @@ export default function ClientsPage() {
   const [filters, setFilters] = useState<ClientFilters>(initial.filters);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
-  const [sortColumn, setSortColumn] = useState<string | null>(DEFAULT_SORT.column);
-  const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(DEFAULT_SORT.order);
+  const initialSort = SORT_OPTIONS.find((o) => o.value === initial.sort) ?? DEFAULT_SORT;
+  const [sortColumn, setSortColumn] = useState<string | null>(initialSort.column);
+  const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(initialSort.order);
   const [currentPage, setCurrentPage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(25);
   // debouncedSearch lags behind the input so we don't spam the server on every
@@ -233,8 +236,8 @@ export default function ClientsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState(searchKey);
 
   useEffect(() => {
-    localStorage.setItem(FILTER_STATE_KEY, JSON.stringify({ searchKey, filters }));
-  }, [searchKey, filters]);
+    localStorage.setItem(FILTER_STATE_KEY, JSON.stringify({ searchKey, filters, sort: sortValueFor(sortColumn, sortOrder) }));
+  }, [searchKey, filters, sortColumn, sortOrder]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedSearch(searchKey), 300);
