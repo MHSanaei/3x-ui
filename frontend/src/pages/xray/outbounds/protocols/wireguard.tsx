@@ -7,7 +7,7 @@ import { InputAddon } from '@/components/ui';
 import { WireguardDomainStrategy } from '@/schemas/primitives';
 import type { OutboundFormValues } from '@/schemas/forms/outbound-form';
 
-export function WireguardOutboundFields({ form }: { form: FormInstance<OutboundFormValues> }) {
+export default function WireguardFields({ form }: { form: FormInstance<OutboundFormValues> }) {
   const { t } = useTranslation();
   return (
     <>

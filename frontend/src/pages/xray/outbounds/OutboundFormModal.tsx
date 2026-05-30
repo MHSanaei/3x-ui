@@ -53,6 +53,7 @@ import {
   MODE_OPTIONS,
   NETWORK_OPTIONS,
   PROTOCOL_OPTIONS,
+  SERVER_PROTOCOLS,
   UTLS_OPTIONS,
 } from './outbound-form-constants';
 import {
@@ -61,9 +62,20 @@ import {
   isMuxAllowed,
   newStreamSlice,
 } from './outbound-form-helpers';
-import { OutboundCoreProtocolFields } from './outbound-core-fields';
-import { WireguardOutboundFields } from './outbound-wireguard-fields';
-import { BlackholeFields, DnsFields, FreedomFields, LoopbackFields } from './protocols';
+import {
+  BlackholeFields,
+  DnsFields,
+  FreedomFields,
+  HttpFields,
+  LoopbackFields,
+  ServerTarget,
+  ShadowsocksFields,
+  SocksFields,
+  TrojanFields,
+  VlessFields,
+  VmessFields,
+  WireguardFields,
+} from './protocols';
 import './OutboundFormModal.css';
 
 // Pattern A rewrite of OutboundFormModal. Built as a sibling `.new.tsx`
@@ -388,7 +400,13 @@ export default function OutboundFormModal({
                       <Input placeholder={t('pages.xray.outboundForm.localIpPlaceholder')} />
                     </Form.Item>
 
-                    <OutboundCoreProtocolFields protocol={protocol} />
+                    {SERVER_PROTOCOLS.has(protocol) && <ServerTarget />}
+                    {protocol === 'vmess' && <VmessFields />}
+                    {protocol === 'vless' && <VlessFields />}
+                    {protocol === 'trojan' && <TrojanFields />}
+                    {protocol === 'shadowsocks' && <ShadowsocksFields />}
+                    {protocol === 'http' && <HttpFields />}
+                    {protocol === 'socks' && <SocksFields />}
 
                     {protocol === 'loopback' && <LoopbackFields />}
                     {protocol === 'blackhole' && <BlackholeFields />}
@@ -470,7 +488,7 @@ export default function OutboundFormModal({
                       </Form.Item>
                     )}
 
-                    {protocol === 'wireguard' && <WireguardOutboundFields form={form} />}
+                    {protocol === 'wireguard' && <WireguardFields form={form} />}
 
                     {streamAllowed && network && (
                       <>
