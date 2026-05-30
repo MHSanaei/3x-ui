@@ -28,19 +28,19 @@ import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
-import AppSidebar from '@/components/AppSidebar';
-const TextModal = lazy(() => import('@/components/TextModal'));
-const PromptModal = lazy(() => import('@/components/PromptModal'));
+import AppSidebar from '@/layouts/AppSidebar';
+const TextModal = lazy(() => import('@/components/feedback/TextModal'));
+const PromptModal = lazy(() => import('@/components/feedback/PromptModal'));
 
 import { useInbounds } from './useInbounds';
-import InboundList from './InboundList';
-import LazyMount from '@/components/LazyMount';
-const InboundFormModal = lazy(() => import('./InboundFormModal'));
-const InboundInfoModal = lazy(() => import('./InboundInfoModal'));
-const QrCodeModal = lazy(() => import('./QrCodeModal'));
-const AttachClientsModal = lazy(() => import('./AttachClientsModal'));
-const DetachClientsModal = lazy(() => import('./DetachClientsModal'));
-const AddClientsToGroupModal = lazy(() => import('./AddClientsToGroupModal'));
+import { InboundList } from './list';
+import { LazyMount } from '@/components/utility';
+const InboundFormModal = lazy(() => import('./form/InboundFormModal'));
+const InboundInfoModal = lazy(() => import('./info/InboundInfoModal'));
+const QrCodeModal = lazy(() => import('./qr/QrCodeModal'));
+const AttachClientsModal = lazy(() => import('./clients/AttachClientsModal'));
+const DetachClientsModal = lazy(() => import('./clients/DetachClientsModal'));
+const AddClientsToGroupModal = lazy(() => import('./clients/AddClientsToGroupModal'));
 
 type RowAction =
   | 'edit'

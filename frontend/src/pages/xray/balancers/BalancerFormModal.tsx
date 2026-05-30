@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Modal, Select, Space, Switch } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
 
-import InputAddon from '@/components/InputAddon';
+import { InputAddon } from '@/components/ui';
 import {
   BalancerFormSchema,
   type BalancerFormValues,

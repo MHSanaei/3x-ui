@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button, Input, Space } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
 
-import InputAddon from '@/components/InputAddon';
+import { InputAddon } from '@/components/ui';
 
 // Reusable header-map editor. Handles the two wire shapes Xray uses for
 // HTTP-style header maps:

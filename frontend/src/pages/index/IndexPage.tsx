@@ -39,13 +39,13 @@ import { HttpUtil, SizeFormatter, TimeFormatter, ClipboardManager, FileManager }
 import { useTheme } from '@/hooks/useTheme';
 import { useStatusQuery } from '@/api/queries/useStatusQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import AppSidebar from '@/components/AppSidebar';
-import LazyMount from '@/components/LazyMount';
+import AppSidebar from '@/layouts/AppSidebar';
+import { LazyMount } from '@/components/utility';
 import { setMessageInstance } from '@/utils/messageBus';
 import StatusCard from './StatusCard';
 import XrayStatusCard from './XrayStatusCard';
 import type { PanelUpdateInfo } from './PanelUpdateModal';
-const JsonEditor = lazy(() => import('@/components/JsonEditor'));
+const JsonEditor = lazy(() => import('@/components/form/JsonEditor'));
 const PanelUpdateModal = lazy(() => import('./PanelUpdateModal'));
 const LogModal = lazy(() => import('./LogModal'));
 const BackupModal = lazy(() => import('./BackupModal'));

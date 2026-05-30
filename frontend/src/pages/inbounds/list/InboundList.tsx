@@ -34,7 +34,7 @@ import {
 } from '@ant-design/icons';
 
 import { HttpUtil, SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
-import InfinityIcon from '@/components/InfinityIcon';
+import { InfinityIcon } from '@/components/ui';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import { isSSMultiUser } from '@/lib/xray/protocol-capabilities';

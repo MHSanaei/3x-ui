@@ -13,7 +13,7 @@ import {
   FileManager,
 } from '@/utils';
 import { Protocols } from '@/schemas/primitives';
-import InfinityIcon from '@/components/InfinityIcon';
+import { InfinityIcon } from '@/components/ui';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import { coerceInboundJsonField } from '@/models/dbinbound';
 import {
@@ -27,7 +27,7 @@ import {
   genWireguardLinks,
 } from '@/lib/xray/inbound-link';
 import { inboundFromDb } from '@/lib/xray/inbound-from-db';
-import type { SubSettings } from './useInbounds';
+import type { SubSettings } from '../useInbounds';
 import './InboundInfoModal.css';
 
 const LINK_PROTOCOLS: ReadonlySet<string> = new Set([

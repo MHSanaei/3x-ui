@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, Modal, Select, Space, Tooltip } from 'antd';
 import { PlusOutlined, MinusOutlined, QuestionCircleOutlined } from '@ant-design/icons';
-import InputAddon from '@/components/InputAddon';
+import { InputAddon } from '@/components/ui';
 import { RuleFormSchema, type RuleFormValues } from '@/schemas/xray';
 
 export interface RoutingRule {

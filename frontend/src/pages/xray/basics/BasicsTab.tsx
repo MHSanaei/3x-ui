@@ -4,7 +4,7 @@ import { Alert, Button, Collapse, Input, Modal, Select, Space, Switch } from 'an
 import { CloudOutlined, ApiOutlined } from '@ant-design/icons';
 
 import { OutboundDomainStrategies } from '@/schemas/primitives';
-import SettingListItem from '@/components/SettingListItem';
+import { SettingListItem } from '@/components/ui';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
 import './BasicsTab.css';
 

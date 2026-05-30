@@ -12,7 +12,7 @@ import {
 } from '@/lib/xray/inbound-link';
 import { inboundFromDb, type DbInboundLike } from '@/lib/xray/inbound-from-db';
 import QrPanel from './QrPanel';
-import type { SubSettings } from './useInbounds';
+import type { SubSettings } from '../useInbounds';
 
 interface ClientSetting {
   email?: string;

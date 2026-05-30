@@ -5,7 +5,7 @@ import type { ColumnsType } from 'antd/es/table';
 
 import { HttpUtil } from '@/utils';
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
-import { isInboundMultiUser } from './InboundList';
+import { isInboundMultiUser } from '../list';
 
 interface AttachClientsModalProps {
   open: boolean;

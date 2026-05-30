@@ -33,17 +33,16 @@ import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useXraySetting } from '@/hooks/useXraySetting';
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
-import AppSidebar from '@/components/AppSidebar';
-import JsonEditor from '@/components/JsonEditor';
+import AppSidebar from '@/layouts/AppSidebar';
+import { JsonEditor } from '@/components/form';
 import { setMessageInstance } from '@/utils/messageBus';
 
-import BasicsTab from './BasicsTab';
-import RoutingTab from './RoutingTab';
-import OutboundsTab from './OutboundsTab';
-import BalancersTab from './BalancersTab';
-import DnsTab from './DnsTab';
-import WarpModal from './WarpModal';
-import NordModal from './NordModal';
+import { BasicsTab } from './basics';
+import { RoutingTab } from './routing';
+import { OutboundsTab } from './outbounds';
+import { BalancersTab } from './balancers';
+import { DnsTab } from './dns';
+import { WarpModal, NordModal } from './overrides';
 import './XrayPage.css';
 
 const TAB_KEYS = ['tpl-basic', 'tpl-routing', 'tpl-outbound', 'tpl-balancer', 'tpl-dns', 'tpl-advanced'];

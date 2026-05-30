@@ -6,7 +6,7 @@ import type { ColumnsType } from 'antd/es/table';
 
 import BalancerFormModal from './BalancerFormModal';
 import type { BalancerFormValue } from './BalancerFormModal';
-import JsonEditor from '@/components/JsonEditor';
+import { JsonEditor } from '@/components/form';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
 import type {
   BalancerObject,

@@ -4,7 +4,7 @@ import { Button, Collapse, Dropdown, Empty, Input, InputNumber, Modal, Select, S
 import { PlusOutlined, MoreOutlined, EditOutlined, DeleteOutlined, MenuOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
-import SettingListItem from '@/components/SettingListItem';
+import { SettingListItem } from '@/components/ui';
 import DnsServerModal from './DnsServerModal';
 import type { DnsServerValue } from './DnsServerModal';
 import DnsPresetsModal from './DnsPresetsModal';

@@ -15,11 +15,11 @@ import {
 } from 'antd';
 import { DeleteOutlined, MinusOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 
-import FinalMaskForm from '@/components/FinalMaskForm';
-import HeaderMapEditor from '@/components/HeaderMapEditor';
-import HysteriaMasqueradeForm from '@/components/HysteriaMasqueradeForm';
-import InputAddon from '@/components/InputAddon';
-import JsonEditor from '@/components/JsonEditor';
+import { FinalMaskForm } from '@/lib/xray/forms/transport';
+import { HeaderMapEditor } from '@/components/form';
+import { HysteriaMasqueradeForm } from '@/lib/xray/forms/protocols/shared';
+import { InputAddon } from '@/components/ui';
+import { JsonEditor } from '@/components/form';
 import { Wireguard } from '@/utils';
 import {
   XMUX_DEFAULTS,

@@ -1,7 +1,7 @@
 import { Collapse, Divider, Input, InputNumber, Switch } from 'antd';
 import { useTranslation } from 'react-i18next';
 import type { AllSetting } from '@/models/setting';
-import SettingListItem from '@/components/SettingListItem';
+import { SettingListItem } from '@/components/ui';
 
 interface SubscriptionGeneralTabProps {
   allSetting: AllSetting;

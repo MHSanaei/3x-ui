@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Form, Input, InputNumber, Select, Switch } from 'antd';
 import type { FormInstance } from 'antd';
 
-import HeaderMapEditor from '@/components/HeaderMapEditor';
+import { HeaderMapEditor } from '@/components/form';
 
 const MASQ_PATH = ['streamSettings', 'hysteriaSettings', 'masquerade'];
 

@@ -10,7 +10,7 @@ import {
 } from 'antd';
 import type { AllSetting } from '@/models/setting';
 import { HttpUtil, LanguageManager } from '@/utils';
-import SettingListItem from '@/components/SettingListItem';
+import { SettingListItem } from '@/components/ui';
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
