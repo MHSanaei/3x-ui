@@ -10,12 +10,34 @@ import {
 import { SSMethodSchema } from '@/schemas/protocols/shared/shadowsocks';
 import { antdRule } from '@/utils/zodForm';
 
-import { SECURITY_OPTIONS, SS_METHOD_OPTIONS } from './outbound-form-constants';
+import { SECURITY_OPTIONS, SERVER_PROTOCOLS, SS_METHOD_OPTIONS } from './outbound-form-constants';
 
 export function OutboundCoreProtocolFields({ protocol }: { protocol: string }) {
   const { t } = useTranslation();
   return (
     <>
+      {/* Shared connect target (address + port) for protocols
+          whose form schema carries them flat at settings root.
+          Hidden for freedom/blackhole/dns/loopback/wireguard. */}
+      {SERVER_PROTOCOLS.has(protocol) && (
+        <>
+          <Form.Item
+            label={t('pages.inbounds.address')}
+            name={['settings', 'address']}
+            rules={[{ required: true, message: t('pages.xray.outboundForm.addressRequired') }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label={t('pages.inbounds.port')}
+            name={['settings', 'port']}
+            rules={[{ required: true, message: t('pages.xray.outboundForm.portRequired') }]}
+          >
+            <InputNumber min={1} max={65535} style={{ width: '100%' }} />
+          </Form.Item>
+        </>
+      )}
+
       {(protocol === 'vmess' || protocol === 'vless') && (
         <Form.Item
           label="ID"
