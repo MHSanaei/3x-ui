@@ -21,6 +21,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_non_write_users: "*"
           claude_args: |
             --max-turns 25
             --allowedTools "Bash(gh:*),Read,Glob,Grep"
