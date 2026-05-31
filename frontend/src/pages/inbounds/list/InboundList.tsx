@@ -25,11 +25,10 @@ import {
 
 import { HttpUtil } from '@/utils';
 
-import { SORT_FNS } from './helpers';
 import { buildRowActionsMenu } from './RowActions';
 import { useInboundColumns } from './useInboundColumns';
 import InboundStatsModal from './InboundStatsModal';
-import type { DBInboundRecord, GeneralAction, InboundListProps, RowAction, SortKey, SortOrder } from './types';
+import type { DBInboundRecord, GeneralAction, InboundListProps, RowAction } from './types';
 import './InboundList.css';
 
 export default function InboundList({
@@ -49,8 +48,6 @@ export default function InboundList({
   onBulkDelete,
 }: InboundListProps) {
   const { t } = useTranslation();
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortOrder, setSortOrder] = useState<SortOrder>(null);
   const [statsRecord, setStatsRecord] = useState<DBInboundRecord | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
 
@@ -67,14 +64,6 @@ export default function InboundList({
     }
   }, []);
 
-  const sortedInbounds = useMemo(() => {
-    if (!sortKey || !sortOrder) return dbInbounds;
-    const fn = SORT_FNS[sortKey];
-    if (!fn) return dbInbounds;
-    const sorted = [...dbInbounds].sort((a, b) => fn(a, b, { nodesById, clientCount }));
-    return sortOrder === 'descend' ? sorted.reverse() : sorted;
-  }, [dbInbounds, sortKey, sortOrder, nodesById, clientCount]);
-
   const hasAnyRemark = useMemo(
     () => dbInbounds.some((i) => typeof i.remark === 'string' && i.remark.trim() !== ''),
     [dbInbounds],
@@ -89,11 +78,11 @@ export default function InboundList({
   }, []);
 
   const selectAll = useCallback((checked: boolean) => {
-    setSelectedRowKeys(checked ? sortedInbounds.map((i) => i.id) : []);
-  }, [sortedInbounds]);
+    setSelectedRowKeys(checked ? dbInbounds.map((i) => i.id) : []);
+  }, [dbInbounds]);
 
-  const allSelected = sortedInbounds.length > 0 && selectedRowKeys.length === sortedInbounds.length;
-  const someSelected = selectedRowKeys.length > 0 && selectedRowKeys.length < sortedInbounds.length;
+  const allSelected = dbInbounds.length > 0 && selectedRowKeys.length === dbInbounds.length;
+  const someSelected = selectedRowKeys.length > 0 && selectedRowKeys.length < dbInbounds.length;
 
   const handleBulkDelete = useCallback(async () => {
     const ok = await onBulkDelete(selectedRowKeys);
@@ -108,8 +97,6 @@ export default function InboundList({
     subEnable,
     expireDiff,
     trafficDiff,
-    sortKey,
-    sortOrder,
     onRowAction,
     onSwitchEnable,
   });
@@ -160,7 +147,7 @@ export default function InboundList({
       <Space orientation="vertical" style={{ width: '100%' }}>
         {isMobile ? (
           <div className="inbound-cards">
-            {sortedInbounds.length === 0 ? (
+            {dbInbounds.length === 0 ? (
               <div className="card-empty">
                 <ImportOutlined style={{ fontSize: 28, opacity: 0.5 }} />
                 <div>{t('noData')}</div>
@@ -179,7 +166,7 @@ export default function InboundList({
                   <span className="bulk-count">{selectedRowKeys.length}</span>
                 )}
               </div>
-              {sortedInbounds.map((record) => (
+              {dbInbounds.map((record) => (
                 <div key={record.id} className={`inbound-card${selectedRowKeys.includes(record.id) ? ' is-selected' : ''}`}>
                   <div className="card-head">
                     <Checkbox
@@ -217,13 +204,13 @@ export default function InboundList({
         ) : (
           <Table
             columns={columns}
-            dataSource={sortedInbounds}
+            dataSource={dbInbounds}
             rowKey={(r) => r.id}
             rowSelection={{
               selectedRowKeys,
               onChange: (keys: Key[]) => setSelectedRowKeys(keys as number[]),
             }}
-            pagination={paginationFor(sortedInbounds)}
+            pagination={paginationFor(dbInbounds)}
             scroll={{ x: 1000 }}
             style={{ marginTop: 10 }}
             size="small"
@@ -234,12 +221,6 @@ export default function InboundList({
                   <div>{t('noData')}</div>
                 </div>
               ),
-            }}
-            onChange={(_p, _f, sorter) => {
-              const single = Array.isArray(sorter) ? sorter[0] : sorter;
-              const colKey = (single?.columnKey || single?.field) as SortKey | undefined;
-              setSortKey(colKey || null);
-              setSortOrder((single?.order as SortOrder) || null);
             }}
           />
         )}

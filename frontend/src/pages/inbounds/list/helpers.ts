@@ -1,8 +1,7 @@
-import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import { isSSMultiUser } from '@/lib/xray/protocol-capabilities';
 import { coerceInboundJsonField } from '@/models/dbinbound';
 
-import type { ClientCountEntry, DBInboundRecord, SortKey, StreamHints } from './types';
+import type { DBInboundRecord, StreamHints } from './types';
 
 export function readStreamHints(streamSettings: unknown): StreamHints {
   const stream = coerceInboundJsonField(streamSettings) as { network?: string; security?: string };
@@ -88,19 +87,3 @@ export function showQrCodeMenu(dbInbound: DBInboundRecord): boolean {
   }
   return false;
 }
-
-export const SORT_FNS: Record<SortKey, (a: DBInboundRecord, b: DBInboundRecord, ctx: { nodesById: Map<number, NodeRecord>; clientCount: Record<number, ClientCountEntry> }) => number> = {
-  id: (a, b) => a.id - b.id,
-  enable: (a, b) => Number(a.enable) - Number(b.enable),
-  remark: (a, b) => (a.remark || '').localeCompare(b.remark || ''),
-  port: (a, b) => a.port - b.port,
-  protocol: (a, b) => a.protocol.localeCompare(b.protocol),
-  traffic: (a, b) => (a.up + a.down) - (b.up + b.down),
-  expiryTime: (a, b) => (a.expiryTime || Infinity) - (b.expiryTime || Infinity),
-  node: (a, b, ctx) => {
-    const nameA = ctx.nodesById.get(a.nodeId ?? -1)?.name ?? (a.nodeId == null ? '￿' : `node #${a.nodeId}`);
-    const nameB = ctx.nodesById.get(b.nodeId ?? -1)?.name ?? (b.nodeId == null ? '￿' : `node #${b.nodeId}`);
-    return nameA.localeCompare(nameB);
-  },
-  clients: (a, b, ctx) => (ctx.clientCount[a.id]?.clients || 0) - (ctx.clientCount[b.id]?.clients || 0),
-};

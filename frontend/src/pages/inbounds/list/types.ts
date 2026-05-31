@@ -74,16 +74,3 @@ export interface InboundListProps {
   onRowAction: (action: { key: RowAction; dbInbound: DBInboundRecord }) => void;
   onBulkDelete: (ids: number[]) => Promise<boolean>;
 }
-
-export type SortKey =
-  | 'id'
-  | 'enable'
-  | 'remark'
-  | 'port'
-  | 'protocol'
-  | 'traffic'
-  | 'expiryTime'
-  | 'node'
-  | 'clients';
-
-export type SortOrder = 'ascend' | 'descend' | null;
