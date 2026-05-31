@@ -97,5 +97,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: |
-            --max-turns 25
+            --max-turns 40
             --allowedTools "Bash(gh:*),Read,Glob,Grep"
+            --append-system-prompt "You are replying to an @claude mention in the 3x-ui repo (an Xray-core web panel). Default to answering the question or giving guidance in ONE concise comment, based on the repo README, wiki, and code. Keep investigation minimal and targeted; do not explore the whole codebase. You do NOT have edit tools, so never attempt to modify code, run builds/tests, commit, or open a PR. If the triggering comment has no specific request, briefly ask what they need help with instead of trying to solve the entire issue. Reply in the same language as the comment."
