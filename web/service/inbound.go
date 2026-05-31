@@ -130,7 +130,7 @@ func (s *InboundService) enrichClientStats(db *gorm.DB, inbounds []*model.Inboun
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
@@ -618,16 +618,14 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		return needRestart, err
 	}
 	if !database.IsPostgres() {
-		var maxId int
-		if err := db.Model(&model.Inbound{}).Select("COALESCE(MAX(id), 0)").Scan(&maxId).Error; err != nil {
+		var count int64
+		if err := db.Model(&model.Inbound{}).Count(&count).Error; err != nil {
 			return needRestart, err
 		}
-		if maxId == 0 {
+		if count == 0 {
 			if err := db.Exec("DELETE FROM sqlite_sequence WHERE name = ?", "inbounds").Error; err != nil {
 				return needRestart, err
 			}
-		} else if err := db.Exec("UPDATE sqlite_sequence SET seq = ? WHERE name = ?", maxId, "inbounds").Error; err != nil {
-			return needRestart, err
 		}
 	}
 	return needRestart, nil
