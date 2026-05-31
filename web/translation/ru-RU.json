@@ -442,7 +442,10 @@
         "trafficGetError": "Ошибка получения данных о трафике",
         "getNewX25519CertError": "Ошибка при получении сертификата X25519.",
         "getNewmldsa65Error": "Ошибка при получении сертификата mldsa65.",
-        "getNewVlessEncError": "Ошибка при получении сертификата VlessEnc."
+        "getNewVlessEncError": "Ошибка при получении сертификата VlessEnc.",
+        "invalidClientField": "Клиент {client}: поле {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (+{count} ещё)"
       },
       "form": {
         "moveUp": "Вверх",

@@ -442,7 +442,10 @@
         "trafficGetError": "Error getting traffic.",
         "getNewX25519CertError": "Error while obtaining the X25519 certificate.",
         "getNewmldsa65Error": "Error while obtaining mldsa65.",
-        "getNewVlessEncError": "Error while obtaining VlessEnc."
+        "getNewVlessEncError": "Error while obtaining VlessEnc.",
+        "invalidClientField": "Client {client}: {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (+{count} more)"
       },
       "form": {
         "moveUp": "Move up",

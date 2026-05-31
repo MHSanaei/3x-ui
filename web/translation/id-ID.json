@@ -442,7 +442,10 @@
         "trafficGetError": "Gagal mendapatkan data lalu lintas",
         "getNewX25519CertError": "Terjadi kesalahan saat mendapatkan sertifikat X25519.",
         "getNewmldsa65Error": "Terjadi kesalahan saat mendapatkan sertifikat mldsa65.",
-        "getNewVlessEncError": "Terjadi kesalahan saat mendapatkan sertifikat VlessEnc."
+        "getNewVlessEncError": "Terjadi kesalahan saat mendapatkan sertifikat VlessEnc.",
+        "invalidClientField": "Klien {client}: kolom {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (+{count} lainnya)"
       },
       "form": {
         "moveUp": "Naik",

@@ -442,7 +442,10 @@
         "trafficGetError": "Помилка отримання даних про трафік",
         "getNewX25519CertError": "Помилка при отриманні сертифіката X25519.",
         "getNewmldsa65Error": "Помилка при отриманні сертифіката mldsa65.",
-        "getNewVlessEncError": "Помилка при отриманні сертифіката VlessEnc."
+        "getNewVlessEncError": "Помилка при отриманні сертифіката VlessEnc.",
+        "invalidClientField": "Клієнт {client}: поле {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (+{count} ще)"
       },
       "form": {
         "moveUp": "Вгору",

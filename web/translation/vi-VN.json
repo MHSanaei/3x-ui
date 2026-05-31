@@ -442,7 +442,10 @@
         "trafficGetError": "Lỗi khi lấy thông tin lưu lượng",
         "getNewX25519CertError": "Lỗi khi lấy chứng chỉ X25519.",
         "getNewmldsa65Error": "Lỗi khi lấy chứng chỉ mldsa65.",
-        "getNewVlessEncError": "Lỗi khi lấy chứng chỉ VlessEnc."
+        "getNewVlessEncError": "Lỗi khi lấy chứng chỉ VlessEnc.",
+        "invalidClientField": "Khách hàng {client}: trường {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (+{count} lỗi khác)"
       },
       "form": {
         "moveUp": "Lên",

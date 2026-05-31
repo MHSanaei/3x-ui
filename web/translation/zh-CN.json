@@ -442,7 +442,10 @@
         "trafficGetError": "获取流量数据时出错",
         "getNewX25519CertError": "获取X25519证书时出错。",
         "getNewmldsa65Error": "获取mldsa65证书时出错。",
-        "getNewVlessEncError": "获取VlessEnc证书时出错。"
+        "getNewVlessEncError": "获取VlessEnc证书时出错。",
+        "invalidClientField": "客户端 {client}：字段 {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (另有 {count} 项)"
       },
       "form": {
         "moveUp": "上移",

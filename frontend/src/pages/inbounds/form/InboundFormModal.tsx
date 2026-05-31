@@ -48,6 +48,7 @@ import { FinalMaskForm } from '@/lib/xray/forms/transport';
 import './InboundFormModal.css';
 
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
+import { formatInboundIssue, formatInboundValidation } from './formatValidationError';
 import {
   HttpFields,
   HysteriaFields,
@@ -360,18 +361,12 @@ export default function InboundFormModal({
     const values = form.getFieldsValue(true) as InboundFormValues;
     const parsed = InboundFormSchema.safeParse(values);
     if (!parsed.success) {
-      const issue = parsed.error.issues[0];
-      const path = Array.isArray(issue?.path) && issue.path.length > 0
-        ? issue.path.join('.')
-        : '';
-      const baseMsg = issue?.message ?? 'somethingWentWrong';
-      const display = path ? `${path}: ${baseMsg}` : baseMsg;
-      messageApi.error(t(baseMsg, { defaultValue: display }));
-      console.error('[InboundFormModal] schema validation failed', {
-        path: issue?.path,
-        message: issue?.message,
-        values,
-      });
+      const issues = parsed.error.issues;
+      messageApi.error(formatInboundValidation(issues, values, t));
+      console.error(
+        '[InboundFormModal] schema validation failed:',
+        issues.map((issue) => formatInboundIssue(issue, values, t)),
+      );
       return;
     }
     setSaving(true);

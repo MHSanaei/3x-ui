@@ -442,7 +442,10 @@
         "trafficGetError": "Trafik bilgisi alınırken hata oluştu",
         "getNewX25519CertError": "X25519 sertifikası alınırken hata oluştu.",
         "getNewmldsa65Error": "mldsa65 sertifikası alınırken hata oluştu.",
-        "getNewVlessEncError": "VlessEnc sertifikası alınırken hata oluştu."
+        "getNewVlessEncError": "VlessEnc sertifikası alınırken hata oluştu.",
+        "invalidClientField": "Müşteri {client}: alan {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (+{count} tane daha)"
       },
       "form": {
         "moveUp": "Yukarı",
