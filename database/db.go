@@ -89,6 +89,12 @@ func initModels() error {
 	if err := pruneOrphanedClientInbounds(); err != nil {
 		return err
 	}
+	if IsPostgres() {
+		if err := resyncPostgresSequences(db, models); err != nil {
+			log.Printf("Error resyncing postgres sequences: %v", err)
+			return err
+		}
+	}
 	return nil
 }
 
