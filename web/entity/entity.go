@@ -27,7 +27,7 @@ type AllSetting struct {
 	WebCertFile       string `json:"webCertFile" form:"webCertFile"`                                 // Path to SSL certificate file for web server
 	WebKeyFile        string `json:"webKeyFile" form:"webKeyFile"`                                   // Path to SSL private key file for web server
 	WebBasePath       string `json:"webBasePath" form:"webBasePath"`                                 // Base path for web panel URLs
-	SessionMaxAge     int    `json:"sessionMaxAge" form:"sessionMaxAge" validate:"gte=0,lte=525600"` // Session maximum age in minutes (cap at one year)
+	SessionMaxAge     int    `json:"sessionMaxAge" form:"sessionMaxAge" validate:"gte=1,lte=525600"` // Session maximum age in minutes (cap at one year)
 	TrustedProxyCIDRs string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"`                     // Trusted reverse proxy IPs/CIDRs for forwarded headers
 	PanelProxy        string `json:"panelProxy" form:"panelProxy"`                                   // Proxy URL for the panel's own outbound requests (GitHub/Telegram)
 

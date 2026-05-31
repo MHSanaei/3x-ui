@@ -155,7 +155,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.sessionMaxAge')} description={t('pages.settings.sessionMaxAgeDesc')}>
-              <InputNumber value={allSetting.sessionMaxAge} min={60} style={{ width: '100%' }}
+              <InputNumber value={allSetting.sessionMaxAge} min={60} max={525600} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ sessionMaxAge: Number(v) || 0 })} />
             </SettingListItem>
 
@@ -180,7 +180,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.pageSize')} description={t('pages.settings.pageSizeDesc')}>
-              <InputNumber value={allSetting.pageSize} min={0} step={5} style={{ width: '100%' }}
+              <InputNumber value={allSetting.pageSize} min={1} max={1000} step={5} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ pageSize: Number(v) || 0 })} />
             </SettingListItem>
 
