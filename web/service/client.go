@@ -237,7 +237,9 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			row.ExpiryTime = incoming.ExpiryTime
 			row.Enable = incoming.Enable
 			row.TgID = incoming.TgID
-			row.Group = incoming.Group
+			if incoming.Group != "" {
+				row.Group = incoming.Group
+			}
 			row.Comment = incoming.Comment
 			row.Reset = incoming.Reset
 			if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
