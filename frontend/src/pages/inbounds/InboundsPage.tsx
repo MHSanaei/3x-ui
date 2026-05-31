@@ -176,7 +176,7 @@ export default function InboundsPage() {
     setPromptInitial(opts.value || '');
     setPromptHandler(() => opts.confirm);
     setPromptOpen(true);
-  }, []);
+  }, [t]);
 
   const onPromptConfirm = useCallback(async (value: string) => {
     if (!promptHandler) {
@@ -329,7 +329,7 @@ export default function InboundsPage() {
         return false;
       },
     });
-  }, [openPrompt, refresh]);
+  }, [openPrompt, refresh, t]);
 
   const onAddInbound = useCallback(() => {
     setFormMode('add');
@@ -476,7 +476,7 @@ export default function InboundsPage() {
       default:
         messageApi.info(`General action "${key}" — coming in a later 5f subphase`);
     }
-  }, [modal, importInbound, exportAllLinks, exportAllSubs, refresh, messageApi]);
+  }, [modal, importInbound, exportAllLinks, exportAllSubs, refresh, messageApi, t]);
 
   const onRowAction = useCallback(async ({ key, dbInbound }: { key: RowAction; dbInbound: DBInbound }) => {
     // Actions that touch per-client secrets (uuid, password, flow, ...) need
