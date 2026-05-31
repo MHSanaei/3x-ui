@@ -246,7 +246,10 @@
       "importDatabaseError": "خطا در وارد کردن پایگاه داده",
       "readDatabaseError": "خطا در خواندن پایگاه داده",
       "getDatabaseError": "خطا در دریافت پایگاه داده",
-      "getConfigError": "خطا در دریافت فایل پیکربندی"
+      "getConfigError": "خطا در دریافت فایل پیکربندی",
+      "backupPostgresNote": "این پنل روی PostgreSQL اجرا می‌شود. «پشتیبان‌گیری» یک آرشیو pg_dump (.dump) دانلود می‌کند و «بازیابی» آن را با pg_restore بازمی‌گرداند. سرور باید ابزارهای کلاینت PostgreSQL (pg_dump و pg_restore) را نصب داشته باشد.",
+      "exportDatabasePgDesc": "برای دانلود یک دامپ PostgreSQL (.dump) از پایگاه داده فعلی روی دستگاهتان کلیک کنید.",
+      "importDatabasePgDesc": "برای انتخاب و بارگذاری یک فایل .dump جهت بازیابی پایگاه داده PostgreSQL کلیک کنید. این کار همه داده‌های فعلی را جایگزین می‌کند."
     },
     "inbounds": {
       "title": "ورودی‌ها",

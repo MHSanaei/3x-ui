@@ -246,7 +246,10 @@
       "importDatabaseError": "Ocurrió un error al importar la base de datos",
       "readDatabaseError": "Ocurrió un error al leer la base de datos",
       "getDatabaseError": "Ocurrió un error al obtener la base de datos",
-      "getConfigError": "Ocurrió un error al obtener el archivo de configuración"
+      "getConfigError": "Ocurrió un error al obtener el archivo de configuración",
+      "backupPostgresNote": "Este panel funciona con PostgreSQL. «Copia de seguridad» descarga un archivo pg_dump (.dump) y «Restaurar» lo vuelve a cargar con pg_restore. El servidor necesita tener instaladas las herramientas cliente de PostgreSQL (pg_dump y pg_restore).",
+      "exportDatabasePgDesc": "Haz clic para descargar un volcado de PostgreSQL (.dump) de tu base de datos actual en tu dispositivo.",
+      "importDatabasePgDesc": "Haz clic para seleccionar y subir un archivo .dump y restaurar tu base de datos PostgreSQL. Esto reemplaza todos los datos actuales."
     },
     "inbounds": {
       "title": "Entradas",

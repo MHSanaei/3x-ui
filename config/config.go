@@ -121,6 +121,19 @@ func GetDBDSN() string {
 	return strings.TrimSpace(os.Getenv("XUI_DB_DSN"))
 }
 
+// GetEnvFilePaths returns the candidate service environment file paths (the file
+// systemd loads via EnvironmentFile) across the supported distro families.
+func GetEnvFilePaths() []string {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	return []string{
+		"/etc/default/x-ui",
+		"/etc/conf.d/x-ui",
+		"/etc/sysconfig/x-ui",
+	}
+}
+
 // GetLogFolder returns the path to the log folder based on environment variables or platform defaults.
 func GetLogFolder() string {
 	logFolderPath := os.Getenv("XUI_LOG_FOLDER")

@@ -246,7 +246,10 @@
       "importDatabaseError": "حدث خطأ أثناء استيراد قاعدة البيانات",
       "readDatabaseError": "حدث خطأ أثناء قراءة قاعدة البيانات",
       "getDatabaseError": "حدث خطأ أثناء استرجاع قاعدة البيانات",
-      "getConfigError": "حدث خطأ أثناء استرجاع ملف الإعدادات"
+      "getConfigError": "حدث خطأ أثناء استرجاع ملف الإعدادات",
+      "backupPostgresNote": "تعمل هذه اللوحة على PostgreSQL. يقوم «النسخ الاحتياطي» بتنزيل أرشيف pg_dump (.dump)، و«الاستعادة» تعيد تحميله عبر pg_restore. يجب أن تكون أدوات عميل PostgreSQL (pg_dump و pg_restore) مثبَّتة على الخادم.",
+      "exportDatabasePgDesc": "انقر لتنزيل نسخة PostgreSQL (.dump) من قاعدة بياناتك الحالية إلى جهازك.",
+      "importDatabasePgDesc": "انقر لاختيار ورفع ملف .dump لاستعادة قاعدة بيانات PostgreSQL. سيؤدي هذا إلى استبدال جميع البيانات الحالية."
     },
     "inbounds": {
       "title": "الواردات",

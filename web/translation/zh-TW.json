@@ -246,7 +246,10 @@
       "importDatabaseError": "匯入資料庫時發生錯誤",
       "readDatabaseError": "讀取資料庫時發生錯誤",
       "getDatabaseError": "檢索資料庫時發生錯誤",
-      "getConfigError": "檢索設定檔時發生錯誤"
+      "getConfigError": "檢索設定檔時發生錯誤",
+      "backupPostgresNote": "此面板執行於 PostgreSQL 上。「備份」會下載一個 pg_dump 封存檔（.dump），「還原」會透過 pg_restore 重新載入。伺服器需要安裝 PostgreSQL 用戶端工具（pg_dump 與 pg_restore）。",
+      "exportDatabasePgDesc": "點擊將目前資料庫的 PostgreSQL 傾印（.dump）下載到您的裝置。",
+      "importDatabasePgDesc": "點擊選擇並上傳 .dump 檔案以還原您的 PostgreSQL 資料庫。此操作將取代所有目前的資料。"
     },
     "inbounds": {
       "title": "入站",
