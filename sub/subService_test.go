@@ -46,6 +46,21 @@ func TestFindClientIndex(t *testing.T) {
 	}
 }
 
+func TestIsRoutableHost(t *testing.T) {
+	routable := []string{"example.com", "sub.example.com", "10.0.0.1", "192.168.1.5", "1.2.3.4", "2001:db8::1"}
+	for _, v := range routable {
+		if !isRoutableHost(v) {
+			t.Fatalf("isRoutableHost(%q) = false, want true", v)
+		}
+	}
+	notRoutable := []string{"", "0.0.0.0", "::", "::0", "127.0.0.1", "127.0.0.2", "::1", "[::1]"}
+	for _, v := range notRoutable {
+		if isRoutableHost(v) {
+			t.Fatalf("isRoutableHost(%q) = true, want false", v)
+		}
+	}
+}
+
 func TestUnmarshalStreamSettings(t *testing.T) {
 	got := unmarshalStreamSettings(`{"network":"ws","wsSettings":{"path":"/api"}}`)
 	if got["network"] != "ws" {

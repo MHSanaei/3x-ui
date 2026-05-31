@@ -52,8 +52,40 @@ func NewSubService(showInfo bool, remarkModel string) *SubService {
 // freshly-loaded node map regardless of which sub flavour the client
 // hit.
 func (s *SubService) PrepareForRequest(host string) {
+	if !isRoutableHost(host) {
+		if d := s.configuredPublicHost(); d != "" {
+			host = d
+		} else if isLoopbackHost(host) {
+			host = "localhost"
+		}
+	}
 	s.address = host
 	s.loadNodes()
+}
+
+func (s *SubService) configuredPublicHost() string {
+	if d, err := s.settingService.GetSubDomain(); err == nil && d != "" {
+		return d
+	}
+	if d, err := s.settingService.GetWebDomain(); err == nil && d != "" {
+		return d
+	}
+	return ""
+}
+
+func isRoutableHost(host string) bool {
+	if host == "" {
+		return false
+	}
+	if ip := net.ParseIP(strings.Trim(host, "[]")); ip != nil {
+		return !ip.IsLoopback() && !ip.IsUnspecified()
+	}
+	return true
+}
+
+func isLoopbackHost(host string) bool {
+	ip := net.ParseIP(strings.Trim(host, "[]"))
+	return ip != nil && ip.IsLoopback()
 }
 
 // GetSubs retrieves subscription links for a given subscription ID and host.
