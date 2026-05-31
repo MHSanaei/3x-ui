@@ -3122,11 +3122,19 @@ func (s *InboundService) MigrationRequirements() {
 		Port           int
 		StreamSettings []byte
 	}
-	err = tx.Raw(`select id, port, stream_settings
+	externalProxyQuery := `select id, port, stream_settings
 	from inbounds
 	WHERE protocol in ('vmess','vless','trojan')
 	  AND json_extract(stream_settings, '$.security') = 'tls'
-	  AND json_extract(stream_settings, '$.tlsSettings.settings.domains') IS NOT NULL`).Scan(&externalProxy).Error
+	  AND json_extract(stream_settings, '$.tlsSettings.settings.domains') IS NOT NULL`
+	if database.IsPostgres() {
+		externalProxyQuery = `select id, port, stream_settings
+	from inbounds
+	WHERE protocol in ('vmess','vless','trojan')
+	  AND NULLIF(stream_settings, '')::jsonb #>> '{security}' = 'tls'
+	  AND NULLIF(stream_settings, '')::jsonb #> '{tlsSettings,settings,domains}' IS NOT NULL`
+	}
+	err = tx.Raw(externalProxyQuery).Scan(&externalProxy).Error
 	if err != nil || len(externalProxy) == 0 {
 		return
 	}
