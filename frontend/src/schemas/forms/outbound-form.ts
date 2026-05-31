@@ -166,6 +166,7 @@ export type FreedomFinalRuleForm = z.infer<typeof FreedomFinalRuleFormSchema>;
 export const FreedomOutboundFormSettingsSchema = z.object({
   domainStrategy: z.union([OutboundDomainStrategySchema, z.literal('')]).default(''),
   redirect: z.string().default(''),
+  userLevel: z.number().int().min(0).default(0),
   proxyProtocol: z.number().int().min(0).max(2).default(0),
   fragment: FreedomFragmentSchema.default({
     packets: '1-3',

@@ -26,7 +26,7 @@ export const FreedomFragmentSchema = z.object({
 export type FreedomFragment = z.infer<typeof FreedomFragmentSchema>;
 
 export const FreedomNoiseTypeSchema = z.enum(['rand', 'str', 'base64', 'hex']);
-export const FreedomNoiseApplyToSchema = z.enum(['ip', 'host', 'all']);
+export const FreedomNoiseApplyToSchema = z.enum(['ip', 'ipv4', 'ipv6']);
 
 export const FreedomNoiseSchema = z.object({
   type: FreedomNoiseTypeSchema.default('rand'),
@@ -52,6 +52,7 @@ export type FreedomFinalRule = z.infer<typeof FreedomFinalRuleSchema>;
 export const FreedomOutboundSettingsSchema = z.object({
   domainStrategy: OutboundDomainStrategySchema.optional(),
   redirect: z.string().optional(),
+  userLevel: z.number().int().min(0).optional(),
   proxyProtocol: z.number().optional(),
   fragment: FreedomFragmentSchema.optional(),
   noises: z.array(FreedomNoiseSchema).optional(),

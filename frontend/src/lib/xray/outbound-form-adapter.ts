@@ -266,6 +266,7 @@ function freedomFromWire(raw: Raw): FreedomOutboundFormSettings {
       return (allowed.includes(s) ? s : '') as FreedomOutboundFormSettings['domainStrategy'];
     })(),
     redirect: asString(raw.redirect),
+    userLevel: asNumber(raw.userLevel, 0),
     proxyProtocol: ((): FreedomOutboundFormSettings['proxyProtocol'] => {
       const n = asNumber(raw.proxyProtocol, 0);
       return (n === 1 || n === 2) ? n : 0;
@@ -506,11 +507,15 @@ function freedomToWire(s: FreedomOutboundFormSettings) {
   // Legacy semantics: emit fragment only when the user actually populated
   // at least one of the four sub-fields. Defaults like packets='1-3' alone
   // are not enough — the modal's Fragment Switch sets all four together.
-  const fragmentEntries = Object.entries(s.fragment).filter(([, v]) => v !== '' && v != null);
-  const fragmentEnabled = !!s.fragment.length || !!s.fragment.interval || !!s.fragment.maxSplit;
+  // getFieldsValue(true) may omit `fragment` when the switch is off, so the
+  // fallback keeps Object.entries from throwing on undefined (issue #4686).
+  const fragment: Partial<FreedomOutboundFormSettings['fragment']> = s.fragment ?? {};
+  const fragmentEntries = Object.entries(fragment).filter(([, v]) => v !== '' && v != null);
+  const fragmentEnabled = !!fragment.length || !!fragment.interval || !!fragment.maxSplit;
   return {
     domainStrategy: s.domainStrategy || undefined,
     redirect: s.redirect || undefined,
+    userLevel: s.userLevel || undefined,
     proxyProtocol: s.proxyProtocol || undefined,
     fragment: fragmentEnabled ? Object.fromEntries(fragmentEntries) : undefined,
     noises: s.noises.length > 0 ? s.noises : undefined,

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, Select, Switch, type FormInstance } from 'antd';
+import { Button, Form, Input, InputNumber, Select, Switch, type FormInstance } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 
 import { OutboundDomainStrategies } from '@/schemas/primitives';
@@ -19,6 +19,9 @@ export default function FreedomFields({ form }: { form: FormInstance<OutboundFor
       </Form.Item>
       <Form.Item label={t('pages.xray.outboundForm.redirect')} name={['settings', 'redirect']}>
         <Input />
+      </Form.Item>
+      <Form.Item label={t('pages.xray.tun.userLevel')} name={['settings', 'userLevel']}>
+        <InputNumber min={0} style={{ width: '100%' }} />
       </Form.Item>
       <Form.Item label={t('pages.xray.outboundForm.proxyProtocol')} name={['settings', 'proxyProtocol']}>
         <Select

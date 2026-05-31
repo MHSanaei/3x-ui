@@ -235,16 +235,41 @@ describe('outbound-form-adapter: round-trip', () => {
       settings: {
         domainStrategy: 'UseIPv4',
         redirect: '1.1.1.1',
+        userLevel: 3,
         proxyProtocol: 2,
         fragment: { packets: 'tlshello', length: '100-200' },
+        noises: [{ type: 'rand', packet: '10-20', delay: '10-16', applyTo: 'ipv4' }],
       },
     }));
     expect(filled.settings).toMatchObject({
       domainStrategy: 'UseIPv4',
       redirect: '1.1.1.1',
+      userLevel: 3,
       proxyProtocol: 2,
       fragment: { packets: 'tlshello', length: '100-200' },
+      noises: [{ type: 'rand', packet: '10-20', delay: '10-16', applyTo: 'ipv4' }],
     });
+  });
+
+  it('freedom tolerates settings without a fragment object (issue #4686)', () => {
+    const values = {
+      protocol: 'freedom',
+      tag: 'direct',
+      settings: {
+        domainStrategy: '',
+        redirect: '',
+        proxyProtocol: 0,
+        noises: [],
+        finalRules: [
+          { action: 'block', network: '', port: '', ip: ['geoip:private'], blockDelay: '' },
+        ],
+      },
+    } as unknown as Parameters<typeof formValuesToWirePayload>[0];
+
+    expect(() => formValuesToWirePayload(values)).not.toThrow();
+    const back = formValuesToWirePayload(values);
+    expect((back.settings as { fragment?: unknown }).fragment).toBeUndefined();
+    expect((back.settings as { finalRules?: unknown[] }).finalRules).toHaveLength(1);
   });
 
   it('freedom omits proxyProtocol when disabled (0)', () => {
