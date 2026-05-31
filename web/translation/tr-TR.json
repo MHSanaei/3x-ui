@@ -807,7 +807,7 @@
       "scheme": "Şema",
       "address": "Adres",
       "port": "Port",
-      "basePath": "Base Path",
+      "basePath": "Temel Yol",
       "apiToken": "API Token",
       "apiTokenPlaceholder": "Uzak panelin Ayarlar sayfasındaki token",
       "apiTokenHint": "Uzak panel API token'ını Ayarlar → API Token altında gösterir.",

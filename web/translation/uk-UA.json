@@ -808,7 +808,7 @@
       "address": "Адреса",
       "port": "Порт",
       "basePath": "Базовий шлях",
-      "apiToken": "API Token",
+      "apiToken": "API Токен",
       "apiTokenPlaceholder": "Токен зі сторінки Налаштувань віддаленої панелі",
       "apiTokenHint": "Віддалена панель показує свій токен API в Налаштуваннях → Токен API.",
       "regenerate": "Перегенерувати токен",
