@@ -610,10 +610,6 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		logger.Debug("DelInbound: inbound not found, id:", id)
 	}
 
-	if err := db.Where("inbound_id = ?", id).Delete(&xray.ClientTraffic{}).Error; err != nil {
-		return false, err
-	}
-
 	if err := s.clientService.DetachInbound(db, id); err != nil {
 		return false, err
 	}
