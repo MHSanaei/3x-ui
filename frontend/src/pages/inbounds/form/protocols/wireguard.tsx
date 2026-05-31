@@ -10,8 +10,35 @@ interface WireguardFieldsProps {
   regenWgPeerKeypair: (name: number) => void;
 }
 
+function nextWgPeerAllowedIP(peers: Array<{ allowedIPs?: string[] }> | undefined): string {
+  const fallback = '10.0.0.2/32';
+  let maxInt = -1;
+  let prefix = 32;
+  for (const peer of peers ?? []) {
+    for (const ip of peer?.allowedIPs ?? []) {
+      const m = /^\s*(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(?:\/(\d{1,2}))?\s*$/.exec(String(ip));
+      if (!m) continue;
+      const octets = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
+      if (octets.some((o) => o > 255)) continue;
+      const asInt = octets[0] * 16777216 + octets[1] * 65536 + octets[2] * 256 + octets[3];
+      if (asInt > maxInt) {
+        maxInt = asInt;
+        prefix = m[5] !== undefined ? Math.min(Number(m[5]), 32) : 32;
+      }
+    }
+  }
+  if (maxInt < 0) return fallback;
+  const next = maxInt + 1;
+  const a = Math.floor(next / 16777216) % 256;
+  const b = Math.floor(next / 65536) % 256;
+  const c = Math.floor(next / 256) % 256;
+  const d = next % 256;
+  return `${a}.${b}.${c}.${d}/${prefix}`;
+}
+
 export default function WireguardFields({ wgPubKey, regenInboundWg, regenWgPeerKeypair }: WireguardFieldsProps) {
   const { t } = useTranslation();
+  const form = Form.useFormInstance();
   return (
     <>
       <Form.Item label={t('pages.xray.wireguard.secretKey')}>
@@ -43,10 +70,11 @@ export default function WireguardFields({ wgPubKey, regenInboundWg, regenWgPeerK
                 size="small"
                 onClick={() => {
                   const kp = Wireguard.generateKeypair();
+                  const peers = form.getFieldValue(['settings', 'peers']) as Array<{ allowedIPs?: string[] }> | undefined;
                   add({
                     privateKey: kp.privateKey,
                     publicKey: kp.publicKey,
-                    allowedIPs: ['10.0.0.2/32'],
+                    allowedIPs: [nextWgPeerAllowedIP(peers)],
                     keepAlive: 0,
                   });
                 }}
