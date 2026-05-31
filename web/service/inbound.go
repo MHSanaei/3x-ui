@@ -1754,8 +1754,8 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	}
 	dbClientTraffics := make([]*xray.ClientTraffic, 0, len(traffics))
 	err = tx.Model(xray.ClientTraffic{}).
-		Where("email IN (?) AND inbound_id IN (?)", emails,
-			tx.Model(&model.Inbound{}).Select("id").Where("node_id IS NULL")).
+		Where("email IN (?) AND inbound_id NOT IN (?)", emails,
+			tx.Model(&model.Inbound{}).Select("id").Where("node_id IS NOT NULL")).
 		Find(&dbClientTraffics).Error
 	if err != nil {
 		return err
@@ -1882,7 +1882,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 
 	err = tx.Model(xray.ClientTraffic{}).
 		Where("reset > 0 and expiry_time > 0 and expiry_time <= ?", now).
-		Where("inbound_id IN (?)", tx.Model(&model.Inbound{}).Select("id").Where("node_id IS NULL")).
+		Where("inbound_id NOT IN (?)", tx.Model(&model.Inbound{}).Select("id").Where("node_id IS NOT NULL")).
 		Find(&traffics).Error
 	if err != nil {
 		return false, 0, err
