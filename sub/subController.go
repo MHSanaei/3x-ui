@@ -277,6 +277,10 @@ func (a *SUBController) subClashs(c *gin.Context) {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 		}
 		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+		if a.subTitle != "" {
+			// Clash clients commonly use Content-Disposition to choose the imported profile name.
+			c.Writer.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''%s`, a.subTitle))
+		}
 		c.Data(200, "application/yaml; charset=utf-8", []byte(clashSub))
 	}
 }
