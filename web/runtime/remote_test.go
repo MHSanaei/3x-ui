@@ -3,7 +3,38 @@ package runtime
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/mhsanaei/3x-ui/v3/database/model"
 )
+
+// cacheGetTag must resolve a remote inbound id even when the n<id>- prefix
+// sits on only one side: the node may store the bare tag while the central
+// panel pushes the prefixed form, or vice versa. Without this a mismatch makes
+// the push create a duplicate inbound on the node.
+func TestCacheGetTag_PrefixAgnostic(t *testing.T) {
+	cases := []struct {
+		name      string
+		cacheTag  string
+		lookup    string
+		wantID    int
+		wantFound bool
+	}{
+		{"exact", "n1-in-443-tcp", "n1-in-443-tcp", 7, true},
+		{"node bare, lookup prefixed", "in-443-tcp", "n1-in-443-tcp", 7, true},
+		{"node prefixed, lookup bare", "n1-in-443-tcp", "in-443-tcp", 7, true},
+		{"unrelated tag", "in-443-tcp", "in-999-tcp", 0, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			r := NewRemote(&model.Node{Id: 1, Name: "n1"})
+			r.cacheSet(c.cacheTag, 7)
+			id, ok := r.cacheGetTag(c.lookup)
+			if ok != c.wantFound || id != c.wantID {
+				t.Fatalf("cacheGetTag(%q) = (%d, %v), want (%d, %v)", c.lookup, id, ok, c.wantID, c.wantFound)
+			}
+		})
+	}
+}
 
 func TestSanitizeStreamSettingsForRemote(t *testing.T) {
 	tests := []struct {

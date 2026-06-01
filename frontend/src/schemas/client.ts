@@ -39,6 +39,7 @@ export const ClientRecordSchema = z.object({
 export const InboundOptionSchema = z.object({
   id: z.number(),
   remark: z.string().optional(),
+  tag: z.string().optional(),
   protocol: z.string().optional(),
   port: z.number().optional(),
   tlsFlowCapable: z.boolean().optional(),
@@ -118,9 +119,22 @@ export const GroupSummarySchema = z.object({
 
 export const GroupSummaryListSchema = z.array(GroupSummarySchema).nullable().transform((v) => v ?? []);
 
+export function hasForbiddenClientChars(value: string): boolean {
+  if (value.includes('/') || value.includes('\\') || value.includes(' ')) return true;
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code < 0x20 || code === 0x7f) return true;
+  }
+  return false;
+}
+
 export const ClientFormSchema = z.object({
-  email: z.string().trim().min(1, 'pages.clients.email'),
-  subId: z.string(),
+  email: z
+    .string()
+    .trim()
+    .min(1, 'pages.clients.email')
+    .refine((v) => !hasForbiddenClientChars(v), 'pages.clients.emailInvalidChars'),
+  subId: z.string().refine((v) => !hasForbiddenClientChars(v), 'pages.clients.subIdInvalidChars'),
   uuid: z.string(),
   password: z.string(),
   auth: z.string(),

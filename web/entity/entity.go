@@ -27,7 +27,7 @@ type AllSetting struct {
 	WebCertFile       string `json:"webCertFile" form:"webCertFile"`                                 // Path to SSL certificate file for web server
 	WebKeyFile        string `json:"webKeyFile" form:"webKeyFile"`                                   // Path to SSL private key file for web server
 	WebBasePath       string `json:"webBasePath" form:"webBasePath"`                                 // Base path for web panel URLs
-	SessionMaxAge     int    `json:"sessionMaxAge" form:"sessionMaxAge" validate:"gte=0,lte=525600"` // Session maximum age in minutes (cap at one year)
+	SessionMaxAge     int    `json:"sessionMaxAge" form:"sessionMaxAge" validate:"gte=1,lte=525600"` // Session maximum age in minutes (cap at one year)
 	TrustedProxyCIDRs string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"`                     // Trusted reverse proxy IPs/CIDRs for forwarded headers
 	PanelProxy        string `json:"panelProxy" form:"panelProxy"`                                   // Proxy URL for the panel's own outbound requests (GitHub/Telegram)
 
@@ -128,6 +128,15 @@ type AllSettingView struct {
 }
 
 // CheckValid validates all settings in the AllSetting struct, checking IP addresses, ports, SSL certificates, and other configuration values.
+func pathHasForbiddenChar(s string) bool {
+	for _, r := range s {
+		if r == '\\' || r == ' ' || r < 0x20 || r == 0x7f {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *AllSetting) CheckValid() error {
 	if s.WebListen != "" {
 		ip := net.ParseIP(s.WebListen)
@@ -166,6 +175,20 @@ func (s *AllSetting) CheckValid() error {
 		_, err := tls.LoadX509KeyPair(s.SubCertFile, s.SubKeyFile)
 		if err != nil {
 			return common.NewErrorf("cert file <%v> or key file <%v> invalid: %v", s.SubCertFile, s.SubKeyFile, err)
+		}
+	}
+
+	for _, p := range []struct {
+		name  string
+		value string
+	}{
+		{"web base path", s.WebBasePath},
+		{"subscription path", s.SubPath},
+		{"subscription JSON path", s.SubJsonPath},
+		{"subscription Clash path", s.SubClashPath},
+	} {
+		if pathHasForbiddenChar(p.value) {
+			return common.NewError("URI path contains an invalid character:", p.name)
 		}
 	}
 

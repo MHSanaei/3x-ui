@@ -10,7 +10,8 @@ import {
 } from 'antd';
 import type { AllSetting } from '@/models/setting';
 import { HttpUtil, LanguageManager } from '@/utils';
-import SettingListItem from '@/components/SettingListItem';
+import { SettingListItem } from '@/components/ui';
+import { sanitizePath } from './uriPath';
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
@@ -150,11 +151,11 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.panelUrlPath')} description={t('pages.settings.panelUrlPathDesc')}>
-              <Input value={allSetting.webBasePath} onChange={(e) => updateSetting({ webBasePath: e.target.value })} />
+              <Input value={allSetting.webBasePath} onChange={(e) => updateSetting({ webBasePath: sanitizePath(e.target.value) })} />
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.sessionMaxAge')} description={t('pages.settings.sessionMaxAgeDesc')}>
-              <InputNumber value={allSetting.sessionMaxAge} min={60} style={{ width: '100%' }}
+              <InputNumber value={allSetting.sessionMaxAge} min={60} max={525600} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ sessionMaxAge: Number(v) || 0 })} />
             </SettingListItem>
 
@@ -179,7 +180,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.pageSize')} description={t('pages.settings.pageSizeDesc')}>
-              <InputNumber value={allSetting.pageSize} min={0} step={5} style={{ width: '100%' }}
+              <InputNumber value={allSetting.pageSize} min={1} max={1000} step={5} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ pageSize: Number(v) || 0 })} />
             </SettingListItem>
 

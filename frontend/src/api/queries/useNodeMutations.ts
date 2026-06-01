@@ -8,6 +8,13 @@ import { ProbeResultSchema, type ProbeResult } from '@/schemas/node';
 
 export type { ProbeResult };
 
+export interface NodeUpdateResult {
+  id: number;
+  name?: string;
+  ok: boolean;
+  error?: string;
+}
+
 export function useNodeMutations() {
   const queryClient = useQueryClient();
   const invalidate = () => queryClient.invalidateQueries({ queryKey: keys.nodes.root() });
@@ -44,12 +51,21 @@ export function useNodeMutations() {
     onSuccess: (msg) => { if (msg?.success) invalidate(); },
   });
 
+  const updatePanelsMut = useMutation({
+    mutationFn: (ids: number[]) =>
+      HttpUtil.post<NodeUpdateResult[]>('/panel/api/nodes/updatePanel', { ids }, {
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    onSuccess: (msg) => { if (msg?.success) invalidate(); },
+  });
+
   return {
     create: (payload: Partial<NodeRecord>) => createMut.mutateAsync(payload),
     update: (id: number, payload: Partial<NodeRecord>) => updateMut.mutateAsync({ id, payload }),
     remove: (id: number) => removeMut.mutateAsync(id),
     setEnable: (id: number, enable: boolean) => setEnableMut.mutateAsync({ id, enable }),
     probe: (id: number) => probeMut.mutateAsync(id),
+    updatePanels: (ids: number[]): Promise<Msg<NodeUpdateResult[]>> => updatePanelsMut.mutateAsync(ids),
     testConnection: async (payload: Partial<NodeRecord>): Promise<Msg<ProbeResult>> => {
       const raw = await HttpUtil.post('/panel/api/nodes/test', payload);
       return parseMsg(raw, ProbeResultSchema, 'nodes/test');

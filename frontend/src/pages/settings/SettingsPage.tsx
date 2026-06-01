@@ -30,7 +30,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { AllSettingSchema } from '@/schemas/setting';
-import AppSidebar from '@/components/AppSidebar';
+import AppSidebar from '@/layouts/AppSidebar';
 import GeneralTab from './GeneralTab';
 import SecurityTab from './SecurityTab';
 import TelegramTab from './TelegramTab';

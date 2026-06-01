@@ -13,6 +13,7 @@ import {
   Modal,
   Pagination,
   Popover,
+  Result,
   Row,
   Select,
   Space,
@@ -51,10 +52,10 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { useClients } from '@/hooks/useClients';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
-import AppSidebar from '@/components/AppSidebar';
+import AppSidebar from '@/layouts/AppSidebar';
 import { IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
-import LazyMount from '@/components/LazyMount';
+import { LazyMount } from '@/components/utility';
 const ClientFormModal = lazy(() => import('./ClientFormModal'));
 const ClientInfoModal = lazy(() => import('./ClientInfoModal'));
 const ClientQrModal = lazy(() => import('./ClientQrModal'));
@@ -115,6 +116,7 @@ type Bucket = 'active' | 'deactive' | 'depleted' | 'expiring';
 interface PersistedFilterState {
   searchKey: string;
   filters: ClientFilters;
+  sort: string;
 }
 
 const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
@@ -145,9 +147,10 @@ function readFilterState(): PersistedFilterState {
         inboundIds: Array.isArray(fromRaw.inboundIds) ? fromRaw.inboundIds : [],
         groups: Array.isArray(fromRaw.groups) ? fromRaw.groups : [],
       },
+      sort: typeof raw.sort === 'string' ? raw.sort : '',
     };
   } catch {
-    return { searchKey: '', filters: emptyFilters() };
+    return { searchKey: '', filters: emptyFilters(), sort: '' };
   }
 }
 
@@ -189,11 +192,12 @@ export default function ClientsPage() {
     summary: serverSummary,
     allGroups,
     setQuery,
-    inbounds, onlines, loading, fetched, subSettings,
+    inbounds, onlines, loading, fetched, fetchError, subSettings,
     ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, bulkAttach, detach, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
+    refresh,
     hydrate,
   } = useClients();
 
@@ -224,8 +228,9 @@ export default function ClientsPage() {
   const [filters, setFilters] = useState<ClientFilters>(initial.filters);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
-  const [sortColumn, setSortColumn] = useState<string | null>(DEFAULT_SORT.column);
-  const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(DEFAULT_SORT.order);
+  const initialSort = SORT_OPTIONS.find((o) => o.value === initial.sort) ?? DEFAULT_SORT;
+  const [sortColumn, setSortColumn] = useState<string | null>(initialSort.column);
+  const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(initialSort.order);
   const [currentPage, setCurrentPage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(25);
   // debouncedSearch lags behind the input so we don't spam the server on every
@@ -233,8 +238,8 @@ export default function ClientsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState(searchKey);
 
   useEffect(() => {
-    localStorage.setItem(FILTER_STATE_KEY, JSON.stringify({ searchKey, filters }));
-  }, [searchKey, filters]);
+    localStorage.setItem(FILTER_STATE_KEY, JSON.stringify({ searchKey, filters, sort: sortValueFor(sortColumn, sortOrder) }));
+  }, [searchKey, filters, sortColumn, sortOrder]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedSearch(searchKey), 300);
@@ -299,8 +304,7 @@ export default function ClientsPage() {
 
   function inboundLabel(id: number) {
     const ib = inboundsById[id];
-    if (!ib) return `#${id}`;
-    return ib.remark ? `${ib.remark} (${ib.protocol}:${ib.port})` : `${ib.protocol}:${ib.port}`;
+    return ib?.tag ?? '';
   }
 
   const clientBucket = useCallback((row: ClientRecord | null | undefined): Bucket | null => {
@@ -589,7 +593,7 @@ export default function ClientsPage() {
           <Tooltip title={t('pages.clients.qrCode')}>
             <Button size="small" type="text" icon={<QrcodeOutlined />} onClick={() => onShowQr(record)} />
           </Tooltip>
-          <Tooltip title={t('pages.clients.moreInformation')}>
+          <Tooltip title={t('pages.clients.clientInfo')}>
             <Button size="small" type="text" icon={<InfoCircleOutlined />} onClick={() => onShowInfo(record)} />
           </Tooltip>
           <Tooltip title={t('pages.inbounds.resetTraffic')}>
@@ -623,11 +627,23 @@ export default function ClientsPage() {
       width: 90,
       render: (_v, record) => {
         const bucket = clientBucket(record);
-        if (bucket === 'depleted') return <Tag color="red">{t('depleted')}</Tag>;
-        if (record.enable && isOnline(record.email)) return <Tag color="green">{t('pages.clients.online')}</Tag>;
+        const lastOnline = record.traffic?.lastOnline ?? 0;
+        const lastOnlineTitle = `${t('lastOnline')}: ${lastOnline > 0 ? IntlUtil.formatDate(lastOnline, datepicker) : '-'}`;
+        if (bucket === 'depleted') return (
+          <Tooltip title={lastOnlineTitle}>
+            <Tag color="red">{t('depleted')}</Tag>
+          </Tooltip>
+        );
+        if (record.enable && isOnline(record.email)) return (
+          <Tag color="green"><span className="online-dot" />{t('pages.clients.online')}</Tag>
+        );
         if (!record.enable) return <Tag>{t('disabled')}</Tag>;
         if (bucket === 'expiring') return <Tag color="orange">{t('depletingSoon')}</Tag>;
-        return <Tag>{t('pages.clients.offline')}</Tag>;
+        return (
+          <Tooltip title={lastOnlineTitle}>
+            <Tag>{t('pages.clients.offline')}</Tag>
+          </Tooltip>
+        );
       },
     },
     {
@@ -678,7 +694,7 @@ export default function ClientsPage() {
           const ib = inboundsById[id];
           const proto = (ib?.protocol || '').toLowerCase();
           const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
-          const compactLabel = ib ? `${ib.protocol}:${ib.port}` : `#${id}`;
+          const compactLabel = ib?.tag ?? '';
           return (
             <Tooltip key={id} title={inboundLabel(id)}>
               <Tag color={color} style={{ margin: 2 }}>
@@ -730,7 +746,7 @@ export default function ClientsPage() {
       ),
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups]);
+  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups, datepicker]);
 
   const tablePagination = {
     current: currentPage,
@@ -786,6 +802,13 @@ export default function ClientsPage() {
             <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
+              ) : fetchError ? (
+                <Result
+                  status="error"
+                  title={t('somethingWentWrong')}
+                  subTitle={fetchError}
+                  extra={<Button type="primary" loading={loading} onClick={refresh}>{t('refresh')}</Button>}
+                />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
                   <Col span={24}>
@@ -1118,7 +1141,7 @@ export default function ClientsPage() {
                                     {bucket === 'depleted' && <Tag color="red" className="status-tag">{t('depleted')}</Tag>}
                                     {bucket === 'expiring' && <Tag color="orange" className="status-tag">{t('depletingSoon')}</Tag>}
                                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
-                                      <Tooltip title={t('pages.clients.moreInformation')}>
+                                      <Tooltip title={t('pages.clients.clientInfo')}>
                                         <InfoCircleOutlined className="row-action-trigger" onClick={() => onShowInfo(row)} />
                                       </Tooltip>
                                       <Switch

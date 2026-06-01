@@ -14,7 +14,7 @@ import {
 } from 'antd';
 import { ClipboardManager, HttpUtil, RandomUtil } from '@/utils';
 import type { AllSetting } from '@/models/setting';
-import SettingListItem from '@/components/SettingListItem';
+import { SettingListItem } from '@/components/ui';
 import TwoFactorModal from './TwoFactorModal';
 import './SecurityTab.css';
 

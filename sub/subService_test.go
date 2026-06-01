@@ -46,6 +46,59 @@ func TestFindClientIndex(t *testing.T) {
 	}
 }
 
+func TestIsRoutableHost(t *testing.T) {
+	routable := []string{"example.com", "sub.example.com", "10.0.0.1", "192.168.1.5", "1.2.3.4", "2001:db8::1"}
+	for _, v := range routable {
+		if !isRoutableHost(v) {
+			t.Fatalf("isRoutableHost(%q) = false, want true", v)
+		}
+	}
+	notRoutable := []string{"", "0.0.0.0", "::", "::0", "127.0.0.1", "127.0.0.2", "::1", "[::1]"}
+	for _, v := range notRoutable {
+		if isRoutableHost(v) {
+			t.Fatalf("isRoutableHost(%q) = true, want false", v)
+		}
+	}
+}
+
+func TestResolveInboundAddress(t *testing.T) {
+	const reqHost = "sub.example.com"
+
+	// A subscriber reaches the panel through reqHost; the inbound's own
+	// bind Listen IP (loopback, private, or even a public secondary IP) is
+	// a server-side detail and must never become the link's connect host.
+	t.Run("bind listen IP must not leak into the link host", func(t *testing.T) {
+		s := &SubService{address: reqHost}
+		for _, listen := range []string{"127.0.0.1", "10.0.0.5", "192.168.1.10", "1.2.3.4", "0.0.0.0", "::", "::0", ""} {
+			ib := &model.Inbound{Listen: listen}
+			if got := s.resolveInboundAddress(ib); got != reqHost {
+				t.Fatalf("listen %q: address = %q, want %q (subscriber host, not bind IP)", listen, got, reqHost)
+			}
+		}
+	})
+
+	t.Run("node-managed inbound uses the node address", func(t *testing.T) {
+		id := 7
+		s := &SubService{
+			address:   reqHost,
+			nodesByID: map[int]*model.Node{7: {Id: 7, Address: "node7.example.com"}},
+		}
+		ib := &model.Inbound{NodeID: &id, Listen: "1.2.3.4"}
+		if got := s.resolveInboundAddress(ib); got != "node7.example.com" {
+			t.Fatalf("node-managed address = %q, want node7.example.com", got)
+		}
+	})
+
+	t.Run("node id with no known node falls back to subscriber host", func(t *testing.T) {
+		id := 9
+		s := &SubService{address: reqHost, nodesByID: map[int]*model.Node{}}
+		ib := &model.Inbound{NodeID: &id, Listen: "10.0.0.1"}
+		if got := s.resolveInboundAddress(ib); got != reqHost {
+			t.Fatalf("unknown-node address = %q, want subscriber host %q", got, reqHost)
+		}
+	})
+}
+
 func TestUnmarshalStreamSettings(t *testing.T) {
 	got := unmarshalStreamSettings(`{"network":"ws","wsSettings":{"path":"/api"}}`)
 	if got["network"] != "ws" {
@@ -609,6 +662,46 @@ func TestExtractKcpShareFields_ReadsAllFields(t *testing.T) {
 	}
 	if got.tti != 50 {
 		t.Fatalf("tti = %d, want 50", got.tti)
+	}
+}
+
+func TestExtractKcpShareFields_FinalMaskLegacyHeader(t *testing.T) {
+	stream := map[string]any{
+		"finalmask": map[string]any{
+			"udp": []any{
+				map[string]any{
+					"type":     "mkcp-legacy",
+					"settings": map[string]any{"header": "wechat", "value": ""},
+				},
+			},
+		},
+	}
+	got := extractKcpShareFields(stream)
+	if got.headerType != "wechat-video" {
+		t.Fatalf("headerType = %q, want wechat-video", got.headerType)
+	}
+	if got.seed != "" {
+		t.Fatalf("seed = %q, want empty for header mask", got.seed)
+	}
+}
+
+func TestExtractKcpShareFields_FinalMaskLegacySeed(t *testing.T) {
+	stream := map[string]any{
+		"finalmask": map[string]any{
+			"udp": []any{
+				map[string]any{
+					"type":     "mkcp-legacy",
+					"settings": map[string]any{"header": "", "value": "obfs-pass"},
+				},
+			},
+		},
+	}
+	got := extractKcpShareFields(stream)
+	if got.headerType != "none" {
+		t.Fatalf("headerType = %q, want none for empty-header legacy mask", got.headerType)
+	}
+	if got.seed != "obfs-pass" {
+		t.Fatalf("seed = %q, want obfs-pass", got.seed)
 	}
 }
 

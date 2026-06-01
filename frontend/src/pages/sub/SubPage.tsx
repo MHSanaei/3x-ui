@@ -31,6 +31,7 @@ import {
 } from '@ant-design/icons';
 
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
+import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import SubUsageSummary from './SubUsageSummary';
@@ -88,19 +89,6 @@ function trimEmail(remark: string, email: string): string {
     .replace(new RegExp(`[-_.\\s|]+${e}$`), '')
     .replace(new RegExp(`^${e}[-_.\\s|]+`), '')
     .trim();
-}
-
-// Post-quantum keys blow up the encoded URL past what a single QR can
-// hold. The algorithm names don't appear as plain text in the URL —
-// they ride inside query params: mldsa65Verify → `pqv=<base64>`,
-// ML-KEM-768 → `encryption=mlkem768x25519plus.<...>`. The literal
-// substrings are also matched in case a config (e.g. wireguard) embeds
-// them directly.
-function isPostQuantumLink(link: string): boolean {
-  if (/[?&]pqv=/.test(link)) return true;
-  if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
-  if (link.includes('ML-KEM-768')) return true;
-  return false;
 }
 
 // Decode a base64 string as UTF-8. atob() returns a binary string where

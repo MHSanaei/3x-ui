@@ -59,7 +59,7 @@ export const Address_Port_Strategy = Object.freeze({
   TXT_PORT_AND_ADDRESS: 'TxtPortAndAddress',
 });
 
-export const DNSRuleActions = Object.freeze(['direct', 'drop', 'reject', 'hijack'] as const);
+export const DNSRuleActions = Object.freeze(['direct', 'drop', 'return', 'hijack'] as const);
 
 export const TLS_VERSION_OPTION = Object.freeze({
   TLS10: '1.0',

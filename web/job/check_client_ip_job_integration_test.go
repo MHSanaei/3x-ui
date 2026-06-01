@@ -45,7 +45,7 @@ func setupIntegrationDB(t *testing.T) {
 		log.SetFlags(origLogFlags)
 	})
 
-	if err := database.InitDB(filepath.Join(dbDir, "3x-ui.db")); err != nil {
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
 		t.Fatalf("database.InitDB failed: %v", err)
 	}
 	// LIFO cleanup order: this runs before t.TempDir's own cleanup.

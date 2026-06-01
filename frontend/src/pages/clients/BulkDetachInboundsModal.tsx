@@ -36,7 +36,7 @@ export default function BulkDetachInboundsModal({
       .filter((ib) => MULTI_USER_PROTOCOLS.has((ib.protocol || '').toLowerCase()))
       .map((ib) => ({
         value: ib.id,
-        label: `${ib.remark ?? ''} (${ib.protocol ?? ''}@${ib.port ?? ''})`,
+        label: ib.tag,
       }));
   }, [inbounds]);
 

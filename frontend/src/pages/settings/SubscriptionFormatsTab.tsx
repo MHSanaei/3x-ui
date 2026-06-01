@@ -10,7 +10,8 @@ import {
   Switch,
 } from 'antd';
 import type { AllSetting } from '@/models/setting';
-import SettingListItem from '@/components/SettingListItem';
+import { SettingListItem } from '@/components/ui';
+import { sanitizePath, normalizePath } from './uriPath';
 import './SubscriptionFormatsTab.css';
 
 interface SubscriptionFormatsTabProps {
@@ -59,18 +60,6 @@ const directDomainsOptions = [
   { label: 'Meta', value: 'geosite:meta' },
   { label: 'Google', value: 'geosite:google' },
 ];
-
-function sanitizePath(input: string): string {
-  return String(input ?? '').replace(/[:*]/g, '');
-}
-
-function normalizePath(input: string): string {
-  let p = input || '/';
-  if (!p.startsWith('/')) p = '/' + p;
-  if (!p.endsWith('/')) p += '/';
-  p = p.replace(/\/+/g, '/');
-  return p;
-}
 
 function readJson<T>(raw: string, fallback: T): T {
   try {

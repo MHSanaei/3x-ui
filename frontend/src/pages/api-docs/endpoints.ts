@@ -151,6 +151,13 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/inbounds/bulkDel',
+        summary: 'Delete many inbounds in one call. Processes the list sequentially; failures are reported per id and the rest still proceed. Restarts xray at most once.',
+        body: '{\n  "ids": [1, 2, 3]\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "deleted": 2,\n    "skipped": [\n      { "id": 3, "reason": "..." }\n    ]\n  }\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/inbounds/update/:id',
         summary: 'Replace an inbound’s configuration. Body shape mirrors /add. Heavy on inbounds with thousands of clients — prefer /setEnable for enable-only flips.',
         params: [
@@ -769,6 +776,13 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Node ID.' },
         ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/nodes/updatePanel',
+        summary: 'Trigger the official panel self-updater on each given node (downloads the latest release and restarts). Only enabled, online nodes are updated; offline/disabled ones are reported as skipped. Returns a per-node result list.',
+        body: '{\n  "ids": [1, 2, 3]\n}',
+        response: '{\n  "success": true,\n  "obj": [\n    { "id": 1, "name": "de-1", "ok": true },\n    { "id": 2, "name": "fr-1", "ok": false, "error": "node is offline" }\n  ]\n}',
       },
       {
         method: 'GET',

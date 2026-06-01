@@ -2,15 +2,16 @@ import { z } from 'zod';
 
 import { PortSchema } from '@/schemas/primitives';
 
-export const DNSRuleActionSchema = z.enum(['direct', 'reject', 'rejectIPv4', 'rejectIPv6']);
+export const DNSRuleActionSchema = z.enum(['direct', 'drop', 'return', 'hijack']);
 
-// On the wire `qtype` is either a number (DNS type code) or a string like
+// On the wire `qType` is either a number (DNS type code) or a string like
 // "A"/"AAAA"/"TXT"; the panel normalizes numeric strings to numbers in
 // toJson. `domain` is a string[] (split from a comma-joined input).
 export const DNSRuleSchema = z.object({
   action: DNSRuleActionSchema.default('direct'),
-  qtype: z.union([z.string(), z.number().int()]).optional(),
+  qType: z.union([z.string(), z.number().int()]).optional(),
   domain: z.array(z.string()).optional(),
+  rCode: z.number().int().min(0).max(65535).optional(),
 });
 export type DNSRule = z.infer<typeof DNSRuleSchema>;
 

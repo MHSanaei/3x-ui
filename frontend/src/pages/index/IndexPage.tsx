@@ -8,6 +8,7 @@ import {
   Layout,
   message,
   Modal,
+  Result,
   Row,
   Space,
   Spin,
@@ -39,13 +40,13 @@ import { HttpUtil, SizeFormatter, TimeFormatter, ClipboardManager, FileManager }
 import { useTheme } from '@/hooks/useTheme';
 import { useStatusQuery } from '@/api/queries/useStatusQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import AppSidebar from '@/components/AppSidebar';
-import LazyMount from '@/components/LazyMount';
+import AppSidebar from '@/layouts/AppSidebar';
+import { LazyMount } from '@/components/utility';
 import { setMessageInstance } from '@/utils/messageBus';
 import StatusCard from './StatusCard';
 import XrayStatusCard from './XrayStatusCard';
 import type { PanelUpdateInfo } from './PanelUpdateModal';
-const JsonEditor = lazy(() => import('@/components/JsonEditor'));
+const JsonEditor = lazy(() => import('@/components/form/JsonEditor'));
 const PanelUpdateModal = lazy(() => import('./PanelUpdateModal'));
 const LogModal = lazy(() => import('./LogModal'));
 const BackupModal = lazy(() => import('./BackupModal'));
@@ -58,7 +59,7 @@ import './IndexPage.css';
 export default function IndexPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
-  const { status, fetched, refresh } = useStatusQuery();
+  const { status, fetched, fetchError, refresh } = useStatusQuery();
   const { isMobile } = useMediaQuery();
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
@@ -168,6 +169,13 @@ export default function IndexPage() {
             >
               {!fetched ? (
                 <div className="loading-spacer" />
+              ) : fetchError ? (
+                <Result
+                  status="error"
+                  title={t('somethingWentWrong')}
+                  subTitle={fetchError}
+                  extra={<Button type="primary" onClick={refresh}>{t('refresh')}</Button>}
+                />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, 12]}>
                   <Col span={24}>

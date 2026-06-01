@@ -2,7 +2,7 @@ import { Base64, Wireguard } from '@/utils';
 
 import type { Inbound } from '@/schemas/api/inbound';
 import type { VlessClient } from '@/schemas/protocols/inbound/vless';
-import type { VmessSecurity } from '@/schemas/protocols/inbound/vmess';
+import type { VmessSecurity } from '@/schemas/protocols/shared/vmess';
 import type {
   WireguardInboundPeer,
   WireguardInboundSettings,
@@ -943,4 +943,11 @@ export function genWireguardConfigs(input: GenWireguardFanoutInput): string {
       peerIndex: i,
     }))
     .join('\r\n');
+}
+
+export function isPostQuantumLink(link: string): boolean {
+  if (/[?&]pqv=/.test(link)) return true;
+  if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
+  if (link.includes('ML-KEM-768')) return true;
+  return false;
 }

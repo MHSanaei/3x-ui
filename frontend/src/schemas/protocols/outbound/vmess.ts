@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { PortSchema } from '@/schemas/primitives';
-import { VmessSecuritySchema } from '@/schemas/protocols/inbound/vmess';
+import { VmessSecuritySchema } from '@/schemas/protocols/shared/vmess';
 
 // Vmess outbound persists in the standard Xray `vnext` shape:
 // { vnext: [{ address, port, users: [{ id, security }] }] }

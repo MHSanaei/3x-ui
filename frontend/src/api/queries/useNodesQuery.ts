@@ -76,6 +76,8 @@ export function useNodesQuery() {
     nodes,
     totals,
     loading: query.isFetching,
-    fetched: query.data !== undefined,
+    fetched: query.data !== undefined || query.isError,
+    fetchError: query.error ? (query.error as Error).message : '',
+    refetch: query.refetch,
   };
 }
