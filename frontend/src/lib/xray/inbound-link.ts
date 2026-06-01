@@ -706,15 +706,22 @@ export function genWireguardConfig(input: GenWireguardLinkInput): string {
 
 export type { WireguardInboundPeer };
 
+function isUnixSocketListen(listen: string): boolean {
+  return listen.startsWith('/') || listen.startsWith('@');
+}
+
 // Orchestrators.
 // resolveAddr picks the host that goes into share/sub links. Order:
 //   1. hostOverride (caller supplies node address for node-managed inbounds)
-//   2. inbound's bind listen (when explicit, not 0.0.0.0)
+//   2. inbound's bind listen (when it's an explicit reachable address —
+//      not 0.0.0.0 and not a unix domain socket path)
 //   3. fallbackHostname (caller-supplied — typically window.location.hostname
 //      in the browser; tests pass a fixed value)
 export function resolveAddr(inbound: Inbound, hostOverride: string, fallbackHostname: string): string {
   if (hostOverride.length > 0) return hostOverride;
-  if (inbound.listen.length > 0 && inbound.listen !== '0.0.0.0') return inbound.listen;
+  if (inbound.listen.length > 0 && inbound.listen !== '0.0.0.0' && !isUnixSocketListen(inbound.listen)) {
+    return inbound.listen;
+  }
   return fallbackHostname;
 }
 

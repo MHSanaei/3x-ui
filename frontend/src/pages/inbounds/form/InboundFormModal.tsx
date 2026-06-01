@@ -481,7 +481,11 @@ export default function InboundFormModal({
         <Select disabled={mode === 'edit'} options={PROTOCOL_OPTIONS} />
       </Form.Item>
 
-      <Form.Item name="listen" label={t('pages.inbounds.address')}>
+      <Form.Item
+        name="listen"
+        label={t('pages.inbounds.address')}
+        extra={t('pages.inbounds.form.listenHelp')}
+      >
         <Input placeholder={t('pages.inbounds.monitorDesc')} />
       </Form.Item>
 

@@ -570,7 +570,8 @@
         "getNewCert": "Get New Cert",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "Get New Seed"
+        "getNewSeed": "Get New Seed",
+        "listenHelp": "You can also enter a Unix socket path (e.g. /run/xray/in.sock) to listen on a socket instead of a TCP port — set Port to 0 in that case."
       },
       "info": {
         "mode": "Mode",

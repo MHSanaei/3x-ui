@@ -570,7 +570,8 @@
         "getNewCert": "Obter novo certificado",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "Obter novo Seed"
+        "getNewSeed": "Obter novo Seed",
+        "listenHelp": "Você também pode informar um caminho de socket Unix (ex.: /run/xray/in.sock) para escutar em um socket em vez de uma porta TCP — nesse caso, defina a Porta como 0."
       },
       "info": {
         "mode": "Modo",

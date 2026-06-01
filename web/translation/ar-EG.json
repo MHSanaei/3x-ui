@@ -570,7 +570,8 @@
         "getNewCert": "احصل على شهادة جديدة",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "احصل على Seed جديد"
+        "getNewSeed": "احصل على Seed جديد",
+        "listenHelp": "يمكنك أيضًا إدخال مسار Unix socket (مثل /run/xray/in.sock) للاستماع على socket بدلاً من منفذ TCP — في هذه الحالة اضبط المنفذ على 0."
       },
       "info": {
         "mode": "الوضع",

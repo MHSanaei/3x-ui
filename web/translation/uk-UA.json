@@ -570,7 +570,8 @@
         "getNewCert": "Отримати новий сертифікат",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "Отримати новий Seed"
+        "getNewSeed": "Отримати новий Seed",
+        "listenHelp": "Можна також указати шлях Unix-сокета (наприклад, /run/xray/in.sock), щоб слухати сокет замість TCP-порту — у цьому разі встановіть порт 0."
       },
       "info": {
         "mode": "Режим",

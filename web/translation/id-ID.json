@@ -570,7 +570,8 @@
         "getNewCert": "Dapatkan sertifikat baru",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "Dapatkan Seed baru"
+        "getNewSeed": "Dapatkan Seed baru",
+        "listenHelp": "Anda juga dapat memasukkan path Unix socket (mis. /run/xray/in.sock) untuk listen pada socket alih-alih port TCP — dalam hal ini setel Port ke 0."
       },
       "info": {
         "mode": "Mode",

@@ -570,7 +570,8 @@
         "getNewCert": "Yeni sertifika al",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "Yeni Seed al"
+        "getNewSeed": "Yeni Seed al",
+        "listenHelp": "TCP portu yerine bir Unix soket yolu da girebilirsiniz (örn. /run/xray/in.sock) — bu durumda Portu 0 olarak ayarlayın."
       },
       "info": {
         "mode": "Mod",

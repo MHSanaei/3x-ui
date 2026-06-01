@@ -570,7 +570,8 @@
         "getNewCert": "Obtener nuevo cert",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "Obtener nuevo Seed"
+        "getNewSeed": "Obtener nuevo Seed",
+        "listenHelp": "También puedes introducir una ruta de socket Unix (p. ej. /run/xray/in.sock) para escuchar en un socket en lugar de un puerto TCP; en ese caso, establece el Puerto en 0."
       },
       "info": {
         "mode": "Modo",

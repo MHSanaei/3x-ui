@@ -570,7 +570,8 @@
         "getNewCert": "دریافت گواهی جدید",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "دریافت Seed جدید"
+        "getNewSeed": "دریافت Seed جدید",
+        "listenHelp": "می‌توانید به‌جای پورت TCP یک مسیر سوکت یونیکس وارد کنید (مثلاً /run/xray/in.sock) تا روی سوکت گوش داده شود — در این حالت پورت را روی ۰ بگذارید."
       },
       "info": {
         "mode": "حالت",

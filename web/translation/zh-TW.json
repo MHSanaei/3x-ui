@@ -570,7 +570,8 @@
         "getNewCert": "取得新憑證",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "取得新 Seed"
+        "getNewSeed": "取得新 Seed",
+        "listenHelp": "也可以填寫 Unix socket 路徑（例如 /run/xray/in.sock），以使用通訊端而非 TCP 連接埠監聽——此時請將連接埠設為 0。"
       },
       "info": {
         "mode": "模式",

@@ -570,7 +570,8 @@
         "getNewCert": "新しい証明書を取得",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "新しい Seed を取得"
+        "getNewSeed": "新しい Seed を取得",
+        "listenHelp": "TCP ポートの代わりに Unix ソケットのパス（例: /run/xray/in.sock）を入力してソケットでリッスンすることもできます。その場合はポートを 0 に設定してください。"
       },
       "info": {
         "mode": "モード",

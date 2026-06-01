@@ -245,10 +245,7 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
 				row.CreatedAt = incoming.CreatedAt
 			}
-			preservedUpdatedAt := row.UpdatedAt
-			if incoming.UpdatedAt > preservedUpdatedAt {
-				preservedUpdatedAt = incoming.UpdatedAt
-			}
+			preservedUpdatedAt := max(incoming.UpdatedAt, row.UpdatedAt)
 			row.UpdatedAt = preservedUpdatedAt
 			if err := tx.Save(row).Error; err != nil {
 				return err

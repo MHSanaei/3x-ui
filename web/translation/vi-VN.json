@@ -570,7 +570,8 @@
         "getNewCert": "Lấy chứng chỉ mới",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "Lấy Seed mới"
+        "getNewSeed": "Lấy Seed mới",
+        "listenHelp": "Bạn cũng có thể nhập đường dẫn Unix socket (ví dụ /run/xray/in.sock) để lắng nghe trên socket thay vì cổng TCP — khi đó hãy đặt Port là 0."
       },
       "info": {
         "mode": "Chế độ",
