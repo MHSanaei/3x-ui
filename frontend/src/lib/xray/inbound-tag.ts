@@ -49,12 +49,8 @@ function transportTagSuffix(bits: TransportBits): string {
   return 'any';
 }
 
-function isAnyListen(listen: string): boolean {
-  return listen === '' || listen === '0.0.0.0' || listen === '::' || listen === '::0';
-}
-
-function baseInboundTag(listen: string, port: number): string {
-  return isAnyListen(listen) ? `in-${port}` : `in-${listen}:${port}`;
+function baseInboundTag(port: number): string {
+  return `in-${port}`;
 }
 
 function nodeTagPrefix(nodeId: number | null | undefined): string {
@@ -62,7 +58,6 @@ function nodeTagPrefix(nodeId: number | null | undefined): string {
 }
 
 export interface InboundTagInput {
-  listen: string;
   port: number;
   nodeId: number | null | undefined;
   protocol: string;
@@ -74,7 +69,7 @@ export function composeInboundTag(input: InboundTagInput): string {
   const bits = inboundTransports(input.protocol, input.streamSettings, input.settings);
   return (
     nodeTagPrefix(input.nodeId)
-    + baseInboundTag(input.listen ?? '', input.port ?? 0)
+    + baseInboundTag(input.port ?? 0)
     + '-'
     + transportTagSuffix(bits)
   );
