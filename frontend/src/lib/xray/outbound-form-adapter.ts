@@ -123,7 +123,7 @@ function vlessFromWire(raw: Raw): VlessOutboundFormSettings {
     port,
     id,
     flow,
-    encryption: (encryption === 'none' ? 'none' : 'none') as 'none',
+    encryption: encryption || 'none',
     reverseTag,
     reverseSniffing,
     testpre: asNumber(raw.testpre, 0),

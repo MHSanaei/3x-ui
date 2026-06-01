@@ -173,6 +173,23 @@ describe('parseVlessLink', () => {
     expect(reality.shortId).toBe('abcd');
     expect(reality.serverName).toBe('cloudflare.com');
   });
+
+  it('parses encryption + pqv (post-quantum) into settings and mldsa65Verify', () => {
+    const enc = 'mlkem768x25519plus.native.0rtt.G3cdPSd1-NnlpTbWNSM5vHsT5VNzWfFzYSKwbUMnV1Y';
+    const pqv = 'GIsemxbGPjDRH1ONfmoGlVkJ4etNuLmYDvzpjmFFreDLd8WjoJxJ4Fmt_NQJaC6';
+    const link
+      = 'vless://9406c224-8ac6-4675-ae0b-f93785959418@localhost:1121'
+      + `?encryption=${enc}&pqv=${pqv}`
+      + '&security=reality&sid=29cf418813d5bac7&sni=aws.amazon.com'
+      + '&pbk=aQaGBOT2hMfXWebYtjADoOVUrP8qZRdwXVap7nrId0I&fp=chrome&spx=%2FOUTjB7xHRiP4zBP&type=tcp'
+      + '#giqssbgmo9';
+    const out = parseVlessLink(link);
+    const settings = out?.settings as { encryption: string };
+    expect(settings.encryption).toBe(enc);
+    const reality = (out?.streamSettings as Record<string, unknown>).realitySettings as Record<string, unknown>;
+    expect(reality.mldsa65Verify).toBe(pqv);
+    expect(reality.publicKey).toBe('aQaGBOT2hMfXWebYtjADoOVUrP8qZRdwXVap7nrId0I');
+  });
 });
 
 describe('parseTrojanLink', () => {

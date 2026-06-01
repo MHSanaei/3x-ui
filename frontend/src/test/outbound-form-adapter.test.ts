@@ -74,6 +74,25 @@ describe('outbound-form-adapter: round-trip', () => {
     });
   });
 
+  it('vless preserves a non-none encryption value (post-quantum)', () => {
+    const enc = 'mlkem768x25519plus.native.0rtt.G3cdPSd1-NnlpTbWNSM5vHsT5VNzWfFzYSKwbUMnV1Y';
+    const wire = {
+      protocol: 'vless',
+      settings: {
+        address: 'srv',
+        port: 443,
+        id: '11111111-2222-4333-8444-555555555555',
+        flow: '',
+        encryption: enc,
+      },
+    };
+    const form = rawOutboundToFormValues(wire);
+    if (form.protocol === 'vless') {
+      expect(form.settings.encryption).toBe(enc);
+    }
+    expect((formValuesToWirePayload(form).settings as Record<string, unknown>).encryption).toBe(enc);
+  });
+
   it('vless emits reverse + sniffing when reverseTag is set', () => {
     const wire = {
       protocol: 'vless',

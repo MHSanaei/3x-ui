@@ -210,6 +210,7 @@ function applySecurityParams(stream: Raw, params: URLSearchParams): void {
     reality.publicKey = params.get('pbk') ?? '';
     reality.shortId = params.get('sid') ?? '';
     reality.spiderX = params.get('spx') ?? '';
+    reality.mldsa65Verify = params.get('pqv') ?? '';
   }
 }
 
