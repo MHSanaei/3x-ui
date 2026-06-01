@@ -356,18 +356,20 @@ export function parseShadowsocksLink(link: string): Raw | null {
   if (hashIndex >= 0) {
     try { remark = decodeURIComponent(link.slice(hashIndex + 1)); } catch { remark = ''; }
   }
-  const atIndex = linkNoHash.indexOf('@');
+  const queryIndex = linkNoHash.indexOf('?');
+  const core = queryIndex >= 0 ? linkNoHash.slice(0, queryIndex) : linkNoHash;
+  const atIndex = core.indexOf('@');
   if (atIndex >= 0) {
-    try { userInfo = Base64.decode(linkNoHash.slice('ss://'.length, atIndex)); }
-    catch { userInfo = linkNoHash.slice('ss://'.length, atIndex); }
-    const hostPort = linkNoHash.slice(atIndex + 1);
+    try { userInfo = Base64.decode(core.slice('ss://'.length, atIndex)); }
+    catch { userInfo = core.slice('ss://'.length, atIndex); }
+    const hostPort = core.slice(atIndex + 1);
     const colon = hostPort.lastIndexOf(':');
     if (colon < 0) return null;
     host = hostPort.slice(0, colon);
     port = Number(hostPort.slice(colon + 1)) || 443;
   } else {
     let decoded: string;
-    try { decoded = Base64.decode(linkNoHash.slice('ss://'.length)); }
+    try { decoded = Base64.decode(core.slice('ss://'.length)); }
     catch { return null; }
     const at = decoded.indexOf('@');
     if (at < 0) return null;
@@ -424,6 +426,70 @@ export function parseHysteria2Link(link: string): Raw | null {
   };
 }
 
+function firstParam(params: URLSearchParams, ...keys: string[]): string | null {
+  for (const k of keys) {
+    const v = params.get(k);
+    if (v !== null && v !== '') return v;
+  }
+  return null;
+}
+
+export function parseWireguardLink(link: string): Raw | null {
+  const url = parseUrlLink(link, 'wireguard') ?? parseUrlLink(link, 'wg');
+  if (!url) return null;
+  let secretKey: string;
+  try {
+    secretKey = decodeURIComponent(url.username);
+  } catch {
+    secretKey = url.username;
+  }
+  const params = url.searchParams;
+  const host = url.hostname;
+  const port = url.port;
+  const endpoint = host ? (port ? `${host}:${port}` : host) : '';
+
+  const addressRaw = firstParam(params, 'address', 'ip') ?? '';
+  const address = addressRaw.split(',').map((s) => s.trim()).filter(Boolean);
+
+  const allowedRaw = firstParam(params, 'allowedips', 'allowed_ips');
+  const allowedIPs = allowedRaw
+    ? allowedRaw.split(',').map((s) => s.trim()).filter(Boolean)
+    : ['0.0.0.0/0', '::/0'];
+
+  const peer: Raw = {
+    publicKey: firstParam(params, 'publickey', 'publicKey', 'public_key', 'peerPublicKey') ?? '',
+    endpoint,
+    allowedIPs,
+  };
+  const psk = firstParam(params, 'presharedkey', 'preshared_key', 'pre-shared-key', 'psk');
+  if (psk) peer.preSharedKey = psk;
+  const keepAliveRaw = firstParam(params, 'keepalive', 'persistentkeepalive', 'persistent_keepalive');
+  if (keepAliveRaw !== null) {
+    const k = Number(keepAliveRaw);
+    if (Number.isFinite(k)) peer.keepAlive = k;
+  }
+
+  const settings: Raw = { secretKey, address, peers: [peer] };
+  const mtuRaw = firstParam(params, 'mtu');
+  if (mtuRaw !== null) {
+    const m = Number(mtuRaw);
+    if (Number.isFinite(m)) settings.mtu = m;
+  }
+  const reservedRaw = firstParam(params, 'reserved');
+  if (reservedRaw) {
+    const reserved = reservedRaw.split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n));
+    if (reserved.length > 0) settings.reserved = reserved;
+  }
+
+  return {
+    protocol: 'wireguard',
+    tag: decodeRemark(url),
+    settings,
+  };
+}
+
 // Dispatcher — first non-null parser wins. Returns null when no parser
 // recognizes the link's protocol scheme.
 export function parseOutboundLink(link: string): Raw | null {
@@ -435,5 +501,6 @@ export function parseOutboundLink(link: string): Raw | null {
     ?? parseTrojanLink(trimmed)
     ?? parseShadowsocksLink(trimmed)
     ?? parseHysteria2Link(trimmed)
+    ?? parseWireguardLink(trimmed)
   );
 }

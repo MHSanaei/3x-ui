@@ -146,16 +146,30 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 }
 
 func (r *Remote) resolveRemoteID(ctx context.Context, tag string) (int, error) {
-	if id, ok := r.cacheGet(tag); ok {
+	if id, ok := r.cacheGetTag(tag); ok {
 		return id, nil
 	}
 	if err := r.refreshRemoteIDs(ctx); err != nil {
 		return 0, err
 	}
-	if id, ok := r.cacheGet(tag); ok {
+	if id, ok := r.cacheGetTag(tag); ok {
 		return id, nil
 	}
 	return 0, fmt.Errorf("remote inbound with tag %q not found on node %s", tag, r.node.Name)
+}
+
+// cacheGetTag looks up a remote inbound id by tag, tolerating an n<id>- prefix
+// that lives on only one of the two panels: the node may carry the bare tag
+// while the central panel stores the prefixed form, or vice versa.
+func (r *Remote) cacheGetTag(tag string) (int, bool) {
+	if id, ok := r.cacheGet(tag); ok {
+		return id, true
+	}
+	prefix := fmt.Sprintf("n%d-", r.node.Id)
+	if stripped, found := strings.CutPrefix(tag, prefix); found {
+		return r.cacheGet(stripped)
+	}
+	return r.cacheGet(prefix + tag)
 }
 
 func (r *Remote) cacheGet(tag string) (int, bool) {
@@ -303,6 +317,14 @@ func (r *Remote) UpdateUser(ctx context.Context, _ *model.Inbound, oldEmail stri
 
 func (r *Remote) RestartXray(ctx context.Context) error {
 	_, err := r.do(ctx, http.MethodPost, "panel/api/server/restartXrayService", nil)
+	return err
+}
+
+// UpdatePanel asks the node to run its own official self-updater (update.sh)
+// and restart onto the latest release. The node returns as soon as the job is
+// launched; the new version surfaces on the next heartbeat.
+func (r *Remote) UpdatePanel(ctx context.Context) error {
+	_, err := r.do(ctx, http.MethodPost, "panel/api/server/updatePanel", nil)
 	return err
 }
 

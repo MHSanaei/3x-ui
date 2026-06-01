@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 import { PortSchema } from '@/schemas/primitives';
-import { VmessSecuritySchema } from '@/schemas/protocols/inbound/vmess';
-import { SSMethodSchema } from '@/schemas/protocols/inbound/shadowsocks';
+import { SSMethodSchema } from '@/schemas/protocols/shared/shadowsocks';
+import { VmessSecuritySchema } from '@/schemas/protocols/shared/vmess';
 import { SecuritySettingsSchema } from '@/schemas/protocols/security';
 import { NetworkSettingsSchema, StreamExtrasSchema } from '@/schemas/protocols/stream';
 import {
@@ -29,7 +29,7 @@ import {
 //     the adapter wraps them as { reverse: { tag, sniffing } } on the wire.
 //   - blackhole `type` ('' | 'none' | 'http') is flat; the adapter wraps it
 //     as { response: { type } } on the wire (omitted when empty).
-//   - DNS rules carry `qtype` and `domain` as comma-joined strings (matches
+//   - DNS rules carry `qType` and `domain` as comma-joined strings (matches
 //     the legacy DNSRule UI). The adapter normalizes them on submit.
 //
 // All flat-form settings types are documented inline so the adapter has a
@@ -166,6 +166,8 @@ export type FreedomFinalRuleForm = z.infer<typeof FreedomFinalRuleFormSchema>;
 export const FreedomOutboundFormSettingsSchema = z.object({
   domainStrategy: z.union([OutboundDomainStrategySchema, z.literal('')]).default(''),
   redirect: z.string().default(''),
+  userLevel: z.number().int().min(0).default(0),
+  proxyProtocol: z.number().int().min(0).max(2).default(0),
   fragment: FreedomFragmentSchema.default({
     packets: '1-3',
     length: '',
@@ -184,12 +186,13 @@ export const BlackholeOutboundFormSettingsSchema = z.object({
 });
 export type BlackholeOutboundFormSettings = z.infer<typeof BlackholeOutboundFormSettingsSchema>;
 
-// DNS rules: form holds qtype + domain as joined strings (the legacy UI
+// DNS rules: form holds qType + domain as joined strings (the legacy UI
 // binds to <Input>). Adapter parses them on submit per the DNSRule class.
 export const DnsRuleFormSchema = z.object({
   action: DNSRuleActionSchema.default('direct'),
-  qtype: z.string().default(''),
+  qType: z.string().default(''),
   domain: z.string().default(''),
+  rCode: z.number().int().min(0).max(65535).default(0),
 });
 export type DnsRuleForm = z.infer<typeof DnsRuleFormSchema>;
 

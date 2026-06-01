@@ -1,0 +1,134 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`inbound security forms > RealityForm field structure is stable 1`] = `
+[
+  "Show",
+  "Xver",
+  "uTLS",
+  "Target",
+  "SNI",
+  "Max Time Diff (ms)",
+  "Min Client Ver",
+  "Max Client Ver",
+  "Short IDs",
+  "SpiderX",
+  "Public Key",
+  "Private Key",
+  "mldsa65 Seed",
+  "mldsa65 Verify",
+]
+`;
+
+exports[`inbound security forms > TlsForm field structure is stable 1`] = `
+[
+  "SNI",
+  "Cipher Suites",
+  "Min/Max Version",
+  "uTLS",
+  "ALPN",
+  "Reject Unknown SNI",
+  "Disable System Root",
+  "Session Resumption",
+  "Digital Certificate",
+  "ECH key",
+  "ECH config",
+  "Pinned Peer Cert SHA-256",
+]
+`;
+
+exports[`inbound transport forms > ExternalProxyForm field structure is stable (one TLS entry) 1`] = `
+[
+  "External Proxy",
+]
+`;
+
+exports[`inbound transport forms > GrpcForm field structure is stable 1`] = `
+[
+  "Service Name",
+  "Authority",
+  "Multi Mode",
+]
+`;
+
+exports[`inbound transport forms > HttpUpgradeForm field structure is stable 1`] = `
+[
+  "Proxy Protocol",
+  "Host",
+  "Path",
+  "Headers",
+]
+`;
+
+exports[`inbound transport forms > KcpForm field structure is stable 1`] = `
+[
+  "MTU",
+  "TTI (ms)",
+  "Uplink (MB/s)",
+  "Downlink (MB/s)",
+  "CWND Multiplier",
+  "Max Sending Window",
+]
+`;
+
+exports[`inbound transport forms > RawForm field structure is stable 1`] = `
+[
+  "Proxy Protocol",
+  "HTTP Obfuscation",
+]
+`;
+
+exports[`inbound transport forms > SockoptForm field structure is stable (enabled + happy eyeballs) 1`] = `
+[
+  "Sockopt",
+  "Route Mark",
+  "TCP Keep Alive Interval",
+  "TCP Keep Alive Idle",
+  "TCP Max Seg",
+  "TCP User Timeout",
+  "TCP Window Clamp",
+  "Proxy Protocol",
+  "TCP Fast Open",
+  "Multipath TCP",
+  "Penetrate",
+  "V6 Only",
+  "Domain Strategy",
+  "TCP Congestion",
+  "TProxy",
+  "Dialer Proxy",
+  "Interface name",
+  "Trusted X-Forwarded-For",
+  "Address+port strategy",
+  "Happy Eyeballs",
+  "Try delay (ms)",
+  "Prioritize IPv6",
+  "Interleave",
+  "Max concurrent try",
+  "Custom sockopt",
+]
+`;
+
+exports[`inbound transport forms > WsForm field structure is stable 1`] = `
+[
+  "Proxy Protocol",
+  "Host",
+  "Path",
+  "Heartbeat Period",
+  "Headers",
+]
+`;
+
+exports[`inbound transport forms > XhttpForm field structure is stable 1`] = `
+[
+  "Host",
+  "Path",
+  "Mode",
+  "Server Max Header Bytes",
+  "Padding Bytes",
+  "Headers",
+  "Uplink HTTP Method",
+  "Padding Obfs Mode",
+  "Session Placement",
+  "Sequence Placement",
+  "No SSE Header",
+]
+`;

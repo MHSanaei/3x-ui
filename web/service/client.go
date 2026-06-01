@@ -237,7 +237,9 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			row.ExpiryTime = incoming.ExpiryTime
 			row.Enable = incoming.Enable
 			row.TgID = incoming.TgID
-			row.Group = incoming.Group
+			if incoming.Group != "" {
+				row.Group = incoming.Group
+			}
 			row.Comment = incoming.Comment
 			row.Reset = incoming.Reset
 			if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
@@ -299,9 +301,7 @@ func (s *ClientService) ListForInbound(tx *gorm.DB, inboundId int) ([]model.Clie
 	out := make([]model.Client, 0, len(rows))
 	for i := range rows {
 		c := rows[i].ToClient()
-		if rows[i].FlowOverride != "" {
-			c.Flow = rows[i].FlowOverride
-		}
+		c.Flow = rows[i].FlowOverride
 		out = append(out, *c)
 	}
 	return out, nil
@@ -410,6 +410,29 @@ type ClientCreatePayload struct {
 	InboundIds []int        `json:"inboundIds"`
 }
 
+func hasForbiddenClientChar(s string) bool {
+	for _, r := range s {
+		if r == '/' || r == '\\' || r == ' ' || r < 0x20 || r == 0x7f {
+			return true
+		}
+	}
+	return false
+}
+
+func validateClientEmail(email string) error {
+	if hasForbiddenClientChar(email) {
+		return common.NewError("client email contains an invalid character:", email)
+	}
+	return nil
+}
+
+func validateClientSubID(subID string) error {
+	if hasForbiddenClientChar(subID) {
+		return common.NewError("client subId contains an invalid character:", subID)
+	}
+	return nil
+}
+
 func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreatePayload) (bool, error) {
 	if payload == nil {
 		return false, common.NewError("empty payload")
@@ -417,6 +440,12 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	client := payload.Client
 	if strings.TrimSpace(client.Email) == "" {
 		return false, common.NewError("client email is required")
+	}
+	if err := validateClientEmail(client.Email); err != nil {
+		return false, err
+	}
+	if err := validateClientSubID(client.SubID); err != nil {
+		return false, err
 	}
 	if len(payload.InboundIds) == 0 {
 		return false, common.NewError("at least one inbound is required")
@@ -446,6 +475,18 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		}
 	}
 
+	if client.SubID != "" {
+		var subTaken int64
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("sub_id = ? AND email <> ?", client.SubID, client.Email).
+			Count(&subTaken).Error; err != nil {
+			return false, err
+		}
+		if subTaken > 0 {
+			return false, common.NewError("subId already in use:", client.SubID)
+		}
+	}
+
 	needRestart := false
 	for _, ibId := range payload.InboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
@@ -455,7 +496,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if err := s.fillProtocolDefaults(&client, inbound); err != nil {
 			return needRestart, err
 		}
-		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {client}})
+		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(client, inbound)}})
 		if mErr != nil {
 			return needRestart, mErr
 		}
@@ -496,8 +537,13 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 	return nil
 }
 
-// shadowsocksMethodFromSettings pulls the "method" field out of the inbound's
-// settings JSON. Returns "" when the field is missing or settings is invalid.
+func clientWithInboundFlow(c model.Client, ib *model.Inbound) model.Client {
+	if !inboundCanEnableTlsFlow(string(ib.Protocol), ib.StreamSettings) {
+		c.Flow = ""
+	}
+	return c
+}
+
 func shadowsocksMethodFromSettings(settings string) string {
 	if settings == "" {
 		return ""
@@ -510,11 +556,6 @@ func shadowsocksMethodFromSettings(settings string) string {
 	return method
 }
 
-// randomShadowsocksClientKey returns a per-client key sized to the cipher.
-// The 2022-blake3 ciphers require a base64-encoded key of an exact byte
-// length (16 bytes for aes-128-gcm, 32 bytes for aes-256-gcm and
-// chacha20-poly1305) — anything else fails with "bad key" on xray start.
-// Older ciphers accept arbitrary passwords, so we keep the uuid-style.
 func randomShadowsocksClientKey(method string) string {
 	if n := shadowsocksKeyBytes(method); n > 0 {
 		return random.Base64Bytes(n)
@@ -522,9 +563,6 @@ func randomShadowsocksClientKey(method string) string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "")
 }
 
-// validShadowsocksClientKey reports whether key is acceptable for the cipher.
-// For 2022-blake3 it must decode to the exact byte length the cipher needs;
-// any other method accepts any non-empty string.
 func validShadowsocksClientKey(method, key string) bool {
 	n := shadowsocksKeyBytes(method)
 	if n == 0 {
@@ -547,13 +585,6 @@ func shadowsocksKeyBytes(method string) int {
 	return 0
 }
 
-// applyShadowsocksClientMethod normalises the per-client "method" field
-// when an inbound is created or updated:
-//   - Legacy ciphers: backfill `method` so xray's multi-user code is happy.
-//     "unsupported cipher method:" otherwise.
-//   - 2022-blake3-*: strip the per-client `method` because xray rejects
-//     it with "users must have empty method". This matters after an admin
-//     switches an existing inbound from a legacy cipher to a 2022 one.
 func applyShadowsocksClientMethod(clients []any, settings map[string]any) {
 	method, _ := settings["method"].(string)
 	is2022 := strings.HasPrefix(method, "2022-blake3-")
@@ -593,6 +624,12 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if strings.TrimSpace(updated.Email) == "" {
 		return false, common.NewError("client email is required")
 	}
+	if err := validateClientEmail(updated.Email); err != nil {
+		return false, err
+	}
+	if err := validateClientSubID(updated.SubID); err != nil {
+		return false, err
+	}
 	if updated.SubID == "" {
 		updated.SubID = existing.SubID
 	}
@@ -604,10 +641,6 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		updated.CreatedAt = existing.CreatedAt
 	}
 
-	// Rename the ClientRecord row up front when the email changes. SyncInbound
-	// (invoked from UpdateInboundClient below) looks up by email — without
-	// renaming first it would treat the new email as a brand-new client,
-	// insert a duplicate ClientRecord, and leave the original orphaned.
 	if updated.Email != existing.Email {
 		var collisionCount int64
 		if err := database.GetDB().Model(&model.ClientRecord{}).
@@ -625,10 +658,30 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 	}
 
+	if updated.SubID != "" {
+		var subCollision int64
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("sub_id = ? AND id <> ?", updated.SubID, id).
+			Count(&subCollision).Error; err != nil {
+			return false, err
+		}
+		if subCollision > 0 {
+			return false, common.NewError("Duplicate subId:", updated.SubID)
+		}
+	}
+
 	needRestart := false
 	for _, ibId := range inboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
 		if getErr != nil {
+			if errors.Is(getErr, gorm.ErrRecordNotFound) {
+				if err := database.GetDB().
+					Where("client_id = ? AND inbound_id = ?", id, ibId).
+					Delete(&model.ClientInbound{}).Error; err != nil {
+					return needRestart, err
+				}
+				continue
+			}
 			return needRestart, getErr
 		}
 		oldKey := clientKeyForProtocol(inbound.Protocol, existing)
@@ -638,7 +691,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		if err := s.fillProtocolDefaults(&updated, inbound); err != nil {
 			return needRestart, err
 		}
-		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {updated}})
+		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(updated, inbound)}})
 		if mErr != nil {
 			return needRestart, mErr
 		}
@@ -744,7 +797,7 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		if err := s.fillProtocolDefaults(&copyClient, inbound); err != nil {
 			return needRestart, err
 		}
-		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {copyClient}})
+		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(copyClient, inbound)}})
 		if mErr != nil {
 			return needRestart, mErr
 		}
@@ -862,7 +915,7 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 				recordErr("%s -> inbound %d: %v", rec.Email, ibId, err)
 				continue
 			}
-			clientsToAdd = append(clientsToAdd, client)
+			clientsToAdd = append(clientsToAdd, clientWithInboundFlow(client, inbound))
 		}
 
 		if len(clientsToAdd) == 0 {

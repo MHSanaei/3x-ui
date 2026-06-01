@@ -40,7 +40,7 @@ export class AllSetting {
   subPort = 2096;
   subPath = '/sub/';
   subJsonPath = '/json/';
-  subClashEnable = true;
+  subClashEnable = false;
   subClashPath = '/clash/';
   subDomain = '';
   externalTrafficInformEnable = false;

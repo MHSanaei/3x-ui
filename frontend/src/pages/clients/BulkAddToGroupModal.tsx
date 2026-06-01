@@ -63,7 +63,7 @@ export default function BulkAddToGroupModal({
           >
             <AutoComplete
               value={value}
-              placeholder={t('pages.clients.addToGroupPlaceholder')}
+              placeholder={t('pages.clients.groupName')}
               options={groups.map((g) => ({ value: g }))}
               onChange={(v) => setValue(v ?? '')}
               filterOption={(input, option) =>

@@ -3,6 +3,7 @@
 .gitignore
 .gitattributes
 .gitmodules
+**/node_modules
 
 # CI / editor / platform
 .github
@@ -29,6 +30,12 @@ access.log
 error.log
 db
 cert
+pgdata
+*.db
+
+# Build outputs
+web/dist
+build
 
 # Build metadata itself
 Dockerfile*

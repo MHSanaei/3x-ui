@@ -7,6 +7,7 @@ import {
   parseVlessLink,
   parseVmessLink,
   parseHysteria2Link,
+  parseWireguardLink,
 } from '@/lib/xray/outbound-link-parser';
 import { Base64 } from '@/utils';
 
@@ -204,6 +205,18 @@ describe('parseShadowsocksLink', () => {
     expect(settings.servers[0].password).toBe('supersecret');
   });
 
+  it('keeps the port when the link carries a query string (2022 two-key password)', () => {
+    const link = 'ss://MjAyMi1ibGFrZTMtYWVzLTI1Ni1nY206LzhsdFZKaU90azE2QmhKZG9WZVRmSkNNUEJlRGhjcmkycTN0dzU1OUZvYz06YUhuTTB6ZnpFaTdRejc5dzlxNWFFWWVQVnpDU0wxaHV4RnZXZFB6OFZHST0@localhost:30757?type=tcp#pahf4urt53';
+    const out = parseShadowsocksLink(link);
+    expect(out?.protocol).toBe('shadowsocks');
+    expect(out?.tag).toBe('pahf4urt53');
+    const settings = out?.settings as { servers: Array<{ address: string; port: number; method: string; password: string }> };
+    expect(settings.servers[0].address).toBe('localhost');
+    expect(settings.servers[0].port).toBe(30757);
+    expect(settings.servers[0].method).toBe('2022-blake3-aes-256-gcm');
+    expect(settings.servers[0].password).toBe('/8ltVJiOtk16BhJdoVeTfJCMPBeDhcri2q3tw559Foc=:aHnM0zfzEi7Qz79w9q5aEYePVzCSL1huxFvWdPz8VGI=');
+  });
+
   it('parses the legacy base64-of-whole form', () => {
     // ss://base64(method:password@host:port)#remark
     const inner = Base64.encode('aes-256-gcm:legacypw@10.0.0.1:1080');
@@ -306,6 +319,49 @@ describe('parseVlessLink — extra / fm / x_padding_bytes (B20)', () => {
   });
 });
 
+describe('parseWireguardLink', () => {
+  it('parses a wireguard:// link with percent-encoded secret and publickey', () => {
+    const link = 'wireguard://IKeuy2+BNspvMffiC47z16seLIGxGtbDIYiZcbh9C1U%3D@localhost:22824'
+      + '?publickey=3CnNsCy74TOlupjaii%2BRFp%2FgDMk5vvUuFD0SNZ%2FGl2s%3D'
+      + '&address=10.0.0.2%2F32&mtu=1420#-1';
+    const out = parseWireguardLink(link);
+    expect(out?.protocol).toBe('wireguard');
+    expect(out?.tag).toBe('-1');
+    const settings = out?.settings as {
+      secretKey: string; address: string[]; mtu: number;
+      peers: Array<{ publicKey: string; endpoint: string; allowedIPs: string[] }>;
+    };
+    expect(settings.secretKey).toBe('IKeuy2+BNspvMffiC47z16seLIGxGtbDIYiZcbh9C1U=');
+    expect(settings.address).toEqual(['10.0.0.2/32']);
+    expect(settings.mtu).toBe(1420);
+    expect(settings.peers[0].publicKey).toBe('3CnNsCy74TOlupjaii+RFp/gDMk5vvUuFD0SNZ/Gl2s=');
+    expect(settings.peers[0].endpoint).toBe('localhost:22824');
+    expect(settings.peers[0].allowedIPs).toEqual(['0.0.0.0/0', '::/0']);
+  });
+
+  it('parses reserved, presharedkey and keepalive aliases', () => {
+    const link = 'wireguard://privkey@1.2.3.4:51820'
+      + '?publickey=peerpub&address=10.0.0.2/32,fd00::2/128'
+      + '&reserved=1,2,3&presharedkey=psk-secret&persistentkeepalive=25'
+      + '&allowedips=0.0.0.0/0#wg-peer';
+    const out = parseWireguardLink(link);
+    const settings = out?.settings as {
+      reserved: number[];
+      peers: Array<{ preSharedKey: string; keepAlive: number; allowedIPs: string[] }>;
+      address: string[];
+    };
+    expect(settings.address).toEqual(['10.0.0.2/32', 'fd00::2/128']);
+    expect(settings.reserved).toEqual([1, 2, 3]);
+    expect(settings.peers[0].preSharedKey).toBe('psk-secret');
+    expect(settings.peers[0].keepAlive).toBe(25);
+    expect(settings.peers[0].allowedIPs).toEqual(['0.0.0.0/0']);
+  });
+
+  it('returns null for non-wireguard links', () => {
+    expect(parseWireguardLink('vless://x@y:1')).toBeNull();
+  });
+});
+
 describe('parseOutboundLink dispatcher', () => {
   it('dispatches vmess via base64 JSON', () => {
     const json = { v: '2', ps: 'x', add: '1.1.1.1', port: 443, id: '11111111-2222-4333-8444-555555555555', net: 'tcp', tls: 'none' };
@@ -315,6 +371,10 @@ describe('parseOutboundLink dispatcher', () => {
 
   it('dispatches vless via URL', () => {
     expect(parseOutboundLink('vless://uuid@host:443?type=tcp&security=none')?.protocol).toBe('vless');
+  });
+
+  it('dispatches wireguard via URL', () => {
+    expect(parseOutboundLink('wireguard://pk@host:22824?publickey=pub&address=10.0.0.2/32')?.protocol).toBe('wireguard');
   });
 
   it('returns null for an unknown scheme', () => {

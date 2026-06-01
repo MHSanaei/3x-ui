@@ -908,6 +908,28 @@ func extractHostname(host string) string {
 	return "[" + h + "]"
 }
 
+// BuildSubURIBase is shared by GetDefaultSettings (the panel's Client
+// Information page) and the subscription page so both render subscription
+// URLs identically.
+func (s *SettingService) BuildSubURIBase(host string) string {
+	subPort, _ := s.GetSubPort()
+	subDomain, _ := s.GetSubDomain()
+	subKeyFile, _ := s.GetSubKeyFile()
+	subCertFile, _ := s.GetSubCertFile()
+	subTLS := subKeyFile != "" && subCertFile != ""
+	if subDomain == "" {
+		subDomain = extractHostname(host)
+	}
+	scheme := "http"
+	if subTLS {
+		scheme = "https"
+	}
+	if (subPort == 443 && subTLS) || (subPort == 80 && !subTLS) {
+		return scheme + "://" + subDomain
+	}
+	return fmt.Sprintf("%s://%s:%d", scheme, subDomain, subPort)
+}
+
 func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 	type settingFunc func() (any, error)
 	settings := map[string]settingFunc{
@@ -953,32 +975,11 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		}
 	}
 	if (subEnable && result["subURI"].(string) == "") || (subJsonEnable && result["subJsonURI"].(string) == "") || (subClashEnable && result["subClashURI"].(string) == "") {
-		subURI := ""
+		subURI := s.BuildSubURIBase(host)
 		subTitle, _ := s.GetSubTitle()
-		subPort, _ := s.GetSubPort()
 		subPath, _ := s.GetSubPath()
 		subJsonPath, _ := s.GetSubJsonPath()
 		subClashPath, _ := s.GetSubClashPath()
-		subDomain, _ := s.GetSubDomain()
-		subKeyFile, _ := s.GetSubKeyFile()
-		subCertFile, _ := s.GetSubCertFile()
-		subTLS := false
-		if subKeyFile != "" && subCertFile != "" {
-			subTLS = true
-		}
-		if subDomain == "" {
-			subDomain = extractHostname(host)
-		}
-		if subTLS {
-			subURI = "https://"
-		} else {
-			subURI = "http://"
-		}
-		if (subPort == 443 && subTLS) || (subPort == 80 && !subTLS) {
-			subURI += subDomain
-		} else {
-			subURI += fmt.Sprintf("%s:%d", subDomain, subPort)
-		}
 		if subEnable && result["subURI"].(string) == "" {
 			result["subURI"] = subURI + subPath
 		}

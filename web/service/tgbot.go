@@ -2665,7 +2665,7 @@ func (t *Tgbot) UserLoginNotify(attempt LoginAttempt) {
 	msg += t.I18nBot("tgbot.messages.username", "Username=="+attempt.Username)
 	msg += t.I18nBot("tgbot.messages.ip", "IP=="+attempt.IP)
 	msg += t.I18nBot("tgbot.messages.time", "Time=="+attempt.Time)
-	t.SendMsgToTgbotAdmins(msg)
+	go t.SendMsgToTgbotAdmins(msg)
 }
 
 // getInboundUsages retrieves and formats inbound usage information.
@@ -3533,35 +3533,32 @@ func (t *Tgbot) sendBackup(chatId int64) {
 	output := t.I18nBot("tgbot.messages.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	t.SendMsgToTgbot(chatId, output)
 
-	// Update by manually trigger a checkpoint operation
-	err := database.Checkpoint()
-	if err != nil {
-		logger.Error("Error in trigger a checkpoint operation: ", err)
-	}
-
-	// Send database backup
-	file, err := os.Open(config.GetDBPath())
+	// Send database backup (SQLite file, or a pg_dump archive on PostgreSQL)
+	dbData, err := t.serverService.GetDb()
 	if err == nil {
-		defer file.Close()
+		dbFilename := "x-ui.db"
+		if database.IsPostgres() {
+			dbFilename = "x-ui.dump"
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
 		document := tu.Document(
 			tu.ID(chatId),
-			tu.File(file),
+			tu.FileFromBytes(dbData, dbFilename),
 		)
 		_, err = bot.SendDocument(ctx, document)
+		cancel()
 		if err != nil {
 			logger.Error("Error in uploading backup: ", err)
 		}
 	} else {
-		logger.Error("Error in opening db file for backup: ", err)
+		logger.Error("Error in getting db backup: ", err)
 	}
 
 	// Small delay between file sends
 	time.Sleep(500 * time.Millisecond)
 
 	// Send config.json backup
-	file, err = os.Open(xray.GetConfigPath())
+	file, err := os.Open(xray.GetConfigPath())
 	if err == nil {
 		defer file.Close()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

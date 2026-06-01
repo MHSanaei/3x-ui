@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HttpUtil } from '@/utils';
-import Sparkline from '@/components/Sparkline';
+import { Sparkline } from '@/components/viz';
 import './NodeHistoryPanel.css';
 
 interface NodeRef {

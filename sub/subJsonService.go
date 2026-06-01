@@ -147,7 +147,7 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 	// synthetic one whose `dest` is the host the client connects to.
 	// For node-managed inbounds we want the node's address — request
 	// host won't reach the right xray. resolveInboundAddress already
-	// implements the node→listen→request-host fallback chain.
+	// implements the node→subscriber-host fallback chain.
 	defaultDest := s.SubService.resolveInboundAddress(inbound)
 	if defaultDest == "" {
 		defaultDest = host

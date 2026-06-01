@@ -83,6 +83,41 @@ func initModels() error {
 			return err
 		}
 	}
+	if err := dropLegacyForeignKeys(); err != nil {
+		return err
+	}
+	if err := pruneOrphanedClientInbounds(); err != nil {
+		return err
+	}
+	if IsPostgres() {
+		if err := resyncPostgresSequences(db, models); err != nil {
+			log.Printf("Error resyncing postgres sequences: %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func dropLegacyForeignKeys() error {
+	if !IsPostgres() {
+		return nil
+	}
+	if err := db.Exec("ALTER TABLE client_traffics DROP CONSTRAINT IF EXISTS fk_inbounds_client_stats").Error; err != nil {
+		log.Printf("Error dropping legacy foreign key fk_inbounds_client_stats: %v", err)
+		return err
+	}
+	return nil
+}
+
+func pruneOrphanedClientInbounds() error {
+	res := db.Exec("DELETE FROM client_inbounds WHERE inbound_id NOT IN (SELECT id FROM inbounds)")
+	if res.Error != nil {
+		log.Printf("Error pruning orphaned client_inbounds rows: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Pruned %d orphaned client_inbounds row(s)", res.RowsAffected)
+	}
 	return nil
 }
 
@@ -530,7 +565,7 @@ func InitDB(dbPath string) error {
 	} else {
 		gormLogger = logger.Discard
 	}
-	c := &gorm.Config{Logger: gormLogger}
+	c := &gorm.Config{Logger: gormLogger, DisableForeignKeyConstraintWhenMigrating: true}
 
 	var err error
 	switch config.GetDBKind() {

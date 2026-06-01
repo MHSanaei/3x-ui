@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/database"
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/web/global"
@@ -279,6 +280,9 @@ func (a *ServerController) getDb(c *gin.Context) {
 	}
 
 	filename := "x-ui.db"
+	if database.IsPostgres() {
+		filename = "x-ui.dump"
+	}
 	if !filenameRegex.MatchString(filename) {
 		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
 		return

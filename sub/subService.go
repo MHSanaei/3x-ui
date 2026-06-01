@@ -52,8 +52,40 @@ func NewSubService(showInfo bool, remarkModel string) *SubService {
 // freshly-loaded node map regardless of which sub flavour the client
 // hit.
 func (s *SubService) PrepareForRequest(host string) {
+	if !isRoutableHost(host) {
+		if d := s.configuredPublicHost(); d != "" {
+			host = d
+		} else if isLoopbackHost(host) {
+			host = "localhost"
+		}
+	}
 	s.address = host
 	s.loadNodes()
+}
+
+func (s *SubService) configuredPublicHost() string {
+	if d, err := s.settingService.GetSubDomain(); err == nil && d != "" {
+		return d
+	}
+	if d, err := s.settingService.GetWebDomain(); err == nil && d != "" {
+		return d
+	}
+	return ""
+}
+
+func isRoutableHost(host string) bool {
+	if host == "" {
+		return false
+	}
+	if ip := net.ParseIP(strings.Trim(host, "[]")); ip != nil {
+		return !ip.IsLoopback() && !ip.IsUnspecified()
+	}
+	return true
+}
+
+func isLoopbackHost(host string) bool {
+	ip := net.ParseIP(strings.Trim(host, "[]"))
+	return ip != nil && ip.IsLoopback()
 }
 
 // GetSubs retrieves subscription links for a given subscription ID and host.
@@ -631,24 +663,17 @@ func (s *SubService) loadNodes() {
 	s.nodesByID = m
 }
 
-// resolveInboundAddress picks the host an external client should
-// connect to. Order:
-//  1. If the inbound is node-managed and the node has an address, use
-//     the node's address — central panel's hostname doesn't speak xray
-//     for that inbound.
-//  2. If the inbound binds to a non-wildcard listen address, use it.
-//  3. Otherwise fall back to the request's host (whatever the client
-//     subscribed against).
+// resolveInboundAddress returns the node's address for node-managed inbounds,
+// otherwise the subscriber's host (s.address). The inbound's bind Listen is
+// deliberately ignored: it's a server-side address, not a client-reachable
+// host, so operators advertise a specific endpoint via External Proxy instead.
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 	if inbound.NodeID != nil && s.nodesByID != nil {
 		if n, ok := s.nodesByID[*inbound.NodeID]; ok && n.Address != "" {
 			return n.Address
 		}
 	}
-	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		return s.address
-	}
-	return inbound.Listen
+	return s.address
 }
 
 func findClientIndex(clients []model.Client, email string) int {
@@ -1440,28 +1465,22 @@ func applyXhttpExtraParams(xhttp map[string]any, params map[string]string) {
 }
 
 var kcpMaskToHeaderType = map[string]string{
-	"header-dns":       "dns",
-	"header-dtls":      "dtls",
-	"header-srtp":      "srtp",
-	"header-utp":       "utp",
-	"header-wechat":    "wechat-video",
-	"header-wireguard": "wireguard",
+	"dns":       "dns",
+	"dtls":      "dtls",
+	"srtp":      "srtp",
+	"utp":       "utp",
+	"wechat":    "wechat-video",
+	"wireguard": "wireguard",
 }
 
 var validFinalMaskUDPTypes = map[string]struct{}{
-	"salamander":       {},
-	"mkcp-aes128gcm":   {},
-	"header-dns":       {},
-	"header-dtls":      {},
-	"header-srtp":      {},
-	"header-utp":       {},
-	"header-wechat":    {},
-	"header-wireguard": {},
-	"mkcp-original":    {},
-	"xdns":             {},
-	"xicmp":            {},
-	"noise":            {},
-	"header-custom":    {},
+	"salamander":    {},
+	"mkcp-legacy":   {},
+	"xdns":          {},
+	"xicmp":         {},
+	"noise":         {},
+	"header-custom": {},
+	"realm":         {},
 }
 
 var validFinalMaskTCPTypes = map[string]struct{}{
@@ -1532,21 +1551,19 @@ func extractKcpShareFields(stream map[string]any) kcpShareFields {
 		if mask == nil {
 			continue
 		}
-		maskType, _ := mask["type"].(string)
-		if mapped, ok := kcpMaskToHeaderType[maskType]; ok {
-			fields.headerType = mapped
+		if maskType, _ := mask["type"].(string); maskType != "mkcp-legacy" {
 			continue
 		}
 
-		switch maskType {
-		case "mkcp-original":
-			fields.seed = ""
-		case "mkcp-aes128gcm":
-			fields.seed = ""
-			settings, _ := mask["settings"].(map[string]any)
-			if value, ok := settings["password"].(string); ok && value != "" {
-				fields.seed = value
-			}
+		settings, _ := mask["settings"].(map[string]any)
+		header, _ := settings["header"].(string)
+		value, _ := settings["value"].(string)
+		if header == "" {
+			fields.seed = value
+			continue
+		}
+		if mapped, ok := kcpMaskToHeaderType[header]; ok {
+			fields.headerType = mapped
 		}
 	}
 
@@ -1834,7 +1851,7 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 
 // BuildURLs constructs absolute subscription and JSON subscription URLs for a given subscription ID.
 // It prioritizes configured URIs, then individual settings, and finally falls back to request-derived components.
-func (s *SubService) BuildURLs(scheme, hostWithPort, subPath, subJsonPath, subClashPath, subId string) (subURL, subJsonURL, subClashURL string) {
+func (s *SubService) BuildURLs(subPath, subJsonPath, subClashPath, subId string) (subURL, subJsonURL, subClashURL string) {
 	if subId == "" {
 		return "", "", ""
 	}
@@ -1843,50 +1860,23 @@ func (s *SubService) BuildURLs(scheme, hostWithPort, subPath, subJsonPath, subCl
 	configuredSubJsonURI, _ := s.settingService.GetSubJsonURI()
 	configuredSubClashURI, _ := s.settingService.GetSubClashURI()
 
-	var baseScheme, baseHostWithPort string
-	if configuredSubURI == "" || configuredSubJsonURI == "" || configuredSubClashURI == "" {
-		baseScheme, baseHostWithPort = s.getBaseSchemeAndHost(scheme, hostWithPort)
-	}
+	// Same base as the panel's Client Information page; s.address is the
+	// subscriber's host already normalized away from any loopback/bind IP.
+	base := s.settingService.BuildSubURIBase(s.address)
 
-	subURL = s.buildSingleURL(configuredSubURI, baseScheme, baseHostWithPort, subPath, subId)
-	subJsonURL = s.buildSingleURL(configuredSubJsonURI, baseScheme, baseHostWithPort, subJsonPath, subId)
-	subClashURL = s.buildSingleURL(configuredSubClashURI, baseScheme, baseHostWithPort, subClashPath, subId)
+	subURL = s.buildSingleURL(configuredSubURI, base, subPath, subId)
+	subJsonURL = s.buildSingleURL(configuredSubJsonURI, base, subJsonPath, subId)
+	subClashURL = s.buildSingleURL(configuredSubClashURI, base, subClashPath, subId)
 
 	return subURL, subJsonURL, subClashURL
 }
 
-// getBaseSchemeAndHost determines the base scheme and host from settings or falls back to request values
-func (s *SubService) getBaseSchemeAndHost(requestScheme, requestHostWithPort string) (string, string) {
-	subDomain, err := s.settingService.GetSubDomain()
-	if err != nil || subDomain == "" {
-		return requestScheme, requestHostWithPort
-	}
-
-	// Get port and TLS settings
-	subPort, _ := s.settingService.GetSubPort()
-	subKeyFile, _ := s.settingService.GetSubKeyFile()
-	subCertFile, _ := s.settingService.GetSubCertFile()
-
-	// Determine scheme from TLS configuration
-	scheme := "http"
-	if subKeyFile != "" && subCertFile != "" {
-		scheme = "https"
-	}
-
-	// Build host:port, always include port for clarity
-	hostWithPort := fmt.Sprintf("%s:%d", subDomain, subPort)
-
-	return scheme, hostWithPort
-}
-
 // buildSingleURL constructs a single URL using configured URI or base components
-func (s *SubService) buildSingleURL(configuredURI, baseScheme, baseHostWithPort, basePath, subId string) string {
+func (s *SubService) buildSingleURL(configuredURI, base, basePath, subId string) string {
 	if configuredURI != "" {
 		return s.joinPathWithID(configuredURI, subId)
 	}
-
-	baseURL := fmt.Sprintf("%s://%s", baseScheme, baseHostWithPort)
-	return s.joinPathWithID(baseURL+basePath, subId)
+	return s.joinPathWithID(base+basePath, subId)
 }
 
 // joinPathWithID safely joins a base path with a subscription ID
