@@ -292,19 +292,20 @@ function blackholeFromWire(raw: Raw) {
 
 function dnsRuleFromWire(raw: unknown): DnsRuleForm {
   const r = asObject(raw);
-  const qtype = Array.isArray(r.qtype)
-    ? r.qtype.map((x) => String(x)).join(',')
-    : typeof r.qtype === 'number'
-      ? String(r.qtype)
-      : asString(r.qtype);
+  const rawQType = r.qType ?? r.qtype;
+  const qType = Array.isArray(rawQType)
+    ? rawQType.map((x) => String(x)).join(',')
+    : typeof rawQType === 'number'
+      ? String(rawQType)
+      : asString(rawQType);
   const domain = Array.isArray(r.domain)
     ? r.domain.map((x) => asString(x)).join(',')
     : asString(r.domain);
   const action = asString(r.action, 'direct');
-  const validAction = ['direct', 'reject', 'rejectIPv4', 'rejectIPv6'].includes(action)
+  const validAction = ['direct', 'drop', 'return', 'hijack'].includes(action)
     ? action
     : 'direct';
-  return { action: validAction as DnsRuleForm['action'], qtype, domain };
+  return { action: validAction as DnsRuleForm['action'], qType, domain, rCode: asNumber(r.rCode, 0) };
 }
 
 function dnsFromWire(raw: Raw): DnsOutboundFormSettings {
@@ -536,16 +537,17 @@ function blackholeToWire(s: { type: '' | 'none' | 'http' }) {
 }
 
 function dnsRuleToWire(r: DnsRuleForm) {
-  const action = ['direct', 'reject', 'rejectIPv4', 'rejectIPv6'].includes(r.action)
+  const action = ['direct', 'drop', 'return', 'hijack'].includes(r.action)
     ? r.action
     : 'direct';
   const result: Raw = { action };
-  const qtype = r.qtype.trim();
-  if (qtype) {
-    result.qtype = /^\d+$/.test(qtype) ? Number(qtype) : qtype;
+  const qType = r.qType.trim();
+  if (qType) {
+    result.qType = /^\d+$/.test(qType) ? Number(qType) : qType;
   }
   const domains = r.domain.split(',').map((d) => d.trim()).filter(Boolean);
   if (domains.length > 0) result.domain = domains;
+  if (r.rCode > 0) result.rCode = r.rCode;
   return result;
 }
 

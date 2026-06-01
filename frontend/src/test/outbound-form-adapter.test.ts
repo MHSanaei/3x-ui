@@ -197,7 +197,7 @@ describe('outbound-form-adapter: round-trip', () => {
     expect(withType.settings).toEqual({ response: { type: 'http' } });
   });
 
-  it('dns rules normalize qtype numeric strings and split domains', () => {
+  it('dns rules normalize qType numeric strings, split domains, carry rCode', () => {
     const wire = {
       protocol: 'dns',
       settings: {
@@ -205,16 +205,26 @@ describe('outbound-form-adapter: round-trip', () => {
         rewriteAddress: '1.1.1.1',
         rewritePort: 53,
         rules: [
-          { action: 'direct', qtype: 'A,AAAA', domain: ['example.com', 'ext.org'] },
-          { action: 'reject', qtype: 28, domain: 'blocked.com' },
+          { action: 'direct', qType: 'A,AAAA', domain: ['example.com', 'ext.org'] },
+          { action: 'return', qType: 28, domain: 'blocked.com', rCode: 3 },
         ],
       },
     };
     const back = formValuesToWirePayload(rawOutboundToFormValues(wire));
     const settings = back.settings as Record<string, unknown>;
     const rules = settings.rules as Array<Record<string, unknown>>;
-    expect(rules[0]).toEqual({ action: 'direct', qtype: 'A,AAAA', domain: ['example.com', 'ext.org'] });
-    expect(rules[1]).toEqual({ action: 'reject', qtype: 28, domain: ['blocked.com'] });
+    expect(rules[0]).toEqual({ action: 'direct', qType: 'A,AAAA', domain: ['example.com', 'ext.org'] });
+    expect(rules[1]).toEqual({ action: 'return', qType: 28, domain: ['blocked.com'], rCode: 3 });
+  });
+
+  it('dns rules read the legacy qtype wire key for back-compat', () => {
+    const wire = {
+      protocol: 'dns',
+      settings: { rules: [{ action: 'direct', qtype: 'TXT' }] },
+    };
+    const back = formValuesToWirePayload(rawOutboundToFormValues(wire));
+    const rules = (back.settings as Record<string, unknown>).rules as Array<Record<string, unknown>>;
+    expect(rules[0]).toEqual({ action: 'direct', qType: 'TXT' });
   });
 
   it('freedom emits domainStrategy/redirect/fragment conditionally', () => {

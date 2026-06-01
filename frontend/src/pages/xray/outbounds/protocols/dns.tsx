@@ -35,7 +35,7 @@ export default function DnsFields() {
                 size="small"
                 type="primary"
                 icon={<PlusOutlined />}
-                onClick={() => add({ action: 'direct', qtype: '', domain: '' })}
+                onClick={() => add({ action: 'direct', qType: '', domain: '', rCode: 0 })}
               />
             </Form.Item>
             {fields.map((field, index) => (
@@ -54,11 +54,14 @@ export default function DnsFields() {
                     options={DNSRuleActions.map((a) => ({ value: a, label: a }))}
                   />
                 </Form.Item>
-                <Form.Item label="QType" name={[field.name, 'qtype']}>
+                <Form.Item label="QType" name={[field.name, 'qType']}>
                   <Input placeholder="1,3,23-24" />
                 </Form.Item>
                 <Form.Item label={t('domainName')} name={[field.name, 'domain']}>
                   <Input placeholder="domain:example.com" />
+                </Form.Item>
+                <Form.Item label="RCode" name={[field.name, 'rCode']}>
+                  <InputNumber min={0} max={65535} style={{ width: '100%' }} />
                 </Form.Item>
               </div>
             ))}
