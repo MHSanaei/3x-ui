@@ -869,7 +869,19 @@
         "updateStarted": "Pembaruan panel dimulai",
         "updateResult": "Pembaruan dipicu pada {ok} node, {failed} gagal",
         "updateNoneEligible": "Pilih minimal satu node online dan aktif"
-      }
+      },
+      "tlsVerifyMode": "Verifikasi TLS",
+      "tlsVerifyModeHint": "Cara panel memvalidasi sertifikat HTTPS node. Pin atau Lewati untuk sertifikat self-signed (hanya node https).",
+      "tlsVerify": "Verifikasi (CA bawaan)",
+      "tlsPin": "Pin sertifikat (SHA-256)",
+      "tlsSkip": "Lewati verifikasi",
+      "tlsSkipWarning": "Melewati verifikasi menghilangkan perlindungan terhadap serangan man-in-the-middle — token API bisa disadap. Lebih baik pin sertifikat.",
+      "pinnedCert": "SHA-256 sertifikat yang dipin",
+      "pinnedCertHint": "SHA-256 sertifikat node dalam base64 atau hex. Gunakan Ambil untuk membacanya dari node sekarang.",
+      "pinnedCertPlaceholder": "SHA-256 base64 atau hex",
+      "fetchPin": "Ambil",
+      "pinFetched": "Berhasil mengambil sertifikat node saat ini",
+      "pinFetchFailed": "Tidak dapat mengambil sertifikat"
     },
     "settings": {
       "title": "Pengaturan Panel",

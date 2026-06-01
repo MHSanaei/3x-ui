@@ -70,5 +70,7 @@ export function useNodeMutations() {
       const raw = await HttpUtil.post('/panel/api/nodes/test', payload);
       return parseMsg(raw, ProbeResultSchema, 'nodes/test');
     },
+    fetchFingerprint: (payload: Partial<NodeRecord>): Promise<Msg<string>> =>
+      HttpUtil.post<string>('/panel/api/nodes/certFingerprint', payload),
   };
 }

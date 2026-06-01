@@ -869,7 +869,19 @@
         "updateStarted": "Panel update started",
         "updateResult": "Update triggered on {ok} node(s), {failed} failed",
         "updateNoneEligible": "Select at least one online, enabled node"
-      }
+      },
+      "tlsVerifyMode": "TLS verification",
+      "tlsVerifyModeHint": "How the panel validates the node's HTTPS certificate. Pin or Skip are for self-signed certs (https nodes only).",
+      "tlsVerify": "Verify (default CA)",
+      "tlsPin": "Pin certificate (SHA-256)",
+      "tlsSkip": "Skip verification",
+      "tlsSkipWarning": "Skipping verification removes protection against man-in-the-middle attacks — the API token could be intercepted. Prefer pinning the certificate.",
+      "pinnedCert": "Pinned certificate SHA-256",
+      "pinnedCertHint": "Base64 or hex SHA-256 of the node's certificate. Use Fetch to read it from the node now.",
+      "pinnedCertPlaceholder": "base64 or hex SHA-256",
+      "fetchPin": "Fetch",
+      "pinFetched": "Fetched the node's current certificate",
+      "pinFetchFailed": "Could not fetch the certificate"
     },
     "settings": {
       "title": "Panel Settings",

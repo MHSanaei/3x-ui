@@ -869,7 +869,19 @@
         "updateStarted": "パネルの更新を開始しました",
         "updateResult": "{ok} 個のノードで更新を開始、{failed} 個失敗",
         "updateNoneEligible": "オンラインで有効なノードを少なくとも1つ選択してください"
-      }
+      },
+      "tlsVerifyMode": "TLS 検証",
+      "tlsVerifyModeHint": "パネルがノードの HTTPS 証明書を検証する方法。ピン留めやスキップは自己署名証明書向け（https ノードのみ）。",
+      "tlsVerify": "検証（既定の CA）",
+      "tlsPin": "証明書をピン留め（SHA-256）",
+      "tlsSkip": "検証をスキップ",
+      "tlsSkipWarning": "検証をスキップすると中間者攻撃への保護がなくなり、API トークンが傍受される恐れがあります。証明書のピン留めを推奨します。",
+      "pinnedCert": "ピン留め証明書の SHA-256",
+      "pinnedCertHint": "ノード証明書の SHA-256（base64 または hex）。「取得」でノードから今すぐ読み取れます。",
+      "pinnedCertPlaceholder": "base64 または hex の SHA-256",
+      "fetchPin": "取得",
+      "pinFetched": "ノードの現在の証明書を取得しました",
+      "pinFetchFailed": "証明書を取得できませんでした"
     },
     "settings": {
       "title": "パネル設定",

@@ -379,6 +379,8 @@ type Node struct {
 	ApiToken            string `json:"apiToken" form:"apiToken" validate:"required"`
 	Enable              bool   `json:"enable" form:"enable" gorm:"default:true"`
 	AllowPrivateAddress bool   `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
+	TlsVerifyMode       string `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin"`
+	PinnedCertSha256    string `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
 
 	// Heartbeat-updated fields. UpdatedAt advances on every probe even when
 	// the row is otherwise unchanged so the UI's "last seen" tooltip is

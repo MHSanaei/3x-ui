@@ -869,7 +869,19 @@
         "updateStarted": "Atualização do painel iniciada",
         "updateResult": "Atualização iniciada em {ok} nó(s), {failed} falharam",
         "updateNoneEligible": "Selecione pelo menos um nó online e ativo"
-      }
+      },
+      "tlsVerifyMode": "Verificação TLS",
+      "tlsVerifyModeHint": "Como o painel valida o certificado HTTPS do nó. Fixar ou Ignorar são para certificados autoassinados (apenas nós https).",
+      "tlsVerify": "Verificar (CA padrão)",
+      "tlsPin": "Fixar certificado (SHA-256)",
+      "tlsSkip": "Ignorar verificação",
+      "tlsSkipWarning": "Ignorar a verificação remove a proteção contra ataques man-in-the-middle — o token de API pode ser interceptado. Prefira fixar o certificado.",
+      "pinnedCert": "SHA-256 do certificado fixado",
+      "pinnedCertHint": "SHA-256 do certificado do nó em base64 ou hex. Use Obter para lê-lo do nó agora.",
+      "pinnedCertPlaceholder": "SHA-256 em base64 ou hex",
+      "fetchPin": "Obter",
+      "pinFetched": "Certificado atual do nó obtido",
+      "pinFetchFailed": "Não foi possível obter o certificado"
     },
     "settings": {
       "title": "Configurações do Painel",

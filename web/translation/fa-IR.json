@@ -869,7 +869,19 @@
         "updateStarted": "به‌روزرسانی پنل آغاز شد",
         "updateResult": "به‌روزرسانی روی {ok} نود آغاز شد، {failed} ناموفق",
         "updateNoneEligible": "حداقل یک نود آنلاین و فعال انتخاب کنید"
-      }
+      },
+      "tlsVerifyMode": "اعتبارسنجی TLS",
+      "tlsVerifyModeHint": "اینکه پنل گواهی HTTPS نود را چطور بررسی کند. Pin یا Skip برای گواهی‌های self-signed است (فقط نودهای https).",
+      "tlsVerify": "اعتبارسنجی (CA پیش‌فرض)",
+      "tlsPin": "Pin گواهی (SHA-256)",
+      "tlsSkip": "رد کردن اعتبارسنجی",
+      "tlsSkipWarning": "رد کردن اعتبارسنجی محافظت در برابر حملهٔ مرد میانی را از بین می‌برد و توکن API ممکن است شنود شود. ترجیحاً به‌جای آن گواهی را Pin کنید.",
+      "pinnedCert": "SHA-256 گواهیِ Pin‌شده",
+      "pinnedCertHint": "SHA-256 گواهیِ نود به‌صورت base64 یا hex. برای خواندنِ همین حالا از نود، از دکمهٔ Fetch استفاده کنید.",
+      "pinnedCertPlaceholder": "SHA-256 به‌صورت base64 یا hex",
+      "fetchPin": "دریافت",
+      "pinFetched": "گواهیِ فعلیِ نود دریافت شد",
+      "pinFetchFailed": "دریافت گواهی ممکن نشد"
     },
     "settings": {
       "title": "تنظیمات پنل",

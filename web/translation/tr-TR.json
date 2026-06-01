@@ -869,7 +869,19 @@
         "updateStarted": "Panel güncellemesi başlatıldı",
         "updateResult": "{ok} düğümde güncelleme başlatıldı, {failed} başarısız",
         "updateNoneEligible": "En az bir çevrimiçi ve etkin düğüm seçin"
-      }
+      },
+      "tlsVerifyMode": "TLS doğrulaması",
+      "tlsVerifyModeHint": "Panelin düğümün HTTPS sertifikasını nasıl doğrulayacağı. Sabitle veya Atla, kendinden imzalı sertifikalar içindir (yalnızca https düğümleri).",
+      "tlsVerify": "Doğrula (varsayılan CA)",
+      "tlsPin": "Sertifikayı sabitle (SHA-256)",
+      "tlsSkip": "Doğrulamayı atla",
+      "tlsSkipWarning": "Doğrulamayı atlamak, ortadaki adam saldırılarına karşı korumayı kaldırır — API anahtarı ele geçirilebilir. Bunun yerine sertifikayı sabitlemeniz önerilir.",
+      "pinnedCert": "Sabitlenen sertifika SHA-256",
+      "pinnedCertHint": "Düğüm sertifikasının base64 veya hex biçiminde SHA-256 değeri. Şimdi düğümden okumak için Getir'i kullanın.",
+      "pinnedCertPlaceholder": "base64 veya hex SHA-256",
+      "fetchPin": "Getir",
+      "pinFetched": "Düğümün geçerli sertifikası alındı",
+      "pinFetchFailed": "Sertifika alınamadı"
     },
     "settings": {
       "title": "Panel Ayarları",

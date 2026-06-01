@@ -869,7 +869,19 @@
         "updateStarted": "已開始更新面板",
         "updateResult": "已在 {ok} 個節點上觸發更新，{failed} 個失敗",
         "updateNoneEligible": "請至少選擇一個在線且已啟用的節點"
-      }
+      },
+      "tlsVerifyMode": "TLS 驗證",
+      "tlsVerifyModeHint": "面板如何驗證節點的 HTTPS 憑證。釘選或略過用於自簽憑證（僅 https 節點）。",
+      "tlsVerify": "驗證（預設 CA）",
+      "tlsPin": "釘選憑證（SHA-256）",
+      "tlsSkip": "略過驗證",
+      "tlsSkipWarning": "略過驗證會失去對中間人攻擊的防護，API 權杖可能被攔截。建議改用釘選憑證。",
+      "pinnedCert": "釘選憑證的 SHA-256",
+      "pinnedCertHint": "節點憑證的 SHA-256（base64 或 hex）。點選「取得」可立即從節點讀取。",
+      "pinnedCertPlaceholder": "base64 或 hex 的 SHA-256",
+      "fetchPin": "取得",
+      "pinFetched": "已取得節點目前憑證",
+      "pinFetchFailed": "無法取得憑證"
     },
     "settings": {
       "title": "面板設定",

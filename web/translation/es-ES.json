@@ -869,7 +869,19 @@
         "updateStarted": "Actualización del panel iniciada",
         "updateResult": "Actualización iniciada en {ok} nodo(s), {failed} fallaron",
         "updateNoneEligible": "Selecciona al menos un nodo en línea y habilitado"
-      }
+      },
+      "tlsVerifyMode": "Verificación TLS",
+      "tlsVerifyModeHint": "Cómo valida el panel el certificado HTTPS del nodo. Fijar u Omitir son para certificados autofirmados (solo nodos https).",
+      "tlsVerify": "Verificar (CA predeterminada)",
+      "tlsPin": "Fijar certificado (SHA-256)",
+      "tlsSkip": "Omitir verificación",
+      "tlsSkipWarning": "Omitir la verificación elimina la protección contra ataques de intermediario; el token de API podría ser interceptado. Es preferible fijar el certificado.",
+      "pinnedCert": "SHA-256 del certificado fijado",
+      "pinnedCertHint": "SHA-256 del certificado del nodo en base64 o hex. Usa Obtener para leerlo del nodo ahora.",
+      "pinnedCertPlaceholder": "SHA-256 en base64 o hex",
+      "fetchPin": "Obtener",
+      "pinFetched": "Se obtuvo el certificado actual del nodo",
+      "pinFetchFailed": "No se pudo obtener el certificado"
     },
     "settings": {
       "title": "Configuraciones",

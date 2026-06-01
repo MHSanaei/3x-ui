@@ -869,7 +869,19 @@
         "updateStarted": "Đã bắt đầu cập nhật bảng điều khiển",
         "updateResult": "Đã kích hoạt cập nhật trên {ok} node, {failed} thất bại",
         "updateNoneEligible": "Chọn ít nhất một node trực tuyến và đang bật"
-      }
+      },
+      "tlsVerifyMode": "Xác minh TLS",
+      "tlsVerifyModeHint": "Cách panel xác thực chứng chỉ HTTPS của node. Ghim hoặc Bỏ qua dành cho chứng chỉ tự ký (chỉ node https).",
+      "tlsVerify": "Xác minh (CA mặc định)",
+      "tlsPin": "Ghim chứng chỉ (SHA-256)",
+      "tlsSkip": "Bỏ qua xác minh",
+      "tlsSkipWarning": "Bỏ qua xác minh sẽ loại bỏ bảo vệ trước tấn công xen giữa — token API có thể bị chặn bắt. Nên ghim chứng chỉ thay vì vậy.",
+      "pinnedCert": "SHA-256 của chứng chỉ đã ghim",
+      "pinnedCertHint": "SHA-256 của chứng chỉ node ở dạng base64 hoặc hex. Dùng Lấy để đọc trực tiếp từ node.",
+      "pinnedCertPlaceholder": "SHA-256 base64 hoặc hex",
+      "fetchPin": "Lấy",
+      "pinFetched": "Đã lấy chứng chỉ hiện tại của node",
+      "pinFetchFailed": "Không thể lấy chứng chỉ"
     },
     "settings": {
       "title": "Cài đặt",
