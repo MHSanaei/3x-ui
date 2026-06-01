@@ -2665,7 +2665,7 @@ func (t *Tgbot) UserLoginNotify(attempt LoginAttempt) {
 	msg += t.I18nBot("tgbot.messages.username", "Username=="+attempt.Username)
 	msg += t.I18nBot("tgbot.messages.ip", "IP=="+attempt.IP)
 	msg += t.I18nBot("tgbot.messages.time", "Time=="+attempt.Time)
-	t.SendMsgToTgbotAdmins(msg)
+	go t.SendMsgToTgbotAdmins(msg)
 }
 
 // getInboundUsages retrieves and formats inbound usage information.
