@@ -13,6 +13,7 @@ import {
   Modal,
   Pagination,
   Popover,
+  Result,
   Row,
   Select,
   Space,
@@ -191,11 +192,12 @@ export default function ClientsPage() {
     summary: serverSummary,
     allGroups,
     setQuery,
-    inbounds, onlines, loading, fetched, subSettings,
+    inbounds, onlines, loading, fetched, fetchError, subSettings,
     ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, bulkAttach, detach, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
+    refresh,
     hydrate,
   } = useClients();
 
@@ -795,6 +797,13 @@ export default function ClientsPage() {
             <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
+              ) : fetchError ? (
+                <Result
+                  status="error"
+                  title={t('somethingWentWrong')}
+                  subTitle={fetchError}
+                  extra={<Button type="primary" loading={loading} onClick={refresh}>{t('refresh')}</Button>}
+                />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
                   <Col span={24}>

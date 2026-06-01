@@ -248,7 +248,9 @@ export function useInbounds() {
     if (lastOnlineQuery.data) setLastOnlineMap(lastOnlineQuery.data);
   }, [lastOnlineQuery.data]);
 
-  const fetched = slimQuery.data !== undefined && defaultsQuery.data !== undefined;
+  const fetched = (slimQuery.data !== undefined || slimQuery.isError) && (defaultsQuery.data !== undefined || defaultsQuery.isError);
+  const fetchErrorSource = slimQuery.error || defaultsQuery.error;
+  const fetchError = fetchErrorSource ? (fetchErrorSource as Error).message : '';
 
   const refresh = useCallback(async () => {
     // Invalidate at the inbounds root so both `slim` (this page's list)
@@ -373,6 +375,7 @@ export function useInbounds() {
 
   return {
     fetched,
+    fetchError,
     dbInbounds,
     clientCount,
     onlineClients,

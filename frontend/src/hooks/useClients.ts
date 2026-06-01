@@ -213,7 +213,8 @@ export function useClients() {
   const total = listQuery.data?.total ?? 0;
   const filtered = listQuery.data?.filtered ?? 0;
   const allGroups = listQuery.data?.groups ?? [];
-  const fetched = listQuery.data !== undefined;
+  const fetched = listQuery.data !== undefined || listQuery.isError;
+  const fetchError = listQuery.error ? (listQuery.error as Error).message : '';
   const loading = listQuery.isFetching;
 
   const inbounds = inboundOptionsQuery.data ?? [];
@@ -532,6 +533,7 @@ export function useClients() {
     onlines,
     loading,
     fetched,
+    fetchError,
     subSettings,
     ipLimitEnable,
     tgBotEnable,

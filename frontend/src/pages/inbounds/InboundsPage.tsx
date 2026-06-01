@@ -1,11 +1,13 @@
 import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Button,
   Card,
   Col,
   ConfigProvider,
   Layout,
   Modal,
+  Result,
   Row,
   Spin,
   Statistic,
@@ -74,6 +76,7 @@ export default function InboundsPage() {
 
   const {
     fetched,
+    fetchError,
     dbInbounds,
     clientCount,
     onlineClients,
@@ -559,6 +562,13 @@ export default function InboundsPage() {
             <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
+              ) : fetchError ? (
+                <Result
+                  status="error"
+                  title={t('somethingWentWrong')}
+                  subTitle={fetchError}
+                  extra={<Button type="primary" onClick={refresh}>{t('refresh')}</Button>}
+                />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, 12]}>
                   <Col span={24}>

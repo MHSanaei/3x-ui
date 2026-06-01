@@ -10,6 +10,7 @@ import {
   Input,
   Layout,
   Modal,
+  Result,
   Row,
   Space,
   Spin,
@@ -97,7 +98,8 @@ export default function GroupsPage() {
   });
   const groups = useMemo(() => groupsQuery.data ?? [], [groupsQuery.data]);
   const loading = groupsQuery.isFetching;
-  const fetched = groupsQuery.data !== undefined;
+  const fetched = groupsQuery.data !== undefined || groupsQuery.isError;
+  const fetchError = groupsQuery.error ? (groupsQuery.error as Error).message : '';
 
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: keys.clients.root() });
@@ -435,6 +437,13 @@ export default function GroupsPage() {
             <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
+              ) : fetchError ? (
+                <Result
+                  status="error"
+                  title={t('somethingWentWrong')}
+                  subTitle={fetchError}
+                  extra={<Button type="primary" loading={loading} onClick={() => groupsQuery.refetch()}>{t('refresh')}</Button>}
+                />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
                   <Col span={24}>

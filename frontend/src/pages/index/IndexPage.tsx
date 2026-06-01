@@ -8,6 +8,7 @@ import {
   Layout,
   message,
   Modal,
+  Result,
   Row,
   Space,
   Spin,
@@ -58,7 +59,7 @@ import './IndexPage.css';
 export default function IndexPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
-  const { status, fetched, refresh } = useStatusQuery();
+  const { status, fetched, fetchError, refresh } = useStatusQuery();
   const { isMobile } = useMediaQuery();
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
@@ -168,6 +169,13 @@ export default function IndexPage() {
             >
               {!fetched ? (
                 <div className="loading-spacer" />
+              ) : fetchError ? (
+                <Result
+                  status="error"
+                  title={t('somethingWentWrong')}
+                  subTitle={fetchError}
+                  extra={<Button type="primary" onClick={refresh}>{t('refresh')}</Button>}
+                />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, 12]}>
                   <Col span={24}>

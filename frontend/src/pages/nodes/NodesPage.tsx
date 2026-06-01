@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, ConfigProvider, Layout, Modal, Row, Spin, Statistic, message } from 'antd';
+import { Button, Card, Col, ConfigProvider, Layout, Modal, Result, Row, Spin, Statistic, message } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -29,7 +29,7 @@ export default function NodesPage() {
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
-  const { nodes, loading, fetched, totals } = useNodesQuery();
+  const { nodes, loading, fetched, fetchError, refetch, totals } = useNodesQuery();
   const { create, update, remove, setEnable, testConnection, probe, updatePanels } = useNodeMutations();
 
   const { data: latestVersion = '' } = useQuery({
@@ -159,6 +159,13 @@ export default function NodesPage() {
             <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
+              ) : fetchError ? (
+                <Result
+                  status="error"
+                  title={t('somethingWentWrong')}
+                  subTitle={fetchError}
+                  extra={<Button type="primary" loading={loading} onClick={() => refetch()}>{t('refresh')}</Button>}
+                />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
                   <Col span={24}>
