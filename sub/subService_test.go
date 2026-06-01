@@ -61,6 +61,44 @@ func TestIsRoutableHost(t *testing.T) {
 	}
 }
 
+func TestResolveInboundAddress(t *testing.T) {
+	const reqHost = "sub.example.com"
+
+	// A subscriber reaches the panel through reqHost; the inbound's own
+	// bind Listen IP (loopback, private, or even a public secondary IP) is
+	// a server-side detail and must never become the link's connect host.
+	t.Run("bind listen IP must not leak into the link host", func(t *testing.T) {
+		s := &SubService{address: reqHost}
+		for _, listen := range []string{"127.0.0.1", "10.0.0.5", "192.168.1.10", "1.2.3.4", "0.0.0.0", "::", "::0", ""} {
+			ib := &model.Inbound{Listen: listen}
+			if got := s.resolveInboundAddress(ib); got != reqHost {
+				t.Fatalf("listen %q: address = %q, want %q (subscriber host, not bind IP)", listen, got, reqHost)
+			}
+		}
+	})
+
+	t.Run("node-managed inbound uses the node address", func(t *testing.T) {
+		id := 7
+		s := &SubService{
+			address:   reqHost,
+			nodesByID: map[int]*model.Node{7: {Id: 7, Address: "node7.example.com"}},
+		}
+		ib := &model.Inbound{NodeID: &id, Listen: "1.2.3.4"}
+		if got := s.resolveInboundAddress(ib); got != "node7.example.com" {
+			t.Fatalf("node-managed address = %q, want node7.example.com", got)
+		}
+	})
+
+	t.Run("node id with no known node falls back to subscriber host", func(t *testing.T) {
+		id := 9
+		s := &SubService{address: reqHost, nodesByID: map[int]*model.Node{}}
+		ib := &model.Inbound{NodeID: &id, Listen: "10.0.0.1"}
+		if got := s.resolveInboundAddress(ib); got != reqHost {
+			t.Fatalf("unknown-node address = %q, want subscriber host %q", got, reqHost)
+		}
+	})
+}
+
 func TestUnmarshalStreamSettings(t *testing.T) {
 	got := unmarshalStreamSettings(`{"network":"ws","wsSettings":{"path":"/api"}}`)
 	if got["network"] != "ws" {

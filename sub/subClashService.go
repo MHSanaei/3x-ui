@@ -97,7 +97,7 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 	stream := s.streamData(inbound.StreamSettings)
 	// For node-managed inbounds the Clash proxy "server" must be the
 	// node's address, not the request host. resolveInboundAddress handles
-	// the node→listen→request-host fallback chain.
+	// the node→subscriber-host fallback chain.
 	defaultDest := s.SubService.resolveInboundAddress(inbound)
 	if defaultDest == "" {
 		defaultDest = host
