@@ -65,7 +65,7 @@ export const SockoptStreamSettingsSchema = z.object({
   tcpcongestion: TcpCongestionSchema.default('bbr'),
   V6Only: z.boolean().default(false),
   tcpWindowClamp: z.number().int().min(0).default(600),
-  interfaceName: z.string().default(''),
+  interface: z.string().default(''),
   trustedXForwardedFor: z.array(z.string()).default([]),
   addressPortStrategy: AddressPortStrategySchema.default('none'),
   happyEyeballs: HappyEyeballsSchema.optional(),

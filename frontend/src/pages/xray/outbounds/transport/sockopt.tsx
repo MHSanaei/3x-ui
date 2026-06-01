@@ -89,7 +89,7 @@ export default function SockoptForm({ form }: { form: FormInstance<OutboundFormV
                 </Form.Item>
                 <Form.Item
                   label={t('pages.xray.outboundForm.interface')}
-                  name={['streamSettings', 'sockopt', 'interfaceName']}
+                  name={['streamSettings', 'sockopt', 'interface']}
                 >
                   <Input />
                 </Form.Item>
