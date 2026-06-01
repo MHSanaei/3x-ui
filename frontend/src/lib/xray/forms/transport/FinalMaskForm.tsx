@@ -48,14 +48,15 @@ function defaultTcpMaskSettings(type: string): Record<string, unknown> {
 function defaultUdpMaskSettings(type: string): Record<string, unknown> {
   switch (type) {
     case 'salamander':
-    case 'mkcp-aes128gcm':
       return { password: '' };
-    case 'header-dns':
-      return { domain: '' };
+    case 'mkcp-legacy':
+      return { header: '', value: '' };
     case 'xdns':
       return { domains: [] };
     case 'xicmp':
-      return { ip: '0.0.0.0', id: 0 };
+      return { dgram: false, ips: [] };
+    case 'realm':
+      return { url: '', stunServers: [] };
     case 'header-custom':
       return { client: [], server: [] };
     case 'noise':
@@ -344,7 +345,7 @@ function UdpMasksList({
               size="small"
               icon={<PlusOutlined />}
               onClick={() => {
-                const def = isHysteria ? 'salamander' : 'mkcp-aes128gcm';
+                const def = isHysteria ? 'salamander' : 'mkcp-legacy';
                 add({ type: def, settings: defaultUdpMaskSettings(def) });
               }}
             />
@@ -391,16 +392,10 @@ function UdpMaskItem({
   const options = isHysteria
     ? [{ value: 'salamander', label: 'Salamander (Hysteria2)' }]
     : [
-        { value: 'mkcp-aes128gcm', label: 'mKCP AES-128-GCM' },
-        { value: 'header-dns', label: 'Header DNS' },
-        { value: 'header-dtls', label: 'Header DTLS 1.2' },
-        { value: 'header-srtp', label: 'Header SRTP' },
-        { value: 'header-utp', label: 'Header uTP' },
-        { value: 'header-wechat', label: 'Header WeChat Video' },
-        { value: 'header-wireguard', label: 'Header WireGuard' },
-        { value: 'mkcp-original', label: 'mKCP Original' },
+        { value: 'mkcp-legacy', label: 'mKCP Legacy' },
         { value: 'xdns', label: 'xDNS' },
         { value: 'xicmp', label: 'xICMP' },
+        { value: 'realm', label: 'Realm' },
         { value: 'header-custom', label: 'Header Custom' },
         { value: 'noise', label: 'Noise' },
       ];
@@ -422,7 +417,7 @@ function UdpMaskItem({
       >
         {({ getFieldValue }) => {
           const type = getFieldValue([...absolutePath, 'type']) as string | undefined;
-          if (type === 'mkcp-aes128gcm' || type === 'salamander') {
+          if (type === 'salamander') {
             return (
               <Form.Item label="Password">
                 <Space.Compact block>
@@ -440,11 +435,26 @@ function UdpMaskItem({
               </Form.Item>
             );
           }
-          if (type === 'header-dns') {
+          if (type === 'mkcp-legacy') {
             return (
-              <Form.Item label="Domain" name={[fieldName, 'settings', 'domain']}>
-                <Input placeholder="e.g., www.example.com" />
-              </Form.Item>
+              <>
+                <Form.Item label="Header" name={[fieldName, 'settings', 'header']}>
+                  <Select
+                    options={[
+                      { value: '', label: 'Original / AES-128-GCM' },
+                      { value: 'dns', label: 'DNS' },
+                      { value: 'dtls', label: 'DTLS 1.2' },
+                      { value: 'srtp', label: 'SRTP' },
+                      { value: 'utp', label: 'uTP' },
+                      { value: 'wechat', label: 'WeChat Video' },
+                      { value: 'wireguard', label: 'WireGuard' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="Value" name={[fieldName, 'settings', 'value']}>
+                  <Input placeholder="password (AES-128-GCM) or domain (DNS header)" />
+                </Form.Item>
+              </>
             );
           }
           if (type === 'xdns') {
@@ -457,11 +467,23 @@ function UdpMaskItem({
           if (type === 'xicmp') {
             return (
               <>
-                <Form.Item label="IP" name={[fieldName, 'settings', 'ip']}>
-                  <Input placeholder="0.0.0.0" />
+                <Form.Item label="Dgram" name={[fieldName, 'settings', 'dgram']} valuePropName="checked">
+                  <Switch />
                 </Form.Item>
-                <Form.Item label="ID" name={[fieldName, 'settings', 'id']}>
-                  <InputNumber min={0} />
+                <Form.Item label="IPs" name={[fieldName, 'settings', 'ips']}>
+                  <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
+                </Form.Item>
+              </>
+            );
+          }
+          if (type === 'realm') {
+            return (
+              <>
+                <Form.Item label="URL" name={[fieldName, 'settings', 'url']}>
+                  <Input placeholder="realm://token@host:port/id" />
+                </Form.Item>
+                <Form.Item label="STUN Servers" name={[fieldName, 'settings', 'stunServers']}>
+                  <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} placeholder="host:port" />
                 </Form.Item>
               </>
             );

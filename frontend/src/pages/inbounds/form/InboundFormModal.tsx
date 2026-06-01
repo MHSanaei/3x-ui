@@ -622,7 +622,7 @@ export default function InboundFormModal({
     }
     cleaned[`${next}Settings`] = newStreamSlice(next);
     // mKCP wants a UDP mask wrapper on the FinalMask side; seed it with
-    // `mkcp-original` so the inbound boots with a sensible default
+    // `mkcp-legacy` so the inbound boots with a sensible default
     // instead of unobfuscated mKCP traffic. The user can still edit or
     // clear the mask via the FinalMask section.
     if (next === 'kcp') {
@@ -630,12 +630,12 @@ export default function InboundFormModal({
       const udp = Array.isArray(fm.udp) ? (fm.udp as unknown[]) : [];
       const hasMkcp = udp.some((m) => {
         const entry = m as { type?: string };
-        return entry?.type === 'mkcp-original';
+        return entry?.type === 'mkcp-legacy';
       });
       if (!hasMkcp) {
         cleaned.finalmask = {
           ...fm,
-          udp: [...udp, { type: 'mkcp-original', settings: {} }],
+          udp: [...udp, { type: 'mkcp-legacy', settings: { header: '', value: '' } }],
         };
       }
     }

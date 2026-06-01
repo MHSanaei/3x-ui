@@ -1,9 +1,9 @@
 {
   "udp": [
     { "type": "salamander", "settings": { "password": "swordfish" } },
-    { "type": "mkcp-aes128gcm", "settings": { "password": "abcdef0123456789" } },
-    { "type": "header-dns", "settings": { "domain": "cloudflare.com" } },
-    { "type": "header-wireguard" },
+    { "type": "mkcp-legacy", "settings": { "header": "", "value": "abcdef0123456789" } },
+    { "type": "mkcp-legacy", "settings": { "header": "dns", "value": "cloudflare.com" } },
+    { "type": "mkcp-legacy", "settings": { "header": "wireguard", "value": "" } },
     {
       "type": "noise",
       "settings": {
@@ -23,7 +23,14 @@
     },
     {
       "type": "xicmp",
-      "settings": { "listenIp": "0.0.0.0", "id": 0 }
+      "settings": { "dgram": false, "ips": [] }
+    },
+    {
+      "type": "realm",
+      "settings": {
+        "url": "realm://public@example.com/my-realm",
+        "stunServers": ["stun.l.google.com:19302", "global.stun.twilio.com:3478"]
+      }
     }
   ]
 }

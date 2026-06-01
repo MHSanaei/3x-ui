@@ -665,6 +665,46 @@ func TestExtractKcpShareFields_ReadsAllFields(t *testing.T) {
 	}
 }
 
+func TestExtractKcpShareFields_FinalMaskLegacyHeader(t *testing.T) {
+	stream := map[string]any{
+		"finalmask": map[string]any{
+			"udp": []any{
+				map[string]any{
+					"type":     "mkcp-legacy",
+					"settings": map[string]any{"header": "wechat", "value": ""},
+				},
+			},
+		},
+	}
+	got := extractKcpShareFields(stream)
+	if got.headerType != "wechat-video" {
+		t.Fatalf("headerType = %q, want wechat-video", got.headerType)
+	}
+	if got.seed != "" {
+		t.Fatalf("seed = %q, want empty for header mask", got.seed)
+	}
+}
+
+func TestExtractKcpShareFields_FinalMaskLegacySeed(t *testing.T) {
+	stream := map[string]any{
+		"finalmask": map[string]any{
+			"udp": []any{
+				map[string]any{
+					"type":     "mkcp-legacy",
+					"settings": map[string]any{"header": "", "value": "obfs-pass"},
+				},
+			},
+		},
+	}
+	got := extractKcpShareFields(stream)
+	if got.headerType != "none" {
+		t.Fatalf("headerType = %q, want none for empty-header legacy mask", got.headerType)
+	}
+	if got.seed != "obfs-pass" {
+		t.Fatalf("seed = %q, want obfs-pass", got.seed)
+	}
+}
+
 func TestKcpShareFields_ApplyToParams(t *testing.T) {
 	params := map[string]string{}
 	kcpShareFields{headerType: "wechat-video", seed: "s", mtu: 1350, tti: 50}.applyToParams(params)

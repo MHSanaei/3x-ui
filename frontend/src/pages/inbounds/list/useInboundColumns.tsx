@@ -153,7 +153,7 @@ export function useInboundColumns({
         title: t('clients'),
         key: 'clients',
         align: 'left',
-        width: 80,
+        width: 110,
         render: (_, record) => {
           const cc = clientCount[record.id];
           if (!cc) return null;
