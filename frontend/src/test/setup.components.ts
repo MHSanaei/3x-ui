@@ -71,6 +71,6 @@ afterEach(async () => {
    * one behind the first.
    */
   for (let i = 0; i < 3; i += 1) {
-    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
 });
