@@ -68,6 +68,42 @@ const DEFAULT_SUMMARY: ClientsSummary = {
   total: 0, active: 0, online: [], depleted: [], expiring: [], deactive: [],
 };
 
+type ClientStatRow = ClientTraffic & { email?: string };
+
+// Mirror of the server's buildClientsSummary (web/service/client.go). The
+// client_stats WS event already carries every client's traffic, so the
+// summary card can be recomputed live from it instead of waiting for a list
+// refetch — keep the two in lockstep.
+export function computeClientsSummary(
+  stats: ClientStatRow[],
+  onlineSet: Set<string>,
+  expireDiffMs: number,
+  trafficDiffBytes: number,
+): ClientsSummary {
+  const now = Date.now();
+  const online: string[] = [];
+  const depleted: string[] = [];
+  const expiring: string[] = [];
+  const deactive: string[] = [];
+  let active = 0;
+  for (const c of stats) {
+    const email = c.email;
+    if (!email) continue;
+    const used = (c.up || 0) + (c.down || 0);
+    const total = c.total || 0;
+    const exhausted = total > 0 && used >= total;
+    const expired = (c.expiryTime || 0) > 0 && (c.expiryTime || 0) <= now;
+    if (c.enable && onlineSet.has(email)) online.push(email);
+    if (exhausted || expired) { depleted.push(email); continue; }
+    if (!c.enable) { deactive.push(email); continue; }
+    const nearExpiry = (c.expiryTime || 0) > 0 && (c.expiryTime || 0) - now < expireDiffMs;
+    const nearLimit = total > 0 && total - used < trafficDiffBytes;
+    if (nearExpiry || nearLimit) expiring.push(email);
+    else active += 1;
+  }
+  return { total: stats.length, active, online, depleted, expiring, deactive };
+}
+
 function buildQS(p: ClientQueryParams): string {
   const sp = new URLSearchParams();
   sp.set('page', String(p.page || 1));
@@ -176,13 +212,12 @@ export function useClients() {
   const clients = listQuery.data?.items ?? [];
   const total = listQuery.data?.total ?? 0;
   const filtered = listQuery.data?.filtered ?? 0;
-  const summary = listQuery.data?.summary ?? DEFAULT_SUMMARY;
   const allGroups = listQuery.data?.groups ?? [];
   const fetched = listQuery.data !== undefined;
   const loading = listQuery.isFetching;
 
   const inbounds = inboundOptionsQuery.data ?? [];
-  const onlines = onlinesQuery.data ?? [];
+  const onlines = useMemo(() => onlinesQuery.data ?? [], [onlinesQuery.data]);
 
   const defaults = defaultsQuery.data ?? {};
   const subSettings: SubSettings = useMemo(() => ({
@@ -206,6 +241,18 @@ export function useClients() {
   const expireDiff = ((defaults.expireDiff as number) ?? 0) * 86400000;
   const trafficDiff = ((defaults.trafficDiff as number) ?? 0) * 1073741824;
   const pageSize = (defaults.pageSize as number) ?? 0;
+
+  // Live summary: the client_stats WS event refreshes allClientStats every few
+  // seconds, so the top counters track reality without a page refresh. Falls
+  // back to the server-computed summary until the first event lands, and keeps
+  // the server's authoritative total for the headline count.
+  const [allClientStats, setAllClientStats] = useState<ClientStatRow[]>([]);
+  const summary = useMemo<ClientsSummary>(() => {
+    const serverSummary = listQuery.data?.summary ?? DEFAULT_SUMMARY;
+    if (allClientStats.length === 0) return serverSummary;
+    const live = computeClientsSummary(allClientStats, new Set(onlines), expireDiff, trafficDiff);
+    return { ...live, total: serverSummary.total || live.total };
+  }, [allClientStats, onlines, expireDiff, trafficDiff, listQuery.data?.summary]);
 
   // Client mutations (add/update/remove/attach/detach/resetTraffic/…) all
   // mutate inbound rows server-side too — adding a client appends to
@@ -438,8 +485,9 @@ export function useClients() {
 
   const applyClientStatsEvent = useCallback((payload: unknown) => {
     if (!payload || typeof payload !== 'object') return;
-    const p = payload as { clients?: (ClientTraffic & { email?: string })[] };
+    const p = payload as { clients?: ClientStatRow[] };
     if (!Array.isArray(p.clients) || p.clients.length === 0) return;
+    setAllClientStats(p.clients);
     const byEmail = new Map<string, ClientTraffic>();
     for (const row of p.clients) {
       if (row && row.email) byEmail.set(row.email, row);
