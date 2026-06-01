@@ -23,7 +23,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_non_write_users: "*"
           claude_args: |
-            --max-turns 25
+            --max-turns 45
             --allowedTools "Bash(gh:*),Read,Glob,Grep"
           prompt: |
             You are the issue assistant for the 3x-ui repository (an Xray-core web panel).
