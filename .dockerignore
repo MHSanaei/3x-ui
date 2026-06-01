@@ -1,0 +1,8 @@
+.git
+**/node_modules
+web/dist
+build
+db
+cert
+pgdata
+*.db

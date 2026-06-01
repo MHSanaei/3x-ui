@@ -33,17 +33,16 @@ import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useXraySetting } from '@/hooks/useXraySetting';
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
-import AppSidebar from '@/components/AppSidebar';
-import JsonEditor from '@/components/JsonEditor';
+import AppSidebar from '@/layouts/AppSidebar';
+import { JsonEditor } from '@/components/form';
 import { setMessageInstance } from '@/utils/messageBus';
 
-import BasicsTab from './BasicsTab';
-import RoutingTab from './RoutingTab';
-import OutboundsTab from './OutboundsTab';
-import BalancersTab from './BalancersTab';
-import DnsTab from './DnsTab';
-import WarpModal from './WarpModal';
-import NordModal from './NordModal';
+import { BasicsTab } from './basics';
+import { RoutingTab } from './routing';
+import { OutboundsTab } from './outbounds';
+import { BalancersTab } from './balancers';
+import { DnsTab } from './dns';
+import { WarpModal, NordModal } from './overrides';
 import './XrayPage.css';
 
 const TAB_KEYS = ['tpl-basic', 'tpl-routing', 'tpl-outbound', 'tpl-balancer', 'tpl-dns', 'tpl-advanced'];
@@ -223,10 +222,10 @@ export default function XrayPage() {
 
   function confirmRestart() {
     modal.confirm({
-      title: 'Restart xray?',
-      content: 'Reloads the xray service with the saved configuration.',
-      okText: 'Restart',
-      cancelText: 'Cancel',
+      title: t('pages.xray.restartConfirmTitle'),
+      content: t('pages.xray.restartConfirmContent'),
+      okText: t('pages.xray.restart'),
+      cancelText: t('cancel'),
       onOk: () => restartXray(),
     });
   }
@@ -255,7 +254,7 @@ export default function XrayPage() {
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={spinning || !fetched} delay={200} description="Loading…" size="large">
+            <Spin spinning={spinning || !fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : fetchError ? (
@@ -281,7 +280,7 @@ export default function XrayPage() {
                             {restartResult && (
                               <Popover
                                 placement="rightTop"
-                                title="Xray restart output"
+                                title={t('pages.xray.restartOutputTitle')}
                                 content={<pre className="restart-result">{restartResult}</pre>}
                               >
                                 <QuestionCircleOutlined className="restart-icon" />

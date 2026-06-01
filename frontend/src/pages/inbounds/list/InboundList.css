@@ -1,0 +1,182 @@
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.protocol-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.client-count-tag {
+  font-variant-numeric: tabular-nums;
+}
+
+.row-action-trigger {
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.client-email-list {
+  max-height: 200px;
+  overflow-y: auto;
+  min-width: 150px;
+}
+
+.client-email-list > div {
+  padding: 2px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.inbounds-page .ant-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.inbounds-page .ant-table-container {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.inbounds-page .ant-table-thead > tr:first-child > *:first-child {
+  border-start-start-radius: 8px;
+}
+
+.inbounds-page .ant-table-thead > tr:first-child > *:last-child {
+  border-start-end-radius: 8px;
+}
+
+.inbounds-page .ant-table-tbody > tr:last-child > *:first-child {
+  border-end-start-radius: 8px;
+}
+
+.inbounds-page .ant-table-tbody > tr:last-child > *:last-child {
+  border-end-end-radius: 8px;
+}
+
+.inbound-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.inbound-card {
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--ant-color-fill-quaternary);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inbound-card.is-selected {
+  border-color: var(--ant-color-primary);
+  background: color-mix(in srgb, var(--ant-color-primary) 6%, transparent);
+}
+
+.card-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 8px;
+}
+
+.bulk-count {
+  font-size: 12px;
+  background: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+  color: var(--ant-color-primary);
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.card-id {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.tag-name {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+  min-width: 96px;
+  flex-shrink: 0;
+}
+
+.card-stats .ant-tag {
+  margin: 0;
+}
+
+.card-empty {
+  text-align: center;
+  color: var(--ant-color-text-secondary);
+  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .inbounds-page .ant-card-head {
+    padding: 0 12px;
+    min-height: 44px;
+  }
+
+  .inbounds-page .ant-card-head-title,
+  .inbounds-page .ant-card-extra {
+    padding: 8px 0;
+  }
+
+  .inbounds-page .ant-card-body {
+    padding: 8px;
+  }
+
+  .inbounds-page .row-action-trigger {
+    font-size: 22px;
+    padding: 4px;
+  }
+}

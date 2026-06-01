@@ -19,6 +19,7 @@ interface BackupModalProps {
 
 export default function BackupModal({ open, basePath: _basePath, onClose, onBusy }: BackupModalProps) {
   const { t } = useTranslation();
+  const isPostgres = window.X_UI_DB_TYPE === 'postgres';
 
   function exportDb() {
     window.location.href = (window.X_UI_BASE_PATH || '') + 'panel/api/server/getDb';
@@ -27,7 +28,7 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
   function importDb() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = '.db';
+    fileInput.accept = isPostgres ? '.dump' : '.db';
     fileInput.addEventListener('change', async (e) => {
       const dbFile = (e.target as HTMLInputElement).files?.[0];
       if (!dbFile) return;
@@ -65,11 +66,18 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
       footer={null}
       onCancel={onClose}
     >
+      {isPostgres && (
+        <div className="backup-description" style={{ marginBottom: 16 }}>
+          {t('pages.index.backupPostgresNote')}
+        </div>
+      )}
       <div className="backup-list">
         <div className="backup-item">
           <div className="backup-meta">
             <div className="backup-title">{t('pages.index.exportDatabase')}</div>
-            <div className="backup-description">{t('pages.index.exportDatabaseDesc')}</div>
+            <div className="backup-description">
+              {isPostgres ? t('pages.index.exportDatabasePgDesc') : t('pages.index.exportDatabaseDesc')}
+            </div>
           </div>
           <Button type="primary" onClick={exportDb} icon={<DownloadOutlined />} />
         </div>
@@ -77,7 +85,9 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
         <div className="backup-item">
           <div className="backup-meta">
             <div className="backup-title">{t('pages.index.importDatabase')}</div>
-            <div className="backup-description">{t('pages.index.importDatabaseDesc')}</div>
+            <div className="backup-description">
+              {isPostgres ? t('pages.index.importDatabasePgDesc') : t('pages.index.importDatabaseDesc')}
+            </div>
           </div>
           <Button type="primary" onClick={importDb} icon={<UploadOutlined />} />
         </div>

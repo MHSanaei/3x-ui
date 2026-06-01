@@ -188,4 +188,3 @@ func TestInboundClientIpsUnmarshalJSONAcceptsBothShapes(t *testing.T) {
 		})
 	}
 }
-

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Collapse, Input, InputNumber, Select, Switch } from 'antd';
 import { LanguageManager } from '@/utils';
 import type { AllSetting } from '@/models/setting';
-import SettingListItem from '@/components/SettingListItem';
+import { SettingListItem } from '@/components/ui';
 
 interface TelegramTabProps {
   allSetting: AllSetting;

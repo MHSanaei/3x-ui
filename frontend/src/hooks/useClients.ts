@@ -4,14 +4,17 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { HttpUtil, Msg } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
 import { keys } from '@/api/queryKeys';
+import { markLocalInvalidate } from '@/api/invalidationTracker';
 import {
   ClientHydrateSchema,
   ClientPageResponseSchema,
   InboundOptionsSchema,
   OnlinesSchema,
   BulkAdjustResultSchema,
+  BulkAttachResultSchema,
   BulkCreateResultSchema,
   BulkDeleteResultSchema,
+  BulkDetachResultSchema,
   DelDepletedResultSchema,
   type ClientHydrate,
   type ClientRecord,
@@ -20,8 +23,10 @@ import {
   type ClientPageResponse,
   type InboundOption,
   type BulkAdjustResult,
+  type BulkAttachResult,
   type BulkCreateResult,
   type BulkDeleteResult,
+  type BulkDetachResult,
 } from '@/schemas/client';
 import { DefaultsPayloadSchema } from '@/schemas/defaults';
 
@@ -62,6 +67,42 @@ const DEFAULT_QUERY: ClientQueryParams = { page: 1, pageSize: 25 };
 const DEFAULT_SUMMARY: ClientsSummary = {
   total: 0, active: 0, online: [], depleted: [], expiring: [], deactive: [],
 };
+
+type ClientStatRow = ClientTraffic & { email?: string };
+
+// Mirror of the server's buildClientsSummary (web/service/client.go). The
+// client_stats WS event already carries every client's traffic, so the
+// summary card can be recomputed live from it instead of waiting for a list
+// refetch — keep the two in lockstep.
+export function computeClientsSummary(
+  stats: ClientStatRow[],
+  onlineSet: Set<string>,
+  expireDiffMs: number,
+  trafficDiffBytes: number,
+): ClientsSummary {
+  const now = Date.now();
+  const online: string[] = [];
+  const depleted: string[] = [];
+  const expiring: string[] = [];
+  const deactive: string[] = [];
+  let active = 0;
+  for (const c of stats) {
+    const email = c.email;
+    if (!email) continue;
+    const used = (c.up || 0) + (c.down || 0);
+    const total = c.total || 0;
+    const exhausted = total > 0 && used >= total;
+    const expired = (c.expiryTime || 0) > 0 && (c.expiryTime || 0) <= now;
+    if (c.enable && onlineSet.has(email)) online.push(email);
+    if (exhausted || expired) { depleted.push(email); continue; }
+    if (!c.enable) { deactive.push(email); continue; }
+    const nearExpiry = (c.expiryTime || 0) > 0 && (c.expiryTime || 0) - now < expireDiffMs;
+    const nearLimit = total > 0 && total - used < trafficDiffBytes;
+    if (nearExpiry || nearLimit) expiring.push(email);
+    else active += 1;
+  }
+  return { total: stats.length, active, online, depleted, expiring, deactive };
+}
 
 function buildQS(p: ClientQueryParams): string {
   const sp = new URLSearchParams();
@@ -171,13 +212,13 @@ export function useClients() {
   const clients = listQuery.data?.items ?? [];
   const total = listQuery.data?.total ?? 0;
   const filtered = listQuery.data?.filtered ?? 0;
-  const summary = listQuery.data?.summary ?? DEFAULT_SUMMARY;
   const allGroups = listQuery.data?.groups ?? [];
-  const fetched = listQuery.data !== undefined;
+  const fetched = listQuery.data !== undefined || listQuery.isError;
+  const fetchError = listQuery.error ? (listQuery.error as Error).message : '';
   const loading = listQuery.isFetching;
 
   const inbounds = inboundOptionsQuery.data ?? [];
-  const onlines = onlinesQuery.data ?? [];
+  const onlines = useMemo(() => onlinesQuery.data ?? [], [onlinesQuery.data]);
 
   const defaults = defaultsQuery.data ?? {};
   const subSettings: SubSettings = useMemo(() => ({
@@ -202,6 +243,18 @@ export function useClients() {
   const trafficDiff = ((defaults.trafficDiff as number) ?? 0) * 1073741824;
   const pageSize = (defaults.pageSize as number) ?? 0;
 
+  // Live summary: the client_stats WS event refreshes allClientStats every few
+  // seconds, so the top counters track reality without a page refresh. Falls
+  // back to the server-computed summary until the first event lands, and keeps
+  // the server's authoritative total for the headline count.
+  const [allClientStats, setAllClientStats] = useState<ClientStatRow[]>([]);
+  const summary = useMemo<ClientsSummary>(() => {
+    const serverSummary = listQuery.data?.summary ?? DEFAULT_SUMMARY;
+    if (allClientStats.length === 0) return serverSummary;
+    const live = computeClientsSummary(allClientStats, new Set(onlines), expireDiff, trafficDiff);
+    return { ...live, total: serverSummary.total || live.total };
+  }, [allClientStats, onlines, expireDiff, trafficDiff, listQuery.data?.summary]);
+
   // Client mutations (add/update/remove/attach/detach/resetTraffic/…) all
   // mutate inbound rows server-side too — adding a client appends to
   // settings.clients on each attached inbound, the slim list's per-inbound
@@ -209,10 +262,14 @@ export function useClients() {
   // Inbounds page and any open edit modal pick up the new shape without
   // a manual reload.
   const invalidateAll = useCallback(
-    () => Promise.all([
-      queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
-      queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
-    ]),
+    () => {
+      markLocalInvalidate();
+      setAllClientStats([]);
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
+        queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
+      ]);
+    },
     [queryClient],
   );
 
@@ -234,9 +291,15 @@ export function useClients() {
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
-  const bulkAssignGroupMut = useMutation({
+  const bulkAddToGroupMut = useMutation({
     mutationFn: (body: { emails: string[]; group: string }) =>
-      HttpUtil.post('/panel/api/clients/bulkAssignGroup', body, JSON_HEADERS),
+      HttpUtil.post('/panel/api/clients/groups/bulkAdd', body, JSON_HEADERS),
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
+  const bulkRemoveFromGroupMut = useMutation({
+    mutationFn: (body: { emails: string[] }) =>
+      HttpUtil.post('/panel/api/clients/groups/bulkRemove', body, JSON_HEADERS),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
@@ -286,9 +349,25 @@ export function useClients() {
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
+  const bulkAttachMut = useMutation({
+    mutationFn: async (payload: { emails: string[]; inboundIds: number[] }): Promise<Msg<BulkAttachResult>> => {
+      const raw = await HttpUtil.post('/panel/api/clients/bulkAttach', payload, JSON_HEADERS);
+      return parseMsg(raw, BulkAttachResultSchema, 'clients/bulkAttach');
+    },
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
   const detachMut = useMutation({
     mutationFn: ({ email, inboundIds }: { email: string; inboundIds: number[] }) =>
       HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/detach`, { inboundIds }, JSON_HEADERS),
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
+  const bulkDetachMut = useMutation({
+    mutationFn: async (payload: { emails: string[]; inboundIds: number[] }): Promise<Msg<BulkDetachResult>> => {
+      const raw = await HttpUtil.post('/panel/api/clients/bulkDetach', payload, JSON_HEADERS);
+      return parseMsg(raw, BulkDetachResultSchema, 'clients/bulkDetach');
+    },
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
@@ -332,18 +411,32 @@ export function useClients() {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
     return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes });
   }, [bulkAdjustMut]);
-  const bulkAssignGroup = useCallback((emails: string[], group: string) => {
+  const bulkAddToGroup = useCallback((emails: string[], group: string) => {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
-    return bulkAssignGroupMut.mutateAsync({ emails, group });
-  }, [bulkAssignGroupMut]);
+    return bulkAddToGroupMut.mutateAsync({ emails, group });
+  }, [bulkAddToGroupMut]);
+  const bulkRemoveFromGroup = useCallback((emails: string[]) => {
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
+    return bulkRemoveFromGroupMut.mutateAsync({ emails });
+  }, [bulkRemoveFromGroupMut]);
   const attach = useCallback((email: string, inboundIds: number[]) => {
     if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return attachMut.mutateAsync({ email, inboundIds });
   }, [attachMut]);
+  const bulkAttach = useCallback((emails: string[], inboundIds: number[]) => {
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkAttachResult>);
+    if (!Array.isArray(inboundIds) || inboundIds.length === 0) return Promise.resolve(null as unknown as Msg<BulkAttachResult>);
+    return bulkAttachMut.mutateAsync({ emails, inboundIds });
+  }, [bulkAttachMut]);
   const detach = useCallback((email: string, inboundIds: number[]) => {
     if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return detachMut.mutateAsync({ email, inboundIds });
   }, [detachMut]);
+  const bulkDetach = useCallback((emails: string[], inboundIds: number[]) => {
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkDetachResult>);
+    if (!Array.isArray(inboundIds) || inboundIds.length === 0) return Promise.resolve(null as unknown as Msg<BulkDetachResult>);
+    return bulkDetachMut.mutateAsync({ emails, inboundIds });
+  }, [bulkDetachMut]);
   const resetTraffic = useCallback((client: ClientRecord) => {
     if (!client?.email) return Promise.resolve(null as unknown as Msg<unknown>);
     return resetTrafficMut.mutateAsync(client.email);
@@ -353,20 +446,31 @@ export function useClients() {
 
   const setEnable = useCallback(async (client: ClientRecord, enable: boolean) => {
     if (!client?.email) return null;
-    const payload = {
-      email: client.email,
-      subId: client.subId,
-      id: client.uuid,
-      password: client.password,
-      auth: client.auth,
-      totalGB: client.totalGB || 0,
-      expiryTime: client.expiryTime || 0,
-      limitIp: client.limitIp || 0,
-      comment: client.comment || '',
+    const full = await hydrate(client.email);
+    const base = full?.client;
+    if (!base) return null;
+    const payload: Record<string, unknown> = {
+      email: base.email,
+      subId: base.subId,
+      id: base.uuid,
+      password: base.password,
+      auth: base.auth,
+      flow: base.flow || '',
+      security: base.security || 'auto',
+      totalGB: base.totalGB || 0,
+      expiryTime: base.expiryTime || 0,
+      limitIp: base.limitIp || 0,
+      tgId: Number(base.tgId) || 0,
+      reset: Number(base.reset) || 0,
+      group: base.group || '',
+      comment: base.comment || '',
       enable: !!enable,
     };
+    if (base.reverse?.tag) {
+      payload.reverse = { tag: base.reverse.tag };
+    }
     return update(client.email, payload);
-  }, [update]);
+  }, [hydrate, update]);
 
   // WS-driven in-place merges. Page wires these via useWebSocket; the bridge
   // covers coarse 'invalidate' and 'inbounds' events centrally.
@@ -383,8 +487,9 @@ export function useClients() {
 
   const applyClientStatsEvent = useCallback((payload: unknown) => {
     if (!payload || typeof payload !== 'object') return;
-    const p = payload as { clients?: (ClientTraffic & { email?: string })[] };
+    const p = payload as { clients?: ClientStatRow[] };
     if (!Array.isArray(p.clients) || p.clients.length === 0) return;
+    setAllClientStats(p.clients);
     const byEmail = new Map<string, ClientTraffic>();
     for (const row of p.clients) {
       if (row && row.email) byEmail.set(row.email, row);
@@ -429,6 +534,7 @@ export function useClients() {
     onlines,
     loading,
     fetched,
+    fetchError,
     subSettings,
     ipLimitEnable,
     tgBotEnable,
@@ -442,9 +548,12 @@ export function useClients() {
     remove,
     bulkDelete,
     bulkAdjust,
-    bulkAssignGroup,
+    bulkAddToGroup,
+    bulkRemoveFromGroup,
     attach,
+    bulkAttach,
     detach,
+    bulkDetach,
     resetTraffic,
     resetAllTraffics,
     delDepleted,

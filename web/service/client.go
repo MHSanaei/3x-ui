@@ -237,16 +237,15 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			row.ExpiryTime = incoming.ExpiryTime
 			row.Enable = incoming.Enable
 			row.TgID = incoming.TgID
-			row.Group = incoming.Group
+			if incoming.Group != "" {
+				row.Group = incoming.Group
+			}
 			row.Comment = incoming.Comment
 			row.Reset = incoming.Reset
 			if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
 				row.CreatedAt = incoming.CreatedAt
 			}
-			preservedUpdatedAt := row.UpdatedAt
-			if incoming.UpdatedAt > preservedUpdatedAt {
-				preservedUpdatedAt = incoming.UpdatedAt
-			}
+			preservedUpdatedAt := max(incoming.UpdatedAt, row.UpdatedAt)
 			row.UpdatedAt = preservedUpdatedAt
 			if err := tx.Save(row).Error; err != nil {
 				return err
@@ -299,9 +298,7 @@ func (s *ClientService) ListForInbound(tx *gorm.DB, inboundId int) ([]model.Clie
 	out := make([]model.Client, 0, len(rows))
 	for i := range rows {
 		c := rows[i].ToClient()
-		if rows[i].FlowOverride != "" {
-			c.Flow = rows[i].FlowOverride
-		}
+		c.Flow = rows[i].FlowOverride
 		out = append(out, *c)
 	}
 	return out, nil
@@ -410,6 +407,29 @@ type ClientCreatePayload struct {
 	InboundIds []int        `json:"inboundIds"`
 }
 
+func hasForbiddenClientChar(s string) bool {
+	for _, r := range s {
+		if r == '/' || r == '\\' || r == ' ' || r < 0x20 || r == 0x7f {
+			return true
+		}
+	}
+	return false
+}
+
+func validateClientEmail(email string) error {
+	if hasForbiddenClientChar(email) {
+		return common.NewError("client email contains an invalid character:", email)
+	}
+	return nil
+}
+
+func validateClientSubID(subID string) error {
+	if hasForbiddenClientChar(subID) {
+		return common.NewError("client subId contains an invalid character:", subID)
+	}
+	return nil
+}
+
 func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreatePayload) (bool, error) {
 	if payload == nil {
 		return false, common.NewError("empty payload")
@@ -417,6 +437,12 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	client := payload.Client
 	if strings.TrimSpace(client.Email) == "" {
 		return false, common.NewError("client email is required")
+	}
+	if err := validateClientEmail(client.Email); err != nil {
+		return false, err
+	}
+	if err := validateClientSubID(client.SubID); err != nil {
+		return false, err
 	}
 	if len(payload.InboundIds) == 0 {
 		return false, common.NewError("at least one inbound is required")
@@ -446,6 +472,18 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		}
 	}
 
+	if client.SubID != "" {
+		var subTaken int64
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("sub_id = ? AND email <> ?", client.SubID, client.Email).
+			Count(&subTaken).Error; err != nil {
+			return false, err
+		}
+		if subTaken > 0 {
+			return false, common.NewError("subId already in use:", client.SubID)
+		}
+	}
+
 	needRestart := false
 	for _, ibId := range payload.InboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
@@ -455,7 +493,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if err := s.fillProtocolDefaults(&client, inbound); err != nil {
 			return needRestart, err
 		}
-		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {client}})
+		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(client, inbound)}})
 		if mErr != nil {
 			return needRestart, mErr
 		}
@@ -496,8 +534,13 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 	return nil
 }
 
-// shadowsocksMethodFromSettings pulls the "method" field out of the inbound's
-// settings JSON. Returns "" when the field is missing or settings is invalid.
+func clientWithInboundFlow(c model.Client, ib *model.Inbound) model.Client {
+	if !inboundCanEnableTlsFlow(string(ib.Protocol), ib.StreamSettings) {
+		c.Flow = ""
+	}
+	return c
+}
+
 func shadowsocksMethodFromSettings(settings string) string {
 	if settings == "" {
 		return ""
@@ -510,11 +553,6 @@ func shadowsocksMethodFromSettings(settings string) string {
 	return method
 }
 
-// randomShadowsocksClientKey returns a per-client key sized to the cipher.
-// The 2022-blake3 ciphers require a base64-encoded key of an exact byte
-// length (16 bytes for aes-128-gcm, 32 bytes for aes-256-gcm and
-// chacha20-poly1305) — anything else fails with "bad key" on xray start.
-// Older ciphers accept arbitrary passwords, so we keep the uuid-style.
 func randomShadowsocksClientKey(method string) string {
 	if n := shadowsocksKeyBytes(method); n > 0 {
 		return random.Base64Bytes(n)
@@ -522,9 +560,6 @@ func randomShadowsocksClientKey(method string) string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "")
 }
 
-// validShadowsocksClientKey reports whether key is acceptable for the cipher.
-// For 2022-blake3 it must decode to the exact byte length the cipher needs;
-// any other method accepts any non-empty string.
 func validShadowsocksClientKey(method, key string) bool {
 	n := shadowsocksKeyBytes(method)
 	if n == 0 {
@@ -547,13 +582,6 @@ func shadowsocksKeyBytes(method string) int {
 	return 0
 }
 
-// applyShadowsocksClientMethod normalises the per-client "method" field
-// when an inbound is created or updated:
-//   - Legacy ciphers: backfill `method` so xray's multi-user code is happy.
-//     "unsupported cipher method:" otherwise.
-//   - 2022-blake3-*: strip the per-client `method` because xray rejects
-//     it with "users must have empty method". This matters after an admin
-//     switches an existing inbound from a legacy cipher to a 2022 one.
 func applyShadowsocksClientMethod(clients []any, settings map[string]any) {
 	method, _ := settings["method"].(string)
 	is2022 := strings.HasPrefix(method, "2022-blake3-")
@@ -593,6 +621,12 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if strings.TrimSpace(updated.Email) == "" {
 		return false, common.NewError("client email is required")
 	}
+	if err := validateClientEmail(updated.Email); err != nil {
+		return false, err
+	}
+	if err := validateClientSubID(updated.SubID); err != nil {
+		return false, err
+	}
 	if updated.SubID == "" {
 		updated.SubID = existing.SubID
 	}
@@ -604,10 +638,6 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		updated.CreatedAt = existing.CreatedAt
 	}
 
-	// Rename the ClientRecord row up front when the email changes. SyncInbound
-	// (invoked from UpdateInboundClient below) looks up by email — without
-	// renaming first it would treat the new email as a brand-new client,
-	// insert a duplicate ClientRecord, and leave the original orphaned.
 	if updated.Email != existing.Email {
 		var collisionCount int64
 		if err := database.GetDB().Model(&model.ClientRecord{}).
@@ -625,10 +655,30 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 	}
 
+	if updated.SubID != "" {
+		var subCollision int64
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("sub_id = ? AND id <> ?", updated.SubID, id).
+			Count(&subCollision).Error; err != nil {
+			return false, err
+		}
+		if subCollision > 0 {
+			return false, common.NewError("Duplicate subId:", updated.SubID)
+		}
+	}
+
 	needRestart := false
 	for _, ibId := range inboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
 		if getErr != nil {
+			if errors.Is(getErr, gorm.ErrRecordNotFound) {
+				if err := database.GetDB().
+					Where("client_id = ? AND inbound_id = ?", id, ibId).
+					Delete(&model.ClientInbound{}).Error; err != nil {
+					return needRestart, err
+				}
+				continue
+			}
 			return needRestart, getErr
 		}
 		oldKey := clientKeyForProtocol(inbound.Protocol, existing)
@@ -638,7 +688,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		if err := s.fillProtocolDefaults(&updated, inbound); err != nil {
 			return needRestart, err
 		}
-		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {updated}})
+		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(updated, inbound)}})
 		if mErr != nil {
 			return needRestart, mErr
 		}
@@ -687,7 +737,7 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		if key == "" {
 			continue
 		}
-		nr, delErr := s.DelInboundClient(inboundSvc, ibId, key)
+		nr, delErr := s.DelInboundClient(inboundSvc, ibId, key, false)
 		if delErr != nil {
 			return needRestart, delErr
 		}
@@ -744,7 +794,7 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		if err := s.fillProtocolDefaults(&copyClient, inbound); err != nil {
 			return needRestart, err
 		}
-		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {copyClient}})
+		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(copyClient, inbound)}})
 		if mErr != nil {
 			return needRestart, mErr
 		}
@@ -791,6 +841,180 @@ func (s *ClientService) AttachByEmail(inboundSvc *InboundService, email string, 
 	return s.Attach(inboundSvc, rec.Id, inboundIds)
 }
 
+// BulkAttachResult reports the outcome of a bulk attach across target inbounds.
+type BulkAttachResult struct {
+	Attached []string `json:"attached"`
+	Skipped  []string `json:"skipped"`
+	Errors   []string `json:"errors"`
+}
+
+// BulkAttach attaches the given existing clients (by email) to each target inbound,
+// reusing their identity (email/UUID/password/subId) and a shared traffic row. It adds
+// all clients to a target in a single AddInboundClient call, and reports clients already
+// present on a target as skipped.
+func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, inboundIds []int) (*BulkAttachResult, bool, error) {
+	result := &BulkAttachResult{}
+	if len(emails) == 0 || len(inboundIds) == 0 {
+		return result, false, nil
+	}
+
+	recordErr := func(format string, args ...any) {
+		msg := fmt.Sprintf(format, args...)
+		result.Errors = append(result.Errors, msg)
+		logger.Warningf("[BulkAttach] %s", msg)
+	}
+
+	records := make([]*model.ClientRecord, 0, len(emails))
+	seenEmail := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		if email == "" {
+			continue
+		}
+		key := strings.ToLower(email)
+		if _, ok := seenEmail[key]; ok {
+			continue
+		}
+		seenEmail[key] = struct{}{}
+		rec, err := s.GetRecordByEmail(nil, email)
+		if err != nil {
+			recordErr("%s: %v", email, err)
+			continue
+		}
+		records = append(records, rec)
+	}
+
+	needRestart := false
+	for _, ibId := range inboundIds {
+		inbound, err := inboundSvc.GetInbound(ibId)
+		if err != nil {
+			recordErr("inbound %d: %v", ibId, err)
+			continue
+		}
+		existingClients, err := inboundSvc.GetClients(inbound)
+		if err != nil {
+			recordErr("inbound %d: %v", ibId, err)
+			continue
+		}
+		have := make(map[string]struct{}, len(existingClients))
+		for _, c := range existingClients {
+			have[strings.ToLower(c.Email)] = struct{}{}
+		}
+
+		clientsToAdd := make([]model.Client, 0, len(records))
+		for _, rec := range records {
+			if _, attached := have[strings.ToLower(rec.Email)]; attached {
+				result.Skipped = append(result.Skipped, rec.Email)
+				continue
+			}
+			client := *rec.ToClient()
+			client.UpdatedAt = time.Now().UnixMilli()
+			if err := s.fillProtocolDefaults(&client, inbound); err != nil {
+				recordErr("%s -> inbound %d: %v", rec.Email, ibId, err)
+				continue
+			}
+			clientsToAdd = append(clientsToAdd, clientWithInboundFlow(client, inbound))
+		}
+
+		if len(clientsToAdd) == 0 {
+			continue
+		}
+
+		payload, err := json.Marshal(map[string][]model.Client{"clients": clientsToAdd})
+		if err != nil {
+			recordErr("inbound %d: %v", ibId, err)
+			continue
+		}
+		nr, err := s.AddInboundClient(inboundSvc, &model.Inbound{Id: ibId, Settings: string(payload)})
+		if err != nil {
+			recordErr("inbound %d: %v", ibId, err)
+			continue
+		}
+		if nr {
+			needRestart = true
+		}
+		for _, c := range clientsToAdd {
+			result.Attached = append(result.Attached, c.Email)
+		}
+	}
+
+	return result, needRestart, nil
+}
+
+// BulkDetachResult reports the outcome of a bulk detach across target inbounds.
+type BulkDetachResult struct {
+	Detached []string `json:"detached"`
+	Skipped  []string `json:"skipped"`
+	Errors   []string `json:"errors"`
+}
+
+// BulkDetach detaches the given existing clients (by email) from each target inbound.
+// (email, inbound) pairs where the client is not currently attached are silently skipped
+// at the inbound level; emails that aren't attached to any of the requested inbounds
+// are reported under skipped. ClientRecord rows are kept even when they become orphaned
+// (matches single-client detach semantics); callers should use bulkDelete for full removal.
+func (s *ClientService) BulkDetach(inboundSvc *InboundService, emails []string, inboundIds []int) (*BulkDetachResult, bool, error) {
+	result := &BulkDetachResult{}
+	if len(emails) == 0 || len(inboundIds) == 0 {
+		return result, false, nil
+	}
+
+	recordErr := func(format string, args ...any) {
+		msg := fmt.Sprintf(format, args...)
+		result.Errors = append(result.Errors, msg)
+		logger.Warningf("[BulkDetach] %s", msg)
+	}
+
+	requested := make(map[int]struct{}, len(inboundIds))
+	for _, id := range inboundIds {
+		requested[id] = struct{}{}
+	}
+
+	needRestart := false
+	seenEmail := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		if email == "" {
+			continue
+		}
+		key := strings.ToLower(email)
+		if _, ok := seenEmail[key]; ok {
+			continue
+		}
+		seenEmail[key] = struct{}{}
+
+		rec, err := s.GetRecordByEmail(nil, email)
+		if err != nil {
+			recordErr("%s: %v", email, err)
+			continue
+		}
+		currentIds, err := s.GetInboundIdsForRecord(rec.Id)
+		if err != nil {
+			recordErr("%s: %v", email, err)
+			continue
+		}
+		intersection := make([]int, 0, len(currentIds))
+		for _, id := range currentIds {
+			if _, ok := requested[id]; ok {
+				intersection = append(intersection, id)
+			}
+		}
+		if len(intersection) == 0 {
+			result.Skipped = append(result.Skipped, rec.Email)
+			continue
+		}
+		nr, err := s.Detach(inboundSvc, rec.Id, intersection)
+		if err != nil {
+			recordErr("%s: %v", rec.Email, err)
+			continue
+		}
+		if nr {
+			needRestart = true
+		}
+		result.Detached = append(result.Detached, rec.Email)
+	}
+
+	return result, needRestart, nil
+}
+
 func (s *ClientService) DetachByEmailMany(inboundSvc *InboundService, email string, inboundIds []int) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")
@@ -822,7 +1046,7 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 	}
 	needRestart := false
 	for _, ibId := range inboundIds {
-		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, email)
+		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, email, false)
 		if delErr != nil {
 			return needRestart, delErr
 		}
@@ -1240,7 +1464,11 @@ func (s *ClientService) DeleteGroup(name string) (int, error) {
 	return s.replaceGroupValue(name, "")
 }
 
-func (s *ClientService) AssignGroup(emails []string, group string) (int, error) {
+func (s *ClientService) RemoveFromGroup(emails []string) (int, error) {
+	return s.AddToGroup(emails, "")
+}
+
+func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 	group = strings.TrimSpace(group)
 	if len(emails) == 0 {
 		return 0, nil
@@ -2227,7 +2455,7 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 
 	needRestart := false
 	for inboundId, ibEmails := range emailsByInbound {
-		ibResult := s.bulkDelInboundClients(inboundSvc, inboundId, ibEmails, recordsByEmail)
+		ibResult := s.bulkDelInboundClients(inboundSvc, inboundId, ibEmails, recordsByEmail, false)
 		if ibResult.needRestart {
 			needRestart = true
 		}
@@ -2287,6 +2515,7 @@ func (s *ClientService) bulkDelInboundClients(
 	inboundId int,
 	emails []string,
 	records map[string]*model.ClientRecord,
+	keepTraffic bool,
 ) bulkInboundDeleteResult {
 	res := bulkInboundDeleteResult{perEmailSkipped: map[string]string{}}
 
@@ -2408,7 +2637,7 @@ func (s *ClientService) bulkDelInboundClients(
 			delete(foundEmails, email)
 			continue
 		}
-		if shared {
+		if shared || keepTraffic {
 			continue
 		}
 		if delErr := inboundSvc.DelClientIPs(db, email); delErr != nil {
@@ -2641,7 +2870,7 @@ func (s *ClientService) Detach(inboundSvc *InboundService, id int, inboundIds []
 		if key == "" {
 			continue
 		}
-		nr, delErr := s.DelInboundClient(inboundSvc, ibId, key)
+		nr, delErr := s.DelInboundClient(inboundSvc, ibId, key, true)
 		if delErr != nil {
 			return needRestart, delErr
 		}
@@ -2701,6 +2930,10 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 				cm["created_at"] = nowTs
 			}
 			cm["updated_at"] = nowTs
+			existingSub, _ := cm["subId"].(string)
+			if strings.TrimSpace(existingSub) == "" {
+				cm["subId"] = random.NumLower(16)
+			}
 			interfaceClients[i] = cm
 		}
 	}
@@ -2939,11 +3172,13 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	}
 	settingsClients := oldSettings["clients"].([]any)
 	var preservedCreated any
+	var preservedSubID string
 	if clientIndex >= 0 && clientIndex < len(settingsClients) {
 		if oldMap, ok := settingsClients[clientIndex].(map[string]any); ok {
 			if v, ok2 := oldMap["created_at"]; ok2 {
 				preservedCreated = v
 			}
+			preservedSubID, _ = oldMap["subId"].(string)
 		}
 	}
 	if len(interfaceClients) > 0 {
@@ -2953,6 +3188,14 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			}
 			newMap["created_at"] = preservedCreated
 			newMap["updated_at"] = time.Now().Unix() * 1000
+			newSub, _ := newMap["subId"].(string)
+			if strings.TrimSpace(newSub) == "" {
+				if strings.TrimSpace(preservedSubID) != "" {
+					newMap["subId"] = preservedSubID
+				} else {
+					newMap["subId"] = random.NumLower(16)
+				}
+			}
 			interfaceClients[0] = newMap
 		}
 	}
@@ -3116,7 +3359,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	return needRestart, nil
 }
 
-func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId int, clientId string) (bool, error) {
+func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId int, clientId string, keepTraffic bool) (bool, error) {
 	defer lockInbound(inboundId).Unlock()
 
 	oldInbound, err := inboundSvc.GetInbound(inboundId)
@@ -3179,7 +3422,7 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 		return false, err
 	}
 
-	if !emailShared {
+	if !emailShared && !keepTraffic {
 		err = inboundSvc.DelClientIPs(db, email)
 		if err != nil {
 			logger.Error("Error in delete client IPs")
@@ -3196,7 +3439,7 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 			return false, err
 		}
 		notDepleted := len(enables) > 0 && enables[0]
-		if !emailShared {
+		if !emailShared && !keepTraffic {
 			err = inboundSvc.DelClientStat(db, email)
 			if err != nil {
 				logger.Error("Delete stats Data Error")
@@ -3243,7 +3486,7 @@ func (s *ClientService) DelInboundClient(inboundSvc *InboundService, inboundId i
 	return needRestart, nil
 }
 
-func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inboundId int, email string) (bool, error) {
+func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inboundId int, email string, keepTraffic bool) (bool, error) {
 	defer lockInbound(inboundId).Unlock()
 
 	oldInbound, err := inboundSvc.GetInbound(inboundId)
@@ -3300,7 +3543,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		return false, err
 	}
 
-	if !emailShared {
+	if !emailShared && !keepTraffic {
 		if err := inboundSvc.DelClientIPs(db, email); err != nil {
 			logger.Error("Error in delete client IPs")
 			return false, err
@@ -3310,14 +3553,16 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	needRestart := false
 
 	if len(email) > 0 && !emailShared {
-		traffic, err := inboundSvc.GetClientTrafficByEmail(email)
-		if err != nil {
-			return false, err
-		}
-		if traffic != nil {
-			if err := inboundSvc.DelClientStat(db, email); err != nil {
-				logger.Error("Delete stats Data Error")
+		if !keepTraffic {
+			traffic, err := inboundSvc.GetClientTrafficByEmail(email)
+			if err != nil {
 				return false, err
+			}
+			if traffic != nil {
+				if err := inboundSvc.DelClientStat(db, email); err != nil {
+					logger.Error("Delete stats Data Error")
+					return false, err
+				}
 			}
 		}
 

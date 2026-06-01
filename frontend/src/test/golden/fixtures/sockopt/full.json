@@ -14,6 +14,6 @@
   "tcpcongestion": "cubic",
   "V6Only": false,
   "tcpWindowClamp": 600,
-  "interfaceName": "eth0",
+  "interface": "eth0",
   "trustedXForwardedFor": ["10.0.0.0/8", "192.168.0.0/16"]
 }

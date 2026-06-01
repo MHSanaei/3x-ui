@@ -24,6 +24,8 @@ export const NodeRecordSchema = z.object({
   lastHeartbeat: z.number().optional(),
   lastError: z.string().optional(),
   allowPrivateAddress: z.boolean().optional(),
+  tlsVerifyMode: z.enum(['verify', 'skip', 'pin']).optional(),
+  pinnedCertSha256: z.string().optional(),
 }).loose();
 
 export const NodeListSchema = z.array(NodeRecordSchema);
@@ -46,6 +48,8 @@ export const NodeFormSchema = z.object({
   apiToken: z.string().trim().min(1, 'pages.nodes.toasts.fillRequired'),
   enable: z.boolean(),
   allowPrivateAddress: z.boolean(),
+  tlsVerifyMode: z.enum(['verify', 'skip', 'pin']),
+  pinnedCertSha256: z.string(),
 });
 
 export type NodeRecord = z.infer<typeof NodeRecordSchema>;

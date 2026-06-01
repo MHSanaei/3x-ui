@@ -110,9 +110,10 @@ func TestPartitionLiveIps_SingleLiveNotStarvedByStillFreshHistoricals(t *testing
 	}
 }
 
-func TestPartitionLiveIps_ConcurrentLiveIpsStillBanNewcomers(t *testing.T) {
-	// keep the "protect original, ban newcomer" policy when several ips
-	// are really live. with limit=1, A must stay and B must be banned.
+func TestPartitionLiveIps_ConcurrentLiveIpsSortedAscending(t *testing.T) {
+	// when several ips are really live, partition returns them all in the
+	// live set sorted ascending by timestamp. updateInboundClientIps then
+	// keeps the newest and bans the oldest (last-IP-wins, #4699).
 	ipMap := map[string]int64{
 		"A": 5000,
 		"B": 5500,

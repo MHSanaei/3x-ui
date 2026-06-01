@@ -46,7 +46,7 @@ interface ClientBase {
 
 function clientBase(seed: ClientBaseSeed = {}): ClientBase {
   return {
-    email: seed.email ?? RandomUtil.randomLowerAndNum(8),
+    email: seed.email ?? RandomUtil.randomLowerAndNum(10),
     limitIp: seed.limitIp ?? 0,
     totalGB: seed.totalGB ?? 0,
     expiryTime: seed.expiryTime ?? 0,
@@ -185,13 +185,16 @@ export function createDefaultHysteriaInboundSettings(
 }
 
 export function createDefaultHttpInboundSettings(): HttpInboundSettings {
-  return { accounts: [], allowTransparent: false };
+  return {
+    accounts: [{ user: RandomUtil.randomLowerAndNum(8), pass: RandomUtil.randomLowerAndNum(12) }],
+    allowTransparent: false,
+  };
 }
 
 export function createDefaultMixedInboundSettings(): MixedInboundSettings {
   return {
     auth: 'password',
-    accounts: [],
+    accounts: [{ user: RandomUtil.randomLowerAndNum(8), pass: RandomUtil.randomLowerAndNum(12) }],
     udp: false,
     ip: '127.0.0.1',
   };

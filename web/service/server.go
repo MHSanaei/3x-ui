@@ -9,6 +9,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -1071,6 +1072,9 @@ func (s *ServerService) GetConfigJson() (any, error) {
 }
 
 func (s *ServerService) GetDb() ([]byte, error) {
+	if database.IsPostgres() {
+		return s.exportPostgresDB()
+	}
 	// Update by manually trigger a checkpoint operation
 	err := database.Checkpoint()
 	if err != nil {
@@ -1093,6 +1097,9 @@ func (s *ServerService) GetDb() ([]byte, error) {
 }
 
 func (s *ServerService) ImportDB(file multipart.File) error {
+	if database.IsPostgres() {
+		return s.importPostgresDB(file)
+	}
 	// Check if the file is a SQLite database
 	isValidDb, err := database.IsSQLiteDB(file)
 	if err != nil {
@@ -1218,6 +1225,137 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 		return common.NewErrorf("Imported DB but failed to start Xray: %v", err)
 	}
 
+	return nil
+}
+
+// pgConnEnv turns the configured PostgreSQL DSN into the PG* environment used by
+// pg_dump/pg_restore, keeping the password out of the process argument list.
+func pgConnEnv(dsn string) (env []string, dbname string, err error) {
+	u, err := url.Parse(strings.TrimSpace(dsn))
+	if err != nil {
+		return nil, "", err
+	}
+	if u.Scheme != "postgres" && u.Scheme != "postgresql" {
+		return nil, "", common.NewErrorf("unsupported DSN scheme %q", u.Scheme)
+	}
+	dbname = strings.TrimPrefix(u.Path, "/")
+	if dbname == "" {
+		return nil, "", common.NewError("PostgreSQL DSN is missing a database name")
+	}
+	host := u.Hostname()
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	port := u.Port()
+	if port == "" {
+		port = "5432"
+	}
+	env = append(os.Environ(), "PGHOST="+host, "PGPORT="+port, "PGDATABASE="+dbname)
+	if user := u.User.Username(); user != "" {
+		env = append(env, "PGUSER="+user)
+	}
+	if pass, ok := u.User.Password(); ok {
+		env = append(env, "PGPASSWORD="+pass)
+	}
+	if sslmode := u.Query().Get("sslmode"); sslmode != "" {
+		env = append(env, "PGSSLMODE="+sslmode)
+	}
+	return env, dbname, nil
+}
+
+func (s *ServerService) exportPostgresDB() ([]byte, error) {
+	bin, err := exec.LookPath("pg_dump")
+	if err != nil {
+		return nil, common.NewError("pg_dump not found on the server; install the postgresql-client package to back up a PostgreSQL database")
+	}
+	env, dbname, err := pgConnEnv(config.GetDBDSN())
+	if err != nil {
+		return nil, common.NewErrorf("invalid PostgreSQL DSN: %v", err)
+	}
+	cmd := exec.Command(bin, "--format=custom", "--no-owner", "--no-privileges", "--dbname", dbname)
+	cmd.Env = env
+	var out, stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return nil, common.NewErrorf("pg_dump failed: %v: %s", err, strings.TrimSpace(stderr.String()))
+	}
+	return out.Bytes(), nil
+}
+
+func (s *ServerService) importPostgresDB(file multipart.File) error {
+	header := make([]byte, 5)
+	if _, err := file.ReadAt(header, 0); err != nil {
+		return common.NewErrorf("Error reading dump file: %v", err)
+	}
+	if string(header) != "PGDMP" {
+		return common.NewError("Invalid file: expected a PostgreSQL custom-format dump (.dump) created by this panel's Back Up")
+	}
+	if _, err := file.Seek(0, 0); err != nil {
+		return common.NewErrorf("Error resetting file reader: %v", err)
+	}
+
+	bin, err := exec.LookPath("pg_restore")
+	if err != nil {
+		return common.NewError("pg_restore not found on the server; install the postgresql-client package to restore a PostgreSQL database")
+	}
+	env, dbname, err := pgConnEnv(config.GetDBDSN())
+	if err != nil {
+		return common.NewErrorf("invalid PostgreSQL DSN: %v", err)
+	}
+
+	tempFile, err := os.CreateTemp("", "x-ui-pg-restore-*.dump")
+	if err != nil {
+		return common.NewErrorf("Error creating temporary dump file: %v", err)
+	}
+	tempPath := tempFile.Name()
+	defer os.Remove(tempPath)
+	if _, err := io.Copy(tempFile, file); err != nil {
+		tempFile.Close()
+		return common.NewErrorf("Error saving dump: %v", err)
+	}
+	if err := tempFile.Close(); err != nil {
+		return common.NewErrorf("Error closing temporary dump file: %v", err)
+	}
+
+	xrayStopped := true
+	defer func() {
+		if xrayStopped {
+			if errR := s.RestartXrayService(); errR != nil {
+				logger.Warningf("Failed to restart Xray after DB restore error: %v", errR)
+			}
+		}
+	}()
+	if errStop := s.StopXrayService(); errStop != nil {
+		logger.Warningf("Failed to stop Xray before DB restore: %v", errStop)
+	}
+
+	if errClose := database.CloseDB(); errClose != nil {
+		logger.Warningf("Failed to close existing DB before restore: %v", errClose)
+	}
+
+	cmd := exec.Command(bin,
+		"--clean", "--if-exists", "--no-owner", "--no-privileges",
+		"--single-transaction", "--dbname", dbname, tempPath,
+	)
+	cmd.Env = env
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	runErr := cmd.Run()
+
+	if errInit := database.InitDB(config.GetDBPath()); errInit != nil {
+		return common.NewErrorf("Restore finished but reopening the database failed: %v", errInit)
+	}
+	s.inboundService.MigrateDB()
+
+	if runErr != nil {
+		return common.NewErrorf("pg_restore failed (database left unchanged): %v: %s", runErr, strings.TrimSpace(stderr.String()))
+	}
+
+	xrayStopped = false
+	if err := s.RestartXrayService(); err != nil {
+		return common.NewErrorf("Restored DB but failed to start Xray: %v", err)
+	}
 	return nil
 }
 

@@ -41,22 +41,22 @@ type User struct {
 
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.
 type Inbound struct {
-	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`                                                    // Unique identifier
-	UserId               int                  `json:"-"`                                                                                               // Associated user ID
-	Up                   int64                `json:"up" form:"up"`                                                                                    // Upload traffic in bytes
-	Down                 int64                `json:"down" form:"down"`                                                                                // Download traffic in bytes
-	Total                int64                `json:"total" form:"total"`                                                                              // Total traffic limit in bytes
-	Remark               string               `json:"remark" form:"remark"`                                                                            // Human-readable remark
-	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1"`                           // Whether the inbound is enabled
-	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                    // Expiration timestamp
+	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`                                                                                                                 // Unique identifier
+	UserId               int                  `json:"-"`                                                                                                                                                            // Associated user ID
+	Up                   int64                `json:"up" form:"up"`                                                                                                                                                 // Upload traffic in bytes
+	Down                 int64                `json:"down" form:"down"`                                                                                                                                             // Download traffic in bytes
+	Total                int64                `json:"total" form:"total"`                                                                                                                                           // Total traffic limit in bytes
+	Remark               string               `json:"remark" form:"remark"`                                                                                                                                         // Human-readable remark
+	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1"`                                                                                        // Whether the inbound is enabled
+	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                                                                                 // Expiration timestamp
 	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2" validate:"omitempty,oneof=never hourly daily weekly monthly"` // Traffic reset schedule
-	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                               // Last traffic reset timestamp
-	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                        // Client traffic statistics
+	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                                                                                            // Last traffic reset timestamp
+	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                                                                                     // Client traffic statistics
 
 	// Xray configuration fields
 	Listen         string   `json:"listen" form:"listen"`
-	Port           int      `json:"port" form:"port" validate:"gte=1,lte=65535"`
-	Protocol       Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel"`
+	Port           int      `json:"port" form:"port" validate:"gte=0,lte=65535"`
+	Protocol       Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun"`
 	Settings       string   `json:"settings" form:"settings"`
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
@@ -379,6 +379,8 @@ type Node struct {
 	ApiToken            string `json:"apiToken" form:"apiToken" validate:"required"`
 	Enable              bool   `json:"enable" form:"enable" gorm:"default:true"`
 	AllowPrivateAddress bool   `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
+	TlsVerifyMode       string `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin"`
+	PinnedCertSha256    string `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
 
 	// Heartbeat-updated fields. UpdatedAt advances on every probe even when
 	// the row is otherwise unchanged so the UI's "last seen" tooltip is
@@ -513,11 +515,6 @@ type ClientInbound struct {
 
 func (ClientInbound) TableName() string { return "client_inbounds" }
 
-// InboundFallback is one routing rule on a master inbound's
-// settings.fallbacks array. The master is always a VLESS or Trojan
-// inbound on TCP transport with TLS or Reality. The child is any other
-// inbound — its listen+port becomes the fallback dest, with optional
-// SNI/ALPN/path match criteria pulled from the same row.
 type InboundFallback struct {
 	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	MasterId  int    `json:"masterId" gorm:"index;not null;column:master_id"`
@@ -525,6 +522,7 @@ type InboundFallback struct {
 	Name      string `json:"name"`
 	Alpn      string `json:"alpn"`
 	Path      string `json:"path"`
+	Dest      string `json:"dest"`
 	Xver      int    `json:"xver"`
 	SortOrder int    `json:"sortOrder" gorm:"default:0;column:sort_order"`
 }

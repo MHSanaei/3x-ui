@@ -39,6 +39,7 @@ export const ClientRecordSchema = z.object({
 export const InboundOptionSchema = z.object({
   id: z.number(),
   remark: z.string().optional(),
+  tag: z.string().optional(),
   protocol: z.string().optional(),
   port: z.number().optional(),
   tlsFlowCapable: z.boolean().optional(),
@@ -97,6 +98,18 @@ export const DelDepletedResultSchema = z.object({
   deleted: z.number().optional(),
 });
 
+export const BulkAttachResultSchema = z.object({
+  attached: z.array(z.string()).nullable().transform((v) => v ?? []),
+  skipped: z.array(z.string()).nullable().transform((v) => v ?? []),
+  errors: z.array(z.string()).nullable().transform((v) => v ?? []),
+});
+
+export const BulkDetachResultSchema = z.object({
+  detached: z.array(z.string()).nullable().transform((v) => v ?? []),
+  skipped: z.array(z.string()).nullable().transform((v) => v ?? []),
+  errors: z.array(z.string()).nullable().transform((v) => v ?? []),
+});
+
 export const OnlinesSchema = nullableStringArray;
 
 export const GroupSummarySchema = z.object({
@@ -106,9 +119,22 @@ export const GroupSummarySchema = z.object({
 
 export const GroupSummaryListSchema = z.array(GroupSummarySchema).nullable().transform((v) => v ?? []);
 
+export function hasForbiddenClientChars(value: string): boolean {
+  if (value.includes('/') || value.includes('\\') || value.includes(' ')) return true;
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code < 0x20 || code === 0x7f) return true;
+  }
+  return false;
+}
+
 export const ClientFormSchema = z.object({
-  email: z.string().trim().min(1, 'pages.clients.email'),
-  subId: z.string(),
+  email: z
+    .string()
+    .trim()
+    .min(1, 'pages.clients.email')
+    .refine((v) => !hasForbiddenClientChars(v), 'pages.clients.emailInvalidChars'),
+  subId: z.string().refine((v) => !hasForbiddenClientChars(v), 'pages.clients.subIdInvalidChars'),
   uuid: z.string(),
   password: z.string(),
   auth: z.string(),
@@ -167,6 +193,8 @@ export type ClientHydrate = z.infer<typeof ClientHydrateSchema>;
 export type BulkAdjustResult = z.infer<typeof BulkAdjustResultSchema>;
 export type BulkDeleteResult = z.infer<typeof BulkDeleteResultSchema>;
 export type BulkCreateResult = z.infer<typeof BulkCreateResultSchema>;
+export type BulkAttachResult = z.infer<typeof BulkAttachResultSchema>;
+export type BulkDetachResult = z.infer<typeof BulkDetachResultSchema>;
 export type ClientBulkAddFormValues = z.infer<typeof ClientBulkAddFormSchema>;
 export type ClientBulkAdjustFormValues = z.infer<typeof ClientBulkAdjustFormSchema>;
 export type ClientFormValues = z.infer<typeof ClientFormSchema>;

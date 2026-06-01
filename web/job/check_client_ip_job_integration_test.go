@@ -45,7 +45,7 @@ func setupIntegrationDB(t *testing.T) {
 		log.SetFlags(origLogFlags)
 	})
 
-	if err := database.InitDB(filepath.Join(dbDir, "3x-ui.db")); err != nil {
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
 		t.Fatalf("database.InitDB failed: %v", err)
 	}
 	// LIFO cleanup order: this runs before t.TempDir's own cleanup.
@@ -222,7 +222,8 @@ func TestUpdateInboundClientIps_LiveIpNotBannedByStillFreshHistoricals(t *testin
 }
 
 // opposite invariant: when several ips are actually live and exceed
-// the limit, the newcomer still gets banned.
+// the limit, the oldest connection is dropped and the most recent one
+// keeps the slot (last-IP-wins policy from #3735, restored in #4699).
 func TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned(t *testing.T) {
 	setupIntegrationDB(t)
 
@@ -236,8 +237,8 @@ func TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned(t *testing.T) {
 
 	j := NewCheckClientIpJob()
 	// both live, limit=1. use distinct timestamps so sort-by-timestamp
-	// is deterministic: 10.1.0.1 is the original (older), 192.0.2.9
-	// joined later and must get banned.
+	// is deterministic: 10.1.0.1 is the original (older) and must get
+	// banned; 192.0.2.9 joined later and keeps the slot (last IP wins).
 	live := []IPWithTimestamp{
 		{IP: "10.1.0.1", Timestamp: now - 5},
 		{IP: "192.0.2.9", Timestamp: now},
@@ -248,16 +249,16 @@ func TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned(t *testing.T) {
 	if !shouldCleanLog {
 		t.Fatalf("shouldCleanLog must be true when the live set exceeds the limit")
 	}
-	if len(j.disAllowedIps) != 1 || j.disAllowedIps[0] != "192.0.2.9" {
-		t.Fatalf("expected 192.0.2.9 to be banned; disAllowedIps = %v", j.disAllowedIps)
+	if len(j.disAllowedIps) != 1 || j.disAllowedIps[0] != "10.1.0.1" {
+		t.Fatalf("expected 10.1.0.1 to be banned; disAllowedIps = %v", j.disAllowedIps)
 	}
 
 	persisted := ipSet(readClientIps(t, email))
-	if _, ok := persisted["10.1.0.1"]; !ok {
-		t.Errorf("original IP 10.1.0.1 must still be persisted; got %v", persisted)
+	if _, ok := persisted["192.0.2.9"]; !ok {
+		t.Errorf("newest IP 192.0.2.9 must still be persisted; got %v", persisted)
 	}
-	if _, ok := persisted["192.0.2.9"]; ok {
-		t.Errorf("banned IP 192.0.2.9 must NOT be persisted; got %v", persisted)
+	if _, ok := persisted["10.1.0.1"]; ok {
+		t.Errorf("banned IP 10.1.0.1 must NOT be persisted; got %v", persisted)
 	}
 
 	// 3xipl.log must contain the ban line in the exact fail2ban format.
@@ -265,7 +266,7 @@ func TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read 3xipl.log: %v", err)
 	}
-	wantSubstr := "[LIMIT_IP] Email = pr4091-abuse || Disconnecting OLD IP = 192.0.2.9"
+	wantSubstr := "[LIMIT_IP] Email = pr4091-abuse || Disconnecting OLD IP = 10.1.0.1"
 	if !contains(string(body), wantSubstr) {
 		t.Fatalf("3xipl.log missing expected ban line %q\nfull log:\n%s", wantSubstr, body)
 	}

@@ -60,6 +60,8 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		return "", "", nil
 	}
 
+	ensureUniqueProxyNames(proxies)
+
 	emails := make([]string, 0, len(seenEmails))
 	for e := range seenEmails {
 		emails = append(emails, e)
@@ -93,11 +95,43 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	return string(finalYAML), header, nil
 }
 
+// ensureUniqueProxyNames keeps every proxy "name" non-empty and unique:
+// mihomo rejects the whole config on a duplicate name (the empty string
+// genRemark returns for a remark-less inbound counts), vanishing the Clash
+// profile on refresh. See issue #4641.
+func ensureUniqueProxyNames(proxies []map[string]any) {
+	seen := make(map[string]struct{}, len(proxies))
+	for i, proxy := range proxies {
+		base, _ := proxy["name"].(string)
+		if base == "" {
+			base = fallbackProxyName(proxy, i)
+		}
+		name := base
+		for n := 2; ; n++ {
+			if _, dup := seen[name]; !dup {
+				break
+			}
+			name = fmt.Sprintf("%s-%d", base, n)
+		}
+		seen[name] = struct{}{}
+		proxy["name"] = name
+	}
+}
+
+func fallbackProxyName(proxy map[string]any, idx int) string {
+	typ, _ := proxy["type"].(string)
+	server, _ := proxy["server"].(string)
+	if typ != "" && server != "" {
+		return fmt.Sprintf("%s-%s-%v", typ, server, proxy["port"])
+	}
+	return fmt.Sprintf("proxy-%d", idx+1)
+}
+
 func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client, host string) []map[string]any {
 	stream := s.streamData(inbound.StreamSettings)
 	// For node-managed inbounds the Clash proxy "server" must be the
 	// node's address, not the request host. resolveInboundAddress handles
-	// the node→listen→request-host fallback chain.
+	// the node→subscriber-host fallback chain.
 	defaultDest := s.SubService.resolveInboundAddress(inbound)
 	if defaultDest == "" {
 		defaultDest = host
@@ -481,6 +515,9 @@ func (s *SubClashService) tlsData(tData map[string]any) map[string]any {
 	tlsData["alpn"] = tData["alpn"]
 	if fingerprint, ok := tlsClientSettings["fingerprint"].(string); ok {
 		tlsData["fingerprint"] = fingerprint
+	}
+	if pins, ok := tlsClientSettings["pinnedPeerCertSha256"].([]any); ok && len(pins) > 0 {
+		tlsData["pin-sha256"] = pins
 	}
 	return tlsData
 }

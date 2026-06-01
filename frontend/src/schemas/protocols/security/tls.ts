@@ -51,6 +51,7 @@ export type TlsCert = z.infer<typeof TlsCertSchema>;
 export const TlsClientSettingsSchema = z.object({
   fingerprint: UtlsFingerprintSchema.default('chrome'),
   echConfigList: z.string().default(''),
+  pinnedPeerCertSha256: z.array(z.string()).default([]),
 });
 export type TlsClientSettings = z.infer<typeof TlsClientSettingsSchema>;
 
@@ -67,6 +68,6 @@ export const TlsStreamSettingsSchema = z.object({
   certificates: z.array(TlsCertSchema).default([]),
   alpn: z.array(AlpnSchema).default(['h2', 'http/1.1']),
   echServerKeys: z.string().default(''),
-  settings: TlsClientSettingsSchema.default({ fingerprint: 'chrome', echConfigList: '' }),
+  settings: TlsClientSettingsSchema.default({ fingerprint: 'chrome', echConfigList: '', pinnedPeerCertSha256: [] }),
 });
 export type TlsStreamSettings = z.infer<typeof TlsStreamSettingsSchema>;

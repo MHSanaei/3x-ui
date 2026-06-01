@@ -70,6 +70,7 @@ exports[`InboundSchema (full) fixtures > parses hysteria-v1-tls byte-stably 1`] 
       "settings": {
         "echConfigList": "",
         "fingerprint": "chrome",
+        "pinnedPeerCertSha256": [],
       },
     },
   },
@@ -207,6 +208,7 @@ exports[`InboundSchema (full) fixtures > parses trojan-ws-tls byte-stably 1`] = 
       "settings": {
         "echConfigList": "",
         "fingerprint": "chrome",
+        "pinnedPeerCertSha256": [],
       },
     },
     "wsSettings": {
@@ -378,6 +380,7 @@ exports[`InboundSchema (full) fixtures > parses vless-ws-tls byte-stably 1`] = `
       "settings": {
         "echConfigList": "",
         "fingerprint": "chrome",
+        "pinnedPeerCertSha256": [],
       },
     },
     "wsSettings": {
@@ -389,6 +392,97 @@ exports[`InboundSchema (full) fixtures > parses vless-ws-tls byte-stably 1`] = `
     },
   },
   "tag": "inbound-vless-1",
+  "total": 0,
+  "up": 0,
+}
+`;
+
+exports[`InboundSchema (full) fixtures > parses vless-ws-tls-pinned byte-stably 1`] = `
+{
+  "down": 0,
+  "enable": true,
+  "expiryTime": 0,
+  "id": 43,
+  "listen": "",
+  "port": 443,
+  "protocol": "vless",
+  "remark": "alice-vless-ws-tls-pinned",
+  "settings": {
+    "clients": [
+      {
+        "comment": "",
+        "email": "alice@example.test",
+        "enable": true,
+        "expiryTime": 0,
+        "flow": "",
+        "id": "8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02",
+        "limitIp": 0,
+        "reset": 0,
+        "subId": "abc123def",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
+    "decryption": "none",
+    "encryption": "none",
+    "fallbacks": [],
+  },
+  "sniffing": {
+    "destOverride": [
+      "http",
+      "tls",
+      "quic",
+      "fakedns",
+    ],
+    "domainsExcluded": [],
+    "enabled": true,
+    "ipsExcluded": [],
+    "metadataOnly": false,
+    "routeOnly": false,
+  },
+  "streamSettings": {
+    "network": "ws",
+    "security": "tls",
+    "tlsSettings": {
+      "alpn": [
+        "h2",
+        "http/1.1",
+      ],
+      "certificates": [
+        {
+          "buildChain": false,
+          "certificateFile": "/etc/ssl/certs/cdn.example.test.crt",
+          "keyFile": "/etc/ssl/private/cdn.example.test.key",
+          "oneTimeLoading": false,
+          "usage": "encipherment",
+        },
+      ],
+      "cipherSuites": "",
+      "disableSystemRoot": false,
+      "echServerKeys": "",
+      "enableSessionResumption": false,
+      "maxVersion": "1.3",
+      "minVersion": "1.2",
+      "rejectUnknownSni": false,
+      "serverName": "cdn.example.test",
+      "settings": {
+        "echConfigList": "",
+        "fingerprint": "chrome",
+        "pinnedPeerCertSha256": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+        ],
+      },
+    },
+    "wsSettings": {
+      "acceptProxyProtocol": false,
+      "headers": {},
+      "heartbeatPeriod": 0,
+      "host": "cdn.example.test",
+      "path": "/ws",
+    },
+  },
+  "tag": "inbound-vless-pinned-1",
   "total": 0,
   "up": 0,
 }
@@ -468,6 +562,7 @@ exports[`InboundSchema (full) fixtures > parses vmess-tcp-tls byte-stably 1`] = 
       "settings": {
         "echConfigList": "",
         "fingerprint": "chrome",
+        "pinnedPeerCertSha256": [],
       },
     },
   },
