@@ -128,6 +128,49 @@ func ipSet(entries []IPWithTimestamp) map[string]int64 {
 	return out
 }
 
+func TestRun_DisabledFail2BanSkipsProbeAndBanLog(t *testing.T) {
+	setupIntegrationDB(t)
+	t.Setenv("XUI_ENABLE_FAIL2BAN", "false")
+	marker := fakeFail2BanClient(t)
+
+	const email = "disabled-fail2ban"
+	seedInboundWithClient(t, "inbound-disabled-fail2ban", email, 1)
+
+	binDir := t.TempDir()
+	accessLog := filepath.Join(t.TempDir(), "access.log")
+	t.Setenv("XUI_BIN_FOLDER", binDir)
+	configData, err := json.Marshal(map[string]any{
+		"log": map[string]any{"access": accessLog},
+	})
+	if err != nil {
+		t.Fatalf("marshal xray config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(binDir, "config.json"), configData, 0644); err != nil {
+		t.Fatalf("write xray config: %v", err)
+	}
+	if err := os.WriteFile(accessLog, []byte("2026/05/26 12:00:00 from tcp:203.0.113.10:443 accepted tcp:example.com:443 email: disabled-fail2ban\n"), 0644); err != nil {
+		t.Fatalf("write access log: %v", err)
+	}
+
+	j := NewCheckClientIpJob()
+	j.Run()
+
+	if _, err := os.Stat(marker); !os.IsNotExist(err) {
+		t.Fatalf("fail2ban-client should not have been executed, stat error: %v", err)
+	}
+	if info, err := os.Stat(readIpLimitLogPath()); err == nil && info.Size() > 0 {
+		body, _ := os.ReadFile(readIpLimitLogPath())
+		t.Fatalf("3xipl.log should be empty when fail2ban is disabled, got:\n%s", body)
+	}
+	var count int64
+	if err := database.GetDB().Model(&model.InboundClientIps{}).Where("client_email = ?", email).Count(&count).Error; err != nil {
+		t.Fatalf("count InboundClientIps: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("disabled fail2ban should not persist IP-limit rows, got %d", count)
+	}
+}
+
 // #4091 repro: client has limit=3, db still holds 3 idle ips from a
 // few minutes ago, only one live ip is actually connecting. pre-fix:
 // live ip got banned every tick and never appeared in the panel.

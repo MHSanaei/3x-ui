@@ -66,8 +66,12 @@ func (j *CheckClientIpJob) Run() {
 	}
 
 	shouldClearAccessLog := false
-	iplimitActive := j.hasLimitIp()
-	f2bInstalled := j.checkFail2BanInstalled()
+	fail2BanEnabled := isFail2BanEnabled()
+	iplimitActive := fail2BanEnabled && j.hasLimitIp()
+	f2bInstalled := false
+	if iplimitActive {
+		f2bInstalled = j.checkFail2BanInstalled()
+	}
 	isAccessLogAvailable := j.checkAccessLogAvailable(iplimitActive)
 
 	if isAccessLogAvailable {
@@ -80,9 +84,7 @@ func (j *CheckClientIpJob) Run() {
 				if f2bInstalled {
 					shouldClearAccessLog = j.processLogFile()
 				} else {
-					if !f2bInstalled {
-						logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
-					}
+					logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
 				}
 			}
 		}
@@ -279,10 +281,19 @@ func partitionLiveIps(ipMap map[string]int64, observedThisScan map[string]bool) 
 }
 
 func (j *CheckClientIpJob) checkFail2BanInstalled() bool {
+	if !isFail2BanEnabled() {
+		return false
+	}
+
 	cmd := "fail2ban-client"
 	args := []string{"-h"}
 	err := exec.Command(cmd, args...).Run()
 	return err == nil
+}
+
+func isFail2BanEnabled() bool {
+	value, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN")
+	return !ok || value == "true"
 }
 
 func (j *CheckClientIpJob) checkAccessLogAvailable(iplimitActive bool) bool {
