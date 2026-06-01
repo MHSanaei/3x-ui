@@ -264,6 +264,7 @@ export function useClients() {
   const invalidateAll = useCallback(
     () => {
       markLocalInvalidate();
+      setAllClientStats([]);
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
         queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
