@@ -626,10 +626,17 @@ export default function ClientsPage() {
       render: (_v, record) => {
         const bucket = clientBucket(record);
         if (bucket === 'depleted') return <Tag color="red">{t('depleted')}</Tag>;
-        if (record.enable && isOnline(record.email)) return <Tag color="green">{t('pages.clients.online')}</Tag>;
+        if (record.enable && isOnline(record.email)) return (
+          <Tag color="green"><span className="online-dot" />{t('pages.clients.online')}</Tag>
+        );
         if (!record.enable) return <Tag>{t('disabled')}</Tag>;
         if (bucket === 'expiring') return <Tag color="orange">{t('depletingSoon')}</Tag>;
-        return <Tag>{t('pages.clients.offline')}</Tag>;
+        const lastOnline = record.traffic?.lastOnline ?? 0;
+        return (
+          <Tooltip title={`${t('lastOnline')}: ${lastOnline > 0 ? IntlUtil.formatDate(lastOnline, datepicker) : '-'}`}>
+            <Tag>{t('pages.clients.offline')}</Tag>
+          </Tooltip>
+        );
       },
     },
     {
@@ -732,7 +739,7 @@ export default function ClientsPage() {
       ),
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups]);
+  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups, datepicker]);
 
   const tablePagination = {
     current: currentPage,
