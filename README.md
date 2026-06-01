@@ -62,6 +62,12 @@ The default `docker compose up -d` keeps using SQLite. To run with the bundled P
 docker compose --profile postgres up -d
 ```
 
+The image bundles Fail2ban (enabled by default) to enforce per-client **IP limits**. Fail2ban bans offenders with `iptables`, which requires the `NET_ADMIN` capability. `docker-compose.yml` already grants it via `cap_add`; if you start the container with `docker run` instead, add the capabilities yourself, otherwise bans are logged but never applied:
+
+```bash
+docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
+```
+
 ## A Special Thanks to
 
 - [alireza0](https://github.com/alireza0/)

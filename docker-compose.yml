@@ -5,6 +5,13 @@ services:
       dockerfile: ./Dockerfile
     container_name: 3xui_app
     # hostname: yourhostname <- optional
+    # The bundled Fail2ban (XUI_ENABLE_FAIL2BAN below) enforces the IP limit
+    # with iptables, which needs NET_ADMIN. Without these caps a ban is logged
+    # and shown in fail2ban status but never actually applied. NET_RAW covers
+    # ip6tables. If you disable Fail2ban, you can drop cap_add.
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
