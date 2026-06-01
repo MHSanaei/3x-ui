@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal, Select, Tabs } from 'antd';
 
 import { HttpUtil, SizeFormatter } from '@/utils';
-import Sparkline from '@/components/Sparkline';
+import { Sparkline } from '@/components/viz';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { Status } from '@/models/status';
 import './SystemHistoryModal.css';

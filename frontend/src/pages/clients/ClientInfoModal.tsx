@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
-import { CopyOutlined, QrcodeOutlined } from '@ant-design/icons';
+import { CopyOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
-import QrPanel from '@/pages/inbounds/QrPanel';
+import { isPostQuantumLink } from '@/lib/xray/inbound-link';
+import { QrPanel } from '@/pages/inbounds/qr';
 import './ClientInfoModal.css';
 
 const PROTOCOL_COLORS: Record<string, string> = {
@@ -32,20 +33,6 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
 };
 
 const INBOUND_CHIP_LIMIT = 1;
-
-// Post-quantum keys blow up the encoded URL past what a single QR can
-// hold. In VLESS share links the algorithm names don't appear as plain
-// text — they ride inside query params:
-//   - mldsa65Verify becomes `pqv=<base64>` (sub/subService.go:841)
-//   - ML-KEM-768 becomes `encryption=mlkem768x25519plus.<...>`
-// We also keep the literal substrings so configs that DO embed them
-// directly (e.g. wireguard config text) still match.
-function isPostQuantumLink(link: string): boolean {
-  if (/[?&]pqv=/.test(link)) return true;
-  if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
-  if (link.includes('ML-KEM-768')) return true;
-  return false;
-}
 
 // 3x-ui's genRemark concatenates inbound remark + client email (and an
 // optional extra) using a configurable separator. The email half is
@@ -158,10 +145,16 @@ export default function ClientInfoModal({
   const dateLabel = (ts?: number) => (!ts || ts <= 0 ? '-' : IntlUtil.formatDate(ts, datepicker));
   const [messageApi, messageContextHolder] = message.useMessage();
   const [links, setLinks] = useState<string[]>([]);
+  const [clientIps, setClientIps] = useState<string[]>([]);
+  const [ipsLoading, setIpsLoading] = useState(false);
+  const [ipsClearing, setIpsClearing] = useState(false);
+  const [ipsModalOpen, setIpsModalOpen] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setLinks([]);
+      setClientIps([]);
+      setIpsModalOpen(false);
       return;
     }
     if (!client?.subId) return;
@@ -210,12 +203,41 @@ export default function ClientInfoModal({
     if (ok) messageApi.success(t('copied'));
   }
 
+  async function loadIps() {
+    if (!client?.email) return;
+    setIpsLoading(true);
+    try {
+      const msg = await HttpUtil.post(`/panel/api/clients/ips/${encodeURIComponent(client.email)}`) as ApiMsg<unknown[]>;
+      if (!msg?.success) { setClientIps([]); return; }
+      const arr = Array.isArray(msg.obj) ? msg.obj : [];
+      setClientIps(arr.filter((x): x is string => typeof x === 'string' && x.length > 0));
+    } finally {
+      setIpsLoading(false);
+    }
+  }
+
+  async function clearIps() {
+    if (!client?.email) return;
+    setIpsClearing(true);
+    try {
+      const msg = await HttpUtil.post(`/panel/api/clients/clearIps/${encodeURIComponent(client.email)}`) as ApiMsg;
+      if (msg?.success) setClientIps([]);
+    } finally {
+      setIpsClearing(false);
+    }
+  }
+
+  function openIpsModal() {
+    setIpsModalOpen(true);
+    if (clientIps.length === 0) void loadIps();
+  }
+
   return (
     <>
       {messageContextHolder}
       <Modal
         open={open}
-        title={client ? client.email : t('info')}
+        title={client ? `${t('pages.clients.clientInfo')} — ${client.email}` : t('pages.clients.clientInfo')}
         footer={null}
         width={640}
         onCancel={() => onOpenChange(false)}
@@ -327,6 +349,14 @@ export default function ClientInfoModal({
                   <td>{!client.limitIp ? <Tag>∞</Tag> : <Tag>{client.limitIp}</Tag>}</td>
                 </tr>
                 <tr>
+                  <td>{t('pages.inbounds.IPLimitlog')}</td>
+                  <td>
+                    <Button size="small" icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
+                      {clientIps.length > 0 ? clientIps.length : ''}
+                    </Button>
+                  </td>
+                </tr>
+                <tr>
                   <td>{t('pages.inbounds.createdAt')}</td>
                   <td><Tag>{dateLabel(client.createdAt)}</Tag></td>
                 </tr>
@@ -348,30 +378,27 @@ export default function ClientInfoModal({
                       if (ids.length === 0) return <span className="hint">—</span>;
                       const visible = ids.slice(0, INBOUND_CHIP_LIMIT);
                       const overflow = ids.slice(INBOUND_CHIP_LIMIT);
-                      const inboundChip = (id: number, compact: boolean) => {
+                      const inboundChip = (id: number) => {
                         const ib = inboundsById[id];
                         const proto = (ib?.protocol || '').toLowerCase();
                         const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
-                        const fullLabel = ib
-                          ? `${ib.remark || `#${id}`} (${ib.protocol}:${ib.port})`
-                          : `#${id}`;
-                        const compactLabel = ib ? `${ib.protocol}:${ib.port}` : `#${id}`;
+                        const label = ib?.tag ?? '';
                         return (
-                          <Tooltip key={id} title={fullLabel}>
-                            <Tag color={color}>{compact ? compactLabel : fullLabel}</Tag>
+                          <Tooltip key={id} title={label}>
+                            <Tag color={color}>{label}</Tag>
                           </Tooltip>
                         );
                       };
                       return (
                         <div className="chips">
-                          {visible.map((id) => inboundChip(id, true))}
+                          {visible.map((id) => inboundChip(id))}
                           {overflow.length > 0 && (
                             <Popover
                               trigger="click"
                               placement="bottomRight"
                               content={
                                 <div className="chips chips-stack">
-                                  {overflow.map((id) => inboundChip(id, false))}
+                                  {overflow.map((id) => inboundChip(id))}
                                 </div>
                               }
                             >
@@ -521,6 +548,47 @@ export default function ClientInfoModal({
               </>
             )}
           </>
+        )}
+      </Modal>
+
+      <Modal
+        open={ipsModalOpen}
+        title={`${t('pages.inbounds.IPLimitlog')}${client?.email ? ` — ${client.email}` : ''}`}
+        width={440}
+        onCancel={() => setIpsModalOpen(false)}
+        footer={[
+          <Button key="refresh" icon={<ReloadOutlined />} loading={ipsLoading} onClick={loadIps}>
+            {t('refresh')}
+          </Button>,
+          <Button key="clear" danger loading={ipsClearing} disabled={clientIps.length === 0} onClick={clearIps}>
+            {t('pages.clients.clearAll')}
+          </Button>,
+          <Button key="close" type="primary" onClick={() => setIpsModalOpen(false)}>
+            {t('close')}
+          </Button>,
+        ]}
+      >
+        {clientIps.length > 0 ? (
+          <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+            {clientIps.map((ip, idx) => (
+              <Tag
+                key={idx}
+                color="blue"
+                style={{
+                  display: 'block',
+                  width: 'fit-content',
+                  maxWidth: '100%',
+                  marginBottom: 6,
+                  padding: '2px 8px',
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                }}
+              >
+                {ip}
+              </Tag>
+            ))}
+          </div>
+        ) : (
+          <Tag>{t('tgbot.noIpRecord')}</Tag>
         )}
       </Modal>
     </>

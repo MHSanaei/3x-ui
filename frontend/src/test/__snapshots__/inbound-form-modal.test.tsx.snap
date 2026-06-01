@@ -1,0 +1,141 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`InboundFormModal > field structure is stable for every protocol > http 1`] = `
+[
+  "Enabled",
+  "Remark",
+  "Protocol",
+  "Address",
+  "Port",
+  "Total Flow",
+  "Traffic Reset",
+  "Duration",
+  "Enabled",
+]
+`;
+
+exports[`InboundFormModal > field structure is stable for every protocol > hysteria 1`] = `
+[
+  "Enabled",
+  "Remark",
+  "Protocol",
+  "Address",
+  "Port",
+  "Total Flow",
+  "Traffic Reset",
+  "Duration",
+  "Enabled",
+]
+`;
+
+exports[`InboundFormModal > field structure is stable for every protocol > mixed 1`] = `
+[
+  "Enabled",
+  "Remark",
+  "Protocol",
+  "Address",
+  "Port",
+  "Total Flow",
+  "Traffic Reset",
+  "Duration",
+  "Enabled",
+]
+`;
+
+exports[`InboundFormModal > field structure is stable for every protocol > shadowsocks 1`] = `
+[
+  "Enabled",
+  "Remark",
+  "Protocol",
+  "Address",
+  "Port",
+  "Total Flow",
+  "Traffic Reset",
+  "Duration",
+  "Enabled",
+]
+`;
+
+exports[`InboundFormModal > field structure is stable for every protocol > trojan 1`] = `
+[
+  "Enabled",
+  "Remark",
+  "Protocol",
+  "Address",
+  "Port",
+  "Total Flow",
+  "Traffic Reset",
+  "Duration",
+  "Enabled",
+]
+`;
+
+exports[`InboundFormModal > field structure is stable for every protocol > tun 1`] = `
+[
+  "Enabled",
+  "Remark",
+  "Protocol",
+  "Address",
+  "Port",
+  "Total Flow",
+  "Traffic Reset",
+  "Duration",
+  "Enabled",
+]
+`;
+
+exports[`InboundFormModal > field structure is stable for every protocol > tunnel 1`] = `
+[
+  "Enabled",
+  "Remark",
+  "Protocol",
+  "Address",
+  "Port",
+  "Total Flow",
+  "Traffic Reset",
+  "Duration",
+  "Enabled",
+]
+`;
+
+exports[`InboundFormModal > field structure is stable for every protocol > vless 1`] = `
+[
+  "Enabled",
+  "Remark",
+  "Protocol",
+  "Address",
+  "Port",
+  "Total Flow",
+  "Traffic Reset",
+  "Duration",
+  "Enabled",
+]
+`;
+
+exports[`InboundFormModal > field structure is stable for every protocol > vmess 1`] = `
+[
+  "Enabled",
+  "Remark",
+  "Protocol",
+  "Address",
+  "Port",
+  "Total Flow",
+  "Traffic Reset",
+  "Duration",
+  "Enabled",
+]
+`;
+
+exports[`InboundFormModal > field structure is stable for every protocol > wireguard 1`] = `
+[
+  "Enabled",
+  "Remark",
+  "Protocol",
+  "Address",
+  "Port",
+  "Total Flow",
+  "Traffic Reset",
+  "Duration",
+  "Enabled",
+]
+`;

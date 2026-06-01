@@ -7,7 +7,7 @@ import type { Dayjs } from 'dayjs';
 
 import { RandomUtil, SizeFormatter } from '@/utils';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
-import DateTimePicker from '@/components/DateTimePicker';
+import { DateTimePicker } from '@/components/form';
 import { useClients, type InboundOption } from '@/hooks/useClients';
 import { ClientBulkAddFormSchema, type ClientBulkAddFormValues } from '@/schemas/client';
 
@@ -100,7 +100,7 @@ export default function ClientBulkAddModal({
     () => (inbounds || [])
       .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
       .map((ib) => ({
-        label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
+        label: ib.tag ?? '',
         value: ib.id,
       })),
     [inbounds],
@@ -130,7 +130,7 @@ export default function ClientBulkAddModal({
     const postfix = method > 2 && form.emailPostfix.length > 0 ? form.emailPostfix : '';
     for (let i = start; i < end; i++) {
       let email = '';
-      if (method !== 4) email = RandomUtil.randomLowerAndNum(6);
+      if (method !== 4) email = RandomUtil.randomLowerAndNum(10);
       email += useNum ? prefix + String(i) + postfix : prefix + postfix;
       out.push(email);
     }

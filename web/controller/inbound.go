@@ -69,6 +69,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 
 	g.POST("/add", a.addInbound)
 	g.POST("/del/:id", a.delInbound)
+	g.POST("/bulkDel", a.bulkDelInbounds)
 	g.POST("/update/:id", a.updateInbound)
 	g.POST("/setEnable/:id", a.setInboundEnable)
 	g.POST("/:id/resetTraffic", a.resetInboundTraffic)
@@ -121,7 +122,7 @@ func (a *InboundController) getInbound(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "get"), err)
 		return
 	}
-	inbound, err := a.inboundService.GetInbound(id)
+	inbound, err := a.inboundService.GetInboundDetail(id)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -171,6 +172,32 @@ func (a *InboundController) delInbound(c *gin.Context) {
 		return
 	}
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundDeleteSuccess"), id, nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	user := session.GetLoginUser(c)
+	a.broadcastInboundsUpdate(user.Id)
+	notifyClientsChanged()
+}
+
+type bulkDelInboundsRequest struct {
+	Ids []int `json:"ids"`
+}
+
+// bulkDelInbounds deletes several inbounds in one call. Failures are
+// reported per id and the rest still proceed; xray restarts at most once.
+func (a *InboundController) bulkDelInbounds(c *gin.Context) {
+	var req bulkDelInboundsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	result, needRestart, err := a.inboundService.DelInbounds(req.Ids)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, result, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}

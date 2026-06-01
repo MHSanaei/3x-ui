@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Modal, Select, Tabs, Tag } from 'antd';
 
 import { HttpUtil, Msg, SizeFormatter } from '@/utils';
-import Sparkline from '@/components/Sparkline';
+import { Sparkline } from '@/components/viz';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import './XrayMetricsModal.css';
 

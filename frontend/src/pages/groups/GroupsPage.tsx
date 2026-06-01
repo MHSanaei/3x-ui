@@ -10,6 +10,7 @@ import {
   Input,
   Layout,
   Modal,
+  Result,
   Row,
   Space,
   Spin,
@@ -30,8 +31,11 @@ import {
   RetweetOutlined,
   TagsOutlined,
   TeamOutlined,
+  UsergroupAddOutlined,
+  UsergroupDeleteOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -39,14 +43,23 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useClients } from '@/hooks/useClients';
 import { HttpUtil } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
-import AppSidebar from '@/components/AppSidebar';
-import LazyMount from '@/components/LazyMount';
+import AppSidebar from '@/layouts/AppSidebar';
+import { LazyMount } from '@/components/utility';
 import { keys } from '@/api/queryKeys';
-import { GroupSummaryListSchema, type GroupSummary } from '@/schemas/client';
+import {
+  ClientRecordSchema,
+  GroupSummaryListSchema,
+  type ClientRecord,
+  type GroupSummary,
+} from '@/schemas/client';
 import { parseMsg } from '@/utils/zodValidate';
+
+const ClientRecordListSchema = z.array(ClientRecordSchema).nullable().transform((v) => v ?? []);
 
 const SubLinksModal = lazy(() => import('../clients/SubLinksModal'));
 const ClientBulkAdjustModal = lazy(() => import('../clients/ClientBulkAdjustModal'));
+const GroupAddClientsModal = lazy(() => import('./GroupAddClientsModal'));
+const GroupRemoveClientsModal = lazy(() => import('./GroupRemoveClientsModal'));
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
 
@@ -77,7 +90,7 @@ export default function GroupsPage() {
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
   const queryClient = useQueryClient();
 
-  const { clients, subSettings, bulkAdjust, bulkDelete } = useClients();
+  const { subSettings, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, bulkDelete } = useClients();
 
   const groupsQuery = useQuery({
     queryKey: keys.clients.groups(),
@@ -85,7 +98,8 @@ export default function GroupsPage() {
   });
   const groups = useMemo(() => groupsQuery.data ?? [], [groupsQuery.data]);
   const loading = groupsQuery.isFetching;
-  const fetched = groupsQuery.data !== undefined;
+  const fetched = groupsQuery.data !== undefined || groupsQuery.isError;
+  const fetchError = groupsQuery.error ? (groupsQuery.error as Error).message : '';
 
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: keys.clients.root() });
@@ -124,8 +138,23 @@ export default function GroupsPage() {
 
   const [subLinksOpen, setSubLinksOpen] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [addClientsOpen, setAddClientsOpen] = useState(false);
+  const [removeClientsOpen, setRemoveClientsOpen] = useState(false);
   const [groupEmails, setGroupEmails] = useState<string[]>([]);
   const [groupForAction, setGroupForAction] = useState<GroupSummary | null>(null);
+
+  const allClientsQuery = useQuery<ClientRecord[]>({
+    queryKey: keys.clients.all(),
+    queryFn: async () => {
+      const msg = await HttpUtil.get('/panel/api/clients/list', undefined, { silent: true });
+      if (!msg?.success) throw new Error(msg?.msg || 'Failed to load clients');
+      const validated = parseMsg(msg, ClientRecordListSchema, 'clients/list');
+      return validated.obj ?? [];
+    },
+    enabled: addClientsOpen || removeClientsOpen || subLinksOpen,
+    staleTime: 30_000,
+  });
+  const allClients = allClientsQuery.data ?? [];
 
   const totalGroups = groups.length;
   const totalClients = useMemo(
@@ -228,6 +257,20 @@ export default function GroupsPage() {
     setAdjustOpen(true);
   }
 
+  function openAddClientsFor(g: GroupSummary) {
+    setGroupForAction(g);
+    setAddClientsOpen(true);
+  }
+
+  function openRemoveClientsFor(g: GroupSummary) {
+    if (!g.clientCount) {
+      messageApi.info(t('pages.groups.emptyForAction'));
+      return;
+    }
+    setGroupForAction(g);
+    setRemoveClientsOpen(true);
+  }
+
   function onDeleteClients(g: GroupSummary) {
     if (!g.clientCount) {
       messageApi.info(t('pages.groups.emptyForAction'));
@@ -306,12 +349,26 @@ export default function GroupsPage() {
         disabled: !row.clientCount,
         onClick: () => onResetTraffic(row),
       },
-      { type: 'divider' },
+      {
+        key: 'addClients',
+        icon: <UsergroupAddOutlined />,
+        label: t('pages.groups.addToGroup'),
+        onClick: () => openAddClientsFor(row),
+      },
       {
         key: 'rename',
         icon: <EditOutlined />,
         label: t('pages.groups.rename'),
         onClick: () => openRename(row),
+      },
+      { type: 'divider' },
+      {
+        key: 'removeClients',
+        icon: <UsergroupDeleteOutlined />,
+        label: t('pages.groups.removeFromGroup'),
+        danger: true,
+        disabled: !row.clientCount,
+        onClick: () => openRemoveClientsFor(row),
       },
       {
         key: 'deleteClients',
@@ -377,9 +434,16 @@ export default function GroupsPage() {
         <AppSidebar />
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={!fetched} delay={200} description="Loading…" size="large">
+            <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
+              ) : fetchError ? (
+                <Result
+                  status="error"
+                  title={t('somethingWentWrong')}
+                  subTitle={fetchError}
+                  extra={<Button type="primary" loading={loading} onClick={() => groupsQuery.refetch()}>{t('refresh')}</Button>}
+                />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
                   <Col span={24}>
@@ -495,7 +559,7 @@ export default function GroupsPage() {
           <SubLinksModal
             open={subLinksOpen}
             emails={groupEmails}
-            clients={clients}
+            clients={allClients}
             subSettings={subSettings}
             onOpenChange={setSubLinksOpen}
           />
@@ -517,6 +581,38 @@ export default function GroupsPage() {
                   }),
                 );
                 return obj;
+              }
+              return null;
+            }}
+          />
+        </LazyMount>
+
+        <LazyMount when={addClientsOpen}>
+          <GroupAddClientsModal
+            open={addClientsOpen}
+            groupName={groupForAction?.name ?? null}
+            candidates={allClients.filter((c) => c.group !== groupForAction?.name)}
+            onClose={() => setAddClientsOpen(false)}
+            onSubmit={async (emails) => {
+              const msg = await bulkAddToGroup(emails, groupForAction?.name ?? '');
+              if (msg?.success) {
+                return (msg.obj as { affected?: number } | undefined) ?? { affected: 0 };
+              }
+              return null;
+            }}
+          />
+        </LazyMount>
+
+        <LazyMount when={removeClientsOpen}>
+          <GroupRemoveClientsModal
+            open={removeClientsOpen}
+            groupName={groupForAction?.name ?? null}
+            members={allClients.filter((c) => c.group === groupForAction?.name)}
+            onClose={() => setRemoveClientsOpen(false)}
+            onSubmit={async (emails) => {
+              const msg = await bulkRemoveFromGroup(emails);
+              if (msg?.success) {
+                return (msg.obj as { affected?: number } | undefined) ?? { affected: 0 };
               }
               return null;
             }}

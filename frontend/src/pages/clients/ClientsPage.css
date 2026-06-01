@@ -77,6 +77,19 @@
   padding: 6px 0;
 }
 
+@media (min-width: 769px) and (max-width: 920px) {
+  .card-toolbar {
+    gap: 6px;
+  }
+  .card-toolbar .ant-btn .ant-btn-icon + span,
+  .card-toolbar .ant-btn > span:not(.ant-btn-icon):not(.ant-tag):not(.anticon) {
+    display: none;
+  }
+  .card-toolbar .ant-btn {
+    padding-inline: 8px;
+  }
+}
+
 .email-cell {
   display: flex;
   flex-direction: column;

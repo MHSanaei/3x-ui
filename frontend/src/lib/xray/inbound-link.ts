@@ -2,7 +2,7 @@ import { Base64, Wireguard } from '@/utils';
 
 import type { Inbound } from '@/schemas/api/inbound';
 import type { VlessClient } from '@/schemas/protocols/inbound/vless';
-import type { VmessSecurity } from '@/schemas/protocols/inbound/vmess';
+import type { VmessSecurity } from '@/schemas/protocols/shared/vmess';
 import type {
   WireguardInboundPeer,
   WireguardInboundSettings,
@@ -184,7 +184,9 @@ export function genVmessLink(input: GenVmessLinkInput): string {
         const request = header.request;
         if (request) {
           obj.path = request.path.join(',');
-          const host = getHeaderValue(request.headers, 'host');
+          const host =
+            getHeaderValue(header.response?.headers, 'host')
+            || getHeaderValue(request.headers, 'host');
           if (host) obj.host = host;
         }
       }
@@ -223,6 +225,9 @@ export function genVmessLink(input: GenVmessLinkInput): string {
     if (tlsSettings.serverName.length > 0) obj.sni = tlsSettings.serverName;
     if (tlsSettings.settings.fingerprint.length > 0) obj.fp = tlsSettings.settings.fingerprint;
     if (tlsSettings.alpn.length > 0) obj.alpn = tlsSettings.alpn.join(',');
+    if (tlsSettings.settings.pinnedPeerCertSha256.length > 0) {
+      obj.pcs = tlsSettings.settings.pinnedPeerCertSha256.join(',');
+    }
   }
 
   applyExternalProxyTLSObj(externalProxy, obj, tls);
@@ -309,7 +314,9 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       const request = tcp.header.request;
       if (request) {
         params.set('path', request.path.join(','));
-        const host = getHeaderValue(request.headers, 'host');
+        const host =
+          getHeaderValue(tcp.header.response?.headers, 'host')
+          || getHeaderValue(request.headers, 'host');
         if (host) params.set('host', host);
         params.set('headerType', 'http');
       }
@@ -345,6 +352,9 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       params.set('alpn', tls.alpn.join(','));
       if (tls.serverName.length > 0) params.set('sni', tls.serverName);
       if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
+      if (tls.settings.pinnedPeerCertSha256.length > 0) {
+        params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
+      }
       if (stream.network === 'tcp' && flow.length > 0) params.set('flow', flow);
     }
     applyExternalProxyTLSParams(externalProxy, params, security);
@@ -354,13 +364,14 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       const reality = stream.realitySettings;
       params.set('pbk', reality.settings.publicKey);
       params.set('fp', reality.settings.fingerprint);
-      // Legacy parity quirk: the old class stored realitySettings.serverNames
-      // as a comma-joined string and gated SNI on `!ObjectUtil.isArrEmpty(s)`
-      // — which returns true for any string, so SNI was never written into
-      // Reality share links. Existing deployed clients rely on receiving
-      // the SNI from realitySettings.target instead; we keep the omission
-      // here so this extraction stays byte-stable with the legacy URL.
-      // Fixing the bug is a separate intentional commit.
+
+      const sni =
+        reality.settings.serverName ||
+        reality.serverNames?.[0] ||
+        reality.target?.split(':')[0];
+
+      if (sni && sni.length > 0) params.set('sni', sni);
+
       if (reality.shortIds.length > 0) params.set('sid', reality.shortIds[0]);
       if (reality.settings.spiderX.length > 0) params.set('spx', reality.settings.spiderX);
       if (reality.settings.mldsa65Verify.length > 0) params.set('pqv', reality.settings.mldsa65Verify);
@@ -387,7 +398,9 @@ function writeNetworkParams(stream: NonNullable<Inbound['streamSettings']>, para
       const request = tcp.header.request;
       if (request) {
         params.set('path', request.path.join(','));
-        const host = getHeaderValue(request.headers, 'host');
+        const host =
+          getHeaderValue(tcp.header.response?.headers, 'host')
+          || getHeaderValue(request.headers, 'host');
         if (host) params.set('host', host);
         params.set('headerType', 'http');
       }
@@ -421,6 +434,9 @@ function writeTlsParams(stream: NonNullable<Inbound['streamSettings']>, params: 
   params.set('alpn', tls.alpn.join(','));
   if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
+  if (tls.settings.pinnedPeerCertSha256.length > 0) {
+    params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
+  }
 }
 
 // Reality query-string writer shared by VLESS and Trojan. Preserves the
@@ -430,6 +446,14 @@ function writeRealityParams(stream: NonNullable<Inbound['streamSettings']>, para
   const reality = stream.realitySettings;
   params.set('pbk', reality.settings.publicKey);
   params.set('fp', reality.settings.fingerprint);
+
+  const sni =
+    reality.settings.serverName ||
+    reality.serverNames?.[0] ||
+    reality.target?.split(':')[0];
+
+  if (sni && sni.length > 0) params.set('sni', sni);
+
   if (reality.shortIds.length > 0) params.set('sid', reality.shortIds[0]);
   if (reality.settings.spiderX.length > 0) params.set('spx', reality.settings.spiderX);
   if (reality.settings.mldsa65Verify.length > 0) params.set('pqv', reality.settings.mldsa65Verify);
@@ -586,6 +610,9 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
   if (tls.alpn.length > 0) params.set('alpn', tls.alpn.join(','));
   if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
+  if (tls.settings.pinnedPeerCertSha256.length > 0) {
+    params.set('pinSHA256', tls.settings.pinnedPeerCertSha256.join(','));
+  }
 
   const udpMasks = stream.finalmask?.udp;
   if (Array.isArray(udpMasks)) {
@@ -679,15 +706,22 @@ export function genWireguardConfig(input: GenWireguardLinkInput): string {
 
 export type { WireguardInboundPeer };
 
+function isUnixSocketListen(listen: string): boolean {
+  return listen.startsWith('/') || listen.startsWith('@');
+}
+
 // Orchestrators.
 // resolveAddr picks the host that goes into share/sub links. Order:
 //   1. hostOverride (caller supplies node address for node-managed inbounds)
-//   2. inbound's bind listen (when explicit, not 0.0.0.0)
+//   2. inbound's bind listen (when it's an explicit reachable address —
+//      not 0.0.0.0 and not a unix domain socket path)
 //   3. fallbackHostname (caller-supplied — typically window.location.hostname
 //      in the browser; tests pass a fixed value)
 export function resolveAddr(inbound: Inbound, hostOverride: string, fallbackHostname: string): string {
   if (hostOverride.length > 0) return hostOverride;
-  if (inbound.listen.length > 0 && inbound.listen !== '0.0.0.0') return inbound.listen;
+  if (inbound.listen.length > 0 && inbound.listen !== '0.0.0.0' && !isUnixSocketListen(inbound.listen)) {
+    return inbound.listen;
+  }
   return fallbackHostname;
 }
 
@@ -919,4 +953,11 @@ export function genWireguardConfigs(input: GenWireguardFanoutInput): string {
       peerIndex: i,
     }))
     .join('\r\n');
+}
+
+export function isPostQuantumLink(link: string): boolean {
+  if (/[?&]pqv=/.test(link)) return true;
+  if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
+  if (link.includes('ML-KEM-768')) return true;
+  return false;
 }

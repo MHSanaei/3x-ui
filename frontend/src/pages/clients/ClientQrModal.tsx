@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Collapse, Modal, Spin } from 'antd';
 import { HttpUtil } from '@/utils';
-import QrPanel from '@/pages/inbounds/QrPanel';
+import { isPostQuantumLink } from '@/lib/xray/inbound-link';
+import { QrPanel } from '@/pages/inbounds/qr';
 import type { ClientRecord } from '@/hooks/useClients';
 
 interface SubSettings {
@@ -93,7 +94,13 @@ export default function ClientQrModal({
       out.push({
         key: `l${idx}`,
         label: `${t('pages.clients.link')} ${idx + 1}`,
-        children: <QrPanel value={link} remark={`${client?.email || ''} #${idx + 1}`} />,
+        children: (
+          <QrPanel
+            value={link}
+            remark={`${client?.email || ''} #${idx + 1}`}
+            showQr={!isPostQuantumLink(link)}
+          />
+        ),
       });
     });
     return out;
@@ -110,7 +117,7 @@ export default function ClientQrModal({
   return (
     <Modal
       open={open}
-      title={client ? client.email : t('qrCode')}
+      title={client ? `${t('qrCode')} — ${client.email}` : t('qrCode')}
       footer={null}
       width={520}
       centered

@@ -27,6 +27,7 @@ export interface AllSetting {
   ldapUserFilter: string;
   ldapVlessField: string;
   pageSize: number;
+  panelProxy: string;
   remarkModel: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
@@ -113,6 +114,7 @@ export interface AllSettingView {
   ldapUserFilter: string;
   ldapVlessField: string;
   pageSize: number;
+  panelProxy: string;
   remarkModel: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
@@ -183,6 +185,7 @@ export interface Client {
   enable: boolean;
   expiryTime: number;
   flow?: string;
+  group?: string;
   id?: string;
   limitIp: number;
   password?: string;
@@ -210,6 +213,7 @@ export interface ClientRecord {
   enable: boolean;
   expiryTime: number;
   flow: string;
+  group: string;
   id: number;
   limitIp: number;
   password: string;
@@ -295,6 +299,7 @@ export interface InboundClientIps {
 export interface InboundFallback {
   alpn: string;
   childId: number;
+  dest: string;
   id: number;
   masterId: number;
   name: string;
@@ -328,10 +333,12 @@ export interface Node {
   name: string;
   onlineCount: number;
   panelVersion: string;
+  pinnedCertSha256: string;
   port: number;
   remark: string;
   scheme: string;
   status: string;
+  tlsVerifyMode: string;
   updatedAt: number;
   uptimeSecs: number;
   xrayVersion: string;

@@ -1,11 +1,13 @@
 import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Button,
   Card,
   Col,
   ConfigProvider,
   Layout,
   Modal,
+  Result,
   Row,
   Spin,
   Statistic,
@@ -28,18 +30,20 @@ import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
-import AppSidebar from '@/components/AppSidebar';
-const TextModal = lazy(() => import('@/components/TextModal'));
-const PromptModal = lazy(() => import('@/components/PromptModal'));
+import AppSidebar from '@/layouts/AppSidebar';
+const TextModal = lazy(() => import('@/components/feedback/TextModal'));
+const PromptModal = lazy(() => import('@/components/feedback/PromptModal'));
 
 import { useInbounds } from './useInbounds';
-import InboundList from './InboundList';
-import LazyMount from '@/components/LazyMount';
-const InboundFormModal = lazy(() => import('./InboundFormModal'));
-const InboundInfoModal = lazy(() => import('./InboundInfoModal'));
-const QrCodeModal = lazy(() => import('./QrCodeModal'));
-const AttachClientsModal = lazy(() => import('./AttachClientsModal'));
-const AssignClientsGroupModal = lazy(() => import('./AssignClientsGroupModal'));
+import { InboundList } from './list';
+import { LazyMount } from '@/components/utility';
+const InboundFormModal = lazy(() => import('./form/InboundFormModal'));
+const InboundInfoModal = lazy(() => import('./info/InboundInfoModal'));
+const QrCodeModal = lazy(() => import('./qr/QrCodeModal'));
+const AttachClientsModal = lazy(() => import('./clients/AttachClientsModal'));
+const AttachExistingClientsModal = lazy(() => import('./clients/AttachExistingClientsModal'));
+const DetachClientsModal = lazy(() => import('./clients/DetachClientsModal'));
+const AddClientsToGroupModal = lazy(() => import('./clients/AddClientsToGroupModal'));
 
 type RowAction =
   | 'edit'
@@ -52,7 +56,9 @@ type RowAction =
   | 'resetTraffic'
   | 'delAllClients'
   | 'attachClients'
-  | 'assignGroup'
+  | 'attachExisting'
+  | 'detachClients'
+  | 'addToGroup'
   | 'clone';
 
 type GeneralAction = 'import' | 'export' | 'subs' | 'resetInbounds';
@@ -70,6 +76,7 @@ export default function InboundsPage() {
 
   const {
     fetched,
+    fetchError,
     dbInbounds,
     clientCount,
     onlineClients,
@@ -127,6 +134,10 @@ export default function InboundsPage() {
 
   const [attachOpen, setAttachOpen] = useState(false);
   const [attachSource, setAttachSource] = useState<DBInbound | null>(null);
+  const [attachExistingOpen, setAttachExistingOpen] = useState(false);
+  const [attachExistingTarget, setAttachExistingTarget] = useState<DBInbound | null>(null);
+  const [detachOpen, setDetachOpen] = useState(false);
+  const [detachSource, setDetachSource] = useState<DBInbound | null>(null);
 
   const [groupOpen, setGroupOpen] = useState(false);
   const [groupSource, setGroupSource] = useState<DBInbound | null>(null);
@@ -167,12 +178,12 @@ export default function InboundsPage() {
     confirm: (value: string) => Promise<boolean | void> | boolean | void;
   }) => {
     setPromptTitle(opts.title);
-    setPromptOkText(opts.okText || 'OK');
+    setPromptOkText(opts.okText || t('confirm'));
     setPromptType(opts.type || 'textarea');
     setPromptInitial(opts.value || '');
     setPromptHandler(() => opts.confirm);
     setPromptOpen(true);
-  }, []);
+  }, [t]);
 
   const onPromptConfirm = useCallback(async (value: string) => {
     if (!promptHandler) {
@@ -290,7 +301,7 @@ export default function InboundsPage() {
         fallbackHostname: window.location.hostname,
       }));
     }
-    openText({ title: t('pages.inbounds.exportAllLinksTitle'), content: out.join('\r\n'), fileName: 'All-Inbounds' });
+    openText({ title: t('pages.inbounds.exportAllLinksTitle'), content: out.join('\r\n'), fileName: t('pages.inbounds.exportAllLinksFileName') });
   }, [dbInbounds, hydrateInbound, checkFallback, remarkModel, hostOverrideFor, openText, t]);
 
   const exportAllSubs = useCallback(async () => {
@@ -307,13 +318,13 @@ export default function InboundsPage() {
         }
       }
     }
-    openText({ title: t('pages.inbounds.exportAllSubsTitle'), content: [...new Set(out)].join('\r\n'), fileName: 'All-Inbounds-Subs' });
+    openText({ title: t('pages.inbounds.exportAllSubsTitle'), content: [...new Set(out)].join('\r\n'), fileName: t('pages.inbounds.exportAllSubsFileName') });
   }, [dbInbounds, hydrateInbound, subSettings, openText, t]);
 
   const importInbound = useCallback(() => {
     openPrompt({
-      title: 'Import inbound',
-      okText: 'Import',
+      title: t('pages.inbounds.importInbound'),
+      okText: t('pages.inbounds.import'),
       type: 'textarea',
       value: '',
       confirm: async (value) => {
@@ -325,7 +336,7 @@ export default function InboundsPage() {
         return false;
       },
     });
-  }, [openPrompt, refresh]);
+  }, [openPrompt, refresh, t]);
 
   const onAddInbound = useCallback(() => {
     setFormMode('add');
@@ -352,6 +363,36 @@ export default function InboundsPage() {
       },
     });
   }, [modal, refresh, t]);
+
+  const confirmBulkDelete = useCallback((ids: number[]) => new Promise<boolean>((resolve) => {
+    if (ids.length === 0) {
+      resolve(false);
+      return;
+    }
+    modal.confirm({
+      title: t('pages.inbounds.bulkDeleteConfirmTitle', { count: ids.length }),
+      content: t('pages.inbounds.bulkDeleteConfirmContent'),
+      okText: t('delete'),
+      okType: 'danger',
+      cancelText: t('cancel'),
+      onOk: async () => {
+        const msg = await HttpUtil.post('/panel/api/inbounds/bulkDel', { ids }, { headers: { 'Content-Type': 'application/json' } });
+        const obj = (msg?.obj ?? {}) as { deleted?: number; skipped?: { id: number; reason: string }[] };
+        const ok = obj.deleted ?? 0;
+        const skipped = obj.skipped ?? [];
+        if (msg?.success && skipped.length === 0) {
+          messageApi.success(t('pages.inbounds.toasts.bulkDeleted', { count: ok }));
+        } else {
+          const firstError = skipped[0]?.reason ?? msg?.msg ?? '';
+          const base = t('pages.inbounds.toasts.bulkDeletedMixed', { ok, failed: skipped.length });
+          messageApi.warning(firstError ? `${base} — ${firstError}` : base);
+        }
+        await refresh();
+        resolve(true);
+      },
+      onCancel: () => resolve(false),
+    });
+  }), [modal, refresh, t, messageApi]);
 
   const confirmResetTraffic = useCallback((dbInbound: DBInbound) => {
     modal.confirm({
@@ -430,9 +471,9 @@ export default function InboundsPage() {
       case 'subs': exportAllSubs(); break;
       case 'resetInbounds':
         modal.confirm({
-          title: 'Reset all inbound traffic?',
-          okText: 'Reset',
-          cancelText: 'Cancel',
+          title: t('pages.inbounds.resetAllTrafficTitle'),
+          okText: t('reset'),
+          cancelText: t('cancel'),
           onOk: async () => {
             const msg = await HttpUtil.post('/panel/api/inbounds/resetAllTraffics');
             if (msg?.success) await refresh();
@@ -442,13 +483,13 @@ export default function InboundsPage() {
       default:
         messageApi.info(`General action "${key}" — coming in a later 5f subphase`);
     }
-  }, [modal, importInbound, exportAllLinks, exportAllSubs, refresh, messageApi]);
+  }, [modal, importInbound, exportAllLinks, exportAllSubs, refresh, messageApi, t]);
 
   const onRowAction = useCallback(async ({ key, dbInbound }: { key: RowAction; dbInbound: DBInbound }) => {
     // Actions that touch per-client secrets (uuid, password, flow, ...) need
     // the full payload that the slim list view does not ship. Hydrate first
     // and then operate on the rehydrated record.
-    const hydratingKeys: RowAction[] = ['edit', 'showInfo', 'qrcode', 'export', 'subs', 'clipboard', 'clone', 'attachClients', 'assignGroup'];
+    const hydratingKeys: RowAction[] = ['edit', 'showInfo', 'qrcode', 'export', 'subs', 'clipboard', 'clone', 'attachClients', 'addToGroup'];
     let target = dbInbound;
     if (hydratingKeys.includes(key)) {
       const hydrated = await hydrateInbound(dbInbound.id);
@@ -489,7 +530,15 @@ export default function InboundsPage() {
         setAttachSource(target);
         setAttachOpen(true);
         break;
-      case 'assignGroup':
+      case 'attachExisting':
+        setAttachExistingTarget(target);
+        setAttachExistingOpen(true);
+        break;
+      case 'detachClients':
+        setDetachSource(target);
+        setDetachOpen(true);
+        break;
+      case 'addToGroup':
         setGroupSource(target);
         setGroupOpen(true);
         break;
@@ -510,9 +559,16 @@ export default function InboundsPage() {
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={!fetched} delay={200} description="Loading…" size="large">
+            <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
+              ) : fetchError ? (
+                <Result
+                  status="error"
+                  title={t('somethingWentWrong')}
+                  subTitle={fetchError}
+                  extra={<Button type="primary" onClick={refresh}>{t('refresh')}</Button>}
+                />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, 12]}>
                   <Col span={24}>
@@ -559,6 +615,7 @@ export default function InboundsPage() {
                       onAddInbound={onAddInbound}
                       onGeneralAction={onGeneralAction}
                       onRowAction={({ key, dbInbound }) => onRowAction({ key, dbInbound: dbInbound as unknown as DBInbound })}
+                      onBulkDelete={confirmBulkDelete}
                     />
                   </Col>
                 </Row>
@@ -614,11 +671,27 @@ export default function InboundsPage() {
             dbInbounds={dbInbounds}
           />
         </LazyMount>
+        <LazyMount when={attachExistingOpen}>
+          <AttachExistingClientsModal
+            open={attachExistingOpen}
+            onClose={() => setAttachExistingOpen(false)}
+            onAttached={refresh}
+            target={attachExistingTarget}
+          />
+        </LazyMount>
+        <LazyMount when={detachOpen}>
+          <DetachClientsModal
+            open={detachOpen}
+            onClose={() => setDetachOpen(false)}
+            onDetached={refresh}
+            source={detachSource}
+          />
+        </LazyMount>
         <LazyMount when={groupOpen}>
-          <AssignClientsGroupModal
+          <AddClientsToGroupModal
             open={groupOpen}
             onClose={() => setGroupOpen(false)}
-            onAssigned={refresh}
+            onAdded={refresh}
             source={groupSource}
           />
         </LazyMount>

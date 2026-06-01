@@ -432,9 +432,27 @@ func migrateDb() {
 	fmt.Println("Migration done!")
 }
 
+// loadServiceEnvFile loads the systemd EnvironmentFile so CLI subcommands like
+// "x-ui setting" hit the same database backend as the panel. godotenv.Load does
+// not override variables already in the environment, so it is a no-op for the
+// systemd-managed service.
+func loadServiceEnvFile() {
+	for _, path := range config.GetEnvFilePaths() {
+		if _, err := os.Stat(path); err != nil {
+			continue
+		}
+		if err := godotenv.Load(path); err != nil {
+			log.Printf("warning: failed to load env file %s: %v", path, err)
+		}
+		return
+	}
+}
+
 // main is the entry point of the 3x-ui application.
 // It parses command-line arguments to run the web server, migrate database, or update settings.
 func main() {
+	loadServiceEnvFile()
+
 	if len(os.Args) < 2 {
 		runWebServer()
 		return

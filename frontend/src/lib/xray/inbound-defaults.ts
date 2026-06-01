@@ -46,7 +46,7 @@ interface ClientBase {
 
 function clientBase(seed: ClientBaseSeed = {}): ClientBase {
   return {
-    email: seed.email ?? RandomUtil.randomLowerAndNum(8),
+    email: seed.email ?? RandomUtil.randomLowerAndNum(10),
     limitIp: seed.limitIp ?? 0,
     totalGB: seed.totalGB ?? 0,
     expiryTime: seed.expiryTime ?? 0,

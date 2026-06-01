@@ -190,6 +190,12 @@ export class DBInbound {
         this._clientStatsMap = null;
     }
 
+    toJSON(): Record<string, unknown> {
+        const out: Record<string, unknown> = { ...(this as unknown as Record<string, unknown>) };
+        delete out._clientStatsMap;
+        return out;
+    }
+
     getClientStats(email: string): ClientStats | undefined {
         if (!this._clientStatsMap) {
             this._clientStatsMap = new Map();

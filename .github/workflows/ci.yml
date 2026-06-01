@@ -6,14 +6,7 @@ on:
       - "**.go"
       - "go.mod"
       - "go.sum"
-      - "**.js"
-      - "**.mjs"
-      - "**.cjs"
-      - "**.ts"
-      - "**.html"
-      - "**.css"
-      - "frontend/package.json"
-      - "frontend/package-lock.json"
+      - "frontend/**"
       - ".nvmrc"
   push:
     branches:
@@ -22,14 +15,7 @@ on:
       - "**.go"
       - "go.mod"
       - "go.sum"
-      - "**.js"
-      - "**.mjs"
-      - "**.cjs"
-      - "**.ts"
-      - "**.html"
-      - "**.css"
-      - "frontend/package.json"
-      - "frontend/package-lock.json"
+      - "frontend/**"
       - ".nvmrc"
 
 permissions:

@@ -4,7 +4,7 @@
   ],
   "udp": [
     { "type": "salamander", "settings": { "password": "swordfish" } },
-    { "type": "header-wireguard" }
+    { "type": "mkcp-legacy", "settings": { "header": "wireguard", "value": "" } }
   ],
   "quicParams": {
     "congestion": "brutal",

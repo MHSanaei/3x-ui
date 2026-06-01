@@ -1,23 +1,12 @@
 import { Collapse, Divider, Input, InputNumber, Switch } from 'antd';
 import { useTranslation } from 'react-i18next';
 import type { AllSetting } from '@/models/setting';
-import SettingListItem from '@/components/SettingListItem';
+import { SettingListItem } from '@/components/ui';
+import { sanitizePath, normalizePath } from './uriPath';
 
 interface SubscriptionGeneralTabProps {
   allSetting: AllSetting;
   updateSetting: (patch: Partial<AllSetting>) => void;
-}
-
-function sanitizePath(input: string): string {
-  return String(input ?? '').replace(/[:*]/g, '');
-}
-
-function normalizePath(input: string): string {
-  let p = input || '/';
-  if (!p.startsWith('/')) p = '/' + p;
-  if (!p.endsWith('/')) p += '/';
-  p = p.replace(/\/+/g, '/');
-  return p;
 }
 
 export default function SubscriptionGeneralTab({ allSetting, updateSetting }: SubscriptionGeneralTabProps) {
@@ -33,10 +22,10 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             <SettingListItem paddings="small" title={t('pages.settings.subEnable')} description={t('pages.settings.subEnableDesc')}>
               <Switch checked={allSetting.subEnable} onChange={(v) => updateSetting({ subEnable: v })} />
             </SettingListItem>
-            <SettingListItem paddings="small" title="JSON subscription" description={t('pages.settings.subJsonEnable')}>
+            <SettingListItem paddings="small" title={t('pages.settings.subJsonEnableTitle')} description={t('pages.settings.subJsonEnable')}>
               <Switch checked={allSetting.subJsonEnable} onChange={(v) => updateSetting({ subJsonEnable: v })} />
             </SettingListItem>
-            <SettingListItem paddings="small" title="Clash / Mihomo subscription">
+            <SettingListItem paddings="small" title={t('pages.settings.subClashEnableTitle')}>
               <Switch checked={allSetting.subClashEnable} onChange={(v) => updateSetting({ subClashEnable: v })} />
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subListen')} description={t('pages.settings.subListenDesc')}>

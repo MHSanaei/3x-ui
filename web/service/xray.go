@@ -304,7 +304,6 @@ func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 	return out
 }
 
-
 // GetXrayTraffic fetches the current traffic statistics from the running Xray process.
 func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, error) {
 	if !s.IsXrayRunning() {

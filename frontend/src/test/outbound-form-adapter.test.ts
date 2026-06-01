@@ -74,6 +74,25 @@ describe('outbound-form-adapter: round-trip', () => {
     });
   });
 
+  it('vless preserves a non-none encryption value (post-quantum)', () => {
+    const enc = 'mlkem768x25519plus.native.0rtt.G3cdPSd1-NnlpTbWNSM5vHsT5VNzWfFzYSKwbUMnV1Y';
+    const wire = {
+      protocol: 'vless',
+      settings: {
+        address: 'srv',
+        port: 443,
+        id: '11111111-2222-4333-8444-555555555555',
+        flow: '',
+        encryption: enc,
+      },
+    };
+    const form = rawOutboundToFormValues(wire);
+    if (form.protocol === 'vless') {
+      expect(form.settings.encryption).toBe(enc);
+    }
+    expect((formValuesToWirePayload(form).settings as Record<string, unknown>).encryption).toBe(enc);
+  });
+
   it('vless emits reverse + sniffing when reverseTag is set', () => {
     const wire = {
       protocol: 'vless',
@@ -197,7 +216,7 @@ describe('outbound-form-adapter: round-trip', () => {
     expect(withType.settings).toEqual({ response: { type: 'http' } });
   });
 
-  it('dns rules normalize qtype numeric strings and split domains', () => {
+  it('dns rules normalize qType numeric strings, split domains, carry rCode', () => {
     const wire = {
       protocol: 'dns',
       settings: {
@@ -205,16 +224,26 @@ describe('outbound-form-adapter: round-trip', () => {
         rewriteAddress: '1.1.1.1',
         rewritePort: 53,
         rules: [
-          { action: 'direct', qtype: 'A,AAAA', domain: ['example.com', 'ext.org'] },
-          { action: 'reject', qtype: 28, domain: 'blocked.com' },
+          { action: 'direct', qType: 'A,AAAA', domain: ['example.com', 'ext.org'] },
+          { action: 'return', qType: 28, domain: 'blocked.com', rCode: 3 },
         ],
       },
     };
     const back = formValuesToWirePayload(rawOutboundToFormValues(wire));
     const settings = back.settings as Record<string, unknown>;
     const rules = settings.rules as Array<Record<string, unknown>>;
-    expect(rules[0]).toEqual({ action: 'direct', qtype: 'A,AAAA', domain: ['example.com', 'ext.org'] });
-    expect(rules[1]).toEqual({ action: 'reject', qtype: 28, domain: ['blocked.com'] });
+    expect(rules[0]).toEqual({ action: 'direct', qType: 'A,AAAA', domain: ['example.com', 'ext.org'] });
+    expect(rules[1]).toEqual({ action: 'return', qType: 28, domain: ['blocked.com'], rCode: 3 });
+  });
+
+  it('dns rules read the legacy qtype wire key for back-compat', () => {
+    const wire = {
+      protocol: 'dns',
+      settings: { rules: [{ action: 'direct', qtype: 'TXT' }] },
+    };
+    const back = formValuesToWirePayload(rawOutboundToFormValues(wire));
+    const rules = (back.settings as Record<string, unknown>).rules as Array<Record<string, unknown>>;
+    expect(rules[0]).toEqual({ action: 'direct', qType: 'TXT' });
   });
 
   it('freedom emits domainStrategy/redirect/fragment conditionally', () => {
@@ -235,14 +264,49 @@ describe('outbound-form-adapter: round-trip', () => {
       settings: {
         domainStrategy: 'UseIPv4',
         redirect: '1.1.1.1',
+        userLevel: 3,
+        proxyProtocol: 2,
         fragment: { packets: 'tlshello', length: '100-200' },
+        noises: [{ type: 'rand', packet: '10-20', delay: '10-16', applyTo: 'ipv4' }],
       },
     }));
     expect(filled.settings).toMatchObject({
       domainStrategy: 'UseIPv4',
       redirect: '1.1.1.1',
+      userLevel: 3,
+      proxyProtocol: 2,
       fragment: { packets: 'tlshello', length: '100-200' },
+      noises: [{ type: 'rand', packet: '10-20', delay: '10-16', applyTo: 'ipv4' }],
     });
+  });
+
+  it('freedom tolerates settings without a fragment object (issue #4686)', () => {
+    const values = {
+      protocol: 'freedom',
+      tag: 'direct',
+      settings: {
+        domainStrategy: '',
+        redirect: '',
+        proxyProtocol: 0,
+        noises: [],
+        finalRules: [
+          { action: 'block', network: '', port: '', ip: ['geoip:private'], blockDelay: '' },
+        ],
+      },
+    } as unknown as Parameters<typeof formValuesToWirePayload>[0];
+
+    expect(() => formValuesToWirePayload(values)).not.toThrow();
+    const back = formValuesToWirePayload(values);
+    expect((back.settings as { fragment?: unknown }).fragment).toBeUndefined();
+    expect((back.settings as { finalRules?: unknown[] }).finalRules).toHaveLength(1);
+  });
+
+  it('freedom omits proxyProtocol when disabled (0)', () => {
+    const round = formValuesToWirePayload(rawOutboundToFormValues({
+      protocol: 'freedom',
+      settings: { proxyProtocol: 0 },
+    }));
+    expect((round.settings as { proxyProtocol?: number }).proxyProtocol).toBeUndefined();
   });
 
   it('mux is only emitted when enabled AND protocol/network/flow allow it', () => {
@@ -298,5 +362,101 @@ describe('outbound-form-adapter: round-trip', () => {
   it('unknown protocol falls back to vless without throwing', () => {
     const form = rawOutboundToFormValues({ protocol: 'mysterious', settings: {} });
     expect(form.protocol).toBe('vless');
+  });
+});
+
+describe('outbound-form-adapter: xhttp xmux toggle', () => {
+  const xmuxWire = {
+    protocol: 'vless',
+    tag: 'out-xhttp',
+    settings: {
+      address: 's', port: 443, id: '11111111-2222-4333-8444-555555555555',
+      flow: '', encryption: 'none',
+    },
+    streamSettings: {
+      network: 'xhttp',
+      security: 'none',
+      xhttpSettings: {
+        path: '/', host: '', mode: '',
+        xPaddingBytes: '100-1000', scMaxEachPostBytes: '1000000',
+        xmux: { maxConcurrency: '11', maxConnections: '1', hMaxRequestTimes: '1', hMaxReusableSecs: '1' },
+      },
+    },
+  };
+
+  it('derives enableXmux from a saved xmux object and backfills missing knobs', () => {
+    const form = rawOutboundToFormValues(xmuxWire);
+    const stream = form.streamSettings as Record<string, unknown>;
+    const xhttp = stream.xhttpSettings as Record<string, unknown>;
+    expect(xhttp.enableXmux).toBe(true);
+    expect(xhttp.xmux).toMatchObject({
+      maxConcurrency: '11',
+      maxConnections: '1',
+      hMaxRequestTimes: '1',
+      hMaxReusableSecs: '1',
+      cMaxReuseTimes: 0,
+      hKeepAlivePeriod: 0,
+    });
+  });
+
+  it('round-trips xmux on save and strips the UI-only enableXmux flag', () => {
+    const back = formValuesToWirePayload(rawOutboundToFormValues(xmuxWire));
+    const xhttp = (back.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    expect(xhttp).not.toHaveProperty('enableXmux');
+    expect(xhttp.xmux).toMatchObject({ maxConcurrency: '11', maxConnections: '1' });
+  });
+
+  it('drops xmux on save when the toggle is off', () => {
+    const form = rawOutboundToFormValues(xmuxWire);
+    const xhttp = (form.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    xhttp.enableXmux = false;
+    const back = formValuesToWirePayload(form);
+    const wireXhttp = (back.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    expect(wireXhttp).not.toHaveProperty('xmux');
+  });
+});
+
+describe('outbound-form-adapter: full optional-block round-trip', () => {
+  const wire = {
+    protocol: 'vless',
+    settings: {
+      address: '1', port: 443, id: '1', flow: '', encryption: 'none',
+      reverse: {
+        tag: '1',
+        sniffing: {
+          enabled: true,
+          destOverride: ['http', 'tls', 'quic', 'fakedns'],
+          metadataOnly: true,
+          routeOnly: true,
+          ipsExcluded: ['1'],
+          domainsExcluded: ['1'],
+        },
+      },
+    },
+    tag: '1',
+    streamSettings: {
+      network: 'tcp',
+      tcpSettings: { header: { type: 'http', request: { version: '1.1', method: 'GET', path: ['/'], headers: { '1': ['1'] } }, response: { version: '1.1', status: '200', reason: 'OK', headers: { '1': ['1'] } } } },
+      security: 'none',
+      sockopt: { tcpFastOpen: true, customSockopt: [{ type: 'int', level: '6', opt: '1', value: '1' }] },
+      finalmask: { tcp: [{ type: 'fragment', settings: { packets: '1-3', length: '1', delay: '1', maxSplit: '1' } }] },
+    },
+    sendThrough: '1',
+    mux: { enabled: true, concurrency: 8, xudpConcurrency: 16, xudpProxyUDP443: 'reject' },
+  };
+
+  it('preserves sockopt, finalmask, mux, and reverse excludes', () => {
+    const back = formValuesToWirePayload(rawOutboundToFormValues(wire));
+    const settings = back.settings as Record<string, unknown>;
+    const sniffing = (settings.reverse as Record<string, unknown>).sniffing as Record<string, unknown>;
+    expect(sniffing.ipsExcluded).toEqual(['1']);
+    expect(sniffing.domainsExcluded).toEqual(['1']);
+
+    const stream = back.streamSettings as Record<string, unknown>;
+    expect(stream.sockopt).toMatchObject({ tcpFastOpen: true });
+    expect((stream.sockopt as Record<string, unknown>).customSockopt).toHaveLength(1);
+    expect(stream.finalmask).toMatchObject({ tcp: [{ type: 'fragment' }] });
+
+    expect(back.mux).toMatchObject({ enabled: true });
   });
 });

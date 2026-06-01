@@ -18,6 +18,7 @@ type FallbackInput struct {
 	Name      string `json:"name"`
 	Alpn      string `json:"alpn"`
 	Path      string `json:"path"`
+	Dest      string `json:"dest"`
 	Xver      int    `json:"xver"`
 	SortOrder int    `json:"sortOrder"`
 }
@@ -62,15 +63,20 @@ func (s *FallbackService) SetByMaster(masterId int, items []FallbackInput) error
 			return err
 		}
 		for i, c := range items {
-			if c.ChildId <= 0 || c.ChildId == masterId {
+			childId := c.ChildId
+			if childId == masterId {
+				childId = 0
+			}
+			if childId <= 0 && strings.TrimSpace(c.Dest) == "" {
 				continue
 			}
 			row := model.InboundFallback{
 				MasterId:  masterId,
-				ChildId:   c.ChildId,
+				ChildId:   childId,
 				Name:      c.Name,
 				Alpn:      c.Alpn,
 				Path:      c.Path,
+				Dest:      c.Dest,
 				Xver:      c.Xver,
 				SortOrder: c.SortOrder,
 			}
@@ -85,9 +91,6 @@ func (s *FallbackService) SetByMaster(masterId int, items []FallbackInput) error
 	})
 }
 
-// BuildFallbacksJSON resolves the master's fallback rows into Xray's
-// expected settings.fallbacks shape, looking up each child's listen+port
-// to fill the dest field. Returns nil when the master has no rules.
 func (s *FallbackService) BuildFallbacksJSON(tx *gorm.DB, masterId int) ([]map[string]any, error) {
 	if tx == nil {
 		tx = database.GetDB()
@@ -118,16 +121,20 @@ func (s *FallbackService) BuildFallbacksJSON(tx *gorm.DB, masterId int) ([]map[s
 
 	out := make([]map[string]any, 0, len(rows))
 	for _, r := range rows {
-		child, ok := byId[r.ChildId]
-		if !ok {
-			continue
-		}
-		listen := strings.TrimSpace(child.Listen)
-		if listen == "" || listen == "0.0.0.0" || listen == "::" || listen == "::0" {
-			listen = "127.0.0.1"
+		dest := strings.TrimSpace(r.Dest)
+		if dest == "" {
+			child, ok := byId[r.ChildId]
+			if !ok {
+				continue
+			}
+			listen := strings.TrimSpace(child.Listen)
+			if listen == "" || listen == "0.0.0.0" || listen == "::" || listen == "::0" {
+				listen = "127.0.0.1"
+			}
+			dest = fmt.Sprintf("%s:%d", listen, child.Port)
 		}
 		entry := map[string]any{
-			"dest": fmt.Sprintf("%s:%d", listen, child.Port),
+			"dest": dest,
 		}
 		if r.Name != "" {
 			entry["name"] = r.Name

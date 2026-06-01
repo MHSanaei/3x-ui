@@ -7,6 +7,7 @@ import {
   parseVlessLink,
   parseVmessLink,
   parseHysteria2Link,
+  parseWireguardLink,
 } from '@/lib/xray/outbound-link-parser';
 import { Base64 } from '@/utils';
 
@@ -172,6 +173,23 @@ describe('parseVlessLink', () => {
     expect(reality.shortId).toBe('abcd');
     expect(reality.serverName).toBe('cloudflare.com');
   });
+
+  it('parses encryption + pqv (post-quantum) into settings and mldsa65Verify', () => {
+    const enc = 'mlkem768x25519plus.native.0rtt.G3cdPSd1-NnlpTbWNSM5vHsT5VNzWfFzYSKwbUMnV1Y';
+    const pqv = 'GIsemxbGPjDRH1ONfmoGlVkJ4etNuLmYDvzpjmFFreDLd8WjoJxJ4Fmt_NQJaC6';
+    const link
+      = 'vless://9406c224-8ac6-4675-ae0b-f93785959418@localhost:1121'
+      + `?encryption=${enc}&pqv=${pqv}`
+      + '&security=reality&sid=29cf418813d5bac7&sni=aws.amazon.com'
+      + '&pbk=aQaGBOT2hMfXWebYtjADoOVUrP8qZRdwXVap7nrId0I&fp=chrome&spx=%2FOUTjB7xHRiP4zBP&type=tcp'
+      + '#giqssbgmo9';
+    const out = parseVlessLink(link);
+    const settings = out?.settings as { encryption: string };
+    expect(settings.encryption).toBe(enc);
+    const reality = (out?.streamSettings as Record<string, unknown>).realitySettings as Record<string, unknown>;
+    expect(reality.mldsa65Verify).toBe(pqv);
+    expect(reality.publicKey).toBe('aQaGBOT2hMfXWebYtjADoOVUrP8qZRdwXVap7nrId0I');
+  });
 });
 
 describe('parseTrojanLink', () => {
@@ -202,6 +220,18 @@ describe('parseShadowsocksLink', () => {
     expect(settings.servers[0].port).toBe(8388);
     expect(settings.servers[0].method).toBe('2022-blake3-aes-128-gcm');
     expect(settings.servers[0].password).toBe('supersecret');
+  });
+
+  it('keeps the port when the link carries a query string (2022 two-key password)', () => {
+    const link = 'ss://MjAyMi1ibGFrZTMtYWVzLTI1Ni1nY206LzhsdFZKaU90azE2QmhKZG9WZVRmSkNNUEJlRGhjcmkycTN0dzU1OUZvYz06YUhuTTB6ZnpFaTdRejc5dzlxNWFFWWVQVnpDU0wxaHV4RnZXZFB6OFZHST0@localhost:30757?type=tcp#pahf4urt53';
+    const out = parseShadowsocksLink(link);
+    expect(out?.protocol).toBe('shadowsocks');
+    expect(out?.tag).toBe('pahf4urt53');
+    const settings = out?.settings as { servers: Array<{ address: string; port: number; method: string; password: string }> };
+    expect(settings.servers[0].address).toBe('localhost');
+    expect(settings.servers[0].port).toBe(30757);
+    expect(settings.servers[0].method).toBe('2022-blake3-aes-256-gcm');
+    expect(settings.servers[0].password).toBe('/8ltVJiOtk16BhJdoVeTfJCMPBeDhcri2q3tw559Foc=:aHnM0zfzEi7Qz79w9q5aEYePVzCSL1huxFvWdPz8VGI=');
   });
 
   it('parses the legacy base64-of-whole form', () => {
@@ -236,6 +266,32 @@ describe('parseHysteria2Link', () => {
   it('also accepts hy2:// alias', () => {
     const out = parseHysteria2Link('hy2://auth@srv:443?sni=example.com');
     expect(out?.protocol).toBe('hysteria');
+  });
+
+  it('parses alpn, fingerprint and the salamander UDP mask (fm) — #4760', () => {
+    const link = 'hysteria2://78e7795a209c4c099f896a816fc8448f@news.domain.org:8443?'
+      + 'alpn=h2%2Chttp%2F1.1&'
+      + 'fm=%7B%22udp%22%3A%5B%7B%22settings%22%3A%7B%22password%22%3A%22ftwfgb9655hh2mgo%22%7D%2C%22type%22%3A%22salamander%22%7D%5D%7D&'
+      + 'fp=chrome&obfs=salamander&obfs-password=655hh2mgo&security=tls&sni=news.domain.org'
+      + '#hy2-ej596ty350qs';
+    const out = parseHysteria2Link(link);
+    expect(out).not.toBeNull();
+    const stream = out!.streamSettings as Record<string, unknown>;
+    const tls = stream.tlsSettings as Record<string, unknown>;
+    expect(tls.alpn).toEqual(['h2', 'http/1.1']);
+    expect(tls.fingerprint).toBe('chrome');
+    expect(tls.serverName).toBe('news.domain.org');
+    const finalmask = stream.finalmask as Record<string, unknown>;
+    expect(finalmask).toBeDefined();
+    const udp = finalmask.udp as Array<Record<string, unknown>>;
+    expect(udp[0].type).toBe('salamander');
+    expect((udp[0].settings as Record<string, unknown>).password).toBe('ftwfgb9655hh2mgo');
+  });
+
+  it('defaults alpn to h3 when the link omits it', () => {
+    const out = parseHysteria2Link('hysteria2://auth@srv:443?sni=example.com');
+    const tls = (out!.streamSettings as Record<string, unknown>).tlsSettings as Record<string, unknown>;
+    expect(tls.alpn).toEqual(['h3']);
   });
 });
 
@@ -306,6 +362,49 @@ describe('parseVlessLink — extra / fm / x_padding_bytes (B20)', () => {
   });
 });
 
+describe('parseWireguardLink', () => {
+  it('parses a wireguard:// link with percent-encoded secret and publickey', () => {
+    const link = 'wireguard://IKeuy2+BNspvMffiC47z16seLIGxGtbDIYiZcbh9C1U%3D@localhost:22824'
+      + '?publickey=3CnNsCy74TOlupjaii%2BRFp%2FgDMk5vvUuFD0SNZ%2FGl2s%3D'
+      + '&address=10.0.0.2%2F32&mtu=1420#-1';
+    const out = parseWireguardLink(link);
+    expect(out?.protocol).toBe('wireguard');
+    expect(out?.tag).toBe('-1');
+    const settings = out?.settings as {
+      secretKey: string; address: string[]; mtu: number;
+      peers: Array<{ publicKey: string; endpoint: string; allowedIPs: string[] }>;
+    };
+    expect(settings.secretKey).toBe('IKeuy2+BNspvMffiC47z16seLIGxGtbDIYiZcbh9C1U=');
+    expect(settings.address).toEqual(['10.0.0.2/32']);
+    expect(settings.mtu).toBe(1420);
+    expect(settings.peers[0].publicKey).toBe('3CnNsCy74TOlupjaii+RFp/gDMk5vvUuFD0SNZ/Gl2s=');
+    expect(settings.peers[0].endpoint).toBe('localhost:22824');
+    expect(settings.peers[0].allowedIPs).toEqual(['0.0.0.0/0', '::/0']);
+  });
+
+  it('parses reserved, presharedkey and keepalive aliases', () => {
+    const link = 'wireguard://privkey@1.2.3.4:51820'
+      + '?publickey=peerpub&address=10.0.0.2/32,fd00::2/128'
+      + '&reserved=1,2,3&presharedkey=psk-secret&persistentkeepalive=25'
+      + '&allowedips=0.0.0.0/0#wg-peer';
+    const out = parseWireguardLink(link);
+    const settings = out?.settings as {
+      reserved: number[];
+      peers: Array<{ preSharedKey: string; keepAlive: number; allowedIPs: string[] }>;
+      address: string[];
+    };
+    expect(settings.address).toEqual(['10.0.0.2/32', 'fd00::2/128']);
+    expect(settings.reserved).toEqual([1, 2, 3]);
+    expect(settings.peers[0].preSharedKey).toBe('psk-secret');
+    expect(settings.peers[0].keepAlive).toBe(25);
+    expect(settings.peers[0].allowedIPs).toEqual(['0.0.0.0/0']);
+  });
+
+  it('returns null for non-wireguard links', () => {
+    expect(parseWireguardLink('vless://x@y:1')).toBeNull();
+  });
+});
+
 describe('parseOutboundLink dispatcher', () => {
   it('dispatches vmess via base64 JSON', () => {
     const json = { v: '2', ps: 'x', add: '1.1.1.1', port: 443, id: '11111111-2222-4333-8444-555555555555', net: 'tcp', tls: 'none' };
@@ -315,6 +414,10 @@ describe('parseOutboundLink dispatcher', () => {
 
   it('dispatches vless via URL', () => {
     expect(parseOutboundLink('vless://uuid@host:443?type=tcp&security=none')?.protocol).toBe('vless');
+  });
+
+  it('dispatches wireguard via URL', () => {
+    expect(parseOutboundLink('wireguard://pk@host:22824?publickey=pub&address=10.0.0.2/32')?.protocol).toBe('wireguard');
   });
 
   it('returns null for an unknown scheme', () => {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Col, ConfigProvider, Layout, Modal, Row, Spin, Statistic, message } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { Button, Card, Col, ConfigProvider, Layout, Modal, Result, Row, Spin, Statistic, message } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -13,10 +14,12 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import { useNodeMutations } from '@/api/queries/useNodeMutations';
-import AppSidebar from '@/components/AppSidebar';
+import AppSidebar from '@/layouts/AppSidebar';
 import NodeList from './NodeList';
 import NodeFormModal from './NodeFormModal';
 import { setMessageInstance } from '@/utils/messageBus';
+import { HttpUtil } from '@/utils';
+import type { PanelUpdateInfo } from '../index/PanelUpdateModal';
 
 export default function NodesPage() {
   const { t } = useTranslation();
@@ -26,12 +29,22 @@ export default function NodesPage() {
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
-  const { nodes, loading, fetched, totals } = useNodesQuery();
-  const { create, update, remove, setEnable, testConnection, probe } = useNodeMutations();
+  const { nodes, loading, fetched, fetchError, refetch, totals } = useNodesQuery();
+  const { create, update, remove, setEnable, testConnection, fetchFingerprint, probe, updatePanels } = useNodeMutations();
+
+  const { data: latestVersion = '' } = useQuery({
+    queryKey: ['server', 'panelUpdateInfo'],
+    queryFn: async () => {
+      const msg = await HttpUtil.get<PanelUpdateInfo>('/panel/api/server/getPanelUpdateInfo');
+      return msg?.obj?.latestVersion || '';
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [formNode, setFormNode] = useState<NodeRecord | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const onAdd = useCallback(() => {
     setFormMode('add');
@@ -81,6 +94,52 @@ export default function NodesPage() {
     await setEnable(node.id, next);
   }, [setEnable]);
 
+  const runUpdate = useCallback(async (ids: number[]) => {
+    const msg = await updatePanels(ids);
+    if (!msg?.success) {
+      messageApi.error(msg?.msg || t('somethingWentWrong'));
+      return;
+    }
+    const results = msg.obj ?? [];
+    const ok = results.filter((r) => r.ok).length;
+    const failed = results.length - ok;
+    if (failed === 0) {
+      messageApi.success(t('pages.nodes.toasts.updateStarted'));
+    } else {
+      const firstError = results.find((r) => !r.ok)?.error ?? '';
+      const base = t('pages.nodes.toasts.updateResult', { ok, failed });
+      messageApi.warning(firstError ? `${base} — ${firstError}` : base);
+    }
+    setSelectedIds([]);
+  }, [updatePanels, messageApi, t]);
+
+  const onUpdateNode = useCallback((node: NodeRecord) => {
+    modal.confirm({
+      title: t('pages.nodes.updateConfirmTitle', { count: 1 }),
+      content: t('pages.nodes.updateConfirmContent'),
+      okText: t('update'),
+      cancelText: t('cancel'),
+      onOk: () => runUpdate([node.id]),
+    });
+  }, [modal, t, runUpdate]);
+
+  const onUpdateSelected = useCallback(() => {
+    const eligible = nodes
+      .filter((n) => selectedIds.includes(n.id) && n.enable && n.status === 'online')
+      .map((n) => n.id);
+    if (eligible.length === 0) {
+      messageApi.warning(t('pages.nodes.toasts.updateNoneEligible'));
+      return;
+    }
+    modal.confirm({
+      title: t('pages.nodes.updateConfirmTitle', { count: eligible.length }),
+      content: t('pages.nodes.updateConfirmContent'),
+      okText: t('update'),
+      cancelText: t('cancel'),
+      onOk: () => runUpdate(eligible),
+    });
+  }, [modal, t, nodes, selectedIds, runUpdate, messageApi]);
+
   const pageClass = useMemo(() => {
     const classes = ['nodes-page'];
     if (isDark) classes.push('is-dark');
@@ -97,9 +156,16 @@ export default function NodesPage() {
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={!fetched} delay={200} description="Loading…" size="large">
+            <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
+              ) : fetchError ? (
+                <Result
+                  status="error"
+                  title={t('somethingWentWrong')}
+                  subTitle={fetchError}
+                  extra={<Button type="primary" loading={loading} onClick={() => refetch()}>{t('refresh')}</Button>}
+                />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
                   <Col span={24}>
@@ -142,11 +208,16 @@ export default function NodesPage() {
                       nodes={nodes}
                       loading={loading}
                       isMobile={isMobile}
+                      latestVersion={latestVersion}
+                      selectedIds={selectedIds}
+                      onSelectionChange={setSelectedIds}
                       onAdd={onAdd}
                       onEdit={onEdit}
                       onDelete={onDelete}
                       onProbe={onProbe}
                       onToggleEnable={onToggleEnable}
+                      onUpdateNode={onUpdateNode}
+                      onUpdateSelected={onUpdateSelected}
                     />
                   </Col>
                 </Row>
@@ -160,6 +231,7 @@ export default function NodesPage() {
           mode={formMode}
           node={formNode}
           testConnection={testConnection}
+          fetchFingerprint={fetchFingerprint}
           save={onSave}
           onOpenChange={setFormOpen}
         />

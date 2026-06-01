@@ -17,6 +17,13 @@ import {
 const DIRTY_POLL_MS = 1000;
 const DEFAULT_TEST_URL = 'https://www.google.com/generate_204';
 
+export function isUdpOutbound(outbound: unknown): boolean {
+  const o = outbound as { protocol?: string; streamSettings?: { network?: string } } | null | undefined;
+  const p = o?.protocol;
+  const n = o?.streamSettings?.network;
+  return p === 'wireguard' || p === 'hysteria' || n === 'hysteria' || n === 'kcp' || n === 'quic';
+}
+
 export type { OutboundTrafficRow, OutboundTestResult };
 
 export type XraySettingsValue = z.infer<typeof XraySettingsValueSchema>;
@@ -243,15 +250,16 @@ export function useXraySetting(): UseXraySettingResult {
   const testOutbound = useCallback(
     async (index: number, outbound: unknown, mode = 'tcp'): Promise<OutboundTestResult | null> => {
       if (!outbound) return null;
+      const effMode = isUdpOutbound(outbound) ? 'http' : mode;
       setOutboundTestStates((prev) => ({
         ...prev,
-        [index]: { testing: true, result: null, mode },
+        [index]: { testing: true, result: null, mode: effMode },
       }));
       try {
         const raw = await HttpUtil.post('/panel/xray/testOutbound', {
           outbound: JSON.stringify(outbound),
           allOutbounds: JSON.stringify(templateSettingsRef.current?.outbounds || []),
-          mode,
+          mode: effMode,
         });
         const msg = parseMsg(raw, OutboundTestResultSchema, 'xray/testOutbound');
         if (msg?.success && msg.obj) {
@@ -265,7 +273,7 @@ export function useXraySetting(): UseXraySettingResult {
           ...prev,
           [index]: {
             testing: false,
-            result: { success: false, error: msg?.msg || 'Unknown error', mode },
+            result: { success: false, error: msg?.msg || 'Unknown error', mode: effMode },
           },
         }));
       } catch (e) {
@@ -273,7 +281,7 @@ export function useXraySetting(): UseXraySettingResult {
           ...prev,
           [index]: {
             testing: false,
-            result: { success: false, error: String(e), mode },
+            result: { success: false, error: String(e), mode: effMode },
           },
         }));
       }
@@ -287,28 +295,31 @@ export function useXraySetting(): UseXraySettingResult {
     if (list.length === 0 || testingAll) return;
     setTestingAll(true);
     try {
-      const concurrency = mode === 'tcp' ? 8 : 1;
-      const queue = list
-        .map((ob, i) => ({ index: i, outbound: ob }))
-        .filter(({ outbound }) => {
-          const tag = outbound?.tag;
-          const proto = outbound?.protocol;
-          if (proto === 'blackhole' || proto === 'loopback' || tag === 'blocked') return false;
-          if (mode === 'tcp' && (proto === 'freedom' || proto === 'dns')) return false;
-          return true;
-        });
-      async function worker() {
-        while (queue.length > 0) {
-          const item = queue.shift();
-          if (!item) break;
-          await testOutbound(item.index, item.outbound, mode);
+      const tcpQueue: { index: number; outbound: unknown }[] = [];
+      const httpQueue: { index: number; outbound: unknown }[] = [];
+      list.forEach((ob, i) => {
+        const tag = ob?.tag;
+        const proto = ob?.protocol;
+        if (proto === 'blackhole' || proto === 'loopback' || tag === 'blocked') return;
+        if (mode === 'tcp' && (proto === 'freedom' || proto === 'dns')) return;
+        if (mode === 'http' || isUdpOutbound(ob)) {
+          httpQueue.push({ index: i, outbound: ob });
+        } else {
+          tcpQueue.push({ index: i, outbound: ob });
         }
-      }
-      const workers = Array.from(
-        { length: Math.min(concurrency, queue.length) },
-        () => worker(),
-      );
-      await Promise.all(workers);
+      });
+      const runLane = async (queue: { index: number; outbound: unknown }[], concurrency: number) => {
+        const worker = async () => {
+          while (queue.length > 0) {
+            const item = queue.shift();
+            if (!item) break;
+            await testOutbound(item.index, item.outbound, mode);
+          }
+        };
+        const workers = Array.from({ length: Math.min(concurrency, queue.length) }, () => worker());
+        await Promise.all(workers);
+      };
+      await Promise.all([runLane(tcpQueue, 8), runLane(httpQueue, 1)]);
     } finally {
       setTestingAll(false);
     }
