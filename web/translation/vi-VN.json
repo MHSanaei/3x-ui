@@ -832,6 +832,12 @@
       "panelVersion": "Phiên bản panel",
       "actions": "Hành động",
       "probe": "Kiểm tra ngay",
+      "updatePanel": "Cập nhật bảng điều khiển",
+      "updateSelected": "Cập nhật đã chọn ({count})",
+      "updateAvailable": "Có bản cập nhật",
+      "upToDate": "Mới nhất",
+      "updateConfirmTitle": "Cập nhật {count} node lên phiên bản mới nhất?",
+      "updateConfirmContent": "Mỗi node đã chọn sẽ tải bản phát hành mới nhất và khởi động lại. Chỉ các node đang bật và trực tuyến được cập nhật.",
       "testConnection": "Kiểm tra kết nối",
       "connectionOk": "Kết nối OK ({ms} ms)",
       "connectionFailed": "Kết nối thất bại",
@@ -853,7 +859,10 @@
         "deleted": "Đã xóa nút",
         "test": "Kiểm tra kết nối",
         "fillRequired": "Tên, địa chỉ, cổng và token API là bắt buộc",
-        "probeFailed": "Kiểm tra thất bại"
+        "probeFailed": "Kiểm tra thất bại",
+        "updateStarted": "Đã bắt đầu cập nhật bảng điều khiển",
+        "updateResult": "Đã kích hoạt cập nhật trên {ok} node, {failed} thất bại",
+        "updateNoneEligible": "Chọn ít nhất một node trực tuyến và đang bật"
       }
     },
     "settings": {

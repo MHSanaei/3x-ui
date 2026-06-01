@@ -832,6 +832,12 @@
       "panelVersion": "إصدار اللوحة",
       "actions": "العمليات",
       "probe": "فحص فوري",
+      "updatePanel": "تحديث اللوحة",
+      "updateSelected": "تحديث المحدد ({count})",
+      "updateAvailable": "تحديث متاح",
+      "upToDate": "محدّث",
+      "updateConfirmTitle": "تحديث {count} عقدة إلى أحدث إصدار؟",
+      "updateConfirmContent": "كل عقدة محددة ستنزّل أحدث إصدار وتعيد التشغيل عليه. يتم تحديث العقد المفعّلة والمتصلة فقط.",
       "testConnection": "اختبار الاتصال",
       "connectionOk": "الاتصال شغال ({ms} ms)",
       "connectionFailed": "فشل الاتصال",
@@ -853,7 +859,10 @@
         "deleted": "اتمسح النود",
         "test": "اختبار الاتصال",
         "fillRequired": "الاسم والعنوان والبورت وتوكن API كلهم مطلوبين",
-        "probeFailed": "فشل الفحص"
+        "probeFailed": "فشل الفحص",
+        "updateStarted": "بدأ تحديث اللوحة",
+        "updateResult": "تم بدء التحديث على {ok} عقدة، فشل {failed}",
+        "updateNoneEligible": "اختر عقدة واحدة على الأقل متصلة ومفعّلة"
       }
     },
     "settings": {

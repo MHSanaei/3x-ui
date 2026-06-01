@@ -320,6 +320,14 @@ func (r *Remote) RestartXray(ctx context.Context) error {
 	return err
 }
 
+// UpdatePanel asks the node to run its own official self-updater (update.sh)
+// and restart onto the latest release. The node returns as soon as the job is
+// launched; the new version surfaces on the next heartbeat.
+func (r *Remote) UpdatePanel(ctx context.Context) error {
+	_, err := r.do(ctx, http.MethodPost, "panel/api/server/updatePanel", nil)
+	return err
+}
+
 func (r *Remote) ResetClientTraffic(ctx context.Context, _ *model.Inbound, email string) error {
 	_, err := r.do(ctx, http.MethodPost,
 		"panel/api/clients/resetTraffic/"+url.PathEscape(email), nil)

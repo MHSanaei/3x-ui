@@ -832,6 +832,12 @@
       "panelVersion": "Panel sürümü",
       "actions": "İşlemler",
       "probe": "Şimdi Test Et",
+      "updatePanel": "Paneli Güncelle",
+      "updateSelected": "Seçilenleri Güncelle ({count})",
+      "updateAvailable": "Güncelleme mevcut",
+      "upToDate": "Güncel",
+      "updateConfirmTitle": "{count} düğüm en son sürüme güncellensin mi?",
+      "updateConfirmContent": "Seçilen her düğüm en son sürümü indirir ve yeniden başlatılır. Yalnızca etkin ve çevrimiçi düğümler güncellenir.",
       "testConnection": "Bağlantıyı Test Et",
       "connectionOk": "Bağlantı tamam ({ms} ms)",
       "connectionFailed": "Bağlantı başarısız",
@@ -853,7 +859,10 @@
         "deleted": "Düğüm silindi",
         "test": "Bağlantıyı test et",
         "fillRequired": "Ad, adres, port ve API token gereklidir",
-        "probeFailed": "Test başarısız"
+        "probeFailed": "Test başarısız",
+        "updateStarted": "Panel güncellemesi başlatıldı",
+        "updateResult": "{ok} düğümde güncelleme başlatıldı, {failed} başarısız",
+        "updateNoneEligible": "En az bir çevrimiçi ve etkin düğüm seçin"
       }
     },
     "settings": {

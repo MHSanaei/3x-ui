@@ -832,6 +832,12 @@
       "panelVersion": "パネルのバージョン",
       "actions": "操作",
       "probe": "今すぐプローブ",
+      "updatePanel": "パネルを更新",
+      "updateSelected": "選択を更新 ({count})",
+      "updateAvailable": "更新あり",
+      "upToDate": "最新",
+      "updateConfirmTitle": "{count} 個のノードを最新バージョンに更新しますか？",
+      "updateConfirmContent": "選択した各ノードは最新リリースをダウンロードして再起動します。有効かつオンラインのノードのみが更新されます。",
       "testConnection": "接続テスト",
       "connectionOk": "接続OK ({ms} ms)",
       "connectionFailed": "接続に失敗しました",
@@ -853,7 +859,10 @@
         "deleted": "ノードを削除しました",
         "test": "接続テスト",
         "fillRequired": "名前、アドレス、ポート、APIトークンは必須です",
-        "probeFailed": "プローブに失敗しました"
+        "probeFailed": "プローブに失敗しました",
+        "updateStarted": "パネルの更新を開始しました",
+        "updateResult": "{ok} 個のノードで更新を開始、{failed} 個失敗",
+        "updateNoneEligible": "オンラインで有効なノードを少なくとも1つ選択してください"
       }
     },
     "settings": {

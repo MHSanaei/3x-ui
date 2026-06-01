@@ -16,6 +16,7 @@ import type { BadgeProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   ClusterOutlined,
+  CloudDownloadOutlined,
   DeleteOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
@@ -30,17 +31,27 @@ import {
 
 import NodeHistoryPanel from './NodeHistoryPanel';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
+import { isPanelUpdateAvailable } from '@/lib/panel-version';
 import './NodeList.css';
 
 interface NodeListProps {
   nodes: NodeRecord[];
   loading?: boolean;
   isMobile?: boolean;
+  latestVersion?: string;
+  selectedIds: number[];
+  onSelectionChange: (ids: number[]) => void;
   onAdd: () => void;
   onEdit: (node: NodeRecord) => void;
   onDelete: (node: NodeRecord) => void;
   onProbe: (node: NodeRecord) => void;
   onToggleEnable: (node: NodeRecord, next: boolean) => void;
+  onUpdateNode: (node: NodeRecord) => void;
+  onUpdateSelected: () => void;
+}
+
+function isUpdateEligible(n: NodeRecord): boolean {
+  return !!n.enable && n.status === 'online';
 }
 
 interface NodeRow extends NodeRecord {
@@ -54,6 +65,20 @@ function badgeStatus(status?: string): BadgeProps['status'] {
     case 'offline': return 'error';
     default: return 'default';
   }
+}
+
+function StatusDot({ status }: { status?: string }) {
+  if (status === 'online') return <span className="online-dot" />;
+  return <Badge status={badgeStatus(status)} />;
+}
+
+function StatusLabel({ status }: { status?: string }) {
+  const { t } = useTranslation();
+  return (
+    <span style={status === 'online' ? { color: 'var(--ant-color-success)' } : undefined}>
+      {t(`pages.nodes.statusValues.${status || 'unknown'}`)}
+    </span>
+  );
 }
 
 function formatPct(p?: number): string {
@@ -88,11 +113,16 @@ export default function NodeList({
   nodes,
   loading = false,
   isMobile = false,
+  latestVersion = '',
+  selectedIds,
+  onSelectionChange,
   onAdd,
   onEdit,
   onDelete,
   onProbe,
   onToggleEnable,
+  onUpdateNode,
+  onUpdateSelected,
 }: NodeListProps) {
   const { t } = useTranslation();
   const relativeTime = useRelativeTime();
@@ -122,12 +152,17 @@ export default function NodeList({
     {
       title: t('pages.nodes.actions'),
       align: 'center',
-      width: 160,
+      width: 190,
       render: (_value, record) => (
         <Space>
           <Tooltip title={t('pages.nodes.probe')}>
             <Button type="text" size="small" icon={<ThunderboltOutlined />} onClick={() => onProbe(record)} />
           </Tooltip>
+          {isUpdateEligible(record) && (
+            <Tooltip title={t('pages.nodes.updatePanel')}>
+              <Button type="text" size="small" icon={<CloudDownloadOutlined />} onClick={() => onUpdateNode(record)} />
+            </Tooltip>
+          )}
           <Tooltip title={t('edit')}>
             <Button type="text" size="small" icon={<EditOutlined />} onClick={() => onEdit(record)} />
           </Tooltip>
@@ -193,8 +228,8 @@ export default function NodeList({
       align: 'center',
       render: (_value, record) => (
         <Space size={4}>
-          <Badge status={badgeStatus(record.status)} />
-          <span>{t(`pages.nodes.statusValues.${record.status || 'unknown'}`)}</span>
+          <StatusDot status={record.status} />
+          <StatusLabel status={record.status} />
           {record.lastError && (
             <Tooltip title={record.lastError}>
               <ExclamationCircleOutlined style={{ color: 'var(--ant-color-warning)' }} />
@@ -227,7 +262,22 @@ export default function NodeList({
       title: t('pages.nodes.panelVersion') || 'Panel version',
       dataIndex: 'panelVersion',
       align: 'center',
-      render: (_value, record) => record.panelVersion || '-',
+      render: (_value, record) => {
+        const canUpdate = isUpdateEligible(record)
+          && isPanelUpdateAvailable(latestVersion, record.panelVersion || '');
+        return (
+          <Space size={4}>
+            <span>{record.panelVersion || '-'}</span>
+            {canUpdate && (
+              <Tooltip title={`${t('pages.nodes.updateAvailable')}: ${latestVersion}`}>
+                <Tag color="orange" style={{ margin: 0, cursor: 'pointer' }} onClick={() => onUpdateNode(record)}>
+                  {t('pages.nodes.updateAvailable')}
+                </Tag>
+              </Tooltip>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: t('pages.nodes.uptime'),
@@ -266,7 +316,7 @@ export default function NodeList({
       width: 120,
       render: (_value, record) => relativeTime(record.lastHeartbeat),
     },
-  ], [t, showAddress, relativeTime, onToggleEnable, onProbe, onEdit, onDelete]);
+  ], [t, showAddress, relativeTime, latestVersion, onToggleEnable, onProbe, onEdit, onDelete, onUpdateNode]);
 
   return (
     <Card size="small" hoverable>
@@ -274,6 +324,11 @@ export default function NodeList({
         <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
           {t('pages.nodes.addNode')}
         </Button>
+        {selectedIds.length > 0 && (
+          <Button icon={<CloudDownloadOutlined />} onClick={onUpdateSelected}>
+            {t('pages.nodes.updateSelected', { count: selectedIds.length })}
+          </Button>
+        )}
       </div>
 
       {isMobile ? (
@@ -289,7 +344,7 @@ export default function NodeList({
                 <div key={record.id} className="node-card">
                   <div className="card-head" onClick={() => toggleExpanded(record.id)}>
                     <RightOutlined className={`card-expand${expandedIds.has(record.id) ? ' is-expanded' : ''}`} />
-                    <Badge status={badgeStatus(record.status)} />
+                    <StatusDot status={record.status} />
                     <span className="node-name">{record.name}</span>
                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
                       <Tooltip title={t('info')}>
@@ -313,6 +368,11 @@ export default function NodeList({
                               label: <><ThunderboltOutlined /> {t('pages.nodes.probe')}</>,
                               onClick: () => onProbe(record),
                             },
+                            ...(isUpdateEligible(record) ? [{
+                              key: 'update',
+                              label: <><CloudDownloadOutlined /> {t('pages.nodes.updatePanel')}</>,
+                              onClick: () => onUpdateNode(record),
+                            }] : []),
                             {
                               key: 'edit',
                               label: <><EditOutlined /> {t('edit')}</>,
@@ -378,8 +438,8 @@ export default function NodeList({
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.status')}</span>
-                  <Badge status={badgeStatus(statsNode.status)} />
-                  <span>{t(`pages.nodes.statusValues.${statsNode.status || 'unknown'}`)}</span>
+                  <StatusDot status={statsNode.status} />
+                  <StatusLabel status={statsNode.status} />
                   {statsNode.lastError && (
                     <Tooltip title={statsNode.lastError}>
                       <ExclamationCircleOutlined style={{ color: 'var(--ant-color-warning)' }} />
@@ -439,6 +499,11 @@ export default function NodeList({
           scroll={{ x: 'max-content' }}
           size="middle"
           rowKey="id"
+          rowSelection={{
+            selectedRowKeys: selectedIds,
+            onChange: (keys) => onSelectionChange(keys as number[]),
+            getCheckboxProps: (record) => ({ disabled: !isUpdateEligible(record) }),
+          }}
           locale={{
             emptyText: (
               <div className="card-empty">

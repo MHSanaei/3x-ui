@@ -778,6 +778,13 @@ export const sections: readonly Section[] = [
         ],
       },
       {
+        method: 'POST',
+        path: '/panel/api/nodes/updatePanel',
+        summary: 'Trigger the official panel self-updater on each given node (downloads the latest release and restarts). Only enabled, online nodes are updated; offline/disabled ones are reported as skipped. Returns a per-node result list.',
+        body: '{\n  "ids": [1, 2, 3]\n}',
+        response: '{\n  "success": true,\n  "obj": [\n    { "id": 1, "name": "de-1", "ok": true },\n    { "id": 2, "name": "fr-1", "ok": false, "error": "node is offline" }\n  ]\n}',
+      },
+      {
         method: 'GET',
         path: '/panel/api/nodes/history/:id/:metric/:bucket',
         summary: 'Aggregated metric history for a node — same shape as /server/history, scoped to one node.',

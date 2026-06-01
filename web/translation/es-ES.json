@@ -832,6 +832,12 @@
       "panelVersion": "Versión del panel",
       "actions": "Acciones",
       "probe": "Sondear ahora",
+      "updatePanel": "Actualizar panel",
+      "updateSelected": "Actualizar seleccionados ({count})",
+      "updateAvailable": "Actualización disponible",
+      "upToDate": "Actualizado",
+      "updateConfirmTitle": "¿Actualizar {count} nodo(s) a la última versión?",
+      "updateConfirmContent": "Cada nodo seleccionado descarga la última versión y se reinicia con ella. Solo se actualizan los nodos habilitados y en línea.",
       "testConnection": "Probar conexión",
       "connectionOk": "Conexión correcta ({ms} ms)",
       "connectionFailed": "Conexión fallida",
@@ -853,7 +859,10 @@
         "deleted": "Nodo eliminado",
         "test": "Probar conexión",
         "fillRequired": "El nombre, la dirección, el puerto y el token de API son obligatorios",
-        "probeFailed": "Sondeo fallido"
+        "probeFailed": "Sondeo fallido",
+        "updateStarted": "Actualización del panel iniciada",
+        "updateResult": "Actualización iniciada en {ok} nodo(s), {failed} fallaron",
+        "updateNoneEligible": "Selecciona al menos un nodo en línea y habilitado"
       }
     },
     "settings": {

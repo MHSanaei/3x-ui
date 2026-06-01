@@ -832,6 +832,12 @@
       "panelVersion": "面板版本",
       "actions": "操作",
       "probe": "立即探測",
+      "updatePanel": "更新面板",
+      "updateSelected": "更新所選 ({count})",
+      "updateAvailable": "有可用更新",
+      "upToDate": "已是最新",
+      "updateConfirmTitle": "將 {count} 個節點更新到最新版本？",
+      "updateConfirmContent": "每個所選節點會下載最新版本並重新啟動。僅更新已啟用且在線的節點。",
       "testConnection": "測試連線",
       "connectionOk": "連線正常 ({ms} ms)",
       "connectionFailed": "連線失敗",
@@ -853,7 +859,10 @@
         "deleted": "節點已刪除",
         "test": "測試連線",
         "fillRequired": "名稱、位址、埠與 API 權杖為必填",
-        "probeFailed": "探測失敗"
+        "probeFailed": "探測失敗",
+        "updateStarted": "已開始更新面板",
+        "updateResult": "已在 {ok} 個節點上觸發更新，{failed} 個失敗",
+        "updateNoneEligible": "請至少選擇一個在線且已啟用的節點"
       }
     },
     "settings": {

@@ -832,6 +832,12 @@
       "panelVersion": "Versi panel",
       "actions": "Aksi",
       "probe": "Probe Sekarang",
+      "updatePanel": "Perbarui Panel",
+      "updateSelected": "Perbarui Terpilih ({count})",
+      "updateAvailable": "Pembaruan tersedia",
+      "upToDate": "Terbaru",
+      "updateConfirmTitle": "Perbarui {count} node ke versi terbaru?",
+      "updateConfirmContent": "Setiap node terpilih mengunduh rilis terbaru dan memulai ulang. Hanya node aktif dan online yang diperbarui.",
       "testConnection": "Tes Koneksi",
       "connectionOk": "Koneksi OK ({ms} ms)",
       "connectionFailed": "Koneksi gagal",
@@ -853,7 +859,10 @@
         "deleted": "Node dihapus",
         "test": "Tes koneksi",
         "fillRequired": "Nama, alamat, port, dan token API wajib diisi",
-        "probeFailed": "Probe gagal"
+        "probeFailed": "Probe gagal",
+        "updateStarted": "Pembaruan panel dimulai",
+        "updateResult": "Pembaruan dipicu pada {ok} node, {failed} gagal",
+        "updateNoneEligible": "Pilih minimal satu node online dan aktif"
       }
     },
     "settings": {

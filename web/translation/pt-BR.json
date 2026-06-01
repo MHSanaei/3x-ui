@@ -832,6 +832,12 @@
       "panelVersion": "Versão do painel",
       "actions": "Ações",
       "probe": "Sondar agora",
+      "updatePanel": "Atualizar painel",
+      "updateSelected": "Atualizar selecionados ({count})",
+      "updateAvailable": "Atualização disponível",
+      "upToDate": "Atualizado",
+      "updateConfirmTitle": "Atualizar {count} nó(s) para a versão mais recente?",
+      "updateConfirmContent": "Cada nó selecionado baixa a versão mais recente e reinicia nela. Apenas nós ativos e online são atualizados.",
       "testConnection": "Testar conexão",
       "connectionOk": "Conexão OK ({ms} ms)",
       "connectionFailed": "Falha na conexão",
@@ -853,7 +859,10 @@
         "deleted": "Nó excluído",
         "test": "Testar conexão",
         "fillRequired": "Nome, endereço, porta e token da API são obrigatórios",
-        "probeFailed": "Falha na sondagem"
+        "probeFailed": "Falha na sondagem",
+        "updateStarted": "Atualização do painel iniciada",
+        "updateResult": "Atualização iniciada em {ok} nó(s), {failed} falharam",
+        "updateNoneEligible": "Selecione pelo menos um nó online e ativo"
       }
     },
     "settings": {

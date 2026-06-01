@@ -35,6 +35,7 @@ func (a *NodeController) initRouter(g *gin.RouterGroup) {
 
 	g.POST("/test", a.test)
 	g.POST("/probe/:id", a.probe)
+	g.POST("/updatePanel", a.updatePanel)
 	g.GET("/history/:id/:metric/:bucket", a.history)
 }
 
@@ -163,6 +164,22 @@ func (a *NodeController) probe(c *gin.Context) {
 	}
 	_ = a.nodeService.UpdateHeartbeat(id, patch)
 	jsonObj(c, patch.ToUI(probeErr == nil), nil)
+}
+
+func (a *NodeController) updatePanel(c *gin.Context) {
+	var req struct {
+		Ids []int `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if len(req.Ids) == 0 {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), fmt.Errorf("no nodes selected"))
+		return
+	}
+	results, err := a.nodeService.UpdatePanels(req.Ids)
+	jsonMsgObj(c, I18nWeb(c, "pages.nodes.toasts.updateStarted"), results, err)
 }
 
 func (a *NodeController) history(c *gin.Context) {

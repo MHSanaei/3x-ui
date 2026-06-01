@@ -4244,6 +4244,69 @@
         }
       }
     },
+    "/panel/api/nodes/updatePanel": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Trigger the official panel self-updater on each given node (downloads the latest release and restarts). Only enabled, online nodes are updated; offline/disabled ones are reported as skipped. Returns a per-node result list.",
+        "operationId": "post_panel_api_nodes_updatePanel",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "ids": [
+                  1,
+                  2,
+                  3
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "id": 1,
+                      "name": "de-1",
+                      "ok": true
+                    },
+                    {
+                      "id": 2,
+                      "name": "fr-1",
+                      "ok": false,
+                      "error": "node is offline"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/nodes/history/{id}/{metric}/{bucket}": {
       "get": {
         "tags": [

@@ -246,6 +246,56 @@ func (s *NodeService) SetEnable(id int, enable bool) error {
 	return db.Model(model.Node{}).Where("id = ?", id).Update("enable", enable).Error
 }
 
+// NodeUpdateResult reports the outcome of triggering a panel self-update on one
+// node so the UI can show per-node success/failure for a bulk request.
+type NodeUpdateResult struct {
+	Id    int    `json:"id"`
+	Name  string `json:"name"`
+	OK    bool   `json:"ok"`
+	Error string `json:"error,omitempty"`
+}
+
+// UpdatePanels triggers the official self-updater on each given node. Only
+// enabled, online nodes are eligible — an offline node can't be reached, so it
+// is reported as skipped rather than silently dropped.
+func (s *NodeService) UpdatePanels(ids []int) ([]NodeUpdateResult, error) {
+	mgr := runtime.GetManager()
+	if mgr == nil {
+		return nil, fmt.Errorf("runtime manager unavailable")
+	}
+	results := make([]NodeUpdateResult, 0, len(ids))
+	for _, id := range ids {
+		n, err := s.GetById(id)
+		if err != nil || n == nil {
+			results = append(results, NodeUpdateResult{Id: id, OK: false, Error: "node not found"})
+			continue
+		}
+		res := NodeUpdateResult{Id: id, Name: n.Name}
+		switch {
+		case !n.Enable:
+			res.Error = "node is disabled"
+		case n.Status != "online":
+			res.Error = "node is offline"
+		default:
+			remote, remoteErr := mgr.RemoteFor(n)
+			if remoteErr != nil {
+				res.Error = remoteErr.Error()
+				break
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+			updErr := remote.UpdatePanel(ctx)
+			cancel()
+			if updErr != nil {
+				res.Error = updErr.Error()
+			} else {
+				res.OK = true
+			}
+		}
+		results = append(results, res)
+	}
+	return results, nil
+}
+
 func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 	db := database.GetDB()
 	updates := map[string]any{

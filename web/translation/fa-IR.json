@@ -832,6 +832,12 @@
       "panelVersion": "نسخه پنل",
       "actions": "عملیات",
       "probe": "بررسی فوری",
+      "updatePanel": "به‌روزرسانی پنل",
+      "updateSelected": "به‌روزرسانی انتخاب‌شده‌ها ({count})",
+      "updateAvailable": "به‌روزرسانی موجود",
+      "upToDate": "به‌روز",
+      "updateConfirmTitle": "{count} نود به آخرین نسخه به‌روزرسانی شوند؟",
+      "updateConfirmContent": "هر نود انتخاب‌شده آخرین نسخه را دانلود و روی آن ری‌استارت می‌شود. فقط نودهای فعال و آنلاین به‌روزرسانی می‌شوند.",
       "testConnection": "تست اتصال",
       "connectionOk": "اتصال موفق ({ms} میلی‌ثانیه)",
       "connectionFailed": "اتصال ناموفق",
@@ -853,7 +859,10 @@
         "deleted": "نود حذف شد",
         "test": "تست اتصال",
         "fillRequired": "نام، آدرس، پورت و توکن API الزامی است",
-        "probeFailed": "بررسی ناموفق"
+        "probeFailed": "بررسی ناموفق",
+        "updateStarted": "به‌روزرسانی پنل آغاز شد",
+        "updateResult": "به‌روزرسانی روی {ok} نود آغاز شد، {failed} ناموفق",
+        "updateNoneEligible": "حداقل یک نود آنلاین و فعال انتخاب کنید"
       }
     },
     "settings": {

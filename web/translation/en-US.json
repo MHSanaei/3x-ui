@@ -832,6 +832,12 @@
       "panelVersion": "Panel Version",
       "actions": "Actions",
       "probe": "Probe Now",
+      "updatePanel": "Update Panel",
+      "updateSelected": "Update Selected ({count})",
+      "updateAvailable": "Update available",
+      "upToDate": "Up to date",
+      "updateConfirmTitle": "Update {count} node(s) to the latest version?",
+      "updateConfirmContent": "Each selected node downloads the latest release and restarts onto it. Only enabled, online nodes are updated.",
       "testConnection": "Test Connection",
       "connectionOk": "Connection OK ({ms} ms)",
       "connectionFailed": "Connection failed",
@@ -853,7 +859,10 @@
         "deleted": "Node deleted",
         "test": "Test connection",
         "fillRequired": "Name, address, port and API token are required",
-        "probeFailed": "Probe failed"
+        "probeFailed": "Probe failed",
+        "updateStarted": "Panel update started",
+        "updateResult": "Update triggered on {ok} node(s), {failed} failed",
+        "updateNoneEligible": "Select at least one online, enabled node"
       }
     },
     "settings": {
