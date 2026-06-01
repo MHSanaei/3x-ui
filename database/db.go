@@ -72,6 +72,7 @@ func initModels() error {
 		&model.ClientInbound{},
 		&model.ClientGroup{},
 		&model.InboundFallback{},
+		&model.NodeClientTraffic{},
 	}
 	for _, mdl := range models {
 		if err := db.AutoMigrate(mdl); err != nil {

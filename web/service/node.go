@@ -233,6 +233,9 @@ func (s *NodeService) Delete(id int) error {
 	if err := db.Where("id = ?", id).Delete(model.Node{}).Error; err != nil {
 		return err
 	}
+	if err := db.Where("node_id = ?", id).Delete(&model.NodeClientTraffic{}).Error; err != nil {
+		return err
+	}
 	if mgr := runtime.GetManager(); mgr != nil {
 		mgr.InvalidateNode(id)
 	}
