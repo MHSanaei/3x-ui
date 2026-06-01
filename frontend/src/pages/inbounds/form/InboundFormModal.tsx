@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import {
@@ -20,6 +20,7 @@ import {
   formValuesToWirePayload,
 } from '@/lib/xray/inbound-form-adapter';
 import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
+import { composeInboundTag, isAutoInboundTag, type InboundTagInput } from '@/lib/xray/inbound-tag';
 import {
   canEnableReality,
   canEnableStream,
@@ -158,6 +159,23 @@ export default function InboundFormModal({
   const network = Form.useWatch(['streamSettings', 'network'], form) ?? '';
   const security = Form.useWatch(['streamSettings', 'security'], form) ?? 'none';
   const streamEnabled = canEnableStream({ protocol });
+
+  const wListen = Form.useWatch('listen', form) ?? '';
+  const wPort = Form.useWatch('port', form);
+  const wNodeId = Form.useWatch('nodeId', form) ?? null;
+  const wTag = Form.useWatch('tag', form) ?? '';
+  const wSsNetwork = Form.useWatch(['settings', 'network'], form);
+  const wTunnelNetwork = Form.useWatch(['settings', 'allowedNetwork'], form);
+  const autoTagRef = useRef(true);
+  const lastWrittenTagRef = useRef('');
+  const currentTagInput = (): InboundTagInput => ({
+    listen: typeof wListen === 'string' ? wListen : '',
+    port: typeof wPort === 'number' ? wPort : 0,
+    nodeId: typeof wNodeId === 'number' ? wNodeId : null,
+    protocol,
+    streamSettings: { network },
+    settings: { network: wSsNetwork, allowedNetwork: wTunnelNetwork, udp: mixedUdpOn },
+  });
   const isFallbackHost =
     (protocol === Protocols.VLESS || protocol === Protocols.TROJAN)
     && network === 'tcp'
@@ -273,6 +291,16 @@ export default function InboundFormModal({
       : buildAddModeValues();
     form.resetFields();
     form.setFieldsValue(initial);
+    const initialTag = (initial.tag ?? '') as string;
+    autoTagRef.current = isAutoInboundTag(initialTag, {
+      listen: initial.listen ?? '',
+      port: initial.port ?? 0,
+      nodeId: initial.nodeId ?? null,
+      protocol: initial.protocol,
+      streamSettings: (initial.streamSettings ?? {}) as Record<string, unknown>,
+      settings: (initial.settings ?? {}) as Record<string, unknown>,
+    });
+    lastWrittenTagRef.current = initialTag;
     if (
       mode === 'edit'
       && dbInbound
@@ -285,6 +313,23 @@ export default function InboundFormModal({
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mode, dbInbound, form]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (wTag === lastWrittenTagRef.current) return;
+    autoTagRef.current = isAutoInboundTag(wTag, currentTagInput());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, wTag]);
+
+  useEffect(() => {
+    if (!open || !autoTagRef.current) return;
+    const next = composeInboundTag(currentTagInput());
+    if (next !== (form.getFieldValue('tag') ?? '')) {
+      lastWrittenTagRef.current = next;
+      form.setFieldValue('tag', next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, wListen, wPort, wNodeId, protocol, network, mixedUdpOn, wSsNetwork, wTunnelNetwork]);
 
   // Why: protocol picker reset cascades through the form — clearing the
   // settings DU branch and dropping a nodeId that no longer applies. The
