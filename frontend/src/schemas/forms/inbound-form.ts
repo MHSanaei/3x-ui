@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { PortSchema, SniffingSchema } from '@/schemas/primitives';
+import { InboundPortSchema, SniffingSchema } from '@/schemas/primitives';
 import { InboundSettingsSchema } from '@/schemas/protocols/inbound';
 import { SecuritySettingsSchema } from '@/schemas/protocols/security';
 import { NetworkSettingsSchema, StreamExtrasSchema } from '@/schemas/protocols/stream';
@@ -44,7 +44,7 @@ export type InboundDbFields = z.infer<typeof InboundDbFieldsSchema>;
 export const InboundFormBaseSchema = z.object({
   remark: z.string().default(''),
   enable: z.boolean().default(true),
-  port: PortSchema,
+  port: InboundPortSchema,
   listen: z.string().default(''),
   tag: z.string().default(''),
   expiryTime: z.number().int().default(0),

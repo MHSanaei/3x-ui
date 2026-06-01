@@ -291,7 +291,7 @@ export const InboundSchema = z.object({
   lastTrafficResetTime: z.number().int(),
   listen: z.string(),
   nodeId: z.number().int().nullable().optional(),
-  port: z.number().int().min(1).max(65535),
+  port: z.number().int().min(0).max(65535),
   protocol: z.enum(['vmess', 'vless', 'trojan', 'shadowsocks', 'wireguard', 'hysteria', 'http', 'mixed', 'tunnel', 'tun']),
   remark: z.string(),
   settings: z.unknown(),
