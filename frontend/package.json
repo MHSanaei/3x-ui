@@ -1,7 +1,7 @@
 {
   "name": "3x-ui-frontend",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.5",
   "type": "module",
   "description": "3x-ui panel frontend (React 19 + Ant Design 6 + Vite 8).",
   "engines": {
