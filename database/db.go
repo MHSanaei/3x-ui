@@ -203,6 +203,9 @@ func runSeeders(isUsersEmpty bool) error {
 		}
 
 		for _, user := range users {
+			if crypto.IsHashed(user.Password) {
+				continue
+			}
 			hashedPassword, err := crypto.HashPasswordAsBcrypt(user.Password)
 			if err != nil {
 				log.Printf("Error hashing password for user '%s': %v", user.Username, err)
