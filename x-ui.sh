@@ -1600,11 +1600,10 @@ ssl_cert_issue_CF() {
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     LOGI "****** Instructions for Use ******"
     LOGI "Follow the steps below to complete the process:"
-    LOGI "1. Cloudflare Registered E-mail."
-    LOGI "2. Cloudflare Global API Key."
-    LOGI "3. The Domain Name."
-    LOGI "4. Once the certificate is issued, you will be prompted to set the certificate for the panel (optional)."
-    LOGI "5. The script also supports automatic renewal of the SSL certificate after installation."
+    LOGI "1. A Cloudflare API Token (recommended, scoped to Zone:DNS:Edit) or the Global API Key + registered email."
+    LOGI "2. The Domain Name."
+    LOGI "3. Once the certificate is issued, you will be prompted to set the certificate for the panel (optional)."
+    LOGI "4. The script also supports automatic renewal of the SSL certificate after installation."
 
     confirm "Do you confirm the information and wish to proceed? [y/n]" "y"
 
@@ -1625,16 +1624,28 @@ ssl_cert_issue_CF() {
         read -rp "Input your domain here: " CF_Domain
         LOGD "Your domain name is set to: ${CF_Domain}"
 
-        # Set up Cloudflare API details
-        CF_GlobalKey=""
-        CF_AccountEmail=""
-        LOGD "Please set the API key:"
-        read -rp "Input your key here: " CF_GlobalKey
-        LOGD "Your API key is: ${CF_GlobalKey}"
+        # Cloudflare API credentials: an API Token (recommended, scoped to a
+        # single zone) or the account-wide Global API Key. acme.sh reads
+        # CF_Token for tokens, or CF_Key + CF_Email for the Global Key.
+        CF_KeyType=""
+        read -rp "Are you using a Cloudflare API Token or Global API Key? (t/g) [Default t]: " CF_KeyType
+        CF_KeyType=${CF_KeyType:-t}
 
-        LOGD "Please set up registered email:"
-        read -rp "Input your email here: " CF_AccountEmail
-        LOGD "Your registered email address is: ${CF_AccountEmail}"
+        if [[ "$CF_KeyType" == "g" || "$CF_KeyType" == "G" ]]; then
+            CF_GlobalKey=""
+            CF_AccountEmail=""
+            LOGD "Please set the Global API Key:"
+            read -rp "Input your key here: " CF_GlobalKey
+            LOGD "Please set up the registered email:"
+            read -rp "Input your email here: " CF_AccountEmail
+            export CF_Key="${CF_GlobalKey}"
+            export CF_Email="${CF_AccountEmail}"
+        else
+            CF_ApiToken=""
+            LOGD "Please set the API Token:"
+            read -rp "Input your token here: " CF_ApiToken
+            export CF_Token="${CF_ApiToken}"
+        fi
 
         # Set the default CA to Let's Encrypt
         ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
@@ -1642,9 +1653,6 @@ ssl_cert_issue_CF() {
             LOGE "Default CA, Let'sEncrypt fail, script exiting..."
             exit 1
         fi
-
-        export CF_Key="${CF_GlobalKey}"
-        export CF_Email="${CF_AccountEmail}"
 
         # Issue the certificate using Cloudflare DNS
         ~/.acme.sh/acme.sh --issue --dns dns_cf -d ${CF_Domain} -d *.${CF_Domain} --log --force
