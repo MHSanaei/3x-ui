@@ -44,12 +44,13 @@ export default function FallbacksCard({
               value={record.childId}
               options={fallbackChildOptions}
               placeholder={t('pages.inbounds.fallbacks.pickInbound') || 'Pick an inbound'}
+              allowClear
               showSearch={{
                 filterOption: (input, option) =>
                   ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase()),
               }}
               style={{ width: '100%' }}
-              onChange={(v) => updateFallback(record.rowKey, { childId: v })}
+              onChange={(v) => updateFallback(record.rowKey, { childId: v ?? null })}
             />
             <Button
               disabled={idx === 0}

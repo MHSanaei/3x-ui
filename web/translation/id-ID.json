@@ -264,7 +264,7 @@
       "localPanel": "Panel lokal",
       "fallbacks": {
         "title": "Fallback",
-        "help": "Saat koneksi pada inbound ini tidak cocok dengan client mana pun, arahkan ke inbound lain. Pilih child di bawah dan field routing (SNI / ALPN / Path / xver) terisi otomatis dari transport-nya — sebagian besar konfigurasi tidak perlu disesuaikan lagi. Setiap child harus listen di 127.0.0.1 dengan security=none.",
+        "help": "Saat koneksi pada inbound ini tidak cocok dengan client mana pun, arahkan ke tempat lain. Pilih inbound child di bawah untuk mengisi otomatis field routing (SNI / ALPN / Path / xver) dari transport-nya, atau biarkan pemilih kosong dan atur Dest langsung (mis. 8080 atau 127.0.0.1:8080) untuk mengarahkan ke server eksternal seperti Nginx. Setiap inbound child harus listen di 127.0.0.1 dengan security=none.",
         "empty": "Belum ada fallback",
         "add": "Tambah fallback",
         "pickInbound": "Pilih inbound",

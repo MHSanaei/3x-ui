@@ -264,7 +264,7 @@
       "localPanel": "Local panel",
       "fallbacks": {
         "title": "Fallbacks",
-        "help": "When a connection on this inbound does not match any client, route it to another inbound. Pick a child below and the routing fields (SNI / ALPN / path / xver) auto-fill from its transport — most setups need no further tweaking. Each child should listen on 127.0.0.1 with security=none.",
+        "help": "When a connection on this inbound does not match any client, route it elsewhere. Pick a child inbound below to auto-fill the routing fields (SNI / ALPN / path / xver) from its transport, or leave the picker empty and set Dest directly (e.g. 8080 or 127.0.0.1:8080) to route to an external server such as Nginx. Each child inbound should listen on 127.0.0.1 with security=none.",
         "empty": "No fallbacks yet",
         "add": "Add fallback",
         "pickInbound": "Pick an inbound",

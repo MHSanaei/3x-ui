@@ -264,7 +264,7 @@
       "localPanel": "Painel local",
       "fallbacks": {
         "title": "Fallbacks",
-        "help": "Quando uma conexão neste inbound não corresponde a nenhum cliente, redirecione-a para outro inbound. Escolha um filho abaixo e os campos de roteamento (SNI / ALPN / Path / xver) são preenchidos automaticamente a partir do transporte dele — a maioria das configurações não precisa de mais ajustes. Cada filho deve escutar em 127.0.0.1 com security=none.",
+        "help": "Quando uma conexão neste inbound não corresponde a nenhum cliente, redirecione-a para outro lugar. Escolha um inbound filho abaixo para preencher automaticamente os campos de roteamento (SNI / ALPN / Path / xver) a partir do transporte dele, ou deixe o seletor vazio e defina Dest diretamente (ex.: 8080 ou 127.0.0.1:8080) para rotear para um servidor externo como o Nginx. Cada inbound filho deve escutar em 127.0.0.1 com security=none.",
         "empty": "Ainda sem fallbacks",
         "add": "Adicionar fallback",
         "pickInbound": "Escolha um inbound",

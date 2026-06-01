@@ -39,7 +39,7 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
       }[])
         .map((r) => ({
           rowKey: `fb-${++fallbackKeyRef.current}`,
-          childId: r.childId,
+          childId: r.childId && r.childId > 0 ? r.childId : null,
           name: r.name || '',
           alpn: r.alpn || '',
           path: r.path || '',
@@ -52,7 +52,7 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
   const saveFallbacks = async (masterId: number) => {
     if (!masterId) return true;
     const payload = {
-      fallbacks: fallbacks.filter((c) => c.childId).map((c, i) => ({
+      fallbacks: fallbacks.filter((c) => c.childId || (c.dest ?? '').trim()).map((c, i) => ({
         childId: c.childId,
         name: c.name,
         alpn: c.alpn,

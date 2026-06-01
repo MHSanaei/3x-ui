@@ -264,7 +264,7 @@
       "localPanel": "Yerel panel",
       "fallbacks": {
         "title": "Fallback'ler",
-        "help": "Bu inbound üzerindeki bir bağlantı hiçbir client ile eşleşmediğinde, başka bir inbound'a yönlendirilir. Aşağıdan bir child seçin; yönlendirme alanları (SNI / ALPN / Path / xver) onun transport'undan otomatik dolar — çoğu kurulum için ek ayar gerekmez. Her child 127.0.0.1 üzerinde security=none ile dinlemelidir.",
+        "help": "Bu inbound üzerindeki bir bağlantı hiçbir client ile eşleşmediğinde, başka bir yere yönlendirilir. Aşağıdan bir child inbound seçerek yönlendirme alanlarını (SNI / ALPN / Path / xver) transport'undan otomatik doldurun ya da seçimi boş bırakıp Dest değerini doğrudan girin (örn. 8080 veya 127.0.0.1:8080); böylece Nginx gibi harici bir sunucuya yönlendirebilirsiniz. Her child inbound 127.0.0.1 üzerinde security=none ile dinlemelidir.",
         "empty": "Henüz fallback yok",
         "add": "Fallback ekle",
         "pickInbound": "Bir inbound seç",
