@@ -39,6 +39,7 @@ const InboundFormModal = lazy(() => import('./form/InboundFormModal'));
 const InboundInfoModal = lazy(() => import('./info/InboundInfoModal'));
 const QrCodeModal = lazy(() => import('./qr/QrCodeModal'));
 const AttachClientsModal = lazy(() => import('./clients/AttachClientsModal'));
+const AttachExistingClientsModal = lazy(() => import('./clients/AttachExistingClientsModal'));
 const DetachClientsModal = lazy(() => import('./clients/DetachClientsModal'));
 const AddClientsToGroupModal = lazy(() => import('./clients/AddClientsToGroupModal'));
 
@@ -53,6 +54,7 @@ type RowAction =
   | 'resetTraffic'
   | 'delAllClients'
   | 'attachClients'
+  | 'attachExisting'
   | 'detachClients'
   | 'addToGroup'
   | 'clone';
@@ -129,6 +131,8 @@ export default function InboundsPage() {
 
   const [attachOpen, setAttachOpen] = useState(false);
   const [attachSource, setAttachSource] = useState<DBInbound | null>(null);
+  const [attachExistingOpen, setAttachExistingOpen] = useState(false);
+  const [attachExistingTarget, setAttachExistingTarget] = useState<DBInbound | null>(null);
   const [detachOpen, setDetachOpen] = useState(false);
   const [detachSource, setDetachSource] = useState<DBInbound | null>(null);
 
@@ -523,6 +527,10 @@ export default function InboundsPage() {
         setAttachSource(target);
         setAttachOpen(true);
         break;
+      case 'attachExisting':
+        setAttachExistingTarget(target);
+        setAttachExistingOpen(true);
+        break;
       case 'detachClients':
         setDetachSource(target);
         setDetachOpen(true);
@@ -651,6 +659,14 @@ export default function InboundsPage() {
             onAttached={refresh}
             source={attachSource}
             dbInbounds={dbInbounds}
+          />
+        </LazyMount>
+        <LazyMount when={attachExistingOpen}>
+          <AttachExistingClientsModal
+            open={attachExistingOpen}
+            onClose={() => setAttachExistingOpen(false)}
+            onAttached={refresh}
+            target={attachExistingTarget}
           />
         </LazyMount>
         <LazyMount when={detachOpen}>
