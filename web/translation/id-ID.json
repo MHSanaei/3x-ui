@@ -1206,6 +1206,8 @@
         "tagRequired": "Tag wajib diisi",
         "tagPlaceholder": "tag-unik",
         "localIpPlaceholder": "IP lokal",
+        "dialerProxyPlaceholder": "Pilih outbound untuk dirantai",
+        "dialerProxyHint": "Hubungkan outbound ini melalui outbound lain (berdasarkan tag) untuk membuat rantai proxy. Kosongkan untuk terhubung langsung.",
         "addressRequired": "Alamat wajib diisi",
         "portRequired": "Port wajib diisi",
         "optional": "opsional",

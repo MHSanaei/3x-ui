@@ -1206,6 +1206,8 @@
         "tagRequired": "La etiqueta es obligatoria",
         "tagPlaceholder": "etiqueta-única",
         "localIpPlaceholder": "IP local",
+        "dialerProxyPlaceholder": "Selecciona una salida para encadenar",
+        "dialerProxyHint": "Conecta esta salida a través de otra salida (por etiqueta) para crear una cadena de proxy. Déjalo vacío para conectar directamente.",
         "addressRequired": "La dirección es obligatoria",
         "portRequired": "El puerto es obligatorio",
         "optional": "opcional",

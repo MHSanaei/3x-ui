@@ -1206,6 +1206,8 @@
         "tagRequired": "الوسم مطلوب",
         "tagPlaceholder": "وسم-فريد",
         "localIpPlaceholder": "IP محلي",
+        "dialerProxyPlaceholder": "اختر مخرجًا لتمرير الاتصال عبره",
+        "dialerProxyHint": "وجّه هذا المخرج عبر مخرج آخر (حسب الوسم) لبناء سلسلة بروكسي. اتركه فارغًا للاتصال المباشر.",
         "addressRequired": "العنوان مطلوب",
         "portRequired": "المنفذ مطلوب",
         "optional": "اختياري",

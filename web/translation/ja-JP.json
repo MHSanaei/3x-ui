@@ -1206,6 +1206,8 @@
         "tagRequired": "タグは必須です",
         "tagPlaceholder": "一意のタグ",
         "localIpPlaceholder": "ローカル IP",
+        "dialerProxyPlaceholder": "経由するアウトバウンドを選択",
+        "dialerProxyHint": "このアウトバウンドを別のアウトバウンド（タグ指定）経由で接続し、プロキシチェーンを構成します。直接接続する場合は空のままにします。",
         "addressRequired": "アドレスは必須です",
         "portRequired": "ポートは必須です",
         "optional": "任意",

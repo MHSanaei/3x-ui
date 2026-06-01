@@ -1206,6 +1206,8 @@
         "tagRequired": "Etiket gereklidir",
         "tagPlaceholder": "benzersiz-etiket",
         "localIpPlaceholder": "yerel IP",
+        "dialerProxyPlaceholder": "Zincirlemek için bir giden seçin",
+        "dialerProxyHint": "Bir proxy zinciri oluşturmak için bu gideni başka bir giden üzerinden (etikete göre) bağlayın. Doğrudan bağlanmak için boş bırakın.",
         "addressRequired": "Adres gereklidir",
         "portRequired": "Port gereklidir",
         "optional": "opsiyonel",

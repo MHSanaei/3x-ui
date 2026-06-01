@@ -1206,6 +1206,8 @@
         "tagRequired": "Tag là bắt buộc",
         "tagPlaceholder": "tag-duy-nhất",
         "localIpPlaceholder": "IP nội bộ",
+        "dialerProxyPlaceholder": "Chọn một outbound để nối chuỗi",
+        "dialerProxyHint": "Kết nối outbound này qua một outbound khác (theo tag) để tạo chuỗi proxy. Để trống để kết nối trực tiếp.",
         "addressRequired": "Địa chỉ là bắt buộc",
         "portRequired": "Cổng là bắt buộc",
         "optional": "tùy chọn",

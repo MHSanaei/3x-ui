@@ -1206,6 +1206,8 @@
         "tagRequired": "標籤為必填",
         "tagPlaceholder": "唯一標籤",
         "localIpPlaceholder": "本地 IP",
+        "dialerProxyPlaceholder": "選擇要串接的出站",
+        "dialerProxyHint": "讓此出站透過另一個出站（以標籤指定）連線，以建立代理鏈。留空則直接連線。",
         "addressRequired": "地址為必填",
         "portRequired": "連接埠為必填",
         "optional": "選用",

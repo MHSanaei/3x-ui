@@ -1206,6 +1206,8 @@
         "tagRequired": "Tag is required",
         "tagPlaceholder": "unique-tag",
         "localIpPlaceholder": "local IP",
+        "dialerProxyPlaceholder": "Select an outbound to chain through",
+        "dialerProxyHint": "Dial this outbound through another outbound (by tag) to build a proxy chain. Leave empty to connect directly.",
         "addressRequired": "Address is required",
         "portRequired": "Port is required",
         "optional": "optional",

@@ -1206,6 +1206,8 @@
         "tagRequired": "تگ الزامی است",
         "tagPlaceholder": "تگ-منحصربه‌فرد",
         "localIpPlaceholder": "IP محلی",
+        "dialerProxyPlaceholder": "یک خروجی برای زنجیره کردن انتخاب کنید",
+        "dialerProxyHint": "این خروجی را از طریق خروجی دیگری (با تگ) برقرار کن تا یک زنجیره پروکسی ساخته شود. برای اتصال مستقیم خالی بگذار.",
         "addressRequired": "آدرس الزامی است",
         "portRequired": "پورت الزامی است",
         "optional": "اختیاری",
