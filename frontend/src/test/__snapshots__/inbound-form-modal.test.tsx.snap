@@ -9,6 +9,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > http 
   "Port",
   "Total Flow",
   "Traffic Reset",
+  "Speed Limit",
   "Duration",
   "Enabled",
 ]
@@ -23,6 +24,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > hyste
   "Port",
   "Total Flow",
   "Traffic Reset",
+  "Speed Limit",
   "Duration",
   "Enabled",
 ]
@@ -37,6 +39,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > mixed
   "Port",
   "Total Flow",
   "Traffic Reset",
+  "Speed Limit",
   "Duration",
   "Enabled",
 ]
@@ -51,6 +54,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > shado
   "Port",
   "Total Flow",
   "Traffic Reset",
+  "Speed Limit",
   "Duration",
   "Enabled",
 ]
@@ -65,6 +69,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > troja
   "Port",
   "Total Flow",
   "Traffic Reset",
+  "Speed Limit",
   "Duration",
   "Enabled",
 ]
@@ -79,6 +84,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > tun 1
   "Port",
   "Total Flow",
   "Traffic Reset",
+  "Speed Limit",
   "Duration",
   "Enabled",
 ]
@@ -93,6 +99,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > tunne
   "Port",
   "Total Flow",
   "Traffic Reset",
+  "Speed Limit",
   "Duration",
   "Enabled",
 ]
@@ -107,6 +114,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > vless
   "Port",
   "Total Flow",
   "Traffic Reset",
+  "Speed Limit",
   "Duration",
   "Enabled",
 ]
@@ -121,6 +129,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > vmess
   "Port",
   "Total Flow",
   "Traffic Reset",
+  "Speed Limit",
   "Duration",
   "Enabled",
 ]
@@ -135,6 +144,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > wireg
   "Port",
   "Total Flow",
   "Traffic Reset",
+  "Speed Limit",
   "Duration",
   "Enabled",
 ]
