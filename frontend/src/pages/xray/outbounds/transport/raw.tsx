@@ -48,6 +48,15 @@ export default function RawForm({ form }: { form: FormInstance<OutboundFormValue
             {type === 'http' && (
               <>
                 <Form.Item
+                  label={t('pages.inbounds.form.requestVersion')}
+                  name={[
+                    'streamSettings', 'tcpSettings', 'header',
+                    'request', 'version',
+                  ]}
+                >
+                  <Input placeholder="1.1" />
+                </Form.Item>
+                <Form.Item
                   label={t('pages.inbounds.form.requestMethod')}
                   name={[
                     'streamSettings', 'tcpSettings', 'header',
@@ -57,13 +66,19 @@ export default function RawForm({ form }: { form: FormInstance<OutboundFormValue
                   <Input placeholder="GET" />
                 </Form.Item>
                 <Form.Item
-                  label={t('pages.inbounds.form.requestVersion')}
+                  label={t('pages.inbounds.form.requestPath')}
                   name={[
                     'streamSettings', 'tcpSettings', 'header',
-                    'request', 'version',
+                    'request', 'path',
                   ]}
+                  getValueProps={(v) => ({ value: Array.isArray(v) ? v.join(',') : v })}
+                  getValueFromEvent={(e) => {
+                    const raw = (e?.target?.value ?? '') as string;
+                    const parts = raw.split(',').map((s) => s.trim()).filter(Boolean);
+                    return parts.length > 0 ? parts : ['/'];
+                  }}
                 >
-                  <Input placeholder="1.1" />
+                  <Input placeholder="/" />
                 </Form.Item>
                 <Form.Item
                   label={t('pages.inbounds.form.requestHeaders')}
