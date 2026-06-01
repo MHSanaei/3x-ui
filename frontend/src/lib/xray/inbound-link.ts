@@ -610,6 +610,9 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
   if (tls.alpn.length > 0) params.set('alpn', tls.alpn.join(','));
   if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
+  if (tls.settings.pinnedPeerCertSha256.length > 0) {
+    params.set('pinSHA256', tls.settings.pinnedPeerCertSha256.join(','));
+  }
 
   const udpMasks = stream.finalmask?.udp;
   if (Array.isArray(udpMasks)) {

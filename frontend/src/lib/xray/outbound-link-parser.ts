@@ -417,7 +417,7 @@ export function parseHysteria2Link(link: string): Raw | null {
       fingerprint: params.get('fp') ?? '',
       echConfigList: params.get('ech') ?? '',
       verifyPeerCertByName: '',
-      pinnedPeerCertSha256: params.get('pcs') ?? '',
+      pinnedPeerCertSha256: params.get('pinSHA256') ?? '',
     },
   };
   applyFinalMaskParam(stream, params);

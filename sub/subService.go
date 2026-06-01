@@ -603,9 +603,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
 			params["fp"], _ = fpValue.(string)
 		}
-		if insecure, ok := searchKey(tlsSettings, "allowInsecure"); ok {
-			if insecure.(bool) {
-				params["insecure"] = "1"
+		if echValue, ok := searchKey(tlsSettings, "echConfigList"); ok {
+			if ech, _ := echValue.(string); ech != "" {
+				params["ech"] = ech
 			}
 		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
