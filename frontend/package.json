@@ -47,7 +47,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/swagger-ui-react": "^5.18.0",
     "@vitejs/plugin-react": "^6.0.2",
-    "eslint": "^10.4.0",
+    "eslint": "^10.4.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
     "typescript": "^6.0.3",
