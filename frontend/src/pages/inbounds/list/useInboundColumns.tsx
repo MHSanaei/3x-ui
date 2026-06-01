@@ -1,6 +1,7 @@
 import { useMemo, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Popover, Switch, Tag, type TableColumnType } from 'antd';
+import { TeamOutlined } from '@ant-design/icons';
 
 import { SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
 import { InfinityIcon } from '@/components/ui';
@@ -152,15 +153,27 @@ export function useInboundColumns({
         title: t('clients'),
         key: 'clients',
         align: 'left',
-        width: 50,
+        width: 80,
         render: (_, record) => {
           const cc = clientCount[record.id];
           if (!cc) return null;
           return (
             <>
-              <Tag color="green" className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>
-                {cc.clients}
+              <Tag className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>
+                <TeamOutlined /> {cc.clients}
               </Tag>
+              {cc.active.length > 0 && (
+                <Popover
+                  title={t('subscription.active')}
+                  content={(
+                    <div className="client-email-list">
+                      {cc.active.map((e) => <div key={e}>{e}</div>)}
+                    </div>
+                  )}
+                >
+                  <Tag color="green" className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>{cc.active.length}</Tag>
+                </Popover>
+              )}
               {cc.deactive.length > 0 && (
                 <Popover
                   title={t('disabled')}
@@ -183,18 +196,6 @@ export function useInboundColumns({
                   )}
                 >
                   <Tag color="red" className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>{cc.depleted.length}</Tag>
-                </Popover>
-              )}
-              {cc.expiring.length > 0 && (
-                <Popover
-                  title={t('depletingSoon')}
-                  content={(
-                    <div className="client-email-list">
-                      {cc.expiring.map((e) => <div key={e}>{e}</div>)}
-                    </div>
-                  )}
-                >
-                  <Tag color="orange" className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>{cc.expiring.length}</Tag>
                 </Popover>
               )}
               {cc.online.length > 0 && (

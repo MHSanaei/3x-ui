@@ -142,14 +142,7 @@ export function useInbounds() {
       const clientStats = Array.isArray((dbInbound as { clientStats?: unknown }).clientStats)
         ? (dbInbound as unknown as { clientStats: { email: string; total: number; up: number; down: number; expiryTime: number }[] }).clientStats
         : [];
-      const allClients = inbound?.clients || [];
-      const statsEmails = new Set<string>();
-      for (const s of clientStats) {
-        if (s && s.email) statsEmails.add(s.email);
-      }
-      const clients = clientStats.length > 0
-        ? allClients.filter((c) => c && c.email && statsEmails.has(c.email))
-        : allClients;
+      const clients = inbound?.clients || [];
       const active: string[] = [];
       const deactive: string[] = [];
       const depleted: string[] = [];
