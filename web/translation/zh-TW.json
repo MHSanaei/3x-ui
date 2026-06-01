@@ -1171,7 +1171,8 @@
         "info": "資訊",
         "add": "新增規則",
         "edit": "編輯規則",
-        "useComma": "逗號分隔的項目"
+        "useComma": "逗號分隔的項目",
+        "onePerLine": "每行一件"
       },
       "routing": {
         "dragToReorder": "拖曳以重新排序"

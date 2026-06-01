@@ -1171,7 +1171,8 @@
         "info": "Info",
         "add": "Tambahkan Aturan",
         "edit": "Edit Aturan",
-        "useComma": "Item yang dipisahkan koma"
+        "useComma": "Item yang dipisahkan koma",
+        "onePerLine": "Satu item per baris"
       },
       "routing": {
         "dragToReorder": "Seret untuk mengurutkan ulang"

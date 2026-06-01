@@ -1171,7 +1171,8 @@
         "info": "Thông tin",
         "add": "Thêm quy tắc",
         "edit": "Chỉnh sửa quy tắc",
-        "useComma": "Các mục được phân tách bằng dấu phẩy"
+        "useComma": "Các mục được phân tách bằng dấu phẩy",
+        "onePerLine": "Một mục trên mỗi dòng"
       },
       "routing": {
         "dragToReorder": "Kéo để sắp xếp lại"

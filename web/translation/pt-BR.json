@@ -1171,7 +1171,8 @@
         "info": "Info",
         "add": "Adicionar Regra",
         "edit": "Editar Regra",
-        "useComma": "Itens separados por vírgula"
+        "useComma": "Itens separados por vírgula",
+        "onePerLine": "Um item por linha"
       },
       "routing": {
         "dragToReorder": "Arraste para reordenar"

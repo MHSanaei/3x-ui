@@ -1171,7 +1171,8 @@
         "info": "Bilgi",
         "add": "Kural Ekle",
         "edit": "Kuralı Düzenle",
-        "useComma": "Virgülle ayrılmış öğeler"
+        "useComma": "Virgülle ayrılmış öğeler",
+        "onePerLine": "Her satırda bir öğe"
       },
       "routing": {
         "dragToReorder": "Yeniden sıralamak için sürükleyin"

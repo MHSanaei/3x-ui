@@ -1171,7 +1171,8 @@
         "info": "Info",
         "add": "Add Rule",
         "edit": "Edit Rule",
-        "useComma": "Comma-separated list"
+        "useComma": "Comma-separated list",
+        "onePerLine": "One item per line"
       },
       "routing": {
         "dragToReorder": "Drag to reorder"

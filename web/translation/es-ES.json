@@ -1171,7 +1171,8 @@
         "info": "Info",
         "add": "Agregar Regla",
         "edit": "Editar Regla",
-        "useComma": "Elementos separados por comas"
+        "useComma": "Elementos separados por comas",
+        "onePerLine": "Un elemento por línea"
       },
       "routing": {
         "dragToReorder": "Arrastra para reordenar"

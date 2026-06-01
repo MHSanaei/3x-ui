@@ -1171,7 +1171,8 @@
         "info": "情報",
         "add": "ルール追加",
         "edit": "ルール編集",
-        "useComma": "カンマ区切りの項目"
+        "useComma": "カンマ区切りの項目",
+        "onePerLine": "1行につき1項目"
       },
       "routing": {
         "dragToReorder": "ドラッグして並べ替え"
