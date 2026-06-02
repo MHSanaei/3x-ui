@@ -197,13 +197,21 @@ export function useXraySetting(): UseXraySettingResult {
   }, [queryClient]);
 
   const saveMut = useMutation({
-    mutationFn: async () =>
-      HttpUtil.post('/panel/xray/update', {
-        xraySetting: xraySettingRef.current,
-        outboundTestUrl: outboundTestUrlRef.current || DEFAULT_TEST_URL,
-      }),
-    onSuccess: (msg) => {
-      if (msg?.success) queryClient.invalidateQueries({ queryKey: keys.xray.config() });
+    mutationFn: async () => {
+      const sentXraySetting = xraySettingRef.current;
+      const sentTestUrl = outboundTestUrlRef.current || DEFAULT_TEST_URL;
+      const msg = await HttpUtil.post('/panel/xray/update', {
+        xraySetting: sentXraySetting,
+        outboundTestUrl: sentTestUrl,
+      });
+      return { msg, sentXraySetting, sentTestUrl };
+    },
+    onSuccess: ({ msg, sentXraySetting, sentTestUrl }) => {
+      if (!msg?.success) return;
+      oldXraySettingRef.current = sentXraySetting;
+      oldOutboundTestUrlRef.current = sentTestUrl;
+      setSaveDisabled(true);
+      queryClient.invalidateQueries({ queryKey: keys.xray.config() });
     },
   });
 
