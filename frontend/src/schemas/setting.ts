@@ -14,7 +14,7 @@ export const AllSettingSchema = z.object({
   sessionMaxAge: z.number().int().min(1).max(525600).optional(),
   trustedProxyCIDRs: z.string().optional(),
   panelProxy: z.string().optional(),
-  pageSize: z.number().int().min(1).max(1000).optional(),
+  pageSize: z.number().int().min(0).max(1000).optional(),
   expireDiff: nonNegativeInt.optional(),
   trafficDiff: nonNegativeInt.max(100).optional(),
   remarkModel: z.string().optional(),
