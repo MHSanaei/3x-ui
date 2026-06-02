@@ -64,15 +64,26 @@ func TestIsRoutableHost(t *testing.T) {
 func TestResolveInboundAddress(t *testing.T) {
 	const reqHost = "sub.example.com"
 
-	// A subscriber reaches the panel through reqHost; the inbound's own
-	// bind Listen IP (loopback, private, or even a public secondary IP) is
-	// a server-side detail and must never become the link's connect host.
-	t.Run("bind listen IP must not leak into the link host", func(t *testing.T) {
+	// A routable bind Listen (a real IP or hostname the operator set as the
+	// inbound's advertised endpoint) becomes the link's connect host.
+	t.Run("routable listen is advertised as the link host", func(t *testing.T) {
 		s := &SubService{address: reqHost}
-		for _, listen := range []string{"127.0.0.1", "10.0.0.5", "192.168.1.10", "1.2.3.4", "0.0.0.0", "::", "::0", ""} {
+		for _, listen := range []string{"1.2.3.4", "10.0.0.5", "192.168.1.10", "203.0.113.7", "vpn.example.com"} {
+			ib := &model.Inbound{Listen: listen}
+			if got := s.resolveInboundAddress(ib); got != listen {
+				t.Fatalf("listen %q: address = %q, want %q (advertised listen)", listen, got, listen)
+			}
+		}
+	})
+
+	// A loopback/wildcard bind or a unix-domain-socket listen is a
+	// server-side detail and must never leak into the link host.
+	t.Run("non-routable listen falls back to subscriber host", func(t *testing.T) {
+		s := &SubService{address: reqHost}
+		for _, listen := range []string{"", "0.0.0.0", "::", "::0", "127.0.0.1", "::1", "@fallback", "/run/x.sock"} {
 			ib := &model.Inbound{Listen: listen}
 			if got := s.resolveInboundAddress(ib); got != reqHost {
-				t.Fatalf("listen %q: address = %q, want %q (subscriber host, not bind IP)", listen, got, reqHost)
+				t.Fatalf("listen %q: address = %q, want %q (subscriber host, not bind detail)", listen, got, reqHost)
 			}
 		}
 	})
@@ -92,7 +103,7 @@ func TestResolveInboundAddress(t *testing.T) {
 	t.Run("node id with no known node falls back to subscriber host", func(t *testing.T) {
 		id := 9
 		s := &SubService{address: reqHost, nodesByID: map[int]*model.Node{}}
-		ib := &model.Inbound{NodeID: &id, Listen: "10.0.0.1"}
+		ib := &model.Inbound{NodeID: &id, Listen: "0.0.0.0"}
 		if got := s.resolveInboundAddress(ib); got != reqHost {
 			t.Fatalf("unknown-node address = %q, want subscriber host %q", got, reqHost)
 		}

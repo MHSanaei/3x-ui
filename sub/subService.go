@@ -713,15 +713,22 @@ func (s *SubService) loadNodes() {
 	s.nodesByID = m
 }
 
-// resolveInboundAddress returns the node's address for node-managed inbounds,
-// otherwise the subscriber's host (s.address). The inbound's bind Listen is
-// deliberately ignored: it's a server-side address, not a client-reachable
-// host, so operators advertise a specific endpoint via External Proxy instead.
+// resolveInboundAddress picks the host an external client should connect to:
+//   1. node-managed inbound -> the node's address
+//   2. an explicit, client-reachable bind Listen -> that Listen
+//   3. otherwise the subscriber's request host (s.address)
+// A loopback/wildcard bind or a unix-domain-socket listen is a server-side
+// detail and is never advertised; External Proxy remains the way to advertise
+// an arbitrary endpoint. Mirrors the frontend's resolveAddr so the panel QR and
+// the subscription agree.
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 	if inbound.NodeID != nil && s.nodesByID != nil {
 		if n, ok := s.nodesByID[*inbound.NodeID]; ok && n.Address != "" {
 			return n.Address
 		}
+	}
+	if listen := inbound.Listen; listen != "" && listen[0] != '@' && listen[0] != '/' && isRoutableHost(listen) {
+		return listen
 	}
 	return s.address
 }
