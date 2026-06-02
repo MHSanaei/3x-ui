@@ -562,7 +562,7 @@ func (p HeartbeatPatch) ToUI(ok bool) ProbeResultUI {
 		CpuPct:       p.CpuPct,
 		MemPct:       p.MemPct,
 		UptimeSecs:   p.UptimeSecs,
-		Error:        p.LastError,
+		Error:        FriendlyProbeError(p.LastError),
 	}
 	if ok {
 		r.Status = "online"
@@ -570,4 +570,11 @@ func (p HeartbeatPatch) ToUI(ok bool) ProbeResultUI {
 		r.Status = "offline"
 	}
 	return r
+}
+
+func FriendlyProbeError(msg string) string {
+	if strings.Contains(msg, "server gave HTTP response to HTTPS client") {
+		return "the server speaks HTTP, not HTTPS; set the node scheme to http"
+	}
+	return msg
 }
