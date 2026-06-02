@@ -10,6 +10,7 @@ import {
   genVmessLink,
   genWireguardConfig,
   genWireguardLink,
+  preferPublicHost,
   resolveAddr,
 } from '@/lib/xray/inbound-link';
 import { InboundSchema } from '@/schemas/api/inbound';
@@ -279,6 +280,35 @@ describe('resolveAddr precedence', () => {
       '',
       'fallback.test',
     )).toBe('fallback.test');
+  });
+});
+
+// #4829: reaching the panel through an SSH tunnel (127.0.0.1/localhost) must not
+// leak the loopback host into share/QR links; a configured public host wins.
+describe('preferPublicHost (loopback fallback)', () => {
+  it('keeps a routable browser host as-is even when a public host is configured', () => {
+    expect(preferPublicHost('panel.example.com', 'sub.example.com')).toBe('panel.example.com');
+    expect(preferPublicHost('203.0.113.7', 'sub.example.com')).toBe('203.0.113.7');
+  });
+
+  it('substitutes the public host for loopback browser hosts', () => {
+    for (const loop of ['127.0.0.1', 'localhost', '::1', '[::1]', '127.5.6.7']) {
+      expect(preferPublicHost(loop, 'sub.example.com')).toBe('sub.example.com');
+    }
+  });
+
+  it('leaves loopback untouched when no public host is configured', () => {
+    expect(preferPublicHost('127.0.0.1', '')).toBe('127.0.0.1');
+    expect(preferPublicHost('localhost', '')).toBe('localhost');
+  });
+
+  it('an explicit per-inbound listen still wins over the loopback fallback', () => {
+    const inbound = { listen: '203.0.113.9', port: 443, protocol: 'vless' as const };
+    expect(resolveAddr(
+      inbound as never,
+      '',
+      preferPublicHost('127.0.0.1', 'sub.example.com'),
+    )).toBe('203.0.113.9');
   });
 });
 

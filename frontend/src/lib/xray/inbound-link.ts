@@ -752,6 +752,23 @@ export function resolveAddr(inbound: Inbound, hostOverride: string, fallbackHost
   return fallbackHostname;
 }
 
+// A loopback browser host means the panel was reached through a tunnel (e.g.
+// SSH-forwarded 127.0.0.1/localhost), so it can never be a shareable link host.
+function isLoopbackHost(host: string): boolean {
+  const h = host.trim().replace(/^\[|\]$/g, '').toLowerCase();
+  return h === 'localhost' || h === '::1' || h.startsWith('127.');
+}
+
+// preferPublicHost is the browser-side analog of the backend's
+// configuredPublicHost: when the panel is reached on a loopback host, prefer a
+// configured public host (Sub/Web Domain) for share/QR links so they match the
+// subscription links instead of leaking localhost. An explicit per-inbound
+// listen or node override still wins, since resolveAddr only reaches the
+// fallbackHostname after those.
+export function preferPublicHost(browserHost: string, publicHost: string): string {
+  return publicHost && isLoopbackHost(browserHost) ? publicHost : browserHost;
+}
+
 // Returns the client array for protocols that have one. SS returns its
 // clients only in 2022-blake3 multi-user mode (matches the legacy
 // `this.clients` getter, which used isSSMultiUser to gate). Returns null

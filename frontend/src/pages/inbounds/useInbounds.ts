@@ -18,6 +18,10 @@ export interface SubSettings {
   subURI: string;
   subJsonURI: string;
   subJsonEnable: boolean;
+  // Configured public host (Sub Domain, else Web Domain) used as the share/QR
+  // link host when the panel is reached on a loopback address. Empty if neither
+  // is set.
+  publicHost: string;
 }
 
 type DBInboundInstance = InstanceType<typeof DBInbound>;
@@ -135,7 +139,8 @@ export function useInbounds() {
     subURI: defaults.subURI || '',
     subJsonURI: defaults.subJsonURI || '',
     subJsonEnable: !!defaults.subJsonEnable,
-  }), [defaults.subEnable, defaults.subTitle, defaults.subURI, defaults.subJsonURI, defaults.subJsonEnable]);
+    publicHost: defaults.subDomain || defaults.webDomain || '',
+  }), [defaults.subEnable, defaults.subTitle, defaults.subURI, defaults.subJsonURI, defaults.subJsonEnable, defaults.subDomain, defaults.webDomain]);
 
   useEffect(() => {
     if (defaults.datepicker) setDatepicker(datepicker);
