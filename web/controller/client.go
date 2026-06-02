@@ -93,6 +93,12 @@ func (a *ClientController) get(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "get"), err)
 		return
 	}
+	flow, err := a.clientService.EffectiveFlow(nil, rec.Id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	rec.Flow = flow
 	jsonObj(c, gin.H{"client": rec, "inboundIds": inboundIds}, nil)
 }
 

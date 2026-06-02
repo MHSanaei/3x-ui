@@ -83,3 +83,99 @@ func TestFlowIsolation_VisionDoesNotLeakToWsInbound(t *testing.T) {
 		t.Errorf("WS+TLS inbound must not inherit Vision flow (#4628), got %#v", wsList)
 	}
 }
+
+func TestEffectiveFlow_NonFlowInboundSyncedLastDoesNotHideVision(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+	reality := &model.Inbound{Tag: "vless-reality", Enable: true, Port: 40001, Protocol: model.VLESS, StreamSettings: `{"network":"tcp","security":"reality"}`}
+	if err := db.Create(reality).Error; err != nil {
+		t.Fatalf("create reality inbound: %v", err)
+	}
+	hysteria := &model.Inbound{Tag: "hysteria", Enable: true, Port: 40002, Protocol: model.Hysteria, StreamSettings: `{"security":"tls"}`}
+	if err := db.Create(hysteria).Error; err != nil {
+		t.Fatalf("create hysteria inbound: %v", err)
+	}
+
+	svc := ClientService{}
+	const email = "shared@example.com"
+	const uid = "ce8d33df-3a64-4f10-8f9b-91c3a8e0c099"
+	const vision = "xtls-rprx-vision"
+
+	source := model.Client{Email: email, ID: uid, Auth: uid, Enable: true, Flow: vision}
+	// Reproduce #4792 ordering: the flow-capable inbound (Reality) syncs first,
+	// the non-flow inbound (Hysteria) syncs last and wipes clients.Flow to "".
+	for _, ib := range []*model.Inbound{reality, hysteria} {
+		gated := clientWithInboundFlow(source, ib)
+		if err := svc.SyncInbound(nil, ib.Id, []model.Client{gated}); err != nil {
+			t.Fatalf("SyncInbound(%s): %v", ib.Tag, err)
+		}
+	}
+
+	rec, err := svc.GetRecordByEmail(nil, email)
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+	if rec.Flow != "" {
+		t.Logf("note: canonical clients.Flow = %q (denormalized, not authoritative)", rec.Flow)
+	}
+
+	got, err := svc.EffectiveFlow(nil, rec.Id)
+	if err != nil {
+		t.Fatalf("EffectiveFlow: %v", err)
+	}
+	if got != vision {
+		t.Errorf("EffectiveFlow = %q, want %q — the edit form would show a blank flow (#4792)", got, vision)
+	}
+}
+
+func TestEffectiveFlow_ClearedFlowStaysCleared(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+	reality := &model.Inbound{Tag: "vless-reality", Enable: true, Port: 41001, Protocol: model.VLESS, StreamSettings: `{"network":"tcp","security":"reality"}`}
+	if err := db.Create(reality).Error; err != nil {
+		t.Fatalf("create reality inbound: %v", err)
+	}
+	hysteria := &model.Inbound{Tag: "hysteria", Enable: true, Port: 41002, Protocol: model.Hysteria, StreamSettings: `{"security":"tls"}`}
+	if err := db.Create(hysteria).Error; err != nil {
+		t.Fatalf("create hysteria inbound: %v", err)
+	}
+
+	svc := ClientService{}
+	const email = "noflow@example.com"
+	const uid = "ce8d33df-3a64-4f10-8f9b-91c3a8e0c0aa"
+
+	// User chose no flow: every inbound carries "". A non-empty guard in
+	// SyncInbound would make this impossible to express; EffectiveFlow must
+	// still report "".
+	source := model.Client{Email: email, ID: uid, Auth: uid, Enable: true, Flow: ""}
+	for _, ib := range []*model.Inbound{reality, hysteria} {
+		gated := clientWithInboundFlow(source, ib)
+		if err := svc.SyncInbound(nil, ib.Id, []model.Client{gated}); err != nil {
+			t.Fatalf("SyncInbound(%s): %v", ib.Tag, err)
+		}
+	}
+
+	rec, err := svc.GetRecordByEmail(nil, email)
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+	got, err := svc.EffectiveFlow(nil, rec.Id)
+	if err != nil {
+		t.Fatalf("EffectiveFlow: %v", err)
+	}
+	if got != "" {
+		t.Errorf("EffectiveFlow = %q, want empty (cleared flow must stay cleared)", got)
+	}
+}
