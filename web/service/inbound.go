@@ -479,7 +479,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err != nil {
 		return inbound, false, err
 	}
-	existEmail, err := s.clientService.checkEmailsExistForClients(s, clients)
+	existEmail, err := s.clientService.checkEmailsExistForClients(s, clients, nil)
 	if err != nil {
 		return inbound, false, err
 	}
