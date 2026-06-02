@@ -129,12 +129,24 @@ type process struct {
 	version string
 	apiPort int
 
+	// onlineClients is the set of emails active on THIS panel's own xray
+	// within the online grace window. It is derived only from local xray
+	// traffic polls (see RefreshLocalOnline) — never from remote-node
+	// snapshots — so a client connected solely to a remote node is not
+	// reported online on local inbounds.
 	onlineClients []string
+	// localLastOnline records, per email, the last time this panel's own
+	// xray reported traffic for it. RefreshLocalOnline rebuilds
+	// onlineClients from this map each tick, keeping the local online set
+	// independent of the shared client_traffics.last_online column — that
+	// column is bumped by remote-node syncs too and would otherwise leak
+	// remote-only clients into the local set.
+	localLastOnline map[string]int64
 	// nodeOnlineClients holds the online-emails list reported by each
 	// remote node, keyed by node id. NodeTrafficSyncJob populates entries
 	// per cron tick and clears them when a node's probe fails. The mutex
-	// guards both this map and onlineClients above so GetOnlineClients
-	// can build the union without a torn read.
+	// guards this map, onlineClients, and localLastOnline above so the
+	// online getters never see a torn read.
 	nodeOnlineClients map[int][]string
 	onlineMu          sync.RWMutex
 
@@ -151,6 +163,12 @@ var (
 	xrayGracefulStopTimeout = 5 * time.Second
 	xrayForceStopTimeout    = 2 * time.Second
 )
+
+// localNodeKey is the GetOnlineClientsByNode key under which this panel's
+// own (non-node-managed) inbounds report their online clients. Node ids
+// autoincrement from 1, so 0 is a safe sentinel that never collides with a
+// real node. The frontend mirrors this contract (nodeId ?? 0).
+const localNodeKey = 0
 
 // newProcess creates a new internal process struct for Xray.
 func newProcess(config *Config) *process {
@@ -251,12 +269,57 @@ func (p *Process) GetOnlineClients() []string {
 	return out
 }
 
-// SetOnlineClients sets the locally-online list. Called by the local
-// XrayTrafficJob after each xray gRPC stats poll.
-func (p *Process) SetOnlineClients(users []string) {
+// GetOnlineClientsByNode returns online emails grouped by the node that
+// reported them: this panel's own xray clients under localNodeKey (0), and
+// each remote node's clients under that node's id. Unlike GetOnlineClients
+// (which flattens everything into one deduped union), this preserves node
+// attribution so per-inbound/per-node online counts don't bleed a client
+// connected to one node onto every other node. Empty groups are omitted.
+func (p *Process) GetOnlineClientsByNode() map[int][]string {
+	p.onlineMu.RLock()
+	defer p.onlineMu.RUnlock()
+
+	out := make(map[int][]string, len(p.nodeOnlineClients)+1)
+	if len(p.onlineClients) > 0 {
+		local := make([]string, len(p.onlineClients))
+		copy(local, p.onlineClients)
+		out[localNodeKey] = local
+	}
+	for nodeID, list := range p.nodeOnlineClients {
+		if len(list) == 0 {
+			continue
+		}
+		cp := make([]string, len(list))
+		copy(cp, list)
+		out[nodeID] = cp
+	}
+	return out
+}
+
+// RefreshLocalOnline records that each email in activeEmails had local xray
+// traffic at now, then rebuilds onlineClients from every email seen within
+// graceMs and prunes entries older than that. Called by the local
+// XrayTrafficJob after each xray gRPC stats poll. Pass a nil/empty
+// activeEmails to only prune — NodeTrafficSyncJob does this so a stopped
+// local xray's clients still age out between local traffic polls.
+func (p *Process) RefreshLocalOnline(activeEmails []string, now, graceMs int64) {
 	p.onlineMu.Lock()
-	p.onlineClients = users
-	p.onlineMu.Unlock()
+	defer p.onlineMu.Unlock()
+	if p.localLastOnline == nil {
+		p.localLastOnline = make(map[string]int64, len(activeEmails))
+	}
+	for _, email := range activeEmails {
+		p.localLastOnline[email] = now
+	}
+	online := make([]string, 0, len(p.localLastOnline))
+	for email, ts := range p.localLastOnline {
+		if now-ts < graceMs {
+			online = append(online, email)
+		} else {
+			delete(p.localLastOnline, email)
+		}
+	}
+	p.onlineClients = online
 }
 
 // SetNodeOnlineClients records the online-emails set for one remote

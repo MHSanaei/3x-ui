@@ -3617,7 +3617,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "List the emails of currently connected clients (last seen within the heartbeat window).",
+        "summary": "List the emails of currently connected clients (last seen within the heartbeat window), deduped across every node.",
         "operationId": "post_panel_api_clients_onlines",
         "responses": {
           "200": {
@@ -3642,6 +3642,48 @@
                     "user1",
                     "user2"
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/onlinesByNode": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Online client emails grouped by the node that reported them. The local panel uses key \"0\"; each remote node uses its node id. Lets the inbounds page show online status per node instead of merging every node together.",
+        "operationId": "post_panel_api_clients_onlinesByNode",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "0": [
+                      "user1"
+                    ],
+                    "3": [
+                      "user1",
+                      "user2"
+                    ]
+                  }
                 }
               }
             }

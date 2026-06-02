@@ -666,8 +666,14 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/onlines',
-        summary: 'List the emails of currently connected clients (last seen within the heartbeat window).',
+        summary: 'List the emails of currently connected clients (last seen within the heartbeat window), deduped across every node.',
         response: '{\n  "success": true,\n  "obj": ["user1", "user2"]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/onlinesByNode',
+        summary: 'Online client emails grouped by the node that reported them. The local panel uses key "0"; each remote node uses its node id. Lets the inbounds page show online status per node instead of merging every node together.',
+        response: '{\n  "success": true,\n  "obj": {\n    "0": ["user1"],\n    "3": ["user1", "user2"]\n  }\n}',
       },
       {
         method: 'POST',

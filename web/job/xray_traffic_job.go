@@ -72,7 +72,17 @@ func (j *XrayTrafficJob) Run() {
 	if lastOnlineMap == nil {
 		lastOnlineMap = make(map[string]int64)
 	}
-	j.inboundService.RefreshOnlineClientsFromMap(lastOnlineMap)
+	// Derive the local online set from this poll's per-email deltas rather
+	// than the shared last_online column, which remote-node syncs also bump
+	// and would otherwise make a client active only on a remote node appear
+	// online on local inbounds.
+	activeEmails := make([]string, 0, len(clientTraffics))
+	for _, ct := range clientTraffics {
+		if ct != nil && ct.Up+ct.Down > 0 {
+			activeEmails = append(activeEmails, ct.Email)
+		}
+	}
+	j.inboundService.RefreshLocalOnlineClients(activeEmails)
 
 	if !websocket.HasClients() {
 		return
@@ -86,6 +96,7 @@ func (j *XrayTrafficJob) Run() {
 		"traffics":       traffics,
 		"clientTraffics": clientTraffics,
 		"onlineClients":  onlineClients,
+		"onlineByNode":   j.inboundService.GetOnlineClientsByNode(),
 		"lastOnlineMap":  lastOnlineMap,
 	})
 

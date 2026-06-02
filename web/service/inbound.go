@@ -3259,6 +3259,13 @@ func (s *InboundService) GetOnlineClients() []string {
 	return p.GetOnlineClients()
 }
 
+func (s *InboundService) GetOnlineClientsByNode() map[int][]string {
+	if p == nil {
+		return map[int][]string{}
+	}
+	return p.GetOnlineClientsByNode()
+}
+
 func (s *InboundService) SetNodeOnlineClients(nodeID int, emails []string) {
 	if p != nil {
 		p.SetNodeOnlineClients(nodeID, emails)
@@ -3285,16 +3292,13 @@ func (s *InboundService) GetClientsLastOnline() (map[string]int64, error) {
 	return result, nil
 }
 
-func (s *InboundService) RefreshOnlineClientsFromMap(lastOnlineMap map[string]int64) {
-	now := time.Now().UnixMilli()
-	newOnlineClients := make([]string, 0, len(lastOnlineMap))
-	for email, lastOnline := range lastOnlineMap {
-		if now-lastOnline < onlineGracePeriodMs {
-			newOnlineClients = append(newOnlineClients, email)
-		}
-	}
+// RefreshLocalOnlineClients folds the emails active on this panel's own
+// xray this poll into the local online set, applying the grace window and
+// pruning stale entries. Pass nil to only prune. See xray.Process for why
+// the local set is kept separate from the shared last_online column.
+func (s *InboundService) RefreshLocalOnlineClients(activeEmails []string) {
 	if p != nil {
-		p.SetOnlineClients(newOnlineClients)
+		p.RefreshLocalOnline(activeEmails, time.Now().UnixMilli(), onlineGracePeriodMs)
 	}
 }
 
