@@ -26,11 +26,11 @@ func TestBuildSubURIBase(t *testing.T) {
 	}
 
 	cases := []struct {
-		name                    string
-		subDomain, port         string
-		cert, key               string
-		host                    string
-		want                    string
+		name            string
+		subDomain, port string
+		cert, key       string
+		host            string
+		want            string
 	}{
 		{"no domain, plain, non-standard port", "", "2096", "", "", "panel.example.com", "http://panel.example.com:2096"},
 		{"host carries a port — stripped, sub port applied", "", "2096", "", "", "panel.example.com:9999", "http://panel.example.com:2096"},

@@ -307,6 +307,7 @@ func StripVlessInboundEncryption(settings string) (string, bool) {
 //     inbound with "users must have empty method" when a client carries
 //     one — strip stale entries left over from a switch off a legacy
 //     cipher.
+//
 // Returns the rewritten settings string and true when anything changed.
 func HealShadowsocksClientMethods(settings string) (string, bool) {
 	if settings == "" {
