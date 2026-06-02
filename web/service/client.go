@@ -730,6 +730,18 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 	}
 
+	reverseStr := ""
+	if updated.Reverse != nil && strings.TrimSpace(updated.Reverse.Tag) != "" {
+		if b, mErr := json.Marshal(updated.Reverse); mErr == nil {
+			reverseStr = string(b)
+		}
+	}
+	if err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("id = ?", id).
+		Update("reverse", reverseStr).Error; err != nil {
+		return needRestart, err
+	}
+
 	if err := database.GetDB().Model(&model.ClientRecord{}).
 		Where("id = ?", id).
 		UpdateColumn("updated_at", time.Now().UnixMilli()).Error; err != nil {
@@ -805,6 +817,11 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	}
 
 	clientWire := existing.ToClient()
+	flow, ffErr := s.EffectiveFlow(nil, id)
+	if ffErr != nil {
+		return false, ffErr
+	}
+	clientWire.Flow = flow
 	clientWire.UpdatedAt = time.Now().UnixMilli()
 
 	needRestart := false
