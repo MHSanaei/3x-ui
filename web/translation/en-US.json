@@ -643,6 +643,7 @@
       "searchPlaceholder": "Search email, comment, sub ID, UUID, password, auth…",
       "filterTitle": "Filter clients",
       "clearAllFilters": "Clear all",
+      "showingCount": "Showing {shown} of {total}",
       "sortOldest": "Oldest first",
       "sortNewest": "Newest first",
       "sortRecentlyUpdated": "Recently updated",

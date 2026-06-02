@@ -643,6 +643,7 @@
       "searchPlaceholder": "Пошук email, коментаря, sub ID, UUID, паролю, auth…",
       "filterTitle": "Фільтр клієнтів",
       "clearAllFilters": "Очистити все",
+      "showingCount": "Показано {shown} з {total}",
       "sortOldest": "Спочатку старі",
       "sortNewest": "Спочатку нові",
       "sortRecentlyUpdated": "Нещодавно оновлені",

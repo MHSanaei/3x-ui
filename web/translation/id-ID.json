@@ -643,6 +643,7 @@
       "searchPlaceholder": "Cari email, komentar, sub ID, UUID, kata sandi, auth…",
       "filterTitle": "Filter klien",
       "clearAllFilters": "Hapus semua",
+      "showingCount": "Menampilkan {shown} dari {total}",
       "sortOldest": "Terlama dulu",
       "sortNewest": "Terbaru dulu",
       "sortRecentlyUpdated": "Baru saja diperbarui",

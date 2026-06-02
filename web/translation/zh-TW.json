@@ -643,6 +643,7 @@
       "searchPlaceholder": "搜尋電子郵件、備註、sub ID、UUID、密碼、auth…",
       "filterTitle": "篩選客戶端",
       "clearAllFilters": "清除全部",
+      "showingCount": "顯示 {shown} / {total}",
       "sortOldest": "最舊優先",
       "sortNewest": "最新優先",
       "sortRecentlyUpdated": "最近更新",

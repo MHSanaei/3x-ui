@@ -188,7 +188,7 @@ export default function ClientsPage() {
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
   const {
-    clients, filtered,
+    clients, total, filtered,
     summary: serverSummary,
     allGroups,
     setQuery,
@@ -992,6 +992,11 @@ export default function ClientsPage() {
                           >
                             {t('pages.clients.clearAllFilters')}
                           </Button>
+                        )}
+                        {(activeCount > 0 || debouncedSearch.trim().length > 0) && (
+                          <span className="filter-count">
+                            {t('pages.clients.showingCount', { shown: filtered, total })}
+                          </span>
                         )}
                       </div>
 

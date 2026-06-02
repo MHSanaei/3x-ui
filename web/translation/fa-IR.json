@@ -643,6 +643,7 @@
       "searchPlaceholder": "جستجوی ایمیل، توضیح، Sub ID، UUID، رمز، احراز...",
       "filterTitle": "فیلتر کاربران",
       "clearAllFilters": "پاک کردن همه",
+      "showingCount": "نمایش {shown} از {total}",
       "sortOldest": "قدیمی‌ترین",
       "sortNewest": "جدیدترین",
       "sortRecentlyUpdated": "اخیراً به‌روزشده",

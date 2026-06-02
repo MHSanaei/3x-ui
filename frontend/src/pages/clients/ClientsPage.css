@@ -33,6 +33,13 @@
   flex: 0 0 auto;
 }
 
+.filter-count {
+  margin-inline-start: auto;
+  color: var(--ant-color-text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .filter-chips {
   display: flex;
   flex-wrap: wrap;

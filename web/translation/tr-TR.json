@@ -643,6 +643,7 @@
       "searchPlaceholder": "Email, yorum, sub ID, UUID, parola, auth ara…",
       "filterTitle": "İstemcileri filtrele",
       "clearAllFilters": "Tümünü temizle",
+      "showingCount": "{total} içinden {shown} gösteriliyor",
       "sortOldest": "Önce en eski",
       "sortNewest": "Önce en yeni",
       "sortRecentlyUpdated": "Son güncellenen",
