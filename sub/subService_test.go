@@ -779,3 +779,37 @@ func TestHasFinalMaskContent(t *testing.T) {
 		t.Fatal("non-empty map should count as content")
 	}
 }
+
+func TestHysteriaHopPorts(t *testing.T) {
+	withHop := func(ports any) map[string]any {
+		return map[string]any{
+			"finalmask": map[string]any{
+				"quicParams": map[string]any{
+					"udpHop": map[string]any{"ports": ports, "interval": "5-10"},
+				},
+			},
+		}
+	}
+
+	cases := []struct {
+		name   string
+		stream map[string]any
+		want   string
+	}{
+		{"range", withHop("20000-50000"), "20000-50000"},
+		{"trimmed", withHop("  443,20000-50000  "), "443,20000-50000"},
+		{"empty string", withHop(""), ""},
+		{"non-string", withHop(float64(443)), ""},
+		{"no udpHop", map[string]any{"finalmask": map[string]any{"quicParams": map[string]any{}}}, ""},
+		{"no finalmask", map[string]any{}, ""},
+		{"nil stream", nil, ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := hysteriaHopPorts(tc.stream); got != tc.want {
+				t.Fatalf("hysteriaHopPorts() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

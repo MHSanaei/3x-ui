@@ -131,6 +131,33 @@ describe('genHysteriaLink', () => {
       expect(link).toMatchSnapshot();
     });
   }
+
+  it('emits the UDP hop range as the v2rayN-compatible mport param', () => {
+    const [, raw] = fixtures[0];
+    const withHop = {
+      ...raw,
+      settings: { ...(raw.settings as Record<string, unknown>), version: 2 },
+      streamSettings: {
+        ...(raw.streamSettings as Record<string, unknown>),
+        finalmask: { quicParams: { udpHop: { ports: '20000-50000', interval: '5-10' } } },
+      },
+    };
+    const typed = InboundSchema.parse(withHop);
+    const client = (raw.settings as { clients: Array<{ auth: string }> }).clients[0];
+
+    const link = genHysteriaLink({
+      inbound: typed,
+      address: 'example.test',
+      port: typed.port,
+      remark: 'hop-test',
+      clientAuth: client.auth,
+    });
+
+    expect(link.startsWith('hysteria2://')).toBe(true);
+    expect(link).toContain(`@example.test:${typed.port}`);
+    expect(link).toContain('mport=20000-50000');
+    expect(link.endsWith('#hop-test')).toBe(true);
+  });
 });
 
 describe('genWireguardLink + genWireguardConfig', () => {

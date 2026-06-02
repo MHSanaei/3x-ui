@@ -670,8 +670,23 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 
 	// No external proxy configured — use the inbound's resolved address so
 	// node-managed inbounds get the node's host instead of the central panel's.
+	if hopPorts := hysteriaHopPorts(stream); hopPorts != "" {
+		params["mport"] = hopPorts
+	}
 	link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, s.resolveInboundAddress(inbound), inbound.Port)
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+}
+
+// hysteriaHopPorts returns the configured Hysteria2 UDP port-hopping range
+// (finalmask.quicParams.udpHop.ports), or "" when port hopping is off. The
+// range is emitted as the v2rayN-compatible `mport` query param; the URL port
+// field stays numeric so .NET-Uri-based importers (v2rayN) can parse the link.
+func hysteriaHopPorts(stream map[string]any) string {
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	quicParams, _ := finalmask["quicParams"].(map[string]any)
+	udpHop, _ := quicParams["udpHop"].(map[string]any)
+	ports, _ := udpHop["ports"].(string)
+	return strings.TrimSpace(ports)
 }
 
 // loadNodes refreshes nodesByID from the DB. Called once per request so

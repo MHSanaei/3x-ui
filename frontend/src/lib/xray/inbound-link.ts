@@ -626,6 +626,11 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
 
   applyFinalMaskToParams(stream.finalmask, params);
 
+  const hopPorts = stream.finalmask?.quicParams?.udpHop?.ports?.trim() ?? '';
+  if (hopPorts.length > 0) {
+    params.set('mport', hopPorts);
+  }
+
   const url = new URL(`${scheme}://${clientAuth}@${address}:${port}`);
   for (const [key, value] of params) url.searchParams.set(key, value);
   url.hash = encodeURIComponent(remark);
