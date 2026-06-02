@@ -99,9 +99,7 @@ export function useSecurityActions({ form, setSaving, messageApi }: UseSecurityA
   const generateRandomPinHash = () => {
     const bytes = new Uint8Array(32);
     crypto.getRandomValues(bytes);
-    let binary = '';
-    for (const b of bytes) binary += String.fromCharCode(b);
-    const hash = btoa(binary);
+    const hash = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
     const current = (form.getFieldValue(
       ['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256'],
     ) as string[] | undefined) ?? [];
