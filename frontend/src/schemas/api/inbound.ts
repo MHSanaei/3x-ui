@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { PortSchema, SniffingSchema } from '@/schemas/primitives';
+import { InboundPortSchema, SniffingSchema } from '@/schemas/primitives';
 import { InboundSettingsSchema } from '@/schemas/protocols/inbound';
 import { SecuritySettingsSchema } from '@/schemas/protocols/security';
 import { NetworkSettingsSchema, StreamExtrasSchema } from '@/schemas/protocols/stream';
@@ -32,7 +32,7 @@ export const InboundCoreSchema = z.object({
   enable: z.boolean().default(true),
   expiryTime: z.number().int().default(0),
   listen: z.string().default(''),
-  port: PortSchema,
+  port: InboundPortSchema,
   tag: z.string().default(''),
   sniffing: SniffingSchema.default({
     enabled: false,

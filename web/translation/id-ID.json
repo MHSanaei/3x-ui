@@ -264,7 +264,7 @@
       "localPanel": "Panel lokal",
       "fallbacks": {
         "title": "Fallback",
-        "help": "Saat koneksi pada inbound ini tidak cocok dengan client mana pun, arahkan ke inbound lain. Pilih child di bawah dan field routing (SNI / ALPN / Path / xver) terisi otomatis dari transport-nya — sebagian besar konfigurasi tidak perlu disesuaikan lagi. Setiap child harus listen di 127.0.0.1 dengan security=none.",
+        "help": "Saat koneksi pada inbound ini tidak cocok dengan client mana pun, arahkan ke tempat lain. Pilih inbound child di bawah untuk mengisi otomatis field routing (SNI / ALPN / Path / xver) dari transport-nya, atau biarkan pemilih kosong dan atur Dest langsung (mis. 8080 atau 127.0.0.1:8080) untuk mengarahkan ke server eksternal seperti Nginx. Setiap inbound child harus listen di 127.0.0.1 dengan security=none.",
         "empty": "Belum ada fallback",
         "add": "Tambah fallback",
         "pickInbound": "Pilih inbound",
@@ -570,7 +570,8 @@
         "getNewCert": "Dapatkan sertifikat baru",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "Dapatkan Seed baru"
+        "getNewSeed": "Dapatkan Seed baru",
+        "listenHelp": "Anda juga dapat memasukkan path Unix socket (mis. /run/xray/in.sock) untuk listen pada socket alih-alih port TCP — dalam hal ini setel Port ke 0."
       },
       "info": {
         "mode": "Mode",
@@ -868,7 +869,19 @@
         "updateStarted": "Pembaruan panel dimulai",
         "updateResult": "Pembaruan dipicu pada {ok} node, {failed} gagal",
         "updateNoneEligible": "Pilih minimal satu node online dan aktif"
-      }
+      },
+      "tlsVerifyMode": "Verifikasi TLS",
+      "tlsVerifyModeHint": "Cara panel memvalidasi sertifikat HTTPS node. Pin atau Lewati untuk sertifikat self-signed (hanya node https).",
+      "tlsVerify": "Verifikasi (CA bawaan)",
+      "tlsPin": "Pin sertifikat (SHA-256)",
+      "tlsSkip": "Lewati verifikasi",
+      "tlsSkipWarning": "Melewati verifikasi menghilangkan perlindungan terhadap serangan man-in-the-middle — token API bisa disadap. Lebih baik pin sertifikat.",
+      "pinnedCert": "SHA-256 sertifikat yang dipin",
+      "pinnedCertHint": "SHA-256 sertifikat node dalam base64 atau hex. Gunakan Ambil untuk membacanya dari node sekarang.",
+      "pinnedCertPlaceholder": "SHA-256 base64 atau hex",
+      "fetchPin": "Ambil",
+      "pinFetched": "Berhasil mengambil sertifikat node saat ini",
+      "pinFetchFailed": "Tidak dapat mengambil sertifikat"
     },
     "settings": {
       "title": "Pengaturan Panel",
@@ -1193,6 +1206,8 @@
         "tagRequired": "Tag wajib diisi",
         "tagPlaceholder": "tag-unik",
         "localIpPlaceholder": "IP lokal",
+        "dialerProxyPlaceholder": "Pilih outbound untuk dirantai",
+        "dialerProxyHint": "Hubungkan outbound ini melalui outbound lain (berdasarkan tag) untuk membuat rantai proxy. Kosongkan untuk terhubung langsung.",
         "addressRequired": "Alamat wajib diisi",
         "portRequired": "Port wajib diisi",
         "optional": "opsional",

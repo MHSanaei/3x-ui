@@ -205,7 +205,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 onChange={(v) => updateSetting({ expireDiff: Number(v) || 0 })} />
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.trafficDiff')} description={t('pages.settings.trafficDiffDesc')}>
-              <InputNumber value={allSetting.trafficDiff} min={0} style={{ width: '100%' }}
+              <InputNumber value={allSetting.trafficDiff} min={0} max={100} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ trafficDiff: Number(v) || 0 })} />
             </SettingListItem>
           </>

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
@@ -36,6 +37,7 @@ func migrationModels() []any {
 		&model.ClientRecord{},
 		&model.ClientInbound{},
 		&model.InboundFallback{},
+		&model.NodeClientTraffic{},
 	}
 }
 
@@ -102,25 +104,42 @@ func MigrateData(srcPath, dstDSN string) error {
 	return nil
 }
 
-// copyTable streams every row of `mdl` from src to dst in batches.
 func copyTable(src, dst *gorm.DB, mdl any) (int, error) {
+	const batchSize = 500
+
 	sliceType := reflect.SliceOf(reflect.PointerTo(reflect.TypeOf(mdl).Elem()))
-	batchPtr := reflect.New(sliceType)
-	batchPtr.Elem().Set(reflect.MakeSlice(sliceType, 0, 0))
+
+	// Resolve primary-key columns so paging is deterministic across successive
+	// LIMIT/OFFSET reads. The model set is trusted (not user input).
+	stmt := &gorm.Statement{DB: src}
+	if err := stmt.Parse(mdl); err != nil {
+		return 0, err
+	}
+	order := strings.Join(stmt.Schema.PrimaryFieldDBNames, ", ")
 
 	total := 0
-	err := src.Model(mdl).FindInBatches(batchPtr.Interface(), 500, func(tx *gorm.DB, _ int) error {
-		batch := batchPtr.Elem()
-		if batch.Len() == 0 {
-			return nil
+	for offset := 0; ; offset += batchSize {
+		batchPtr := reflect.New(sliceType)
+		q := src.Model(mdl).Limit(batchSize).Offset(offset)
+		if order != "" {
+			q = q.Order(order)
+		}
+		if err := q.Find(batchPtr.Interface()).Error; err != nil {
+			return total, err
+		}
+		n := batchPtr.Elem().Len()
+		if n == 0 {
+			break
 		}
 		if err := dst.CreateInBatches(batchPtr.Interface(), 200).Error; err != nil {
-			return err
+			return total, err
 		}
-		total += batch.Len()
-		return nil
-	}).Error
-	return total, err
+		total += n
+		if n < batchSize {
+			break
+		}
+	}
+	return total, nil
 }
 
 // resetPostgresSequences advances each migrated table's id sequence past MAX(id),

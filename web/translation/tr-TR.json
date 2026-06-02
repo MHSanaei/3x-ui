@@ -264,7 +264,7 @@
       "localPanel": "Yerel panel",
       "fallbacks": {
         "title": "Fallback'ler",
-        "help": "Bu inbound üzerindeki bir bağlantı hiçbir client ile eşleşmediğinde, başka bir inbound'a yönlendirilir. Aşağıdan bir child seçin; yönlendirme alanları (SNI / ALPN / Path / xver) onun transport'undan otomatik dolar — çoğu kurulum için ek ayar gerekmez. Her child 127.0.0.1 üzerinde security=none ile dinlemelidir.",
+        "help": "Bu inbound üzerindeki bir bağlantı hiçbir client ile eşleşmediğinde, başka bir yere yönlendirilir. Aşağıdan bir child inbound seçerek yönlendirme alanlarını (SNI / ALPN / Path / xver) transport'undan otomatik doldurun ya da seçimi boş bırakıp Dest değerini doğrudan girin (örn. 8080 veya 127.0.0.1:8080); böylece Nginx gibi harici bir sunucuya yönlendirebilirsiniz. Her child inbound 127.0.0.1 üzerinde security=none ile dinlemelidir.",
         "empty": "Henüz fallback yok",
         "add": "Fallback ekle",
         "pickInbound": "Bir inbound seç",
@@ -570,7 +570,8 @@
         "getNewCert": "Yeni sertifika al",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "Yeni Seed al"
+        "getNewSeed": "Yeni Seed al",
+        "listenHelp": "TCP portu yerine bir Unix soket yolu da girebilirsiniz (örn. /run/xray/in.sock) — bu durumda Portu 0 olarak ayarlayın."
       },
       "info": {
         "mode": "Mod",
@@ -868,7 +869,19 @@
         "updateStarted": "Panel güncellemesi başlatıldı",
         "updateResult": "{ok} düğümde güncelleme başlatıldı, {failed} başarısız",
         "updateNoneEligible": "En az bir çevrimiçi ve etkin düğüm seçin"
-      }
+      },
+      "tlsVerifyMode": "TLS doğrulaması",
+      "tlsVerifyModeHint": "Panelin düğümün HTTPS sertifikasını nasıl doğrulayacağı. Sabitle veya Atla, kendinden imzalı sertifikalar içindir (yalnızca https düğümleri).",
+      "tlsVerify": "Doğrula (varsayılan CA)",
+      "tlsPin": "Sertifikayı sabitle (SHA-256)",
+      "tlsSkip": "Doğrulamayı atla",
+      "tlsSkipWarning": "Doğrulamayı atlamak, ortadaki adam saldırılarına karşı korumayı kaldırır — API anahtarı ele geçirilebilir. Bunun yerine sertifikayı sabitlemeniz önerilir.",
+      "pinnedCert": "Sabitlenen sertifika SHA-256",
+      "pinnedCertHint": "Düğüm sertifikasının base64 veya hex biçiminde SHA-256 değeri. Şimdi düğümden okumak için Getir'i kullanın.",
+      "pinnedCertPlaceholder": "base64 veya hex SHA-256",
+      "fetchPin": "Getir",
+      "pinFetched": "Düğümün geçerli sertifikası alındı",
+      "pinFetchFailed": "Sertifika alınamadı"
     },
     "settings": {
       "title": "Panel Ayarları",
@@ -1193,6 +1206,8 @@
         "tagRequired": "Etiket gereklidir",
         "tagPlaceholder": "benzersiz-etiket",
         "localIpPlaceholder": "yerel IP",
+        "dialerProxyPlaceholder": "Zincirlemek için bir giden seçin",
+        "dialerProxyHint": "Bir proxy zinciri oluşturmak için bu gideni başka bir giden üzerinden (etikete göre) bağlayın. Doğrudan bağlanmak için boş bırakın.",
         "addressRequired": "Adres gereklidir",
         "portRequired": "Port gereklidir",
         "optional": "opsiyonel",

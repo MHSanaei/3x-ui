@@ -20,7 +20,7 @@ export default function TlsForm() {
         <Select
           allowClear
           placeholder={t('none')}
-          options={UTLS_OPTIONS}
+          options={[{ value: '', label: t('none') }, ...UTLS_OPTIONS]}
         />
       </Form.Item>
       <Form.Item

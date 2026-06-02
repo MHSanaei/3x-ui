@@ -264,7 +264,7 @@
       "localPanel": "Panel cục bộ",
       "fallbacks": {
         "title": "Fallbacks",
-        "help": "Khi một kết nối trên inbound này không khớp với client nào, nó sẽ được chuyển hướng tới inbound khác. Chọn một child bên dưới và các trường định tuyến (SNI / ALPN / Path / xver) sẽ được tự động điền từ transport của child — hầu hết cấu hình không cần chỉnh thêm. Mỗi child nên lắng nghe trên 127.0.0.1 với security=none.",
+        "help": "Khi một kết nối trên inbound này không khớp với client nào, hãy chuyển hướng nó tới nơi khác. Chọn một inbound con bên dưới để tự động điền các trường định tuyến (SNI / ALPN / Path / xver) từ transport của nó, hoặc để trống ô chọn và đặt Dest trực tiếp (ví dụ 8080 hoặc 127.0.0.1:8080) để chuyển hướng tới một máy chủ bên ngoài như Nginx. Mỗi inbound con nên lắng nghe trên 127.0.0.1 với security=none.",
         "empty": "Chưa có fallback nào",
         "add": "Thêm fallback",
         "pickInbound": "Chọn một inbound",
@@ -570,7 +570,8 @@
         "getNewCert": "Lấy chứng chỉ mới",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "Lấy Seed mới"
+        "getNewSeed": "Lấy Seed mới",
+        "listenHelp": "Bạn cũng có thể nhập đường dẫn Unix socket (ví dụ /run/xray/in.sock) để lắng nghe trên socket thay vì cổng TCP — khi đó hãy đặt Port là 0."
       },
       "info": {
         "mode": "Chế độ",
@@ -868,7 +869,19 @@
         "updateStarted": "Đã bắt đầu cập nhật bảng điều khiển",
         "updateResult": "Đã kích hoạt cập nhật trên {ok} node, {failed} thất bại",
         "updateNoneEligible": "Chọn ít nhất một node trực tuyến và đang bật"
-      }
+      },
+      "tlsVerifyMode": "Xác minh TLS",
+      "tlsVerifyModeHint": "Cách panel xác thực chứng chỉ HTTPS của node. Ghim hoặc Bỏ qua dành cho chứng chỉ tự ký (chỉ node https).",
+      "tlsVerify": "Xác minh (CA mặc định)",
+      "tlsPin": "Ghim chứng chỉ (SHA-256)",
+      "tlsSkip": "Bỏ qua xác minh",
+      "tlsSkipWarning": "Bỏ qua xác minh sẽ loại bỏ bảo vệ trước tấn công xen giữa — token API có thể bị chặn bắt. Nên ghim chứng chỉ thay vì vậy.",
+      "pinnedCert": "SHA-256 của chứng chỉ đã ghim",
+      "pinnedCertHint": "SHA-256 của chứng chỉ node ở dạng base64 hoặc hex. Dùng Lấy để đọc trực tiếp từ node.",
+      "pinnedCertPlaceholder": "SHA-256 base64 hoặc hex",
+      "fetchPin": "Lấy",
+      "pinFetched": "Đã lấy chứng chỉ hiện tại của node",
+      "pinFetchFailed": "Không thể lấy chứng chỉ"
     },
     "settings": {
       "title": "Cài đặt",
@@ -1193,6 +1206,8 @@
         "tagRequired": "Tag là bắt buộc",
         "tagPlaceholder": "tag-duy-nhất",
         "localIpPlaceholder": "IP nội bộ",
+        "dialerProxyPlaceholder": "Chọn một outbound để nối chuỗi",
+        "dialerProxyHint": "Kết nối outbound này qua một outbound khác (theo tag) để tạo chuỗi proxy. Để trống để kết nối trực tiếp.",
         "addressRequired": "Địa chỉ là bắt buộc",
         "portRequired": "Cổng là bắt buộc",
         "optional": "tùy chọn",

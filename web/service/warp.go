@@ -106,6 +106,11 @@ func (s *WarpService) RegWarp(secretKey string, publicKey string) (string, error
 		"license_key":  license,
 		"private_key":  secretKey,
 	}
+	if config, ok := rsp["config"].(map[string]any); ok {
+		if clientID, ok := config["client_id"].(string); ok {
+			warpData["client_id"] = clientID
+		}
+	}
 	warpJSON, err := json.MarshalIndent(warpData, "", "  ")
 	if err != nil {
 		return "", err

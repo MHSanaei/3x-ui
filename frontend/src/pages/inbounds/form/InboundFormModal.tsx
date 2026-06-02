@@ -162,6 +162,8 @@ export default function InboundFormModal({
   const streamEnabled = canEnableStream({ protocol });
 
   const wPort = Form.useWatch('port', form);
+  const wListen = (Form.useWatch('listen', form) ?? '') as string;
+  const isUdsListen = wListen.startsWith('/');
   const wNodeId = Form.useWatch('nodeId', form) ?? null;
   const wTag = Form.useWatch('tag', form) ?? '';
   const wSsNetwork = Form.useWatch(['settings', 'network'], form);
@@ -480,7 +482,11 @@ export default function InboundFormModal({
         <Select disabled={mode === 'edit'} options={PROTOCOL_OPTIONS} />
       </Form.Item>
 
-      <Form.Item name="listen" label={t('pages.inbounds.address')}>
+      <Form.Item
+        name="listen"
+        label={t('pages.inbounds.address')}
+        extra={t('pages.inbounds.form.listenHelp')}
+      >
         <Input placeholder={t('pages.inbounds.monitorDesc')} />
       </Form.Item>
 
@@ -489,7 +495,7 @@ export default function InboundFormModal({
         label={t('pages.inbounds.port')}
         rules={[antdRule(InboundFormBaseSchema.shape.port, t)]}
       >
-        <InputNumber min={1} max={65535} />
+        <InputNumber min={isUdsListen ? 0 : 1} max={65535} />
       </Form.Item>
 
       <Form.Item

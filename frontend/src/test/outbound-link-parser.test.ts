@@ -173,6 +173,23 @@ describe('parseVlessLink', () => {
     expect(reality.shortId).toBe('abcd');
     expect(reality.serverName).toBe('cloudflare.com');
   });
+
+  it('parses encryption + pqv (post-quantum) into settings and mldsa65Verify', () => {
+    const enc = 'mlkem768x25519plus.native.0rtt.G3cdPSd1-NnlpTbWNSM5vHsT5VNzWfFzYSKwbUMnV1Y';
+    const pqv = 'GIsemxbGPjDRH1ONfmoGlVkJ4etNuLmYDvzpjmFFreDLd8WjoJxJ4Fmt_NQJaC6';
+    const link
+      = 'vless://9406c224-8ac6-4675-ae0b-f93785959418@localhost:1121'
+      + `?encryption=${enc}&pqv=${pqv}`
+      + '&security=reality&sid=29cf418813d5bac7&sni=aws.amazon.com'
+      + '&pbk=aQaGBOT2hMfXWebYtjADoOVUrP8qZRdwXVap7nrId0I&fp=chrome&spx=%2FOUTjB7xHRiP4zBP&type=tcp'
+      + '#giqssbgmo9';
+    const out = parseVlessLink(link);
+    const settings = out?.settings as { encryption: string };
+    expect(settings.encryption).toBe(enc);
+    const reality = (out?.streamSettings as Record<string, unknown>).realitySettings as Record<string, unknown>;
+    expect(reality.mldsa65Verify).toBe(pqv);
+    expect(reality.publicKey).toBe('aQaGBOT2hMfXWebYtjADoOVUrP8qZRdwXVap7nrId0I');
+  });
 });
 
 describe('parseTrojanLink', () => {
@@ -249,6 +266,32 @@ describe('parseHysteria2Link', () => {
   it('also accepts hy2:// alias', () => {
     const out = parseHysteria2Link('hy2://auth@srv:443?sni=example.com');
     expect(out?.protocol).toBe('hysteria');
+  });
+
+  it('parses alpn, fingerprint and the salamander UDP mask (fm) — #4760', () => {
+    const link = 'hysteria2://78e7795a209c4c099f896a816fc8448f@news.domain.org:8443?'
+      + 'alpn=h2%2Chttp%2F1.1&'
+      + 'fm=%7B%22udp%22%3A%5B%7B%22settings%22%3A%7B%22password%22%3A%22ftwfgb9655hh2mgo%22%7D%2C%22type%22%3A%22salamander%22%7D%5D%7D&'
+      + 'fp=chrome&obfs=salamander&obfs-password=655hh2mgo&security=tls&sni=news.domain.org'
+      + '#hy2-ej596ty350qs';
+    const out = parseHysteria2Link(link);
+    expect(out).not.toBeNull();
+    const stream = out!.streamSettings as Record<string, unknown>;
+    const tls = stream.tlsSettings as Record<string, unknown>;
+    expect(tls.alpn).toEqual(['h2', 'http/1.1']);
+    expect(tls.fingerprint).toBe('chrome');
+    expect(tls.serverName).toBe('news.domain.org');
+    const finalmask = stream.finalmask as Record<string, unknown>;
+    expect(finalmask).toBeDefined();
+    const udp = finalmask.udp as Array<Record<string, unknown>>;
+    expect(udp[0].type).toBe('salamander');
+    expect((udp[0].settings as Record<string, unknown>).password).toBe('ftwfgb9655hh2mgo');
+  });
+
+  it('defaults alpn to h3 when the link omits it', () => {
+    const out = parseHysteria2Link('hysteria2://auth@srv:443?sni=example.com');
+    const tls = (out!.streamSettings as Record<string, unknown>).tlsSettings as Record<string, unknown>;
+    expect(tls.alpn).toEqual(['h3']);
   });
 });
 

@@ -483,7 +483,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err != nil {
 		return inbound, false, err
 	}
-	existEmail, err := s.clientService.checkEmailsExistForClients(s, clients)
+	existEmail, err := s.clientService.checkEmailsExistForClients(s, clients, nil)
 	if err != nil {
 		return inbound, false, err
 	}
@@ -1261,6 +1261,18 @@ const resetGracePeriodMs int64 = 30000
 // long after a real disconnect.
 const onlineGracePeriodMs int64 = 20000
 
+type nodeTrafficCounter struct {
+	Up   int64
+	Down int64
+}
+
+func (s *InboundService) upsertNodeBaseline(tx *gorm.DB, nodeID int, email string, up, down int64) error {
+	return tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "node_id"}, {Name: "email"}},
+		DoUpdates: clause.AssignmentColumns([]string{"up", "down"}),
+	}).Create(&model.NodeClientTraffic{NodeId: nodeID, Email: email, Up: up, Down: down}).Error
+}
+
 func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot) (bool, error) {
 	var structuralChange bool
 	err := submitTrafficWrite(func() error {
@@ -1321,6 +1333,26 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	for i := range centralClientStats {
 		centralCS[csKey{centralClientStats[i].InboundId, centralClientStats[i].Email}] = &centralClientStats[i]
 		centralCSByEmail[centralClientStats[i].Email] = &centralClientStats[i]
+	}
+
+	nodeBaselines := make(map[string]nodeTrafficCounter)
+	var baselineRows []model.NodeClientTraffic
+	if err := db.Model(&model.NodeClientTraffic{}).
+		Where("node_id = ?", nodeID).
+		Find(&baselineRows).Error; err != nil {
+		return false, err
+	}
+	for i := range baselineRows {
+		nodeBaselines[baselineRows[i].Email] = nodeTrafficCounter{Up: baselineRows[i].Up, Down: baselineRows[i].Down}
+	}
+
+	var existingEmailsList []string
+	if err := db.Model(xray.ClientTraffic{}).Pluck("email", &existingEmailsList).Error; err != nil {
+		return false, err
+	}
+	existingEmails := make(map[string]struct{}, len(existingEmailsList))
+	for _, e := range existingEmailsList {
+		existingEmails[e] = struct{}{}
 	}
 
 	var defaultUserId int
@@ -1468,6 +1500,18 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if _, kept := snapTags[c.Tag]; kept {
 			continue
 		}
+		var goneEmails []string
+		if err := tx.Model(xray.ClientTraffic{}).
+			Where("inbound_id = ?", c.Id).
+			Pluck("email", &goneEmails).Error; err != nil {
+			return false, err
+		}
+		if len(goneEmails) > 0 {
+			if err := tx.Where("node_id = ? AND email IN ?", nodeID, goneEmails).
+				Delete(&model.NodeClientTraffic{}).Error; err != nil {
+				return false, err
+			}
+		}
 		if err := tx.Where("inbound_id = ?", c.Id).
 			Delete(&xray.ClientTraffic{}).Error; err != nil {
 			return false, err
@@ -1491,17 +1535,22 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if !ok {
 			continue
 		}
-		inGrace := c.LastTrafficResetTime > 0 && now-c.LastTrafficResetTime < resetGracePeriodMs
-
 		snapEmails := make(map[string]struct{}, len(snapIb.ClientStats))
 		for _, cs := range snapIb.ClientStats {
 			snapEmails[cs.Email] = struct{}{}
 
-			existing := centralCS[csKey{c.Id, cs.Email}]
-			if existing == nil {
-				existing = centralCSByEmail[cs.Email]
+			base, seen := nodeBaselines[cs.Email]
+			var deltaUp, deltaDown int64
+			if seen {
+				if deltaUp = cs.Up - base.Up; deltaUp < 0 {
+					deltaUp = cs.Up
+				}
+				if deltaDown = cs.Down - base.Down; deltaDown < 0 {
+					deltaDown = cs.Down
+				}
 			}
-			if existing == nil {
+
+			if _, rowExists := existingEmails[cs.Email]; !rowExists {
 				row := &xray.ClientTraffic{
 					InboundId:  c.Id,
 					Email:      cs.Email,
@@ -1519,42 +1568,40 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				}
 				centralCS[csKey{c.Id, cs.Email}] = row
 				centralCSByEmail[cs.Email] = row
+				existingEmails[cs.Email] = struct{}{}
 				structuralChange = true
-				continue
-			}
-
-			if existing.Enable != cs.Enable ||
-				existing.Total != cs.Total ||
-				existing.ExpiryTime != cs.ExpiryTime ||
-				existing.Reset != cs.Reset {
-				structuralChange = true
-			}
-
-			if inGrace && cs.Up+cs.Down > 0 {
-				if err := tx.Exec(
-					`UPDATE client_traffics
-					 SET enable = ?, total = ?, expiry_time = ?, reset = ?
-					 WHERE email = ?`,
-					cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset, cs.Email,
-				).Error; err != nil {
+				if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, cs.Up, cs.Down); err != nil {
 					return false, err
 				}
+				nodeBaselines[cs.Email] = nodeTrafficCounter{Up: cs.Up, Down: cs.Down}
 				continue
+			}
+
+			if existing := centralCSByEmail[cs.Email]; existing != nil &&
+				(existing.Enable != cs.Enable ||
+					existing.Total != cs.Total ||
+					existing.ExpiryTime != cs.ExpiryTime ||
+					existing.Reset != cs.Reset) {
+				structuralChange = true
 			}
 
 			if err := tx.Exec(
 				fmt.Sprintf(
 					`UPDATE client_traffics
-					 SET up = ?, down = ?, enable = ?, total = ?, expiry_time = ?, reset = ?,
+					 SET up = up + ?, down = down + ?, enable = ?, total = ?, expiry_time = ?, reset = ?,
 					     last_online = %s
 					 WHERE email = ?`,
 					database.GreatestExpr("last_online", "?"),
 				),
-				cs.Up, cs.Down, cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset,
+				deltaUp, deltaDown, cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset,
 				cs.LastOnline, cs.Email,
 			).Error; err != nil {
 				return false, err
 			}
+			if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, cs.Up, cs.Down); err != nil {
+				return false, err
+			}
+			nodeBaselines[cs.Email] = nodeTrafficCounter{Up: cs.Up, Down: cs.Down}
 		}
 
 		for k, existing := range centralCS {
@@ -1563,6 +1610,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 			if _, kept := snapEmails[k.email]; kept {
 				continue
+			}
+			if err := tx.Where("node_id = ? AND email = ?", nodeID, existing.Email).
+				Delete(&model.NodeClientTraffic{}).Error; err != nil {
+				return false, err
 			}
 			if err := tx.Where("inbound_id = ? AND email = ?", c.Id, existing.Email).
 				Delete(&xray.ClientTraffic{}).Error; err != nil {
@@ -1680,6 +1731,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 			if err := tx.Where("email = ?", email).Delete(&xray.ClientTraffic{}).Error; err != nil {
 				logger.Warningf("setRemoteTraffic: delete ClientTraffic %q failed: %v", email, err)
+			}
+			if err := tx.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error; err != nil {
+				logger.Warningf("setRemoteTraffic: delete NodeClientTraffic %q failed: %v", email, err)
 			}
 			structuralChange = true
 		}
@@ -2339,7 +2393,10 @@ func (s *InboundService) UpdateClientIPs(tx *gorm.DB, oldEmail string, newEmail 
 }
 
 func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
-	return tx.Where("email = ?", email).Delete(xray.ClientTraffic{}).Error
+	if err := tx.Where("email = ?", email).Delete(xray.ClientTraffic{}).Error; err != nil {
+		return err
+	}
+	return tx.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error
 }
 
 func (s *InboundService) DelClientIPs(tx *gorm.DB, email string) error {

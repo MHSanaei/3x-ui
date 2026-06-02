@@ -264,7 +264,7 @@
       "localPanel": "بانل محلي",
       "fallbacks": {
         "title": "Fallbacks",
-        "help": "عند وصول اتصال إلى هذا الـ inbound لا يطابق أي عميل، يتم توجيهه إلى inbound آخر. اختر فرعًا أدناه وسيتم ملء حقول التوجيه (SNI / ALPN / Path / xver) تلقائيًا من نقل الفرع — في الغالب لا تحتاج إلى أي تعديل إضافي. يجب أن يستمع كل فرع على 127.0.0.1 مع security=none.",
+        "help": "عند وصول اتصال إلى هذا الـ inbound لا يطابق أي عميل، يتم توجيهه إلى مكان آخر. اختر inbound فرعيًا أدناه لملء حقول التوجيه (SNI / ALPN / Path / xver) تلقائيًا من نقله، أو اترك القائمة فارغة واضبط Dest مباشرةً (مثل 8080 أو 127.0.0.1:8080) للتوجيه إلى خادم خارجي مثل Nginx. يجب أن يستمع كل inbound فرعي على 127.0.0.1 مع security=none.",
         "empty": "لا توجد fallbacks بعد",
         "add": "إضافة fallback",
         "pickInbound": "اختر inbound",
@@ -570,7 +570,8 @@
         "getNewCert": "احصل على شهادة جديدة",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "احصل على Seed جديد"
+        "getNewSeed": "احصل على Seed جديد",
+        "listenHelp": "يمكنك أيضًا إدخال مسار Unix socket (مثل /run/xray/in.sock) للاستماع على socket بدلاً من منفذ TCP — في هذه الحالة اضبط المنفذ على 0."
       },
       "info": {
         "mode": "الوضع",
@@ -868,7 +869,19 @@
         "updateStarted": "بدأ تحديث اللوحة",
         "updateResult": "تم بدء التحديث على {ok} عقدة، فشل {failed}",
         "updateNoneEligible": "اختر عقدة واحدة على الأقل متصلة ومفعّلة"
-      }
+      },
+      "tlsVerifyMode": "التحقق من TLS",
+      "tlsVerifyModeHint": "كيف يتحقق اللوحة من شهادة HTTPS الخاصة بالعقدة. التثبيت أو التخطّي مخصّصان للشهادات الموقّعة ذاتيًا (عُقد https فقط).",
+      "tlsVerify": "تحقّق (CA الافتراضية)",
+      "tlsPin": "تثبيت الشهادة (SHA-256)",
+      "tlsSkip": "تخطّي التحقق",
+      "tlsSkipWarning": "تخطّي التحقق يزيل الحماية من هجمات الوسيط — قد يُعترض رمز الـ API. يُفضَّل تثبيت الشهادة بدلاً من ذلك.",
+      "pinnedCert": "SHA-256 للشهادة المثبّتة",
+      "pinnedCertHint": "SHA-256 لشهادة العقدة بصيغة base64 أو hex. استخدم \"جلب\" لقراءتها من العقدة الآن.",
+      "pinnedCertPlaceholder": "SHA-256 بصيغة base64 أو hex",
+      "fetchPin": "جلب",
+      "pinFetched": "تم جلب شهادة العقدة الحالية",
+      "pinFetchFailed": "تعذّر جلب الشهادة"
     },
     "settings": {
       "title": "إعدادات البانل",
@@ -1193,6 +1206,8 @@
         "tagRequired": "الوسم مطلوب",
         "tagPlaceholder": "وسم-فريد",
         "localIpPlaceholder": "IP محلي",
+        "dialerProxyPlaceholder": "اختر مخرجًا لتمرير الاتصال عبره",
+        "dialerProxyHint": "وجّه هذا المخرج عبر مخرج آخر (حسب الوسم) لبناء سلسلة بروكسي. اتركه فارغًا للاتصال المباشر.",
         "addressRequired": "العنوان مطلوب",
         "portRequired": "المنفذ مطلوب",
         "optional": "اختياري",

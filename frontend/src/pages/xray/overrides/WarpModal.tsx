@@ -38,6 +38,7 @@ interface WarpConfig {
   model?: string;
   enabled?: boolean;
   config?: {
+    client_id?: string;
     interface?: { addresses?: { v4?: string; v6?: string } };
     peers?: { public_key?: string; endpoint?: { host?: string } }[];
   };
@@ -99,7 +100,7 @@ export default function WarpModal({
         mtu: 1420,
         secretKey: data?.private_key,
         address: addressesFor(cfg.interface?.addresses || {}),
-        reserved: reservedFor(data?.client_id),
+        reserved: reservedFor(cfg.client_id ?? data?.client_id),
         domainStrategy: 'ForceIP',
         peers: [{ publicKey: peer.public_key, endpoint: peer.endpoint?.host }],
         noKernelTun: false,

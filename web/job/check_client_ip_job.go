@@ -42,8 +42,8 @@ const defaultXrayAPIPort = 62789
 //
 // Without this eviction, an IP that connected once and then went away
 // keeps sitting in the table with its old timestamp. Because the
-// excess-IP selector sorts ascending ("oldest wins, newest loses") to
-// protect the original/current connections, that stale entry keeps
+// excess-IP selector sorts ascending ("newest wins, oldest loses") to
+// protect the most recent connections, that stale entry keeps
 // occupying a slot and the IP that is *actually* currently using the
 // config gets classified as "new excess" and banned by fail2ban on
 // every single run — producing the continuous ban loop from #4077.
@@ -67,8 +67,12 @@ func (j *CheckClientIpJob) Run() {
 	}
 
 	shouldClearAccessLog := false
-	iplimitActive := j.hasLimitIp()
-	f2bInstalled := j.checkFail2BanInstalled()
+	fail2BanEnabled := isFail2BanEnabled()
+	iplimitActive := fail2BanEnabled && j.hasLimitIp()
+	f2bInstalled := false
+	if iplimitActive {
+		f2bInstalled = j.checkFail2BanInstalled()
+	}
 	isAccessLogAvailable := j.checkAccessLogAvailable(iplimitActive)
 
 	if isAccessLogAvailable {
@@ -81,9 +85,7 @@ func (j *CheckClientIpJob) Run() {
 				if f2bInstalled {
 					shouldClearAccessLog = j.processLogFile()
 				} else {
-					if !f2bInstalled {
-						logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
-					}
+					logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
 				}
 			}
 		}
@@ -262,15 +264,13 @@ func mergeClientIps(old, new []IPWithTimestamp, staleCutoff int64) map[string]in
 //
 // only live ips count toward the per-client limit. historical ones stay
 // in the db so the panel keeps showing them, but they must not take a
-// protected slot. the 30min cutoff alone isn't tight enough: an ip that
-// stopped connecting a few minutes ago still looks fresh to
-// mergeClientIps, and since the over-limit picker sorts ascending and
-// keeps the oldest, those idle entries used to win the slot while the
-// ip actually connecting got classified as excess and sent to fail2ban
-// every tick. see #4077 / #4091.
+// live slot or get re-banned. the 30min cutoff alone isn't tight enough:
+// an ip that stopped connecting a few minutes ago still looks fresh to
+// mergeClientIps, and without this split it would keep triggering
+// fail2ban even though it isn't currently connected. see #4077 / #4091.
 //
-// live is sorted ascending so the "protect original, ban newcomer"
-// rule still holds when several ips are really connecting at once.
+// live is sorted ascending by timestamp (oldest → newest), so we keep
+// the most recent entries at the end of the slice (last IP wins).
 func partitionLiveIps(ipMap map[string]int64, observedThisScan map[string]bool) (live, historical []IPWithTimestamp) {
 	live = make([]IPWithTimestamp, 0, len(observedThisScan))
 	historical = make([]IPWithTimestamp, 0, len(ipMap))
@@ -288,10 +288,19 @@ func partitionLiveIps(ipMap map[string]int64, observedThisScan map[string]bool) 
 }
 
 func (j *CheckClientIpJob) checkFail2BanInstalled() bool {
+	if !isFail2BanEnabled() {
+		return false
+	}
+
 	cmd := "fail2ban-client"
 	args := []string{"-h"}
 	err := exec.Command(cmd, args...).Run()
 	return err == nil
+}
+
+func isFail2BanEnabled() bool {
+	value, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN")
+	return !ok || value == "true"
 }
 
 func (j *CheckClientIpJob) checkAccessLogAvailable(iplimitActive bool) bool {
@@ -415,9 +424,10 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 	if len(liveIps) > limitIp {
 		shouldCleanLog = true
 
-		// protect the oldest live ip, ban newcomers.
-		keptLive = liveIps[:limitIp]
-		bannedLive := liveIps[limitIp:]
+		// keep the newest live ips, ban older ones.
+		cutoff := len(liveIps) - limitIp
+		keptLive = liveIps[cutoff:]
+		bannedLive := liveIps[:cutoff]
 
 		// Open log file only when a ban entry needs to be written.
 		// Use a local logger to avoid mutating the global log.* state,
@@ -463,7 +473,7 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 	}
 
 	if len(j.disAllowedIps) > 0 {
-		logger.Infof("[LIMIT_IP] Client %s: Kept %d live IPs, queued %d new IPs for fail2ban", clientEmail, len(keptLive), len(j.disAllowedIps))
+		logger.Infof("[LIMIT_IP] Client %s: Kept %d live IPs, queued %d old IPs for fail2ban", clientEmail, len(keptLive), len(j.disAllowedIps))
 	}
 
 	return shouldCleanLog

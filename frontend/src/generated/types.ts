@@ -333,10 +333,12 @@ export interface Node {
   name: string;
   onlineCount: number;
   panelVersion: string;
+  pinnedCertSha256: string;
   port: number;
   remark: string;
   scheme: string;
   status: string;
+  tlsVerifyMode: string;
   updatedAt: number;
   uptimeSecs: number;
   xrayVersion: string;

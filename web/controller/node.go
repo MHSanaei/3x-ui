@@ -34,6 +34,7 @@ func (a *NodeController) initRouter(g *gin.RouterGroup) {
 	g.POST("/setEnable/:id", a.setEnable)
 
 	g.POST("/test", a.test)
+	g.POST("/certFingerprint", a.certFingerprint)
 	g.POST("/probe/:id", a.probe)
 	g.POST("/updatePanel", a.updatePanel)
 	g.GET("/history/:id/:metric/:bucket", a.history)
@@ -141,6 +142,29 @@ func (a *NodeController) test(c *gin.Context) {
 	defer cancel()
 	patch, err := a.nodeService.Probe(ctx, n)
 	jsonObj(c, patch.ToUI(err == nil), nil)
+}
+
+func (a *NodeController) certFingerprint(c *gin.Context) {
+	n := &model.Node{}
+	if err := c.ShouldBind(n); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.test"), err)
+		return
+	}
+	if n.Scheme == "" {
+		n.Scheme = "https"
+	}
+	if n.BasePath == "" {
+		n.BasePath = "/"
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 6*time.Second)
+	defer cancel()
+	fp, err := a.nodeService.FetchCertFingerprint(ctx, n)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.test"), err)
+		return
+	}
+	jsonObj(c, fp, nil)
 }
 
 func (a *NodeController) probe(c *gin.Context) {

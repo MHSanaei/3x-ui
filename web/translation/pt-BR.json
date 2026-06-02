@@ -264,7 +264,7 @@
       "localPanel": "Painel local",
       "fallbacks": {
         "title": "Fallbacks",
-        "help": "Quando uma conexão neste inbound não corresponde a nenhum cliente, redirecione-a para outro inbound. Escolha um filho abaixo e os campos de roteamento (SNI / ALPN / Path / xver) são preenchidos automaticamente a partir do transporte dele — a maioria das configurações não precisa de mais ajustes. Cada filho deve escutar em 127.0.0.1 com security=none.",
+        "help": "Quando uma conexão neste inbound não corresponde a nenhum cliente, redirecione-a para outro lugar. Escolha um inbound filho abaixo para preencher automaticamente os campos de roteamento (SNI / ALPN / Path / xver) a partir do transporte dele, ou deixe o seletor vazio e defina Dest diretamente (ex.: 8080 ou 127.0.0.1:8080) para rotear para um servidor externo como o Nginx. Cada inbound filho deve escutar em 127.0.0.1 com security=none.",
         "empty": "Ainda sem fallbacks",
         "add": "Adicionar fallback",
         "pickInbound": "Escolha um inbound",
@@ -570,7 +570,8 @@
         "getNewCert": "Obter novo certificado",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "Obter novo Seed"
+        "getNewSeed": "Obter novo Seed",
+        "listenHelp": "Você também pode informar um caminho de socket Unix (ex.: /run/xray/in.sock) para escutar em um socket em vez de uma porta TCP — nesse caso, defina a Porta como 0."
       },
       "info": {
         "mode": "Modo",
@@ -868,7 +869,19 @@
         "updateStarted": "Atualização do painel iniciada",
         "updateResult": "Atualização iniciada em {ok} nó(s), {failed} falharam",
         "updateNoneEligible": "Selecione pelo menos um nó online e ativo"
-      }
+      },
+      "tlsVerifyMode": "Verificação TLS",
+      "tlsVerifyModeHint": "Como o painel valida o certificado HTTPS do nó. Fixar ou Ignorar são para certificados autoassinados (apenas nós https).",
+      "tlsVerify": "Verificar (CA padrão)",
+      "tlsPin": "Fixar certificado (SHA-256)",
+      "tlsSkip": "Ignorar verificação",
+      "tlsSkipWarning": "Ignorar a verificação remove a proteção contra ataques man-in-the-middle — o token de API pode ser interceptado. Prefira fixar o certificado.",
+      "pinnedCert": "SHA-256 do certificado fixado",
+      "pinnedCertHint": "SHA-256 do certificado do nó em base64 ou hex. Use Obter para lê-lo do nó agora.",
+      "pinnedCertPlaceholder": "SHA-256 em base64 ou hex",
+      "fetchPin": "Obter",
+      "pinFetched": "Certificado atual do nó obtido",
+      "pinFetchFailed": "Não foi possível obter o certificado"
     },
     "settings": {
       "title": "Configurações do Painel",
@@ -1193,6 +1206,8 @@
         "tagRequired": "A tag é obrigatória",
         "tagPlaceholder": "tag-única",
         "localIpPlaceholder": "IP local",
+        "dialerProxyPlaceholder": "Selecione uma saída para encadear",
+        "dialerProxyHint": "Conecte esta saída através de outra saída (por tag) para criar uma cadeia de proxy. Deixe vazio para conectar diretamente.",
         "addressRequired": "Endereço é obrigatório",
         "portRequired": "Porta é obrigatória",
         "optional": "opcional",

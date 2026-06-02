@@ -2,6 +2,11 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
+	"crypto/tls"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -40,6 +45,113 @@ var nodeHTTPClient = &http.Client{
 		IdleConnTimeout:     60 * time.Second,
 		DialContext:         netsafe.SSRFGuardedDialContext,
 	},
+}
+
+// nodeHTTPClientFor returns the HTTP client used to reach a node, honoring its
+// per-node TLS verification mode. "verify" (or any http node) uses the shared
+// client with default certificate validation. "skip" disables validation.
+// "pin" disables the default chain check but verifies the leaf certificate's
+// SHA-256 against the stored pin, keeping MITM protection for self-signed certs.
+func nodeHTTPClientFor(n *model.Node) (*http.Client, error) {
+	mode := n.TlsVerifyMode
+	if mode == "" {
+		mode = "verify"
+	}
+	if mode == "verify" || n.Scheme == "http" {
+		return nodeHTTPClient, nil
+	}
+	tlsCfg := &tls.Config{InsecureSkipVerify: true}
+	if mode == "pin" {
+		want, err := decodeCertPin(n.PinnedCertSha256)
+		if err != nil {
+			return nil, err
+		}
+		tlsCfg.VerifyConnection = func(cs tls.ConnectionState) error {
+			if len(cs.PeerCertificates) == 0 {
+				return common.NewError("node presented no certificate")
+			}
+			sum := sha256.Sum256(cs.PeerCertificates[0].Raw)
+			if subtle.ConstantTimeCompare(sum[:], want) != 1 {
+				return common.NewError("node certificate does not match pinned SHA-256")
+			}
+			return nil
+		}
+	}
+	return &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        64,
+			MaxIdleConnsPerHost: 4,
+			IdleConnTimeout:     60 * time.Second,
+			DialContext:         netsafe.SSRFGuardedDialContext,
+			TLSClientConfig:     tlsCfg,
+		},
+	}, nil
+}
+
+// decodeCertPin accepts a SHA-256 certificate hash as base64 (the format used
+// by Xray's pinnedPeerCertSha256) or hex with optional colons (the openssl
+// -fingerprint style) and returns the 32 raw bytes.
+func decodeCertPin(s string) ([]byte, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, common.NewError("certificate pin is empty")
+	}
+	if b, err := hex.DecodeString(strings.ReplaceAll(s, ":", "")); err == nil && len(b) == sha256.Size {
+		return b, nil
+	}
+	for _, enc := range []*base64.Encoding{base64.StdEncoding, base64.RawStdEncoding, base64.URLEncoding, base64.RawURLEncoding} {
+		if b, err := enc.DecodeString(s); err == nil && len(b) == sha256.Size {
+			return b, nil
+		}
+	}
+	return nil, common.NewError("certificate pin must be a SHA-256 hash (base64 or hex)")
+}
+
+// FetchCertFingerprint connects to the node over HTTPS without verifying the
+// certificate and returns the leaf certificate's SHA-256 as base64, so the UI
+// can offer a "fetch and pin current certificate" action.
+func (s *NodeService) FetchCertFingerprint(ctx context.Context, n *model.Node) (string, error) {
+	addr, err := netsafe.NormalizeHost(n.Address)
+	if err != nil {
+		return "", err
+	}
+	scheme := n.Scheme
+	if scheme != "http" && scheme != "https" {
+		scheme = "https"
+	}
+	if scheme != "https" {
+		return "", common.NewError("certificate pinning is only available for https nodes")
+	}
+	if n.Port <= 0 || n.Port > 65535 {
+		return "", common.NewError("node port must be 1-65535")
+	}
+	probeURL := &url.URL{
+		Scheme: scheme,
+		Host:   net.JoinHostPort(addr, strconv.Itoa(n.Port)),
+		Path:   normalizeBasePath(n.BasePath) + "panel/api/server/status",
+	}
+	req, err := http.NewRequestWithContext(
+		netsafe.ContextWithAllowPrivate(ctx, n.AllowPrivateAddress),
+		http.MethodGet, probeURL.String(), nil)
+	if err != nil {
+		return "", err
+	}
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext:     netsafe.SSRFGuardedDialContext,
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // lgtm[go/disabled-certificate-check]
+		},
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.TLS == nil || len(resp.TLS.PeerCertificates) == 0 {
+		return "", common.NewError("node did not present a TLS certificate")
+	}
+	sum := sha256.Sum256(resp.TLS.PeerCertificates[0].Raw)
+	return base64.StdEncoding.EncodeToString(sum[:]), nil
 }
 
 func (s *NodeService) GetAll() ([]*model.Node, error) {
@@ -187,6 +299,15 @@ func (s *NodeService) normalize(n *model.Node) error {
 	if n.Scheme != "http" && n.Scheme != "https" {
 		n.Scheme = "https"
 	}
+	if n.TlsVerifyMode != "skip" && n.TlsVerifyMode != "pin" {
+		n.TlsVerifyMode = "verify"
+	}
+	n.PinnedCertSha256 = strings.TrimSpace(n.PinnedCertSha256)
+	if n.TlsVerifyMode == "pin" {
+		if _, err := decodeCertPin(n.PinnedCertSha256); err != nil {
+			return common.NewError(err.Error())
+		}
+	}
 	n.BasePath = normalizeBasePath(n.BasePath)
 	return nil
 }
@@ -218,6 +339,8 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		"api_token":             in.ApiToken,
 		"enable":                in.Enable,
 		"allow_private_address": in.AllowPrivateAddress,
+		"tls_verify_mode":       in.TlsVerifyMode,
+		"pinned_cert_sha256":    in.PinnedCertSha256,
 	}
 	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
@@ -231,6 +354,9 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 func (s *NodeService) Delete(id int) error {
 	db := database.GetDB()
 	if err := db.Where("id = ?", id).Delete(model.Node{}).Error; err != nil {
+		return err
+	}
+	if err := db.Where("node_id = ?", id).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 		return err
 	}
 	if mgr := runtime.GetManager(); mgr != nil {
@@ -362,8 +488,14 @@ func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch,
 	}
 	req.Header.Set("Accept", "application/json")
 
+	client, err := nodeHTTPClientFor(n)
+	if err != nil {
+		patch.LastError = err.Error()
+		return patch, err
+	}
+
 	start := time.Now()
-	resp, err := nodeHTTPClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		patch.LastError = err.Error()
 		return patch, err

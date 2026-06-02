@@ -1,7 +1,10 @@
 package job
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -107,9 +110,10 @@ func TestPartitionLiveIps_SingleLiveNotStarvedByStillFreshHistoricals(t *testing
 	}
 }
 
-func TestPartitionLiveIps_ConcurrentLiveIpsStillBanNewcomers(t *testing.T) {
-	// keep the "protect original, ban newcomer" policy when several ips
-	// are really live. with limit=1, A must stay and B must be banned.
+func TestPartitionLiveIps_ConcurrentLiveIpsSortedAscending(t *testing.T) {
+	// when several ips are really live, partition returns them all in the
+	// live set sorted ascending by timestamp. updateInboundClientIps then
+	// keeps the newest and bans the oldest (last-IP-wins, #4699).
 	ipMap := map[string]int64{
 		"A": 5000,
 		"B": 5500,
@@ -143,4 +147,76 @@ func TestPartitionLiveIps_EmptyScanLeavesDbIntact(t *testing.T) {
 	if got := collectIps(historical); !reflect.DeepEqual(got, []string{"A", "B"}) {
 		t.Fatalf("all merged entries should flow to historical\ngot:  %v\nwant: [A B]", got)
 	}
+}
+
+func TestCheckFail2BanInstalled_DisabledEnvSkipsClientProbe(t *testing.T) {
+	t.Setenv("XUI_ENABLE_FAIL2BAN", "false")
+	marker := fakeFail2BanClient(t)
+
+	if (&CheckClientIpJob{}).checkFail2BanInstalled() {
+		t.Fatal("fail2ban should be unavailable when XUI_ENABLE_FAIL2BAN=false")
+	}
+	if _, err := os.Stat(marker); !os.IsNotExist(err) {
+		t.Fatalf("fail2ban-client should not have been executed, stat error: %v", err)
+	}
+}
+
+func TestCheckFail2BanInstalled_EmptyEnvSkipsClientProbe(t *testing.T) {
+	t.Setenv("XUI_ENABLE_FAIL2BAN", "")
+	marker := fakeFail2BanClient(t)
+
+	if (&CheckClientIpJob{}).checkFail2BanInstalled() {
+		t.Fatal("fail2ban should be unavailable when XUI_ENABLE_FAIL2BAN is empty")
+	}
+	if _, err := os.Stat(marker); !os.IsNotExist(err) {
+		t.Fatalf("fail2ban-client should not have been executed, stat error: %v", err)
+	}
+}
+
+func TestIsFail2BanEnabled_DefaultsToEnabledWhenUnset(t *testing.T) {
+	value, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN")
+	os.Unsetenv("XUI_ENABLE_FAIL2BAN")
+	t.Cleanup(func() {
+		if ok {
+			os.Setenv("XUI_ENABLE_FAIL2BAN", value)
+		} else {
+			os.Unsetenv("XUI_ENABLE_FAIL2BAN")
+		}
+	})
+
+	if !isFail2BanEnabled() {
+		t.Fatal("fail2ban should default to enabled when XUI_ENABLE_FAIL2BAN is unset")
+	}
+}
+
+func TestCheckFail2BanInstalled_EnabledEnvProbesClient(t *testing.T) {
+	t.Setenv("XUI_ENABLE_FAIL2BAN", "true")
+	marker := fakeFail2BanClient(t)
+
+	if !(&CheckClientIpJob{}).checkFail2BanInstalled() {
+		t.Fatal("fail2ban should be available when the client probe succeeds")
+	}
+	if _, err := os.Stat(marker); err != nil {
+		t.Fatalf("fail2ban-client should have been executed: %v", err)
+	}
+}
+
+func fakeFail2BanClient(t *testing.T) string {
+	t.Helper()
+
+	dir := t.TempDir()
+	marker := filepath.Join(dir, "probe-called")
+	fakeClient := filepath.Join(dir, "fail2ban-client")
+	script := "#!/bin/sh\n: > \"$FAIL2BAN_PROBE_MARKER\"\nexit 0\n"
+	if runtime.GOOS == "windows" {
+		fakeClient += ".bat"
+		script = "@echo off\ntype nul > \"%FAIL2BAN_PROBE_MARKER%\"\nexit /b 0\n"
+	}
+	if err := os.WriteFile(fakeClient, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake fail2ban-client: %v", err)
+	}
+
+	t.Setenv("FAIL2BAN_PROBE_MARKER", marker)
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return marker
 }
