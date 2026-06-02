@@ -578,6 +578,28 @@ export interface GenHysteriaLinkInput {
   clientAuth: string;
 }
 
+// Hysteria2's pinSHA256 must be a 64-char lowercase hex string — Xray-core
+// clients hex-decode it and crash on a base64 value. The panel stores pins as
+// base64 (xray-core's native TLS format / the generate button) or hex, either
+// bare or colon-separated as `openssl x509 -fingerprint -sha256` emits it. Each
+// entry is coerced to bare hex. Values that are neither a 32-byte hex nor a
+// 32-byte base64 SHA-256 pass through unchanged.
+function hysteriaPinHex(pin: string): string {
+  const stripped = pin.trim().replace(/:/g, '');
+  if (/^[0-9a-fA-F]{64}$/.test(stripped)) return stripped.toLowerCase();
+  try {
+    const binary = atob(pin.trim().replace(/-/g, '+').replace(/_/g, '/'));
+    if (binary.length !== 32) return pin;
+    let hex = '';
+    for (let i = 0; i < binary.length; i++) {
+      hex += binary.charCodeAt(i).toString(16).padStart(2, '0');
+    }
+    return hex;
+  } catch {
+    return pin;
+  }
+}
+
 // Hysteria share link: hysteria://<auth>@<host>:<port>?<query>#<remark>.
 // The URL scheme is "hysteria2" when settings.version === 2 (hysteria v2
 // AKA hysteria2), "hysteria" otherwise. Salamander obfuscation pulls its
@@ -611,7 +633,7 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
   if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
   if (tls.settings.pinnedPeerCertSha256.length > 0) {
-    params.set('pinSHA256', tls.settings.pinnedPeerCertSha256.join(','));
+    params.set('pinSHA256', tls.settings.pinnedPeerCertSha256.map(hysteriaPinHex).join(','));
   }
 
   const udpMasks = stream.finalmask?.udp;

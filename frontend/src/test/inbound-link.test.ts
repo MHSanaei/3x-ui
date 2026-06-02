@@ -158,6 +158,43 @@ describe('genHysteriaLink', () => {
     expect(link).toContain('mport=20000-50000');
     expect(link.endsWith('#hop-test')).toBe(true);
   });
+
+  it('normalizes pinSHA256 to hex for base64, raw-hex and colon-hex pins (issue #4818)', () => {
+    const [, raw] = fixtures[0];
+    const base64Pin = 'yEfdI5XQl4wHgLggHEsomosoFZfUfCdfLXfT+W2N6cQ=';
+    const hexPin = '84491c0312d9e70f519ce24659a2ca7d9c4ec59dc86417ece426945e0f939293';
+    const colonPin = 'C8:47:DD:23:95:D0:97:8C:07:80:B8:20:1C:4B:28:9A:8B:28:15:97:D4:7C:27:5F:2D:77:D3:F9:6D:8D:E9:C4';
+    const stream = raw.streamSettings as Record<string, unknown>;
+    const tls = stream.tlsSettings as Record<string, unknown>;
+    const tlsClientSettings = tls.settings as Record<string, unknown>;
+    const withPins = {
+      ...raw,
+      streamSettings: {
+        ...stream,
+        tlsSettings: {
+          ...tls,
+          settings: { ...tlsClientSettings, pinnedPeerCertSha256: [base64Pin, hexPin, colonPin] },
+        },
+      },
+    };
+    const typed = InboundSchema.parse(withPins);
+    const client = (raw.settings as { clients: Array<{ auth: string }> }).clients[0];
+
+    const link = genHysteriaLink({
+      inbound: typed,
+      address: 'example.test',
+      port: typed.port,
+      remark: 'pin-test',
+      clientAuth: client.auth,
+    });
+
+    const pin = new URL(link).searchParams.get('pinSHA256');
+    expect(pin).toBe(
+      'c847dd2395d0978c0780b8201c4b289a8b281597d47c275f2d77d3f96d8de9c4,' +
+        '84491c0312d9e70f519ce24659a2ca7d9c4ec59dc86417ece426945e0f939293,' +
+        'c847dd2395d0978c0780b8201c4b289a8b281597d47c275f2d77d3f96d8de9c4',
+    );
+  });
 });
 
 describe('genWireguardLink + genWireguardConfig', () => {

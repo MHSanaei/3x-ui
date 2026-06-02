@@ -780,6 +780,40 @@ func TestHasFinalMaskContent(t *testing.T) {
 	}
 }
 
+func TestHysteriaPinHex(t *testing.T) {
+	const hexPin = "c847dd2395d0978c0780b8201c4b289a8b281597d47c275f2d77d3f96d8de9c4"
+
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		// Std base64 (xray-core's native TLS format / the panel generate button)
+		// must be re-encoded to the hex form Hysteria2 clients expect (#4818).
+		{"std base64", "yEfdI5XQl4wHgLggHEsomosoFZfUfCdfLXfT+W2N6cQ=", hexPin},
+		// A manually pasted hex fingerprint passes through (lowercased).
+		{"hex passthrough", hexPin, hexPin},
+		{"uppercase hex lowercased", strings.ToUpper(hexPin), hexPin},
+		// openssl x509 -fingerprint -sha256 emits colon-separated hex.
+		{"colon hex stripped", "C8:47:DD:23:95:D0:97:8C:07:80:B8:20:1C:4B:28:9A:8B:28:15:97:D4:7C:27:5F:2D:77:D3:F9:6D:8D:E9:C4", hexPin},
+		{"surrounding whitespace trimmed", "  " + hexPin + "  ", hexPin},
+		// URL-safe base64 with the same 32 bytes decodes identically.
+		{"url-safe base64", "yEfdI5XQl4wHgLggHEsomosoFZfUfCdfLXfT-W2N6cQ=", hexPin},
+		// Garbage that is neither valid hex nor a 32-byte base64 is left as-is
+		// rather than silently dropped.
+		{"unrecognized passthrough", "not-a-pin", "not-a-pin"},
+		{"empty", "", ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := hysteriaPinHex(tc.in); got != tc.want {
+				t.Fatalf("hysteriaPinHex(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestHysteriaHopPorts(t *testing.T) {
 	withHop := func(ports any) map[string]any {
 		return map[string]any{

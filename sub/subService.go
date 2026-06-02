@@ -1,7 +1,9 @@
 package sub
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"maps"
 	"net"
@@ -609,6 +611,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			}
 		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
+			for i, p := range pins {
+				pins[i] = hysteriaPinHex(p)
+			}
 			params["pinSHA256"] = strings.Join(pins, ",")
 		}
 	}
@@ -935,6 +940,36 @@ func pinnedSha256List(tlsClientSettings any) ([]string, bool) {
 		return nil, false
 	}
 	return out, true
+}
+
+// hysteriaPinHex normalises a pinnedPeerCertSha256 entry into the 64-character
+// lowercase hex form that Xray-core's Hysteria2 pinSHA256 parser requires.
+//
+// The panel stores pins in several shapes: base64 (xray-core's native TLS
+// format, used by the generate button and the JSON subscription) and hex —
+// either bare or colon-separated as `openssl x509 -fingerprint -sha256` emits
+// it. Hysteria2 clients hex-decode pinSHA256 and crash on a base64 value, so
+// each entry is coerced to bare hex here. Anything that is neither a 32-byte
+// hex nor a 32-byte base64 SHA-256 is returned unchanged so unexpected data is
+// not silently dropped. Mirrors decodeCertPin in web/service/node.go.
+func hysteriaPinHex(pin string) string {
+	pin = strings.TrimSpace(pin)
+	if h := strings.ReplaceAll(pin, ":", ""); len(h) == hex.EncodedLen(sha256.Size) {
+		if _, err := hex.DecodeString(h); err == nil {
+			return strings.ToLower(h)
+		}
+	}
+	for _, enc := range []*base64.Encoding{
+		base64.StdEncoding,
+		base64.RawStdEncoding,
+		base64.URLEncoding,
+		base64.RawURLEncoding,
+	} {
+		if b, err := enc.DecodeString(pin); err == nil && len(b) == sha256.Size {
+			return hex.EncodeToString(b)
+		}
+	}
+	return pin
 }
 
 func applyShareRealityParams(stream map[string]any, params map[string]string) {
