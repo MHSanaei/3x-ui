@@ -136,10 +136,20 @@ func (s *NodeService) FetchCertFingerprint(ctx context.Context, n *model.Node) (
 	if err != nil {
 		return "", err
 	}
+	var fingerprint string
 	client := &http.Client{
 		Transport: &http.Transport{
-			DialContext:     netsafe.SSRFGuardedDialContext,
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			DialContext: netsafe.SSRFGuardedDialContext,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+				VerifyConnection: func(cs tls.ConnectionState) error {
+					if len(cs.PeerCertificates) > 0 {
+						sum := sha256.Sum256(cs.PeerCertificates[0].Raw)
+						fingerprint = base64.StdEncoding.EncodeToString(sum[:])
+					}
+					return nil
+				},
+			},
 		},
 	}
 	resp, err := client.Do(req)
@@ -147,11 +157,10 @@ func (s *NodeService) FetchCertFingerprint(ctx context.Context, n *model.Node) (
 		return "", err
 	}
 	defer resp.Body.Close()
-	if resp.TLS == nil || len(resp.TLS.PeerCertificates) == 0 {
+	if fingerprint == "" {
 		return "", common.NewError("node did not present a TLS certificate")
 	}
-	sum := sha256.Sum256(resp.TLS.PeerCertificates[0].Raw)
-	return base64.StdEncoding.EncodeToString(sum[:]), nil
+	return fingerprint, nil
 }
 
 func (s *NodeService) GetAll() ([]*model.Node, error) {
