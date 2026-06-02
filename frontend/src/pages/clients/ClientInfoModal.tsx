@@ -382,7 +382,7 @@ export default function ClientInfoModal({
                         const ib = inboundsById[id];
                         const proto = (ib?.protocol || '').toLowerCase();
                         const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
-                        const label = ib?.tag ?? '';
+                        const label = ib?.remark?.trim() || ib?.tag || '';
                         return (
                           <Tooltip key={id} title={label}>
                             <Tag color={color}>{label}</Tag>

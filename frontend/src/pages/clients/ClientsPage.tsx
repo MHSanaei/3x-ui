@@ -304,7 +304,7 @@ export default function ClientsPage() {
 
   function inboundLabel(id: number) {
     const ib = inboundsById[id];
-    return ib?.tag ?? '';
+    return ib?.remark?.trim() || ib?.tag || '';
   }
 
   const clientBucket = useCallback((row: ClientRecord | null | undefined): Bucket | null => {
@@ -694,7 +694,7 @@ export default function ClientsPage() {
           const ib = inboundsById[id];
           const proto = (ib?.protocol || '').toLowerCase();
           const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
-          const compactLabel = ib?.tag ?? '';
+          const compactLabel = ib?.remark?.trim() || ib?.tag || '';
           return (
             <Tooltip key={id} title={inboundLabel(id)}>
               <Tag color={color} style={{ margin: 2 }}>

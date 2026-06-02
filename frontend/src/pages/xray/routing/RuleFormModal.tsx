@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, Modal, Select, Space, Tooltip } from 'antd';
 import { PlusOutlined, MinusOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { InputAddon } from '@/components/ui';
+import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import { RuleFormSchema, type RuleFormValues } from '@/schemas/xray';
 
 export interface RoutingRule {
@@ -71,6 +72,15 @@ export default function RuleFormModal({
   const { t } = useTranslation();
   const [form, setForm] = useState<FormState>(initialForm);
   const isEdit = rule != null;
+
+  const { data: inboundOptions } = useInboundOptions();
+  const remarkByTag = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const ib of inboundOptions || []) {
+      if (ib.tag) map[ib.tag] = ib.remark?.trim() || ib.tag;
+    }
+    return map;
+  }, [inboundOptions]);
 
   useEffect(() => {
     if (!open) return;
@@ -269,7 +279,7 @@ export default function RuleFormModal({
             mode="multiple"
             value={form.inboundTag}
             onChange={(v) => update('inboundTag', v)}
-            options={inboundTags.map((tag) => ({ value: tag, label: tag }))}
+            options={inboundTags.map((tag) => ({ value: tag, label: remarkByTag[tag] || tag }))}
           />
         </Form.Item>
 
