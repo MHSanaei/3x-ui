@@ -5,6 +5,40 @@ import (
 	"testing"
 )
 
+func TestEnsureUniqueProxyNames(t *testing.T) {
+	proxies := []map[string]any{
+		{"name": "", "type": "vless", "server": "a.com", "port": 443},
+		{"name": "", "type": "vmess", "server": "b.com", "port": 8443},
+		{"name": "node"},
+		{"name": "node"},
+		{"name": ""},
+	}
+
+	ensureUniqueProxyNames(proxies)
+
+	seen := map[string]bool{}
+	for i, p := range proxies {
+		name, _ := p["name"].(string)
+		if name == "" {
+			t.Fatalf("proxy %d still has an empty name (mihomo would reject the config, #4641)", i)
+		}
+		if seen[name] {
+			t.Fatalf("proxy %d has duplicate name %q (mihomo rejects the whole config, #4641)", i, name)
+		}
+		seen[name] = true
+	}
+
+	if got := proxies[0]["name"]; got != "vless-a.com-443" {
+		t.Errorf("empty name fallback = %q, want vless-a.com-443", got)
+	}
+	if proxies[2]["name"] == proxies[3]["name"] {
+		t.Errorf("duplicate %q was not disambiguated", proxies[2]["name"])
+	}
+	if got := proxies[4]["name"]; got != "proxy-5" {
+		t.Errorf("typeless empty name fallback = %q, want proxy-5", got)
+	}
+}
+
 func TestApplyTransport_XHTTP(t *testing.T) {
 	svc := &SubClashService{}
 	proxy := map[string]any{}

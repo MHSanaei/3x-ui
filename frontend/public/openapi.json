@@ -4203,6 +4203,56 @@
         }
       }
     },
+    "/panel/api/nodes/certFingerprint": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Connect to the node over HTTPS without verifying its certificate and return the leaf certificate's SHA-256 (base64). Used by the Add/Edit Node dialog to fetch and pin a self-signed certificate. Uses the same body as /test.",
+        "operationId": "post_panel_api_nodes_certFingerprint",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "scheme": "https",
+                "address": "node1.example.com",
+                "port": 2053,
+                "basePath": "/"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": "k3b1...base64-sha256...="
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/nodes/probe/{id}": {
       "post": {
         "tags": [

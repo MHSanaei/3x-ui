@@ -390,6 +390,8 @@ export default function ClientFormModal({
         cancelText={t('cancel')}
         okButtonProps={{ loading: submitting }}
         width={720}
+        style={{ top: 20 }}
+        styles={{ body: { maxHeight: 'calc(100vh - 160px)', overflowY: 'auto', overflowX: 'hidden' } }}
         onOk={onSubmit}
         onCancel={close}
       >

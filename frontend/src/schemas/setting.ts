@@ -16,7 +16,7 @@ export const AllSettingSchema = z.object({
   panelProxy: z.string().optional(),
   pageSize: z.number().int().min(1).max(1000).optional(),
   expireDiff: nonNegativeInt.optional(),
-  trafficDiff: nonNegativeInt.optional(),
+  trafficDiff: nonNegativeInt.max(100).optional(),
   remarkModel: z.string().optional(),
   datepicker: z.enum(['gregorian', 'jalalian']).optional(),
   tgBotEnable: z.boolean().optional(),

@@ -7,7 +7,13 @@ import type { OutboundFormValues } from '@/schemas/forms/outbound-form';
 
 import { ADDRESS_PORT_STRATEGY_OPTIONS } from '../outbound-form-constants';
 
-export default function SockoptForm({ form }: { form: FormInstance<OutboundFormValues> }) {
+export default function SockoptForm({
+  form,
+  outboundTags = [],
+}: {
+  form: FormInstance<OutboundFormValues>;
+  outboundTags?: string[];
+}) {
   const { t } = useTranslation();
   return (
     <Form.Item shouldUpdate noStyle>
@@ -16,6 +22,14 @@ export default function SockoptForm({ form }: { form: FormInstance<OutboundFormV
           'streamSettings',
           'sockopt',
         ]);
+        const dialerProxy = (form.getFieldValue([
+          'streamSettings',
+          'sockopt',
+          'dialerProxy',
+        ]) ?? '') as string;
+        const dialerProxyOptions = Array.from(
+          new Set([...outboundTags, dialerProxy].filter(Boolean)),
+        ).map((tg) => ({ value: tg, label: tg }));
         return (
           <>
             <Form.Item label={t('pages.xray.outboundForm.sockopts')}>
@@ -34,8 +48,14 @@ export default function SockoptForm({ form }: { form: FormInstance<OutboundFormV
                 <Form.Item
                   label={t('pages.inbounds.form.dialerProxy')}
                   name={['streamSettings', 'sockopt', 'dialerProxy']}
+                  tooltip={t('pages.xray.outboundForm.dialerProxyHint')}
                 >
-                  <Input />
+                  <Select
+                    allowClear
+                    showSearch
+                    placeholder={t('pages.xray.outboundForm.dialerProxyPlaceholder')}
+                    options={dialerProxyOptions}
+                  />
                 </Form.Item>
                 <Form.Item
                   label={t('pages.xray.wireguard.domainStrategy')}
@@ -89,7 +109,7 @@ export default function SockoptForm({ form }: { form: FormInstance<OutboundFormV
                 </Form.Item>
                 <Form.Item
                   label={t('pages.xray.outboundForm.interface')}
-                  name={['streamSettings', 'sockopt', 'interfaceName']}
+                  name={['streamSettings', 'sockopt', 'interface']}
                 >
                   <Input />
                 </Form.Item>

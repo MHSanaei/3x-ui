@@ -210,6 +210,7 @@ function applySecurityParams(stream: Raw, params: URLSearchParams): void {
     reality.publicKey = params.get('pbk') ?? '';
     reality.shortId = params.get('sid') ?? '';
     reality.spiderX = params.get('spx') ?? '';
+    reality.mldsa65Verify = params.get('pqv') ?? '';
   }
 }
 
@@ -403,6 +404,7 @@ export function parseHysteria2Link(link: string): Raw | null {
   const address = url.hostname;
   const port = Number(url.port) || 443;
   const params = url.searchParams;
+  const alpn = params.get('alpn');
   const stream: Raw = {
     network: 'hysteria',
     security: 'tls',
@@ -411,13 +413,14 @@ export function parseHysteria2Link(link: string): Raw | null {
     },
     tlsSettings: {
       serverName: params.get('sni') ?? '',
-      alpn: ['h3'],
-      fingerprint: '',
-      echConfigList: '',
+      alpn: alpn ? alpn.split(',') : ['h3'],
+      fingerprint: params.get('fp') ?? '',
+      echConfigList: params.get('ech') ?? '',
       verifyPeerCertByName: '',
       pinnedPeerCertSha256: params.get('pinSHA256') ?? '',
     },
   };
+  applyFinalMaskParam(stream, params);
   return {
     protocol: 'hysteria',
     tag: decodeRemark(url),

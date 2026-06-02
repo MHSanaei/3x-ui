@@ -575,7 +575,9 @@ export default function OutboundFormModal({
 
                     {security === 'reality' && realityAllowed && <RealityForm />}
 
-                    {((streamAllowed && network) || !streamAllowed) && <SockoptForm form={form} />}
+                    {((streamAllowed && network) || !streamAllowed) && (
+                      <SockoptForm form={form} outboundTags={existingTags} />
+                    )}
 
                     <FinalMaskForm
                       name={['streamSettings', 'finalmask']}

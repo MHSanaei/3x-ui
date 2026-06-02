@@ -196,6 +196,19 @@ describe('resolveAddr precedence', () => {
     )).toBe('fallback.test');
   });
 
+  it('skips a unix socket path listen and falls through to fallbackHostname', () => {
+    expect(resolveAddr(
+      { ...baseInbound, listen: '/run/xray/in.sock' } as never,
+      '',
+      'fallback.test',
+    )).toBe('fallback.test');
+    expect(resolveAddr(
+      { ...baseInbound, listen: '@xray-abstract' } as never,
+      '',
+      'fallback.test',
+    )).toBe('fallback.test');
+  });
+
   it('falls through to fallbackHostname when listen is empty', () => {
     expect(resolveAddr(
       baseInbound as never,

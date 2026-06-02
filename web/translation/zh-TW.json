@@ -264,7 +264,7 @@
       "localPanel": "本機面板",
       "fallbacks": {
         "title": "Fallbacks",
-        "help": "當此入站的連線未匹配任何用戶時，將其路由到另一個入站。在下方選擇一個子入站，路由欄位（SNI / ALPN / Path / xver）會自動從子入站的傳輸方式填入——大多數情境不需要再調整。每個子入站應監聽 127.0.0.1，security=none。",
+        "help": "當此入站的連線未匹配任何用戶時，將其路由到其他位置。在下方選擇一個子入站，可從其傳輸方式自動填入路由欄位（SNI / ALPN / Path / xver）；或將選擇框留空並直接設定 Dest（例如 8080 或 127.0.0.1:8080），以路由到 Nginx 等外部伺服器。每個子入站應監聽 127.0.0.1，security=none。",
         "empty": "尚未新增回落",
         "add": "新增回落",
         "pickInbound": "選擇一個入站",
@@ -575,7 +575,8 @@
         "getNewCert": "取得新憑證",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "取得新 Seed"
+        "getNewSeed": "取得新 Seed",
+        "listenHelp": "也可以填寫 Unix socket 路徑（例如 /run/xray/in.sock），以使用通訊端而非 TCP 連接埠監聽——此時請將連接埠設為 0。"
       },
       "info": {
         "mode": "模式",
@@ -873,7 +874,19 @@
         "updateStarted": "已開始更新面板",
         "updateResult": "已在 {ok} 個節點上觸發更新，{failed} 個失敗",
         "updateNoneEligible": "請至少選擇一個在線且已啟用的節點"
-      }
+      },
+      "tlsVerifyMode": "TLS 驗證",
+      "tlsVerifyModeHint": "面板如何驗證節點的 HTTPS 憑證。釘選或略過用於自簽憑證（僅 https 節點）。",
+      "tlsVerify": "驗證（預設 CA）",
+      "tlsPin": "釘選憑證（SHA-256）",
+      "tlsSkip": "略過驗證",
+      "tlsSkipWarning": "略過驗證會失去對中間人攻擊的防護，API 權杖可能被攔截。建議改用釘選憑證。",
+      "pinnedCert": "釘選憑證的 SHA-256",
+      "pinnedCertHint": "節點憑證的 SHA-256（base64 或 hex）。點選「取得」可立即從節點讀取。",
+      "pinnedCertPlaceholder": "base64 或 hex 的 SHA-256",
+      "fetchPin": "取得",
+      "pinFetched": "已取得節點目前憑證",
+      "pinFetchFailed": "無法取得憑證"
     },
     "settings": {
       "title": "面板設定",
@@ -1198,6 +1211,8 @@
         "tagRequired": "標籤為必填",
         "tagPlaceholder": "唯一標籤",
         "localIpPlaceholder": "本地 IP",
+        "dialerProxyPlaceholder": "選擇要串接的出站",
+        "dialerProxyHint": "讓此出站透過另一個出站（以標籤指定）連線，以建立代理鏈。留空則直接連線。",
         "addressRequired": "地址為必填",
         "portRequired": "連接埠為必填",
         "optional": "選用",

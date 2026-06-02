@@ -244,9 +244,9 @@ reset_user() {
 
     read -rp "Do you want to disable currently configured two-factor authentication? (y/n): " twoFactorConfirm
     if [[ $twoFactorConfirm != "y" && $twoFactorConfirm != "Y" ]]; then
-        ${xui_folder}/x-ui setting -username "${config_account}" -password "${config_password}" -resetTwoFactor false > /dev/null 2>&1
+        ${xui_folder}/x-ui setting -username "${config_account}" -password "${config_password}" > /dev/null 2>&1
     else
-        ${xui_folder}/x-ui setting -username "${config_account}" -password "${config_password}" -resetTwoFactor true > /dev/null 2>&1
+        ${xui_folder}/x-ui setting -username "${config_account}" -password "${config_password}" -resetTwoFactor=true > /dev/null 2>&1
         echo -e "Two factor authentication has been disabled."
     fi
 
@@ -1600,11 +1600,10 @@ ssl_cert_issue_CF() {
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     LOGI "****** Instructions for Use ******"
     LOGI "Follow the steps below to complete the process:"
-    LOGI "1. Cloudflare Registered E-mail."
-    LOGI "2. Cloudflare Global API Key."
-    LOGI "3. The Domain Name."
-    LOGI "4. Once the certificate is issued, you will be prompted to set the certificate for the panel (optional)."
-    LOGI "5. The script also supports automatic renewal of the SSL certificate after installation."
+    LOGI "1. A Cloudflare API Token (recommended, scoped to Zone:DNS:Edit) or the Global API Key + registered email."
+    LOGI "2. The Domain Name."
+    LOGI "3. Once the certificate is issued, you will be prompted to set the certificate for the panel (optional)."
+    LOGI "4. The script also supports automatic renewal of the SSL certificate after installation."
 
     confirm "Do you confirm the information and wish to proceed? [y/n]" "y"
 
@@ -1625,16 +1624,28 @@ ssl_cert_issue_CF() {
         read -rp "Input your domain here: " CF_Domain
         LOGD "Your domain name is set to: ${CF_Domain}"
 
-        # Set up Cloudflare API details
-        CF_GlobalKey=""
-        CF_AccountEmail=""
-        LOGD "Please set the API key:"
-        read -rp "Input your key here: " CF_GlobalKey
-        LOGD "Your API key is: ${CF_GlobalKey}"
+        # Cloudflare API credentials: an API Token (recommended, scoped to a
+        # single zone) or the account-wide Global API Key. acme.sh reads
+        # CF_Token for tokens, or CF_Key + CF_Email for the Global Key.
+        CF_KeyType=""
+        read -rp "Are you using a Cloudflare API Token or Global API Key? (t/g) [Default t]: " CF_KeyType
+        CF_KeyType=${CF_KeyType:-t}
 
-        LOGD "Please set up registered email:"
-        read -rp "Input your email here: " CF_AccountEmail
-        LOGD "Your registered email address is: ${CF_AccountEmail}"
+        if [[ "$CF_KeyType" == "g" || "$CF_KeyType" == "G" ]]; then
+            CF_GlobalKey=""
+            CF_AccountEmail=""
+            LOGD "Please set the Global API Key:"
+            read -rp "Input your key here: " CF_GlobalKey
+            LOGD "Please set up the registered email:"
+            read -rp "Input your email here: " CF_AccountEmail
+            export CF_Key="${CF_GlobalKey}"
+            export CF_Email="${CF_AccountEmail}"
+        else
+            CF_ApiToken=""
+            LOGD "Please set the API Token:"
+            read -rp "Input your token here: " CF_ApiToken
+            export CF_Token="${CF_ApiToken}"
+        fi
 
         # Set the default CA to Let's Encrypt
         ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
@@ -1642,9 +1653,6 @@ ssl_cert_issue_CF() {
             LOGE "Default CA, Let'sEncrypt fail, script exiting..."
             exit 1
         fi
-
-        export CF_Key="${CF_GlobalKey}"
-        export CF_Email="${CF_AccountEmail}"
 
         # Issue the certificate using Cloudflare DNS
         ~/.acme.sh/acme.sh --issue --dns dns_cf -d ${CF_Domain} -d *.${CF_Domain} --log --force
@@ -2282,6 +2290,407 @@ SSH_port_forwarding() {
     esac
 }
 
+# PostgreSQL service management (for panels configured with XUI_DB_TYPE=postgres).
+
+postgresql_installed() {
+    command -v pg_lsclusters > /dev/null 2>&1 || command -v psql > /dev/null 2>&1 || command -v postgres > /dev/null 2>&1
+}
+
+# Prints "VER CLUSTER" of the first configured cluster on Debian-style installs (e.g. "16 main").
+pg_cluster_info() {
+    if command -v pg_lsclusters > /dev/null 2>&1; then
+        pg_lsclusters 2> /dev/null | awk '$1 ~ /^[0-9]+$/ {print $1, $2; exit}'
+    fi
+}
+
+# Resolves the systemd unit used to manage the PostgreSQL server.
+pg_systemd_unit() {
+    local info ver cluster
+    info="$(pg_cluster_info)"
+    if [[ -n "$info" ]]; then
+        ver="${info%% *}"
+        cluster="${info##* }"
+        echo "postgresql@${ver}-${cluster}"
+    else
+        echo "postgresql"
+    fi
+}
+
+postgresql_status() {
+    if ! postgresql_installed; then
+        LOGE "PostgreSQL does not appear to be installed on this system."
+        return 1
+    fi
+    if command -v pg_lsclusters > /dev/null 2>&1; then
+        pg_lsclusters
+    else
+        systemctl status "$(pg_systemd_unit)" --no-pager
+    fi
+    echo ""
+    if command -v ss > /dev/null 2>&1; then
+        local listening
+        listening=$(ss -ltnp 2> /dev/null | grep ':5432')
+        if [[ -n "$listening" ]]; then
+            echo -e "${green}PostgreSQL is listening on port 5432:${plain}"
+            echo "$listening"
+        else
+            echo -e "${red}Nothing is listening on port 5432 - the database is not running.${plain}"
+        fi
+    fi
+}
+
+postgresql_start() {
+    pg_require_installed || return 1
+    if [[ $release == "alpine" ]]; then
+        rc-service postgresql start
+    else
+        systemctl start "$(pg_systemd_unit)"
+    fi
+    sleep 1
+    postgresql_status
+}
+
+postgresql_stop() {
+    pg_require_installed || return 1
+    if [[ $release == "alpine" ]]; then
+        rc-service postgresql stop
+    else
+        systemctl stop "$(pg_systemd_unit)"
+    fi
+    LOGI "PostgreSQL stop signal sent."
+}
+
+postgresql_restart() {
+    pg_require_installed || return 1
+    if [[ $release == "alpine" ]]; then
+        rc-service postgresql restart
+    else
+        systemctl restart "$(pg_systemd_unit)"
+    fi
+    sleep 1
+    postgresql_status
+}
+
+postgresql_enable() {
+    pg_require_installed || return 1
+    if [[ $release == "alpine" ]]; then
+        rc-update add postgresql default
+    else
+        systemctl enable "$(pg_systemd_unit)"
+    fi
+    if [[ $? == 0 ]]; then
+        LOGI "PostgreSQL set to start automatically on boot."
+    else
+        LOGE "Failed to enable PostgreSQL autostart."
+    fi
+}
+
+postgresql_log() {
+    pg_require_installed || return 1
+    local info ver cluster logfile
+    info="$(pg_cluster_info)"
+    if [[ -n "$info" ]]; then
+        ver="${info%% *}"
+        cluster="${info##* }"
+        logfile="/var/log/postgresql/postgresql-${ver}-${cluster}.log"
+    fi
+    if [[ -n "$logfile" && -f "$logfile" ]]; then
+        tail -n 40 "$logfile"
+    elif command -v journalctl > /dev/null 2>&1; then
+        journalctl -u "$(pg_systemd_unit)" -n 40 --no-pager
+    else
+        LOGE "No PostgreSQL log found."
+    fi
+}
+
+pg_require_installed() {
+    if ! postgresql_installed; then
+        LOGE "PostgreSQL is not installed. Use option 1 (Install PostgreSQL) in this menu first."
+        return 1
+    fi
+}
+
+# Installs a local PostgreSQL server and creates a dedicated xui user/database.
+# Progress goes to stderr; on success the connection DSN is printed to stdout so
+# callers can capture it. Mirrors install_postgres_local() from install.sh, so the
+# panel can be set up without re-running the remote install script.
+pg_install_local() {
+    local pg_user pg_pass pg_db pg_host pg_port
+    pg_pass=$(gen_random_string 24)
+    pg_db="xui"
+    pg_host="127.0.0.1"
+    pg_port="5432"
+
+    case "${release}" in
+        ubuntu | debian | armbian)
+            apt-get update >&2 && apt-get install -y -q postgresql >&2 || return 1
+            ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+            dnf install -y -q postgresql-server postgresql-contrib >&2 || return 1
+            [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
+            ;;
+        centos)
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                yum install -y postgresql-server postgresql-contrib >&2 || return 1
+            else
+                dnf install -y -q postgresql-server postgresql-contrib >&2 || return 1
+            fi
+            [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
+            ;;
+        arch | manjaro | parch)
+            pacman -Syu --noconfirm postgresql >&2 || return 1
+            if [[ ! -f /var/lib/postgres/data/PG_VERSION ]]; then
+                sudo -u postgres initdb -D /var/lib/postgres/data >&2 || return 1
+            fi
+            ;;
+        opensuse-tumbleweed | opensuse-leap)
+            zypper -q install -y postgresql-server postgresql-contrib >&2 || return 1
+            if [[ ! -f /var/lib/pgsql/data/PG_VERSION ]]; then
+                install -d -o postgres -g postgres -m 700 /var/lib/pgsql/data >&2 || return 1
+                su - postgres -c "initdb -D /var/lib/pgsql/data" >&2 || return 1
+            fi
+            ;;
+        alpine)
+            apk add --no-cache postgresql postgresql-contrib >&2 || return 1
+            if [[ ! -f /var/lib/postgresql/data/PG_VERSION ]]; then
+                /etc/init.d/postgresql setup >&2 || return 1
+            fi
+            rc-update add postgresql default >&2 2> /dev/null || true
+            rc-service postgresql start >&2 || return 1
+            ;;
+        *)
+            echo -e "${red}Unsupported distro for automatic PostgreSQL install: ${release}${plain}" >&2
+            return 1
+            ;;
+    esac
+
+    if [[ "${release}" != "alpine" ]]; then
+        systemctl enable --now postgresql >&2 || return 1
+    fi
+
+    local i
+    for i in 1 2 3 4 5; do
+        sudo -u postgres psql -tAc 'SELECT 1' > /dev/null 2>&1 && break
+        sleep 1
+    done
+
+    local existing_owner=""
+    existing_owner=$(sudo -u postgres psql -tAc \
+        "SELECT pg_catalog.pg_get_userbyid(datdba) FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null \
+        | tr -d '[:space:]')
+    if [[ -n "${existing_owner}" && "${existing_owner}" != "postgres" ]]; then
+        pg_user="${existing_owner}"
+    else
+        pg_user=$(gen_random_string 8)
+    fi
+
+    sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${pg_user}'" 2> /dev/null \
+        | grep -q 1 \
+        || sudo -u postgres psql -c "CREATE USER \"${pg_user}\" WITH PASSWORD '${pg_pass}';" >&2 || return 1
+
+    sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null \
+        | grep -q 1 \
+        || sudo -u postgres psql -c "CREATE DATABASE \"${pg_db}\" OWNER \"${pg_user}\";" >&2 || return 1
+
+    sudo -u postgres psql -c "ALTER USER \"${pg_user}\" WITH PASSWORD '${pg_pass}';" >&2 || return 1
+
+    local pg_pass_enc
+    pg_pass_enc=$(printf '%s' "${pg_pass}" | sed -e 's/%/%25/g' -e 's/:/%3A/g' -e 's/@/%40/g' -e 's|/|%2F|g' -e 's/?/%3F/g' -e 's/#/%23/g')
+
+    echo "postgres://${pg_user}:${pg_pass_enc}@${pg_host}:${pg_port}/${pg_db}?sslmode=disable"
+    return 0
+}
+
+# Installs the PostgreSQL client tools (pg_dump/pg_restore) used by in-panel backup.
+pg_ensure_client() {
+    if command -v pg_dump > /dev/null 2>&1 && command -v pg_restore > /dev/null 2>&1; then
+        return 0
+    fi
+    echo -e "${yellow}Installing PostgreSQL client tools (pg_dump/pg_restore)...${plain}" >&2
+    case "${release}" in
+        ubuntu | debian | armbian)
+            apt-get update >&2 && apt-get install -y -q postgresql-client >&2 || return 1
+            ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+            dnf install -y -q postgresql >&2 || return 1
+            ;;
+        centos)
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                yum install -y postgresql >&2 || return 1
+            else
+                dnf install -y -q postgresql >&2 || return 1
+            fi
+            ;;
+        arch | manjaro | parch)
+            pacman -Sy --noconfirm postgresql >&2 || return 1
+            ;;
+        opensuse-tumbleweed | opensuse-leap)
+            zypper -q install -y postgresql >&2 || return 1
+            ;;
+        alpine)
+            apk add --no-cache postgresql-client >&2 || return 1
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+    command -v pg_dump > /dev/null 2>&1 && command -v pg_restore > /dev/null 2>&1
+}
+
+# Writes XUI_DB_TYPE/XUI_DB_DSN into the service env file, preserving other entries.
+pg_write_env() {
+    local dsn="$1" envfile
+    envfile="$(xui_env_file_path)"
+    install -d -m 755 "$(dirname "$envfile")"
+    touch "$envfile"
+    sed -i '/^XUI_DB_TYPE=/d; /^XUI_DB_DSN=/d' "$envfile"
+    {
+        echo "XUI_DB_TYPE=postgres"
+        echo "XUI_DB_DSN=${dsn}"
+    } >> "$envfile"
+    chmod 600 "$envfile"
+}
+
+pg_install_server_action() {
+    if postgresql_installed; then
+        LOGI "PostgreSQL already appears to be installed on this system."
+        confirm "Run setup anyway (ensures the xui database/user exist)?" "n" || return 0
+    fi
+    LOGI "Installing PostgreSQL server and creating a dedicated user/database..."
+    local dsn
+    dsn=$(pg_install_local)
+    if [[ $? -ne 0 || -z "$dsn" ]]; then
+        LOGE "PostgreSQL installation failed."
+        return 1
+    fi
+    PG_LAST_DSN="$dsn"
+    pg_ensure_client || LOGE "Could not install pg_dump/pg_restore (panel DB backup may be unavailable)."
+    echo ""
+    LOGI "PostgreSQL is installed and ready."
+    echo -e "${green}Connection DSN:${plain} ${dsn}"
+    echo -e "${yellow}Use option 2 to migrate your SQLite data and switch the panel to PostgreSQL.${plain}"
+}
+
+# Copies the current SQLite data into PostgreSQL, then switches the panel over.
+migrate_to_postgres() {
+    if [[ ! -x "${xui_folder}/x-ui" ]]; then
+        LOGE "x-ui is not installed."
+        return 1
+    fi
+    echo ""
+    echo -e "${yellow}This copies your current SQLite data into a PostgreSQL database,${plain}"
+    echo -e "${yellow}then switches the panel to PostgreSQL and restarts it.${plain}"
+    echo -e "${yellow}The destination PostgreSQL database must be empty.${plain}"
+    confirm "Continue?" "n" || return 0
+
+    local dsn="" pg_mode
+    if [[ -n "$PG_LAST_DSN" ]]; then
+        echo -e "A PostgreSQL database was created in this session:"
+        echo -e "  ${green}${PG_LAST_DSN}${plain}"
+        confirm "Migrate into this database?" "y" && dsn="$PG_LAST_DSN"
+    fi
+
+    if [[ -z "$dsn" ]]; then
+        echo ""
+        echo -e "${green}\t1.${plain} Install PostgreSQL locally and create a dedicated user/db (recommended)"
+        echo -e "${green}\t2.${plain} Use an existing PostgreSQL server (enter DSN)"
+        read -rp "Choose [1]: " pg_mode
+        pg_mode="${pg_mode:-1}"
+        if [[ "$pg_mode" == "2" ]]; then
+            while [[ -z "$dsn" ]]; do
+                read -rp "Enter PostgreSQL DSN (postgres://user:pass@host:port/dbname?sslmode=disable): " dsn
+                dsn="${dsn// /}"
+            done
+        else
+            LOGI "Installing PostgreSQL locally (this may take a moment)..."
+            dsn=$(pg_install_local)
+            if [[ $? -ne 0 || -z "$dsn" ]]; then
+                LOGE "PostgreSQL installation failed. Aborting migration."
+                return 1
+            fi
+            PG_LAST_DSN="$dsn"
+        fi
+    fi
+
+    pg_ensure_client || LOGE "Could not install pg_dump/pg_restore (in-panel DB backup/restore may be unavailable)."
+
+    LOGI "Stopping panel to take a consistent snapshot..."
+    stop 0 > /dev/null 2>&1
+
+    echo ""
+    LOGI "Migrating data into PostgreSQL..."
+    if ! ${xui_folder}/x-ui migrate-db --dsn "$dsn"; then
+        LOGE "Migration failed. The panel was NOT switched to PostgreSQL."
+        start 0 > /dev/null 2>&1
+        return 1
+    fi
+
+    pg_write_env "$dsn"
+    LOGI "Wrote database settings to $(xui_env_file_path) (XUI_DB_TYPE=postgres)."
+    LOGI "Restarting panel on PostgreSQL..."
+    restart 0
+    sleep 1
+    if check_status; then
+        LOGI "Migration complete. The panel is now running on PostgreSQL."
+    else
+        LOGE "Panel did not come up. Check logs (option 16). Your SQLite data is left intact."
+    fi
+}
+
+postgresql_menu() {
+    echo -e "${green}\t1.${plain} ${green}Install${plain} PostgreSQL (server + client + xui db)"
+    echo -e "${green}\t2.${plain} Migrate SQLite ${green}->${plain} PostgreSQL"
+    echo -e "${green}\t3.${plain} Status (clusters & port 5432)"
+    echo -e "${green}\t4.${plain} ${green}Start${plain} PostgreSQL"
+    echo -e "${green}\t5.${plain} ${red}Stop${plain} PostgreSQL"
+    echo -e "${green}\t6.${plain} Restart PostgreSQL"
+    echo -e "${green}\t7.${plain} ${green}Enable${plain} Autostart on boot"
+    echo -e "${green}\t8.${plain} View PostgreSQL Log"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -rp "Choose an option: " choice
+    case "$choice" in
+        0)
+            show_menu
+            ;;
+        1)
+            pg_install_server_action
+            postgresql_menu
+            ;;
+        2)
+            migrate_to_postgres
+            postgresql_menu
+            ;;
+        3)
+            postgresql_status
+            postgresql_menu
+            ;;
+        4)
+            postgresql_start
+            postgresql_menu
+            ;;
+        5)
+            postgresql_stop
+            postgresql_menu
+            ;;
+        6)
+            postgresql_restart
+            postgresql_menu
+            ;;
+        7)
+            postgresql_enable
+            postgresql_menu
+            ;;
+        8)
+            postgresql_log
+            postgresql_menu
+            ;;
+        *)
+            echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+            postgresql_menu
+            ;;
+    esac
+}
+
 show_usage() {
     echo -e "┌────────────────────────────────────────────────────────────────┐
 │  ${blue}x-ui control menu usages (subcommands):${plain}                       │
@@ -2342,10 +2751,12 @@ show_menu() {
 │  ${green}24.${plain} Enable BBR                                │
 │  ${green}25.${plain} Update Geo Files                          │
 │  ${green}26.${plain} Speedtest by Ookla                        │
+│────────────────────────────────────────────────│
+│  ${green}27.${plain} PostgreSQL Management                     │
 ╚────────────────────────────────────────────────╝
 "
     show_status
-    echo && read -rp "Please enter your selection [0-26]: " num
+    echo && read -rp "Please enter your selection [0-27]: " num
 
     case "${num}" in
         0)
@@ -2429,8 +2840,11 @@ show_menu() {
         26)
             run_speedtest
             ;;
+        27)
+            postgresql_menu
+            ;;
         *)
-            LOGE "Please enter the correct number [0-26]"
+            LOGE "Please enter the correct number [0-27]"
             ;;
     esac
 }

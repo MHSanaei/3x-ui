@@ -63,12 +63,16 @@ func (s *FallbackService) SetByMaster(masterId int, items []FallbackInput) error
 			return err
 		}
 		for i, c := range items {
-			if c.ChildId <= 0 || c.ChildId == masterId {
+			childId := c.ChildId
+			if childId == masterId {
+				childId = 0
+			}
+			if childId <= 0 && strings.TrimSpace(c.Dest) == "" {
 				continue
 			}
 			row := model.InboundFallback{
 				MasterId:  masterId,
-				ChildId:   c.ChildId,
+				ChildId:   childId,
 				Name:      c.Name,
 				Alpn:      c.Alpn,
 				Path:      c.Path,
@@ -117,12 +121,12 @@ func (s *FallbackService) BuildFallbacksJSON(tx *gorm.DB, masterId int) ([]map[s
 
 	out := make([]map[string]any, 0, len(rows))
 	for _, r := range rows {
-		child, ok := byId[r.ChildId]
-		if !ok {
-			continue
-		}
-		dest := r.Dest
+		dest := strings.TrimSpace(r.Dest)
 		if dest == "" {
+			child, ok := byId[r.ChildId]
+			if !ok {
+				continue
+			}
 			listen := strings.TrimSpace(child.Listen)
 			if listen == "" || listen == "0.0.0.0" || listen == "::" || listen == "::0" {
 				listen = "127.0.0.1"

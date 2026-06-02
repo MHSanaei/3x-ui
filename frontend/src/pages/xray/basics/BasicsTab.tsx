@@ -168,7 +168,7 @@ export default function BasicsTab({
             ['statsInboundUplink', t('pages.xray.statsInboundUplink')],
             ['statsInboundDownlink', t('pages.xray.statsInboundDownlink')],
             ['statsOutboundUplink', t('pages.xray.statsOutboundUplink')],
-            ['statsOutboundDownlink', 'Outbound downlink stats'],
+            ['statsOutboundDownlink', t('pages.xray.statsOutboundDownlink')],
           ].map(([field, label]) => (
             <SettingListItem
               key={field}

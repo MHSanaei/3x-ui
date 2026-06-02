@@ -133,7 +133,7 @@ func TestNormalizeInboundClientSubId_FillsMissingAndPreservesExisting(t *testing
 	}
 
 	subIdPattern := regexp.MustCompile(`^[0-9a-z]{16}$`)
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		obj := clients[i].(map[string]any)
 		sub, _ := obj["subId"].(string)
 		if !subIdPattern.MatchString(sub) {

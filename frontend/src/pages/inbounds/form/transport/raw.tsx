@@ -56,13 +56,6 @@ export default function RawForm() {
           }}
         </Form.Item>
       </Form.Item>
-      {/* Per Xray docs (transports/raw.html#httpheaderobject), the
-          `request` object is honored only by outbound proxies; the
-          inbound listener reads `response`. Showing Host / Path /
-          Method / Version / request-headers on the inbound side was
-          a regression from this modal's earlier iteration — those
-          inputs wrote to the wire but xray-core ignored them. The
-          inbound modal now only exposes the response side. */}
       <Form.Item
         noStyle
         shouldUpdate={(prev, curr) =>

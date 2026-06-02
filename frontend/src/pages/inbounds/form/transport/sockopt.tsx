@@ -130,7 +130,7 @@ export default function SockoptForm({
                   <Input />
                 </Form.Item>
                 <Form.Item
-                  name={['streamSettings', 'sockopt', 'interfaceName']}
+                  name={['streamSettings', 'sockopt', 'interface']}
                   label={t('pages.inbounds.info.interfaceName')}
                 >
                   <Input />

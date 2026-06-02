@@ -264,7 +264,7 @@
       "localPanel": "本地面板",
       "fallbacks": {
         "title": "Fallbacks",
-        "help": "当此入站的连接未匹配任何客户端时，将其路由到另一个入站。在下方选择一个子入站，路由字段（SNI / ALPN / Path / xver）会从子入站的传输方式中自动填充——大多数场景无需再调整。每个子入站应监听 127.0.0.1，security=none。",
+        "help": "当此入站的连接未匹配任何客户端时，将其路由到其他位置。在下方选择一个子入站，可从其传输方式自动填充路由字段（SNI / ALPN / Path / xver）；或将选择框留空并直接设置 Dest（例如 8080 或 127.0.0.1:8080），以路由到 Nginx 等外部服务器。每个子入站应监听 127.0.0.1，security=none。",
         "empty": "暂无回落",
         "add": "添加回落",
         "pickInbound": "选择一个入站",
@@ -575,7 +575,8 @@
         "getNewCert": "获取新证书",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
-        "getNewSeed": "获取新 Seed"
+        "getNewSeed": "获取新 Seed",
+        "listenHelp": "也可以填写 Unix socket 路径（例如 /run/xray/in.sock），以使用套接字而非 TCP 端口监听——此时请将端口设为 0。"
       },
       "info": {
         "mode": "模式",
@@ -873,7 +874,19 @@
         "updateStarted": "已开始更新面板",
         "updateResult": "已在 {ok} 个节点上触发更新，{failed} 个失败",
         "updateNoneEligible": "请至少选择一个在线且已启用的节点"
-      }
+      },
+      "tlsVerifyMode": "TLS 校验",
+      "tlsVerifyModeHint": "面板如何校验节点的 HTTPS 证书。固定或跳过用于自签名证书（仅 https 节点）。",
+      "tlsVerify": "校验（默认 CA）",
+      "tlsPin": "固定证书（SHA-256）",
+      "tlsSkip": "跳过校验",
+      "tlsSkipWarning": "跳过校验会失去对中间人攻击的防护，API 令牌可能被截获。建议改用固定证书。",
+      "pinnedCert": "固定证书的 SHA-256",
+      "pinnedCertHint": "节点证书的 SHA-256（base64 或 hex）。点击“获取”可立即从节点读取。",
+      "pinnedCertPlaceholder": "base64 或 hex 的 SHA-256",
+      "fetchPin": "获取",
+      "pinFetched": "已获取节点当前证书",
+      "pinFetchFailed": "无法获取证书"
     },
     "settings": {
       "title": "面板设置",
@@ -1198,6 +1211,8 @@
         "tagRequired": "标签为必填项",
         "tagPlaceholder": "唯一标签",
         "localIpPlaceholder": "本地 IP",
+        "dialerProxyPlaceholder": "选择要串联的出站",
+        "dialerProxyHint": "让此出站通过另一个出站（按标签）拨号，以建立代理链。留空则直接连接。",
         "addressRequired": "地址为必填项",
         "portRequired": "端口为必填项",
         "optional": "可选",

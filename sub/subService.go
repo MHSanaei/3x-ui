@@ -158,34 +158,61 @@ func (s *SubService) AggregateTrafficByEmails(emails []string) (xray.ClientTraff
 	if len(emails) == 0 {
 		return agg, 0
 	}
+	db := database.GetDB()
 	var rows []xray.ClientTraffic
-	if err := database.GetDB().
+	if err := db.
 		Model(&xray.ClientTraffic{}).
 		Where("email IN ?", emails).
 		Find(&rows).Error; err != nil {
 		logger.Warning("SubService - AggregateTrafficByEmails: load by email:", err)
 		return agg, 0
 	}
+
+	// total/expiry are configured limits owned by the clients table, not the
+	// runtime traffic rows. In a multi-node setup the node snapshot can reset
+	// client_traffics.total/expiry_time to 0, so fall back to the clients
+	// table to keep the Subscription-Userinfo header in sync with the UI (#4645).
+	limits := make(map[string][2]int64, len(emails))
+	var records []model.ClientRecord
+	if err := db.Model(&model.ClientRecord{}).Where("email IN ?", emails).Find(&records).Error; err != nil {
+		logger.Warning("SubService - AggregateTrafficByEmails: load client limits:", err)
+	} else {
+		for _, r := range records {
+			limits[r.Email] = [2]int64{r.TotalGB, r.ExpiryTime}
+		}
+	}
+
 	now := time.Now().UnixMilli()
-	for i, ct := range rows {
+	first := true
+	for _, ct := range rows {
 		if ct.LastOnline > lastOnline {
 			lastOnline = ct.LastOnline
 		}
-		if i == 0 {
+		total, expiry := ct.Total, ct.ExpiryTime
+		if lim, ok := limits[ct.Email]; ok {
+			if total == 0 {
+				total = lim[0]
+			}
+			if expiry == 0 {
+				expiry = lim[1]
+			}
+		}
+		if first {
 			agg.Up = ct.Up
 			agg.Down = ct.Down
-			agg.Total = ct.Total
-			agg.ExpiryTime = subscriptionExpiryFromClient(now, ct.ExpiryTime)
+			agg.Total = total
+			agg.ExpiryTime = subscriptionExpiryFromClient(now, expiry)
+			first = false
 			continue
 		}
 		agg.Up += ct.Up
 		agg.Down += ct.Down
-		if agg.Total == 0 || ct.Total == 0 {
+		if agg.Total == 0 || total == 0 {
 			agg.Total = 0
 		} else {
-			agg.Total += ct.Total
+			agg.Total += total
 		}
-		normalized := subscriptionExpiryFromClient(now, ct.ExpiryTime)
+		normalized := subscriptionExpiryFromClient(now, expiry)
 		if normalized != agg.ExpiryTime {
 			agg.ExpiryTime = 0
 		}
@@ -576,10 +603,13 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
 			params["fp"], _ = fpValue.(string)
 		}
-		if insecure, ok := searchKey(tlsSettings, "allowInsecure"); ok {
-			if insecure.(bool) {
-				params["insecure"] = "1"
+		if echValue, ok := searchKey(tlsSettings, "echConfigList"); ok {
+			if ech, _ := echValue.(string); ech != "" {
+				params["ech"] = ech
 			}
+		}
+		if pins, ok := pinnedSha256List(tlsSettings); ok {
+			params["pinSHA256"] = strings.Join(pins, ",")
 		}
 	}
 

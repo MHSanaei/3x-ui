@@ -72,6 +72,7 @@ func initModels() error {
 		&model.ClientInbound{},
 		&model.ClientGroup{},
 		&model.InboundFallback{},
+		&model.NodeClientTraffic{},
 	}
 	for _, mdl := range models {
 		if err := db.AutoMigrate(mdl); err != nil {
@@ -203,6 +204,9 @@ func runSeeders(isUsersEmpty bool) error {
 		}
 
 		for _, user := range users {
+			if crypto.IsHashed(user.Password) {
+				continue
+			}
 			hashedPassword, err := crypto.HashPasswordAsBcrypt(user.Password)
 			if err != nil {
 				log.Printf("Error hashing password for user '%s': %v", user.Username, err)
