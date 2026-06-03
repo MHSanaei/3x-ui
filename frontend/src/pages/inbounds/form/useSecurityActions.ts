@@ -167,6 +167,7 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseS
         keyFile: '',
         certificate: [],
         key: [],
+        ocspStapling: 3600,
         oneTimeLoading: false,
         usage: 'encipherment',
         buildChain: false,
