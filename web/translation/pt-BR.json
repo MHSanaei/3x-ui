@@ -1119,7 +1119,9 @@
         "apiTokenNamePlaceholder": "ex.: central-panel-a",
         "apiTokenNameRequired": "O nome é obrigatório",
         "apiTokenEmpty": "Nenhum token ainda — crie um para autenticar bots ou painéis remotos.",
-        "apiTokenDeleteWarning": "Qualquer cliente usando este token deixará de se autenticar imediatamente."
+        "apiTokenDeleteWarning": "Qualquer cliente usando este token deixará de se autenticar imediatamente.",
+        "apiTokenCreatedTitle": "Token criado",
+        "apiTokenCreatedNotice": "Copie este token agora. Por segurança, ele não é armazenado de forma legível e não será exibido novamente."
       },
       "toasts": {
         "modifySettings": "Os parâmetros foram alterados.",

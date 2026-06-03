@@ -83,6 +83,11 @@
   word-break: break-all;
 }
 
+.api-token-created-notice {
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
 .security-actions {
   padding: 12px 0;
   display: flex;

@@ -1119,7 +1119,9 @@
         "apiTokenNamePlaceholder": "örn. central-panel-a",
         "apiTokenNameRequired": "Ad zorunludur",
         "apiTokenEmpty": "Henüz token yok — bot veya uzak panelleri doğrulamak için bir tane oluşturun.",
-        "apiTokenDeleteWarning": "Bu tokenı kullanan tüm istemciler anında kimlik doğrulamasını kaybeder."
+        "apiTokenDeleteWarning": "Bu tokenı kullanan tüm istemciler anında kimlik doğrulamasını kaybeder.",
+        "apiTokenCreatedTitle": "Belirteç oluşturuldu",
+        "apiTokenCreatedNotice": "Bu belirteci şimdi kopyalayın. Güvenlik nedeniyle okunabilir biçimde saklanmaz ve tekrar gösterilmez."
       },
       "toasts": {
         "modifySettings": "Parametreler değiştirildi.",

@@ -1119,7 +1119,9 @@
         "apiTokenNamePlaceholder": "e.g. central-panel-a",
         "apiTokenNameRequired": "Name is required",
         "apiTokenEmpty": "No tokens yet — create one to authenticate bots or remote panels.",
-        "apiTokenDeleteWarning": "Any caller using this token will stop authenticating immediately."
+        "apiTokenDeleteWarning": "Any caller using this token will stop authenticating immediately.",
+        "apiTokenCreatedTitle": "Token created",
+        "apiTokenCreatedNotice": "Copy this token now. For security it is not stored in readable form and will not be shown again."
       },
       "toasts": {
         "modifySettings": "The parameters have been changed.",

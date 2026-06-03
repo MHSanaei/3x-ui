@@ -1119,7 +1119,9 @@
         "apiTokenNamePlaceholder": "例: central-panel-a",
         "apiTokenNameRequired": "名前は必須です",
         "apiTokenEmpty": "トークンがまだありません — ボットやリモートパネルを認証するために作成してください。",
-        "apiTokenDeleteWarning": "このトークンを使用しているクライアントは直ちに認証できなくなります。"
+        "apiTokenDeleteWarning": "このトークンを使用しているクライアントは直ちに認証できなくなります。",
+        "apiTokenCreatedTitle": "トークンを作成しました",
+        "apiTokenCreatedNotice": "このトークンを今すぐコピーしてください。セキュリティ上、読み取り可能な形式では保存されず、再表示されません。"
       },
       "toasts": {
         "modifySettings": "パラメーターが変更されました。",

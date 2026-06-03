@@ -8,6 +8,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/database"
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/util/common"
+	"github.com/mhsanaei/3x-ui/v3/util/crypto"
 	"github.com/mhsanaei/3x-ui/v3/util/random"
 )
 
@@ -18,16 +19,18 @@ const apiTokenLength = 48
 type ApiTokenView struct {
 	Id        int    `json:"id"`
 	Name      string `json:"name"`
-	Token     string `json:"token"`
+	Token     string `json:"token,omitempty"`
 	Enabled   bool   `json:"enabled"`
 	CreatedAt int64  `json:"createdAt"`
 }
 
+// toView builds the metadata view returned by List. It never carries the
+// token value: only a SHA-256 hash is stored, and the plaintext is shown
+// exactly once at creation time.
 func toView(t *model.ApiToken) *ApiTokenView {
 	return &ApiTokenView{
 		Id:        t.Id,
 		Name:      t.Name,
-		Token:     t.Token,
 		Enabled:   t.Enabled,
 		CreatedAt: t.CreatedAt,
 	}
@@ -62,15 +65,18 @@ func (s *ApiTokenService) Create(name string) (*ApiTokenView, error) {
 	if count > 0 {
 		return nil, common.NewError("a token with that name already exists")
 	}
+	plaintext := random.Seq(apiTokenLength)
 	row := &model.ApiToken{
 		Name:    name,
-		Token:   random.Seq(apiTokenLength),
+		Token:   crypto.HashTokenSHA256(plaintext),
 		Enabled: true,
 	}
 	if err := db.Create(row).Error; err != nil {
 		return nil, err
 	}
-	return toView(row), nil
+	view := toView(row)
+	view.Token = plaintext
+	return view, nil
 }
 
 func (s *ApiTokenService) Delete(id int) error {
@@ -97,8 +103,9 @@ func (s *ApiTokenService) SetEnabled(id int, enabled bool) error {
 }
 
 // Match returns true when the presented bearer token matches any enabled
-// row in api_tokens. Uses constant-time compare per row so a remote
-// attacker can't time-attack tokens byte-by-byte.
+// row in api_tokens. Tokens are stored as SHA-256 hashes, so the presented
+// value is hashed before a constant-time compare per row keeps a remote
+// attacker from timing the comparison byte-by-byte.
 func (s *ApiTokenService) Match(presented string) bool {
 	if presented == "" {
 		return false
@@ -108,10 +115,10 @@ func (s *ApiTokenService) Match(presented string) bool {
 	if err := db.Model(model.ApiToken{}).Where("enabled = ?", true).Find(&rows).Error; err != nil {
 		return false
 	}
-	presentedBytes := []byte(presented)
+	presentedHash := []byte(crypto.HashTokenSHA256(presented))
 	matched := false
 	for _, r := range rows {
-		if subtle.ConstantTimeCompare([]byte(r.Token), presentedBytes) == 1 {
+		if subtle.ConstantTimeCompare([]byte(r.Token), presentedHash) == 1 {
 			matched = true
 		}
 	}

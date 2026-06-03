@@ -1119,7 +1119,9 @@
         "apiTokenNamePlaceholder": "例如 central-panel-a",
         "apiTokenNameRequired": "名稱必填",
         "apiTokenEmpty": "尚無令牌 — 建立一個以認證機器人或遠端面板。",
-        "apiTokenDeleteWarning": "使用此令牌的任何呼叫方將立即無法認證。"
+        "apiTokenDeleteWarning": "使用此令牌的任何呼叫方將立即無法認證。",
+        "apiTokenCreatedTitle": "權杖已建立",
+        "apiTokenCreatedNotice": "請立即複製此權杖。基於安全考量，它不會以可讀形式儲存，也不會再次顯示。"
       },
       "toasts": {
         "modifySettings": "參數已更改。",
