@@ -565,12 +565,22 @@ func (s *ServerService) AppendStatusSample(t time.Time, status *Status) {
 	if status.Mem.Total > 0 {
 		systemMetrics.append("mem", t, float64(status.Mem.Current)*100.0/float64(status.Mem.Total))
 	}
+	if status.Swap.Total > 0 {
+		systemMetrics.append("swap", t, float64(status.Swap.Current)*100.0/float64(status.Swap.Total))
+	} else {
+		systemMetrics.append("swap", t, 0)
+	}
 	systemMetrics.append("netUp", t, float64(status.NetIO.Up))
 	systemMetrics.append("netDown", t, float64(status.NetIO.Down))
 	systemMetrics.append("diskRead", t, float64(status.DiskIO.Read))
 	systemMetrics.append("diskWrite", t, float64(status.DiskIO.Write))
+	if status.Disk.Total > 0 {
+		systemMetrics.append("diskUsage", t, float64(status.Disk.Current)*100.0/float64(status.Disk.Total))
+	}
 	systemMetrics.append("pktUp", t, float64(status.NetIO.PktUp))
 	systemMetrics.append("pktDown", t, float64(status.NetIO.PktDown))
+	systemMetrics.append("tcpCount", t, float64(status.TcpCount))
+	systemMetrics.append("udpCount", t, float64(status.UdpCount))
 	online := 0
 	if p != nil && p.IsRunning() {
 		online = len(p.GetOnlineClients())

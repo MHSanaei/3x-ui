@@ -33,6 +33,7 @@ type ServerController struct {
 // NewServerController creates a new ServerController, initializes routes, and starts background tasks.
 func NewServerController(g *gin.RouterGroup) *ServerController {
 	a := &ServerController{}
+	service.RestoreSystemMetrics()
 	a.initRouter(g)
 	a.startTask()
 	return a
@@ -83,6 +84,11 @@ func (a *ServerController) startTask() {
 		}
 		a.xrayMetricsService.Sample(time.Now())
 		websocket.BroadcastStatus(status)
+	})
+	c.AddFunc("@every 1m", func() {
+		if err := service.PersistSystemMetrics(); err != nil {
+			logger.Warning("persist system metrics failed:", err)
+		}
 	})
 }
 

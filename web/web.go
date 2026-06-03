@@ -469,6 +469,9 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	if s.cron != nil {
 		s.cron.Stop()
 	}
+	if err := service.PersistSystemMetrics(); err != nil {
+		logger.Warning("persist system metrics on shutdown failed:", err)
+	}
 	if stopXray {
 		service.StopTrafficWriter()
 	}
