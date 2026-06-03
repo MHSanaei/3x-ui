@@ -94,9 +94,6 @@ export default function XrayPage() {
     [setTemplateSettings],
   );
 
-  const warpExist = !!templateSettings?.outbounds?.find((o) => o?.tag === 'warp');
-  const nordExist = !!templateSettings?.outbounds?.find((o) => o?.tag?.startsWith?.('nord-'));
-
   async function onTestOutbound(idx: number, mode: string) {
     const outbound = templateSettings?.outbounds?.[idx];
     if (outbound) await testOutbound(idx, outbound, mode);
@@ -287,10 +284,6 @@ export default function XrayPage() {
             setTemplateSettings={setTemplateSettings}
             outboundTestUrl={outboundTestUrl}
             onChangeOutboundTestUrl={setOutboundTestUrl}
-            warpExist={warpExist}
-            nordExist={nordExist}
-            onShowWarp={() => setWarpOpen(true)}
-            onShowNord={() => setNordOpen(true)}
             onResetDefault={resetToDefault}
           />
         );

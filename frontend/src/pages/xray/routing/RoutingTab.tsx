@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Modal, Space, Table } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Button, Modal, Space, Table, Tabs } from 'antd';
+import { ControlOutlined, PlusOutlined, UnorderedListOutlined } from '@ant-design/icons';
 
+import { catTabLabel } from '@/pages/settings/catTabLabel';
+import RoutingBasic from './RoutingBasic';
 import RuleFormModal from './RuleFormModal';
 import type { RoutingRule } from './RuleFormModal';
 import RuleCardList from './RuleCardList';
@@ -226,9 +228,14 @@ export default function RoutingTab({
     document.addEventListener('pointercancel', onUp);
   }
 
+  const hasSource = rows.some((r) => r.sourceIP || r.sourcePort || r.vlessRoute);
+  const hasBalancer = rows.some((r) => r.balancerTag);
+
   const desktopColumns = useRoutingColumns({
     isMobile,
     rowsLength: rows.length,
+    showSource: hasSource,
+    showBalancer: hasBalancer,
     onHandlePointerDown,
     openEdit,
     moveUp,
@@ -236,56 +243,81 @@ export default function RoutingTab({
     confirmDelete,
   });
 
+  const tableScrollX = desktopColumns.reduce((sum, c) => {
+    const col = c as { width?: number; hidden?: boolean };
+    return col.hidden ? sum : sum + (typeof col.width === 'number' ? col.width : 0);
+  }, 0);
+
   return (
     <>
       {modalContextHolder}
-      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
-          {t('pages.xray.Routings')}
-        </Button>
+      <Tabs
+        defaultActiveKey="basic"
+        items={[
+          {
+            key: 'basic',
+            label: catTabLabel(<ControlOutlined />, t('pages.xray.basicRouting'), isMobile),
+            children: (
+              <RoutingBasic
+                templateSettings={templateSettings}
+                setTemplateSettings={setTemplateSettings}
+              />
+            ),
+          },
+          {
+            key: 'rules',
+            label: catTabLabel(<UnorderedListOutlined />, t('pages.xray.Routings'), isMobile),
+            children: (
+              <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
+                  {t('pages.xray.Routings')}
+                </Button>
 
-        {isMobile ? (
-          <RuleCardList
-            rows={rows}
-            draggedIndex={draggedIndex}
-            dropTargetIndex={dropTargetIndex}
-            onHandlePointerDown={onHandlePointerDown}
-            openEdit={openEdit}
-            moveUp={moveUp}
-            moveDown={moveDown}
-            confirmDelete={confirmDelete}
-          />
-        ) : (
-          <Table
-            columns={desktopColumns}
-            dataSource={rows}
-            rowKey={(r) => r.key}
-            pagination={false}
-            scroll={{ x: 1150 }}
-            size="small"
-            className="routing-table"
-            onRow={(_record, index) => {
-              const classes: string[] = [];
-              const i = index ?? -1;
-              if (draggedIndex === i) classes.push('row-dragging');
-              if (dropTargetIndex === i && draggedIndex !== i && draggedIndex != null) {
-                classes.push(i > draggedIndex ? 'drop-after' : 'drop-before');
-              }
-              return { className: classes.join(' '), 'data-row-key': i } as React.HTMLAttributes<HTMLElement>;
-            }}
-          />
-        )}
-
-        <RuleFormModal
-          open={ruleModalOpen}
-          rule={editingRule}
-          inboundTags={inboundTagOptions}
-          outboundTags={outboundTagOptions}
-          balancerTags={balancerTagOptions}
-          onClose={() => setRuleModalOpen(false)}
-          onConfirm={onRuleConfirm}
-        />
-      </Space>
+                {isMobile ? (
+                  <RuleCardList
+                    rows={rows}
+                    draggedIndex={draggedIndex}
+                    dropTargetIndex={dropTargetIndex}
+                    onHandlePointerDown={onHandlePointerDown}
+                    openEdit={openEdit}
+                    moveUp={moveUp}
+                    moveDown={moveDown}
+                    confirmDelete={confirmDelete}
+                  />
+                ) : (
+                  <Table
+                    columns={desktopColumns}
+                    dataSource={rows}
+                    rowKey={(r) => r.key}
+                    pagination={false}
+                    scroll={{ x: tableScrollX }}
+                    size="small"
+                    className="routing-table"
+                    onRow={(_record, index) => {
+                      const classes: string[] = [];
+                      const i = index ?? -1;
+                      if (draggedIndex === i) classes.push('row-dragging');
+                      if (dropTargetIndex === i && draggedIndex !== i && draggedIndex != null) {
+                        classes.push(i > draggedIndex ? 'drop-after' : 'drop-before');
+                      }
+                      return { className: classes.join(' '), 'data-row-key': i } as React.HTMLAttributes<HTMLElement>;
+                    }}
+                  />
+                )}
+              </Space>
+            ),
+          },
+        ]}
+      />
+      <RuleFormModal
+        open={ruleModalOpen}
+        rule={editingRule}
+        inboundTags={inboundTagOptions}
+        outboundTags={outboundTagOptions}
+        balancerTags={balancerTagOptions}
+        onClose={() => setRuleModalOpen(false)}
+        onConfirm={onRuleConfirm}
+      />
     </>
   );
 }
