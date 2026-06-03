@@ -445,7 +445,7 @@ export default function ClientsPage() {
   }
 
   function onResetTraffic(row: ClientRecord) {
-    if (!row?.email || !Array.isArray(row.inboundIds) || row.inboundIds.length === 0) {
+    if (!row?.email) {
       messageApi.warning(t('pages.clients.resetNotPossible'));
       return;
     }
