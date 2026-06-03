@@ -166,6 +166,20 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
               <Input.TextArea value={allSetting.subRoutingRules} placeholder="happ://routing/add/..."
                 onChange={(e) => updateSetting({ subRoutingRules: e.target.value })} />
             </SettingListItem>
+
+            <Divider>Clash / Mihomo</Divider>
+
+            <SettingListItem paddings="small" title={t('pages.settings.subClashEnableRouting')} description={t('pages.settings.subClashEnableRoutingDesc')}>
+              <Switch checked={allSetting.subClashEnableRouting} onChange={(v) => updateSetting({ subClashEnableRouting: v })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subClashRoutingRules')} description={t('pages.settings.subClashRoutingRulesDesc')}>
+              <Input.TextArea
+                value={allSetting.subClashRules}
+                rows={8}
+                placeholder={'GEOSITE,category-ir,DIRECT\nGEOIP,private,DIRECT'}
+                onChange={(e) => updateSetting({ subClashRules: e.target.value })}
+              />
+            </SettingListItem>
           </>
         ),
       },
