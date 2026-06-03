@@ -9,7 +9,7 @@ import { isSSMultiUser } from '@/lib/xray/protocol-capabilities';
 import { setDatepicker } from '@/hooks/useDatepicker';
 import { keys } from '@/api/queryKeys';
 import { SlimInboundListSchema, LastOnlineMapSchema, InboundDetailSchema } from '@/schemas/inbound';
-import { OnlinesSchema, OnlineByNodeSchema } from '@/schemas/client';
+import { OnlinesSchema, OnlineByNodeSchema, ActiveInboundsByNodeSchema } from '@/schemas/client';
 import { DefaultsPayloadSchema, type DefaultsPayload } from '@/schemas/defaults';
 
 export interface SubSettings {
@@ -68,6 +68,17 @@ async function fetchOnlineClientsByNode(): Promise<Record<string, string[]>> {
   return (validated.obj && typeof validated.obj === 'object') ? (validated.obj as Record<string, string[]>) : {};
 }
 
+// Inbound tags that carried traffic recently, grouped by node (local = key 0).
+// Pairs with the per-node online map so a client attached to several inbounds
+// is only marked online on the ones that actually moved bytes — Xray's
+// user-level stat can't attribute traffic to a single inbound on its own.
+async function fetchActiveInboundsByNode(): Promise<Record<string, string[]>> {
+  const msg = await HttpUtil.post('/panel/api/clients/activeInbounds', undefined, { silent: true });
+  if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch activeInbounds');
+  const validated = parseMsg(msg, ActiveInboundsByNodeSchema, 'clients/activeInbounds');
+  return (validated.obj && typeof validated.obj === 'object') ? (validated.obj as Record<string, string[]>) : {};
+}
+
 function toNodeOnlineMap(data: Record<string, string[]>): Map<number, Set<string>> {
   const map = new Map<number, Set<string>>();
   for (const [key, emails] of Object.entries(data)) {
@@ -109,6 +120,12 @@ export function useInbounds() {
   const onlinesByNodeQuery = useQuery({
     queryKey: keys.clients.onlinesByNode(),
     queryFn: fetchOnlineClientsByNode,
+    staleTime: Infinity,
+  });
+
+  const activeInboundsQuery = useQuery({
+    queryKey: keys.clients.activeInbounds(),
+    queryFn: fetchActiveInboundsByNode,
     staleTime: Infinity,
   });
 
@@ -169,6 +186,13 @@ export function useInbounds() {
   // reads this so each inbound only counts clients online on its own node.
   const onlineByNodeRef = useRef<Map<number, Set<string>>>(new Map());
 
+  // Recently-active inbound tags keyed by node id. A node missing from this
+  // map means "no per-inbound activity reported" (e.g. remote nodes), so the
+  // rollup leaves that node's inbounds ungated and falls back to the email
+  // signal. A present node gates: a client only counts online on an inbound
+  // whose tag carried traffic this window.
+  const activeByNodeRef = useRef<Map<number, Set<string>>>(new Map());
+
   const [lastOnlineMap, setLastOnlineMap] = useState<Record<string, number>>({});
 
   const rollupClients = useCallback(
@@ -185,14 +209,21 @@ export function useInbounds() {
       const comments = new Map<string, string>();
       const now = Date.now();
 
-      const nodeOnline = onlineByNodeRef.current.get(dbInbound.nodeId ?? 0);
+      const nodeId = dbInbound.nodeId ?? 0;
+      const nodeOnline = onlineByNodeRef.current.get(nodeId);
+      // A node absent from the active map reports no per-inbound activity, so
+      // leave its inbounds ungated. When present, only mark a client online on
+      // this inbound if its tag actually carried traffic — that's what stops a
+      // multi-inbound client lighting up every inbound it's attached to.
+      const activeForNode = activeByNodeRef.current.get(nodeId);
+      const inboundActive = activeForNode === undefined || !dbInbound.tag || activeForNode.has(dbInbound.tag);
 
       if (dbInbound.enable) {
         for (const client of clients) {
           if (client.comment && client.email) comments.set(client.email, client.comment);
           if (client.enable) {
             if (client.email) active.push(client.email);
-            if (client.email && nodeOnline?.has(client.email)) online.push(client.email);
+            if (client.email && inboundActive && nodeOnline?.has(client.email)) online.push(client.email);
           } else if (client.email) {
             deactive.push(client.email);
           }
@@ -281,6 +312,13 @@ export function useInbounds() {
   }, [onlinesByNodeQuery.data, rebuildClientCount]);
 
   useEffect(() => {
+    if (activeInboundsQuery.data) {
+      activeByNodeRef.current = toNodeOnlineMap(activeInboundsQuery.data);
+      rebuildClientCount();
+    }
+  }, [activeInboundsQuery.data, rebuildClientCount]);
+
+  useEffect(() => {
     if (lastOnlineQuery.data) setLastOnlineMap(lastOnlineQuery.data);
   }, [lastOnlineQuery.data]);
 
@@ -299,6 +337,7 @@ export function useInbounds() {
       queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
       queryClient.invalidateQueries({ queryKey: keys.clients.onlines() }),
       queryClient.invalidateQueries({ queryKey: keys.clients.onlinesByNode() }),
+      queryClient.invalidateQueries({ queryKey: keys.clients.activeInbounds() }),
       queryClient.invalidateQueries({ queryKey: keys.clients.lastOnline() }),
       queryClient.invalidateQueries({ queryKey: keys.xray.config() }),
     ]);
@@ -328,13 +367,16 @@ export function useInbounds() {
   const applyTrafficEvent = useCallback(
     (payload: unknown) => {
       if (!payload || typeof payload !== 'object') return;
-      const p = payload as { onlineClients?: string[]; onlineByNode?: Record<string, string[]>; lastOnlineMap?: Record<string, number> };
+      const p = payload as { onlineClients?: string[]; onlineByNode?: Record<string, string[]>; activeInbounds?: Record<string, string[]>; lastOnlineMap?: Record<string, number> };
       if (Array.isArray(p.onlineClients)) {
         onlineClientsRef.current = p.onlineClients;
         setOnlineClients(p.onlineClients);
       }
       if (p.onlineByNode && typeof p.onlineByNode === 'object') {
         onlineByNodeRef.current = toNodeOnlineMap(p.onlineByNode);
+      }
+      if (p.activeInbounds && typeof p.activeInbounds === 'object') {
+        activeByNodeRef.current = toNodeOnlineMap(p.activeInbounds);
       }
       if (p.lastOnlineMap && typeof p.lastOnlineMap === 'object') {
         setLastOnlineMap((prev) => ({ ...prev, ...p.lastOnlineMap! }));

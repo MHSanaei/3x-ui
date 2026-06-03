@@ -677,6 +677,12 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/clients/activeInbounds',
+        summary: 'Inbound tags that carried traffic within the heartbeat window, grouped by node (local panel uses key "0"). Pairs with onlinesByNode so the inbounds page only marks a multi-inbound client online on the inbounds it actually used. Nodes that do not report per-inbound activity are absent.',
+        response: '{\n  "success": true,\n  "obj": {\n    "0": ["inbound-443", "inbound-8443"]\n  }\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/clients/lastOnline',
         summary: 'Map of client email → last-seen unix timestamp.',
         response: '{\n  "success": true,\n  "obj": {\n    "user1": 1700000000,\n    "user2": 1699999000\n  }\n}',

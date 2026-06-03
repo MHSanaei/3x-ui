@@ -56,6 +56,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/clearIps/:email", a.clearIps)
 	g.POST("/onlines", a.onlines)
 	g.POST("/onlinesByNode", a.onlinesByNode)
+	g.POST("/activeInbounds", a.activeInbounds)
 	g.POST("/lastOnline", a.lastOnline)
 }
 
@@ -400,6 +401,10 @@ func (a *ClientController) onlines(c *gin.Context) {
 
 func (a *ClientController) onlinesByNode(c *gin.Context) {
 	jsonObj(c, a.inboundService.GetOnlineClientsByNode(), nil)
+}
+
+func (a *ClientController) activeInbounds(c *gin.Context) {
+	jsonObj(c, a.inboundService.GetActiveInboundsByNode(), nil)
 }
 
 func (a *ClientController) lastOnline(c *gin.Context) {

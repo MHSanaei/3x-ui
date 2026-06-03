@@ -3691,6 +3691,45 @@
         }
       }
     },
+    "/panel/api/clients/activeInbounds": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Inbound tags that carried traffic within the heartbeat window, grouped by node (local panel uses key \"0\"). Pairs with onlinesByNode so the inbounds page only marks a multi-inbound client online on the inbounds it actually used. Nodes that do not report per-inbound activity are absent.",
+        "operationId": "post_panel_api_clients_activeInbounds",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "0": [
+                      "inbound-443",
+                      "inbound-8443"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/lastOnline": {
       "post": {
         "tags": [

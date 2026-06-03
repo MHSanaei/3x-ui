@@ -135,6 +135,13 @@ type process struct {
 	// snapshots — so a client connected solely to a remote node is not
 	// reported online on local inbounds.
 	onlineClients []string
+	// localActiveInbounds is the set of THIS panel's inbound tags that
+	// carried traffic within the same grace window. Xray's user>>>email
+	// stat aggregates across every inbound a client is attached to, so an
+	// online email alone can't say which inbound it actually used. Pairing
+	// it with the inbound>>>tag stat lets the per-inbound view drop a
+	// multi-inbound client from inbounds that saw no traffic this window.
+	localActiveInbounds []string
 	// localLastOnline records, per email, the last time this panel's own
 	// xray reported traffic for it. RefreshLocalOnline rebuilds
 	// onlineClients from this map each tick, keeping the local online set
@@ -142,6 +149,12 @@ type process struct {
 	// column is bumped by remote-node syncs too and would otherwise leak
 	// remote-only clients into the local set.
 	localLastOnline map[string]int64
+	// localInboundLastActive mirrors localLastOnline for inbound tags: the
+	// last tick this panel's xray reported traffic through each tag.
+	// Rebuilt into localActiveInbounds under the same grace window so the
+	// two signals stay aligned — an email within grace always has the
+	// inbound it used within grace too.
+	localInboundLastActive map[string]int64
 	// nodeOnlineClients holds the online-emails list reported by each
 	// remote node, keyed by node id. NodeTrafficSyncJob populates entries
 	// per cron tick and clears them when a node's probe fails. The mutex
@@ -296,13 +309,33 @@ func (p *Process) GetOnlineClientsByNode() map[int][]string {
 	return out
 }
 
-// RefreshLocalOnline records that each email in activeEmails had local xray
-// traffic at now, then rebuilds onlineClients from every email seen within
-// graceMs and prunes entries older than that. Called by the local
-// XrayTrafficJob after each xray gRPC stats poll. Pass a nil/empty
-// activeEmails to only prune — NodeTrafficSyncJob does this so a stopped
-// local xray's clients still age out between local traffic polls.
-func (p *Process) RefreshLocalOnline(activeEmails []string, now, graceMs int64) {
+// GetActiveInboundsByNode returns the inbound tags that carried traffic within
+// the grace window, grouped by node. Only this panel's own xray reports
+// per-inbound activity (under localNodeKey); remote-node snapshots don't carry
+// it, so their nodes are simply absent — the per-inbound view reads "node
+// missing" as "don't gate" and falls back to the email-only signal there.
+// Empty groups are omitted, mirroring GetOnlineClientsByNode.
+func (p *Process) GetActiveInboundsByNode() map[int][]string {
+	p.onlineMu.RLock()
+	defer p.onlineMu.RUnlock()
+
+	if len(p.localActiveInbounds) == 0 {
+		return map[int][]string{}
+	}
+	out := make(map[int][]string, 1)
+	local := make([]string, len(p.localActiveInbounds))
+	copy(local, p.localActiveInbounds)
+	out[localNodeKey] = local
+	return out
+}
+
+// RefreshLocalOnline records that each email in activeEmails and each tag in
+// activeInboundTags had local xray traffic at now, then rebuilds onlineClients
+// and localActiveInbounds from every entry seen within graceMs, pruning older
+// ones. Called by the local XrayTrafficJob after each xray gRPC stats poll.
+// Pass nil/empty slices to only prune — NodeTrafficSyncJob does this so a
+// stopped local xray's clients and inbounds still age out between local polls.
+func (p *Process) RefreshLocalOnline(activeEmails, activeInboundTags []string, now, graceMs int64) {
 	p.onlineMu.Lock()
 	defer p.onlineMu.Unlock()
 	if p.localLastOnline == nil {
@@ -320,6 +353,22 @@ func (p *Process) RefreshLocalOnline(activeEmails []string, now, graceMs int64) 
 		}
 	}
 	p.onlineClients = online
+
+	if p.localInboundLastActive == nil {
+		p.localInboundLastActive = make(map[string]int64, len(activeInboundTags))
+	}
+	for _, tag := range activeInboundTags {
+		p.localInboundLastActive[tag] = now
+	}
+	activeInbounds := make([]string, 0, len(p.localInboundLastActive))
+	for tag, ts := range p.localInboundLastActive {
+		if now-ts < graceMs {
+			activeInbounds = append(activeInbounds, tag)
+		} else {
+			delete(p.localInboundLastActive, tag)
+		}
+	}
+	p.localActiveInbounds = activeInbounds
 }
 
 // SetNodeOnlineClients records the online-emails set for one remote

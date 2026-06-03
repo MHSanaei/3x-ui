@@ -24,7 +24,7 @@ func assertSameSet(t *testing.T, label string, got, want []string) {
 // client online on one node must not be reported online on any other node.
 func TestGetOnlineClientsByNodeScopesPerNode(t *testing.T) {
 	p := newOnlineTestProcess()
-	p.RefreshLocalOnline([]string{"user1"}, 1000, 20000)
+	p.RefreshLocalOnline([]string{"user1"}, nil, 1000, 20000)
 	p.SetNodeOnlineClients(3, []string{"user1", "user2"})
 	p.SetNodeOnlineClients(5, []string{"user3"})
 
@@ -63,7 +63,7 @@ func TestGetOnlineClientsByNodeOmitsEmptyGroups(t *testing.T) {
 // client-centric / total-count views) still merges every node and dedupes.
 func TestGetOnlineClientsUnionDedupes(t *testing.T) {
 	p := newOnlineTestProcess()
-	p.RefreshLocalOnline([]string{"user1"}, 1000, 20000)
+	p.RefreshLocalOnline([]string{"user1"}, nil, 1000, 20000)
 	p.SetNodeOnlineClients(3, []string{"user1", "user2"})
 
 	assertSameSet(t, "union", p.GetOnlineClients(), []string{"user1", "user2"})
@@ -76,24 +76,50 @@ func TestRefreshLocalOnlineGraceWindow(t *testing.T) {
 	p := newOnlineTestProcess()
 	const grace = 20000
 
-	p.RefreshLocalOnline([]string{"user1"}, 1000, grace)
+	p.RefreshLocalOnline([]string{"user1"}, nil, 1000, grace)
 	if got := p.GetOnlineClientsByNode()[localNodeKey]; !slices.Contains(got, "user1") {
 		t.Fatalf("user1 should be online right after activity, got %v", got)
 	}
 
-	p.RefreshLocalOnline([]string{"user2"}, 11000, grace)
+	p.RefreshLocalOnline([]string{"user2"}, nil, 11000, grace)
 	got := p.GetOnlineClientsByNode()[localNodeKey]
 	if !slices.Contains(got, "user1") || !slices.Contains(got, "user2") {
 		t.Fatalf("both within grace window, got %v", got)
 	}
 
-	p.RefreshLocalOnline(nil, 22000, grace)
+	p.RefreshLocalOnline(nil, nil, 22000, grace)
 	got = p.GetOnlineClientsByNode()[localNodeKey]
 	if slices.Contains(got, "user1") {
 		t.Errorf("user1 (idle 21s, past grace) should have aged out, got %v", got)
 	}
 	if !slices.Contains(got, "user2") {
 		t.Errorf("user2 (idle 11s, within grace) should still be online, got %v", got)
+	}
+}
+
+// TestGetActiveInboundsByNodeTracksGraceWindow pins the fix for issue #4859: a
+// multi-inbound client must only count as online on inbounds that actually
+// carried traffic. The active-inbound signal honours the same grace window as
+// the online-email signal, and only this panel's tags report under key 0.
+func TestGetActiveInboundsByNodeTracksGraceWindow(t *testing.T) {
+	p := newOnlineTestProcess()
+	const grace = 20000
+
+	p.RefreshLocalOnline([]string{"alice"}, []string{"inbound-a"}, 1000, grace)
+	got := p.GetActiveInboundsByNode()[localNodeKey]
+	assertSameSet(t, "active after first poll", got, []string{"inbound-a"})
+
+	p.RefreshLocalOnline([]string{"alice"}, []string{"inbound-b"}, 11000, grace)
+	got = p.GetActiveInboundsByNode()[localNodeKey]
+	assertSameSet(t, "both within grace", got, []string{"inbound-a", "inbound-b"})
+
+	p.RefreshLocalOnline(nil, nil, 22000, grace)
+	got = p.GetActiveInboundsByNode()[localNodeKey]
+	assertSameSet(t, "inbound-a (idle 21s, past grace) aged out, inbound-b kept", got, []string{"inbound-b"})
+
+	p.RefreshLocalOnline(nil, nil, 40000, grace)
+	if _, ok := p.GetActiveInboundsByNode()[localNodeKey]; ok {
+		t.Errorf("all inbounds idle past grace, key 0 should be absent: %v", p.GetActiveInboundsByNode())
 	}
 }
 
