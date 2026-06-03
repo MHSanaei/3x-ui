@@ -32,6 +32,7 @@ import {
 
 import { HttpUtil } from '@/utils';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+import { useAllSettings } from '@/api/queries/useAllSettings';
 import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
@@ -121,6 +122,8 @@ export default function AppSidebar() {
   const { isDark, isUltra, toggleTheme, toggleUltra } = useTheme();
   const navigate = useNavigate();
   const { pathname, hash } = useLocation();
+  const { allSetting } = useAllSettings();
+  const showSubFormats = !!(allSetting.subJsonEnable || allSetting.subClashEnable);
 
   const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed());
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -143,13 +146,18 @@ export default function AppSidebar() {
   const navItems = useMemo(() => tabs.filter((tab) => tab.icon !== 'logout'), [tabs]);
   const utilItems = useMemo(() => tabs.filter((tab) => tab.icon === 'logout'), [tabs]);
 
-  const settingsChildren = useMemo<NonNullable<MenuProps['items']>>(() => [
-    { key: '/settings#general', icon: <SettingOutlined />, label: t('pages.settings.panelSettings') },
-    { key: '/settings#security', icon: <SafetyOutlined />, label: t('pages.settings.securitySettings') },
-    { key: '/settings#telegram', icon: <MessageOutlined />, label: t('pages.settings.TGBotSettings') },
-    { key: '/settings#subscription', icon: <CloudServerOutlined />, label: t('pages.settings.subSettings') },
-    { key: '/settings#subscription-formats', icon: <CodeOutlined />, label: 'Sub Formats' },
-  ], [t]);
+  const settingsChildren = useMemo<NonNullable<MenuProps['items']>>(() => {
+    const children: NonNullable<MenuProps['items']> = [
+      { key: '/settings#general', icon: <SettingOutlined />, label: t('pages.settings.panelSettings') },
+      { key: '/settings#security', icon: <SafetyOutlined />, label: t('pages.settings.securitySettings') },
+      { key: '/settings#telegram', icon: <MessageOutlined />, label: t('pages.settings.TGBotSettings') },
+      { key: '/settings#subscription', icon: <CloudServerOutlined />, label: t('pages.settings.subSettings') },
+    ];
+    if (showSubFormats) {
+      children.push({ key: '/settings#subscription-formats', icon: <CodeOutlined />, label: 'Sub Formats' });
+    }
+    return children;
+  }, [t, showSubFormats]);
 
   const xrayChildren = useMemo<NonNullable<MenuProps['items']>>(() => [
     { key: '/xray#basic', icon: <SettingOutlined />, label: t('pages.xray.basicTemplate') },
