@@ -32,7 +32,7 @@ import {
 
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
-import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
+import { LinkTags, parseLinkParts } from '@/lib/xray/link-label';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import SubUsageSummary from './SubUsageSummary';
@@ -396,7 +396,7 @@ export default function SubPage() {
                       {links.map((link, idx) => {
                         const parts = parseLinkParts(link, linkEmails[idx] || '');
                         const fallback = `Link ${idx + 1}`;
-                        const rowTitle = (parts && linkMetaText(parts)) || fallback;
+                        const rowTitle = parts?.remark || fallback;
                         const qrLabel = [parts?.remark, linkEmails[idx]].filter(Boolean).join('-') || rowTitle;
                         const canQr = !isPostQuantumLink(link);
                         return (

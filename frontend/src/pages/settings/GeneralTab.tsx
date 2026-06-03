@@ -5,7 +5,6 @@ import {
   Input,
   InputNumber,
   Select,
-  Space,
   Switch,
 } from 'antd';
 import type { AllSetting } from '@/models/setting';
@@ -23,8 +22,6 @@ interface GeneralTabProps {
   updateSetting: (patch: Partial<AllSetting>) => void;
 }
 
-const REMARK_MODELS: Record<string, string> = { i: 'Inbound', e: 'Email', o: 'Other' };
-const REMARK_SEPARATORS = [' ', '-', '_', '@', ':', '~', '|', ',', '.', '/'];
 const DATEPICKER_LIST: { name: string; value: 'gregorian' | 'jalalian' }[] = [
   { name: 'Gregorian (Standard)', value: 'gregorian' },
   { name: 'Jalalian (شمسی)', value: 'jalalian' },
@@ -56,30 +53,6 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
     })();
     return () => { cancelled = true; };
   }, []);
-
-  const remarkModel = useMemo(() => {
-    const rm = allSetting.remarkModel || '';
-    return rm.length > 1 ? rm.substring(1).split('') : [];
-  }, [allSetting.remarkModel]);
-
-  const remarkSeparator = useMemo(() => {
-    const rm = allSetting.remarkModel || '-';
-    return rm.length > 1 ? rm.charAt(0) : '-';
-  }, [allSetting.remarkModel]);
-
-  const remarkSample = useMemo(() => {
-    const parts = remarkModel.map((k) => REMARK_MODELS[k]);
-    return parts.length === 0 ? '' : parts.join(remarkSeparator);
-  }, [remarkModel, remarkSeparator]);
-
-  function setRemarkModel(parts: string[]) {
-    updateSetting({ remarkModel: remarkSeparator + parts.join('') });
-  }
-
-  function setRemarkSeparator(sep: string) {
-    const tail = (allSetting.remarkModel || '-').substring(1);
-    updateSetting({ remarkModel: sep + tail });
-  }
 
   const ldapInboundTagList = useMemo(() => {
     const csv = allSetting.ldapInboundTags || '';
@@ -115,28 +88,6 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         label: t('pages.settings.panelSettings'),
         children: (
           <>
-            <SettingListItem
-              paddings="small"
-              title={t('pages.settings.remarkModel')}
-              description={<>{t('pages.settings.sampleRemark')}: <i>#{remarkSample}</i></>}
-            >
-              <Space.Compact style={{ width: '100%' }}>
-                <Select
-                  mode="multiple"
-                  value={remarkModel}
-                  onChange={setRemarkModel}
-                  style={{ paddingRight: '.5rem', minWidth: '80%', width: 'auto' }}
-                  options={Object.entries(REMARK_MODELS).map(([k, l]) => ({ value: k, label: l }))}
-                />
-                <Select
-                  value={remarkSeparator}
-                  onChange={setRemarkSeparator}
-                  style={{ width: '20%' }}
-                  options={REMARK_SEPARATORS.map((s) => ({ value: s, label: s }))}
-                />
-              </Space.Compact>
-            </SettingListItem>
-
             <SettingListItem paddings="small" title={t('pages.settings.panelListeningIP')} description={t('pages.settings.panelListeningIPDesc')}>
               <Input value={allSetting.webListen} onChange={(e) => updateSetting({ webListen: e.target.value })} />
             </SettingListItem>

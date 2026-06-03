@@ -1,8 +1,13 @@
-import { Collapse, Divider, Input, InputNumber, Switch } from 'antd';
+import { useMemo } from 'react';
+import { Collapse, Divider, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { useTranslation } from 'react-i18next';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { sanitizePath, normalizePath } from './uriPath';
+
+const REMARK_MODELS: Record<string, string> = { i: 'Inbound', e: 'Email', o: 'Other' };
+const REMARK_SAMPLES: Record<string, string> = { i: 'Germany', e: 'john', o: 'Relay' };
+const REMARK_SEPARATORS = [' ', '-', '_', '@', ':', '~', '|', ',', '.', '/'];
 
 interface SubscriptionGeneralTabProps {
   allSetting: AllSetting;
@@ -11,6 +16,30 @@ interface SubscriptionGeneralTabProps {
 
 export default function SubscriptionGeneralTab({ allSetting, updateSetting }: SubscriptionGeneralTabProps) {
   const { t } = useTranslation();
+
+  const remarkModel = useMemo(() => {
+    const rm = allSetting.remarkModel || '';
+    return rm.length > 1 ? rm.substring(1).split('') : [];
+  }, [allSetting.remarkModel]);
+
+  const remarkSeparator = useMemo(() => {
+    const rm = allSetting.remarkModel || '-';
+    return rm.length > 1 ? rm.charAt(0) : '-';
+  }, [allSetting.remarkModel]);
+
+  const remarkSample = useMemo(() => {
+    const parts = remarkModel.map((k) => REMARK_SAMPLES[k]);
+    return parts.length === 0 ? '' : parts.join(remarkSeparator);
+  }, [remarkModel, remarkSeparator]);
+
+  function setRemarkModel(parts: string[]) {
+    updateSetting({ remarkModel: remarkSeparator + parts.join('') });
+  }
+
+  function setRemarkSeparator(sep: string) {
+    const tail = (allSetting.remarkModel || '-').substring(1);
+    updateSetting({ remarkModel: sep + tail });
+  }
 
   return (
     <Collapse defaultActiveKey="1" items={[
@@ -66,6 +95,44 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subEmailInRemark')} description={t('pages.settings.subEmailInRemarkDesc')}>
               <Switch checked={allSetting.subEmailInRemark} onChange={(v) => updateSetting({ subEmailInRemark: v })} />
+            </SettingListItem>
+
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.remarkModel')}
+              description={
+                <>
+                  {t('pages.settings.sampleRemark')}:{' '}
+                  <span
+                    style={{
+                      fontFamily: 'monospace',
+                      padding: '1px 6px',
+                      borderRadius: 4,
+                      border: '1px solid var(--ant-color-border)',
+                      background: 'var(--ant-color-fill-tertiary)',
+                      whiteSpace: 'pre',
+                    }}
+                  >
+                    {remarkSample ? `#${remarkSample}` : '—'}
+                  </span>
+                </>
+              }
+            >
+              <Space.Compact style={{ width: '100%' }}>
+                <Select
+                  mode="multiple"
+                  value={remarkModel}
+                  onChange={setRemarkModel}
+                  style={{ paddingRight: '.5rem', minWidth: '80%', width: 'auto' }}
+                  options={Object.entries(REMARK_MODELS).map(([k, l]) => ({ value: k, label: l }))}
+                />
+                <Select
+                  value={remarkSeparator}
+                  onChange={setRemarkSeparator}
+                  style={{ width: '20%' }}
+                  options={REMARK_SEPARATORS.map((s) => ({ value: s, label: s === ' ' ? '␣' : s }))}
+                />
+              </Space.Compact>
             </SettingListItem>
 
             <Divider>{t('pages.settings.subTitle')}</Divider>
