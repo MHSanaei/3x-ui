@@ -28,6 +28,7 @@ func NewNodeController(g *gin.RouterGroup) *NodeController {
 func (a *NodeController) initRouter(g *gin.RouterGroup) {
 	g.GET("/list", a.list)
 	g.GET("/get/:id", a.get)
+	g.GET("/webCert/:id", a.webCert)
 
 	g.POST("/add", a.add)
 	g.POST("/update/:id", a.update)
@@ -62,6 +63,22 @@ func (a *NodeController) get(c *gin.Context) {
 		return
 	}
 	jsonObj(c, n, nil)
+}
+
+// webCert returns the node's own web TLS certificate/key file paths so the
+// inbound form's "Set Cert from Panel" can fill paths that exist on the node.
+func (a *NodeController) webCert(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	files, err := a.nodeService.GetWebCertFiles(id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, files, nil)
 }
 
 func (a *NodeController) ensureReachable(c *gin.Context, n *model.Node) error {

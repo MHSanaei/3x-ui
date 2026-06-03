@@ -194,7 +194,7 @@ export default function InboundFormModal({
     setCertFromPanel,
     clearCertFiles,
     onSecurityChange,
-  } = useSecurityActions({ form, setSaving, messageApi });
+  } = useSecurityActions({ form, setSaving, messageApi, nodeId: typeof wNodeId === 'number' ? wNodeId : null });
 
   const toggleExternalProxy = (on: boolean) => {
     if (on) {

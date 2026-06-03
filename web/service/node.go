@@ -382,6 +382,30 @@ func (s *NodeService) SetEnable(id int, enable bool) error {
 	return db.Model(model.Node{}).Where("id = ?", id).Update("enable", enable).Error
 }
 
+// GetWebCertFiles asks a node for its own web TLS certificate/key file paths,
+// used by "Set Cert from Panel" so a node-assigned inbound gets paths that
+// exist on the node rather than the central panel. See issue #4854.
+func (s *NodeService) GetWebCertFiles(id int) (*runtime.WebCertFiles, error) {
+	n, err := s.GetById(id)
+	if err != nil || n == nil {
+		return nil, fmt.Errorf("node not found")
+	}
+	if !n.Enable {
+		return nil, fmt.Errorf("node is disabled")
+	}
+	mgr := runtime.GetManager()
+	if mgr == nil {
+		return nil, fmt.Errorf("runtime manager unavailable")
+	}
+	remote, err := mgr.RemoteFor(n)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return remote.GetWebCertFiles(ctx)
+}
+
 // NodeUpdateResult reports the outcome of triggering a panel self-update on one
 // node so the UI can show per-node success/failure for a bulk request.
 type NodeUpdateResult struct {

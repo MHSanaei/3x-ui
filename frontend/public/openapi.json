@@ -1529,6 +1529,43 @@
         }
       }
     },
+    "/panel/api/server/getWebCertFiles": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Return this panel's own web TLS certificate and key file paths. The central panel calls it on a node (via the node API token) so \"Set Cert from Panel\" fills a node-assigned inbound with paths that exist on the node.",
+        "operationId": "get_panel_api_server_getWebCertFiles",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "webCertFile": "/root/cert/example.com/fullchain.pem",
+                    "webKeyFile": "/root/cert/example.com/privkey.pem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/getNewX25519Cert": {
       "get": {
         "tags": [
@@ -4008,6 +4045,54 @@
                       "type": "string"
                     },
                     "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/webCert/{id}": {
+      "get": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Fetch a node's own web TLS certificate/key file paths (proxied to the node). Used by the inbound form's \"Set Cert from Panel\" so a node-assigned inbound gets paths that exist on the node, not the central panel.",
+        "operationId": "get_panel_api_nodes_webCert_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "webCertFile": "/root/cert/example.com/fullchain.pem",
+                    "webKeyFile": "/root/cert/example.com/privkey.pem"
                   }
                 }
               }

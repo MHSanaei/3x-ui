@@ -328,6 +328,28 @@ func (r *Remote) UpdatePanel(ctx context.Context) error {
 	return err
 }
 
+// WebCertFiles holds a node's own web TLS certificate and key file paths.
+type WebCertFiles struct {
+	WebCertFile string `json:"webCertFile"`
+	WebKeyFile  string `json:"webKeyFile"`
+}
+
+// GetWebCertFiles fetches the node's own web TLS certificate/key file paths so
+// the central panel can offer them as the "Set Cert from Panel" default for a
+// node-assigned inbound — those paths exist on the node, the central panel's
+// don't. See issue #4854.
+func (r *Remote) GetWebCertFiles(ctx context.Context) (*WebCertFiles, error) {
+	env, err := r.do(ctx, http.MethodGet, "panel/api/server/getWebCertFiles", nil)
+	if err != nil {
+		return nil, err
+	}
+	var files WebCertFiles
+	if err := json.Unmarshal(env.Obj, &files); err != nil {
+		return nil, fmt.Errorf("decode web cert files: %w", err)
+	}
+	return &files, nil
+}
+
 func (r *Remote) ResetClientTraffic(ctx context.Context, _ *model.Inbound, email string) error {
 	_, err := r.do(ctx, http.MethodPost,
 		"panel/api/clients/resetTraffic/"+url.PathEscape(email), nil)
