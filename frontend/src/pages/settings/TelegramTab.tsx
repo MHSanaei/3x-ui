@@ -1,9 +1,12 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Collapse, Input, InputNumber, Select, Switch } from 'antd';
+import { Input, InputNumber, Select, Switch, Tabs } from 'antd';
+import { BellOutlined, SettingOutlined } from '@ant-design/icons';
 import { LanguageManager } from '@/utils';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { catTabLabel } from './catTabLabel';
 
 interface TelegramTabProps {
   allSetting: AllSetting;
@@ -12,6 +15,7 @@ interface TelegramTabProps {
 
 export default function TelegramTab({ allSetting, updateSetting }: TelegramTabProps) {
   const { t } = useTranslation();
+  const { isMobile } = useMediaQuery();
 
   const langOptions = useMemo(
     () => LanguageManager.supportedLanguages.map((l: { value: string; name: string; icon: string }) => ({
@@ -27,10 +31,10 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
   );
 
   return (
-    <Collapse defaultActiveKey="1" items={[
+    <Tabs defaultActiveKey="1" items={[
       {
         key: '1',
-        label: t('pages.settings.panelSettings'),
+        label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.telegramBotEnable')} description={t('pages.settings.telegramBotEnableDesc')}>
@@ -71,7 +75,7 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
       },
       {
         key: '2',
-        label: t('pages.settings.notifications'),
+        label: catTabLabel(<BellOutlined />, t('pages.settings.notifications'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.telegramNotifyTime')} description={t('pages.settings.telegramNotifyTimeDesc')}>

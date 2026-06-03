@@ -1,8 +1,11 @@
 import { useMemo } from 'react';
-import { Collapse, Divider, Input, InputNumber, Select, Space, Switch } from 'antd';
+import { Divider, Input, InputNumber, Select, Space, Switch, Tabs } from 'antd';
+import { ClockCircleOutlined, InfoCircleOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
 
 const REMARK_MODELS: Record<string, string> = { i: 'Inbound', e: 'Email', o: 'Other' };
@@ -16,6 +19,7 @@ interface SubscriptionGeneralTabProps {
 
 export default function SubscriptionGeneralTab({ allSetting, updateSetting }: SubscriptionGeneralTabProps) {
   const { t } = useTranslation();
+  const { isMobile } = useMediaQuery();
 
   const remarkModel = useMemo(() => {
     const rm = allSetting.remarkModel || '';
@@ -42,10 +46,10 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
   }
 
   return (
-    <Collapse defaultActiveKey="1" items={[
+    <Tabs defaultActiveKey="1" items={[
       {
         key: '1',
-        label: t('pages.settings.panelSettings'),
+        label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.subEnable')} description={t('pages.settings.subEnableDesc')}>
@@ -84,7 +88,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
       },
       {
         key: '2',
-        label: t('pages.settings.information'),
+        label: catTabLabel(<InfoCircleOutlined />, t('pages.settings.information'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.subEncrypt')} description={t('pages.settings.subEncryptDesc')}>
@@ -167,7 +171,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
       },
       {
         key: '3',
-        label: t('pages.settings.certs'),
+        label: catTabLabel(<SafetyCertificateOutlined />, t('pages.settings.certs'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.subCertPath')} description={t('pages.settings.subCertPathDesc')}>
@@ -181,7 +185,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
       },
       {
         key: '4',
-        label: t('pages.settings.intervals'),
+        label: catTabLabel(<ClockCircleOutlined />, t('pages.settings.intervals'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.subUpdates')} description={t('pages.settings.subUpdatesDesc')}>

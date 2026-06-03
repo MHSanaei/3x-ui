@@ -1,3 +1,14 @@
-.nested-block {
-  padding: 10px 20px;
+.format-settings {
+  margin-bottom: 8px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.format-settings-list {
+  padding-top: 4px;
+}
+
+.noise-card {
+  margin-bottom: 10px;
 }

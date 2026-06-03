@@ -1,10 +1,20 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Collapse, Input, Modal, Select, Space, Switch } from 'antd';
-import { CloudOutlined, ApiOutlined } from '@ant-design/icons';
+import { Alert, Button, Input, Modal, Select, Space, Switch, Tabs } from 'antd';
+import {
+  ApiOutlined,
+  BarChartOutlined,
+  CloudOutlined,
+  FileTextOutlined,
+  ReloadOutlined,
+  SettingOutlined,
+  SwapOutlined,
+} from '@ant-design/icons';
 
 import { OutboundDomainStrategies } from '@/schemas/primitives';
 import { SettingListItem } from '@/components/ui';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { catTabLabel } from '@/pages/settings/catTabLabel';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
 import './BasicsTab.css';
 
@@ -48,6 +58,7 @@ export default function BasicsTab({
   onResetDefault,
 }: BasicsTabProps) {
   const { t } = useTranslation();
+  const { isMobile } = useMediaQuery();
   const [modal, modalContextHolder] = Modal.useModal();
 
   const mutate = useCallback(
@@ -97,7 +108,7 @@ export default function BasicsTab({
   const items = [
     {
       key: '1',
-      label: t('pages.xray.generalConfigs'),
+      label: catTabLabel(<SettingOutlined />, t('pages.xray.generalConfigs'), isMobile),
       children: (
         <>
           <Alert
@@ -161,7 +172,7 @@ export default function BasicsTab({
     },
     {
       key: '2',
-      label: t('pages.xray.statistics'),
+      label: catTabLabel(<BarChartOutlined />, t('pages.xray.statistics'), isMobile),
       children: (
         <>
           {[
@@ -191,7 +202,7 @@ export default function BasicsTab({
     },
     {
       key: '3',
-      label: t('pages.xray.logConfigs'),
+      label: catTabLabel(<FileTextOutlined />, t('pages.xray.logConfigs'), isMobile),
       children: (
         <>
           <Alert
@@ -268,7 +279,7 @@ export default function BasicsTab({
     },
     {
       key: '4',
-      label: t('pages.xray.basicRouting'),
+      label: catTabLabel(<SwapOutlined />, t('pages.xray.basicRouting'), isMobile),
       children: (
         <>
           <Alert
@@ -427,10 +438,10 @@ export default function BasicsTab({
     },
     {
       key: 'reset',
-      label: t('pages.settings.resetDefaultConfig'),
+      label: catTabLabel(<ReloadOutlined />, t('pages.settings.resetDefaultConfig'), isMobile),
       children: (
         <Space style={{ padding: '0 20px' }}>
-          <Button danger onClick={confirmResetDefault}>
+          <Button type="primary" danger icon={<ReloadOutlined />} onClick={confirmResetDefault}>
             {t('pages.settings.resetDefaultConfig')}
           </Button>
         </Space>
@@ -441,7 +452,7 @@ export default function BasicsTab({
   return (
     <>
       {modalContextHolder}
-      <Collapse defaultActiveKey={['1']} items={items} />
+      <Tabs defaultActiveKey="1" items={items} />
     </>
   );
 }

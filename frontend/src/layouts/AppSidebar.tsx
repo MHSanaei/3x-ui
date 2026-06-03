@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -6,21 +6,28 @@ import { Drawer, Layout, Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   ApiOutlined,
-  ClusterOutlined,
   CloseOutlined,
+  CloudServerOutlined,
+  ClusterOutlined,
+  CodeOutlined,
   DashboardOutlined,
+  DatabaseOutlined,
   GithubOutlined,
   HeartOutlined,
   ImportOutlined,
   LogoutOutlined,
   MenuOutlined,
+  MessageOutlined,
   MoonFilled,
   MoonOutlined,
+  SafetyOutlined,
   SettingOutlined,
   SunOutlined,
+  SwapOutlined,
   TagsOutlined,
   TeamOutlined,
   ToolOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -113,7 +120,7 @@ export default function AppSidebar() {
   const { t } = useTranslation();
   const { isDark, isUltra, toggleTheme, toggleUltra } = useTheme();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
 
   const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed());
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -136,18 +143,51 @@ export default function AppSidebar() {
   const navItems = useMemo(() => tabs.filter((tab) => tab.icon !== 'logout'), [tabs]);
   const utilItems = useMemo(() => tabs.filter((tab) => tab.icon === 'logout'), [tabs]);
 
-  const selectedKey = pathname === '' ? '/' : pathname;
+  const settingsChildren = useMemo<NonNullable<MenuProps['items']>>(() => [
+    { key: '/settings#general', icon: <SettingOutlined />, label: t('pages.settings.panelSettings') },
+    { key: '/settings#security', icon: <SafetyOutlined />, label: t('pages.settings.securitySettings') },
+    { key: '/settings#telegram', icon: <MessageOutlined />, label: t('pages.settings.TGBotSettings') },
+    { key: '/settings#subscription', icon: <CloudServerOutlined />, label: t('pages.settings.subSettings') },
+    { key: '/settings#subscription-formats', icon: <CodeOutlined />, label: 'Sub Formats' },
+  ], [t]);
+
+  const xrayChildren = useMemo<NonNullable<MenuProps['items']>>(() => [
+    { key: '/xray#basic', icon: <SettingOutlined />, label: t('pages.xray.basicTemplate') },
+    { key: '/xray#routing', icon: <SwapOutlined />, label: t('pages.xray.Routings') },
+    { key: '/xray#outbound', icon: <UploadOutlined />, label: t('pages.xray.Outbounds') },
+    { key: '/xray#balancer', icon: <ClusterOutlined />, label: t('pages.xray.Balancers') },
+    { key: '/xray#dns', icon: <DatabaseOutlined />, label: 'DNS' },
+    { key: '/xray#advanced', icon: <CodeOutlined />, label: t('pages.xray.advancedTemplate') },
+  ], [t]);
+
+  const settingsActive = pathname === '/settings';
+  const xrayActive = pathname === '/xray';
+  const selectedKey = settingsActive
+    ? `/settings${hash || '#general'}`
+    : xrayActive
+      ? `/xray${hash || '#basic'}`
+      : (pathname === '' ? '/' : pathname);
+
+  const openSubmenu = settingsActive ? '/settings' : xrayActive ? '/xray' : null;
+  const [openKeys, setOpenKeys] = useState<string[]>(() => (openSubmenu ? [openSubmenu] : []));
+  useEffect(() => {
+    if (openSubmenu) {
+      setOpenKeys((keys) => (keys.includes(openSubmenu) ? keys : [...keys, openSubmenu]));
+    }
+  }, [openSubmenu]);
 
   const toMenuItems = useCallback((items: typeof tabs): MenuProps['items'] =>
     items.map((tab) => {
       const Icon = iconByName[tab.icon];
-      return {
-        key: tab.key,
-        icon: <Icon />,
-        label: tab.title,
-      };
+      if (tab.key === '/settings') {
+        return { key: tab.key, icon: <Icon />, label: tab.title, children: settingsChildren };
+      }
+      if (tab.key === '/xray') {
+        return { key: tab.key, icon: <Icon />, label: tab.title, children: xrayChildren };
+      }
+      return { key: tab.key, icon: <Icon />, label: tab.title };
     }),
-  []);
+  [settingsChildren, xrayChildren]);
 
   const openLink = useCallback(async (key: string) => {
     if (key === LOGOUT_KEY) {
@@ -212,6 +252,8 @@ export default function AppSidebar() {
           theme={currentTheme}
           mode="inline"
           selectedKeys={[selectedKey]}
+          openKeys={collapsed ? undefined : openKeys}
+          onOpenChange={(keys) => setOpenKeys(keys as string[])}
           className="sider-nav"
           items={toMenuItems(navItems)}
           onClick={onMenuClick}
@@ -269,6 +311,8 @@ export default function AppSidebar() {
           theme={currentTheme}
           mode="inline"
           selectedKeys={[selectedKey]}
+          openKeys={openKeys}
+          onOpenChange={(keys) => setOpenKeys(keys as string[])}
           className="drawer-menu drawer-nav"
           items={toMenuItems(navItems)}
           onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
-  Collapse,
   Empty,
   Form,
   Input,
@@ -10,11 +9,15 @@ import {
   Space,
   Spin,
   Switch,
+  Tabs,
   message,
 } from 'antd';
+import { ApiOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons';
 import { ClipboardManager, HttpUtil, RandomUtil } from '@/utils';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { catTabLabel } from './catTabLabel';
 import TwoFactorModal from './TwoFactorModal';
 import './SecurityTab.css';
 
@@ -59,6 +62,7 @@ const TFA_INITIAL: TfaState = {
 
 export default function SecurityTab({ allSetting, updateSetting }: SecurityTabProps) {
   const { t } = useTranslation();
+  const { isMobile } = useMediaQuery();
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
 
@@ -248,10 +252,10 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
     <>
       {messageContextHolder}
       {modalContextHolder}
-      <Collapse defaultActiveKey="1" items={[
+      <Tabs defaultActiveKey="1" items={[
         {
           key: '1',
-          label: t('pages.settings.security.admin'),
+          label: catTabLabel(<UserOutlined />, t('pages.settings.security.admin'), isMobile),
           children: (
             <>
               <SettingListItem paddings="small" title={t('pages.settings.oldUsername')}>
@@ -282,7 +286,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
         },
         {
           key: '2',
-          label: t('pages.settings.security.twoFactor'),
+          label: catTabLabel(<SafetyOutlined />, t('pages.settings.security.twoFactor'), isMobile),
           children: (
             <SettingListItem
               paddings="small"
@@ -295,7 +299,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
         },
         {
           key: '3',
-          label: t('pages.nodes.apiToken'),
+          label: catTabLabel(<ApiOutlined />, t('pages.nodes.apiToken'), isMobile),
           children: (
             <div className="api-token-section">
               <div className="api-token-header">

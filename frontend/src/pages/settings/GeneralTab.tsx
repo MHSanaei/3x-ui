@@ -1,15 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Collapse,
   Input,
   InputNumber,
   Select,
   Switch,
+  Tabs,
 } from 'antd';
+import {
+  ApartmentOutlined,
+  BellOutlined,
+  ClockCircleOutlined,
+  GlobalOutlined,
+  SafetyCertificateOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
 import { HttpUtil, LanguageManager } from '@/utils';
 import { SettingListItem } from '@/components/ui';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { catTabLabel } from './catTabLabel';
 import { sanitizePath } from './uriPath';
 
 interface ApiMsg<T = unknown> {
@@ -29,6 +39,7 @@ const DATEPICKER_LIST: { name: string; value: 'gregorian' | 'jalalian' }[] = [
 
 export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProps) {
   const { t } = useTranslation();
+  const { isMobile } = useMediaQuery();
 
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
   const [inboundOptions, setInboundOptions] = useState<{ label: string; value: string }[]>([]);
@@ -82,10 +93,10 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
   );
 
   return (
-    <Collapse defaultActiveKey="1" items={[
+    <Tabs defaultActiveKey="1" items={[
       {
         key: '1',
-        label: t('pages.settings.panelSettings'),
+        label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.panelListeningIP')} description={t('pages.settings.panelListeningIPDesc')}>
@@ -148,7 +159,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
       },
       {
         key: '2',
-        label: t('pages.settings.notifications'),
+        label: catTabLabel(<BellOutlined />, t('pages.settings.notifications'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.expireTimeDiff')} description={t('pages.settings.expireTimeDiffDesc')}>
@@ -164,7 +175,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
       },
       {
         key: '3',
-        label: t('pages.settings.certs'),
+        label: catTabLabel(<SafetyCertificateOutlined />, t('pages.settings.certs'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.publicKeyPath')} description={t('pages.settings.publicKeyPathDesc')}>
@@ -178,7 +189,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
       },
       {
         key: '4',
-        label: t('pages.settings.externalTraffic'),
+        label: catTabLabel(<GlobalOutlined />, t('pages.settings.externalTraffic'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.externalTrafficInformEnable')} description={t('pages.settings.externalTrafficInformEnableDesc')}>
@@ -201,7 +212,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
       },
       {
         key: '5',
-        label: t('pages.settings.dateAndTime'),
+        label: catTabLabel(<ClockCircleOutlined />, t('pages.settings.dateAndTime'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.timeZone')} description={t('pages.settings.timeZoneDesc')}>
@@ -220,7 +231,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
       },
       {
         key: '6',
-        label: 'LDAP',
+        label: catTabLabel(<ApartmentOutlined />, 'LDAP', isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.ldap.enable')}>
