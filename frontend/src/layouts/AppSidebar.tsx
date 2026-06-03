@@ -234,6 +234,7 @@ export default function AppSidebar() {
     <div className="ant-sidebar">
       <Layout.Sider
         theme={currentTheme}
+        width={220}
         collapsible
         collapsed={collapsed}
         breakpoint="md"
