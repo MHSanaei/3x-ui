@@ -35,6 +35,7 @@ import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import './AppSidebar.css';
 
+const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
 const DONATE_URL = 'https://donate.sanaei.dev/';
 const REPO_URL = 'https://github.com/MHSanaei/3x-ui';
 const LOGOUT_KEY = '__logout__';
@@ -52,6 +53,14 @@ const iconByName: Record<IconName, ComponentType> = {
   logout: LogoutOutlined,
   apidocs: ApiOutlined,
 };
+
+function readCollapsed(): boolean {
+  try {
+    return JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) || 'false');
+  } catch {
+    return false;
+  }
+}
 
 function DonateButton({ ariaLabel }: { ariaLabel: string }) {
   return (
@@ -116,9 +125,8 @@ export default function AppSidebar() {
   const { allSetting } = useAllSettings();
   const showSubFormats = !!(allSetting.subJsonEnable || allSetting.subClashEnable);
 
-  const [hovered, setHovered] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed());
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const collapsedView = !hovered;
 
   const currentTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
   const panelVersion = window.X_UI_CUR_VER || '';
@@ -202,6 +210,13 @@ export default function AppSidebar() {
     openLink(String(key));
   }, [openLink]);
 
+  const onSiderCollapse = useCallback((isCollapsed: boolean, type: 'clickTrigger' | 'responsive') => {
+    if (type === 'clickTrigger') {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(isCollapsed));
+      setCollapsed(isCollapsed);
+    }
+  }, []);
+
   const cycleTheme = useCallback((id: string) => {
     pauseAnimationsUntilLeave(id);
     if (!isDark) {
@@ -216,21 +231,19 @@ export default function AppSidebar() {
   }, [isDark, isUltra, toggleTheme, toggleUltra]);
 
   return (
-    <div
-      className="ant-sidebar is-rail"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <div className="ant-sidebar">
       <Layout.Sider
         theme={currentTheme}
-        collapsed={collapsedView}
-        trigger={null}
+        collapsible
+        collapsed={collapsed}
+        breakpoint="md"
+        onCollapse={onSiderCollapse}
       >
-        <div className={`sider-brand${collapsedView ? ' sider-brand-collapsed' : ''}`}>
+        <div className={`sider-brand${collapsed ? ' sider-brand-collapsed' : ''}`}>
           <div className="brand-block">
-            <span className="brand-text">{collapsedView ? '3X' : '3X-UI'}</span>
+            <span className="brand-text">{collapsed ? '3X' : '3X-UI'}</span>
           </div>
-          {!collapsedView && (
+          {!collapsed && (
             <div className="brand-actions">
               <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
               <ThemeCycleButton
@@ -247,7 +260,7 @@ export default function AppSidebar() {
           theme={currentTheme}
           mode="inline"
           selectedKeys={[selectedKey]}
-          openKeys={collapsedView ? undefined : openKeys}
+          openKeys={collapsed ? undefined : openKeys}
           onOpenChange={(keys) => setOpenKeys(keys as string[])}
           className="sider-nav"
           items={toMenuItems(navItems)}
@@ -262,7 +275,7 @@ export default function AppSidebar() {
           onClick={onMenuClick}
         />
         <div className="sider-footer">
-          <VersionBadge version={panelVersion} collapsed={collapsedView} />
+          <VersionBadge version={panelVersion} collapsed={collapsed} />
         </div>
       </Layout.Sider>
 
