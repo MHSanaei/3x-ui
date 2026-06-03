@@ -617,6 +617,85 @@ func TestApplyExternalProxyTLSToStream_DoesNotLeakAcrossProxies(t *testing.T) {
 	}
 }
 
+func TestApplyExternalProxyTLSParams_SetsPinnedPeerCert(t *testing.T) {
+	params := map[string]string{"security": "tls"}
+	ep := map[string]any{
+		"dest":                 "proxy.example.com",
+		"pinnedPeerCertSha256": []any{"aa11", "bb22"},
+	}
+
+	applyExternalProxyTLSParams(ep, params, "tls")
+
+	if params["pcs"] != "aa11,bb22" {
+		t.Fatalf("pcs = %q, want aa11,bb22", params["pcs"])
+	}
+}
+
+func TestApplyExternalProxyTLSObj_SetsPinnedPeerCert(t *testing.T) {
+	obj := map[string]any{"tls": "tls"}
+	ep := map[string]any{
+		"dest":                 "proxy.example.com",
+		"pinnedPeerCertSha256": []any{"aa11"},
+	}
+
+	applyExternalProxyTLSObj(ep, obj, "tls")
+
+	if obj["pcs"] != "aa11" {
+		t.Fatalf("pcs = %v, want aa11", obj["pcs"])
+	}
+}
+
+func TestApplyExternalProxyTLSToStream_SetsPinnedPeerCert(t *testing.T) {
+	stream := map[string]any{
+		"security":    "tls",
+		"tlsSettings": map[string]any{"serverName": "upstream.example.com"},
+	}
+	ep := map[string]any{"dest": "edge.example.com", "pinnedPeerCertSha256": []any{"aa11", "bb22"}}
+
+	working := cloneStreamForExternalProxy(stream)
+	applyExternalProxyTLSToStream(ep, working, "tls")
+
+	ts := working["tlsSettings"].(map[string]any)
+	settings, _ := ts["settings"].(map[string]any)
+	pins, ok := settings["pinnedPeerCertSha256"].([]any)
+	if !ok || len(pins) != 2 || pins[0] != "aa11" || pins[1] != "bb22" {
+		t.Fatalf("pinnedPeerCertSha256 = %v, want [aa11 bb22]", settings["pinnedPeerCertSha256"])
+	}
+}
+
+func TestApplyExternalProxyHysteriaParams_PinIsHexNormalized(t *testing.T) {
+	// base64 SHA-256 pin must come out as bare lowercase hex for Hysteria's
+	// pinSHA256, which other (pcs) protocols leave untouched.
+	params := map[string]string{"security": "tls", "sni": "server.example.com"}
+	ep := map[string]any{
+		"dest":                 "edge.example.com",
+		"pinnedPeerCertSha256": []any{"yEfdI5XQl4wHgLggHEsomosoFZfUfCdfLXfT+W2N6cQ="},
+	}
+
+	applyExternalProxyHysteriaParams(ep, params)
+
+	if params["pinSHA256"] != "c847dd2395d0978c0780b8201c4b289a8b281597d47c275f2d77d3f96d8de9c4" {
+		t.Fatalf("pinSHA256 = %q, want hex-normalized pin", params["pinSHA256"])
+	}
+	if _, ok := params["pcs"]; ok {
+		t.Fatalf("pcs must not be set for Hysteria, got %v", params)
+	}
+	if params["sni"] != "server.example.com" {
+		t.Fatalf("sni = %q, want inbound sni preserved (no override for Hysteria)", params["sni"])
+	}
+}
+
+func TestApplyExternalProxyHysteriaParams_NoPinLeavesMainPin(t *testing.T) {
+	params := map[string]string{"security": "tls", "pinSHA256": "deadbeef"}
+	ep := map[string]any{"dest": "edge.example.com"}
+
+	applyExternalProxyHysteriaParams(ep, params)
+
+	if params["pinSHA256"] != "deadbeef" {
+		t.Fatalf("pinSHA256 = %q, want main pin preserved when proxy has none", params["pinSHA256"])
+	}
+}
+
 func TestApplyExternalProxyTLSParams_DoesNotApplyForNone(t *testing.T) {
 	params := map[string]string{
 		"security": "none",

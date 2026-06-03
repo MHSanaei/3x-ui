@@ -547,6 +547,7 @@
         "cwndMultiplier": "CWND çarpanı",
         "maxSendingWindow": "Maks. gönderme penceresi",
         "externalProxy": "Harici proxy",
+        "forceTls": "TLS zorla",
         "sniPlaceholder": "SNI (varsayılan host)",
         "fingerprint": "Fingerprint",
         "defaultOption": "Varsayılan",

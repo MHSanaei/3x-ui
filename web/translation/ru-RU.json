@@ -547,6 +547,7 @@
         "cwndMultiplier": "Множитель CWND",
         "maxSendingWindow": "Макс. окно отправки",
         "externalProxy": "External Proxy",
+        "forceTls": "Принудительный TLS",
         "sniPlaceholder": "SNI (по умолчанию = host)",
         "fingerprint": "Fingerprint",
         "defaultOption": "По умолчанию",

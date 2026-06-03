@@ -119,6 +119,11 @@ function externalProxyAlpn(value: ExternalProxyEntry['alpn']): string {
   return '';
 }
 
+function externalProxyPins(value: ExternalProxyEntry['pinnedPeerCertSha256']): string {
+  if (Array.isArray(value)) return value.filter(Boolean).join(',');
+  return '';
+}
+
 function applyExternalProxyTLSObj(
   externalProxy: ExternalProxyEntry | null | undefined,
   obj: Record<string, unknown>,
@@ -130,6 +135,8 @@ function applyExternalProxyTLSObj(
   if (externalProxy.fingerprint && externalProxy.fingerprint.length > 0) obj.fp = externalProxy.fingerprint;
   const alpn = externalProxyAlpn(externalProxy.alpn);
   if (alpn.length > 0) obj.alpn = alpn;
+  const pins = externalProxyPins(externalProxy.pinnedPeerCertSha256);
+  if (pins.length > 0) obj.pcs = pins;
 }
 
 export interface GenVmessLinkInput {
@@ -270,6 +277,8 @@ function applyExternalProxyTLSParams(
   if (externalProxy.fingerprint && externalProxy.fingerprint.length > 0) params.set('fp', externalProxy.fingerprint);
   const alpn = externalProxyAlpn(externalProxy.alpn);
   if (alpn.length > 0) params.set('alpn', alpn);
+  const pins = externalProxyPins(externalProxy.pinnedPeerCertSha256);
+  if (pins.length > 0) params.set('pcs', pins);
 }
 
 export interface GenVlessLinkInput {
@@ -576,6 +585,7 @@ export interface GenHysteriaLinkInput {
   port?: number;
   remark?: string;
   clientAuth: string;
+  externalProxy?: ExternalProxyEntry | null;
 }
 
 // Hysteria2's pinSHA256 must be a 64-char lowercase hex string — Xray-core
@@ -616,6 +626,7 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
     port = inbound.port,
     remark = '',
     clientAuth,
+    externalProxy = null,
   } = input;
 
   if (inbound.protocol !== 'hysteria') return '';
@@ -634,6 +645,13 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
   if (tls.settings.pinnedPeerCertSha256.length > 0) {
     params.set('pinSHA256', tls.settings.pinnedPeerCertSha256.map(hysteriaPinHex).join(','));
+  }
+  // An external-proxy entry can pin a different endpoint's certificate.
+  // Hysteria carries it as hex `pinSHA256` (not the `pcs` other protocols
+  // use), so coerce each entry through hysteriaPinHex like the main pin.
+  if (Array.isArray(externalProxy?.pinnedPeerCertSha256)) {
+    const epPins = externalProxy.pinnedPeerCertSha256.filter(Boolean).map(hysteriaPinHex);
+    if (epPins.length > 0) params.set('pinSHA256', epPins.join(','));
   }
 
   const udpMasks = stream.finalmask?.udp;
@@ -844,6 +862,7 @@ export function genLink(input: GenLinkInput): string {
       return genHysteriaLink({
         inbound, address, port, remark,
         clientAuth: client.auth ?? '',
+        externalProxy,
       });
     default:
       return '';

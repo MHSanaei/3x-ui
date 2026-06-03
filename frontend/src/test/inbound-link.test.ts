@@ -196,6 +196,34 @@ describe('genHysteriaLink', () => {
         'c847dd2395d0978c0780b8201c4b289a8b281597d47c275f2d77d3f96d8de9c4',
     );
   });
+
+  it('emits an external proxy pin as hex pinSHA256 (not pcs)', () => {
+    const [, raw] = fixtures[0];
+    const typed = InboundSchema.parse(raw);
+    const client = (raw.settings as { clients: Array<{ auth: string }> }).clients[0];
+
+    const link = genHysteriaLink({
+      inbound: typed,
+      address: 'edge.example.com',
+      port: 8443,
+      remark: 'ep-pin',
+      clientAuth: client.auth,
+      externalProxy: {
+        forceTls: 'tls',
+        dest: 'edge.example.com',
+        port: 8443,
+        remark: 'ep-pin',
+        // base64 SHA-256 — must come out hex-normalized for Hysteria.
+        pinnedPeerCertSha256: ['yEfdI5XQl4wHgLggHEsomosoFZfUfCdfLXfT+W2N6cQ='],
+      },
+    });
+
+    const url = new URL(link);
+    expect(url.searchParams.get('pinSHA256')).toBe(
+      'c847dd2395d0978c0780b8201c4b289a8b281597d47c275f2d77d3f96d8de9c4',
+    );
+    expect(url.searchParams.has('pcs')).toBe(false);
+  });
 });
 
 describe('genWireguardLink + genWireguardConfig', () => {
@@ -355,4 +383,50 @@ describe('genShadowsocksLink', () => {
       expect(link).toMatchSnapshot();
     });
   }
+});
+
+describe('external proxy pinned cert (pcs)', () => {
+  const [, raw] = fixturesForProtocol('vless').find(([name]) => name === 'vless-ws-tls')!;
+  const typed = InboundSchema.parse(raw);
+  const clientId = (raw as { settings: { clients: Array<{ id: string }> } }).settings.clients[0].id;
+
+  it('emits the external proxy pin list as pcs when forcing TLS', () => {
+    const link = genVlessLink({
+      inbound: typed,
+      address: 'edge.example.com',
+      port: 8443,
+      forceTls: 'tls',
+      remark: 'ep-pin',
+      clientId,
+      externalProxy: {
+        forceTls: 'tls',
+        dest: 'edge.example.com',
+        port: 8443,
+        remark: 'ep-pin',
+        pinnedPeerCertSha256: ['aa11', 'bb22'],
+      },
+    });
+
+    expect(new URL(link).searchParams.get('pcs')).toBe('aa11,bb22');
+  });
+
+  it('omits pcs when the external proxy forces security off', () => {
+    const link = genVlessLink({
+      inbound: typed,
+      address: 'edge.example.com',
+      port: 8080,
+      forceTls: 'none',
+      remark: 'ep-none',
+      clientId,
+      externalProxy: {
+        forceTls: 'none',
+        dest: 'edge.example.com',
+        port: 8080,
+        remark: 'ep-none',
+        pinnedPeerCertSha256: ['aa11'],
+      },
+    });
+
+    expect(new URL(link).searchParams.has('pcs')).toBe(false);
+  });
 });

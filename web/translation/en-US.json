@@ -547,6 +547,7 @@
         "cwndMultiplier": "CWND Multiplier",
         "maxSendingWindow": "Max Sending Window",
         "externalProxy": "External Proxy",
+        "forceTls": "Force TLS",
         "sniPlaceholder": "SNI (defaults to host)",
         "fingerprint": "Fingerprint",
         "defaultOption": "Default",

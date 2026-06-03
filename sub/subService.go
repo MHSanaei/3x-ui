@@ -667,8 +667,11 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			}
 			epRemark, _ := ep["remark"].(string)
 
+			epParams := cloneStringMap(params)
+			applyExternalProxyHysteriaParams(ep, epParams)
+
 			link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, dest, int(portF))
-			links = append(links, buildLinkWithParams(link, params, s.genRemark(inbound, email, epRemark)))
+			links = append(links, buildLinkWithParams(link, epParams, s.genRemark(inbound, email, epRemark)))
 		}
 		return strings.Join(links, "\n")
 	}
@@ -1017,7 +1020,7 @@ func buildVmessLink(obj map[string]any) string {
 func cloneVmessShareObj(baseObj map[string]any, newSecurity string) map[string]any {
 	newObj := map[string]any{}
 	for key, value := range baseObj {
-		if !(newSecurity == "none" && (key == "alpn" || key == "sni" || key == "fp")) {
+		if !(newSecurity == "none" && (key == "alpn" || key == "sni" || key == "fp" || key == "pcs")) {
 			newObj[key] = value
 		}
 	}
@@ -1037,6 +1040,9 @@ func applyExternalProxyTLSObj(ep map[string]any, obj map[string]any, security st
 	if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
 		obj["alpn"] = alpn
 	}
+	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
+		obj["pcs"] = joinAnyStrings(pins)
+	}
 }
 
 func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, security string) {
@@ -1052,6 +1058,29 @@ func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, se
 	if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
 		params["alpn"] = alpn
 	}
+	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
+		params["pcs"] = joinAnyStrings(pins)
+	}
+}
+
+// applyExternalProxyHysteriaParams overrides the cert pin for a single
+// external-proxy entry on a Hysteria link. Hysteria carries the pin as a hex
+// `pinSHA256` (not the `pcs` the URL-param protocols use), so each entry is
+// coerced through hysteriaPinHex like the main pin. sni/fp/alpn are left as
+// the inbound's own — Hysteria external proxies are typically alternate
+// endpoints (port-hop / CDN) fronting the same certificate.
+func applyExternalProxyHysteriaParams(ep map[string]any, params map[string]string) {
+	pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"])
+	if !ok {
+		return
+	}
+	hexPins := make([]string, 0, len(pins))
+	for _, p := range pins {
+		if s, ok := p.(string); ok {
+			hexPins = append(hexPins, hysteriaPinHex(s))
+		}
+	}
+	params["pinSHA256"] = strings.Join(hexPins, ",")
 }
 
 // cloneStreamForExternalProxy returns a shallow clone of stream with
@@ -1095,6 +1124,14 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 	}
 	if alpn, ok := externalProxyALPNList(ep["alpn"]); ok {
 		tlsSettings["alpn"] = alpn
+	}
+	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
+		settings, _ := tlsSettings["settings"].(map[string]any)
+		if settings == nil {
+			settings = map[string]any{}
+			tlsSettings["settings"] = settings
+		}
+		settings["pinnedPeerCertSha256"] = pins
 	}
 }
 
@@ -1165,6 +1202,43 @@ func externalProxyALPNList(value any) ([]any, bool) {
 	}
 }
 
+// externalProxyPins extracts an external-proxy entry's pinnedPeerCertSha256
+// as a []any of non-empty strings. The []any element type matches what the
+// JSON/Clash sub builders expect when reading the value back off the cloned
+// stream's tlsSettings.settings.
+func externalProxyPins(value any) ([]any, bool) {
+	switch v := value.(type) {
+	case []string:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			if item != "" {
+				out = append(out, item)
+			}
+		}
+		return out, len(out) > 0
+	case []any:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok && s != "" {
+				out = append(out, s)
+			}
+		}
+		return out, len(out) > 0
+	default:
+		return nil, false
+	}
+}
+
+func joinAnyStrings(items []any) string {
+	parts := make([]string, 0, len(items))
+	for _, item := range items {
+		if s, ok := item.(string); ok {
+			parts = append(parts, s)
+		}
+	}
+	return strings.Join(parts, ",")
+}
+
 func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string) string {
 	var links strings.Builder
 	for index, externalProxy := range externalProxies {
@@ -1204,8 +1278,8 @@ func buildLinkWithParams(link string, params map[string]string, fragment string)
 
 // buildLinkWithParamsAndSecurity is buildLinkWithParams plus an
 // external-proxy override: the `security` key in params is replaced with
-// the supplied value, and TLS hint fields (alpn/sni/fp) are stripped when
-// the override is `none`.
+// the supplied value, and TLS hint fields (alpn/sni/fp/pcs) are stripped
+// when the override is `none`.
 func buildLinkWithParamsAndSecurity(link string, params map[string]string, fragment, security string, omitTLSFields bool) string {
 	return appendQueryAndFragment(link, params, fragment, security, omitTLSFields)
 }
@@ -1220,7 +1294,7 @@ func appendQueryAndFragment(link string, params map[string]string, fragment, sec
 			if securityOverride != "" && k == "security" {
 				v = securityOverride
 			}
-			if omitTLSFields && (k == "alpn" || k == "sni" || k == "fp") {
+			if omitTLSFields && (k == "alpn" || k == "sni" || k == "fp" || k == "pcs") {
 				continue
 			}
 			q.Set(k, v)

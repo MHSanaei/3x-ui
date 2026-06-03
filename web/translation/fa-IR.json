@@ -547,6 +547,7 @@
         "cwndMultiplier": "ضریب CWND",
         "maxSendingWindow": "حداکثر پنجره ارسال",
         "externalProxy": "پراکسی خارجی",
+        "forceTls": "اجبار TLS",
         "sniPlaceholder": "SNI (پیش‌فرض همان host)",
         "fingerprint": "اثرانگشت",
         "defaultOption": "پیش‌فرض",

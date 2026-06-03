@@ -207,6 +207,7 @@ export default function InboundFormModal({
         sni: '',
         fingerprint: '',
         alpn: [],
+        pinnedPeerCertSha256: [],
       }]);
     } else {
       form.setFieldValue(['streamSettings', 'externalProxy'], []);
