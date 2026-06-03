@@ -247,12 +247,11 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	}
 
 	// Fall back to the panel-wide proxy when no dedicated bot proxy is set.
-	// The bot's fasthttp dialer only supports SOCKS5, so other schemes are ignored.
 	if tgBotProxy == "" {
 		panelProxy, perr := t.settingService.GetPanelProxy()
 		if perr != nil {
 			logger.Warning("Failed to get panel proxy URL:", perr)
-		} else if strings.HasPrefix(panelProxy, "socks5://") {
+		} else if isSupportedBotProxyScheme(panelProxy) {
 			tgBotProxy = panelProxy
 		}
 	}
@@ -304,6 +303,12 @@ func (t *Tgbot) trySetBotCommands(bot *telego.Bot) {
 	}
 }
 
+func isSupportedBotProxyScheme(proxyUrl string) bool {
+	return strings.HasPrefix(proxyUrl, "socks5://") ||
+		strings.HasPrefix(proxyUrl, "http://") ||
+		strings.HasPrefix(proxyUrl, "https://")
+}
+
 // createRobustFastHTTPClient creates a fasthttp.Client with proper connection handling
 func (t *Tgbot) createRobustFastHTTPClient(proxyUrl string) *fasthttp.Client {
 	client := &fasthttp.Client{
@@ -326,9 +331,12 @@ func (t *Tgbot) createRobustFastHTTPClient(proxyUrl string) *fasthttp.Client {
 		},
 	}
 
-	// Set proxy if provided
 	if proxyUrl != "" {
-		client.Dial = fasthttpproxy.FasthttpSocksDialer(proxyUrl)
+		if strings.HasPrefix(proxyUrl, "socks5://") {
+			client.Dial = fasthttpproxy.FasthttpSocksDialer(proxyUrl)
+		} else {
+			client.Dial = fasthttpproxy.FasthttpHTTPDialer(proxyUrl)
+		}
 	}
 
 	return client
@@ -338,15 +346,12 @@ func (t *Tgbot) createRobustFastHTTPClient(proxyUrl string) *fasthttp.Client {
 func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*telego.Bot, error) {
 	// Validate proxy URL if provided
 	if proxyUrl != "" {
-		if !strings.HasPrefix(proxyUrl, "socks5://") {
-			logger.Warning("Invalid socks5 URL, ignoring proxy")
+		if !isSupportedBotProxyScheme(proxyUrl) {
+			logger.Warning("Unsupported proxy scheme (want socks5:// or http(s)://), ignoring proxy")
 			proxyUrl = "" // Clear invalid proxy
-		} else {
-			_, err := url.Parse(proxyUrl)
-			if err != nil {
-				logger.Warningf("Can't parse proxy URL, ignoring proxy: %v", err)
-				proxyUrl = ""
-			}
+		} else if _, err := url.Parse(proxyUrl); err != nil {
+			logger.Warningf("Can't parse proxy URL, ignoring proxy: %v", err)
+			proxyUrl = ""
 		}
 	}
 
