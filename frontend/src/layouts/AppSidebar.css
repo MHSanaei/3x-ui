@@ -5,6 +5,20 @@
   align-self: flex-start;
 }
 
+.ant-sidebar.is-rail {
+  flex: 0 0 80px;
+  width: 80px;
+  overflow: visible;
+}
+
+.ant-sidebar.is-rail > .ant-layout-sider {
+  z-index: 100;
+}
+
+.ant-sidebar.is-rail:hover > .ant-layout-sider {
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.18);
+}
+
 .sider-brand,
 .drawer-brand {
   font-weight: 600;
@@ -244,6 +258,15 @@
     max-width: 0 !important;
     min-width: 0 !important;
     width: 0 !important;
+  }
+
+  .ant-sidebar,
+  .ant-sidebar.is-rail {
+    flex: 0 0 0 !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    overflow: hidden !important;
   }
 }
 
