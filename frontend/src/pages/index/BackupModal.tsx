@@ -25,6 +25,10 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
     window.location.href = (window.X_UI_BASE_PATH || '') + 'panel/api/server/getDb';
   }
 
+  function exportMigration() {
+    window.location.href = (window.X_UI_BASE_PATH || '') + 'panel/api/server/getMigration';
+  }
+
   function importDb() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -80,6 +84,16 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
             </div>
           </div>
           <Button type="primary" onClick={exportDb} icon={<DownloadOutlined />} />
+        </div>
+
+        <div className="backup-item">
+          <div className="backup-meta">
+            <div className="backup-title">{t('pages.index.migrationDownload')}</div>
+            <div className="backup-description">
+              {isPostgres ? t('pages.index.migrationDownloadPgDesc') : t('pages.index.migrationDownloadDesc')}
+            </div>
+          </div>
+          <Button type="primary" onClick={exportMigration} icon={<DownloadOutlined />} />
         </div>
 
         <div className="backup-item">

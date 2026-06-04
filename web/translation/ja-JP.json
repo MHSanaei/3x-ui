@@ -277,7 +277,10 @@
       "getConfigError": "設定ファイルの取得中にエラーが発生しました",
       "backupPostgresNote": "このパネルは PostgreSQL で動作しています。「バックアップ」は pg_dump アーカイブ (.dump) をダウンロードし、「復元」は pg_restore で読み込み直します。サーバーに PostgreSQL クライアントツール (pg_dump と pg_restore) がインストールされている必要があります。",
       "exportDatabasePgDesc": "現在のデータベースの PostgreSQL ダンプ (.dump) を端末にダウンロードするにはクリックしてください。",
-      "importDatabasePgDesc": "PostgreSQL データベースを復元するために .dump ファイルを選択してアップロードするにはクリックしてください。現在のすべてのデータが置き換えられます。"
+      "importDatabasePgDesc": "PostgreSQL データベースを復元するために .dump ファイルを選択してアップロードするにはクリックしてください。現在のすべてのデータが置き換えられます。",
+      "migrationDownload": "移行ファイルをダウンロード",
+      "migrationDownloadDesc": "SQLite データベースのポータブルな .dump（SQL テキスト）エクスポートをダウンロードするにはクリックします。",
+      "migrationDownloadPgDesc": "PostgreSQL のデータから作成した .db SQLite データベースをダウンロードします。このパネルを SQLite で実行する準備が整います。"
     },
     "inbounds": {
       "title": "インバウンド",

@@ -277,7 +277,10 @@
       "getConfigError": "Ocurrió un error al obtener el archivo de configuración",
       "backupPostgresNote": "Este panel funciona con PostgreSQL. «Copia de seguridad» descarga un archivo pg_dump (.dump) y «Restaurar» lo vuelve a cargar con pg_restore. El servidor necesita tener instaladas las herramientas cliente de PostgreSQL (pg_dump y pg_restore).",
       "exportDatabasePgDesc": "Haz clic para descargar un volcado de PostgreSQL (.dump) de tu base de datos actual en tu dispositivo.",
-      "importDatabasePgDesc": "Haz clic para seleccionar y subir un archivo .dump y restaurar tu base de datos PostgreSQL. Esto reemplaza todos los datos actuales."
+      "importDatabasePgDesc": "Haz clic para seleccionar y subir un archivo .dump y restaurar tu base de datos PostgreSQL. Esto reemplaza todos los datos actuales.",
+      "migrationDownload": "Descargar migración",
+      "migrationDownloadDesc": "Haz clic para descargar una exportación portable .dump (texto SQL) de tu base de datos SQLite.",
+      "migrationDownloadPgDesc": "Haz clic para descargar una base de datos SQLite .db creada a partir de tus datos de PostgreSQL, lista para ejecutar este panel en SQLite."
     },
     "inbounds": {
       "title": "Entradas",
