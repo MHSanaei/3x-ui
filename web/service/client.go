@@ -316,6 +316,32 @@ func (s *ClientService) GetRecordByEmail(tx *gorm.DB, email string) (*model.Clie
 	return row, nil
 }
 
+// EffectiveFlow returns the client's flow from the first flow-capable inbound
+// it is attached to (lowest inbound_id with a non-empty flow_override). The
+// canonical clients.Flow column is unreliable for multi-inbound clients: a
+// non-flow inbound (Hysteria, WS, gRPC, …) carries an empty flow and, when its
+// SyncInbound runs last, overwrites the column to "" even though a VLESS Reality
+// inbound stored a real flow. The per-inbound flow_override is always correct,
+// so derive the display flow from it (order-independent). See issue #4792.
+func (s *ClientService) EffectiveFlow(tx *gorm.DB, recordId int) (string, error) {
+	if tx == nil {
+		tx = database.GetDB()
+	}
+	var flows []string
+	err := tx.Model(&model.ClientInbound{}).
+		Where("client_id = ? AND flow_override <> ?", recordId, "").
+		Order("inbound_id ASC").
+		Limit(1).
+		Pluck("flow_override", &flows).Error
+	if err != nil {
+		return "", err
+	}
+	if len(flows) == 0 {
+		return "", nil
+	}
+	return flows[0], nil
+}
+
 func (s *ClientService) GetInboundIdsForEmail(tx *gorm.DB, email string) ([]int, error) {
 	if tx == nil {
 		tx = database.GetDB()
@@ -704,6 +730,18 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 	}
 
+	reverseStr := ""
+	if updated.Reverse != nil && strings.TrimSpace(updated.Reverse.Tag) != "" {
+		if b, mErr := json.Marshal(updated.Reverse); mErr == nil {
+			reverseStr = string(b)
+		}
+	}
+	if err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("id = ?", id).
+		Update("reverse", reverseStr).Error; err != nil {
+		return needRestart, err
+	}
+
 	if err := database.GetDB().Model(&model.ClientRecord{}).
 		Where("id = ?", id).
 		UpdateColumn("updated_at", time.Now().UnixMilli()).Error; err != nil {
@@ -779,6 +817,11 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	}
 
 	clientWire := existing.ToClient()
+	flow, ffErr := s.EffectiveFlow(nil, id)
+	if ffErr != nil {
+		return false, ffErr
+	}
+	clientWire.Flow = flow
 	clientWire.UpdatedAt = time.Now().UnixMilli()
 
 	needRestart := false

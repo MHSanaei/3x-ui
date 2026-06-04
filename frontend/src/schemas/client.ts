@@ -112,6 +112,16 @@ export const BulkDetachResultSchema = z.object({
 
 export const OnlinesSchema = nullableStringArray;
 
+export const OnlineByNodeSchema = z
+  .record(z.string(), nullableStringArray)
+  .nullable()
+  .transform((v) => v ?? {});
+
+export const ActiveInboundsByNodeSchema = z
+  .record(z.string(), nullableStringArray)
+  .nullable()
+  .transform((v) => v ?? {});
+
 export const GroupSummarySchema = z.object({
   name: z.string(),
   clientCount: z.number(),

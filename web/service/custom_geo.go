@@ -18,6 +18,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/database"
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/util/netproxy"
 	"github.com/mhsanaei/3x-ui/v3/util/netsafe"
 )
 
@@ -73,6 +74,7 @@ type CustomGeoService struct {
 	updateAllGetAll  func() ([]model.CustomGeoResource, error)
 	updateAllApply   func(id int, onStartup bool) (string, error)
 	updateAllRestart func() error
+	getPanelProxy    func() (string, error)
 }
 
 func NewCustomGeoService() *CustomGeoService {
@@ -82,6 +84,7 @@ func NewCustomGeoService() *CustomGeoService {
 	s.updateAllGetAll = s.GetAll
 	s.updateAllApply = s.applyDownloadAndPersist
 	s.updateAllRestart = func() error { return s.serverService.RestartXrayService() }
+	s.getPanelProxy = (&SettingService{}).GetPanelProxy
 	return s
 }
 
@@ -206,12 +209,32 @@ func ssrfSafeTransport() http.RoundTripper {
 	return cloned
 }
 
-func probeCustomGeoURLWithGET(rawURL string) error {
-	sanitizedURL, err := (&CustomGeoService{}).sanitizeURL(rawURL)
+func (s *CustomGeoService) httpClient(timeout time.Duration) *http.Client {
+	proxyURL := ""
+	if s.getPanelProxy != nil {
+		if p, err := s.getPanelProxy(); err != nil {
+			logger.Warning("custom geo: read panel proxy:", err)
+		} else {
+			proxyURL = strings.TrimSpace(p)
+		}
+	}
+	if proxyURL != "" {
+		client, err := netproxy.NewHTTPClient(proxyURL, timeout)
+		if err != nil {
+			logger.Warningf("custom geo: invalid panel proxy %q, using direct connection: %v", proxyURL, err)
+		} else {
+			return client
+		}
+	}
+	return &http.Client{Timeout: timeout, Transport: ssrfSafeTransport()}
+}
+
+func (s *CustomGeoService) probeCustomGeoURLWithGET(rawURL string) error {
+	sanitizedURL, err := s.sanitizeURL(rawURL)
 	if err != nil {
 		return err
 	}
-	client := &http.Client{Timeout: customGeoProbeTimeout, Transport: ssrfSafeTransport()}
+	client := s.httpClient(customGeoProbeTimeout)
 	req, err := http.NewRequest(http.MethodGet, sanitizedURL, nil)
 	if err != nil {
 		return err
@@ -231,12 +254,12 @@ func probeCustomGeoURLWithGET(rawURL string) error {
 	}
 }
 
-func probeCustomGeoURL(rawURL string) error {
-	sanitizedURL, err := (&CustomGeoService{}).sanitizeURL(rawURL)
+func (s *CustomGeoService) probeCustomGeoURL(rawURL string) error {
+	sanitizedURL, err := s.sanitizeURL(rawURL)
 	if err != nil {
 		return err
 	}
-	client := &http.Client{Timeout: customGeoProbeTimeout, Transport: ssrfSafeTransport()}
+	client := s.httpClient(customGeoProbeTimeout)
 	req, err := http.NewRequest(http.MethodHead, sanitizedURL, nil)
 	if err != nil {
 		return err
@@ -251,7 +274,7 @@ func probeCustomGeoURL(rawURL string) error {
 		return nil
 	}
 	if sc == http.StatusMethodNotAllowed || sc == http.StatusNotImplemented {
-		return probeCustomGeoURLWithGET(rawURL)
+		return s.probeCustomGeoURLWithGET(rawURL)
 	}
 	return fmt.Errorf("head status %d", sc)
 }
@@ -283,7 +306,7 @@ func (s *CustomGeoService) EnsureOnStartup() {
 			continue
 		}
 		logger.Infof("custom geo startup id=%d alias=%s path=%s: missing or needs repair, probing source", r.Id, r.Alias, localPath)
-		if err := probeCustomGeoURL(r.Url); err != nil {
+		if err := s.probeCustomGeoURL(r.Url); err != nil {
 			logger.Warningf("custom geo startup id=%d alias=%s url=%s: probe: %v (attempting download anyway)", r.Id, r.Alias, r.Url, err)
 		}
 		_, _ = s.applyDownloadAndPersist(r.Id, true)
@@ -366,7 +389,7 @@ func (s *CustomGeoService) downloadToPathOnce(resourceURL, destPath string, last
 		}
 	}
 
-	client := &http.Client{Timeout: 10 * time.Minute, Transport: ssrfSafeTransport()}
+	client := s.httpClient(10 * time.Minute)
 	// lgtm[go/request-forgery]
 	resp, err := client.Do(req)
 	if err != nil {

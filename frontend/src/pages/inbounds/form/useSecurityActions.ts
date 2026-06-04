@@ -13,13 +13,17 @@ interface UseSecurityActionsArgs {
   form: FormInstance<InboundFormValues>;
   setSaving: Dispatch<SetStateAction<boolean>>;
   messageApi: MessageInstance;
+  // Node the inbound is deployed to (null = central panel). "Set Cert from
+  // Panel" must read the node's own cert paths for a node-assigned inbound —
+  // the central panel's paths don't exist on the node. See issue #4854.
+  nodeId: number | null;
 }
 
 // Server-side TLS / Reality key + certificate generation handlers for the
 // inbound modal's security tab. Each talks to a /panel server endpoint and
 // writes the result back into the form. Lifted out of InboundFormModal so
 // the modal body stays focused on orchestration.
-export function useSecurityActions({ form, setSaving, messageApi }: UseSecurityActionsArgs) {
+export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseSecurityActionsArgs) {
   const { t } = useTranslation();
 
   const genRealityKeypair = async () => {
@@ -99,9 +103,7 @@ export function useSecurityActions({ form, setSaving, messageApi }: UseSecurityA
   const generateRandomPinHash = () => {
     const bytes = new Uint8Array(32);
     crypto.getRandomValues(bytes);
-    let binary = '';
-    for (const b of bytes) binary += String.fromCharCode(b);
-    const hash = btoa(binary);
+    const hash = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
     const current = (form.getFieldValue(
       ['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256'],
     ) as string[] | undefined) ?? [];
@@ -114,22 +116,28 @@ export function useSecurityActions({ form, setSaving, messageApi }: UseSecurityA
   const setCertFromPanel = async (certName: number) => {
     setSaving(true);
     try {
-      const msg = await HttpUtil.post('/panel/setting/all', undefined, { silent: true });
-      if (msg?.success) {
-        const obj = msg.obj as { webCertFile?: string; webKeyFile?: string };
-        if (!obj.webCertFile && !obj.webKeyFile) {
-          messageApi.warning(t('pages.inbounds.setDefaultCertEmpty'));
-          return;
-        }
-        form.setFieldValue(
-          ['streamSettings', 'tlsSettings', 'certificates', certName, 'certificateFile'],
-          obj.webCertFile ?? '',
-        );
-        form.setFieldValue(
-          ['streamSettings', 'tlsSettings', 'certificates', certName, 'keyFile'],
-          obj.webKeyFile ?? '',
-        );
+      // Node-assigned inbounds run on the node, so their cert files must be the
+      // node's own paths (fetched through the central panel), not this panel's.
+      const msg = typeof nodeId === 'number'
+        ? await HttpUtil.get(`/panel/api/nodes/webCert/${nodeId}`, undefined, { silent: true })
+        : await HttpUtil.post('/panel/setting/all', undefined, { silent: true });
+      if (!msg?.success) {
+        messageApi.warning(msg?.msg || t('pages.inbounds.setDefaultCertEmpty'));
+        return;
       }
+      const obj = msg.obj as { webCertFile?: string; webKeyFile?: string };
+      if (!obj?.webCertFile && !obj?.webKeyFile) {
+        messageApi.warning(t('pages.inbounds.setDefaultCertEmpty'));
+        return;
+      }
+      form.setFieldValue(
+        ['streamSettings', 'tlsSettings', 'certificates', certName, 'certificateFile'],
+        obj.webCertFile ?? '',
+      );
+      form.setFieldValue(
+        ['streamSettings', 'tlsSettings', 'certificates', certName, 'keyFile'],
+        obj.webKeyFile ?? '',
+      );
     } finally {
       setSaving(false);
     }
@@ -159,6 +167,7 @@ export function useSecurityActions({ form, setSaving, messageApi }: UseSecurityA
         keyFile: '',
         certificate: [],
         key: [],
+        ocspStapling: 3600,
         oneTimeLoading: false,
         usage: 'encipherment',
         buildChain: false,

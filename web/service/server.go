@@ -67,6 +67,14 @@ type Status struct {
 		Current uint64 `json:"current"`
 		Total   uint64 `json:"total"`
 	} `json:"disk"`
+	DiskIO struct {
+		Read  uint64 `json:"read"`
+		Write uint64 `json:"write"`
+	} `json:"diskIO"`
+	DiskTraffic struct {
+		Read  uint64 `json:"read"`
+		Write uint64 `json:"write"`
+	} `json:"diskTraffic"`
 	Xray struct {
 		State    ProcessState `json:"state"`
 		ErrorMsg string       `json:"errorMsg"`
@@ -78,12 +86,16 @@ type Status struct {
 	TcpCount     int       `json:"tcpCount"`
 	UdpCount     int       `json:"udpCount"`
 	NetIO        struct {
-		Up   uint64 `json:"up"`
-		Down uint64 `json:"down"`
+		Up      uint64 `json:"up"`
+		Down    uint64 `json:"down"`
+		PktUp   uint64 `json:"pktUp"`
+		PktDown uint64 `json:"pktDown"`
 	} `json:"netIO"`
 	NetTraffic struct {
-		Sent uint64 `json:"sent"`
-		Recv uint64 `json:"recv"`
+		Sent    uint64 `json:"sent"`
+		Recv    uint64 `json:"recv"`
+		PktSent uint64 `json:"pktSent"`
+		PktRecv uint64 `json:"pktRecv"`
 	} `json:"netTraffic"`
 	PublicIP struct {
 		IPv4 string `json:"ipv4"`
@@ -383,6 +395,30 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Disk.Total = diskInfo.Total
 	}
 
+	diskIOStats, err := disk.IOCounters()
+	if err != nil {
+		logger.Warning("get disk io counters failed:", err)
+	} else {
+		var totalRead, totalWrite uint64
+		for _, counter := range diskIOStats {
+			totalRead += counter.ReadBytes
+			totalWrite += counter.WriteBytes
+		}
+		status.DiskTraffic.Read = totalRead
+		status.DiskTraffic.Write = totalWrite
+
+		if lastStatus != nil {
+			duration := now.Sub(lastStatus.T)
+			seconds := float64(duration) / float64(time.Second)
+			if seconds > 0 && status.DiskTraffic.Read >= lastStatus.DiskTraffic.Read {
+				status.DiskIO.Read = uint64(float64(status.DiskTraffic.Read-lastStatus.DiskTraffic.Read) / seconds)
+			}
+			if seconds > 0 && status.DiskTraffic.Write >= lastStatus.DiskTraffic.Write {
+				status.DiskIO.Write = uint64(float64(status.DiskTraffic.Write-lastStatus.DiskTraffic.Write) / seconds)
+			}
+		}
+	}
+
 	// Load averages
 	avgState, err := load.Avg()
 	if err != nil {
@@ -396,7 +432,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	if err != nil {
 		logger.Warning("get io counters failed:", err)
 	} else {
-		var totalSent, totalRecv uint64
+		var totalSent, totalRecv, totalPktSent, totalPktRecv uint64
 		for _, iface := range ioStats {
 			name := strings.ToLower(iface.Name)
 			if isVirtualInterface(name) {
@@ -404,9 +440,13 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 			}
 			totalSent += iface.BytesSent
 			totalRecv += iface.BytesRecv
+			totalPktSent += iface.PacketsSent
+			totalPktRecv += iface.PacketsRecv
 		}
 		status.NetTraffic.Sent = totalSent
 		status.NetTraffic.Recv = totalRecv
+		status.NetTraffic.PktSent = totalPktSent
+		status.NetTraffic.PktRecv = totalPktRecv
 
 		if lastStatus != nil {
 			duration := now.Sub(lastStatus.T)
@@ -415,6 +455,12 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 			down := uint64(float64(status.NetTraffic.Recv-lastStatus.NetTraffic.Recv) / seconds)
 			status.NetIO.Up = up
 			status.NetIO.Down = down
+			if seconds > 0 && status.NetTraffic.PktSent >= lastStatus.NetTraffic.PktSent {
+				status.NetIO.PktUp = uint64(float64(status.NetTraffic.PktSent-lastStatus.NetTraffic.PktSent) / seconds)
+			}
+			if seconds > 0 && status.NetTraffic.PktRecv >= lastStatus.NetTraffic.PktRecv {
+				status.NetIO.PktDown = uint64(float64(status.NetTraffic.PktRecv-lastStatus.NetTraffic.PktRecv) / seconds)
+			}
 		}
 	}
 
@@ -519,8 +565,22 @@ func (s *ServerService) AppendStatusSample(t time.Time, status *Status) {
 	if status.Mem.Total > 0 {
 		systemMetrics.append("mem", t, float64(status.Mem.Current)*100.0/float64(status.Mem.Total))
 	}
+	if status.Swap.Total > 0 {
+		systemMetrics.append("swap", t, float64(status.Swap.Current)*100.0/float64(status.Swap.Total))
+	} else {
+		systemMetrics.append("swap", t, 0)
+	}
 	systemMetrics.append("netUp", t, float64(status.NetIO.Up))
 	systemMetrics.append("netDown", t, float64(status.NetIO.Down))
+	systemMetrics.append("diskRead", t, float64(status.DiskIO.Read))
+	systemMetrics.append("diskWrite", t, float64(status.DiskIO.Write))
+	if status.Disk.Total > 0 {
+		systemMetrics.append("diskUsage", t, float64(status.Disk.Current)*100.0/float64(status.Disk.Total))
+	}
+	systemMetrics.append("pktUp", t, float64(status.NetIO.PktUp))
+	systemMetrics.append("pktDown", t, float64(status.NetIO.PktDown))
+	systemMetrics.append("tcpCount", t, float64(status.TcpCount))
+	systemMetrics.append("udpCount", t, float64(status.UdpCount))
 	online := 0
 	if p != nil && p.IsRunning() {
 		online = len(p.GetOnlineClients())

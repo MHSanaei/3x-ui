@@ -64,15 +64,26 @@ func TestIsRoutableHost(t *testing.T) {
 func TestResolveInboundAddress(t *testing.T) {
 	const reqHost = "sub.example.com"
 
-	// A subscriber reaches the panel through reqHost; the inbound's own
-	// bind Listen IP (loopback, private, or even a public secondary IP) is
-	// a server-side detail and must never become the link's connect host.
-	t.Run("bind listen IP must not leak into the link host", func(t *testing.T) {
+	// A routable bind Listen (a real IP or hostname the operator set as the
+	// inbound's advertised endpoint) becomes the link's connect host.
+	t.Run("routable listen is advertised as the link host", func(t *testing.T) {
 		s := &SubService{address: reqHost}
-		for _, listen := range []string{"127.0.0.1", "10.0.0.5", "192.168.1.10", "1.2.3.4", "0.0.0.0", "::", "::0", ""} {
+		for _, listen := range []string{"1.2.3.4", "10.0.0.5", "192.168.1.10", "203.0.113.7", "vpn.example.com"} {
+			ib := &model.Inbound{Listen: listen}
+			if got := s.resolveInboundAddress(ib); got != listen {
+				t.Fatalf("listen %q: address = %q, want %q (advertised listen)", listen, got, listen)
+			}
+		}
+	})
+
+	// A loopback/wildcard bind or a unix-domain-socket listen is a
+	// server-side detail and must never leak into the link host.
+	t.Run("non-routable listen falls back to subscriber host", func(t *testing.T) {
+		s := &SubService{address: reqHost}
+		for _, listen := range []string{"", "0.0.0.0", "::", "::0", "127.0.0.1", "::1", "@fallback", "/run/x.sock"} {
 			ib := &model.Inbound{Listen: listen}
 			if got := s.resolveInboundAddress(ib); got != reqHost {
-				t.Fatalf("listen %q: address = %q, want %q (subscriber host, not bind IP)", listen, got, reqHost)
+				t.Fatalf("listen %q: address = %q, want %q (subscriber host, not bind detail)", listen, got, reqHost)
 			}
 		}
 	})
@@ -92,7 +103,7 @@ func TestResolveInboundAddress(t *testing.T) {
 	t.Run("node id with no known node falls back to subscriber host", func(t *testing.T) {
 		id := 9
 		s := &SubService{address: reqHost, nodesByID: map[int]*model.Node{}}
-		ib := &model.Inbound{NodeID: &id, Listen: "10.0.0.1"}
+		ib := &model.Inbound{NodeID: &id, Listen: "0.0.0.0"}
 		if got := s.resolveInboundAddress(ib); got != reqHost {
 			t.Fatalf("unknown-node address = %q, want subscriber host %q", got, reqHost)
 		}
@@ -606,6 +617,85 @@ func TestApplyExternalProxyTLSToStream_DoesNotLeakAcrossProxies(t *testing.T) {
 	}
 }
 
+func TestApplyExternalProxyTLSParams_SetsPinnedPeerCert(t *testing.T) {
+	params := map[string]string{"security": "tls"}
+	ep := map[string]any{
+		"dest":                 "proxy.example.com",
+		"pinnedPeerCertSha256": []any{"aa11", "bb22"},
+	}
+
+	applyExternalProxyTLSParams(ep, params, "tls")
+
+	if params["pcs"] != "aa11,bb22" {
+		t.Fatalf("pcs = %q, want aa11,bb22", params["pcs"])
+	}
+}
+
+func TestApplyExternalProxyTLSObj_SetsPinnedPeerCert(t *testing.T) {
+	obj := map[string]any{"tls": "tls"}
+	ep := map[string]any{
+		"dest":                 "proxy.example.com",
+		"pinnedPeerCertSha256": []any{"aa11"},
+	}
+
+	applyExternalProxyTLSObj(ep, obj, "tls")
+
+	if obj["pcs"] != "aa11" {
+		t.Fatalf("pcs = %v, want aa11", obj["pcs"])
+	}
+}
+
+func TestApplyExternalProxyTLSToStream_SetsPinnedPeerCert(t *testing.T) {
+	stream := map[string]any{
+		"security":    "tls",
+		"tlsSettings": map[string]any{"serverName": "upstream.example.com"},
+	}
+	ep := map[string]any{"dest": "edge.example.com", "pinnedPeerCertSha256": []any{"aa11", "bb22"}}
+
+	working := cloneStreamForExternalProxy(stream)
+	applyExternalProxyTLSToStream(ep, working, "tls")
+
+	ts := working["tlsSettings"].(map[string]any)
+	settings, _ := ts["settings"].(map[string]any)
+	pins, ok := settings["pinnedPeerCertSha256"].([]any)
+	if !ok || len(pins) != 2 || pins[0] != "aa11" || pins[1] != "bb22" {
+		t.Fatalf("pinnedPeerCertSha256 = %v, want [aa11 bb22]", settings["pinnedPeerCertSha256"])
+	}
+}
+
+func TestApplyExternalProxyHysteriaParams_PinIsHexNormalized(t *testing.T) {
+	// base64 SHA-256 pin must come out as bare lowercase hex for Hysteria's
+	// pinSHA256, which other (pcs) protocols leave untouched.
+	params := map[string]string{"security": "tls", "sni": "server.example.com"}
+	ep := map[string]any{
+		"dest":                 "edge.example.com",
+		"pinnedPeerCertSha256": []any{"yEfdI5XQl4wHgLggHEsomosoFZfUfCdfLXfT+W2N6cQ="},
+	}
+
+	applyExternalProxyHysteriaParams(ep, params)
+
+	if params["pinSHA256"] != "c847dd2395d0978c0780b8201c4b289a8b281597d47c275f2d77d3f96d8de9c4" {
+		t.Fatalf("pinSHA256 = %q, want hex-normalized pin", params["pinSHA256"])
+	}
+	if _, ok := params["pcs"]; ok {
+		t.Fatalf("pcs must not be set for Hysteria, got %v", params)
+	}
+	if params["sni"] != "server.example.com" {
+		t.Fatalf("sni = %q, want inbound sni preserved (no override for Hysteria)", params["sni"])
+	}
+}
+
+func TestApplyExternalProxyHysteriaParams_NoPinLeavesMainPin(t *testing.T) {
+	params := map[string]string{"security": "tls", "pinSHA256": "deadbeef"}
+	ep := map[string]any{"dest": "edge.example.com"}
+
+	applyExternalProxyHysteriaParams(ep, params)
+
+	if params["pinSHA256"] != "deadbeef" {
+		t.Fatalf("pinSHA256 = %q, want main pin preserved when proxy has none", params["pinSHA256"])
+	}
+}
+
 func TestApplyExternalProxyTLSParams_DoesNotApplyForNone(t *testing.T) {
 	params := map[string]string{
 		"security": "none",
@@ -777,5 +867,73 @@ func TestHasFinalMaskContent(t *testing.T) {
 	}
 	if !hasFinalMaskContent(map[string]any{"x": 1}) {
 		t.Fatal("non-empty map should count as content")
+	}
+}
+
+func TestHysteriaPinHex(t *testing.T) {
+	const hexPin = "c847dd2395d0978c0780b8201c4b289a8b281597d47c275f2d77d3f96d8de9c4"
+
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		// Std base64 (xray-core's native TLS format / the panel generate button)
+		// must be re-encoded to the hex form Hysteria2 clients expect (#4818).
+		{"std base64", "yEfdI5XQl4wHgLggHEsomosoFZfUfCdfLXfT+W2N6cQ=", hexPin},
+		// A manually pasted hex fingerprint passes through (lowercased).
+		{"hex passthrough", hexPin, hexPin},
+		{"uppercase hex lowercased", strings.ToUpper(hexPin), hexPin},
+		// openssl x509 -fingerprint -sha256 emits colon-separated hex.
+		{"colon hex stripped", "C8:47:DD:23:95:D0:97:8C:07:80:B8:20:1C:4B:28:9A:8B:28:15:97:D4:7C:27:5F:2D:77:D3:F9:6D:8D:E9:C4", hexPin},
+		{"surrounding whitespace trimmed", "  " + hexPin + "  ", hexPin},
+		// URL-safe base64 with the same 32 bytes decodes identically.
+		{"url-safe base64", "yEfdI5XQl4wHgLggHEsomosoFZfUfCdfLXfT-W2N6cQ=", hexPin},
+		// Garbage that is neither valid hex nor a 32-byte base64 is left as-is
+		// rather than silently dropped.
+		{"unrecognized passthrough", "not-a-pin", "not-a-pin"},
+		{"empty", "", ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := hysteriaPinHex(tc.in); got != tc.want {
+				t.Fatalf("hysteriaPinHex(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestHysteriaHopPorts(t *testing.T) {
+	withHop := func(ports any) map[string]any {
+		return map[string]any{
+			"finalmask": map[string]any{
+				"quicParams": map[string]any{
+					"udpHop": map[string]any{"ports": ports, "interval": "5-10"},
+				},
+			},
+		}
+	}
+
+	cases := []struct {
+		name   string
+		stream map[string]any
+		want   string
+	}{
+		{"range", withHop("20000-50000"), "20000-50000"},
+		{"trimmed", withHop("  443,20000-50000  "), "443,20000-50000"},
+		{"empty string", withHop(""), ""},
+		{"non-string", withHop(float64(443)), ""},
+		{"no udpHop", map[string]any{"finalmask": map[string]any{"quicParams": map[string]any{}}}, ""},
+		{"no finalmask", map[string]any{}, ""},
+		{"nil stream", nil, ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := hysteriaHopPorts(tc.stream); got != tc.want {
+				t.Fatalf("hysteriaHopPorts() = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }

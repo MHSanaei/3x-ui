@@ -119,6 +119,11 @@ function externalProxyAlpn(value: ExternalProxyEntry['alpn']): string {
   return '';
 }
 
+function externalProxyPins(value: ExternalProxyEntry['pinnedPeerCertSha256']): string {
+  if (Array.isArray(value)) return value.filter(Boolean).join(',');
+  return '';
+}
+
 function applyExternalProxyTLSObj(
   externalProxy: ExternalProxyEntry | null | undefined,
   obj: Record<string, unknown>,
@@ -130,6 +135,8 @@ function applyExternalProxyTLSObj(
   if (externalProxy.fingerprint && externalProxy.fingerprint.length > 0) obj.fp = externalProxy.fingerprint;
   const alpn = externalProxyAlpn(externalProxy.alpn);
   if (alpn.length > 0) obj.alpn = alpn;
+  const pins = externalProxyPins(externalProxy.pinnedPeerCertSha256);
+  if (pins.length > 0) obj.pcs = pins;
 }
 
 export interface GenVmessLinkInput {
@@ -270,6 +277,8 @@ function applyExternalProxyTLSParams(
   if (externalProxy.fingerprint && externalProxy.fingerprint.length > 0) params.set('fp', externalProxy.fingerprint);
   const alpn = externalProxyAlpn(externalProxy.alpn);
   if (alpn.length > 0) params.set('alpn', alpn);
+  const pins = externalProxyPins(externalProxy.pinnedPeerCertSha256);
+  if (pins.length > 0) params.set('pcs', pins);
 }
 
 export interface GenVlessLinkInput {
@@ -576,6 +585,29 @@ export interface GenHysteriaLinkInput {
   port?: number;
   remark?: string;
   clientAuth: string;
+  externalProxy?: ExternalProxyEntry | null;
+}
+
+// Hysteria2's pinSHA256 must be a 64-char lowercase hex string — Xray-core
+// clients hex-decode it and crash on a base64 value. The panel stores pins as
+// base64 (xray-core's native TLS format / the generate button) or hex, either
+// bare or colon-separated as `openssl x509 -fingerprint -sha256` emits it. Each
+// entry is coerced to bare hex. Values that are neither a 32-byte hex nor a
+// 32-byte base64 SHA-256 pass through unchanged.
+function hysteriaPinHex(pin: string): string {
+  const stripped = pin.trim().replace(/:/g, '');
+  if (/^[0-9a-fA-F]{64}$/.test(stripped)) return stripped.toLowerCase();
+  try {
+    const binary = atob(pin.trim().replace(/-/g, '+').replace(/_/g, '/'));
+    if (binary.length !== 32) return pin;
+    let hex = '';
+    for (let i = 0; i < binary.length; i++) {
+      hex += binary.charCodeAt(i).toString(16).padStart(2, '0');
+    }
+    return hex;
+  } catch {
+    return pin;
+  }
 }
 
 // Hysteria share link: hysteria://<auth>@<host>:<port>?<query>#<remark>.
@@ -594,6 +626,7 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
     port = inbound.port,
     remark = '',
     clientAuth,
+    externalProxy = null,
   } = input;
 
   if (inbound.protocol !== 'hysteria') return '';
@@ -611,7 +644,14 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
   if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
   if (tls.settings.pinnedPeerCertSha256.length > 0) {
-    params.set('pinSHA256', tls.settings.pinnedPeerCertSha256.join(','));
+    params.set('pinSHA256', tls.settings.pinnedPeerCertSha256.map(hysteriaPinHex).join(','));
+  }
+  // An external-proxy entry can pin a different endpoint's certificate.
+  // Hysteria carries it as hex `pinSHA256` (not the `pcs` other protocols
+  // use), so coerce each entry through hysteriaPinHex like the main pin.
+  if (Array.isArray(externalProxy?.pinnedPeerCertSha256)) {
+    const epPins = externalProxy.pinnedPeerCertSha256.filter(Boolean).map(hysteriaPinHex);
+    if (epPins.length > 0) params.set('pinSHA256', epPins.join(','));
   }
 
   const udpMasks = stream.finalmask?.udp;
@@ -625,6 +665,11 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
   }
 
   applyFinalMaskToParams(stream.finalmask, params);
+
+  const hopPorts = stream.finalmask?.quicParams?.udpHop?.ports?.trim() ?? '';
+  if (hopPorts.length > 0) {
+    params.set('mport', hopPorts);
+  }
 
   const url = new URL(`${scheme}://${clientAuth}@${address}:${port}`);
   for (const [key, value] of params) url.searchParams.set(key, value);
@@ -725,6 +770,23 @@ export function resolveAddr(inbound: Inbound, hostOverride: string, fallbackHost
   return fallbackHostname;
 }
 
+// A loopback browser host means the panel was reached through a tunnel (e.g.
+// SSH-forwarded 127.0.0.1/localhost), so it can never be a shareable link host.
+function isLoopbackHost(host: string): boolean {
+  const h = host.trim().replace(/^\[|\]$/g, '').toLowerCase();
+  return h === 'localhost' || h === '::1' || h.startsWith('127.');
+}
+
+// preferPublicHost is the browser-side analog of the backend's
+// configuredPublicHost: when the panel is reached on a loopback host, prefer a
+// configured public host (Sub/Web Domain) for share/QR links so they match the
+// subscription links instead of leaking localhost. An explicit per-inbound
+// listen or node override still wins, since resolveAddr only reaches the
+// fallbackHostname after those.
+export function preferPublicHost(browserHost: string, publicHost: string): string {
+  return publicHost && isLoopbackHost(browserHost) ? publicHost : browserHost;
+}
+
 // Returns the client array for protocols that have one. SS returns its
 // clients only in 2022-blake3 multi-user mode (matches the legacy
 // `this.clients` getter, which used isSSMultiUser to gate). Returns null
@@ -800,6 +862,7 @@ export function genLink(input: GenLinkInput): string {
       return genHysteriaLink({
         inbound, address, port, remark,
         clientAuth: client.auth ?? '',
+        externalProxy,
       });
     default:
       return '';

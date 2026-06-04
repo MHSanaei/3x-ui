@@ -1,0 +1,72 @@
+.ext-proxy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ext-proxy-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 10px;
+  background: var(--ant-color-fill-quaternary);
+}
+
+.ext-proxy-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ext-proxy-card__title {
+  font-weight: 600;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.ext-proxy-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ext-proxy-flabel {
+  font-size: 12px;
+  line-height: 1.2;
+  opacity: 0.65;
+}
+
+.ext-proxy-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.ext-proxy-grid--dest {
+  grid-template-columns: 1fr 1.7fr 0.9fr;
+}
+
+.ext-proxy-grid--tls {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.ext-proxy-tls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--ant-color-border-secondary);
+}
+
+.ext-proxy-add {
+  margin-top: 10px;
+}
+
+@media (max-width: 575px) {
+  .ext-proxy-grid--dest,
+  .ext-proxy-grid--tls {
+    grid-template-columns: 1fr;
+  }
+}

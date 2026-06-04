@@ -499,11 +499,11 @@ export default function NodeList({
           scroll={{ x: 'max-content' }}
           size="middle"
           rowKey="id"
-          rowSelection={{
+          rowSelection={dataSource.length > 1 ? {
             selectedRowKeys: selectedIds,
             onChange: (keys) => onSelectionChange(keys as number[]),
             getCheckboxProps: (record) => ({ disabled: !isUpdateEligible(record) }),
-          }}
+          } : undefined}
           locale={{
             emptyText: (
               <div className="card-empty">

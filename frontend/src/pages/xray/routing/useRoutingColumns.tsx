@@ -19,6 +19,8 @@ import type { RuleRow } from './types';
 interface RoutingColumnsParams {
   isMobile: boolean;
   rowsLength: number;
+  showSource: boolean;
+  showBalancer: boolean;
   onHandlePointerDown: (idx: number, ev: React.PointerEvent) => void;
   openEdit: (idx: number) => void;
   moveUp: (idx: number) => void;
@@ -29,6 +31,8 @@ interface RoutingColumnsParams {
 export function useRoutingColumns({
   isMobile,
   rowsLength,
+  showSource,
+  showBalancer,
   onHandlePointerDown,
   openEdit,
   moveUp,
@@ -84,6 +88,7 @@ export function useRoutingColumns({
         align: 'left',
         width: 180,
         key: 'source',
+        hidden: !showSource,
         render: (_v, record) => (
           <div className="criterion-flow">
             {record.sourceIP && <CriterionRow label="IP" value={record.sourceIP} title={`Source IP: ${record.sourceIP}`} />}
@@ -110,6 +115,7 @@ export function useRoutingColumns({
       {
         title: t('pages.xray.rules.dest'),
         align: 'left',
+        width: 200,
         key: 'destination',
         render: (_v, record) => (
           <div className="criterion-flow">
@@ -153,6 +159,7 @@ export function useRoutingColumns({
         align: 'left',
         width: 150,
         key: 'balancer',
+        hidden: !showBalancer,
         render: (_v, record) =>
           record.balancerTag ? (
             <div className="target-row">
@@ -165,6 +172,6 @@ export function useRoutingColumns({
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, isMobile, rowsLength],
+    [t, isMobile, rowsLength, showSource, showBalancer],
   );
 }

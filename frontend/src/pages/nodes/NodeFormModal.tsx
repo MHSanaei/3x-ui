@@ -65,6 +65,7 @@ export default function NodeFormModal({
   const [testing, setTesting] = useState(false);
   const [fetchingPin, setFetchingPin] = useState(false);
   const [testResult, setTestResult] = useState<ProbeResult | null>(null);
+  const scheme = Form.useWatch('scheme', form) ?? 'https';
   const tlsVerifyMode = Form.useWatch('tlsVerifyMode', form) ?? 'verify';
 
   useEffect(() => {
@@ -78,6 +79,7 @@ export default function NodeFormModal({
         scheme: (node.scheme as 'http' | 'https') || base.scheme,
       }
       : base;
+    if (next.scheme === 'http') next.tlsVerifyMode = 'skip';
     form.resetFields();
     form.setFieldsValue(next);
     setTestResult(null);
@@ -155,7 +157,15 @@ export default function NodeFormModal({
     }
     setSubmitting(true);
     try {
-      const msg = await save(buildPayload(result.data));
+      const payload = buildPayload(result.data);
+      const test = await testConnection(payload);
+      const probe = test?.success ? test.obj : null;
+      if (!probe || probe.status !== 'online') {
+        setTestResult(probe ?? { status: 'offline', error: test?.msg || t('pages.nodes.connectionFailed') });
+        return;
+      }
+      setTestResult(probe);
+      const msg = await save(payload);
       if (msg?.success) {
         onOpenChange(false);
       }
@@ -213,6 +223,9 @@ export default function NodeFormModal({
                     { value: 'https', label: 'https' },
                     { value: 'http', label: 'http' },
                   ]}
+                  onChange={(value) => {
+                    if (value === 'http') form.setFieldValue('tlsVerifyMode', 'skip');
+                  }}
                 />
               </Form.Item>
             </Col>
@@ -268,6 +281,7 @@ export default function NodeFormModal({
             extra={t('pages.nodes.tlsVerifyModeHint')}
           >
             <Select
+              disabled={scheme === 'http'}
               options={[
                 { value: 'verify', label: t('pages.nodes.tlsVerify') },
                 { value: 'pin', label: t('pages.nodes.tlsPin') },

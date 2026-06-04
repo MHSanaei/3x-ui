@@ -100,7 +100,7 @@ export default function ClientBulkAddModal({
     () => (inbounds || [])
       .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
       .map((ib) => ({
-        label: ib.tag ?? '',
+        label: ib.remark?.trim() || ib.tag || '',
         value: ib.id,
       })),
     [inbounds],

@@ -49,7 +49,7 @@ export const NodeFormSchema = z.object({
   enable: z.boolean(),
   allowPrivateAddress: z.boolean(),
   tlsVerifyMode: z.enum(['verify', 'skip', 'pin']),
-  pinnedCertSha256: z.string(),
+  pinnedCertSha256: z.string().optional().default(''),
 });
 
 export type NodeRecord = z.infer<typeof NodeRecordSchema>;

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Collapse, Modal, Spin } from 'antd';
 import { HttpUtil } from '@/utils';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
+import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
 import type { ClientRecord } from '@/hooks/useClients';
 
@@ -75,7 +76,7 @@ export default function ClientQrModal({
   const [activeKey, setActiveKey] = useState<string[]>([]);
 
   const items = useMemo(() => {
-    const out: { key: string; label: string; children: React.ReactNode }[] = [];
+    const out: { key: string; label: React.ReactNode; children: React.ReactNode }[] = [];
     if (subLink) {
       out.push({
         key: 'sub',
@@ -91,9 +92,17 @@ export default function ClientQrModal({
       });
     }
     links.forEach((link, idx) => {
+      const parts = parseLinkParts(link, client?.email ?? '');
+      const meta = parts ? linkMetaText(parts) : '';
+      const label: React.ReactNode = parts ? (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <LinkTags parts={parts} />
+          {meta && <span style={{ opacity: 0.6, fontSize: 12 }}>({meta})</span>}
+        </span>
+      ) : `${t('pages.clients.link')} ${idx + 1}`;
       out.push({
         key: `l${idx}`,
-        label: `${t('pages.clients.link')} ${idx + 1}`,
+        label,
         children: (
           <QrPanel
             value={link}

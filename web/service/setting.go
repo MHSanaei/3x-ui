@@ -61,7 +61,7 @@ var defaultValueMap = map[string]string{
 	"subSupportUrl":               "",
 	"subProfileUrl":               "",
 	"subAnnounce":                 "",
-	"subEnableRouting":            "true",
+	"subEnableRouting":            "false",
 	"subRoutingRules":             "",
 	"subListen":                   "",
 	"subPort":                     "2096",
@@ -76,7 +76,7 @@ var defaultValueMap = map[string]string{
 	"subURI":                      "",
 	"subJsonPath":                 "/json/",
 	"subJsonURI":                  "",
-	"subClashEnable":              "true",
+	"subClashEnable":              "false",
 	"subClashPath":                "/clash/",
 	"subClashURI":                 "",
 	"subJsonFragment":             "",
@@ -166,7 +166,7 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 		fieldV := v.FieldByName(field.Name)
 		switch t := fieldV.Interface().(type) {
 		case int:
-			n, err := strconv.ParseInt(value, 10, 64)
+			n, err := strconv.ParseInt(effectiveSettingValue(key, value), 10, 64)
 			if err != nil {
 				return err
 			}
@@ -174,7 +174,7 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 		case string:
 			fieldV.SetString(value)
 		case bool:
-			fieldV.SetBool(value == "true")
+			fieldV.SetBool(effectiveSettingValue(key, value) == "true")
 		default:
 			return common.NewErrorf("unknown field %v type %v", key, t)
 		}
@@ -286,12 +286,21 @@ func (s *SettingService) setString(key string, value string) error {
 	return s.saveSetting(key, value)
 }
 
+func effectiveSettingValue(key, stored string) string {
+	if stored == "" {
+		if def, ok := defaultValueMap[key]; ok {
+			return def
+		}
+	}
+	return stored
+}
+
 func (s *SettingService) getBool(key string) (bool, error) {
 	str, err := s.getString(key)
 	if err != nil {
 		return false, err
 	}
-	return strconv.ParseBool(str)
+	return strconv.ParseBool(effectiveSettingValue(key, str))
 }
 
 func (s *SettingService) setBool(key string, value bool) error {
@@ -303,7 +312,7 @@ func (s *SettingService) getInt(key string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return strconv.Atoi(str)
+	return strconv.Atoi(effectiveSettingValue(key, str))
 }
 
 func (s *SettingService) setInt(key string, value int) error {
@@ -949,6 +958,8 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		"remarkModel":    func() (any, error) { return s.GetRemarkModel() },
 		"datepicker":     func() (any, error) { return s.GetDatepicker() },
 		"ipLimitEnable":  func() (any, error) { return s.GetIpLimitEnable() },
+		"webDomain":      func() (any, error) { return s.GetWebDomain() },
+		"subDomain":      func() (any, error) { return s.GetSubDomain() },
 	}
 
 	result := make(map[string]any)

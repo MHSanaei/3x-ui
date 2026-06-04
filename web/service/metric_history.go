@@ -1,8 +1,14 @@
 package service
 
 import (
+	"encoding/gob"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/mhsanaei/3x-ui/v3/config"
+	"github.com/mhsanaei/3x-ui/v3/logger"
 )
 
 // MetricSample is one point of any time-series we keep in memory.
@@ -57,6 +63,34 @@ func (h *metricHistory) drop(metric string) {
 	h.mu.Lock()
 	delete(h.metrics, metric)
 	h.mu.Unlock()
+}
+
+// snapshot returns a deep copy of every series, safe to serialize without
+// holding the lock during disk I/O.
+func (h *metricHistory) snapshot() map[string][]MetricSample {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	out := make(map[string][]MetricSample, len(h.metrics))
+	for k, v := range h.metrics {
+		cp := make([]MetricSample, len(v))
+		copy(cp, v)
+		out[k] = cp
+	}
+	return out
+}
+
+// restore replaces the in-memory series with a previously persisted set,
+// re-applying the per-series capacity cap so a tampered or oversized file
+// can't grow the working set unbounded.
+func (h *metricHistory) restore(data map[string][]MetricSample) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for k, v := range data {
+		if len(v) > metricCapacityDefault {
+			v = v[len(v)-metricCapacityDefault:]
+		}
+		h.metrics[k] = v
+	}
 }
 
 // aggregate returns up to maxPoints buckets of size bucketSeconds,
@@ -137,7 +171,7 @@ var (
 // status sample. Exposed for documentation/test purposes; the
 // controller validates incoming names against an allow-list.
 var SystemMetricKeys = []string{
-	"cpu", "mem", "netUp", "netDown", "online", "load1", "load5", "load15",
+	"cpu", "mem", "swap", "netUp", "netDown", "pktUp", "pktDown", "diskRead", "diskWrite", "diskUsage", "tcpCount", "udpCount", "online", "load1", "load5", "load15",
 }
 
 // NodeMetricKeys lists the per-node metric names NodeHeartbeatJob writes.
@@ -149,4 +183,55 @@ var NodeMetricKeys = []string{"cpu", "mem"}
 // block configured.
 var XrayMetricKeys = []string{
 	"xrAlloc", "xrSys", "xrHeapObjects", "xrNumGC", "xrPauseNs",
+}
+
+// systemMetricsStorePath is where the host time-series is persisted between
+// restarts. It lives next to the database so a single volume mount carries
+// both. Only systemMetrics is persisted — node and xray series are cheap to
+// rebuild and tied to live connections.
+func systemMetricsStorePath() string {
+	return filepath.Join(config.GetDBFolderPath(), "system_metrics.gob")
+}
+
+// PersistSystemMetrics writes the host time-series to disk via a temp file +
+// rename so a crash mid-write can't corrupt the previous snapshot. Called on a
+// timer and at shutdown.
+func PersistSystemMetrics() error {
+	path := systemMetricsStorePath()
+	tmp := path + ".tmp"
+	f, err := os.Create(tmp)
+	if err != nil {
+		return err
+	}
+	if err := gob.NewEncoder(f).Encode(systemMetrics.snapshot()); err != nil {
+		f.Close()
+		os.Remove(tmp)
+		return err
+	}
+	if err := f.Close(); err != nil {
+		os.Remove(tmp)
+		return err
+	}
+	return os.Rename(tmp, path)
+}
+
+// RestoreSystemMetrics loads a previously persisted host time-series on startup.
+// A missing file is not an error (first boot). Aggregation already windows by
+// time, so any gap from downtime is handled by the readers.
+func RestoreSystemMetrics() {
+	path := systemMetricsStorePath()
+	f, err := os.Open(path)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			logger.Warning("restore system metrics failed:", err)
+		}
+		return
+	}
+	defer f.Close()
+	var data map[string][]MetricSample
+	if err := gob.NewDecoder(f).Decode(&data); err != nil {
+		logger.Warning("decode system metrics failed:", err)
+		return
+	}
+	systemMetrics.restore(data)
 }

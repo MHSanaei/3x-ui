@@ -1,16 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Collapse,
   Input,
   InputNumber,
   Select,
-  Space,
   Switch,
+  Tabs,
 } from 'antd';
+import {
+  ApartmentOutlined,
+  BellOutlined,
+  ClockCircleOutlined,
+  GlobalOutlined,
+  SafetyCertificateOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
 import { HttpUtil, LanguageManager } from '@/utils';
 import { SettingListItem } from '@/components/ui';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { catTabLabel } from './catTabLabel';
 import { sanitizePath } from './uriPath';
 
 interface ApiMsg<T = unknown> {
@@ -23,8 +32,6 @@ interface GeneralTabProps {
   updateSetting: (patch: Partial<AllSetting>) => void;
 }
 
-const REMARK_MODELS: Record<string, string> = { i: 'Inbound', e: 'Email', o: 'Other' };
-const REMARK_SEPARATORS = [' ', '-', '_', '@', ':', '~', '|', ',', '.', '/'];
 const DATEPICKER_LIST: { name: string; value: 'gregorian' | 'jalalian' }[] = [
   { name: 'Gregorian (Standard)', value: 'gregorian' },
   { name: 'Jalalian (شمسی)', value: 'jalalian' },
@@ -32,6 +39,7 @@ const DATEPICKER_LIST: { name: string; value: 'gregorian' | 'jalalian' }[] = [
 
 export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProps) {
   const { t } = useTranslation();
+  const { isMobile } = useMediaQuery();
 
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
   const [inboundOptions, setInboundOptions] = useState<{ label: string; value: string }[]>([]);
@@ -56,30 +64,6 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
     })();
     return () => { cancelled = true; };
   }, []);
-
-  const remarkModel = useMemo(() => {
-    const rm = allSetting.remarkModel || '';
-    return rm.length > 1 ? rm.substring(1).split('') : [];
-  }, [allSetting.remarkModel]);
-
-  const remarkSeparator = useMemo(() => {
-    const rm = allSetting.remarkModel || '-';
-    return rm.length > 1 ? rm.charAt(0) : '-';
-  }, [allSetting.remarkModel]);
-
-  const remarkSample = useMemo(() => {
-    const parts = remarkModel.map((k) => REMARK_MODELS[k]);
-    return parts.length === 0 ? '' : parts.join(remarkSeparator);
-  }, [remarkModel, remarkSeparator]);
-
-  function setRemarkModel(parts: string[]) {
-    updateSetting({ remarkModel: remarkSeparator + parts.join('') });
-  }
-
-  function setRemarkSeparator(sep: string) {
-    const tail = (allSetting.remarkModel || '-').substring(1);
-    updateSetting({ remarkModel: sep + tail });
-  }
 
   const ldapInboundTagList = useMemo(() => {
     const csv = allSetting.ldapInboundTags || '';
@@ -109,34 +93,12 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
   );
 
   return (
-    <Collapse defaultActiveKey="1" items={[
+    <Tabs defaultActiveKey="1" items={[
       {
         key: '1',
-        label: t('pages.settings.panelSettings'),
+        label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
         children: (
           <>
-            <SettingListItem
-              paddings="small"
-              title={t('pages.settings.remarkModel')}
-              description={<>{t('pages.settings.sampleRemark')}: <i>#{remarkSample}</i></>}
-            >
-              <Space.Compact style={{ width: '100%' }}>
-                <Select
-                  mode="multiple"
-                  value={remarkModel}
-                  onChange={setRemarkModel}
-                  style={{ paddingRight: '.5rem', minWidth: '80%', width: 'auto' }}
-                  options={Object.entries(REMARK_MODELS).map(([k, l]) => ({ value: k, label: l }))}
-                />
-                <Select
-                  value={remarkSeparator}
-                  onChange={setRemarkSeparator}
-                  style={{ width: '20%' }}
-                  options={REMARK_SEPARATORS.map((s) => ({ value: s, label: s }))}
-                />
-              </Space.Compact>
-            </SettingListItem>
-
             <SettingListItem paddings="small" title={t('pages.settings.panelListeningIP')} description={t('pages.settings.panelListeningIPDesc')}>
               <Input value={allSetting.webListen} onChange={(e) => updateSetting({ webListen: e.target.value })} />
             </SettingListItem>
@@ -180,7 +142,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.pageSize')} description={t('pages.settings.pageSizeDesc')}>
-              <InputNumber value={allSetting.pageSize} min={1} max={1000} step={5} style={{ width: '100%' }}
+              <InputNumber value={allSetting.pageSize} min={0} max={1000} step={5} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ pageSize: Number(v) || 0 })} />
             </SettingListItem>
 
@@ -197,7 +159,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
       },
       {
         key: '2',
-        label: t('pages.settings.notifications'),
+        label: catTabLabel(<BellOutlined />, t('pages.settings.notifications'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.expireTimeDiff')} description={t('pages.settings.expireTimeDiffDesc')}>
@@ -213,7 +175,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
       },
       {
         key: '3',
-        label: t('pages.settings.certs'),
+        label: catTabLabel(<SafetyCertificateOutlined />, t('pages.settings.certs'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.publicKeyPath')} description={t('pages.settings.publicKeyPathDesc')}>
@@ -227,7 +189,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
       },
       {
         key: '4',
-        label: t('pages.settings.externalTraffic'),
+        label: catTabLabel(<GlobalOutlined />, t('pages.settings.externalTraffic'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.externalTrafficInformEnable')} description={t('pages.settings.externalTrafficInformEnableDesc')}>
@@ -250,7 +212,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
       },
       {
         key: '5',
-        label: t('pages.settings.dateAndTime'),
+        label: catTabLabel(<ClockCircleOutlined />, t('pages.settings.dateAndTime'), isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.timeZone')} description={t('pages.settings.timeZoneDesc')}>
@@ -269,7 +231,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
       },
       {
         key: '6',
-        label: 'LDAP',
+        label: catTabLabel(<ApartmentOutlined />, 'LDAP', isMobile),
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.ldap.enable')}>

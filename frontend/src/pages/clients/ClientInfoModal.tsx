@@ -7,17 +7,9 @@ import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
+import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
 import './ClientInfoModal.css';
-
-const PROTOCOL_COLORS: Record<string, string> = {
-  VLESS: 'blue',
-  VMESS: 'geekblue',
-  TROJAN: 'volcano',
-  SS: 'magenta',
-  HYSTERIA: 'cyan',
-  HY2: 'green',
-};
 
 const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
   vless: 'blue',
@@ -33,64 +25,6 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
 };
 
 const INBOUND_CHIP_LIMIT = 1;
-
-// 3x-ui's genRemark concatenates inbound remark + client email (and an
-// optional extra) using a configurable separator. The email half is
-// redundant in the row title — the modal already names the client by
-// email at the top — so trimEmail strips it back out for the row only.
-// The original remark is preserved for the QR (it's the QR's own name).
-function trimEmail(remark: string, email: string): string {
-  if (!email) return remark;
-  const e = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return remark
-    .replace(new RegExp(`[-_.\\s|]+${e}$`), '')
-    .replace(new RegExp(`^${e}[-_.\\s|]+`), '')
-    .trim();
-}
-
-// Decode a base64 string as UTF-8. atob() returns a binary string where
-// each char holds one raw byte (Latin-1 interpretation), which mangles
-// any multi-byte UTF-8 sequence in the payload — most commonly the
-// emoji decorations the panel embeds in remarks (📊, ⏳).
-function base64DecodeUtf8(b64: string): string {
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new TextDecoder('utf-8').decode(bytes);
-}
-
-function parseLinkMeta(link: string): { protocol: string; remark: string } {
-  const schemeMatch = /^([a-z0-9]+):\/\//i.exec(link);
-  const scheme = schemeMatch?.[1]?.toLowerCase() ?? '';
-  const protocolMap: Record<string, string> = {
-    vless: 'VLESS',
-    vmess: 'VMESS',
-    trojan: 'TROJAN',
-    ss: 'SS',
-    hysteria: 'HYSTERIA',
-    hysteria2: 'HY2',
-    hy2: 'HY2',
-  };
-  const protocol = protocolMap[scheme] ?? scheme.toUpperCase() ?? 'LINK';
-
-  let remark = '';
-  if (scheme === 'vmess') {
-    try {
-      const body = link.slice('vmess://'.length).split('#')[0];
-      const json = JSON.parse(base64DecodeUtf8(body)) as { ps?: unknown };
-      if (typeof json?.ps === 'string') remark = json.ps;
-    } catch { /* fall through to fragment parsing */ }
-  }
-  if (!remark) {
-    const hashIdx = link.indexOf('#');
-    if (hashIdx >= 0) {
-      const raw = link.slice(hashIdx + 1);
-      try { remark = decodeURIComponent(raw); }
-      catch { remark = raw; }
-    }
-  }
-  return { protocol, remark };
-}
 
 interface SubSettings {
   enable: boolean;
@@ -382,7 +316,7 @@ export default function ClientInfoModal({
                         const ib = inboundsById[id];
                         const proto = (ib?.protocol || '').toLowerCase();
                         const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
-                        const label = ib?.tag ?? '';
+                        const label = ib?.remark?.trim() || ib?.tag || '';
                         return (
                           <Tooltip key={id} title={label}>
                             <Tag color={color}>{label}</Tag>
@@ -419,19 +353,17 @@ export default function ClientInfoModal({
               <>
                 <Divider>{t('pages.inbounds.copyLink')}</Divider>
                 {links.map((link, idx) => {
-                  const meta = parseLinkMeta(link);
-                  const rowTitle = trimEmail(meta.remark, client.email)
-                    || `${t('pages.clients.link')} ${idx + 1}`;
-                  const qrRemark = client.email
-                    ? `${rowTitle}-${client.email}`
-                    : (meta.remark || `${t('pages.clients.link')} ${idx + 1}`);
+                  const parts = parseLinkParts(link, client.email);
+                  const fallback = `${t('pages.clients.link')} ${idx + 1}`;
+                  const rowTitle = (parts && linkMetaText(parts)) || fallback;
+                  const qrRemark = [parts?.remark, client.email].filter(Boolean).join('-') || rowTitle;
                   const canQr = !isPostQuantumLink(link);
                   return (
                     <div key={idx} className="link-row">
-                      <Tag color={PROTOCOL_COLORS[meta.protocol] ?? 'default'} className="link-row-tag">
-                        {meta.protocol}
-                      </Tag>
-                      <span className="link-row-title" title={qrRemark}>{rowTitle}</span>
+                      {parts
+                        ? <LinkTags parts={parts} />
+                        : <Tag className="link-row-tag">LINK</Tag>}
+                      <span className="link-row-title" title={rowTitle}>{rowTitle}</span>
                       <div className="link-row-actions">
                         <Tooltip title={t('copy')}>
                           <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(link)} />

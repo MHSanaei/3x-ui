@@ -315,6 +315,12 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/server/getWebCertFiles',
+        summary: 'Return this panel\'s own web TLS certificate and key file paths. The central panel calls it on a node (via the node API token) so "Set Cert from Panel" fills a node-assigned inbound with paths that exist on the node.',
+        response: '{\n  "success": true,\n  "obj": {\n    "webCertFile": "/root/cert/example.com/fullchain.pem",\n    "webKeyFile": "/root/cert/example.com/privkey.pem"\n  }\n}',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/server/getNewX25519Cert',
         summary: 'Generate a new X25519 keypair for Reality.',
         response: '{\n  "success": true,\n  "obj": {\n    "privateKey": "uN9qLfV3zH8w...",\n    "publicKey": "5v8xPqR2sM7k..."\n  }\n}',
@@ -666,8 +672,20 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/onlines',
-        summary: 'List the emails of currently connected clients (last seen within the heartbeat window).',
+        summary: 'List the emails of currently connected clients (last seen within the heartbeat window), deduped across every node.',
         response: '{\n  "success": true,\n  "obj": ["user1", "user2"]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/onlinesByNode',
+        summary: 'Online client emails grouped by the node that reported them. The local panel uses key "0"; each remote node uses its node id. Lets the inbounds page show online status per node instead of merging every node together.',
+        response: '{\n  "success": true,\n  "obj": {\n    "0": ["user1"],\n    "3": ["user1", "user2"]\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/activeInbounds',
+        summary: 'Inbound tags that carried traffic within the heartbeat window, grouped by node (local panel uses key "0"). Pairs with onlinesByNode so the inbounds page only marks a multi-inbound client online on the inbounds it actually used. Nodes that do not report per-inbound activity are absent.',
+        response: '{\n  "success": true,\n  "obj": {\n    "0": ["inbound-443", "inbound-8443"]\n  }\n}',
       },
       {
         method: 'POST',
@@ -728,6 +746,15 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Node ID.' },
         ],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/nodes/webCert/:id',
+        summary: 'Fetch a node\'s own web TLS certificate/key file paths (proxied to the node). Used by the inbound form\'s "Set Cert from Panel" so a node-assigned inbound gets paths that exist on the node, not the central panel.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Node ID.' },
+        ],
+        response: '{\n  "success": true,\n  "obj": {\n    "webCertFile": "/root/cert/example.com/fullchain.pem",\n    "webKeyFile": "/root/cert/example.com/privkey.pem"\n  }\n}',
       },
       {
         method: 'POST',
@@ -924,18 +951,18 @@ export const sections: readonly Section[] = [
     id: 'api-tokens',
     title: 'API Tokens',
     description:
-      'Manage Bearer tokens used for programmatic auth (bots, central panels acting on this node, CI). Each token has a unique name and an enabled flag — disable to revoke without deleting, delete to revoke permanently. Tokens are stored plaintext so the SPA can show them on demand. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any /panel/api/* request.',
+      'Manage Bearer tokens used for programmatic auth (bots, central panels acting on this node, CI). Each token has a unique name and an enabled flag — disable to revoke without deleting, delete to revoke permanently. Tokens are stored as SHA-256 hashes and the plaintext is returned only once, in the create response — it cannot be retrieved afterwards, so copy it then. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any /panel/api/* request.',
     endpoints: [
       {
         method: 'GET',
         path: '/panel/setting/apiTokens',
-        summary: 'List every API token, enabled or not.',
-        response: '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "default",\n      "token": "abcdef-12345-...",\n      "enabled": true,\n      "createdAt": 1736000000\n    }\n  ]\n}',
+        summary: 'List every API token, enabled or not. The token value is never returned — only metadata.',
+        response: '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "default",\n      "enabled": true,\n      "createdAt": 1736000000\n    }\n  ]\n}',
       },
       {
         method: 'POST',
         path: '/panel/setting/apiTokens/create',
-        summary: 'Mint a new API token. Name must be unique and 1-64 characters; the token string is server-generated.',
+        summary: 'Mint a new API token. Name must be unique and 1-64 characters; the token string is server-generated and returned only in this response — it is stored hashed and cannot be retrieved later.',
         params: [
           { name: 'name', in: 'body', type: 'string', desc: 'Human-readable label, e.g. "central-panel-a".' },
         ],

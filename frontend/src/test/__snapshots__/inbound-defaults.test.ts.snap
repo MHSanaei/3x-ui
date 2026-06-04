@@ -12,7 +12,7 @@ exports[`createDefault*InboundSettings factories > shadowsocks 1`] = `
   "clients": [],
   "ivCheck": false,
   "method": "2022-blake3-aes-256-gcm",
-  "network": "tcp",
+  "network": "tcp,udp",
   "password": "ZmFrZS1zcy1zZWVk",
 }
 `;

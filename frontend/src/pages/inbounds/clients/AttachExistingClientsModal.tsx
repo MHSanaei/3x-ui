@@ -170,7 +170,7 @@ export default function AttachExistingClientsModal({
       okButtonProps={{ disabled: selectedEmails.length === 0, loading: saving }}
       okText={t('pages.inbounds.attachClients')}
       cancelText={t('cancel')}
-      title={t('pages.inbounds.attachExistingTitle', { remark: target?.tag ?? '' })}
+      title={t('pages.inbounds.attachExistingTitle', { remark: target?.remark?.trim() || target?.tag || '' })}
       width={680}
     >
       {messageContextHolder}

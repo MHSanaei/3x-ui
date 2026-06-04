@@ -13,6 +13,13 @@
   margin-bottom: 4px;
 }
 
+.history-chart-title {
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ant-color-text);
+}
+
 .cpu-chart-wrap {
   margin: 8px 8px 16px;
   padding: 16px 18px 18px;
