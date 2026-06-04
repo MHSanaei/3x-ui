@@ -1074,6 +1074,8 @@
         "defaultIpLimit": "Batas IP default"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "Mask finalmask xray (TCP/UDP) dan penyetelan QUIC yang disuntikkan ke setiap stream langganan JSON. Membutuhkan klien xray terbaru.",
         "packets": "Paket",
         "length": "Panjang",
         "interval": "Interval",

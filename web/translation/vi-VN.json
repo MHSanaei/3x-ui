@@ -1074,6 +1074,8 @@
         "defaultIpLimit": "Giới hạn IP mặc định"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "Mask finalmask của xray (TCP/UDP) và tinh chỉnh QUIC được thêm vào mọi luồng đăng ký JSON. Yêu cầu client xray mới hơn.",
         "packets": "Gói",
         "length": "Độ dài",
         "interval": "Khoảng",

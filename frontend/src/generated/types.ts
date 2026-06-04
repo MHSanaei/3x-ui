@@ -44,9 +44,8 @@ export interface AllSetting {
   subEnableRouting: boolean;
   subEncrypt: boolean;
   subJsonEnable: boolean;
-  subJsonFragment: string;
+  subJsonFinalMask: string;
   subJsonMux: string;
-  subJsonNoises: string;
   subJsonPath: string;
   subJsonRules: string;
   subJsonURI: string;
@@ -133,9 +132,8 @@ export interface AllSettingView {
   subEnableRouting: boolean;
   subEncrypt: boolean;
   subJsonEnable: boolean;
-  subJsonFragment: string;
+  subJsonFinalMask: string;
   subJsonMux: string;
-  subJsonNoises: string;
   subJsonPath: string;
   subJsonRules: string;
   subJsonURI: string;

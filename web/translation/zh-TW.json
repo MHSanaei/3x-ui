@@ -1074,6 +1074,8 @@
         "defaultIpLimit": "預設 IP 限制"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "注入到每個 JSON 訂閱串流的 xray finalmask 遮罩（TCP/UDP）與 QUIC 調校。需要較新的 xray 用戶端。",
         "packets": "封包",
         "length": "長度",
         "interval": "間隔",

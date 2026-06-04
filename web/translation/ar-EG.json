@@ -1074,6 +1074,8 @@
         "defaultIpLimit": "حد IP الافتراضي"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "أقنعة finalmask في xray (TCP/UDP) وضبط QUIC تُضاف إلى كل تدفق اشتراك JSON. يتطلب إصدار xray حديثًا على العميل.",
         "packets": "الحزم",
         "length": "الطول",
         "interval": "الفاصل",

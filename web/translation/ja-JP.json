@@ -1074,6 +1074,8 @@
         "defaultIpLimit": "デフォルト IP 制限"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "すべての JSON サブスクリプションストリームに注入される xray finalmask マスク（TCP/UDP）と QUIC チューニング。新しい xray クライアントが必要です。",
         "packets": "パケット",
         "length": "長さ",
         "interval": "間隔",

@@ -120,16 +120,6 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubUpdates = "10"
 	}
 
-	SubJsonFragment, err := s.settingService.GetSubJsonFragment()
-	if err != nil {
-		SubJsonFragment = ""
-	}
-
-	SubJsonNoises, err := s.settingService.GetSubJsonNoises()
-	if err != nil {
-		SubJsonNoises = ""
-	}
-
 	SubJsonMux, err := s.settingService.GetSubJsonMux()
 	if err != nil {
 		SubJsonMux = ""
@@ -138,6 +128,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	SubJsonRules, err := s.settingService.GetSubJsonRules()
 	if err != nil {
 		SubJsonRules = ""
+	}
+
+	SubJsonFinalMask, err := s.settingService.GetSubJsonFinalMask()
+	if err != nil {
+		SubJsonFinalMask = ""
 	}
 
 	SubClashEnableRouting, err := s.settingService.GetSubClashEnableRouting()
@@ -236,7 +231,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	s.sub = NewSUBController(
 		g, LinksPath, JsonPath, ClashPath, subJsonEnable, subClashEnable, Encrypt, ShowInfo, RemarkModel, SubUpdates,
-		SubJsonFragment, SubJsonNoises, SubJsonMux, SubJsonRules, SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
+		SubJsonMux, SubJsonRules, SubJsonFinalMask, SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
 		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules)
 
 	return engine, nil
