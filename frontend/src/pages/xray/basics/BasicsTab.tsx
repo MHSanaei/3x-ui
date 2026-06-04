@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Input, Modal, Select, Space, Switch, Tabs } from 'antd';
+import { Alert, Button, Input, InputNumber, Modal, Select, Space, Switch, Tabs } from 'antd';
 import {
   BarChartOutlined,
+  ClockCircleOutlined,
   FileTextOutlined,
   ReloadOutlined,
   SettingOutlined,
@@ -54,6 +55,20 @@ export default function BasicsTab({
     [setTemplateSettings],
   );
 
+  const setLevel0 = useCallback(
+    (field: string, value: number | null) => mutate((tt) => {
+      if (!tt.policy) tt.policy = {};
+      if (!tt.policy.levels) tt.policy.levels = {};
+      if (!tt.policy.levels['0']) tt.policy.levels['0'] = {};
+      if (value === null || value === undefined) {
+        delete tt.policy.levels['0'][field];
+      } else {
+        tt.policy.levels['0'][field] = value;
+      }
+    }),
+    [mutate],
+  );
+
   function confirmResetDefault() {
     modal.confirm({
       title: t('pages.settings.resetDefaultConfig'),
@@ -72,6 +87,7 @@ export default function BasicsTab({
   const routingStrategy = templateSettings?.routing?.domainStrategy ?? 'AsIs';
   const log = (templateSettings?.log || {}) as Record<string, unknown>;
   const policy = (templateSettings?.policy?.system || {}) as Record<string, boolean>;
+  const level0 = (templateSettings?.policy?.levels?.['0'] || {}) as Record<string, unknown>;
 
   const items = [
     {
@@ -165,6 +181,50 @@ export default function BasicsTab({
               }
             />
           ))}
+        </>
+      ),
+    },
+    {
+      key: 'connection',
+      label: catTabLabel(<ClockCircleOutlined />, t('pages.xray.connectionLimits'), isMobile),
+      children: (
+        <>
+          <Alert
+            type="warning"
+            showIcon
+            className="mb-12 hint-alert"
+            title={t('pages.xray.connectionLimitsDesc')}
+          />
+          <SettingListItem
+            title={t('pages.xray.connIdle')}
+            description={t('pages.xray.connIdleDesc')}
+            paddings="small"
+            control={
+              <InputNumber
+                value={typeof level0.connIdle === 'number' ? level0.connIdle : undefined}
+                min={0}
+                style={{ width: '100%' }}
+                placeholder="300"
+                addonAfter={t('pages.xray.seconds')}
+                onChange={(v) => setLevel0('connIdle', v as number | null)}
+              />
+            }
+          />
+          <SettingListItem
+            title={t('pages.xray.bufferSize')}
+            description={t('pages.xray.bufferSizeDesc')}
+            paddings="small"
+            control={
+              <InputNumber
+                value={typeof level0.bufferSize === 'number' ? level0.bufferSize : undefined}
+                min={0}
+                style={{ width: '100%' }}
+                placeholder={t('pages.xray.bufferSizePlaceholder')}
+                addonAfter="KB"
+                onChange={(v) => setLevel0('bufferSize', v as number | null)}
+              />
+            }
+          />
         </>
       ),
     },

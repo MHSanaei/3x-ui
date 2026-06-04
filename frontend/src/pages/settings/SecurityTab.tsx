@@ -30,7 +30,6 @@ interface ApiMsg<T = unknown> {
 interface ApiTokenRow {
   id: number;
   name: string;
-  token: string;
   enabled: boolean;
   createdAt: number;
 }
@@ -77,10 +76,10 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
 
   const [apiTokens, setApiTokens] = useState<ApiTokenRow[]>([]);
   const [apiTokensLoading, setApiTokensLoading] = useState(false);
-  const [visibleTokenIds, setVisibleTokenIds] = useState<Set<number>>(() => new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [createdToken, setCreatedToken] = useState<{ name: string; token: string } | null>(null);
 
   const openTfa = useCallback((opts: Omit<TfaState, 'open'>) => {
     setTfa({ ...opts, open: true });
@@ -137,14 +136,6 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
     loadApiTokens();
   }, [loadApiTokens]);
 
-  function toggleTokenVisibility(id: number) {
-    setVisibleTokenIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }
-
   async function copyToken(token: string) {
     if (!token) return;
     const ok = await ClipboardManager.copyText(token);
@@ -165,17 +156,12 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
     }
     setCreating(true);
     try {
-      const msg = await HttpUtil.post('/panel/setting/apiTokens/create', { name }) as ApiMsg<{ id?: number }>;
+      const msg = await HttpUtil.post('/panel/setting/apiTokens/create', { name }) as ApiMsg<{ token?: string }>;
       if (msg?.success) {
         setCreateOpen(false);
         await loadApiTokens();
-        if (msg.obj?.id != null) {
-          const id = msg.obj.id;
-          setVisibleTokenIds((prev) => {
-            const next = new Set(prev);
-            next.add(id);
-            return next;
-          });
+        if (msg.obj?.token) {
+          setCreatedToken({ name, token: msg.obj.token });
         }
       }
     } finally {
@@ -204,11 +190,6 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
     if (msg?.success) {
       setApiTokens((prev) => prev.map((r) => (r.id === row.id ? { ...r, enabled: target } : r)));
     }
-  }
-
-  function maskToken(token: string): string {
-    if (!token) return '';
-    return '•'.repeat(Math.min(token.length, 24));
   }
 
   function formatTokenDate(ts: number): string {
@@ -326,17 +307,6 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
                         </Button>
                       </div>
                     </div>
-                    <div className="api-token-value-wrap">
-                      <code className="api-token-value">
-                        {visibleTokenIds.has(row.id) ? row.token : maskToken(row.token)}
-                      </code>
-                      <Button size="small" onClick={() => toggleTokenVisibility(row.id)}>
-                        {visibleTokenIds.has(row.id)
-                          ? (t('pages.settings.security.hide') || 'Hide')
-                          : (t('pages.settings.security.show') || 'Show')}
-                      </Button>
-                      <Button size="small" onClick={() => copyToken(row.token)}>{t('copy')}</Button>
-                    </div>
                   </div>
                 ))}
               </Spin>
@@ -365,6 +335,26 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
             />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        open={!!createdToken}
+        title={t('pages.settings.security.apiTokenCreatedTitle') || 'Token created'}
+        okText={t('done')}
+        onOk={() => setCreatedToken(null)}
+        onCancel={() => setCreatedToken(null)}
+        cancelButtonProps={{ style: { display: 'none' } }}
+      >
+        <p className="api-token-created-notice">
+          {t('pages.settings.security.apiTokenCreatedNotice')
+            || 'Copy this token now. For security it is not stored in readable form and will not be shown again.'}
+        </p>
+        <div className="api-token-value-wrap">
+          <code className="api-token-value">{createdToken?.token}</code>
+          <Button size="small" type="primary" onClick={() => createdToken && copyToken(createdToken.token)}>
+            {t('copy')}
+          </Button>
+        </div>
       </Modal>
 
       <TwoFactorModal

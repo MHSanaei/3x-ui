@@ -1123,7 +1123,9 @@
         "apiTokenNamePlaceholder": "misalnya central-panel-a",
         "apiTokenNameRequired": "Nama wajib diisi",
         "apiTokenEmpty": "Belum ada token — buat satu untuk mengautentikasi bot atau panel jarak jauh.",
-        "apiTokenDeleteWarning": "Setiap pemanggil yang menggunakan token ini akan berhenti terautentikasi segera."
+        "apiTokenDeleteWarning": "Setiap pemanggil yang menggunakan token ini akan berhenti terautentikasi segera.",
+        "apiTokenCreatedTitle": "Token dibuat",
+        "apiTokenCreatedNotice": "Salin token ini sekarang. Demi keamanan, token tidak disimpan dalam bentuk yang dapat dibaca dan tidak akan ditampilkan lagi."
       },
       "toasts": {
         "modifySettings": "Parameter telah diubah.",
@@ -1205,6 +1207,14 @@
       "statsOutboundUplinkDesc": "Mengaktifkan pengumpulan statistik untuk lalu lintas unggah dari semua proxy keluar.",
       "statsOutboundDownlink": "Statistik Unduh Keluar",
       "statsOutboundDownlinkDesc": "Mengaktifkan pengumpulan statistik untuk lalu lintas unduh dari semua proxy keluar.",
+      "connectionLimits": "Batas Koneksi",
+      "connectionLimitsDesc": "Kebijakan tingkat koneksi untuk level pengguna 0. Biarkan kolom kosong untuk menggunakan nilai bawaan Xray.",
+      "connIdle": "Batas Waktu Idle",
+      "connIdleDesc": "Menutup koneksi setelah idle selama sekian detik. Menurunkannya membebaskan memori dan file descriptor lebih cepat pada server yang sibuk (bawaan Xray: 300).",
+      "bufferSize": "Ukuran Buffer",
+      "bufferSizeDesc": "Ukuran buffer internal per koneksi dalam KB. Setel ke 0 untuk meminimalkan penggunaan memori pada server ber-RAM rendah (nilai bawaan Xray bergantung pada platform).",
+      "bufferSizePlaceholder": "otomatis",
+      "seconds": "detik",
       "rules": {
         "first": "Pertama",
         "last": "Terakhir",

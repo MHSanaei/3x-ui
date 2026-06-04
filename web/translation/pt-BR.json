@@ -1123,7 +1123,9 @@
         "apiTokenNamePlaceholder": "ex.: central-panel-a",
         "apiTokenNameRequired": "O nome é obrigatório",
         "apiTokenEmpty": "Nenhum token ainda — crie um para autenticar bots ou painéis remotos.",
-        "apiTokenDeleteWarning": "Qualquer cliente usando este token deixará de se autenticar imediatamente."
+        "apiTokenDeleteWarning": "Qualquer cliente usando este token deixará de se autenticar imediatamente.",
+        "apiTokenCreatedTitle": "Token criado",
+        "apiTokenCreatedNotice": "Copie este token agora. Por segurança, ele não é armazenado de forma legível e não será exibido novamente."
       },
       "toasts": {
         "modifySettings": "Os parâmetros foram alterados.",
@@ -1205,6 +1207,14 @@
       "statsOutboundUplinkDesc": "Habilita a coleta de estatísticas para o tráfego de upload de todos os proxies de saída.",
       "statsOutboundDownlink": "Estatísticas de Download de Saída",
       "statsOutboundDownlinkDesc": "Habilita a coleta de estatísticas para o tráfego de download de todos os proxies de saída.",
+      "connectionLimits": "Limites de conexão",
+      "connectionLimitsDesc": "Políticas em nível de conexão para o nível de usuário 0. Deixe um campo vazio para usar o padrão do Xray.",
+      "connIdle": "Tempo limite de inatividade",
+      "connIdleDesc": "Fecha uma conexão depois que ela fica inativa por esta quantidade de segundos. Reduzi-lo libera memória e descritores de arquivo mais rápido em servidores ocupados (padrão do Xray: 300).",
+      "bufferSize": "Tamanho do buffer",
+      "bufferSizeDesc": "Tamanho do buffer interno por conexão em KB. Defina como 0 para minimizar o uso de memória em servidores com pouca RAM (o padrão do Xray depende da plataforma).",
+      "bufferSizePlaceholder": "automático",
+      "seconds": "segundos",
       "rules": {
         "first": "Primeiro",
         "last": "Último",

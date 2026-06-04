@@ -181,7 +181,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -228,6 +228,12 @@ func runSeeders(isUsersEmpty bool) error {
 
 	if !slices.Contains(seedersHistory, "ApiTokensTable") {
 		if err := seedApiTokens(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "ApiTokensHash") {
+		if err := hashExistingApiTokens(); err != nil {
 			return err
 		}
 	}
@@ -644,6 +650,28 @@ func seedApiTokens() error {
 		}
 	}
 	return db.Create(&model.HistoryOfSeeders{SeederName: "ApiTokensTable"}).Error
+}
+
+// hashExistingApiTokens replaces any plaintext token stored before tokens were
+// hashed at rest with its SHA-256 digest. Callers keep their plaintext copy
+// (used on remote nodes), so existing tokens keep authenticating; the panel
+// just can no longer reveal them. Idempotent — already-hashed rows are skipped.
+func hashExistingApiTokens() error {
+	var rows []*model.ApiToken
+	if err := db.Find(&rows).Error; err != nil {
+		return err
+	}
+	for _, r := range rows {
+		if crypto.IsSHA256Hex(r.Token) {
+			continue
+		}
+		hashed := crypto.HashTokenSHA256(r.Token)
+		if err := db.Model(model.ApiToken{}).Where("id = ?", r.Id).Update("token", hashed).Error; err != nil {
+			log.Printf("Error hashing api token %d: %v", r.Id, err)
+			return err
+		}
+	}
+	return db.Create(&model.HistoryOfSeeders{SeederName: "ApiTokensHash"}).Error
 }
 
 // isTableEmpty returns true if the named table contains zero rows.

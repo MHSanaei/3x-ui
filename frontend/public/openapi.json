@@ -69,7 +69,7 @@
     },
     {
       "name": "API Tokens",
-      "description": "Manage Bearer tokens used for programmatic auth (bots, central panels acting on this node, CI). Each token has a unique name and an enabled flag — disable to revoke without deleting, delete to revoke permanently. Tokens are stored plaintext so the SPA can show them on demand. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any /panel/api/* request."
+      "description": "Manage Bearer tokens used for programmatic auth (bots, central panels acting on this node, CI). Each token has a unique name and an enabled flag — disable to revoke without deleting, delete to revoke permanently. Tokens are stored as SHA-256 hashes and the plaintext is returned only once, in the create response — it cannot be retrieved afterwards, so copy it then. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any /panel/api/* request."
     },
     {
       "name": "Xray Settings",
@@ -5105,7 +5105,7 @@
         "tags": [
           "API Tokens"
         ],
-        "summary": "List every API token, enabled or not.",
+        "summary": "List every API token, enabled or not. The token value is never returned — only metadata.",
         "operationId": "get_panel_setting_apiTokens",
         "responses": {
           "200": {
@@ -5130,7 +5130,6 @@
                     {
                       "id": 1,
                       "name": "default",
-                      "token": "abcdef-12345-...",
                       "enabled": true,
                       "createdAt": 1736000000
                     }
@@ -5147,7 +5146,7 @@
         "tags": [
           "API Tokens"
         ],
-        "summary": "Mint a new API token. Name must be unique and 1-64 characters; the token string is server-generated.",
+        "summary": "Mint a new API token. Name must be unique and 1-64 characters; the token string is server-generated and returned only in this response — it is stored hashed and cannot be retrieved later.",
         "operationId": "post_panel_setting_apiTokens_create",
         "requestBody": {
           "required": true,

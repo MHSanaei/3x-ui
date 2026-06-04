@@ -1123,7 +1123,9 @@
         "apiTokenNamePlaceholder": "e.g. central-panel-a",
         "apiTokenNameRequired": "Name is required",
         "apiTokenEmpty": "No tokens yet — create one to authenticate bots or remote panels.",
-        "apiTokenDeleteWarning": "Any caller using this token will stop authenticating immediately."
+        "apiTokenDeleteWarning": "Any caller using this token will stop authenticating immediately.",
+        "apiTokenCreatedTitle": "Token created",
+        "apiTokenCreatedNotice": "Copy this token now. For security it is not stored in readable form and will not be shown again."
       },
       "toasts": {
         "modifySettings": "The parameters have been changed.",
@@ -1205,6 +1207,14 @@
       "statsOutboundUplinkDesc": "Enables the statistics collection for upstream traffic of all outbound proxies.",
       "statsOutboundDownlink": "Outbound Download Statistics",
       "statsOutboundDownlinkDesc": "Enables the statistics collection for downstream traffic of all outbound proxies.",
+      "connectionLimits": "Connection Limits",
+      "connectionLimitsDesc": "Connection-level policies for user level 0. Leave a field empty to use Xray's default.",
+      "connIdle": "Idle Timeout",
+      "connIdleDesc": "Closes a connection after it stays idle for this many seconds. Lowering it frees memory and file descriptors faster on busy servers (Xray default: 300).",
+      "bufferSize": "Buffer Size",
+      "bufferSizeDesc": "Per-connection internal buffer size in KB. Set to 0 to minimize memory usage on low-RAM servers (Xray default depends on the platform).",
+      "bufferSizePlaceholder": "auto",
+      "seconds": "seconds",
       "rules": {
         "first": "First",
         "last": "Last",

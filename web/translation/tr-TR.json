@@ -1123,7 +1123,9 @@
         "apiTokenNamePlaceholder": "örn. central-panel-a",
         "apiTokenNameRequired": "Ad zorunludur",
         "apiTokenEmpty": "Henüz token yok — bot veya uzak panelleri doğrulamak için bir tane oluşturun.",
-        "apiTokenDeleteWarning": "Bu tokenı kullanan tüm istemciler anında kimlik doğrulamasını kaybeder."
+        "apiTokenDeleteWarning": "Bu tokenı kullanan tüm istemciler anında kimlik doğrulamasını kaybeder.",
+        "apiTokenCreatedTitle": "Belirteç oluşturuldu",
+        "apiTokenCreatedNotice": "Bu belirteci şimdi kopyalayın. Güvenlik nedeniyle okunabilir biçimde saklanmaz ve tekrar gösterilmez."
       },
       "toasts": {
         "modifySettings": "Parametreler değiştirildi.",
@@ -1205,6 +1207,14 @@
       "statsOutboundUplinkDesc": "Tüm giden proxy'lerin yükleme trafiği için istatistik toplamayı etkinleştirir.",
       "statsOutboundDownlink": "Giden İndirme İstatistikleri",
       "statsOutboundDownlinkDesc": "Tüm giden proxy'lerin indirme trafiği için istatistik toplamayı etkinleştirir.",
+      "connectionLimits": "Bağlantı Sınırları",
+      "connectionLimitsDesc": "Kullanıcı seviyesi 0 için bağlantı düzeyi politikaları. Xray'in varsayılanını kullanmak için alanı boş bırakın.",
+      "connIdle": "Boşta Kalma Zaman Aşımı",
+      "connIdleDesc": "Bağlantı bu kadar saniye boşta kaldıktan sonra kapatılır. Değerin düşürülmesi, yoğun sunucularda belleği ve dosya tanımlayıcılarını daha hızlı serbest bırakır (Xray varsayılanı: 300).",
+      "bufferSize": "Arabellek Boyutu",
+      "bufferSizeDesc": "Bağlantı başına dahili arabellek boyutu (KB). Düşük RAM'li sunucularda bellek kullanımını en aza indirmek için 0 olarak ayarlayın (Xray varsayılanı platforma bağlıdır).",
+      "bufferSizePlaceholder": "otomatik",
+      "seconds": "saniye",
       "rules": {
         "first": "İlk",
         "last": "Son",

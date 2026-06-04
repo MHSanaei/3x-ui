@@ -21,7 +21,7 @@ require (
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/valyala/fasthttp v1.71.0
 	github.com/xlzd/gotp v0.1.0
-	github.com/xtls/xray-core v1.260327.0
+	github.com/xtls/xray-core v1.260327.1-0.20260601021109-94ffd50060f1
 	go.uber.org/atomic v1.11.0
 	golang.org/x/crypto v0.52.0
 	golang.org/x/sys v0.45.0
@@ -34,9 +34,18 @@ require (
 )
 
 require (
+	github.com/pion/dtls/v3 v3.1.2 // indirect
+	github.com/pion/logging v0.2.4 // indirect
+	github.com/pion/stun/v3 v3.1.2 // indirect
+	github.com/pion/transport/v4 v4.0.1 // indirect
+	github.com/wlynxg/anet v0.0.5 // indirect
+	golang.zx2c4.com/wireguard/windows v1.0.1 // indirect
+)
+
+require (
 	github.com/Azure/go-ntlmssp v0.1.1 // indirect
 	github.com/andybalholm/brotli v1.2.1 // indirect
-	github.com/apernet/quic-go v0.59.1-0.20260217092621-db4786c77a22 // indirect
+	github.com/apernet/quic-go v0.59.1-0.20260425001925-6c6cc9bcb716 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.1 // indirect
 	github.com/bytedance/sonic/loader v0.5.1 // indirect

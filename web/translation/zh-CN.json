@@ -1123,7 +1123,9 @@
         "apiTokenNamePlaceholder": "例如 central-panel-a",
         "apiTokenNameRequired": "名称必填",
         "apiTokenEmpty": "暂无令牌 — 创建一个用于认证机器人或远程面板。",
-        "apiTokenDeleteWarning": "使用此令牌的任何调用方将立即无法认证。"
+        "apiTokenDeleteWarning": "使用此令牌的任何调用方将立即无法认证。",
+        "apiTokenCreatedTitle": "令牌已创建",
+        "apiTokenCreatedNotice": "请立即复制此令牌。出于安全考虑，它不会以可读形式存储，也不会再次显示。"
       },
       "toasts": {
         "modifySettings": "参数已更改。",
@@ -1205,6 +1207,14 @@
       "statsOutboundUplinkDesc": "启用所有出站代理的上行流量统计收集。",
       "statsOutboundDownlink": "出站下载统计",
       "statsOutboundDownlinkDesc": "启用所有出站代理的下行流量统计收集。",
+      "connectionLimits": "连接限制",
+      "connectionLimitsDesc": "用户等级 0 的连接级策略。留空则使用 Xray 的默认值。",
+      "connIdle": "空闲超时",
+      "connIdleDesc": "连接空闲达到该秒数后将被关闭。在繁忙的服务器上调低此值可更快释放内存和文件描述符（Xray 默认值：300）。",
+      "bufferSize": "缓冲区大小",
+      "bufferSizeDesc": "每个连接的内部缓冲区大小（KB）。在低内存服务器上设为 0 可最大限度减少内存占用（Xray 默认值取决于平台）。",
+      "bufferSizePlaceholder": "自动",
+      "seconds": "秒",
       "rules": {
         "first": "置顶",
         "last": "置底",

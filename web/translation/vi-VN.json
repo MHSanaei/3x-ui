@@ -1123,7 +1123,9 @@
         "apiTokenNamePlaceholder": "ví dụ: central-panel-a",
         "apiTokenNameRequired": "Tên là bắt buộc",
         "apiTokenEmpty": "Chưa có token nào — tạo một token để xác thực bot hoặc panel từ xa.",
-        "apiTokenDeleteWarning": "Mọi client đang dùng token này sẽ ngừng xác thực ngay lập tức."
+        "apiTokenDeleteWarning": "Mọi client đang dùng token này sẽ ngừng xác thực ngay lập tức.",
+        "apiTokenCreatedTitle": "Đã tạo token",
+        "apiTokenCreatedNotice": "Hãy sao chép token này ngay bây giờ. Vì lý do bảo mật, token không được lưu ở dạng đọc được và sẽ không hiển thị lại."
       },
       "toasts": {
         "modifySettings": "Các tham số đã được thay đổi.",
@@ -1205,6 +1207,14 @@
       "statsOutboundUplinkDesc": "Kích hoạt thu thập thống kê cho lưu lượng tải lên của tất cả các proxy đầu ra.",
       "statsOutboundDownlink": "Thống kê tải xuống đầu ra",
       "statsOutboundDownlinkDesc": "Kích hoạt thu thập thống kê cho lưu lượng tải xuống của tất cả các proxy đầu ra.",
+      "connectionLimits": "Giới hạn kết nối",
+      "connectionLimitsDesc": "Chính sách cấp kết nối cho người dùng cấp 0. Để trống một trường để sử dụng giá trị mặc định của Xray.",
+      "connIdle": "Thời gian chờ nhàn rỗi",
+      "connIdleDesc": "Đóng kết nối sau khi nó ở trạng thái nhàn rỗi trong số giây này. Giảm giá trị này giúp giải phóng bộ nhớ và file descriptor nhanh hơn trên các máy chủ bận (mặc định của Xray: 300).",
+      "bufferSize": "Kích thước bộ đệm",
+      "bufferSizeDesc": "Kích thước bộ đệm nội bộ trên mỗi kết nối tính bằng KB. Đặt thành 0 để giảm thiểu mức sử dụng bộ nhớ trên các máy chủ ít RAM (giá trị mặc định của Xray tùy thuộc vào nền tảng).",
+      "bufferSizePlaceholder": "tự động",
+      "seconds": "giây",
       "rules": {
         "first": "Đầu tiên",
         "last": "Cuối cùng",
