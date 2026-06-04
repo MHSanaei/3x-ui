@@ -3,6 +3,8 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
@@ -14,6 +16,21 @@ import (
 
 func notifyClientsChanged() {
 	websocket.BroadcastInvalidate(websocket.MessageTypeClients)
+}
+
+func parseInboundIdsQuery(raw string) []int {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	ids := make([]int, 0, len(parts))
+	for _, p := range parts {
+		if id, err := strconv.Atoi(strings.TrimSpace(p)); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
 type ClientController struct {
@@ -129,7 +146,8 @@ func (a *ClientController) update(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	needRestart, err := a.clientService.UpdateByEmail(&a.inboundService, email, updated)
+	inboundFilter := parseInboundIdsQuery(c.Query("inboundIds"))
+	needRestart, err := a.clientService.UpdateByEmail(&a.inboundService, email, updated, inboundFilter...)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return

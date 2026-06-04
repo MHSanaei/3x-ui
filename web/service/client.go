@@ -634,7 +634,7 @@ func applyShadowsocksClientMethod(clients []any, settings map[string]any) {
 	}
 }
 
-func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model.Client) (bool, error) {
+func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model.Client, inboundFilter ...int) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
 		return false, err
@@ -642,6 +642,19 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	inboundIds, err := s.GetInboundIdsForRecord(id)
 	if err != nil {
 		return false, err
+	}
+	if len(inboundFilter) > 0 {
+		allow := make(map[int]struct{}, len(inboundFilter))
+		for _, fid := range inboundFilter {
+			allow[fid] = struct{}{}
+		}
+		filtered := inboundIds[:0:0]
+		for _, ibId := range inboundIds {
+			if _, ok := allow[ibId]; ok {
+				filtered = append(filtered, ibId)
+			}
+		}
+		inboundIds = filtered
 	}
 
 	if strings.TrimSpace(updated.Email) == "" {
@@ -1317,7 +1330,7 @@ func (s *ClientService) findInboundIdsByClientEmail(email string) ([]int, error)
 	return out, nil
 }
 
-func (s *ClientService) UpdateByEmail(inboundSvc *InboundService, email string, updated model.Client) (bool, error) {
+func (s *ClientService) UpdateByEmail(inboundSvc *InboundService, email string, updated model.Client, inboundFilter ...int) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")
 	}
@@ -1325,7 +1338,7 @@ func (s *ClientService) UpdateByEmail(inboundSvc *InboundService, email string, 
 	if err != nil {
 		return false, err
 	}
-	return s.Update(inboundSvc, rec.Id, updated)
+	return s.Update(inboundSvc, rec.Id, updated, inboundFilter...)
 }
 
 func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email string) (bool, error) {
