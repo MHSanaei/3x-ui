@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -16,18 +17,8 @@ import {
   Row,
   Space,
   Spin,
-  Tabs,
-  Tooltip,
 } from 'antd';
-import {
-  SettingOutlined,
-  SwapOutlined,
-  UploadOutlined,
-  ClusterOutlined,
-  DatabaseOutlined,
-  CodeOutlined,
-  QuestionCircleOutlined,
-} from '@ant-design/icons';
+import { QuestionCircleOutlined } from '@ant-design/icons';
 
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -45,18 +36,7 @@ import { DnsTab } from './dns';
 import { WarpModal, NordModal } from './overrides';
 import './XrayPage.css';
 
-const TAB_KEYS = ['tpl-basic', 'tpl-routing', 'tpl-outbound', 'tpl-balancer', 'tpl-dns', 'tpl-advanced'];
-const SLUG_BY_KEY: Record<string, string> = {
-  'tpl-basic': 'basic',
-  'tpl-routing': 'routing',
-  'tpl-outbound': 'outbound',
-  'tpl-balancer': 'balancer',
-  'tpl-dns': 'dns',
-  'tpl-advanced': 'advanced',
-};
-const KEY_BY_SLUG: Record<string, string> = Object.fromEntries(
-  Object.entries(SLUG_BY_KEY).map(([k, v]) => [v, k]),
-);
+const SECTION_SLUGS = ['basic', 'routing', 'outbound', 'balancer', 'dns', 'advanced'];
 
 type AdvKey = 'xraySetting' | 'inboundSettings' | 'outboundSettings' | 'routingRuleSettings';
 
@@ -97,27 +77,10 @@ export default function XrayPage() {
   const [warpOpen, setWarpOpen] = useState(false);
   const [nordOpen, setNordOpen] = useState(false);
   const [advSettings, setAdvSettings] = useState<AdvKey>('xraySetting');
-  const [activeTabKey, setActiveTabKey] = useState(() => {
-    const slug = window.location.hash.slice(1);
-    return KEY_BY_SLUG[slug] || TAB_KEYS[0];
-  });
-
-  useEffect(() => {
-    function syncTabFromHash() {
-      const key = KEY_BY_SLUG[window.location.hash.slice(1)];
-      if (key) setActiveTabKey(key);
-    }
-    window.addEventListener('hashchange', syncTabFromHash);
-    return () => window.removeEventListener('hashchange', syncTabFromHash);
-  }, []);
-
-  function onTabChange(key: string) {
-    setActiveTabKey(key);
-    const slug = SLUG_BY_KEY[key];
-    if (slug && window.location.hash !== `#${slug}`) {
-      history.replaceState(null, '', `#${slug}`);
-    }
-  }
+  const location = useLocation();
+  const navigate = useNavigate();
+  const sectionSlug = location.hash.replace(/^#/, '');
+  const activeSection = SECTION_SLUGS.includes(sectionSlug) ? sectionSlug : 'basic';
 
   const mutate = useCallback(
     (mutator: (next: XraySettingsValue) => void) => {
@@ -130,9 +93,6 @@ export default function XrayPage() {
     },
     [setTemplateSettings],
   );
-
-  const warpExist = !!templateSettings?.outbounds?.find((o) => o?.tag === 'warp');
-  const nordExist = !!templateSettings?.outbounds?.find((o) => o?.tag?.startsWith?.('nord-'));
 
   async function onTestOutbound(idx: number, mode: string) {
     const outbound = templateSettings?.outbounds?.[idx];
@@ -235,7 +195,7 @@ export default function XrayPage() {
       JSON.parse(xraySetting);
     } catch (e) {
       messageApi.error(`Advanced JSON: ${(e as Error).message}`);
-      setActiveTabKey('tpl-advanced');
+      navigate('/xray#advanced');
       return;
     }
     saveAll();
@@ -244,6 +204,91 @@ export default function XrayPage() {
   const scrollTarget = () => document.getElementById('content-layout') || window;
 
   const pageClass = `xray-page ${isDark ? 'is-dark' : ''} ${isUltra ? 'is-ultra' : ''}`.trim();
+
+  const sectionBody = (() => {
+    switch (activeSection) {
+      case 'routing':
+        return (
+          <RoutingTab
+            templateSettings={templateSettings}
+            setTemplateSettings={setTemplateSettings}
+            inboundTags={inboundTags}
+            clientReverseTags={clientReverseTags}
+            isMobile={isMobile}
+          />
+        );
+      case 'outbound':
+        return (
+          <OutboundsTab
+            templateSettings={templateSettings}
+            setTemplateSettings={setTemplateSettings}
+            outboundsTraffic={outboundsTraffic}
+            outboundTestStates={outboundTestStates}
+            testingAll={testingAll}
+            inboundTags={inboundTags}
+            isMobile={isMobile}
+            onResetTraffic={resetOutboundsTraffic}
+            onTest={onTestOutbound}
+            onTestAll={testAllOutbounds}
+            onShowWarp={() => setWarpOpen(true)}
+            onShowNord={() => setNordOpen(true)}
+          />
+        );
+      case 'balancer':
+        return (
+          <BalancersTab
+            templateSettings={templateSettings}
+            setTemplateSettings={setTemplateSettings}
+            clientReverseTags={clientReverseTags}
+            isMobile={isMobile}
+          />
+        );
+      case 'dns':
+        return (
+          <DnsTab
+            templateSettings={templateSettings}
+            setTemplateSettings={setTemplateSettings}
+          />
+        );
+      case 'advanced':
+        return (
+          <>
+            <div className="advanced-meta">
+              <h4>{t('pages.xray.Template')}</h4>
+              <p>{t('pages.xray.TemplateDesc')}</p>
+            </div>
+            <Radio.Group
+              value={advSettings}
+              buttonStyle="solid"
+              size={isMobile ? 'small' : 'middle'}
+              style={{ margin: '12px 0' }}
+              onChange={(e) => setAdvSettings(e.target.value)}
+            >
+              <Radio.Button value="xraySetting">{t('pages.xray.completeTemplate')}</Radio.Button>
+              <Radio.Button value="inboundSettings">{t('pages.xray.Inbounds')}</Radio.Button>
+              <Radio.Button value="outboundSettings">{t('pages.xray.Outbounds')}</Radio.Button>
+              <Radio.Button value="routingRuleSettings">{t('pages.xray.Routings')}</Radio.Button>
+            </Radio.Group>
+            <JsonEditor
+              value={advancedText}
+              onChange={onAdvancedTextChange}
+              minHeight="420px"
+              maxHeight="720px"
+            />
+          </>
+        );
+      default:
+        return (
+          <BasicsTab
+            templateSettings={templateSettings}
+            setTemplateSettings={setTemplateSettings}
+            outboundTestUrl={outboundTestUrl}
+            onChangeOutboundTestUrl={setOutboundTestUrl}
+            onResetDefault={resetToDefault}
+          />
+        );
+    }
+  })();
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
@@ -298,145 +343,7 @@ export default function XrayPage() {
 
                   <Col span={24}>
                     <Card hoverable>
-                    <Tabs
-                      activeKey={activeTabKey}
-                      onChange={onTabChange}
-                      className={isMobile ? 'icons-only' : ''}
-                      items={[
-                        {
-                          key: 'tpl-basic',
-                          label: (
-                            <Tooltip title={isMobile ? t('pages.xray.basicTemplate') : ''}>
-                              <SettingOutlined />
-                              {!isMobile && <span>{` ${t('pages.xray.basicTemplate')}`}</span>}
-                            </Tooltip>
-                          ),
-                          children: (
-                            <BasicsTab
-                              templateSettings={templateSettings}
-                              setTemplateSettings={setTemplateSettings}
-                              outboundTestUrl={outboundTestUrl}
-                              onChangeOutboundTestUrl={setOutboundTestUrl}
-                              warpExist={warpExist}
-                              nordExist={nordExist}
-                              onShowWarp={() => setWarpOpen(true)}
-                              onShowNord={() => setNordOpen(true)}
-                              onResetDefault={resetToDefault}
-                            />
-                          ),
-                        },
-                        {
-                          key: 'tpl-routing',
-                          label: (
-                            <Tooltip title={isMobile ? t('pages.xray.Routings') : ''}>
-                              <SwapOutlined />
-                              {!isMobile && <span>{` ${t('pages.xray.Routings')}`}</span>}
-                            </Tooltip>
-                          ),
-                          children: (
-                            <RoutingTab
-                              templateSettings={templateSettings}
-                              setTemplateSettings={setTemplateSettings}
-                              inboundTags={inboundTags}
-                              clientReverseTags={clientReverseTags}
-                              isMobile={isMobile}
-                            />
-                          ),
-                        },
-                        {
-                          key: 'tpl-outbound',
-                          label: (
-                            <Tooltip title={isMobile ? t('pages.xray.Outbounds') : ''}>
-                              <UploadOutlined />
-                              {!isMobile && <span>{` ${t('pages.xray.Outbounds')}`}</span>}
-                            </Tooltip>
-                          ),
-                          children: (
-                            <OutboundsTab
-                              templateSettings={templateSettings}
-                              setTemplateSettings={setTemplateSettings}
-                              outboundsTraffic={outboundsTraffic}
-                              outboundTestStates={outboundTestStates}
-                              testingAll={testingAll}
-                              inboundTags={inboundTags}
-                              isMobile={isMobile}
-                              onResetTraffic={resetOutboundsTraffic}
-                              onTest={onTestOutbound}
-                              onTestAll={testAllOutbounds}
-                              onShowWarp={() => setWarpOpen(true)}
-                              onShowNord={() => setNordOpen(true)}
-                            />
-                          ),
-                        },
-                        {
-                          key: 'tpl-balancer',
-                          label: (
-                            <Tooltip title={isMobile ? t('pages.xray.Balancers') : ''}>
-                              <ClusterOutlined />
-                              {!isMobile && <span>{` ${t('pages.xray.Balancers')}`}</span>}
-                            </Tooltip>
-                          ),
-                          children: (
-                            <BalancersTab
-                              templateSettings={templateSettings}
-                              setTemplateSettings={setTemplateSettings}
-                              clientReverseTags={clientReverseTags}
-                              isMobile={isMobile}
-                            />
-                          ),
-                        },
-                        {
-                          key: 'tpl-dns',
-                          label: (
-                            <Tooltip title={isMobile ? 'DNS' : ''}>
-                              <DatabaseOutlined />
-                              {!isMobile && <span> DNS</span>}
-                            </Tooltip>
-                          ),
-                          children: (
-                            <DnsTab
-                              templateSettings={templateSettings}
-                              setTemplateSettings={setTemplateSettings}
-                            />
-                          ),
-                        },
-                        {
-                          key: 'tpl-advanced',
-                          label: (
-                            <Tooltip title={isMobile ? t('pages.xray.advancedTemplate') : ''}>
-                              <CodeOutlined />
-                              {!isMobile && <span>{` ${t('pages.xray.advancedTemplate')}`}</span>}
-                            </Tooltip>
-                          ),
-                          children: (
-                            <>
-                              <div className="advanced-meta">
-                                <h4>{t('pages.xray.Template')}</h4>
-                                <p>{t('pages.xray.TemplateDesc')}</p>
-                              </div>
-                              <Radio.Group
-                                value={advSettings}
-                                buttonStyle="solid"
-                                size={isMobile ? 'small' : 'middle'}
-                                style={{ margin: '12px 0' }}
-                                onChange={(e) => setAdvSettings(e.target.value)}
-                              >
-                                <Radio.Button value="xraySetting">{t('pages.xray.completeTemplate')}</Radio.Button>
-                                <Radio.Button value="inboundSettings">{t('pages.xray.Inbounds')}</Radio.Button>
-                                <Radio.Button value="outboundSettings">{t('pages.xray.Outbounds')}</Radio.Button>
-                                <Radio.Button value="routingRuleSettings">{t('pages.xray.Routings')}</Radio.Button>
-                              </Radio.Group>
-                              <JsonEditor
-                                value={advancedText}
-                                onChange={onAdvancedTextChange}
-                                minHeight="420px"
-                                maxHeight="720px"
-                              />
-                            </>
-                          ),
-                        },
-                      ]}
-                    />
+                      {sectionBody}
                     </Card>
                   </Col>
                 </Row>

@@ -32,7 +32,7 @@
       "settings": {
         "domainStrategy": "AsIs",
         "finalRules": [
-          { "action": "allow", "ip": ["geoip:private"] }
+          { "action": "allow" }
         ]
       },
       "tag": "direct"

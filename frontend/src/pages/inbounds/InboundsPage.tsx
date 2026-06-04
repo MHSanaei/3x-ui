@@ -23,7 +23,7 @@ import {
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
 import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
-import { genInboundLinks } from '@/lib/xray/inbound-link';
+import { genInboundLinks, preferPublicHost } from '@/lib/xray/inbound-link';
 import { inboundFromDb } from '@/lib/xray/inbound-from-db';
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 import { useTheme } from '@/hooks/useTheme';
@@ -260,11 +260,11 @@ export default function InboundsPage() {
         remark: projected.remark,
         remarkModel,
         hostOverride: hostOverrideFor(dbInbound),
-        fallbackHostname: window.location.hostname,
+        fallbackHostname: preferPublicHost(window.location.hostname, subSettings.publicHost),
       }),
       fileName: projected.remark || 'inbound',
     });
-  }, [checkFallback, remarkModel, hostOverrideFor, openText, t]);
+  }, [checkFallback, remarkModel, hostOverrideFor, subSettings.publicHost, openText, t]);
 
   const exportInboundClipboard = useCallback((dbInbound: DBInbound) => {
     openText({ title: t('pages.inbounds.inboundJsonTitle'), content: JSON.stringify(dbInbound, null, 2) });
@@ -298,11 +298,11 @@ export default function InboundsPage() {
         remark: projected.remark,
         remarkModel,
         hostOverride: hostOverrideFor(ib),
-        fallbackHostname: window.location.hostname,
+        fallbackHostname: preferPublicHost(window.location.hostname, subSettings.publicHost),
       }));
     }
     openText({ title: t('pages.inbounds.exportAllLinksTitle'), content: out.join('\r\n'), fileName: t('pages.inbounds.exportAllLinksFileName') });
-  }, [dbInbounds, hydrateInbound, checkFallback, remarkModel, hostOverrideFor, openText, t]);
+  }, [dbInbounds, hydrateInbound, checkFallback, remarkModel, hostOverrideFor, subSettings.publicHost, openText, t]);
 
   const exportAllSubs = useCallback(async () => {
     const hydrated = await Promise.all(

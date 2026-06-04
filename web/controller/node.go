@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -27,6 +28,7 @@ func NewNodeController(g *gin.RouterGroup) *NodeController {
 func (a *NodeController) initRouter(g *gin.RouterGroup) {
 	g.GET("/list", a.list)
 	g.GET("/get/:id", a.get)
+	g.GET("/webCert/:id", a.webCert)
 
 	g.POST("/add", a.add)
 	g.POST("/update/:id", a.update)
@@ -63,9 +65,38 @@ func (a *NodeController) get(c *gin.Context) {
 	jsonObj(c, n, nil)
 }
 
+// webCert returns the node's own web TLS certificate/key file paths so the
+// inbound form's "Set Cert from Panel" can fill paths that exist on the node.
+func (a *NodeController) webCert(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	files, err := a.nodeService.GetWebCertFiles(id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, files, nil)
+}
+
+func (a *NodeController) ensureReachable(c *gin.Context, n *model.Node) error {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 6*time.Second)
+	defer cancel()
+	if _, err := a.nodeService.Probe(ctx, n); err != nil {
+		return errors.New(service.FriendlyProbeError(err.Error()))
+	}
+	return nil
+}
+
 func (a *NodeController) add(c *gin.Context) {
 	n, ok := middleware.BindAndValidate[model.Node](c)
 	if !ok {
+		return
+	}
+	if err := a.ensureReachable(c, n); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.add"), err)
 		return
 	}
 	if err := a.nodeService.Create(n); err != nil {
@@ -83,6 +114,10 @@ func (a *NodeController) update(c *gin.Context) {
 	}
 	n, ok := middleware.BindAndValidate[model.Node](c)
 	if !ok {
+		return
+	}
+	if err := a.ensureReachable(c, n); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.update"), err)
 		return
 	}
 	if err := a.nodeService.Update(id, n); err != nil {

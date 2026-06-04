@@ -322,7 +322,7 @@ func TestProbeCustomGeoURL_HEADOK(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer ts.Close()
-	if err := probeCustomGeoURL(ts.URL); err != nil {
+	if err := (&CustomGeoService{}).probeCustomGeoURL(ts.URL); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -342,7 +342,7 @@ func TestProbeCustomGeoURL_HEAD405GETRange(t *testing.T) {
 		w.WriteHeader(http.StatusBadRequest)
 	}))
 	defer ts.Close()
-	if err := probeCustomGeoURL(ts.URL); err != nil {
+	if err := (&CustomGeoService{}).probeCustomGeoURL(ts.URL); err != nil {
 		t.Fatal(err)
 	}
 }

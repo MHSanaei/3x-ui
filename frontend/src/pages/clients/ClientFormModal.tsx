@@ -261,9 +261,9 @@ export default function ClientFormModal({
     () => (inbounds || [])
       .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
       .map((ib) => ({
-        label: ib.tag ?? '',
+        label: ib.remark?.trim() || ib.tag || '',
         value: ib.id,
-        title: ib.tag ?? '',
+        title: ib.remark?.trim() || ib.tag || '',
       })),
     [inbounds],
   );

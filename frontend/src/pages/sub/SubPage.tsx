@@ -32,6 +32,7 @@ import {
 
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
+import { LinkTags, parseLinkParts } from '@/lib/xray/link-label';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import SubUsageSummary from './SubUsageSummary';
@@ -70,72 +71,6 @@ const isActive = (() => {
   if (expireMs > 0 && Date.now() >= expireMs) return false;
   return true;
 })();
-
-const PROTOCOL_COLORS: Record<string, string> = {
-  VLESS: 'blue',
-  VMESS: 'geekblue',
-  TROJAN: 'volcano',
-  SS: 'magenta',
-  HYSTERIA: 'cyan',
-  HY2: 'green',
-};
-
-// Same idea as ClientInfoModal.trimEmail — strip the client email
-// suffix from the remark so the row title isn't ugly twice.
-function trimEmail(remark: string, email: string): string {
-  if (!email) return remark;
-  const e = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return remark
-    .replace(new RegExp(`[-_.\\s|]+${e}$`), '')
-    .replace(new RegExp(`^${e}[-_.\\s|]+`), '')
-    .trim();
-}
-
-// Decode a base64 string as UTF-8. atob() returns a binary string where
-// each char holds one raw byte (Latin-1 interpretation), which mangles
-// any multi-byte UTF-8 sequence in the payload — most commonly the
-// emoji decorations the panel embeds in remarks (📊, ⏳).
-function base64DecodeUtf8(b64: string): string {
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new TextDecoder('utf-8').decode(bytes);
-}
-
-function parseLinkMeta(link: string, idx: number): { protocol: string; remark: string } {
-  const fallback = `Link ${idx + 1}`;
-  if (!link) return { protocol: 'LINK', remark: fallback };
-  const schemeMatch = /^([a-z0-9]+):\/\//i.exec(link);
-  const scheme = schemeMatch?.[1]?.toLowerCase() ?? '';
-  const protocolMap: Record<string, string> = {
-    vless: 'VLESS',
-    vmess: 'VMESS',
-    trojan: 'TROJAN',
-    ss: 'SS',
-    hysteria: 'HYSTERIA',
-    hysteria2: 'HY2',
-    hy2: 'HY2',
-  };
-  const protocol = protocolMap[scheme] ?? scheme.toUpperCase() ?? 'LINK';
-
-  let remark = '';
-  if (scheme === 'vmess') {
-    try {
-      const body = link.slice('vmess://'.length).split('#')[0];
-      const json = JSON.parse(base64DecodeUtf8(body)) as { ps?: unknown };
-      if (typeof json?.ps === 'string') remark = json.ps;
-    } catch { /* fall through */ }
-  }
-  if (!remark) {
-    const hashIdx = link.indexOf('#');
-    if (hashIdx >= 0 && hashIdx + 1 < link.length) {
-      const raw = link.slice(hashIdx + 1);
-      try { remark = decodeURIComponent(raw); }
-      catch { remark = raw; }
-    }
-  }
-  return { protocol, remark: remark || fallback };
-}
 
 export default function SubPage() {
   const { t } = useTranslation();
@@ -459,20 +394,17 @@ export default function SubPage() {
                     <Divider>{t('pages.inbounds.copyLink')}</Divider>
                     <div className="links-section">
                       {links.map((link, idx) => {
-                        const meta = parseLinkMeta(link, idx);
-                        const rowEmail = linkEmails[idx] || '';
-                        const rowTitle = trimEmail(meta.remark, rowEmail) || meta.remark;
-                        const qrLabel = rowEmail ? `${rowTitle}-${rowEmail}` : meta.remark;
+                        const parts = parseLinkParts(link, linkEmails[idx] || '');
+                        const fallback = `Link ${idx + 1}`;
+                        const rowTitle = parts?.remark || fallback;
+                        const qrLabel = [parts?.remark, linkEmails[idx]].filter(Boolean).join('-') || rowTitle;
                         const canQr = !isPostQuantumLink(link);
                         return (
                           <div key={link} className="sub-link-row">
-                            <Tag
-                              color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
-                              className="sub-link-tag"
-                            >
-                              {meta.protocol}
-                            </Tag>
-                            <span className="sub-link-title" title={meta.remark}>
+                            {parts
+                              ? <LinkTags parts={parts} />
+                              : <Tag className="sub-link-tag">LINK</Tag>}
+                            <span className="sub-link-title" title={rowTitle}>
                               {rowTitle}
                             </span>
                             <div className="sub-link-actions">
@@ -490,12 +422,7 @@ export default function SubPage() {
                                   destroyOnHidden
                                   content={
                                     <div className="sub-link-qr-popover">
-                                      <Tag
-                                        color={PROTOCOL_COLORS[meta.protocol] ?? 'default'}
-                                        className="qr-tag"
-                                      >
-                                        {qrLabel}
-                                      </Tag>
+                                      <Tag className="qr-tag">{qrLabel}</Tag>
                                       <QRCode
                                         value={link}
                                         size={220}

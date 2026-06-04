@@ -28,6 +28,7 @@ export const XraySettingsValueSchema = z.object({
   log: z.record(z.string(), z.unknown()).optional(),
   policy: z.object({
     system: z.record(z.string(), z.boolean()).optional(),
+    levels: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
   }).loose().optional(),
   observatory: z.unknown().optional(),
   burstObservatory: z.unknown().optional(),

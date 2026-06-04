@@ -1,9 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Collapse, Empty, Input, InputNumber, Modal, Select, Space, Switch, Table } from 'antd';
-import { PlusOutlined, DeleteOutlined, MenuOutlined } from '@ant-design/icons';
+import { Button, Empty, Input, InputNumber, Modal, Select, Space, Switch, Table, Tabs } from 'antd';
+import {
+  DatabaseOutlined,
+  DeleteOutlined,
+  ExperimentOutlined,
+  MenuOutlined,
+  PlusOutlined,
+  ProfileOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 
 import { SettingListItem } from '@/components/ui';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { catTabLabel } from '@/pages/settings/catTabLabel';
 import DnsServerModal from './DnsServerModal';
 import type { DnsServerValue } from './DnsServerModal';
 import DnsPresetsModal from './DnsPresetsModal';
@@ -21,6 +31,7 @@ interface DnsTabProps {
 
 export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTabProps) {
   const { t } = useTranslation();
+  const { isMobile } = useMediaQuery();
   const [modal, modalContextHolder] = Modal.useModal();
   const [hostsList, setHostsList] = useState<HostRow[]>([]);
   const [serverModalOpen, setServerModalOpen] = useState(false);
@@ -199,7 +210,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
     const out = [
       {
         key: '1',
-        label: t('pages.xray.generalConfigs'),
+        label: catTabLabel(<SettingOutlined />, t('pages.xray.generalConfigs'), isMobile),
         children: (
           <>
             <SettingListItem
@@ -292,7 +303,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
     if (dnsEnabled) {
       out.push({
         key: 'hosts',
-        label: t('pages.xray.dns.hosts'),
+        label: catTabLabel(<ProfileOutlined />, t('pages.xray.dns.hosts'), isMobile),
         children: hostsList.length === 0 ? (
           <Empty description={t('pages.xray.dns.hostsEmpty')}>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => syncHosts([...hostsList, { domain: '', values: [] }])}>
@@ -335,7 +346,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
 
       out.push({
         key: '2',
-        label: 'DNS',
+        label: catTabLabel(<DatabaseOutlined />, 'DNS', isMobile),
         children: dnsServers.length === 0 ? (
           <Empty description={t('emptyDnsDesc')}>
             <Space>
@@ -374,7 +385,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
 
       out.push({
         key: '3',
-        label: 'Fake DNS',
+        label: catTabLabel(<ExperimentOutlined />, 'Fake DNS', isMobile),
         children: fakeDnsList.length === 0 ? (
           <Empty description={t('emptyFakeDnsDesc')}>
             <Button type="primary" icon={<PlusOutlined />} onClick={addFakedns}>
@@ -401,12 +412,12 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
 
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, dnsEnabled, dns, hostsList, dnsServers, fakeDnsList]);
+  }, [t, isMobile, dnsEnabled, dns, hostsList, dnsServers, fakeDnsList]);
 
   return (
     <>
       {modalContextHolder}
-      <Collapse defaultActiveKey={['1']} items={items} />
+      <Tabs defaultActiveKey="1" items={items} />
       <DnsServerModal
         open={serverModalOpen}
         server={editingServer}

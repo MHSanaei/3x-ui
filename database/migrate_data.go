@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -109,14 +110,15 @@ func copyTable(src, dst *gorm.DB, mdl any) (int, error) {
 
 	sliceType := reflect.SliceOf(reflect.PointerTo(reflect.TypeOf(mdl).Elem()))
 
-	// Resolve primary-key columns so paging is deterministic across successive
-	// LIMIT/OFFSET reads. The model set is trusted (not user input).
 	stmt := &gorm.Statement{DB: src}
 	if err := stmt.Parse(mdl); err != nil {
 		return 0, err
 	}
 	order := strings.Join(stmt.Schema.PrimaryFieldDBNames, ", ")
+	table := stmt.Schema.Table
+	columns := stmt.Schema.DBNames
 
+	ctx := context.Background()
 	total := 0
 	for offset := 0; ; offset += batchSize {
 		batchPtr := reflect.New(sliceType)
@@ -127,11 +129,24 @@ func copyTable(src, dst *gorm.DB, mdl any) (int, error) {
 		if err := q.Find(batchPtr.Interface()).Error; err != nil {
 			return total, err
 		}
-		n := batchPtr.Elem().Len()
+		slice := batchPtr.Elem()
+		n := slice.Len()
 		if n == 0 {
 			break
 		}
-		if err := dst.CreateInBatches(batchPtr.Interface(), 200).Error; err != nil {
+
+		rows := make([]map[string]any, n)
+		for i := 0; i < n; i++ {
+			rv := reflect.Indirect(slice.Index(i))
+			row := make(map[string]any, len(columns))
+			for _, name := range columns {
+				value, _ := stmt.Schema.FieldsByDBName[name].ValueOf(ctx, rv)
+				row[name] = value
+			}
+			rows[i] = row
+		}
+
+		if err := dst.Table(table).CreateInBatches(rows, 200).Error; err != nil {
 			return total, err
 		}
 		total += n

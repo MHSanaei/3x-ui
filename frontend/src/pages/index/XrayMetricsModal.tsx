@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Modal, Select, Tabs, Tag } from 'antd';
+import {
+  BlockOutlined,
+  CloudServerOutlined,
+  DatabaseOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  PauseCircleOutlined,
+} from '@ant-design/icons';
 
 import { HttpUtil, Msg, SizeFormatter } from '@/utils';
 import { Sparkline } from '@/components/viz';
@@ -17,6 +26,9 @@ interface XrayMetricsModalProps {
 interface MetricDef {
   key: string;
   tab: string;
+  tabKey: string;
+  title: string;
+  icon: ReactNode;
   unit: 'B' | 'ns' | 'ms' | '';
   stroke: string;
 }
@@ -36,12 +48,12 @@ interface ObservatoryTag {
 }
 
 const METRICS: MetricDef[] = [
-  { key: 'xrAlloc', tab: 'Heap', unit: 'B', stroke: '#7c4dff' },
-  { key: 'xrSys', tab: 'Sys', unit: 'B', stroke: '#1890ff' },
-  { key: 'xrHeapObjects', tab: 'Objects', unit: '', stroke: '#13c2c2' },
-  { key: 'xrNumGC', tab: 'GC Count', unit: '', stroke: '#fa8c16' },
-  { key: 'xrPauseNs', tab: 'GC Pause', unit: 'ns', stroke: '#f5222d' },
-  { key: OBS_KEY, tab: 'Observatory', unit: 'ms', stroke: '#52c41a' },
+  { key: 'xrAlloc', tab: 'Heap', tabKey: 'pages.index.xrayTabHeap', title: 'pages.index.xrayTitleHeap', icon: <DatabaseOutlined />, unit: 'B', stroke: '#7c4dff' },
+  { key: 'xrSys', tab: 'Sys', tabKey: 'pages.index.xrayTabSys', title: 'pages.index.xrayTitleSys', icon: <CloudServerOutlined />, unit: 'B', stroke: '#1890ff' },
+  { key: 'xrHeapObjects', tab: 'Objects', tabKey: 'pages.index.xrayTabObjects', title: 'pages.index.xrayTitleObjects', icon: <BlockOutlined />, unit: '', stroke: '#13c2c2' },
+  { key: 'xrNumGC', tab: 'GC Count', tabKey: 'pages.index.xrayTabGcCount', title: 'pages.index.xrayTitleGcCount', icon: <DeleteOutlined />, unit: '', stroke: '#fa8c16' },
+  { key: 'xrPauseNs', tab: 'GC Pause', tabKey: 'pages.index.xrayTabGcPause', title: 'pages.index.xrayTitleGcPause', icon: <PauseCircleOutlined />, unit: 'ns', stroke: '#f5222d' },
+  { key: OBS_KEY, tab: 'Observatory', tabKey: 'pages.index.xrayTabObservatory', title: 'pages.index.xrayTitleObservatory', icon: <EyeOutlined />, unit: 'ms', stroke: '#52c41a' },
 ];
 
 function unitFormatter(unit: string): (v: number) => string {
@@ -299,7 +311,13 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
         onChange={setActiveKey}
         size="small"
         className="history-tabs"
-        items={METRICS.map((m) => ({ key: m.key, label: m.tab }))}
+        items={METRICS.map((m) => {
+          const tabLabel = m.tabKey ? t(m.tabKey) : m.tab;
+          return {
+            key: m.key,
+            label: isMobile ? <span title={tabLabel} aria-label={tabLabel}>{m.icon}</span> : tabLabel,
+          };
+        })}
       />
 
       {isObservatory && (
@@ -353,6 +371,7 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
       )}
 
       <div className="cpu-chart-wrap">
+        {activeMetric?.title && <div className="history-chart-title">{t(activeMetric.title)}</div>}
         <Sparkline
           data={points}
           labels={labels}

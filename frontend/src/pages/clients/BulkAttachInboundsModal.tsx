@@ -36,7 +36,7 @@ export default function BulkAttachInboundsModal({
       .filter((ib) => MULTI_USER_PROTOCOLS.has((ib.protocol || '').toLowerCase()))
       .map((ib) => ({
         value: ib.id,
-        label: ib.tag,
+        label: ib.remark?.trim() || ib.tag || '',
       }));
   }, [inbounds]);
 

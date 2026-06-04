@@ -162,7 +162,7 @@ export function createDefaultShadowsocksInboundSettings(
   return {
     method,
     password: seed.password ?? RandomUtil.randomShadowsocksPassword(method),
-    network: seed.network ?? 'tcp',
+    network: seed.network ?? 'tcp,udp',
     clients: [],
     ivCheck: seed.ivCheck ?? false,
   };

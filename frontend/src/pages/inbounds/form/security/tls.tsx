@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, Radio, Select, Space, Switch } from 'antd';
+import { Button, Form, Input, InputNumber, Radio, Select, Space, Switch } from 'antd';
 import { MinusOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import {
@@ -113,6 +113,7 @@ export default function TlsForm({
                   keyFile: '',
                   certificate: [],
                   key: [],
+                  ocspStapling: 3600,
                   oneTimeLoading: false,
                   usage: 'encipherment',
                   buildChain: false,
@@ -217,6 +218,12 @@ export default function TlsForm({
                       </>
                     );
                   }}
+                </Form.Item>
+                <Form.Item
+                  name={[certField.name, 'ocspStapling']}
+                  label="OCSP Stapling"
+                >
+                  <InputNumber min={0} addonAfter="s" style={{ width: '50%' }} />
                 </Form.Item>
                 <Form.Item
                   name={[certField.name, 'oneTimeLoading']}

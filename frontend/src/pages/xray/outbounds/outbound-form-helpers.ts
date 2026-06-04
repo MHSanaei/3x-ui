@@ -1,4 +1,5 @@
 import { rawOutboundToFormValues } from '@/lib/xray/outbound-form-adapter';
+import { canEnableReality, canEnableTls } from '@/lib/xray/protocol-capabilities';
 import type { OutboundFormValues } from '@/schemas/forms/outbound-form';
 
 import { MUX_PROTOCOLS } from './outbound-form-constants';
@@ -72,6 +73,33 @@ export function hysteriaStreamSlice(): Record<string, unknown> {
       echConfigList: '', verifyPeerCertByName: '', pinnedPeerCertSha256: '',
     },
   };
+}
+
+// Network change cascade: swap the per-network sub-key (tcpSettings,
+// wsSettings, etc.) so the DU branch matches. Carry over the security mode
+// and its settings (tlsSettings/realitySettings, including SNI serverName)
+// when the new network still supports it; otherwise fall back to 'none'.
+// Dropping tlsSettings here silently wiped the spoofed SNI on save (#4791).
+export function applyNetworkChange(
+  protocol: string,
+  prevStream: Record<string, unknown> | undefined,
+  next: string,
+): Record<string, unknown> {
+  if (next === 'hysteria') return hysteriaStreamSlice();
+  const stream = prevStream ?? {};
+  const currentSecurity = (stream.security as string) ?? 'none';
+  const stillTls = canEnableTls({ protocol, streamSettings: { network: next, security: currentSecurity } });
+  const stillReality = canEnableReality({ protocol, streamSettings: { network: next, security: currentSecurity } });
+  const newSecurity =
+    currentSecurity === 'tls' && !stillTls
+      ? 'none'
+      : currentSecurity === 'reality' && !stillReality
+        ? 'none'
+        : currentSecurity;
+  const newStream: Record<string, unknown> = { ...newStreamSlice(next), security: newSecurity };
+  if (newSecurity === 'tls' && stream.tlsSettings) newStream.tlsSettings = stream.tlsSettings;
+  else if (newSecurity === 'reality' && stream.realitySettings) newStream.realitySettings = stream.realitySettings;
+  return newStream;
 }
 
 export function buildAddModeValues(): OutboundFormValues {

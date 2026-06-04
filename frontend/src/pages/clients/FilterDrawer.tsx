@@ -50,7 +50,7 @@ export default function FilterDrawer({
   const inboundOptions = useMemo(
     () => inbounds.map((ib) => ({
       value: ib.id,
-      label: ib.tag ?? '',
+      label: ib.remark?.trim() || ib.tag || '',
     })),
     [inbounds],
   );

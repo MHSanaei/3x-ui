@@ -325,6 +325,12 @@ func (s *SubClashService) buildHysteriaProxy(inbound *model.Inbound, client mode
 		}
 	}
 
+	// UDP port hopping. mihomo reads the range from a dedicated `ports`
+	// field (the base `port` stays as the redirect target).
+	if hopPorts := hysteriaHopPorts(rawStream); hopPorts != "" {
+		proxy["ports"] = hopPorts
+	}
+
 	return proxy
 }
 

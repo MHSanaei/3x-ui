@@ -34,7 +34,7 @@ export class AllSetting {
   subSupportUrl = '';
   subProfileUrl = '';
   subAnnounce = '';
-  subEnableRouting = true;
+  subEnableRouting = false;
   subRoutingRules = '';
   subListen = '';
   subPort = 2096;

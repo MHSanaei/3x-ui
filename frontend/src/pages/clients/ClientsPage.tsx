@@ -188,7 +188,7 @@ export default function ClientsPage() {
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
   const {
-    clients, filtered,
+    clients, total, filtered,
     summary: serverSummary,
     allGroups,
     setQuery,
@@ -304,7 +304,7 @@ export default function ClientsPage() {
 
   function inboundLabel(id: number) {
     const ib = inboundsById[id];
-    return ib?.tag ?? '';
+    return ib?.remark?.trim() || ib?.tag || '';
   }
 
   const clientBucket = useCallback((row: ClientRecord | null | undefined): Bucket | null => {
@@ -445,7 +445,7 @@ export default function ClientsPage() {
   }
 
   function onResetTraffic(row: ClientRecord) {
-    if (!row?.email || !Array.isArray(row.inboundIds) || row.inboundIds.length === 0) {
+    if (!row?.email) {
       messageApi.warning(t('pages.clients.resetNotPossible'));
       return;
     }
@@ -694,7 +694,7 @@ export default function ClientsPage() {
           const ib = inboundsById[id];
           const proto = (ib?.protocol || '').toLowerCase();
           const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
-          const compactLabel = ib?.tag ?? '';
+          const compactLabel = ib?.remark?.trim() || ib?.tag || '';
           return (
             <Tooltip key={id} title={inboundLabel(id)}>
               <Tag color={color} style={{ margin: 2 }}>
@@ -992,6 +992,11 @@ export default function ClientsPage() {
                           >
                             {t('pages.clients.clearAllFilters')}
                           </Button>
+                        )}
+                        {(activeCount > 0 || debouncedSearch.trim().length > 0) && (
+                          <span className="filter-count">
+                            {t('pages.clients.showingCount', { shown: filtered, total })}
+                          </span>
                         )}
                       </div>
 

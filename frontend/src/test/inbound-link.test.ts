@@ -10,6 +10,7 @@ import {
   genVmessLink,
   genWireguardConfig,
   genWireguardLink,
+  preferPublicHost,
   resolveAddr,
 } from '@/lib/xray/inbound-link';
 import { InboundSchema } from '@/schemas/api/inbound';
@@ -131,6 +132,98 @@ describe('genHysteriaLink', () => {
       expect(link).toMatchSnapshot();
     });
   }
+
+  it('emits the UDP hop range as the v2rayN-compatible mport param', () => {
+    const [, raw] = fixtures[0];
+    const withHop = {
+      ...raw,
+      settings: { ...(raw.settings as Record<string, unknown>), version: 2 },
+      streamSettings: {
+        ...(raw.streamSettings as Record<string, unknown>),
+        finalmask: { quicParams: { udpHop: { ports: '20000-50000', interval: '5-10' } } },
+      },
+    };
+    const typed = InboundSchema.parse(withHop);
+    const client = (raw.settings as { clients: Array<{ auth: string }> }).clients[0];
+
+    const link = genHysteriaLink({
+      inbound: typed,
+      address: 'example.test',
+      port: typed.port,
+      remark: 'hop-test',
+      clientAuth: client.auth,
+    });
+
+    expect(link.startsWith('hysteria2://')).toBe(true);
+    expect(link).toContain(`@example.test:${typed.port}`);
+    expect(link).toContain('mport=20000-50000');
+    expect(link.endsWith('#hop-test')).toBe(true);
+  });
+
+  it('normalizes pinSHA256 to hex for base64, raw-hex and colon-hex pins (issue #4818)', () => {
+    const [, raw] = fixtures[0];
+    const base64Pin = 'yEfdI5XQl4wHgLggHEsomosoFZfUfCdfLXfT+W2N6cQ=';
+    const hexPin = '84491c0312d9e70f519ce24659a2ca7d9c4ec59dc86417ece426945e0f939293';
+    const colonPin = 'C8:47:DD:23:95:D0:97:8C:07:80:B8:20:1C:4B:28:9A:8B:28:15:97:D4:7C:27:5F:2D:77:D3:F9:6D:8D:E9:C4';
+    const stream = raw.streamSettings as Record<string, unknown>;
+    const tls = stream.tlsSettings as Record<string, unknown>;
+    const tlsClientSettings = tls.settings as Record<string, unknown>;
+    const withPins = {
+      ...raw,
+      streamSettings: {
+        ...stream,
+        tlsSettings: {
+          ...tls,
+          settings: { ...tlsClientSettings, pinnedPeerCertSha256: [base64Pin, hexPin, colonPin] },
+        },
+      },
+    };
+    const typed = InboundSchema.parse(withPins);
+    const client = (raw.settings as { clients: Array<{ auth: string }> }).clients[0];
+
+    const link = genHysteriaLink({
+      inbound: typed,
+      address: 'example.test',
+      port: typed.port,
+      remark: 'pin-test',
+      clientAuth: client.auth,
+    });
+
+    const pin = new URL(link).searchParams.get('pinSHA256');
+    expect(pin).toBe(
+      'c847dd2395d0978c0780b8201c4b289a8b281597d47c275f2d77d3f96d8de9c4,' +
+        '84491c0312d9e70f519ce24659a2ca7d9c4ec59dc86417ece426945e0f939293,' +
+        'c847dd2395d0978c0780b8201c4b289a8b281597d47c275f2d77d3f96d8de9c4',
+    );
+  });
+
+  it('emits an external proxy pin as hex pinSHA256 (not pcs)', () => {
+    const [, raw] = fixtures[0];
+    const typed = InboundSchema.parse(raw);
+    const client = (raw.settings as { clients: Array<{ auth: string }> }).clients[0];
+
+    const link = genHysteriaLink({
+      inbound: typed,
+      address: 'edge.example.com',
+      port: 8443,
+      remark: 'ep-pin',
+      clientAuth: client.auth,
+      externalProxy: {
+        forceTls: 'tls',
+        dest: 'edge.example.com',
+        port: 8443,
+        remark: 'ep-pin',
+        // base64 SHA-256 — must come out hex-normalized for Hysteria.
+        pinnedPeerCertSha256: ['yEfdI5XQl4wHgLggHEsomosoFZfUfCdfLXfT+W2N6cQ='],
+      },
+    });
+
+    const url = new URL(link);
+    expect(url.searchParams.get('pinSHA256')).toBe(
+      'c847dd2395d0978c0780b8201c4b289a8b281597d47c275f2d77d3f96d8de9c4',
+    );
+    expect(url.searchParams.has('pcs')).toBe(false);
+  });
 });
 
 describe('genWireguardLink + genWireguardConfig', () => {
@@ -218,6 +311,35 @@ describe('resolveAddr precedence', () => {
   });
 });
 
+// #4829: reaching the panel through an SSH tunnel (127.0.0.1/localhost) must not
+// leak the loopback host into share/QR links; a configured public host wins.
+describe('preferPublicHost (loopback fallback)', () => {
+  it('keeps a routable browser host as-is even when a public host is configured', () => {
+    expect(preferPublicHost('panel.example.com', 'sub.example.com')).toBe('panel.example.com');
+    expect(preferPublicHost('203.0.113.7', 'sub.example.com')).toBe('203.0.113.7');
+  });
+
+  it('substitutes the public host for loopback browser hosts', () => {
+    for (const loop of ['127.0.0.1', 'localhost', '::1', '[::1]', '127.5.6.7']) {
+      expect(preferPublicHost(loop, 'sub.example.com')).toBe('sub.example.com');
+    }
+  });
+
+  it('leaves loopback untouched when no public host is configured', () => {
+    expect(preferPublicHost('127.0.0.1', '')).toBe('127.0.0.1');
+    expect(preferPublicHost('localhost', '')).toBe('localhost');
+  });
+
+  it('an explicit per-inbound listen still wins over the loopback fallback', () => {
+    const inbound = { listen: '203.0.113.9', port: 443, protocol: 'vless' as const };
+    expect(resolveAddr(
+      inbound as never,
+      '',
+      preferPublicHost('127.0.0.1', 'sub.example.com'),
+    )).toBe('203.0.113.9');
+  });
+});
+
 describe('genInboundLinks orchestrator', () => {
   // Every full-inbound fixture should produce the same \r\n-joined link
   // block at this baseline.
@@ -261,4 +383,50 @@ describe('genShadowsocksLink', () => {
       expect(link).toMatchSnapshot();
     });
   }
+});
+
+describe('external proxy pinned cert (pcs)', () => {
+  const [, raw] = fixturesForProtocol('vless').find(([name]) => name === 'vless-ws-tls')!;
+  const typed = InboundSchema.parse(raw);
+  const clientId = (raw as { settings: { clients: Array<{ id: string }> } }).settings.clients[0].id;
+
+  it('emits the external proxy pin list as pcs when forcing TLS', () => {
+    const link = genVlessLink({
+      inbound: typed,
+      address: 'edge.example.com',
+      port: 8443,
+      forceTls: 'tls',
+      remark: 'ep-pin',
+      clientId,
+      externalProxy: {
+        forceTls: 'tls',
+        dest: 'edge.example.com',
+        port: 8443,
+        remark: 'ep-pin',
+        pinnedPeerCertSha256: ['aa11', 'bb22'],
+      },
+    });
+
+    expect(new URL(link).searchParams.get('pcs')).toBe('aa11,bb22');
+  });
+
+  it('omits pcs when the external proxy forces security off', () => {
+    const link = genVlessLink({
+      inbound: typed,
+      address: 'edge.example.com',
+      port: 8080,
+      forceTls: 'none',
+      remark: 'ep-none',
+      clientId,
+      externalProxy: {
+        forceTls: 'none',
+        dest: 'edge.example.com',
+        port: 8080,
+        remark: 'ep-none',
+        pinnedPeerCertSha256: ['aa11'],
+      },
+    });
+
+    expect(new URL(link).searchParams.has('pcs')).toBe(false);
+  });
 });

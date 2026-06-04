@@ -1,7 +1,9 @@
 package sub
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"maps"
 	"net"
@@ -609,6 +611,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			}
 		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
+			for i, p := range pins {
+				pins[i] = hysteriaPinHex(p)
+			}
 			params["pinSHA256"] = strings.Join(pins, ",")
 		}
 	}
@@ -662,16 +667,34 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			}
 			epRemark, _ := ep["remark"].(string)
 
+			epParams := cloneStringMap(params)
+			applyExternalProxyHysteriaParams(ep, epParams)
+
 			link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, dest, int(portF))
-			links = append(links, buildLinkWithParams(link, params, s.genRemark(inbound, email, epRemark)))
+			links = append(links, buildLinkWithParams(link, epParams, s.genRemark(inbound, email, epRemark)))
 		}
 		return strings.Join(links, "\n")
 	}
 
 	// No external proxy configured — use the inbound's resolved address so
 	// node-managed inbounds get the node's host instead of the central panel's.
+	if hopPorts := hysteriaHopPorts(stream); hopPorts != "" {
+		params["mport"] = hopPorts
+	}
 	link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, s.resolveInboundAddress(inbound), inbound.Port)
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+}
+
+// hysteriaHopPorts returns the configured Hysteria2 UDP port-hopping range
+// (finalmask.quicParams.udpHop.ports), or "" when port hopping is off. The
+// range is emitted as the v2rayN-compatible `mport` query param; the URL port
+// field stays numeric so .NET-Uri-based importers (v2rayN) can parse the link.
+func hysteriaHopPorts(stream map[string]any) string {
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	quicParams, _ := finalmask["quicParams"].(map[string]any)
+	udpHop, _ := quicParams["udpHop"].(map[string]any)
+	ports, _ := udpHop["ports"].(string)
+	return strings.TrimSpace(ports)
 }
 
 // loadNodes refreshes nodesByID from the DB. Called once per request so
@@ -693,15 +716,23 @@ func (s *SubService) loadNodes() {
 	s.nodesByID = m
 }
 
-// resolveInboundAddress returns the node's address for node-managed inbounds,
-// otherwise the subscriber's host (s.address). The inbound's bind Listen is
-// deliberately ignored: it's a server-side address, not a client-reachable
-// host, so operators advertise a specific endpoint via External Proxy instead.
+// resolveInboundAddress picks the host an external client should connect to:
+//  1. node-managed inbound -> the node's address
+//  2. an explicit, client-reachable bind Listen -> that Listen
+//  3. otherwise the subscriber's request host (s.address)
+//
+// A loopback/wildcard bind or a unix-domain-socket listen is a server-side
+// detail and is never advertised; External Proxy remains the way to advertise
+// an arbitrary endpoint. Mirrors the frontend's resolveAddr so the panel QR and
+// the subscription agree.
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 	if inbound.NodeID != nil && s.nodesByID != nil {
 		if n, ok := s.nodesByID[*inbound.NodeID]; ok && n.Address != "" {
 			return n.Address
 		}
+	}
+	if listen := inbound.Listen; listen != "" && listen[0] != '@' && listen[0] != '/' && isRoutableHost(listen) {
+		return listen
 	}
 	return s.address
 }
@@ -922,6 +953,36 @@ func pinnedSha256List(tlsClientSettings any) ([]string, bool) {
 	return out, true
 }
 
+// hysteriaPinHex normalises a pinnedPeerCertSha256 entry into the 64-character
+// lowercase hex form that Xray-core's Hysteria2 pinSHA256 parser requires.
+//
+// The panel stores pins in several shapes: base64 (xray-core's native TLS
+// format, used by the generate button and the JSON subscription) and hex —
+// either bare or colon-separated as `openssl x509 -fingerprint -sha256` emits
+// it. Hysteria2 clients hex-decode pinSHA256 and crash on a base64 value, so
+// each entry is coerced to bare hex here. Anything that is neither a 32-byte
+// hex nor a 32-byte base64 SHA-256 is returned unchanged so unexpected data is
+// not silently dropped. Mirrors decodeCertPin in web/service/node.go.
+func hysteriaPinHex(pin string) string {
+	pin = strings.TrimSpace(pin)
+	if h := strings.ReplaceAll(pin, ":", ""); len(h) == hex.EncodedLen(sha256.Size) {
+		if _, err := hex.DecodeString(h); err == nil {
+			return strings.ToLower(h)
+		}
+	}
+	for _, enc := range []*base64.Encoding{
+		base64.StdEncoding,
+		base64.RawStdEncoding,
+		base64.URLEncoding,
+		base64.RawURLEncoding,
+	} {
+		if b, err := enc.DecodeString(pin); err == nil && len(b) == sha256.Size {
+			return hex.EncodeToString(b)
+		}
+	}
+	return pin
+}
+
 func applyShareRealityParams(stream map[string]any, params map[string]string) {
 	params["security"] = "reality"
 	realitySetting, _ := stream["realitySettings"].(map[string]any)
@@ -960,7 +1021,7 @@ func buildVmessLink(obj map[string]any) string {
 func cloneVmessShareObj(baseObj map[string]any, newSecurity string) map[string]any {
 	newObj := map[string]any{}
 	for key, value := range baseObj {
-		if !(newSecurity == "none" && (key == "alpn" || key == "sni" || key == "fp")) {
+		if !(newSecurity == "none" && (key == "alpn" || key == "sni" || key == "fp" || key == "pcs")) {
 			newObj[key] = value
 		}
 	}
@@ -980,6 +1041,9 @@ func applyExternalProxyTLSObj(ep map[string]any, obj map[string]any, security st
 	if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
 		obj["alpn"] = alpn
 	}
+	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
+		obj["pcs"] = joinAnyStrings(pins)
+	}
 }
 
 func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, security string) {
@@ -995,6 +1059,29 @@ func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, se
 	if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
 		params["alpn"] = alpn
 	}
+	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
+		params["pcs"] = joinAnyStrings(pins)
+	}
+}
+
+// applyExternalProxyHysteriaParams overrides the cert pin for a single
+// external-proxy entry on a Hysteria link. Hysteria carries the pin as a hex
+// `pinSHA256` (not the `pcs` the URL-param protocols use), so each entry is
+// coerced through hysteriaPinHex like the main pin. sni/fp/alpn are left as
+// the inbound's own — Hysteria external proxies are typically alternate
+// endpoints (port-hop / CDN) fronting the same certificate.
+func applyExternalProxyHysteriaParams(ep map[string]any, params map[string]string) {
+	pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"])
+	if !ok {
+		return
+	}
+	hexPins := make([]string, 0, len(pins))
+	for _, p := range pins {
+		if s, ok := p.(string); ok {
+			hexPins = append(hexPins, hysteriaPinHex(s))
+		}
+	}
+	params["pinSHA256"] = strings.Join(hexPins, ",")
 }
 
 // cloneStreamForExternalProxy returns a shallow clone of stream with
@@ -1038,6 +1125,14 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 	}
 	if alpn, ok := externalProxyALPNList(ep["alpn"]); ok {
 		tlsSettings["alpn"] = alpn
+	}
+	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
+		settings, _ := tlsSettings["settings"].(map[string]any)
+		if settings == nil {
+			settings = map[string]any{}
+			tlsSettings["settings"] = settings
+		}
+		settings["pinnedPeerCertSha256"] = pins
 	}
 }
 
@@ -1108,6 +1203,43 @@ func externalProxyALPNList(value any) ([]any, bool) {
 	}
 }
 
+// externalProxyPins extracts an external-proxy entry's pinnedPeerCertSha256
+// as a []any of non-empty strings. The []any element type matches what the
+// JSON/Clash sub builders expect when reading the value back off the cloned
+// stream's tlsSettings.settings.
+func externalProxyPins(value any) ([]any, bool) {
+	switch v := value.(type) {
+	case []string:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			if item != "" {
+				out = append(out, item)
+			}
+		}
+		return out, len(out) > 0
+	case []any:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok && s != "" {
+				out = append(out, s)
+			}
+		}
+		return out, len(out) > 0
+	default:
+		return nil, false
+	}
+}
+
+func joinAnyStrings(items []any) string {
+	parts := make([]string, 0, len(items))
+	for _, item := range items {
+		if s, ok := item.(string); ok {
+			parts = append(parts, s)
+		}
+	}
+	return strings.Join(parts, ",")
+}
+
 func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string) string {
 	var links strings.Builder
 	for index, externalProxy := range externalProxies {
@@ -1147,8 +1279,8 @@ func buildLinkWithParams(link string, params map[string]string, fragment string)
 
 // buildLinkWithParamsAndSecurity is buildLinkWithParams plus an
 // external-proxy override: the `security` key in params is replaced with
-// the supplied value, and TLS hint fields (alpn/sni/fp) are stripped when
-// the override is `none`.
+// the supplied value, and TLS hint fields (alpn/sni/fp/pcs) are stripped
+// when the override is `none`.
 func buildLinkWithParamsAndSecurity(link string, params map[string]string, fragment, security string, omitTLSFields bool) string {
 	return appendQueryAndFragment(link, params, fragment, security, omitTLSFields)
 }
@@ -1163,7 +1295,7 @@ func appendQueryAndFragment(link string, params map[string]string, fragment, sec
 			if securityOverride != "" && k == "security" {
 				v = securityOverride
 			}
-			if omitTLSFields && (k == "alpn" || k == "sni" || k == "fp") {
+			if omitTLSFields && (k == "alpn" || k == "sni" || k == "fp" || k == "pcs") {
 				continue
 			}
 			q.Set(k, v)

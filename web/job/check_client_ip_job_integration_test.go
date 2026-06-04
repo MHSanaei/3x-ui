@@ -195,7 +195,7 @@ func TestUpdateInboundClientIps_LiveIpNotBannedByStillFreshHistoricals(t *testin
 		{IP: "128.71.1.1", Timestamp: now},
 	}
 
-	shouldCleanLog := j.updateInboundClientIps(row, email, live)
+	shouldCleanLog := j.updateInboundClientIps(row, email, live, true)
 
 	if shouldCleanLog {
 		t.Fatalf("shouldCleanLog must be false, nothing should have been banned with 1 live ip under limit 3")
@@ -244,7 +244,7 @@ func TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned(t *testing.T) {
 		{IP: "192.0.2.9", Timestamp: now},
 	}
 
-	shouldCleanLog := j.updateInboundClientIps(row, email, live)
+	shouldCleanLog := j.updateInboundClientIps(row, email, live, true)
 
 	if !shouldCleanLog {
 		t.Fatalf("shouldCleanLog must be true when the live set exceeds the limit")
@@ -269,6 +269,55 @@ func TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned(t *testing.T) {
 	wantSubstr := "[LIMIT_IP] Email = pr4091-abuse || Disconnecting OLD IP = 10.1.0.1"
 	if !contains(string(body), wantSubstr) {
 		t.Fatalf("3xipl.log missing expected ban line %q\nfull log:\n%s", wantSubstr, body)
+	}
+}
+
+// writeXrayAccessLog points bin/config.json at a fresh access.log holding a
+// single default-format Xray line (`from tcp:<ip>:<port> accepted … email: <e>`)
+// for the given client, so Run() has something to scrape.
+func writeXrayAccessLog(t *testing.T, email, ip string) {
+	t.Helper()
+	binDir := t.TempDir()
+	accessLog := filepath.Join(t.TempDir(), "access.log")
+	t.Setenv("XUI_BIN_FOLDER", binDir)
+	configData, err := json.Marshal(map[string]any{
+		"log": map[string]any{"access": accessLog},
+	})
+	if err != nil {
+		t.Fatalf("marshal xray config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(binDir, "config.json"), configData, 0644); err != nil {
+		t.Fatalf("write xray config: %v", err)
+	}
+	line := "2026/06/02 13:35:53 from tcp:" + ip + ":2387 accepted tcp:example.com:443 email: " + email + "\n"
+	if err := os.WriteFile(accessLog, []byte(line), 0644); err != nil {
+		t.Fatalf("write access log: %v", err)
+	}
+}
+
+// #4800: the per-client IP log must populate even when no client has an IP
+// limit. Before the fix, Run() only scraped the access log when an IP limit
+// was active, so a limit-free install always showed an empty IP log despite
+// valid access-log lines. No ban may be written since there's no limit.
+func TestRun_CollectsIpsWithoutLimit(t *testing.T) {
+	setupIntegrationDB(t)
+	t.Setenv("XUI_ENABLE_FAIL2BAN", "true")
+	fakeFail2BanClient(t)
+
+	const email = "no-limit-user"
+	seedInboundWithClient(t, "inbound-no-limit", email, 0) // limitIp = 0
+	writeXrayAccessLog(t, email, "203.0.113.10")
+
+	NewCheckClientIpJob().Run()
+
+	ips := readClientIps(t, email)
+	if len(ips) != 1 || ips[0].IP != "203.0.113.10" {
+		t.Fatalf("expected the access-log IP to be collected without a limit, got %v", ips)
+	}
+
+	if info, err := os.Stat(readIpLimitLogPath()); err == nil && info.Size() > 0 {
+		body, _ := os.ReadFile(readIpLimitLogPath())
+		t.Fatalf("3xipl.log should be empty with no limit set, got:\n%s", body)
 	}
 }
 

@@ -109,7 +109,10 @@ func (j *NodeTrafficSyncJob) Run() {
 		lastOnline = map[string]int64{}
 	}
 
-	j.inboundService.RefreshOnlineClientsFromMap(lastOnline)
+	// Prune stale local-online entries (no local active emails or inbound tags
+	// to add here — only the local xray poll feeds those) so a stopped local
+	// xray's clients and inbounds still age out between traffic polls.
+	j.inboundService.RefreshLocalOnlineClients(nil, nil)
 
 	if !websocket.HasClients() {
 		return
@@ -120,8 +123,10 @@ func (j *NodeTrafficSyncJob) Run() {
 		online = []string{}
 	}
 	websocket.BroadcastTraffic(map[string]any{
-		"onlineClients": online,
-		"lastOnlineMap": lastOnline,
+		"onlineClients":  online,
+		"onlineByNode":   j.inboundService.GetOnlineClientsByNode(),
+		"activeInbounds": j.inboundService.GetActiveInboundsByNode(),
+		"lastOnlineMap":  lastOnline,
 	})
 
 	clientStats := map[string]any{}

@@ -33,6 +33,7 @@ type ServerController struct {
 // NewServerController creates a new ServerController, initializes routes, and starts background tasks.
 func NewServerController(g *gin.RouterGroup) *ServerController {
 	a := &ServerController{}
+	service.RestoreSystemMetrics()
 	a.initRouter(g)
 	a.startTask()
 	return a
@@ -53,6 +54,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getConfigJson", a.getConfigJson)
 	g.GET("/getDb", a.getDb)
 	g.GET("/getNewUUID", a.getNewUUID)
+	g.GET("/getWebCertFiles", a.getWebCertFiles)
 	g.GET("/getNewX25519Cert", a.getNewX25519Cert)
 	g.GET("/getNewmldsa65", a.getNewmldsa65)
 	g.GET("/getNewmlkem768", a.getNewmlkem768)
@@ -83,6 +85,11 @@ func (a *ServerController) startTask() {
 		}
 		a.xrayMetricsService.Sample(time.Now())
 		websocket.BroadcastStatus(status)
+	})
+	c.AddFunc("@every 1m", func() {
+		if err := service.PersistSystemMetrics(); err != nil {
+			logger.Warning("persist system metrics failed:", err)
+		}
 	})
 }
 
@@ -306,6 +313,24 @@ func (a *ServerController) importDB(c *gin.Context) {
 		return
 	}
 	jsonObj(c, I18nWeb(c, "pages.index.importDatabaseSuccess"), nil)
+}
+
+// getWebCertFiles returns this panel's own web TLS certificate and key file
+// paths. The central panel calls it on a node (via the node's API token) so
+// "Set Cert from Panel" can fill a node-assigned inbound with paths that exist
+// on the node's filesystem instead of the central panel's — see issue #4854.
+func (a *ServerController) getWebCertFiles(c *gin.Context) {
+	certFile, err := a.settingService.GetCertFile()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	keyFile, err := a.settingService.GetKeyFile()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, gin.H{"webCertFile": certFile, "webKeyFile": keyFile}, nil)
 }
 
 // getNewX25519Cert generates a new X25519 certificate.

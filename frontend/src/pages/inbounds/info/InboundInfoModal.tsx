@@ -11,6 +11,7 @@ import {
   genAllLinks,
   genWireguardConfigs,
   genWireguardLinks,
+  preferPublicHost,
 } from '@/lib/xray/inbound-link';
 import { inboundFromDb } from '@/lib/xray/inbound-from-db';
 
@@ -113,7 +114,7 @@ export default function InboundInfoModal({
     setClientStats(stats);
 
     const inboundForLinks = inboundFromDb(dbInbound);
-    const fallbackHostname = window.location.hostname;
+    const fallbackHostname = preferPublicHost(window.location.hostname, subSettings?.publicHost ?? '');
     if (info.protocol === Protocols.WIREGUARD) {
       setWireguardConfigs(
         genWireguardConfigs({
