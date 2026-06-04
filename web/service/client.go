@@ -124,19 +124,23 @@ func compactOrphans(db *gorm.DB, clients []any) []any {
 	if len(emails) == 0 {
 		return clients
 	}
-	var existingEmails []string
-	if err := db.Model(&model.ClientRecord{}).Where("email IN ?", emails).Pluck("email", &existingEmails).Error; err != nil {
-		logger.Warning("compactOrphans pluck:", err)
+	existing := make(map[string]struct{}, len(emails))
+	const orphanChunk = 400
+	for start := 0; start < len(emails); start += orphanChunk {
+		end := min(start+orphanChunk, len(emails))
+		var found []string
+		if err := db.Model(&model.ClientRecord{}).Where("email IN ?", emails[start:end]).Pluck("email", &found).Error; err != nil {
+			logger.Warning("compactOrphans pluck:", err)
+			return clients
+		}
+		for _, e := range found {
+			existing[e] = struct{}{}
+		}
+	}
+	if len(existing) == len(emails) {
 		return clients
 	}
-	if len(existingEmails) == len(emails) {
-		return clients
-	}
-	existing := make(map[string]struct{}, len(existingEmails))
-	for _, e := range existingEmails {
-		existing[e] = struct{}{}
-	}
-	out := make([]any, 0, len(existingEmails))
+	out := make([]any, 0, len(existing))
 	for _, c := range clients {
 		cm, ok := c.(map[string]any)
 		if !ok {
@@ -1244,13 +1248,25 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 	}
 	oldInbound.Settings = string(newSettings)
 
+	var sharedSet map[string]bool
+	if !keepTraffic {
+		removedEmails := make([]string, 0, len(removed))
+		for _, r := range removed {
+			if r.email != "" {
+				removedEmails = append(removedEmails, r.email)
+			}
+		}
+		var sharedErr error
+		sharedSet, sharedErr = inboundSvc.emailsUsedByOtherInbounds(removedEmails, inboundId)
+		if sharedErr != nil {
+			return false, sharedErr
+		}
+	}
+
 	needRestart := false
 	for _, r := range removed {
 		email := r.email
-		emailShared, err := inboundSvc.emailUsedByOtherInbounds(email, inboundId)
-		if err != nil {
-			return needRestart, err
-		}
+		emailShared := sharedSet[strings.ToLower(strings.TrimSpace(email))]
 		if !emailShared && !keepTraffic {
 			if err := inboundSvc.DelClientIPs(db, email); err != nil {
 				logger.Error("Error in delete client IPs")
@@ -2644,19 +2660,21 @@ func (s *ClientService) bulkAdjustInboundClients(
 	}
 
 	db := database.GetDB()
-	if err := db.Save(oldInbound).Error; err != nil {
+	txErr := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(oldInbound).Error; err != nil {
+			return err
+		}
+		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
+		if gcErr != nil {
+			return gcErr
+		}
+		return s.SyncInbound(tx, inboundId, finalClients)
+	})
+	if txErr != nil {
 		for email := range foundEmails {
 			if _, skip := res.perEmailSkipped[email]; !skip {
-				res.perEmailSkipped[email] = err.Error()
+				res.perEmailSkipped[email] = txErr.Error()
 			}
-		}
-		return res
-	}
-
-	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-	if gcErr == nil {
-		if syncErr := s.SyncInbound(db, inboundId, finalClients); syncErr != nil {
-			logger.Warning("bulkAdjust SyncInbound:", syncErr)
 		}
 	}
 
@@ -2920,27 +2938,39 @@ func (s *ClientService) bulkDelInboundClients(
 		}
 	}
 
-	for email := range foundEmails {
-		shared, sharedErr := inboundSvc.emailUsedByOtherInbounds(email, inboundId)
+	var sharedSet map[string]bool
+	if !keepTraffic {
+		var sharedErr error
+		sharedSet, sharedErr = inboundSvc.emailsUsedByOtherInbounds(foundList, inboundId)
 		if sharedErr != nil {
-			res.perEmailSkipped[email] = sharedErr.Error()
-			delete(foundEmails, email)
-			continue
+			for email := range foundEmails {
+				res.perEmailSkipped[email] = sharedErr.Error()
+				delete(foundEmails, email)
+			}
+			return res
 		}
-		if shared || keepTraffic {
-			continue
+	}
+	if !keepTraffic {
+		purge := make([]string, 0, len(foundEmails))
+		for email := range foundEmails {
+			if !sharedSet[strings.ToLower(strings.TrimSpace(email))] {
+				purge = append(purge, email)
+			}
 		}
-		if delErr := inboundSvc.DelClientIPs(db, email); delErr != nil {
-			logger.Error("Error in delete client IPs")
-			res.perEmailSkipped[email] = delErr.Error()
-			delete(foundEmails, email)
-			continue
-		}
-		if delErr := inboundSvc.DelClientStat(db, email); delErr != nil {
-			logger.Error("Delete stats Data Error")
-			res.perEmailSkipped[email] = delErr.Error()
-			delete(foundEmails, email)
-			continue
+		if len(purge) > 0 {
+			if delErr := inboundSvc.delClientIPsByEmails(db, purge); delErr != nil {
+				logger.Error("Error in delete client IPs")
+				for _, email := range purge {
+					res.perEmailSkipped[email] = delErr.Error()
+					delete(foundEmails, email)
+				}
+			} else if delErr := inboundSvc.delClientStatsByEmails(db, purge); delErr != nil {
+				logger.Error("Delete stats Data Error")
+				for _, email := range purge {
+					res.perEmailSkipped[email] = delErr.Error()
+					delete(foundEmails, email)
+				}
+			}
 		}
 	}
 
@@ -2981,21 +3011,22 @@ func (s *ClientService) bulkDelInboundClients(
 		}
 	}
 
-	if err := db.Save(oldInbound).Error; err != nil {
+	txErr := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(oldInbound).Error; err != nil {
+			return err
+		}
+		finalClients, err := inboundSvc.GetClients(oldInbound)
+		if err != nil {
+			return err
+		}
+		return s.SyncInbound(tx, inboundId, finalClients)
+	})
+	if txErr != nil {
 		for email := range foundEmails {
 			if _, skip := res.perEmailSkipped[email]; !skip {
-				res.perEmailSkipped[email] = err.Error()
+				res.perEmailSkipped[email] = txErr.Error()
 			}
 		}
-		return res
-	}
-
-	finalClients, err := inboundSvc.GetClients(oldInbound)
-	if err != nil {
-		return res
-	}
-	if err := s.SyncInbound(db, inboundId, finalClients); err != nil {
-		return res
 	}
 
 	return res
@@ -3012,27 +3043,200 @@ type BulkCreateReport struct {
 	Reason string `json:"reason"`
 }
 
-// BulkCreate iterates payloads sequentially. Each item is the same shape
-// the single-create endpoint accepts, so callers can submit a heterogeneous
-// list (different inboundIds, plans, etc.) in one round-trip.
 func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []ClientCreatePayload) (BulkCreateResult, bool, error) {
 	result := BulkCreateResult{}
-	needRestart := false
+	if len(payloads) == 0 {
+		return result, false, nil
+	}
+
+	skip := func(email, reason string) {
+		if strings.TrimSpace(email) == "" {
+			email = "(missing email)"
+		}
+		result.Skipped = append(result.Skipped, BulkCreateReport{Email: email, Reason: reason})
+	}
+
+	emailSubIDs, err := inboundSvc.getAllEmailSubIDs()
+	if err != nil {
+		emailSubIDs = nil
+	}
+
+	type prepared struct {
+		client     model.Client
+		inboundIds []int
+	}
+	prep := make([]prepared, 0, len(payloads))
+	emails := make([]string, 0, len(payloads))
+	subIDs := make([]string, 0, len(payloads))
+	seenEmail := make(map[string]struct{}, len(payloads))
+	seenSubID := make(map[string]string, len(payloads))
+
 	for i := range payloads {
-		p := payloads[i]
-		email := strings.TrimSpace(p.Client.Email)
-		nr, err := s.Create(inboundSvc, &p)
-		if err != nil {
-			if email == "" {
-				email = "(missing email)"
-			}
-			result.Skipped = append(result.Skipped, BulkCreateReport{Email: email, Reason: err.Error()})
+		client := payloads[i].Client
+		email := strings.TrimSpace(client.Email)
+		if email == "" {
+			skip("", "client email is required")
 			continue
 		}
-		if nr {
-			needRestart = true
+		if verr := validateClientEmail(email); verr != nil {
+			skip(email, verr.Error())
+			continue
 		}
-		result.Created++
+		if verr := validateClientSubID(client.SubID); verr != nil {
+			skip(email, verr.Error())
+			continue
+		}
+		if len(payloads[i].InboundIds) == 0 {
+			skip(email, "at least one inbound is required")
+			continue
+		}
+
+		client.Email = email
+		if client.SubID == "" {
+			client.SubID = uuid.NewString()
+		}
+		if !client.Enable {
+			client.Enable = true
+		}
+		now := time.Now().UnixMilli()
+		if client.CreatedAt == 0 {
+			client.CreatedAt = now
+		}
+		client.UpdatedAt = now
+
+		le := strings.ToLower(email)
+		if _, dup := seenEmail[le]; dup {
+			skip(email, "email already in use: "+email)
+			continue
+		}
+		if owner, ok := seenSubID[client.SubID]; ok && owner != le {
+			skip(email, "subId already in use: "+client.SubID)
+			continue
+		}
+		seenEmail[le] = struct{}{}
+		seenSubID[client.SubID] = le
+
+		prep = append(prep, prepared{client: client, inboundIds: payloads[i].InboundIds})
+		emails = append(emails, email)
+		subIDs = append(subIDs, client.SubID)
+	}
+
+	if len(prep) == 0 {
+		return result, false, nil
+	}
+
+	db := database.GetDB()
+	const lookupChunk = 400
+	existingEmailSub := make(map[string]string, len(emails))
+	for start := 0; start < len(emails); start += lookupChunk {
+		end := min(start+lookupChunk, len(emails))
+		var rows []model.ClientRecord
+		if e := db.Where("email IN ?", emails[start:end]).Find(&rows).Error; e != nil {
+			return result, false, e
+		}
+		for i := range rows {
+			existingEmailSub[strings.ToLower(rows[i].Email)] = rows[i].SubID
+		}
+	}
+	existingSubOwner := make(map[string]string, len(subIDs))
+	for start := 0; start < len(subIDs); start += lookupChunk {
+		end := min(start+lookupChunk, len(subIDs))
+		var rows []model.ClientRecord
+		if e := db.Where("sub_id IN ?", subIDs[start:end]).Find(&rows).Error; e != nil {
+			return result, false, e
+		}
+		for i := range rows {
+			existingSubOwner[rows[i].SubID] = strings.ToLower(rows[i].Email)
+		}
+	}
+
+	inboundCache := make(map[int]*model.Inbound)
+	getIb := func(id int) (*model.Inbound, error) {
+		if ib, ok := inboundCache[id]; ok {
+			return ib, nil
+		}
+		ib, e := inboundSvc.GetInbound(id)
+		if e != nil {
+			return nil, e
+		}
+		inboundCache[id] = ib
+		return ib, nil
+	}
+
+	byInbound := make(map[int][]model.Client)
+	idxByInbound := make(map[int][]int)
+	inboundOrder := make([]int, 0)
+	failed := make([]bool, len(prep))
+	reason := make([]string, len(prep))
+
+	for idx := range prep {
+		le := strings.ToLower(prep[idx].client.Email)
+		if existSub, ok := existingEmailSub[le]; ok && existSub != prep[idx].client.SubID {
+			failed[idx] = true
+			reason[idx] = "email already in use: " + prep[idx].client.Email
+			continue
+		}
+		if owner, ok := existingSubOwner[prep[idx].client.SubID]; ok && owner != le {
+			failed[idx] = true
+			reason[idx] = "subId already in use: " + prep[idx].client.SubID
+			continue
+		}
+
+		ok := true
+		for _, ibId := range prep[idx].inboundIds {
+			ib, e := getIb(ibId)
+			if e != nil {
+				failed[idx] = true
+				reason[idx] = e.Error()
+				ok = false
+				break
+			}
+			if e := s.fillProtocolDefaults(&prep[idx].client, ib); e != nil {
+				failed[idx] = true
+				reason[idx] = e.Error()
+				ok = false
+				break
+			}
+		}
+		if !ok {
+			continue
+		}
+		for _, ibId := range prep[idx].inboundIds {
+			ib, _ := getIb(ibId)
+			if _, seen := byInbound[ibId]; !seen {
+				inboundOrder = append(inboundOrder, ibId)
+			}
+			byInbound[ibId] = append(byInbound[ibId], clientWithInboundFlow(prep[idx].client, ib))
+			idxByInbound[ibId] = append(idxByInbound[ibId], idx)
+		}
+	}
+
+	needRestart := false
+	for _, ibId := range inboundOrder {
+		payload, e := json.Marshal(map[string][]model.Client{"clients": byInbound[ibId]})
+		if e == nil {
+			var nr bool
+			nr, e = s.addInboundClient(inboundSvc, &model.Inbound{Id: ibId, Settings: string(payload)}, emailSubIDs)
+			if e == nil && nr {
+				needRestart = true
+			}
+		}
+		if e != nil {
+			for _, idx := range idxByInbound[ibId] {
+				failed[idx] = true
+				if reason[idx] == "" {
+					reason[idx] = e.Error()
+				}
+			}
+		}
+	}
+
+	for idx := range prep {
+		if failed[idx] {
+			skip(prep[idx].client.Email, reason[idx])
+		} else {
+			result.Created++
+		}
 	}
 	return result, needRestart, nil
 }

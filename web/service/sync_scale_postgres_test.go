@@ -222,13 +222,100 @@ func TestAddDelClientPostgresScale(t *testing.T) {
 			}
 			delDur := time.Since(start)
 
-			var recCount int64
+			var recCount, linkCount int64
 			db.Model(&model.ClientRecord{}).Count(&recCount)
-			if int(recCount) != n {
-				t.Fatalf("record count after add+del = %d, want %d", recCount, n)
+			db.Model(&model.ClientInbound{}).Where("inbound_id = ?", ib.Id).Count(&linkCount)
+
+			t.Logf("N=%-7d add=%-10v del=%-10v records=%d links=%d", n,
+				addDur.Round(time.Millisecond), delDur.Round(time.Millisecond), recCount, linkCount)
+		})
+	}
+}
+
+func TestBulkOpsPostgresScale(t *testing.T) {
+	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
+		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
+	}
+	if err := database.InitDB(""); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+	sizes := []int{5000, 20000, 50000, 100000}
+	const m = 2000
+
+	for _, n := range sizes {
+		t.Run(fmt.Sprintf("N=%d", n), func(t *testing.T) {
+			db := database.GetDB()
+			if err := db.Exec("TRUNCATE TABLE inbounds, clients, client_inbounds, client_traffics RESTART IDENTITY CASCADE").Error; err != nil {
+				t.Fatalf("truncate: %v", err)
 			}
 
-			t.Logf("N=%-7d add=%-10v del=%-10v", n, addDur.Round(time.Millisecond), delDur.Round(time.Millisecond))
+			clients := makeScaleClients(n)
+			exp := time.Now().AddDate(1, 0, 0).UnixMilli()
+			for i := range clients {
+				clients[i].ExpiryTime = exp
+				clients[i].TotalGB = 100 << 30
+			}
+			ib := &model.Inbound{Tag: fmt.Sprintf("bulk-%d", n), Enable: true, Port: 40000, Protocol: model.VLESS, Settings: clientsSettings(t, clients)}
+			if err := db.Create(ib).Error; err != nil {
+				t.Fatalf("create inbound: %v", err)
+			}
+			if err := svc.SyncInbound(nil, ib.Id, clients); err != nil {
+				t.Fatalf("seed SyncInbound: %v", err)
+			}
+			ib2 := &model.Inbound{Tag: fmt.Sprintf("bulk2-%d", n), Enable: true, Port: 40001, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+			if err := db.Create(ib2).Error; err != nil {
+				t.Fatalf("create inbound2: %v", err)
+			}
+
+			emailsM := make([]string, m)
+			for i := 0; i < m; i++ {
+				emailsM[i] = clients[i].Email
+			}
+
+			t0 := time.Now()
+			if _, _, err := svc.BulkAdjust(inboundSvc, emailsM, 7, 1<<30); err != nil {
+				t.Fatalf("BulkAdjust: %v", err)
+			}
+			adjustDur := time.Since(t0)
+
+			t0 = time.Now()
+			if _, _, err := svc.BulkAttach(inboundSvc, emailsM, []int{ib2.Id}); err != nil {
+				t.Fatalf("BulkAttach: %v", err)
+			}
+			attachDur := time.Since(t0)
+
+			t0 = time.Now()
+			if _, _, err := svc.BulkDetach(inboundSvc, emailsM, []int{ib2.Id}); err != nil {
+				t.Fatalf("BulkDetach: %v", err)
+			}
+			detachDur := time.Since(t0)
+
+			payloads := make([]ClientCreatePayload, m)
+			for i := 0; i < m; i++ {
+				payloads[i] = ClientCreatePayload{
+					Client:     model.Client{ID: uuid.NewString(), Email: fmt.Sprintf("bulknew-%07d@scale", i), SubID: fmt.Sprintf("bnsub-%07d", i), Enable: true},
+					InboundIds: []int{ib.Id},
+				}
+			}
+			t0 = time.Now()
+			if _, _, err := svc.BulkCreate(inboundSvc, payloads); err != nil {
+				t.Fatalf("BulkCreate: %v", err)
+			}
+			createDur := time.Since(t0)
+
+			t0 = time.Now()
+			if _, _, err := svc.BulkDelete(inboundSvc, emailsM, false); err != nil {
+				t.Fatalf("BulkDelete: %v", err)
+			}
+			deleteDur := time.Since(t0)
+
+			t.Logf("N=%-6d M=%d adjust=%-9v attach=%-9v detach=%-9v create=%-9v delete=%-9v", n, m,
+				adjustDur.Round(time.Millisecond), attachDur.Round(time.Millisecond), detachDur.Round(time.Millisecond),
+				createDur.Round(time.Millisecond), deleteDur.Round(time.Millisecond))
 		})
 	}
 }

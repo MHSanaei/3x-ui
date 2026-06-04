@@ -438,6 +438,37 @@ func (s *InboundService) emailUsedByOtherInbounds(email string, exceptInboundId 
 	return count > 0, nil
 }
 
+func (s *InboundService) emailsUsedByOtherInbounds(emails []string, exceptInboundId int) (map[string]bool, error) {
+	shared := make(map[string]bool, len(emails))
+	want := make(map[string]struct{}, len(emails))
+	for _, e := range emails {
+		e = strings.ToLower(strings.TrimSpace(e))
+		if e != "" {
+			want[e] = struct{}{}
+		}
+	}
+	if len(want) == 0 {
+		return shared, nil
+	}
+	db := database.GetDB()
+	var rows []string
+	query := fmt.Sprintf(
+		"SELECT DISTINCT LOWER(%s) %s WHERE inbounds.id != ?",
+		database.JSONFieldText("client.value", "email"),
+		database.JSONClientsFromInbound(),
+	)
+	if err := db.Raw(query, exceptInboundId).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, e := range rows {
+		e = strings.ToLower(strings.TrimSpace(e))
+		if _, ok := want[e]; ok {
+			shared[e] = true
+		}
+	}
+	return shared, nil
+}
+
 // normalizeStreamSettings clears StreamSettings for protocols that don't use it.
 // Only vmess, vless, trojan, shadowsocks, and hysteria protocols use streamSettings.
 func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
@@ -2436,6 +2467,32 @@ func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
 
 func (s *InboundService) DelClientIPs(tx *gorm.DB, email string) error {
 	return tx.Where("client_email = ?", email).Delete(model.InboundClientIps{}).Error
+}
+
+func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) error {
+	const chunk = 400
+	for start := 0; start < len(emails); start += chunk {
+		end := min(start+chunk, len(emails))
+		batch := emails[start:end]
+		if err := tx.Where("email IN ?", batch).Delete(xray.ClientTraffic{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *InboundService) delClientIPsByEmails(tx *gorm.DB, emails []string) error {
+	const chunk = 400
+	for start := 0; start < len(emails); start += chunk {
+		end := min(start+chunk, len(emails))
+		if err := tx.Where("client_email IN ?", emails[start:end]).Delete(model.InboundClientIps{}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *InboundService) GetClientInboundByTrafficID(trafficId int) (traffic *xray.ClientTraffic, inbound *model.Inbound, err error) {
