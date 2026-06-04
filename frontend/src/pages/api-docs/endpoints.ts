@@ -309,6 +309,11 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/server/getMigration',
+        summary: 'Stream a cross-engine migration file as an attachment: a .dump (SQL text) on SQLite, or a .db SQLite database built from the live data on PostgreSQL.',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/server/getNewUUID',
         summary: 'Generate a fresh UUID v4. Convenience helper for client IDs.',
         response: '{\n  "success": true,\n  "obj": "550e8400-e29b-41d4-a716-446655440000"\n}',

@@ -2690,7 +2690,7 @@ migrate_to_postgres() {
     echo ""
     echo -e "${yellow}This copies your current SQLite data into a PostgreSQL database,${plain}"
     echo -e "${yellow}then switches the panel to PostgreSQL and restarts it.${plain}"
-    echo -e "${yellow}The destination PostgreSQL database must be empty.${plain}"
+    echo -e "${red}Any existing panel tables in the destination will be cleared and overwritten.${plain}"
     confirm "Continue?" "n" || return 0
 
     local dsn="" pg_mode

@@ -277,7 +277,10 @@
       "getConfigError": "Yapılandırma dosyası alınırken bir hata oluştu",
       "backupPostgresNote": "Bu panel PostgreSQL üzerinde çalışıyor. «Yedekle» bir pg_dump arşivi (.dump) indirir, «Geri Yükle» ise onu pg_restore ile geri yükler. Sunucuda PostgreSQL istemci araçlarının (pg_dump ve pg_restore) kurulu olması gerekir.",
       "exportDatabasePgDesc": "Mevcut veritabanınızın PostgreSQL dökümünü (.dump) cihazınıza indirmek için tıklayın.",
-      "importDatabasePgDesc": "PostgreSQL veritabanınızı geri yüklemek için bir .dump dosyası seçip yüklemek üzere tıklayın. Bu, tüm mevcut verilerin yerini alır."
+      "importDatabasePgDesc": "PostgreSQL veritabanınızı geri yüklemek için bir .dump dosyası seçip yüklemek üzere tıklayın. Bu, tüm mevcut verilerin yerini alır.",
+      "migrationDownload": "Geçiş dosyasını indir",
+      "migrationDownloadDesc": "SQLite veritabanınızın taşınabilir .dump (SQL metni) dışa aktarımını indirmek için tıklayın.",
+      "migrationDownloadPgDesc": "PostgreSQL verilerinizden oluşturulan ve bu paneli SQLite üzerinde çalıştırmaya hazır bir .db SQLite veritabanı indirmek için tıklayın."
     },
     "inbounds": {
       "title": "Gelenler",

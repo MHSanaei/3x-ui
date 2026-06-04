@@ -277,7 +277,10 @@
       "getConfigError": "Виникла помилка під час отримання файлу конфігурації",
       "backupPostgresNote": "Ця панель працює на PostgreSQL. «Резервна копія» завантажує архів pg_dump (.dump), а «Відновлення» завантажує його назад через pg_restore. На сервері мають бути встановлені клієнтські інструменти PostgreSQL (pg_dump і pg_restore).",
       "exportDatabasePgDesc": "Натисніть, щоб завантажити дамп PostgreSQL (.dump) вашої поточної бази даних на ваш пристрій.",
-      "importDatabasePgDesc": "Натисніть, щоб вибрати та завантажити файл .dump для відновлення бази даних PostgreSQL. Це замінить усі поточні дані."
+      "importDatabasePgDesc": "Натисніть, щоб вибрати та завантажити файл .dump для відновлення бази даних PostgreSQL. Це замінить усі поточні дані.",
+      "migrationDownload": "Завантажити файл міграції",
+      "migrationDownloadDesc": "Натисніть, щоб завантажити переносний експорт .dump (текст SQL) вашої бази даних SQLite.",
+      "migrationDownloadPgDesc": "Натисніть, щоб завантажити базу даних SQLite (.db), створену з ваших даних PostgreSQL і готову для запуску панелі на SQLite."
     },
     "inbounds": {
       "title": "Вхідні",
