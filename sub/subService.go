@@ -894,6 +894,11 @@ func applyShareTLSParams(stream map[string]any, params map[string]string) {
 		if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
 			params["fp"], _ = fpValue.(string)
 		}
+		if echValue, ok := searchKey(tlsSettings, "echConfigList"); ok {
+			if ech, _ := echValue.(string); ech != "" {
+				params["ech"] = ech
+			}
+		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			params["pcs"] = strings.Join(pins, ",")
 		}
@@ -918,6 +923,11 @@ func applyVmessTLSParams(stream map[string]any, obj map[string]any) {
 	if tlsSetting != nil {
 		if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
 			obj["fp"], _ = fpValue.(string)
+		}
+		if echValue, ok := searchKey(tlsSettings, "echConfigList"); ok {
+			if ech, _ := echValue.(string); ech != "" {
+				obj["ech"] = ech
+			}
 		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			obj["pcs"] = strings.Join(pins, ",")
