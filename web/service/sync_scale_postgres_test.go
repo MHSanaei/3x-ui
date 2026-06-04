@@ -232,6 +232,116 @@ func TestAddDelClientPostgresScale(t *testing.T) {
 	}
 }
 
+func TestGroupAndListPostgresScale(t *testing.T) {
+	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
+		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
+	}
+	if err := database.InitDB(""); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	svc := &ClientService{}
+	sizes := []int{5000, 100000}
+
+	for _, n := range sizes {
+		t.Run(fmt.Sprintf("N=%d", n), func(t *testing.T) {
+			db := database.GetDB()
+			if err := db.Exec("TRUNCATE TABLE inbounds, clients, client_inbounds, client_traffics RESTART IDENTITY CASCADE").Error; err != nil {
+				t.Fatalf("truncate: %v", err)
+			}
+			clients := makeScaleClients(n)
+			ib := &model.Inbound{Tag: fmt.Sprintf("grp-%d", n), Enable: true, Port: 40000, Protocol: model.VLESS, Settings: clientsSettings(t, clients)}
+			if err := db.Create(ib).Error; err != nil {
+				t.Fatalf("create inbound: %v", err)
+			}
+			if err := svc.SyncInbound(nil, ib.Id, clients); err != nil {
+				t.Fatalf("seed SyncInbound: %v", err)
+			}
+			db.Exec("ANALYZE")
+			emails := make([]string, n)
+			for i := 0; i < n; i++ {
+				emails[i] = clients[i].Email
+			}
+
+			start := time.Now()
+			if _, err := svc.AddToGroup(emails, "benchgroup"); err != nil {
+				t.Fatalf("AddToGroup: %v", err)
+			}
+			addDur := time.Since(start)
+
+			start = time.Now()
+			if _, err := svc.RemoveFromGroup(emails); err != nil {
+				t.Fatalf("RemoveFromGroup: %v", err)
+			}
+			rmDur := time.Since(start)
+
+			start = time.Now()
+			list, err := svc.List()
+			if err != nil {
+				t.Fatalf("List: %v", err)
+			}
+			listDur := time.Since(start)
+			if len(list) != n {
+				t.Fatalf("List returned %d, want %d", len(list), n)
+			}
+
+			t.Logf("N=%-7d bulkAdd=%-9v bulkRemove=%-9v list=%-9v", n,
+				addDur.Round(time.Millisecond), rmDur.Round(time.Millisecond), listDur.Round(time.Millisecond))
+		})
+	}
+}
+
+func TestDelAllClientsPostgresScale(t *testing.T) {
+	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
+		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
+	}
+	if err := database.InitDB(""); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+	sizes := []int{5000, 50000, 100000}
+
+	for _, n := range sizes {
+		t.Run(fmt.Sprintf("N=%d", n), func(t *testing.T) {
+			db := database.GetDB()
+			if err := db.Exec("TRUNCATE TABLE inbounds, clients, client_inbounds, client_traffics RESTART IDENTITY CASCADE").Error; err != nil {
+				t.Fatalf("truncate: %v", err)
+			}
+			clients := makeScaleClients(n)
+			ib := &model.Inbound{Tag: fmt.Sprintf("delall-%d", n), Enable: true, Port: 40000, Protocol: model.VLESS, Settings: clientsSettings(t, clients)}
+			if err := db.Create(ib).Error; err != nil {
+				t.Fatalf("create inbound: %v", err)
+			}
+			if err := svc.SyncInbound(nil, ib.Id, clients); err != nil {
+				t.Fatalf("seed SyncInbound: %v", err)
+			}
+
+			emails, err := inboundSvc.EmailsByInbound(ib.Id)
+			if err != nil {
+				t.Fatalf("EmailsByInbound: %v", err)
+			}
+			start := time.Now()
+			res, _, err := svc.BulkDelete(inboundSvc, emails, false)
+			if err != nil {
+				t.Fatalf("BulkDelete: %v", err)
+			}
+			dur := time.Since(start)
+
+			var recCount, linkCount int64
+			db.Model(&model.ClientRecord{}).Count(&recCount)
+			db.Model(&model.ClientInbound{}).Where("inbound_id = ?", ib.Id).Count(&linkCount)
+			if recCount != 0 || linkCount != 0 {
+				t.Fatalf("after delAll: records=%d links=%d want 0/0", recCount, linkCount)
+			}
+			t.Logf("N=%-7d delAllClients=%-10v deleted=%d", n, dur.Round(time.Millisecond), res.Deleted)
+		})
+	}
+}
+
 func TestBulkOpsPostgresScale(t *testing.T) {
 	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
 		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
