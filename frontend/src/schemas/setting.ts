@@ -59,6 +59,8 @@ export const AllSettingSchema = z.object({
   subURI: z.string().optional(),
   subJsonURI: z.string().optional(),
   subClashURI: z.string().optional(),
+  subClashEnableRouting: z.boolean().optional(),
+  subClashRules: z.string().optional(),
   subJsonFragment: z.string().optional(),
   subJsonNoises: z.string().optional(),
   subJsonMux: z.string().optional(),
