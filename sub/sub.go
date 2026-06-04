@@ -133,6 +133,8 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	SubJsonFinalMask, err := s.settingService.GetSubJsonFinalMask()
 	if err != nil {
 		SubJsonFinalMask = ""
+	}
+
 	SubClashEnableRouting, err := s.settingService.GetSubClashEnableRouting()
 	if err != nil {
 		SubClashEnableRouting = false
@@ -229,7 +231,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	s.sub = NewSUBController(
 		g, LinksPath, JsonPath, ClashPath, subJsonEnable, subClashEnable, Encrypt, ShowInfo, RemarkModel, SubUpdates,
-		SubJsonMux, SubJsonRules, SubJsonFinalMask,SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
+		SubJsonMux, SubJsonRules, SubJsonFinalMask, SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
 		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules)
 
 	return engine, nil
