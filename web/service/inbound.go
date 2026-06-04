@@ -1615,12 +1615,19 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				structuralChange = true
 			}
 
+			// Only allow the node to disable a client (cs.Enable=false), never
+			// to re-enable one the panel has already disabled. A stale snapshot
+			// from the node arriving after a central disable would otherwise
+			// overwrite enable=false back to true, letting the client accumulate
+			// far more traffic than their limit before being disabled again.
+			enableExpr := "CASE WHEN ? = 0 THEN 0 ELSE enable END"
 			if err := tx.Exec(
 				fmt.Sprintf(
 					`UPDATE client_traffics
-					 SET up = up + ?, down = down + ?, enable = ?, total = ?, expiry_time = ?, reset = ?,
+					 SET up = up + ?, down = down + ?, enable = %s, total = ?, expiry_time = ?, reset = ?,
 					     last_online = %s
 					 WHERE email = ?`,
+					enableExpr,
 					database.GreatestExpr("last_online", "?"),
 				),
 				deltaUp, deltaDown, cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset,
