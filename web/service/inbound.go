@@ -2247,6 +2247,9 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 		}
 	}
 
+	// Track which remote nodes had clients successfully disabled so we can
+	// restart their xray and kill the existing active connections.
+	disabledNodeIDs := make(map[int]struct{})
 	for inboundID, group := range remoteByInbound {
 		emails := make(map[string]struct{}, len(group))
 		for _, t := range group {
@@ -2255,6 +2258,31 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 		if pushErr := s.disableRemoteClients(tx, inboundID, emails); pushErr != nil {
 			logger.Warning("disableInvalidClients: push to remote failed for inbound", inboundID, ":", pushErr)
 			needRestart = true
+		} else {
+			for _, t := range group {
+				if t.NodeID != nil {
+					disabledNodeIDs[*t.NodeID] = struct{}{}
+				}
+			}
+		}
+	}
+
+	// Restart xray on each affected remote node so active connections are
+	// dropped immediately, not just blocked on the next reconnect attempt.
+	if len(disabledNodeIDs) > 0 {
+		restartOnDisable, _ := (&SettingService{}).GetRestartXrayOnClientDisable()
+		if restartOnDisable {
+			for nodeID := range disabledNodeIDs {
+				nodeIDCopy := nodeID
+				rt, rtErr := runtime.GetManager().RuntimeFor(&nodeIDCopy)
+				if rtErr != nil {
+					logger.Warning("disableInvalidClients: get runtime for node", nodeID, "failed:", rtErr)
+					continue
+				}
+				if rtErr = rt.RestartXray(context.Background()); rtErr != nil {
+					logger.Warning("disableInvalidClients: restart xray on node", nodeID, "failed:", rtErr)
+				}
+			}
 		}
 	}
 
