@@ -182,7 +182,7 @@ export const ClientBulkAddFormSchema = z.object({
   lastNum: z.number().int().min(1),
   emailPrefix: z.string(),
   emailPostfix: z.string(),
-  quantity: z.number().int().min(1).max(100),
+  quantity: z.number().int().min(1).max(1000),
   subId: z.string(),
   group: z.string(),
   comment: z.string(),

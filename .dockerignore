@@ -6,3 +6,4 @@ db
 cert
 pgdata
 *.db
+*.dump

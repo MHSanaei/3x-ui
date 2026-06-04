@@ -83,8 +83,17 @@ func (s *InboundService) enrichClientStats(db *gorm.DB, inbounds []*model.Inboun
 			emails = append(emails, e)
 		}
 		var extra []xray.ClientTraffic
-		if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", emails).Find(&extra).Error; err != nil {
-			logger.Warning("enrichClientStats:", err)
+		var loadErr error
+		for _, batch := range chunkStrings(emails, sqlInChunk) {
+			var page []xray.ClientTraffic
+			if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+				loadErr = err
+				break
+			}
+			extra = append(extra, page...)
+		}
+		if loadErr != nil {
+			logger.Warning("enrichClientStats:", loadErr)
 		} else {
 			byEmail := make(map[string]xray.ClientTraffic, len(extra))
 			for _, st := range extra {
@@ -436,6 +445,37 @@ func (s *InboundService) emailUsedByOtherInbounds(email string, exceptInboundId 
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (s *InboundService) emailsUsedByOtherInbounds(emails []string, exceptInboundId int) (map[string]bool, error) {
+	shared := make(map[string]bool, len(emails))
+	want := make(map[string]struct{}, len(emails))
+	for _, e := range emails {
+		e = strings.ToLower(strings.TrimSpace(e))
+		if e != "" {
+			want[e] = struct{}{}
+		}
+	}
+	if len(want) == 0 {
+		return shared, nil
+	}
+	db := database.GetDB()
+	var rows []string
+	query := fmt.Sprintf(
+		"SELECT DISTINCT LOWER(%s) %s WHERE inbounds.id != ?",
+		database.JSONFieldText("client.value", "email"),
+		database.JSONClientsFromInbound(),
+	)
+	if err := db.Raw(query, exceptInboundId).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, e := range rows {
+		e = strings.ToLower(strings.TrimSpace(e))
+		if _, ok := want[e]; ok {
+			shared[e] = true
+		}
+	}
+	return shared, nil
 }
 
 // normalizeStreamSettings clears StreamSettings for protocols that don't use it.
@@ -2438,6 +2478,32 @@ func (s *InboundService) DelClientIPs(tx *gorm.DB, email string) error {
 	return tx.Where("client_email = ?", email).Delete(model.InboundClientIps{}).Error
 }
 
+func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) error {
+	const chunk = 400
+	for start := 0; start < len(emails); start += chunk {
+		end := min(start+chunk, len(emails))
+		batch := emails[start:end]
+		if err := tx.Where("email IN ?", batch).Delete(xray.ClientTraffic{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *InboundService) delClientIPsByEmails(tx *gorm.DB, emails []string) error {
+	const chunk = 400
+	for start := 0; start < len(emails); start += chunk {
+		end := min(start+chunk, len(emails))
+		if err := tx.Where("client_email IN ?", emails[start:end]).Delete(model.InboundClientIps{}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *InboundService) GetClientInboundByTrafficID(trafficId int) (traffic *xray.ClientTraffic, inbound *model.Inbound, err error) {
 	db := database.GetDB()
 	var traffics []*xray.ClientTraffic
@@ -2991,16 +3057,33 @@ func (s *InboundService) GetInboundsTrafficSummary() ([]InboundTrafficSummary, e
 }
 
 func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.ClientTraffic, err error) {
-	// Prefer retrieving along with client to reflect actual enabled state from inbound settings
-	t, client, err := s.GetClientByEmail(email)
+	db := database.GetDB()
+	var traffics []*xray.ClientTraffic
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).Find(&traffics).Error; err != nil {
+		logger.Warningf("Error retrieving ClientTraffic with email %s: %v", email, err)
+		return nil, err
+	}
+	if len(traffics) == 0 {
+		return nil, nil
+	}
+	t := traffics[0]
+
+	if rec, rErr := s.clientService.GetRecordByEmail(db, email); rErr == nil && rec != nil {
+		c := rec.ToClient()
+		t.UUID = c.ID
+		t.SubId = c.SubID
+		return t, nil
+	}
+
+	t2, client, err := s.GetClientByEmail(email)
 	if err != nil {
 		logger.Warningf("Error retrieving ClientTraffic with email %s: %v", email, err)
 		return nil, err
 	}
-	if t != nil && client != nil {
-		t.UUID = client.ID
-		t.SubId = client.SubID
-		return t, nil
+	if t2 != nil && client != nil {
+		t2.UUID = client.ID
+		t2.SubId = client.SubID
+		return t2, nil
 	}
 	return nil, nil
 }
@@ -3329,6 +3412,9 @@ func (s *InboundService) MigrateDB() {
 }
 
 func (s *InboundService) GetOnlineClients() []string {
+	if p == nil {
+		return []string{}
+	}
 	return p.GetOnlineClients()
 }
 

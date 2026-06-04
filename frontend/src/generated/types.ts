@@ -34,7 +34,9 @@ export interface AllSetting {
   subAnnounce: string;
   subCertFile: string;
   subClashEnable: boolean;
+  subClashEnableRouting: boolean;
   subClashPath: string;
+  subClashRules: string;
   subClashURI: string;
   subDomain: string;
   subEmailInRemark: boolean;
@@ -120,7 +122,9 @@ export interface AllSettingView {
   subAnnounce: string;
   subCertFile: string;
   subClashEnable: boolean;
+  subClashEnableRouting: boolean;
   subClashPath: string;
+  subClashRules: string;
   subClashURI: string;
   subDomain: string;
   subEmailInRemark: boolean;

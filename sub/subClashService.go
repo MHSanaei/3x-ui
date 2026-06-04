@@ -15,17 +15,13 @@ import (
 
 type SubClashService struct {
 	inboundService service.InboundService
+	enableRouting  bool
+	clashRules     string
 	SubService     *SubService
 }
 
-type ClashConfig struct {
-	Proxies     []map[string]any `yaml:"proxies"`
-	ProxyGroups []map[string]any `yaml:"proxy-groups"`
-	Rules       []string         `yaml:"rules"`
-}
-
-func NewSubClashService(subService *SubService) *SubClashService {
-	return &SubClashService{SubService: subService}
+func NewSubClashService(enableRouting bool, clashRules string, subService *SubService) *SubClashService {
+	return &SubClashService{enableRouting: enableRouting, clashRules: clashRules, SubService: subService}
 }
 
 func (s *SubClashService) GetClash(subId string, host string) (string, string, error) {
@@ -76,14 +72,20 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	}
 	proxyNames = append(proxyNames, "DIRECT")
 
-	config := ClashConfig{
-		Proxies: proxies,
-		ProxyGroups: []map[string]any{{
+	config := map[string]any{
+		"proxies": proxies,
+		"proxy-groups": []map[string]any{{
 			"name":    "PROXY",
 			"type":    "select",
 			"proxies": proxyNames,
 		}},
-		Rules: []string{"MATCH,PROXY"},
+		"rules": []string{"MATCH,PROXY"},
+	}
+
+	if s.enableRouting {
+		if err := mergeClashRulesYAML(config, s.clashRules); err != nil {
+			return "", "", err
+		}
 	}
 
 	finalYAML, err := yaml.Marshal(config)
@@ -553,4 +555,97 @@ func cloneMap(src map[string]any) map[string]any {
 	dst := make(map[string]any, len(src))
 	maps.Copy(dst, src)
 	return dst
+}
+
+func mergeClashRulesYAML(base map[string]any, raw string) error {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+
+	var custom any
+	if err := yaml.Unmarshal([]byte(raw), &custom); err != nil {
+		mergeClashRules(base, linesToClashRules(raw))
+		return nil
+	}
+
+	switch typed := custom.(type) {
+	case []any:
+		mergeClashRules(base, typed)
+	case map[string]any:
+		if rules, ok := typed["rules"]; ok {
+			if ruleList, ok := asAnySlice(rules); ok {
+				mergeClashRules(base, ruleList)
+			}
+		}
+	default:
+		mergeClashRules(base, linesToClashRules(raw))
+	}
+
+	return nil
+}
+
+func mergeClashRules(base map[string]any, customRules []any) {
+	if len(customRules) == 0 {
+		return
+	}
+
+	baseRules, _ := asAnySlice(base["rules"])
+	if hasClashMatchRule(customRules) {
+		base["rules"] = customRules
+		return
+	}
+
+	merged := make([]any, 0, len(customRules)+len(baseRules))
+	merged = append(merged, customRules...)
+	merged = append(merged, baseRules...)
+	base["rules"] = merged
+}
+
+func asAnySlice(value any) ([]any, bool) {
+	switch typed := value.(type) {
+	case []any:
+		return typed, true
+	case []string:
+		out := make([]any, 0, len(typed))
+		for _, item := range typed {
+			out = append(out, item)
+		}
+		return out, true
+	case []map[string]any:
+		out := make([]any, 0, len(typed))
+		for _, item := range typed {
+			out = append(out, item)
+		}
+		return out, true
+	default:
+		return nil, false
+	}
+}
+
+func hasClashMatchRule(rules []any) bool {
+	for _, rule := range rules {
+		ruleText, ok := rule.(string)
+		if !ok {
+			continue
+		}
+		parts := strings.SplitN(ruleText, ",", 2)
+		if strings.EqualFold(strings.TrimSpace(parts[0]), "MATCH") {
+			return true
+		}
+	}
+	return false
+}
+
+func linesToClashRules(raw string) []any {
+	lines := strings.Split(raw, "\n")
+	rules := make([]any, 0, len(lines))
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		rules = append(rules, line)
+	}
+	return rules
 }

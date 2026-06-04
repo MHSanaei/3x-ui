@@ -858,13 +858,13 @@ export class LanguageManager {
       });
 
       if (LanguageManager.isSupportLanguage(lang)) {
-        CookieManager.setCookie('lang', lang);
+        CookieManager.setCookie('lang', lang, 365);
       } else {
-        CookieManager.setCookie('lang', 'en-US');
+        CookieManager.setCookie('lang', 'en-US', 365);
         window.location.reload();
       }
     } else {
-      CookieManager.setCookie('lang', 'en-US');
+      CookieManager.setCookie('lang', 'en-US', 365);
       window.location.reload();
     }
 
@@ -875,7 +875,7 @@ export class LanguageManager {
     if (!LanguageManager.isSupportLanguage(language)) {
       language = 'en-US';
     }
-    CookieManager.setCookie('lang', language);
+    CookieManager.setCookie('lang', language, 365);
     window.location.reload();
   }
 

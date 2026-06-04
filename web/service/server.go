@@ -1156,6 +1156,41 @@ func (s *ServerService) GetDb() ([]byte, error) {
 	return fileContents, nil
 }
 
+// GetMigration produces a cross-engine migration file plus its filename: on a
+// SQLite panel it returns a portable .dump (SQL text), and on a PostgreSQL panel
+// it returns a .db SQLite database built from the live data. Either output can
+// then seed a panel running on the other backend.
+func (s *ServerService) GetMigration() ([]byte, string, error) {
+	if database.IsPostgres() {
+		tmp, err := os.CreateTemp("", "x-ui-migration-*.db")
+		if err != nil {
+			return nil, "", err
+		}
+		tmpPath := tmp.Name()
+		tmp.Close()
+		defer os.Remove(tmpPath)
+
+		if err := database.ExportPostgresToSQLite(config.GetDBDSN(), tmpPath); err != nil {
+			return nil, "", err
+		}
+		data, err := os.ReadFile(tmpPath)
+		if err != nil {
+			return nil, "", err
+		}
+		return data, "x-ui.db", nil
+	}
+
+	// SQLite panel: checkpoint so the .db reflects the latest writes, then dump.
+	if err := database.Checkpoint(); err != nil {
+		return nil, "", err
+	}
+	data, err := database.DumpSQLiteToBytes(config.GetDBPath())
+	if err != nil {
+		return nil, "", err
+	}
+	return data, "x-ui.dump", nil
+}
+
 func (s *ServerService) ImportDB(file multipart.File) error {
 	if database.IsPostgres() {
 		return s.importPostgresDB(file)

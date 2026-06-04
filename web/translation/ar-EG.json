@@ -277,7 +277,10 @@
       "getConfigError": "حدث خطأ أثناء استرجاع ملف الإعدادات",
       "backupPostgresNote": "تعمل هذه اللوحة على PostgreSQL. يقوم «النسخ الاحتياطي» بتنزيل أرشيف pg_dump (.dump)، و«الاستعادة» تعيد تحميله عبر pg_restore. يجب أن تكون أدوات عميل PostgreSQL (pg_dump و pg_restore) مثبَّتة على الخادم.",
       "exportDatabasePgDesc": "انقر لتنزيل نسخة PostgreSQL (.dump) من قاعدة بياناتك الحالية إلى جهازك.",
-      "importDatabasePgDesc": "انقر لاختيار ورفع ملف .dump لاستعادة قاعدة بيانات PostgreSQL. سيؤدي هذا إلى استبدال جميع البيانات الحالية."
+      "importDatabasePgDesc": "انقر لاختيار ورفع ملف .dump لاستعادة قاعدة بيانات PostgreSQL. سيؤدي هذا إلى استبدال جميع البيانات الحالية.",
+      "migrationDownload": "تنزيل ملف الترحيل",
+      "migrationDownloadDesc": "انقر لتنزيل تصدير .dump محمول (نص SQL) لقاعدة بيانات SQLite الخاصة بك.",
+      "migrationDownloadPgDesc": "انقر لتنزيل قاعدة بيانات SQLite بامتداد .db مبنية من بيانات PostgreSQL الخاصة بك، جاهزة لتشغيل هذه اللوحة على SQLite."
     },
     "inbounds": {
       "title": "الواردات",
@@ -1001,6 +1004,10 @@
       "subEnableRoutingDesc": "إعداد عام لتمكين التوجيه (Routing) في عميل VPN. (فقط لـ Happ)",
       "subRoutingRules": "قواعد التوجيه",
       "subRoutingRulesDesc": "قواعد التوجيه العامة لعميل VPN. (فقط لـ Happ)",
+      "subClashEnableRouting": "تفعيل التوجيه",
+      "subClashEnableRoutingDesc": "تضمين قواعد توجيه Clash/Mihomo العامة في اشتراكات YAML المُنشأة.",
+      "subClashRoutingRules": "قواعد التوجيه العامة",
+      "subClashRoutingRulesDesc": "قواعد Clash/Mihomo التي تُضاف في بداية كل اشتراك YAML قبل MATCH,PROXY.",
       "subListen": "IP الاستماع",
       "subListenDesc": "عنوان IP لخدمة الاشتراك. (سيبه فاضي عشان يستمع على كل الـ IPs)",
       "subPort": "بورت الاستماع",

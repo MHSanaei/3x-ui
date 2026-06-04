@@ -55,6 +55,8 @@ export class AllSetting {
   subURI = '';
   subJsonURI = '';
   subClashURI = '';
+  subClashEnableRouting = false;
+  subClashRules = '';
   subJsonMux = '';
   subJsonRules = '';
   subJsonFinalMask = '';

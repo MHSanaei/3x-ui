@@ -1269,6 +1269,16 @@ ssl_cert_issue_main() {
                         echo "Panel paths set for domain: $domain"
                         echo "  - Certificate File: $webCertFile"
                         echo "  - Private Key File: $webKeyFile"
+                        # Register the acme.sh install-cert hook so auto-renewal copies the
+                        # renewed cert to these paths and reloads the panel. Without it acme.sh
+                        # renews but never updates /root/cert, silently serving a stale cert.
+                        if command -v ~/.acme.sh/acme.sh &> /dev/null && ~/.acme.sh/acme.sh --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
+                            ~/.acme.sh/acme.sh --installcert -d "${domain}" \
+                                --key-file "${webKeyFile}" \
+                                --fullchain-file "${webCertFile}" \
+                                --reloadcmd "x-ui restart" 2>&1 || true
+                            echo "Registered acme.sh auto-renewal hook for ${domain}."
+                        fi
                         restart
                     else
                         echo "Certificate or private key not found for domain: $domain."
@@ -1448,8 +1458,8 @@ ssl_cert_issue_for_ip() {
         LOGE "Failed to issue certificate for IP: ${server_ip}"
         LOGE "Make sure port ${WebPort} is open and the server is accessible from the internet"
         # Cleanup acme.sh data for both IPv4 and IPv6 if specified
-        rm -rf ~/.acme.sh/${server_ip} 2> /dev/null
-        [[ -n "$ipv6_addr" ]] && rm -rf ~/.acme.sh/${ipv6_addr} 2> /dev/null
+        rm -rf ~/.acme.sh/${server_ip} ~/.acme.sh/${server_ip}_ecc 2> /dev/null
+        [[ -n "$ipv6_addr" ]] && rm -rf ~/.acme.sh/${ipv6_addr} ~/.acme.sh/${ipv6_addr}_ecc 2> /dev/null
         rm -rf ${certPath} 2> /dev/null
         return 1
     else
@@ -1468,8 +1478,8 @@ ssl_cert_issue_for_ip() {
     if [[ ! -f "${certPath}/fullchain.pem" || ! -f "${certPath}/privkey.pem" ]]; then
         LOGE "Certificate files not found after installation"
         # Cleanup acme.sh data for both IPv4 and IPv6 if specified
-        rm -rf ~/.acme.sh/${server_ip} 2> /dev/null
-        [[ -n "$ipv6_addr" ]] && rm -rf ~/.acme.sh/${ipv6_addr} 2> /dev/null
+        rm -rf ~/.acme.sh/${server_ip} ~/.acme.sh/${server_ip}_ecc 2> /dev/null
+        [[ -n "$ipv6_addr" ]] && rm -rf ~/.acme.sh/${ipv6_addr} ~/.acme.sh/${ipv6_addr}_ecc 2> /dev/null
         rm -rf ${certPath} 2> /dev/null
         return 1
     fi
@@ -1576,14 +1586,30 @@ ssl_cert_issue() {
     LOGD "Your domain is: ${domain}, checking it..."
     SSL_ISSUED_DOMAIN="${domain}"
 
-    # detect existing certificate and reuse it if present
+    # detect existing certificate and reuse it only if its files are actually
+    # present and non-empty. acme.sh stores ECC certs under ${domain}_ecc and RSA
+    # certs under ${domain}; a failed issuance can leave a domain entry in --list
+    # with no usable cert files, which must not be reused (it produces a 0-byte
+    # fullchain.pem). Broken partial state is cleaned up so issuance can proceed.
     local cert_exists=0
     if ~/.acme.sh/acme.sh --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
-        cert_exists=1
-        local certInfo=$(~/.acme.sh/acme.sh --list 2> /dev/null | grep -F "${domain}")
-        LOGI "Existing certificate found for ${domain}, will reuse it."
-        [[ -n "${certInfo}" ]] && LOGI "${certInfo}"
-    else
+        local acmeCertDir=""
+        if [[ -s ~/.acme.sh/${domain}_ecc/fullchain.cer && -s ~/.acme.sh/${domain}_ecc/${domain}.key ]]; then
+            acmeCertDir=~/.acme.sh/${domain}_ecc
+        elif [[ -s ~/.acme.sh/${domain}/fullchain.cer && -s ~/.acme.sh/${domain}/${domain}.key ]]; then
+            acmeCertDir=~/.acme.sh/${domain}
+        fi
+        if [[ -n "${acmeCertDir}" ]]; then
+            cert_exists=1
+            local certInfo=$(~/.acme.sh/acme.sh --list 2> /dev/null | grep -F "${domain}")
+            LOGI "Existing certificate found for ${domain}, will reuse it."
+            [[ -n "${certInfo}" ]] && LOGI "${certInfo}"
+        else
+            LOGW "Found incomplete acme.sh state for ${domain} (no valid certificate files); cleaning it up and re-issuing."
+            rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
+        fi
+    fi
+    if [[ ${cert_exists} -eq 0 ]]; then
         LOGI "Your domain is ready for issuing certificates now..."
     fi
 
@@ -1611,7 +1637,7 @@ ssl_cert_issue() {
         ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
         if [ $? -ne 0 ]; then
             LOGE "Issuing certificate failed, please check logs."
-            rm -rf ~/.acme.sh/${domain}
+            rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
             exit 1
         else
             LOGE "Issuing certificate succeeded, installing certificates..."
@@ -1664,7 +1690,7 @@ ssl_cert_issue() {
     else
         LOGE "Installing certificate failed, exiting."
         if [[ ${cert_exists} -eq 0 ]]; then
-            rm -rf ~/.acme.sh/${domain}
+            rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
         fi
         exit 1
     fi
@@ -2248,6 +2274,18 @@ failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*Disconnect
 ignoreregex =
 EOF
 
+    # Ports to exempt from the ban so an over-limit proxy client can never lock
+    # the administrator out of SSH or the panel. The ban still covers every other
+    # TCP port (including all Xray inbounds), so IP-limit keeps working for inbounds
+    # added later without regenerating these files.
+    local ssh_ports
+    ssh_ports=$(grep -oP '^[[:space:]]*Port[[:space:]]+\K[0-9]+' /etc/ssh/sshd_config 2>/dev/null | paste -sd, -)
+    [[ -z "${ssh_ports}" ]] && ssh_ports="22"
+    local panel_port
+    panel_port=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo 'port: .+' | awk '{print $2}')
+    local exempt_ports="${ssh_ports}"
+    [[ -n "${panel_port}" ]] && exempt_ports="${exempt_ports},${panel_port}"
+
     cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
 [INCLUDES]
 before = iptables-allports.conf
@@ -2263,16 +2301,17 @@ actionstop = <iptables> -D <chain> -p <protocol> -j f2b-<name>
 
 actioncheck = <iptables> -n -L <chain> | grep -q 'f2b-<name>[ \t]'
 
-actionban = <iptables> -I f2b-<name> 1 -s <ip> -j <blocktype>
+actionban = <iptables> -I f2b-<name> 1 -s <ip> -p <protocol> -m multiport ! --dports <exemptports> -j <blocktype>
             echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned for <bantime> seconds." >> ${iplimit_banned_log_path}
 
-actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
+actionunban = <iptables> -D f2b-<name> -s <ip> -p <protocol> -m multiport ! --dports <exemptports> -j <blocktype>
               echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
 
 [Init]
 name = default
 protocol = tcp
 chain = INPUT
+exemptports = ${exempt_ports}
 EOF
 
     echo -e "${green}Ip Limit jail files created with a bantime of ${bantime} minutes.${plain}"
@@ -2690,7 +2729,7 @@ migrate_to_postgres() {
     echo ""
     echo -e "${yellow}This copies your current SQLite data into a PostgreSQL database,${plain}"
     echo -e "${yellow}then switches the panel to PostgreSQL and restarts it.${plain}"
-    echo -e "${yellow}The destination PostgreSQL database must be empty.${plain}"
+    echo -e "${red}Any existing panel tables in the destination will be cleared and overwritten.${plain}"
     confirm "Continue?" "n" || return 0
 
     local dsn="" pg_mode

@@ -53,6 +53,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getPanelUpdateInfo", a.getPanelUpdateInfo)
 	g.GET("/getConfigJson", a.getConfigJson)
 	g.GET("/getDb", a.getDb)
+	g.GET("/getMigration", a.getMigration)
 	g.GET("/getNewUUID", a.getNewUUID)
 	g.GET("/getWebCertFiles", a.getWebCertFiles)
 	g.GET("/getNewX25519Cert", a.getNewX25519Cert)
@@ -298,6 +299,24 @@ func (a *ServerController) getDb(c *gin.Context) {
 	c.Header("Content-Type", "application/octet-stream")
 	c.Header("Content-Disposition", "attachment; filename="+filename)
 	c.Writer.Write(db)
+}
+
+// getMigration downloads a cross-engine migration file: a .dump on SQLite or a
+// .db SQLite database on PostgreSQL, so the data can seed the other backend.
+func (a *ServerController) getMigration(c *gin.Context) {
+	data, filename, err := a.serverService.GetMigration()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.index.getDatabaseError"), err)
+		return
+	}
+	if !filenameRegex.MatchString(filename) {
+		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
+		return
+	}
+
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Writer.Write(data)
 }
 
 // importDB imports a database file and restarts the Xray service.

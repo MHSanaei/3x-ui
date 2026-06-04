@@ -277,7 +277,10 @@
       "getConfigError": "Виникла помилка під час отримання файлу конфігурації",
       "backupPostgresNote": "Ця панель працює на PostgreSQL. «Резервна копія» завантажує архів pg_dump (.dump), а «Відновлення» завантажує його назад через pg_restore. На сервері мають бути встановлені клієнтські інструменти PostgreSQL (pg_dump і pg_restore).",
       "exportDatabasePgDesc": "Натисніть, щоб завантажити дамп PostgreSQL (.dump) вашої поточної бази даних на ваш пристрій.",
-      "importDatabasePgDesc": "Натисніть, щоб вибрати та завантажити файл .dump для відновлення бази даних PostgreSQL. Це замінить усі поточні дані."
+      "importDatabasePgDesc": "Натисніть, щоб вибрати та завантажити файл .dump для відновлення бази даних PostgreSQL. Це замінить усі поточні дані.",
+      "migrationDownload": "Завантажити файл міграції",
+      "migrationDownloadDesc": "Натисніть, щоб завантажити переносний експорт .dump (текст SQL) вашої бази даних SQLite.",
+      "migrationDownloadPgDesc": "Натисніть, щоб завантажити базу даних SQLite (.db), створену з ваших даних PostgreSQL і готову для запуску панелі на SQLite."
     },
     "inbounds": {
       "title": "Вхідні",
@@ -1001,6 +1004,10 @@
       "subEnableRoutingDesc": "Глобальне налаштування для увімкнення маршрутизації у VPN-клієнті. (Тільки для Happ)",
       "subRoutingRules": "Правила маршрутизації",
       "subRoutingRulesDesc": "Глобальні правила маршрутизації для VPN-клієнта. (Тільки для Happ)",
+      "subClashEnableRouting": "Увімкнути маршрутизацію",
+      "subClashEnableRoutingDesc": "Додавати глобальні правила маршрутизації Clash/Mihomo до згенерованих YAML-підписок.",
+      "subClashRoutingRules": "Глобальні правила маршрутизації",
+      "subClashRoutingRulesDesc": "Правила Clash/Mihomo, що додаються на початок кожної YAML-підписки перед MATCH,PROXY.",
       "subListen": "Слухати IP",
       "subListenDesc": "IP-адреса для служби підписки. (залиште порожнім, щоб слухати всі IP-адреси)",
       "subPort": "Слухати порт",
