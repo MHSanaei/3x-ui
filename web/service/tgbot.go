@@ -495,6 +495,10 @@ func (t *Tgbot) OnReceive() {
 		}, th.TextEqual(t.I18nBot("tgbot.buttons.closeKeyboard")))
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
+			if !t.isCommandForCurrentBot(&message) {
+				return nil
+			}
+
 			// Use goroutine with worker pool for concurrent command processing
 			go func() {
 				messageWorkerPool <- struct{}{}        // Acquire worker
@@ -682,6 +686,22 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 	if msg != "" {
 		t.sendResponse(chatId, msg, onlyMessage, isAdmin)
 	}
+}
+
+func (t *Tgbot) isCommandForCurrentBot(message *telego.Message) bool {
+	return isCommandForBot(message.Text, botUsername())
+}
+
+func botUsername() string {
+	if bot == nil {
+		return ""
+	}
+	return bot.Username()
+}
+
+func isCommandForBot(text string, username string) bool {
+	_, commandUsername, _ := tu.ParseCommand(text)
+	return commandUsername == "" || username == "" || strings.EqualFold(commandUsername, username)
 }
 
 // sendResponse sends the response message based on the onlyMessage flag.
