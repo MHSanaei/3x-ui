@@ -39,6 +39,50 @@ func TestEnsureUniqueProxyNames(t *testing.T) {
 	}
 }
 
+func TestXrayDirectRulesToClash(t *testing.T) {
+	raw := `[
+		{"type":"field","outboundTag":"direct","domain":["geosite:cn","domain:example.com","full:exact.example","keyword:bank"],"ip":["geoip:cn","geoip:private","1.2.3.0/24","2001:db8::/32"]},
+		{"type":"field","outboundTag":"proxy","domain":["geosite:google"],"ip":["geoip:us"]},
+		{"type":"field","outboundTag":"direct","domain":["geosite:cn"],"ip":["geoip:cn"]}
+	]`
+
+	got := xrayDirectRulesToClash(raw)
+	want := []string{
+		"GEOSITE,cn,DIRECT",
+		"DOMAIN-SUFFIX,example.com,DIRECT",
+		"DOMAIN,exact.example,DIRECT",
+		"DOMAIN-KEYWORD,bank,DIRECT",
+		"GEOIP,CN,DIRECT",
+		"IP-CIDR,10.0.0.0/8,DIRECT,no-resolve",
+		"IP-CIDR,172.16.0.0/12,DIRECT,no-resolve",
+		"IP-CIDR,192.168.0.0/16,DIRECT,no-resolve",
+		"IP-CIDR,127.0.0.0/8,DIRECT,no-resolve",
+		"IP-CIDR,169.254.0.0/16,DIRECT,no-resolve",
+		"IP-CIDR6,fc00::/7,DIRECT,no-resolve",
+		"IP-CIDR6,fe80::/10,DIRECT,no-resolve",
+		"IP-CIDR6,::1/128,DIRECT,no-resolve",
+		"IP-CIDR,1.2.3.0/24,DIRECT,no-resolve",
+		"IP-CIDR6,2001:db8::/32,DIRECT,no-resolve",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("xrayDirectRulesToClash() = %#v, want %#v", got, want)
+	}
+}
+
+func TestXrayDirectRulesToClashIgnoresInvalidRules(t *testing.T) {
+	cases := []string{
+		"",
+		"not-json",
+		`[{"outboundTag":"direct","domain":["regexp:.*"]},{"outboundTag":"blocked","ip":["geoip:cn"]}]`,
+	}
+
+	for _, raw := range cases {
+		if got := xrayDirectRulesToClash(raw); len(got) != 0 {
+			t.Fatalf("xrayDirectRulesToClash(%q) = %#v, want empty", raw, got)
+		}
+	}
+}
+
 func TestApplyTransport_XHTTP(t *testing.T) {
 	svc := &SubClashService{}
 	proxy := map[string]any{}

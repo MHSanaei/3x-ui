@@ -16,6 +16,7 @@ import (
 type SubClashService struct {
 	inboundService service.InboundService
 	SubService     *SubService
+	directRules    []string
 }
 
 type ClashConfig struct {
@@ -24,8 +25,11 @@ type ClashConfig struct {
 	Rules       []string         `yaml:"rules"`
 }
 
-func NewSubClashService(subService *SubService) *SubClashService {
-	return &SubClashService{SubService: subService}
+func NewSubClashService(subService *SubService, rules string) *SubClashService {
+	return &SubClashService{
+		SubService:  subService,
+		directRules: xrayDirectRulesToClash(rules),
+	}
 }
 
 func (s *SubClashService) GetClash(subId string, host string) (string, string, error) {
@@ -76,6 +80,10 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	}
 	proxyNames = append(proxyNames, "DIRECT")
 
+	rules := make([]string, 0, len(s.directRules)+1)
+	rules = append(rules, s.directRules...)
+	rules = append(rules, "MATCH,PROXY")
+
 	config := ClashConfig{
 		Proxies: proxies,
 		ProxyGroups: []map[string]any{{
@@ -83,7 +91,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 			"type":    "select",
 			"proxies": proxyNames,
 		}},
-		Rules: []string{"MATCH,PROXY"},
+		Rules: rules,
 	}
 
 	finalYAML, err := yaml.Marshal(config)
@@ -125,6 +133,130 @@ func fallbackProxyName(proxy map[string]any, idx int) string {
 		return fmt.Sprintf("%s-%s-%v", typ, server, proxy["port"])
 	}
 	return fmt.Sprintf("proxy-%d", idx+1)
+}
+
+type xrayDirectRule struct {
+	OutboundTag string   `json:"outboundTag"`
+	Domain      []string `json:"domain"`
+	IP          []string `json:"ip"`
+}
+
+func xrayDirectRulesToClash(raw string) []string {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+
+	var xrayRules []xrayDirectRule
+	if err := json.Unmarshal([]byte(raw), &xrayRules); err != nil {
+		return nil
+	}
+
+	var rules []string
+	for _, rule := range xrayRules {
+		if rule.OutboundTag != "direct" {
+			continue
+		}
+		for _, domain := range rule.Domain {
+			if clashRule := xrayDomainRuleToClash(domain); clashRule != "" {
+				rules = append(rules, clashRule)
+			}
+		}
+		for _, ip := range rule.IP {
+			rules = append(rules, xrayIPRulesToClash(ip)...)
+		}
+	}
+	return dedupeClashRules(rules)
+}
+
+func xrayDomainRuleToClash(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+
+	switch {
+	case strings.HasPrefix(value, "geosite:"):
+		tag := strings.TrimSpace(strings.TrimPrefix(value, "geosite:"))
+		if tag == "" {
+			return ""
+		}
+		return fmt.Sprintf("GEOSITE,%s,DIRECT", tag)
+	case strings.HasPrefix(value, "domain:"):
+		domain := strings.TrimSpace(strings.TrimPrefix(value, "domain:"))
+		if domain == "" {
+			return ""
+		}
+		return fmt.Sprintf("DOMAIN-SUFFIX,%s,DIRECT", domain)
+	case strings.HasPrefix(value, "full:"):
+		domain := strings.TrimSpace(strings.TrimPrefix(value, "full:"))
+		if domain == "" {
+			return ""
+		}
+		return fmt.Sprintf("DOMAIN,%s,DIRECT", domain)
+	case strings.HasPrefix(value, "keyword:"):
+		keyword := strings.TrimSpace(strings.TrimPrefix(value, "keyword:"))
+		if keyword == "" {
+			return ""
+		}
+		return fmt.Sprintf("DOMAIN-KEYWORD,%s,DIRECT", keyword)
+	case strings.HasPrefix(value, "regexp:"):
+		return ""
+	default:
+		return fmt.Sprintf("DOMAIN-SUFFIX,%s,DIRECT", value)
+	}
+}
+
+func xrayIPRulesToClash(value string) []string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+
+	if strings.HasPrefix(value, "geoip:") {
+		tag := strings.TrimSpace(strings.TrimPrefix(value, "geoip:"))
+		if tag == "" {
+			return nil
+		}
+		if strings.EqualFold(tag, "private") {
+			return []string{
+				"IP-CIDR,10.0.0.0/8,DIRECT,no-resolve",
+				"IP-CIDR,172.16.0.0/12,DIRECT,no-resolve",
+				"IP-CIDR,192.168.0.0/16,DIRECT,no-resolve",
+				"IP-CIDR,127.0.0.0/8,DIRECT,no-resolve",
+				"IP-CIDR,169.254.0.0/16,DIRECT,no-resolve",
+				"IP-CIDR6,fc00::/7,DIRECT,no-resolve",
+				"IP-CIDR6,fe80::/10,DIRECT,no-resolve",
+				"IP-CIDR6,::1/128,DIRECT,no-resolve",
+			}
+		}
+		return []string{fmt.Sprintf("GEOIP,%s,DIRECT", strings.ToUpper(tag))}
+	}
+
+	if strings.HasPrefix(value, "ext:") {
+		return nil
+	}
+
+	ruleType := "IP-CIDR"
+	if strings.Contains(value, ":") {
+		ruleType = "IP-CIDR6"
+	}
+	return []string{fmt.Sprintf("%s,%s,DIRECT,no-resolve", ruleType, value)}
+}
+
+func dedupeClashRules(rules []string) []string {
+	if len(rules) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(rules))
+	deduped := make([]string, 0, len(rules))
+	for _, rule := range rules {
+		if _, ok := seen[rule]; ok {
+			continue
+		}
+		seen[rule] = struct{}{}
+		deduped = append(deduped, rule)
+	}
+	return deduped
 }
 
 func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client, host string) []map[string]any {

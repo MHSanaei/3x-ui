@@ -91,7 +91,7 @@ func NewSUBController(
 
 		subService:      sub,
 		subJsonService:  NewSubJsonService(jsonFragment, jsonNoise, jsonMux, jsonRules, sub),
-		subClashService: NewSubClashService(sub),
+		subClashService: NewSubClashService(sub, jsonRules),
 	}
 	a.initRouter(g)
 	return a
