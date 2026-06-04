@@ -557,7 +557,6 @@ func cloneMap(src map[string]any) map[string]any {
 	return dst
 }
 
-
 func mergeClashRulesYAML(base map[string]any, raw string) error {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -573,20 +572,14 @@ func mergeClashRulesYAML(base map[string]any, raw string) error {
 	switch typed := custom.(type) {
 	case []any:
 		mergeClashRules(base, typed)
-	case []string:
-		rules := make([]any, 0, len(typed))
-		for _, rule := range typed {
-			rules = append(rules, rule)
-		}
-		mergeClashRules(base, rules)
 	case map[string]any:
 		if rules, ok := typed["rules"]; ok {
 			if ruleList, ok := asAnySlice(rules); ok {
 				mergeClashRules(base, ruleList)
 			}
 		}
-	case string:
-		mergeClashRules(base, linesToClashRules(typed))
+	default:
+		mergeClashRules(base, linesToClashRules(raw))
 	}
 
 	return nil

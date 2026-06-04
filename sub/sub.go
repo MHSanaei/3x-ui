@@ -142,14 +142,13 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	SubClashEnableRouting, err := s.settingService.GetSubClashEnableRouting()
 	if err != nil {
-		SubClashEnableRouting = true
+		SubClashEnableRouting = false
 	}
 
 	SubClashRules, err := s.settingService.GetSubClashRules()
 	if err != nil {
 		SubClashRules = ""
 	}
-
 
 	SubTitle, err := s.settingService.GetSubTitle()
 	if err != nil {

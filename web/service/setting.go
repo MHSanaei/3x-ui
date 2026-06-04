@@ -79,7 +79,7 @@ var defaultValueMap = map[string]string{
 	"subClashEnable":              "false",
 	"subClashPath":                "/clash/",
 	"subClashURI":                 "",
-	"subClashEnableRouting":       "true",
+	"subClashEnableRouting":       "false",
 	"subClashRules":               "",
 	"subJsonFragment":             "",
 	"subJsonNoises":               "",
