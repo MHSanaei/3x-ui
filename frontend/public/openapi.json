@@ -1495,6 +1495,36 @@
         }
       }
     },
+    "/panel/api/server/getMigration": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Stream a cross-engine migration file as an attachment: a .dump (SQL text) on SQLite, or a .db SQLite database built from the live data on PostgreSQL.",
+        "operationId": "get_panel_api_server_getMigration",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/getNewUUID": {
       "get": {
         "tags": [

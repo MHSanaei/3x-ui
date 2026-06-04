@@ -1747,14 +1747,43 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 	if len(emails) == 0 {
 		return 0, nil
 	}
-	count := 0
-	for _, email := range emails {
-		if _, err := s.ResetTrafficByEmail(inboundSvc, email); err != nil {
-			return count, err
+	seen := map[string]struct{}{}
+	cleanEmails := make([]string, 0, len(emails))
+	for _, e := range emails {
+		e = strings.TrimSpace(e)
+		if e == "" {
+			continue
 		}
-		count++
+		if _, ok := seen[e]; ok {
+			continue
+		}
+		seen[e] = struct{}{}
+		cleanEmails = append(cleanEmails, e)
 	}
-	return count, nil
+	if len(cleanEmails) == 0 {
+		return 0, nil
+	}
+
+	affected := 0
+	err := submitTrafficWrite(func() error {
+		db := database.GetDB()
+		return db.Transaction(func(tx *gorm.DB) error {
+			for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
+				res := tx.Model(xray.ClientTraffic{}).
+					Where("email IN ?", batch).
+					Updates(map[string]any{"enable": true, "up": 0, "down": 0})
+				if res.Error != nil {
+					return res.Error
+				}
+				affected += int(res.RowsAffected)
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		return 0, err
+	}
+	return affected, nil
 }
 
 func (s *ClientService) CreateGroup(name string) error {
@@ -3334,33 +3363,27 @@ func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, erro
 		return 0, false, nil
 	}
 
-	emails := make(map[string]struct{}, len(rows))
+	seen := make(map[string]struct{}, len(rows))
+	emails := make([]string, 0, len(rows))
 	for _, r := range rows {
-		if r.Email != "" {
-			emails[r.Email] = struct{}{}
+		if r.Email == "" {
+			continue
 		}
+		if _, ok := seen[r.Email]; ok {
+			continue
+		}
+		seen[r.Email] = struct{}{}
+		emails = append(emails, r.Email)
+	}
+	if len(emails) == 0 {
+		return 0, false, nil
 	}
 
-	needRestart := false
-	deleted := 0
-	for email := range emails {
-		var rec model.ClientRecord
-		if err := db.Where("email = ?", email).First(&rec).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				continue
-			}
-			return deleted, needRestart, err
-		}
-		nr, err := s.Delete(inboundSvc, rec.Id, false)
-		if err != nil {
-			return deleted, needRestart, err
-		}
-		if nr {
-			needRestart = true
-		}
-		deleted++
+	res, needRestart, err := s.BulkDelete(inboundSvc, emails, false)
+	if err != nil {
+		return res.Deleted, needRestart, err
 	}
-	return deleted, needRestart, nil
+	return res.Deleted, needRestart, nil
 }
 
 func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id int) error {
