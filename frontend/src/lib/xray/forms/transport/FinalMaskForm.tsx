@@ -6,21 +6,15 @@ import type { NamePath } from 'antd/es/form/interface';
 import { RandomUtil } from '@/utils';
 import { OutboundProtocols } from '@/schemas/primitives';
 
-// Pattern A FinalMaskForm. Renders a Fragment of Form.Items at absolute
-// paths under `name`; the parent modal owns the Form instance.
-//
-// Naming convention inside Form.List: AntD prefixes Form.Item `name`
-// with the Form.List's own `name`. So Form.Items inside the render
-// prop use RELATIVE paths (e.g. `[field.name, 'type']`). Nested
-// Form.Lists also use relative names. Using absolute paths here would
-// double up the prefix and silently route reads/writes to the wrong
-// storage path.
-
 export interface FinalMaskFormProps {
   name: NamePath;
   network: string;
   protocol: string;
   form: FormInstance;
+  // When true, all sections (TCP / UDP / QUIC) are shown regardless of
+  // network/protocol. Used by the global sub-JSON finalmask editor where
+  // the masks apply to every stream rather than one specific transport.
+  showAll?: boolean;
 }
 
 const TCP_NETWORKS = ['raw', 'tcp', 'httpupgrade', 'ws', 'grpc', 'xhttp'];
@@ -99,12 +93,12 @@ function defaultUdpHop(): Record<string, unknown> {
   return { ports: '20000-50000', interval: '5-10' };
 }
 
-export default function FinalMaskForm({ name, network, protocol, form }: FinalMaskFormProps) {
+export default function FinalMaskForm({ name, network, protocol, form, showAll = false }: FinalMaskFormProps) {
   const base = asPath(name);
   const isHysteria = protocol === OutboundProtocols.Hysteria || protocol === 'hysteria';
-  const showTcp = TCP_NETWORKS.includes(network);
-  const showUdp = isHysteria || network === 'kcp';
-  const showQuic = isHysteria || network === 'xhttp';
+  const showTcp = showAll || TCP_NETWORKS.includes(network);
+  const showUdp = showAll || isHysteria || network === 'kcp';
+  const showQuic = showAll || isHysteria || network === 'xhttp';
   const quicParams = Form.useWatch([...base, 'quicParams'], { form, preserve: true });
   const hasQuicParams = quicParams != null;
 
@@ -392,13 +386,13 @@ function UdpMaskItem({
   const options = isHysteria
     ? [{ value: 'salamander', label: 'Salamander (Hysteria2)' }]
     : [
-        { value: 'mkcp-legacy', label: 'mKCP Legacy' },
-        { value: 'xdns', label: 'xDNS' },
-        { value: 'xicmp', label: 'xICMP' },
-        { value: 'realm', label: 'Realm' },
-        { value: 'header-custom', label: 'Header Custom' },
-        { value: 'noise', label: 'Noise' },
-      ];
+      { value: 'mkcp-legacy', label: 'mKCP Legacy' },
+      { value: 'xdns', label: 'xDNS' },
+      { value: 'xicmp', label: 'xICMP' },
+      { value: 'realm', label: 'Realm' },
+      { value: 'header-custom', label: 'Header Custom' },
+      { value: 'noise', label: 'Noise' },
+    ];
 
   return (
     <div>

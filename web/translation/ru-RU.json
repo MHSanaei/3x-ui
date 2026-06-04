@@ -1004,6 +1004,10 @@
       "subEnableRoutingDesc": "Глобальная настройка для включения маршрутизации в VPN-клиенте. (Только для Happ)",
       "subRoutingRules": "Правила маршрутизации",
       "subRoutingRulesDesc": "Глобальные правила маршрутизации для VPN-клиента. (Только для Happ)",
+      "subClashEnableRouting": "Включить маршрутизацию",
+      "subClashEnableRoutingDesc": "Добавлять глобальные правила маршрутизации Clash/Mihomo в сгенерированные YAML-подписки.",
+      "subClashRoutingRules": "Глобальные правила маршрутизации",
+      "subClashRoutingRulesDesc": "Правила Clash/Mihomo, добавляемые в начало каждой YAML-подписки перед MATCH,PROXY.",
       "subListen": "Прослушивание IP",
       "subListenDesc": "Оставьте пустым по умолчанию, чтобы отслеживать все IP-адреса",
       "subPort": "Порт подписки",
@@ -1070,6 +1074,8 @@
         "defaultIpLimit": "Лимит IP по умолчанию"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "Маски finalmask xray (TCP/UDP) и настройки QUIC, добавляемые в каждый поток JSON-подписки. Требуется свежая версия xray на клиенте.",
         "packets": "Пакеты",
         "length": "Длина",
         "interval": "Интервал",

@@ -1004,6 +1004,10 @@
       "subEnableRoutingDesc": "Configuração global para habilitar o roteamento no cliente VPN. (Apenas para Happ)",
       "subRoutingRules": "Regras de roteamento",
       "subRoutingRulesDesc": "Regras de roteamento globais para o cliente VPN. (Apenas para Happ)",
+      "subClashEnableRouting": "Ativar roteamento",
+      "subClashEnableRoutingDesc": "Incluir regras globais de roteamento Clash/Mihomo nas assinaturas YAML geradas.",
+      "subClashRoutingRules": "Regras globais de roteamento",
+      "subClashRoutingRulesDesc": "Regras Clash/Mihomo adicionadas ao início de cada assinatura YAML antes de MATCH,PROXY.",
       "subListen": "IP de Escuta",
       "subListenDesc": "O endereço IP para o serviço de assinatura. (deixe em branco para escutar em todos os IPs)",
       "subPort": "Porta de Escuta",
@@ -1070,6 +1074,8 @@
         "defaultIpLimit": "Limite de IP padrão"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "Máscaras finalmask do xray (TCP/UDP) e ajustes QUIC injetados em cada fluxo de assinatura JSON. Requer um cliente xray recente.",
         "packets": "Pacotes",
         "length": "Comprimento",
         "interval": "Intervalo",

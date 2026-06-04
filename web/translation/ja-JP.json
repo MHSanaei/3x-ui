@@ -1004,6 +1004,10 @@
       "subEnableRoutingDesc": "VPNクライアントでルーティングを有効にするためのグローバル設定。(Happのみ)",
       "subRoutingRules": "ルーティングルール",
       "subRoutingRulesDesc": "VPNクライアントのグローバルルーティングルール。(Happのみ)",
+      "subClashEnableRouting": "ルーティングを有効化",
+      "subClashEnableRoutingDesc": "生成されたYAMLサブスクリプションにClash/Mihomoのグローバルルーティングルールを含めます。",
+      "subClashRoutingRules": "グローバルルーティングルール",
+      "subClashRoutingRulesDesc": "各YAMLサブスクリプションのMATCH,PROXYより前に追加されるClash/Mihomoルール。",
       "subListen": "監視IP",
       "subListenDesc": "サブスクリプションサービスが監視するIPアドレス（空白にするとすべてのIPを監視）",
       "subPort": "監視ポート",
@@ -1070,6 +1074,8 @@
         "defaultIpLimit": "デフォルト IP 制限"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "すべての JSON サブスクリプションストリームに注入される xray finalmask マスク（TCP/UDP）と QUIC チューニング。新しい xray クライアントが必要です。",
         "packets": "パケット",
         "length": "長さ",
         "interval": "間隔",
