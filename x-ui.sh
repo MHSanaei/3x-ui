@@ -2248,6 +2248,18 @@ failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*Disconnect
 ignoreregex =
 EOF
 
+    # Ports to exempt from the ban so an over-limit proxy client can never lock
+    # the administrator out of SSH or the panel. The ban still covers every other
+    # TCP port (including all Xray inbounds), so IP-limit keeps working for inbounds
+    # added later without regenerating these files.
+    local ssh_ports
+    ssh_ports=$(grep -oP '^[[:space:]]*Port[[:space:]]+\K[0-9]+' /etc/ssh/sshd_config 2>/dev/null | paste -sd, -)
+    [[ -z "${ssh_ports}" ]] && ssh_ports="22"
+    local panel_port
+    panel_port=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo 'port: .+' | awk '{print $2}')
+    local exempt_ports="${ssh_ports}"
+    [[ -n "${panel_port}" ]] && exempt_ports="${exempt_ports},${panel_port}"
+
     cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
 [INCLUDES]
 before = iptables-allports.conf
@@ -2263,16 +2275,17 @@ actionstop = <iptables> -D <chain> -p <protocol> -j f2b-<name>
 
 actioncheck = <iptables> -n -L <chain> | grep -q 'f2b-<name>[ \t]'
 
-actionban = <iptables> -I f2b-<name> 1 -s <ip> -j <blocktype>
+actionban = <iptables> -I f2b-<name> 1 -s <ip> -p <protocol> -m multiport ! --dports <exemptports> -j <blocktype>
             echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned for <bantime> seconds." >> ${iplimit_banned_log_path}
 
-actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
+actionunban = <iptables> -D f2b-<name> -s <ip> -p <protocol> -m multiport ! --dports <exemptports> -j <blocktype>
               echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
 
 [Init]
 name = default
 protocol = tcp
 chain = INPUT
+exemptports = ${exempt_ports}
 EOF
 
     echo -e "${green}Ip Limit jail files created with a bantime of ${bantime} minutes.${plain}"
