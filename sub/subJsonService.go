@@ -22,6 +22,8 @@ type SubJsonService struct {
 	configJson       map[string]any
 	defaultOutbounds []json_util.RawMessage
 	fragmentOrNoises bool
+	fragment         string
+	noises           string
 	mux              string
 
 	inboundService service.InboundService
@@ -79,6 +81,8 @@ func NewSubJsonService(fragment string, noises string, mux string, rules string,
 		configJson:       configJson,
 		defaultOutbounds: defaultOutbounds,
 		fragmentOrNoises: fragmentOrNoises,
+		fragment:         fragment,
+		noises:           noises,
 		mux:              mux,
 		SubService:       subService,
 	}
@@ -232,6 +236,7 @@ func (s *SubJsonService) streamData(stream string) map[string]any {
 
 	if s.fragmentOrNoises {
 		streamSettings["sockopt"] = json_util.RawMessage(`{"dialerProxy": "direct_out", "tcpKeepAliveIdle": 100}`)
+		s.applySubJsonFinalMask(streamSettings)
 	}
 
 	// remove proxy protocol
@@ -253,6 +258,104 @@ func (s *SubJsonService) streamData(stream string) map[string]any {
 		}
 	}
 	return streamSettings
+}
+
+func (s *SubJsonService) applySubJsonFinalMask(streamSettings map[string]any) {
+	finalmask, _ := streamSettings["finalmask"].(map[string]any)
+	if finalmask == nil {
+		finalmask = map[string]any{}
+	}
+
+	changed := false
+	if tcpMask, ok := buildSubJsonFragmentFinalMask(s.fragment); ok {
+		tcpMasks, _ := finalmask["tcp"].([]any)
+		finalmask["tcp"] = append(tcpMasks, tcpMask)
+		changed = true
+	}
+	if udpMask, ok := buildSubJsonNoisesFinalMask(s.noises); ok {
+		udpMasks, _ := finalmask["udp"].([]any)
+		finalmask["udp"] = append(udpMasks, udpMask)
+		changed = true
+	}
+
+	if changed {
+		streamSettings["finalmask"] = finalmask
+	}
+}
+
+func buildSubJsonFragmentFinalMask(fragment string) (map[string]any, bool) {
+	if fragment == "" {
+		return nil, false
+	}
+
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(fragment), &settings); err != nil || len(settings) == 0 {
+		return nil, false
+	}
+
+	if interval, ok := settings["interval"]; ok {
+		if _, hasDelay := settings["delay"]; !hasDelay {
+			settings["delay"] = interval
+		}
+		delete(settings, "interval")
+	}
+
+	return map[string]any{
+		"type":     "fragment",
+		"settings": settings,
+	}, true
+}
+
+func buildSubJsonNoisesFinalMask(noises string) (map[string]any, bool) {
+	if noises == "" {
+		return nil, false
+	}
+
+	var rawNoises []map[string]any
+	if err := json.Unmarshal([]byte(noises), &rawNoises); err != nil || len(rawNoises) == 0 {
+		return nil, false
+	}
+
+	noiseItems := make([]any, 0, len(rawNoises))
+	for _, rawNoise := range rawNoises {
+		item := map[string]any{}
+		noiseType, _ := rawNoise["type"].(string)
+		packet, hasPacket := rawNoise["packet"]
+
+		if noiseType == "rand" {
+			if !hasPacket {
+				continue
+			}
+			item["rand"] = packet
+		} else if hasPacket {
+			if noiseType != "" {
+				item["type"] = noiseType
+			}
+			item["packet"] = packet
+		} else {
+			continue
+		}
+
+		if delay, ok := rawNoise["delay"]; ok {
+			item["delay"] = delay
+		}
+		if randRange, ok := rawNoise["randRange"]; ok {
+			item["randRange"] = randRange
+		}
+
+		noiseItems = append(noiseItems, item)
+	}
+
+	if len(noiseItems) == 0 {
+		return nil, false
+	}
+
+	return map[string]any{
+		"type": "noise",
+		"settings": map[string]any{
+			"noise": noiseItems,
+		},
+	}, true
 }
 
 func (s *SubJsonService) removeAcceptProxy(setting any) map[string]any {
@@ -442,7 +545,7 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 	newStream["hysteriaSettings"] = outHyStream
 
 	if finalmask, ok := hyStream["finalmask"].(map[string]any); ok {
-		newStream["finalmask"] = finalmask
+		newStream["finalmask"] = mergeFinalMask(newStream["finalmask"], finalmask)
 	}
 
 	newStream["network"] = "hysteria"
@@ -452,6 +555,41 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
+}
+
+func mergeFinalMask(base any, extra map[string]any) map[string]any {
+	merged := map[string]any{}
+	if baseMap, ok := base.(map[string]any); ok {
+		for key, value := range baseMap {
+			switch key {
+			case "tcp", "udp":
+				if masks, ok := value.([]any); ok {
+					merged[key] = append([]any(nil), masks...)
+				}
+			default:
+				merged[key] = value
+			}
+		}
+	}
+
+	for key, value := range extra {
+		switch key {
+		case "tcp", "udp":
+			baseMasks, _ := merged[key].([]any)
+			extraMasks, _ := value.([]any)
+			if len(extraMasks) > 0 {
+				merged[key] = append(baseMasks, extraMasks...)
+			}
+		case "quicParams":
+			if _, exists := merged[key]; !exists {
+				merged[key] = value
+			}
+		default:
+			merged[key] = value
+		}
+	}
+
+	return merged
 }
 
 type Outbound struct {
