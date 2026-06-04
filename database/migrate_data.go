@@ -86,6 +86,14 @@ func MigrateData(srcPath, dstDSN string) error {
 		}
 	}
 
+	// AutoMigrate re-creates the legacy client_traffics -> inbounds foreign key,
+	// but the running panel drops it (see dropLegacyForeignKeys) and tolerates
+	// client_traffics rows whose inbound was deleted. Drop it here too so copying
+	// such orphaned rows can't fail with an fk_inbounds_client_stats violation.
+	if err := dst.Exec("ALTER TABLE client_traffics DROP CONSTRAINT IF EXISTS fk_inbounds_client_stats").Error; err != nil {
+		return fmt.Errorf("drop legacy foreign key: %w", err)
+	}
+
 	// Empty the destination tables so the migration is idempotent: a fresh
 	// PostgreSQL DB already holds an auto-seeded admin (id=1) from any prior
 	// panel start, and a partially-failed earlier run leaves rows behind. Either

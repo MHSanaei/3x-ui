@@ -1004,6 +1004,10 @@
       "subEnableRoutingDesc": "Глобальне налаштування для увімкнення маршрутизації у VPN-клієнті. (Тільки для Happ)",
       "subRoutingRules": "Правила маршрутизації",
       "subRoutingRulesDesc": "Глобальні правила маршрутизації для VPN-клієнта. (Тільки для Happ)",
+      "subClashEnableRouting": "Увімкнути маршрутизацію",
+      "subClashEnableRoutingDesc": "Додавати глобальні правила маршрутизації Clash/Mihomo до згенерованих YAML-підписок.",
+      "subClashRoutingRules": "Глобальні правила маршрутизації",
+      "subClashRoutingRulesDesc": "Правила Clash/Mihomo, що додаються на початок кожної YAML-підписки перед MATCH,PROXY.",
       "subListen": "Слухати IP",
       "subListenDesc": "IP-адреса для служби підписки. (залиште порожнім, щоб слухати всі IP-адреси)",
       "subPort": "Слухати порт",
@@ -1070,6 +1074,8 @@
         "defaultIpLimit": "Ліміт IP за замовч."
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "Маски finalmask xray (TCP/UDP) і налаштування QUIC, що додаються до кожного потоку JSON-підписки. Потрібна свіжа версія xray на клієнті.",
         "packets": "Пакети",
         "length": "Довжина",
         "interval": "Інтервал",

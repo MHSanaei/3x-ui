@@ -1004,6 +1004,10 @@
       "subEnableRoutingDesc": "تنظیمات سراسری برای فعال‌سازی مسیریابی در کلاینت VPN. (فقط برای Happ)",
       "subRoutingRules": "قوانین مسیریابی",
       "subRoutingRulesDesc": "قوانین مسیریابی سراسری برای کلاینت VPN. (فقط برای Happ)",
+      "subClashEnableRouting": "فعال‌سازی مسیریابی",
+      "subClashEnableRoutingDesc": "قوانین مسیریابی سراسری Clash/Mihomo را در اشتراک‌های YAML تولیدشده وارد کن.",
+      "subClashRoutingRules": "قوانین مسیریابی سراسری",
+      "subClashRoutingRulesDesc": "قوانین Clash/Mihomo که پیش از MATCH,PROXY به ابتدای هر اشتراک YAML افزوده می‌شوند.",
       "subListen": "آدرس آی‌پی",
       "subListenDesc": "آدرس آی‌پی برای سرویس سابسکریپشن. برای گوش دادن به‌تمام آی‌پی‌ها خالی‌بگذارید",
       "subPort": "پورت",
@@ -1070,6 +1074,8 @@
         "defaultIpLimit": "محدودیت IP پیش‌فرض"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "ماسک‌های finalmask ایکس‌ری (TCP/UDP) و تنظیمات QUIC که داخل همه‌ی stream های اشتراک JSON تزریق می‌شوند. به نسخه‌ی جدید هسته‌ی xray در کلاینت نیاز دارد.",
         "packets": "بسته‌ها",
         "length": "طول",
         "interval": "بازه",

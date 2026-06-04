@@ -1004,6 +1004,10 @@
       "subEnableRoutingDesc": "Global setting to enable routing in the VPN client. (Only for Happ)",
       "subRoutingRules": "Routing rules",
       "subRoutingRulesDesc": "Global routing rules for the VPN client. (Only for Happ)",
+      "subClashEnableRouting": "Enable routing",
+      "subClashEnableRoutingDesc": "Include global Clash/Mihomo routing rules in generated YAML subscriptions.",
+      "subClashRoutingRules": "Global routing rules",
+      "subClashRoutingRulesDesc": "Default Clash/Mihomo rules prepended to every generated YAML subscription before MATCH,PROXY.",
       "subListen": "Listen IP",
       "subListenDesc": "The IP address for the subscription service. (leave blank to listen on all IPs)",
       "subPort": "Listen Port",
@@ -1070,6 +1074,8 @@
         "defaultIpLimit": "Default IP limit"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "xray finalmask masks (TCP/UDP) and QUIC tuning injected into every JSON subscription stream. Requires a recent xray client.",
         "packets": "Packets",
         "length": "Length",
         "interval": "Interval",

@@ -1004,6 +1004,10 @@
       "subEnableRoutingDesc": "Pengaturan global untuk mengaktifkan perutean (routing) di klien VPN. (Hanya untuk Happ)",
       "subRoutingRules": "Aturan routing",
       "subRoutingRulesDesc": "Aturan routing global untuk klien VPN. (Hanya untuk Happ)",
+      "subClashEnableRouting": "Aktifkan routing",
+      "subClashEnableRoutingDesc": "Sertakan aturan routing global Clash/Mihomo dalam langganan YAML yang dibuat.",
+      "subClashRoutingRules": "Aturan routing global",
+      "subClashRoutingRulesDesc": "Aturan Clash/Mihomo yang ditambahkan di awal setiap langganan YAML sebelum MATCH,PROXY.",
       "subListen": "IP Pendengar",
       "subListenDesc": "Alamat IP untuk layanan langganan. (biarkan kosong untuk mendengarkan semua IP)",
       "subPort": "Port Pendengar",
@@ -1070,6 +1074,8 @@
         "defaultIpLimit": "Batas IP default"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "Mask finalmask xray (TCP/UDP) dan penyetelan QUIC yang disuntikkan ke setiap stream langganan JSON. Membutuhkan klien xray terbaru.",
         "packets": "Paket",
         "length": "Panjang",
         "interval": "Interval",
