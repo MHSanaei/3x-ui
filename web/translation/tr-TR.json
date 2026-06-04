@@ -1067,6 +1067,8 @@
         "defaultIpLimit": "Varsayılan IP limiti"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "Her JSON abonelik akışına eklenen xray finalmask maskeleri (TCP/UDP) ve QUIC ayarları. Güncel bir xray istemcisi gerektirir.",
         "packets": "Paketler",
         "length": "Uzunluk",
         "interval": "Aralık",

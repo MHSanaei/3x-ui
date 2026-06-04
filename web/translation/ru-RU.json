@@ -1067,6 +1067,8 @@
         "defaultIpLimit": "Лимит IP по умолчанию"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "Маски finalmask xray (TCP/UDP) и настройки QUIC, добавляемые в каждый поток JSON-подписки. Требуется свежая версия xray на клиенте.",
         "packets": "Пакеты",
         "length": "Длина",
         "interval": "Интервал",

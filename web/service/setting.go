@@ -79,10 +79,9 @@ var defaultValueMap = map[string]string{
 	"subClashEnable":              "false",
 	"subClashPath":                "/clash/",
 	"subClashURI":                 "",
-	"subJsonFragment":             "",
-	"subJsonNoises":               "",
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
+	"subJsonFinalMask":            "",
 	"datepicker":                  "gregorian",
 	"warp":                        "",
 	"nord":                        "",
@@ -658,20 +657,16 @@ func (s *SettingService) GetSubClashURI() (string, error) {
 	return s.getString("subClashURI")
 }
 
-func (s *SettingService) GetSubJsonFragment() (string, error) {
-	return s.getString("subJsonFragment")
-}
-
-func (s *SettingService) GetSubJsonNoises() (string, error) {
-	return s.getString("subJsonNoises")
-}
-
 func (s *SettingService) GetSubJsonMux() (string, error) {
 	return s.getString("subJsonMux")
 }
 
 func (s *SettingService) GetSubJsonRules() (string, error) {
 	return s.getString("subJsonRules")
+}
+
+func (s *SettingService) GetSubJsonFinalMask() (string, error) {
+	return s.getString("subJsonFinalMask")
 }
 
 func (s *SettingService) GetDatepicker() (string, error) {

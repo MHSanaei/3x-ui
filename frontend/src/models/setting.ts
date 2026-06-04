@@ -55,10 +55,9 @@ export class AllSetting {
   subURI = '';
   subJsonURI = '';
   subClashURI = '';
-  subJsonFragment = '';
-  subJsonNoises = '';
   subJsonMux = '';
   subJsonRules = '';
+  subJsonFinalMask = '';
 
   timeLocation = 'Local';
 

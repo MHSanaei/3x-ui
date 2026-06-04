@@ -3,31 +3,47 @@ package sub
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/mhsanaei/3x-ui/v3/database/model"
 )
 
-func TestSubJsonServiceKeepsDirectOutAndAddsFinalMask(t *testing.T) {
-	fragment := `{"packets":"1-3","length":"100-200","interval":"10-20","maxSplit":"100-200"}`
-	noises := `[{"type":"rand","packet":"10-20","delay":"10-16","applyTo":"ip"},{"type":"base64","packet":"SGVsbG8=","delay":"5"}]`
-	svc := NewSubJsonService(fragment, noises, "", "", nil)
+func hasDirectOutOutbound(svc *SubJsonService) bool {
+	for _, raw := range svc.defaultOutbounds {
+		var outbound map[string]any
+		if err := json.Unmarshal(raw, &outbound); err != nil {
+			continue
+		}
+		if outbound["tag"] == "direct_out" {
+			return true
+		}
+	}
+	return false
+}
 
-	var directOut map[string]any
-	if err := json.Unmarshal(svc.defaultOutbounds[len(svc.defaultOutbounds)-1], &directOut); err != nil {
-		t.Fatalf("failed to unmarshal compatibility direct_out: %v", err)
+func outboundSettings(t *testing.T, raw []byte) map[string]any {
+	t.Helper()
+	var parsed map[string]any
+	if err := json.Unmarshal(raw, &parsed); err != nil {
+		t.Fatalf("failed to unmarshal outbound: %v", err)
 	}
-	if directOut["tag"] != "direct_out" {
-		t.Fatalf("direct_out tag = %v, want direct_out", directOut["tag"])
+	settings, _ := parsed["settings"].(map[string]any)
+	if settings == nil {
+		t.Fatal("outbound has no settings")
 	}
-	directSettings, _ := directOut["settings"].(map[string]any)
-	if _, ok := directSettings["fragment"]; !ok {
-		t.Fatal("compatibility direct_out is missing freedom fragment")
-	}
-	if _, ok := directSettings["noises"]; !ok {
-		t.Fatal("compatibility direct_out is missing freedom noises")
+	return settings
+}
+
+func TestSubJsonServiceInjectsGlobalFinalMask(t *testing.T) {
+	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello","length":"100-200","delay":"10-20"}}],"udp":[{"type":"noise","settings":{"noise":[{"type":"base64","packet":"SGVsbG8="}]}}],"quicParams":{"congestion":"bbr"}}`
+	svc := NewSubJsonService("", "", finalMask, nil)
+
+	if hasDirectOutOutbound(svc) {
+		t.Fatal("direct_out outbound must never be emitted")
 	}
 
 	stream := svc.streamData(`{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}}}`)
-	if _, ok := stream["sockopt"]; !ok {
-		t.Fatal("streamSettings is missing direct_out sockopt compatibility path")
+	if _, ok := stream["sockopt"]; ok {
+		t.Fatal("legacy direct_out dialerProxy sockopt must never be set")
 	}
 
 	finalmask, _ := stream["finalmask"].(map[string]any)
@@ -35,72 +51,98 @@ func TestSubJsonServiceKeepsDirectOutAndAddsFinalMask(t *testing.T) {
 		t.Fatal("streamSettings is missing finalmask")
 	}
 
-	tcpMasks, _ := finalmask["tcp"].([]any)
-	if len(tcpMasks) != 1 {
-		t.Fatalf("finalmask tcp masks len = %d, want 1", len(tcpMasks))
+	tcp, _ := finalmask["tcp"].([]any)
+	if len(tcp) != 1 {
+		t.Fatalf("tcp masks len = %d, want 1", len(tcp))
 	}
-	fragmentMask, _ := tcpMasks[0].(map[string]any)
-	if fragmentMask["type"] != "fragment" {
-		t.Fatalf("tcp mask type = %v, want fragment", fragmentMask["type"])
-	}
-	fragmentSettings, _ := fragmentMask["settings"].(map[string]any)
-	if fragmentSettings["delay"] != "10-20" {
-		t.Fatalf("fragment delay = %v, want 10-20", fragmentSettings["delay"])
-	}
-	if _, ok := fragmentSettings["interval"]; ok {
-		t.Fatal("finalmask fragment should use delay, not interval")
+	if first, _ := tcp[0].(map[string]any); first["type"] != "fragment" {
+		t.Fatalf("tcp[0] type = %v, want fragment", first["type"])
 	}
 
-	udpMasks, _ := finalmask["udp"].([]any)
-	if len(udpMasks) != 1 {
-		t.Fatalf("finalmask udp masks len = %d, want 1", len(udpMasks))
+	udp, _ := finalmask["udp"].([]any)
+	if len(udp) != 1 {
+		t.Fatalf("udp masks len = %d, want 1", len(udp))
 	}
-	noiseMask, _ := udpMasks[0].(map[string]any)
-	if noiseMask["type"] != "noise" {
-		t.Fatalf("udp mask type = %v, want noise", noiseMask["type"])
-	}
-	noiseSettings, _ := noiseMask["settings"].(map[string]any)
-	noiseItems, _ := noiseSettings["noise"].([]any)
-	if len(noiseItems) != 2 {
-		t.Fatalf("noise items len = %d, want 2", len(noiseItems))
-	}
-	randItem, _ := noiseItems[0].(map[string]any)
-	if randItem["rand"] != "10-20" {
-		t.Fatalf("rand noise item rand = %v, want 10-20", randItem["rand"])
-	}
-	if _, ok := randItem["applyTo"]; ok {
-		t.Fatal("finalmask noise should not carry freedom noises applyTo")
-	}
-	packetItem, _ := noiseItems[1].(map[string]any)
-	if packetItem["type"] != "base64" || packetItem["packet"] != "SGVsbG8=" {
-		t.Fatalf("packet noise item = %#v, want base64 packet", packetItem)
+
+	quic, _ := finalmask["quicParams"].(map[string]any)
+	if quic == nil || quic["congestion"] != "bbr" {
+		t.Fatalf("quicParams missing/wrong: %#v", finalmask["quicParams"])
 	}
 }
 
-func TestSubJsonServiceAppendsFinalMaskToExistingMasks(t *testing.T) {
-	fragment := `{"packets":"tlshello","length":"100-200","interval":"0"}`
-	svc := NewSubJsonService(fragment, "", "", "", nil)
+func TestSubJsonServiceMergesWithExistingFinalMask(t *testing.T) {
+	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello"}}]}`
+	svc := NewSubJsonService("", "", finalMask, nil)
 
 	stream := svc.streamData(`{
-		"network":"tcp",
-		"security":"none",
-		"tcpSettings":{"header":{"type":"none"}},
-		"finalmask":{"tcp":[{"type":"sudoku"}],"udp":[{"type":"salamander","settings":{"password":"secret"}}]}
+		"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}},
+		"finalmask":{"tcp":[{"type":"sudoku"}]}
 	}`)
 
 	finalmask, _ := stream["finalmask"].(map[string]any)
-	tcpMasks, _ := finalmask["tcp"].([]any)
-	if len(tcpMasks) != 2 {
-		t.Fatalf("finalmask tcp masks len = %d, want 2", len(tcpMasks))
+	tcp, _ := finalmask["tcp"].([]any)
+	if len(tcp) != 2 {
+		t.Fatalf("tcp masks len = %d, want 2 (existing + global)", len(tcp))
 	}
-	firstTCP, _ := tcpMasks[0].(map[string]any)
-	secondTCP, _ := tcpMasks[1].(map[string]any)
-	if firstTCP["type"] != "sudoku" || secondTCP["type"] != "fragment" {
-		t.Fatalf("tcp masks = %#v, want existing mask followed by subscription fragment", tcpMasks)
+	a, _ := tcp[0].(map[string]any)
+	b, _ := tcp[1].(map[string]any)
+	if a["type"] != "sudoku" || b["type"] != "fragment" {
+		t.Fatalf("tcp masks = %#v, want existing sudoku then global fragment", tcp)
+	}
+}
+
+func TestSubJsonServiceNoFinalMaskWhenEmpty(t *testing.T) {
+	svc := NewSubJsonService("", "", "", nil)
+	stream := svc.streamData(`{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}}}`)
+	if _, ok := stream["finalmask"]; ok {
+		t.Fatal("no finalmask should be emitted when subJsonFinalMask is empty")
+	}
+	if _, ok := stream["sockopt"]; ok {
+		t.Fatal("legacy direct_out sockopt must never be set")
+	}
+}
+
+func TestSubJsonServiceVlessFlattened(t *testing.T) {
+	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
+	client := model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}
+
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVless(inbound, nil, client))
+	if _, ok := settings["vnext"]; ok {
+		t.Fatal("vless outbound must not use vnext")
+	}
+	if settings["address"] != "1.2.3.4" || settings["id"] != "uuid-1" || settings["encryption"] != "none" || settings["flow"] != "xtls-rprx-vision" {
+		t.Fatalf("flat vless settings wrong: %#v", settings)
+	}
+}
+
+func TestSubJsonServiceVmessFlattened(t *testing.T) {
+	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VMESS, Settings: `{}`}
+	client := model.Client{ID: "uuid-2"}
+
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVnext(inbound, nil, client))
+	if _, ok := settings["vnext"]; ok {
+		t.Fatal("vmess outbound must not use vnext")
+	}
+	if settings["id"] != "uuid-2" || settings["security"] != "auto" {
+		t.Fatalf("flat vmess settings wrong: %#v", settings)
+	}
+}
+
+func TestSubJsonServiceServerFlattened(t *testing.T) {
+	trojan := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.Trojan, Settings: `{}`}
+	client := model.Client{Password: "p4ss"}
+
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(trojan, nil, client))
+	if _, ok := settings["servers"]; ok {
+		t.Fatal("trojan outbound must not use servers array")
+	}
+	if settings["password"] != "p4ss" || settings["address"] != "1.2.3.4" {
+		t.Fatalf("flat trojan settings wrong: %#v", settings)
 	}
 
-	udpMasks, _ := finalmask["udp"].([]any)
-	if len(udpMasks) != 1 {
-		t.Fatalf("finalmask udp masks len = %d, want existing udp mask preserved", len(udpMasks))
+	ss := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.Shadowsocks, Settings: `{"method":"aes-256-gcm"}`}
+	ssSettings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(ss, nil, client))
+	if ssSettings["method"] != "aes-256-gcm" {
+		t.Fatalf("flat shadowsocks must carry method: %#v", ssSettings)
 	}
 }
