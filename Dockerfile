@@ -3,8 +3,10 @@
 # ========================================================
 FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend
 WORKDIR /src/frontend
+ARG XUI_ASSET_VERSION=""
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+RUN echo "frontend dependency cache key: ${XUI_ASSET_VERSION}" \
+  && npm ci --include=optional
 COPY frontend/ ./
 COPY web/translation /src/web/translation
 RUN npm run build
