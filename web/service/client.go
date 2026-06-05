@@ -600,18 +600,6 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		}
 	}
 
-	if client.SubID != "" {
-		var subTaken int64
-		if err := database.GetDB().Model(&model.ClientRecord{}).
-			Where("sub_id = ? AND email <> ?", client.SubID, client.Email).
-			Count(&subTaken).Error; err != nil {
-			return false, err
-		}
-		if subTaken > 0 {
-			return false, common.NewError("subId already in use:", client.SubID)
-		}
-	}
-
 	needRestart := false
 	for _, ibId := range payload.InboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
@@ -793,18 +781,6 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 			Where("id = ?", id).
 			Update("email", updated.Email).Error; err != nil {
 			return false, err
-		}
-	}
-
-	if updated.SubID != "" {
-		var subCollision int64
-		if err := database.GetDB().Model(&model.ClientRecord{}).
-			Where("sub_id = ? AND id <> ?", updated.SubID, id).
-			Count(&subCollision).Error; err != nil {
-			return false, err
-		}
-		if subCollision > 0 {
-			return false, common.NewError("Duplicate subId:", updated.SubID)
 		}
 	}
 
@@ -3219,9 +3195,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 	}
 	prep := make([]prepared, 0, len(payloads))
 	emails := make([]string, 0, len(payloads))
-	subIDs := make([]string, 0, len(payloads))
 	seenEmail := make(map[string]struct{}, len(payloads))
-	seenSubID := make(map[string]string, len(payloads))
 
 	for i := range payloads {
 		client := payloads[i].Client
@@ -3261,16 +3235,10 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 			skip(email, "email already in use: "+email)
 			continue
 		}
-		if owner, ok := seenSubID[client.SubID]; ok && owner != le {
-			skip(email, "subId already in use: "+client.SubID)
-			continue
-		}
 		seenEmail[le] = struct{}{}
-		seenSubID[client.SubID] = le
 
 		prep = append(prep, prepared{client: client, inboundIds: payloads[i].InboundIds})
 		emails = append(emails, email)
-		subIDs = append(subIDs, client.SubID)
 	}
 
 	if len(prep) == 0 {
@@ -3290,18 +3258,6 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 			existingEmailSub[strings.ToLower(rows[i].Email)] = rows[i].SubID
 		}
 	}
-	existingSubOwner := make(map[string]string, len(subIDs))
-	for start := 0; start < len(subIDs); start += lookupChunk {
-		end := min(start+lookupChunk, len(subIDs))
-		var rows []model.ClientRecord
-		if e := db.Where("sub_id IN ?", subIDs[start:end]).Find(&rows).Error; e != nil {
-			return result, false, e
-		}
-		for i := range rows {
-			existingSubOwner[rows[i].SubID] = strings.ToLower(rows[i].Email)
-		}
-	}
-
 	inboundCache := make(map[int]*model.Inbound)
 	getIb := func(id int) (*model.Inbound, error) {
 		if ib, ok := inboundCache[id]; ok {
@@ -3326,11 +3282,6 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		if existSub, ok := existingEmailSub[le]; ok && existSub != prep[idx].client.SubID {
 			failed[idx] = true
 			reason[idx] = "email already in use: " + prep[idx].client.Email
-			continue
-		}
-		if owner, ok := existingSubOwner[prep[idx].client.SubID]; ok && owner != le {
-			failed[idx] = true
-			reason[idx] = "subId already in use: " + prep[idx].client.SubID
 			continue
 		}
 
