@@ -104,8 +104,8 @@ describe('normalizeSockoptForWire', () => {
   });
 });
 
-describe('normalizeStreamSettingsForWire reality roles', () => {
-  it('strips client fields from server realitySettings', () => {
+describe('normalizeStreamSettingsForWire reality', () => {
+  it('preserves the nested client settings on inbound (share links read publicKey from there)', () => {
     const out = normalizeStreamSettingsForWire({
       network: 'xhttp',
       security: 'reality',
@@ -125,11 +125,12 @@ describe('normalizeStreamSettingsForWire reality roles', () => {
     const reality = out.realitySettings as Record<string, unknown>;
     expect(reality.target).toBe('play.google.com:443');
     expect(reality.privateKey).toBe('priv');
-    expect(reality).not.toHaveProperty('settings');
-    expect(reality).not.toHaveProperty('publicKey');
+    const settings = reality.settings as Record<string, unknown>;
+    expect(settings.publicKey).toBe('pub');
+    expect(settings.spiderX).toBe('/');
   });
 
-  it('strips server fields from client realitySettings', () => {
+  it('passes client realitySettings through unchanged on outbound', () => {
     const out = normalizeStreamSettingsForWire({
       network: 'xhttp',
       security: 'reality',
@@ -139,15 +140,13 @@ describe('normalizeStreamSettingsForWire reality roles', () => {
         serverName: 'play.google.com',
         shortId: 'abcd',
         spiderX: '/x',
-        target: 'play.google.com:443',
-        privateKey: 'priv',
       },
     }, { side: 'outbound' });
 
     const reality = out.realitySettings as Record<string, unknown>;
     expect(reality.publicKey).toBe('pub');
-    expect(reality).not.toHaveProperty('target');
-    expect(reality).not.toHaveProperty('privateKey');
+    expect(reality.serverName).toBe('play.google.com');
+    expect(reality.spiderX).toBe('/x');
   });
 });
 
@@ -207,7 +206,8 @@ describe('inbound formValuesToWirePayload integration', () => {
     expect(xhttp).not.toHaveProperty('scMaxEachPostBytes');
     expect(sockopt).not.toHaveProperty('tcpWindowClamp');
     expect(sockopt.tcpFastOpen).toBe(true);
-    expect(reality).not.toHaveProperty('settings');
+    const realitySettings = reality.settings as Record<string, unknown>;
+    expect(realitySettings.publicKey).toBe('pub');
   });
 });
 

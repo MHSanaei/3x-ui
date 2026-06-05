@@ -520,8 +520,8 @@ function freedomToWire(s: FreedomOutboundFormSettings) {
     userLevel: s.userLevel || undefined,
     proxyProtocol: s.proxyProtocol || undefined,
     fragment: fragmentEnabled ? Object.fromEntries(fragmentEntries) : undefined,
-    noises: s.noises.length > 0 ? s.noises : undefined,
-    finalRules: s.finalRules.length > 0
+    noises: s.noises && s.noises.length > 0 ? s.noises : undefined,
+    finalRules: s.finalRules && s.finalRules.length > 0
       ? s.finalRules.map((r) => ({
           action: r.action,
           network: r.network || undefined,

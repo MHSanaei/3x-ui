@@ -61,6 +61,7 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseS
 
   const clearMldsa65 = () => {
     form.setFieldValue(['streamSettings', 'realitySettings', 'mldsa65Seed'], '');
+    form.setFieldValue(['streamSettings', 'realitySettings', 'settings', 'mldsa65Verify'], '');
   };
 
   const randomizeRealityTarget = () => {

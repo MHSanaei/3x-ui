@@ -6,7 +6,6 @@
 // values like tcpWindowClamp: 600 that throttle throughput.
 
 export type StreamWireSide = 'inbound' | 'outbound';
-export type RealityWireSide = 'server' | 'client';
 
 const PACKET_UP_FIELDS = [
   'scMaxEachPostBytes',
@@ -29,33 +28,6 @@ const PLACEMENT_STRING_FIELDS = [
   'xPaddingPlacement',
   'xPaddingMethod',
 ] as const;
-
-const REALITY_SERVER_KEYS = new Set([
-  'show',
-  'xver',
-  'target',
-  'dest',
-  'serverNames',
-  'privateKey',
-  'minClientVer',
-  'maxClientVer',
-  'maxTimediff',
-  'maxTimeDiff',
-  'shortIds',
-  'mldsa65Seed',
-  'limitFallbackUpload',
-  'limitFallbackDownload',
-]);
-
-const REALITY_CLIENT_KEYS = new Set([
-  'serverName',
-  'fingerprint',
-  'publicKey',
-  'password',
-  'shortId',
-  'spiderX',
-  'mldsa65Verify',
-]);
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return v != null && typeof v === 'object' && !Array.isArray(v);
@@ -228,55 +200,15 @@ export function normalizeSockoptForWire(
   return out;
 }
 
-export function normalizeRealityForWire(
-  raw: Record<string, unknown>,
-  side: RealityWireSide,
-): Record<string, unknown> | undefined {
-  const out: Record<string, unknown> = { ...raw };
-
-  // Legacy inbound nested client half — never emit on the server wire.
-  delete out.settings;
-
-  if (side === 'server') {
-    for (const key of REALITY_CLIENT_KEYS) delete out[key];
-    dropEmptyStrings(out, ['minClientVer', 'maxClientVer', 'mldsa65Seed']);
-    if (out.show === false) delete out.show;
-    if (out.xver === 0) delete out.xver;
-    if (out.maxTimediff === 0) delete out.maxTimediff;
-    if (out.maxTimeDiff === 0) delete out.maxTimeDiff;
-  } else {
-    for (const key of REALITY_SERVER_KEYS) delete out[key];
-    dropEmptyStrings(out, ['mldsa65Verify', 'spiderX', 'serverName']);
-    if (nonEmptyString(out.publicKey) === false && nonEmptyString(out.password) === false) {
-      delete out.publicKey;
-      delete out.password;
-    }
-  }
-
-  if (Object.keys(out).length === 0) return undefined;
-  return out;
-}
-
 export function normalizeStreamSettingsForWire(
   stream: Record<string, unknown>,
   opts: { side: StreamWireSide },
 ): Record<string, unknown> {
   const out: Record<string, unknown> = { ...stream };
-  const realitySide: RealityWireSide = opts.side === 'inbound' ? 'server' : 'client';
 
   const xhttp = out.xhttpSettings;
   if (isRecord(xhttp)) {
     out.xhttpSettings = normalizeXhttpForWire(xhttp, opts.side);
-  }
-
-  const reality = out.realitySettings;
-  if (isRecord(reality)) {
-    const normalized = normalizeRealityForWire(reality, realitySide);
-    if (normalized) {
-      out.realitySettings = normalized;
-    } else {
-      delete out.realitySettings;
-    }
   }
 
   const sockopt = out.sockopt;
