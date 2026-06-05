@@ -585,7 +585,7 @@
         "buildChain": "Build Chain",
         "echKey": "ECH key",
         "echConfig": "ECH config",
-        "pinnedPeerCertSha256": "Закреплённый SHA-256 сертификата пира",
+        "pinnedPeerCertSha256": "SHA-256 сертификата пира",
         "pinnedPeerCertSha256Tip": "SHA-256-хеши сертификата пира в виде шестнадцатеричной строки (напр. e8e2d3…), через запятую. Только для панели — не записывается в конфиг xray сервера, но включается в ссылки-приглашения, чтобы клиенты могли закрепить сертификат.",
         "pinnedPeerCertSha256Placeholder": "шестнадцатеричный хеш(и), через запятую",
         "generateRandomPin": "Сгенерировать случайный хеш",
