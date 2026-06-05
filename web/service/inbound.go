@@ -1760,7 +1760,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			// from the node arriving after a central disable would otherwise
 			// overwrite enable=false back to true, letting the client accumulate
 			// far more traffic than their limit before being disabled again.
-			enableExpr := "CASE WHEN ? = 0 THEN 0 ELSE enable END"
+			enableExpr := "enable AND ?"
 			if err := tx.Exec(
 				fmt.Sprintf(
 					`UPDATE client_traffics
