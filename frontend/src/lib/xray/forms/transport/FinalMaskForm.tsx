@@ -29,7 +29,7 @@ function defaultTcpMaskSettings(type: string): Record<string, unknown> {
       return { packets: '1-3', length: '', delay: '', maxSplit: '' };
     case 'sudoku':
       return {
-        password: '', ascii: '', customTable: '', customTables: '',
+        password: '', ascii: '', customTable: '', customTables: [''],
         paddingMin: 0, paddingMax: 0,
       };
     case 'header-custom':
@@ -228,7 +228,9 @@ function TcpMaskItem({
                 <Form.Item label="Password" name={[fieldName, 'settings', 'password']}><Input /></Form.Item>
                 <Form.Item label="ASCII" name={[fieldName, 'settings', 'ascii']}><Input /></Form.Item>
                 <Form.Item label="Custom Table" name={[fieldName, 'settings', 'customTable']}><Input /></Form.Item>
-                <Form.Item label="Custom Tables" name={[fieldName, 'settings', 'customTables']}><Input /></Form.Item>
+                <Form.Item label="Custom Tables" name={[fieldName, 'settings', 'customTables']}>
+                  <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
+                </Form.Item>
                 <Form.Item label="Padding Min" name={[fieldName, 'settings', 'paddingMin']}>
                   <InputNumber min={0} />
                 </Form.Item>
