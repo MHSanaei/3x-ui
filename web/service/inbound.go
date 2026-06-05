@@ -41,6 +41,92 @@ func (s *InboundService) runtimeFor(ib *model.Inbound) (runtime.Runtime, error) 
 	return mgr.RuntimeFor(ib.NodeID)
 }
 
+func (s *InboundService) nodePushPlan(ib *model.Inbound) (runtime.Runtime, bool, bool, error) {
+	if ib.NodeID == nil {
+		rt, err := s.runtimeFor(ib)
+		if err != nil {
+			return nil, false, false, nil
+		}
+		return rt, true, false, nil
+	}
+	nodeSvc := NodeService{}
+	enabled, status, _, _, err := nodeSvc.NodeSyncState(*ib.NodeID)
+	if err != nil {
+		return nil, false, false, err
+	}
+	if !enabled || status == "offline" {
+		return nil, false, true, nil
+	}
+	rt, err := s.runtimeFor(ib)
+	if err != nil {
+		return nil, false, true, nil
+	}
+	return rt, true, false, nil
+}
+
+func (s *InboundService) NodeIsPending(nodeID *int) bool {
+	if nodeID == nil {
+		return false
+	}
+	return (&NodeService{}).IsNodePending(*nodeID)
+}
+
+func (s *InboundService) AnyNodePending(inboundIds []int) bool {
+	if len(inboundIds) == 0 {
+		return false
+	}
+	nodeSvc := NodeService{}
+	for _, id := range inboundIds {
+		ib, err := s.GetInbound(id)
+		if err != nil || ib.NodeID == nil {
+			continue
+		}
+		if nodeSvc.IsNodePending(*ib.NodeID) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, nodeID int) error {
+	if rt == nil || nodeID <= 0 {
+		return nil
+	}
+	db := database.GetDB()
+	var inbounds []*model.Inbound
+	if err := db.Model(model.Inbound{}).Where("node_id = ?", nodeID).Find(&inbounds).Error; err != nil {
+		return err
+	}
+	remoteTags, err := rt.ListRemoteTags(ctx)
+	if err != nil {
+		return err
+	}
+	prefix := nodeTagPrefix(&nodeID)
+	desiredTags := make(map[string]struct{}, len(inbounds)*2)
+	for _, ib := range inbounds {
+		desiredTags[ib.Tag] = struct{}{}
+		if prefix != "" {
+			if stripped, found := strings.CutPrefix(ib.Tag, prefix); found {
+				desiredTags[stripped] = struct{}{}
+			} else {
+				desiredTags[prefix+ib.Tag] = struct{}{}
+			}
+		}
+		if err := rt.UpdateInbound(ctx, ib, ib); err != nil {
+			return fmt.Errorf("reconcile inbound %q: %w", ib.Tag, err)
+		}
+	}
+	for _, tag := range remoteTags {
+		if _, want := desiredTags[tag]; want {
+			continue
+		}
+		if err := rt.DelInbound(ctx, &model.Inbound{Tag: tag}); err != nil {
+			return fmt.Errorf("reconcile delete %q: %w", tag, err)
+		}
+	}
+	return nil
+}
+
 type CopyClientsResult struct {
 	Added   []string `json:"added"`
 	Skipped []string `json:"skipped"`
@@ -575,11 +661,17 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 
 	db := database.GetDB()
 	tx := db.Begin()
+	markDirty := false
 	defer func() {
-		if err == nil {
-			tx.Commit()
-		} else {
+		if err != nil {
 			tx.Rollback()
+			return
+		}
+		tx.Commit()
+		if markDirty && inbound.NodeID != nil {
+			if dErr := (&NodeService{}).MarkNodeDirty(*inbound.NodeID); dErr != nil {
+				logger.Warning("mark node dirty failed:", dErr)
+			}
 		}
 	}()
 
@@ -600,20 +692,25 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 
 	needRestart := false
 	if inbound.Enable {
-		rt, rterr := s.runtimeFor(inbound)
-		if rterr != nil {
-			err = rterr
+		rt, push, dirty, perr := s.nodePushPlan(inbound)
+		if perr != nil {
+			err = perr
 			return inbound, false, err
 		}
-		if err1 := rt.AddInbound(context.Background(), inbound); err1 == nil {
-			logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
-		} else {
-			logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
-			if inbound.NodeID != nil {
-				err = err1
-				return inbound, false, err
+		if dirty {
+			markDirty = true
+		}
+		if push {
+			if err1 := rt.AddInbound(context.Background(), inbound); err1 == nil {
+				logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
+			} else {
+				logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
+				if inbound.NodeID != nil {
+					markDirty = true
+				} else {
+					needRestart = true
+				}
 			}
-			needRestart = true
 		}
 	}
 
@@ -624,24 +721,31 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	db := database.GetDB()
 
 	needRestart := false
+	markDirty := false
 	var ib model.Inbound
 	loadErr := db.Model(model.Inbound{}).Where("id = ?", id).First(&ib).Error
 	if loadErr == nil {
 		shouldPushToRuntime := ib.NodeID != nil || ib.Enable
 		if shouldPushToRuntime {
-			rt, rterr := s.runtimeFor(&ib)
-			if rterr != nil {
-				logger.Warning("DelInbound: runtime lookup failed, deleting central row anyway:", rterr)
-				if ib.NodeID == nil {
-					needRestart = true
+			rt, push, dirty, perr := s.nodePushPlan(&ib)
+			if perr != nil {
+				logger.Warning("DelInbound: node lookup failed, deleting central row anyway:", perr)
+				markDirty = true
+			} else if push {
+				if err1 := rt.DelInbound(context.Background(), &ib); err1 == nil {
+					logger.Debug("Inbound deleted on", rt.Name(), ":", ib.Tag)
+				} else {
+					logger.Warning("DelInbound on", rt.Name(), "failed, deleting central row anyway:", err1)
+					if ib.NodeID == nil {
+						needRestart = true
+					} else {
+						markDirty = true
+					}
 				}
-			} else if err1 := rt.DelInbound(context.Background(), &ib); err1 == nil {
-				logger.Debug("Inbound deleted on", rt.Name(), ":", ib.Tag)
-			} else {
-				logger.Warning("DelInbound on", rt.Name(), "failed, deleting central row anyway:", err1)
-				if ib.NodeID == nil {
-					needRestart = true
-				}
+			} else if ib.NodeID == nil {
+				needRestart = true
+			} else if dirty {
+				markDirty = true
 			}
 		} else {
 			logger.Debug("DelInbound: skipping runtime push for disabled local inbound id:", id)
@@ -656,6 +760,11 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 
 	if err := db.Delete(model.Inbound{}, id).Error; err != nil {
 		return needRestart, err
+	}
+	if markDirty && ib.NodeID != nil {
+		if dErr := (&NodeService{}).MarkNodeDirty(*ib.NodeID); dErr != nil {
+			logger.Warning("mark node dirty failed:", dErr)
+		}
 	}
 	if !database.IsPostgres() {
 		var count int64
@@ -740,12 +849,9 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	inbound.Enable = enable
 
 	needRestart := false
-	rt, rterr := s.runtimeFor(inbound)
-	if rterr != nil {
-		if inbound.NodeID != nil {
-			return false, rterr
-		}
-		return true, nil
+	rt, push, dirty, perr := s.nodePushPlan(inbound)
+	if perr != nil {
+		return false, perr
 	}
 
 	// Remote nodes interpret DelInbound as a real row delete (it hits
@@ -754,11 +860,22 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	// PATCH the remote row via UpdateInbound instead — preserves the
 	// settings/client history and just flips the enable flag.
 	if inbound.NodeID != nil {
-		if err := rt.UpdateInbound(context.Background(), inbound, inbound); err != nil {
-			logger.Debug("SetInboundEnable: remote UpdateInbound on", rt.Name(), "failed:", err)
-			return false, err
+		if push {
+			if err := rt.UpdateInbound(context.Background(), inbound, inbound); err != nil {
+				logger.Warning("SetInboundEnable: remote UpdateInbound on", rt.Name(), "failed:", err)
+				dirty = true
+			}
+		}
+		if dirty {
+			if dErr := (&NodeService{}).MarkNodeDirty(*inbound.NodeID); dErr != nil {
+				logger.Warning("mark node dirty failed:", dErr)
+			}
 		}
 		return false, nil
+	}
+
+	if !push {
+		return true, nil
 	}
 
 	if err := rt.DelInbound(context.Background(), inbound); err != nil &&
@@ -807,11 +924,17 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	db := database.GetDB()
 	tx := db.Begin()
 
+	markDirty := false
 	defer func() {
 		if err != nil {
 			tx.Rollback()
-		} else {
-			tx.Commit()
+			return
+		}
+		tx.Commit()
+		if markDirty && oldInbound.NodeID != nil {
+			if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
+				logger.Warning("mark node dirty failed:", dErr)
+			}
 		}
 	}()
 
@@ -900,17 +1023,20 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	inbound.Tag = oldInbound.Tag
 
 	needRestart := false
-	rt, rterr := s.runtimeFor(oldInbound)
-	if rterr != nil {
-		if oldInbound.NodeID != nil {
-			err = rterr
-			return inbound, false, err
-		}
-		needRestart = true
-	} else {
-		oldSnapshot := *oldInbound
-		oldSnapshot.Tag = tag
-		if oldInbound.NodeID == nil {
+	rt, push, dirty, perr := s.nodePushPlan(oldInbound)
+	if perr != nil {
+		err = perr
+		return inbound, false, err
+	}
+	if dirty {
+		markDirty = true
+	}
+	if oldInbound.NodeID == nil {
+		if !push {
+			needRestart = true
+		} else {
+			oldSnapshot := *oldInbound
+			oldSnapshot.Tag = tag
 			if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 == nil {
 				logger.Debug("Old inbound deleted on", rt.Name(), ":", tag)
 			}
@@ -926,16 +1052,18 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 					needRestart = true
 				}
 			}
-		} else {
-			if !inbound.Enable {
-				if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 != nil {
-					err = err2
-					return inbound, false, err
-				}
-			} else if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, oldInbound); err2 != nil {
-				err = err2
-				return inbound, false, err
+		}
+	} else if push {
+		oldSnapshot := *oldInbound
+		oldSnapshot.Tag = tag
+		if !inbound.Enable {
+			if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 != nil {
+				logger.Warning("Unable to disable inbound on", rt.Name(), ":", err2)
+				markDirty = true
 			}
+		} else if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, oldInbound); err2 != nil {
+			logger.Warning("Unable to update inbound on", rt.Name(), ":", err2)
+			markDirty = true
 		}
 	}
 
@@ -1303,17 +1431,17 @@ func (s *InboundService) upsertNodeBaseline(tx *gorm.DB, nodeID int, email strin
 	}).Create(&model.NodeClientTraffic{NodeId: nodeID, Email: email, Up: up, Down: down}).Error
 }
 
-func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot) (bool, error) {
+func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot, dirty bool) (bool, error) {
 	var structuralChange bool
 	err := submitTrafficWrite(func() error {
 		var inner error
-		structuralChange, inner = s.setRemoteTrafficLocked(nodeID, snap)
+		structuralChange, inner = s.setRemoteTrafficLocked(nodeID, snap, dirty)
 		return inner
 	})
 	return structuralChange, err
 }
 
-func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.TrafficSnapshot) (bool, error) {
+func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.TrafficSnapshot, dirty bool) (bool, error) {
 	if snap == nil || nodeID <= 0 {
 		return false, nil
 	}
@@ -1425,6 +1553,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 		c, ok := tagToCentral[snapIb.Tag]
 		if !ok {
+			if dirty {
+				continue
+			}
 			// Try snap.Tag first; on collision fall back to the n<id>-
 			// prefixed form so local+node can both own the same port.
 			pickFreeTag := func() (string, error) {
@@ -1491,42 +1622,48 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 		inGrace := c.LastTrafficResetTime > 0 && now-c.LastTrafficResetTime < resetGracePeriodMs
 
-		updates := map[string]any{
-			"enable":          snapIb.Enable,
-			"remark":          snapIb.Remark,
-			"listen":          snapIb.Listen,
-			"port":            snapIb.Port,
-			"protocol":        snapIb.Protocol,
-			"total":           snapIb.Total,
-			"expiry_time":     snapIb.ExpiryTime,
-			"settings":        snapIb.Settings,
-			"stream_settings": snapIb.StreamSettings,
-			"sniffing":        snapIb.Sniffing,
-			"traffic_reset":   snapIb.TrafficReset,
+		updates := map[string]any{}
+		if !dirty {
+			updates["enable"] = snapIb.Enable
+			updates["remark"] = snapIb.Remark
+			updates["listen"] = snapIb.Listen
+			updates["port"] = snapIb.Port
+			updates["protocol"] = snapIb.Protocol
+			updates["total"] = snapIb.Total
+			updates["expiry_time"] = snapIb.ExpiryTime
+			updates["settings"] = snapIb.Settings
+			updates["stream_settings"] = snapIb.StreamSettings
+			updates["sniffing"] = snapIb.Sniffing
+			updates["traffic_reset"] = snapIb.TrafficReset
 		}
 		if !inGrace || (snapIb.Up+snapIb.Down) <= (c.Up+c.Down) {
 			updates["up"] = snapIb.Up
 			updates["down"] = snapIb.Down
 		}
 
-		if c.Settings != snapIb.Settings ||
+		if !dirty && (c.Settings != snapIb.Settings ||
 			c.Remark != snapIb.Remark ||
 			c.Listen != snapIb.Listen ||
 			c.Port != snapIb.Port ||
 			c.Total != snapIb.Total ||
 			c.ExpiryTime != snapIb.ExpiryTime ||
-			c.Enable != snapIb.Enable {
+			c.Enable != snapIb.Enable) {
 			structuralChange = true
 		}
 
-		if err := tx.Model(model.Inbound{}).
-			Where("id = ?", c.Id).
-			Updates(updates).Error; err != nil {
-			return false, err
+		if len(updates) > 0 {
+			if err := tx.Model(model.Inbound{}).
+				Where("id = ?", c.Id).
+				Updates(updates).Error; err != nil {
+				return false, err
+			}
 		}
 	}
 
 	for _, c := range central {
+		if dirty {
+			continue
+		}
 		if _, kept := snapTags[c.Tag]; kept {
 			continue
 		}
@@ -1581,6 +1718,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 
 			if _, rowExists := existingEmails[cs.Email]; !rowExists {
+				if dirty {
+					continue
+				}
 				row := &xray.ClientTraffic{
 					InboundId:  c.Id,
 					Email:      cs.Email,
@@ -1642,6 +1782,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 
 		for k, existing := range centralCS {
+			if dirty {
+				continue
+			}
 			if k.inboundID != c.Id {
 				continue
 			}
@@ -1671,6 +1814,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 		c, ok := tagToCentral[snapIb.Tag]
 		if !ok {
+			continue
+		}
+		if dirty {
 			continue
 		}
 		var oldEmailsRows []string
@@ -2674,12 +2820,20 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 		}
 		for _, client := range clients {
 			if client.Email == clientEmail && client.Enable {
-				rt, rterr := s.runtimeFor(inbound)
-				if rterr != nil {
+				rt, push, dirty, perr := s.nodePushPlan(inbound)
+				if perr != nil {
+					return false, perr
+				}
+				if !push {
 					if inbound.NodeID != nil {
-						return false, rterr
+						if dirty {
+							if dErr := (&NodeService{}).MarkNodeDirty(*inbound.NodeID); dErr != nil {
+								logger.Warning("mark node dirty failed:", dErr)
+							}
+						}
+					} else {
+						needRestart = true
 					}
-					needRestart = true
 					break
 				}
 				cipher := ""
@@ -2702,6 +2856,11 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 				})
 				if err1 == nil {
 					logger.Debug("Client enabled on", rt.Name(), "due to reset traffic:", clientEmail)
+				} else if inbound.NodeID != nil {
+					logger.Warning("Error in enabling client on", rt.Name(), ":", err1)
+					if dErr := (&NodeService{}).MarkNodeDirty(*inbound.NodeID); dErr != nil {
+						logger.Warning("mark node dirty failed:", dErr)
+					}
 				} else {
 					logger.Debug("Error in enabling client on", rt.Name(), ":", err1)
 					needRestart = true

@@ -470,6 +470,7 @@
         "inboundClientAddSuccess": "Inbound client(s) have been added.",
         "inboundClientDeleteSuccess": "Inbound client has been deleted.",
         "inboundClientUpdateSuccess": "Inbound client has been updated.",
+        "savedNodeOfflineWillSync": "Saved locally. A backing node is offline or disabled — the change will sync once it reconnects.",
         "delDepletedClientsSuccess": "All depleted clients have been deleted.",
         "resetAllClientTrafficSuccess": "Traffic for all clients has been reset.",
         "resetAllTrafficSuccess": "All traffic has been reset.",

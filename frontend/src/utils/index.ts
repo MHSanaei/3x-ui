@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import i18next from 'i18next';
 import { getMessage } from './messageBus';
 
 type RespEnvelope = { success?: unknown; msg?: unknown; obj?: unknown };
@@ -32,6 +33,14 @@ export class HttpUtil {
     }
     const messageType = msg.success ? 'success' : 'error';
     getMessage()[messageType](msg.msg);
+    if (
+      msg.success &&
+      msg.obj &&
+      typeof msg.obj === 'object' &&
+      (msg.obj as { nodePending?: unknown }).nodePending === true
+    ) {
+      getMessage().warning(i18next.t('pages.inbounds.toasts.savedNodeOfflineWillSync'));
+    }
   }
 
   static _respToMsg(resp: AxiosResponse | undefined): Msg {

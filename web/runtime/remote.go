@@ -191,6 +191,19 @@ func (r *Remote) cacheDel(tag string) {
 	delete(r.remoteIDByTag, tag)
 }
 
+func (r *Remote) ListRemoteTags(ctx context.Context) ([]string, error) {
+	if err := r.refreshRemoteIDs(ctx); err != nil {
+		return nil, err
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	tags := make([]string, 0, len(r.remoteIDByTag))
+	for tag := range r.remoteIDByTag {
+		tags = append(tags, tag)
+	}
+	return tags, nil
+}
+
 func (r *Remote) refreshRemoteIDs(ctx context.Context) error {
 	env, err := r.do(ctx, http.MethodGet, "panel/api/inbounds/list", nil)
 	if err != nil {

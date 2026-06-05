@@ -15,6 +15,7 @@ import (
 const (
 	nodeTrafficSyncConcurrency    = 8
 	nodeTrafficSyncRequestTimeout = 4 * time.Second
+	nodeReconcileTimeout          = 30 * time.Second
 )
 
 type NodeTrafficSyncJob struct {
@@ -151,21 +152,37 @@ func (j *NodeTrafficSyncJob) Run() {
 }
 
 func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node) {
-	ctx, cancel := context.WithTimeout(context.Background(), nodeTrafficSyncRequestTimeout)
-	defer cancel()
-
 	rt, err := mgr.RemoteFor(n)
 	if err != nil {
 		logger.Warning("node traffic sync: remote lookup failed for", n.Name, ":", err)
 		return
 	}
+
+	if n.ConfigDirty {
+		reconcileCtx, reconcileCancel := context.WithTimeout(context.Background(), nodeReconcileTimeout)
+		reconcileErr := j.inboundService.ReconcileNode(reconcileCtx, rt, n.Id)
+		reconcileCancel()
+		if reconcileErr != nil {
+			logger.Warning("node traffic sync: reconcile for", n.Name, "failed:", reconcileErr)
+			return
+		}
+		if clearErr := j.nodeService.ClearNodeDirty(n.Id, n.ConfigDirtyAt); clearErr != nil {
+			logger.Warning("node traffic sync: clear dirty for", n.Name, "failed:", clearErr)
+		}
+		j.structural.set()
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), nodeTrafficSyncRequestTimeout)
+	defer cancel()
+
 	snap, err := rt.FetchTrafficSnapshot(ctx)
 	if err != nil {
 		logger.Warning("node traffic sync: fetch from", n.Name, "failed:", err)
 		j.inboundService.ClearNodeOnlineClients(n.Id)
 		return
 	}
-	changed, err := j.inboundService.SetRemoteTraffic(n.Id, snap)
+	_, _, dirty, _, _ := j.nodeService.NodeSyncState(n.Id)
+	changed, err := j.inboundService.SetRemoteTraffic(n.Id, snap, dirty)
 	if err != nil {
 		logger.Warning("node traffic sync: merge for", n.Name, "failed:", err)
 		return

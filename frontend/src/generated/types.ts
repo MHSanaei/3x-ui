@@ -322,6 +322,8 @@ export interface Node {
   apiToken: string;
   basePath: string;
   clientCount: number;
+  configDirty: boolean;
+  configDirtyAt: number;
   cpuPct: number;
   createdAt: number;
   depletedCount: number;

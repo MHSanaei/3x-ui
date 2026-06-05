@@ -36,7 +36,7 @@ func syncNode(t *testing.T, svc *InboundService, nodeID int, tag string, stats .
 	snap := &runtime.TrafficSnapshot{
 		Inbounds: []*model.Inbound{{Tag: tag, ClientStats: stats}},
 	}
-	if _, err := svc.setRemoteTrafficLocked(nodeID, snap); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false); err != nil {
 		t.Fatalf("setRemoteTrafficLocked node %d: %v", nodeID, err)
 	}
 }

@@ -339,6 +339,8 @@ export const NodeSchema = z.object({
   apiToken: z.string(),
   basePath: z.string(),
   clientCount: z.number().int(),
+  configDirty: z.boolean(),
+  configDirtyAt: z.number().int(),
   cpuPct: z.number(),
   createdAt: z.number().int(),
   depletedCount: z.number().int(),

@@ -396,6 +396,9 @@ type Node struct {
 	UptimeSecs    uint64  `json:"uptimeSecs"`
 	LastError     string  `json:"lastError"`
 
+	ConfigDirty   bool  `json:"configDirty" gorm:"default:false"`
+	ConfigDirtyAt int64 `json:"configDirtyAt"`
+
 	InboundCount  int `json:"inboundCount" gorm:"-"`
 	ClientCount   int `json:"clientCount" gorm:"-"`
 	OnlineCount   int `json:"onlineCount" gorm:"-"`
