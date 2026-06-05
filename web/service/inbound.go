@@ -343,6 +343,19 @@ type InboundOption struct {
 }
 
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
+	return s.inboundOptions(&userId)
+}
+
+// GetAllInboundOptions returns the option list for every inbound regardless of
+// owner. Inbounds are an admin-managed, panel-wide resource: a non-admin user
+// attaches their own clients to inbounds the admin created, so the attach
+// picker must list all of them (the per-user user_id filter would otherwise
+// return nothing for a non-admin).
+func (s *InboundService) GetAllInboundOptions() ([]InboundOption, error) {
+	return s.inboundOptions(nil)
+}
+
+func (s *InboundService) inboundOptions(userId *int) ([]InboundOption, error) {
 	db := database.GetDB()
 	var rows []struct {
 		Id             int    `gorm:"column:id"`
@@ -352,11 +365,13 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		Port           int    `gorm:"column:port"`
 		StreamSettings string `gorm:"column:stream_settings"`
 	}
-	err := db.Table("inbounds").
+	q := db.Table("inbounds").
 		Select("id, remark, tag, protocol, port, stream_settings").
-		Where("user_id = ?", userId).
-		Order("id ASC").
-		Scan(&rows).Error
+		Order("id ASC")
+	if userId != nil {
+		q = q.Where("user_id = ?", *userId)
+	}
+	err := q.Scan(&rows).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}

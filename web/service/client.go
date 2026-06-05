@@ -28,6 +28,7 @@ type ClientWithAttachments struct {
 	model.ClientRecord
 	InboundIds []int               `json:"inboundIds"`
 	Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
+	OwnerName  string              `json:"ownerName,omitempty"`
 }
 
 // MarshalJSON is required because model.ClientRecord defines its own
@@ -42,7 +43,8 @@ func (c ClientWithAttachments) MarshalJSON() ([]byte, error) {
 	extras := struct {
 		InboundIds []int               `json:"inboundIds"`
 		Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
-	}{InboundIds: c.InboundIds, Traffic: c.Traffic}
+		OwnerName  string              `json:"ownerName,omitempty"`
+	}{InboundIds: c.InboundIds, Traffic: c.Traffic, OwnerName: c.OwnerName}
 	extra, err := json.Marshal(extras)
 	if err != nil {
 		return nil, err
@@ -522,6 +524,9 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 type ClientCreatePayload struct {
 	Client     model.Client `json:"client"`
 	InboundIds []int        `json:"inboundIds"`
+	// OwnerId is set server-side from the session (json:"-" so a caller can
+	// never spoof ownership). 0 leaves the client unowned.
+	OwnerId int `json:"-"`
 }
 
 func hasForbiddenClientChar(s string) bool {
@@ -636,7 +641,37 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 			needRestart = true
 		}
 	}
+	// Stamp ownership on the freshly-created client record. The record is
+	// created inside AddInboundClient/SyncInbound keyed by the unique email, so
+	// a single targeted update is safe here.
+	if payload.OwnerId != 0 {
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("email = ?", client.Email).
+			Update("owner_id", payload.OwnerId).Error; err != nil {
+			return needRestart, err
+		}
+	}
 	return needRestart, nil
+}
+
+// GetOwnerByEmail returns the owner_id of the client with the given email, or
+// gorm.ErrRecordNotFound when no such client exists. Used by the controller to
+// enforce per-user ownership before mutating a client.
+func (s *ClientService) GetOwnerByEmail(email string) (int, error) {
+	var rec model.ClientRecord
+	if err := database.GetDB().Select("owner_id").Where("email = ?", email).First(&rec).Error; err != nil {
+		return 0, err
+	}
+	return rec.OwnerId, nil
+}
+
+// GetOwnerBySubID returns the owner_id of the client owning the given subId.
+func (s *ClientService) GetOwnerBySubID(subID string) (int, error) {
+	var rec model.ClientRecord
+	if err := database.GetDB().Select("owner_id").Where("sub_id = ?", subID).First(&rec).Error; err != nil {
+		return 0, err
+	}
+	return rec.OwnerId, nil
 }
 
 func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound) error {
@@ -1512,6 +1547,8 @@ type ClientSlim struct {
 	Reset      int                 `json:"reset"`
 	Group      string              `json:"group,omitempty"`
 	Comment    string              `json:"comment,omitempty"`
+	OwnerId    int                 `json:"ownerId"`
+	OwnerName  string              `json:"ownerName,omitempty"`
 	InboundIds []int               `json:"inboundIds"`
 	Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
 	CreatedAt  int64               `json:"createdAt"`
@@ -1583,11 +1620,30 @@ const (
 // query itself is unchanged from List(); the win is that the response
 // only carries 25-ish slim rows over the wire instead of all 2000 full
 // records, which on real panels was the dominant cost.
-func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *SettingService, params ClientPageParams) (*ClientPageResponse, error) {
+func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *SettingService, params ClientPageParams, ownerFilter *int) (*ClientPageResponse, error) {
 	all, err := s.List()
 	if err != nil {
 		return nil, err
 	}
+	// Ownership scoping: a non-admin caller only ever sees clients they own.
+	// This is enforced server-side (the controller passes the session user's id
+	// for non-admins) so the result — including totals and summary — never leaks
+	// another user's clients, regardless of any frontend filtering.
+	if ownerFilter != nil {
+		scoped := make([]ClientWithAttachments, 0, len(all))
+		for _, c := range all {
+			if c.OwnerId == *ownerFilter {
+				scoped = append(scoped, c)
+			}
+		}
+		all = scoped
+	}
+
+	// Resolve owner usernames onto every row so the admin clients list can
+	// display the owner and the free-text search can match by owner name. One
+	// query keyed by the distinct owner ids present.
+	s.attachOwnerNames(all)
+
 	total := len(all)
 
 	pageSize := params.PageSize
@@ -2131,6 +2187,8 @@ func toClientSlim(c ClientWithAttachments) ClientSlim {
 		Reset:      c.Reset,
 		Group:      c.Group,
 		Comment:    c.Comment,
+		OwnerId:    c.OwnerId,
+		OwnerName:  c.OwnerName,
 		InboundIds: c.InboundIds,
 		Traffic:    c.Traffic,
 		CreatedAt:  c.CreatedAt,
@@ -2138,11 +2196,38 @@ func toClientSlim(c ClientWithAttachments) ClientSlim {
 	}
 }
 
+// attachOwnerNames fills OwnerName on each row from the users table, batched by
+// the distinct owner ids present.
+func (s *ClientService) attachOwnerNames(rows []ClientWithAttachments) {
+	ownerIds := make([]int, 0)
+	seen := map[int]bool{}
+	for i := range rows {
+		if id := rows[i].OwnerId; id > 0 && !seen[id] {
+			seen[id] = true
+			ownerIds = append(ownerIds, id)
+		}
+	}
+	if len(ownerIds) == 0 {
+		return
+	}
+	var owners []model.User
+	if err := database.GetDB().Select("id, username").Where("id IN ?", ownerIds).Find(&owners).Error; err != nil {
+		return
+	}
+	nameById := make(map[int]string, len(owners))
+	for _, u := range owners {
+		nameById[u.Id] = u.Username
+	}
+	for i := range rows {
+		rows[i].OwnerName = nameById[rows[i].OwnerId]
+	}
+}
+
 func clientMatchesSearch(c ClientWithAttachments, needle string) bool {
 	if needle == "" {
 		return true
 	}
-	candidates := [...]string{c.Email, c.SubID, c.Comment, c.UUID, c.Password, c.Auth}
+	candidates := [...]string{c.Email, c.SubID, c.Comment, c.UUID, c.Password, c.Auth, c.OwnerName}
 	for _, v := range candidates {
 		if v != "" && strings.Contains(strings.ToLower(v), needle) {
 			return true

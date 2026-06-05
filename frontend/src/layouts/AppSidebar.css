@@ -281,3 +281,43 @@ body.dark .ant-drawer-body .drawer-menu .ant-menu-item-group-list {
   background-color: color-mix(in srgb, var(--ant-color-primary) 10%, transparent) !important;
   color: var(--ant-color-primary) !important;
 }
+
+/* Wallet balance chip in the sidebar/drawer footer. Uses the same AntD design
+   tokens as the rest of the sider (primary accent + secondary text) so it reads
+   correctly in light, dark and ultra-dark themes. */
+.sider-balance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 8px 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ant-color-text-secondary);
+  background-color: color-mix(in srgb, var(--ant-color-primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ant-color-primary) 22%, transparent);
+  border-radius: 8px;
+}
+
+.sider-balance .anticon {
+  font-size: 16px;
+  color: var(--ant-color-primary);
+  flex-shrink: 0;
+}
+
+.sider-balance.is-collapsed {
+  justify-content: center;
+  margin: 0 6px 8px;
+  padding: 7px 0;
+}
+
+.sider-balance-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sider-balance-text strong {
+  color: var(--ant-color-text);
+  font-weight: 600;
+}

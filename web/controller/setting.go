@@ -40,17 +40,22 @@ func NewSettingController(g *gin.RouterGroup) *SettingController {
 // initRouter sets up the routes for settings management.
 func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g = g.Group("/setting")
+	admin := middleware.RequireAdmin()
 
-	g.POST("/all", a.getAllSetting)
+	// defaultSettings exposes only non-sensitive presentation values (sub URIs,
+	// page size, date picker) that the clients page needs, so it stays open to
+	// any logged-in user. Everything else is system configuration — admin only.
 	g.POST("/defaultSettings", a.getDefaultSettings)
-	g.POST("/update", a.updateSetting)
-	g.POST("/updateUser", a.updateUser)
-	g.POST("/restartPanel", a.restartPanel)
-	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
-	g.GET("/apiTokens", a.listApiTokens)
-	g.POST("/apiTokens/create", a.createApiToken)
-	g.POST("/apiTokens/delete/:id", a.deleteApiToken)
-	g.POST("/apiTokens/setEnabled/:id", a.setApiTokenEnabled)
+
+	g.POST("/all", admin, a.getAllSetting)
+	g.POST("/update", admin, a.updateSetting)
+	g.POST("/updateUser", admin, a.updateUser)
+	g.POST("/restartPanel", admin, a.restartPanel)
+	g.GET("/getDefaultJsonConfig", admin, a.getDefaultXrayConfig)
+	g.GET("/apiTokens", admin, a.listApiTokens)
+	g.POST("/apiTokens/create", admin, a.createApiToken)
+	g.POST("/apiTokens/delete/:id", admin, a.deleteApiToken)
+	g.POST("/apiTokens/setEnabled/:id", admin, a.setApiTokenEnabled)
 }
 
 // getAllSetting retrieves all current settings.

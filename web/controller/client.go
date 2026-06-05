@@ -2,13 +2,18 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/session"
 	"github.com/mhsanaei/3x-ui/v3/web/websocket"
 
 	"github.com/gin-gonic/gin"
@@ -38,6 +43,7 @@ type ClientController struct {
 	inboundService service.InboundService
 	xrayService    service.XrayService
 	settingService service.SettingService
+	walletService  service.WalletService
 }
 
 func NewClientController(g *gin.RouterGroup) *ClientController {
@@ -47,34 +53,86 @@ func NewClientController(g *gin.RouterGroup) *ClientController {
 }
 
 func (a *ClientController) initRouter(g *gin.RouterGroup) {
-	g.GET("/list", a.list)
+	admin := middleware.RequireAdmin()
+
+	// Routes a non-admin "user" may reach. Each handler additionally enforces
+	// per-client ownership so a user can only ever touch their own clients.
 	g.GET("/list/paged", a.listPaged)
 	g.GET("/get/:email", a.get)
 	g.GET("/traffic/:email", a.getTrafficByEmail)
 	g.GET("/subLinks/:subId", a.getSubLinks)
 	g.GET("/links/:email", a.getClientLinks)
-
 	g.POST("/add", a.create)
 	g.POST("/update/:email", a.update)
 	g.POST("/del/:email", a.delete)
-	g.POST("/:email/attach", a.attach)
-	g.POST("/:email/detach", a.detach)
-	g.POST("/resetAllTraffics", a.resetAllTraffics)
-	g.POST("/delDepleted", a.delDepleted)
-	g.POST("/bulkAdjust", a.bulkAdjust)
-	g.POST("/bulkDel", a.bulkDelete)
-	g.POST("/bulkCreate", a.bulkCreate)
-	g.POST("/bulkAttach", a.bulkAttach)
-	g.POST("/bulkDetach", a.bulkDetach)
-	g.POST("/bulkResetTraffic", a.bulkResetTraffic)
-	g.POST("/resetTraffic/:email", a.resetTrafficByEmail)
-	g.POST("/updateTraffic/:email", a.updateTrafficByEmail)
 	g.POST("/ips/:email", a.getIps)
 	g.POST("/clearIps/:email", a.clearIps)
-	g.POST("/onlines", a.onlines)
-	g.POST("/onlinesByNode", a.onlinesByNode)
-	g.POST("/activeInbounds", a.activeInbounds)
-	g.POST("/lastOnline", a.lastOnline)
+	// Owners may re-attach/detach their own clients to/from inbounds (each
+	// handler enforces ownership). Attaching doesn't change the client's quota,
+	// so there's no cost implication.
+	g.POST("/:email/attach", a.attach)
+	g.POST("/:email/detach", a.detach)
+
+	// Admin-only routes: full client list, bulk operations, traffic
+	// administration and online/diagnostic queries.
+	g.GET("/list", admin, a.list)
+	g.POST("/resetAllTraffics", admin, a.resetAllTraffics)
+	g.POST("/delDepleted", admin, a.delDepleted)
+	g.POST("/bulkAdjust", admin, a.bulkAdjust)
+	g.POST("/bulkDel", admin, a.bulkDelete)
+	g.POST("/bulkCreate", admin, a.bulkCreate)
+	g.POST("/bulkAttach", admin, a.bulkAttach)
+	g.POST("/bulkDetach", admin, a.bulkDetach)
+	g.POST("/bulkResetTraffic", admin, a.bulkResetTraffic)
+	g.POST("/resetTraffic/:email", admin, a.resetTrafficByEmail)
+	g.POST("/updateTraffic/:email", admin, a.updateTrafficByEmail)
+	g.POST("/onlines", admin, a.onlines)
+	g.POST("/onlinesByNode", admin, a.onlinesByNode)
+	g.POST("/activeInbounds", admin, a.activeInbounds)
+	g.POST("/lastOnline", admin, a.lastOnline)
+}
+
+// requireOwnership returns true when the caller may act on the client with the
+// given email: admins always may; a non-admin only when they own it. On denial
+// it writes the response and returns false so the caller can simply return.
+func (a *ClientController) requireOwnership(c *gin.Context, email string) bool {
+	user := session.GetLoginUser(c)
+	if user == nil {
+		pureJsonMsg(c, http.StatusUnauthorized, false, I18nWeb(c, "pages.login.loginAgain"))
+		return false
+	}
+	if user.IsAdmin() {
+		return true
+	}
+	owner, err := a.clientService.GetOwnerByEmail(email)
+	if err != nil {
+		// Don't reveal whether the email exists to a non-owner.
+		pureJsonMsg(c, http.StatusForbidden, false, I18nWeb(c, "pages.clients.toasts.forbidden"))
+		return false
+	}
+	if owner != user.Id {
+		pureJsonMsg(c, http.StatusForbidden, false, I18nWeb(c, "pages.clients.toasts.forbidden"))
+		return false
+	}
+	return true
+}
+
+// requireSubOwnership is the subId equivalent of requireOwnership.
+func (a *ClientController) requireSubOwnership(c *gin.Context, subID string) bool {
+	user := session.GetLoginUser(c)
+	if user == nil {
+		pureJsonMsg(c, http.StatusUnauthorized, false, I18nWeb(c, "pages.login.loginAgain"))
+		return false
+	}
+	if user.IsAdmin() {
+		return true
+	}
+	owner, err := a.clientService.GetOwnerBySubID(subID)
+	if err != nil || owner != user.Id {
+		pureJsonMsg(c, http.StatusForbidden, false, I18nWeb(c, "pages.clients.toasts.forbidden"))
+		return false
+	}
+	return true
 }
 
 func (a *ClientController) list(c *gin.Context) {
@@ -92,7 +150,13 @@ func (a *ClientController) listPaged(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
-	resp, err := a.clientService.ListPaged(&a.inboundService, &a.settingService, params)
+	// Non-admins are scoped to clients they own; admins see everything.
+	var ownerFilter *int
+	if user := session.GetLoginUser(c); user != nil && !user.IsAdmin() {
+		id := user.Id
+		ownerFilter = &id
+	}
+	resp, err := a.clientService.ListPaged(&a.inboundService, &a.settingService, params, ownerFilter)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -102,6 +166,9 @@ func (a *ClientController) listPaged(c *gin.Context) {
 
 func (a *ClientController) get(c *gin.Context) {
 	email := c.Param("email")
+	if !a.requireOwnership(c, email) {
+		return
+	}
 	rec, err := a.clientService.GetRecordByEmail(nil, email)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "get"), err)
@@ -127,8 +194,45 @@ func (a *ClientController) create(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+	user := session.GetLoginUser(c)
+	if user == nil {
+		pureJsonMsg(c, http.StatusUnauthorized, false, I18nWeb(c, "pages.login.loginAgain"))
+		return
+	}
+	// Every client gets an owner: the creating user. (json:"-" on OwnerId means
+	// a caller cannot spoof this — it is only ever set here, server-side.)
+	payload.OwnerId = user.Id
+
+	// Cost system: non-admins are charged clientCost credits per client. The
+	// debit, client creation and (on failure) the refund are sequenced so a
+	// failed creation never leaves the user out of pocket and an unpaid client
+	// is never created.
+	var charged int64
+	if !user.IsAdmin() {
+		base, _ := a.settingService.GetClientCost()
+		perGB, _ := a.settingService.GetClientCostPerGB()
+		cost := service.ComputeClientCost(base, perGB, payload.Client.TotalGB)
+		if cost > 0 {
+			if _, err := a.walletService.Debit(user.Id, cost, "client create: "+payload.Client.Email); err != nil {
+				if errors.Is(err, service.ErrInsufficientBalance) {
+					pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.clients.toasts.insufficientBalance"))
+					return
+				}
+				jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+				return
+			}
+			charged = cost
+		}
+	}
+
 	needRestart, err := a.clientService.Create(&a.inboundService, &payload)
 	if err != nil {
+		if charged > 0 {
+			// Refund the reservation; creation never happened.
+			if _, refundErr := a.walletService.Credit(user.Id, charged, "refund (create failed): "+payload.Client.Email); refundErr != nil {
+				logger.Warning("failed to refund client-create charge:", refundErr)
+			}
+		}
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
@@ -141,6 +245,9 @@ func (a *ClientController) create(c *gin.Context) {
 
 func (a *ClientController) update(c *gin.Context) {
 	email := c.Param("email")
+	if !a.requireOwnership(c, email) {
+		return
+	}
 	var updated model.Client
 	if err := c.ShouldBindJSON(&updated); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -161,6 +268,9 @@ func (a *ClientController) update(c *gin.Context) {
 
 func (a *ClientController) delete(c *gin.Context) {
 	email := c.Param("email")
+	if !a.requireOwnership(c, email) {
+		return
+	}
 	keepTraffic := c.Query("keepTraffic") == "1"
 	needRestart, err := a.clientService.DeleteByEmail(&a.inboundService, email, keepTraffic)
 	if err != nil {
@@ -180,6 +290,9 @@ type attachDetachBody struct {
 
 func (a *ClientController) attach(c *gin.Context) {
 	email := c.Param("email")
+	if !a.requireOwnership(c, email) {
+		return
+	}
 	var body attachDetachBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -370,6 +483,9 @@ func (a *ClientController) updateTrafficByEmail(c *gin.Context) {
 
 func (a *ClientController) getIps(c *gin.Context) {
 	email := c.Param("email")
+	if !a.requireOwnership(c, email) {
+		return
+	}
 	ips, err := a.inboundService.GetInboundClientIps(email)
 	if err != nil || ips == "" {
 		jsonObj(c, "No IP Record", nil)
@@ -406,6 +522,9 @@ func (a *ClientController) getIps(c *gin.Context) {
 
 func (a *ClientController) clearIps(c *gin.Context) {
 	email := c.Param("email")
+	if !a.requireOwnership(c, email) {
+		return
+	}
 	if err := a.inboundService.ClearClientIps(email); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
 		return
@@ -432,6 +551,9 @@ func (a *ClientController) lastOnline(c *gin.Context) {
 
 func (a *ClientController) getTrafficByEmail(c *gin.Context) {
 	email := c.Param("email")
+	if !a.requireOwnership(c, email) {
+		return
+	}
 	traffic, err := a.inboundService.GetClientTrafficByEmail(email)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.trafficGetError"), err)
@@ -441,6 +563,9 @@ func (a *ClientController) getTrafficByEmail(c *gin.Context) {
 }
 
 func (a *ClientController) getSubLinks(c *gin.Context) {
+	if !a.requireSubOwnership(c, c.Param("subId")) {
+		return
+	}
 	links, err := a.inboundService.GetSubLinks(resolveHost(c), c.Param("subId"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
@@ -450,6 +575,9 @@ func (a *ClientController) getSubLinks(c *gin.Context) {
 }
 
 func (a *ClientController) getClientLinks(c *gin.Context) {
+	if !a.requireOwnership(c, c.Param("email")) {
+		return
+	}
 	links, err := a.inboundService.GetAllClientLinks(resolveHost(c), c.Param("email"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
@@ -460,6 +588,9 @@ func (a *ClientController) getClientLinks(c *gin.Context) {
 
 func (a *ClientController) detach(c *gin.Context) {
 	email := c.Param("email")
+	if !a.requireOwnership(c, email) {
+		return
+	}
 	var body attachDetachBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)

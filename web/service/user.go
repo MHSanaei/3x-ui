@@ -26,6 +26,8 @@ var (
 	ErrInvalidPhone    = errors.New("invalid phone number")
 	ErrInvalidFullName = errors.New("invalid full name")
 	ErrWeakPassword    = errors.New("password does not meet the strength requirements")
+	ErrLastAdmin       = errors.New("cannot remove the last administrator")
+	ErrWrongPassword   = errors.New("current password is incorrect")
 )
 
 var (
@@ -119,6 +121,7 @@ func (s *UserService) Register(input RegisterInput) (*model.User, error) {
 		FullName: in.FullName,
 		Phone:    in.Phone,
 		Email:    in.Email,
+		Role:     model.RoleUser, // self-registered accounts are always limited users
 	}
 
 	db := database.GetDB()
@@ -290,6 +293,7 @@ func (s *UserService) UpdateFirstUser(username string, password string) error {
 	if database.IsNotFound(err) {
 		user.Username = username
 		user.Password = hashedPassword
+		user.Role = model.RoleAdmin
 		return db.Model(model.User{}).Create(user).Error
 	} else if err != nil {
 		return err
@@ -298,4 +302,307 @@ func (s *UserService) UpdateFirstUser(username string, password string) error {
 	user.Password = hashedPassword
 	user.LoginEpoch++
 	return db.Save(user).Error
+}
+
+// AdminUserInput carries the fields an admin supplies when creating or editing
+// a panel user. Password is optional on update (blank = keep current).
+type AdminUserInput struct {
+	Username string
+	Password string
+	FullName string
+	Phone    string
+	Email    string
+	Role     string
+	Balance  int64
+}
+
+func normalizeRole(role string) string {
+	if strings.ToLower(strings.TrimSpace(role)) == model.RoleAdmin {
+		return model.RoleAdmin
+	}
+	return model.RoleUser
+}
+
+// optionalEmail validates and lower-cases an email when present; empty is allowed.
+func optionalEmail(email string) (string, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if email == "" {
+		return "", nil
+	}
+	addr, err := mail.ParseAddress(email)
+	if err != nil || addr.Address != email || len(email) > 254 {
+		return "", ErrInvalidEmail
+	}
+	return email, nil
+}
+
+// ListUsers returns every panel user with the password hash cleared so the
+// result is safe to serialize to an admin client.
+func (s *UserService) ListUsers() ([]model.User, error) {
+	var users []model.User
+	if err := database.GetDB().Order("id asc").Find(&users).Error; err != nil {
+		return nil, err
+	}
+	for i := range users {
+		users[i].Password = ""
+	}
+	return users, nil
+}
+
+// GetUserByID loads a single user (password cleared).
+func (s *UserService) GetUserByID(id int) (*model.User, error) {
+	var u model.User
+	if err := database.GetDB().Where("id = ?", id).First(&u).Error; err != nil {
+		return nil, err
+	}
+	u.Password = ""
+	return &u, nil
+}
+
+// AdminCreateUser creates a panel user with an explicit role and starting
+// balance. Username uniqueness is case-insensitive; email (when present) must
+// be unique and valid; password must satisfy the shared strength policy.
+func (s *UserService) AdminCreateUser(in AdminUserInput) (*model.User, error) {
+	in.Username = strings.TrimSpace(in.Username)
+	in.FullName = strings.TrimSpace(in.FullName)
+	in.Phone = strings.TrimSpace(in.Phone)
+	if !usernameRegex.MatchString(in.Username) {
+		return nil, ErrInvalidUsername
+	}
+	if err := ValidatePasswordStrength(in.Password); err != nil {
+		return nil, err
+	}
+	email, err := optionalEmail(in.Email)
+	if err != nil {
+		return nil, err
+	}
+	hashed, err := crypto.HashPasswordAsBcrypt(in.Password)
+	if err != nil {
+		return nil, err
+	}
+	balance := in.Balance
+	if balance < 0 {
+		balance = 0
+	}
+	user := &model.User{
+		Username: in.Username,
+		Password: hashed,
+		FullName: in.FullName,
+		Phone:    in.Phone,
+		Email:    email,
+		Role:     normalizeRole(in.Role),
+		Balance:  balance,
+	}
+	err = database.GetDB().Transaction(func(tx *gorm.DB) error {
+		var count int64
+		if err := tx.Model(model.User{}).Where("LOWER(username) = ?", strings.ToLower(in.Username)).Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return ErrUsernameTaken
+		}
+		if email != "" {
+			if err := tx.Model(model.User{}).Where("LOWER(email) = ?", email).Count(&count).Error; err != nil {
+				return err
+			}
+			if count > 0 {
+				return ErrEmailTaken
+			}
+		}
+		return tx.Create(user).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+	user.Password = ""
+	return user, nil
+}
+
+// AdminUpdateUser edits a user's profile, role and (optionally) password. A
+// blank password leaves the current one untouched. Balance is NOT changed here
+// — wallet adjustments go through WalletService so they are always audited.
+// Demoting the last remaining admin is rejected.
+func (s *UserService) AdminUpdateUser(id int, in AdminUserInput) (*model.User, error) {
+	in.Username = strings.TrimSpace(in.Username)
+	in.FullName = strings.TrimSpace(in.FullName)
+	in.Phone = strings.TrimSpace(in.Phone)
+	if !usernameRegex.MatchString(in.Username) {
+		return nil, ErrInvalidUsername
+	}
+	email, err := optionalEmail(in.Email)
+	if err != nil {
+		return nil, err
+	}
+	newRole := normalizeRole(in.Role)
+
+	updates := map[string]any{
+		"username":  in.Username,
+		"full_name": in.FullName,
+		"phone":     in.Phone,
+		"email":     email,
+		"role":      newRole,
+	}
+	if strings.TrimSpace(in.Password) != "" {
+		if err := ValidatePasswordStrength(in.Password); err != nil {
+			return nil, err
+		}
+		hashed, err := crypto.HashPasswordAsBcrypt(in.Password)
+		if err != nil {
+			return nil, err
+		}
+		updates["password"] = hashed
+		// Force re-login everywhere when the password changes.
+		updates["login_epoch"] = gorm.Expr("login_epoch + 1")
+	}
+
+	err = database.GetDB().Transaction(func(tx *gorm.DB) error {
+		var existing model.User
+		if err := tx.Where("id = ?", id).First(&existing).Error; err != nil {
+			return err
+		}
+		var count int64
+		if err := tx.Model(model.User{}).Where("LOWER(username) = ? AND id <> ?", strings.ToLower(in.Username), id).Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return ErrUsernameTaken
+		}
+		if email != "" {
+			if err := tx.Model(model.User{}).Where("LOWER(email) = ? AND id <> ?", email, id).Count(&count).Error; err != nil {
+				return err
+			}
+			if count > 0 {
+				return ErrEmailTaken
+			}
+		}
+		// Guard: never demote the last admin.
+		if existing.IsAdmin() && newRole == model.RoleUser {
+			admins, err := s.countAdminsTx(tx)
+			if err != nil {
+				return err
+			}
+			if admins <= 1 {
+				return ErrLastAdmin
+			}
+		}
+		return tx.Model(model.User{}).Where("id = ?", id).Updates(updates).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s.GetUserByID(id)
+}
+
+// DeleteUser removes a panel user and their transaction history. The last
+// remaining admin cannot be deleted. Owned clients are left intact (their
+// owner_id is reset to 0 / unowned) so proxy access is never silently dropped.
+func (s *UserService) DeleteUser(id int) error {
+	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		var existing model.User
+		if err := tx.Where("id = ?", id).First(&existing).Error; err != nil {
+			return err
+		}
+		if existing.IsAdmin() {
+			admins, err := s.countAdminsTx(tx)
+			if err != nil {
+				return err
+			}
+			if admins <= 1 {
+				return ErrLastAdmin
+			}
+		}
+		if err := tx.Model(&model.ClientRecord{}).Where("owner_id = ?", id).Update("owner_id", 0).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", id).Delete(&model.Transaction{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("id = ?", id).Delete(&model.User{}).Error
+	})
+}
+
+func (s *UserService) countAdminsTx(tx *gorm.DB) (int64, error) {
+	var count int64
+	err := tx.Model(model.User{}).Where("role = ?", model.RoleAdmin).Count(&count).Error
+	return count, err
+}
+
+// SelfProfileInput is what a logged-in user may change about their own account.
+// Role and balance are intentionally absent — a user can never escalate their
+// own role or top up their own wallet; only an admin can (via AdminUpdateUser /
+// WalletService).
+type SelfProfileInput struct {
+	CurrentPassword string
+	Username        string
+	Email           string
+	NewPassword     string // optional; blank keeps the current password
+}
+
+// UpdateSelfProfile lets a user edit their own username, email and password
+// after re-authenticating with their current password. It returns the updated
+// user and whether the password changed (callers must force a re-login in that
+// case, since the login epoch is bumped and the current session is invalidated).
+func (s *UserService) UpdateSelfProfile(userId int, in SelfProfileInput) (*model.User, bool, error) {
+	in.Username = strings.TrimSpace(in.Username)
+	if !usernameRegex.MatchString(in.Username) {
+		return nil, false, ErrInvalidUsername
+	}
+	email, err := optionalEmail(in.Email)
+	if err != nil {
+		return nil, false, err
+	}
+
+	db := database.GetDB()
+	var user model.User
+	if err := db.Where("id = ?", userId).First(&user).Error; err != nil {
+		return nil, false, err
+	}
+	if !crypto.CheckPasswordHash(user.Password, in.CurrentPassword) {
+		return nil, false, ErrWrongPassword
+	}
+
+	updates := map[string]any{
+		"username": in.Username,
+		"email":    email,
+	}
+	passwordChanged := false
+	if strings.TrimSpace(in.NewPassword) != "" {
+		if err := ValidatePasswordStrength(in.NewPassword); err != nil {
+			return nil, false, err
+		}
+		hashed, err := crypto.HashPasswordAsBcrypt(in.NewPassword)
+		if err != nil {
+			return nil, false, err
+		}
+		updates["password"] = hashed
+		updates["login_epoch"] = gorm.Expr("login_epoch + 1")
+		passwordChanged = true
+	}
+
+	err = db.Transaction(func(tx *gorm.DB) error {
+		var count int64
+		if err := tx.Model(model.User{}).Where("LOWER(username) = ? AND id <> ?", strings.ToLower(in.Username), userId).Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return ErrUsernameTaken
+		}
+		if email != "" {
+			if err := tx.Model(model.User{}).Where("LOWER(email) = ? AND id <> ?", email, userId).Count(&count).Error; err != nil {
+				return err
+			}
+			if count > 0 {
+				return ErrEmailTaken
+			}
+		}
+		return tx.Model(model.User{}).Where("id = ?", userId).Updates(updates).Error
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	out, err := s.GetUserByID(userId)
+	if err != nil {
+		return nil, false, err
+	}
+	return out, passwordChanged, nil
 }

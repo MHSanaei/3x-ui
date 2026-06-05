@@ -1,0 +1,4512 @@
+diff --git a/.env.example b/.env.example
+index 62aa8c0b..e5b78a7c 100644
+--- a/.env.example
++++ b/.env.example
+@@ -1,4 +1,27 @@
++# 3x-ui environment configuration.
++# Copy to ".env" and adjust. All variables are optional and fall back to the
++# defaults shown here when unset.
++
++# --- General ---
++# Enable verbose debug logging and the Gin debug mode.
+ XUI_DEBUG=true
++# Log verbosity when XUI_DEBUG is false: debug | info | notice | warning | error
++XUI_LOG_LEVEL=info
++# Skip sending the HSTS header even when serving direct HTTPS.
++XUI_SKIP_HSTS=false
++
++# --- Paths ---
++# Where x-ui.db (SQLite), logs and the xray binary/geo files live.
+ XUI_DB_FOLDER=x-ui
+ XUI_LOG_FOLDER=x-ui
+-XUI_BIN_FOLDER=x-ui
+\ No newline at end of file
++XUI_BIN_FOLDER=x-ui
++
++# --- Database ---
++# Backend: "sqlite" (default) or "postgres".
++# XUI_DB_TYPE=sqlite
++# PostgreSQL DSN, required only when XUI_DB_TYPE=postgres. The target database
++# must already exist; tables are auto-migrated on start.
++# XUI_DB_DSN=postgres://postgres:root@127.0.0.1:5432/xui?sslmode=disable
++# Connection pool sizing (defaults: sqlite 8/4, postgres 25/25).
++# XUI_DB_MAX_OPEN_CONNS=25
++# XUI_DB_MAX_IDLE_CONNS=25
+diff --git a/database/db.go b/database/db.go
+index b3b914e7..82e82b3b 100644
+--- a/database/db.go
++++ b/database/db.go
+@@ -73,6 +73,8 @@ func initModels() error {
+ 		&model.ClientGroup{},
+ 		&model.InboundFallback{},
+ 		&model.NodeClientTraffic{},
++		&model.Transaction{},
++		&model.Payment{},
+ 	}
+ 	for _, mdl := range models {
+ 		if err := db.AutoMigrate(mdl); err != nil {
+@@ -166,6 +168,7 @@ func initUser() error {
+ 		user := &model.User{
+ 			Username: defaultUsername,
+ 			Password: hashedPassword,
++			Role:     model.RoleAdmin,
+ 		}
+ 		return db.Create(user).Error
+ 	}
+@@ -181,7 +184,7 @@ func runSeeders(isUsersEmpty bool) error {
+ 	}
+ 
+ 	if empty && isUsersEmpty {
+-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash"}
++		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash", "RoleBalanceBackfill"}
+ 		for _, name := range seeders {
+ 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
+ 				return err
+@@ -267,9 +270,32 @@ func runSeeders(isUsersEmpty bool) error {
+ 			return err
+ 		}
+ 	}
++
++	if !slices.Contains(seedersHistory, "RoleBalanceBackfill") {
++		if err := backfillUserRoles(); err != nil {
++			return err
++		}
++	}
+ 	return nil
+ }
+ 
++// backfillUserRoles runs once on installs that predate the RBAC role column.
++// AutoMigrate adds the column with its default ("user"), so every pre-existing
++// operator row must be promoted back to "admin" or they would lose access.
++// New accounts are created with an explicit role after this seeder is recorded,
++// so they are never affected (this only runs while no real "user" account can
++// exist yet).
++func backfillUserRoles() error {
++	return db.Transaction(func(tx *gorm.DB) error {
++		if err := tx.Model(&model.User{}).
++			Where("role IS NULL OR role = '' OR role = ?", model.RoleUser).
++			Update("role", model.RoleAdmin).Error; err != nil {
++			return err
++		}
++		return tx.Create(&model.HistoryOfSeeders{SeederName: "RoleBalanceBackfill"}).Error
++	})
++}
++
+ func normalizeInboundClientTgId() error {
+ 	var inbounds []model.Inbound
+ 	if err := db.Find(&inbounds).Error; err != nil {
+diff --git a/database/model/model.go b/database/model/model.go
+index ee24e4ce..d642de43 100644
+--- a/database/model/model.go
++++ b/database/model/model.go
+@@ -33,15 +33,84 @@ const (
+ 
+ // User represents a user account in the 3x-ui panel.
+ type User struct {
+-	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
+-	Username   string `json:"username"`
+-	Password   string `json:"-"`
+-	FullName   string `json:"fullName" gorm:"default:''"`
+-	Phone      string `json:"phone" gorm:"default:''"`
+-	Email      string `json:"email" gorm:"default:''"`
+-	LoginEpoch int64  `json:"-" gorm:"default:0"`
++	Id       int    `json:"id" gorm:"primaryKey;autoIncrement"`
++	Username string `json:"username"`
++	Password string `json:"-"`
++	FullName string `json:"fullName" gorm:"default:''"`
++	Phone    string `json:"phone" gorm:"default:''"`
++	Email    string `json:"email" gorm:"default:''"`
++	// Role gates access: "admin" has unrestricted access, "user" is limited to
++	// the clients page and to clients they own. The column defaults to "user"
++	// (least privilege); the bootstrap admin and all pre-existing users are
++	// promoted to "admin" by initUser / the RoleBalanceBackfill seeder so
++	// existing installs keep working.
++	Role string `json:"role" gorm:"default:'user';index"`
++	// Balance is the user's wallet in integer credits. Clients cost credits to
++	// create; admins top up balances. Integer (not float) to avoid rounding.
++	Balance    int64 `json:"balance" gorm:"default:0"`
++	LoginEpoch int64 `json:"-" gorm:"default:0"`
++}
++
++// Role constants for the RBAC system.
++const (
++	RoleAdmin = "admin"
++	RoleUser  = "user"
++)
++
++// IsAdmin reports whether the user has the unrestricted admin role. Any role
++// other than the explicit "user" role is treated as admin so a blank/unknown
++// legacy value never silently downgrades an operator mid-migration; the
++// backfill seeder normalizes pre-existing rows to "admin" regardless.
++func (u *User) IsAdmin() bool {
++	return u != nil && u.Role != RoleUser
+ }
+ 
++// Transaction records a single credit or debit against a user's balance,
++// capturing the before/after snapshot for an auditable wallet history.
++type Transaction struct {
++	Id            int    `json:"id" gorm:"primaryKey;autoIncrement"`
++	UserId        int    `json:"userId" gorm:"index;not null;column:user_id"`
++	Amount        int64  `json:"amount" gorm:"not null"` // always positive; Type carries the sign
++	Type          string `json:"type" gorm:"not null"`   // "credit" | "debit"
++	Description   string `json:"description"`
++	BalanceBefore int64  `json:"balanceBefore" gorm:"column:balance_before"`
++	BalanceAfter  int64  `json:"balanceAfter" gorm:"column:balance_after"`
++	CreatedAt     int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
++}
++
++func (Transaction) TableName() string { return "transactions" }
++
++// Transaction type constants.
++const (
++	TxCredit = "credit"
++	TxDebit  = "debit"
++)
++
++// Payment tracks an external payment-gateway top-up (currently ZarinPal). The
++// authority is the gateway's unique reference for the attempt; the row is
++// created pending at request time and flipped to paid/failed at callback,
++// which is what guarantees a balance is credited at most once per payment.
++type Payment struct {
++	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
++	UserId    int    `json:"userId" gorm:"index;not null;column:user_id"`
++	Gateway   string `json:"gateway" gorm:"default:zarinpal"`
++	Authority string `json:"authority" gorm:"uniqueIndex"`
++	Amount    int64  `json:"amount"`
++	Status    string `json:"status" gorm:"default:pending"` // pending | paid | failed
++	RefId     string `json:"refId" gorm:"column:ref_id"`
++	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
++	UpdatedAt int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
++}
++
++func (Payment) TableName() string { return "payments" }
++
++// Payment status constants.
++const (
++	PaymentPending = "pending"
++	PaymentPaid    = "paid"
++	PaymentFailed  = "failed"
++)
++
+ // Inbound represents an Xray inbound configuration with traffic statistics and settings.
+ type Inbound struct {
+ 	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`                                                                                                                 // Unique identifier
+@@ -450,8 +519,13 @@ type Client struct {
+ }
+ 
+ type ClientRecord struct {
+-	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
+-	Email      string `json:"email" gorm:"uniqueIndex;not null"`
++	Id    int    `json:"id" gorm:"primaryKey;autoIncrement"`
++	Email string `json:"email" gorm:"uniqueIndex;not null"`
++	// OwnerId is the panel user that owns this client. 0 means "unowned"
++	// (pre-RBAC rows and admin-created clients without an explicit owner);
++	// admins see every client regardless, while non-admin users only ever see
++	// and mutate rows whose OwnerId equals their own id.
++	OwnerId    int    `json:"ownerId" gorm:"column:owner_id;index;default:0"`
+ 	SubID      string `json:"subId" gorm:"index;column:sub_id"`
+ 	UUID       string `json:"uuid" gorm:"column:uuid"`
+ 	Password   string `json:"password"`
+diff --git a/frontend/src/api/queries/useAllSettings.ts b/frontend/src/api/queries/useAllSettings.ts
+index 593853c9..4a3df442 100644
+--- a/frontend/src/api/queries/useAllSettings.ts
++++ b/frontend/src/api/queries/useAllSettings.ts
+@@ -6,6 +6,7 @@ import { parseMsg } from '@/utils/zodValidate';
+ import { AllSetting } from '@/models/setting';
+ import { AllSettingSchema, type AllSettingInput } from '@/schemas/setting';
+ import { keys } from '@/api/queryKeys';
++import { useMe } from '@/hooks/useMe';
+ 
+ async function fetchAllSetting(): Promise<AllSettingInput | null> {
+   const msg = await HttpUtil.post('/panel/setting/all', undefined, { silent: true });
+@@ -16,13 +17,18 @@ async function fetchAllSetting(): Promise<AllSettingInput | null> {
+ 
+ export function useAllSettings() {
+   const queryClient = useQueryClient();
++  const { me } = useMe();
+   const [draft, setDraft] = useState<AllSetting>(() => new AllSetting());
+   const [extraSpinning, setExtraSpinning] = useState(false);
+ 
++  // The full settings payload is an admin-only endpoint. Non-admins (who never
++  // see the settings UI) skip the fetch entirely and fall back to defaults so
++  // the shared sidebar that consumes this hook doesn't 403.
+   const query = useQuery({
+     queryKey: keys.settings.all(),
+     queryFn: fetchAllSetting,
+     staleTime: Infinity,
++    enabled: me === undefined || me.isAdmin,
+   });
+ 
+   const server = useMemo(() => new AllSetting(query.data), [query.data]);
+diff --git a/frontend/src/hooks/useClients.ts b/frontend/src/hooks/useClients.ts
+index 85cdb7c4..b7945a63 100644
+--- a/frontend/src/hooks/useClients.ts
++++ b/frontend/src/hooks/useClients.ts
+@@ -29,6 +29,7 @@ import {
+   type BulkDetachResult,
+ } from '@/schemas/client';
+ import { DefaultsPayloadSchema } from '@/schemas/defaults';
++import { useMe, ME_QUERY_KEY } from '@/hooks/useMe';
+ 
+ export type { ClientRecord, ClientTraffic, ClientsSummary, InboundOption };
+ 
+@@ -150,6 +151,7 @@ async function fetchDefaults(): Promise<Record<string, unknown>> {
+ 
+ export function useClients() {
+   const queryClient = useQueryClient();
++  const { me } = useMe();
+ 
+   const [query, setQueryState] = useState<ClientQueryParams>(DEFAULT_QUERY);
+   // setQuery shallow-compares so callers can pass a fresh object every render
+@@ -198,6 +200,9 @@ export function useClients() {
+     staleTime: Infinity,
+   });
+ 
++  // The onlines endpoint returns globally-online client emails, so it is
++  // admin-only on the server. Non-admins skip it (their page simply omits the
++  // live "online" indicator); the query is gated so it never 403s for them.
+   const onlinesQuery = useQuery({
+     queryKey: keys.clients.onlines(),
+     queryFn: async () => {
+@@ -207,6 +212,7 @@ export function useClients() {
+       return Array.isArray(validated.obj) ? validated.obj : [];
+     },
+     staleTime: Infinity,
++    enabled: me === undefined || me.isAdmin,
+   });
+ 
+   const clients = listQuery.data?.items ?? [];
+@@ -268,6 +274,8 @@ export function useClients() {
+       return Promise.all([
+         queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
+         queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
++        // A client purchase debits the wallet — refresh the balance shown in the sidebar.
++        queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY }),
+       ]);
+     },
+     [queryClient],
+diff --git a/frontend/src/hooks/useCurrency.ts b/frontend/src/hooks/useCurrency.ts
+new file mode 100644
+index 00000000..f837f0ae
+--- /dev/null
++++ b/frontend/src/hooks/useCurrency.ts
+@@ -0,0 +1,42 @@
++import { useCallback, useMemo } from 'react';
++import { useTranslation } from 'react-i18next';
++
++import { useMe } from '@/hooks/useMe';
++
++/**
++ * useCurrency centralizes how wallet amounts are rendered. The balance is held
++ * as integer credits where 1 credit == 1 currency unit; this formats it with
++ * thousand separators and the localized unit word (Toman / Rial) so users
++ * actually understand what the number means.
++ */
++export function useCurrency() {
++  const { me } = useMe();
++  const { t } = useTranslation();
++
++  const code = me?.currency || 'IRT';
++  const unit = useMemo(() => t(`currency.${code}`, { defaultValue: code }), [t, code]);
++
++  const formatNumber = useCallback((amount: number) => new Intl.NumberFormat().format(Math.round(amount || 0)), []);
++
++  // "135,000 Toman"
++  const format = useCallback(
++    (amount: number) => `${formatNumber(amount)} ${unit}`,
++    [formatNumber, unit],
++  );
++
++  return { format, formatNumber, unit, code, clientCost: me?.clientCost ?? 0, clientCostPerGB: me?.clientCostPerGB ?? 0 };
++}
++
++const BYTES_PER_GB = 1024 * 1024 * 1024;
++
++/**
++ * computeClientCost mirrors the server formula in web/service/cost.go.
++ * totalBytes is the client's traffic quota in bytes (0 = unlimited → base only).
++ */
++export function computeClientCost(base: number, perGB: number, totalBytes: number): number {
++  let cost = base || 0;
++  if (perGB > 0 && totalBytes > 0) {
++    cost += Math.round((totalBytes / BYTES_PER_GB) * perGB);
++  }
++  return cost < 0 ? 0 : cost;
++}
+diff --git a/frontend/src/hooks/useMe.ts b/frontend/src/hooks/useMe.ts
+new file mode 100644
+index 00000000..3cd0bef9
+--- /dev/null
++++ b/frontend/src/hooks/useMe.ts
+@@ -0,0 +1,60 @@
++import { useQuery } from '@tanstack/react-query';
++
++import { HttpUtil } from '@/utils';
++
++export interface MeInfo {
++  id: number;
++  username: string;
++  email: string;
++  role: string;
++  isAdmin: boolean;
++  balance: number;
++  clientCost: number;
++  clientCostPerGB: number;
++  zarinpalEnable: boolean;
++  currency: string;
++}
++
++export const ME_QUERY_KEY = ['me'] as const;
++
++async function fetchMe(): Promise<MeInfo> {
++  const msg = await HttpUtil.get('/panel/api/me', undefined, { silent: true });
++  if (!msg?.success || !msg.obj) {
++    throw new Error(msg?.msg || 'Failed to load profile');
++  }
++  const o = msg.obj as Partial<MeInfo>;
++  return {
++    id: Number(o.id) || 0,
++    username: String(o.username ?? ''),
++    email: String(o.email ?? ''),
++    role: String(o.role ?? 'user'),
++    isAdmin: Boolean(o.isAdmin),
++    balance: Number(o.balance) || 0,
++    clientCost: Number(o.clientCost) || 0,
++    clientCostPerGB: Number(o.clientCostPerGB) || 0,
++    zarinpalEnable: Boolean(o.zarinpalEnable),
++    currency: String(o.currency ?? 'IRT'),
++  };
++}
++
++/**
++ * useMe loads the current session's identity, role, wallet balance and the
++ * per-client cost. It is the single source of truth the SPA uses to gate
++ * navigation, hide admin UI and preview purchases. The backend independently
++ * enforces every one of these — the hook only drives presentation.
++ */
++export function useMe() {
++  const query = useQuery({
++    queryKey: ME_QUERY_KEY,
++    queryFn: fetchMe,
++    staleTime: 15_000,
++  });
++  return {
++    me: query.data,
++    isAdmin: query.data?.isAdmin,
++    balance: query.data?.balance ?? 0,
++    clientCost: query.data?.clientCost ?? 0,
++    loading: query.isLoading,
++    refetch: query.refetch,
++  };
++}
+diff --git a/frontend/src/layouts/AppSidebar.css b/frontend/src/layouts/AppSidebar.css
+index 4784572f..157a7c1c 100644
+--- a/frontend/src/layouts/AppSidebar.css
++++ b/frontend/src/layouts/AppSidebar.css
+@@ -281,3 +281,43 @@ body.dark .ant-drawer-body .drawer-menu .ant-menu-item-group-list {
+   background-color: color-mix(in srgb, var(--ant-color-primary) 10%, transparent) !important;
+   color: var(--ant-color-primary) !important;
+ }
++
++/* Wallet balance chip in the sidebar/drawer footer. Uses the same AntD design
++   tokens as the rest of the sider (primary accent + secondary text) so it reads
++   correctly in light, dark and ultra-dark themes. */
++.sider-balance {
++  display: flex;
++  align-items: center;
++  gap: 8px;
++  margin: 0 8px 8px;
++  padding: 7px 12px;
++  font-size: 13px;
++  font-weight: 500;
++  color: var(--ant-color-text-secondary);
++  background-color: color-mix(in srgb, var(--ant-color-primary) 10%, transparent);
++  border: 1px solid color-mix(in srgb, var(--ant-color-primary) 22%, transparent);
++  border-radius: 8px;
++}
++
++.sider-balance .anticon {
++  font-size: 16px;
++  color: var(--ant-color-primary);
++  flex-shrink: 0;
++}
++
++.sider-balance.is-collapsed {
++  justify-content: center;
++  margin: 0 6px 8px;
++  padding: 7px 0;
++}
++
++.sider-balance-text {
++  white-space: nowrap;
++  overflow: hidden;
++  text-overflow: ellipsis;
++}
++
++.sider-balance-text strong {
++  color: var(--ant-color-text);
++  font-weight: 600;
++}
+diff --git a/frontend/src/layouts/AppSidebar.tsx b/frontend/src/layouts/AppSidebar.tsx
+index 4ad7cf60..ef5c96fe 100644
+--- a/frontend/src/layouts/AppSidebar.tsx
++++ b/frontend/src/layouts/AppSidebar.tsx
+@@ -14,10 +14,12 @@ import {
+   DatabaseOutlined,
+   GithubOutlined,
+   HeartOutlined,
++  IdcardOutlined,
+   ImportOutlined,
+   LogoutOutlined,
+   MenuOutlined,
+   MessageOutlined,
++  WalletOutlined,
+   MoonFilled,
+   MoonOutlined,
+   SafetyOutlined,
+@@ -28,11 +30,14 @@ import {
+   TeamOutlined,
+   ToolOutlined,
+   UploadOutlined,
++  UserOutlined,
+ } from '@ant-design/icons';
+ 
+ import { HttpUtil } from '@/utils';
+ import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+ import { useAllSettings } from '@/api/queries/useAllSettings';
++import { useMe } from '@/hooks/useMe';
++import { useCurrency } from '@/hooks/useCurrency';
+ import './AppSidebar.css';
+ 
+ const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
+@@ -40,13 +45,16 @@ const DONATE_URL = 'https://donate.sanaei.dev/';
+ const REPO_URL = 'https://github.com/MHSanaei/3x-ui';
+ const LOGOUT_KEY = '__logout__';
+ 
+-type IconName = 'dashboard' | 'inbound' | 'team' | 'groups' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
++type IconName = 'dashboard' | 'inbound' | 'team' | 'groups' | 'users' | 'profile' | 'billing' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
+ 
+ const iconByName: Record<IconName, ComponentType> = {
+   dashboard: DashboardOutlined,
+   inbound: ImportOutlined,
+   team: TeamOutlined,
+   groups: TagsOutlined,
++  users: IdcardOutlined,
++  profile: UserOutlined,
++  billing: WalletOutlined,
+   setting: SettingOutlined,
+   tool: ToolOutlined,
+   cluster: ClusterOutlined,
+@@ -123,6 +131,10 @@ export default function AppSidebar() {
+   const navigate = useNavigate();
+   const { pathname, hash } = useLocation();
+   const { allSetting } = useAllSettings();
++  const { me } = useMe();
++  const { format: formatMoney } = useCurrency();
++  const isRestrictedUser = !!me && !me.isAdmin;
++  const showBilling = !!me?.zarinpalEnable;
+   const showSubFormats = !!(allSetting.subJsonEnable || allSetting.subClashEnable);
+ 
+   const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed());
+@@ -131,17 +143,35 @@ export default function AppSidebar() {
+   const currentTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
+   const panelVersion = window.X_UI_CUR_VER || '';
+ 
+-  const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(() => [
+-    { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
+-    { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
+-    { key: '/clients', icon: 'team', title: t('menu.clients') },
+-    { key: '/groups', icon: 'groups', title: t('menu.groups') },
+-    { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
+-    { key: '/settings', icon: 'setting', title: t('menu.settings') },
+-    { key: '/xray', icon: 'tool', title: t('menu.xray') },
+-    { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
+-    { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
+-  ], [t]);
++  const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(() => {
++    // Non-admin users only ever see the Clients page (plus logout). The backend
++    // enforces the same restriction on every route/API regardless of this menu.
++    const billing: { key: string; icon: IconName; title: string }[] = showBilling
++      ? [{ key: '/billing', icon: 'billing', title: t('menu.billing') }]
++      : [];
++    if (isRestrictedUser) {
++      return [
++        { key: '/clients', icon: 'team', title: t('menu.clients') },
++        ...billing,
++        { key: '/profile', icon: 'profile', title: t('menu.profile') },
++        { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
++      ];
++    }
++    return [
++      { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
++      { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
++      { key: '/clients', icon: 'team', title: t('menu.clients') },
++      { key: '/groups', icon: 'groups', title: t('menu.groups') },
++      { key: '/users', icon: 'users', title: t('menu.users') },
++      { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
++      { key: '/settings', icon: 'setting', title: t('menu.settings') },
++      { key: '/xray', icon: 'tool', title: t('menu.xray') },
++      { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
++      ...billing,
++      { key: '/profile', icon: 'profile', title: t('menu.profile') },
++      { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
++    ];
++  }, [t, isRestrictedUser, showBilling]);
+ 
+   const navItems = useMemo(() => tabs.filter((tab) => tab.icon !== 'logout'), [tabs]);
+   const utilItems = useMemo(() => tabs.filter((tab) => tab.icon === 'logout'), [tabs]);
+@@ -150,6 +180,7 @@ export default function AppSidebar() {
+     const children: NonNullable<MenuProps['items']> = [
+       { key: '/settings#general', icon: <SettingOutlined />, label: t('pages.settings.panelSettings') },
+       { key: '/settings#security', icon: <SafetyOutlined />, label: t('pages.settings.securitySettings') },
++      { key: '/settings#reseller', icon: <WalletOutlined />, label: t('pages.settings.resellerSettings') },
+       { key: '/settings#telegram', icon: <MessageOutlined />, label: t('pages.settings.TGBotSettings') },
+       { key: '/settings#subscription', icon: <CloudServerOutlined />, label: t('pages.settings.subSettings') },
+     ];
+@@ -276,6 +307,12 @@ export default function AppSidebar() {
+           onClick={onMenuClick}
+         />
+         <div className="sider-footer">
++          {me && (
++            <div className={`sider-balance${collapsed ? ' is-collapsed' : ''}`} title={`${t('balance')}: ${formatMoney(me.balance)}`}>
++              <WalletOutlined />
++              {!collapsed && <span className="sider-balance-text">{t('balance')}: <strong>{formatMoney(me.balance)}</strong></span>}
++            </div>
++          )}
+           <VersionBadge version={panelVersion} collapsed={collapsed} />
+         </div>
+       </Layout.Sider>
+@@ -335,6 +372,12 @@ export default function AppSidebar() {
+           onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}
+         />
+         <div className="drawer-footer">
++          {me && (
++            <div className="sider-balance" title={`${t('balance')}: ${formatMoney(me.balance)}`}>
++              <WalletOutlined />
++              <span className="sider-balance-text">{t('balance')}: <strong>{formatMoney(me.balance)}</strong></span>
++            </div>
++          )}
+           <VersionBadge version={panelVersion} />
+         </div>
+       </Drawer>
+diff --git a/frontend/src/layouts/PanelLayout.tsx b/frontend/src/layouts/PanelLayout.tsx
+index bbecf636..d1d09337 100644
+--- a/frontend/src/layouts/PanelLayout.tsx
++++ b/frontend/src/layouts/PanelLayout.tsx
+@@ -1,10 +1,36 @@
+-import { Outlet } from 'react-router-dom';
++import { useEffect } from 'react';
++import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+ 
+ import { useWebSocketBridge } from '@/api/websocketBridge';
+ import { usePageTitle } from '@/hooks/usePageTitle';
++import { useMe } from '@/hooks/useMe';
++
++// Routes a non-admin "user" is allowed to render. Everything else is redirected
++// to the clients page. This is a UX guard only — the backend independently
++// enforces RBAC on every API, so a user who hand-types a URL or hits the API
++// directly still gets nothing they are not entitled to.
++const USER_ALLOWED_PATHS = new Set(['/clients', '/profile', '/billing']);
+ 
+ export default function PanelLayout() {
+   useWebSocketBridge();
+   usePageTitle();
++
++  const { me } = useMe();
++  const { pathname } = useLocation();
++  const navigate = useNavigate();
++
++  const restricted = !!me && !me.isAdmin && !USER_ALLOWED_PATHS.has(pathname);
++
++  useEffect(() => {
++    if (restricted) {
++      navigate('/clients', { replace: true });
++    }
++  }, [restricted, navigate]);
++
++  // Avoid flashing a forbidden page for the frame before the redirect lands.
++  if (restricted) {
++    return null;
++  }
++
+   return <Outlet />;
+ }
+diff --git a/frontend/src/models/setting.ts b/frontend/src/models/setting.ts
+index ff5a5105..0a4637b8 100644
+--- a/frontend/src/models/setting.ts
++++ b/frontend/src/models/setting.ts
+@@ -28,6 +28,12 @@ export class AllSetting {
+   twoFactorEnable = false;
+   twoFactorToken = '';
+   registrationEnable = false;
++  clientCost = 0;
++  clientCostPerGB = 0;
++  zarinpalEnable = false;
++  zarinpalMerchantId = '';
++  zarinpalSandbox = false;
++  zarinpalCurrency = 'IRT';
+   xrayTemplateConfig = '';
+   subEnable = true;
+   subJsonEnable = false;
+diff --git a/frontend/src/pages/billing/BillingPage.tsx b/frontend/src/pages/billing/BillingPage.tsx
+new file mode 100644
+index 00000000..d2fead10
+--- /dev/null
++++ b/frontend/src/pages/billing/BillingPage.tsx
+@@ -0,0 +1,212 @@
++import { useEffect, useMemo, useState } from 'react';
++import { useTranslation } from 'react-i18next';
++import { useSearchParams } from 'react-router-dom';
++import {
++  Alert,
++  Button,
++  Card,
++  Col,
++  ConfigProvider,
++  InputNumber,
++  Layout,
++  Result,
++  Row,
++  Space,
++  Statistic,
++  Table,
++  Tag,
++  message,
++} from 'antd';
++import type { TableColumnsType } from 'antd';
++import { WalletOutlined } from '@ant-design/icons';
++import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
++
++import { useTheme } from '@/hooks/useTheme';
++import { usePageTitle } from '@/hooks/usePageTitle';
++import { useMe, ME_QUERY_KEY } from '@/hooks/useMe';
++import { useCurrency } from '@/hooks/useCurrency';
++import { HttpUtil, IntlUtil } from '@/utils';
++import { setMessageInstance } from '@/utils/messageBus';
++import AppSidebar from '@/layouts/AppSidebar';
++
++const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
++const QUICK_AMOUNTS = [50000, 100000, 200000, 500000];
++
++interface Payment {
++  id: number;
++  amount: number;
++  status: string;
++  refId: string;
++  gateway: string;
++  createdAt: number;
++}
++
++async function fetchPayments(): Promise<Payment[]> {
++  const msg = await HttpUtil.get('/panel/api/billing/payments', undefined, { silent: true });
++  if (!msg?.success) return [];
++  return (msg.obj as Payment[]) ?? [];
++}
++
++export default function BillingPage() {
++  usePageTitle();
++  const { t } = useTranslation();
++  const { isDark, isUltra, antdThemeConfig } = useTheme();
++  const { me } = useMe();
++  const { format: formatMoney, formatNumber, unit, clientCostPerGB } = useCurrency();
++  const [messageApi, messageContextHolder] = message.useMessage();
++  useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
++  const queryClient = useQueryClient();
++  const [searchParams, setSearchParams] = useSearchParams();
++
++  const [amount, setAmount] = useState<number>(QUICK_AMOUNTS[1]);
++
++  const paymentsQuery = useQuery({ queryKey: ['billing', 'payments'], queryFn: fetchPayments });
++
++  // Handle the redirect back from ZarinPal (?status=ok|cancelled|failed).
++  useEffect(() => {
++    const status = searchParams.get('status');
++    if (!status) return;
++    const refId = searchParams.get('refId');
++    if (status === 'ok') {
++      messageApi.success(refId ? t('pages.billing.toasts.paidWithRef', { refId }) : t('pages.billing.toasts.paid'));
++      queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
++      queryClient.invalidateQueries({ queryKey: ['billing', 'payments'] });
++    } else if (status === 'cancelled') {
++      messageApi.warning(t('pages.billing.toasts.cancelled'));
++    } else {
++      messageApi.error(t('pages.billing.toasts.failed'));
++    }
++    setSearchParams({}, { replace: true });
++  }, [searchParams, setSearchParams, messageApi, t, queryClient]);
++
++  const payMut = useMutation({
++    mutationFn: (amt: number) =>
++      HttpUtil.post('/panel/api/billing/zarinpal/request', { amount: amt }, JSON_HEADERS),
++    onSuccess: (msg) => {
++      const url = (msg?.obj as { url?: string } | null)?.url;
++      if (msg?.success && url) {
++        window.location.href = url; // hand off to the ZarinPal gateway
++      }
++    },
++  });
++
++  function startPayment() {
++    if (!amount || amount <= 0) {
++      messageApi.error(t('pages.billing.toasts.invalidAmount'));
++      return;
++    }
++    payMut.mutate(amount);
++  }
++
++  const columns: TableColumnsType<Payment> = [
++    {
++      title: t('pages.billing.amount'),
++      dataIndex: 'amount',
++      key: 'amount',
++      render: (a: number) => <strong>{formatMoney(a)}</strong>,
++    },
++    {
++      title: t('pages.users.txType'),
++      dataIndex: 'status',
++      key: 'status',
++      render: (s: string) => {
++        const color = s === 'paid' ? 'green' : s === 'failed' ? 'volcano' : 'gold';
++        return <Tag color={color}>{t(`pages.billing.status_${s}`, { defaultValue: s })}</Tag>;
++      },
++    },
++    { title: t('pages.billing.refId'), dataIndex: 'refId', key: 'refId', responsive: ['md'] },
++    {
++      title: t('pages.users.txDate'),
++      dataIndex: 'createdAt',
++      key: 'createdAt',
++      render: (ts: number) => IntlUtil.formatDate(ts),
++    },
++  ];
++
++  const pageClass = useMemo(() => {
++    const classes = ['billing-page'];
++    if (isDark) classes.push('is-dark');
++    if (isUltra) classes.push('is-ultra');
++    return classes.join(' ');
++  }, [isDark, isUltra]);
++
++  const disabled = !!me && !me.zarinpalEnable;
++
++  return (
++    <ConfigProvider theme={antdThemeConfig}>
++      {messageContextHolder}
++      <Layout className={pageClass}>
++        <AppSidebar />
++        <Layout className="content-shell">
++          <Layout.Content id="content-layout" className="content-area">
++            <Row gutter={[16, 16]} justify="center">
++              <Col xs={24} md={18} lg={14} xxl={12}>
++                <Card size="small" hoverable className="summary-card" style={{ marginBottom: 16 }}>
++                  <Statistic
++                    title={t('balance')}
++                    value={me?.balance ?? 0}
++                    prefix={<WalletOutlined />}
++                    suffix={unit}
++                    groupSeparator=","
++                  />
++                  {clientCostPerGB > 0 && (
++                    <div style={{ marginTop: 8, opacity: 0.75 }}>
++                      {t('pages.billing.perGbInfo', { price: formatMoney(clientCostPerGB) })}
++                    </div>
++                  )}
++                </Card>
++
++                {disabled ? (
++                  <Card size="small" hoverable>
++                    <Result status="info" title={t('pages.billing.disabledTitle')} subTitle={t('pages.billing.disabledDesc')} />
++                  </Card>
++                ) : (
++                  <Card size="small" hoverable title={t('pages.billing.topUpTitle')}>
++                    <Alert type="info" showIcon style={{ marginBottom: 16 }} message={t('pages.billing.topUpHint')} />
++                    <Space wrap style={{ marginBottom: 12 }}>
++                      {QUICK_AMOUNTS.map((a) => (
++                        <Button key={a} onClick={() => setAmount(a)} type={amount === a ? 'primary' : 'default'}>
++                          {formatNumber(a)}
++                        </Button>
++                      ))}
++                    </Space>
++                    <Row gutter={8} align="middle">
++                      <Col flex="auto">
++                        <InputNumber
++                          min={1000}
++                          step={10000}
++                          value={amount}
++                          onChange={(v) => setAmount(Number(v) || 0)}
++                          style={{ width: '100%' }}
++                          formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
++                          parser={(v) => Number((v || '').replace(/[^\d]/g, ''))}
++                          addonAfter={unit}
++                        />
++                      </Col>
++                      <Col>
++                        <Button type="primary" loading={payMut.isPending} onClick={startPayment}>
++                          {t('pages.billing.payWithZarinpal')}
++                        </Button>
++                      </Col>
++                    </Row>
++                  </Card>
++                )}
++
++                <Card size="small" hoverable title={t('pages.billing.history')} style={{ marginTop: 16 }}>
++                  <Table<Payment>
++                    dataSource={paymentsQuery.data ?? []}
++                    columns={columns}
++                    rowKey="id"
++                    size="small"
++                    loading={paymentsQuery.isFetching}
++                    pagination={{ pageSize: 10, hideOnSinglePage: true }}
++                  />
++                </Card>
++              </Col>
++            </Row>
++          </Layout.Content>
++        </Layout>
++      </Layout>
++    </ConfigProvider>
++  );
++}
+diff --git a/frontend/src/pages/clients/ClientFormModal.tsx b/frontend/src/pages/clients/ClientFormModal.tsx
+index 9d1cafce..ee057a7b 100644
+--- a/frontend/src/pages/clients/ClientFormModal.tsx
++++ b/frontend/src/pages/clients/ClientFormModal.tsx
+@@ -1,6 +1,7 @@
+ import { useEffect, useMemo, useState } from 'react';
+ import { useTranslation } from 'react-i18next';
+ import {
++  Alert,
+   AutoComplete,
+   Button,
+   Col,
+@@ -20,6 +21,8 @@ import dayjs from 'dayjs';
+ import type { Dayjs } from 'dayjs';
+ 
+ import { HttpUtil, RandomUtil } from '@/utils';
++import { useMe } from '@/hooks/useMe';
++import { useCurrency } from '@/hooks/useCurrency';
+ import { DateTimePicker } from '@/components/form';
+ import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
+ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+@@ -141,6 +144,8 @@ export default function ClientFormModal({
+ }: ClientFormModalProps) {
+   const { t } = useTranslation();
+   const [messageApi, messageContextHolder] = message.useMessage();
++  const { me } = useMe();
++  const { format: formatMoney } = useCurrency();
+   const isEdit = mode === 'edit';
+ 
+   const [form, setForm] = useState<FormState>(emptyForm);
+@@ -379,6 +384,19 @@ export default function ClientFormModal({
+     }
+   }
+ 
++  // Cost preview: only meaningful for a non-admin creating a client when a
++  // price is configured. form.totalGB here is in GB (converted to bytes on
++  // submit), matching the per-GB rate. Mirrors web/service/cost.go.
++  const costPreview = (() => {
++    if (isEdit || !me || me.isAdmin) return null;
++    const base = me.clientCost || 0;
++    const perGB = me.clientCostPerGB || 0;
++    if (base <= 0 && perGB <= 0) return null;
++    const cost = base + (perGB > 0 && form.totalGB > 0 ? Math.round(form.totalGB * perGB) : 0);
++    const after = (me.balance || 0) - cost;
++    return { cost, after, insufficient: after < 0 };
++  })();
++
+   return (
+     <>
+       {messageContextHolder}
+@@ -396,6 +414,18 @@ export default function ClientFormModal({
+         onCancel={close}
+       >
+         <Form layout="vertical">
++          {costPreview && (
++            <Alert
++              style={{ marginBottom: 16 }}
++              type={costPreview.insufficient ? 'error' : 'info'}
++              showIcon
++              message={t('pages.clients.costPreview', {
++                cost: formatMoney(costPreview.cost),
++                after: formatMoney(costPreview.after),
++              })}
++              description={costPreview.insufficient ? t('pages.clients.costInsufficient') : undefined}
++            />
++          )}
+           <Row gutter={16}>
+             <Col xs={24} md={12}>
+               <Form.Item label={t('pages.clients.email')} required>
+diff --git a/frontend/src/pages/clients/ClientsPage.tsx b/frontend/src/pages/clients/ClientsPage.tsx
+index eecfd828..e5e99f55 100644
+--- a/frontend/src/pages/clients/ClientsPage.tsx
++++ b/frontend/src/pages/clients/ClientsPage.tsx
+@@ -49,6 +49,7 @@ import {
+ import { useTheme } from '@/hooks/useTheme';
+ import { useMediaQuery } from '@/hooks/useMediaQuery';
+ import { useWebSocket } from '@/hooks/useWebSocket';
++import { useMe } from '@/hooks/useMe';
+ import { useClients } from '@/hooks/useClients';
+ import { useDatepicker } from '@/hooks/useDatepicker';
+ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+@@ -184,6 +185,8 @@ export default function ClientsPage() {
+   const { isDark, isUltra, antdThemeConfig } = useTheme();
+   const { datepicker } = useDatepicker();
+   const { isMobile } = useMediaQuery();
++  const { me } = useMe();
++  const isAdmin = !me || me.isAdmin;
+   const [modal, modalContextHolder] = Modal.useModal();
+   const [messageApi, messageContextHolder] = message.useMessage();
+   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
+@@ -655,6 +658,28 @@ export default function ClientsPage() {
+         </div>
+       ),
+     },
++    {
++      title: t('pages.clients.owner'),
++      key: 'owner',
++      width: 130,
++      hidden: !isAdmin,
++      render: (_v, record) => {
++        const owner = (record as ClientRecord & { ownerName?: string; ownerId?: number });
++        if (owner.ownerName) {
++          return (
++            <Tag
++              color="purple"
++              style={{ cursor: 'pointer' }}
++              title={t('pages.clients.filterByOwner', { name: owner.ownerName })}
++              onClick={() => setSearchKey(owner.ownerName as string)}
++            >
++              {owner.ownerName}
++            </Tag>
++          );
++        }
++        return <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>;
++      },
++    },
+     {
+       title: t('pages.clients.group'),
+       key: 'group',
+@@ -744,7 +769,7 @@ export default function ClientsPage() {
+       ),
+     },
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+-  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups, datepicker]);
++  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups, datepicker, isAdmin, setSearchKey]);
+ 
+   const tablePagination = {
+     current: currentPage,
+diff --git a/frontend/src/pages/profile/ProfilePage.tsx b/frontend/src/pages/profile/ProfilePage.tsx
+new file mode 100644
+index 00000000..dd8afadd
+--- /dev/null
++++ b/frontend/src/pages/profile/ProfilePage.tsx
+@@ -0,0 +1,180 @@
++import { useEffect, useMemo } from 'react';
++import { useTranslation } from 'react-i18next';
++import {
++  Button,
++  Card,
++  Col,
++  ConfigProvider,
++  Form,
++  Input,
++  Layout,
++  Row,
++  Statistic,
++  Tag,
++  message,
++} from 'antd';
++import { LockOutlined, MailOutlined, UserOutlined, WalletOutlined } from '@ant-design/icons';
++import { useMutation, useQueryClient } from '@tanstack/react-query';
++
++import { useTheme } from '@/hooks/useTheme';
++import { usePageTitle } from '@/hooks/usePageTitle';
++import { useMe, ME_QUERY_KEY } from '@/hooks/useMe';
++import { useCurrency } from '@/hooks/useCurrency';
++import { HttpUtil } from '@/utils';
++import { setMessageInstance } from '@/utils/messageBus';
++import AppSidebar from '@/layouts/AppSidebar';
++
++const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
++const basePath = window.X_UI_BASE_PATH || '/';
++
++interface ProfileFormValues {
++  username: string;
++  email?: string;
++  currentPassword: string;
++  newPassword?: string;
++  confirmPassword?: string;
++}
++
++export default function ProfilePage() {
++  usePageTitle();
++  const { t } = useTranslation();
++  const { isDark, isUltra, antdThemeConfig } = useTheme();
++  const { me } = useMe();
++  const { unit } = useCurrency();
++  const [messageApi, messageContextHolder] = message.useMessage();
++  useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
++  const queryClient = useQueryClient();
++  const [form] = Form.useForm<ProfileFormValues>();
++
++  useEffect(() => {
++    if (me) {
++      form.setFieldsValue({ username: me.username, email: me.email });
++    }
++  }, [me, form]);
++
++  const saveMut = useMutation({
++    mutationFn: (values: ProfileFormValues) =>
++      HttpUtil.post('/panel/api/profile', {
++        currentPassword: values.currentPassword,
++        username: values.username,
++        email: values.email ?? '',
++        newPassword: values.newPassword ?? '',
++      }, JSON_HEADERS),
++    onSuccess: (msg) => {
++      if (!msg?.success) return;
++      const passwordChanged = !!(msg.obj as { passwordChanged?: boolean } | null)?.passwordChanged;
++      if (passwordChanged) {
++        messageApi.success(t('pages.profile.toasts.passwordChanged'));
++        window.setTimeout(() => { window.location.href = basePath; }, 1200);
++      } else {
++        messageApi.success(t('pages.profile.toasts.saved'));
++        form.setFieldsValue({ currentPassword: '', newPassword: '', confirmPassword: '' });
++        queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
++      }
++    },
++  });
++
++  async function onSubmit() {
++    const values = await form.validateFields();
++    await saveMut.mutateAsync(values);
++  }
++
++  const pageClass = useMemo(() => {
++    const classes = ['profile-page'];
++    if (isDark) classes.push('is-dark');
++    if (isUltra) classes.push('is-ultra');
++    return classes.join(' ');
++  }, [isDark, isUltra]);
++
++  return (
++    <ConfigProvider theme={antdThemeConfig}>
++      {messageContextHolder}
++      <Layout className={pageClass}>
++        <AppSidebar />
++        <Layout className="content-shell">
++          <Layout.Content id="content-layout" className="content-area">
++            <Row gutter={[16, 16]} justify="center">
++              <Col xs={24} md={16} lg={12} xxl={10}>
++                <Card size="small" hoverable className="summary-card" style={{ marginBottom: 16 }}>
++                  <Row align="middle" gutter={16}>
++                    <Col flex="auto">
++                      <Statistic
++                        title={t('balance')}
++                        value={me?.balance ?? 0}
++                        prefix={<WalletOutlined />}
++                        suffix={unit}
++                        groupSeparator=","
++                      />
++                    </Col>
++                    <Col>
++                      <Tag color={me?.isAdmin ? 'gold' : 'blue'}>
++                        {t(`pages.users.role_${me?.isAdmin ? 'admin' : 'user'}`)}
++                      </Tag>
++                    </Col>
++                  </Row>
++                </Card>
++
++                <Card size="small" hoverable title={t('pages.profile.accountTitle')}>
++                  <Form form={form} layout="vertical" onFinish={onSubmit}>
++                    <Form.Item
++                      label={t('username')}
++                      name="username"
++                      rules={[{ required: true, pattern: /^[A-Za-z0-9_]{3,32}$/, message: t('pages.register.errors.username') }]}
++                    >
++                      <Input prefix={<UserOutlined />} autoComplete="username" />
++                    </Form.Item>
++                    <Form.Item label={t('email')} name="email">
++                      <Input prefix={<MailOutlined />} autoComplete="email" placeholder={t('pages.register.placeholders.email')} />
++                    </Form.Item>
++
++                    <div style={{ fontWeight: 600, margin: '4px 0 14px' }}>{t('pages.profile.changePassword')}</div>
++                    <Form.Item
++                      label={t('pages.profile.newPassword')}
++                      name="newPassword"
++                      rules={[{ min: 8, message: t('pages.register.errors.password') }]}
++                      extra={t('pages.profile.newPasswordHint')}
++                    >
++                      <Input.Password prefix={<LockOutlined />} autoComplete="new-password" />
++                    </Form.Item>
++                    <Form.Item
++                      label={t('confirmPassword')}
++                      name="confirmPassword"
++                      dependencies={['newPassword']}
++                      rules={[
++                        ({ getFieldValue }) => ({
++                          validator(_rule, value) {
++                            if (!getFieldValue('newPassword') || getFieldValue('newPassword') === value) {
++                              return Promise.resolve();
++                            }
++                            return Promise.reject(new Error(t('pages.register.errors.confirmPassword')));
++                          },
++                        }),
++                      ]}
++                    >
++                      <Input.Password prefix={<LockOutlined />} autoComplete="new-password" />
++                    </Form.Item>
++
++                    <Form.Item
++                      label={t('pages.profile.currentPassword')}
++                      name="currentPassword"
++                      rules={[{ required: true, message: t('pages.profile.currentPasswordRequired') }]}
++                      extra={t('pages.profile.currentPasswordHint')}
++                    >
++                      <Input.Password prefix={<LockOutlined />} autoComplete="current-password" />
++                    </Form.Item>
++
++                    <Form.Item style={{ marginBottom: 0 }}>
++                      <Button type="primary" htmlType="submit" loading={saveMut.isPending} block>
++                        {t('save')}
++                      </Button>
++                    </Form.Item>
++                  </Form>
++                </Card>
++              </Col>
++            </Row>
++          </Layout.Content>
++        </Layout>
++      </Layout>
++    </ConfigProvider>
++  );
++}
+diff --git a/frontend/src/pages/settings/ResellerTab.tsx b/frontend/src/pages/settings/ResellerTab.tsx
+new file mode 100644
+index 00000000..d1b621c0
+--- /dev/null
++++ b/frontend/src/pages/settings/ResellerTab.tsx
+@@ -0,0 +1,95 @@
++import { useTranslation } from 'react-i18next';
++import { Input, InputNumber, Select, Switch } from 'antd';
++
++import type { AllSetting } from '@/models/setting';
++import { SettingListItem } from '@/components/ui';
++
++interface ResellerTabProps {
++  allSetting: AllSetting;
++  updateSetting: (patch: Partial<AllSetting>) => void;
++}
++
++// ResellerTab groups the reseller economy controls — what creating a client
++// costs a non-admin user, and the ZarinPal gateway used to top up balances.
++export default function ResellerTab({ allSetting, updateSetting }: ResellerTabProps) {
++  const { t } = useTranslation();
++
++  return (
++    <>
++      <SettingListItem
++        paddings="small"
++        title={t('pages.settings.security.clientCost')}
++        description={t('pages.settings.security.clientCostDesc')}
++      >
++        <InputNumber
++          min={0}
++          value={allSetting.clientCost}
++          onChange={(value) => updateSetting({ clientCost: Number(value) || 0 })}
++        />
++      </SettingListItem>
++
++      <SettingListItem
++        paddings="small"
++        title={t('pages.settings.security.clientCostPerGB')}
++        description={t('pages.settings.security.clientCostPerGBDesc')}
++      >
++        <InputNumber
++          min={0}
++          value={allSetting.clientCostPerGB}
++          onChange={(value) => updateSetting({ clientCostPerGB: Number(value) || 0 })}
++        />
++      </SettingListItem>
++
++      <SettingListItem
++        paddings="small"
++        title={t('pages.settings.security.zarinpalEnable')}
++        description={t('pages.settings.security.zarinpalEnableDesc')}
++      >
++        <Switch
++          checked={allSetting.zarinpalEnable}
++          onChange={(checked) => updateSetting({ zarinpalEnable: checked })}
++        />
++      </SettingListItem>
++
++      <SettingListItem
++        paddings="small"
++        title={t('pages.settings.security.zarinpalMerchantId')}
++        description={t('pages.settings.security.zarinpalMerchantIdDesc')}
++      >
++        <Input
++          style={{ maxWidth: 340 }}
++          value={allSetting.zarinpalMerchantId}
++          onChange={(e) => updateSetting({ zarinpalMerchantId: e.target.value })}
++          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
++        />
++      </SettingListItem>
++
++      <SettingListItem
++        paddings="small"
++        title={t('pages.settings.security.zarinpalCurrency')}
++        description={t('pages.settings.security.zarinpalCurrencyDesc')}
++      >
++        <Select
++          style={{ width: 140 }}
++          value={allSetting.zarinpalCurrency || 'IRT'}
++          onChange={(value) => updateSetting({ zarinpalCurrency: value })}
++          options={[
++            { value: 'IRT', label: 'IRT (Toman)' },
++            { value: 'IRR', label: 'IRR (Rial)' },
++          ]}
++        />
++      </SettingListItem>
++
++      <SettingListItem
++        paddings="small"
++        title={t('pages.settings.security.zarinpalSandbox')}
++        description={t('pages.settings.security.zarinpalSandboxDesc')}
++      >
++        <Switch
++          checked={allSetting.zarinpalSandbox}
++          onChange={(checked) => updateSetting({ zarinpalSandbox: checked })}
++        />
++      </SettingListItem>
++    </>
++  );
++}
+diff --git a/frontend/src/pages/settings/SettingsPage.tsx b/frontend/src/pages/settings/SettingsPage.tsx
+index 7e0b8403..2baccd32 100644
+--- a/frontend/src/pages/settings/SettingsPage.tsx
++++ b/frontend/src/pages/settings/SettingsPage.tsx
+@@ -25,6 +25,7 @@ import { AllSettingSchema } from '@/schemas/setting';
+ import AppSidebar from '@/layouts/AppSidebar';
+ import GeneralTab from './GeneralTab';
+ import SecurityTab from './SecurityTab';
++import ResellerTab from './ResellerTab';
+ import TelegramTab from './TelegramTab';
+ import SubscriptionGeneralTab from './SubscriptionGeneralTab';
+ import SubscriptionFormatsTab from './SubscriptionFormatsTab';
+@@ -34,7 +35,7 @@ interface ApiMsg {
+   success?: boolean;
+ }
+ 
+-const tabSlugs = ['general', 'security', 'telegram', 'subscription', 'subscription-formats'];
++const tabSlugs = ['general', 'security', 'reseller', 'telegram', 'subscription', 'subscription-formats'];
+ 
+ function isIp(h: string): boolean {
+   if (typeof h !== 'string') return false;
+@@ -196,6 +197,7 @@ export default function SettingsPage() {
+   const categoryBody = useMemo(() => {
+     switch (activeSlug) {
+       case 'security': return <SecurityTab allSetting={allSetting} updateSetting={updateSetting} />;
++      case 'reseller': return <ResellerTab allSetting={allSetting} updateSetting={updateSetting} />;
+       case 'telegram': return <TelegramTab allSetting={allSetting} updateSetting={updateSetting} />;
+       case 'subscription': return <SubscriptionGeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
+       case 'subscription-formats': return <SubscriptionFormatsTab allSetting={allSetting} updateSetting={updateSetting} />;
+diff --git a/frontend/src/pages/users/UsersPage.tsx b/frontend/src/pages/users/UsersPage.tsx
+new file mode 100644
+index 00000000..8c19768a
+--- /dev/null
++++ b/frontend/src/pages/users/UsersPage.tsx
+@@ -0,0 +1,457 @@
++import { useEffect, useMemo, useState } from 'react';
++import { useTranslation } from 'react-i18next';
++import {
++  Button,
++  Card,
++  ConfigProvider,
++  Form,
++  Input,
++  InputNumber,
++  Layout,
++  Modal,
++  Result,
++  Segmented,
++  Select,
++  Space,
++  Spin,
++  Table,
++  Tag,
++  Tooltip,
++  message,
++} from 'antd';
++import type { TableColumnsType } from 'antd';
++import {
++  DeleteOutlined,
++  EditOutlined,
++  HistoryOutlined,
++  PlusOutlined,
++  SearchOutlined,
++  WalletOutlined,
++} from '@ant-design/icons';
++import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
++
++import { useTheme } from '@/hooks/useTheme';
++import { useMediaQuery } from '@/hooks/useMediaQuery';
++import { usePageTitle } from '@/hooks/usePageTitle';
++import { useMe, ME_QUERY_KEY } from '@/hooks/useMe';
++import { useCurrency } from '@/hooks/useCurrency';
++import { HttpUtil, IntlUtil } from '@/utils';
++import { setMessageInstance } from '@/utils/messageBus';
++import AppSidebar from '@/layouts/AppSidebar';
++
++const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
++
++interface PanelUser {
++  id: number;
++  username: string;
++  role: string;
++  fullName: string;
++  phone: string;
++  email: string;
++  balance: number;
++}
++
++interface Transaction {
++  id: number;
++  userId: number;
++  amount: number;
++  type: string;
++  description: string;
++  balanceBefore: number;
++  balanceAfter: number;
++  createdAt: number;
++}
++
++interface UserFormValues {
++  username: string;
++  password?: string;
++  fullName?: string;
++  phone?: string;
++  email?: string;
++  role: string;
++  balance?: number;
++}
++
++type BalanceOp = 'add' | 'deduct' | 'set';
++
++async function fetchUsers(): Promise<PanelUser[]> {
++  const msg = await HttpUtil.get('/panel/api/admin/users', undefined, { silent: true });
++  if (!msg?.success) throw new Error(msg?.msg || 'Failed to load users');
++  return (msg.obj as PanelUser[]) ?? [];
++}
++
++async function fetchTransactions(userId: number): Promise<Transaction[]> {
++  const msg = await HttpUtil.get(`/panel/api/admin/transactions?userId=${userId}`, undefined, { silent: true });
++  if (!msg?.success) throw new Error(msg?.msg || 'Failed to load transactions');
++  return (msg.obj as Transaction[]) ?? [];
++}
++
++export default function UsersPage() {
++  usePageTitle();
++  const { t } = useTranslation();
++  const { isDark, isUltra, antdThemeConfig } = useTheme();
++  const { isMobile } = useMediaQuery();
++  const { me } = useMe();
++  const { format: formatMoney, formatNumber, unit } = useCurrency();
++  const [modal, modalContextHolder] = Modal.useModal();
++  const [messageApi, messageContextHolder] = message.useMessage();
++  useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
++  const queryClient = useQueryClient();
++
++  const usersQuery = useQuery({ queryKey: ['admin', 'users'], queryFn: fetchUsers });
++  const users = useMemo(() => usersQuery.data ?? [], [usersQuery.data]);
++
++  const [search, setSearch] = useState('');
++  const filteredUsers = useMemo(() => {
++    const needle = search.trim().toLowerCase();
++    if (!needle) return users;
++    return users.filter((u) =>
++      [u.username, u.email, u.fullName, u.phone, u.role]
++        .some((v) => (v || '').toLowerCase().includes(needle)),
++    );
++  }, [users, search]);
++  const fetched = usersQuery.data !== undefined || usersQuery.isError;
++  const fetchError = usersQuery.error ? (usersQuery.error as Error).message : '';
++
++  const invalidate = () => {
++    queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
++    queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
++  };
++
++  // ---- create / edit user ----
++  const [userForm] = Form.useForm<UserFormValues>();
++  const [userModalOpen, setUserModalOpen] = useState(false);
++  const [editing, setEditing] = useState<PanelUser | null>(null);
++
++  const saveUserMut = useMutation({
++    mutationFn: (values: UserFormValues) => {
++      const url = editing ? `/panel/api/admin/users/${editing.id}` : '/panel/api/admin/users';
++      return HttpUtil.post(url, values, JSON_HEADERS);
++    },
++    onSuccess: (msg) => {
++      if (msg?.success) {
++        invalidate();
++        setUserModalOpen(false);
++        messageApi.success(editing ? t('pages.users.toasts.userUpdated') : t('pages.users.toasts.userCreated'));
++      }
++    },
++  });
++
++  function openCreate() {
++    setEditing(null);
++    userForm.resetFields();
++    userForm.setFieldsValue({ role: 'user', balance: 0 });
++    setUserModalOpen(true);
++  }
++
++  function openEdit(row: PanelUser) {
++    setEditing(row);
++    userForm.resetFields();
++    userForm.setFieldsValue({
++      username: row.username,
++      fullName: row.fullName,
++      phone: row.phone,
++      email: row.email,
++      role: row.role,
++    });
++    setUserModalOpen(true);
++  }
++
++  async function submitUser() {
++    const values = await userForm.validateFields();
++    await saveUserMut.mutateAsync(values);
++  }
++
++  function onDelete(row: PanelUser) {
++    modal.confirm({
++      title: t('pages.users.deleteConfirmTitle', { name: row.username }),
++      content: t('pages.users.deleteConfirmContent'),
++      okText: t('delete'),
++      okType: 'danger',
++      cancelText: t('cancel'),
++      onOk: async () => {
++        const msg = await HttpUtil.post(`/panel/api/admin/users/${row.id}/del`);
++        if (msg?.success) invalidate();
++      },
++    });
++  }
++
++  // ---- balance adjustment ----
++  const [balanceForm] = Form.useForm<{ op: BalanceOp; amount: number; description: string }>();
++  const [balanceTarget, setBalanceTarget] = useState<PanelUser | null>(null);
++
++  const balanceMut = useMutation({
++    mutationFn: (body: { op: BalanceOp; amount: number; description: string }) =>
++      HttpUtil.post(`/panel/api/admin/users/${balanceTarget!.id}/balance`, body, JSON_HEADERS),
++    onSuccess: (msg) => {
++      if (msg?.success) {
++        invalidate();
++        setBalanceTarget(null);
++        messageApi.success(t('pages.users.toasts.balanceUpdated'));
++      }
++    },
++  });
++
++  function openBalance(row: PanelUser) {
++    setBalanceTarget(row);
++    balanceForm.resetFields();
++    balanceForm.setFieldsValue({ op: 'add', amount: 0, description: '' });
++  }
++
++  async function submitBalance() {
++    const values = await balanceForm.validateFields();
++    await balanceMut.mutateAsync(values);
++  }
++
++  // ---- transaction history ----
++  const [historyTarget, setHistoryTarget] = useState<PanelUser | null>(null);
++  const txQuery = useQuery({
++    queryKey: ['admin', 'transactions', historyTarget?.id],
++    queryFn: () => fetchTransactions(historyTarget!.id),
++    enabled: !!historyTarget,
++  });
++
++  const columns: TableColumnsType<PanelUser> = [
++    {
++      title: t('pages.users.actions'),
++      key: 'actions',
++      width: 170,
++      render: (_v, row) => (
++        <Space size={2}>
++          <Tooltip title={t('pages.users.editUser')}>
++            <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(row)} />
++          </Tooltip>
++          <Tooltip title={t('pages.users.manageBalance')}>
++            <Button size="small" type="text" icon={<WalletOutlined />} onClick={() => openBalance(row)} />
++          </Tooltip>
++          <Tooltip title={t('pages.users.history')}>
++            <Button size="small" type="text" icon={<HistoryOutlined />} onClick={() => setHistoryTarget(row)} />
++          </Tooltip>
++          <Tooltip title={t('delete')}>
++            <Button
++              size="small"
++              type="text"
++              danger
++              icon={<DeleteOutlined />}
++              disabled={!!me && me.id === row.id}
++              onClick={() => onDelete(row)}
++            />
++          </Tooltip>
++        </Space>
++      ),
++    },
++    { title: t('username'), dataIndex: 'username', key: 'username' },
++    {
++      title: t('pages.users.role'),
++      dataIndex: 'role',
++      key: 'role',
++      render: (role: string) => (
++        <Tag color={role === 'admin' ? 'gold' : 'blue'}>{t(`pages.users.role_${role === 'admin' ? 'admin' : 'user'}`)}</Tag>
++      ),
++    },
++    { title: t('email'), dataIndex: 'email', key: 'email', responsive: ['md'] },
++    {
++      title: t('balance'),
++      dataIndex: 'balance',
++      key: 'balance',
++      render: (b: number) => <strong>{formatMoney(b)}</strong>,
++    },
++  ];
++
++  const txColumns: TableColumnsType<Transaction> = [
++    {
++      title: t('pages.users.txType'),
++      dataIndex: 'type',
++      key: 'type',
++      render: (type: string) => (
++        <Tag color={type === 'credit' ? 'green' : 'volcano'}>
++          {t(`pages.users.tx_${type === 'credit' ? 'credit' : 'debit'}`)}
++        </Tag>
++      ),
++    },
++    { title: t('pages.users.txAmount'), dataIndex: 'amount', key: 'amount', render: (a: number) => formatNumber(a) },
++    { title: t('pages.users.txBefore'), dataIndex: 'balanceBefore', key: 'balanceBefore', responsive: ['sm'], render: (a: number) => formatNumber(a) },
++    { title: t('pages.users.txAfter'), dataIndex: 'balanceAfter', key: 'balanceAfter', render: (a: number) => formatNumber(a) },
++    { title: t('pages.users.txDescription'), dataIndex: 'description', key: 'description', responsive: ['md'] },
++    {
++      title: t('pages.users.txDate'),
++      dataIndex: 'createdAt',
++      key: 'createdAt',
++      render: (ts: number) => IntlUtil.formatDate(ts),
++    },
++  ];
++
++  const pageClass = useMemo(() => {
++    const classes = ['users-page'];
++    if (isDark) classes.push('is-dark');
++    if (isUltra) classes.push('is-ultra');
++    return classes.join(' ');
++  }, [isDark, isUltra]);
++
++  return (
++    <ConfigProvider theme={antdThemeConfig}>
++      {messageContextHolder}
++      {modalContextHolder}
++      <Layout className={pageClass}>
++        <AppSidebar />
++        <Layout className="content-shell">
++          <Layout.Content id="content-layout" className="content-area">
++            <Spin spinning={!fetched} delay={200} size="large">
++              {!fetched ? (
++                <div className="loading-spacer" />
++              ) : fetchError ? (
++                <Result
++                  status="error"
++                  title={t('somethingWentWrong')}
++                  subTitle={fetchError}
++                  extra={<Button type="primary" onClick={() => usersQuery.refetch()}>{t('refresh')}</Button>}
++                />
++              ) : (
++                <Card
++                  size="small"
++                  hoverable
++                  title={
++                    <div className="card-toolbar" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
++                      <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
++                        {!isMobile && t('pages.users.addUser')}
++                      </Button>
++                      <Input
++                        allowClear
++                        prefix={<SearchOutlined />}
++                        placeholder={t('pages.users.searchPlaceholder')}
++                        value={search}
++                        onChange={(e) => setSearch(e.target.value)}
++                        style={{ maxWidth: 280 }}
++                      />
++                    </div>
++                  }
++                >
++                  <Table<PanelUser>
++                    dataSource={filteredUsers}
++                    columns={columns}
++                    rowKey="id"
++                    size="small"
++                    pagination={false}
++                    loading={usersQuery.isFetching}
++                  />
++                </Card>
++              )}
++            </Spin>
++          </Layout.Content>
++        </Layout>
++
++        {/* Create / edit user */}
++        <Modal
++          open={userModalOpen}
++          title={editing ? t('pages.users.editUser') : t('pages.users.addUser')}
++          okText={t('save')}
++          cancelText={t('cancel')}
++          confirmLoading={saveUserMut.isPending}
++          onCancel={() => setUserModalOpen(false)}
++          onOk={submitUser}
++          destroyOnHidden
++        >
++          <Form form={userForm} layout="vertical">
++            <Form.Item
++              label={t('username')}
++              name="username"
++              rules={[{ required: true, pattern: /^[A-Za-z0-9_]{3,32}$/, message: t('pages.register.errors.username') }]}
++            >
++              <Input autoComplete="off" />
++            </Form.Item>
++            <Form.Item
++              label={t('password')}
++              name="password"
++              rules={editing
++                ? []
++                : [{ required: true, min: 8, message: t('pages.register.errors.password') }]}
++              extra={editing ? t('pages.users.passwordEditHint') : undefined}
++            >
++              <Input.Password autoComplete="new-password" />
++            </Form.Item>
++            <Form.Item label={t('fullName')} name="fullName">
++              <Input autoComplete="off" />
++            </Form.Item>
++            <Form.Item label={t('phoneNumber')} name="phone">
++              <Input autoComplete="off" />
++            </Form.Item>
++            <Form.Item label={t('email')} name="email">
++              <Input autoComplete="off" />
++            </Form.Item>
++            <Form.Item label={t('pages.users.role')} name="role" rules={[{ required: true }]}>
++              <Select
++                options={[
++                  { value: 'user', label: t('pages.users.role_user') },
++                  { value: 'admin', label: t('pages.users.role_admin') },
++                ]}
++              />
++            </Form.Item>
++            {!editing && (
++              <Form.Item label={t('pages.users.initialBalance')} name="balance">
++                <InputNumber min={0} style={{ width: '100%' }} addonAfter={unit} />
++              </Form.Item>
++            )}
++          </Form>
++        </Modal>
++
++        {/* Balance adjustment */}
++        <Modal
++          open={!!balanceTarget}
++          title={balanceTarget ? t('pages.users.balanceTitle', { name: balanceTarget.username }) : ''}
++          okText={t('confirm')}
++          cancelText={t('cancel')}
++          confirmLoading={balanceMut.isPending}
++          onCancel={() => setBalanceTarget(null)}
++          onOk={submitBalance}
++          destroyOnHidden
++        >
++          {balanceTarget && (
++            <p style={{ marginTop: 0 }}>
++              {t('balance')}: <strong>{formatMoney(balanceTarget.balance)}</strong>
++            </p>
++          )}
++          <Form form={balanceForm} layout="vertical">
++            <Form.Item name="op" label={t('pages.users.operation')} rules={[{ required: true }]}>
++              <Segmented
++                options={[
++                  { value: 'add', label: t('pages.users.opAdd') },
++                  { value: 'deduct', label: t('pages.users.opDeduct') },
++                  { value: 'set', label: t('pages.users.opSet') },
++                ]}
++              />
++            </Form.Item>
++            <Form.Item
++              name="amount"
++              label={t('pages.users.amount')}
++              rules={[{ required: true, type: 'number', min: 0, message: t('pages.users.toasts.invalidAmount') }]}
++            >
++              <InputNumber min={0} style={{ width: '100%' }} addonAfter={unit} />
++            </Form.Item>
++            <Form.Item name="description" label={t('pages.users.txDescription')}>
++              <Input maxLength={200} />
++            </Form.Item>
++          </Form>
++        </Modal>
++
++        {/* Transaction history */}
++        <Modal
++          open={!!historyTarget}
++          title={historyTarget ? t('pages.users.historyTitle', { name: historyTarget.username }) : ''}
++          footer={null}
++          width={760}
++          onCancel={() => setHistoryTarget(null)}
++          destroyOnHidden
++        >
++          <Table<Transaction>
++            dataSource={txQuery.data ?? []}
++            columns={txColumns}
++            rowKey="id"
++            size="small"
++            loading={txQuery.isFetching}
++            pagination={{ pageSize: 10, hideOnSinglePage: true }}
++          />
++        </Modal>
++      </Layout>
++    </ConfigProvider>
++  );
++}
+diff --git a/frontend/src/routes.tsx b/frontend/src/routes.tsx
+index 7c2afd47..5bff4b2e 100644
+--- a/frontend/src/routes.tsx
++++ b/frontend/src/routes.tsx
+@@ -7,6 +7,9 @@ const IndexPage = lazy(() => import('@/pages/index/IndexPage'));
+ const InboundsPage = lazy(() => import('@/pages/inbounds/InboundsPage'));
+ const ClientsPage = lazy(() => import('@/pages/clients/ClientsPage'));
+ const GroupsPage = lazy(() => import('@/pages/groups/GroupsPage'));
++const UsersPage = lazy(() => import('@/pages/users/UsersPage'));
++const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
++const BillingPage = lazy(() => import('@/pages/billing/BillingPage'));
+ const NodesPage = lazy(() => import('@/pages/nodes/NodesPage'));
+ const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
+ const XrayPage = lazy(() => import('@/pages/xray/XrayPage'));
+@@ -25,6 +28,9 @@ const routes: RouteObject[] = [
+       { path: 'inbounds', element: withSuspense(<InboundsPage />) },
+       { path: 'clients', element: withSuspense(<ClientsPage />) },
+       { path: 'groups', element: withSuspense(<GroupsPage />) },
++      { path: 'users', element: withSuspense(<UsersPage />) },
++      { path: 'profile', element: withSuspense(<ProfilePage />) },
++      { path: 'billing', element: withSuspense(<BillingPage />) },
+       { path: 'nodes', element: withSuspense(<NodesPage />) },
+       { path: 'settings', element: withSuspense(<SettingsPage />) },
+       { path: 'xray', element: withSuspense(<XrayPage />) },
+diff --git a/frontend/src/schemas/client.ts b/frontend/src/schemas/client.ts
+index 89830ee8..20289a8f 100644
+--- a/frontend/src/schemas/client.ts
++++ b/frontend/src/schemas/client.ts
+@@ -29,6 +29,8 @@ export const ClientRecordSchema = z.object({
+   comment: z.string().optional(),
+   enable: z.boolean().optional(),
+   reset: z.number().optional(),
++  ownerId: z.number().optional(),
++  ownerName: z.string().optional(),
+   inboundIds: nullableNumberArray.optional(),
+   traffic: ClientTrafficSchema.nullable().optional(),
+   reverse: z.object({ tag: z.string().optional() }).loose().nullable().optional(),
+diff --git a/frontend/src/schemas/setting.ts b/frontend/src/schemas/setting.ts
+index c0cac6ba..6f88bb85 100644
+--- a/frontend/src/schemas/setting.ts
++++ b/frontend/src/schemas/setting.ts
+@@ -32,6 +32,12 @@ export const AllSettingSchema = z.object({
+   twoFactorEnable: z.boolean().optional(),
+   twoFactorToken: z.string().optional(),
+   registrationEnable: z.boolean().optional(),
++  clientCost: z.number().int().min(0).optional(),
++  clientCostPerGB: z.number().int().min(0).optional(),
++  zarinpalEnable: z.boolean().optional(),
++  zarinpalMerchantId: z.string().optional(),
++  zarinpalSandbox: z.boolean().optional(),
++  zarinpalCurrency: z.string().optional(),
+   xrayTemplateConfig: z.string().optional(),
+   subEnable: z.boolean().optional(),
+   subJsonEnable: z.boolean().optional(),
+diff --git a/web/controller/admin.go b/web/controller/admin.go
+new file mode 100644
+index 00000000..e2a6a92c
+--- /dev/null
++++ b/web/controller/admin.go
+@@ -0,0 +1,227 @@
++package controller
++
++import (
++	"errors"
++	"net/http"
++	"strconv"
++
++	"github.com/mhsanaei/3x-ui/v3/web/middleware"
++	"github.com/mhsanaei/3x-ui/v3/web/service"
++	"github.com/mhsanaei/3x-ui/v3/web/session"
++
++	"github.com/gin-gonic/gin"
++)
++
++// AdminController exposes the admin-only RBAC + wallet management API under
++// /panel/api/admin. Every route is gated by middleware.RequireAdmin, so a
++// non-admin session (or none) can never reach user management, balance
++// adjustments or the global transaction log.
++type AdminController struct {
++	userService   service.UserService
++	walletService service.WalletService
++}
++
++func NewAdminController(g *gin.RouterGroup) *AdminController {
++	a := &AdminController{}
++	a.initRouter(g)
++	return a
++}
++
++func (a *AdminController) initRouter(g *gin.RouterGroup) {
++	admin := g.Group("/admin")
++	admin.Use(middleware.RequireAdmin())
++
++	admin.GET("/users", a.listUsers)
++	admin.POST("/users", a.createUser)
++	admin.POST("/users/:id", a.updateUser)
++	admin.POST("/users/:id/del", a.deleteUser)
++	admin.POST("/users/:id/balance", a.adjustBalance)
++	admin.GET("/transactions", a.listTransactions)
++}
++
++type adminUserForm struct {
++	Username string `json:"username"`
++	Password string `json:"password"`
++	FullName string `json:"fullName"`
++	Phone    string `json:"phone"`
++	Email    string `json:"email"`
++	Role     string `json:"role"`
++	Balance  int64  `json:"balance"`
++}
++
++type balanceAdjustForm struct {
++	Op          string `json:"op"`     // add | deduct | set
++	Amount      int64  `json:"amount"` // for set: target balance; otherwise delta
++	Description string `json:"description"`
++}
++
++func (a *AdminController) listUsers(c *gin.Context) {
++	users, err := a.userService.ListUsers()
++	if err != nil {
++		jsonMsg(c, I18nWeb(c, "fail"), err)
++		return
++	}
++	jsonObj(c, users, nil)
++}
++
++func (a *AdminController) createUser(c *gin.Context) {
++	var form adminUserForm
++	if err := c.ShouldBindJSON(&form); err != nil {
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	user, err := a.userService.AdminCreateUser(service.AdminUserInput{
++		Username: form.Username,
++		Password: form.Password,
++		FullName: form.FullName,
++		Phone:    form.Phone,
++		Email:    form.Email,
++		Role:     form.Role,
++		Balance:  form.Balance,
++	})
++	if err != nil {
++		if msg := adminUserErrorMessage(c, err); msg != "" {
++			pureJsonMsg(c, http.StatusOK, false, msg)
++			return
++		}
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	jsonObj(c, user, nil)
++}
++
++func (a *AdminController) updateUser(c *gin.Context) {
++	id, err := strconv.Atoi(c.Param("id"))
++	if err != nil {
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	var form adminUserForm
++	if err := c.ShouldBindJSON(&form); err != nil {
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	user, err := a.userService.AdminUpdateUser(id, service.AdminUserInput{
++		Username: form.Username,
++		Password: form.Password,
++		FullName: form.FullName,
++		Phone:    form.Phone,
++		Email:    form.Email,
++		Role:     form.Role,
++	})
++	if err != nil {
++		if msg := adminUserErrorMessage(c, err); msg != "" {
++			pureJsonMsg(c, http.StatusOK, false, msg)
++			return
++		}
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	jsonObj(c, user, nil)
++}
++
++func (a *AdminController) deleteUser(c *gin.Context) {
++	id, err := strconv.Atoi(c.Param("id"))
++	if err != nil {
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	if self := session.GetLoginUser(c); self != nil && self.Id == id {
++		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.users.toasts.cannotDeleteSelf"))
++		return
++	}
++	if err := a.userService.DeleteUser(id); err != nil {
++		if msg := adminUserErrorMessage(c, err); msg != "" {
++			pureJsonMsg(c, http.StatusOK, false, msg)
++			return
++		}
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	jsonMsg(c, I18nWeb(c, "pages.users.toasts.userDeleted"), nil)
++}
++
++func (a *AdminController) adjustBalance(c *gin.Context) {
++	id, err := strconv.Atoi(c.Param("id"))
++	if err != nil {
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	var form balanceAdjustForm
++	if err := c.ShouldBindJSON(&form); err != nil {
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	if form.Amount < 0 {
++		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.users.toasts.invalidAmount"))
++		return
++	}
++	desc := form.Description
++	if desc == "" {
++		desc = "admin adjustment"
++	}
++	switch form.Op {
++	case "add":
++		_, err = a.walletService.Credit(id, form.Amount, desc)
++	case "deduct":
++		_, err = a.walletService.Debit(id, form.Amount, desc)
++	case "set":
++		_, err = a.walletService.SetBalance(id, form.Amount, desc)
++	default:
++		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.users.toasts.invalidOp"))
++		return
++	}
++	if err != nil {
++		if errors.Is(err, service.ErrInsufficientBalance) {
++			pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.clients.toasts.insufficientBalance"))
++			return
++		}
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	balance, err := a.walletService.GetBalance(id)
++	if err != nil {
++		jsonMsg(c, I18nWeb(c, "fail"), err)
++		return
++	}
++	jsonObj(c, gin.H{"balance": balance}, nil)
++}
++
++func (a *AdminController) listTransactions(c *gin.Context) {
++	var userId *int
++	if raw := c.Query("userId"); raw != "" {
++		if id, err := strconv.Atoi(raw); err == nil {
++			userId = &id
++		}
++	}
++	limit, _ := strconv.Atoi(c.Query("limit"))
++	offset, _ := strconv.Atoi(c.Query("offset"))
++	rows, err := a.walletService.ListTransactions(userId, limit, offset)
++	if err != nil {
++		jsonMsg(c, I18nWeb(c, "fail"), err)
++		return
++	}
++	jsonObj(c, rows, nil)
++}
++
++// adminUserErrorMessage maps known user-service sentinels to localized
++// messages. Returns "" for unknown errors so the caller falls back to a
++// generic handler.
++func adminUserErrorMessage(c *gin.Context, err error) string {
++	switch {
++	case errors.Is(err, service.ErrUsernameTaken):
++		return I18nWeb(c, "pages.register.toasts.usernameTaken")
++	case errors.Is(err, service.ErrEmailTaken):
++		return I18nWeb(c, "pages.register.toasts.emailTaken")
++	case errors.Is(err, service.ErrInvalidUsername):
++		return I18nWeb(c, "pages.register.toasts.invalidUsername")
++	case errors.Is(err, service.ErrInvalidEmail):
++		return I18nWeb(c, "pages.register.toasts.invalidEmail")
++	case errors.Is(err, service.ErrWeakPassword):
++		return I18nWeb(c, "pages.register.toasts.weakPassword")
++	case errors.Is(err, service.ErrLastAdmin):
++		return I18nWeb(c, "pages.users.toasts.lastAdmin")
++	default:
++		return ""
++	}
++}
+diff --git a/web/controller/api.go b/web/controller/api.go
+index 06d35441..b842c40c 100644
+--- a/web/controller/api.go
++++ b/web/controller/api.go
+@@ -1,6 +1,7 @@
+ package controller
+ 
+ import (
++	"errors"
+ 	"net/http"
+ 	"strings"
+ 
+@@ -17,8 +18,10 @@ type APIController struct {
+ 	inboundController *InboundController
+ 	serverController  *ServerController
+ 	nodeController    *NodeController
++	adminController   *AdminController
+ 	settingService    service.SettingService
+ 	userService       service.UserService
++	walletService     service.WalletService
+ 	apiTokenService   service.ApiTokenService
+ 	Tgbot             service.Tgbot
+ }
+@@ -67,20 +70,109 @@ func (a *APIController) initRouter(g *gin.RouterGroup, customGeo *service.Custom
+ 
+ 	clients := api.Group("/clients")
+ 	NewClientController(clients)
+-	NewGroupController(clients)
++	// Group (client tag) management is an admin-only feature; gate it so a
++	// limited user cannot enumerate or mutate groups across other users.
++	groupAdmin := clients.Group("")
++	groupAdmin.Use(middleware.RequireAdmin())
++	NewGroupController(groupAdmin)
+ 
+-	// Server API
++	// Server API (system status/config) — admin only.
+ 	server := api.Group("/server")
++	server.Use(middleware.RequireAdmin())
+ 	a.serverController = NewServerController(server)
+ 
+-	// Nodes API — multi-panel management
++	// Nodes API — multi-panel management; admin only.
+ 	nodes := api.Group("/nodes")
++	nodes.Use(middleware.RequireAdmin())
+ 	a.nodeController = NewNodeController(nodes)
+ 
+-	NewCustomGeoController(api.Group("/custom-geo"), customGeo)
++	// Custom geo asset management — admin only.
++	customGeoGroup := api.Group("/custom-geo")
++	customGeoGroup.Use(middleware.RequireAdmin())
++	NewCustomGeoController(customGeoGroup, customGeo)
++
++	// RBAC + wallet administration (admin-only; gated inside the controller).
++	a.adminController = NewAdminController(api)
++
++	// Identity + wallet snapshot for the current session (any logged-in user).
++	api.GET("/me", a.me)
++	// Self-service profile editing (any logged-in user; never admin-gated).
++	api.POST("/profile", a.updateProfile)
++	// Balance top-up via ZarinPal (any logged-in user).
++	NewPaymentController(api)
+ 
+ 	// Extra routes
+-	api.POST("/backuptotgbot", a.BackuptoTgbot)
++	api.POST("/backuptotgbot", middleware.RequireAdmin(), a.BackuptoTgbot)
++}
++
++// me returns the current user's identity, role, balance and the per-client
++// cost so the SPA can gate navigation, show the wallet and preview purchases.
++func (a *APIController) me(c *gin.Context) {
++	user := session.GetLoginUser(c)
++	if user == nil {
++		c.AbortWithStatus(http.StatusUnauthorized)
++		return
++	}
++	balance, _ := a.walletService.GetBalance(user.Id)
++	cost, _ := a.settingService.GetClientCost()
++	costPerGB, _ := a.settingService.GetClientCostPerGB()
++	zarinpalEnable, _ := a.settingService.GetZarinpalEnable()
++	currency, _ := a.settingService.GetZarinpalCurrency()
++	jsonObj(c, gin.H{
++		"id":              user.Id,
++		"username":        user.Username,
++		"email":           user.Email,
++		"role":            user.Role,
++		"isAdmin":         user.IsAdmin(),
++		"balance":         balance,
++		"clientCost":      cost,
++		"clientCostPerGB": costPerGB,
++		"zarinpalEnable":  zarinpalEnable,
++		"currency":        currency,
++	}, nil)
++}
++
++type profileForm struct {
++	CurrentPassword string `json:"currentPassword"`
++	Username        string `json:"username"`
++	Email           string `json:"email"`
++	NewPassword     string `json:"newPassword"`
++}
++
++// updateProfile lets the current user change their own username, email and
++// password after confirming their current password. A password change bumps
++// the login epoch (invalidating this session), so the response flags
++// passwordChanged and the client redirects to login.
++func (a *APIController) updateProfile(c *gin.Context) {
++	user := session.GetLoginUser(c)
++	if user == nil {
++		c.AbortWithStatus(http.StatusUnauthorized)
++		return
++	}
++	var form profileForm
++	if err := c.ShouldBindJSON(&form); err != nil {
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	_, passwordChanged, err := a.userService.UpdateSelfProfile(user.Id, service.SelfProfileInput{
++		CurrentPassword: form.CurrentPassword,
++		Username:        form.Username,
++		Email:           form.Email,
++		NewPassword:     form.NewPassword,
++	})
++	if err != nil {
++		if errors.Is(err, service.ErrWrongPassword) {
++			pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.profile.toasts.wrongPassword"))
++			return
++		}
++		if msg := adminUserErrorMessage(c, err); msg != "" {
++			pureJsonMsg(c, http.StatusOK, false, msg)
++			return
++		}
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	jsonObj(c, gin.H{"passwordChanged": passwordChanged}, nil)
+ }
+ 
+ // BackuptoTgbot sends a backup of the panel data to Telegram bot admins.
+diff --git a/web/controller/client.go b/web/controller/client.go
+index f6f54947..cde3e8b7 100644
+--- a/web/controller/client.go
++++ b/web/controller/client.go
+@@ -2,13 +2,18 @@ package controller
+ 
+ import (
+ 	"encoding/json"
++	"errors"
+ 	"fmt"
++	"net/http"
+ 	"strconv"
+ 	"strings"
+ 	"time"
+ 
+ 	"github.com/mhsanaei/3x-ui/v3/database/model"
++	"github.com/mhsanaei/3x-ui/v3/logger"
++	"github.com/mhsanaei/3x-ui/v3/web/middleware"
+ 	"github.com/mhsanaei/3x-ui/v3/web/service"
++	"github.com/mhsanaei/3x-ui/v3/web/session"
+ 	"github.com/mhsanaei/3x-ui/v3/web/websocket"
+ 
+ 	"github.com/gin-gonic/gin"
+@@ -38,6 +43,7 @@ type ClientController struct {
+ 	inboundService service.InboundService
+ 	xrayService    service.XrayService
+ 	settingService service.SettingService
++	walletService  service.WalletService
+ }
+ 
+ func NewClientController(g *gin.RouterGroup) *ClientController {
+@@ -47,34 +53,86 @@ func NewClientController(g *gin.RouterGroup) *ClientController {
+ }
+ 
+ func (a *ClientController) initRouter(g *gin.RouterGroup) {
+-	g.GET("/list", a.list)
++	admin := middleware.RequireAdmin()
++
++	// Routes a non-admin "user" may reach. Each handler additionally enforces
++	// per-client ownership so a user can only ever touch their own clients.
+ 	g.GET("/list/paged", a.listPaged)
+ 	g.GET("/get/:email", a.get)
+ 	g.GET("/traffic/:email", a.getTrafficByEmail)
+ 	g.GET("/subLinks/:subId", a.getSubLinks)
+ 	g.GET("/links/:email", a.getClientLinks)
+-
+ 	g.POST("/add", a.create)
+ 	g.POST("/update/:email", a.update)
+ 	g.POST("/del/:email", a.delete)
+-	g.POST("/:email/attach", a.attach)
+-	g.POST("/:email/detach", a.detach)
+-	g.POST("/resetAllTraffics", a.resetAllTraffics)
+-	g.POST("/delDepleted", a.delDepleted)
+-	g.POST("/bulkAdjust", a.bulkAdjust)
+-	g.POST("/bulkDel", a.bulkDelete)
+-	g.POST("/bulkCreate", a.bulkCreate)
+-	g.POST("/bulkAttach", a.bulkAttach)
+-	g.POST("/bulkDetach", a.bulkDetach)
+-	g.POST("/bulkResetTraffic", a.bulkResetTraffic)
+-	g.POST("/resetTraffic/:email", a.resetTrafficByEmail)
+-	g.POST("/updateTraffic/:email", a.updateTrafficByEmail)
+ 	g.POST("/ips/:email", a.getIps)
+ 	g.POST("/clearIps/:email", a.clearIps)
+-	g.POST("/onlines", a.onlines)
+-	g.POST("/onlinesByNode", a.onlinesByNode)
+-	g.POST("/activeInbounds", a.activeInbounds)
+-	g.POST("/lastOnline", a.lastOnline)
++	// Owners may re-attach/detach their own clients to/from inbounds (each
++	// handler enforces ownership). Attaching doesn't change the client's quota,
++	// so there's no cost implication.
++	g.POST("/:email/attach", a.attach)
++	g.POST("/:email/detach", a.detach)
++
++	// Admin-only routes: full client list, bulk operations, traffic
++	// administration and online/diagnostic queries.
++	g.GET("/list", admin, a.list)
++	g.POST("/resetAllTraffics", admin, a.resetAllTraffics)
++	g.POST("/delDepleted", admin, a.delDepleted)
++	g.POST("/bulkAdjust", admin, a.bulkAdjust)
++	g.POST("/bulkDel", admin, a.bulkDelete)
++	g.POST("/bulkCreate", admin, a.bulkCreate)
++	g.POST("/bulkAttach", admin, a.bulkAttach)
++	g.POST("/bulkDetach", admin, a.bulkDetach)
++	g.POST("/bulkResetTraffic", admin, a.bulkResetTraffic)
++	g.POST("/resetTraffic/:email", admin, a.resetTrafficByEmail)
++	g.POST("/updateTraffic/:email", admin, a.updateTrafficByEmail)
++	g.POST("/onlines", admin, a.onlines)
++	g.POST("/onlinesByNode", admin, a.onlinesByNode)
++	g.POST("/activeInbounds", admin, a.activeInbounds)
++	g.POST("/lastOnline", admin, a.lastOnline)
++}
++
++// requireOwnership returns true when the caller may act on the client with the
++// given email: admins always may; a non-admin only when they own it. On denial
++// it writes the response and returns false so the caller can simply return.
++func (a *ClientController) requireOwnership(c *gin.Context, email string) bool {
++	user := session.GetLoginUser(c)
++	if user == nil {
++		pureJsonMsg(c, http.StatusUnauthorized, false, I18nWeb(c, "pages.login.loginAgain"))
++		return false
++	}
++	if user.IsAdmin() {
++		return true
++	}
++	owner, err := a.clientService.GetOwnerByEmail(email)
++	if err != nil {
++		// Don't reveal whether the email exists to a non-owner.
++		pureJsonMsg(c, http.StatusForbidden, false, I18nWeb(c, "pages.clients.toasts.forbidden"))
++		return false
++	}
++	if owner != user.Id {
++		pureJsonMsg(c, http.StatusForbidden, false, I18nWeb(c, "pages.clients.toasts.forbidden"))
++		return false
++	}
++	return true
++}
++
++// requireSubOwnership is the subId equivalent of requireOwnership.
++func (a *ClientController) requireSubOwnership(c *gin.Context, subID string) bool {
++	user := session.GetLoginUser(c)
++	if user == nil {
++		pureJsonMsg(c, http.StatusUnauthorized, false, I18nWeb(c, "pages.login.loginAgain"))
++		return false
++	}
++	if user.IsAdmin() {
++		return true
++	}
++	owner, err := a.clientService.GetOwnerBySubID(subID)
++	if err != nil || owner != user.Id {
++		pureJsonMsg(c, http.StatusForbidden, false, I18nWeb(c, "pages.clients.toasts.forbidden"))
++		return false
++	}
++	return true
+ }
+ 
+ func (a *ClientController) list(c *gin.Context) {
+@@ -92,7 +150,13 @@ func (a *ClientController) listPaged(c *gin.Context) {
+ 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+ 		return
+ 	}
+-	resp, err := a.clientService.ListPaged(&a.inboundService, &a.settingService, params)
++	// Non-admins are scoped to clients they own; admins see everything.
++	var ownerFilter *int
++	if user := session.GetLoginUser(c); user != nil && !user.IsAdmin() {
++		id := user.Id
++		ownerFilter = &id
++	}
++	resp, err := a.clientService.ListPaged(&a.inboundService, &a.settingService, params, ownerFilter)
+ 	if err != nil {
+ 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+ 		return
+@@ -102,6 +166,9 @@ func (a *ClientController) listPaged(c *gin.Context) {
+ 
+ func (a *ClientController) get(c *gin.Context) {
+ 	email := c.Param("email")
++	if !a.requireOwnership(c, email) {
++		return
++	}
+ 	rec, err := a.clientService.GetRecordByEmail(nil, email)
+ 	if err != nil {
+ 		jsonMsg(c, I18nWeb(c, "get"), err)
+@@ -127,8 +194,45 @@ func (a *ClientController) create(c *gin.Context) {
+ 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+ 		return
+ 	}
++	user := session.GetLoginUser(c)
++	if user == nil {
++		pureJsonMsg(c, http.StatusUnauthorized, false, I18nWeb(c, "pages.login.loginAgain"))
++		return
++	}
++	// Every client gets an owner: the creating user. (json:"-" on OwnerId means
++	// a caller cannot spoof this — it is only ever set here, server-side.)
++	payload.OwnerId = user.Id
++
++	// Cost system: non-admins are charged clientCost credits per client. The
++	// debit, client creation and (on failure) the refund are sequenced so a
++	// failed creation never leaves the user out of pocket and an unpaid client
++	// is never created.
++	var charged int64
++	if !user.IsAdmin() {
++		base, _ := a.settingService.GetClientCost()
++		perGB, _ := a.settingService.GetClientCostPerGB()
++		cost := service.ComputeClientCost(base, perGB, payload.Client.TotalGB)
++		if cost > 0 {
++			if _, err := a.walletService.Debit(user.Id, cost, "client create: "+payload.Client.Email); err != nil {
++				if errors.Is(err, service.ErrInsufficientBalance) {
++					pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.clients.toasts.insufficientBalance"))
++					return
++				}
++				jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++				return
++			}
++			charged = cost
++		}
++	}
++
+ 	needRestart, err := a.clientService.Create(&a.inboundService, &payload)
+ 	if err != nil {
++		if charged > 0 {
++			// Refund the reservation; creation never happened.
++			if _, refundErr := a.walletService.Credit(user.Id, charged, "refund (create failed): "+payload.Client.Email); refundErr != nil {
++				logger.Warning("failed to refund client-create charge:", refundErr)
++			}
++		}
+ 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+ 		return
+ 	}
+@@ -141,6 +245,9 @@ func (a *ClientController) create(c *gin.Context) {
+ 
+ func (a *ClientController) update(c *gin.Context) {
+ 	email := c.Param("email")
++	if !a.requireOwnership(c, email) {
++		return
++	}
+ 	var updated model.Client
+ 	if err := c.ShouldBindJSON(&updated); err != nil {
+ 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+@@ -161,6 +268,9 @@ func (a *ClientController) update(c *gin.Context) {
+ 
+ func (a *ClientController) delete(c *gin.Context) {
+ 	email := c.Param("email")
++	if !a.requireOwnership(c, email) {
++		return
++	}
+ 	keepTraffic := c.Query("keepTraffic") == "1"
+ 	needRestart, err := a.clientService.DeleteByEmail(&a.inboundService, email, keepTraffic)
+ 	if err != nil {
+@@ -180,6 +290,9 @@ type attachDetachBody struct {
+ 
+ func (a *ClientController) attach(c *gin.Context) {
+ 	email := c.Param("email")
++	if !a.requireOwnership(c, email) {
++		return
++	}
+ 	var body attachDetachBody
+ 	if err := c.ShouldBindJSON(&body); err != nil {
+ 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+@@ -370,6 +483,9 @@ func (a *ClientController) updateTrafficByEmail(c *gin.Context) {
+ 
+ func (a *ClientController) getIps(c *gin.Context) {
+ 	email := c.Param("email")
++	if !a.requireOwnership(c, email) {
++		return
++	}
+ 	ips, err := a.inboundService.GetInboundClientIps(email)
+ 	if err != nil || ips == "" {
+ 		jsonObj(c, "No IP Record", nil)
+@@ -406,6 +522,9 @@ func (a *ClientController) getIps(c *gin.Context) {
+ 
+ func (a *ClientController) clearIps(c *gin.Context) {
+ 	email := c.Param("email")
++	if !a.requireOwnership(c, email) {
++		return
++	}
+ 	if err := a.inboundService.ClearClientIps(email); err != nil {
+ 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
+ 		return
+@@ -432,6 +551,9 @@ func (a *ClientController) lastOnline(c *gin.Context) {
+ 
+ func (a *ClientController) getTrafficByEmail(c *gin.Context) {
+ 	email := c.Param("email")
++	if !a.requireOwnership(c, email) {
++		return
++	}
+ 	traffic, err := a.inboundService.GetClientTrafficByEmail(email)
+ 	if err != nil {
+ 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.trafficGetError"), err)
+@@ -441,6 +563,9 @@ func (a *ClientController) getTrafficByEmail(c *gin.Context) {
+ }
+ 
+ func (a *ClientController) getSubLinks(c *gin.Context) {
++	if !a.requireSubOwnership(c, c.Param("subId")) {
++		return
++	}
+ 	links, err := a.inboundService.GetSubLinks(resolveHost(c), c.Param("subId"))
+ 	if err != nil {
+ 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+@@ -450,6 +575,9 @@ func (a *ClientController) getSubLinks(c *gin.Context) {
+ }
+ 
+ func (a *ClientController) getClientLinks(c *gin.Context) {
++	if !a.requireOwnership(c, c.Param("email")) {
++		return
++	}
+ 	links, err := a.inboundService.GetAllClientLinks(resolveHost(c), c.Param("email"))
+ 	if err != nil {
+ 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+@@ -460,6 +588,9 @@ func (a *ClientController) getClientLinks(c *gin.Context) {
+ 
+ func (a *ClientController) detach(c *gin.Context) {
+ 	email := c.Param("email")
++	if !a.requireOwnership(c, email) {
++		return
++	}
+ 	var body attachDetachBody
+ 	if err := c.ShouldBindJSON(&body); err != nil {
+ 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+diff --git a/web/controller/inbound.go b/web/controller/inbound.go
+index 10e334e3..87982baa 100644
+--- a/web/controller/inbound.go
++++ b/web/controller/inbound.go
+@@ -60,23 +60,30 @@ func (a *InboundController) broadcastInboundsUpdate(userId int) {
+ 
+ // initRouter initializes the routes for inbound-related operations.
+ func (a *InboundController) initRouter(g *gin.RouterGroup) {
++	admin := middleware.RequireAdmin()
+ 
+-	g.GET("/list", a.getInbounds)
+-	g.GET("/list/slim", a.getInboundsSlim)
++	// /options is the only inbound endpoint a non-admin needs: the client
++	// create form lists inbounds to attach to. It returns id/remark/protocol
++	// only (no client settings), so it leaks nothing about other users' clients.
+ 	g.GET("/options", a.getInboundOptions)
+-	g.GET("/get/:id", a.getInbound)
+-	g.GET("/:id/fallbacks", a.getFallbacks)
+-
+-	g.POST("/add", a.addInbound)
+-	g.POST("/del/:id", a.delInbound)
+-	g.POST("/bulkDel", a.bulkDelInbounds)
+-	g.POST("/update/:id", a.updateInbound)
+-	g.POST("/setEnable/:id", a.setInboundEnable)
+-	g.POST("/:id/resetTraffic", a.resetInboundTraffic)
+-	g.POST("/:id/delAllClients", a.delAllInboundClients)
+-	g.POST("/resetAllTraffics", a.resetAllTraffics)
+-	g.POST("/import", a.importInbound)
+-	g.POST("/:id/fallbacks", a.setFallbacks)
++
++	// Everything else exposes full inbound configuration (including every
++	// client embedded in settings) or mutates server state — admin only.
++	g.GET("/list", admin, a.getInbounds)
++	g.GET("/list/slim", admin, a.getInboundsSlim)
++	g.GET("/get/:id", admin, a.getInbound)
++	g.GET("/:id/fallbacks", admin, a.getFallbacks)
++
++	g.POST("/add", admin, a.addInbound)
++	g.POST("/del/:id", admin, a.delInbound)
++	g.POST("/bulkDel", admin, a.bulkDelInbounds)
++	g.POST("/update/:id", admin, a.updateInbound)
++	g.POST("/setEnable/:id", admin, a.setInboundEnable)
++	g.POST("/:id/resetTraffic", admin, a.resetInboundTraffic)
++	g.POST("/:id/delAllClients", admin, a.delAllInboundClients)
++	g.POST("/resetAllTraffics", admin, a.resetAllTraffics)
++	g.POST("/import", admin, a.importInbound)
++	g.POST("/:id/fallbacks", admin, a.setFallbacks)
+ }
+ 
+ // getInbounds retrieves the list of inbounds for the logged-in user.
+@@ -107,7 +114,18 @@ func (a *InboundController) getInboundsSlim(c *gin.Context) {
+ // Avoids shipping per-client settings and traffic stats just to fill a dropdown.
+ func (a *InboundController) getInboundOptions(c *gin.Context) {
+ 	user := session.GetLoginUser(c)
+-	options, err := a.inboundService.GetInboundOptions(user.Id)
++	// Inbounds are admin-managed and panel-wide. A non-admin user attaches their
++	// clients to inbounds the admin created, so they must see the full list;
++	// scoping by their own user_id would return nothing.
++	var (
++		options []service.InboundOption
++		err     error
++	)
++	if user != nil && !user.IsAdmin() {
++		options, err = a.inboundService.GetAllInboundOptions()
++	} else {
++		options, err = a.inboundService.GetInboundOptions(user.Id)
++	}
+ 	if err != nil {
+ 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+ 		return
+diff --git a/web/controller/payment.go b/web/controller/payment.go
+new file mode 100644
+index 00000000..af52c997
+--- /dev/null
++++ b/web/controller/payment.go
+@@ -0,0 +1,160 @@
++package controller
++
++import (
++	"net/http"
++	"strings"
++
++	"github.com/mhsanaei/3x-ui/v3/database/model"
++	"github.com/mhsanaei/3x-ui/v3/logger"
++	"github.com/mhsanaei/3x-ui/v3/web/service"
++	"github.com/mhsanaei/3x-ui/v3/web/session"
++
++	"github.com/gin-gonic/gin"
++)
++
++// PaymentController exposes balance top-up via the ZarinPal gateway. Both
++// routes are available to any logged-in user (a reseller tops up their own
++// wallet). The request endpoint is an XHR; the callback is the browser return
++// target ZarinPal redirects to, so it verifies, credits and 302s back to the
++// SPA billing page.
++type PaymentController struct {
++	zarinpalService service.ZarinpalService
++	paymentService  service.PaymentService
++	walletService   service.WalletService
++	settingService  service.SettingService
++}
++
++func NewPaymentController(g *gin.RouterGroup) *PaymentController {
++	a := &PaymentController{}
++	a.initRouter(g)
++	return a
++}
++
++func (a *PaymentController) initRouter(g *gin.RouterGroup) {
++	billing := g.Group("/billing")
++	billing.POST("/zarinpal/request", a.zarinpalRequest)
++	billing.GET("/zarinpal/callback", a.zarinpalCallback)
++	billing.GET("/payments", a.listPayments)
++}
++
++type zarinpalRequestForm struct {
++	Amount int64 `json:"amount"`
++}
++
++func absoluteURL(c *gin.Context, path string) string {
++	scheme := "http"
++	if c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") {
++		scheme = "https"
++	}
++	return scheme + "://" + c.Request.Host + path
++}
++
++func (a *PaymentController) zarinpalRequest(c *gin.Context) {
++	user := session.GetLoginUser(c)
++	if user == nil {
++		c.AbortWithStatus(http.StatusUnauthorized)
++		return
++	}
++	var form zarinpalRequestForm
++	if err := c.ShouldBindJSON(&form); err != nil {
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	if form.Amount <= 0 {
++		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.billing.toasts.invalidAmount"))
++		return
++	}
++
++	basePath := c.GetString("base_path")
++	if basePath == "" {
++		basePath = "/"
++	}
++	callbackURL := absoluteURL(c, basePath+"panel/api/billing/zarinpal/callback")
++	desc := "Panel balance top-up for " + user.Username
++
++	authority, startPay, err := a.zarinpalService.RequestPayment(form.Amount, desc, callbackURL, user.Email, user.Phone)
++	if err != nil {
++		logger.Warning("zarinpal request failed:", err)
++		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.billing.toasts.requestFailed"))
++		return
++	}
++	if _, err := a.paymentService.CreatePending(user.Id, "zarinpal", authority, form.Amount); err != nil {
++		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
++		return
++	}
++	jsonObj(c, gin.H{"url": startPay, "authority": authority}, nil)
++}
++
++func (a *PaymentController) zarinpalCallback(c *gin.Context) {
++	basePath := c.GetString("base_path")
++	if basePath == "" {
++		basePath = "/"
++	}
++	billingPage := basePath + "panel/billing"
++	redirect := func(query string) {
++		c.Header("Cache-Control", "no-store")
++		c.Redirect(http.StatusFound, billingPage+query)
++	}
++
++	authority := c.Query("Authority")
++	status := c.Query("Status")
++	if authority == "" {
++		redirect("?status=failed")
++		return
++	}
++	payment, err := a.paymentService.GetByAuthority(authority)
++	if err != nil {
++		redirect("?status=failed")
++		return
++	}
++	// The buyer returns in their own browser session — only the owner of the
++	// payment may complete it.
++	if user := session.GetLoginUser(c); user == nil || user.Id != payment.UserId {
++		redirect("?status=failed")
++		return
++	}
++	if status != "OK" {
++		_ = a.paymentService.MarkFailed(authority)
++		redirect("?status=cancelled")
++		return
++	}
++	if payment.Status == model.PaymentPaid {
++		redirect("?status=ok&refId=" + payment.RefId)
++		return
++	}
++
++	refID, _, err := a.zarinpalService.VerifyPayment(payment.Amount, authority)
++	if err != nil {
++		logger.Warning("zarinpal verify failed:", err)
++		_ = a.paymentService.MarkFailed(authority)
++		redirect("?status=failed")
++		return
++	}
++	transitioned, p, err := a.paymentService.MarkPaid(authority, refID)
++	if err != nil {
++		redirect("?status=failed")
++		return
++	}
++	if transitioned {
++		if _, cErr := a.walletService.Credit(p.UserId, p.Amount, "ZarinPal top-up ref:"+refID); cErr != nil {
++			// Money was captured but crediting failed — log loudly for manual reconciliation.
++			logger.Errorf("zarinpal: payment %s verified (ref %s) but crediting user %d with %d failed: %v",
++				authority, refID, p.UserId, p.Amount, cErr)
++		}
++	}
++	redirect("?status=ok&refId=" + refID)
++}
++
++func (a *PaymentController) listPayments(c *gin.Context) {
++	user := session.GetLoginUser(c)
++	if user == nil {
++		c.AbortWithStatus(http.StatusUnauthorized)
++		return
++	}
++	rows, err := a.paymentService.ListForUser(user.Id, 50, 0)
++	if err != nil {
++		jsonMsg(c, I18nWeb(c, "fail"), err)
++		return
++	}
++	jsonObj(c, rows, nil)
++}
+diff --git a/web/controller/setting.go b/web/controller/setting.go
+index fedd1062..1d8d9419 100644
+--- a/web/controller/setting.go
++++ b/web/controller/setting.go
+@@ -40,17 +40,22 @@ func NewSettingController(g *gin.RouterGroup) *SettingController {
+ // initRouter sets up the routes for settings management.
+ func (a *SettingController) initRouter(g *gin.RouterGroup) {
+ 	g = g.Group("/setting")
++	admin := middleware.RequireAdmin()
+ 
+-	g.POST("/all", a.getAllSetting)
++	// defaultSettings exposes only non-sensitive presentation values (sub URIs,
++	// page size, date picker) that the clients page needs, so it stays open to
++	// any logged-in user. Everything else is system configuration — admin only.
+ 	g.POST("/defaultSettings", a.getDefaultSettings)
+-	g.POST("/update", a.updateSetting)
+-	g.POST("/updateUser", a.updateUser)
+-	g.POST("/restartPanel", a.restartPanel)
+-	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
+-	g.GET("/apiTokens", a.listApiTokens)
+-	g.POST("/apiTokens/create", a.createApiToken)
+-	g.POST("/apiTokens/delete/:id", a.deleteApiToken)
+-	g.POST("/apiTokens/setEnabled/:id", a.setApiTokenEnabled)
++
++	g.POST("/all", admin, a.getAllSetting)
++	g.POST("/update", admin, a.updateSetting)
++	g.POST("/updateUser", admin, a.updateUser)
++	g.POST("/restartPanel", admin, a.restartPanel)
++	g.GET("/getDefaultJsonConfig", admin, a.getDefaultXrayConfig)
++	g.GET("/apiTokens", admin, a.listApiTokens)
++	g.POST("/apiTokens/create", admin, a.createApiToken)
++	g.POST("/apiTokens/delete/:id", admin, a.deleteApiToken)
++	g.POST("/apiTokens/setEnabled/:id", admin, a.setApiTokenEnabled)
+ }
+ 
+ // getAllSetting retrieves all current settings.
+diff --git a/web/controller/xui.go b/web/controller/xui.go
+index d7d68c7e..9aa9f0bc 100644
+--- a/web/controller/xui.go
++++ b/web/controller/xui.go
+@@ -40,6 +40,9 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
+ 	g.GET("/inbounds", a.panelSPA)
+ 	g.GET("/clients", a.panelSPA)
+ 	g.GET("/groups", a.panelSPA)
++	g.GET("/users", a.panelSPA)
++	g.GET("/profile", a.panelSPA)
++	g.GET("/billing", a.panelSPA)
+ 	g.GET("/nodes", a.panelSPA)
+ 	g.GET("/settings", a.panelSPA)
+ 	g.GET("/xray", a.panelSPA)
+@@ -51,7 +54,11 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
+ 	g.GET("/csrf-token", a.csrfToken)
+ 
+ 	a.settingController = NewSettingController(g)
+-	a.xraySettingController = NewXraySettingController(g)
++
++	// Xray configuration is entirely admin-only.
++	xrayAdmin := g.Group("")
++	xrayAdmin.Use(middleware.RequireAdmin())
++	a.xraySettingController = NewXraySettingController(xrayAdmin)
+ }
+ 
+ // panelSPA serves the React SPA shell. Every GET under /panel/ that isn't an
+diff --git a/web/entity/entity.go b/web/entity/entity.go
+index 47de5a74..6703dd97 100644
+--- a/web/entity/entity.go
++++ b/web/entity/entity.go
+@@ -51,10 +51,18 @@ type AllSetting struct {
+ 	TgLang           string `json:"tgLang" form:"tgLang"`                        // Telegram bot language
+ 
+ 	// Security settings
+-	TimeLocation       string `json:"timeLocation" form:"timeLocation"`             // Time zone location
+-	TwoFactorEnable    bool   `json:"twoFactorEnable" form:"twoFactorEnable"`       // Enable two-factor authentication
+-	TwoFactorToken     string `json:"twoFactorToken" form:"twoFactorToken"`         // Two-factor authentication token
+-	RegistrationEnable bool   `json:"registrationEnable" form:"registrationEnable"` // Allow public self-registration of new panel users
++	TimeLocation       string `json:"timeLocation" form:"timeLocation"`                        // Time zone location
++	TwoFactorEnable    bool   `json:"twoFactorEnable" form:"twoFactorEnable"`                  // Enable two-factor authentication
++	TwoFactorToken     string `json:"twoFactorToken" form:"twoFactorToken"`                    // Two-factor authentication token
++	RegistrationEnable bool   `json:"registrationEnable" form:"registrationEnable"`            // Allow public self-registration of new panel users
++	ClientCost         int    `json:"clientCost" form:"clientCost" validate:"gte=0"`           // Flat wallet credits charged to a non-admin user per client created
++	ClientCostPerGB    int    `json:"clientCostPerGB" form:"clientCostPerGB" validate:"gte=0"` // Wallet credits charged per GB of a client's traffic quota
++
++	// Reseller / billing (ZarinPal balance top-up)
++	ZarinpalEnable     bool   `json:"zarinpalEnable" form:"zarinpalEnable"`         // Enable ZarinPal balance top-up
++	ZarinpalMerchantId string `json:"zarinpalMerchantId" form:"zarinpalMerchantId"` // ZarinPal 36-char merchant id
++	ZarinpalSandbox    bool   `json:"zarinpalSandbox" form:"zarinpalSandbox"`       // Use ZarinPal sandbox endpoint
++	ZarinpalCurrency   string `json:"zarinpalCurrency" form:"zarinpalCurrency"`     // Amount currency: IRR | IRT
+ 
+ 	// Subscription server settings
+ 	SubEnable                   bool   `json:"subEnable" form:"subEnable"`                                     // Enable subscription server
+diff --git a/web/middleware/rbac.go b/web/middleware/rbac.go
+new file mode 100644
+index 00000000..d0bde893
+--- /dev/null
++++ b/web/middleware/rbac.go
+@@ -0,0 +1,35 @@
++package middleware
++
++import (
++	"net/http"
++
++	"github.com/mhsanaei/3x-ui/v3/web/session"
++
++	"github.com/gin-gonic/gin"
++)
++
++// RequireAdmin aborts the request unless the authenticated user has the admin
++// role. It is the server-side enforcement point for every admin-only route and
++// API — the frontend hides admin UI, but this is what actually prevents a
++// non-admin from reaching admin functionality by calling the API directly.
++//
++// Bearer-token API callers are resolved to the first (admin) user by
++// APIController.checkAPIAuth, so they pass. Session callers are checked against
++// their stored role.
++func RequireAdmin() gin.HandlerFunc {
++	return func(c *gin.Context) {
++		user := session.GetLoginUser(c)
++		if user == nil || !user.IsAdmin() {
++			if c.GetHeader("X-Requested-With") == "XMLHttpRequest" {
++				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
++					"success": false,
++					"msg":     "forbidden: admin role required",
++				})
++			} else {
++				c.AbortWithStatus(http.StatusForbidden)
++			}
++			return
++		}
++		c.Next()
++	}
++}
+diff --git a/web/service/api_scale_postgres_test.go b/web/service/api_scale_postgres_test.go
+index ce0c0442..80f56c06 100644
+--- a/web/service/api_scale_postgres_test.go
++++ b/web/service/api_scale_postgres_test.go
+@@ -101,9 +101,12 @@ func TestAllAPIsPostgresScale(t *testing.T) {
+ 			run("GetInboundsSlim", func() error { _, err := inboundSvc.GetInboundsSlim(userId); return err })
+ 			run("GetInboundDetail", func() error { _, err := inboundSvc.GetInboundDetail(ib.Id); return err })
+ 			run("GetInboundOptions", func() error { _, err := inboundSvc.GetInboundOptions(userId); return err })
+-			run("ListPaged", func() error { _, err := svc.ListPaged(inboundSvc, settingSvc, ClientPageParams{Page: 1, PageSize: 25}); return err })
++			run("ListPaged", func() error {
++				_, err := svc.ListPaged(inboundSvc, settingSvc, ClientPageParams{Page: 1, PageSize: 25}, nil)
++				return err
++			})
+ 			run("ListPaged+search", func() error {
+-				_, err := svc.ListPaged(inboundSvc, settingSvc, ClientPageParams{Page: 1, PageSize: 25, Search: "user-0012345"})
++				_, err := svc.ListPaged(inboundSvc, settingSvc, ClientPageParams{Page: 1, PageSize: 25, Search: "user-0012345"}, nil)
+ 				return err
+ 			})
+ 			run("GetClientsLastOnline", func() error { _, err := inboundSvc.GetClientsLastOnline(); return err })
+diff --git a/web/service/client.go b/web/service/client.go
+index 232817b8..187a3aff 100644
+--- a/web/service/client.go
++++ b/web/service/client.go
+@@ -28,6 +28,7 @@ type ClientWithAttachments struct {
+ 	model.ClientRecord
+ 	InboundIds []int               `json:"inboundIds"`
+ 	Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
++	OwnerName  string              `json:"ownerName,omitempty"`
+ }
+ 
+ // MarshalJSON is required because model.ClientRecord defines its own
+@@ -42,7 +43,8 @@ func (c ClientWithAttachments) MarshalJSON() ([]byte, error) {
+ 	extras := struct {
+ 		InboundIds []int               `json:"inboundIds"`
+ 		Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
+-	}{InboundIds: c.InboundIds, Traffic: c.Traffic}
++		OwnerName  string              `json:"ownerName,omitempty"`
++	}{InboundIds: c.InboundIds, Traffic: c.Traffic, OwnerName: c.OwnerName}
+ 	extra, err := json.Marshal(extras)
+ 	if err != nil {
+ 		return nil, err
+@@ -522,6 +524,9 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
+ type ClientCreatePayload struct {
+ 	Client     model.Client `json:"client"`
+ 	InboundIds []int        `json:"inboundIds"`
++	// OwnerId is set server-side from the session (json:"-" so a caller can
++	// never spoof ownership). 0 leaves the client unowned.
++	OwnerId int `json:"-"`
+ }
+ 
+ func hasForbiddenClientChar(s string) bool {
+@@ -636,9 +641,39 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
+ 			needRestart = true
+ 		}
+ 	}
++	// Stamp ownership on the freshly-created client record. The record is
++	// created inside AddInboundClient/SyncInbound keyed by the unique email, so
++	// a single targeted update is safe here.
++	if payload.OwnerId != 0 {
++		if err := database.GetDB().Model(&model.ClientRecord{}).
++			Where("email = ?", client.Email).
++			Update("owner_id", payload.OwnerId).Error; err != nil {
++			return needRestart, err
++		}
++	}
+ 	return needRestart, nil
+ }
+ 
++// GetOwnerByEmail returns the owner_id of the client with the given email, or
++// gorm.ErrRecordNotFound when no such client exists. Used by the controller to
++// enforce per-user ownership before mutating a client.
++func (s *ClientService) GetOwnerByEmail(email string) (int, error) {
++	var rec model.ClientRecord
++	if err := database.GetDB().Select("owner_id").Where("email = ?", email).First(&rec).Error; err != nil {
++		return 0, err
++	}
++	return rec.OwnerId, nil
++}
++
++// GetOwnerBySubID returns the owner_id of the client owning the given subId.
++func (s *ClientService) GetOwnerBySubID(subID string) (int, error) {
++	var rec model.ClientRecord
++	if err := database.GetDB().Select("owner_id").Where("sub_id = ?", subID).First(&rec).Error; err != nil {
++		return 0, err
++	}
++	return rec.OwnerId, nil
++}
++
+ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound) error {
+ 	switch ib.Protocol {
+ 	case model.VMESS, model.VLESS:
+@@ -1512,6 +1547,8 @@ type ClientSlim struct {
+ 	Reset      int                 `json:"reset"`
+ 	Group      string              `json:"group,omitempty"`
+ 	Comment    string              `json:"comment,omitempty"`
++	OwnerId    int                 `json:"ownerId"`
++	OwnerName  string              `json:"ownerName,omitempty"`
+ 	InboundIds []int               `json:"inboundIds"`
+ 	Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
+ 	CreatedAt  int64               `json:"createdAt"`
+@@ -1583,11 +1620,30 @@ const (
+ // query itself is unchanged from List(); the win is that the response
+ // only carries 25-ish slim rows over the wire instead of all 2000 full
+ // records, which on real panels was the dominant cost.
+-func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *SettingService, params ClientPageParams) (*ClientPageResponse, error) {
++func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *SettingService, params ClientPageParams, ownerFilter *int) (*ClientPageResponse, error) {
+ 	all, err := s.List()
+ 	if err != nil {
+ 		return nil, err
+ 	}
++	// Ownership scoping: a non-admin caller only ever sees clients they own.
++	// This is enforced server-side (the controller passes the session user's id
++	// for non-admins) so the result — including totals and summary — never leaks
++	// another user's clients, regardless of any frontend filtering.
++	if ownerFilter != nil {
++		scoped := make([]ClientWithAttachments, 0, len(all))
++		for _, c := range all {
++			if c.OwnerId == *ownerFilter {
++				scoped = append(scoped, c)
++			}
++		}
++		all = scoped
++	}
++
++	// Resolve owner usernames onto every row so the admin clients list can
++	// display the owner and the free-text search can match by owner name. One
++	// query keyed by the distinct owner ids present.
++	s.attachOwnerNames(all)
++
+ 	total := len(all)
+ 
+ 	pageSize := params.PageSize
+@@ -2131,6 +2187,8 @@ func toClientSlim(c ClientWithAttachments) ClientSlim {
+ 		Reset:      c.Reset,
+ 		Group:      c.Group,
+ 		Comment:    c.Comment,
++		OwnerId:    c.OwnerId,
++		OwnerName:  c.OwnerName,
+ 		InboundIds: c.InboundIds,
+ 		Traffic:    c.Traffic,
+ 		CreatedAt:  c.CreatedAt,
+@@ -2138,11 +2196,38 @@ func toClientSlim(c ClientWithAttachments) ClientSlim {
+ 	}
+ }
+ 
++// attachOwnerNames fills OwnerName on each row from the users table, batched by
++// the distinct owner ids present.
++func (s *ClientService) attachOwnerNames(rows []ClientWithAttachments) {
++	ownerIds := make([]int, 0)
++	seen := map[int]bool{}
++	for i := range rows {
++		if id := rows[i].OwnerId; id > 0 && !seen[id] {
++			seen[id] = true
++			ownerIds = append(ownerIds, id)
++		}
++	}
++	if len(ownerIds) == 0 {
++		return
++	}
++	var owners []model.User
++	if err := database.GetDB().Select("id, username").Where("id IN ?", ownerIds).Find(&owners).Error; err != nil {
++		return
++	}
++	nameById := make(map[int]string, len(owners))
++	for _, u := range owners {
++		nameById[u.Id] = u.Username
++	}
++	for i := range rows {
++		rows[i].OwnerName = nameById[rows[i].OwnerId]
++	}
++}
++
+ func clientMatchesSearch(c ClientWithAttachments, needle string) bool {
+ 	if needle == "" {
+ 		return true
+ 	}
+-	candidates := [...]string{c.Email, c.SubID, c.Comment, c.UUID, c.Password, c.Auth}
++	candidates := [...]string{c.Email, c.SubID, c.Comment, c.UUID, c.Password, c.Auth, c.OwnerName}
+ 	for _, v := range candidates {
+ 		if v != "" && strings.Contains(strings.ToLower(v), needle) {
+ 			return true
+diff --git a/web/service/cost.go b/web/service/cost.go
+new file mode 100644
+index 00000000..c5a5bfbe
+--- /dev/null
++++ b/web/service/cost.go
+@@ -0,0 +1,28 @@
++package service
++
++import "math"
++
++// BytesPerGB is the divisor used to convert a client's stored traffic quota
++// (which 3x-ui keeps in bytes, despite the "totalGB" field name) into GB for
++// pricing.
++const BytesPerGB = 1 << 30
++
++// ComputeClientCost returns the wallet credits required to create a client with
++// the given traffic quota in bytes:
++//
++//	cost = base + round( quotaGB * perGB )
++//
++// where base is the flat per-client fee (clientCost) and perGB is the per-GB
++// rate (clientCostPerGB). An unlimited quota (totalBytes == 0) is charged only
++// the flat base. The result is never negative.
++func ComputeClientCost(base, perGB int, totalBytes int64) int64 {
++	cost := int64(base)
++	if perGB > 0 && totalBytes > 0 {
++		gb := float64(totalBytes) / float64(BytesPerGB)
++		cost += int64(math.Round(gb * float64(perGB)))
++	}
++	if cost < 0 {
++		cost = 0
++	}
++	return cost
++}
+diff --git a/web/service/inbound.go b/web/service/inbound.go
+index 33995368..6948d204 100644
+--- a/web/service/inbound.go
++++ b/web/service/inbound.go
+@@ -343,6 +343,19 @@ type InboundOption struct {
+ }
+ 
+ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
++	return s.inboundOptions(&userId)
++}
++
++// GetAllInboundOptions returns the option list for every inbound regardless of
++// owner. Inbounds are an admin-managed, panel-wide resource: a non-admin user
++// attaches their own clients to inbounds the admin created, so the attach
++// picker must list all of them (the per-user user_id filter would otherwise
++// return nothing for a non-admin).
++func (s *InboundService) GetAllInboundOptions() ([]InboundOption, error) {
++	return s.inboundOptions(nil)
++}
++
++func (s *InboundService) inboundOptions(userId *int) ([]InboundOption, error) {
+ 	db := database.GetDB()
+ 	var rows []struct {
+ 		Id             int    `gorm:"column:id"`
+@@ -352,11 +365,13 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error)
+ 		Port           int    `gorm:"column:port"`
+ 		StreamSettings string `gorm:"column:stream_settings"`
+ 	}
+-	err := db.Table("inbounds").
++	q := db.Table("inbounds").
+ 		Select("id, remark, tag, protocol, port, stream_settings").
+-		Where("user_id = ?", userId).
+-		Order("id ASC").
+-		Scan(&rows).Error
++		Order("id ASC")
++	if userId != nil {
++		q = q.Where("user_id = ?", *userId)
++	}
++	err := q.Scan(&rows).Error
+ 	if err != nil && err != gorm.ErrRecordNotFound {
+ 		return nil, err
+ 	}
+diff --git a/web/service/payment.go b/web/service/payment.go
+new file mode 100644
+index 00000000..390a890c
+--- /dev/null
++++ b/web/service/payment.go
+@@ -0,0 +1,75 @@
++package service
++
++import (
++	"github.com/mhsanaei/3x-ui/v3/database"
++	"github.com/mhsanaei/3x-ui/v3/database/model"
++)
++
++// PaymentService persists payment-gateway attempts and flips their status
++// idempotently so a balance is credited at most once per payment.
++type PaymentService struct{}
++
++// CreatePending records a new pending payment for a user/authority.
++func (s *PaymentService) CreatePending(userId int, gateway, authority string, amount int64) (*model.Payment, error) {
++	p := &model.Payment{
++		UserId:    userId,
++		Gateway:   gateway,
++		Authority: authority,
++		Amount:    amount,
++		Status:    model.PaymentPending,
++	}
++	if err := database.GetDB().Create(p).Error; err != nil {
++		return nil, err
++	}
++	return p, nil
++}
++
++// GetByAuthority loads a payment by its gateway authority.
++func (s *PaymentService) GetByAuthority(authority string) (*model.Payment, error) {
++	var p model.Payment
++	if err := database.GetDB().Where("authority = ?", authority).First(&p).Error; err != nil {
++		return nil, err
++	}
++	return &p, nil
++}
++
++// MarkPaid atomically transitions a payment from pending to paid. It returns
++// true only for the call that performed the transition (so exactly one caller
++// credits the wallet); concurrent/duplicate callbacks see false.
++func (s *PaymentService) MarkPaid(authority, refID string) (bool, *model.Payment, error) {
++	db := database.GetDB()
++	var p model.Payment
++	if err := db.Where("authority = ?", authority).First(&p).Error; err != nil {
++		return false, nil, err
++	}
++	res := db.Model(&model.Payment{}).
++		Where("authority = ? AND status = ?", authority, model.PaymentPending).
++		Updates(map[string]any{"status": model.PaymentPaid, "ref_id": refID})
++	if res.Error != nil {
++		return false, &p, res.Error
++	}
++	p.Status = model.PaymentPaid
++	p.RefId = refID
++	return res.RowsAffected == 1, &p, nil
++}
++
++// MarkFailed flips a still-pending payment to failed (best effort).
++func (s *PaymentService) MarkFailed(authority string) error {
++	return database.GetDB().Model(&model.Payment{}).
++		Where("authority = ? AND status = ?", authority, model.PaymentPending).
++		Update("status", model.PaymentFailed).Error
++}
++
++// ListForUser returns a user's payment history, newest first.
++func (s *PaymentService) ListForUser(userId, limit, offset int) ([]model.Payment, error) {
++	if limit <= 0 || limit > 200 {
++		limit = 50
++	}
++	if offset < 0 {
++		offset = 0
++	}
++	var rows []model.Payment
++	err := database.GetDB().Where("user_id = ?", userId).
++		Order("id desc").Limit(limit).Offset(offset).Find(&rows).Error
++	return rows, err
++}
+diff --git a/web/service/setting.go b/web/service/setting.go
+index 4d2dd0ed..3f091653 100644
+--- a/web/service/setting.go
++++ b/web/service/setting.go
+@@ -27,35 +27,43 @@ import (
+ var xrayTemplateConfig string
+ 
+ var defaultValueMap = map[string]string{
+-	"xrayTemplateConfig":          xrayTemplateConfig,
+-	"webListen":                   "",
+-	"webDomain":                   "",
+-	"webPort":                     "2053",
+-	"webCertFile":                 "",
+-	"webKeyFile":                  "",
+-	"secret":                      random.Seq(32),
+-	"apiToken":                    "",
+-	"webBasePath":                 "/",
+-	"sessionMaxAge":               "360",
+-	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
+-	"pageSize":                    "25",
+-	"expireDiff":                  "0",
+-	"trafficDiff":                 "0",
+-	"remarkModel":                 "-ieo",
+-	"timeLocation":                "Local",
+-	"tgBotEnable":                 "false",
+-	"tgBotToken":                  "",
+-	"tgBotProxy":                  "",
+-	"tgBotAPIServer":              "",
+-	"tgBotChatId":                 "",
+-	"tgRunTime":                   "@daily",
+-	"tgBotBackup":                 "false",
+-	"tgBotLoginNotify":            "true",
+-	"tgCpu":                       "80",
+-	"tgLang":                      "en-US",
+-	"twoFactorEnable":             "false",
+-	"twoFactorToken":              "",
+-	"registrationEnable":          "false",
++	"xrayTemplateConfig": xrayTemplateConfig,
++	"webListen":          "",
++	"webDomain":          "",
++	"webPort":            "2053",
++	"webCertFile":        "",
++	"webKeyFile":         "",
++	"secret":             random.Seq(32),
++	"apiToken":           "",
++	"webBasePath":        "/",
++	"sessionMaxAge":      "360",
++	"trustedProxyCIDRs":  "127.0.0.1/32,::1/128",
++	"pageSize":           "25",
++	"expireDiff":         "0",
++	"trafficDiff":        "0",
++	"remarkModel":        "-ieo",
++	"timeLocation":       "Local",
++	"tgBotEnable":        "false",
++	"tgBotToken":         "",
++	"tgBotProxy":         "",
++	"tgBotAPIServer":     "",
++	"tgBotChatId":        "",
++	"tgRunTime":          "@daily",
++	"tgBotBackup":        "false",
++	"tgBotLoginNotify":   "true",
++	"tgCpu":              "80",
++	"tgLang":             "en-US",
++	"twoFactorEnable":    "false",
++	"twoFactorToken":     "",
++	"registrationEnable": "false",
++	"clientCost":         "0",
++	"clientCostPerGB":    "0",
++
++	// ZarinPal payment gateway (balance top-up)
++	"zarinpalEnable":              "false",
++	"zarinpalMerchantId":          "",
++	"zarinpalSandbox":             "false",
++	"zarinpalCurrency":            "IRT",
+ 	"subEnable":                   "true",
+ 	"subJsonEnable":               "false",
+ 	"subTitle":                    "",
+@@ -461,6 +469,66 @@ func (s *SettingService) SetRegistrationEnable(value bool) error {
+ 	return s.setBool("registrationEnable", value)
+ }
+ 
++// GetClientCost returns the number of wallet credits a non-admin user is
++// charged to create a single client. 0 means client creation is free.
++func (s *SettingService) GetClientCost() (int, error) {
++	return s.getInt("clientCost")
++}
++
++func (s *SettingService) SetClientCost(value int) error {
++	return s.setInt("clientCost", value)
++}
++
++// GetClientCostPerGB returns the credits charged per GB of a client's traffic
++// quota (totalGB) on creation. The total charge is base clientCost plus
++// clientCostPerGB × (quota in GB). 0 disables per-GB pricing.
++func (s *SettingService) GetClientCostPerGB() (int, error) {
++	return s.getInt("clientCostPerGB")
++}
++
++func (s *SettingService) SetClientCostPerGB(value int) error {
++	return s.setInt("clientCostPerGB", value)
++}
++
++// --- ZarinPal payment gateway ---
++
++func (s *SettingService) GetZarinpalEnable() (bool, error) {
++	return s.getBool("zarinpalEnable")
++}
++
++func (s *SettingService) SetZarinpalEnable(value bool) error {
++	return s.setBool("zarinpalEnable", value)
++}
++
++func (s *SettingService) GetZarinpalMerchantId() (string, error) {
++	return s.getString("zarinpalMerchantId")
++}
++
++func (s *SettingService) SetZarinpalMerchantId(value string) error {
++	return s.setString("zarinpalMerchantId", strings.TrimSpace(value))
++}
++
++func (s *SettingService) GetZarinpalSandbox() (bool, error) {
++	return s.getBool("zarinpalSandbox")
++}
++
++func (s *SettingService) SetZarinpalSandbox(value bool) error {
++	return s.setBool("zarinpalSandbox", value)
++}
++
++// GetZarinpalCurrency returns the currency ZarinPal amounts are sent in
++// ("IRR" or "IRT"). Defaults to IRT (Toman).
++func (s *SettingService) GetZarinpalCurrency() (string, error) {
++	cur, err := s.getString("zarinpalCurrency")
++	if err != nil {
++		return "IRT", err
++	}
++	if cur != "IRR" && cur != "IRT" {
++		return "IRT", nil
++	}
++	return cur, nil
++}
++
+ func (s *SettingService) SetTwoFactorToken(value string) error {
+ 	return s.setString("twoFactorToken", value)
+ }
+diff --git a/web/service/user.go b/web/service/user.go
+index f8d91172..711d377e 100644
+--- a/web/service/user.go
++++ b/web/service/user.go
+@@ -26,6 +26,8 @@ var (
+ 	ErrInvalidPhone    = errors.New("invalid phone number")
+ 	ErrInvalidFullName = errors.New("invalid full name")
+ 	ErrWeakPassword    = errors.New("password does not meet the strength requirements")
++	ErrLastAdmin       = errors.New("cannot remove the last administrator")
++	ErrWrongPassword   = errors.New("current password is incorrect")
+ )
+ 
+ var (
+@@ -119,6 +121,7 @@ func (s *UserService) Register(input RegisterInput) (*model.User, error) {
+ 		FullName: in.FullName,
+ 		Phone:    in.Phone,
+ 		Email:    in.Email,
++		Role:     model.RoleUser, // self-registered accounts are always limited users
+ 	}
+ 
+ 	db := database.GetDB()
+@@ -290,6 +293,7 @@ func (s *UserService) UpdateFirstUser(username string, password string) error {
+ 	if database.IsNotFound(err) {
+ 		user.Username = username
+ 		user.Password = hashedPassword
++		user.Role = model.RoleAdmin
+ 		return db.Model(model.User{}).Create(user).Error
+ 	} else if err != nil {
+ 		return err
+@@ -299,3 +303,306 @@ func (s *UserService) UpdateFirstUser(username string, password string) error {
+ 	user.LoginEpoch++
+ 	return db.Save(user).Error
+ }
++
++// AdminUserInput carries the fields an admin supplies when creating or editing
++// a panel user. Password is optional on update (blank = keep current).
++type AdminUserInput struct {
++	Username string
++	Password string
++	FullName string
++	Phone    string
++	Email    string
++	Role     string
++	Balance  int64
++}
++
++func normalizeRole(role string) string {
++	if strings.ToLower(strings.TrimSpace(role)) == model.RoleAdmin {
++		return model.RoleAdmin
++	}
++	return model.RoleUser
++}
++
++// optionalEmail validates and lower-cases an email when present; empty is allowed.
++func optionalEmail(email string) (string, error) {
++	email = strings.ToLower(strings.TrimSpace(email))
++	if email == "" {
++		return "", nil
++	}
++	addr, err := mail.ParseAddress(email)
++	if err != nil || addr.Address != email || len(email) > 254 {
++		return "", ErrInvalidEmail
++	}
++	return email, nil
++}
++
++// ListUsers returns every panel user with the password hash cleared so the
++// result is safe to serialize to an admin client.
++func (s *UserService) ListUsers() ([]model.User, error) {
++	var users []model.User
++	if err := database.GetDB().Order("id asc").Find(&users).Error; err != nil {
++		return nil, err
++	}
++	for i := range users {
++		users[i].Password = ""
++	}
++	return users, nil
++}
++
++// GetUserByID loads a single user (password cleared).
++func (s *UserService) GetUserByID(id int) (*model.User, error) {
++	var u model.User
++	if err := database.GetDB().Where("id = ?", id).First(&u).Error; err != nil {
++		return nil, err
++	}
++	u.Password = ""
++	return &u, nil
++}
++
++// AdminCreateUser creates a panel user with an explicit role and starting
++// balance. Username uniqueness is case-insensitive; email (when present) must
++// be unique and valid; password must satisfy the shared strength policy.
++func (s *UserService) AdminCreateUser(in AdminUserInput) (*model.User, error) {
++	in.Username = strings.TrimSpace(in.Username)
++	in.FullName = strings.TrimSpace(in.FullName)
++	in.Phone = strings.TrimSpace(in.Phone)
++	if !usernameRegex.MatchString(in.Username) {
++		return nil, ErrInvalidUsername
++	}
++	if err := ValidatePasswordStrength(in.Password); err != nil {
++		return nil, err
++	}
++	email, err := optionalEmail(in.Email)
++	if err != nil {
++		return nil, err
++	}
++	hashed, err := crypto.HashPasswordAsBcrypt(in.Password)
++	if err != nil {
++		return nil, err
++	}
++	balance := in.Balance
++	if balance < 0 {
++		balance = 0
++	}
++	user := &model.User{
++		Username: in.Username,
++		Password: hashed,
++		FullName: in.FullName,
++		Phone:    in.Phone,
++		Email:    email,
++		Role:     normalizeRole(in.Role),
++		Balance:  balance,
++	}
++	err = database.GetDB().Transaction(func(tx *gorm.DB) error {
++		var count int64
++		if err := tx.Model(model.User{}).Where("LOWER(username) = ?", strings.ToLower(in.Username)).Count(&count).Error; err != nil {
++			return err
++		}
++		if count > 0 {
++			return ErrUsernameTaken
++		}
++		if email != "" {
++			if err := tx.Model(model.User{}).Where("LOWER(email) = ?", email).Count(&count).Error; err != nil {
++				return err
++			}
++			if count > 0 {
++				return ErrEmailTaken
++			}
++		}
++		return tx.Create(user).Error
++	})
++	if err != nil {
++		return nil, err
++	}
++	user.Password = ""
++	return user, nil
++}
++
++// AdminUpdateUser edits a user's profile, role and (optionally) password. A
++// blank password leaves the current one untouched. Balance is NOT changed here
++// — wallet adjustments go through WalletService so they are always audited.
++// Demoting the last remaining admin is rejected.
++func (s *UserService) AdminUpdateUser(id int, in AdminUserInput) (*model.User, error) {
++	in.Username = strings.TrimSpace(in.Username)
++	in.FullName = strings.TrimSpace(in.FullName)
++	in.Phone = strings.TrimSpace(in.Phone)
++	if !usernameRegex.MatchString(in.Username) {
++		return nil, ErrInvalidUsername
++	}
++	email, err := optionalEmail(in.Email)
++	if err != nil {
++		return nil, err
++	}
++	newRole := normalizeRole(in.Role)
++
++	updates := map[string]any{
++		"username":  in.Username,
++		"full_name": in.FullName,
++		"phone":     in.Phone,
++		"email":     email,
++		"role":      newRole,
++	}
++	if strings.TrimSpace(in.Password) != "" {
++		if err := ValidatePasswordStrength(in.Password); err != nil {
++			return nil, err
++		}
++		hashed, err := crypto.HashPasswordAsBcrypt(in.Password)
++		if err != nil {
++			return nil, err
++		}
++		updates["password"] = hashed
++		// Force re-login everywhere when the password changes.
++		updates["login_epoch"] = gorm.Expr("login_epoch + 1")
++	}
++
++	err = database.GetDB().Transaction(func(tx *gorm.DB) error {
++		var existing model.User
++		if err := tx.Where("id = ?", id).First(&existing).Error; err != nil {
++			return err
++		}
++		var count int64
++		if err := tx.Model(model.User{}).Where("LOWER(username) = ? AND id <> ?", strings.ToLower(in.Username), id).Count(&count).Error; err != nil {
++			return err
++		}
++		if count > 0 {
++			return ErrUsernameTaken
++		}
++		if email != "" {
++			if err := tx.Model(model.User{}).Where("LOWER(email) = ? AND id <> ?", email, id).Count(&count).Error; err != nil {
++				return err
++			}
++			if count > 0 {
++				return ErrEmailTaken
++			}
++		}
++		// Guard: never demote the last admin.
++		if existing.IsAdmin() && newRole == model.RoleUser {
++			admins, err := s.countAdminsTx(tx)
++			if err != nil {
++				return err
++			}
++			if admins <= 1 {
++				return ErrLastAdmin
++			}
++		}
++		return tx.Model(model.User{}).Where("id = ?", id).Updates(updates).Error
++	})
++	if err != nil {
++		return nil, err
++	}
++	return s.GetUserByID(id)
++}
++
++// DeleteUser removes a panel user and their transaction history. The last
++// remaining admin cannot be deleted. Owned clients are left intact (their
++// owner_id is reset to 0 / unowned) so proxy access is never silently dropped.
++func (s *UserService) DeleteUser(id int) error {
++	return database.GetDB().Transaction(func(tx *gorm.DB) error {
++		var existing model.User
++		if err := tx.Where("id = ?", id).First(&existing).Error; err != nil {
++			return err
++		}
++		if existing.IsAdmin() {
++			admins, err := s.countAdminsTx(tx)
++			if err != nil {
++				return err
++			}
++			if admins <= 1 {
++				return ErrLastAdmin
++			}
++		}
++		if err := tx.Model(&model.ClientRecord{}).Where("owner_id = ?", id).Update("owner_id", 0).Error; err != nil {
++			return err
++		}
++		if err := tx.Where("user_id = ?", id).Delete(&model.Transaction{}).Error; err != nil {
++			return err
++		}
++		return tx.Where("id = ?", id).Delete(&model.User{}).Error
++	})
++}
++
++func (s *UserService) countAdminsTx(tx *gorm.DB) (int64, error) {
++	var count int64
++	err := tx.Model(model.User{}).Where("role = ?", model.RoleAdmin).Count(&count).Error
++	return count, err
++}
++
++// SelfProfileInput is what a logged-in user may change about their own account.
++// Role and balance are intentionally absent — a user can never escalate their
++// own role or top up their own wallet; only an admin can (via AdminUpdateUser /
++// WalletService).
++type SelfProfileInput struct {
++	CurrentPassword string
++	Username        string
++	Email           string
++	NewPassword     string // optional; blank keeps the current password
++}
++
++// UpdateSelfProfile lets a user edit their own username, email and password
++// after re-authenticating with their current password. It returns the updated
++// user and whether the password changed (callers must force a re-login in that
++// case, since the login epoch is bumped and the current session is invalidated).
++func (s *UserService) UpdateSelfProfile(userId int, in SelfProfileInput) (*model.User, bool, error) {
++	in.Username = strings.TrimSpace(in.Username)
++	if !usernameRegex.MatchString(in.Username) {
++		return nil, false, ErrInvalidUsername
++	}
++	email, err := optionalEmail(in.Email)
++	if err != nil {
++		return nil, false, err
++	}
++
++	db := database.GetDB()
++	var user model.User
++	if err := db.Where("id = ?", userId).First(&user).Error; err != nil {
++		return nil, false, err
++	}
++	if !crypto.CheckPasswordHash(user.Password, in.CurrentPassword) {
++		return nil, false, ErrWrongPassword
++	}
++
++	updates := map[string]any{
++		"username": in.Username,
++		"email":    email,
++	}
++	passwordChanged := false
++	if strings.TrimSpace(in.NewPassword) != "" {
++		if err := ValidatePasswordStrength(in.NewPassword); err != nil {
++			return nil, false, err
++		}
++		hashed, err := crypto.HashPasswordAsBcrypt(in.NewPassword)
++		if err != nil {
++			return nil, false, err
++		}
++		updates["password"] = hashed
++		updates["login_epoch"] = gorm.Expr("login_epoch + 1")
++		passwordChanged = true
++	}
++
++	err = db.Transaction(func(tx *gorm.DB) error {
++		var count int64
++		if err := tx.Model(model.User{}).Where("LOWER(username) = ? AND id <> ?", strings.ToLower(in.Username), userId).Count(&count).Error; err != nil {
++			return err
++		}
++		if count > 0 {
++			return ErrUsernameTaken
++		}
++		if email != "" {
++			if err := tx.Model(model.User{}).Where("LOWER(email) = ? AND id <> ?", email, userId).Count(&count).Error; err != nil {
++				return err
++			}
++			if count > 0 {
++				return ErrEmailTaken
++			}
++		}
++		return tx.Model(model.User{}).Where("id = ?", userId).Updates(updates).Error
++	})
++	if err != nil {
++		return nil, false, err
++	}
++	out, err := s.GetUserByID(userId)
++	if err != nil {
++		return nil, false, err
++	}
++	return out, passwordChanged, nil
++}
+diff --git a/web/service/wallet.go b/web/service/wallet.go
+new file mode 100644
+index 00000000..ed83e0f5
+--- /dev/null
++++ b/web/service/wallet.go
+@@ -0,0 +1,168 @@
++package service
++
++import (
++	"errors"
++
++	"github.com/mhsanaei/3x-ui/v3/database"
++	"github.com/mhsanaei/3x-ui/v3/database/model"
++	"gorm.io/gorm"
++)
++
++// Wallet errors. Sentinels so callers can branch (e.g. the client-create path
++// maps ErrInsufficientBalance to a user-facing "Insufficient balance").
++var (
++	ErrInsufficientBalance = errors.New("insufficient balance")
++	ErrInvalidAmount       = errors.New("amount must be positive")
++	ErrBalanceConflict     = errors.New("balance changed concurrently, retry")
++)
++
++// WalletService owns balance mutations and the auditable transaction log. Every
++// balance change is recorded as a model.Transaction with the before/after
++// snapshot, and every change is applied inside a DB transaction using a
++// compare-and-swap update so concurrent debits cannot oversell a balance.
++type WalletService struct{}
++
++const walletMaxRetries = 4
++
++// GetBalance returns the current balance for a user.
++func (s *WalletService) GetBalance(userId int) (int64, error) {
++	var u model.User
++	if err := database.GetDB().Select("balance").Where("id = ?", userId).First(&u).Error; err != nil {
++		return 0, err
++	}
++	return u.Balance, nil
++}
++
++// applyDelta mutates the balance by delta (signed) inside tx and writes the
++// matching transaction row. delta>0 records a credit, delta<0 a debit. A debit
++// that would drive the balance negative returns ErrInsufficientBalance. The
++// balance update is a compare-and-swap (WHERE balance = before); a 0-row result
++// means another writer moved the balance first and surfaces as
++// ErrBalanceConflict for the retry wrapper.
++func (s *WalletService) applyDelta(tx *gorm.DB, userId int, delta int64, txType, desc string) (*model.Transaction, error) {
++	var u model.User
++	if err := tx.Where("id = ?", userId).First(&u).Error; err != nil {
++		return nil, err
++	}
++	before := u.Balance
++	after := before + delta
++	if after < 0 {
++		return nil, ErrInsufficientBalance
++	}
++	res := tx.Model(&model.User{}).
++		Where("id = ? AND balance = ?", userId, before).
++		Update("balance", after)
++	if res.Error != nil {
++		return nil, res.Error
++	}
++	if res.RowsAffected == 0 {
++		return nil, ErrBalanceConflict
++	}
++	amount := delta
++	if amount < 0 {
++		amount = -amount
++	}
++	rec := &model.Transaction{
++		UserId:        userId,
++		Amount:        amount,
++		Type:          txType,
++		Description:   desc,
++		BalanceBefore: before,
++		BalanceAfter:  after,
++	}
++	if err := tx.Create(rec).Error; err != nil {
++		return nil, err
++	}
++	return rec, nil
++}
++
++// withRetry runs fn inside a fresh DB transaction, retrying a bounded number of
++// times when applyDelta reports a compare-and-swap conflict.
++func (s *WalletService) withRetry(fn func(tx *gorm.DB) error) error {
++	var err error
++	for i := 0; i < walletMaxRetries; i++ {
++		err = database.GetDB().Transaction(fn)
++		if !errors.Is(err, ErrBalanceConflict) {
++			return err
++		}
++	}
++	return err
++}
++
++// Credit adds amount (>0) to a user's balance and records a credit transaction.
++func (s *WalletService) Credit(userId int, amount int64, desc string) (*model.Transaction, error) {
++	if amount <= 0 {
++		return nil, ErrInvalidAmount
++	}
++	var rec *model.Transaction
++	err := s.withRetry(func(tx *gorm.DB) error {
++		r, e := s.applyDelta(tx, userId, amount, model.TxCredit, desc)
++		rec = r
++		return e
++	})
++	return rec, err
++}
++
++// Debit subtracts amount (>0) from a user's balance, recording a debit
++// transaction. Returns ErrInsufficientBalance when the balance is too low.
++func (s *WalletService) Debit(userId int, amount int64, desc string) (*model.Transaction, error) {
++	if amount <= 0 {
++		return nil, ErrInvalidAmount
++	}
++	var rec *model.Transaction
++	err := s.withRetry(func(tx *gorm.DB) error {
++		r, e := s.applyDelta(tx, userId, -amount, model.TxDebit, desc)
++		rec = r
++		return e
++	})
++	return rec, err
++}
++
++// SetBalance forces a user's balance to target (>=0), recording the difference
++// as a credit or debit. A no-op (target == current) records nothing.
++func (s *WalletService) SetBalance(userId int, target int64, desc string) (*model.Transaction, error) {
++	if target < 0 {
++		return nil, ErrInvalidAmount
++	}
++	var rec *model.Transaction
++	err := s.withRetry(func(tx *gorm.DB) error {
++		var u model.User
++		if e := tx.Where("id = ?", userId).First(&u).Error; e != nil {
++			return e
++		}
++		delta := target - u.Balance
++		if delta == 0 {
++			rec = nil
++			return nil
++		}
++		txType := model.TxCredit
++		if delta < 0 {
++			txType = model.TxDebit
++		}
++		r, e := s.applyDelta(tx, userId, delta, txType, desc)
++		rec = r
++		return e
++	})
++	return rec, err
++}
++
++// ListTransactions returns the wallet history. When userId is non-nil it is
++// scoped to that user; otherwise all transactions are returned (admin view).
++// Results are newest-first and capped by limit/offset.
++func (s *WalletService) ListTransactions(userId *int, limit, offset int) ([]model.Transaction, error) {
++	if limit <= 0 || limit > 500 {
++		limit = 100
++	}
++	if offset < 0 {
++		offset = 0
++	}
++	q := database.GetDB().Model(&model.Transaction{}).Order("id desc").Limit(limit).Offset(offset)
++	if userId != nil {
++		q = q.Where("user_id = ?", *userId)
++	}
++	var rows []model.Transaction
++	if err := q.Find(&rows).Error; err != nil {
++		return nil, err
++	}
++	return rows, nil
++}
+diff --git a/web/service/wallet_test.go b/web/service/wallet_test.go
+new file mode 100644
+index 00000000..d877b948
+--- /dev/null
++++ b/web/service/wallet_test.go
+@@ -0,0 +1,108 @@
++package service
++
++import (
++	"errors"
++	"testing"
++
++	"github.com/mhsanaei/3x-ui/v3/database/model"
++)
++
++func newTestUser(t *testing.T, us *UserService, username string, balance int64) *model.User {
++	t.Helper()
++	u, err := us.AdminCreateUser(AdminUserInput{
++		Username: username,
++		Password: "Sup3rSecret",
++		Role:     model.RoleUser,
++		Balance:  balance,
++	})
++	if err != nil {
++		t.Fatalf("AdminCreateUser failed: %v", err)
++	}
++	return u
++}
++
++func TestWalletCreditDebitRecordsTransactions(t *testing.T) {
++	setupUserTestDB(t)
++	us := &UserService{}
++	ws := &WalletService{}
++	u := newTestUser(t, us, "wallet_user", 100)
++
++	if _, err := ws.Debit(u.Id, 30, "buy"); err != nil {
++		t.Fatalf("Debit failed: %v", err)
++	}
++	bal, err := ws.GetBalance(u.Id)
++	if err != nil {
++		t.Fatalf("GetBalance failed: %v", err)
++	}
++	if bal != 70 {
++		t.Fatalf("expected balance 70 after debit, got %d", bal)
++	}
++
++	if _, err := ws.Credit(u.Id, 50, "topup"); err != nil {
++		t.Fatalf("Credit failed: %v", err)
++	}
++	bal, _ = ws.GetBalance(u.Id)
++	if bal != 120 {
++		t.Fatalf("expected balance 120 after credit, got %d", bal)
++	}
++
++	txs, err := ws.ListTransactions(&u.Id, 100, 0)
++	if err != nil {
++		t.Fatalf("ListTransactions failed: %v", err)
++	}
++	if len(txs) != 2 {
++		t.Fatalf("expected 2 transactions, got %d", len(txs))
++	}
++	// Newest first: the credit.
++	if txs[0].Type != model.TxCredit || txs[0].Amount != 50 || txs[0].BalanceBefore != 70 || txs[0].BalanceAfter != 120 {
++		t.Fatalf("unexpected credit transaction: %+v", txs[0])
++	}
++	if txs[1].Type != model.TxDebit || txs[1].Amount != 30 || txs[1].BalanceBefore != 100 || txs[1].BalanceAfter != 70 {
++		t.Fatalf("unexpected debit transaction: %+v", txs[1])
++	}
++}
++
++func TestWalletDebitRejectsInsufficientBalance(t *testing.T) {
++	setupUserTestDB(t)
++	us := &UserService{}
++	ws := &WalletService{}
++	u := newTestUser(t, us, "poor_user", 10)
++
++	if _, err := ws.Debit(u.Id, 25, "buy"); !errors.Is(err, ErrInsufficientBalance) {
++		t.Fatalf("expected ErrInsufficientBalance, got %v", err)
++	}
++	bal, _ := ws.GetBalance(u.Id)
++	if bal != 10 {
++		t.Fatalf("balance must be unchanged after a rejected debit, got %d", bal)
++	}
++	txs, _ := ws.ListTransactions(&u.Id, 100, 0)
++	if len(txs) != 0 {
++		t.Fatalf("a rejected debit must record no transaction, got %d", len(txs))
++	}
++}
++
++func TestWalletSetBalanceRecordsDelta(t *testing.T) {
++	setupUserTestDB(t)
++	us := &UserService{}
++	ws := &WalletService{}
++	u := newTestUser(t, us, "set_user", 40)
++
++	rec, err := ws.SetBalance(u.Id, 100, "admin set")
++	if err != nil {
++		t.Fatalf("SetBalance failed: %v", err)
++	}
++	if rec == nil || rec.Type != model.TxCredit || rec.Amount != 60 {
++		t.Fatalf("expected a credit of 60, got %+v", rec)
++	}
++	rec, err = ws.SetBalance(u.Id, 25, "admin set down")
++	if err != nil {
++		t.Fatalf("SetBalance down failed: %v", err)
++	}
++	if rec == nil || rec.Type != model.TxDebit || rec.Amount != 75 {
++		t.Fatalf("expected a debit of 75, got %+v", rec)
++	}
++	bal, _ := ws.GetBalance(u.Id)
++	if bal != 25 {
++		t.Fatalf("expected balance 25, got %d", bal)
++	}
++}
+diff --git a/web/service/zarinpal.go b/web/service/zarinpal.go
+new file mode 100644
+index 00000000..859e2265
+--- /dev/null
++++ b/web/service/zarinpal.go
+@@ -0,0 +1,160 @@
++package service
++
++import (
++	"bytes"
++	"encoding/json"
++	"errors"
++	"fmt"
++	"io"
++	"net/http"
++	"strconv"
++	"time"
++)
++
++// Zarinpal errors surfaced to callers.
++var (
++	ErrZarinpalDisabled    = errors.New("zarinpal payment gateway is disabled")
++	ErrZarinpalNotVerified = errors.New("zarinpal payment was not verified")
++)
++
++const zarinpalHTTPTimeout = 20 * time.Second
++
++// ZarinpalService talks to the ZarinPal REST gateway (v4). It reads the
++// merchant id, sandbox flag and currency from settings on each call so config
++// changes take effect without a restart.
++type ZarinpalService struct {
++	settingService SettingService
++}
++
++// baseURL returns the API host for the configured environment.
++func (z *ZarinpalService) baseURL() string {
++	if sandbox, _ := z.settingService.GetZarinpalSandbox(); sandbox {
++		return "https://sandbox.zarinpal.com"
++	}
++	return "https://payment.zarinpal.com"
++}
++
++// StartPayURL is the page the buyer's browser is redirected to after a
++// successful request.
++func (z *ZarinpalService) StartPayURL(authority string) string {
++	return z.baseURL() + "/pg/StartPay/" + authority
++}
++
++type zpRequestBody struct {
++	MerchantId  string            `json:"merchant_id"`
++	Amount      int64             `json:"amount"`
++	Currency    string            `json:"currency,omitempty"`
++	Description string            `json:"description"`
++	CallbackURL string            `json:"callback_url"`
++	Metadata    map[string]string `json:"metadata,omitempty"`
++}
++
++type zpVerifyBody struct {
++	MerchantId string `json:"merchant_id"`
++	Amount     int64  `json:"amount"`
++	Authority  string `json:"authority"`
++}
++
++// zpResponse models both request and verify responses. `errors` is an array on
++// success and an object on failure, so it is captured as RawMessage and only
++// inspected when the data code is unsuccessful.
++type zpResponse struct {
++	Data struct {
++		Code      int    `json:"code"`
++		Message   string `json:"message"`
++		Authority string `json:"authority"`
++		RefID     int64  `json:"ref_id"`
++	} `json:"data"`
++	Errors json.RawMessage `json:"errors"`
++}
++
++func (z *ZarinpalService) postJSON(url string, body any) (*zpResponse, error) {
++	payload, err := json.Marshal(body)
++	if err != nil {
++		return nil, err
++	}
++	client := z.settingService.NewProxiedHTTPClient(zarinpalHTTPTimeout)
++	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(payload))
++	if err != nil {
++		return nil, err
++	}
++	req.Header.Set("Content-Type", "application/json")
++	req.Header.Set("Accept", "application/json")
++
++	resp, err := client.Do(req)
++	if err != nil {
++		return nil, err
++	}
++	defer resp.Body.Close()
++
++	raw, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
++	if err != nil {
++		return nil, err
++	}
++	var parsed zpResponse
++	if err := json.Unmarshal(raw, &parsed); err != nil {
++		return nil, fmt.Errorf("zarinpal: invalid response (%s): %w", resp.Status, err)
++	}
++	return &parsed, nil
++}
++
++// RequestPayment opens a payment for `amount` credits and returns the gateway
++// authority plus the StartPay URL the browser should be redirected to.
++func (z *ZarinpalService) RequestPayment(amount int64, description, callbackURL, email, mobile string) (authority string, startPay string, err error) {
++	enabled, _ := z.settingService.GetZarinpalEnable()
++	if !enabled {
++		return "", "", ErrZarinpalDisabled
++	}
++	merchant, _ := z.settingService.GetZarinpalMerchantId()
++	if merchant == "" {
++		return "", "", errors.New("zarinpal merchant id is not configured")
++	}
++	currency, _ := z.settingService.GetZarinpalCurrency()
++
++	metadata := map[string]string{}
++	if email != "" {
++		metadata["email"] = email
++	}
++	if mobile != "" {
++		metadata["mobile"] = mobile
++	}
++
++	resp, err := z.postJSON(z.baseURL()+"/pg/v4/payment/request.json", zpRequestBody{
++		MerchantId:  merchant,
++		Amount:      amount,
++		Currency:    currency,
++		Description: description,
++		CallbackURL: callbackURL,
++		Metadata:    metadata,
++	})
++	if err != nil {
++		return "", "", err
++	}
++	if resp.Data.Code != 100 || resp.Data.Authority == "" {
++		return "", "", fmt.Errorf("zarinpal request failed (code %d): %s", resp.Data.Code, string(resp.Errors))
++	}
++	return resp.Data.Authority, z.StartPayURL(resp.Data.Authority), nil
++}
++
++// VerifyPayment confirms a returned authority for the given amount. A ref id is
++// returned on success. Codes 100 (first verify) and 101 (already verified) both
++// mean the money was captured.
++func (z *ZarinpalService) VerifyPayment(amount int64, authority string) (refID string, alreadyVerified bool, err error) {
++	merchant, _ := z.settingService.GetZarinpalMerchantId()
++	resp, err := z.postJSON(z.baseURL()+"/pg/v4/payment/verify.json", zpVerifyBody{
++		MerchantId: merchant,
++		Amount:     amount,
++		Authority:  authority,
++	})
++	if err != nil {
++		return "", false, err
++	}
++	switch resp.Data.Code {
++	case 100:
++		return strconv.FormatInt(resp.Data.RefID, 10), false, nil
++	case 101:
++		return strconv.FormatInt(resp.Data.RefID, 10), true, nil
++	default:
++		return "", false, fmt.Errorf("%w (code %d): %s", ErrZarinpalNotVerified, resp.Data.Code, string(resp.Errors))
++	}
++}
+diff --git a/web/translation/en-US.json b/web/translation/en-US.json
+index f746f75b..fe306b1b 100644
+--- a/web/translation/en-US.json
++++ b/web/translation/en-US.json
+@@ -7,6 +7,12 @@
+   "phoneNumber": "Phone Number",
+   "email": "Email",
+   "confirmPassword": "Confirm Password",
++  "balance": "Balance",
++  "role": "Role",
++  "currency": {
++    "IRT": "Toman",
++    "IRR": "Rial"
++  },
+   "confirm": "Confirm",
+   "cancel": "Cancel",
+   "close": "Close",
+@@ -110,6 +116,9 @@
+     "inbounds": "Inbounds",
+     "clients": "Clients",
+     "groups": "Groups",
++    "users": "Users",
++    "profile": "Profile",
++    "billing": "Top Up",
+     "nodes": "Nodes",
+     "settings": "Panel Settings",
+     "xray": "Xray Configs",
+@@ -762,6 +771,8 @@
+       "reset": "Reset Traffic",
+       "editClient": "Edit Client",
+       "client": "Client",
++      "owner": "Owner",
++      "filterByOwner": "Filter by {name}",
+       "enabled": "Enabled",
+       "remaining": "Remaining",
+       "duration": "Duration",
+@@ -846,7 +857,89 @@
+         "bulkCreatedMixed": "{ok} created, {failed} failed",
+         "bulkAdjusted": "{count} clients adjusted",
+         "bulkAdjustedMixed": "{ok} adjusted, {skipped} skipped",
+-        "delDepleted": "{count} depleted clients deleted"
++        "delDepleted": "{count} depleted clients deleted",
++        "insufficientBalance": "Insufficient balance",
++        "forbidden": "You do not have permission to access this resource."
++      },
++      "costPreview": "This client costs {cost}. Balance after purchase: {after}.",
++      "costInsufficient": "Your balance is not enough to create this client. Please top up first."
++    },
++    "users": {
++      "title": "Users",
++      "actions": "Actions",
++      "role": "Role",
++      "role_admin": "Admin",
++      "role_user": "User",
++      "addUser": "Add User",
++      "searchPlaceholder": "Search by username, email, phone or role",
++      "editUser": "Edit User",
++      "manageBalance": "Manage Balance",
++      "history": "Transaction History",
++      "passwordEditHint": "Leave blank to keep the current password.",
++      "initialBalance": "Initial Balance",
++      "balanceTitle": "Balance — {name}",
++      "operation": "Operation",
++      "opAdd": "Add",
++      "opDeduct": "Deduct",
++      "opSet": "Set",
++      "amount": "Amount",
++      "historyTitle": "Transactions — {name}",
++      "txType": "Type",
++      "tx_credit": "Credit",
++      "tx_debit": "Debit",
++      "txAmount": "Amount",
++      "txBefore": "Before",
++      "txAfter": "After",
++      "txDescription": "Description",
++      "txDate": "Date",
++      "deleteConfirmTitle": "Delete user {name}?",
++      "deleteConfirmContent": "This removes the account and its transaction history. Clients they own are kept but become unowned.",
++      "toasts": {
++        "userCreated": "User created",
++        "userUpdated": "User updated",
++        "userDeleted": "User deleted",
++        "balanceUpdated": "Balance updated",
++        "invalidAmount": "Enter a valid, non-negative amount.",
++        "invalidOp": "Invalid balance operation.",
++        "lastAdmin": "You cannot remove the last administrator.",
++        "cannotDeleteSelf": "You cannot delete your own account."
++      }
++    },
++    "profile": {
++      "accountTitle": "Account",
++      "changePassword": "Change password",
++      "newPassword": "New password",
++      "newPasswordHint": "Leave blank to keep your current password.",
++      "currentPassword": "Current password",
++      "currentPasswordRequired": "Enter your current password to confirm changes.",
++      "currentPasswordHint": "Required to save any change.",
++      "toasts": {
++        "saved": "Profile updated",
++        "passwordChanged": "Password changed — please sign in again.",
++        "wrongPassword": "Your current password is incorrect."
++      }
++    },
++    "billing": {
++      "topUpTitle": "Top up balance",
++      "topUpHint": "Choose an amount and pay securely via ZarinPal. Your balance is credited automatically once the payment is verified.",
++      "perGbInfo": "Each 1 GB of client traffic costs {price}.",
++      "credits": "credits",
++      "payWithZarinpal": "Pay with ZarinPal",
++      "amount": "Amount",
++      "refId": "Reference",
++      "history": "Payment history",
++      "disabledTitle": "Top-up unavailable",
++      "disabledDesc": "The administrator has not enabled online balance top-up.",
++      "status_pending": "Pending",
++      "status_paid": "Paid",
++      "status_failed": "Failed",
++      "toasts": {
++        "paid": "Payment successful — your balance has been topped up.",
++        "paidWithRef": "Payment successful (ref {refId}) — balance topped up.",
++        "cancelled": "Payment was cancelled.",
++        "failed": "Payment failed or could not be verified.",
++        "invalidAmount": "Enter a valid amount.",
++        "requestFailed": "Could not start the payment. Please try again."
+       }
+     },
+     "groups": {
+@@ -977,6 +1070,7 @@
+       "resetDefaultConfig": "Reset to Default",
+       "panelSettings": "General",
+       "securitySettings": "Authentication",
++      "resellerSettings": "Reseller & Billing",
+       "securityWarnings": "Security warnings",
+       "panelExposed": "Your panel may be exposed:",
+       "warnHttp": "Panel is served over plain HTTP — set up TLS for production.",
+@@ -1162,6 +1256,18 @@
+         "twoFactorEnableDesc": "Adds an additional layer of authentication to provide more security.",
+         "registrationEnable": "Allow self-registration",
+         "registrationEnableDesc": "Let visitors create their own panel accounts from a public sign-up page. Leave off unless you intend to expose open registration.",
++        "clientCost": "Client base cost (credits)",
++        "clientCostDesc": "Flat wallet credits charged to a non-admin user each time they create a client. 0 means no flat fee.",
++        "clientCostPerGB": "Cost per GB (credits)",
++        "clientCostPerGBDesc": "Credits charged per GB of a client's traffic quota on creation (e.g. 15000 means a 1 GB client costs 15000). Total charge = base cost + per-GB × quota. Admins are never charged.",
++        "zarinpalEnable": "Enable ZarinPal top-up",
++        "zarinpalEnableDesc": "Let users top up their balance through the ZarinPal payment gateway.",
++        "zarinpalMerchantId": "ZarinPal Merchant ID",
++        "zarinpalMerchantIdDesc": "Your 36-character ZarinPal merchant id.",
++        "zarinpalCurrency": "Currency",
++        "zarinpalCurrencyDesc": "Currency sent to ZarinPal. 1 credit equals 1 currency unit.",
++        "zarinpalSandbox": "ZarinPal sandbox mode",
++        "zarinpalSandboxDesc": "Use the ZarinPal sandbox endpoint for testing instead of live payments.",
+         "twoFactorModalSetTitle": "Enable two-factor authentication",
+         "twoFactorModalDeleteTitle": "Disable two-factor authentication",
+         "twoFactorModalSteps": "To set up two-factor authentication, perform a few steps:",
+diff --git a/web/translation/fa-IR.json b/web/translation/fa-IR.json
+index e1987166..435b881d 100644
+--- a/web/translation/fa-IR.json
++++ b/web/translation/fa-IR.json
+@@ -111,7 +111,10 @@
+     "apiDocs": "مستندات API",
+     "logout": "خروج",
+     "link": "مدیریت",
+-    "donate": "حمایت مالی"
++    "donate": "حمایت مالی",
++    "users": "کاربران",
++    "profile": "پروفایل",
++    "billing": "افزایش موجودی"
+   },
+   "pages": {
+     "login": {
+@@ -124,7 +127,9 @@
+         "emptyPassword": "لطفا یک رمزعبور وارد کنید",
+         "wrongUsernameOrPassword": "نام کاربری، رمز عبور یا کد دو مرحله‌ای نامعتبر است.",
+         "successLogin": "شما با موفقیت به حساب کاربری خود وارد شدید."
+-      }
++      },
++      "noAccount": "حساب کاربری ندارید؟",
++      "createAccount": "ثبت‌نام کنید"
+     },
+     "index": {
+       "title": "نمای کلی",
+@@ -795,8 +800,14 @@
+         "bulkCreatedMixed": "{ok} ساخته شد، {failed} ناموفق",
+         "bulkAdjusted": "{count} کلاینت تنظیم شد",
+         "bulkAdjustedMixed": "{ok} تنظیم، {skipped} رد شد",
+-        "delDepleted": "{count} کلاینت اتمام‌یافته حذف شد"
+-      }
++        "delDepleted": "{count} کلاینت اتمام‌یافته حذف شد",
++        "insufficientBalance": "موجودی کافی نیست",
++        "forbidden": "شما اجازه دسترسی به این منبع را ندارید."
++      },
++      "owner": "مالک",
++      "costPreview": "هزینه این کلاینت {cost} است. موجودی پس از خرید: {after}.",
++      "costInsufficient": "موجودی شما برای ساخت این کلاینت کافی نیست. لطفاً ابتدا موجودی خود را افزایش دهید.",
++      "filterByOwner": "فیلتر بر اساس {name}"
+     },
+     "groups": {
+       "title": "گروه‌ها",
+@@ -1129,7 +1140,21 @@
+         "apiTokenEmpty": "هنوز توکنی وجود ندارد — برای احراز هویت ربات‌ها یا پنل‌های راه دور یکی بسازید.",
+         "apiTokenDeleteWarning": "هر کلاینتی که از این توکن استفاده می‌کند بلافاصله احراز هویتش قطع می‌شود.",
+         "apiTokenCreatedTitle": "توکن ساخته شد",
+-        "apiTokenCreatedNotice": "اکنون این توکن را کپی کنید. به‌دلیل امنیتی به‌صورت قابل‌خواندن ذخیره نمی‌شود و دوباره نمایش داده نخواهد شد."
++        "apiTokenCreatedNotice": "اکنون این توکن را کپی کنید. به‌دلیل امنیتی به‌صورت قابل‌خواندن ذخیره نمی‌شود و دوباره نمایش داده نخواهد شد.",
++        "registrationEnable": "اجازه ثبت‌نام خودکار",
++        "registrationEnableDesc": "به بازدیدکنندگان اجازه دهید از یک صفحه ثبت‌نام عمومی حساب بسازند. مگر اینکه قصد دارید ثبت‌نام باز را در دسترس قرار دهید، خاموش بگذارید.",
++        "clientCost": "هزینه پایه کلاینت (اعتبار)",
++        "clientCostDesc": "اعتبار ثابتی که هر بار یک کاربر غیرمدیر کلاینت می‌سازد از او کسر می‌شود. ۰ یعنی بدون هزینه ثابت.",
++        "clientCostPerGB": "هزینه هر گیگابایت (اعتبار)",
++        "clientCostPerGBDesc": "اعتباری که به ازای هر گیگابایت سهمیه ترافیک کلاینت هنگام ساخت کسر می‌شود (مثلاً ۱۵۰۰۰ یعنی یک کلاینت ۱ گیگابایتی ۱۵۰۰۰ هزینه دارد). هزینه کل = هزینه پایه + هزینه هر گیگابایت × سهمیه. از مدیران هرگز کسر نمی‌شود.",
++        "zarinpalEnable": "فعال‌سازی افزایش موجودی با زرین‌پال",
++        "zarinpalEnableDesc": "به کاربران اجازه دهید موجودی خود را از طریق درگاه پرداخت زرین‌پال افزایش دهند.",
++        "zarinpalMerchantId": "کد پذیرنده زرین‌پال",
++        "zarinpalMerchantIdDesc": "کد پذیرنده ۳۶ کاراکتری زرین‌پال شما.",
++        "zarinpalCurrency": "واحد پول",
++        "zarinpalCurrencyDesc": "واحد پولی که به زرین‌پال ارسال می‌شود. هر ۱ اعتبار برابر با ۱ واحد پول است.",
++        "zarinpalSandbox": "حالت آزمایشی (سندباکس) زرین‌پال",
++        "zarinpalSandboxDesc": "برای آزمایش، به‌جای پرداخت واقعی از درگاه سندباکس زرین‌پال استفاده کنید."
+       },
+       "toasts": {
+         "modifySettings": "پارامترها تغییر کرده‌اند.",
+@@ -1140,7 +1165,8 @@
+         "userPassMustBeNotEmpty": "نام‌کاربری یا رمزعبور جدید خالی‌است",
+         "getOutboundTrafficError": "خطا در دریافت ترافیک خروجی",
+         "resetOutboundTrafficError": "خطا در بازنشانی ترافیک خروجی"
+-      }
++      },
++      "resellerSettings": "نمایندگی و پرداخت"
+     },
+     "xray": {
+       "title": "پیکربندی ایکس‌ری",
+@@ -1457,6 +1483,127 @@
+         "ipPool": "زیرشبکه استخر آی‌پی",
+         "poolSize": "اندازه استخر"
+       }
++    },
++    "register": {
++      "title": "ساخت حساب کاربری",
++      "subtitle": "برای دسترسی به پنل ثبت‌نام کنید",
++      "submit": "ساخت حساب",
++      "haveAccount": "قبلاً حساب دارید؟",
++      "backToLogin": "ورود",
++      "passwordStrength": "قدرت رمز عبور",
++      "strengthWeak": "ضعیف",
++      "strengthFair": "متوسط",
++      "strengthGood": "خوب",
++      "strengthStrong": "قوی",
++      "placeholders": {
++        "fullName": "نام و نام خانوادگی",
++        "phone": "+98 912 345 6789",
++        "email": "you@example.com",
++        "username": "۳ تا ۳۲ حرف، عدد یا زیرخط",
++        "password": "حداقل ۸ کاراکتر، حروف بزرگ و کوچک و عدد",
++        "confirmPassword": "رمز عبور را دوباره وارد کنید"
++      },
++      "errors": {
++        "fullName": "نام باید بین ۲ تا ۱۰۰ کاراکتر باشد",
++        "phone": "یک شماره تماس معتبر وارد کنید",
++        "email": "یک ایمیل معتبر وارد کنید",
++        "username": "نام کاربری باید ۳ تا ۳۲ حرف، عدد یا زیرخط باشد",
++        "password": "رمز عبور باید حداقل ۸ کاراکتر شامل حروف بزرگ و کوچک و عدد باشد",
++        "confirmPassword": "رمزهای عبور یکسان نیستند"
++      },
++      "toasts": {
++        "disabled": "ثبت‌نام در حال حاضر غیرفعال است.",
++        "invalidFormData": "قالب داده‌های ورودی نامعتبر است.",
++        "tooManyAttempts": "تلاش‌های زیاد برای ثبت‌نام. لطفاً بعداً تلاش کنید.",
++        "passwordMismatch": "رمزهای عبور یکسان نیستند.",
++        "weakPassword": "رمز عبور باید حداقل ۸ کاراکتر شامل حروف بزرگ و کوچک و عدد باشد.",
++        "invalidFullName": "لطفاً یک نام معتبر وارد کنید.",
++        "invalidPhone": "لطفاً یک شماره تماس معتبر وارد کنید.",
++        "invalidEmail": "لطفاً یک ایمیل معتبر وارد کنید.",
++        "invalidUsername": "نام کاربری باید ۳ تا ۳۲ حرف، عدد یا زیرخط باشد.",
++        "usernameTaken": "این نام کاربری قبلاً استفاده شده است.",
++        "emailTaken": "این ایمیل قبلاً ثبت شده است.",
++        "failed": "ثبت‌نام ناموفق بود. لطفاً دوباره تلاش کنید.",
++        "success": "حساب شما ساخته شد. اکنون می‌توانید وارد شوید."
++      }
++    },
++    "users": {
++      "title": "کاربران",
++      "actions": "عملیات",
++      "role": "نقش",
++      "role_admin": "مدیر",
++      "role_user": "کاربر",
++      "addUser": "افزودن کاربر",
++      "searchPlaceholder": "جستجو بر اساس نام کاربری، ایمیل، تلفن یا نقش",
++      "editUser": "ویرایش کاربر",
++      "manageBalance": "مدیریت موجودی",
++      "history": "تاریخچه تراکنش‌ها",
++      "passwordEditHint": "برای حفظ رمز فعلی خالی بگذارید.",
++      "initialBalance": "موجودی اولیه",
++      "balanceTitle": "موجودی — {name}",
++      "operation": "عملیات",
++      "opAdd": "افزودن",
++      "opDeduct": "کسر",
++      "opSet": "تنظیم",
++      "amount": "مبلغ",
++      "historyTitle": "تراکنش‌ها — {name}",
++      "txType": "نوع",
++      "tx_credit": "واریز",
++      "tx_debit": "برداشت",
++      "txAmount": "مبلغ",
++      "txBefore": "قبل",
++      "txAfter": "بعد",
++      "txDescription": "توضیحات",
++      "txDate": "تاریخ",
++      "deleteConfirmTitle": "حذف کاربر {name}؟",
++      "deleteConfirmContent": "این کار حساب و تاریخچه تراکنش‌های آن را حذف می‌کند. کلاینت‌های متعلق به او باقی می‌مانند اما بدون مالک می‌شوند.",
++      "toasts": {
++        "userCreated": "کاربر ساخته شد",
++        "userUpdated": "کاربر به‌روزرسانی شد",
++        "userDeleted": "کاربر حذف شد",
++        "balanceUpdated": "موجودی به‌روزرسانی شد",
++        "invalidAmount": "یک مبلغ معتبر و نامنفی وارد کنید.",
++        "invalidOp": "عملیات موجودی نامعتبر است.",
++        "lastAdmin": "نمی‌توانید آخرین مدیر را حذف کنید.",
++        "cannotDeleteSelf": "نمی‌توانید حساب خودتان را حذف کنید."
++      }
++    },
++    "profile": {
++      "accountTitle": "حساب کاربری",
++      "changePassword": "تغییر رمز عبور",
++      "newPassword": "رمز عبور جدید",
++      "newPasswordHint": "برای حفظ رمز فعلی خالی بگذارید.",
++      "currentPassword": "رمز عبور فعلی",
++      "currentPasswordRequired": "برای تأیید تغییرات، رمز عبور فعلی را وارد کنید.",
++      "currentPasswordHint": "برای ذخیره هر تغییری لازم است.",
++      "toasts": {
++        "saved": "پروفایل به‌روزرسانی شد",
++        "passwordChanged": "رمز عبور تغییر کرد — لطفاً دوباره وارد شوید.",
++        "wrongPassword": "رمز عبور فعلی شما نادرست است."
++      }
++    },
++    "billing": {
++      "topUpTitle": "افزایش موجودی",
++      "topUpHint": "مبلغی را انتخاب کنید و از طریق زرین‌پال پرداخت کنید. پس از تأیید پرداخت، موجودی شما به‌صورت خودکار افزایش می‌یابد.",
++      "perGbInfo": "هر ۱ گیگابایت ترافیک کلاینت {price} هزینه دارد.",
++      "credits": "اعتبار",
++      "payWithZarinpal": "پرداخت با زرین‌پال",
++      "amount": "مبلغ",
++      "refId": "شماره پیگیری",
++      "history": "تاریخچه پرداخت‌ها",
++      "disabledTitle": "افزایش موجودی در دسترس نیست",
++      "disabledDesc": "مدیر افزایش موجودی آنلاین را فعال نکرده است.",
++      "status_pending": "در انتظار",
++      "status_paid": "پرداخت‌شده",
++      "status_failed": "ناموفق",
++      "toasts": {
++        "paid": "پرداخت موفق بود — موجودی شما افزایش یافت.",
++        "paidWithRef": "پرداخت موفق بود (پیگیری {refId}) — موجودی افزایش یافت.",
++        "cancelled": "پرداخت لغو شد.",
++        "failed": "پرداخت ناموفق بود یا تأیید نشد.",
++        "invalidAmount": "یک مبلغ معتبر وارد کنید.",
++        "requestFailed": "شروع پرداخت ممکن نشد. لطفاً دوباره تلاش کنید."
++      }
+     }
+   },
+   "tgbot": {
+@@ -1634,5 +1781,16 @@
+       "chooseClient": "یک مشتری برای ورودی {{ .Inbound }} انتخاب کنید",
+       "chooseInbound": "یک ورودی انتخاب کنید"
+     }
++  },
++  "register": "ثبت‌نام",
++  "fullName": "نام و نام خانوادگی",
++  "phoneNumber": "شماره تماس",
++  "email": "ایمیل",
++  "confirmPassword": "تکرار رمز عبور",
++  "balance": "موجودی",
++  "role": "نقش",
++  "currency": {
++    "IRT": "تومان",
++    "IRR": "ریال"
+   }
+ }

@@ -27,35 +27,43 @@ import (
 var xrayTemplateConfig string
 
 var defaultValueMap = map[string]string{
-	"xrayTemplateConfig":          xrayTemplateConfig,
-	"webListen":                   "",
-	"webDomain":                   "",
-	"webPort":                     "2053",
-	"webCertFile":                 "",
-	"webKeyFile":                  "",
-	"secret":                      random.Seq(32),
-	"apiToken":                    "",
-	"webBasePath":                 "/",
-	"sessionMaxAge":               "360",
-	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
-	"pageSize":                    "25",
-	"expireDiff":                  "0",
-	"trafficDiff":                 "0",
-	"remarkModel":                 "-ieo",
-	"timeLocation":                "Local",
-	"tgBotEnable":                 "false",
-	"tgBotToken":                  "",
-	"tgBotProxy":                  "",
-	"tgBotAPIServer":              "",
-	"tgBotChatId":                 "",
-	"tgRunTime":                   "@daily",
-	"tgBotBackup":                 "false",
-	"tgBotLoginNotify":            "true",
-	"tgCpu":                       "80",
-	"tgLang":                      "en-US",
-	"twoFactorEnable":             "false",
-	"twoFactorToken":              "",
-	"registrationEnable":          "false",
+	"xrayTemplateConfig": xrayTemplateConfig,
+	"webListen":          "",
+	"webDomain":          "",
+	"webPort":            "2053",
+	"webCertFile":        "",
+	"webKeyFile":         "",
+	"secret":             random.Seq(32),
+	"apiToken":           "",
+	"webBasePath":        "/",
+	"sessionMaxAge":      "360",
+	"trustedProxyCIDRs":  "127.0.0.1/32,::1/128",
+	"pageSize":           "25",
+	"expireDiff":         "0",
+	"trafficDiff":        "0",
+	"remarkModel":        "-ieo",
+	"timeLocation":       "Local",
+	"tgBotEnable":        "false",
+	"tgBotToken":         "",
+	"tgBotProxy":         "",
+	"tgBotAPIServer":     "",
+	"tgBotChatId":        "",
+	"tgRunTime":          "@daily",
+	"tgBotBackup":        "false",
+	"tgBotLoginNotify":   "true",
+	"tgCpu":              "80",
+	"tgLang":             "en-US",
+	"twoFactorEnable":    "false",
+	"twoFactorToken":     "",
+	"registrationEnable": "false",
+	"clientCost":         "0",
+	"clientCostPerGB":    "0",
+
+	// ZarinPal payment gateway (balance top-up)
+	"zarinpalEnable":              "false",
+	"zarinpalMerchantId":          "",
+	"zarinpalSandbox":             "false",
+	"zarinpalCurrency":            "IRT",
 	"subEnable":                   "true",
 	"subJsonEnable":               "false",
 	"subTitle":                    "",
@@ -459,6 +467,66 @@ func (s *SettingService) GetRegistrationEnable() (bool, error) {
 
 func (s *SettingService) SetRegistrationEnable(value bool) error {
 	return s.setBool("registrationEnable", value)
+}
+
+// GetClientCost returns the number of wallet credits a non-admin user is
+// charged to create a single client. 0 means client creation is free.
+func (s *SettingService) GetClientCost() (int, error) {
+	return s.getInt("clientCost")
+}
+
+func (s *SettingService) SetClientCost(value int) error {
+	return s.setInt("clientCost", value)
+}
+
+// GetClientCostPerGB returns the credits charged per GB of a client's traffic
+// quota (totalGB) on creation. The total charge is base clientCost plus
+// clientCostPerGB × (quota in GB). 0 disables per-GB pricing.
+func (s *SettingService) GetClientCostPerGB() (int, error) {
+	return s.getInt("clientCostPerGB")
+}
+
+func (s *SettingService) SetClientCostPerGB(value int) error {
+	return s.setInt("clientCostPerGB", value)
+}
+
+// --- ZarinPal payment gateway ---
+
+func (s *SettingService) GetZarinpalEnable() (bool, error) {
+	return s.getBool("zarinpalEnable")
+}
+
+func (s *SettingService) SetZarinpalEnable(value bool) error {
+	return s.setBool("zarinpalEnable", value)
+}
+
+func (s *SettingService) GetZarinpalMerchantId() (string, error) {
+	return s.getString("zarinpalMerchantId")
+}
+
+func (s *SettingService) SetZarinpalMerchantId(value string) error {
+	return s.setString("zarinpalMerchantId", strings.TrimSpace(value))
+}
+
+func (s *SettingService) GetZarinpalSandbox() (bool, error) {
+	return s.getBool("zarinpalSandbox")
+}
+
+func (s *SettingService) SetZarinpalSandbox(value bool) error {
+	return s.setBool("zarinpalSandbox", value)
+}
+
+// GetZarinpalCurrency returns the currency ZarinPal amounts are sent in
+// ("IRR" or "IRT"). Defaults to IRT (Toman).
+func (s *SettingService) GetZarinpalCurrency() (string, error) {
+	cur, err := s.getString("zarinpalCurrency")
+	if err != nil {
+		return "IRT", err
+	}
+	if cur != "IRR" && cur != "IRT" {
+		return "IRT", nil
+	}
+	return cur, nil
 }
 
 func (s *SettingService) SetTwoFactorToken(value string) error {

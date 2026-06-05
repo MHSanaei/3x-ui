@@ -73,6 +73,8 @@ func initModels() error {
 		&model.ClientGroup{},
 		&model.InboundFallback{},
 		&model.NodeClientTraffic{},
+		&model.Transaction{},
+		&model.Payment{},
 	}
 	for _, mdl := range models {
 		if err := db.AutoMigrate(mdl); err != nil {
@@ -166,6 +168,7 @@ func initUser() error {
 		user := &model.User{
 			Username: defaultUsername,
 			Password: hashedPassword,
+			Role:     model.RoleAdmin,
 		}
 		return db.Create(user).Error
 	}
@@ -181,7 +184,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash", "RoleBalanceBackfill"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -267,7 +270,30 @@ func runSeeders(isUsersEmpty bool) error {
 			return err
 		}
 	}
+
+	if !slices.Contains(seedersHistory, "RoleBalanceBackfill") {
+		if err := backfillUserRoles(); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+// backfillUserRoles runs once on installs that predate the RBAC role column.
+// AutoMigrate adds the column with its default ("user"), so every pre-existing
+// operator row must be promoted back to "admin" or they would lose access.
+// New accounts are created with an explicit role after this seeder is recorded,
+// so they are never affected (this only runs while no real "user" account can
+// exist yet).
+func backfillUserRoles() error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.User{}).
+			Where("role IS NULL OR role = '' OR role = ?", model.RoleUser).
+			Update("role", model.RoleAdmin).Error; err != nil {
+			return err
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "RoleBalanceBackfill"}).Error
+	})
 }
 
 func normalizeInboundClientTgId() error {

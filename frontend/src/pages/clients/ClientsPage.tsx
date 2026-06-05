@@ -49,6 +49,7 @@ import {
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { useMe } from '@/hooks/useMe';
 import { useClients } from '@/hooks/useClients';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
@@ -184,6 +185,8 @@ export default function ClientsPage() {
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const { datepicker } = useDatepicker();
   const { isMobile } = useMediaQuery();
+  const { me } = useMe();
+  const isAdmin = !me || me.isAdmin;
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
@@ -656,6 +659,28 @@ export default function ClientsPage() {
       ),
     },
     {
+      title: t('pages.clients.owner'),
+      key: 'owner',
+      width: 130,
+      hidden: !isAdmin,
+      render: (_v, record) => {
+        const owner = (record as ClientRecord & { ownerName?: string; ownerId?: number });
+        if (owner.ownerName) {
+          return (
+            <Tag
+              color="purple"
+              style={{ cursor: 'pointer' }}
+              title={t('pages.clients.filterByOwner', { name: owner.ownerName })}
+              onClick={() => setSearchKey(owner.ownerName as string)}
+            >
+              {owner.ownerName}
+            </Tag>
+          );
+        }
+        return <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>;
+      },
+    },
+    {
       title: t('pages.clients.group'),
       key: 'group',
       width: 130,
@@ -744,7 +769,7 @@ export default function ClientsPage() {
       ),
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups, datepicker]);
+  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups, datepicker, isAdmin, setSearchKey]);
 
   const tablePagination = {
     current: currentPage,

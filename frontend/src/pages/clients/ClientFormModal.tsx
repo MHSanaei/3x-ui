@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Alert,
   AutoComplete,
   Button,
   Col,
@@ -20,6 +21,8 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
 import { HttpUtil, RandomUtil } from '@/utils';
+import { useMe } from '@/hooks/useMe';
+import { useCurrency } from '@/hooks/useCurrency';
 import { DateTimePicker } from '@/components/form';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
@@ -141,6 +144,8 @@ export default function ClientFormModal({
 }: ClientFormModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
+  const { me } = useMe();
+  const { format: formatMoney } = useCurrency();
   const isEdit = mode === 'edit';
 
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -379,6 +384,19 @@ export default function ClientFormModal({
     }
   }
 
+  // Cost preview: only meaningful for a non-admin creating a client when a
+  // price is configured. form.totalGB here is in GB (converted to bytes on
+  // submit), matching the per-GB rate. Mirrors web/service/cost.go.
+  const costPreview = (() => {
+    if (isEdit || !me || me.isAdmin) return null;
+    const base = me.clientCost || 0;
+    const perGB = me.clientCostPerGB || 0;
+    if (base <= 0 && perGB <= 0) return null;
+    const cost = base + (perGB > 0 && form.totalGB > 0 ? Math.round(form.totalGB * perGB) : 0);
+    const after = (me.balance || 0) - cost;
+    return { cost, after, insufficient: after < 0 };
+  })();
+
   return (
     <>
       {messageContextHolder}
@@ -396,6 +414,18 @@ export default function ClientFormModal({
         onCancel={close}
       >
         <Form layout="vertical">
+          {costPreview && (
+            <Alert
+              style={{ marginBottom: 16 }}
+              type={costPreview.insufficient ? 'error' : 'info'}
+              showIcon
+              message={t('pages.clients.costPreview', {
+                cost: formatMoney(costPreview.cost),
+                after: formatMoney(costPreview.after),
+              })}
+              description={costPreview.insufficient ? t('pages.clients.costInsufficient') : undefined}
+            />
+          )}
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Form.Item label={t('pages.clients.email')} required>

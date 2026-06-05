@@ -25,6 +25,7 @@ import { AllSettingSchema } from '@/schemas/setting';
 import AppSidebar from '@/layouts/AppSidebar';
 import GeneralTab from './GeneralTab';
 import SecurityTab from './SecurityTab';
+import ResellerTab from './ResellerTab';
 import TelegramTab from './TelegramTab';
 import SubscriptionGeneralTab from './SubscriptionGeneralTab';
 import SubscriptionFormatsTab from './SubscriptionFormatsTab';
@@ -34,7 +35,7 @@ interface ApiMsg {
   success?: boolean;
 }
 
-const tabSlugs = ['general', 'security', 'telegram', 'subscription', 'subscription-formats'];
+const tabSlugs = ['general', 'security', 'reseller', 'telegram', 'subscription', 'subscription-formats'];
 
 function isIp(h: string): boolean {
   if (typeof h !== 'string') return false;
@@ -196,6 +197,7 @@ export default function SettingsPage() {
   const categoryBody = useMemo(() => {
     switch (activeSlug) {
       case 'security': return <SecurityTab allSetting={allSetting} updateSetting={updateSetting} />;
+      case 'reseller': return <ResellerTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'telegram': return <TelegramTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'subscription': return <SubscriptionGeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'subscription-formats': return <SubscriptionFormatsTab allSetting={allSetting} updateSetting={updateSetting} />;

@@ -51,10 +51,18 @@ type AllSetting struct {
 	TgLang           string `json:"tgLang" form:"tgLang"`                        // Telegram bot language
 
 	// Security settings
-	TimeLocation       string `json:"timeLocation" form:"timeLocation"`             // Time zone location
-	TwoFactorEnable    bool   `json:"twoFactorEnable" form:"twoFactorEnable"`       // Enable two-factor authentication
-	TwoFactorToken     string `json:"twoFactorToken" form:"twoFactorToken"`         // Two-factor authentication token
-	RegistrationEnable bool   `json:"registrationEnable" form:"registrationEnable"` // Allow public self-registration of new panel users
+	TimeLocation       string `json:"timeLocation" form:"timeLocation"`                        // Time zone location
+	TwoFactorEnable    bool   `json:"twoFactorEnable" form:"twoFactorEnable"`                  // Enable two-factor authentication
+	TwoFactorToken     string `json:"twoFactorToken" form:"twoFactorToken"`                    // Two-factor authentication token
+	RegistrationEnable bool   `json:"registrationEnable" form:"registrationEnable"`            // Allow public self-registration of new panel users
+	ClientCost         int    `json:"clientCost" form:"clientCost" validate:"gte=0"`           // Flat wallet credits charged to a non-admin user per client created
+	ClientCostPerGB    int    `json:"clientCostPerGB" form:"clientCostPerGB" validate:"gte=0"` // Wallet credits charged per GB of a client's traffic quota
+
+	// Reseller / billing (ZarinPal balance top-up)
+	ZarinpalEnable     bool   `json:"zarinpalEnable" form:"zarinpalEnable"`         // Enable ZarinPal balance top-up
+	ZarinpalMerchantId string `json:"zarinpalMerchantId" form:"zarinpalMerchantId"` // ZarinPal 36-char merchant id
+	ZarinpalSandbox    bool   `json:"zarinpalSandbox" form:"zarinpalSandbox"`       // Use ZarinPal sandbox endpoint
+	ZarinpalCurrency   string `json:"zarinpalCurrency" form:"zarinpalCurrency"`     // Amount currency: IRR | IRT
 
 	// Subscription server settings
 	SubEnable                   bool   `json:"subEnable" form:"subEnable"`                                     // Enable subscription server

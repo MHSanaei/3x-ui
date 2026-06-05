@@ -29,6 +29,7 @@ import {
   type BulkDetachResult,
 } from '@/schemas/client';
 import { DefaultsPayloadSchema } from '@/schemas/defaults';
+import { useMe, ME_QUERY_KEY } from '@/hooks/useMe';
 
 export type { ClientRecord, ClientTraffic, ClientsSummary, InboundOption };
 
@@ -150,6 +151,7 @@ async function fetchDefaults(): Promise<Record<string, unknown>> {
 
 export function useClients() {
   const queryClient = useQueryClient();
+  const { me } = useMe();
 
   const [query, setQueryState] = useState<ClientQueryParams>(DEFAULT_QUERY);
   // setQuery shallow-compares so callers can pass a fresh object every render
@@ -198,6 +200,9 @@ export function useClients() {
     staleTime: Infinity,
   });
 
+  // The onlines endpoint returns globally-online client emails, so it is
+  // admin-only on the server. Non-admins skip it (their page simply omits the
+  // live "online" indicator); the query is gated so it never 403s for them.
   const onlinesQuery = useQuery({
     queryKey: keys.clients.onlines(),
     queryFn: async () => {
@@ -207,6 +212,7 @@ export function useClients() {
       return Array.isArray(validated.obj) ? validated.obj : [];
     },
     staleTime: Infinity,
+    enabled: me === undefined || me.isAdmin,
   });
 
   const clients = listQuery.data?.items ?? [];
@@ -268,6 +274,8 @@ export function useClients() {
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
         queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
+        // A client purchase debits the wallet — refresh the balance shown in the sidebar.
+        queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY }),
       ]);
     },
     [queryClient],

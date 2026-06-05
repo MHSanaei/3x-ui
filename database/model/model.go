@@ -33,14 +33,83 @@ const (
 
 // User represents a user account in the 3x-ui panel.
 type User struct {
-	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Username   string `json:"username"`
-	Password   string `json:"-"`
-	FullName   string `json:"fullName" gorm:"default:''"`
-	Phone      string `json:"phone" gorm:"default:''"`
-	Email      string `json:"email" gorm:"default:''"`
-	LoginEpoch int64  `json:"-" gorm:"default:0"`
+	Id       int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Username string `json:"username"`
+	Password string `json:"-"`
+	FullName string `json:"fullName" gorm:"default:''"`
+	Phone    string `json:"phone" gorm:"default:''"`
+	Email    string `json:"email" gorm:"default:''"`
+	// Role gates access: "admin" has unrestricted access, "user" is limited to
+	// the clients page and to clients they own. The column defaults to "user"
+	// (least privilege); the bootstrap admin and all pre-existing users are
+	// promoted to "admin" by initUser / the RoleBalanceBackfill seeder so
+	// existing installs keep working.
+	Role string `json:"role" gorm:"default:'user';index"`
+	// Balance is the user's wallet in integer credits. Clients cost credits to
+	// create; admins top up balances. Integer (not float) to avoid rounding.
+	Balance    int64 `json:"balance" gorm:"default:0"`
+	LoginEpoch int64 `json:"-" gorm:"default:0"`
 }
+
+// Role constants for the RBAC system.
+const (
+	RoleAdmin = "admin"
+	RoleUser  = "user"
+)
+
+// IsAdmin reports whether the user has the unrestricted admin role. Any role
+// other than the explicit "user" role is treated as admin so a blank/unknown
+// legacy value never silently downgrades an operator mid-migration; the
+// backfill seeder normalizes pre-existing rows to "admin" regardless.
+func (u *User) IsAdmin() bool {
+	return u != nil && u.Role != RoleUser
+}
+
+// Transaction records a single credit or debit against a user's balance,
+// capturing the before/after snapshot for an auditable wallet history.
+type Transaction struct {
+	Id            int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserId        int    `json:"userId" gorm:"index;not null;column:user_id"`
+	Amount        int64  `json:"amount" gorm:"not null"` // always positive; Type carries the sign
+	Type          string `json:"type" gorm:"not null"`   // "credit" | "debit"
+	Description   string `json:"description"`
+	BalanceBefore int64  `json:"balanceBefore" gorm:"column:balance_before"`
+	BalanceAfter  int64  `json:"balanceAfter" gorm:"column:balance_after"`
+	CreatedAt     int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+}
+
+func (Transaction) TableName() string { return "transactions" }
+
+// Transaction type constants.
+const (
+	TxCredit = "credit"
+	TxDebit  = "debit"
+)
+
+// Payment tracks an external payment-gateway top-up (currently ZarinPal). The
+// authority is the gateway's unique reference for the attempt; the row is
+// created pending at request time and flipped to paid/failed at callback,
+// which is what guarantees a balance is credited at most once per payment.
+type Payment struct {
+	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserId    int    `json:"userId" gorm:"index;not null;column:user_id"`
+	Gateway   string `json:"gateway" gorm:"default:zarinpal"`
+	Authority string `json:"authority" gorm:"uniqueIndex"`
+	Amount    int64  `json:"amount"`
+	Status    string `json:"status" gorm:"default:pending"` // pending | paid | failed
+	RefId     string `json:"refId" gorm:"column:ref_id"`
+	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
+
+func (Payment) TableName() string { return "payments" }
+
+// Payment status constants.
+const (
+	PaymentPending = "pending"
+	PaymentPaid    = "paid"
+	PaymentFailed  = "failed"
+)
 
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.
 type Inbound struct {
@@ -450,8 +519,13 @@ type Client struct {
 }
 
 type ClientRecord struct {
-	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Email      string `json:"email" gorm:"uniqueIndex;not null"`
+	Id    int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Email string `json:"email" gorm:"uniqueIndex;not null"`
+	// OwnerId is the panel user that owns this client. 0 means "unowned"
+	// (pre-RBAC rows and admin-created clients without an explicit owner);
+	// admins see every client regardless, while non-admin users only ever see
+	// and mutate rows whose OwnerId equals their own id.
+	OwnerId    int    `json:"ownerId" gorm:"column:owner_id;index;default:0"`
 	SubID      string `json:"subId" gorm:"index;column:sub_id"`
 	UUID       string `json:"uuid" gorm:"column:uuid"`
 	Password   string `json:"password"`

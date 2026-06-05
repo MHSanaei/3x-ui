@@ -23,6 +23,7 @@ type InboundController struct {
 	fallbackService service.FallbackService
 }
 
+
 // NewInboundController creates a new InboundController and sets up its routes.
 func NewInboundController(g *gin.RouterGroup) *InboundController {
 	a := &InboundController{}
@@ -60,23 +61,30 @@ func (a *InboundController) broadcastInboundsUpdate(userId int) {
 
 // initRouter initializes the routes for inbound-related operations.
 func (a *InboundController) initRouter(g *gin.RouterGroup) {
+	admin := middleware.RequireAdmin()
 
-	g.GET("/list", a.getInbounds)
-	g.GET("/list/slim", a.getInboundsSlim)
+	// /options is the only inbound endpoint a non-admin needs: the client
+	// create form lists inbounds to attach to. It returns id/remark/protocol
+	// only (no client settings), so it leaks nothing about other users' clients.
 	g.GET("/options", a.getInboundOptions)
-	g.GET("/get/:id", a.getInbound)
-	g.GET("/:id/fallbacks", a.getFallbacks)
 
-	g.POST("/add", a.addInbound)
-	g.POST("/del/:id", a.delInbound)
-	g.POST("/bulkDel", a.bulkDelInbounds)
-	g.POST("/update/:id", a.updateInbound)
-	g.POST("/setEnable/:id", a.setInboundEnable)
-	g.POST("/:id/resetTraffic", a.resetInboundTraffic)
-	g.POST("/:id/delAllClients", a.delAllInboundClients)
-	g.POST("/resetAllTraffics", a.resetAllTraffics)
-	g.POST("/import", a.importInbound)
-	g.POST("/:id/fallbacks", a.setFallbacks)
+	// Everything else exposes full inbound configuration (including every
+	// client embedded in settings) or mutates server state — admin only.
+	g.GET("/list", admin, a.getInbounds)
+	g.GET("/list/slim", admin, a.getInboundsSlim)
+	g.GET("/get/:id", admin, a.getInbound)
+	g.GET("/:id/fallbacks", admin, a.getFallbacks)
+
+	g.POST("/add", admin, a.addInbound)
+	g.POST("/del/:id", admin, a.delInbound)
+	g.POST("/bulkDel", admin, a.bulkDelInbounds)
+	g.POST("/update/:id", admin, a.updateInbound)
+	g.POST("/setEnable/:id", admin, a.setInboundEnable)
+	g.POST("/:id/resetTraffic", admin, a.resetInboundTraffic)
+	g.POST("/:id/delAllClients", admin, a.delAllInboundClients)
+	g.POST("/resetAllTraffics", admin, a.resetAllTraffics)
+	g.POST("/import", admin, a.importInbound)
+	g.POST("/:id/fallbacks", admin, a.setFallbacks)
 }
 
 // getInbounds retrieves the list of inbounds for the logged-in user.
@@ -107,7 +115,18 @@ func (a *InboundController) getInboundsSlim(c *gin.Context) {
 // Avoids shipping per-client settings and traffic stats just to fill a dropdown.
 func (a *InboundController) getInboundOptions(c *gin.Context) {
 	user := session.GetLoginUser(c)
-	options, err := a.inboundService.GetInboundOptions(user.Id)
+	// Inbounds are admin-managed and panel-wide. A non-admin user attaches their
+	// clients to inbounds the admin created, so they must see the full list;
+	// scoping by their own user_id would return nothing.
+	var (
+		options []service.InboundOption
+		err     error
+	)
+	if user != nil && !user.IsAdmin() {
+		options, err = a.inboundService.GetAllInboundOptions()
+	} else {
+		options, err = a.inboundService.GetInboundOptions(user.Id)
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return

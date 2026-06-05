@@ -40,6 +40,9 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	g.GET("/inbounds", a.panelSPA)
 	g.GET("/clients", a.panelSPA)
 	g.GET("/groups", a.panelSPA)
+	g.GET("/users", a.panelSPA)
+	g.GET("/profile", a.panelSPA)
+	g.GET("/billing", a.panelSPA)
 	g.GET("/nodes", a.panelSPA)
 	g.GET("/settings", a.panelSPA)
 	g.GET("/xray", a.panelSPA)
@@ -51,7 +54,11 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	g.GET("/csrf-token", a.csrfToken)
 
 	a.settingController = NewSettingController(g)
-	a.xraySettingController = NewXraySettingController(g)
+
+	// Xray configuration is entirely admin-only.
+	xrayAdmin := g.Group("")
+	xrayAdmin.Use(middleware.RequireAdmin())
+	a.xraySettingController = NewXraySettingController(xrayAdmin)
 }
 
 // panelSPA serves the React SPA shell. Every GET under /panel/ that isn't an

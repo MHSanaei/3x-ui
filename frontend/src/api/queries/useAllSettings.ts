@@ -6,6 +6,7 @@ import { parseMsg } from '@/utils/zodValidate';
 import { AllSetting } from '@/models/setting';
 import { AllSettingSchema, type AllSettingInput } from '@/schemas/setting';
 import { keys } from '@/api/queryKeys';
+import { useMe } from '@/hooks/useMe';
 
 async function fetchAllSetting(): Promise<AllSettingInput | null> {
   const msg = await HttpUtil.post('/panel/setting/all', undefined, { silent: true });
@@ -16,13 +17,18 @@ async function fetchAllSetting(): Promise<AllSettingInput | null> {
 
 export function useAllSettings() {
   const queryClient = useQueryClient();
+  const { me } = useMe();
   const [draft, setDraft] = useState<AllSetting>(() => new AllSetting());
   const [extraSpinning, setExtraSpinning] = useState(false);
 
+  // The full settings payload is an admin-only endpoint. Non-admins (who never
+  // see the settings UI) skip the fetch entirely and fall back to defaults so
+  // the shared sidebar that consumes this hook doesn't 403.
   const query = useQuery({
     queryKey: keys.settings.all(),
     queryFn: fetchAllSetting,
     staleTime: Infinity,
+    enabled: me === undefined || me.isAdmin,
   });
 
   const server = useMemo(() => new AllSetting(query.data), [query.data]);

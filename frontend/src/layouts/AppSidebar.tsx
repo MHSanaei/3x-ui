@@ -14,10 +14,12 @@ import {
   DatabaseOutlined,
   GithubOutlined,
   HeartOutlined,
+  IdcardOutlined,
   ImportOutlined,
   LogoutOutlined,
   MenuOutlined,
   MessageOutlined,
+  WalletOutlined,
   MoonFilled,
   MoonOutlined,
   SafetyOutlined,
@@ -28,11 +30,14 @@ import {
   TeamOutlined,
   ToolOutlined,
   UploadOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
+import { useMe } from '@/hooks/useMe';
+import { useCurrency } from '@/hooks/useCurrency';
 import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
@@ -40,13 +45,16 @@ const DONATE_URL = 'https://donate.sanaei.dev/';
 const REPO_URL = 'https://github.com/MHSanaei/3x-ui';
 const LOGOUT_KEY = '__logout__';
 
-type IconName = 'dashboard' | 'inbound' | 'team' | 'groups' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
+type IconName = 'dashboard' | 'inbound' | 'team' | 'groups' | 'users' | 'profile' | 'billing' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
 
 const iconByName: Record<IconName, ComponentType> = {
   dashboard: DashboardOutlined,
   inbound: ImportOutlined,
   team: TeamOutlined,
   groups: TagsOutlined,
+  users: IdcardOutlined,
+  profile: UserOutlined,
+  billing: WalletOutlined,
   setting: SettingOutlined,
   tool: ToolOutlined,
   cluster: ClusterOutlined,
@@ -123,6 +131,10 @@ export default function AppSidebar() {
   const navigate = useNavigate();
   const { pathname, hash } = useLocation();
   const { allSetting } = useAllSettings();
+  const { me } = useMe();
+  const { format: formatMoney } = useCurrency();
+  const isRestrictedUser = !!me && !me.isAdmin;
+  const showBilling = !!me?.zarinpalEnable;
   const showSubFormats = !!(allSetting.subJsonEnable || allSetting.subClashEnable);
 
   const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed());
@@ -131,17 +143,35 @@ export default function AppSidebar() {
   const currentTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
   const panelVersion = window.X_UI_CUR_VER || '';
 
-  const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(() => [
-    { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
-    { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
-    { key: '/clients', icon: 'team', title: t('menu.clients') },
-    { key: '/groups', icon: 'groups', title: t('menu.groups') },
-    { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
-    { key: '/settings', icon: 'setting', title: t('menu.settings') },
-    { key: '/xray', icon: 'tool', title: t('menu.xray') },
-    { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
-    { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
-  ], [t]);
+  const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(() => {
+    // Non-admin users only ever see the Clients page (plus logout). The backend
+    // enforces the same restriction on every route/API regardless of this menu.
+    const billing: { key: string; icon: IconName; title: string }[] = showBilling
+      ? [{ key: '/billing', icon: 'billing', title: t('menu.billing') }]
+      : [];
+    if (isRestrictedUser) {
+      return [
+        { key: '/clients', icon: 'team', title: t('menu.clients') },
+        ...billing,
+        { key: '/profile', icon: 'profile', title: t('menu.profile') },
+        { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
+      ];
+    }
+    return [
+      { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
+      { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
+      { key: '/clients', icon: 'team', title: t('menu.clients') },
+      { key: '/groups', icon: 'groups', title: t('menu.groups') },
+      { key: '/users', icon: 'users', title: t('menu.users') },
+      { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
+      { key: '/settings', icon: 'setting', title: t('menu.settings') },
+      { key: '/xray', icon: 'tool', title: t('menu.xray') },
+      { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
+      ...billing,
+      { key: '/profile', icon: 'profile', title: t('menu.profile') },
+      { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
+    ];
+  }, [t, isRestrictedUser, showBilling]);
 
   const navItems = useMemo(() => tabs.filter((tab) => tab.icon !== 'logout'), [tabs]);
   const utilItems = useMemo(() => tabs.filter((tab) => tab.icon === 'logout'), [tabs]);
@@ -150,6 +180,7 @@ export default function AppSidebar() {
     const children: NonNullable<MenuProps['items']> = [
       { key: '/settings#general', icon: <SettingOutlined />, label: t('pages.settings.panelSettings') },
       { key: '/settings#security', icon: <SafetyOutlined />, label: t('pages.settings.securitySettings') },
+      { key: '/settings#reseller', icon: <WalletOutlined />, label: t('pages.settings.resellerSettings') },
       { key: '/settings#telegram', icon: <MessageOutlined />, label: t('pages.settings.TGBotSettings') },
       { key: '/settings#subscription', icon: <CloudServerOutlined />, label: t('pages.settings.subSettings') },
     ];
@@ -276,6 +307,12 @@ export default function AppSidebar() {
           onClick={onMenuClick}
         />
         <div className="sider-footer">
+          {me && (
+            <div className={`sider-balance${collapsed ? ' is-collapsed' : ''}`} title={`${t('balance')}: ${formatMoney(me.balance)}`}>
+              <WalletOutlined />
+              {!collapsed && <span className="sider-balance-text">{t('balance')}: <strong>{formatMoney(me.balance)}</strong></span>}
+            </div>
+          )}
           <VersionBadge version={panelVersion} collapsed={collapsed} />
         </div>
       </Layout.Sider>
@@ -335,6 +372,12 @@ export default function AppSidebar() {
           onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}
         />
         <div className="drawer-footer">
+          {me && (
+            <div className="sider-balance" title={`${t('balance')}: ${formatMoney(me.balance)}`}>
+              <WalletOutlined />
+              <span className="sider-balance-text">{t('balance')}: <strong>{formatMoney(me.balance)}</strong></span>
+            </div>
+          )}
           <VersionBadge version={panelVersion} />
         </div>
       </Drawer>
