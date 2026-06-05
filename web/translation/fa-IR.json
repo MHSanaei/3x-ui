@@ -114,7 +114,8 @@
     "donate": "حمایت مالی",
     "users": "کاربران",
     "profile": "پروفایل",
-    "billing": "افزایش موجودی"
+    "billing": "افزایش موجودی",
+    "reports": "گزارش‌ها"
   },
   "pages": {
     "login": {
@@ -1611,6 +1612,31 @@
       "currentBalance": "موجودی فعلی",
       "totalPaid": "مجموع پرداختی",
       "paymentsCount": "پرداخت‌ها"
+    },
+    "reports": {
+      "totalIncome": "درآمد کل",
+      "period": "بازه",
+      "periods": {
+        "today": "امروز",
+        "yesterday": "دیروز",
+        "last7": "۷ روز اخیر",
+        "thisMonth": "این ماه",
+        "lastMonth": "ماه گذشته",
+        "thisYear": "امسال",
+        "allTime": "کل دوره"
+      },
+      "revenue": "درآمد",
+      "payments": "پرداخت‌ها",
+      "spend": "مصرف",
+      "newClients": "کلاینت‌های جدید",
+      "outstanding": "موجودی در گردش",
+      "totalClients": "کل کلاینت‌ها",
+      "pending": "پرداخت‌های در انتظار",
+      "dailyTitle": "درآمد — ۳۰ روز اخیر",
+      "breakdownTitle": "تفکیک بر اساس بازه",
+      "topResellersTitle": "نمایندگان برتر",
+      "noActivity": "در ۳۰ روز اخیر درآمد یا مصرفی ثبت نشده است.",
+      "noResellers": "هنوز مصرفی توسط نمایندگان ثبت نشده است."
     }
   },
   "tgbot": {

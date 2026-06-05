@@ -12,6 +12,7 @@ import {
   CodeOutlined,
   DashboardOutlined,
   DatabaseOutlined,
+  FundOutlined,
   GithubOutlined,
   HeartOutlined,
   IdcardOutlined,
@@ -45,7 +46,7 @@ const DONATE_URL = 'https://donate.sanaei.dev/';
 const REPO_URL = 'https://github.com/MHSanaei/3x-ui';
 const LOGOUT_KEY = '__logout__';
 
-type IconName = 'dashboard' | 'inbound' | 'team' | 'groups' | 'users' | 'profile' | 'billing' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
+type IconName = 'dashboard' | 'inbound' | 'team' | 'groups' | 'users' | 'reports' | 'profile' | 'billing' | 'setting' | 'tool' | 'cluster' | 'logout' | 'apidocs';
 
 const iconByName: Record<IconName, ComponentType> = {
   dashboard: DashboardOutlined,
@@ -53,6 +54,7 @@ const iconByName: Record<IconName, ComponentType> = {
   team: TeamOutlined,
   groups: TagsOutlined,
   users: IdcardOutlined,
+  reports: FundOutlined,
   profile: UserOutlined,
   billing: WalletOutlined,
   setting: SettingOutlined,
@@ -163,6 +165,7 @@ export default function AppSidebar() {
       { key: '/clients', icon: 'team', title: t('menu.clients') },
       { key: '/groups', icon: 'groups', title: t('menu.groups') },
       { key: '/users', icon: 'users', title: t('menu.users') },
+      { key: '/reports', icon: 'reports', title: t('menu.reports') },
       { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
       { key: '/settings', icon: 'setting', title: t('menu.settings') },
       { key: '/xray', icon: 'tool', title: t('menu.xray') },

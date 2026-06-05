@@ -125,7 +125,8 @@
     "apiDocs": "API Docs",
     "logout": "Log Out",
     "link": "Manage",
-    "donate": "Donate"
+    "donate": "Donate",
+    "reports": "Reports"
   },
   "pages": {
     "login": {
@@ -1623,6 +1624,31 @@
         "ipPool": "IP Pool Subnet",
         "poolSize": "Pool Size"
       }
+    },
+    "reports": {
+      "totalIncome": "Total Income",
+      "period": "Period",
+      "periods": {
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "last7": "Last 7 Days",
+        "thisMonth": "This Month",
+        "lastMonth": "Last Month",
+        "thisYear": "This Year",
+        "allTime": "All Time"
+      },
+      "revenue": "Revenue",
+      "payments": "Payments",
+      "spend": "Spend",
+      "newClients": "New Clients",
+      "outstanding": "Outstanding Balance",
+      "totalClients": "Total Clients",
+      "pending": "Pending Payments",
+      "dailyTitle": "Income — Last 30 Days",
+      "breakdownTitle": "Breakdown by Period",
+      "topResellersTitle": "Top Resellers",
+      "noActivity": "No income or spend recorded in the last 30 days.",
+      "noResellers": "No reseller spend yet."
     }
   },
   "tgbot": {

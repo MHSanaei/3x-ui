@@ -19,6 +19,7 @@ import (
 type AdminController struct {
 	userService   service.UserService
 	walletService service.WalletService
+	reportService service.ReportService
 }
 
 func NewAdminController(g *gin.RouterGroup) *AdminController {
@@ -37,6 +38,7 @@ func (a *AdminController) initRouter(g *gin.RouterGroup) {
 	admin.POST("/users/:id/del", a.deleteUser)
 	admin.POST("/users/:id/balance", a.adjustBalance)
 	admin.GET("/transactions", a.listTransactions)
+	admin.GET("/reports/income", a.incomeReport)
 }
 
 type adminUserForm struct {
@@ -202,6 +204,15 @@ func (a *AdminController) listTransactions(c *gin.Context) {
 		return
 	}
 	jsonObj(c, rows, nil)
+}
+
+func (a *AdminController) incomeReport(c *gin.Context) {
+	report, err := a.reportService.IncomeReport()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "fail"), err)
+		return
+	}
+	jsonObj(c, report, nil)
 }
 
 // adminUserErrorMessage maps known user-service sentinels to localized

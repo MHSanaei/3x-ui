@@ -41,6 +41,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	g.GET("/clients", a.panelSPA)
 	g.GET("/groups", a.panelSPA)
 	g.GET("/users", a.panelSPA)
+	g.GET("/reports", a.panelSPA)
 	g.GET("/profile", a.panelSPA)
 	g.GET("/billing", a.panelSPA)
 	g.GET("/nodes", a.panelSPA)

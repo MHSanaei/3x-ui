@@ -8,6 +8,7 @@ const InboundsPage = lazy(() => import('@/pages/inbounds/InboundsPage'));
 const ClientsPage = lazy(() => import('@/pages/clients/ClientsPage'));
 const GroupsPage = lazy(() => import('@/pages/groups/GroupsPage'));
 const UsersPage = lazy(() => import('@/pages/users/UsersPage'));
+const ReportsPage = lazy(() => import('@/pages/reports/ReportsPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const BillingPage = lazy(() => import('@/pages/billing/BillingPage'));
 const NodesPage = lazy(() => import('@/pages/nodes/NodesPage'));
@@ -29,6 +30,7 @@ const routes: RouteObject[] = [
       { path: 'clients', element: withSuspense(<ClientsPage />) },
       { path: 'groups', element: withSuspense(<GroupsPage />) },
       { path: 'users', element: withSuspense(<UsersPage />) },
+      { path: 'reports', element: withSuspense(<ReportsPage />) },
       { path: 'profile', element: withSuspense(<ProfilePage />) },
       { path: 'billing', element: withSuspense(<BillingPage />) },
       { path: 'nodes', element: withSuspense(<NodesPage />) },
