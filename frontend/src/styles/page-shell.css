@@ -5,6 +5,9 @@
 .settings-page,
 .nodes-page,
 .groups-page,
+.users-page,
+.billing-page,
+.profile-page,
 .api-docs-page {
   --bg-page: #e6e8ec;
   --bg-card: #ffffff;
@@ -19,6 +22,9 @@
 .settings-page.is-dark,
 .nodes-page.is-dark,
 .groups-page.is-dark,
+.users-page.is-dark,
+.billing-page.is-dark,
+.profile-page.is-dark,
 .api-docs-page.is-dark {
   --bg-page: #1a1b1f;
   --bg-card: #23252b;
@@ -31,6 +37,9 @@
 .settings-page.is-dark.is-ultra,
 .nodes-page.is-dark.is-ultra,
 .groups-page.is-dark.is-ultra,
+.users-page.is-dark.is-ultra,
+.billing-page.is-dark.is-ultra,
+.profile-page.is-dark.is-ultra,
 .api-docs-page.is-dark.is-ultra {
   --bg-page: #000;
   --bg-card: #101013;
@@ -50,6 +59,12 @@
 .nodes-page .ant-layout-content,
 .groups-page .ant-layout,
 .groups-page .ant-layout-content,
+.users-page .ant-layout,
+.users-page .ant-layout-content,
+.billing-page .ant-layout,
+.billing-page .ant-layout-content,
+.profile-page .ant-layout,
+.profile-page .ant-layout-content,
 .api-docs-page .ant-layout,
 .api-docs-page .ant-layout-content {
   background: transparent;
@@ -62,6 +77,9 @@
 .settings-page .content-shell,
 .nodes-page .content-shell,
 .groups-page .content-shell,
+.users-page .content-shell,
+.billing-page .content-shell,
+.profile-page .content-shell,
 .api-docs-page .content-shell {
   background: transparent;
 }
@@ -72,7 +90,10 @@
 .xray-page .content-area,
 .settings-page .content-area,
 .nodes-page .content-area,
-.groups-page .content-area {
+.groups-page .content-area,
+.users-page .content-area,
+.billing-page .content-area,
+.profile-page .content-area {
   padding: 24px;
 }
 
@@ -80,7 +101,10 @@
   .clients-page .content-area,
   .inbounds-page .content-area,
   .nodes-page .content-area,
-  .groups-page .content-area {
+  .groups-page .content-area,
+  .users-page .content-area,
+  .billing-page .content-area,
+  .profile-page .content-area {
     padding: 8px;
   }
 }
@@ -157,7 +181,10 @@ body.dark .ant-dropdown-menu-item-divider {
 .clients-page .summary-card,
 .inbounds-page .summary-card,
 .nodes-page .summary-card,
-.groups-page .summary-card {
+.groups-page .summary-card,
+.users-page .summary-card,
+.billing-page .summary-card,
+.profile-page .summary-card {
   padding: 16px;
 }
 
@@ -165,7 +192,10 @@ body.dark .ant-dropdown-menu-item-divider {
   .clients-page .summary-card,
   .inbounds-page .summary-card,
   .nodes-page .summary-card,
-  .groups-page .summary-card {
+  .groups-page .summary-card,
+  .users-page .summary-card,
+  .billing-page .summary-card,
+  .profile-page .summary-card {
     padding: 8px;
   }
 }

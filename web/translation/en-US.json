@@ -903,7 +903,11 @@
         "invalidOp": "Invalid balance operation.",
         "lastAdmin": "You cannot remove the last administrator.",
         "cannotDeleteSelf": "You cannot delete your own account."
-      }
+      },
+      "totalUsers": "Total Users",
+      "admins": "Admins",
+      "resellers": "Resellers",
+      "totalBalance": "Total Balance"
     },
     "profile": {
       "accountTitle": "Account",
@@ -940,7 +944,10 @@
         "failed": "Payment failed or could not be verified.",
         "invalidAmount": "Enter a valid amount.",
         "requestFailed": "Could not start the payment. Please try again."
-      }
+      },
+      "currentBalance": "Current Balance",
+      "totalPaid": "Total Paid",
+      "paymentsCount": "Payments"
     },
     "groups": {
       "title": "Groups",

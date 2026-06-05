@@ -62,6 +62,19 @@ export default function BillingPage() {
 
   const paymentsQuery = useQuery({ queryKey: ['billing', 'payments'], queryFn: fetchPayments });
 
+  const paidStats = useMemo(() => {
+    const rows = paymentsQuery.data ?? [];
+    let totalPaid = 0;
+    let count = 0;
+    for (const p of rows) {
+      if (p.status === 'paid') {
+        totalPaid += p.amount || 0;
+        count += 1;
+      }
+    }
+    return { totalPaid, count };
+  }, [paymentsQuery.data]);
+
   // Handle the redirect back from ZarinPal (?status=ok|cancelled|failed).
   useEffect(() => {
     const status = searchParams.get('status');
@@ -142,15 +155,30 @@ export default function BillingPage() {
             <Row gutter={[16, 16]} justify="center">
               <Col xs={24} md={18} lg={14} xxl={12}>
                 <Card size="small" hoverable className="summary-card" style={{ marginBottom: 16 }}>
-                  <Statistic
-                    title={t('balance')}
-                    value={me?.balance ?? 0}
-                    prefix={<WalletOutlined />}
-                    suffix={unit}
-                    groupSeparator=","
-                  />
+                  <Row gutter={[16, 12]}>
+                    <Col xs={24} sm={8}>
+                      <Statistic
+                        title={t('pages.billing.currentBalance')}
+                        value={me?.balance ?? 0}
+                        prefix={<WalletOutlined />}
+                        suffix={unit}
+                        groupSeparator=","
+                      />
+                    </Col>
+                    <Col xs={12} sm={8}>
+                      <Statistic
+                        title={t('pages.billing.totalPaid')}
+                        value={paidStats.totalPaid}
+                        suffix={unit}
+                        groupSeparator=","
+                      />
+                    </Col>
+                    <Col xs={12} sm={8}>
+                      <Statistic title={t('pages.billing.paymentsCount')} value={String(paidStats.count)} />
+                    </Col>
+                  </Row>
                   {clientCostPerGB > 0 && (
-                    <div style={{ marginTop: 8, opacity: 0.75 }}>
+                    <div style={{ marginTop: 12, opacity: 0.75 }}>
                       {t('pages.billing.perGbInfo', { price: formatMoney(clientCostPerGB) })}
                     </div>
                   )}

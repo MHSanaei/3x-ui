@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Button,
   Card,
+  Col,
   ConfigProvider,
   Form,
   Input,
@@ -10,10 +11,12 @@ import {
   Layout,
   Modal,
   Result,
+  Row,
   Segmented,
   Select,
   Space,
   Spin,
+  Statistic,
   Table,
   Tag,
   Tooltip,
@@ -21,11 +24,14 @@ import {
 } from 'antd';
 import type { TableColumnsType } from 'antd';
 import {
+  CrownOutlined,
   DeleteOutlined,
   EditOutlined,
   HistoryOutlined,
   PlusOutlined,
   SearchOutlined,
+  TeamOutlined,
+  UserOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -112,6 +118,16 @@ export default function UsersPage() {
   }, [users, search]);
   const fetched = usersQuery.data !== undefined || usersQuery.isError;
   const fetchError = usersQuery.error ? (usersQuery.error as Error).message : '';
+
+  const stats = useMemo(() => {
+    let admins = 0;
+    let totalBalance = 0;
+    for (const u of users) {
+      if (u.role === 'admin') admins += 1;
+      totalBalance += u.balance || 0;
+    }
+    return { total: users.length, admins, resellers: users.length - admins, totalBalance };
+  }, [users]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
@@ -307,34 +323,70 @@ export default function UsersPage() {
                   extra={<Button type="primary" onClick={() => usersQuery.refetch()}>{t('refresh')}</Button>}
                 />
               ) : (
-                <Card
-                  size="small"
-                  hoverable
-                  title={
-                    <div className="card-toolbar" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                        {!isMobile && t('pages.users.addUser')}
-                      </Button>
-                      <Input
-                        allowClear
-                        prefix={<SearchOutlined />}
-                        placeholder={t('pages.users.searchPlaceholder')}
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        style={{ maxWidth: 280 }}
+                <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
+                  <Col span={24}>
+                    <Card size="small" hoverable className="summary-card">
+                      <Row gutter={[16, isMobile ? 16 : 12]}>
+                        <Col xs={12} sm={8} md={6}>
+                          <Statistic title={t('pages.users.totalUsers')} value={String(stats.total)} prefix={<TeamOutlined />} />
+                        </Col>
+                        <Col xs={12} sm={8} md={6}>
+                          <Statistic title={t('pages.users.admins')} value={String(stats.admins)} prefix={<CrownOutlined />} />
+                        </Col>
+                        <Col xs={12} sm={8} md={6}>
+                          <Statistic title={t('pages.users.resellers')} value={String(stats.resellers)} prefix={<UserOutlined />} />
+                        </Col>
+                        <Col xs={12} sm={8} md={6}>
+                          <Statistic
+                            title={t('pages.users.totalBalance')}
+                            value={formatNumber(stats.totalBalance)}
+                            prefix={<WalletOutlined />}
+                            suffix={unit}
+                          />
+                        </Col>
+                      </Row>
+                    </Card>
+                  </Col>
+
+                  <Col span={24}>
+                    <Card
+                      size="small"
+                      hoverable
+                      title={
+                        <div className="card-toolbar" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                            {!isMobile && t('pages.users.addUser')}
+                          </Button>
+                          <Input
+                            allowClear
+                            prefix={<SearchOutlined />}
+                            placeholder={t('pages.users.searchPlaceholder')}
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            style={{ maxWidth: 280 }}
+                          />
+                        </div>
+                      }
+                    >
+                      <Table<PanelUser>
+                        dataSource={filteredUsers}
+                        columns={columns}
+                        rowKey="id"
+                        size="small"
+                        pagination={false}
+                        loading={usersQuery.isFetching}
+                        locale={{
+                          emptyText: (
+                            <div className="card-empty">
+                              <TeamOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+                              <div>{t('noData')}</div>
+                            </div>
+                          ),
+                        }}
                       />
-                    </div>
-                  }
-                >
-                  <Table<PanelUser>
-                    dataSource={filteredUsers}
-                    columns={columns}
-                    rowKey="id"
-                    size="small"
-                    pagination={false}
-                    loading={usersQuery.isFetching}
-                  />
-                </Card>
+                    </Card>
+                  </Col>
+                </Row>
               )}
             </Spin>
           </Layout.Content>
