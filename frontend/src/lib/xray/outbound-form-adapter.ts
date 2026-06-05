@@ -1,4 +1,5 @@
 import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
 import { Wireguard } from '@/utils';
 
 import type {
@@ -588,7 +589,7 @@ function stripUiOnlyStreamFields(stream: unknown): Raw {
     if (!xmuxEnabled) delete cleaned.xmux;
     next.xhttpSettings = dropEmptyStrings(cleaned);
   }
-  return next;
+  return normalizeStreamSettingsForWire(next, { side: 'outbound' }) as Raw;
 }
 
 function muxAllowed(values: OutboundFormValues): boolean {

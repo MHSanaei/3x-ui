@@ -10,6 +10,7 @@ import {
 import type { StreamSettings } from '@/schemas/api/inbound';
 import type { Sniffing } from '@/schemas/primitives';
 import type { z } from 'zod';
+import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
 
 // Plain-data adapter between the panel's stored inbound row shape and
 // the typed InboundFormValues that Form.useForm<T> carries inside
@@ -279,10 +280,13 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
   if (Array.isArray(settingsPruned.clients)) {
     settingsPruned.clients = normalizeClients(values.protocol, settingsPruned.clients);
   }
-  const streamPruned = values.streamSettings
+  let streamPruned = values.streamSettings
     ? ((pruneEmpty(values.streamSettings) ?? {}) as Record<string, unknown>)
     : undefined;
-  if (streamPruned) stripTlsCertUseFile(streamPruned);
+  if (streamPruned) {
+    streamPruned = normalizeStreamSettingsForWire(streamPruned, { side: 'inbound' });
+    stripTlsCertUseFile(streamPruned);
+  }
   dropLegacyOptionalEmpties(settingsPruned, streamPruned);
   const payload: WireInboundPayload = {
     up: values.up,
