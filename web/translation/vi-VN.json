@@ -551,7 +551,6 @@
         "maxSendingWindow": "Cửa sổ gửi tối đa",
         "externalProxy": "Proxy ngoài",
         "forceTls": "Bắt buộc TLS",
-        "sniPlaceholder": "SNI (mặc định = host)",
         "fingerprint": "Fingerprint",
         "defaultOption": "Mặc định",
         "routeMark": "Route Mark",

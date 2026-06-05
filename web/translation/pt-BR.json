@@ -551,7 +551,6 @@
         "maxSendingWindow": "Máx. janela de envio",
         "externalProxy": "Proxy externo",
         "forceTls": "Forçar TLS",
-        "sniPlaceholder": "SNI (padrão = host)",
         "fingerprint": "Fingerprint",
         "defaultOption": "Padrão",
         "routeMark": "Route Mark",

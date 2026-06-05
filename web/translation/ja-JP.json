@@ -551,7 +551,6 @@
         "maxSendingWindow": "最大送信ウィンドウ",
         "externalProxy": "外部プロキシ",
         "forceTls": "TLS を強制",
-        "sniPlaceholder": "SNI (デフォルトは host)",
         "fingerprint": "Fingerprint",
         "defaultOption": "デフォルト",
         "routeMark": "Route Mark",

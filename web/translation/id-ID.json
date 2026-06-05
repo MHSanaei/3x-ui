@@ -551,7 +551,6 @@
         "maxSendingWindow": "Maks. jendela pengiriman",
         "externalProxy": "Proxy eksternal",
         "forceTls": "Paksa TLS",
-        "sniPlaceholder": "SNI (default = host)",
         "fingerprint": "Fingerprint",
         "defaultOption": "Default",
         "routeMark": "Route Mark",

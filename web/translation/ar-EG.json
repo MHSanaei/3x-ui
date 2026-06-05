@@ -551,7 +551,6 @@
         "maxSendingWindow": "أقصى نافذة إرسال",
         "externalProxy": "وكيل خارجي",
         "forceTls": "فرض TLS",
-        "sniPlaceholder": "SNI (افتراضياً host)",
         "fingerprint": "بصمة",
         "defaultOption": "افتراضي",
         "routeMark": "Route Mark",

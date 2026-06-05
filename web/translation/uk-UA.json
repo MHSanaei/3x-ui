@@ -551,7 +551,6 @@
         "maxSendingWindow": "Макс. вікно відправки",
         "externalProxy": "External Proxy",
         "forceTls": "Примусовий TLS",
-        "sniPlaceholder": "SNI (за замовчуванням = host)",
         "fingerprint": "Fingerprint",
         "defaultOption": "За замовчуванням",
         "routeMark": "Route Mark",

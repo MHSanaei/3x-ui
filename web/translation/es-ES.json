@@ -551,7 +551,6 @@
         "maxSendingWindow": "Máx. ventana de envío",
         "externalProxy": "Proxy externo",
         "forceTls": "Forzar TLS",
-        "sniPlaceholder": "SNI (por defecto = host)",
         "fingerprint": "Fingerprint",
         "defaultOption": "Por defecto",
         "routeMark": "Route Mark",

@@ -551,7 +551,6 @@
         "maxSendingWindow": "最大發送視窗",
         "externalProxy": "外部代理",
         "forceTls": "強制 TLS",
-        "sniPlaceholder": "SNI (預設為 host)",
         "fingerprint": "指紋",
         "defaultOption": "預設",
         "routeMark": "Route Mark",
