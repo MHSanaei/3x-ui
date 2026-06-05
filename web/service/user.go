@@ -2,6 +2,10 @@ package service
 
 import (
 	"errors"
+	"net/mail"
+	"regexp"
+	"strings"
+	"unicode"
 
 	"github.com/mhsanaei/3x-ui/v3/database"
 	"github.com/mhsanaei/3x-ui/v3/database/model"
@@ -11,6 +15,136 @@ import (
 	"github.com/xlzd/gotp"
 	"gorm.io/gorm"
 )
+
+// Registration errors. They are sentinel values so the controller can map each
+// failure to a localized, user-facing message without string matching.
+var (
+	ErrUsernameTaken   = errors.New("username already taken")
+	ErrEmailTaken      = errors.New("email already registered")
+	ErrInvalidUsername = errors.New("invalid username")
+	ErrInvalidEmail    = errors.New("invalid email")
+	ErrInvalidPhone    = errors.New("invalid phone number")
+	ErrInvalidFullName = errors.New("invalid full name")
+	ErrWeakPassword    = errors.New("password does not meet the strength requirements")
+)
+
+var (
+	usernameRegex = regexp.MustCompile(`^[A-Za-z0-9_]{3,32}$`)
+	// E.164-ish: optional leading +, then digits and common separators.
+	phoneRegex = regexp.MustCompile(`^\+?[0-9][0-9 ()\-.]{4,19}$`)
+)
+
+// RegisterInput carries the already-trimmed fields captured by the registration
+// form. The controller is responsible for trimming and confirm-password
+// matching; the service re-validates defensively and owns uniqueness + persistence.
+type RegisterInput struct {
+	FullName string
+	Phone    string
+	Email    string
+	Username string
+	Password string
+}
+
+// ValidatePasswordStrength enforces the shared password policy: at least 8
+// characters with a mix of upper-case, lower-case and digit. Mirrored in the
+// frontend zod schema so client and server agree.
+func ValidatePasswordStrength(password string) error {
+	if len([]rune(password)) < 8 {
+		return ErrWeakPassword
+	}
+	var hasUpper, hasLower, hasDigit bool
+	for _, r := range password {
+		switch {
+		case unicode.IsUpper(r):
+			hasUpper = true
+		case unicode.IsLower(r):
+			hasLower = true
+		case unicode.IsDigit(r):
+			hasDigit = true
+		}
+	}
+	if !hasUpper || !hasLower || !hasDigit {
+		return ErrWeakPassword
+	}
+	return nil
+}
+
+// normalizeRegisterInput trims whitespace and lower-cases the fields used for
+// case-insensitive uniqueness so "Admin" and "admin" can't both register.
+func normalizeRegisterInput(in RegisterInput) RegisterInput {
+	in.FullName = strings.TrimSpace(in.FullName)
+	in.Phone = strings.TrimSpace(in.Phone)
+	in.Email = strings.ToLower(strings.TrimSpace(in.Email))
+	in.Username = strings.TrimSpace(in.Username)
+	// Password is intentionally left untouched — leading/trailing characters
+	// are significant.
+	return in
+}
+
+func validateRegisterInput(in RegisterInput) error {
+	if n := len([]rune(in.FullName)); n < 2 || n > 100 {
+		return ErrInvalidFullName
+	}
+	if !usernameRegex.MatchString(in.Username) {
+		return ErrInvalidUsername
+	}
+	if !phoneRegex.MatchString(in.Phone) {
+		return ErrInvalidPhone
+	}
+	addr, err := mail.ParseAddress(in.Email)
+	if err != nil || addr.Address != in.Email || len(in.Email) > 254 {
+		return ErrInvalidEmail
+	}
+	return ValidatePasswordStrength(in.Password)
+}
+
+// Register validates the input, guarantees the username and email are unique
+// (case-insensitively), securely hashes the password with bcrypt and persists
+// the new panel user inside a single transaction. The returned user has its
+// password field cleared so callers can safely serialize it.
+func (s *UserService) Register(input RegisterInput) (*model.User, error) {
+	in := normalizeRegisterInput(input)
+	if err := validateRegisterInput(in); err != nil {
+		return nil, err
+	}
+
+	hashedPassword, err := crypto.HashPasswordAsBcrypt(in.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	user := &model.User{
+		Username: in.Username,
+		Password: hashedPassword,
+		FullName: in.FullName,
+		Phone:    in.Phone,
+		Email:    in.Email,
+	}
+
+	db := database.GetDB()
+	err = db.Transaction(func(tx *gorm.DB) error {
+		var count int64
+		if err := tx.Model(model.User{}).Where("LOWER(username) = ?", strings.ToLower(in.Username)).Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return ErrUsernameTaken
+		}
+		if err := tx.Model(model.User{}).Where("LOWER(email) = ?", in.Email).Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return ErrEmailTaken
+		}
+		return tx.Create(user).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	user.Password = ""
+	return user, nil
+}
 
 // UserService provides business logic for user management and authentication.
 // It handles user creation, login, password management, and 2FA operations.

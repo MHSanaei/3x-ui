@@ -122,6 +122,7 @@ function bypassMigratedRoute(req) {
   const basePath = refreshBasePath();
 
   if (url === basePath) return '/login.html';
+  if (url === basePath + 'register' || url === basePath + 'register/') return '/register.html';
 
   if (url.startsWith(basePath)) {
     const stripped = url.slice(basePath.length);
@@ -210,6 +211,7 @@ export default defineConfig({
       input: {
         index: path.resolve(__dirname, 'index.html'),
         login: path.resolve(__dirname, 'login.html'),
+        register: path.resolve(__dirname, 'register.html'),
         subpage: path.resolve(__dirname, 'subpage.html'),
       },
       output: {
@@ -265,7 +267,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      '^/(?:[^/]+/)?(login|logout|getTwoFactorEnable|csrf-token|panel|server)(?:/|$)': makeBackendProxy(BACKEND_TARGET),
+      '^/(?:[^/]+/)?(login|register|logout|getTwoFactorEnable|getRegistrationEnable|csrf-token|panel|server)(?:/|$)': makeBackendProxy(BACKEND_TARGET),
       '^/$': makeBackendProxy(BACKEND_TARGET),
       '^/[^/]+/$': makeBackendProxy(BACKEND_TARGET),
       '^/(?:[^/]+/)?ws$': {

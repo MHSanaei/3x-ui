@@ -55,6 +55,7 @@ var defaultValueMap = map[string]string{
 	"tgLang":                      "en-US",
 	"twoFactorEnable":             "false",
 	"twoFactorToken":              "",
+	"registrationEnable":          "false",
 	"subEnable":                   "true",
 	"subJsonEnable":               "false",
 	"subTitle":                    "",
@@ -447,6 +448,17 @@ func (s *SettingService) SetTwoFactorEnable(value bool) error {
 
 func (s *SettingService) GetTwoFactorToken() (string, error) {
 	return s.getString("twoFactorToken")
+}
+
+// GetRegistrationEnable reports whether public self-registration of new panel
+// users is allowed. Defaults to false so an upgraded panel never silently
+// exposes open registration; an administrator must opt in.
+func (s *SettingService) GetRegistrationEnable() (bool, error) {
+	return s.getBool("registrationEnable")
+}
+
+func (s *SettingService) SetRegistrationEnable(value bool) error {
+	return s.setBool("registrationEnable", value)
 }
 
 func (s *SettingService) SetTwoFactorToken(value string) error {

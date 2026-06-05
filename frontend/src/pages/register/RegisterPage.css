@@ -1,0 +1,37 @@
+/* Register-specific tweaks layered on top of the shared LoginPage.css. The
+   registration card carries more fields, so it is a little wider and its
+   headline area is more compact than the animated login headline. */
+
+.register-card {
+  max-width: 440px;
+}
+
+.register-welcome {
+  font-size: 26px;
+  min-height: auto;
+  margin: 12px 0 4px;
+}
+
+.register-welcome b {
+  animation: none;
+}
+
+.register-subtitle {
+  text-align: center;
+  color: var(--color-text-subtle);
+  margin: 0 0 24px;
+  font-size: 14px;
+}
+
+.password-strength {
+  margin: -8px 0 16px;
+}
+
+.password-strength-label {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-subtle);
+  margin-top: 2px;
+}
+
+/* `.register-footer` styles are shared from LoginPage.css (imported above). */

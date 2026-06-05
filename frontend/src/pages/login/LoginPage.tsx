@@ -47,6 +47,7 @@ export default function LoginPage() {
   const [fetched, setFetched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [twoFactorEnable, setTwoFactorEnable] = useState(false);
+  const [registrationEnable, setRegistrationEnable] = useState(false);
   const [headlineIndex, setHeadlineIndex] = useState(0);
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
 
@@ -65,9 +66,13 @@ export default function LoginPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const msg = await HttpUtil.post('/getTwoFactorEnable');
+      const [twoFactor, registration] = await Promise.all([
+        HttpUtil.post('/getTwoFactorEnable', undefined, { silent: true }),
+        HttpUtil.post('/getRegistrationEnable', undefined, { silent: true }),
+      ]);
       if (cancelled) return;
-      if (msg.success) setTwoFactorEnable(!!msg.obj);
+      if (twoFactor.success) setTwoFactorEnable(!!twoFactor.obj);
+      if (registration.success) setRegistrationEnable(!!registration.obj);
       setFetched(true);
     })();
     return () => { cancelled = true; };
@@ -240,6 +245,13 @@ export default function LoginPage() {
                     </Button>
                   </Form.Item>
                 </Form>
+
+                {registrationEnable ? (
+                  <div className="register-footer">
+                    <span>{t('pages.login.noAccount')}</span>{' '}
+                    <a href={(basePath || '/') + 'register'}>{t('pages.login.createAccount')}</a>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>

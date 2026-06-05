@@ -31,6 +31,7 @@ export const AllSettingSchema = z.object({
   tgLang: z.string().optional(),
   twoFactorEnable: z.boolean().optional(),
   twoFactorToken: z.string().optional(),
+  registrationEnable: z.boolean().optional(),
   xrayTemplateConfig: z.string().optional(),
   subEnable: z.boolean().optional(),
   subJsonEnable: z.boolean().optional(),

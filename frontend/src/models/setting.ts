@@ -27,6 +27,7 @@ export class AllSetting {
   tgLang = 'en-US';
   twoFactorEnable = false;
   twoFactorToken = '';
+  registrationEnable = false;
   xrayTemplateConfig = '';
   subEnable = true;
   subJsonEnable = false;

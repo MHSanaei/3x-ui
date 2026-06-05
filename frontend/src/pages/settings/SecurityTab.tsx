@@ -269,13 +269,25 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
           key: '2',
           label: catTabLabel(<SafetyOutlined />, t('pages.settings.security.twoFactor'), isMobile),
           children: (
-            <SettingListItem
-              paddings="small"
-              title={t('pages.settings.security.twoFactorEnable')}
-              description={t('pages.settings.security.twoFactorEnableDesc')}
-            >
-              <Switch checked={allSetting.twoFactorEnable} onClick={toggleTwoFactor} />
-            </SettingListItem>
+            <>
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.security.twoFactorEnable')}
+                description={t('pages.settings.security.twoFactorEnableDesc')}
+              >
+                <Switch checked={allSetting.twoFactorEnable} onClick={toggleTwoFactor} />
+              </SettingListItem>
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.security.registrationEnable')}
+                description={t('pages.settings.security.registrationEnableDesc')}
+              >
+                <Switch
+                  checked={allSetting.registrationEnable}
+                  onChange={(checked) => updateSetting({ registrationEnable: checked })}
+                />
+              </SettingListItem>
+            </>
           ),
         },
         {

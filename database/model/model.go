@@ -35,7 +35,10 @@ const (
 type User struct {
 	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Username   string `json:"username"`
-	Password   string `json:"password"`
+	Password   string `json:"-"`
+	FullName   string `json:"fullName" gorm:"default:''"`
+	Phone      string `json:"phone" gorm:"default:''"`
+	Email      string `json:"email" gorm:"default:''"`
 	LoginEpoch int64  `json:"-" gorm:"default:0"`
 }
 

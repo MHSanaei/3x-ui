@@ -372,3 +372,15 @@
   margin-bottom: 0;
 }
 
+.register-footer {
+  text-align: center;
+  margin-top: 16px;
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.register-footer a {
+  color: var(--color-accent);
+  font-weight: 500;
+}
+

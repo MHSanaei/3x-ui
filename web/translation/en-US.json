@@ -2,6 +2,11 @@
   "username": "Username",
   "password": "Password",
   "login": "Log In",
+  "register": "Register",
+  "fullName": "Full Name",
+  "phoneNumber": "Phone Number",
+  "email": "Email",
+  "confirmPassword": "Confirm Password",
   "confirm": "Confirm",
   "cancel": "Cancel",
   "close": "Close",
@@ -124,6 +129,51 @@
         "emptyPassword": "Password is required",
         "wrongUsernameOrPassword": "Invalid username or password or two-factor code.",
         "successLogin": "You have successfully logged into your account."
+      },
+      "noAccount": "Don't have an account?",
+      "createAccount": "Create one"
+    },
+    "register": {
+      "title": "Create account",
+      "subtitle": "Sign up to access the panel",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "backToLogin": "Sign in",
+      "passwordStrength": "Password strength",
+      "strengthWeak": "Weak",
+      "strengthFair": "Fair",
+      "strengthGood": "Good",
+      "strengthStrong": "Strong",
+      "placeholders": {
+        "fullName": "Jane Doe",
+        "phone": "+1 555 123 4567",
+        "email": "you@example.com",
+        "username": "3-32 letters, digits or underscore",
+        "password": "At least 8 chars, mixed case and a number",
+        "confirmPassword": "Re-enter your password"
+      },
+      "errors": {
+        "fullName": "Full name must be between 2 and 100 characters",
+        "phone": "Enter a valid phone number",
+        "email": "Enter a valid email address",
+        "username": "Username must be 3-32 letters, digits or underscores",
+        "password": "Password must be at least 8 characters with upper, lower case letters and a number",
+        "confirmPassword": "Passwords do not match"
+      },
+      "toasts": {
+        "disabled": "Registration is currently disabled.",
+        "invalidFormData": "The input data format is invalid.",
+        "tooManyAttempts": "Too many registration attempts. Please try again later.",
+        "passwordMismatch": "Passwords do not match.",
+        "weakPassword": "Password must be at least 8 characters with upper, lower case letters and a number.",
+        "invalidFullName": "Please enter a valid full name.",
+        "invalidPhone": "Please enter a valid phone number.",
+        "invalidEmail": "Please enter a valid email address.",
+        "invalidUsername": "Username must be 3-32 letters, digits or underscores.",
+        "usernameTaken": "This username is already taken.",
+        "emailTaken": "This email is already registered.",
+        "failed": "Registration failed. Please try again.",
+        "success": "Your account has been created. You can now sign in."
       }
     },
     "index": {
@@ -1110,6 +1160,8 @@
         "twoFactor": "Two-factor authentication",
         "twoFactorEnable": "Enable 2FA",
         "twoFactorEnableDesc": "Adds an additional layer of authentication to provide more security.",
+        "registrationEnable": "Allow self-registration",
+        "registrationEnableDesc": "Let visitors create their own panel accounts from a public sign-up page. Leave off unless you intend to expose open registration.",
         "twoFactorModalSetTitle": "Enable two-factor authentication",
         "twoFactorModalDeleteTitle": "Disable two-factor authentication",
         "twoFactorModalSteps": "To set up two-factor authentication, perform a few steps:",

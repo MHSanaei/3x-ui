@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"text/template"
 	"time"
@@ -18,6 +19,16 @@ type LoginForm struct {
 	Username      string `json:"username" form:"username"`
 	Password      string `json:"password" form:"password"`
 	TwoFactorCode string `json:"twoFactorCode" form:"twoFactorCode"`
+}
+
+// RegisterForm represents the self-registration request structure.
+type RegisterForm struct {
+	FullName        string `json:"fullName" form:"fullName"`
+	Phone           string `json:"phone" form:"phone"`
+	Email           string `json:"email" form:"email"`
+	Username        string `json:"username" form:"username"`
+	Password        string `json:"password" form:"password"`
+	ConfirmPassword string `json:"confirmPassword" form:"confirmPassword"`
 }
 
 // IndexController handles the main index and login-related routes.
@@ -39,11 +50,14 @@ func NewIndexController(g *gin.RouterGroup) *IndexController {
 // initRouter sets up the routes for index, login, logout, and two-factor authentication.
 func (a *IndexController) initRouter(g *gin.RouterGroup) {
 	g.GET("/", a.index)
+	g.GET("/register", a.registerPage)
 	g.GET("/csrf-token", a.csrfToken)
 
 	g.POST("/login", middleware.CSRFMiddleware(), a.login)
+	g.POST("/register", middleware.CSRFMiddleware(), a.register)
 	g.POST("/logout", middleware.CSRFMiddleware(), a.logout)
 	g.POST("/getTwoFactorEnable", middleware.CSRFMiddleware(), a.getTwoFactorEnable)
+	g.POST("/getRegistrationEnable", middleware.CSRFMiddleware(), a.getRegistrationEnable)
 }
 
 // index handles the root route, redirecting logged-in users to the panel or showing the login page.
@@ -133,6 +147,105 @@ func loginFailureReason(err error) string {
 		return "invalid 2FA code"
 	}
 	return "invalid credentials"
+}
+
+// registerPage serves the self-registration SPA shell. Logged-in users are sent
+// to the panel; when registration is disabled the page is not exposed and the
+// visitor is redirected to the login screen.
+func (a *IndexController) registerPage(c *gin.Context) {
+	if session.IsLogin(c) {
+		c.Header("Cache-Control", "no-store")
+		c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path")+"panel/")
+		return
+	}
+	if enabled, err := a.settingService.GetRegistrationEnable(); err != nil || !enabled {
+		c.Header("Cache-Control", "no-store")
+		c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
+		return
+	}
+	serveDistPage(c, "register.html")
+}
+
+// getRegistrationEnable reports whether public self-registration is enabled so
+// the login/registration pages can show or hide the relevant controls.
+func (a *IndexController) getRegistrationEnable(c *gin.Context) {
+	status, err := a.settingService.GetRegistrationEnable()
+	if err == nil {
+		jsonObj(c, status, nil)
+	}
+}
+
+// register creates a new panel user from the self-registration form. It is
+// gated behind the registrationEnable setting, rate limited per client IP, and
+// validates/normalizes every field before delegating uniqueness and hashing to
+// the user service.
+func (a *IndexController) register(c *gin.Context) {
+	enabled, err := a.settingService.GetRegistrationEnable()
+	if err != nil || !enabled {
+		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.register.toasts.disabled"))
+		return
+	}
+
+	remoteIP := getRemoteIp(c)
+	if _, ok := defaultRegisterLimiter.allow(remoteIP, registrationLimitBucket); !ok {
+		logger.Warningf("registration throttled: IP=%q", remoteIP)
+		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.register.toasts.tooManyAttempts"))
+		return
+	}
+
+	var form RegisterForm
+	if err := c.ShouldBind(&form); err != nil {
+		defaultRegisterLimiter.registerFailure(remoteIP, registrationLimitBucket)
+		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.register.toasts.invalidFormData"))
+		return
+	}
+
+	if form.Password != form.ConfirmPassword {
+		defaultRegisterLimiter.registerFailure(remoteIP, registrationLimitBucket)
+		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.register.toasts.passwordMismatch"))
+		return
+	}
+
+	user, regErr := a.userService.Register(service.RegisterInput{
+		FullName: form.FullName,
+		Phone:    form.Phone,
+		Email:    form.Email,
+		Username: form.Username,
+		Password: form.Password,
+	})
+	if regErr != nil {
+		defaultRegisterLimiter.registerFailure(remoteIP, registrationLimitBucket)
+		pureJsonMsg(c, http.StatusOK, false, registerFailureMessage(c, regErr))
+		return
+	}
+
+	defaultRegisterLimiter.registerSuccess(remoteIP, registrationLimitBucket)
+	logger.Infof("new user %q registered, Ip Address: %s", template.HTMLEscapeString(user.Username), remoteIP)
+	jsonMsg(c, I18nWeb(c, "pages.register.toasts.success"), nil)
+}
+
+// registerFailureMessage maps a registration service error to a localized,
+// non-leaky message. Unknown errors fall back to a generic failure string.
+func registerFailureMessage(c *gin.Context, err error) string {
+	switch {
+	case errors.Is(err, service.ErrUsernameTaken):
+		return I18nWeb(c, "pages.register.toasts.usernameTaken")
+	case errors.Is(err, service.ErrEmailTaken):
+		return I18nWeb(c, "pages.register.toasts.emailTaken")
+	case errors.Is(err, service.ErrInvalidUsername):
+		return I18nWeb(c, "pages.register.toasts.invalidUsername")
+	case errors.Is(err, service.ErrInvalidEmail):
+		return I18nWeb(c, "pages.register.toasts.invalidEmail")
+	case errors.Is(err, service.ErrInvalidPhone):
+		return I18nWeb(c, "pages.register.toasts.invalidPhone")
+	case errors.Is(err, service.ErrInvalidFullName):
+		return I18nWeb(c, "pages.register.toasts.invalidFullName")
+	case errors.Is(err, service.ErrWeakPassword):
+		return I18nWeb(c, "pages.register.toasts.weakPassword")
+	default:
+		logger.Warning("registration failed:", err)
+		return I18nWeb(c, "pages.register.toasts.failed")
+	}
 }
 
 func (a *IndexController) logout(c *gin.Context) {
