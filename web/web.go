@@ -17,6 +17,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/config"
 	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/util/common"
 	"github.com/mhsanaei/3x-ui/v3/web/controller"
 	"github.com/mhsanaei/3x-ui/v3/web/job"
@@ -281,6 +282,10 @@ func (s *Server) startTask(restartXray bool) {
 		s.cron.AddJob("@every 5s", job.NewXrayTrafficJob())
 	}()
 
+	// Reconcile mtproto (mtg) sidecars and scrape their traffic
+	s.cron.AddJob("@every 10s", job.NewMtprotoJob())
+	go job.NewMtprotoJob().Run()
+
 	// check client ips from log file every 10 sec
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
 
@@ -465,6 +470,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	s.cancel()
 	if stopXray {
 		s.xrayService.StopXray()
+		mtproto.GetManager().StopAll()
 	}
 	if s.cron != nil {
 		s.cron.Stop()

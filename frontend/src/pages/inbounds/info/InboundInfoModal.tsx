@@ -625,6 +625,35 @@ export default function InboundInfoModal({
         </dl>
       )}
 
+      {inbound.protocol === Protocols.MTPROTO && inbound.settings && (
+        <dl className="info-list info-list-block">
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.fakeTlsDomain')}</dt>
+            <dd><Tag color="green" className="value-tag">{inbound.settings.fakeTlsDomain as string}</Tag></dd>
+          </div>
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.mtprotoSecret')}</dt>
+            <dd className="value-block">
+              <code className="value-code">{inbound.settings.secret as string}</code>
+              <Tooltip title={t('copy')}>
+                <Button size="small" className="value-copy" icon={<CopyOutlined />} onClick={() => copyText(inbound.settings.secret as string, t)} />
+              </Tooltip>
+            </dd>
+          </div>
+          {links.length > 0 && (
+            <div className="info-row">
+              <dt>{t('pages.inbounds.copyLink')}</dt>
+              <dd className="value-block">
+                <code className="value-code">{links[0].link}</code>
+                <Tooltip title={t('copy')}>
+                  <Button size="small" className="value-copy" icon={<CopyOutlined />} onClick={() => copyText(links[0].link, t)} />
+                </Tooltip>
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+
       {dbInbound.isMixed && inbound.settings && (
         <dl className="info-list info-list-block">
           <div className="info-row">
