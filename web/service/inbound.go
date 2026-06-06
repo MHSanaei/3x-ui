@@ -1193,6 +1193,11 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		if err := s.DelClientStat(tx, email); err != nil {
 			return err
 		}
+		// Keep inbound_client_ips in sync when the inbound edit drops an
+		// email, so the IP-limit job doesn't keep a ghost tracking row (#4963).
+		if err := s.DelClientIPs(tx, email); err != nil {
+			return err
+		}
 	}
 	for i := range newClients {
 		email := newClients[i].Email
