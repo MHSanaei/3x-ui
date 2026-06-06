@@ -61,6 +61,25 @@ func TestIsRoutableHost(t *testing.T) {
 	}
 }
 
+func TestListenIsInternalOnly(t *testing.T) {
+	// Reachable only from the same host -> a fallback child here must be
+	// projected through its master.
+	internalOnly := []string{"127.0.0.1", "127.0.0.2", "::1", "[::1]", "@fallback", "/run/x.sock"}
+	for _, v := range internalOnly {
+		if !listenIsInternalOnly(v) {
+			t.Fatalf("listenIsInternalOnly(%q) = false, want true", v)
+		}
+	}
+	// Directly reachable on its own port -> never projected, even if a stale
+	// fallback rule names it as a child (#4987).
+	reachable := []string{"", "0.0.0.0", "::", "::0", "1.2.3.4", "10.0.0.5", "192.168.1.10", "vpn.example.com"}
+	for _, v := range reachable {
+		if listenIsInternalOnly(v) {
+			t.Fatalf("listenIsInternalOnly(%q) = true, want false", v)
+		}
+	}
+}
+
 func TestResolveInboundAddress(t *testing.T) {
 	const reqHost = "sub.example.com"
 
