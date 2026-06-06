@@ -30,6 +30,7 @@ type HeartbeatPatch struct {
 	LatencyMs     int
 	XrayVersion   string
 	PanelVersion  string
+	Guid          string
 	CpuPct        float64
 	MemPct        float64
 	UptimeSecs    uint64
@@ -224,9 +225,7 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 		Select("inbound_id, email, enable, total, up, down, expiry_time").
 		Where("inbound_id IN ?", inboundIDs).
 		Scan(&trafficRows).Error; err == nil {
-		onlineByNodeSet := s.onlineEmailsByNode()
 		depletedByNode := make(map[int]int)
-		onlineByNode := make(map[int]int)
 		for _, row := range trafficRows {
 			nodeID, ok := nodeByInbound[row.InboundID]
 			if !ok {
@@ -237,36 +236,43 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 			if expired || exhausted || !row.Enable {
 				depletedByNode[nodeID]++
 			}
-			// Scope online by the node the inbound lives on: a client online
-			// on one node must not count as online on another.
-			if set, ok := onlineByNodeSet[nodeID]; ok {
-				if _, isOnline := set[row.Email]; isOnline {
-					onlineByNode[nodeID]++
-				}
-			}
 		}
+		onlineByGuid := s.onlineEmailsByGuid()
 		for _, n := range nodes {
 			n.InboundCount = len(inboundsByNode[n.Id])
 			n.DepletedCount = depletedByNode[n.Id]
-			n.OnlineCount = onlineByNode[n.Id]
+			// Online is attributed to the node that physically hosts the client
+			// (by GUID): a client on a sub-node counts under the sub-node, not
+			// the intermediate node it syncs through (#4983).
+			n.OnlineCount = len(onlineByGuid[effectiveNodeGuid(n)])
 		}
 	}
 
 	return nodes, nil
 }
 
-func (s *NodeService) onlineEmailsByNode() map[int]map[string]struct{} {
+func (s *NodeService) onlineEmailsByGuid() map[string]map[string]struct{} {
 	svc := InboundService{}
-	byNode := svc.GetOnlineClientsByNode()
-	out := make(map[int]map[string]struct{}, len(byNode))
-	for nodeID, emails := range byNode {
+	byGuid := svc.GetOnlineClientsByGuid()
+	out := make(map[string]map[string]struct{}, len(byGuid))
+	for guid, emails := range byGuid {
 		set := make(map[string]struct{}, len(emails))
 		for _, email := range emails {
 			set[email] = struct{}{}
 		}
-		out[nodeID] = set
+		out[guid] = set
 	}
 	return out
+}
+
+// effectiveNodeGuid is a node's stable online-attribution key: its reported
+// panelGuid, or a master-local synthetic id when the node is an old build that
+// hasn't reported one yet (#4983).
+func effectiveNodeGuid(n *model.Node) string {
+	if n.Guid != "" {
+		return n.Guid
+	}
+	return synthNodeGuid(n.Id)
 }
 
 func (s *NodeService) GetById(id int) (*model.Node, error) {
@@ -469,6 +475,11 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 		"uptime_secs":    p.UptimeSecs,
 		"last_error":     p.LastError,
 	}
+	// Only learn the GUID; never clear a known one if an old-build node (or a
+	// failed probe) reports none, so the stable identity survives blips.
+	if p.Guid != "" {
+		updates["guid"] = p.Guid
+	}
 	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
 	}
@@ -599,6 +610,7 @@ func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch,
 				Version string `json:"version"`
 			} `json:"xray"`
 			PanelVersion string `json:"panelVersion"`
+			PanelGuid    string `json:"panelGuid"`
 			Uptime       uint64 `json:"uptime"`
 		} `json:"obj"`
 	}
@@ -617,6 +629,7 @@ func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch,
 	}
 	patch.XrayVersion = o.Xray.Version
 	patch.PanelVersion = o.PanelVersion
+	patch.Guid = o.PanelGuid
 	patch.UptimeSecs = o.Uptime
 	return patch, nil
 }

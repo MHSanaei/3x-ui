@@ -881,6 +881,8 @@
       "connectionFailed": "Koneksi gagal",
       "never": "tidak pernah",
       "justNow": "baru saja",
+      "subNode": "Sub-node",
+      "subNodeTip": "Hanya-baca: node turunan yang dijangkau melalui {parent}. Kelola dari panel {parent} sendiri.",
       "deleteConfirmTitle": "Hapus node \"{name}\"?",
       "deleteConfirmContent": "Ini menghentikan pemantauan node. Panel jarak jauh itu sendiri tidak terpengaruh.",
       "statusValues": {

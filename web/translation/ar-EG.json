@@ -881,6 +881,8 @@
       "connectionFailed": "فشل الاتصال",
       "never": "أبدًا",
       "justNow": "دلوقتي",
+      "subNode": "نود فرعي",
+      "subNodeTip": "للقراءة فقط: نود تابع يتم الوصول إليه عبر {parent}. تتم إدارته من لوحة {parent} نفسها.",
       "deleteConfirmTitle": "تحذف النود \"{name}\"؟",
       "deleteConfirmContent": "ده هيوقّف مراقبة النود. البانل البعيد نفسه مش هيتأثر.",
       "statusValues": {

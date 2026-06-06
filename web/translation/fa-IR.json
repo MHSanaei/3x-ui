@@ -881,6 +881,8 @@
       "connectionFailed": "اتصال ناموفق",
       "never": "هرگز",
       "justNow": "هم‌اکنون",
+      "subNode": "نود فرعی",
+      "subNodeTip": "فقط‌خواندنی: یک نود پایین‌دستی که از طریق {parent} در دسترس است. آن را از پنل خودِ {parent} مدیریت کنید.",
       "deleteConfirmTitle": "نود «{name}» حذف شود؟",
       "deleteConfirmContent": "نظارت روی این نود متوقف می‌شود. خود پنل ریموت تغییری نمی‌کند.",
       "statusValues": {

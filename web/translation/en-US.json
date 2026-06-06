@@ -887,6 +887,8 @@
       "connectionFailed": "Connection failed",
       "never": "never",
       "justNow": "just now",
+      "subNode": "Sub-node",
+      "subNodeTip": "Read-only: a downstream node reached through {parent}. Manage it from {parent}'s own panel.",
       "deleteConfirmTitle": "Delete node \"{name}\"?",
       "deleteConfirmContent": "This stops monitoring the node. The remote panel itself is unaffected.",
       "statusValues": {

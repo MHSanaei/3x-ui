@@ -881,6 +881,8 @@
       "connectionFailed": "Kết nối thất bại",
       "never": "chưa bao giờ",
       "justNow": "vừa xong",
+      "subNode": "Nút con",
+      "subNodeTip": "Chỉ đọc: một nút phía dưới được kết nối qua {parent}. Quản lý nó từ bảng điều khiển của chính {parent}.",
       "deleteConfirmTitle": "Xóa nút \"{name}\"?",
       "deleteConfirmContent": "Việc này dừng giám sát nút. Panel từ xa không bị ảnh hưởng.",
       "statusValues": {

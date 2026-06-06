@@ -155,13 +155,18 @@ type process struct {
 	// two signals stay aligned — an email within grace always has the
 	// inbound it used within grace too.
 	localInboundLastActive map[string]int64
-	// nodeOnlineClients holds the online-emails list reported by each
-	// remote node, keyed by node id. NodeTrafficSyncJob populates entries
-	// per cron tick and clears them when a node's probe fails. The mutex
-	// guards this map, onlineClients, and localLastOnline above so the
+	// nodeOnlineTrees holds, per direct remote node (keyed by that node's
+	// panel-local id), the GUID-keyed online-emails subtree that node
+	// reported — its own clients under its panelGuid plus every descendant
+	// under theirs. Keying the stored value by GUID (not node id) lets the
+	// master attribute a deeply nested client to the node that physically
+	// hosts it across a chain (#4983); the outer node-id key is only so a
+	// failed probe can drop that whole branch's contribution. NodeTrafficSyncJob
+	// populates entries per cron tick and clears them when a probe fails. The
+	// mutex guards this map, onlineClients, and localLastOnline above so the
 	// online getters never see a torn read.
-	nodeOnlineClients map[int][]string
-	onlineMu          sync.RWMutex
+	nodeOnlineTrees map[int]map[string][]string
+	onlineMu        sync.RWMutex
 
 	config     *Config
 	configPath string // if set, use this path instead of GetConfigPath() and remove on Stop
@@ -176,12 +181,6 @@ var (
 	xrayGracefulStopTimeout = 5 * time.Second
 	xrayForceStopTimeout    = 2 * time.Second
 )
-
-// localNodeKey is the GetOnlineClientsByNode key under which this panel's
-// own (non-node-managed) inbounds report their online clients. Node ids
-// autoincrement from 1, so 0 is a safe sentinel that never collides with a
-// real node. The frontend mirrors this contract (nodeId ?? 0).
-const localNodeKey = 0
 
 // newProcess creates a new internal process struct for Xray.
 func newProcess(config *Config) *process {
@@ -255,7 +254,7 @@ func (p *Process) GetOnlineClients() []string {
 	p.onlineMu.RLock()
 	defer p.onlineMu.RUnlock()
 
-	if len(p.nodeOnlineClients) == 0 {
+	if len(p.nodeOnlineTrees) == 0 {
 		// Hot path for single-panel deployments: avoid the map+dedupe
 		// work entirely and return the local slice as-is.
 		return p.onlineClients
@@ -263,15 +262,8 @@ func (p *Process) GetOnlineClients() []string {
 
 	seen := make(map[string]struct{}, len(p.onlineClients))
 	out := make([]string, 0, len(p.onlineClients))
-	for _, email := range p.onlineClients {
-		if _, dup := seen[email]; dup {
-			continue
-		}
-		seen[email] = struct{}{}
-		out = append(out, email)
-	}
-	for _, list := range p.nodeOnlineClients {
-		for _, email := range list {
+	add := func(emails []string) {
+		for _, email := range emails {
 			if _, dup := seen[email]; dup {
 				continue
 			}
@@ -279,53 +271,79 @@ func (p *Process) GetOnlineClients() []string {
 			out = append(out, email)
 		}
 	}
-	return out
-}
-
-// GetOnlineClientsByNode returns online emails grouped by the node that
-// reported them: this panel's own xray clients under localNodeKey (0), and
-// each remote node's clients under that node's id. Unlike GetOnlineClients
-// (which flattens everything into one deduped union), this preserves node
-// attribution so per-inbound/per-node online counts don't bleed a client
-// connected to one node onto every other node. Empty groups are omitted.
-func (p *Process) GetOnlineClientsByNode() map[int][]string {
-	p.onlineMu.RLock()
-	defer p.onlineMu.RUnlock()
-
-	out := make(map[int][]string, len(p.nodeOnlineClients)+1)
-	if len(p.onlineClients) > 0 {
-		local := make([]string, len(p.onlineClients))
-		copy(local, p.onlineClients)
-		out[localNodeKey] = local
-	}
-	for nodeID, list := range p.nodeOnlineClients {
-		if len(list) == 0 {
-			continue
+	add(p.onlineClients)
+	for _, tree := range p.nodeOnlineTrees {
+		for _, emails := range tree {
+			add(emails)
 		}
-		cp := make([]string, len(list))
-		copy(cp, list)
-		out[nodeID] = cp
 	}
 	return out
 }
 
-// GetActiveInboundsByNode returns the inbound tags that carried traffic within
-// the grace window, grouped by node. Only this panel's own xray reports
-// per-inbound activity (under localNodeKey); remote-node snapshots don't carry
-// it, so their nodes are simply absent — the per-inbound view reads "node
-// missing" as "don't gate" and falls back to the email-only signal there.
-// Empty groups are omitted, mirroring GetOnlineClientsByNode.
-func (p *Process) GetActiveInboundsByNode() map[int][]string {
+// GetLocalOnlineClients returns a copy of the emails online on THIS panel's own
+// xray within the grace window. The service layer keys these under the panel's
+// own GUID when assembling the per-node online view.
+func (p *Process) GetLocalOnlineClients() []string {
 	p.onlineMu.RLock()
 	defer p.onlineMu.RUnlock()
-
-	if len(p.localActiveInbounds) == 0 {
-		return map[int][]string{}
+	if len(p.onlineClients) == 0 {
+		return nil
 	}
-	out := make(map[int][]string, 1)
-	local := make([]string, len(p.localActiveInbounds))
-	copy(local, p.localActiveInbounds)
-	out[localNodeKey] = local
+	out := make([]string, len(p.onlineClients))
+	copy(out, p.onlineClients)
+	return out
+}
+
+// GetMergedNodeTrees returns the union of every direct node's reported subtree,
+// keyed by the panelGuid of the node that physically hosts each client set.
+// Because each child already reports its descendants under their own GUIDs,
+// merging the direct children yields the whole tree at any depth (#4983), so a
+// client three hops down is attributed to its real node, not the intermediate
+// one. GUIDs are globally unique, but a set reported under the same GUID by more
+// than one path is deduped per key; empty sets are omitted.
+func (p *Process) GetMergedNodeTrees() map[string][]string {
+	p.onlineMu.RLock()
+	defer p.onlineMu.RUnlock()
+	if len(p.nodeOnlineTrees) == 0 {
+		return map[string][]string{}
+	}
+	out := make(map[string][]string)
+	seen := make(map[string]map[string]struct{})
+	for _, tree := range p.nodeOnlineTrees {
+		for guid, emails := range tree {
+			if guid == "" || len(emails) == 0 {
+				continue
+			}
+			dedup := seen[guid]
+			if dedup == nil {
+				dedup = make(map[string]struct{}, len(emails))
+				seen[guid] = dedup
+			}
+			for _, email := range emails {
+				if _, ok := dedup[email]; ok {
+					continue
+				}
+				dedup[email] = struct{}{}
+				out[guid] = append(out[guid], email)
+			}
+		}
+	}
+	return out
+}
+
+// GetLocalActiveInbounds returns a copy of THIS panel's inbound tags that
+// carried traffic within the grace window. Only the local xray reports
+// per-inbound activity; remote-node snapshots don't carry it, so the service
+// layer keys these under the panel's own GUID and a node missing from the
+// active-inbounds map means "don't gate" (fall back to the email-only signal).
+func (p *Process) GetLocalActiveInbounds() []string {
+	p.onlineMu.RLock()
+	defer p.onlineMu.RUnlock()
+	if len(p.localActiveInbounds) == 0 {
+		return nil
+	}
+	out := make([]string, len(p.localActiveInbounds))
+	copy(out, p.localActiveInbounds)
 	return out
 }
 
@@ -371,25 +389,26 @@ func (p *Process) RefreshLocalOnline(activeEmails, activeInboundTags []string, n
 	p.localActiveInbounds = activeInbounds
 }
 
-// SetNodeOnlineClients records the online-emails set for one remote
-// node. Replaces any previous entry for that node — NodeTrafficSyncJob
-// always sends the full list per tick.
-func (p *Process) SetNodeOnlineClients(nodeID int, emails []string) {
+// SetNodeOnlineTree records the GUID-keyed online subtree one direct remote
+// node reported (its own clients under its panelGuid plus every descendant
+// under theirs). Replaces any previous entry for that node — NodeTrafficSyncJob
+// always sends the full subtree per tick.
+func (p *Process) SetNodeOnlineTree(nodeID int, tree map[string][]string) {
 	p.onlineMu.Lock()
 	defer p.onlineMu.Unlock()
-	if p.nodeOnlineClients == nil {
-		p.nodeOnlineClients = map[int][]string{}
+	if p.nodeOnlineTrees == nil {
+		p.nodeOnlineTrees = map[int]map[string][]string{}
 	}
-	p.nodeOnlineClients[nodeID] = emails
+	p.nodeOnlineTrees[nodeID] = tree
 }
 
-// ClearNodeOnlineClients drops a node's contribution to the online set.
-// Called when a probe fails so a downed node doesn't keep its clients
-// listed as "online" until the next successful probe.
+// ClearNodeOnlineClients drops a direct node's whole subtree contribution.
+// Called when a probe fails so a downed node — and everything behind it — doesn't
+// keep its clients listed as "online" until the next successful probe.
 func (p *Process) ClearNodeOnlineClients(nodeID int) {
 	p.onlineMu.Lock()
 	defer p.onlineMu.Unlock()
-	delete(p.nodeOnlineClients, nodeID)
+	delete(p.nodeOnlineTrees, nodeID)
 }
 
 // GetUptime returns the uptime of the Xray process in seconds.

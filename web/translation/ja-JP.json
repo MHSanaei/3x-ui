@@ -881,6 +881,8 @@
       "connectionFailed": "接続に失敗しました",
       "never": "なし",
       "justNow": "たった今",
+      "subNode": "サブノード",
+      "subNodeTip": "読み取り専用: {parent} を経由して到達する下位ノードです。{parent} 自身のパネルから管理してください。",
       "deleteConfirmTitle": "ノード「{name}」を削除しますか？",
       "deleteConfirmContent": "ノードの監視を停止します。リモートパネル自体には影響しません。",
       "statusValues": {

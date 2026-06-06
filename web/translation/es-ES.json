@@ -881,6 +881,8 @@
       "connectionFailed": "Conexión fallida",
       "never": "nunca",
       "justNow": "ahora mismo",
+      "subNode": "Subnodo",
+      "subNodeTip": "Solo lectura: un nodo descendente al que se llega a través de {parent}. Gestiónalo desde el propio panel de {parent}.",
       "deleteConfirmTitle": "¿Eliminar el nodo \"{name}\"?",
       "deleteConfirmContent": "Esto detiene la monitorización del nodo. El panel remoto en sí no se ve afectado.",
       "statusValues": {
