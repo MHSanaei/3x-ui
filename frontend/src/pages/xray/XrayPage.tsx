@@ -29,6 +29,7 @@ import { JsonEditor } from '@/components/form';
 import { setMessageInstance } from '@/utils/messageBus';
 
 import { BasicsTab } from './basics';
+import { propagateOutboundTagRename } from './basics/helpers';
 import { RoutingTab } from './routing';
 import { OutboundsTab } from './outbounds';
 import { BalancersTab } from './balancers';
@@ -109,11 +110,8 @@ export default function XrayPage() {
     mutate((tt) => {
       if (!tt.outbounds || payload.index < 0) return;
       tt.outbounds[payload.index] = payload.outbound as never;
-      if (payload.oldTag && payload.newTag && payload.oldTag !== payload.newTag) {
-        const rules = tt.routing?.rules || [];
-        for (const r of rules) {
-          if (r?.outboundTag === payload.oldTag) r.outboundTag = payload.newTag;
-        }
+      if (payload.oldTag && payload.newTag) {
+        propagateOutboundTagRename(tt, payload.oldTag, payload.newTag);
       }
     });
   }

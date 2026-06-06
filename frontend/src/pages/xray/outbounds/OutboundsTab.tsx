@@ -20,6 +20,7 @@ import {
 } from '@ant-design/icons';
 
 import OutboundFormModal from './OutboundFormModal';
+import { propagateOutboundTagRename } from '../basics/helpers';
 import type { XraySettingsValue, SetTemplate, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 import './OutboundsTab.css';
 
@@ -103,11 +104,16 @@ export default function OutboundsTab({
   function onConfirm(outbound: Record<string, unknown>) {
     mutate((tt) => {
       if (!Array.isArray(tt.outbounds)) tt.outbounds = [];
+      const newTag = typeof outbound.tag === 'string' ? outbound.tag : '';
       if (editingIndex == null) {
-        if (!outbound.tag) return;
+        if (!newTag) return;
         tt.outbounds.push(outbound as never);
       } else {
+        const oldTag = tt.outbounds[editingIndex]?.tag;
         tt.outbounds[editingIndex] = outbound as never;
+        if (oldTag && newTag && oldTag !== newTag) {
+          propagateOutboundTagRename(tt, oldTag, newTag);
+        }
       }
     });
     setModalOpen(false);
