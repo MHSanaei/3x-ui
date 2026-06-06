@@ -171,6 +171,7 @@ export default function SockoptForm({
                 <Form.Item
                   label={t('pages.inbounds.form.tcpWindowClamp')}
                   name={['streamSettings', 'sockopt', 'tcpWindowClamp']}
+                  tooltip={t('pages.inbounds.form.tcpWindowClampHint')}
                 >
                   <InputNumber min={0} style={{ width: '100%' }} />
                 </Form.Item>

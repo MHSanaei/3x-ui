@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 
 import { OutboundDomainStrategies } from '@/schemas/primitives';
+import { HappyEyeballsSchema } from '@/schemas/protocols/stream/sockopt';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from '@/pages/settings/catTabLabel';
@@ -84,6 +85,49 @@ export default function BasicsTab({
       | { domainStrategy?: string }
       | undefined)?.domainStrategy ?? 'AsIs';
 
+  const directFreedomOutbound = templateSettings?.outbounds?.find(
+    (o) => o?.protocol === 'freedom' && o?.tag === 'direct',
+  );
+  const directHappyEyeballs = (() => {
+    const sockopt = (directFreedomOutbound?.streamSettings as { sockopt?: { happyEyeballs?: unknown } } | undefined)
+      ?.sockopt;
+    const raw = sockopt?.happyEyeballs;
+    if (raw == null || typeof raw !== 'object') return null;
+    return HappyEyeballsSchema.parse(raw);
+  })();
+
+  const setDirectHappyEyeballs = useCallback(
+    (next: ReturnType<typeof HappyEyeballsSchema.parse> | null) => {
+      mutate((tt) => {
+        if (!tt.outbounds) tt.outbounds = [];
+        let idx = tt.outbounds.findIndex((o) => o?.protocol === 'freedom' && o?.tag === 'direct');
+        if (idx < 0) {
+          tt.outbounds.push({ protocol: 'freedom', tag: 'direct', settings: {} });
+          idx = tt.outbounds.length - 1;
+        }
+        const ob = tt.outbounds[idx];
+        const stream = (ob.streamSettings ?? {}) as Record<string, unknown>;
+        const sockopt = (stream.sockopt ?? {}) as Record<string, unknown>;
+        if (next == null) {
+          delete sockopt.happyEyeballs;
+        } else {
+          sockopt.happyEyeballs = next;
+        }
+        if (Object.keys(sockopt).length === 0) {
+          delete stream.sockopt;
+        } else {
+          stream.sockopt = sockopt;
+        }
+        if (Object.keys(stream).length === 0) {
+          delete ob.streamSettings;
+        } else {
+          ob.streamSettings = stream;
+        }
+      });
+    },
+    [mutate],
+  );
+
   const routingStrategy = templateSettings?.routing?.domainStrategy ?? 'AsIs';
   const log = (templateSettings?.log || {}) as Record<string, unknown>;
   const policy = (templateSettings?.policy?.system || {}) as Record<string, boolean>;
@@ -124,6 +168,53 @@ export default function BasicsTab({
               />
             }
           />
+          <SettingListItem
+            title={t('pages.xray.FreedomHappyEyeballs')}
+            description={t('pages.xray.FreedomHappyEyeballsDesc')}
+            paddings="small"
+            control={
+              <Switch
+                checked={directHappyEyeballs != null}
+                onChange={(checked) => {
+                  setDirectHappyEyeballs(checked ? HappyEyeballsSchema.parse({}) : null);
+                }}
+              />
+            }
+          />
+          {directHappyEyeballs != null && (
+            <>
+              <SettingListItem
+                title={t('pages.inbounds.form.tryDelayMs')}
+                description={t('pages.xray.FreedomHappyEyeballsTryDelayDesc')}
+                paddings="small"
+                control={
+                  <InputNumber
+                    min={0}
+                    style={{ width: '100%' }}
+                    value={directHappyEyeballs.tryDelayMs}
+                    placeholder="150"
+                    onChange={(v) => setDirectHappyEyeballs({
+                      ...directHappyEyeballs,
+                      tryDelayMs: typeof v === 'number' ? v : 0,
+                    })}
+                  />
+                }
+              />
+              <SettingListItem
+                title={t('pages.inbounds.form.prioritizeIPv6')}
+                paddings="small"
+                control={
+                  <Switch
+                    checked={directHappyEyeballs.prioritizeIPv6}
+                    onChange={(checked) => setDirectHappyEyeballs({
+                      ...directHappyEyeballs,
+                      prioritizeIPv6: checked,
+                    })}
+                  />
+                }
+              />
+            </>
+          )}
           <SettingListItem
             title={t('pages.xray.RoutingStrategy')}
             description={t('pages.xray.RoutingStrategyDesc')}
