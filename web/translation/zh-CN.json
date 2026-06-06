@@ -881,6 +881,8 @@
       "connectionFailed": "连接失败",
       "never": "从未",
       "justNow": "刚刚",
+      "subNode": "子节点",
+      "subNodeTip": "只读：通过 {parent} 接入的下游节点。请在 {parent} 自己的面板中管理。",
       "deleteConfirmTitle": "删除节点 \"{name}\"？",
       "deleteConfirmContent": "这将停止监控该节点。远程面板本身不受影响。",
       "statusValues": {

@@ -881,6 +881,8 @@
       "connectionFailed": "Bağlantı başarısız",
       "never": "asla",
       "justNow": "şimdi",
+      "subNode": "Alt düğüm",
+      "subNodeTip": "Salt okunur: {parent} üzerinden erişilen bir alt düğüm. Bunu {parent} panelinden yönetin.",
       "deleteConfirmTitle": "\"{name}\" düğümü silinsin mi?",
       "deleteConfirmContent": "Bu, düğüm izlemeyi durdurur. Uzak panelin kendisi etkilenmez.",
       "statusValues": {

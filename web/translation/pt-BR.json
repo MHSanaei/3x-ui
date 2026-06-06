@@ -881,6 +881,8 @@
       "connectionFailed": "Falha na conexão",
       "never": "nunca",
       "justNow": "agora mesmo",
+      "subNode": "Subnó",
+      "subNodeTip": "Somente leitura: um nó descendente acessado através de {parent}. Gerencie-o pelo próprio painel de {parent}.",
       "deleteConfirmTitle": "Excluir o nó \"{name}\"?",
       "deleteConfirmContent": "Isso interrompe o monitoramento do nó. O painel remoto em si não é afetado.",
       "statusValues": {

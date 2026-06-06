@@ -881,6 +881,8 @@
       "connectionFailed": "Помилка з'єднання",
       "never": "ніколи",
       "justNow": "щойно",
+      "subNode": "Підвузол",
+      "subNodeTip": "Лише для читання: підлеглий вузол, доступний через {parent}. Керуйте ним із власної панелі {parent}.",
       "deleteConfirmTitle": "Видалити вузол \"{name}\"?",
       "deleteConfirmContent": "Це зупинить моніторинг вузла. Сама віддалена панель не зазнає змін.",
       "statusValues": {
