@@ -4,6 +4,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { sections } from '../src/pages/api-docs/endpoints.ts';
+import { EXAMPLES } from '../src/generated/examples.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outPath = join(__dirname, '..', 'public', 'openapi.json');
@@ -128,7 +129,14 @@ function buildOperation(ep, tag) {
   }
 
   const responses = {};
-  const successExample = tryParseJson(ep.response);
+  let successExample = tryParseJson(ep.response);
+  if (successExample === undefined && ep.responseSchema) {
+    const obj = EXAMPLES[ep.responseSchema];
+    if (obj === undefined) {
+      throw new Error(`${ep.method} ${ep.path}: responseSchema "${ep.responseSchema}" has no generated example`);
+    }
+    successExample = { success: true, obj: ep.responseSchemaArray ? [obj] : obj };
+  }
   responses['200'] = {
     description: 'Successful response',
     content: {

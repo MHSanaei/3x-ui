@@ -33,6 +33,7 @@ export default function ApiDocsPage() {
                 docExpansion="list"
                 deepLinking={false}
                 tryItOutEnabled
+                persistAuthorization
               />
             </div>
           </Layout.Content>

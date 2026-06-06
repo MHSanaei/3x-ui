@@ -304,38 +304,41 @@
                   "success": true,
                   "obj": [
                     {
-                      "id": 1,
-                      "userId": 1,
-                      "up": 0,
+                      "clientStats": [
+                        {
+                          "down": 2097152,
+                          "email": "user1",
+                          "enable": true,
+                          "expiryTime": 1735689600000,
+                          "id": 14825,
+                          "inboundId": 1,
+                          "lastOnline": 1735680000000,
+                          "reset": 0,
+                          "subId": "i7tvdpeffi0hvvf1",
+                          "total": 10737418240,
+                          "up": 1048576,
+                          "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
+                        }
+                      ],
                       "down": 0,
-                      "total": 0,
-                      "remark": "VLESS-443",
                       "enable": true,
                       "expiryTime": 0,
+                      "fallbackParent": null,
+                      "id": 1,
+                      "lastTrafficResetTime": 0,
                       "listen": "",
+                      "nodeId": null,
+                      "originNodeGuid": "",
                       "port": 443,
                       "protocol": "vless",
-                      "settings": {
-                        "clients": [],
-                        "decryption": "none"
-                      },
-                      "streamSettings": {
-                        "network": "tcp",
-                        "security": "reality",
-                        "realitySettings": {
-                          "show": false,
-                          "dest": "..."
-                        }
-                      },
-                      "tag": "inbound-443",
-                      "sniffing": {
-                        "enabled": true,
-                        "destOverride": [
-                          "http",
-                          "tls"
-                        ]
-                      },
-                      "clientStats": []
+                      "remark": "VLESS-443",
+                      "settings": null,
+                      "sniffing": null,
+                      "streamSettings": null,
+                      "tag": "in-443-tcp",
+                      "total": 0,
+                      "trafficReset": "never",
+                      "up": 0
                     }
                   ]
                 }
@@ -374,7 +377,6 @@
                   "obj": [
                     {
                       "id": 1,
-                      "userId": 1,
                       "remark": "VLESS-443",
                       "settings": {
                         "clients": [
@@ -400,7 +402,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Lightweight picker projection of the authenticated user’s inbounds. Returns only id, remark, protocol, port, and a server-computed tlsFlowCapable flag (true for VLESS / port-fallback on TCP with tls or reality). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.",
+        "summary": "Lightweight picker projection of the authenticated user’s inbounds. Returns id, remark, tag, protocol, port, a server-computed tlsFlowCapable flag (true for VLESS / port-fallback on TCP with tls or reality), and ssMethod (the Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the client UI to generate a valid Shadowsocks 2022 PSK). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.",
         "operationId": "get_panel_api_inbounds_options",
         "responses": {
           "200": {
@@ -424,9 +426,11 @@
                   "obj": [
                     {
                       "id": 1,
-                      "remark": "VLESS-443",
-                      "protocol": "vless",
                       "port": 443,
+                      "protocol": "vless",
+                      "remark": "VLESS-443",
+                      "ssMethod": "",
+                      "tag": "in-443-tcp",
                       "tlsFlowCapable": true
                     }
                   ]
@@ -3828,8 +3832,8 @@
                   "success": true,
                   "obj": {
                     "a1b2-...": [
-                      "inbound-443",
-                      "inbound-8443"
+                      "in-443-tcp",
+                      "in-8443-tcp"
                     ]
                   }
                 }
@@ -3914,11 +3918,18 @@
                 "example": {
                   "success": true,
                   "obj": {
-                    "email": "user1",
-                    "up": 1048576,
                     "down": 2097152,
+                    "email": "user1",
+                    "enable": true,
+                    "expiryTime": 1735689600000,
+                    "id": 14825,
+                    "inboundId": 1,
+                    "lastOnline": 1735680000000,
+                    "reset": 0,
+                    "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
-                    "expiryTime": 1735689600000
+                    "up": 1048576,
+                    "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
                   }
                 }
               }
@@ -4050,31 +4061,38 @@
                   "success": true,
                   "obj": [
                     {
-                      "id": 1,
-                      "name": "de-fra-1",
-                      "remark": "",
-                      "scheme": "https",
                       "address": "node1.example.com",
-                      "port": 2053,
-                      "basePath": "/",
-                      "apiToken": "abcdef...",
-                      "enable": true,
                       "allowPrivateAddress": false,
-                      "status": "online",
+                      "apiToken": "abcdef0123456789",
+                      "basePath": "/",
+                      "clientCount": 27,
+                      "configDirty": false,
+                      "configDirtyAt": 0,
+                      "cpuPct": 23.5,
+                      "createdAt": 1700000000,
+                      "depletedCount": 1,
+                      "enable": true,
+                      "guid": "",
+                      "id": 1,
+                      "inboundCount": 5,
+                      "lastError": "",
                       "lastHeartbeat": 1700000000,
                       "latencyMs": 42,
-                      "xrayVersion": "25.x.x",
-                      "panelVersion": "v3.x.x",
-                      "cpuPct": 23.5,
                       "memPct": 45.1,
-                      "uptimeSecs": 86400,
-                      "lastError": "",
-                      "inboundCount": 5,
-                      "clientCount": 27,
+                      "name": "de-fra-1",
                       "onlineCount": 3,
-                      "depletedCount": 1,
-                      "createdAt": 1700000000,
-                      "updatedAt": 1700000000
+                      "panelVersion": "v3.x.x",
+                      "parentGuid": "",
+                      "pinnedCertSha256": "",
+                      "port": 2053,
+                      "remark": "",
+                      "scheme": "https",
+                      "status": "online",
+                      "tlsVerifyMode": "verify",
+                      "transitive": false,
+                      "updatedAt": 1700000000,
+                      "uptimeSecs": 86400,
+                      "xrayVersion": "25.10.31"
                     }
                   ]
                 }
@@ -4425,14 +4443,14 @@
                 "example": {
                   "success": true,
                   "obj": {
-                    "status": "online",
-                    "latencyMs": 42,
-                    "xrayVersion": "25.x.x",
-                    "panelVersion": "v3.x.x",
                     "cpuPct": 12.5,
+                    "error": "",
+                    "latencyMs": 42,
                     "memPct": 45.2,
+                    "panelVersion": "v3.x.x",
+                    "status": "online",
                     "uptimeSecs": 86400,
-                    "error": ""
+                    "xrayVersion": "25.10.31"
                   }
                 }
               }
@@ -5262,11 +5280,11 @@
                 "example": {
                   "success": true,
                   "obj": {
+                    "createdAt": 1736000000,
+                    "enabled": true,
                     "id": 2,
                     "name": "central-panel-a",
-                    "token": "new-token-string",
-                    "enabled": true,
-                    "createdAt": 1736000000
+                    "token": "new-token-string"
                   }
                 }
               }
@@ -5435,7 +5453,7 @@
                   "success": true,
                   "obj": {
                     "xraySetting": "{...raw xray config...}",
-                    "inboundTags": "[\"inbound-443\"]",
+                    "inboundTags": "[\"in-443-tcp\"]",
                     "clientReverseTags": "[]",
                     "outboundTestUrl": "https://www.google.com/generate_204"
                   }
