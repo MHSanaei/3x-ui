@@ -1495,6 +1495,36 @@
         }
       }
     },
+    "/panel/api/server/getMigration": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Stream a cross-engine migration file as an attachment: a .dump (SQL text) on SQLite, or a .db SQLite database built from the live data on PostgreSQL.",
+        "operationId": "get_panel_api_server_getMigration",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/getNewUUID": {
       "get": {
         "tags": [
@@ -5761,7 +5791,7 @@
         "tags": [
           "Subscription Server"
         ],
-        "summary": "Return subscription as a Clash/Mihomo-compatible YAML config. Only when Clash subscription is enabled in settings. Default path: /clash/:subid.",
+        "summary": "Return subscription as a Clash/Mihomo-compatible YAML config, including configured global Clash routing rules. Only when Clash subscription is enabled in settings. Default path: /clash/:subid.",
         "operationId": "get_clashPath_subid",
         "parameters": [
           {

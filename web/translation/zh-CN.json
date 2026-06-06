@@ -277,7 +277,10 @@
       "getConfigError": "检索配置文件时出错",
       "backupPostgresNote": "此面板运行在 PostgreSQL 上。「备份」会下载一个 pg_dump 归档（.dump），「恢复」会通过 pg_restore 重新载入。服务器需要安装 PostgreSQL 客户端工具（pg_dump 和 pg_restore）。",
       "exportDatabasePgDesc": "点击将当前数据库的 PostgreSQL 转储（.dump）下载到您的设备。",
-      "importDatabasePgDesc": "点击选择并上传 .dump 文件以恢复您的 PostgreSQL 数据库。此操作将替换所有当前数据。"
+      "importDatabasePgDesc": "点击选择并上传 .dump 文件以恢复您的 PostgreSQL 数据库。此操作将替换所有当前数据。",
+      "migrationDownload": "下载迁移文件",
+      "migrationDownloadDesc": "点击下载当前 SQLite 数据库的可移植 .dump（SQL 文本）导出文件。",
+      "migrationDownloadPgDesc": "点击下载由 PostgreSQL 数据构建的 .db SQLite 数据库，可用于在 SQLite 上运行本面板。"
     },
     "inbounds": {
       "title": "入站",
@@ -553,7 +556,6 @@
         "maxSendingWindow": "最大发送窗口",
         "externalProxy": "外部代理",
         "forceTls": "强制 TLS",
-        "sniPlaceholder": "SNI (默认为 host)",
         "fingerprint": "指纹",
         "defaultOption": "默认",
         "routeMark": "Route Mark",
@@ -1006,6 +1008,10 @@
       "subEnableRoutingDesc": "在 VPN 客户端中启用路由的全局设置。（僅限 Happ）",
       "subRoutingRules": "路由規則",
       "subRoutingRulesDesc": "VPN 用戶端的全域路由規則。（僅限 Happ）",
+      "subClashEnableRouting": "启用路由",
+      "subClashEnableRoutingDesc": "在生成的 YAML 订阅中包含 Clash/Mihomo 全局路由规则。",
+      "subClashRoutingRules": "全局路由规则",
+      "subClashRoutingRulesDesc": "添加到每个 YAML 订阅开头、MATCH,PROXY 之前的 Clash/Mihomo 规则。",
       "subListen": "监听 IP",
       "subListenDesc": "订阅服务监听的 IP 地址（留空表示监听所有 IP）",
       "subPort": "监听端口",
@@ -1072,6 +1078,8 @@
         "defaultIpLimit": "默认 IP 限制"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "注入到每个 JSON 订阅流的 xray finalmask 掩码（TCP/UDP）和 QUIC 调优。需要较新的 xray 客户端。",
         "packets": "数据包",
         "length": "长度",
         "interval": "间隔",

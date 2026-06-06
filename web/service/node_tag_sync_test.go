@@ -46,7 +46,7 @@ func TestSetRemoteTraffic_KeepsInboundOnPrefixMismatch(t *testing.T) {
 	}
 
 	svc := InboundService{}
-	if _, err := svc.setRemoteTrafficLocked(nodeID, snap); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false); err != nil {
 		t.Fatalf("setRemoteTrafficLocked: %v", err)
 	}
 

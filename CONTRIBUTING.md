@@ -86,10 +86,11 @@ Open [http://localhost:2053](http://localhost:2053) and log in with `admin` / `a
 
 ### Inside VS Code
 
-The repo ships a launch profile in `.vscode/launch.json` (gitignored — copy from the snippet below if absent):
+The repo checks in two VS Code launch profiles in `.vscode/launch.json`: **Run 3x-ui (Debug)** for the default SQLite setup, and **Run 3x-ui (Postgres)** which points `XUI_DB_TYPE`/`XUI_DB_DSN` at a local PostgreSQL. The Postgres profile also prepends the PostgreSQL `bin` to `PATH` so the panel can find `pg_dump`/`pg_restore` (the `postgresql-client` tools used for DB backup/restore) — adjust the DSN and that path to your machine:
 
 ```jsonc
 {
+  "$schema": "vscode://schemas/launch",
   "version": "0.2.0",
   "configurations": [
     {
@@ -106,6 +107,23 @@ The repo ships a launch profile in `.vscode/launch.json` (gitignored — copy fr
         "XUI_BIN_FOLDER": "x-ui"
       },
       "console": "integratedTerminal"
+    },
+    {
+      "name": "Run 3x-ui (Postgres)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "XUI_DEBUG": "true",
+        "XUI_LOG_FOLDER": "x-ui",
+        "XUI_BIN_FOLDER": "x-ui",
+        "XUI_DB_TYPE": "postgres",
+        "XUI_DB_DSN": "postgres://xui:xuipass@127.0.0.1:5432/xui?sslmode=disable",
+        "PATH": "C:\\Program Files\\PostgreSQL\\18\\bin;${env:PATH}"
+      },
+      "console": "integratedTerminal"
     }
   ]
 }
@@ -117,14 +135,21 @@ The panel UI is a **React 19 + Ant Design 6 + TypeScript** app under `frontend/`
 
 ### Architecture
 
-The frontend is a **multi-page application**, not a SPA. Every panel route (`/panel`, `/panel/inbounds`, `/panel/clients`, `/panel/xray`, `/panel/settings`, `/panel/nodes`, `/panel/api-docs`, `/panel/sub`, plus `login`) has its own HTML entry in `frontend/*.html` and its own bootstrap in `src/entries/<page>.tsx`. Vite emits each entry into `web/dist/`, and the Go binary embeds that directory at compile time via `embed.FS`. Each panel navigation is a real document load, but every per-page bundle is small enough to keep the experience responsive. There is no React Router and no global store; the surface area does not justify either.
+The frontend ships **three Vite bundles**, each emitted into `web/dist/` and embedded into the Go binary at compile time via `embed.FS`:
+
+- **`index.html`** — the admin panel, a **single-page app**. `src/main.tsx` mounts a `react-router` `createBrowserRouter` (see `src/routes.tsx`) under the `/panel` basename; every route (`/panel`, `/panel/inbounds`, `/panel/clients`, `/panel/groups`, `/panel/nodes`, `/panel/settings`, `/panel/xray`, `/panel/api-docs`) is lazy-loaded inside a shared `PanelLayout` (sidebar + header + `<Outlet>`).
+- **`login.html`** — the login + 2FA screen (`src/entries/login.tsx`), a standalone bundle.
+- **`subpage.html`** — the public subscription viewer (`src/entries/subpage.tsx`), a standalone bundle.
+
+Panel navigation happens client-side through React Router, and per-route code is lazy-split so the initial panel load stays small. `login` and `subpage` stay separate documents because they are reached without an authenticated panel session.
 
 ### State and data flow
 
-- **No global store.** State lives in the page that owns it. Cross-page data (settings, current user, theme) is re-fetched on each page load — the backend is local and responses are inexpensive.
-- **Hooks** in `src/hooks/` encapsulate reactive logic worth sharing inside a page (`useTheme`, `useStatus`, `useNodes`, `useWebSocket`, `useDatepicker`, …). Prefer extending an existing hook over introducing a new global.
-- **Domain models** in `src/models/` (`Inbound`, `DBInbound`, `Outbound`, `Status`, …) own the protocol-specific logic — link generation, settings JSON shape, TLS/Reality stream handling. React components stay declarative; they ask the model "what is my link?" and render the answer.
-- **HTTP** goes through `src/utils/index.js`'s `HttpUtil`, a thin Axios wrapper that handles CSRF, response toasts, and a `silent: true` opt-out for bulk operations that would otherwise spam toasts. The Axios setup itself lives in `src/api/axios-init.js`.
+- **Server state via TanStack Query.** API reads go through `@tanstack/react-query` (`QueryProvider` in `src/main.tsx`, keys in `src/api/queryKeys.ts`); responses are cached and invalidated on mutation rather than blindly re-fetched, and WebSocket pushes feed back into the cache via `src/api/websocketBridge.ts`.
+- **Local UI state stays in the page** (`useState`); shared concerns go through contexts and hooks in `src/hooks/` (`useTheme`, `useWebSocket`, `useClients`, `useDatepicker`, …). Prefer extending an existing hook over introducing a new global.
+- **Zod is the single source of truth.** Schemas in `src/schemas/` define the xray config model; every API response is parsed through them, every form field validates against them, and TypeScript types are inferred with `z.infer` — never hand-written. Go-side types are mirrored into `src/generated/` by `npm run gen:zod` (do not hand-edit that folder).
+- **xray domain logic** — link generation, protocol defaults, form ⇄ wire adapters — lives as pure functions in `src/lib/xray/`. `src/models/` keeps only thin legacy types still being migrated onto schemas.
+- **HTTP** goes through `HttpUtil` in `src/utils/index.ts`, a thin Axios wrapper that handles CSRF, response toasts, and a `silent: true` opt-out for bulk operations that would otherwise spam toasts. The Axios setup itself lives in `src/api/axios-init.ts`.
 
 ### i18n
 
@@ -134,21 +159,22 @@ Locale strings live in `web/translation/<locale>.json`, **not** under `frontend/
 
 | Goal | Command |
 |------|---------|
-| Iterate on UI changes with HMR | `cd frontend && npm run dev` (Vite on `:5173`, proxies `/panel/*` and `/api/*` to the Go panel on `:2053`). Start the Go panel first. |
+| Iterate on UI changes with HMR | `cd frontend && npm run dev` (Vite on `:5173`, proxies `/panel/*` and the WebSocket to the Go panel on `:2053`). Start the Go panel first. |
 | Verify what end users actually see | `cd frontend && npm run build`, then `go run .`. The Go binary serves the built bundle — embedded in release mode, off disk in debug mode. |
 
-The Vite dev proxy rewrites the sidebar's production-style links (`/panel`, `/panel/inbounds`, `/panel/clients`, …) to the matching Vite-served HTML, so navigation behaves identically to production without round-tripping through Go. The allowlist lives in `MIGRATED_ROUTES` in `vite.config.js` — register every new page there.
+The Vite dev proxy serves the admin SPA for any `/panel/*` URL — `bypassMigratedRoute` in `vite.config.js` rewrites those requests to `index.html` and lets React Router take over — while forwarding `/panel/api/*`, `/panel/setting/*`, `/panel/xray/*`, and the WebSocket to the Go panel. Because routing is now client-side, new panel routes need no proxy or allowlist changes.
 
 > **`XUI_DEBUG=true` gotcha** — in debug mode the panel serves HTML from the embedded FS (frozen at the last `go build` / `go run`) but JS/CSS off disk. Re-running `npm run build` without restarting Go leaves the embedded HTML pointing at the *old* hashed asset names, producing a blank page with 404s in the console. Always restart `go run .` after a frontend rebuild.
 
 ### Adding a new page
 
-1. Create `frontend/<page>.html` (copy an existing entry and adjust the title and the imported `<script type="module" src="/src/entries/<page>.tsx">`).
-2. Create `src/entries/<page>.tsx` — mount the page with `createRoot(document.getElementById('app')!).render(...)`, wrapped in the shared `ConfigProvider` for AntD theming and i18n.
-3. Create the page component under `src/pages/<page>/<Page>.tsx` (kebab-case folder, PascalCase component).
-4. Register the entry in `rollupOptions.input` inside `vite.config.js`.
-5. If the page is reachable from the sidebar at `/panel/<route>`, add `<route>` to `MIGRATED_ROUTES` so dev-mode navigation works.
-6. Wire a Go controller route that calls `serveDistPage(c, "<page>.html")` to serve the embedded HTML in production.
+Most new screens are **admin-panel routes** and need no new HTML or Vite entry:
+
+1. Create the page component under `src/pages/<page>/<Page>.tsx` (kebab-case folder, PascalCase component).
+2. Register it in `src/routes.tsx` under the `/panel` tree (lazy-import it like the others).
+3. Add a sidebar link in `src/layouts/AppSidebar.tsx` if it should be reachable from the nav.
+
+Only a genuinely **standalone bundle** (like `login` or `subpage`, reachable without the panel shell) needs the full entry treatment: add `frontend/<page>.html`, a `src/entries/<page>.tsx` bootstrap, register it in `rollupOptions.input` inside `vite.config.js`, and wire a Go controller route that calls `serveDistPage(c, "<page>.html")` to serve the embedded HTML in production.
 
 ### Conventions
 
@@ -157,27 +183,40 @@ The Vite dev proxy rewrites the sidebar's production-style links (`/panel`, `/pa
 - **Function components + hooks** everywhere. No class components.
 - **No `//` line comments** in committed JS/TS/Vue/Go. HTML `<!-- ... -->` is fine for template structure. Names should carry the meaning; rename rather than annotate. Comments are reserved for the *why*, and only when the reason is surprising.
 - **RTL is a first-class concern.** Persian and Arabic users matter — RTL is enabled through AntD's `ConfigProvider direction="rtl"`. When writing Persian text in toasts or labels, isolate code identifiers on their own lines so RTL reading flows.
-- **Do not break link generation.** Share-link generation has two paths: the **inbounds page** (`InboundsPage.tsx` → `checkFallback()`) and the **clients page** (`/panel/api/clients/subLinks/:subId` → backend `GetSubs`). Exercise both whenever URL generation, fallback projection, or TLS handling changes.
-- **Vite is pinned** to `8.0.13`. Do not bump to `8.0.14+` — the esbuild dep-optimizer in those builds breaks i18n loading in dev mode.
+- **Schemas over `any`.** New config shapes go in `src/schemas/`; `@typescript-eslint/no-explicit-any` is an error and production schemas use no `.loose()`. Validate form fields with `antdRule(Schema.shape.field, t)` rather than inline `z.string()` in rules.
+- **Document new endpoints.** Every new `g.POST`/`g.GET` in `web/controller/` needs a matching entry in `src/pages/api-docs/endpoints.ts` — it drives both the in-panel API docs and the generated OpenAPI/Zod (`npm run gen:api` / `gen:zod`).
+- **Do not break link generation.** Share-link logic lives in `src/lib/xray/` (`inbound-link.ts`, `outbound-link-parser.ts`, …) and is round-tripped by the golden fixture suite — run `npm run test` after any change to URL generation, defaults, or TLS/Reality handling, and regenerate snapshots (`npx vitest run -u`) only for intentional changes. Two runtime paths consume it: the **inbounds page** and the **clients page** subscription links (`/panel/api/clients/subLinks/:subId` → backend `GetSubs`); exercise both.
+- **Vite is pinned to an exact version** (no `^`) in `frontend/package.json` — currently `8.0.16` — so local, CI, and release builds resolve identically. Bump it deliberately and verify both `npm run dev` and `npm run build` afterward.
 
 ### Project layout
 
 ```
 frontend/
-├── *.html                 — Vite entry HTML, one per panel route
+├── index.html             — admin panel SPA entry
+├── login.html             — login + 2FA entry
+├── subpage.html           — public subscription viewer entry
 ├── tsconfig.json          — strict, jsx: "react-jsx", paths "@/*" → "src/*"
-├── eslint.config.js       — ESLint 10 flat config (@eslint/js + typescript-eslint + react-hooks)
+├── eslint.config.js       — ESLint flat config (@eslint/js + typescript-eslint + react-hooks)
 ├── vite.config.js
+├── vitest.config.ts
+├── scripts/               — build-openapi.mjs (endpoints.ts → openapi.json)
 └── src/
-    ├── entries/           — per-page bootstrap (createRoot + render)
-    ├── pages/             — one folder per route (index, login, inbounds, clients, xray, nodes, settings, api-docs, sub)
-    ├── components/        — cross-page React components (AppSidebar, DateTimePicker, FinalMaskForm, JsonEditor, …)
-    ├── hooks/             — reusable hooks (useTheme, useStatus, useNodes, useWebSocket, useDatepicker, …)
-    ├── api/               — Axios setup + CSRF interceptor + WebSocket client
+    ├── main.tsx           — admin SPA bootstrap (router + providers)
+    ├── routes.tsx         — react-router routes mounted under /panel
+    ├── entries/           — bootstrap for the standalone bundles (login, subpage)
+    ├── layouts/           — PanelLayout + AppSidebar
+    ├── pages/             — one folder per route (index, inbounds, clients, groups, nodes, settings, xray, api-docs) plus login, sub
+    ├── components/        — cross-page React components
+    ├── hooks/             — reusable hooks (useTheme, useWebSocket, useClients, useDatepicker, …)
+    ├── api/               — Axios + CSRF interceptor, TanStack Query provider/keys, WebSocket client
     ├── i18n/              — react-i18next bootstrap (JSON lives in web/translation/)
-    ├── models/            — Inbound, DBInbound, Outbound, Status, reality-targets, …
+    ├── lib/xray/          — pure xray logic: link generation, defaults, form ⇄ wire adapters
+    ├── schemas/           — Zod source of truth for the xray config model
+    ├── generated/         — code-generated Zod + TS types from Go (do not hand-edit)
+    ├── models/            — thin legacy types still being migrated
     ├── styles/            — shared CSS (page-cards, …)
-    └── utils/             — HttpUtil, ObjectUtil, LanguageManager, RandomUtil, SizeFormatter, …
+    ├── test/              — Vitest specs + golden fixtures
+    └── utils/             — HttpUtil, ClipboardManager, SizeFormatter, …
 ```
 
 For deeper notes on the frontend toolchain see [`frontend/README.md`](frontend/README.md).
@@ -202,7 +241,7 @@ For deeper notes on the frontend toolchain see [`frontend/README.md`](frontend/R
 3. Run the relevant checks before pushing:
    - `go build ./...`
    - `go test ./...` (when Go code changed)
-   - `cd frontend && npm run typecheck && npm run lint && npm run build` (when the frontend changed)
+   - `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` (when the frontend changed; CI runs this same set on every PR via `.github/workflows/ci.yml`)
 4. Commit messages follow the existing pattern in `git log` — `<area>: short imperative summary`, then a body explaining the *why*. Conventional-commit prefixes (`feat`, `fix`, `refactor`, `chore`, `style`, `docs`) are encouraged.
 5. Open the PR against `main` with a brief description of what changed and how to test it.
 
@@ -218,9 +257,8 @@ For deeper notes on the frontend toolchain see [`frontend/README.md`](frontend/R
 | `XUI_DB_TYPE` | `sqlite` | Set to `postgres` to use PostgreSQL via `XUI_DB_DSN` |
 | `XUI_DB_DSN` | — | PostgreSQL DSN when `XUI_DB_TYPE=postgres` |
 
-## Issues and discussion
+## Issues
 
 - Bug reports and feature requests: [GitHub Issues](https://github.com/MHSanaei/3x-ui/issues)
-- General questions and ideas: [GitHub Discussions](https://github.com/MHSanaei/3x-ui/discussions)
 
 Before filing a bug, include the OS, Go version, panel version (`/panel/api/server/status` or the dashboard footer), and the relevant excerpt from `x-ui/3xui.log`.

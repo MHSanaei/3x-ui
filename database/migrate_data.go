@@ -86,6 +86,23 @@ func MigrateData(srcPath, dstDSN string) error {
 		}
 	}
 
+	// AutoMigrate re-creates the legacy client_traffics -> inbounds foreign key,
+	// but the running panel drops it (see dropLegacyForeignKeys) and tolerates
+	// client_traffics rows whose inbound was deleted. Drop it here too so copying
+	// such orphaned rows can't fail with an fk_inbounds_client_stats violation.
+	if err := dst.Exec("ALTER TABLE client_traffics DROP CONSTRAINT IF EXISTS fk_inbounds_client_stats").Error; err != nil {
+		return fmt.Errorf("drop legacy foreign key: %w", err)
+	}
+
+	// Empty the destination tables so the migration is idempotent: a fresh
+	// PostgreSQL DB already holds an auto-seeded admin (id=1) from any prior
+	// panel start, and a partially-failed earlier run leaves rows behind. Either
+	// way a plain INSERT with explicit ids would collide on users_pkey, so clear
+	// our tables (only) before copying.
+	if err := truncatePostgresTables(dst, migrationModels()); err != nil {
+		return fmt.Errorf("clear destination tables: %w", err)
+	}
+
 	totalRows := 0
 	for _, m := range migrationModels() {
 		n, err := copyTable(src, dst, m)
@@ -102,6 +119,62 @@ func MigrateData(srcPath, dstDSN string) error {
 
 	log.Printf("Migration complete: %d rows across %d tables.", totalRows, len(migrationModels()))
 	log.Println("Set XUI_DB_TYPE=postgres and XUI_DB_DSN=... in /etc/default/x-ui, then restart x-ui.")
+	return nil
+}
+
+// ExportPostgresToSQLite copies every row from the PostgreSQL database described
+// by srcDSN into a fresh SQLite file at dstPath. It is the reverse of
+// MigrateData and is used to hand a PostgreSQL-backed panel a portable .db file.
+// dstPath is created/overwritten; the PostgreSQL source is left untouched.
+func ExportPostgresToSQLite(srcDSN, dstPath string) error {
+	if srcDSN == "" {
+		return errors.New("source DSN is required")
+	}
+	if err := os.MkdirAll(path.Dir(dstPath), 0755); err != nil {
+		return err
+	}
+	// Start from an empty file so AutoMigrate creates the canonical schema.
+	if err := os.Remove(dstPath); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	src, err := gorm.Open(postgres.Open(srcDSN), &gorm.Config{Logger: logger.Discard})
+	if err != nil {
+		return fmt.Errorf("open postgres source: %w", err)
+	}
+	srcSQL, err := src.DB()
+	if err != nil {
+		return err
+	}
+	defer srcSQL.Close()
+
+	// No WAL: keep all data in the main file so it is complete once closed.
+	dst, err := gorm.Open(sqlite.Open(dstPath+"?_busy_timeout=10000"), &gorm.Config{Logger: logger.Discard})
+	if err != nil {
+		return fmt.Errorf("open sqlite destination: %w", err)
+	}
+	dstSQL, err := dst.DB()
+	if err != nil {
+		return err
+	}
+	defer dstSQL.Close()
+
+	return copyAllModels(src, dst)
+}
+
+// copyAllModels (re)creates the schema on dst and copies every migrated table
+// from src to dst in FK-safe order. src/dst may be any gorm backend.
+func copyAllModels(src, dst *gorm.DB) error {
+	for _, m := range migrationModels() {
+		if err := dst.AutoMigrate(m); err != nil {
+			return fmt.Errorf("AutoMigrate %T: %w", m, err)
+		}
+	}
+	for _, m := range migrationModels() {
+		if _, err := copyTable(src, dst, m); err != nil {
+			return fmt.Errorf("copy %T: %w", m, err)
+		}
+	}
 	return nil
 }
 
@@ -155,6 +228,26 @@ func copyTable(src, dst *gorm.DB, mdl any) (int, error) {
 		}
 	}
 	return total, nil
+}
+
+// truncatePostgresTables empties every migrated table on dst in a single
+// statement, resetting identity sequences. CASCADE covers the inbound/client
+// foreign keys regardless of insertion order. Only the panel's own tables are
+// touched, never the rest of the schema.
+func truncatePostgresTables(dst *gorm.DB, models []any) error {
+	tables := make([]string, 0, len(models))
+	for _, m := range models {
+		stmt := &gorm.Statement{DB: dst}
+		if err := stmt.Parse(m); err != nil {
+			return err
+		}
+		tables = append(tables, `"`+stmt.Schema.Table+`"`)
+	}
+	if len(tables) == 0 {
+		return nil
+	}
+	log.Println("Clearing destination tables...")
+	return dst.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " RESTART IDENTITY CASCADE").Error
 }
 
 // resetPostgresSequences advances each migrated table's id sequence past MAX(id),

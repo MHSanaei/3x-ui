@@ -203,6 +203,8 @@ function applySecurityParams(stream: Raw, params: URLSearchParams): void {
     tls.fingerprint = params.get('fp') ?? '';
     const alpn = params.get('alpn');
     if (alpn) tls.alpn = alpn.split(',');
+    tls.echConfigList = params.get('ech') ?? '';
+    tls.pinnedPeerCertSha256 = params.get('pcs') ?? '';
   } else if (stream.security === 'reality') {
     const reality = stream.realitySettings as Raw;
     reality.serverName = params.get('sni') ?? '';

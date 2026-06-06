@@ -137,6 +137,7 @@ function applyExternalProxyTLSObj(
   if (alpn.length > 0) obj.alpn = alpn;
   const pins = externalProxyPins(externalProxy.pinnedPeerCertSha256);
   if (pins.length > 0) obj.pcs = pins;
+  if (externalProxy.echConfigList && externalProxy.echConfigList.length > 0) obj.ech = externalProxy.echConfigList;
 }
 
 export interface GenVmessLinkInput {
@@ -232,6 +233,7 @@ export function genVmessLink(input: GenVmessLinkInput): string {
     if (tlsSettings.serverName.length > 0) obj.sni = tlsSettings.serverName;
     if (tlsSettings.settings.fingerprint.length > 0) obj.fp = tlsSettings.settings.fingerprint;
     if (tlsSettings.alpn.length > 0) obj.alpn = tlsSettings.alpn.join(',');
+    if (tlsSettings.settings.echConfigList.length > 0) obj.ech = tlsSettings.settings.echConfigList;
     if (tlsSettings.settings.pinnedPeerCertSha256.length > 0) {
       obj.pcs = tlsSettings.settings.pinnedPeerCertSha256.join(',');
     }
@@ -279,6 +281,7 @@ function applyExternalProxyTLSParams(
   if (alpn.length > 0) params.set('alpn', alpn);
   const pins = externalProxyPins(externalProxy.pinnedPeerCertSha256);
   if (pins.length > 0) params.set('pcs', pins);
+  if (externalProxy.echConfigList && externalProxy.echConfigList.length > 0) params.set('ech', externalProxy.echConfigList);
 }
 
 export interface GenVlessLinkInput {

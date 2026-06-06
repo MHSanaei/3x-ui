@@ -16,6 +16,7 @@ const newEntry = () => ({
   fingerprint: '',
   alpn: [],
   pinnedPeerCertSha256: [],
+  echConfigList: '',
 });
 
 function Field({ label, children }: { label: ReactNode; children: ReactNode }) {
@@ -92,9 +93,9 @@ export default function ExternalProxyForm({
                                   />
                                 </Form.Item>
                               </Field>
-                              <Field label={t('host')}>
+                              <Field label={t('pages.inbounds.address')}>
                                 <Form.Item name={[field.name, 'dest']} noStyle>
-                                  <Input placeholder={t('host')} />
+                                  <Input placeholder={t('pages.inbounds.address')} />
                                 </Form.Item>
                               </Field>
                               <Field label={t('pages.inbounds.port')}>
@@ -125,7 +126,7 @@ export default function ExternalProxyForm({
                                     <div className="ext-proxy-grid ext-proxy-grid--tls">
                                       <Field label="SNI">
                                         <Form.Item name={[field.name, 'sni']} noStyle>
-                                          <Input placeholder={t('pages.inbounds.form.sniPlaceholder')} />
+                                          <Input placeholder={t('pages.inbounds.form.serverNameIndication')} />
                                         </Form.Item>
                                       </Field>
                                       <Field label={t('pages.inbounds.form.fingerprint')}>
@@ -157,6 +158,11 @@ export default function ExternalProxyForm({
                                         </Form.Item>
                                       </Field>
                                     </div>
+                                    <Field label={t('pages.inbounds.form.echConfig')}>
+                                      <Form.Item name={[field.name, 'echConfigList']} noStyle>
+                                        <Input placeholder={t('pages.inbounds.form.echConfig')} />
+                                      </Form.Item>
+                                    </Field>
                                     <Field label={t('pages.inbounds.form.pinnedPeerCertSha256')}>
                                       <Space.Compact block>
                                         <Form.Item name={[field.name, 'pinnedPeerCertSha256']} noStyle>

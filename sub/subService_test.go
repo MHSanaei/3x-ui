@@ -575,6 +575,47 @@ func TestApplyExternalProxyTLSParams_ExplicitSNIOverridesUpstream(t *testing.T) 
 	}
 }
 
+func TestApplyExternalProxy_ECHPropagates(t *testing.T) {
+	const ech = "ech-config-base64"
+
+	t.Run("url params", func(t *testing.T) {
+		params := map[string]string{"security": "tls"}
+		ep := map[string]any{"dest": "proxy.example.com", "echConfigList": ech}
+		applyExternalProxyTLSParams(ep, params, "tls")
+		if params["ech"] != ech {
+			t.Fatalf("ech param = %q, want %q", params["ech"], ech)
+		}
+	})
+
+	t.Run("vmess obj", func(t *testing.T) {
+		obj := map[string]any{}
+		ep := map[string]any{"dest": "proxy.example.com", "echConfigList": ech}
+		applyExternalProxyTLSObj(ep, obj, "tls")
+		if obj["ech"] != ech {
+			t.Fatalf("ech obj = %v, want %q", obj["ech"], ech)
+		}
+	})
+
+	t.Run("json stream settings", func(t *testing.T) {
+		stream := map[string]any{"security": "tls", "tlsSettings": map[string]any{}}
+		ep := map[string]any{"dest": "proxy.example.com", "echConfigList": ech}
+		applyExternalProxyTLSToStream(ep, stream, "tls")
+		settings, _ := stream["tlsSettings"].(map[string]any)["settings"].(map[string]any)
+		if settings["echConfigList"] != ech {
+			t.Fatalf("echConfigList = %v, want %q", settings["echConfigList"], ech)
+		}
+	})
+
+	t.Run("non-tls security drops ech", func(t *testing.T) {
+		params := map[string]string{}
+		ep := map[string]any{"echConfigList": ech}
+		applyExternalProxyTLSParams(ep, params, "none")
+		if _, ok := params["ech"]; ok {
+			t.Fatalf("ech must not be set when security != tls")
+		}
+	})
+}
+
 func TestApplyExternalProxyTLSToStream_DoesNotLeakAcrossProxies(t *testing.T) {
 	stream := map[string]any{
 		"security": "tls",

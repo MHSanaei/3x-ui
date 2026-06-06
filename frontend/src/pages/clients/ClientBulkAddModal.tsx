@@ -249,7 +249,7 @@ export default function ClientBulkAddModal({
           )}
           {form.emailMethod < 2 && (
             <Form.Item label={t('pages.clients.clientCount')}>
-              <InputNumber value={form.quantity} min={1} max={100} onChange={(v) => update('quantity', Number(v) || 1)} />
+              <InputNumber value={form.quantity} min={1} max={1000} onChange={(v) => update('quantity', Number(v) || 1)} />
             </Form.Item>
           )}
 

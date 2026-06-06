@@ -191,6 +191,19 @@ func (r *Remote) cacheDel(tag string) {
 	delete(r.remoteIDByTag, tag)
 }
 
+func (r *Remote) ListRemoteTags(ctx context.Context) ([]string, error) {
+	if err := r.refreshRemoteIDs(ctx); err != nil {
+		return nil, err
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	tags := make([]string, 0, len(r.remoteIDByTag))
+	for tag := range r.remoteIDByTag {
+		tags = append(tags, tag)
+	}
+	return tags, nil
+}
+
 func (r *Remote) refreshRemoteIDs(ctx context.Context) error {
 	env, err := r.do(ctx, http.MethodGet, "panel/api/inbounds/list", nil)
 	if err != nil {
@@ -286,15 +299,17 @@ func (r *Remote) AddClient(ctx context.Context, ib *model.Inbound, client model.
 	return nil
 }
 
-// DeleteUser is idempotent: master's per-inbound Delete loop may call it
-// multiple times for the same node, and "not found" on the follow-ups is
-// the expected success path.
-func (r *Remote) DeleteUser(ctx context.Context, _ *model.Inbound, email string) error {
+func (r *Remote) DeleteUser(ctx context.Context, ib *model.Inbound, email string) error {
 	if email == "" {
 		return nil
 	}
-	_, err := r.do(ctx, http.MethodPost,
-		"panel/api/clients/del/"+url.PathEscape(email), nil)
+	id, err := r.resolveRemoteID(ctx, ib.Tag)
+	if err != nil {
+		return nil
+	}
+	body := map[string]any{"inboundIds": []int{id}}
+	_, err = r.do(ctx, http.MethodPost,
+		"panel/api/clients/"+url.PathEscape(email)+"/detach", body)
 	if err == nil {
 		return nil
 	}
@@ -304,12 +319,17 @@ func (r *Remote) DeleteUser(ctx context.Context, _ *model.Inbound, email string)
 	return err
 }
 
-func (r *Remote) UpdateUser(ctx context.Context, _ *model.Inbound, oldEmail string, payload model.Client) error {
+func (r *Remote) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail string, payload model.Client) error {
 	if oldEmail == "" {
 		oldEmail = payload.Email
 	}
-	if _, err := r.do(ctx, http.MethodPost,
-		"panel/api/clients/update/"+url.PathEscape(oldEmail), payload); err != nil {
+	id, err := r.resolveRemoteID(ctx, ib.Tag)
+	if err != nil {
+		return err
+	}
+	path := "panel/api/clients/update/" + url.PathEscape(oldEmail) +
+		"?inboundIds=" + strconv.Itoa(id)
+	if _, err := r.do(ctx, http.MethodPost, path, payload); err != nil {
 		return err
 	}
 	return nil

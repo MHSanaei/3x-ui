@@ -32,6 +32,7 @@ db
 cert
 pgdata
 *.db
+*.dump
 
 # Build outputs
 web/dist

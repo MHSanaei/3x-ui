@@ -1,8 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Button,
-  Card,
   Input,
   InputNumber,
   Select,
@@ -10,19 +8,17 @@ import {
   Tabs,
 } from 'antd';
 import {
-  DeleteOutlined,
   PartitionOutlined,
-  PlusOutlined,
-  ScissorOutlined,
+  RocketOutlined,
   SendOutlined,
   SettingOutlined,
-  ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
+import SubJsonFinalMaskForm from './SubJsonFinalMaskForm';
 import './SubscriptionFormatsTab.css';
 
 interface SubscriptionFormatsTabProps {
@@ -30,15 +26,6 @@ interface SubscriptionFormatsTabProps {
   updateSetting: (patch: Partial<AllSetting>) => void;
 }
 
-const DEFAULT_FRAGMENT = {
-  packets: 'tlshello',
-  length: '100-200',
-  interval: '10-20',
-  maxSplit: '300-400',
-};
-const DEFAULT_NOISES: { type: string; packet: string; delay: string; applyTo: string }[] = [
-  { type: 'rand', packet: '10-20', delay: '10-16', applyTo: 'ip' },
-];
 const DEFAULT_MUX = {
   enabled: true,
   concurrency: 8,
@@ -85,54 +72,8 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
 
-  const fragment = allSetting.subJsonFragment !== '';
-  const noisesEnabled = allSetting.subJsonNoises !== '';
   const muxEnabled = allSetting.subJsonMux !== '';
   const directEnabled = allSetting.subJsonRules !== '';
-
-  const fragmentObj = useMemo(
-    () => (fragment ? readJson<typeof DEFAULT_FRAGMENT>(allSetting.subJsonFragment, DEFAULT_FRAGMENT) : DEFAULT_FRAGMENT),
-    [allSetting.subJsonFragment, fragment],
-  );
-
-  function setFragmentEnabled(v: boolean) {
-    updateSetting({ subJsonFragment: v ? JSON.stringify(DEFAULT_FRAGMENT) : '' });
-  }
-
-  function setFragmentField<K extends keyof typeof DEFAULT_FRAGMENT>(key: K, value: string) {
-    if (value === '') return;
-    const next = { ...fragmentObj, [key]: value };
-    updateSetting({ subJsonFragment: JSON.stringify(next) });
-  }
-
-  const noisesArray = useMemo(
-    () => (noisesEnabled ? readJson<typeof DEFAULT_NOISES>(allSetting.subJsonNoises, DEFAULT_NOISES) : []),
-    [allSetting.subJsonNoises, noisesEnabled],
-  );
-
-  function setNoisesEnabled(v: boolean) {
-    updateSetting({ subJsonNoises: v ? JSON.stringify(DEFAULT_NOISES) : '' });
-  }
-
-  function setNoisesArray(next: typeof DEFAULT_NOISES) {
-    if (noisesEnabled) updateSetting({ subJsonNoises: JSON.stringify(next) });
-  }
-
-  function addNoise() {
-    setNoisesArray([...noisesArray, { ...DEFAULT_NOISES[0] }]);
-  }
-
-  function removeNoise(index: number) {
-    const next = [...noisesArray];
-    next.splice(index, 1);
-    setNoisesArray(next);
-  }
-
-  function updateNoiseField(index: number, field: keyof typeof DEFAULT_NOISES[number], value: string) {
-    const next = [...noisesArray];
-    next[index] = { ...next[index], [field]: value };
-    setNoisesArray(next);
-  }
 
   const muxObj = useMemo(
     () => (muxEnabled ? readJson<typeof DEFAULT_MUX>(allSetting.subJsonMux, DEFAULT_MUX) : DEFAULT_MUX),
@@ -251,98 +192,19 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
       },
       {
         key: '2',
-        label: catTabLabel(<ScissorOutlined />, t('pages.settings.fragment'), isMobile),
+        label: catTabLabel(<RocketOutlined />, t('pages.settings.subFormats.finalMask'), isMobile),
         children: (
           <>
-            <SettingListItem paddings="small" title={t('pages.settings.fragment')} description={t('pages.settings.fragmentDesc')}>
-              <Switch checked={fragment} onChange={setFragmentEnabled} />
-            </SettingListItem>
-            {fragment && (
-              <div className="format-settings">
-                <SettingListItem paddings="small" title={t('pages.settings.subFormats.packets')}>
-                  <Input value={fragmentObj.packets} placeholder="1-1 | 1-3 | tlshello | …"
-                    onChange={(e) => setFragmentField('packets', e.target.value)} />
-                </SettingListItem>
-                <SettingListItem paddings="small" title={t('pages.settings.subFormats.length')}>
-                  <Input value={fragmentObj.length} placeholder="100-200"
-                    onChange={(e) => setFragmentField('length', e.target.value)} />
-                </SettingListItem>
-                <SettingListItem paddings="small" title={t('pages.settings.subFormats.interval')}>
-                  <Input value={fragmentObj.interval} placeholder="10-20"
-                    onChange={(e) => setFragmentField('interval', e.target.value)} />
-                </SettingListItem>
-                <SettingListItem paddings="small" title={t('pages.settings.subFormats.maxSplit')}>
-                  <Input value={fragmentObj.maxSplit} placeholder="300-400"
-                    onChange={(e) => setFragmentField('maxSplit', e.target.value)} />
-                </SettingListItem>
-              </div>
-            )}
+            <SettingListItem paddings="small" title={t('pages.settings.subFormats.finalMask')} description={t('pages.settings.subFormats.finalMaskDesc')} />
+            <SubJsonFinalMaskForm
+              value={allSetting.subJsonFinalMask}
+              onChange={(v) => updateSetting({ subJsonFinalMask: v })}
+            />
           </>
         ),
       },
       {
         key: '3',
-        label: catTabLabel(<ThunderboltOutlined />, t('pages.settings.subFormats.noises'), isMobile),
-        children: (
-          <>
-            <SettingListItem paddings="small" title={t('pages.settings.subFormats.noises')} description={t('pages.settings.noisesDesc')}>
-              <Switch checked={noisesEnabled} onChange={setNoisesEnabled} />
-            </SettingListItem>
-            {noisesEnabled && (
-              <div className="format-settings-list">
-                {noisesArray.map((noise, index) => (
-                  <Card
-                    key={index}
-                    size="small"
-                    className="noise-card"
-                    title={t('pages.settings.subFormats.noiseItem', { n: index + 1 })}
-                    extra={noisesArray.length > 1 ? (
-                      <Button
-                        size="small"
-                        danger
-                        icon={<DeleteOutlined />}
-                        aria-label={t('delete')}
-                        onClick={() => removeNoise(index)}
-                      />
-                    ) : null}
-                    styles={{ body: { padding: 0 } }}
-                  >
-                    <SettingListItem paddings="small" title={t('pages.settings.subFormats.type')}>
-                      <Select
-                        value={noise.type}
-                        style={{ width: '100%' }}
-                        onChange={(v) => updateNoiseField(index, 'type', v)}
-                        options={['rand', 'base64', 'str', 'hex'].map((p) => ({ value: p, label: p }))}
-                      />
-                    </SettingListItem>
-                    <SettingListItem paddings="small" title={t('pages.settings.subFormats.packet')}>
-                      <Input value={noise.packet} placeholder="5-10"
-                        onChange={(e) => updateNoiseField(index, 'packet', e.target.value)} />
-                    </SettingListItem>
-                    <SettingListItem paddings="small" title={t('pages.settings.subFormats.delayMs')}>
-                      <Input value={noise.delay} placeholder="10-20"
-                        onChange={(e) => updateNoiseField(index, 'delay', e.target.value)} />
-                    </SettingListItem>
-                    <SettingListItem paddings="small" title={t('pages.settings.subFormats.applyTo')}>
-                      <Select
-                        value={noise.applyTo}
-                        style={{ width: '100%' }}
-                        onChange={(v) => updateNoiseField(index, 'applyTo', v)}
-                        options={['ip', 'ipv4', 'ipv6'].map((p) => ({ value: p, label: p }))}
-                      />
-                    </SettingListItem>
-                  </Card>
-                ))}
-                <Button type="dashed" block icon={<PlusOutlined />} onClick={addNoise}>
-                  {t('pages.settings.subFormats.addNoise')}
-                </Button>
-              </div>
-            )}
-          </>
-        ),
-      },
-      {
-        key: '4',
         label: catTabLabel(<PartitionOutlined />, t('pages.settings.mux'), isMobile),
         children: (
           <>
@@ -373,7 +235,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
         ),
       },
       {
-        key: '5',
+        key: '4',
         label: catTabLabel(<SendOutlined />, t('pages.settings.direct'), isMobile),
         children: (
           <>

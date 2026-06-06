@@ -99,3 +99,27 @@ func TestTgbotProxyDialerNoneWhenEmpty(t *testing.T) {
 		t.Fatal("Dial must be nil when no proxy is configured")
 	}
 }
+
+func TestIsCommandForBotAllowsUntargetedCommand(t *testing.T) {
+	if !isCommandForBot("/status", "panel_bot") {
+		t.Fatal("untargeted commands must remain accepted")
+	}
+}
+
+func TestIsCommandForBotAllowsMatchingUsername(t *testing.T) {
+	if !isCommandForBot("/status@panel_bot", "Panel_Bot") {
+		t.Fatal("commands targeted to this bot must be accepted")
+	}
+}
+
+func TestIsCommandForBotRejectsOtherUsername(t *testing.T) {
+	if isCommandForBot("/status@other_bot", "panel_bot") {
+		t.Fatal("commands targeted to another bot must be ignored")
+	}
+}
+
+func TestIsCommandForBotKeepsLegacyBehaviorWhenUsernameUnavailable(t *testing.T) {
+	if !isCommandForBot("/status@panel_bot", "") {
+		t.Fatal("commands must remain accepted when the current bot username is unavailable")
+	}
+}
