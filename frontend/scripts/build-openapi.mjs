@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { sections } from '../src/pages/api-docs/endpoints.ts';
 import { EXAMPLES } from '../src/generated/examples.ts';
+import { SCHEMAS } from '../src/generated/schemas.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outPath = join(__dirname, '..', 'public', 'openapi.json');
@@ -130,12 +131,20 @@ function buildOperation(ep, tag) {
 
   const responses = {};
   let successExample = tryParseJson(ep.response);
-  if (successExample === undefined && ep.responseSchema) {
+  let objSchema = {};
+  if (ep.responseSchema) {
     const obj = EXAMPLES[ep.responseSchema];
     if (obj === undefined) {
       throw new Error(`${ep.method} ${ep.path}: responseSchema "${ep.responseSchema}" has no generated example`);
     }
-    successExample = { success: true, obj: ep.responseSchemaArray ? [obj] : obj };
+    if (SCHEMAS[ep.responseSchema] === undefined) {
+      throw new Error(`${ep.method} ${ep.path}: responseSchema "${ep.responseSchema}" has no generated schema`);
+    }
+    const ref = { $ref: `#/components/schemas/${ep.responseSchema}` };
+    objSchema = ep.responseSchemaArray ? { type: 'array', items: ref } : ref;
+    if (successExample === undefined) {
+      successExample = { success: true, obj: ep.responseSchemaArray ? [obj] : obj };
+    }
   }
   responses['200'] = {
     description: 'Successful response',
@@ -146,7 +155,7 @@ function buildOperation(ep, tag) {
           properties: {
             success: { type: 'boolean' },
             msg: { type: 'string' },
-            obj: {},
+            obj: objSchema,
           },
         },
         ...(successExample !== undefined ? { example: successExample } : {}),
@@ -200,13 +209,14 @@ function buildSpec() {
       title: '3X-UI Panel API',
       version: PANEL_VERSION,
       description:
-        'Programmatic interface to a 3X-UI panel. Authenticate either by logging in (cookie) or with an API token from Settings → Security → API Token (Bearer). All endpoints under /panel/api/* honour both modes.',
+        'Programmatic interface to a 3X-UI panel. Authenticate either by logging in (cookie) or with an API token from Settings → Security → API Token (Bearer). All endpoints under /panel/api/* honour both modes — an API token is a full-admin credential, so treat it like the panel password.',
     },
     servers: [
       { url: '/', description: 'Current panel (basePath aware)' },
     ],
     components: {
       securitySchemes: SECURITY_SCHEMES,
+      schemas: SCHEMAS,
     },
     security: [{ bearerAuth: [] }, { cookieAuth: [] }],
     tags,
