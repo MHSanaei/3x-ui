@@ -600,18 +600,6 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		}
 	}
 
-	if client.SubID != "" {
-		var subTaken int64
-		if err := database.GetDB().Model(&model.ClientRecord{}).
-			Where("sub_id = ? AND email <> ?", client.SubID, client.Email).
-			Count(&subTaken).Error; err != nil {
-			return false, err
-		}
-		if subTaken > 0 {
-			return false, common.NewError("subId already in use:", client.SubID)
-		}
-	}
-
 	needRestart := false
 	for _, ibId := range payload.InboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
@@ -793,18 +781,6 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 			Where("id = ?", id).
 			Update("email", updated.Email).Error; err != nil {
 			return false, err
-		}
-	}
-
-	if updated.SubID != "" {
-		var subCollision int64
-		if err := database.GetDB().Model(&model.ClientRecord{}).
-			Where("sub_id = ? AND id <> ?", updated.SubID, id).
-			Count(&subCollision).Error; err != nil {
-			return false, err
-		}
-		if subCollision > 0 {
-			return false, common.NewError("Duplicate subId:", updated.SubID)
 		}
 	}
 
