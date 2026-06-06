@@ -15,12 +15,16 @@ tmp/
 # Ignore build and distribution directories
 backup/
 bin/
+build/
 dist/
 !web/dist/
 web/dist/*
 !web/dist/.gitkeep
 release/
 node_modules/
+
+# Ignore Go vendor directory (created transiently by build.sh for offline Docker builds)
+vendor/
 
 # Ignore compiled binaries
 main
