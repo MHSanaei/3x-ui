@@ -1453,6 +1453,21 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	db := database.GetDB()
 	now := time.Now().UnixMilli()
 
+	// originGuidFor attributes a synced inbound to the panel that physically
+	// hosts it: inbounds the node forwards from its own sub-nodes already carry
+	// a non-empty OriginNodeGuid (kept as-is across hops); the node's own local
+	// inbounds report empty, so they are attributed to the node's own GUID. An
+	// empty result (old-build node with no GUID yet) leaves attribution to the
+	// node_id fallback downstream (#4983).
+	var nodeRow model.Node
+	db.Select("guid").Where("id = ?", nodeID).First(&nodeRow)
+	originGuidFor := func(snapIb *model.Inbound) string {
+		if snapIb.OriginNodeGuid != "" {
+			return snapIb.OriginNodeGuid
+		}
+		return nodeRow.Guid
+	}
+
 	var central []model.Inbound
 	if err := db.Model(model.Inbound{}).
 		Where("node_id = ?", nodeID).
@@ -1598,6 +1613,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			newIb := model.Inbound{
 				UserId:         defaultUserId,
 				NodeID:         &nodeID,
+				OriginNodeGuid: originGuidFor(snapIb),
 				Tag:            chosenTag,
 				Listen:         snapIb.Listen,
 				Port:           snapIb.Port,
@@ -1644,6 +1660,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if !inGrace || (snapIb.Up+snapIb.Down) <= (c.Up+c.Down) {
 			updates["up"] = snapIb.Up
 			updates["down"] = snapIb.Down
+		}
+		// Physical-home attribution is independent of config-dirty state, so
+		// keep it current even while the node has pending offline edits. Writes
+		// once to backfill an existing row, then stays equal (#4983).
+		if og := originGuidFor(snapIb); c.OriginNodeGuid != og {
+			updates["origin_node_guid"] = og
 		}
 
 		if !dirty && (c.Settings != snapIb.Settings ||

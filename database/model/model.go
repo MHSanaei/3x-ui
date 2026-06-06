@@ -63,6 +63,14 @@ type Inbound struct {
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
 	NodeID         *int     `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
 
+	// OriginNodeGuid is the panelGuid of the node that physically hosts this
+	// inbound, propagated up across hops (#4983). Empty for an inbound that
+	// lives on this panel's own xray; set to the originating node's GUID when
+	// the inbound was synced from a node (kept as-is across further hops). Lets
+	// the master attribute a deeply nested inbound to the real node instead of
+	// the intermediate one it was fetched through.
+	OriginNodeGuid string `json:"originNodeGuid,omitempty" form:"originNodeGuid" gorm:"column:origin_node_guid;index"`
+
 	// FallbackParent is populated by the API layer when this inbound is
 	// attached as a fallback child of a VLESS/Trojan TCP-TLS master.
 	// The frontend uses it to rewrite client-share links so they advertise
