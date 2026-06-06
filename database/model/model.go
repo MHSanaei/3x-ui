@@ -419,8 +419,34 @@ type Node struct {
 	OnlineCount   int `json:"onlineCount" gorm:"-"`
 	DepletedCount int `json:"depletedCount" gorm:"-"`
 
+	// ParentGuid + Transitive are set only when a node is surfaced as part of a
+	// node tree (#4983): direct nodes carry the master panel's own GUID, a
+	// transitive sub-node carries its parent node's GUID. Transitive nodes are
+	// read-only projections (Id == 0, not persisted) — never edited or deployed.
+	ParentGuid string `json:"parentGuid,omitempty" gorm:"-"`
+	Transitive bool   `json:"transitive,omitempty" gorm:"-"`
+
 	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli"`
 	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
+
+// NodeSummary is the read-only identity of a node as published one hop up: the
+// view a panel exposes about the nodes it directly manages, so a master can
+// surface transitive sub-nodes in a chained topology (#4983). Counts are
+// computed by the consuming master from its own per-GUID data, never trusted
+// from the child, so this carries identity/health only.
+type NodeSummary struct {
+	Guid          string `json:"guid"`
+	ParentGuid    string `json:"parentGuid"`
+	Name          string `json:"name"`
+	Address       string `json:"address"`
+	Scheme        string `json:"scheme"`
+	Port          int    `json:"port"`
+	Status        string `json:"status"`
+	LastHeartbeat int64  `json:"lastHeartbeat"`
+	LatencyMs     int    `json:"latencyMs"`
+	PanelVersion  string `json:"panelVersion"`
+	XrayVersion   string `json:"xrayVersion"`
 }
 
 type CustomGeoResource struct {

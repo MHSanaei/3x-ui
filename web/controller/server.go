@@ -56,6 +56,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getMigration", a.getMigration)
 	g.GET("/getNewUUID", a.getNewUUID)
 	g.GET("/getWebCertFiles", a.getWebCertFiles)
+	g.GET("/descendants", a.descendants)
 	g.GET("/getNewX25519Cert", a.getNewX25519Cert)
 	g.GET("/getNewmldsa65", a.getNewmldsa65)
 	g.GET("/getNewmlkem768", a.getNewmlkem768)
@@ -332,6 +333,14 @@ func (a *ServerController) importDB(c *gin.Context) {
 		return
 	}
 	jsonObj(c, I18nWeb(c, "pages.index.importDatabaseSuccess"), nil)
+}
+
+// descendants publishes read-only summaries of the nodes this panel manages so
+// a parent panel can surface them as transitive sub-nodes in a chained
+// topology. Called by the parent via the node's API token (#4983).
+func (a *ServerController) descendants(c *gin.Context) {
+	data, err := (&service.NodeService{}).LocalDescendants()
+	jsonObj(c, data, err)
 }
 
 // getWebCertFiles returns this panel's own web TLS certificate and key file
