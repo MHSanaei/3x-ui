@@ -30,6 +30,7 @@ type HeartbeatPatch struct {
 	LatencyMs     int
 	XrayVersion   string
 	PanelVersion  string
+	Guid          string
 	CpuPct        float64
 	MemPct        float64
 	UptimeSecs    uint64
@@ -469,6 +470,11 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 		"uptime_secs":    p.UptimeSecs,
 		"last_error":     p.LastError,
 	}
+	// Only learn the GUID; never clear a known one if an old-build node (or a
+	// failed probe) reports none, so the stable identity survives blips.
+	if p.Guid != "" {
+		updates["guid"] = p.Guid
+	}
 	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
 	}
@@ -599,6 +605,7 @@ func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch,
 				Version string `json:"version"`
 			} `json:"xray"`
 			PanelVersion string `json:"panelVersion"`
+			PanelGuid    string `json:"panelGuid"`
 			Uptime       uint64 `json:"uptime"`
 		} `json:"obj"`
 	}
@@ -617,6 +624,7 @@ func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch,
 	}
 	patch.XrayVersion = o.Xray.Version
 	patch.PanelVersion = o.PanelVersion
+	patch.Guid = o.PanelGuid
 	patch.UptimeSecs = o.Uptime
 	return patch, nil
 }

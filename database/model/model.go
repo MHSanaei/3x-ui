@@ -383,6 +383,13 @@ type Node struct {
 	TlsVerifyMode       string `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin"`
 	PinnedCertSha256    string `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
 
+	// Guid is the remote panel's stable self-identifier (its panelGuid),
+	// learned from each heartbeat. It is the globally stable node identity used
+	// to attribute online clients/inbounds to the physical node across a chain
+	// of nodes (#4983); panel-local autoincrement ids don't survive a hop.
+	// Observed-state only — never user-edited.
+	Guid string `json:"guid" gorm:"column:guid;index"`
+
 	// Heartbeat-updated fields. UpdatedAt advances on every probe even when
 	// the row is otherwise unchanged so the UI's "last seen" tooltip is
 	// truthful without us having to read LastHeartbeat separately.
