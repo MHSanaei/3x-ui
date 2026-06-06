@@ -26,7 +26,7 @@ function asPath(name: NamePath): (string | number)[] {
 function defaultTcpMaskSettings(type: string): Record<string, unknown> {
   switch (type) {
     case 'fragment':
-      return { packets: '1-3', length: '', delay: '', maxSplit: '' };
+      return { packets: '1-3', length: '100-200', delay: '', maxSplit: '' };
     case 'sudoku':
       return {
         password: '', ascii: '', customTable: '', customTables: [''],
@@ -210,8 +210,12 @@ function TcpMaskItem({
                     ]}
                   />
                 </Form.Item>
-                <Form.Item label="Length" name={[fieldName, 'settings', 'length']}>
-                  <Input />
+                <Form.Item
+                  label="Length"
+                  name={[fieldName, 'settings', 'length']}
+                  rules={[{ validator: validateFragmentLength }]}
+                >
+                  <Input placeholder="e.g. 100-200" />
                 </Form.Item>
                 <Form.Item label="Delay" name={[fieldName, 'settings', 'delay']}>
                   <Input />
@@ -259,6 +263,18 @@ function TcpMaskItem({
 // Walks a deep object path safely. Used inside shouldUpdate which gets
 // the whole form values blob; we need to compare a deep field across
 // prev/curr without crashing on missing intermediates.
+function validateFragmentLength(_rule: unknown, value: unknown): Promise<void> {
+  const str = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+  if (str.length === 0) {
+    return Promise.reject(new Error('Length is required — xray rejects a fragment mask whose LengthMin is 0'));
+  }
+  const min = Number(str.split('-')[0]);
+  if (!Number.isFinite(min) || min <= 0) {
+    return Promise.reject(new Error('Length minimum must be greater than 0 (e.g. 100-200)'));
+  }
+  return Promise.resolve();
+}
+
 function getDeep(obj: unknown, path: (string | number)[]): unknown {
   let cur: unknown = obj;
   for (const key of path) {

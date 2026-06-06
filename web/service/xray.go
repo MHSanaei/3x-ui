@@ -251,7 +251,46 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		inboundConfig := inbound.GenXrayInboundConfig()
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
 	}
+
+	// Merge subscription-derived outbounds (if any) into the final outbounds array.
+	// These are additive and come after the outbounds defined in the template.
+	// Tags assigned by the subscription service are kept stable across refreshes
+	// so that balancers and routing rules continue to work.
+	if subSvc := (&OutboundSubscriptionService{}); subSvc != nil {
+		if extra, err := subSvc.AllActiveOutbounds(); err == nil && len(extra) > 0 {
+			mergeSubscriptionOutbounds(xrayConfig, extra)
+		}
+	}
+
 	return xrayConfig, nil
+}
+
+// mergeSubscriptionOutbounds appends the subscription outbounds to the
+// OutboundConfigs array of the xray config. It works on the already-unmarshaled
+// template so that manually configured outbounds are never overwritten.
+//
+// Safety: if we cannot parse the template's outbounds array, we leave
+// OutboundConfigs exactly as it came from the template (we do not inject
+// subscription outbounds). This prevents us from accidentally dropping the
+// user's manually configured outbounds when the template is in a weird state.
+func mergeSubscriptionOutbounds(cfg *xray.Config, extra []any) {
+	if len(extra) == 0 {
+		return
+	}
+	var templateOutbounds []any
+	if len(cfg.OutboundConfigs) > 0 {
+		if err := json.Unmarshal(cfg.OutboundConfigs, &templateOutbounds); err != nil {
+			// Corrupt template outbounds — do not touch the field at all.
+			// The user will see problems on Xray start / next save.
+			return
+		}
+	}
+	merged := append(templateOutbounds, extra...)
+	combined, err := json.MarshalIndent(merged, "", "  ")
+	if err != nil {
+		return
+	}
+	cfg.OutboundConfigs = json_util.RawMessage(combined)
 }
 
 // resolveXrayLogPaths rewrites relative `log.access` / `log.error` values to
