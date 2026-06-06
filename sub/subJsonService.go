@@ -21,7 +21,7 @@ var defaultJson string
 type SubJsonService struct {
 	configJson       map[string]any
 	defaultOutbounds []json_util.RawMessage
-	fragmentOrNoises bool
+	finalMask        string
 	mux              string
 
 	inboundService service.InboundService
@@ -29,7 +29,7 @@ type SubJsonService struct {
 }
 
 // NewSubJsonService creates a new JSON subscription service with the given configuration.
-func NewSubJsonService(fragment string, noises string, mux string, rules string, subService *SubService) *SubJsonService {
+func NewSubJsonService(mux string, rules string, finalMask string, subService *SubService) *SubJsonService {
 	var configJson map[string]any
 	var defaultOutbounds []json_util.RawMessage
 	json.Unmarshal([]byte(defaultJson), &configJson)
@@ -38,31 +38,6 @@ func NewSubJsonService(fragment string, noises string, mux string, rules string,
 			jsonBytes, _ := json.Marshal(defaultOutbound)
 			defaultOutbounds = append(defaultOutbounds, jsonBytes)
 		}
-	}
-
-	fragmentOrNoises := false
-	if fragment != "" || noises != "" {
-		fragmentOrNoises = true
-		defaultOutboundsSettings := map[string]any{
-			"domainStrategy": "UseIP",
-			"redirect":       "",
-		}
-
-		if fragment != "" {
-			defaultOutboundsSettings["fragment"] = json_util.RawMessage(fragment)
-		}
-
-		if noises != "" {
-			defaultOutboundsSettings["noises"] = json_util.RawMessage(noises)
-		}
-
-		defaultDirectOutbound := map[string]any{
-			"protocol": "freedom",
-			"settings": defaultOutboundsSettings,
-			"tag":      "direct_out",
-		}
-		jsonBytes, _ := json.MarshalIndent(defaultDirectOutbound, "", "  ")
-		defaultOutbounds = append(defaultOutbounds, jsonBytes)
 	}
 
 	if rules != "" {
@@ -78,7 +53,7 @@ func NewSubJsonService(fragment string, noises string, mux string, rules string,
 	return &SubJsonService{
 		configJson:       configJson,
 		defaultOutbounds: defaultOutbounds,
-		fragmentOrNoises: fragmentOrNoises,
+		finalMask:        finalMask,
 		mux:              mux,
 		SubService:       subService,
 	}
@@ -230,8 +205,8 @@ func (s *SubJsonService) streamData(stream string) map[string]any {
 	}
 	delete(streamSettings, "sockopt")
 
-	if s.fragmentOrNoises {
-		streamSettings["sockopt"] = json_util.RawMessage(`{"dialerProxy": "direct_out", "tcpKeepAliveIdle": 100}`)
+	if s.finalMask != "" {
+		s.applyGlobalFinalMask(streamSettings)
 	}
 
 	// remove proxy protocol
@@ -255,6 +230,17 @@ func (s *SubJsonService) streamData(stream string) map[string]any {
 	return streamSettings
 }
 
+func (s *SubJsonService) applyGlobalFinalMask(streamSettings map[string]any) {
+	var fm map[string]any
+	if err := json.Unmarshal([]byte(s.finalMask), &fm); err != nil || len(fm) == 0 {
+		return
+	}
+	merged := mergeFinalMask(streamSettings["finalmask"], fm)
+	if len(merged) > 0 {
+		streamSettings["finalmask"] = merged
+	}
+}
+
 func (s *SubJsonService) removeAcceptProxy(setting any) map[string]any {
 	netSettings, ok := setting.(map[string]any)
 	if ok {
@@ -271,6 +257,9 @@ func (s *SubJsonService) tlsData(tData map[string]any) map[string]any {
 	tlsData["alpn"] = tData["alpn"]
 	if fingerprint, ok := tlsClientSettings["fingerprint"].(string); ok {
 		tlsData["fingerprint"] = fingerprint
+	}
+	if ech, ok := tlsClientSettings["echConfigList"].(string); ok && ech != "" {
+		tlsData["echConfigList"] = ech
 	}
 	if pins, ok := tlsClientSettings["pinnedPeerCertSha256"].([]any); ok && len(pins) > 0 {
 		tlsData["pinnedPeerCertSha256"] = pins
@@ -307,17 +296,6 @@ func (s *SubJsonService) realityData(rData map[string]any) map[string]any {
 
 func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client) json_util.RawMessage {
 	outbound := Outbound{}
-	usersData := make([]UserVnext, 1)
-
-	usersData[0].ID = client.ID
-	usersData[0].Email = client.Email
-	usersData[0].Security = client.Security
-	vnextData := make([]VnextSetting, 1)
-	vnextData[0] = VnextSetting{
-		Address: inbound.Listen,
-		Port:    inbound.Port,
-		Users:   usersData,
-	}
 
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
@@ -325,8 +303,17 @@ func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_ut
 		outbound.Mux = json_util.RawMessage(s.mux)
 	}
 	outbound.StreamSettings = streamSettings
+
+	security := client.Security
+	if security == "" {
+		security = "auto"
+	}
 	outbound.Settings = map[string]any{
-		"vnext": vnextData,
+		"address":  inbound.Listen,
+		"port":     inbound.Port,
+		"id":       client.ID,
+		"security": security,
+		"level":    8,
 	}
 
 	result, _ := json.MarshalIndent(outbound, "", "  ")
@@ -347,24 +334,17 @@ func (s *SubJsonService) genVless(inbound *model.Inbound, streamSettings json_ut
 	json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
 	encryption, _ := inboundSettings["encryption"].(string)
 
-	user := map[string]any{
+	settings := map[string]any{
+		"address":    inbound.Listen,
+		"port":       inbound.Port,
 		"id":         client.ID,
-		"level":      8,
 		"encryption": encryption,
+		"level":      8,
 	}
 	if client.Flow != "" {
-		user["flow"] = client.Flow
+		settings["flow"] = client.Flow
 	}
-
-	vnext := map[string]any{
-		"address": inbound.Listen,
-		"port":    inbound.Port,
-		"users":   []any{user},
-	}
-
-	outbound.Settings = map[string]any{
-		"vnext": []any{vnext},
-	}
+	outbound.Settings = settings
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
 }
@@ -400,9 +380,17 @@ func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_u
 		outbound.Mux = json_util.RawMessage(s.mux)
 	}
 	outbound.StreamSettings = streamSettings
-	outbound.Settings = map[string]any{
-		"servers": serverData,
+
+	settings := map[string]any{
+		"address":  serverData[0].Address,
+		"port":     serverData[0].Port,
+		"password": serverData[0].Password,
+		"level":    8,
 	}
+	if inbound.Protocol == model.Shadowsocks {
+		settings["method"] = serverData[0].Method
+	}
+	outbound.Settings = settings
 
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
@@ -442,7 +430,7 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 	newStream["hysteriaSettings"] = outHyStream
 
 	if finalmask, ok := hyStream["finalmask"].(map[string]any); ok {
-		newStream["finalmask"] = finalmask
+		newStream["finalmask"] = mergeFinalMask(newStream["finalmask"], finalmask)
 	}
 
 	newStream["network"] = "hysteria"
@@ -454,24 +442,47 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 	return result
 }
 
+func mergeFinalMask(base any, extra map[string]any) map[string]any {
+	merged := map[string]any{}
+	if baseMap, ok := base.(map[string]any); ok {
+		for key, value := range baseMap {
+			switch key {
+			case "tcp", "udp":
+				if masks, ok := value.([]any); ok {
+					merged[key] = append([]any(nil), masks...)
+				}
+			default:
+				merged[key] = value
+			}
+		}
+	}
+
+	for key, value := range extra {
+		switch key {
+		case "tcp", "udp":
+			baseMasks, _ := merged[key].([]any)
+			extraMasks, _ := value.([]any)
+			if len(extraMasks) > 0 {
+				merged[key] = append(baseMasks, extraMasks...)
+			}
+		case "quicParams":
+			if _, exists := merged[key]; !exists {
+				merged[key] = value
+			}
+		default:
+			merged[key] = value
+		}
+	}
+
+	return merged
+}
+
 type Outbound struct {
 	Protocol       string               `json:"protocol"`
 	Tag            string               `json:"tag"`
 	StreamSettings json_util.RawMessage `json:"streamSettings"`
 	Mux            json_util.RawMessage `json:"mux,omitempty"`
 	Settings       map[string]any       `json:"settings,omitempty"`
-}
-
-type VnextSetting struct {
-	Address string      `json:"address"`
-	Port    int         `json:"port"`
-	Users   []UserVnext `json:"users"`
-}
-
-type UserVnext struct {
-	ID       string `json:"id"`
-	Email    string `json:"email,omitempty"`
-	Security string `json:"security,omitempty"`
 }
 
 type ServerSetting struct {

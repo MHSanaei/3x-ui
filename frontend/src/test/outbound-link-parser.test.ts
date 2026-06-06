@@ -360,6 +360,21 @@ describe('parseVlessLink — extra / fm / x_padding_bytes (B20)', () => {
     const stream = parsed!.streamSettings as Record<string, unknown>;
     expect((stream.xhttpSettings as Record<string, unknown>).mode).toBe('auto');
   });
+
+  it('round-trips ech and pcs from a TLS vless link', () => {
+    const ech = 'AFb+DQBSAAAgACAL7gYwrvaSFCIEs34G3SkfpuIbjMuYQxAiJsPK1oO7cwAkAAEAAQABAAIAAQADAAIAAQACAAIAAgADAAMAAQADAAIAAwADAAMxMjMAAA==';
+    const pcs = '6fbc15ba46dfed152ad6c8d2129dd774707dd667a9ab4965476fa0f79ba82670';
+    const link = 'vless://e3d307ae-c074-4aa3-af08-4f9e0f1d298b@localhost:15282?'
+      + 'alpn=h3&ech=' + encodeURIComponent(ech) + '&encryption=none&fp=firefox&host=&'
+      + 'mode=packet-up&path=%2F&pcs=' + pcs + '&security=tls&sni=123&type=xhttp#i5sboxj07w';
+    const parsed = parseVlessLink(link);
+    expect(parsed).not.toBeNull();
+    const tls = (parsed!.streamSettings as Record<string, unknown>).tlsSettings as Record<string, unknown>;
+    expect(tls.echConfigList).toBe(ech);
+    expect(tls.pinnedPeerCertSha256).toBe(pcs);
+    expect(tls.serverName).toBe('123');
+    expect(tls.fingerprint).toBe('firefox');
+  });
 });
 
 describe('parseWireguardLink', () => {

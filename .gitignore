@@ -38,6 +38,7 @@ Thumbs.db
 x-ui.db
 x-ui.db-shm
 x-ui.db-wal
+*.dump
 
 # Ignore Docker specific files
 docker-compose.override.yml

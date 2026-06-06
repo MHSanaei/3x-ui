@@ -297,7 +297,7 @@ setup_ssl_certificate() {
     if [ $? -ne 0 ]; then
         echo -e "${yellow}Failed to issue certificate for ${domain}${plain}"
         echo -e "${yellow}Please ensure port 80 is open and try again later with: x-ui${plain}"
-        rm -rf ~/.acme.sh/${domain} 2> /dev/null
+        rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc 2> /dev/null
         rm -rf "$certPath" 2> /dev/null
         return 1
     fi
@@ -431,8 +431,8 @@ setup_ip_certificate() {
         echo -e "${red}Failed to issue IP certificate${plain}"
         echo -e "${yellow}Please ensure port ${WebPort} is reachable (or forwarded from external port 80)${plain}"
         # Cleanup acme.sh data for both IPv4 and IPv6 if specified
-        rm -rf ~/.acme.sh/${ipv4} 2> /dev/null
-        [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} 2> /dev/null
+        rm -rf ~/.acme.sh/${ipv4} ~/.acme.sh/${ipv4}_ecc 2> /dev/null
+        [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} ~/.acme.sh/${ipv6}_ecc 2> /dev/null
         rm -rf ${certDir} 2> /dev/null
         return 1
     fi
@@ -451,8 +451,8 @@ setup_ip_certificate() {
     if [[ ! -f "${certDir}/fullchain.pem" || ! -f "${certDir}/privkey.pem" ]]; then
         echo -e "${red}Certificate files not found after installation${plain}"
         # Cleanup acme.sh data for both IPv4 and IPv6 if specified
-        rm -rf ~/.acme.sh/${ipv4} 2> /dev/null
-        [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} 2> /dev/null
+        rm -rf ~/.acme.sh/${ipv4} ~/.acme.sh/${ipv4}_ecc 2> /dev/null
+        [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} ~/.acme.sh/${ipv6}_ecc 2> /dev/null
         rm -rf ${certDir} 2> /dev/null
         return 1
     fi
@@ -524,14 +524,30 @@ ssl_cert_issue() {
     echo -e "${green}Your domain is: ${domain}, checking it...${plain}"
     SSL_ISSUED_DOMAIN="${domain}"
 
-    # detect existing certificate and reuse it if present
+    # detect existing certificate and reuse it only if its files are actually
+    # present and non-empty. acme.sh stores ECC certs under ${domain}_ecc and RSA
+    # certs under ${domain}; a failed issuance can leave a domain entry in --list
+    # with no usable cert files, which must not be reused (it produces a 0-byte
+    # fullchain.pem). Broken partial state is cleaned up so issuance can proceed.
     local cert_exists=0
     if ~/.acme.sh/acme.sh --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
-        cert_exists=1
-        local certInfo=$(~/.acme.sh/acme.sh --list 2> /dev/null | grep -F "${domain}")
-        echo -e "${yellow}Existing certificate found for ${domain}, will reuse it.${plain}"
-        [[ -n "${certInfo}" ]] && echo "$certInfo"
-    else
+        local acmeCertDir=""
+        if [[ -s ~/.acme.sh/${domain}_ecc/fullchain.cer && -s ~/.acme.sh/${domain}_ecc/${domain}.key ]]; then
+            acmeCertDir=~/.acme.sh/${domain}_ecc
+        elif [[ -s ~/.acme.sh/${domain}/fullchain.cer && -s ~/.acme.sh/${domain}/${domain}.key ]]; then
+            acmeCertDir=~/.acme.sh/${domain}
+        fi
+        if [[ -n "${acmeCertDir}" ]]; then
+            cert_exists=1
+            local certInfo=$(~/.acme.sh/acme.sh --list 2> /dev/null | grep -F "${domain}")
+            echo -e "${yellow}Existing certificate found for ${domain}, will reuse it.${plain}"
+            [[ -n "${certInfo}" ]] && echo "$certInfo"
+        else
+            echo -e "${yellow}Found incomplete acme.sh state for ${domain} (no valid certificate files); cleaning it up and re-issuing.${plain}"
+            rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
+        fi
+    fi
+    if [[ ${cert_exists} -eq 0 ]]; then
         echo -e "${green}Your domain is ready for issuing certificates now...${plain}"
     fi
 
@@ -563,7 +579,7 @@ ssl_cert_issue() {
         ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
         if [ $? -ne 0 ]; then
             echo -e "${red}Issuing certificate failed, please check logs.${plain}"
-            rm -rf ~/.acme.sh/${domain}
+            rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
             systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
             return 1
         else
@@ -617,7 +633,7 @@ ssl_cert_issue() {
     else
         echo -e "${red}Installing certificate failed, exiting.${plain}"
         if [[ ${cert_exists} -eq 0 ]]; then
-            rm -rf ~/.acme.sh/${domain}
+            rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
         fi
         systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
         return 1

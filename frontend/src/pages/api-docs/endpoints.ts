@@ -309,6 +309,11 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/server/getMigration',
+        summary: 'Stream a cross-engine migration file as an attachment: a .dump (SQL text) on SQLite, or a .db SQLite database built from the live data on PostgreSQL.',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/server/getNewUUID',
         summary: 'Generate a fresh UUID v4. Convenience helper for client IDs.',
         response: '{\n  "success": true,\n  "obj": "550e8400-e29b-41d4-a716-446655440000"\n}',
@@ -1109,7 +1114,7 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/{clashPath}:subid',
-        summary: 'Return subscription as a Clash/Mihomo-compatible YAML config. Only when Clash subscription is enabled in settings. Default path: /clash/:subid.',
+        summary: 'Return subscription as a Clash/Mihomo-compatible YAML config, including configured global Clash routing rules. Only when Clash subscription is enabled in settings. Default path: /clash/:subid.',
         params: [
           { name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' },
         ],

@@ -480,6 +480,50 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 	return nil
 }
 
+func (s *NodeService) MarkNodeDirty(id int) error {
+	if id <= 0 {
+		return nil
+	}
+	return database.GetDB().Model(model.Node{}).
+		Where("id = ?", id).
+		Updates(map[string]any{
+			"config_dirty":    true,
+			"config_dirty_at": time.Now().UnixMilli(),
+		}).Error
+}
+
+func (s *NodeService) ClearNodeDirty(id int, dirtyAt int64) error {
+	if id <= 0 {
+		return nil
+	}
+	return database.GetDB().Model(model.Node{}).
+		Where("id = ? AND config_dirty_at = ?", id, dirtyAt).
+		Update("config_dirty", false).Error
+}
+
+func (s *NodeService) NodeSyncState(id int) (enabled bool, status string, dirty bool, dirtyAt int64, err error) {
+	if id <= 0 {
+		return false, "", false, 0, errors.New("invalid node id")
+	}
+	var row model.Node
+	err = database.GetDB().Model(model.Node{}).
+		Select("enable", "status", "config_dirty", "config_dirty_at").
+		Where("id = ?", id).
+		First(&row).Error
+	if err != nil {
+		return false, "", false, 0, err
+	}
+	return row.Enable, row.Status, row.ConfigDirty, row.ConfigDirtyAt, nil
+}
+
+func (s *NodeService) IsNodePending(id int) bool {
+	enabled, status, dirty, _, err := s.NodeSyncState(id)
+	if err != nil {
+		return false
+	}
+	return !enabled || status != "online" || dirty
+}
+
 func nodeMetricKey(id int, metric string) string {
 	return "node:" + strconv.Itoa(id) + ":" + metric
 }

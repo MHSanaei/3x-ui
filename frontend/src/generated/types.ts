@@ -34,7 +34,9 @@ export interface AllSetting {
   subAnnounce: string;
   subCertFile: string;
   subClashEnable: boolean;
+  subClashEnableRouting: boolean;
   subClashPath: string;
+  subClashRules: string;
   subClashURI: string;
   subDomain: string;
   subEmailInRemark: boolean;
@@ -42,9 +44,8 @@ export interface AllSetting {
   subEnableRouting: boolean;
   subEncrypt: boolean;
   subJsonEnable: boolean;
-  subJsonFragment: string;
+  subJsonFinalMask: string;
   subJsonMux: string;
-  subJsonNoises: string;
   subJsonPath: string;
   subJsonRules: string;
   subJsonURI: string;
@@ -121,7 +122,9 @@ export interface AllSettingView {
   subAnnounce: string;
   subCertFile: string;
   subClashEnable: boolean;
+  subClashEnableRouting: boolean;
   subClashPath: string;
+  subClashRules: string;
   subClashURI: string;
   subDomain: string;
   subEmailInRemark: boolean;
@@ -129,9 +132,8 @@ export interface AllSettingView {
   subEnableRouting: boolean;
   subEncrypt: boolean;
   subJsonEnable: boolean;
-  subJsonFragment: string;
+  subJsonFinalMask: string;
   subJsonMux: string;
-  subJsonNoises: string;
   subJsonPath: string;
   subJsonRules: string;
   subJsonURI: string;
@@ -320,6 +322,8 @@ export interface Node {
   apiToken: string;
   basePath: string;
   clientCount: number;
+  configDirty: boolean;
+  configDirtyAt: number;
   cpuPct: number;
   createdAt: number;
   depletedCount: number;

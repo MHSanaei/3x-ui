@@ -277,7 +277,10 @@
       "getConfigError": "An error occurred while retrieving the config file.",
       "backupPostgresNote": "This panel runs on PostgreSQL. Back Up downloads a pg_dump archive (.dump) and Restore loads it back with pg_restore. The server needs the PostgreSQL client tools (pg_dump and pg_restore) installed.",
       "exportDatabasePgDesc": "Click to download a PostgreSQL dump (.dump) of your current database to your device.",
-      "importDatabasePgDesc": "Click to select and upload a .dump file to restore your PostgreSQL database. This replaces all current data."
+      "importDatabasePgDesc": "Click to select and upload a .dump file to restore your PostgreSQL database. This replaces all current data.",
+      "migrationDownload": "Download Migration",
+      "migrationDownloadDesc": "Click to download a portable .dump (SQL text) export of your SQLite database.",
+      "migrationDownloadPgDesc": "Click to download a .db SQLite database built from your PostgreSQL data, ready to run this panel on SQLite."
     },
     "inbounds": {
       "title": "Inbounds",
@@ -472,6 +475,7 @@
         "inboundClientAddSuccess": "Inbound client(s) have been added.",
         "inboundClientDeleteSuccess": "Inbound client has been deleted.",
         "inboundClientUpdateSuccess": "Inbound client has been updated.",
+        "savedNodeOfflineWillSync": "Saved locally. A backing node is offline or disabled — the change will sync once it reconnects.",
         "delDepletedClientsSuccess": "All depleted clients have been deleted.",
         "resetAllClientTrafficSuccess": "Traffic for all clients has been reset.",
         "resetAllTrafficSuccess": "All traffic has been reset.",
@@ -553,7 +557,6 @@
         "maxSendingWindow": "Max Sending Window",
         "externalProxy": "External Proxy",
         "forceTls": "Force TLS",
-        "sniPlaceholder": "SNI (defaults to host)",
         "fingerprint": "Fingerprint",
         "defaultOption": "Default",
         "routeMark": "Route Mark",
@@ -1006,6 +1009,10 @@
       "subEnableRoutingDesc": "Global setting to enable routing in the VPN client. (Only for Happ)",
       "subRoutingRules": "Routing rules",
       "subRoutingRulesDesc": "Global routing rules for the VPN client. (Only for Happ)",
+      "subClashEnableRouting": "Enable routing",
+      "subClashEnableRoutingDesc": "Include global Clash/Mihomo routing rules in generated YAML subscriptions.",
+      "subClashRoutingRules": "Global routing rules",
+      "subClashRoutingRulesDesc": "Default Clash/Mihomo rules prepended to every generated YAML subscription before MATCH,PROXY.",
       "subListen": "Listen IP",
       "subListenDesc": "The IP address for the subscription service. (leave blank to listen on all IPs)",
       "subPort": "Listen Port",
@@ -1072,6 +1079,8 @@
         "defaultIpLimit": "Default IP limit"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "xray finalmask masks (TCP/UDP) and QUIC tuning injected into every JSON subscription stream. Requires a recent xray client.",
         "packets": "Packets",
         "length": "Length",
         "interval": "Interval",

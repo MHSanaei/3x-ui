@@ -895,6 +895,11 @@ func applyShareTLSParams(stream map[string]any, params map[string]string) {
 		if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
 			params["fp"], _ = fpValue.(string)
 		}
+		if echValue, ok := searchKey(tlsSettings, "echConfigList"); ok {
+			if ech, _ := echValue.(string); ech != "" {
+				params["ech"] = ech
+			}
+		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			params["pcs"] = strings.Join(pins, ",")
 		}
@@ -919,6 +924,11 @@ func applyVmessTLSParams(stream map[string]any, obj map[string]any) {
 	if tlsSetting != nil {
 		if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
 			obj["fp"], _ = fpValue.(string)
+		}
+		if echValue, ok := searchKey(tlsSettings, "echConfigList"); ok {
+			if ech, _ := echValue.(string); ech != "" {
+				obj["ech"] = ech
+			}
 		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			obj["pcs"] = strings.Join(pins, ",")
@@ -1044,6 +1054,9 @@ func applyExternalProxyTLSObj(ep map[string]any, obj map[string]any, security st
 	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
 		obj["pcs"] = joinAnyStrings(pins)
 	}
+	if ech, ok := ep["echConfigList"].(string); ok && ech != "" {
+		obj["ech"] = ech
+	}
 }
 
 func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, security string) {
@@ -1061,6 +1074,9 @@ func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, se
 	}
 	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
 		params["pcs"] = joinAnyStrings(pins)
+	}
+	if ech, ok := ep["echConfigList"].(string); ok && ech != "" {
+		params["ech"] = ech
 	}
 }
 
@@ -1133,6 +1149,14 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 			tlsSettings["settings"] = settings
 		}
 		settings["pinnedPeerCertSha256"] = pins
+	}
+	if ech, ok := ep["echConfigList"].(string); ok && ech != "" {
+		settings, _ := tlsSettings["settings"].(map[string]any)
+		if settings == nil {
+			settings = map[string]any{}
+			tlsSettings["settings"] = settings
+		}
+		settings["echConfigList"] = ech
 	}
 }
 

@@ -277,7 +277,10 @@
       "getConfigError": "Ocorreu um erro ao recuperar o arquivo de configuração",
       "backupPostgresNote": "Este painel é executado em PostgreSQL. «Backup» baixa um arquivo pg_dump (.dump) e «Restaurar» o recarrega com pg_restore. O servidor precisa ter as ferramentas cliente do PostgreSQL (pg_dump e pg_restore) instaladas.",
       "exportDatabasePgDesc": "Clique para baixar um dump do PostgreSQL (.dump) do seu banco de dados atual para o seu dispositivo.",
-      "importDatabasePgDesc": "Clique para selecionar e enviar um arquivo .dump para restaurar seu banco de dados PostgreSQL. Isso substitui todos os dados atuais."
+      "importDatabasePgDesc": "Clique para selecionar e enviar um arquivo .dump para restaurar seu banco de dados PostgreSQL. Isso substitui todos os dados atuais.",
+      "migrationDownload": "Baixar migração",
+      "migrationDownloadDesc": "Clique para baixar uma exportação portátil .dump (texto SQL) do seu banco de dados SQLite.",
+      "migrationDownloadPgDesc": "Clique para baixar um banco de dados SQLite .db criado a partir dos seus dados do PostgreSQL, pronto para executar este painel no SQLite."
     },
     "inbounds": {
       "title": "Entradas",
@@ -548,7 +551,6 @@
         "maxSendingWindow": "Máx. janela de envio",
         "externalProxy": "Proxy externo",
         "forceTls": "Forçar TLS",
-        "sniPlaceholder": "SNI (padrão = host)",
         "fingerprint": "Fingerprint",
         "defaultOption": "Padrão",
         "routeMark": "Route Mark",
@@ -1001,6 +1003,10 @@
       "subEnableRoutingDesc": "Configuração global para habilitar o roteamento no cliente VPN. (Apenas para Happ)",
       "subRoutingRules": "Regras de roteamento",
       "subRoutingRulesDesc": "Regras de roteamento globais para o cliente VPN. (Apenas para Happ)",
+      "subClashEnableRouting": "Ativar roteamento",
+      "subClashEnableRoutingDesc": "Incluir regras globais de roteamento Clash/Mihomo nas assinaturas YAML geradas.",
+      "subClashRoutingRules": "Regras globais de roteamento",
+      "subClashRoutingRulesDesc": "Regras Clash/Mihomo adicionadas ao início de cada assinatura YAML antes de MATCH,PROXY.",
       "subListen": "IP de Escuta",
       "subListenDesc": "O endereço IP para o serviço de assinatura. (deixe em branco para escutar em todos os IPs)",
       "subPort": "Porta de Escuta",
@@ -1067,6 +1073,8 @@
         "defaultIpLimit": "Limite de IP padrão"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "Máscaras finalmask do xray (TCP/UDP) e ajustes QUIC injetados em cada fluxo de assinatura JSON. Requer um cliente xray recente.",
         "packets": "Pacotes",
         "length": "Comprimento",
         "interval": "Intervalo",

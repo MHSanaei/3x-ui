@@ -277,7 +277,10 @@
       "getConfigError": "Ocurrió un error al obtener el archivo de configuración",
       "backupPostgresNote": "Este panel funciona con PostgreSQL. «Copia de seguridad» descarga un archivo pg_dump (.dump) y «Restaurar» lo vuelve a cargar con pg_restore. El servidor necesita tener instaladas las herramientas cliente de PostgreSQL (pg_dump y pg_restore).",
       "exportDatabasePgDesc": "Haz clic para descargar un volcado de PostgreSQL (.dump) de tu base de datos actual en tu dispositivo.",
-      "importDatabasePgDesc": "Haz clic para seleccionar y subir un archivo .dump y restaurar tu base de datos PostgreSQL. Esto reemplaza todos los datos actuales."
+      "importDatabasePgDesc": "Haz clic para seleccionar y subir un archivo .dump y restaurar tu base de datos PostgreSQL. Esto reemplaza todos los datos actuales.",
+      "migrationDownload": "Descargar migración",
+      "migrationDownloadDesc": "Haz clic para descargar una exportación portable .dump (texto SQL) de tu base de datos SQLite.",
+      "migrationDownloadPgDesc": "Haz clic para descargar una base de datos SQLite .db creada a partir de tus datos de PostgreSQL, lista para ejecutar este panel en SQLite."
     },
     "inbounds": {
       "title": "Entradas",
@@ -548,7 +551,6 @@
         "maxSendingWindow": "Máx. ventana de envío",
         "externalProxy": "Proxy externo",
         "forceTls": "Forzar TLS",
-        "sniPlaceholder": "SNI (por defecto = host)",
         "fingerprint": "Fingerprint",
         "defaultOption": "Por defecto",
         "routeMark": "Route Mark",
@@ -1001,6 +1003,10 @@
       "subEnableRoutingDesc": "Configuración global para habilitar el enrutamiento en el cliente VPN. (Solo para Happ)",
       "subRoutingRules": "Reglas de enrutamiento",
       "subRoutingRulesDesc": "Reglas de enrutamiento globales para el cliente VPN. (Solo para Happ)",
+      "subClashEnableRouting": "Habilitar enrutamiento",
+      "subClashEnableRoutingDesc": "Incluir reglas globales de enrutamiento Clash/Mihomo en las suscripciones YAML generadas.",
+      "subClashRoutingRules": "Reglas globales de enrutamiento",
+      "subClashRoutingRulesDesc": "Reglas Clash/Mihomo agregadas al inicio de cada suscripción YAML antes de MATCH,PROXY.",
       "subListen": "Listening IP",
       "subListenDesc": "Dejar en blanco por defecto para monitorear todas las IPs.",
       "subPort": "Puerto de Suscripción",
@@ -1067,6 +1073,8 @@
         "defaultIpLimit": "Límite IP por defecto"
       },
       "subFormats": {
+        "finalMask": "Final Mask",
+        "finalMaskDesc": "Máscaras finalmask de xray (TCP/UDP) y ajustes QUIC inyectados en cada flujo de suscripción JSON. Requiere un cliente xray reciente.",
         "packets": "Paquetes",
         "length": "Longitud",
         "interval": "Intervalo",

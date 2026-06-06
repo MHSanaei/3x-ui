@@ -466,8 +466,14 @@ func main() {
 	migrateDbCmd := flag.NewFlagSet("migrate-db", flag.ExitOnError)
 	var migrateDsn string
 	var migrateSrc string
+	var migrateDump string
+	var migrateRestore string
+	var migrateOut string
 	migrateDbCmd.StringVar(&migrateDsn, "dsn", "", "Destination PostgreSQL DSN (postgres://user:pass@host:port/db?sslmode=disable)")
 	migrateDbCmd.StringVar(&migrateSrc, "src", "", "Source SQLite file (defaults to the configured x-ui.db)")
+	migrateDbCmd.StringVar(&migrateDump, "dump", "", "Write a portable SQL text dump of --src to this file (.db -> .dump)")
+	migrateDbCmd.StringVar(&migrateRestore, "restore", "", "Rebuild a SQLite database from this SQL text dump (.dump -> .db); requires --out")
+	migrateDbCmd.StringVar(&migrateOut, "out", "", "Destination SQLite file for --restore (must not already exist)")
 
 	settingCmd := flag.NewFlagSet("setting", flag.ExitOnError)
 	var port int
@@ -512,7 +518,7 @@ func main() {
 		fmt.Println("Commands:")
 		fmt.Println("    run            run web panel")
 		fmt.Println("    migrate        migrate form other/old x-ui")
-		fmt.Println("    migrate-db     copy data from the SQLite file into a PostgreSQL database")
+		fmt.Println("    migrate-db     SQLite <-> .dump (--dump/--restore) or copy into PostgreSQL (--dsn)")
 		fmt.Println("    setting        set settings")
 	}
 
@@ -541,13 +547,30 @@ func main() {
 		if src == "" {
 			src = config.GetDBPath()
 		}
-		if migrateDsn == "" {
-			fmt.Println("--dsn is required: postgres://user:pass@host:port/dbname?sslmode=disable")
-			return
-		}
-		if err := database.MigrateData(src, migrateDsn); err != nil {
-			fmt.Println("migration failed:", err)
-			os.Exit(1)
+		switch {
+		case migrateDump != "":
+			if err := database.DumpSQLite(src, migrateDump); err != nil {
+				fmt.Println("dump failed:", err)
+				os.Exit(1)
+			}
+			fmt.Printf("Dumped %s -> %s\n", src, migrateDump)
+		case migrateRestore != "":
+			if migrateOut == "" {
+				fmt.Println("--out is required when using --restore: the destination .db path (must not exist)")
+				return
+			}
+			if err := database.RestoreSQLite(migrateRestore, migrateOut); err != nil {
+				fmt.Println("restore failed:", err)
+				os.Exit(1)
+			}
+			fmt.Printf("Restored %s -> %s\n", migrateRestore, migrateOut)
+		case migrateDsn != "":
+			if err := database.MigrateData(src, migrateDsn); err != nil {
+				fmt.Println("migration failed:", err)
+				os.Exit(1)
+			}
+		default:
+			fmt.Println("nothing to do: pass --dump <file>, --restore <file> --out <db>, or --dsn <postgres-dsn>")
 		}
 	case "setting":
 		err := settingCmd.Parse(os.Args[2:])
