@@ -121,10 +121,15 @@ build_linux() {
   docker info >/dev/null 2>&1 || die "Docker daemon is not running — start Docker Desktop / the engine."
 
   maybe_vendor
+  # Statically link (musl) so the binary runs on ANY Linux — glibc or musl.
+  # A plain dynamic musl build only runs on Alpine and fails elsewhere with
+  # "cannot execute: required file not found" (missing /lib/ld-musl loader).
+  # This matches the project's official release build. Override with LDFLAGS=.
+  local ldflags="${LDFLAGS:--w -s -linkmode external -extldflags '-static'}"
   local img="$IMAGE_PREFIX:linux-$arch"
-  log "Building Linux/$arch via Docker (CGO, musl) — this compiles xray-core, be patient"
+  log "Building Linux/$arch via Docker (CGO, static musl) — this compiles xray-core, be patient"
   docker buildx build --platform "linux/$arch" --target builder \
-    --provenance=false --sbom=false -t "$img" --load .
+    --provenance=false --sbom=false --build-arg "LDFLAGS=$ldflags" -t "$img" --load .
 
   log "Extracting binary + xray/geo assets"
   mkdir -p "$OUT"

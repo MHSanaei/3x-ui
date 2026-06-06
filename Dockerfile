@@ -27,7 +27,11 @@ COPY --from=frontend /src/web/dist ./web/dist
 
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
-RUN go build -ldflags "-w -s" -o build/x-ui main.go
+# LDFLAGS is overridable so build.sh can produce a fully static binary
+# (-extldflags '-static') that runs on any Linux (glibc or musl), not just
+# inside this Alpine image. Default keeps the lean dynamic build for the image.
+ARG LDFLAGS="-w -s"
+RUN go build -ldflags "$LDFLAGS" -o build/x-ui main.go
 RUN ./DockerInit.sh "$TARGETARCH"
 
 # ========================================================
