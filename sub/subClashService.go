@@ -428,6 +428,21 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 			if mode, ok := xhttp["mode"].(string); ok && mode != "" {
 				opts["mode"] = mode
 			}
+			if value, ok := xhttp["xPaddingObfsMode"].(bool); ok {
+				opts["x-padding-obfs-mode"] = value
+			}
+			paddingFields := map[string]string{
+				"xPaddingBytes":     "x-padding-bytes",
+				"xPaddingKey":       "x-padding-key",
+				"xPaddingHeader":    "x-padding-header",
+				"xPaddingPlacement": "x-padding-placement",
+				"xPaddingMethod":    "x-padding-method",
+			}
+			for source, target := range paddingFields {
+				if value, ok := xhttp[source].(string); ok && value != "" {
+					opts[target] = value
+				}
+			}
 		}
 		if len(opts) > 0 {
 			proxy["xhttp-opts"] = opts

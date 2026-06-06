@@ -44,9 +44,15 @@ func TestApplyTransport_XHTTP(t *testing.T) {
 	proxy := map[string]any{}
 	stream := map[string]any{
 		"xhttpSettings": map[string]any{
-			"path": "/xh",
-			"host": "example.com",
-			"mode": "auto",
+			"path":              "/xh",
+			"host":              "example.com",
+			"mode":              "auto",
+			"xPaddingObfsMode":  true,
+			"xPaddingBytes":     "100-1000",
+			"xPaddingKey":       "trace",
+			"xPaddingHeader":    "X-Trace-ID",
+			"xPaddingPlacement": "queryInHeader",
+			"xPaddingMethod":    "tokenish",
 		},
 	}
 
@@ -60,7 +66,45 @@ func TestApplyTransport_XHTTP(t *testing.T) {
 	if !ok {
 		t.Fatalf("xhttp-opts missing or wrong type: %#v", proxy["xhttp-opts"])
 	}
-	want := map[string]any{"path": "/xh", "host": "example.com", "mode": "auto"}
+	want := map[string]any{
+		"path":                "/xh",
+		"host":                "example.com",
+		"mode":                "auto",
+		"x-padding-obfs-mode": true,
+		"x-padding-bytes":     "100-1000",
+		"x-padding-key":       "trace",
+		"x-padding-header":    "X-Trace-ID",
+		"x-padding-placement": "queryInHeader",
+		"x-padding-method":    "tokenish",
+	}
+	if !reflect.DeepEqual(opts, want) {
+		t.Fatalf("xhttp-opts = %#v, want %#v", opts, want)
+	}
+}
+
+func TestApplyTransport_XHTTP_OmitsEmptyPaddingStringsAndPreservesFalse(t *testing.T) {
+	svc := &SubClashService{}
+	proxy := map[string]any{}
+	stream := map[string]any{
+		"xhttpSettings": map[string]any{
+			"path":              "/xh",
+			"xPaddingObfsMode":  false,
+			"xPaddingBytes":     "",
+			"xPaddingKey":       "",
+			"xPaddingHeader":    "",
+			"xPaddingPlacement": "",
+			"xPaddingMethod":    "",
+		},
+	}
+
+	if !svc.applyTransport(proxy, "xhttp", stream) {
+		t.Fatalf("applyTransport returned false for xhttp")
+	}
+	opts, ok := proxy["xhttp-opts"].(map[string]any)
+	if !ok {
+		t.Fatalf("xhttp-opts missing or wrong type: %#v", proxy["xhttp-opts"])
+	}
+	want := map[string]any{"path": "/xh", "x-padding-obfs-mode": false}
 	if !reflect.DeepEqual(opts, want) {
 		t.Fatalf("xhttp-opts = %#v, want %#v", opts, want)
 	}
