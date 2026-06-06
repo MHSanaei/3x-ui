@@ -52,7 +52,7 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
       }
 
       onBusy({ busy: true, tip: `${t('pages.settings.restartPanel')}…` });
-      const restart = await HttpUtil.post('/panel/setting/restartPanel');
+      const restart = await HttpUtil.post('/panel/api/setting/restartPanel');
       if (restart?.success) {
         await PromiseUtil.sleep(5000);
         window.location.reload();

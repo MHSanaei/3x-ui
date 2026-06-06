@@ -917,28 +917,28 @@ export const sections: readonly Section[] = [
     id: 'settings',
     title: 'Settings',
     description:
-      'Panel configuration and user credentials. All endpoints live under /panel/setting and require a logged-in session or Bearer token.',
+      'Panel configuration and user credentials. All endpoints live under /panel/api/setting and require a logged-in session or Bearer token.',
     endpoints: [
       {
         method: 'POST',
-        path: '/panel/setting/all',
+        path: '/panel/api/setting/all',
         summary: 'Return every panel setting: web server, Telegram bot, subscription, security, LDAP. The full JSON blob that the Settings page edits.',
         response: '{\n  "success": true,\n  "obj": {\n    "webPort": 2053,\n    "webCertFile": "",\n    "webKeyFile": "",\n    "webBasePath": "/",\n    "subPort": 10882,\n    "subPath": "/sub/",\n    "tgBotEnable": false,\n    "tgBotToken": "",\n    ...\n  }\n}',
       },
       {
         method: 'POST',
-        path: '/panel/setting/defaultSettings',
+        path: '/panel/api/setting/defaultSettings',
         summary: 'Return the computed default settings based on the request host. Useful to preview what a fresh install would use.',
       },
       {
         method: 'POST',
-        path: '/panel/setting/update',
+        path: '/panel/api/setting/update',
         summary: 'Persist every setting at once. The body mirrors the shape returned by /all. Invalid values (bad ports, missing cert pairs, etc.) are rejected before write.',
         body: '{\n  "webPort": 2053,\n  "webBasePath": "/",\n  "subPort": 10882,\n  "subPath": "/sub/",\n  "tgBotEnable": false,\n  ...\n}',
       },
       {
         method: 'POST',
-        path: '/panel/setting/updateUser',
+        path: '/panel/api/setting/updateUser',
         summary: 'Change the panel admin username and password. Requires the current credentials for verification. The session is refreshed with the new values on success.',
         params: [
           { name: 'oldUsername', in: 'body', type: 'string', desc: 'Current admin username.' },
@@ -950,12 +950,12 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/setting/restartPanel',
+        path: '/panel/api/setting/restartPanel',
         summary: 'Restart the entire 3x-ui process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.',
       },
       {
         method: 'GET',
-        path: '/panel/setting/getDefaultJsonConfig',
+        path: '/panel/api/setting/getDefaultJsonConfig',
         summary: 'Return the built-in default Xray JSON config template that ships with this panel version.',
       },
     ],
@@ -965,17 +965,17 @@ export const sections: readonly Section[] = [
     id: 'api-tokens',
     title: 'API Tokens',
     description:
-      'Manage Bearer tokens used for programmatic auth (bots, central panels acting on this node, CI). Each token has a unique name and an enabled flag — disable to revoke without deleting, delete to revoke permanently. Tokens are stored as SHA-256 hashes and the plaintext is returned only once, in the create response — it cannot be retrieved afterwards, so copy it then. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any /panel/api/* request.',
+      'Manage Bearer tokens used for programmatic auth (bots, central panels acting on this node, CI). Each token has a unique name and an enabled flag — disable to revoke without deleting, delete to revoke permanently. Tokens are stored as SHA-256 hashes and the plaintext is returned only once, in the create response — it cannot be retrieved afterwards, so copy it then. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any /panel/api/* request — the token is a full-admin credential.',
     endpoints: [
       {
         method: 'GET',
-        path: '/panel/setting/apiTokens',
+        path: '/panel/api/setting/apiTokens',
         summary: 'List every API token, enabled or not. The token value is never returned — only metadata.',
         response: '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "default",\n      "enabled": true,\n      "createdAt": 1736000000\n    }\n  ]\n}',
       },
       {
         method: 'POST',
-        path: '/panel/setting/apiTokens/create',
+        path: '/panel/api/setting/apiTokens/create',
         summary: 'Mint a new API token. Name must be unique and 1-64 characters; the token string is server-generated and returned only in this response — it is stored hashed and cannot be retrieved later.',
         params: [
           { name: 'name', in: 'body', type: 'string', desc: 'Human-readable label, e.g. "central-panel-a".' },
@@ -986,7 +986,7 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/setting/apiTokens/delete/:id',
+        path: '/panel/api/setting/apiTokens/delete/:id',
         summary: 'Permanently delete a token. Any caller using it stops authenticating immediately.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Token row ID.' },
@@ -995,7 +995,7 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/setting/apiTokens/setEnabled/:id',
+        path: '/panel/api/setting/apiTokens/setEnabled/:id',
         summary: 'Toggle a token enabled/disabled without deleting it. Disabled tokens are rejected by checkAPIAuth on the next request.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Token row ID.' },
@@ -1011,32 +1011,32 @@ export const sections: readonly Section[] = [
     id: 'xray-settings',
     title: 'Xray Settings',
     description:
-      'Xray configuration template, outbound management, Warp/Nord integration, and config testing. All endpoints under /panel/xray.',
+      'Xray configuration template, outbound management, Warp/Nord integration, and config testing. All endpoints under /panel/api/xray.',
     endpoints: [
       {
         method: 'POST',
-        path: '/panel/xray/',
+        path: '/panel/api/xray/',
         summary: 'Return the Xray config template (JSON string), available inbound tags, client reverse tags, and the configured outbound test URL in one response.',
         response: '{\n  "success": true,\n  "obj": {\n    "xraySetting": "{...raw xray config...}",\n    "inboundTags": "[\\"in-443-tcp\\"]",\n    "clientReverseTags": "[]",\n    "outboundTestUrl": "https://www.google.com/generate_204"\n  }\n}',
       },
       {
         method: 'GET',
-        path: '/panel/xray/getDefaultJsonConfig',
-        summary: 'Return the built-in default Xray config shipped with the panel (identical to /panel/setting/getDefaultJsonConfig).',
+        path: '/panel/api/xray/getDefaultJsonConfig',
+        summary: 'Return the built-in default Xray config shipped with the panel (identical to /panel/api/setting/getDefaultJsonConfig).',
       },
       {
         method: 'GET',
-        path: '/panel/xray/getOutboundsTraffic',
+        path: '/panel/api/xray/getOutboundsTraffic',
         summary: 'Return traffic statistics for every outbound. Each outbound shows up/down/total counters.',
       },
       {
         method: 'GET',
-        path: '/panel/xray/getXrayResult',
+        path: '/panel/api/xray/getXrayResult',
         summary: 'Return the most recent Xray process stdout/stderr output. Useful to check for startup errors or runtime warnings.',
       },
       {
         method: 'POST',
-        path: '/panel/xray/update',
+        path: '/panel/api/xray/update',
         summary: 'Save the Xray JSON config template and optionally the outbound test URL. Both are sent as form fields.',
         params: [
           { name: 'xraySetting', in: 'body (form)', type: 'string', desc: 'Full Xray JSON config template.' },
@@ -1045,7 +1045,7 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/xray/warp/:action',
+        path: '/panel/api/xray/warp/:action',
         summary: 'Manage Cloudflare Warp integration. The action parameter selects the operation.',
         params: [
           { name: 'action', in: 'path', type: 'string', desc: 'data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). license — set a Warp+ license key (sends license).' },
@@ -1056,7 +1056,7 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/xray/nord/:action',
+        path: '/panel/api/xray/nord/:action',
         summary: 'Manage NordVPN integration. The action parameter selects the operation.',
         params: [
           { name: 'action', in: 'path', type: 'string', desc: 'countries — list available countries. servers — list servers in a country (sends countryId). reg — get NordVPN credentials (sends token). setKey — store NordVPN API key (sends key). data — return current NordVPN connection data. del — delete NordVPN data.' },
@@ -1067,7 +1067,7 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/xray/resetOutboundsTraffic',
+        path: '/panel/api/xray/resetOutboundsTraffic',
         summary: 'Reset traffic counters for a specific outbound by tag.',
         params: [
           { name: 'tag', in: 'body (form)', type: 'string', desc: 'Outbound tag to reset (e.g. "proxy", "direct").' },
@@ -1076,7 +1076,7 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/xray/testOutbound',
+        path: '/panel/api/xray/testOutbound',
         summary: 'Test an outbound configuration. Sends the outbound JSON (required), optionally all outbounds (to resolve sockopt.dialerProxy dependencies), and a mode flag.',
         params: [
           { name: 'outbound', in: 'body (form)', type: 'string', desc: 'JSON-encoded single outbound to test (required).' },

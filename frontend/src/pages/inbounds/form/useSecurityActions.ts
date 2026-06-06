@@ -120,7 +120,7 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseS
       // node's own paths (fetched through the central panel), not this panel's.
       const msg = typeof nodeId === 'number'
         ? await HttpUtil.get(`/panel/api/nodes/webCert/${nodeId}`, undefined, { silent: true })
-        : await HttpUtil.post('/panel/setting/all', undefined, { silent: true });
+        : await HttpUtil.post('/panel/api/setting/all', undefined, { silent: true });
       if (!msg?.success) {
         messageApi.warning(msg?.msg || t('pages.inbounds.setDefaultCertEmpty'));
         return;
