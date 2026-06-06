@@ -382,8 +382,14 @@ func (r *Remote) ResetAllTraffics(ctx context.Context) error {
 }
 
 type TrafficSnapshot struct {
-	Inbounds      []*model.Inbound
-	OnlineEmails  []string
+	Inbounds     []*model.Inbound
+	OnlineEmails []string
+	// OnlineTree is the node's GUID-keyed online subtree (its own clients under
+	// its panelGuid plus every descendant under theirs). Preferred over the flat
+	// OnlineEmails so the master can attribute deeply nested clients to the real
+	// node across a chain (#4983). Empty when the node is an old build without
+	// the per-GUID endpoint — OnlineEmails is the fallback then.
+	OnlineTree    map[string][]string
 	LastOnlineMap map[string]int64
 }
 
@@ -398,11 +404,19 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 		return nil, fmt.Errorf("decode inbound list: %w", err)
 	}
 
-	envOnlines, err := r.do(ctx, http.MethodPost, "panel/api/clients/onlines", nil)
-	if err != nil {
-		logger.Warning("remote", r.node.Name, "onlines fetch failed:", err)
-	} else if len(envOnlines.Obj) > 0 {
-		_ = json.Unmarshal(envOnlines.Obj, &snap.OnlineEmails)
+	// Prefer the GUID-keyed subtree; fall back to the flat list only when the
+	// node is an old build without the per-GUID endpoint (#4983).
+	envTree, err := r.do(ctx, http.MethodPost, "panel/api/clients/onlinesByGuid", nil)
+	if err == nil && len(envTree.Obj) > 0 {
+		_ = json.Unmarshal(envTree.Obj, &snap.OnlineTree)
+	}
+	if len(snap.OnlineTree) == 0 {
+		envOnlines, err := r.do(ctx, http.MethodPost, "panel/api/clients/onlines", nil)
+		if err != nil {
+			logger.Warning("remote", r.node.Name, "onlines fetch failed:", err)
+		} else if len(envOnlines.Obj) > 0 {
+			_ = json.Unmarshal(envOnlines.Obj, &snap.OnlineEmails)
+		}
 	}
 
 	envLastOnline, err := r.do(ctx, http.MethodPost, "panel/api/clients/lastOnline", nil)

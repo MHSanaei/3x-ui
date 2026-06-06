@@ -682,15 +682,15 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/api/clients/onlinesByNode',
-        summary: 'Online client emails grouped by the node that reported them. The local panel uses key "0"; each remote node uses its node id. Lets the inbounds page show online status per node instead of merging every node together.',
-        response: '{\n  "success": true,\n  "obj": {\n    "0": ["user1"],\n    "3": ["user1", "user2"]\n  }\n}',
+        path: '/panel/api/clients/onlinesByGuid',
+        summary: 'Online client emails grouped by the panelGuid of the node that physically hosts each client. The local panel uses its own GUID; each node (at any depth in a chain) uses its GUID. Lets the inbounds page attribute online status to the real node instead of the intermediate one it syncs through.',
+        response: '{\n  "success": true,\n  "obj": {\n    "a1b2-...": ["user1"],\n    "c3d4-...": ["user1", "user2"]\n  }\n}',
       },
       {
         method: 'POST',
         path: '/panel/api/clients/activeInbounds',
-        summary: 'Inbound tags that carried traffic within the heartbeat window, grouped by node (local panel uses key "0"). Pairs with onlinesByNode so the inbounds page only marks a multi-inbound client online on the inbounds it actually used. Nodes that do not report per-inbound activity are absent.',
-        response: '{\n  "success": true,\n  "obj": {\n    "0": ["inbound-443", "inbound-8443"]\n  }\n}',
+        summary: 'Inbound tags that carried traffic within the heartbeat window, grouped by the hosting node\'s panelGuid. Pairs with onlinesByGuid so the inbounds page only marks a multi-inbound client online on the inbounds it actually used. Nodes that do not report per-inbound activity are absent.',
+        response: '{\n  "success": true,\n  "obj": {\n    "a1b2-...": ["inbound-443", "inbound-8443"]\n  }\n}',
       },
       {
         method: 'POST',
