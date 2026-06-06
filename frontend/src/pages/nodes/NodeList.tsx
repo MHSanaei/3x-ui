@@ -15,6 +15,7 @@ import {
 import type { BadgeProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
+  ApartmentOutlined,
   ClusterOutlined,
   CloudDownloadOutlined,
   DeleteOutlined,
@@ -56,7 +57,7 @@ function isUpdateEligible(n: NodeRecord): boolean {
 
 interface NodeRow extends NodeRecord {
   url: string;
-  key: number;
+  key: string | number;
 }
 
 function badgeStatus(status?: string): BadgeProps['status'] {
@@ -131,14 +132,49 @@ export default function NodeList({
   const [statsNode, setStatsNode] = useState<NodeRow | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
-  const dataSource = useMemo<NodeRow[]>(
-    () => nodes.map((n) => ({
+  // Map a node GUID to its display name so a transitive sub-node can show which
+  // parent it is reached through (#4983).
+  const nameByGuid = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const n of nodes) if (n.guid) m.set(n.guid, n.name || n.guid);
+    return m;
+  }, [nodes]);
+
+  // Order direct nodes first, each immediately followed by its transitive
+  // sub-nodes, so the table reads as a parent -> child tree without colliding
+  // with the per-row history expander (transitive nodes carry id 0).
+  const dataSource = useMemo<NodeRow[]>(() => {
+    const toRow = (n: NodeRecord): NodeRow => ({
       ...n,
       url: `${n.scheme}://${n.address}:${n.port}${n.basePath || '/'}`,
-      key: n.id,
-    })),
-    [nodes],
-  );
+      key: n.transitive ? `t-${n.guid || ''}` : n.id,
+    });
+    const childrenByParent = new Map<string, NodeRecord[]>();
+    for (const n of nodes) {
+      if (n.transitive && n.parentGuid) {
+        const arr = childrenByParent.get(n.parentGuid) || [];
+        arr.push(n);
+        childrenByParent.set(n.parentGuid, arr);
+      }
+    }
+    const ordered: NodeRow[] = [];
+    const added = new Set<string>();
+    const push = (n: NodeRecord) => {
+      const row = toRow(n);
+      ordered.push(row);
+      added.add(String(row.key));
+    };
+    for (const n of nodes) {
+      if (n.transitive) continue;
+      push(n);
+      if (n.guid) for (const child of childrenByParent.get(n.guid) || []) push(child);
+    }
+    // Transitive nodes whose parent isn't in the list still get shown.
+    for (const n of nodes) {
+      if (n.transitive && !added.has(`t-${n.guid || ''}`)) push(n);
+    }
+    return ordered;
+  }, [nodes]);
 
   function toggleExpanded(id: number) {
     setExpandedIds((prev) => {
@@ -153,7 +189,11 @@ export default function NodeList({
       title: t('pages.nodes.actions'),
       align: 'center',
       width: 190,
-      render: (_value, record) => (
+      render: (_value, record) => record.transitive ? (
+        <Tooltip title={t('pages.nodes.subNodeTip', { parent: record.parentGuid ? (nameByGuid.get(record.parentGuid) || '-') : '-' })}>
+          <Tag icon={<ApartmentOutlined />} style={{ margin: 0 }}>{t('pages.nodes.subNode')}</Tag>
+        </Tooltip>
+      ) : (
         <Space>
           <Tooltip title={t('pages.nodes.probe')}>
             <Button type="text" size="small" icon={<ThunderboltOutlined />} onClick={() => onProbe(record)} />
@@ -177,7 +217,9 @@ export default function NodeList({
       dataIndex: 'enable',
       align: 'center',
       width: 80,
-      render: (_value, record) => (
+      render: (_value, record) => record.transitive ? (
+        <span style={{ opacity: 0.4 }}>—</span>
+      ) : (
         <Switch
           checked={!!record.enable}
           size="small"
@@ -190,8 +232,11 @@ export default function NodeList({
       dataIndex: 'name',
       ellipsis: true,
       render: (_value, record) => (
-        <div className="name-cell">
-          <span className="name">{record.name}</span>
+        <div className="name-cell" style={record.transitive ? { paddingInlineStart: 20 } : undefined}>
+          <span className="name">
+            {record.transitive && <ApartmentOutlined style={{ marginInlineEnd: 6, opacity: 0.6 }} />}
+            {record.name}
+          </span>
           {record.remark && <span className="remark">{record.remark}</span>}
         </div>
       ),
@@ -316,7 +361,7 @@ export default function NodeList({
       width: 120,
       render: (_value, record) => relativeTime(record.lastHeartbeat),
     },
-  ], [t, showAddress, relativeTime, latestVersion, onToggleEnable, onProbe, onEdit, onDelete, onUpdateNode]);
+  ], [t, showAddress, relativeTime, latestVersion, onToggleEnable, onProbe, onEdit, onDelete, onUpdateNode, nameByGuid]);
 
   return (
     <Card size="small" hoverable>
@@ -340,7 +385,18 @@ export default function NodeList({
                 <div>{t('noData')}</div>
               </div>
             ) : (
-              dataSource.map((record) => (
+              dataSource.map((record) => record.transitive ? (
+                <div key={String(record.key)} className="node-card" style={{ paddingInlineStart: 16, opacity: 0.85 }}>
+                  <div className="card-head">
+                    <ApartmentOutlined style={{ opacity: 0.6 }} />
+                    <StatusDot status={record.status} />
+                    <span className="node-name">{record.name}</span>
+                    <div className="card-actions">
+                      <Tag icon={<ApartmentOutlined />} style={{ margin: 0 }}>{t('pages.nodes.subNode')}</Tag>
+                    </div>
+                  </div>
+                </div>
+              ) : (
                 <div key={record.id} className="node-card">
                   <div className="card-head" onClick={() => toggleExpanded(record.id)}>
                     <RightOutlined className={`card-expand${expandedIds.has(record.id) ? ' is-expanded' : ''}`} />
@@ -501,8 +557,8 @@ export default function NodeList({
           rowKey="id"
           rowSelection={dataSource.length > 1 ? {
             selectedRowKeys: selectedIds,
-            onChange: (keys) => onSelectionChange(keys as number[]),
-            getCheckboxProps: (record) => ({ disabled: !isUpdateEligible(record) }),
+            onChange: (keys) => onSelectionChange(keys.filter((k) => typeof k === 'number') as number[]),
+            getCheckboxProps: (record) => ({ disabled: !!record.transitive || !isUpdateEligible(record) }),
           } : undefined}
           locale={{
             emptyText: (
@@ -514,6 +570,7 @@ export default function NodeList({
           }}
           expandable={{
             expandedRowRender: (record) => <NodeHistoryPanel node={record} />,
+            rowExpandable: (record) => !record.transitive,
           }}
         />
       )}

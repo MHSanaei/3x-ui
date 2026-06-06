@@ -67,6 +67,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/del/:email", a.delete)
 	g.POST("/ips/:email", a.getIps)
 	g.POST("/clearIps/:email", a.clearIps)
+
 	// Owners may re-attach/detach their own clients to/from inbounds (each
 	// handler enforces ownership). Attaching doesn't change the client's quota,
 	// so there's no cost implication.
@@ -536,12 +537,12 @@ func (a *ClientController) onlines(c *gin.Context) {
 	jsonObj(c, a.inboundService.GetOnlineClients(), nil)
 }
 
-func (a *ClientController) onlinesByNode(c *gin.Context) {
-	jsonObj(c, a.inboundService.GetOnlineClientsByNode(), nil)
+func (a *ClientController) onlinesByGuid(c *gin.Context) {
+	jsonObj(c, a.inboundService.GetOnlineClientsByGuid(), nil)
 }
 
 func (a *ClientController) activeInbounds(c *gin.Context) {
-	jsonObj(c, a.inboundService.GetActiveInboundsByNode(), nil)
+	jsonObj(c, a.inboundService.GetActiveInboundsByGuid(), nil)
 }
 
 func (a *ClientController) lastOnline(c *gin.Context) {

@@ -875,6 +875,7 @@ export default function InboundFormModal({
           colon={false}
           labelCol={{ sm: { span: 8 } }}
           wrapperCol={{ sm: { span: 14 } }}
+          labelWrap
           onValuesChange={onValuesChange}
         >
           <Tabs items={[

@@ -195,7 +195,11 @@ func TestUpdateInboundClientIps_LiveIpNotBannedByStillFreshHistoricals(t *testin
 		{IP: "128.71.1.1", Timestamp: now},
 	}
 
-	shouldCleanLog := j.updateInboundClientIps(row, email, live, true)
+	inbound, err := j.getInboundByEmail(email)
+	if err != nil {
+		t.Fatalf("getInboundByEmail: %v", err)
+	}
+	shouldCleanLog := j.updateInboundClientIps(row, inbound, email, live, true)
 
 	if shouldCleanLog {
 		t.Fatalf("shouldCleanLog must be false, nothing should have been banned with 1 live ip under limit 3")
@@ -244,7 +248,11 @@ func TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned(t *testing.T) {
 		{IP: "192.0.2.9", Timestamp: now},
 	}
 
-	shouldCleanLog := j.updateInboundClientIps(row, email, live, true)
+	inbound, err := j.getInboundByEmail(email)
+	if err != nil {
+		t.Fatalf("getInboundByEmail: %v", err)
+	}
+	shouldCleanLog := j.updateInboundClientIps(row, inbound, email, live, true)
 
 	if !shouldCleanLog {
 		t.Fatalf("shouldCleanLog must be true when the live set exceeds the limit")
@@ -318,6 +326,32 @@ func TestRun_CollectsIpsWithoutLimit(t *testing.T) {
 	if info, err := os.Stat(readIpLimitLogPath()); err == nil && info.Size() > 0 {
 		body, _ := os.ReadFile(readIpLimitLogPath())
 		t.Fatalf("3xipl.log should be empty with no limit set, got:\n%s", body)
+	}
+}
+
+// #4963: a stale access-log entry for a renamed/deleted client (its email no
+// longer maps to any inbound) must not create or resurrect an
+// inbound_client_ips row, and must drop any orphan left behind — instead of
+// spamming "failed to fetch inbound settings" every run.
+func TestRun_StaleAccessLogEmailIsSkippedAndOrphanDropped(t *testing.T) {
+	setupIntegrationDB(t)
+	t.Setenv("XUI_ENABLE_FAIL2BAN", "true")
+	fakeFail2BanClient(t)
+
+	const staleEmail = "renamed-away"
+	// No inbound references staleEmail. Pre-seed an orphan tracking row to
+	// confirm the job removes it rather than leaving it to error forever.
+	seedClientIps(t, staleEmail, []IPWithTimestamp{{IP: "203.0.113.5", Timestamp: time.Now().Unix()}})
+	writeXrayAccessLog(t, staleEmail, "203.0.113.5")
+
+	NewCheckClientIpJob().Run()
+
+	var count int64
+	if err := database.GetDB().Model(&model.InboundClientIps{}).Where("client_email = ?", staleEmail).Count(&count).Error; err != nil {
+		t.Fatalf("count InboundClientIps: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("stale-email orphan row should be deleted, got %d row(s)", count)
 	}
 }
 

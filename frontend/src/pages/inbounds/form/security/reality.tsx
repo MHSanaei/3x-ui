@@ -3,6 +3,7 @@ import { Button, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
 import { UTLS_FINGERPRINT } from '@/schemas/primitives';
+import { validateRealityTarget } from '@/lib/xray/stream-wire-normalize';
 
 interface RealityFormProps {
   saving: boolean;
@@ -44,10 +45,24 @@ export default function RealityForm({
           options={Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp }))}
         />
       </Form.Item>
-      <Form.Item label={t('pages.inbounds.form.target')}>
+      <Form.Item
+        label={t('pages.inbounds.form.target')}
+        extra={t('pages.inbounds.form.realityTargetHint')}
+      >
         <Space.Compact block>
-          <Form.Item name={['streamSettings', 'realitySettings', 'target']} noStyle>
-            <Input style={{ width: 'calc(100% - 32px)' }} />
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'target']}
+            noStyle
+            rules={[
+              {
+                validator: async (_, value) => {
+                  const errKey = validateRealityTarget(typeof value === 'string' ? value : '');
+                  if (errKey) throw new Error(t(errKey));
+                },
+              },
+            ]}
+          >
+            <Input style={{ width: 'calc(100% - 32px)' }} placeholder="example.com:443" />
           </Form.Item>
           <Button icon={<ReloadOutlined />} onClick={randomizeRealityTarget} />
         </Space.Compact>

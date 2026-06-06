@@ -125,8 +125,8 @@ func (j *NodeTrafficSyncJob) Run() {
 	}
 	websocket.BroadcastTraffic(map[string]any{
 		"onlineClients":  online,
-		"onlineByNode":   j.inboundService.GetOnlineClientsByNode(),
-		"activeInbounds": j.inboundService.GetActiveInboundsByNode(),
+		"onlineByGuid":   j.inboundService.GetOnlineClientsByGuid(),
+		"activeInbounds": j.inboundService.GetActiveInboundsByGuid(),
 		"lastOnlineMap":  lastOnline,
 	})
 

@@ -43,7 +43,7 @@ func (a *NodeController) initRouter(g *gin.RouterGroup) {
 }
 
 func (a *NodeController) list(c *gin.Context) {
-	nodes, err := a.nodeService.GetAll()
+	nodes, err := a.nodeService.GetNodeTree()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.list"), err)
 		return

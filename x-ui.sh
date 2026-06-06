@@ -2795,6 +2795,7 @@ postgresql_menu() {
     echo -e "${green}\t6.${plain} Restart PostgreSQL"
     echo -e "${green}\t7.${plain} ${green}Enable${plain} Autostart on boot"
     echo -e "${green}\t8.${plain} View PostgreSQL Log"
+    echo -e "${green}\t9.${plain} Convert SQLite ${green}.db <-> .dump${plain}"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -rp "Choose an option: " choice
     case "$choice" in
@@ -2833,11 +2834,108 @@ postgresql_menu() {
             postgresql_log
             postgresql_menu
             ;;
+        9)
+            migrate_db_prompt
+            postgresql_menu
+            ;;
         *)
             echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
             postgresql_menu
             ;;
     esac
+}
+
+# Convert between the panel's SQLite database and a portable .dump (SQL text)
+# file using the bundled x-ui binary. With no arguments it dumps the installed
+# panel database; an optional second argument overrides the output path.
+#   x-ui migrateDB [file.db|file.dump] [output]
+migrate_db() {
+    local input="$1" output="$2"
+    local default_db="/etc/x-ui/x-ui.db"
+    local bin="${xui_folder}/x-ui"
+
+    [[ -z "$input" ]] && input="$default_db"
+
+    if [[ ! -x "$bin" ]]; then
+        LOGE "x-ui binary not found at ${bin}. Is the panel installed?"
+        return 1
+    fi
+
+    if ! "$bin" migrate-db -h 2>&1 | grep -q -- '-dump'; then
+        LOGE "This x-ui build does not support .db <-> .dump conversion yet."
+        LOGE "Update the panel first (x-ui update) to a version with 'migrate-db --dump/--restore'."
+        return 1
+    fi
+
+    if [[ ! -f "$input" ]]; then
+        LOGE "Input file not found: ${input}"
+        echo -e "Usage: ${green}x-ui migrateDB [file.db|file.dump] [output]${plain}"
+        return 1
+    fi
+
+    local mode
+    case "$input" in
+        *.db | *.sqlite | *.sqlite3)
+            mode="dump"
+            ;;
+        *.dump | *.sql)
+            mode="restore"
+            ;;
+        *)
+            if head -c 16 "$input" | grep -q "SQLite format 3"; then
+                mode="dump"
+            else
+                mode="restore"
+            fi
+            ;;
+    esac
+
+    if [[ "$mode" == "dump" ]]; then
+        [[ -z "$output" ]] && output="${input%.*}.dump"
+        if [[ -f "$output" ]]; then
+            confirm "Output ${output} already exists and will be overwritten. Continue?" "n" || return 0
+        fi
+        LOGI "Dumping SQLite database to SQL text:"
+        echo -e "  ${green}${input}${plain} -> ${green}${output}${plain}"
+        if "$bin" migrate-db --src "$input" --dump "$output"; then
+            LOGI "Done. Wrote ${output}."
+        else
+            LOGE "Dump failed."
+            return 1
+        fi
+    else
+        [[ -z "$output" ]] && output="${input%.*}.db"
+        if [[ "$output" == "$default_db" ]] && check_status > /dev/null 2>&1; then
+            LOGE "Refusing to restore into the live database (${default_db}) while x-ui is running."
+            LOGE "Stop the panel first (x-ui stop) or choose a different output path."
+            return 1
+        fi
+        if [[ -f "$output" ]]; then
+            confirm "Output ${output} already exists and will be overwritten. Continue?" "n" || return 0
+            rm -f "$output"
+        fi
+        LOGI "Rebuilding SQLite database from SQL text:"
+        echo -e "  ${green}${input}${plain} -> ${green}${output}${plain}"
+        if "$bin" migrate-db --restore "$input" --out "$output"; then
+            LOGI "Done. Created ${output}."
+        else
+            LOGE "Restore failed."
+            rm -f "$output"
+            return 1
+        fi
+    fi
+}
+
+# Interactive wrapper around migrate_db for the menu: prompts for the paths and
+# lets migrate_db auto-detect the direction.
+migrate_db_prompt() {
+    local default_db="/etc/x-ui/x-ui.db"
+    local input output
+    echo -e "Convert between a SQLite ${green}.db${plain} and a portable ${green}.dump${plain} (direction auto-detected)."
+    read -rp "Input file [${default_db}]: " input
+    input="${input:-$default_db}"
+    read -rp "Output file (leave empty to auto-name next to input): " output
+    migrate_db "$input" "$output"
 }
 
 show_usage() {
@@ -2857,6 +2955,7 @@ show_usage() {
 │  ${blue}x-ui banlog${plain}                - Check Fail2ban ban logs          │
 │  ${blue}x-ui update${plain}                - Update                           │
 │  ${blue}x-ui update-all-geofiles${plain}   - Update all geo files             │
+│  ${blue}x-ui migrateDB [file]${plain}      - Convert .db <-> .dump (SQLite)   │
 │  ${blue}x-ui legacy${plain}                - Legacy version                   │
 │  ${blue}x-ui install${plain}               - Install                          │
 │  ${blue}x-ui uninstall${plain}             - Uninstall                        │
@@ -3044,6 +3143,9 @@ if [[ $# > 0 ]]; then
             ;;
         "update-all-geofiles")
             check_install 0 && update_all_geofiles 0 && restart 0
+            ;;
+        "migrateDB")
+            migrate_db "$2" "$3"
             ;;
         *) show_usage ;;
     esac

@@ -1596,6 +1596,48 @@
         }
       }
     },
+    "/panel/api/server/descendants": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Read-only summaries (guid, parentGuid, name, address, status, versions) of the nodes this panel manages. A parent panel calls it on a node (via the node API token) to surface transitive sub-nodes in a chained topology. Counts are computed by the parent, not returned here.",
+        "operationId": "get_panel_api_server_descendants",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "guid": "c3d4-...",
+                      "parentGuid": "a1b2-...",
+                      "name": "Node3",
+                      "address": "10.0.0.3",
+                      "status": "online"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/getNewX25519Cert": {
       "get": {
         "tags": [
@@ -3716,13 +3758,13 @@
         }
       }
     },
-    "/panel/api/clients/onlinesByNode": {
+    "/panel/api/clients/onlinesByGuid": {
       "post": {
         "tags": [
           "Clients"
         ],
-        "summary": "Online client emails grouped by the node that reported them. The local panel uses key \"0\"; each remote node uses its node id. Lets the inbounds page show online status per node instead of merging every node together.",
-        "operationId": "post_panel_api_clients_onlinesByNode",
+        "summary": "Online client emails grouped by the panelGuid of the node that physically hosts each client. The local panel uses its own GUID; each node (at any depth in a chain) uses its GUID. Lets the inbounds page attribute online status to the real node instead of the intermediate one it syncs through.",
+        "operationId": "post_panel_api_clients_onlinesByGuid",
         "responses": {
           "200": {
             "description": "Successful response",
@@ -3743,10 +3785,10 @@
                 "example": {
                   "success": true,
                   "obj": {
-                    "0": [
+                    "a1b2-...": [
                       "user1"
                     ],
-                    "3": [
+                    "c3d4-...": [
                       "user1",
                       "user2"
                     ]
@@ -3763,7 +3805,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Inbound tags that carried traffic within the heartbeat window, grouped by node (local panel uses key \"0\"). Pairs with onlinesByNode so the inbounds page only marks a multi-inbound client online on the inbounds it actually used. Nodes that do not report per-inbound activity are absent.",
+        "summary": "Inbound tags that carried traffic within the heartbeat window, grouped by the hosting node's panelGuid. Pairs with onlinesByGuid so the inbounds page only marks a multi-inbound client online on the inbounds it actually used. Nodes that do not report per-inbound activity are absent.",
         "operationId": "post_panel_api_clients_activeInbounds",
         "responses": {
           "200": {
@@ -3785,7 +3827,7 @@
                 "example": {
                   "success": true,
                   "obj": {
-                    "0": [
+                    "a1b2-...": [
                       "inbound-443",
                       "inbound-8443"
                     ]
