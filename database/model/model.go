@@ -638,6 +638,36 @@ type ClientMergeConflict struct {
 	Kept  any
 }
 
+// OutboundSubscription represents a remote subscription URL that supplies
+// outbounds (vmess/vless/trojan/ss/hysteria2/wireguard etc. share links).
+// The panel fetches the URL (base64-encoded list of links, one per line),
+// parses them, assigns stable tags using the TagPrefix, and merges the
+// resulting outbounds into the final Xray configuration at runtime.
+// Subscription outbounds are additive — they never overwrite manually
+// configured outbounds in the xrayTemplateConfig.
+type OutboundSubscription struct {
+	Id    int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Remark           string `json:"remark" form:"remark"`
+	Url              string `json:"url" form:"url"`
+	Enabled          bool   `json:"enabled" form:"enabled" gorm:"default:true"`
+	TagPrefix        string `json:"tagPrefix" form:"tagPrefix"`
+	UpdateInterval   int    `json:"updateInterval" form:"updateInterval" gorm:"default:600"` // seconds between refreshes
+	LastUpdated      int64  `json:"lastUpdated" form:"lastUpdated"`
+	LastError        string `json:"lastError" form:"lastError"`
+	// LastFetchedOutbounds is a JSON array of outbound objects (the exact
+	// shape used inside xrayTemplateConfig outbounds[]). Stored so the UI
+	// can display them and so we have the previous tag assignments for
+	// stability across refreshes.
+	LastFetchedOutbounds string `json:"lastFetchedOutbounds" form:"lastFetchedOutbounds" gorm:"type:text"`
+	// LinkIdentities is a JSON object: identity -> tag. The identity is a
+	// stable fingerprint of the link (core URI without the remark fragment).
+	// It lets us keep the same tag for a server even if its remark or
+	// minor parameters change.
+	LinkIdentities string `json:"-" gorm:"type:text;column:link_identities"`
+	CreatedAt      int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt      int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
+
 func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientMergeConflict {
 	var conflicts []ClientMergeConflict
 	keep := func(field string, oldV, newV, kept any) {

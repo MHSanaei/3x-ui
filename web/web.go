@@ -288,6 +288,9 @@ func (s *Server) startTask(restartXray bool) {
 
 	s.cron.AddJob("@every 5s", job.NewNodeTrafficSyncJob())
 
+	// Outbound subscription auto-refresh (respects per-sub updateInterval)
+	s.cron.AddJob("@every 5m", job.NewOutboundSubscriptionJob())
+
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
 

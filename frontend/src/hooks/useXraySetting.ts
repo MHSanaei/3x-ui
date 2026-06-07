@@ -51,6 +51,8 @@ export interface UseXraySettingResult {
   setOutboundTestUrl: (v: string) => void;
   inboundTags: string[];
   clientReverseTags: string[];
+  subscriptionOutbounds: unknown[];
+  subscriptionOutboundTags: string[];
   restartResult: string;
   outboundsTraffic: OutboundTrafficRow[];
   outboundTestStates: Record<number, OutboundTestState>;
@@ -118,6 +120,8 @@ export function useXraySetting(): UseXraySettingResult {
   const [outboundTestUrl, setOutboundTestUrlState] = useState(DEFAULT_TEST_URL);
   const [inboundTags, setInboundTags] = useState<string[]>([]);
   const [clientReverseTags, setClientReverseTags] = useState<string[]>([]);
+  const [subscriptionOutbounds, setSubscriptionOutbounds] = useState<unknown[]>([]);
+  const [subscriptionOutboundTags, setSubscriptionOutboundTags] = useState<string[]>([]);
   const [restartResult, setRestartResult] = useState('');
   const [outboundTestStates, setOutboundTestStates] = useState<Record<number, OutboundTestState>>({});
   const [testingAll, setTestingAll] = useState(false);
@@ -146,6 +150,8 @@ export function useXraySetting(): UseXraySettingResult {
     syncingRef.current = false;
     setInboundTags(obj.inboundTags || []);
     setClientReverseTags(obj.clientReverseTags || []);
+    setSubscriptionOutbounds(obj.subscriptionOutbounds || []);
+    setSubscriptionOutboundTags(obj.subscriptionOutboundTags || []);
     const nextUrl = obj.outboundTestUrl || DEFAULT_TEST_URL;
     setOutboundTestUrlState(nextUrl);
     oldOutboundTestUrlRef.current = nextUrl;
@@ -358,6 +364,8 @@ export function useXraySetting(): UseXraySettingResult {
       setOutboundTestUrl,
       inboundTags,
       clientReverseTags,
+      subscriptionOutbounds,
+      subscriptionOutboundTags,
       restartResult,
       outboundsTraffic,
       outboundTestStates,
@@ -384,6 +392,8 @@ export function useXraySetting(): UseXraySettingResult {
       setOutboundTestUrl,
       inboundTags,
       clientReverseTags,
+      subscriptionOutbounds,
+      subscriptionOutboundTags,
       restartResult,
       outboundsTraffic,
       outboundTestStates,
