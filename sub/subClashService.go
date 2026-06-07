@@ -573,10 +573,14 @@ func mergeClashRulesYAML(base map[string]any, raw string) error {
 	case []any:
 		mergeClashRules(base, typed)
 	case map[string]any:
-		if rules, ok := typed["rules"]; ok {
-			if ruleList, ok := asAnySlice(rules); ok {
-				mergeClashRules(base, ruleList)
+		for key, value := range typed {
+			if key == "rules" {
+				if ruleList, ok := asAnySlice(value); ok {
+					mergeClashRules(base, ruleList)
+				}
+				continue
 			}
+			base[key] = value
 		}
 	default:
 		mergeClashRules(base, linesToClashRules(raw))
