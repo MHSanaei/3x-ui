@@ -23,6 +23,11 @@ export const NodeRecordSchema = z.object({
   depletedCount: z.number().optional(),
   lastHeartbeat: z.number().optional(),
   lastError: z.string().optional(),
+  // Xray state captured from the remote node's own /panel/api/server/status.
+  // Lets the nodes list show a distinct indicator when the panel API is reachable
+  // (status=online) but the Xray core on that node has failed.
+  xrayState: z.string().optional(),
+  xrayError: z.string().optional(),
   allowPrivateAddress: z.boolean().optional(),
   tlsVerifyMode: z.enum(['verify', 'skip', 'pin']).optional(),
   pinnedCertSha256: z.string().optional(),
@@ -40,6 +45,9 @@ export const ProbeResultSchema = z.object({
   latencyMs: z.number().optional(),
   xrayVersion: z.string().optional(),
   error: z.string().optional(),
+  // Present on successful probe; used to surface "connected to panel, but xray failed on node".
+  xrayState: z.string().optional(),
+  xrayError: z.string().optional(),
 }).loose();
 
 export const NodeFormSchema = z.object({

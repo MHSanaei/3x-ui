@@ -894,7 +894,9 @@
       "statusValues": {
         "online": "Online",
         "offline": "Offline",
-        "unknown": "Unknown"
+        "unknown": "Unknown",
+        // New value for the distinct "panel reachable but Xray core failed on the node" state.
+        "xrayError": "Xray Error"
       },
       "toasts": {
         "list": "Failed to load nodes",
@@ -1196,6 +1198,8 @@
       "Inbounds": "Inbounds",
       "InboundsDesc": "Accepting the specific clients.",
       "Outbounds": "Outbounds",
+      "OutboundSubscriptions": "Outbound Subscriptions",
+      "OutboundSubscriptionsDesc": "Import outbounds from remote subscription URLs (vmess/vless/trojan/ss/...). Tags are kept stable for use in balancers and routing rules. Updates are automatic.",
       "Balancers": "Balancers",
       "balancerTagRequired": "Tag is required",
       "balancerSelectorRequired": "Pick at least one outbound",

@@ -68,13 +68,51 @@ function badgeStatus(status?: string): BadgeProps['status'] {
   }
 }
 
-function StatusDot({ status }: { status?: string }) {
-  if (status === 'online') return <span className="online-dot" />;
+interface HealthProps {
+  status?: string;
+  xrayState?: string;
+  xrayError?: string;
+}
+
+function StatusDot({ status, xrayState }: HealthProps) {
+  if (status === 'online') {
+    const xs = (xrayState || '').toLowerCase().trim();
+    if (xs === 'error' || xs === 'stop') {
+      // Distinct identifier (purple): panel reachable via API (status=online),
+      // but Xray core itself has failed/stopped on that node.
+      return <span className="xray-error-dot" />;
+    }
+    return <span className="online-dot" />;
+  }
   return <Badge status={badgeStatus(status)} />;
 }
 
-function StatusLabel({ status }: { status?: string }) {
+function StatusLabel({ status, xrayState }: HealthProps) {
   const { t } = useTranslation();
+  if (status === 'online') {
+    const xs = (xrayState || '').toLowerCase().trim();
+    if (xs === 'error') {
+      const label = t('pages.nodes.statusValues.xrayError');
+      const display = label === 'pages.nodes.statusValues.xrayError' ? 'Xray Error' : label;
+      return (
+        <span style={{ color: '#722ED1' }}>
+          {t('pages.nodes.statusValues.online')} ({display})
+        </span>
+      );
+    }
+    if (xs === 'stop') {
+      return (
+        <span style={{ color: '#722ED1' }}>
+          {t('pages.nodes.statusValues.online')} (stopped)
+        </span>
+      );
+    }
+    return (
+      <span style={{ color: 'var(--ant-color-success)' }}>
+        {t(`pages.nodes.statusValues.${status}`)}
+      </span>
+    );
+  }
   return (
     <span style={status === 'online' ? { color: 'var(--ant-color-success)' } : undefined}>
       {t(`pages.nodes.statusValues.${status || 'unknown'}`)}
@@ -271,17 +309,24 @@ export default function NodeList({
       title: t('pages.nodes.status'),
       dataIndex: 'status',
       align: 'center',
-      render: (_value, record) => (
-        <Space size={4}>
-          <StatusDot status={record.status} />
-          <StatusLabel status={record.status} />
-          {record.lastError && (
-            <Tooltip title={record.lastError}>
-              <ExclamationCircleOutlined style={{ color: 'var(--ant-color-warning)' }} />
-            </Tooltip>
-          )}
-        </Space>
-      ),
+      render: (_value, record) => {
+        const xrayProblem = record.status === 'online' && record.xrayState && ['error', 'stop'].includes((record.xrayState || '').toLowerCase());
+        const tip = record.lastError || (xrayProblem ? record.xrayError : '') || '';
+        const issueIconColor = record.lastError
+          ? 'var(--ant-color-warning)'
+          : (xrayProblem ? '#722ED1' : 'var(--ant-color-warning)');
+        return (
+          <Space size={4}>
+            <StatusDot status={record.status} xrayState={record.xrayState} />
+            <StatusLabel status={record.status} xrayState={record.xrayState} />
+            {tip && (
+              <Tooltip title={tip}>
+                <ExclamationCircleOutlined style={{ color: issueIconColor }} />
+              </Tooltip>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: t('pages.nodes.cpu'),
@@ -389,7 +434,7 @@ export default function NodeList({
                 <div key={String(record.key)} className="node-card" style={{ paddingInlineStart: 16, opacity: 0.85 }}>
                   <div className="card-head">
                     <ApartmentOutlined style={{ opacity: 0.6 }} />
-                    <StatusDot status={record.status} />
+                    <StatusDot status={record.status} xrayState={record.xrayState} />
                     <span className="node-name">{record.name}</span>
                     <div className="card-actions">
                       <Tag icon={<ApartmentOutlined />} style={{ margin: 0 }}>{t('pages.nodes.subNode')}</Tag>
@@ -400,7 +445,7 @@ export default function NodeList({
                 <div key={record.id} className="node-card">
                   <div className="card-head" onClick={() => toggleExpanded(record.id)}>
                     <RightOutlined className={`card-expand${expandedIds.has(record.id) ? ' is-expanded' : ''}`} />
-                    <StatusDot status={record.status} />
+                    <StatusDot status={record.status} xrayState={record.xrayState} />
                     <span className="node-name">{record.name}</span>
                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
                       <Tooltip title={t('info')}>
@@ -494,13 +539,20 @@ export default function NodeList({
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.status')}</span>
-                  <StatusDot status={statsNode.status} />
-                  <StatusLabel status={statsNode.status} />
-                  {statsNode.lastError && (
-                    <Tooltip title={statsNode.lastError}>
-                      <ExclamationCircleOutlined style={{ color: 'var(--ant-color-warning)' }} />
-                    </Tooltip>
-                  )}
+                  <StatusDot status={statsNode.status} xrayState={statsNode.xrayState} />
+                  <StatusLabel status={statsNode.status} xrayState={statsNode.xrayState} />
+                  {(() => {
+                    const xrayProblem = statsNode.status === 'online' && statsNode.xrayState && ['error', 'stop'].includes((statsNode.xrayState || '').toLowerCase());
+                    const tip = statsNode.lastError || (xrayProblem ? statsNode.xrayError : '') || '';
+                    const issueIconColor = statsNode.lastError
+                      ? 'var(--ant-color-warning)'
+                      : (xrayProblem ? '#722ED1' : 'var(--ant-color-warning)');
+                    return tip ? (
+                      <Tooltip title={tip}>
+                        <ExclamationCircleOutlined style={{ color: issueIconColor }} />
+                      </Tooltip>
+                    ) : null;
+                  })()}
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.cpu')}</span>
