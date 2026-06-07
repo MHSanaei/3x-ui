@@ -1633,23 +1633,24 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				continue
 			}
 			newIb := model.Inbound{
-				UserId:         defaultUserId,
-				NodeID:         &nodeID,
-				OriginNodeGuid: originGuidFor(snapIb),
-				Tag:            chosenTag,
-				Listen:         snapIb.Listen,
-				Port:           snapIb.Port,
-				Protocol:       snapIb.Protocol,
-				Settings:       snapIb.Settings,
-				StreamSettings: snapIb.StreamSettings,
-				Sniffing:       snapIb.Sniffing,
-				TrafficReset:   snapIb.TrafficReset,
-				Enable:         snapIb.Enable,
-				Remark:         snapIb.Remark,
-				Total:          snapIb.Total,
-				ExpiryTime:     snapIb.ExpiryTime,
-				Up:             snapIb.Up,
-				Down:           snapIb.Down,
+				UserId:               defaultUserId,
+				NodeID:               &nodeID,
+				OriginNodeGuid:       originGuidFor(snapIb),
+				Tag:                  chosenTag,
+				Listen:               snapIb.Listen,
+				Port:                 snapIb.Port,
+				Protocol:             snapIb.Protocol,
+				Settings:             snapIb.Settings,
+				StreamSettings:       snapIb.StreamSettings,
+				Sniffing:             snapIb.Sniffing,
+				TrafficReset:         snapIb.TrafficReset,
+				LastTrafficResetTime: snapIb.LastTrafficResetTime,
+				Enable:               snapIb.Enable,
+				Remark:               snapIb.Remark,
+				Total:                snapIb.Total,
+				ExpiryTime:           snapIb.ExpiryTime,
+				Up:                   snapIb.Up,
+				Down:                 snapIb.Down,
 			}
 			if err := tx.Create(&newIb).Error; err != nil {
 				logger.Warningf("setRemoteTraffic: create central inbound for tag %q failed: %v", snapIb.Tag, err)
@@ -1678,6 +1679,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["stream_settings"] = snapIb.StreamSettings
 			updates["sniffing"] = snapIb.Sniffing
 			updates["traffic_reset"] = snapIb.TrafficReset
+			updates["last_traffic_reset_time"] = snapIb.LastTrafficResetTime
 		}
 		if !inGrace || (snapIb.Up+snapIb.Down) <= (c.Up+c.Down) {
 			updates["up"] = snapIb.Up
@@ -3624,7 +3626,7 @@ func (s *InboundService) MigrationRequirements() {
 	var externalProxy []struct {
 		Id             int
 		Port           int
-		StreamSettings []byte
+		StreamSettings string // text column on both DBs; safer than []byte for cross-DB scan
 	}
 	externalProxyQuery := `select id, port, stream_settings
 	from inbounds
@@ -3646,7 +3648,7 @@ func (s *InboundService) MigrationRequirements() {
 	for _, ep := range externalProxy {
 		var reverses any
 		var stream map[string]any
-		json.Unmarshal(ep.StreamSettings, &stream)
+		json.Unmarshal([]byte(ep.StreamSettings), &stream)
 		if tlsSettings, ok := stream["tlsSettings"].(map[string]any); ok {
 			if settings, ok := tlsSettings["settings"].(map[string]any); ok {
 				if domains, ok := settings["domains"].([]any); ok {
