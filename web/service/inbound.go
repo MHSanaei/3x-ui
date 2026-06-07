@@ -1809,7 +1809,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			// from the node arriving after a central disable would otherwise
 			// overwrite enable=false back to true, letting the client accumulate
 			// far more traffic than their limit before being disabled again.
-			enableExpr := "enable AND ?"
+			// Use explicit CASE + boolean cast so the expression type is consistent
+			// on PostgreSQL (GREATEST/AND/CASE can surface "types boolean and integer"
+			// mismatches) even if the row was last touched via the public API update
+			// path or externalProxy-bearing inbounds.
+			enableExpr := "CASE WHEN ?::boolean THEN enable::boolean ELSE false END"
 			if err := tx.Exec(
 				fmt.Sprintf(
 					`UPDATE client_traffics
@@ -3522,6 +3526,39 @@ func (s *InboundService) MigrationRequirements() {
 		if err = tx.Migrator().DropColumn(&xray.ClientTraffic{}, "all_time"); err != nil {
 			return
 		}
+	}
+
+	// Normalize "enable" columns to boolean on Postgres. Legacy SQLite data
+	// (0/1 integers), partial migrations, or mixed write paths (public API
+	// inbound updates that flow through UpdateClientStat + client syncs, plus
+	// node traffic merge deltas using enable AND/CASE) can leave the column as
+	// integer or with mixed interpretation. This prevents "CASE types boolean
+	// and integer cannot be matched" (internal for GREATEST/COALESCE/AND) in
+	// the node traffic sync merge (SetRemoteTraffic) and makes the sync robust
+	// even when inbounds are updated via /panel/api/inbounds/update (incl. ones
+	// carrying externalProxy in streamSettings).
+	if database.IsPostgres() {
+		// Use DO block so it is idempotent and doesn't fail if already boolean.
+		normalizeBool := func(table, col string) {
+			_, _ = tx.Exec(fmt.Sprintf(`
+				DO $$
+				BEGIN
+					IF EXISTS (
+						SELECT 1 FROM information_schema.columns
+						WHERE table_name = '%s' AND column_name = '%s'
+						  AND data_type <> 'boolean'
+					) THEN
+						ALTER TABLE %s ALTER COLUMN %s
+							TYPE boolean USING (CASE WHEN %s::text IN ('1','true','t','yes') THEN true ELSE false END);
+					END IF;
+				END $$;`, table, col, table, col, col))
+		}
+		normalizeBool("inbounds", "enable")
+		normalizeBool("client_traffics", "enable")
+		normalizeBool("nodes", "enable")
+		normalizeBool("clients", "enable")
+		normalizeBool("api_tokens", "enabled")
+		normalizeBool("outbound_subscriptions", "enabled")
 	}
 
 	// Fix inbounds based problems

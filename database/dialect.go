@@ -22,7 +22,7 @@ func JSONFieldText(expr, key string) string {
 
 func GreatestExpr(a, b string) string {
 	if IsPostgres() {
-		return fmt.Sprintf("GREATEST(%s, %s)", a, b)
+		return fmt.Sprintf("GREATEST(%s::bigint, %s::bigint)", a, b)
 	}
 	return fmt.Sprintf("MAX(%s, %s)", a, b)
 }
