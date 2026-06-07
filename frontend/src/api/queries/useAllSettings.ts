@@ -8,7 +8,7 @@ import { AllSettingSchema, type AllSettingInput } from '@/schemas/setting';
 import { keys } from '@/api/queryKeys';
 
 async function fetchAllSetting(): Promise<AllSettingInput | null> {
-  const msg = await HttpUtil.post('/panel/setting/all', undefined, { silent: true });
+  const msg = await HttpUtil.post('/panel/api/setting/all', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch settings');
   const validated = parseMsg(msg, AllSettingSchema, 'setting/all');
   return validated.obj;
@@ -47,7 +47,7 @@ export function useAllSettings() {
       if (!body.success) {
         console.warn('[zod] setting/update body failed validation', body.error.issues);
       }
-      return HttpUtil.post('/panel/setting/update', body.success ? body.data : next);
+      return HttpUtil.post('/panel/api/setting/update', body.success ? body.data : next);
     },
     onSuccess: (msg) => {
       if (msg?.success) queryClient.invalidateQueries({ queryKey: keys.settings.all() });

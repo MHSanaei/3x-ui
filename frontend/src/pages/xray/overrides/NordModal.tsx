@@ -88,14 +88,14 @@ export default function NordModal({
   }, [filteredServers]);
 
   const fetchCountries = useCallback(async () => {
-    const msg = await HttpUtil.post<string>('/panel/xray/nord/countries');
+    const msg = await HttpUtil.post<string>('/panel/api/xray/nord/countries');
     if (msg?.success && msg.obj) setCountries(JSON.parse(msg.obj));
   }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post<string>('/panel/xray/nord/data');
+      const msg = await HttpUtil.post<string>('/panel/api/xray/nord/data');
       if (msg?.success) {
         const next = msg.obj ? JSON.parse(msg.obj) : null;
         setNordData(next);
@@ -113,7 +113,7 @@ export default function NordModal({
   async function login() {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post<string>('/panel/xray/nord/reg', { token });
+      const msg = await HttpUtil.post<string>('/panel/api/xray/nord/reg', { token });
       if (msg?.success && msg.obj) {
         setNordData(JSON.parse(msg.obj));
         await fetchCountries();
@@ -126,7 +126,7 @@ export default function NordModal({
   async function saveKey() {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post<string>('/panel/xray/nord/setKey', { key: manualKey });
+      const msg = await HttpUtil.post<string>('/panel/api/xray/nord/setKey', { key: manualKey });
       if (msg?.success && msg.obj) {
         setNordData(JSON.parse(msg.obj));
         await fetchCountries();
@@ -139,7 +139,7 @@ export default function NordModal({
   async function logout() {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post('/panel/xray/nord/del');
+      const msg = await HttpUtil.post('/panel/api/xray/nord/del');
       if (msg?.success) {
         onRemoveOutbound(nordOutboundIndex);
         onRemoveRoutingRules({ prefix: 'nord-' });
@@ -166,7 +166,7 @@ export default function NordModal({
     setServerId(null);
     setCityId(null);
     try {
-      const msg = await HttpUtil.post<string>('/panel/xray/nord/servers', { countryId: newCountryId });
+      const msg = await HttpUtil.post<string>('/panel/api/xray/nord/servers', { countryId: newCountryId });
       if (!msg?.success || !msg.obj) return;
       const data = JSON.parse(msg.obj);
       const locations = data.locations || [];

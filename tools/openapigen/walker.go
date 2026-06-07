@@ -102,7 +102,7 @@ func buildFields(fld *ast.Field, overrides []walkOverride) []Field {
 	if fld.Tag != nil {
 		tag = fld.Tag.Value
 	}
-	jsonTag, validateTag, gormDash := parseStructTag(tag)
+	jsonTag, validateTag, exampleTag, gormDash := parseStructTag(tag)
 	if gormDash && jsonTag == "" {
 		return nil
 	}
@@ -132,6 +132,7 @@ func buildFields(fld *ast.Field, overrides []walkOverride) []Field {
 			Optional: omitempty || isPointer(fld.Type),
 			Validate: validate,
 			Doc:      doc,
+			Example:  exampleTag,
 		})
 	}
 
@@ -154,6 +155,7 @@ func buildFields(fld *ast.Field, overrides []walkOverride) []Field {
 			Optional: omitempty || isPointer(fld.Type),
 			Validate: validate,
 			Doc:      doc,
+			Example:  exampleTag,
 		})
 	}
 

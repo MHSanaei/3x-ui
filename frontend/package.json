@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "gen": "npm run gen:zod && npm run gen:api",
     "gen:api": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/build-openapi.mjs",
     "gen:zod": "cd .. && go run ./tools/openapigen"
   },

@@ -635,13 +635,13 @@ func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch,
 }
 
 type ProbeResultUI struct {
-	Status       string  `json:"status"`
-	LatencyMs    int     `json:"latencyMs"`
-	XrayVersion  string  `json:"xrayVersion"`
-	PanelVersion string  `json:"panelVersion"`
-	CpuPct       float64 `json:"cpuPct"`
-	MemPct       float64 `json:"memPct"`
-	UptimeSecs   uint64  `json:"uptimeSecs"`
+	Status       string  `json:"status" example:"online"`
+	LatencyMs    int     `json:"latencyMs" example:"42"`
+	XrayVersion  string  `json:"xrayVersion" example:"25.10.31"`
+	PanelVersion string  `json:"panelVersion" example:"v3.x.x"`
+	CpuPct       float64 `json:"cpuPct" example:"12.5"`
+	MemPct       float64 `json:"memPct" example:"45.2"`
+	UptimeSecs   uint64  `json:"uptimeSecs" example:"86400"`
 	Error        string  `json:"error"`
 }
 
