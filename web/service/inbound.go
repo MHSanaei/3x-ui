@@ -3670,9 +3670,17 @@ func (s *InboundService) MigrationRequirements() {
 		tx.Model(model.Inbound{}).Where("id = ?", ep.Id).Update("stream_settings", newStream)
 	}
 
-	err = tx.Raw(`UPDATE inbounds
-	SET tag = REPLACE(tag, '0.0.0.0:', '')
-	WHERE INSTR(tag, '0.0.0.0:') > 0;`).Error
+	// Legacy tag cleanup for old auto-generated tags (e.g. "0.0.0.0:443-...").
+	// Must be cross-DB: INSTR/REPLACE work on SQLite; Postgres needs position().
+	tagCleanup := `UPDATE inbounds
+		SET tag = REPLACE(tag, '0.0.0.0:', '')
+		WHERE INSTR(tag, '0.0.0.0:') > 0;`
+	if database.IsPostgres() {
+		tagCleanup = `UPDATE inbounds
+			SET tag = REPLACE(tag, '0.0.0.0:', '')
+			WHERE position('0.0.0.0:' in tag) > 0;`
+	}
+	err = tx.Raw(tagCleanup).Error
 	if err != nil {
 		return
 	}
