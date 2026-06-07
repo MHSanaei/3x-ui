@@ -22,7 +22,7 @@ async function loadOnce(): Promise<void> {
   }
   pending = (async () => {
     try {
-      const msg = await HttpUtil.post('/panel/setting/defaultSettings');
+      const msg = await HttpUtil.post('/panel/api/setting/defaultSettings');
       if (msg?.success) {
         const validated = parseMsg(msg, DefaultsPayloadSchema, 'setting/defaultSettings');
         cachedValue = validated.obj?.datepicker || 'gregorian';

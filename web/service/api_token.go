@@ -17,11 +17,11 @@ type ApiTokenService struct{}
 const apiTokenLength = 48
 
 type ApiTokenView struct {
-	Id        int    `json:"id"`
-	Name      string `json:"name"`
-	Token     string `json:"token,omitempty"`
-	Enabled   bool   `json:"enabled"`
-	CreatedAt int64  `json:"createdAt"`
+	Id        int    `json:"id" example:"2"`
+	Name      string `json:"name" example:"central-panel-a"`
+	Token     string `json:"token,omitempty" example:"new-token-string"`
+	Enabled   bool   `json:"enabled" example:"true"`
+	CreatedAt int64  `json:"createdAt" example:"1736000000"`
 }
 
 // toView builds the metadata view returned by List. It never carries the

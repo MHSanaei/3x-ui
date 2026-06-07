@@ -96,7 +96,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
   const sendUpdateUser = useCallback(async () => {
     setUpdating(true);
     try {
-      const msg = await HttpUtil.post('/panel/setting/updateUser', user) as ApiMsg;
+      const msg = await HttpUtil.post('/panel/api/setting/updateUser', user) as ApiMsg;
       if (msg?.success) {
         await HttpUtil.post('/logout');
         const basePath = window.X_UI_BASE_PATH || '/';
@@ -124,7 +124,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
   const loadApiTokens = useCallback(async () => {
     setApiTokensLoading(true);
     try {
-      const msg = await HttpUtil.get('/panel/setting/apiTokens') as ApiMsg<ApiTokenRow[]>;
+      const msg = await HttpUtil.get('/panel/api/setting/apiTokens') as ApiMsg<ApiTokenRow[]>;
       if (msg?.success) setApiTokens(Array.isArray(msg.obj) ? msg.obj : []);
     } finally {
       setApiTokensLoading(false);
@@ -156,7 +156,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
     }
     setCreating(true);
     try {
-      const msg = await HttpUtil.post('/panel/setting/apiTokens/create', { name }) as ApiMsg<{ token?: string }>;
+      const msg = await HttpUtil.post('/panel/api/setting/apiTokens/create', { name }) as ApiMsg<{ token?: string }>;
       if (msg?.success) {
         setCreateOpen(false);
         await loadApiTokens();
@@ -178,7 +178,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
       cancelText: t('cancel'),
       okType: 'danger',
       onOk: async () => {
-        const msg = await HttpUtil.post(`/panel/setting/apiTokens/delete/${row.id}`) as ApiMsg;
+        const msg = await HttpUtil.post(`/panel/api/setting/apiTokens/delete/${row.id}`) as ApiMsg;
         if (msg?.success) await loadApiTokens();
       },
     });
@@ -186,7 +186,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
 
   async function toggleTokenEnabled(row: ApiTokenRow) {
     const target = !row.enabled;
-    const msg = await HttpUtil.post(`/panel/setting/apiTokens/setEnabled/${row.id}`, { enabled: target }) as ApiMsg;
+    const msg = await HttpUtil.post(`/panel/api/setting/apiTokens/setEnabled/${row.id}`, { enabled: target }) as ApiMsg;
     if (msg?.success) {
       setApiTokens((prev) => prev.map((r) => (r.id === row.id ? { ...r, enabled: target } : r)));
     }
