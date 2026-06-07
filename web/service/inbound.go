@@ -1725,9 +1725,13 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			return false, err
 		}
 		if len(goneEmails) > 0 {
-			if err := tx.Where("node_id = ? AND email IN ?", nodeID, goneEmails).
-				Delete(&model.NodeClientTraffic{}).Error; err != nil {
-				return false, err
+			// Chunk to avoid SQLite bind var limit when a node has many clients
+			// removed (e.g. after API bulk delete or structural change on node inbound).
+			for _, batch := range chunkStrings(goneEmails, sqliteMaxVars) {
+				if err := tx.Where("node_id = ? AND email IN ?", nodeID, batch).
+					Delete(&model.NodeClientTraffic{}).Error; err != nil {
+					return false, err
+				}
 			}
 		}
 		if err := tx.Where("inbound_id = ?", c.Id).
@@ -1811,7 +1815,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			// from the node arriving after a central disable would otherwise
 			// overwrite enable=false back to true, letting the client accumulate
 			// far more traffic than their limit before being disabled again.
-			enableExpr := "enable AND ?"
+			//
+			// Use dialect helper so the expression (and internal PG CASE from
+			// AND/GREATEST) is type-safe on Postgres and works on SQLite.
+			// See ClientTrafficEnableMergeExpr.
+			enableExpr := database.ClientTrafficEnableMergeExpr()
 			if err := tx.Exec(
 				fmt.Sprintf(
 					`UPDATE client_traffics
