@@ -86,6 +86,7 @@ var defaultValueMap = map[string]string{
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
 	"subJsonFinalMask":            "",
+	"subThemeDir":                 "",
 	"datepicker":                  "gregorian",
 	"warp":                        "",
 	"nord":                        "",
@@ -699,6 +700,10 @@ func (s *SettingService) GetSubJsonFinalMask() (string, error) {
 	return s.getString("subJsonFinalMask")
 }
 
+func (s *SettingService) GetSubThemeDir() (string, error) {
+	return s.getString("subThemeDir")
+}
+
 func (s *SettingService) GetDatepicker() (string, error) {
 	return s.getString("datepicker")
 }
@@ -973,6 +978,7 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		"defaultCert":    func() (any, error) { return s.GetCertFile() },
 		"defaultKey":     func() (any, error) { return s.GetKeyFile() },
 		"tgBotEnable":    func() (any, error) { return s.GetTgbotEnabled() },
+		"subThemeDir":    func() (any, error) { return s.GetSubThemeDir() },
 		"subEnable":      func() (any, error) { return s.GetSubEnable() },
 		"subJsonEnable":  func() (any, error) { return s.GetSubJsonEnable() },
 		"subClashEnable": func() (any, error) { return s.GetSubClashEnable() },

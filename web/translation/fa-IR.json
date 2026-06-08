@@ -1011,6 +1011,8 @@
       "subProfileUrlDesc": "لینک وب‌سایت شما که در کلاینت VPN نمایش داده می‌شود",
       "subAnnounce": "اعلان",
       "subAnnounceDesc": "متن اعلانی که در کلاینت VPN نمایش داده می‌شود",
+      "subThemeDir": "پوشه قالب صفحه اشتراک",
+      "subThemeDirDesc": "مسیر مطلق پوشه‌ای که شامل یک قالب سفارشی (index.html/sub.html) برای صفحه اشتراک است (مثلاً /etc/3x-ui/sub_templates/my-theme/). برای استفاده از صفحه پیش‌فرض خالی بگذارید.",
       "subEnableRouting": "فعال‌سازی مسیریابی",
       "subEnableRoutingDesc": "تنظیمات سراسری برای فعال‌سازی مسیریابی در کلاینت VPN. (فقط برای Happ)",
       "subRoutingRules": "قوانین مسیریابی",

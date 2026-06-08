@@ -5,15 +5,19 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
 )
 
 // writeSubError translates a service-layer result into an HTTP response.
@@ -26,6 +30,14 @@ func writeSubError(c *gin.Context, err error) {
 		return
 	}
 	c.Status(http.StatusInternalServerError)
+}
+
+// cachedSubTemplate holds a parsed custom subscription template together with
+// the modification time of the file it was parsed from, so the cache can be
+// invalidated when an admin edits the template on disk.
+type cachedSubTemplate struct {
+	tmpl    *template.Template
+	modTime time.Time
 }
 
 // SUBController handles HTTP requests for subscription links and JSON configurations.
@@ -48,6 +60,9 @@ type SUBController struct {
 	subJsonService  *SubJsonService
 	subClashService *SubClashService
 	settingService  service.SettingService
+
+	subTemplateMu    sync.RWMutex
+	subTemplateCache map[string]*cachedSubTemplate
 }
 
 // NewSUBController creates a new subscription controller with the given configuration.
@@ -93,6 +108,8 @@ func NewSUBController(
 		subService:      sub,
 		subJsonService:  NewSubJsonService(jsonMux, jsonRules, jsonFinalMask, sub),
 		subClashService: NewSubClashService(clashEnableRouting, clashRules, sub),
+
+		subTemplateCache: map[string]*cachedSubTemplate{},
 	}
 	a.initRouter(g)
 	return a
@@ -202,25 +219,49 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 	}
 
 	subData := map[string]any{
-		"sId":          page.SId,
-		"enabled":      page.Enabled,
-		"download":     page.Download,
-		"upload":       page.Upload,
-		"total":        page.Total,
-		"used":         page.Used,
-		"remained":     page.Remained,
-		"expire":       page.Expire,
-		"lastOnline":   page.LastOnline,
-		"downloadByte": page.DownloadByte,
-		"uploadByte":   page.UploadByte,
-		"totalByte":    page.TotalByte,
-		"subUrl":       page.SubUrl,
-		"subJsonUrl":   page.SubJsonUrl,
-		"subClashUrl":  page.SubClashUrl,
-		"links":        page.Result,
-		"emails":       page.Emails,
-		"datepicker":   datepicker,
+		"sId":           page.SId,
+		"enabled":       page.Enabled,
+		"download":      page.Download,
+		"upload":        page.Upload,
+		"total":         page.Total,
+		"used":          page.Used,
+		"remained":      page.Remained,
+		"expire":        page.Expire,
+		"lastOnline":    page.LastOnline,
+		"downloadByte":  page.DownloadByte,
+		"uploadByte":    page.UploadByte,
+		"totalByte":     page.TotalByte,
+		"subUrl":        page.SubUrl,
+		"subJsonUrl":    page.SubJsonUrl,
+		"subClashUrl":   page.SubClashUrl,
+		"subTitle":      page.SubTitle,
+		"subSupportUrl": page.SubSupportUrl,
+		"links":         page.Result,
+		"emails":        page.Emails,
+		"datepicker":    datepicker,
 	}
+
+	// When an admin has configured a custom subscription theme, render it
+	// instead of the default SPA. We render into a buffer first so a template
+	// that fails mid-execution can't leave a partially-written (corrupt)
+	// response — on any error we log and fall through to the default page.
+	if themeDir, _ := a.settingService.GetSubThemeDir(); themeDir != "" {
+		if tmpl, err := a.loadSubTemplate(themeDir); err != nil {
+			logger.Error("sub: custom template parse failed, using default page:", err)
+		} else if tmpl == nil {
+			logger.Warning("sub: subThemeDir set but no usable template found, using default page:", themeDir)
+		} else {
+			var buf bytes.Buffer
+			if execErr := tmpl.Execute(&buf, subData); execErr != nil {
+				logger.Error("sub: custom template execution failed, using default page:", execErr)
+			} else {
+				setNoCacheHeaders(c)
+				c.Data(http.StatusOK, "text/html; charset=utf-8", buf.Bytes())
+				return
+			}
+		}
+	}
+
 	subDataJSON, err := json.Marshal(subData)
 	if err != nil {
 		subDataJSON = []byte("{}")
@@ -243,10 +284,59 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 		`window.__SUB_PAGE_DATA__=` + string(subDataJSON) + `;</script></head>`)
 	out := bytes.Replace(body, []byte("</head>"), inject, 1)
 
+	setNoCacheHeaders(c)
+	c.Data(http.StatusOK, "text/html; charset=utf-8", out)
+}
+
+// setNoCacheHeaders marks a subscription page response as non-cacheable so VPN
+// clients and browsers always fetch fresh traffic/expiry data.
+func setNoCacheHeaders(c *gin.Context) {
 	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
 	c.Header("Pragma", "no-cache")
 	c.Header("Expires", "0")
-	c.Data(http.StatusOK, "text/html; charset=utf-8", out)
+}
+
+// loadSubTemplate returns the parsed custom subscription template located in
+// themeDir, preferring sub.html over index.html. Parsed templates are cached and
+// only re-parsed when the underlying file's modification time changes, so admin
+// edits are picked up without paying a disk read + HTML parse on every request.
+//
+// It returns (nil, nil) when themeDir is not a usable directory or contains no
+// template file — the caller should fall back to the default page. A non-nil
+// error means a template file exists but failed to parse.
+func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, error) {
+	info, err := os.Stat(themeDir)
+	if err != nil || !info.IsDir() {
+		return nil, nil
+	}
+
+	templatePath := filepath.Join(themeDir, "index.html")
+	if _, err := os.Stat(filepath.Join(themeDir, "sub.html")); err == nil {
+		templatePath = filepath.Join(themeDir, "sub.html")
+	}
+
+	fi, err := os.Stat(templatePath)
+	if err != nil {
+		return nil, nil
+	}
+	modTime := fi.ModTime()
+
+	a.subTemplateMu.RLock()
+	cached := a.subTemplateCache[templatePath]
+	a.subTemplateMu.RUnlock()
+	if cached != nil && cached.modTime.Equal(modTime) {
+		return cached.tmpl, nil
+	}
+
+	tmpl, err := template.ParseFiles(templatePath)
+	if err != nil {
+		return nil, err
+	}
+
+	a.subTemplateMu.Lock()
+	a.subTemplateCache[templatePath] = &cachedSubTemplate{tmpl: tmpl, modTime: modTime}
+	a.subTemplateMu.Unlock()
+	return tmpl, nil
 }
 
 // subJsons handles HTTP requests for JSON subscription configurations.

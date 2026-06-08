@@ -157,6 +157,11 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
                 onChange={(e) => updateSetting({ subAnnounce: e.target.value })} />
             </SettingListItem>
 
+            <SettingListItem paddings="small" title={t('pages.settings.subThemeDir')} description={t('pages.settings.subThemeDirDesc')}>
+              <Input value={allSetting.subThemeDir} placeholder="/etc/3x-ui/sub_templates/my-theme/"
+                onChange={(e) => updateSetting({ subThemeDir: e.target.value })} />
+            </SettingListItem>
+
             <Divider>Happ</Divider>
 
             <SettingListItem paddings="small" title={t('pages.settings.subEnableRouting')} description={t('pages.settings.subEnableRoutingDesc')}>
