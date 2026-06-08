@@ -898,7 +898,6 @@
         "online": "Online",
         "offline": "Offline",
         "unknown": "Unknown",
-        // New value for the distinct "panel reachable but Xray core failed on the node" state.
         "xrayError": "Xray Error"
       },
       "toasts": {
