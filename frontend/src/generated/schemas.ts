@@ -217,6 +217,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Subscription support URL",
         "type": "string"
       },
+      "subThemeDir": {
+        "description": "Absolute path to a folder containing a custom subscription page template",
+        "type": "string"
+      },
       "subTitle": {
         "description": "Subscription title",
         "type": "string"
@@ -378,6 +382,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subRoutingRules",
       "subShowInfo",
       "subSupportUrl",
+      "subThemeDir",
       "subTitle",
       "subURI",
       "subUpdates",
@@ -640,6 +645,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Subscription support URL",
         "type": "string"
       },
+      "subThemeDir": {
+        "description": "Absolute path to a folder containing a custom subscription page template",
+        "type": "string"
+      },
       "subTitle": {
         "description": "Subscription title",
         "type": "string"
@@ -807,6 +816,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subRoutingRules",
       "subShowInfo",
       "subSupportUrl",
+      "subThemeDir",
       "subTitle",
       "subURI",
       "subUpdates",
