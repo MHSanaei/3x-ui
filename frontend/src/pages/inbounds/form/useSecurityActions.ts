@@ -5,7 +5,7 @@ import type { MessageInstance } from 'antd/es/message/interface';
 
 import { HttpUtil, RandomUtil } from '@/utils';
 import { getRandomRealityTarget } from '@/models/reality-targets';
-import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
+import { createTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
 import { RealityStreamSettingsSchema } from '@/schemas/protocols/security/reality';
 import type { InboundFormValues } from '@/schemas/forms/inbound-form';
 
@@ -120,7 +120,7 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseS
       // node's own paths (fetched through the central panel), not this panel's.
       const msg = typeof nodeId === 'number'
         ? await HttpUtil.get(`/panel/api/nodes/webCert/${nodeId}`, undefined, { silent: true })
-        : await HttpUtil.post('/panel/setting/all', undefined, { silent: true });
+        : await HttpUtil.post('/panel/api/setting/all', undefined, { silent: true });
       if (!msg?.success) {
         messageApi.warning(msg?.msg || t('pages.inbounds.setDefaultCertEmpty'));
         return;
@@ -160,19 +160,7 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseS
     delete cleaned.tlsSettings;
     delete cleaned.realitySettings;
     if (next === 'tls') {
-      const tls = TlsStreamSettingsSchema.parse({}) as Record<string, unknown>;
-      tls.certificates = [{
-        useFile: true,
-        certificateFile: '',
-        keyFile: '',
-        certificate: [],
-        key: [],
-        ocspStapling: 3600,
-        oneTimeLoading: false,
-        usage: 'encipherment',
-        buildChain: false,
-      }];
-      cleaned.tlsSettings = tls;
+      cleaned.tlsSettings = createTlsSettingsWithDefaultCert();
     }
     if (next === 'reality') {
       const reality = RealityStreamSettingsSchema.parse({}) as Record<string, unknown>;

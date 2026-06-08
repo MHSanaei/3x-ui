@@ -3,6 +3,8 @@ package model
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -29,6 +31,7 @@ const (
 	Mixed       Protocol = "mixed"
 	WireGuard   Protocol = "wireguard"
 	Hysteria    Protocol = "hysteria"
+	MTProto     Protocol = "mtproto"
 )
 
 // User represents a user account in the 3x-ui panel.
@@ -41,13 +44,13 @@ type User struct {
 
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.
 type Inbound struct {
-	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`                                                                                                                 // Unique identifier
+	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`                                                                                                     // Unique identifier
 	UserId               int                  `json:"-"`                                                                                                                                                            // Associated user ID
 	Up                   int64                `json:"up" form:"up"`                                                                                                                                                 // Upload traffic in bytes
 	Down                 int64                `json:"down" form:"down"`                                                                                                                                             // Download traffic in bytes
 	Total                int64                `json:"total" form:"total"`                                                                                                                                           // Total traffic limit in bytes
-	Remark               string               `json:"remark" form:"remark"`                                                                                                                                         // Human-readable remark
-	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1"`                                                                                        // Whether the inbound is enabled
+	Remark               string               `json:"remark" form:"remark" example:"VLESS-443"`                                                                                                                     // Human-readable remark
+	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1" example:"true"`                                                                         // Whether the inbound is enabled
 	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                                                                                 // Expiration timestamp
 	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2" validate:"omitempty,oneof=never hourly daily weekly monthly"` // Traffic reset schedule
 	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                                                                                            // Last traffic reset timestamp
@@ -55,11 +58,11 @@ type Inbound struct {
 
 	// Xray configuration fields
 	Listen         string   `json:"listen" form:"listen"`
-	Port           int      `json:"port" form:"port" validate:"gte=0,lte=65535"`
-	Protocol       Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun"`
+	Port           int      `json:"port" form:"port" validate:"gte=0,lte=65535" example:"443"`
+	Protocol       Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto" example:"vless"`
 	Settings       string   `json:"settings" form:"settings"`
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
-	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
+	Tag            string   `json:"tag" form:"tag" gorm:"unique" example:"in-443-tcp"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
 	NodeID         *int     `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
 
@@ -366,6 +369,70 @@ func HealShadowsocksClientMethods(settings string) (string, bool) {
 	return string(out), true
 }
 
+// GenerateFakeTLSSecret builds an MTProto FakeTLS secret for the given domain:
+// the "ee" FakeTLS marker, 16 random bytes, then the domain encoded as hex.
+// This single value is what mtg's config and the client tg:// link both use.
+func GenerateFakeTLSSecret(domain string) string {
+	return "ee" + mtprotoRandomMiddle() + hex.EncodeToString([]byte(domain))
+}
+
+func mtprotoRandomMiddle() string {
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		panic(fmt.Errorf("mtproto: crypto/rand read failed: %w", err))
+	}
+	return hex.EncodeToString(buf)
+}
+
+// mtprotoSecretMiddle returns the 16-byte random middle of an existing secret
+// when it is well-formed, otherwise a freshly generated one. Reusing the middle
+// keeps the secret stable when only the FakeTLS domain changes.
+func mtprotoSecretMiddle(secret string) string {
+	s := secret
+	if strings.HasPrefix(s, "ee") || strings.HasPrefix(s, "dd") {
+		s = s[2:]
+	}
+	if len(s) >= 32 {
+		mid := s[:32]
+		if _, err := hex.DecodeString(mid); err == nil {
+			return mid
+		}
+	}
+	return mtprotoRandomMiddle()
+}
+
+// HealMtprotoSecret normalises an mtproto inbound's settings JSON before the
+// value leaves for the mtg sidecar or a share link: it rebuilds `secret` so it
+// is always a valid FakeTLS secret whose trailing domain matches
+// `fakeTlsDomain`, generating the random middle when one is missing and
+// rewriting the domain suffix when the domain changed. Returns the rewritten
+// settings and true when anything changed.
+func HealMtprotoSecret(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	domain, _ := parsed["fakeTlsDomain"].(string)
+	domain = strings.TrimSpace(domain)
+	if domain == "" {
+		return settings, false
+	}
+	secret, _ := parsed["secret"].(string)
+	expected := "ee" + mtprotoSecretMiddle(secret) + hex.EncodeToString([]byte(domain))
+	if secret == expected {
+		return settings, false
+	}
+	parsed["secret"] = expected
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
+}
+
 // Setting stores key-value configuration settings for the 3x-ui panel.
 type Setting struct {
 	Id    int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
@@ -378,15 +445,15 @@ type Setting struct {
 // endpoint over HTTP using the per-node ApiToken to populate the runtime
 // status fields below.
 type Node struct {
-	Id                  int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	Name                string `json:"name" form:"name" gorm:"uniqueIndex" validate:"required"`
+	Id                  int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
+	Name                string `json:"name" form:"name" gorm:"uniqueIndex" validate:"required" example:"de-fra-1"`
 	Remark              string `json:"remark" form:"remark"`
-	Scheme              string `json:"scheme" form:"scheme" validate:"omitempty,oneof=http https"`
-	Address             string `json:"address" form:"address" validate:"required"`
-	Port                int    `json:"port" form:"port" validate:"gte=1,lte=65535"`
-	BasePath            string `json:"basePath" form:"basePath"`
-	ApiToken            string `json:"apiToken" form:"apiToken" validate:"required"`
-	Enable              bool   `json:"enable" form:"enable" gorm:"default:true"`
+	Scheme              string `json:"scheme" form:"scheme" validate:"omitempty,oneof=http https" example:"https"`
+	Address             string `json:"address" form:"address" validate:"required" example:"node1.example.com"`
+	Port                int    `json:"port" form:"port" validate:"gte=1,lte=65535" example:"2053"`
+	BasePath            string `json:"basePath" form:"basePath" example:"/"`
+	ApiToken            string `json:"apiToken" form:"apiToken" validate:"required" example:"abcdef0123456789"`
+	Enable              bool   `json:"enable" form:"enable" gorm:"default:true" example:"true"`
 	AllowPrivateAddress bool   `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
 	TlsVerifyMode       string `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin"`
 	PinnedCertSha256    string `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
@@ -401,14 +468,14 @@ type Node struct {
 	// Heartbeat-updated fields. UpdatedAt advances on every probe even when
 	// the row is otherwise unchanged so the UI's "last seen" tooltip is
 	// truthful without us having to read LastHeartbeat separately.
-	Status        string  `json:"status" gorm:"default:unknown"` // online|offline|unknown
-	LastHeartbeat int64   `json:"lastHeartbeat"`                 // unix seconds, 0 = never
-	LatencyMs     int     `json:"latencyMs"`
-	XrayVersion   string  `json:"xrayVersion"`
-	PanelVersion  string  `json:"panelVersion" gorm:"column:panel_version"`
-	CpuPct        float64 `json:"cpuPct"`
-	MemPct        float64 `json:"memPct"`
-	UptimeSecs    uint64  `json:"uptimeSecs"`
+	Status        string  `json:"status" gorm:"default:unknown" example:"online"` // online|offline|unknown
+	LastHeartbeat int64   `json:"lastHeartbeat" example:"1700000000"`             // unix seconds, 0 = never
+	LatencyMs     int     `json:"latencyMs" example:"42"`
+	XrayVersion   string  `json:"xrayVersion" example:"25.10.31"`
+	PanelVersion  string  `json:"panelVersion" gorm:"column:panel_version" example:"v3.x.x"`
+	CpuPct        float64 `json:"cpuPct" example:"23.5"`
+	MemPct        float64 `json:"memPct" example:"45.1"`
+	UptimeSecs    uint64  `json:"uptimeSecs" example:"86400"`
 	LastError     string  `json:"lastError"`
 
 	// XrayState and XrayError are captured from the remote node's /panel/api/server/status
@@ -420,10 +487,10 @@ type Node struct {
 	ConfigDirty   bool  `json:"configDirty" gorm:"default:false"`
 	ConfigDirtyAt int64 `json:"configDirtyAt"`
 
-	InboundCount  int `json:"inboundCount" gorm:"-"`
-	ClientCount   int `json:"clientCount" gorm:"-"`
-	OnlineCount   int `json:"onlineCount" gorm:"-"`
-	DepletedCount int `json:"depletedCount" gorm:"-"`
+	InboundCount  int `json:"inboundCount" gorm:"-" example:"5"`
+	ClientCount   int `json:"clientCount" gorm:"-" example:"27"`
+	OnlineCount   int `json:"onlineCount" gorm:"-" example:"3"`
+	DepletedCount int `json:"depletedCount" gorm:"-" example:"1"`
 
 	// ParentGuid + Transitive are set only when a node is surfaced as part of a
 	// node tree (#4983): direct nodes carry the master panel's own GUID, a
@@ -432,8 +499,8 @@ type Node struct {
 	ParentGuid string `json:"parentGuid,omitempty" gorm:"-"`
 	Transitive bool   `json:"transitive,omitempty" gorm:"-"`
 
-	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli"`
-	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli" example:"1700000000"`
+	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli" example:"1700000000"`
 }
 
 // NodeSummary is the read-only identity of a node as published one hop up: the

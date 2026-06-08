@@ -38,6 +38,8 @@ export interface Endpoint {
   response?: string;
   errorResponse?: string;
   errorStatus?: number;
+  responseSchema?: string;
+  responseSchemaArray?: boolean;
 }
 
 export interface SubscriptionHeader {
@@ -107,22 +109,22 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/inbounds/list',
         summary: 'List every inbound owned by the authenticated user, including each inbound’s clientStats traffic counters. settings, streamSettings, and sniffing are returned as nested JSON objects (no escaped strings); legacy callers that send them back as JSON-encoded strings are still accepted on write.',
-        response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "userId": 1,\n      "up": 0,\n      "down": 0,\n      "total": 0,\n      "remark": "VLESS-443",\n      "enable": true,\n      "expiryTime": 0,\n      "listen": "",\n      "port": 443,\n      "protocol": "vless",\n      "settings": {\n        "clients": [],\n        "decryption": "none"\n      },\n      "streamSettings": {\n        "network": "tcp",\n        "security": "reality",\n        "realitySettings": { "show": false, "dest": "..." }\n      },\n      "tag": "inbound-443",\n      "sniffing": {\n        "enabled": true,\n        "destOverride": ["http", "tls"]\n      },\n      "clientStats": []\n    }\n  ]\n}',
+        responseSchema: 'Inbound',
+        responseSchemaArray: true,
       },
       {
         method: 'GET',
         path: '/panel/api/inbounds/list/slim',
         summary: 'Same shape as /list but with settings.clients[] stripped down to {email, enable, comment} and ClientStats not enriched with UUID/SubId. Use this for list pages; fetch /get/:id when you need the full per-client payload (uuid, password, flow, ...).',
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "userId": 1,\n      "remark": "VLESS-443",\n      "settings": {\n        "clients": [\n          { "email": "alice", "enable": true }\n        ],\n        "decryption": "none"\n      },\n      "clientStats": []\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "remark": "VLESS-443",\n      "settings": {\n        "clients": [\n          { "email": "alice", "enable": true }\n        ],\n        "decryption": "none"\n      },\n      "clientStats": []\n    }\n  ]\n}',
       },
       {
         method: 'GET',
         path: '/panel/api/inbounds/options',
-        summary: 'Lightweight picker projection of the authenticated user’s inbounds. Returns only id, remark, protocol, port, and a server-computed tlsFlowCapable flag (true for VLESS / port-fallback on TCP with tls or reality). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.',
-        response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "remark": "VLESS-443",\n      "protocol": "vless",\n      "port": 443,\n      "tlsFlowCapable": true\n    }\n  ]\n}',
+        summary: 'Lightweight picker projection of the authenticated user’s inbounds. Returns id, remark, tag, protocol, port, a server-computed tlsFlowCapable flag (true for VLESS / port-fallback on TCP with tls or reality), and ssMethod (the Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the client UI to generate a valid Shadowsocks 2022 PSK). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.',
+        responseSchema: 'InboundOption',
+        responseSchemaArray: true,
       },
       {
         method: 'GET',
@@ -696,7 +698,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/activeInbounds',
         summary: 'Inbound tags that carried traffic within the heartbeat window, grouped by the hosting node\'s panelGuid. Pairs with onlinesByGuid so the inbounds page only marks a multi-inbound client online on the inbounds it actually used. Nodes that do not report per-inbound activity are absent.',
-        response: '{\n  "success": true,\n  "obj": {\n    "a1b2-...": ["inbound-443", "inbound-8443"]\n  }\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "a1b2-...": ["in-443-tcp", "in-8443-tcp"]\n  }\n}',
       },
       {
         method: 'POST',
@@ -711,7 +713,7 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique across the panel).' },
         ],
-        response: '{\n  "success": true,\n  "obj": {\n    "email": "user1",\n    "up": 1048576,\n    "down": 2097152,\n    "total": 10737418240,\n    "expiryTime": 1735689600000\n  }\n}',
+        responseSchema: 'ClientTraffic',
       },
       {
         method: 'GET',
@@ -748,7 +750,8 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/nodes/list',
         summary: 'List every configured node with its connection details, health, and last heartbeat patch.',
-        response: '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "de-fra-1",\n      "remark": "",\n      "scheme": "https",\n      "address": "node1.example.com",\n      "port": 2053,\n      "basePath": "/",\n      "apiToken": "abcdef...",\n      "enable": true,\n      "allowPrivateAddress": false,\n      "status": "online",\n      "lastHeartbeat": 1700000000,\n      "latencyMs": 42,\n      "xrayVersion": "25.x.x",\n      "panelVersion": "v3.x.x",\n      "cpuPct": 23.5,\n      "memPct": 45.1,\n      "uptimeSecs": 86400,\n      "lastError": "",\n      "inboundCount": 5,\n      "clientCount": 27,\n      "onlineCount": 3,\n      "depletedCount": 1,\n      "createdAt": 1700000000,\n      "updatedAt": 1700000000\n    }\n  ]\n}',
+        responseSchema: 'Node',
+        responseSchemaArray: true,
       },
       {
         method: 'GET',
@@ -805,7 +808,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/nodes/test',
         summary: 'Probe a node without saving it. Uses the body as connection details and returns the same heartbeat snapshot a registered node would have.',
         body: '{\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
-        response: '{\n  "success": true,\n  "obj": {\n    "status": "online",\n    "latencyMs": 42,\n    "xrayVersion": "25.x.x",\n    "panelVersion": "v3.x.x",\n    "cpuPct": 12.5,\n    "memPct": 45.2,\n    "uptimeSecs": 86400,\n    "error": ""\n  }\n}',
+        responseSchema: 'ProbeResultUI',
       },
       {
         method: 'POST',
@@ -914,28 +917,28 @@ export const sections: readonly Section[] = [
     id: 'settings',
     title: 'Settings',
     description:
-      'Panel configuration and user credentials. All endpoints live under /panel/setting and require a logged-in session or Bearer token.',
+      'Panel configuration and user credentials. All endpoints live under /panel/api/setting and require a logged-in session or Bearer token.',
     endpoints: [
       {
         method: 'POST',
-        path: '/panel/setting/all',
+        path: '/panel/api/setting/all',
         summary: 'Return every panel setting: web server, Telegram bot, subscription, security, LDAP. The full JSON blob that the Settings page edits.',
         response: '{\n  "success": true,\n  "obj": {\n    "webPort": 2053,\n    "webCertFile": "",\n    "webKeyFile": "",\n    "webBasePath": "/",\n    "subPort": 10882,\n    "subPath": "/sub/",\n    "tgBotEnable": false,\n    "tgBotToken": "",\n    ...\n  }\n}',
       },
       {
         method: 'POST',
-        path: '/panel/setting/defaultSettings',
+        path: '/panel/api/setting/defaultSettings',
         summary: 'Return the computed default settings based on the request host. Useful to preview what a fresh install would use.',
       },
       {
         method: 'POST',
-        path: '/panel/setting/update',
+        path: '/panel/api/setting/update',
         summary: 'Persist every setting at once. The body mirrors the shape returned by /all. Invalid values (bad ports, missing cert pairs, etc.) are rejected before write.',
         body: '{\n  "webPort": 2053,\n  "webBasePath": "/",\n  "subPort": 10882,\n  "subPath": "/sub/",\n  "tgBotEnable": false,\n  ...\n}',
       },
       {
         method: 'POST',
-        path: '/panel/setting/updateUser',
+        path: '/panel/api/setting/updateUser',
         summary: 'Change the panel admin username and password. Requires the current credentials for verification. The session is refreshed with the new values on success.',
         params: [
           { name: 'oldUsername', in: 'body', type: 'string', desc: 'Current admin username.' },
@@ -947,12 +950,12 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/setting/restartPanel',
+        path: '/panel/api/setting/restartPanel',
         summary: 'Restart the entire 3x-ui process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.',
       },
       {
         method: 'GET',
-        path: '/panel/setting/getDefaultJsonConfig',
+        path: '/panel/api/setting/getDefaultJsonConfig',
         summary: 'Return the built-in default Xray JSON config template that ships with this panel version.',
       },
     ],
@@ -962,28 +965,28 @@ export const sections: readonly Section[] = [
     id: 'api-tokens',
     title: 'API Tokens',
     description:
-      'Manage Bearer tokens used for programmatic auth (bots, central panels acting on this node, CI). Each token has a unique name and an enabled flag — disable to revoke without deleting, delete to revoke permanently. Tokens are stored as SHA-256 hashes and the plaintext is returned only once, in the create response — it cannot be retrieved afterwards, so copy it then. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any /panel/api/* request.',
+      'Manage Bearer tokens used for programmatic auth (bots, central panels acting on this node, CI). Each token has a unique name and an enabled flag — disable to revoke without deleting, delete to revoke permanently. Tokens are stored as SHA-256 hashes and the plaintext is returned only once, in the create response — it cannot be retrieved afterwards, so copy it then. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any /panel/api/* request — the token is a full-admin credential.',
     endpoints: [
       {
         method: 'GET',
-        path: '/panel/setting/apiTokens',
+        path: '/panel/api/setting/apiTokens',
         summary: 'List every API token, enabled or not. The token value is never returned — only metadata.',
         response: '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "default",\n      "enabled": true,\n      "createdAt": 1736000000\n    }\n  ]\n}',
       },
       {
         method: 'POST',
-        path: '/panel/setting/apiTokens/create',
+        path: '/panel/api/setting/apiTokens/create',
         summary: 'Mint a new API token. Name must be unique and 1-64 characters; the token string is server-generated and returned only in this response — it is stored hashed and cannot be retrieved later.',
         params: [
           { name: 'name', in: 'body', type: 'string', desc: 'Human-readable label, e.g. "central-panel-a".' },
         ],
         body: '{\n  "name": "central-panel-a"\n}',
-        response: '{\n  "success": true,\n  "obj": {\n    "id": 2,\n    "name": "central-panel-a",\n    "token": "new-token-string",\n    "enabled": true,\n    "createdAt": 1736000000\n  }\n}',
+        responseSchema: 'ApiTokenView',
         errorResponse: '{\n  "success": false,\n  "msg": "a token with that name already exists"\n}',
       },
       {
         method: 'POST',
-        path: '/panel/setting/apiTokens/delete/:id',
+        path: '/panel/api/setting/apiTokens/delete/:id',
         summary: 'Permanently delete a token. Any caller using it stops authenticating immediately.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Token row ID.' },
@@ -992,7 +995,7 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/setting/apiTokens/setEnabled/:id',
+        path: '/panel/api/setting/apiTokens/setEnabled/:id',
         summary: 'Toggle a token enabled/disabled without deleting it. Disabled tokens are rejected by checkAPIAuth on the next request.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Token row ID.' },
@@ -1008,32 +1011,32 @@ export const sections: readonly Section[] = [
     id: 'xray-settings',
     title: 'Xray Settings',
     description:
-      'Xray configuration template, outbound management, Warp/Nord integration, and config testing. All endpoints under /panel/xray.',
+      'Xray configuration template, outbound management, Warp/Nord integration, and config testing. All endpoints under /panel/api/xray.',
     endpoints: [
       {
         method: 'POST',
-        path: '/panel/xray/',
+        path: '/panel/api/xray/',
         summary: 'Return the Xray config template (JSON string), available inbound tags, client reverse tags, and the configured outbound test URL in one response.',
-        response: '{\n  "success": true,\n  "obj": {\n    "xraySetting": "{...raw xray config...}",\n    "inboundTags": "[\\"inbound-443\\"]",\n    "clientReverseTags": "[]",\n    "outboundTestUrl": "https://www.google.com/generate_204"\n  }\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "xraySetting": "{...raw xray config...}",\n    "inboundTags": "[\\"in-443-tcp\\"]",\n    "clientReverseTags": "[]",\n    "outboundTestUrl": "https://www.google.com/generate_204"\n  }\n}',
       },
       {
         method: 'GET',
-        path: '/panel/xray/getDefaultJsonConfig',
-        summary: 'Return the built-in default Xray config shipped with the panel (identical to /panel/setting/getDefaultJsonConfig).',
+        path: '/panel/api/xray/getDefaultJsonConfig',
+        summary: 'Return the built-in default Xray config shipped with the panel (identical to /panel/api/setting/getDefaultJsonConfig).',
       },
       {
         method: 'GET',
-        path: '/panel/xray/getOutboundsTraffic',
+        path: '/panel/api/xray/getOutboundsTraffic',
         summary: 'Return traffic statistics for every outbound. Each outbound shows up/down/total counters.',
       },
       {
         method: 'GET',
-        path: '/panel/xray/getXrayResult',
+        path: '/panel/api/xray/getXrayResult',
         summary: 'Return the most recent Xray process stdout/stderr output. Useful to check for startup errors or runtime warnings.',
       },
       {
         method: 'POST',
-        path: '/panel/xray/update',
+        path: '/panel/api/xray/update',
         summary: 'Save the Xray JSON config template and optionally the outbound test URL. Both are sent as form fields.',
         params: [
           { name: 'xraySetting', in: 'body (form)', type: 'string', desc: 'Full Xray JSON config template.' },
@@ -1042,7 +1045,7 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/xray/warp/:action',
+        path: '/panel/api/xray/warp/:action',
         summary: 'Manage Cloudflare Warp integration. The action parameter selects the operation.',
         params: [
           { name: 'action', in: 'path', type: 'string', desc: 'data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). license — set a Warp+ license key (sends license).' },
@@ -1053,7 +1056,7 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/xray/nord/:action',
+        path: '/panel/api/xray/nord/:action',
         summary: 'Manage NordVPN integration. The action parameter selects the operation.',
         params: [
           { name: 'action', in: 'path', type: 'string', desc: 'countries — list available countries. servers — list servers in a country (sends countryId). reg — get NordVPN credentials (sends token). setKey — store NordVPN API key (sends key). data — return current NordVPN connection data. del — delete NordVPN data.' },
@@ -1064,7 +1067,7 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/xray/resetOutboundsTraffic',
+        path: '/panel/api/xray/resetOutboundsTraffic',
         summary: 'Reset traffic counters for a specific outbound by tag.',
         params: [
           { name: 'tag', in: 'body (form)', type: 'string', desc: 'Outbound tag to reset (e.g. "proxy", "direct").' },
@@ -1073,7 +1076,7 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/xray/testOutbound',
+        path: '/panel/api/xray/testOutbound',
         summary: 'Test an outbound configuration. Sends the outbound JSON (required), optionally all outbounds (to resolve sockopt.dialerProxy dependencies), and a mode flag.',
         params: [
           { name: 'outbound', in: 'body (form)', type: 'string', desc: 'JSON-encoded single outbound to test (required).' },

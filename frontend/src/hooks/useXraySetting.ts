@@ -72,7 +72,7 @@ export interface UseXraySettingResult {
 type XrayConfigPayload = z.infer<typeof XrayConfigPayloadSchema>;
 
 async function fetchXrayConfig(): Promise<XrayConfigPayload> {
-  const msg = await HttpUtil.post('/panel/xray/', undefined, { silent: true });
+  const msg = await HttpUtil.post('/panel/api/xray/', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to load xray config');
   if (typeof msg.obj !== 'string') throw new Error('Malformed xray config response: expected string');
   let parsed: unknown;
@@ -91,7 +91,7 @@ async function fetchXrayConfig(): Promise<XrayConfigPayload> {
 }
 
 async function fetchOutboundsTraffic(): Promise<OutboundTrafficRow[]> {
-  const msg = await HttpUtil.get('/panel/xray/getOutboundsTraffic', undefined, { silent: true });
+  const msg = await HttpUtil.get('/panel/api/xray/getOutboundsTraffic', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch outbounds traffic');
   const validated = parseMsg(msg, OutboundTrafficListSchema, 'xray/getOutboundsTraffic');
   return Array.isArray(validated.obj) ? validated.obj : [];
@@ -200,7 +200,7 @@ export function useXraySetting(): UseXraySettingResult {
     mutationFn: async () => {
       const sentXraySetting = xraySettingRef.current;
       const sentTestUrl = outboundTestUrlRef.current || DEFAULT_TEST_URL;
-      const msg = await HttpUtil.post('/panel/xray/update', {
+      const msg = await HttpUtil.post('/panel/api/xray/update', {
         xraySetting: sentXraySetting,
         outboundTestUrl: sentTestUrl,
       });
@@ -217,7 +217,7 @@ export function useXraySetting(): UseXraySettingResult {
 
   const resetTrafficMut = useMutation({
     mutationFn: (tag: string) =>
-      HttpUtil.post('/panel/xray/resetOutboundsTraffic', { tag }),
+      HttpUtil.post('/panel/api/xray/resetOutboundsTraffic', { tag }),
     onSuccess: (msg) => {
       if (msg?.success) queryClient.invalidateQueries({ queryKey: keys.xray.outboundsTraffic() });
     },
@@ -228,7 +228,7 @@ export function useXraySetting(): UseXraySettingResult {
       const msg = await HttpUtil.post('/panel/api/server/restartXrayService');
       if (!msg?.success) return msg;
       await PromiseUtil.sleep(500);
-      const r = await HttpUtil.get('/panel/xray/getXrayResult');
+      const r = await HttpUtil.get('/panel/api/xray/getXrayResult');
       const validated = parseMsg(r, z.string(), 'xray/getXrayResult');
       if (validated?.success) setRestartResult(validated.obj || '');
       return msg;
@@ -237,7 +237,7 @@ export function useXraySetting(): UseXraySettingResult {
 
   const resetDefaultMut = useMutation({
     mutationFn: async (): Promise<Msg<XraySettingsValue>> => {
-      const raw = await HttpUtil.get('/panel/setting/getDefaultJsonConfig');
+      const raw = await HttpUtil.get('/panel/api/setting/getDefaultJsonConfig');
       return parseMsg(raw, XraySettingsValueSchema, 'setting/getDefaultJsonConfig');
     },
     onSuccess: (msg) => {
@@ -264,7 +264,7 @@ export function useXraySetting(): UseXraySettingResult {
         [index]: { testing: true, result: null, mode: effMode },
       }));
       try {
-        const raw = await HttpUtil.post('/panel/xray/testOutbound', {
+        const raw = await HttpUtil.post('/panel/api/xray/testOutbound', {
           outbound: JSON.stringify(outbound),
           allOutbounds: JSON.stringify(templateSettingsRef.current?.outbounds || []),
           mode: effMode,
