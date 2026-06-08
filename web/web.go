@@ -358,9 +358,8 @@ func (s *Server) Start() (err error) {
 	return s.start(true, true)
 }
 
-// StartPanelOnly initializes the panel during an in-process panel restart without cycling Xray.
 func (s *Server) StartPanelOnly() (err error) {
-	return s.start(false, false)
+	return s.start(false, true)
 }
 
 func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
@@ -465,9 +464,8 @@ func (s *Server) Stop() error {
 	return s.stop(true, true)
 }
 
-// StopPanelOnly stops only panel-owned HTTP/background resources for an in-process panel restart.
 func (s *Server) StopPanelOnly() error {
-	return s.stop(false, false)
+	return s.stop(false, true)
 }
 
 func (s *Server) stop(stopXray bool, stopTgBot bool) error {
