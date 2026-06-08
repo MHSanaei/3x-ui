@@ -5912,6 +5912,8 @@
                       "transitive": false,
                       "updatedAt": 1700000000,
                       "uptimeSecs": 86400,
+                      "xrayError": "",
+                      "xrayState": "",
                       "xrayVersion": "25.10.31"
                     }
                   ]
@@ -6272,6 +6274,8 @@
                     "panelVersion": "v3.x.x",
                     "status": "online",
                     "uptimeSecs": 86400,
+                    "xrayError": "",
+                    "xrayState": "",
                     "xrayVersion": "25.10.31"
                   }
                 }
