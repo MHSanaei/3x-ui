@@ -76,7 +76,6 @@ afterEach(async () => {
 });
 
 import { HttpUtil } from '@/utils';
-import axios from 'axios';
 
 vi.mock('axios', () => {
   return {
@@ -87,5 +86,7 @@ vi.mock('axios', () => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 vi.spyOn(HttpUtil, 'post').mockResolvedValue({ success: true, obj: {} } as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 vi.spyOn(HttpUtil, 'get').mockResolvedValue({ success: true, obj: {} } as any);
