@@ -7782,6 +7782,47 @@
         }
       }
     },
+    "/panel/api/xray/outbound-subs/{id}/move": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Reorder a subscription one step up or down in priority (controls its position in the merged outbounds).",
+        "operationId": "post_panel_api_xray_outbound_subs_id_move",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Subscription id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/xray/outbound-subs/parse": {
       "post": {
         "tags": [

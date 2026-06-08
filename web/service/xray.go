@@ -256,12 +256,13 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	}
 
 	// Merge subscription-derived outbounds (if any) into the final outbounds array.
-	// These are additive and come after the outbounds defined in the template.
-	// Tags assigned by the subscription service are kept stable across refreshes
-	// so that balancers and routing rules continue to work.
+	// These are additive: each subscription is placed before or after the template
+	// outbounds based on its Prepend flag, ordered by Priority. Tags assigned by the
+	// subscription service are kept stable across refreshes so that balancers and
+	// routing rules continue to work.
 	subSvc := &OutboundSubscriptionService{}
-	if extra, err := subSvc.AllActiveOutbounds(); err == nil && len(extra) > 0 {
-		mergeSubscriptionOutbounds(xrayConfig, extra)
+	if prepend, appendList, err := subSvc.activeOutboundsSplit(); err == nil && (len(prepend) > 0 || len(appendList) > 0) {
+		mergeSubscriptionOutbounds(xrayConfig, prepend, appendList)
 	}
 
 	return xrayConfig, nil
@@ -275,8 +276,8 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 // OutboundConfigs exactly as it came from the template (we do not inject
 // subscription outbounds). This prevents us from accidentally dropping the
 // user's manually configured outbounds when the template is in a weird state.
-func mergeSubscriptionOutbounds(cfg *xray.Config, extra []any) {
-	if len(extra) == 0 {
+func mergeSubscriptionOutbounds(cfg *xray.Config, prepend, appendList []any) {
+	if len(prepend) == 0 && len(appendList) == 0 {
 		return
 	}
 	var templateOutbounds []any
@@ -287,7 +288,10 @@ func mergeSubscriptionOutbounds(cfg *xray.Config, extra []any) {
 			return
 		}
 	}
-	merged := append(templateOutbounds, extra...)
+	merged := make([]any, 0, len(prepend)+len(templateOutbounds)+len(appendList))
+	merged = append(merged, prepend...)
+	merged = append(merged, templateOutbounds...)
+	merged = append(merged, appendList...)
 	combined, err := json.MarshalIndent(merged, "", "  ")
 	if err != nil {
 		return
