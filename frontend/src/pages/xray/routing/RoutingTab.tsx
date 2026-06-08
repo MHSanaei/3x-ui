@@ -20,6 +20,7 @@ interface RoutingTabProps {
   setTemplateSettings: SetTemplate;
   inboundTags: string[];
   clientReverseTags: string[];
+  subscriptionOutboundTags?: string[];
   isMobile: boolean;
 }
 
@@ -28,6 +29,7 @@ export default function RoutingTab({
   setTemplateSettings,
   inboundTags,
   clientReverseTags,
+  subscriptionOutboundTags,
   isMobile,
 }: RoutingTabProps) {
   const { t } = useTranslation();
@@ -116,8 +118,11 @@ export default function RoutingTab({
     for (const tag of clientReverseTags || []) {
       if (tag) out.add(tag);
     }
+    for (const tag of subscriptionOutboundTags || []) {
+      if (tag) out.add(tag);
+    }
     return [...out];
-  }, [templateSettings?.outbounds, clientReverseTags]);
+  }, [templateSettings?.outbounds, clientReverseTags, subscriptionOutboundTags]);
 
   const balancerTagOptions = useMemo(() => {
     const out: string[] = [''];

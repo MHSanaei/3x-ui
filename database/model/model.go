@@ -705,6 +705,28 @@ type ClientMergeConflict struct {
 	Kept  any
 }
 
+type OutboundSubscription struct {
+	Id                   int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Remark               string `json:"remark" form:"remark"`
+	Url                  string `json:"url" form:"url"`
+	Enabled              bool   `json:"enabled" form:"enabled" gorm:"default:true"`
+	AllowPrivate         bool   `json:"allowPrivate" form:"allowPrivate" gorm:"default:false"`
+	TagPrefix            string `json:"tagPrefix" form:"tagPrefix"`
+	UpdateInterval       int    `json:"updateInterval" form:"updateInterval" gorm:"default:600"` // seconds between refreshes
+	Priority             int    `json:"priority" form:"priority" gorm:"default:0"`              // order among subscriptions in the merged outbounds (lower = earlier)
+	Prepend              bool   `json:"prepend" form:"prepend" gorm:"default:false"`            // place this subscription's outbounds before the manual template outbounds
+	LastUpdated          int64  `json:"lastUpdated" form:"lastUpdated"`
+	LastError            string `json:"lastError" form:"lastError"`
+	LastFetchedOutbounds string `json:"lastFetchedOutbounds" form:"lastFetchedOutbounds" gorm:"type:text"`
+	LinkIdentities       string `json:"-" gorm:"type:text;column:link_identities"`
+	CreatedAt            int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt            int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	// OutboundCount is a derived count of the last fetched outbounds (not
+	// persisted); List populates it so the UI can show how many outbounds a
+	// subscription produced without shipping the full payload.
+	OutboundCount int `json:"outboundCount" gorm:"-"`
+}
+
 func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientMergeConflict {
 	var conflicts []ClientMergeConflict
 	keep := func(field string, oldV, newV, kept any) {
