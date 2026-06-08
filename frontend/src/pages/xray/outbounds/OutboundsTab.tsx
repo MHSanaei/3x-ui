@@ -83,6 +83,7 @@ export default function OutboundsTab({
 }: OutboundsTabProps) {
   const { t } = useTranslation();
   const [modal, modalContextHolder] = Modal.useModal();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [testMode, setTestMode] = useState<'tcp' | 'http'>('tcp');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingOutbound, setEditingOutbound] = useState<Record<string, unknown> | null>(null);
@@ -198,26 +199,26 @@ export default function OutboundsTab({
       const r = await HttpUtil.get('/panel/api/xray/outbound-subs');
       if (r?.success) setSubs(Array.isArray(r.obj) ? r.obj : []);
     } catch {
-      message.error('Failed to load subscriptions');
+      messageApi.error('Failed to load subscriptions');
     } finally {
       setSubsLoading(false);
     }
   }
   async function createSub() {
     if (!newSub.url.trim()) {
-      message.warning('URL is required');
+      messageApi.warning('URL is required');
       return;
     }
     try {
-      const body = new URLSearchParams();
-      body.set('remark', newSub.remark);
-      body.set('url', newSub.url);
-      body.set('tagPrefix', newSub.tagPrefix);
-      body.set('updateInterval', String(newSub.updateInterval));
-      body.set('enabled', newSub.enabled ? 'true' : 'false');
-      const r = await HttpUtil.post<OutboundSub>('/panel/api/xray/outbound-subs', body, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      const r = await HttpUtil.post<OutboundSub>('/panel/api/xray/outbound-subs', {
+        remark: newSub.remark,
+        url: newSub.url,
+        tagPrefix: newSub.tagPrefix,
+        updateInterval: newSub.updateInterval,
+        enabled: newSub.enabled,
+      });
       if (r?.success) {
-        message.success('Subscription added');
+        messageApi.success('Subscription added');
         const createdId = r.obj?.id;
         setNewSub({ remark: '', url: '', tagPrefix: '', updateInterval: 600, enabled: true });
         await loadSubs();
@@ -227,35 +228,35 @@ export default function OutboundsTab({
         }
         onRefreshXrayData?.();
       } else {
-        message.error(r?.msg || 'Failed to add');
+        messageApi.error(r?.msg || 'Failed to add');
       }
     } catch {
-      message.error('Failed to add subscription');
+      messageApi.error('Failed to add subscription');
     }
   }
   async function refreshOne(id: number) {
     try {
       const r = await HttpUtil.post(`/panel/api/xray/outbound-subs/${id}/refresh`);
       if (r?.success) {
-        message.success('Refreshed');
+        messageApi.success('Refreshed');
         await loadSubs();
         onRefreshXrayData?.();
       } else {
-        message.error(r?.msg || 'Refresh failed');
+        messageApi.error(r?.msg || 'Refresh failed');
       }
     } catch {
-      message.error('Refresh failed');
+      messageApi.error('Refresh failed');
     }
   }
   async function deleteOne(id: number) {
     try {
       const r = await HttpUtil.post(`/panel/api/xray/outbound-subs/${id}/del`);
       if (r?.success) {
-        message.success('Deleted');
+        messageApi.success('Deleted');
         await loadSubs();
       }
     } catch {
-      message.error('Delete failed');
+      messageApi.error('Delete failed');
     }
   }
 
@@ -276,6 +277,7 @@ export default function OutboundsTab({
   return (
     <>
       {modalContextHolder}
+      {messageContextHolder}
       <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
         <Row gutter={[12, 12]} align="middle" justify="space-between">
           <Col xs={24} sm={12}>
