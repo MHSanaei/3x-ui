@@ -80,6 +80,7 @@ export default function WarpModal({
   const [warpData, setWarpData] = useState<WarpData | null>(null);
   const [warpConfig, setWarpConfig] = useState<WarpConfig | null>(null);
   const [warpPlus, setWarpPlus] = useState('');
+  const [updateInterval, setUpdateInterval] = useState<number>(0);
   const [licenseError, setLicenseError] = useState('');
   const [stagedOutbound, setStagedOutbound] = useState<Record<string, unknown> | null>(null);
 
@@ -89,24 +90,29 @@ export default function WarpModal({
     return list.findIndex((o) => o?.tag === 'warp');
   }, [templateSettings?.outbounds]);
 
-  const collectConfig = useCallback((data: WarpData | null, config: WarpConfig | null) => {
-    const cfg = config?.config;
-    if (!cfg?.peers?.length) return;
-    const peer = cfg.peers[0];
-    setStagedOutbound({
-      tag: 'warp',
-      protocol: 'wireguard',
-      settings: {
-        mtu: 1420,
-        secretKey: data?.private_key,
-        address: addressesFor(cfg.interface?.addresses || {}),
-        reserved: reservedFor(cfg.client_id ?? data?.client_id),
-        domainStrategy: 'ForceIP',
-        peers: [{ publicKey: peer.public_key, endpoint: peer.endpoint?.host }],
-        noKernelTun: false,
-      },
-    });
-  }, []);
+  const collectConfig = useCallback(
+    (data: WarpData | null, config: WarpConfig | null): Record<string, unknown> | null => {
+      const cfg = config?.config;
+      if (!cfg?.peers?.length) return null;
+      const peer = cfg.peers[0];
+      const outbound: Record<string, unknown> = {
+        tag: 'warp',
+        protocol: 'wireguard',
+        settings: {
+          mtu: 1420,
+          secretKey: data?.private_key,
+          address: addressesFor(cfg.interface?.addresses || {}),
+          reserved: reservedFor(cfg.client_id ?? data?.client_id),
+          domainStrategy: 'ForceIP',
+          peers: [{ publicKey: peer.public_key, endpoint: peer.endpoint?.host }],
+          noKernelTun: false,
+        },
+      };
+      setStagedOutbound(outbound);
+      return outbound;
+    },
+    [],
+  );
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -115,6 +121,10 @@ export default function WarpModal({
       if (msg?.success) {
         const raw = msg.obj;
         setWarpData(raw && raw.length > 0 ? JSON.parse(raw) : null);
+      }
+      const settingMsg = await HttpUtil.post<Record<string, unknown>>('/panel/api/setting/all');
+      if (settingMsg?.success && settingMsg.obj) {
+        setUpdateInterval(Number(settingMsg.obj.warpUpdateInterval) || 0);
       }
     } finally {
       setLoading(false);
@@ -153,6 +163,40 @@ export default function WarpModal({
         const parsed = JSON.parse(msg.obj);
         setWarpConfig(parsed);
         collectConfig(warpData, parsed);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function changeIp() {
+    setLoading(true);
+    try {
+      const msg = await HttpUtil.post<string>('/panel/api/xray/warp/changeIp');
+      if (msg?.success && msg.obj) {
+        const parsed = JSON.parse(msg.obj);
+        setWarpData(parsed.data);
+        setWarpConfig(parsed.config);
+        const built = collectConfig(parsed.data, parsed.config);
+        // The backend already persisted the new keys into the saved Xray
+        // template; keep the in-memory editor in sync so a later template
+        // save doesn't revert them to the old keys.
+        if (built && warpOutboundIndex >= 0) {
+          onResetOutbound({ index: warpOutboundIndex, outbound: built });
+        }
+        messageApi.success(t('pages.xray.warp.changeIpSuccess', 'WARP IP changed successfully!'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveInterval() {
+    setLoading(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/xray/warp/interval', { interval: updateInterval });
+      if (msg?.success) {
+        messageApi.success(t('pages.setting.toasts.saveSuccess', 'Settings saved successfully'));
       }
     } finally {
       setLoading(false);
@@ -281,13 +325,37 @@ export default function WarpModal({
                   </Form>
                 ),
               },
+              {
+                key: '2',
+                label: t('pages.xray.warp.autoUpdateIp', 'Auto Update IP Address'),
+                children: (
+                  <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 12 } }}>
+                    <Form.Item label={t('pages.xray.warp.intervalDays', 'Interval (Days)')} extra={t('pages.xray.warp.intervalDesc', '0 to disable. Changes IP address automatically.')}>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={updateInterval}
+                        onChange={(e) => setUpdateInterval(Number(e.target.value))}
+                      />
+                      <Button className="mt-8" type="primary" loading={loading} onClick={saveInterval}>
+                        {t('save', 'Save')}
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                ),
+              },
             ]}
           />
 
           <Divider className="zero-margin">{t('pages.xray.warp.accountInfo')}</Divider>
-          <Button className="my-8" loading={loading} type="primary" icon={<SyncOutlined />} onClick={getConfig}>
-            {t('refresh')}
-          </Button>
+          <div className="my-8">
+            <Button loading={loading} type="primary" icon={<SyncOutlined />} onClick={getConfig}>
+              {t('refresh')}
+            </Button>
+            <Button loading={loading} type="primary" className="ml-8" icon={<SyncOutlined />} onClick={changeIp}>
+              {t('pages.xray.warp.changeIp', 'Change IP')}
+            </Button>
+          </div>
 
           {hasConfig && (
             <>

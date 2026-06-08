@@ -1455,6 +1455,11 @@
         "outboundUpdated": "Saída NordVPN atualizada"
       },
       "warp": {
+        "changeIp": "Alterar IP",
+        "changeIpSuccess": "IP do WARP alterado com sucesso!",
+        "autoUpdateIp": "Atualizar endereço IP automaticamente",
+        "intervalDays": "Intervalo (dias)",
+        "intervalDesc": "0 para desativar. Altera o endereço IP automaticamente.",
         "licenseError": "Falha ao definir licença WARP.",
         "fetchFirst": "Obtenha primeiro a configuração WARP.",
         "createAccount": "Criar conta WARP",

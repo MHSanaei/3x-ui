@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/util"
 	"github.com/mhsanaei/3x-ui/v3/util/common"
 )
 
@@ -168,6 +170,44 @@ func (s *WarpService) SetWarpLicense(license string) (string, error) {
 		return "", err
 	}
 	return string(newWarpData), nil
+}
+
+func (s *WarpService) ChangeWarpIP() (string, error) {
+	warpDataMap, err := s.loadWarpCreds()
+	if err != nil {
+		return "", err
+	}
+
+	privKey, pubKey, err := util.GenerateWireguardKeypair()
+	if err != nil {
+		return "", err
+	}
+
+	result, err := s.RegWarp(privKey, pubKey)
+	if err != nil {
+		return "", err
+	}
+
+	var parsed struct {
+		Data   map[string]string      `json:"data"`
+		Config map[string]interface{} `json:"config"`
+	}
+	if err := json.Unmarshal([]byte(result), &parsed); err != nil {
+		return "", err
+	}
+
+	xraySvc := XraySettingService{}
+	if err := xraySvc.UpdateWarpXraySetting(parsed.Data, parsed.Config); err != nil {
+		return "", err
+	}
+
+	if license, ok := warpDataMap["license_key"]; ok && len(license) >= 26 {
+		if _, licErr := s.SetWarpLicense(license); licErr != nil {
+			logger.Warning("ChangeWarpIP: failed to re-apply WARP license: ", licErr)
+		}
+	}
+
+	return result, nil
 }
 
 // loadWarpCreds reads the stored warp JSON and ensures access_token + device_id are set.

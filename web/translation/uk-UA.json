@@ -1455,6 +1455,11 @@
         "outboundUpdated": "Вихідний NordVPN оновлено"
       },
       "warp": {
+        "changeIp": "Змінити IP",
+        "changeIpSuccess": "IP-адресу WARP успішно змінено!",
+        "autoUpdateIp": "Автоматичне оновлення IP-адреси",
+        "intervalDays": "Інтервал (дні)",
+        "intervalDesc": "0 — вимкнути. Автоматично змінює IP-адресу.",
         "licenseError": "Не вдалося встановити ліцензію WARP.",
         "fetchFirst": "Спочатку отримайте WARP-конфіг.",
         "createAccount": "Створити акаунт WARP",

@@ -1454,6 +1454,11 @@
         "outboundUpdated": "NordVPN giden bağlantı güncellendi."
       },
       "warp": {
+        "changeIp": "IP Değiştir",
+        "changeIpSuccess": "WARP IP adresi başarıyla değiştirildi!",
+        "autoUpdateIp": "IP Adresini Otomatik Güncelle",
+        "intervalDays": "Aralık (Gün)",
+        "intervalDesc": "Devre dışı bırakmak için 0. IP adresini otomatik olarak değiştirir.",
         "licenseError": "WARP lisansı ayarlanamadı.",
         "fetchFirst": "Önce WARP yapılandırmasını alın.",
         "createAccount": "WARP Hesabı Oluştur",
