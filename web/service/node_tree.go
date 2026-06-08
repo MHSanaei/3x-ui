@@ -40,6 +40,8 @@ func (s *NodeService) LocalDescendants() ([]model.NodeSummary, error) {
 			LatencyMs:     n.LatencyMs,
 			PanelVersion:  n.PanelVersion,
 			XrayVersion:   n.XrayVersion,
+			XrayState:     n.XrayState,
+			XrayError:     n.XrayError,
 		})
 	}
 	return out, nil
@@ -140,6 +142,8 @@ func (s *NodeService) GetNodeTree() ([]*model.Node, error) {
 			LatencyMs:     sum.LatencyMs,
 			PanelVersion:  sum.PanelVersion,
 			XrayVersion:   sum.XrayVersion,
+			XrayState:     sum.XrayState,
+			XrayError:     sum.XrayError,
 			Transitive:    true,
 		})
 	}

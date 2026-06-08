@@ -68,18 +68,63 @@ function badgeStatus(status?: string): BadgeProps['status'] {
   }
 }
 
-function StatusDot({ status }: { status?: string }) {
-  if (status === 'online') return <span className="online-dot" />;
+interface HealthProps {
+  status?: string;
+  xrayState?: string;
+  xrayError?: string;
+}
+
+// Purple: the node's panel API is reachable (status=online) but its Xray core
+// has failed or been stopped. Distinct from a normal offline/unknown node.
+const XRAY_ERROR_COLOR = '#722ED1';
+
+// True when the panel is online but Xray itself reports error/stop.
+function hasXrayProblem(status?: string, xrayState?: string): boolean {
+  if (status !== 'online') return false;
+  const xs = (xrayState || '').toLowerCase().trim();
+  return xs === 'error' || xs === 'stop';
+}
+
+// Tooltip text + icon color for the status cell. A real probe error (lastError)
+// is a warning and takes precedence; otherwise an Xray-core problem shows purple.
+function statusIssue(record: Pick<NodeRecord, 'status' | 'xrayState' | 'xrayError' | 'lastError'>) {
+  const tip = record.lastError || (hasXrayProblem(record.status, record.xrayState) ? record.xrayError : '') || '';
+  const iconColor = !record.lastError && hasXrayProblem(record.status, record.xrayState)
+    ? XRAY_ERROR_COLOR
+    : 'var(--ant-color-warning)';
+  return { tip, iconColor };
+}
+
+function StatusDot({ status, xrayState }: HealthProps) {
+  if (status === 'online') {
+    return hasXrayProblem(status, xrayState)
+      ? <span className="xray-error-dot" />
+      : <span className="online-dot" />;
+  }
   return <Badge status={badgeStatus(status)} />;
 }
 
-function StatusLabel({ status }: { status?: string }) {
+function StatusLabel({ status, xrayState }: HealthProps) {
   const { t } = useTranslation();
-  return (
-    <span style={status === 'online' ? { color: 'var(--ant-color-success)' } : undefined}>
-      {t(`pages.nodes.statusValues.${status || 'unknown'}`)}
-    </span>
-  );
+  if (status === 'online') {
+    const xs = (xrayState || '').toLowerCase().trim();
+    if (xs === 'error' || xs === 'stop') {
+      const detail = xs === 'error'
+        ? t('pages.nodes.statusValues.xrayError')
+        : t('pages.nodes.statusValues.xrayStopped');
+      return (
+        <span style={{ color: XRAY_ERROR_COLOR }}>
+          {t('pages.nodes.statusValues.online')} ({detail})
+        </span>
+      );
+    }
+    return (
+      <span style={{ color: 'var(--ant-color-success)' }}>
+        {t('pages.nodes.statusValues.online')}
+      </span>
+    );
+  }
+  return <span>{t(`pages.nodes.statusValues.${status || 'unknown'}`)}</span>;
 }
 
 function formatPct(p?: number): string {
@@ -271,17 +316,20 @@ export default function NodeList({
       title: t('pages.nodes.status'),
       dataIndex: 'status',
       align: 'center',
-      render: (_value, record) => (
-        <Space size={4}>
-          <StatusDot status={record.status} />
-          <StatusLabel status={record.status} />
-          {record.lastError && (
-            <Tooltip title={record.lastError}>
-              <ExclamationCircleOutlined style={{ color: 'var(--ant-color-warning)' }} />
-            </Tooltip>
-          )}
-        </Space>
-      ),
+      render: (_value, record) => {
+        const { tip, iconColor } = statusIssue(record);
+        return (
+          <Space size={4}>
+            <StatusDot status={record.status} xrayState={record.xrayState} />
+            <StatusLabel status={record.status} xrayState={record.xrayState} />
+            {tip && (
+              <Tooltip title={tip}>
+                <ExclamationCircleOutlined style={{ color: iconColor }} />
+              </Tooltip>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: t('pages.nodes.cpu'),
@@ -389,7 +437,7 @@ export default function NodeList({
                 <div key={String(record.key)} className="node-card" style={{ paddingInlineStart: 16, opacity: 0.85 }}>
                   <div className="card-head">
                     <ApartmentOutlined style={{ opacity: 0.6 }} />
-                    <StatusDot status={record.status} />
+                    <StatusDot status={record.status} xrayState={record.xrayState} />
                     <span className="node-name">{record.name}</span>
                     <div className="card-actions">
                       <Tag icon={<ApartmentOutlined />} style={{ margin: 0 }}>{t('pages.nodes.subNode')}</Tag>
@@ -400,7 +448,7 @@ export default function NodeList({
                 <div key={record.id} className="node-card">
                   <div className="card-head" onClick={() => toggleExpanded(record.id)}>
                     <RightOutlined className={`card-expand${expandedIds.has(record.id) ? ' is-expanded' : ''}`} />
-                    <StatusDot status={record.status} />
+                    <StatusDot status={record.status} xrayState={record.xrayState} />
                     <span className="node-name">{record.name}</span>
                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
                       <Tooltip title={t('info')}>
@@ -494,13 +542,16 @@ export default function NodeList({
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.status')}</span>
-                  <StatusDot status={statsNode.status} />
-                  <StatusLabel status={statsNode.status} />
-                  {statsNode.lastError && (
-                    <Tooltip title={statsNode.lastError}>
-                      <ExclamationCircleOutlined style={{ color: 'var(--ant-color-warning)' }} />
-                    </Tooltip>
-                  )}
+                  <StatusDot status={statsNode.status} xrayState={statsNode.xrayState} />
+                  <StatusLabel status={statsNode.status} xrayState={statsNode.xrayState} />
+                  {(() => {
+                    const { tip, iconColor } = statusIssue(statsNode);
+                    return tip ? (
+                      <Tooltip title={tip}>
+                        <ExclamationCircleOutlined style={{ color: iconColor }} />
+                      </Tooltip>
+                    ) : null;
+                  })()}
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.cpu')}</span>

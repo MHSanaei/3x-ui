@@ -896,7 +896,9 @@
       "statusValues": {
         "online": "В сети",
         "offline": "Не в сети",
-        "unknown": "Неизвестно"
+        "unknown": "Неизвестно",
+        "xrayError": "Ошибка Xray",
+        "xrayStopped": "Остановлен"
       },
       "toasts": {
         "list": "Не удалось загрузить узлы",

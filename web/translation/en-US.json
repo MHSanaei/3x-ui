@@ -897,7 +897,9 @@
       "statusValues": {
         "online": "Online",
         "offline": "Offline",
-        "unknown": "Unknown"
+        "unknown": "Unknown",
+        "xrayError": "Xray Error",
+        "xrayStopped": "Stopped"
       },
       "toasts": {
         "list": "Failed to load nodes",
