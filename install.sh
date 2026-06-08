@@ -1198,7 +1198,11 @@ install_x-ui() {
         fi
     fi
     chmod +x x-ui bin/xray-linux-$(arch)
-    [[ -f bin/mtg-linux-$(arch) ]] && chmod +x bin/mtg-linux-$(arch)
+    if [[ -f bin/mtg-linux-arm ]]; then
+        chmod +x bin/mtg-linux-arm
+    elif [[ -f bin/mtg-linux-$(arch) ]]; then
+        chmod +x bin/mtg-linux-$(arch)
+    fi
 
     # Update x-ui cli and se set permission
     mv -f /usr/bin/x-ui-temp /usr/bin/x-ui

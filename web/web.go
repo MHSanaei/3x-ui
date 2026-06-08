@@ -283,8 +283,9 @@ func (s *Server) startTask(restartXray bool) {
 	}()
 
 	// Reconcile mtproto (mtg) sidecars and scrape their traffic
-	s.cron.AddJob("@every 10s", job.NewMtprotoJob())
-	go job.NewMtprotoJob().Run()
+	mtJob := job.NewMtprotoJob()
+	s.cron.AddJob("@every 10s", mtJob)
+	go mtJob.Run()
 
 	// check client ips from log file every 10 sec
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())

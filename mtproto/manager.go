@@ -183,7 +183,8 @@ func (m *Manager) StopAll() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for id, cur := range m.procs {
-		cur.proc.Stop()
+		_ = cur.proc.Stop()
+		_ = os.Remove(configPathForID(id))
 		delete(m.procs, id)
 	}
 }
@@ -191,33 +192,64 @@ func (m *Manager) StopAll() {
 // CollectTraffic scrapes each running mtg metrics endpoint and returns the
 // per-inbound byte deltas since the previous scrape.
 func (m *Manager) CollectTraffic() []Traffic {
+	// Snapshot the state we need under the lock, then release before doing
+	// network I/O so that Ensure/Reconcile/Remove are not blocked.
+	type snap struct {
+		id          int
+		metricsPort int
+		tag         string
+		haveLast    bool
+		lastUp      int64
+		lastDown    int64
+	}
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	out := make([]Traffic, 0, len(m.procs))
-	for _, cur := range m.procs {
+	snaps := make([]snap, 0, len(m.procs))
+	for id, cur := range m.procs {
 		if cur.proc == nil || !cur.proc.IsRunning() {
 			continue
 		}
-		up, down, ok := scrapeTraffic(cur.metricsPort)
+		snaps = append(snaps, snap{
+			id:          id,
+			metricsPort: cur.metricsPort,
+			tag:         cur.tag,
+			haveLast:    cur.haveLast,
+			lastUp:      cur.lastUp,
+			lastDown:    cur.lastDown,
+		})
+	}
+	m.mu.Unlock()
+
+	out := make([]Traffic, 0, len(snaps))
+	for _, s := range snaps {
+		up, down, ok := scrapeTraffic(s.metricsPort)
 		if !ok {
 			continue
 		}
-		if cur.haveLast {
-			du := up - cur.lastUp
-			dd := down - cur.lastDown
+		var du, dd int64
+		if s.haveLast {
+			du = up - s.lastUp
+			dd = down - s.lastDown
 			if du < 0 {
 				du = 0
 			}
 			if dd < 0 {
 				dd = 0
 			}
-			if du > 0 || dd > 0 {
-				out = append(out, Traffic{Tag: cur.tag, Up: du, Down: dd})
-			}
 		}
-		cur.lastUp = up
-		cur.lastDown = down
-		cur.haveLast = true
+
+		// Re-acquire lock to persist the new baseline, but only if the entry
+		// still exists (it may have been removed during the scrape).
+		m.mu.Lock()
+		if cur, ok := m.procs[s.id]; ok {
+			cur.lastUp = up
+			cur.lastDown = down
+			cur.haveLast = true
+		}
+		m.mu.Unlock()
+
+		if s.haveLast && (du > 0 || dd > 0) {
+			out = append(out, Traffic{Tag: s.tag, Up: du, Down: dd})
+		}
 	}
 	return out
 }

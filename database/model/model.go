@@ -378,7 +378,9 @@ func GenerateFakeTLSSecret(domain string) string {
 
 func mtprotoRandomMiddle() string {
 	buf := make([]byte, 16)
-	_, _ = rand.Read(buf)
+	if _, err := rand.Read(buf); err != nil {
+		panic(fmt.Errorf("mtproto: crypto/rand read failed: %w", err))
+	}
 	return hex.EncodeToString(buf)
 }
 
