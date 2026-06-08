@@ -5,16 +5,19 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/web/service"
-
 	"github.com/gin-gonic/gin"
+	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
 )
+
 
 // writeSubError translates a service-layer result into an HTTP response.
 // A nil error with no rows means the subId doesn't match anything (deleted
@@ -220,7 +223,34 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 		"links":        page.Result,
 		"emails":       page.Emails,
 		"datepicker":   datepicker,
+		"result":       page.Result, // for v2 template compatibility
+		"jsonUrl":      page.SubJsonUrl, // for v2 template compatibility
 	}
+
+	themeDir, _ := a.settingService.GetSubThemeDir()
+	if themeDir != "" {
+		if _, err := os.Stat(themeDir); err == nil {
+			templateFile := "index.html"
+			if _, err := os.Stat(filepath.Join(themeDir, "sub.html")); err == nil {
+				templateFile = "sub.html"
+			}
+			tmpl, err := template.ParseFiles(filepath.Join(themeDir, templateFile))
+			if err == nil {
+				c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+				c.Header("Pragma", "no-cache")
+				c.Header("Expires", "0")
+				c.Header("Content-Type", "text/html; charset=utf-8")
+				err = tmpl.Execute(c.Writer, subData)
+				if err == nil {
+					return
+				}
+				logger.Error("sub: failed to execute custom template:", err)
+			} else {
+				logger.Error("sub: failed to parse custom template:", err)
+			}
+		}
+	}
+
 	subDataJSON, err := json.Marshal(subData)
 	if err != nil {
 		subDataJSON = []byte("{}")
