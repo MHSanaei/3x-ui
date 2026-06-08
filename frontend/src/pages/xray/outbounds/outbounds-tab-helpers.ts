@@ -53,10 +53,10 @@ export function trafficFor(outboundsTraffic: OutboundTrafficRow[], o: OutboundRo
   return { up: tr?.up || 0, down: tr?.down || 0 };
 }
 
-export function isTesting(states: Record<number, OutboundTestState>, idx: number): boolean {
+export function isTesting<K extends string | number>(states: Record<K, OutboundTestState>, idx: K): boolean {
   return !!states?.[idx]?.testing;
 }
 
-export function testResult(states: Record<number, OutboundTestState>, idx: number) {
+export function testResult<K extends string | number>(states: Record<K, OutboundTestState>, idx: K) {
   return states?.[idx]?.result || null;
 }

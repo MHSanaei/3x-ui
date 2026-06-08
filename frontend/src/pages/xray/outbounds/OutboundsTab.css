@@ -209,3 +209,17 @@
 .outbound-test-popover .dot-fail {
   color: #e04141;
 }
+
+.subscription-outbounds-head {
+  margin-bottom: 8px;
+}
+
+.subscription-outbounds-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.subscription-outbounds-desc {
+  font-size: 12px;
+  opacity: 0.7;
+}

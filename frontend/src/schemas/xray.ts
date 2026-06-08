@@ -40,6 +40,11 @@ export const XrayConfigPayloadSchema = z.object({
   inboundTags: z.array(z.string()).optional(),
   clientReverseTags: z.array(z.string()).optional(),
   outboundTestUrl: z.string().optional(),
+  // Subscription outbounds are injected at runtime (not persisted in xraySetting).
+  // They are provided here so the UI can display them and use their tags in
+  // balancers / routing rules.
+  subscriptionOutbounds: z.array(z.unknown()).optional(),
+  subscriptionOutboundTags: z.array(z.string()).optional(),
 }).loose();
 
 export const OutboundTrafficRowSchema = z.object({
