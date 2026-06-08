@@ -3576,7 +3576,7 @@ func (s *InboundService) MigrationRequirements() {
 	if database.IsPostgres() {
 		// Use DO block so it is idempotent and doesn't fail if already boolean.
 		normalizeBool := func(table, col string) {
-			_, _ = tx.Exec(fmt.Sprintf(`
+			tx.Exec(fmt.Sprintf(`
 				DO $$
 				BEGIN
 					IF EXISTS (
