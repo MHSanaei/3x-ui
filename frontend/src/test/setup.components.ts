@@ -74,3 +74,7 @@ afterEach(async () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
 });
+
+import { HttpUtil } from '@/utils';
+vi.spyOn(HttpUtil, 'post').mockResolvedValue({ success: true, obj: {} } as any);
+vi.spyOn(HttpUtil, 'get').mockResolvedValue({ success: true, obj: {} } as any);
