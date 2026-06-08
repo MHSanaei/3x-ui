@@ -226,11 +226,20 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 	for id := range nodeByInbound {
 		inboundIDs = append(inboundIDs, id)
 	}
-	if err := db.Table("client_traffics").
-		Select("inbound_id, email, enable, total, up, down, expiry_time").
-		Where("inbound_id IN ?", inboundIDs).
-		Scan(&trafficRows).Error; err == nil {
-		depletedByNode := make(map[int]int)
+	// Chunk the IN clause to avoid "too many SQL variables" on SQLite
+	// when there are many node-owned inbounds (common with many nodes).
+	// sqliteMaxVars is defined in this package (inbound.go).
+	for _, batch := range chunkInts(inboundIDs, sqliteMaxVars) {
+		var page []trafficRow
+		if err := db.Table("client_traffics").
+			Select("inbound_id, email, enable, total, up, down, expiry_time").
+			Where("inbound_id IN ?", batch).
+			Scan(&page).Error; err == nil {
+			trafficRows = append(trafficRows, page...)
+		}
+	}
+	depletedByNode := make(map[int]int)
+	if len(trafficRows) > 0 {
 		for _, row := range trafficRows {
 			nodeID, ok := nodeByInbound[row.InboundID]
 			if !ok {
@@ -242,15 +251,15 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 				depletedByNode[nodeID]++
 			}
 		}
-		onlineByGuid := s.onlineEmailsByGuid()
-		for _, n := range nodes {
-			n.InboundCount = len(inboundsByNode[n.Id])
-			n.DepletedCount = depletedByNode[n.Id]
-			// Online is attributed to the node that physically hosts the client
-			// (by GUID): a client on a sub-node counts under the sub-node, not
-			// the intermediate node it syncs through (#4983).
-			n.OnlineCount = len(onlineByGuid[effectiveNodeGuid(n)])
-		}
+	}
+	onlineByGuid := s.onlineEmailsByGuid()
+	for _, n := range nodes {
+		n.InboundCount = len(inboundsByNode[n.Id])
+		n.DepletedCount = depletedByNode[n.Id]
+		// Online is attributed to the node that physically hosts the client
+		// (by GUID): a client on a sub-node counts under the sub-node, not
+		// the intermediate node it syncs through (#4983).
+		n.OnlineCount = len(onlineByGuid[effectiveNodeGuid(n)])
 	}
 
 	return nodes, nil
