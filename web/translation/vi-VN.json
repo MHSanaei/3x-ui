@@ -896,7 +896,9 @@
       "statusValues": {
         "online": "Trực tuyến",
         "offline": "Ngoại tuyến",
-        "unknown": "Không xác định"
+        "unknown": "Không xác định",
+        "xrayError": "Lỗi Xray",
+        "xrayStopped": "Đã dừng"
       },
       "toasts": {
         "list": "Không tải được danh sách nút",

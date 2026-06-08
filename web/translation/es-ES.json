@@ -896,7 +896,9 @@
       "statusValues": {
         "online": "En línea",
         "offline": "Sin conexión",
-        "unknown": "Desconocido"
+        "unknown": "Desconocido",
+        "xrayError": "Error de Xray",
+        "xrayStopped": "Detenido"
       },
       "toasts": {
         "list": "Error al cargar los nodos",

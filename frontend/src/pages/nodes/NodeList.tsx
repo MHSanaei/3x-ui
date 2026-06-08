@@ -74,15 +74,32 @@ interface HealthProps {
   xrayError?: string;
 }
 
+// Purple: the node's panel API is reachable (status=online) but its Xray core
+// has failed or been stopped. Distinct from a normal offline/unknown node.
+const XRAY_ERROR_COLOR = '#722ED1';
+
+// True when the panel is online but Xray itself reports error/stop.
+function hasXrayProblem(status?: string, xrayState?: string): boolean {
+  if (status !== 'online') return false;
+  const xs = (xrayState || '').toLowerCase().trim();
+  return xs === 'error' || xs === 'stop';
+}
+
+// Tooltip text + icon color for the status cell. A real probe error (lastError)
+// is a warning and takes precedence; otherwise an Xray-core problem shows purple.
+function statusIssue(record: Pick<NodeRecord, 'status' | 'xrayState' | 'xrayError' | 'lastError'>) {
+  const tip = record.lastError || (hasXrayProblem(record.status, record.xrayState) ? record.xrayError : '') || '';
+  const iconColor = !record.lastError && hasXrayProblem(record.status, record.xrayState)
+    ? XRAY_ERROR_COLOR
+    : 'var(--ant-color-warning)';
+  return { tip, iconColor };
+}
+
 function StatusDot({ status, xrayState }: HealthProps) {
   if (status === 'online') {
-    const xs = (xrayState || '').toLowerCase().trim();
-    if (xs === 'error' || xs === 'stop') {
-      // Distinct identifier (purple): panel reachable via API (status=online),
-      // but Xray core itself has failed/stopped on that node.
-      return <span className="xray-error-dot" />;
-    }
-    return <span className="online-dot" />;
+    return hasXrayProblem(status, xrayState)
+      ? <span className="xray-error-dot" />
+      : <span className="online-dot" />;
   }
   return <Badge status={badgeStatus(status)} />;
 }
@@ -91,33 +108,23 @@ function StatusLabel({ status, xrayState }: HealthProps) {
   const { t } = useTranslation();
   if (status === 'online') {
     const xs = (xrayState || '').toLowerCase().trim();
-    if (xs === 'error') {
-      const label = t('pages.nodes.statusValues.xrayError');
-      const display = label === 'pages.nodes.statusValues.xrayError' ? 'Xray Error' : label;
+    if (xs === 'error' || xs === 'stop') {
+      const detail = xs === 'error'
+        ? t('pages.nodes.statusValues.xrayError')
+        : t('pages.nodes.statusValues.xrayStopped');
       return (
-        <span style={{ color: '#722ED1' }}>
-          {t('pages.nodes.statusValues.online')} ({display})
-        </span>
-      );
-    }
-    if (xs === 'stop') {
-      return (
-        <span style={{ color: '#722ED1' }}>
-          {t('pages.nodes.statusValues.online')} (stopped)
+        <span style={{ color: XRAY_ERROR_COLOR }}>
+          {t('pages.nodes.statusValues.online')} ({detail})
         </span>
       );
     }
     return (
       <span style={{ color: 'var(--ant-color-success)' }}>
-        {t(`pages.nodes.statusValues.${status}`)}
+        {t('pages.nodes.statusValues.online')}
       </span>
     );
   }
-  return (
-    <span style={status === 'online' ? { color: 'var(--ant-color-success)' } : undefined}>
-      {t(`pages.nodes.statusValues.${status || 'unknown'}`)}
-    </span>
-  );
+  return <span>{t(`pages.nodes.statusValues.${status || 'unknown'}`)}</span>;
 }
 
 function formatPct(p?: number): string {
@@ -310,18 +317,14 @@ export default function NodeList({
       dataIndex: 'status',
       align: 'center',
       render: (_value, record) => {
-        const xrayProblem = record.status === 'online' && record.xrayState && ['error', 'stop'].includes((record.xrayState || '').toLowerCase());
-        const tip = record.lastError || (xrayProblem ? record.xrayError : '') || '';
-        const issueIconColor = record.lastError
-          ? 'var(--ant-color-warning)'
-          : (xrayProblem ? '#722ED1' : 'var(--ant-color-warning)');
+        const { tip, iconColor } = statusIssue(record);
         return (
           <Space size={4}>
             <StatusDot status={record.status} xrayState={record.xrayState} />
             <StatusLabel status={record.status} xrayState={record.xrayState} />
             {tip && (
               <Tooltip title={tip}>
-                <ExclamationCircleOutlined style={{ color: issueIconColor }} />
+                <ExclamationCircleOutlined style={{ color: iconColor }} />
               </Tooltip>
             )}
           </Space>
@@ -542,14 +545,10 @@ export default function NodeList({
                   <StatusDot status={statsNode.status} xrayState={statsNode.xrayState} />
                   <StatusLabel status={statsNode.status} xrayState={statsNode.xrayState} />
                   {(() => {
-                    const xrayProblem = statsNode.status === 'online' && statsNode.xrayState && ['error', 'stop'].includes((statsNode.xrayState || '').toLowerCase());
-                    const tip = statsNode.lastError || (xrayProblem ? statsNode.xrayError : '') || '';
-                    const issueIconColor = statsNode.lastError
-                      ? 'var(--ant-color-warning)'
-                      : (xrayProblem ? '#722ED1' : 'var(--ant-color-warning)');
+                    const { tip, iconColor } = statusIssue(statsNode);
                     return tip ? (
                       <Tooltip title={tip}>
-                        <ExclamationCircleOutlined style={{ color: issueIconColor }} />
+                        <ExclamationCircleOutlined style={{ color: iconColor }} />
                       </Tooltip>
                     ) : null;
                   })()}

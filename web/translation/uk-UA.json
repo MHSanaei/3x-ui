@@ -896,7 +896,9 @@
       "statusValues": {
         "online": "У мережі",
         "offline": "Не в мережі",
-        "unknown": "Невідомо"
+        "unknown": "Невідомо",
+        "xrayError": "Помилка Xray",
+        "xrayStopped": "Зупинено"
       },
       "toasts": {
         "list": "Не вдалося завантажити вузли",

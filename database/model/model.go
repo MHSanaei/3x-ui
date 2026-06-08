@@ -722,8 +722,8 @@ type OutboundSubscription struct {
 	AllowPrivate         bool   `json:"allowPrivate" form:"allowPrivate" gorm:"default:false"`
 	TagPrefix            string `json:"tagPrefix" form:"tagPrefix"`
 	UpdateInterval       int    `json:"updateInterval" form:"updateInterval" gorm:"default:600"` // seconds between refreshes
-	Priority             int    `json:"priority" form:"priority" gorm:"default:0"`              // order among subscriptions in the merged outbounds (lower = earlier)
-	Prepend              bool   `json:"prepend" form:"prepend" gorm:"default:false"`            // place this subscription's outbounds before the manual template outbounds
+	Priority             int    `json:"priority" form:"priority" gorm:"default:0"`               // order among subscriptions in the merged outbounds (lower = earlier)
+	Prepend              bool   `json:"prepend" form:"prepend" gorm:"default:false"`             // place this subscription's outbounds before the manual template outbounds
 	LastUpdated          int64  `json:"lastUpdated" form:"lastUpdated"`
 	LastError            string `json:"lastError" form:"lastError"`
 	LastFetchedOutbounds string `json:"lastFetchedOutbounds" form:"lastFetchedOutbounds" gorm:"type:text"`

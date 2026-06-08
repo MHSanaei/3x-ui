@@ -898,7 +898,8 @@
         "online": "Online",
         "offline": "Offline",
         "unknown": "Unknown",
-        "xrayError": "Xray Error"
+        "xrayError": "Xray Error",
+        "xrayStopped": "Stopped"
       },
       "toasts": {
         "list": "Failed to load nodes",

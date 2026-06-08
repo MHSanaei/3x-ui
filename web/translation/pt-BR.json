@@ -896,7 +896,9 @@
       "statusValues": {
         "online": "Online",
         "offline": "Offline",
-        "unknown": "Desconhecido"
+        "unknown": "Desconhecido",
+        "xrayError": "Erro do Xray",
+        "xrayStopped": "Parado"
       },
       "toasts": {
         "list": "Falha ao carregar os nós",
