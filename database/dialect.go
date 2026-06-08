@@ -2,7 +2,6 @@ package database
 
 import "fmt"
 
-
 func JSONClientsFromInbound() string {
 	if IsPostgres() {
 		return "FROM inbounds, jsonb_array_elements(inbounds.settings::jsonb -> 'clients') AS client(value)"
