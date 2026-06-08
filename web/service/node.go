@@ -298,6 +298,20 @@ func (s *NodeService) GetById(id int) (*model.Node, error) {
 	return n, nil
 }
 
+// NodeExists reports whether a node with the given id exists on this panel.
+// Used to drop stale, cross-panel node references on inbound import. A Count
+// query distinguishes "no such node" (count 0, no error) from a real DB error.
+func (s *NodeService) NodeExists(id int) (bool, error) {
+	if id <= 0 {
+		return false, nil
+	}
+	var count int64
+	if err := database.GetDB().Model(model.Node{}).Where("id = ?", id).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func normalizeBasePath(p string) string {
 	p = strings.TrimSpace(p)
 	if p == "" {
