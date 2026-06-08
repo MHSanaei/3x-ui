@@ -1085,6 +1085,63 @@ export const sections: readonly Section[] = [
         ],
         body: 'outbound={"protocol":"freedom","settings":{}}&mode=tcp',
       },
+      {
+        method: 'GET',
+        path: '/panel/api/xray/outbound-subs',
+        summary: 'List all outbound subscriptions (remote URLs that supply additional outbounds), newest first.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/outbound-subs',
+        summary: 'Create an outbound subscription. The URL is fetched, parsed into outbounds with stable tags, and merged additively into the running Xray config.',
+        params: [
+          { name: 'remark', in: 'body (form)', type: 'string', desc: 'Optional display label.' },
+          { name: 'url', in: 'body (form)', type: 'string', desc: 'Subscription URL (required). Must be a public http(s) address; private/internal targets are blocked.' },
+          { name: 'tagPrefix', in: 'body (form)', type: 'string', desc: 'Prefix for generated outbound tags. Defaults to "sub<id>-".' },
+          { name: 'updateInterval', in: 'body (form)', type: 'integer', desc: 'Seconds between auto-refreshes. Default 600.' },
+          { name: 'enabled', in: 'body (form)', type: 'boolean', desc: 'Whether the subscription is active. Default true.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/outbound-subs/:id',
+        summary: 'Update an existing outbound subscription by id. Accepts the same form fields as create.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' },
+        ],
+      },
+      {
+        method: 'DELETE',
+        path: '/panel/api/xray/outbound-subs/:id',
+        summary: 'Delete an outbound subscription by id.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/outbound-subs/:id/del',
+        summary: 'Delete an outbound subscription by id (POST alias of DELETE for axios-friendly clients).',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/outbound-subs/:id/refresh',
+        summary: 'Force an immediate re-fetch of the subscription and return the parsed outbounds. Signals Xray to reload.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/outbound-subs/parse',
+        summary: 'Preview a subscription URL: fetch and parse it into outbounds without persisting anything.',
+        params: [
+          { name: 'url', in: 'body (form)', type: 'string', desc: 'Subscription URL to preview (required).' },
+        ],
+      },
     ],
   },
 
