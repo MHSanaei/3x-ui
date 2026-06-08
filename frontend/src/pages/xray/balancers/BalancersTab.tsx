@@ -91,6 +91,7 @@ export default function BalancersTab({
   templateSettings,
   setTemplateSettings,
   clientReverseTags,
+  subscriptionOutboundTags,
   isMobile,
 }: BalancersTabProps) {
   const { t } = useTranslation();

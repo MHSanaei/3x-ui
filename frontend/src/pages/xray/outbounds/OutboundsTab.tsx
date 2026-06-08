@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -36,6 +36,17 @@ import './OutboundsTab.css';
 import type { OutboundRow } from './outbounds-tab-types';
 import { useOutboundColumns } from './useOutboundColumns';
 import OutboundCardList from './OutboundCardList';
+
+interface OutboundSub {
+  id: number;
+  remark?: string;
+  url?: string;
+  enabled?: boolean;
+  tagPrefix?: string;
+  updateInterval?: number;
+  lastUpdated?: number;
+  lastError?: string;
+}
 
 interface OutboundsTabProps {
   templateSettings: XraySettingsValue | null;
@@ -80,7 +91,7 @@ export default function OutboundsTab({
 
   // Subscription manager (simple drawer for CRUD + manual refresh)
   const [subDrawerOpen, setSubDrawerOpen] = useState(false);
-  const [subs, setSubs] = useState<any[]>([]);
+  const [subs, setSubs] = useState<OutboundSub[]>([]);
   const [subsLoading, setSubsLoading] = useState(false);
   const [newSub, setNewSub] = useState({ remark: '', url: '', tagPrefix: '', updateInterval: 600, enabled: true });
 
@@ -184,9 +195,9 @@ export default function OutboundsTab({
   async function loadSubs() {
     setSubsLoading(true);
     try {
-      const r = await HttpUtil.get('/panel/xray/outbound-subs');
+      const r = await HttpUtil.get('/panel/api/xray/outbound-subs');
       if (r?.success) setSubs(Array.isArray(r.obj) ? r.obj : []);
-    } catch (e) {
+    } catch {
       message.error('Failed to load subscriptions');
     } finally {
       setSubsLoading(false);
@@ -204,7 +215,7 @@ export default function OutboundsTab({
       body.set('tagPrefix', newSub.tagPrefix);
       body.set('updateInterval', String(newSub.updateInterval));
       body.set('enabled', newSub.enabled ? 'true' : 'false');
-      const r = await HttpUtil.post('/panel/xray/outbound-subs', body, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      const r = await HttpUtil.post<OutboundSub>('/panel/api/xray/outbound-subs', body, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
       if (r?.success) {
         message.success('Subscription added');
         const createdId = r.obj?.id;
@@ -218,13 +229,13 @@ export default function OutboundsTab({
       } else {
         message.error(r?.msg || 'Failed to add');
       }
-    } catch (e) {
+    } catch {
       message.error('Failed to add subscription');
     }
   }
   async function refreshOne(id: number) {
     try {
-      const r = await HttpUtil.post(`/panel/xray/outbound-subs/${id}/refresh`);
+      const r = await HttpUtil.post(`/panel/api/xray/outbound-subs/${id}/refresh`);
       if (r?.success) {
         message.success('Refreshed');
         await loadSubs();
@@ -232,18 +243,18 @@ export default function OutboundsTab({
       } else {
         message.error(r?.msg || 'Refresh failed');
       }
-    } catch (e) {
+    } catch {
       message.error('Refresh failed');
     }
   }
   async function deleteOne(id: number) {
     try {
-      const r = await HttpUtil.post(`/panel/xray/outbound-subs/${id}/del`);
+      const r = await HttpUtil.post(`/panel/api/xray/outbound-subs/${id}/del`);
       if (r?.success) {
         message.success('Deleted');
         await loadSubs();
       }
-    } catch (e) {
+    } catch {
       message.error('Delete failed');
     }
   }
@@ -342,7 +353,7 @@ export default function OutboundsTab({
           <div style={{ marginTop: 16 }}>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>From outbound subscriptions (read-only)</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {(subscriptionOutbounds as any[]).map((o, i) => (
+              {(subscriptionOutbounds as Array<{ tag?: string; protocol?: string }>).map((o, i) => (
                 <span key={i} style={{ padding: '2px 8px', border: '1px solid #ddd', borderRadius: 4, fontSize: 12 }}>
                   {o?.tag || '(no tag)'} · {o?.protocol || 'unknown'}
                 </span>
@@ -359,10 +370,10 @@ export default function OutboundsTab({
         title="Outbound Subscriptions"
         open={subDrawerOpen}
         onClose={() => setSubDrawerOpen(false)}
-        width={isMobile ? '100%' : 520}
-        destroyOnClose
+        size={isMobile ? '100%' : 520}
+        destroyOnHidden
       >
-        <Space direction="vertical" style={{ width: '100%' }} size="large">
+        <Space orientation="vertical" style={{ width: '100%' }} size="large">
           <div>
             <div style={{ fontWeight: 600, marginBottom: 8 }}>Add subscription</div>
             <Form layout="vertical" size="small">
@@ -424,7 +435,7 @@ export default function OutboundsTab({
                   {
                     title: '',
                     key: 'actions',
-                    render: (_: any, r: any) => (
+                    render: (_: unknown, r: OutboundSub) => (
                       <Space>
                         <Button size="small" icon={<ReloadOutlined />} onClick={() => refreshOne(r.id)} title={r.lastError ? `Last error: ${r.lastError}` : 'Refresh now'} />
                         <Popconfirm title="Delete this subscription?" onConfirm={() => deleteOne(r.id)}>

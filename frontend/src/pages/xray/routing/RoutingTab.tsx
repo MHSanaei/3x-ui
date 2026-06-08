@@ -29,6 +29,7 @@ export default function RoutingTab({
   setTemplateSettings,
   inboundTags,
   clientReverseTags,
+  subscriptionOutboundTags,
   isMobile,
 }: RoutingTabProps) {
   const { t } = useTranslation();

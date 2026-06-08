@@ -43,6 +43,6 @@ func (j *OutboundSubscriptionJob) Run() {
 		j.xraySvc.SetToNeedRestart()
 		// Also broadcast an invalidate so the UI can refresh the xray setting
 		// view (new outbounds will be visible after the reload cycle).
-		websocket.BroadcastInvalidate(websocket.MessageTypeXray)
+		websocket.BroadcastInvalidate(websocket.MessageTypeOutbounds)
 	}
 }
