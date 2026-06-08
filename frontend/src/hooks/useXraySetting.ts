@@ -51,15 +51,23 @@ export interface UseXraySettingResult {
   setOutboundTestUrl: (v: string) => void;
   inboundTags: string[];
   clientReverseTags: string[];
+  subscriptionOutbounds: unknown[];
+  subscriptionOutboundTags: string[];
   restartResult: string;
   outboundsTraffic: OutboundTrafficRow[];
   outboundTestStates: Record<number, OutboundTestState>;
+  subscriptionTestStates: Record<string, OutboundTestState>;
   testingAll: boolean;
   fetchAll: () => Promise<void>;
   fetchOutboundsTraffic: () => Promise<void>;
   resetOutboundsTraffic: (tag: string) => Promise<void>;
   testOutbound: (
     index: number,
+    outbound: unknown,
+    mode?: string,
+  ) => Promise<OutboundTestResult | null>;
+  testSubscriptionOutbound: (
+    tag: string,
     outbound: unknown,
     mode?: string,
   ) => Promise<OutboundTestResult | null>;
@@ -72,7 +80,7 @@ export interface UseXraySettingResult {
 type XrayConfigPayload = z.infer<typeof XrayConfigPayloadSchema>;
 
 async function fetchXrayConfig(): Promise<XrayConfigPayload> {
-  const msg = await HttpUtil.post('/panel/xray/', undefined, { silent: true });
+  const msg = await HttpUtil.post('/panel/api/xray/', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to load xray config');
   if (typeof msg.obj !== 'string') throw new Error('Malformed xray config response: expected string');
   let parsed: unknown;
@@ -91,7 +99,7 @@ async function fetchXrayConfig(): Promise<XrayConfigPayload> {
 }
 
 async function fetchOutboundsTraffic(): Promise<OutboundTrafficRow[]> {
-  const msg = await HttpUtil.get('/panel/xray/getOutboundsTraffic', undefined, { silent: true });
+  const msg = await HttpUtil.get('/panel/api/xray/getOutboundsTraffic', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch outbounds traffic');
   const validated = parseMsg(msg, OutboundTrafficListSchema, 'xray/getOutboundsTraffic');
   return Array.isArray(validated.obj) ? validated.obj : [];
@@ -118,8 +126,13 @@ export function useXraySetting(): UseXraySettingResult {
   const [outboundTestUrl, setOutboundTestUrlState] = useState(DEFAULT_TEST_URL);
   const [inboundTags, setInboundTags] = useState<string[]>([]);
   const [clientReverseTags, setClientReverseTags] = useState<string[]>([]);
+  const [subscriptionOutbounds, setSubscriptionOutbounds] = useState<unknown[]>([]);
+  const [subscriptionOutboundTags, setSubscriptionOutboundTags] = useState<string[]>([]);
   const [restartResult, setRestartResult] = useState('');
   const [outboundTestStates, setOutboundTestStates] = useState<Record<number, OutboundTestState>>({});
+  // Subscription outbounds aren't in templateSettings.outbounds, so their test
+  // results are keyed by tag rather than by index.
+  const [subscriptionTestStates, setSubscriptionTestStates] = useState<Record<string, OutboundTestState>>({});
   const [testingAll, setTestingAll] = useState(false);
 
   const oldXraySettingRef = useRef('');
@@ -146,6 +159,8 @@ export function useXraySetting(): UseXraySettingResult {
     syncingRef.current = false;
     setInboundTags(obj.inboundTags || []);
     setClientReverseTags(obj.clientReverseTags || []);
+    setSubscriptionOutbounds(obj.subscriptionOutbounds || []);
+    setSubscriptionOutboundTags(obj.subscriptionOutboundTags || []);
     const nextUrl = obj.outboundTestUrl || DEFAULT_TEST_URL;
     setOutboundTestUrlState(nextUrl);
     oldOutboundTestUrlRef.current = nextUrl;
@@ -200,7 +215,7 @@ export function useXraySetting(): UseXraySettingResult {
     mutationFn: async () => {
       const sentXraySetting = xraySettingRef.current;
       const sentTestUrl = outboundTestUrlRef.current || DEFAULT_TEST_URL;
-      const msg = await HttpUtil.post('/panel/xray/update', {
+      const msg = await HttpUtil.post('/panel/api/xray/update', {
         xraySetting: sentXraySetting,
         outboundTestUrl: sentTestUrl,
       });
@@ -217,7 +232,7 @@ export function useXraySetting(): UseXraySettingResult {
 
   const resetTrafficMut = useMutation({
     mutationFn: (tag: string) =>
-      HttpUtil.post('/panel/xray/resetOutboundsTraffic', { tag }),
+      HttpUtil.post('/panel/api/xray/resetOutboundsTraffic', { tag }),
     onSuccess: (msg) => {
       if (msg?.success) queryClient.invalidateQueries({ queryKey: keys.xray.outboundsTraffic() });
     },
@@ -228,7 +243,7 @@ export function useXraySetting(): UseXraySettingResult {
       const msg = await HttpUtil.post('/panel/api/server/restartXrayService');
       if (!msg?.success) return msg;
       await PromiseUtil.sleep(500);
-      const r = await HttpUtil.get('/panel/xray/getXrayResult');
+      const r = await HttpUtil.get('/panel/api/xray/getXrayResult');
       const validated = parseMsg(r, z.string(), 'xray/getXrayResult');
       if (validated?.success) setRestartResult(validated.obj || '');
       return msg;
@@ -237,7 +252,7 @@ export function useXraySetting(): UseXraySettingResult {
 
   const resetDefaultMut = useMutation({
     mutationFn: async (): Promise<Msg<XraySettingsValue>> => {
-      const raw = await HttpUtil.get('/panel/setting/getDefaultJsonConfig');
+      const raw = await HttpUtil.get('/panel/api/setting/getDefaultJsonConfig');
       return parseMsg(raw, XraySettingsValueSchema, 'setting/getDefaultJsonConfig');
     },
     onSuccess: (msg) => {
@@ -255,6 +270,26 @@ export function useXraySetting(): UseXraySettingResult {
 
   const spinning = saveMut.isPending || restartMut.isPending || resetDefaultMut.isPending;
 
+  // Shared POST + parse for a single outbound test. Returns an OutboundTestResult
+  // (success or a failure-shaped result); callers store it under their own key.
+  const postOutboundTest = useCallback(
+    async (outbound: unknown, effMode: string): Promise<OutboundTestResult> => {
+      try {
+        const raw = await HttpUtil.post('/panel/api/xray/testOutbound', {
+          outbound: JSON.stringify(outbound),
+          allOutbounds: JSON.stringify(templateSettingsRef.current?.outbounds || []),
+          mode: effMode,
+        });
+        const msg = parseMsg(raw, OutboundTestResultSchema, 'xray/testOutbound');
+        if (msg?.success && msg.obj) return msg.obj;
+        return { success: false, error: msg?.msg || 'Unknown error', mode: effMode };
+      } catch (e) {
+        return { success: false, error: String(e), mode: effMode };
+      }
+    },
+    [],
+  );
+
   const testOutbound = useCallback(
     async (index: number, outbound: unknown, mode = 'tcp'): Promise<OutboundTestResult | null> => {
       if (!outbound) return null;
@@ -263,39 +298,28 @@ export function useXraySetting(): UseXraySettingResult {
         ...prev,
         [index]: { testing: true, result: null, mode: effMode },
       }));
-      try {
-        const raw = await HttpUtil.post('/panel/xray/testOutbound', {
-          outbound: JSON.stringify(outbound),
-          allOutbounds: JSON.stringify(templateSettingsRef.current?.outbounds || []),
-          mode: effMode,
-        });
-        const msg = parseMsg(raw, OutboundTestResultSchema, 'xray/testOutbound');
-        if (msg?.success && msg.obj) {
-          setOutboundTestStates((prev) => ({
-            ...prev,
-            [index]: { testing: false, result: msg.obj },
-          }));
-          return msg.obj;
-        }
-        setOutboundTestStates((prev) => ({
-          ...prev,
-          [index]: {
-            testing: false,
-            result: { success: false, error: msg?.msg || 'Unknown error', mode: effMode },
-          },
-        }));
-      } catch (e) {
-        setOutboundTestStates((prev) => ({
-          ...prev,
-          [index]: {
-            testing: false,
-            result: { success: false, error: String(e), mode: effMode },
-          },
-        }));
-      }
-      return null;
+      const result = await postOutboundTest(outbound, effMode);
+      setOutboundTestStates((prev) => ({ ...prev, [index]: { testing: false, result } }));
+      return result.success ? result : null;
     },
-    [],
+    [postOutboundTest],
+  );
+
+  // Test a subscription outbound (not present in templateSettings.outbounds);
+  // results are keyed by tag in subscriptionTestStates.
+  const testSubscriptionOutbound = useCallback(
+    async (tag: string, outbound: unknown, mode = 'tcp'): Promise<OutboundTestResult | null> => {
+      if (!outbound || !tag) return null;
+      const effMode = isUdpOutbound(outbound) ? 'http' : mode;
+      setSubscriptionTestStates((prev) => ({
+        ...prev,
+        [tag]: { testing: true, result: null, mode: effMode },
+      }));
+      const result = await postOutboundTest(outbound, effMode);
+      setSubscriptionTestStates((prev) => ({ ...prev, [tag]: { testing: false, result } }));
+      return result.success ? result : null;
+    },
+    [postOutboundTest],
   );
 
   const testAllOutbounds = useCallback(async (mode = 'tcp') => {
@@ -358,14 +382,18 @@ export function useXraySetting(): UseXraySettingResult {
       setOutboundTestUrl,
       inboundTags,
       clientReverseTags,
+      subscriptionOutbounds,
+      subscriptionOutboundTags,
       restartResult,
       outboundsTraffic,
       outboundTestStates,
+      subscriptionTestStates,
       testingAll,
       fetchAll,
       fetchOutboundsTraffic: fetchOutboundsTrafficCb,
       resetOutboundsTraffic,
       testOutbound,
+      testSubscriptionOutbound,
       testAllOutbounds,
       saveAll,
       resetToDefault,
@@ -384,14 +412,18 @@ export function useXraySetting(): UseXraySettingResult {
       setOutboundTestUrl,
       inboundTags,
       clientReverseTags,
+      subscriptionOutbounds,
+      subscriptionOutboundTags,
       restartResult,
       outboundsTraffic,
       outboundTestStates,
+      subscriptionTestStates,
       testingAll,
       fetchAll,
       fetchOutboundsTrafficCb,
       resetOutboundsTraffic,
       testOutbound,
+      testSubscriptionOutbound,
       testAllOutbounds,
       saveAll,
       resetToDefault,

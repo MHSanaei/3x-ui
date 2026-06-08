@@ -111,7 +111,7 @@ export default function WarpModal({
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post<string>('/panel/xray/warp/data');
+      const msg = await HttpUtil.post<string>('/panel/api/xray/warp/data');
       if (msg?.success) {
         const raw = msg.obj;
         setWarpData(raw && raw.length > 0 ? JSON.parse(raw) : null);
@@ -133,7 +133,7 @@ export default function WarpModal({
     setLoading(true);
     try {
       const keys = Wireguard.generateKeypair();
-      const msg = await HttpUtil.post<string>('/panel/xray/warp/reg', keys);
+      const msg = await HttpUtil.post<string>('/panel/api/xray/warp/reg', keys);
       if (msg?.success && msg.obj) {
         const resp = JSON.parse(msg.obj);
         setWarpData(resp.data);
@@ -148,7 +148,7 @@ export default function WarpModal({
   async function getConfig() {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post<string>('/panel/xray/warp/config');
+      const msg = await HttpUtil.post<string>('/panel/api/xray/warp/config');
       if (msg?.success && msg.obj) {
         const parsed = JSON.parse(msg.obj);
         setWarpConfig(parsed);
@@ -164,7 +164,7 @@ export default function WarpModal({
     setLoading(true);
     setLicenseError('');
     try {
-      const msg = await HttpUtil.post<string>('/panel/xray/warp/license', { license: warpPlus });
+      const msg = await HttpUtil.post<string>('/panel/api/xray/warp/license', { license: warpPlus });
       if (msg?.success && msg.obj) {
         setWarpData(JSON.parse(msg.obj));
         setWarpConfig(null);
@@ -180,7 +180,7 @@ export default function WarpModal({
   async function delConfig() {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post('/panel/xray/warp/del');
+      const msg = await HttpUtil.post('/panel/api/xray/warp/del');
       if (msg?.success) {
         setWarpData(null);
         setWarpConfig(null);

@@ -10,12 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// XUIController is the main controller for the X-UI panel, managing sub-controllers.
+// XUIController is the main controller for the X-UI panel, serving the SPA shell.
 type XUIController struct {
 	BaseController
-
-	settingController     *SettingController
-	xraySettingController *XraySettingController
 }
 
 // NewXUIController creates a new XUIController and initializes its routes.
@@ -49,9 +46,6 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	// so they fetch the session token via this endpoint at startup and replay it
 	// on subsequent unsafe requests through axios.
 	g.GET("/csrf-token", a.csrfToken)
-
-	a.settingController = NewSettingController(g)
-	a.xraySettingController = NewXraySettingController(g)
 }
 
 // panelSPA serves the React SPA shell. Every GET under /panel/ that isn't an

@@ -89,6 +89,15 @@ export default function ClientBulkAddModal({
     [form.inboundIds, flowCapableIds],
   );
 
+  const ss2022Method = useMemo(() => {
+    for (const id of form.inboundIds || []) {
+      const ib = (inbounds || []).find((row) => row.id === id);
+      const method = ib?.ssMethod;
+      if (method && method.substring(0, 4) === '2022') return method;
+    }
+    return '';
+  }, [form.inboundIds, inbounds]);
+
   useEffect(() => {
     if (!showFlow && form.flow) {
 
@@ -153,7 +162,9 @@ export default function ClientBulkAddModal({
           email,
           subId: form.subId || RandomUtil.randomLowerAndNum(16),
           id: RandomUtil.randomUUID(),
-          password: RandomUtil.randomLowerAndNum(16),
+          password: ss2022Method
+            ? RandomUtil.randomShadowsocksPassword(ss2022Method)
+            : RandomUtil.randomLowerAndNum(16),
           auth: RandomUtil.randomLowerAndNum(16),
           flow: showFlow ? (form.flow || '') : '',
           totalGB: Math.round((form.totalGB || 0) * SizeFormatter.ONE_GB),

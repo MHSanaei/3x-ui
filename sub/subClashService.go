@@ -221,8 +221,11 @@ func (s *SubClashService) buildProxy(inbound *model.Inbound, client model.Client
 		}
 		var inboundSettings map[string]any
 		json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
-		if encryption, ok := inboundSettings["encryption"].(string); ok && encryption != "" {
-			proxy["packet-encoding"] = encryption
+		if encryption, ok := inboundSettings["encryption"].(string); ok {
+			encryption = strings.TrimSpace(encryption)
+			if encryption != "" && encryption != "none" {
+				proxy["encryption"] = encryption
+			}
 		}
 	case model.Trojan:
 		proxy["type"] = "trojan"
@@ -573,10 +576,14 @@ func mergeClashRulesYAML(base map[string]any, raw string) error {
 	case []any:
 		mergeClashRules(base, typed)
 	case map[string]any:
-		if rules, ok := typed["rules"]; ok {
-			if ruleList, ok := asAnySlice(rules); ok {
-				mergeClashRules(base, ruleList)
+		for key, value := range typed {
+			if key == "rules" {
+				if ruleList, ok := asAnySlice(value); ok {
+					mergeClashRules(base, ruleList)
+				}
+				continue
 			}
+			base[key] = value
 		}
 	default:
 		mergeClashRules(base, linesToClashRules(raw))

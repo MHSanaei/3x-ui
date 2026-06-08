@@ -22,6 +22,8 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 	switch protocol {
 	case model.Hysteria, model.WireGuard:
 		return transportUDP
+	case model.MTProto:
+		return transportTCP
 	}
 
 	var bits transportBits

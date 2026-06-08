@@ -17,6 +17,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/xray"
+
+	"gorm.io/gorm"
 )
 
 // IPWithTimestamp tracks an IP address with its last seen timestamp
@@ -184,6 +186,22 @@ func (j *CheckClientIpJob) processLogFile(enforce bool) bool {
 	shouldCleanLog := false
 	for email, ipTimestamps := range inboundClientIps {
 
+		// The access log can still reference a client that was just renamed
+		// or deleted; its email no longer matches any inbound. Skip it (and
+		// drop any orphaned tracking row) instead of recreating a row and
+		// logging an ERROR every run until the log rotates out the old email
+		// (#4963).
+		inbound, err := j.getInboundByEmail(email)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				logger.Debugf("[LimitIP] skipping stale access-log email %q (renamed or deleted)", email)
+				j.delInboundClientIps(email)
+			} else {
+				j.checkError(err)
+			}
+			continue
+		}
+
 		// Convert to IPWithTimestamp slice
 		ipsWithTime := make([]IPWithTimestamp, 0, len(ipTimestamps))
 		for ip, timestamp := range ipTimestamps {
@@ -196,7 +214,7 @@ func (j *CheckClientIpJob) processLogFile(enforce bool) bool {
 			continue
 		}
 
-		shouldCleanLog = j.updateInboundClientIps(clientIpsRecord, email, ipsWithTime, enforce) || shouldCleanLog
+		shouldCleanLog = j.updateInboundClientIps(clientIpsRecord, inbound, email, ipsWithTime, enforce) || shouldCleanLog
 	}
 
 	return shouldCleanLog
@@ -311,14 +329,17 @@ func (j *CheckClientIpJob) addInboundClientIps(clientEmail string, ipsWithTime [
 	return nil
 }
 
-func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmail string, newIpsWithTime []IPWithTimestamp, enforce bool) bool {
-	// Get the inbound configuration
-	inbound, err := j.getInboundByEmail(clientEmail)
-	if err != nil {
-		logger.Errorf("failed to fetch inbound settings for email %s: %s", clientEmail, err)
-		return false
+// delInboundClientIps drops the inbound_client_ips tracking row for an email
+// that no longer maps to any inbound (a renamed or deleted client), so stale
+// access-log entries don't keep a ghost row alive (#4963).
+func (j *CheckClientIpJob) delInboundClientIps(clientEmail string) {
+	db := database.GetDB()
+	if err := db.Where("client_email = ?", clientEmail).Delete(&model.InboundClientIps{}).Error; err != nil {
+		j.checkError(err)
 	}
+}
 
+func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.InboundClientIps, inbound *model.Inbound, clientEmail string, newIpsWithTime []IPWithTimestamp, enforce bool) bool {
 	if inbound.Settings == "" {
 		logger.Debug("wrong data:", inbound)
 		return false
@@ -411,7 +432,7 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 	inboundClientIps.Ips = string(jsonIps)
 
 	db := database.GetDB()
-	err = db.Save(inboundClientIps).Error
+	err := db.Save(inboundClientIps).Error
 	if err != nil {
 		logger.Error("failed to save inboundClientIps:", err)
 		return false

@@ -61,13 +61,17 @@ export default function XrayPage() {
     setOutboundTestUrl,
     inboundTags,
     clientReverseTags,
+    subscriptionOutbounds,
+    subscriptionOutboundTags,
     restartResult,
     outboundsTraffic,
     outboundTestStates,
+    subscriptionTestStates,
     testingAll,
     fetchAll,
     resetOutboundsTraffic,
     testOutbound,
+    testSubscriptionOutbound,
     testAllOutbounds,
     saveAll,
     resetToDefault,
@@ -98,6 +102,11 @@ export default function XrayPage() {
   async function onTestOutbound(idx: number, mode: string) {
     const outbound = templateSettings?.outbounds?.[idx];
     if (outbound) await testOutbound(idx, outbound, mode);
+  }
+
+  async function onTestSubscription(outbound: Record<string, unknown>, mode: string) {
+    const tag = typeof outbound?.tag === 'string' ? outbound.tag : '';
+    if (tag) await testSubscriptionOutbound(tag, outbound, mode);
   }
 
   function onAddOutbound(outbound: Record<string, unknown>) {
@@ -212,6 +221,7 @@ export default function XrayPage() {
             setTemplateSettings={setTemplateSettings}
             inboundTags={inboundTags}
             clientReverseTags={clientReverseTags}
+            subscriptionOutboundTags={subscriptionOutboundTags}
             isMobile={isMobile}
           />
         );
@@ -222,14 +232,18 @@ export default function XrayPage() {
             setTemplateSettings={setTemplateSettings}
             outboundsTraffic={outboundsTraffic}
             outboundTestStates={outboundTestStates}
+            subscriptionTestStates={subscriptionTestStates}
             testingAll={testingAll}
             inboundTags={inboundTags}
+            subscriptionOutbounds={subscriptionOutbounds}
             isMobile={isMobile}
             onResetTraffic={resetOutboundsTraffic}
             onTest={onTestOutbound}
+            onTestSubscription={onTestSubscription}
             onTestAll={testAllOutbounds}
             onShowWarp={() => setWarpOpen(true)}
             onShowNord={() => setNordOpen(true)}
+            onRefreshXrayData={fetchAll}
           />
         );
       case 'balancer':
@@ -238,6 +252,7 @@ export default function XrayPage() {
             templateSettings={templateSettings}
             setTemplateSettings={setTemplateSettings}
             clientReverseTags={clientReverseTags}
+            subscriptionOutboundTags={subscriptionOutboundTags}
             isMobile={isMobile}
           />
         );
