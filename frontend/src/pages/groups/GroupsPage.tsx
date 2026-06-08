@@ -41,7 +41,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useClients } from '@/hooks/useClients';
-import { HttpUtil } from '@/utils';
+import { HttpUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import AppSidebar from '@/layouts/AppSidebar';
 import { LazyMount } from '@/components/utility';
@@ -161,8 +161,8 @@ export default function GroupsPage() {
     () => groups.reduce((acc, g) => acc + (g.clientCount || 0), 0),
     [groups],
   );
-  const emptyGroups = useMemo(
-    () => groups.filter((g) => (g.clientCount || 0) === 0).length,
+  const totalTraffic = useMemo(
+    () => groups.reduce((acc, g) => acc + (g.trafficUsed || 0), 0),
     [groups],
   );
 
@@ -417,6 +417,13 @@ export default function GroupsPage() {
       width: 180,
       render: (count: number) => <span>{count || 0}</span>,
     },
+    {
+      title: t('pages.groups.trafficUsed'),
+      dataIndex: 'trafficUsed',
+      key: 'trafficUsed',
+      width: 160,
+      render: (bytes: number) => <span>{SizeFormatter.sizeFormat(bytes || 0)}</span>,
+    },
   ];
 
   const pageClass = useMemo(() => {
@@ -465,8 +472,9 @@ export default function GroupsPage() {
                         </Col>
                         <Col xs={12} sm={8} md={6}>
                           <Statistic
-                            title={t('pages.groups.emptyGroups')}
-                            value={String(emptyGroups)}
+                            title={t('pages.groups.totalTraffic')}
+                            value={SizeFormatter.sizeFormat(totalTraffic)}
+                            prefix={<RetweetOutlined />}
                           />
                         </Col>
                       </Row>

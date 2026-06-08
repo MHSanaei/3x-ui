@@ -350,8 +350,16 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	inbound.Id = 0
 	inbound.UserId = user.Id
-	if inbound.NodeID != nil && *inbound.NodeID == 0 {
-		inbound.NodeID = nil
+	// Node IDs are panel-local and not portable across panels. Drop a node
+	// reference that is zero or that points to a node which doesn't exist on
+	// this panel, so a cross-panel export imports as a local inbound instead of
+	// failing with "record not found" when nodePushPlan looks the node up.
+	if inbound.NodeID != nil {
+		if *inbound.NodeID == 0 {
+			inbound.NodeID = nil
+		} else if exists, err := (&service.NodeService{}).NodeExists(*inbound.NodeID); err == nil && !exists {
+			inbound.NodeID = nil
+		}
 	}
 
 	for index := range inbound.ClientStats {
