@@ -36,7 +36,7 @@ import { antdRule } from '@/utils/zodForm';
 import { Protocols } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
-import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
+import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
 import { TcpStreamSettingsSchema } from '@/schemas/protocols/stream/tcp';
 import { KcpStreamSettingsSchema } from '@/schemas/protocols/stream/kcp';
@@ -54,6 +54,7 @@ import {
   HttpFields,
   HysteriaFields,
   MixedFields,
+  MtprotoFields,
   ShadowsocksFields,
   TunFields,
   TunnelFields,
@@ -351,22 +352,11 @@ export default function InboundFormModal({
       // snap back to TCP so the standard network selector has a valid
       // starting point.
       if (next === Protocols.HYSTERIA) {
-        const tls = TlsStreamSettingsSchema.parse({}) as Record<string, unknown>;
-        tls.certificates = [{
-          useFile: true,
-          certificateFile: '',
-          keyFile: '',
-          certificate: [],
-          key: [],
-          oneTimeLoading: false,
-          usage: 'encipherment',
-          buildChain: false,
-        }];
         form.setFieldValue('streamSettings', {
           network: 'hysteria',
           security: 'tls',
           hysteriaSettings: HysteriaStreamSettingsSchema.parse({}),
-          tlsSettings: tls,
+          tlsSettings: createHysteriaTlsSettingsWithDefaultCert(),
           // Hysteria2 needs an obfs wrapper on the FinalMask side; seed
           // it with salamander + a random password so the listener boots
           // with a usable default. Re-selecting Hysteria from another
@@ -588,6 +578,8 @@ export default function InboundFormModal({
 
       {protocol === Protocols.HTTP && <HttpFields />}
       {protocol === Protocols.MIXED && <MixedFields mixedUdpOn={mixedUdpOn} />}
+
+      {protocol === Protocols.MTPROTO && <MtprotoFields />}
 
       {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields form={form} isSSWith2022={isSSWith2022} />}
 
@@ -894,6 +886,7 @@ export default function InboundFormModal({
               Protocols.TUNNEL,
               Protocols.TUN,
               Protocols.WIREGUARD,
+              Protocols.MTPROTO,
             ] as string[]).includes(protocol) || isFallbackHost
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab, forceRender: true }]
               : []),

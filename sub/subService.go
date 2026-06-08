@@ -374,8 +374,36 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 		return s.genShadowsocksLink(inbound, email)
 	case "hysteria":
 		return s.genHysteriaLink(inbound, email)
+	case "mtproto":
+		return s.genMtprotoLink(inbound, email)
 	}
 	return ""
+}
+
+// genMtprotoLink builds a Telegram proxy deep link for an mtproto inbound:
+// tg://proxy?server=<addr>&port=<port>&secret=<ee FakeTLS secret>.
+func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string {
+	if inbound.Protocol != model.MTProto {
+		return ""
+	}
+	settings := map[string]any{}
+	json.Unmarshal([]byte(inbound.Settings), &settings)
+	secret, _ := settings["secret"].(string)
+	if secret == "" {
+		if healed, ok := model.HealMtprotoSecret(inbound.Settings); ok {
+			_ = json.Unmarshal([]byte(healed), &settings)
+			secret, _ = settings["secret"].(string)
+		}
+	}
+	if secret == "" {
+		return ""
+	}
+	params := map[string]string{
+		"server": s.resolveInboundAddress(inbound),
+		"port":   fmt.Sprintf("%d", inbound.Port),
+		"secret": secret,
+	}
+	return buildLinkWithParams("tg://proxy", params, s.genRemark(inbound, email, ""))
 }
 
 // Protocol link generators are intentionally ordered as:
@@ -743,9 +771,10 @@ func (s *SubService) loadNodes() {
 }
 
 // resolveInboundAddress picks the host an external client should connect to:
-//   1. node-managed inbound -> the node's address
-//   2. an explicit, client-reachable bind Listen -> that Listen
-//   3. otherwise the subscriber's request host (s.address)
+//  1. node-managed inbound -> the node's address
+//  2. an explicit, client-reachable bind Listen -> that Listen
+//  3. otherwise the subscriber's request host (s.address)
+//
 // A loopback/wildcard bind or a unix-domain-socket listen is a server-side
 // detail and is never advertised; External Proxy remains the way to advertise
 // an arbitrary endpoint. Mirrors the frontend's resolveAddr so the panel QR and
