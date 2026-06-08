@@ -95,6 +95,20 @@ function dropZeroNumbers(obj: Record<string, unknown>, keys: readonly string[]):
   }
 }
 
+function normalizeTlsForWire(raw: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...raw };
+  if (out.fingerprint === '') delete out.fingerprint;
+
+  const settings = out.settings;
+  if (isRecord(settings)) {
+    const settingsOut: Record<string, unknown> = { ...settings };
+    if (settingsOut.fingerprint === '') delete settingsOut.fingerprint;
+    out.settings = settingsOut;
+  }
+
+  return out;
+}
+
 export function normalizeXhttpForWire(
   raw: Record<string, unknown>,
   side: StreamWireSide,
@@ -209,6 +223,11 @@ export function normalizeStreamSettingsForWire(
   const xhttp = out.xhttpSettings;
   if (isRecord(xhttp)) {
     out.xhttpSettings = normalizeXhttpForWire(xhttp, opts.side);
+  }
+
+  const tls = out.tlsSettings;
+  if (isRecord(tls)) {
+    out.tlsSettings = normalizeTlsForWire(tls);
   }
 
   const sockopt = out.sockopt;

@@ -1341,7 +1341,8 @@
               "http",
               "mixed",
               "tunnel",
-              "tun"
+              "tun",
+              "mtproto"
             ],
             "example": "vless",
             "type": "string"

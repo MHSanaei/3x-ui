@@ -122,6 +122,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if inbound.NodeID != nil {
 			continue
 		}
+		if inbound.Protocol == model.MTProto {
+			continue
+		}
 		settings := map[string]any{}
 		json.Unmarshal([]byte(inbound.Settings), &settings)
 

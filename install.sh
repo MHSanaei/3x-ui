@@ -1192,8 +1192,17 @@ install_x-ui() {
     if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
         mv bin/xray-linux-$(arch) bin/xray-linux-arm
         chmod +x bin/xray-linux-arm
+        if [[ -f bin/mtg-linux-$(arch) ]]; then
+            mv bin/mtg-linux-$(arch) bin/mtg-linux-arm
+            chmod +x bin/mtg-linux-arm
+        fi
     fi
     chmod +x x-ui bin/xray-linux-$(arch)
+    if [[ -f bin/mtg-linux-arm ]]; then
+        chmod +x bin/mtg-linux-arm
+    elif [[ -f bin/mtg-linux-$(arch) ]]; then
+        chmod +x bin/mtg-linux-$(arch)
+    fi
 
     # Update x-ui cli and se set permission
     mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
