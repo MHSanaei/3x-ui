@@ -1315,7 +1315,8 @@ export const SCHEMAS: Record<string, unknown> = {
           "http",
           "mixed",
           "tunnel",
-          "tun"
+          "tun",
+          "mtproto"
         ],
         "example": "vless",
         "type": "string"
