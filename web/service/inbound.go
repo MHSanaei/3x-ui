@@ -399,6 +399,88 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 	return out, nil
 }
 
+func (s *InboundService) GetAllInboundClientIps() ([]model.InboundClientIps, error) {
+	db := database.GetDB()
+	var ips []model.InboundClientIps
+	err := db.Model(&model.InboundClientIps{}).Find(&ips).Error
+	return ips, err
+}
+
+func (s *InboundService) MergeInboundClientIps(incomingIps []model.InboundClientIps) error {
+	db := database.GetDB()
+	var currentIps []model.InboundClientIps
+	if err := db.Model(&model.InboundClientIps{}).Find(&currentIps).Error; err != nil {
+		return err
+	}
+
+	currentMap := make(map[string]*model.InboundClientIps, len(currentIps))
+	for i := range currentIps {
+		currentMap[currentIps[i].ClientEmail] = &currentIps[i]
+	}
+
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	for _, incoming := range incomingIps {
+		if incoming.ClientEmail == "" || incoming.Ips == "" {
+			continue
+		}
+		current, exists := currentMap[incoming.ClientEmail]
+		if !exists {
+			if err := tx.Create(&incoming).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+			continue
+		}
+
+		type ipWithTimestamp struct {
+			IP        string `json:"ip"`
+			Timestamp int64  `json:"timestamp"`
+		}
+		var oldIps []ipWithTimestamp
+		var newIps []ipWithTimestamp
+
+		if current.Ips != "" {
+			_ = json.Unmarshal([]byte(current.Ips), &oldIps)
+		}
+		if incoming.Ips != "" {
+			_ = json.Unmarshal([]byte(incoming.Ips), &newIps)
+		}
+
+		ipMap := make(map[string]int64)
+		for _, ip := range oldIps {
+			ipMap[ip.IP] = ip.Timestamp
+		}
+		for _, ip := range newIps {
+			if existing, ok := ipMap[ip.IP]; !ok || ip.Timestamp > existing {
+				ipMap[ip.IP] = ip.Timestamp
+			}
+		}
+
+		var merged []ipWithTimestamp
+		for ip, ts := range ipMap {
+			merged = append(merged, ipWithTimestamp{IP: ip, Timestamp: ts})
+		}
+		
+		sort.Slice(merged, func(i, j int) bool { return merged[i].Timestamp > merged[j].Timestamp })
+		b, _ := json.Marshal(merged)
+		mergedStr := string(b)
+
+		if current.Ips != mergedStr {
+			if err := tx.Model(&model.InboundClientIps{}).Where("id = ?", current.Id).Update("ips", mergedStr).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+	return tx.Commit().Error
+}
+
 // inboundShadowsocksMethod extracts settings.method for Shadowsocks inbounds so
 // the client UI can generate a valid PSK (base64 of the method's key length)
 // for Shadowsocks 2022 ciphers. Returns "" for non-Shadowsocks inbounds.

@@ -190,4 +190,20 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node) {
 	if changed {
 		j.structural.set()
 	}
+
+	nodeIps, err := rt.FetchAllClientIps(ctx)
+	if err == nil && len(nodeIps) > 0 {
+		if err := j.inboundService.MergeInboundClientIps(nodeIps); err != nil {
+			logger.Warning("node traffic sync: merge client ips from", n.Name, "failed:", err)
+		}
+	} else if err != nil {
+		logger.Warning("node traffic sync: fetch client ips from", n.Name, "failed:", err)
+	}
+
+	masterIps, err := j.inboundService.GetAllInboundClientIps()
+	if err == nil && len(masterIps) > 0 {
+		if err := rt.PushAllClientIps(ctx, masterIps); err != nil {
+			logger.Warning("node traffic sync: push client ips to", n.Name, "failed:", err)
+		}
+	}
 }
