@@ -243,6 +243,10 @@
             "description": "Subscription support URL",
             "type": "string"
           },
+          "subThemeDir": {
+            "description": "Absolute path to a folder containing a custom subscription page template",
+            "type": "string"
+          },
           "subTitle": {
             "description": "Subscription title",
             "type": "string"
@@ -404,6 +408,7 @@
           "subRoutingRules",
           "subShowInfo",
           "subSupportUrl",
+          "subThemeDir",
           "subTitle",
           "subURI",
           "subUpdates",
@@ -666,6 +671,10 @@
             "description": "Subscription support URL",
             "type": "string"
           },
+          "subThemeDir": {
+            "description": "Absolute path to a folder containing a custom subscription page template",
+            "type": "string"
+          },
           "subTitle": {
             "description": "Subscription title",
             "type": "string"
@@ -833,6 +842,7 @@
           "subRoutingRules",
           "subShowInfo",
           "subSupportUrl",
+          "subThemeDir",
           "subTitle",
           "subURI",
           "subUpdates",

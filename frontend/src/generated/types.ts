@@ -61,6 +61,7 @@ export interface AllSetting {
   subRoutingRules: string;
   subShowInfo: boolean;
   subSupportUrl: string;
+  subThemeDir: string;
   subTitle: string;
   subURI: string;
   subUpdates: number;
@@ -149,6 +150,7 @@ export interface AllSettingView {
   subRoutingRules: string;
   subShowInfo: boolean;
   subSupportUrl: string;
+  subThemeDir: string;
   subTitle: string;
   subURI: string;
   subUpdates: number;

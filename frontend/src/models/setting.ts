@@ -60,6 +60,7 @@ export class AllSetting {
   subJsonMux = '';
   subJsonRules = '';
   subJsonFinalMask = '';
+  subThemeDir = '';
 
   timeLocation = 'Local';
 

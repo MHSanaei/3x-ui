@@ -1011,6 +1011,8 @@
       "subProfileUrlDesc": "Tautan ke situs web Anda yang ditampilkan di klien VPN",
       "subAnnounce": "Pengumuman",
       "subAnnounceDesc": "Teks pengumuman yang ditampilkan di klien VPN",
+      "subThemeDir": "Direktori Tema Langganan",
+      "subThemeDirDesc": "Path absolut ke folder yang berisi template kustom (index.html/sub.html) untuk halaman langganan (mis. /etc/3x-ui/sub_templates/my-theme/). Biarkan kosong untuk menggunakan halaman default.",
       "subEnableRouting": "Aktifkan perutean",
       "subEnableRoutingDesc": "Pengaturan global untuk mengaktifkan perutean (routing) di klien VPN. (Hanya untuk Happ)",
       "subRoutingRules": "Aturan routing",

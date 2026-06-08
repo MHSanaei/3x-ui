@@ -1011,6 +1011,8 @@
       "subProfileUrlDesc": "VPNクライアントに表示されるWebサイトへのリンク",
       "subAnnounce": "お知らせ",
       "subAnnounceDesc": "VPNクライアントに表示されるお知らせのテキスト",
+      "subThemeDir": "サブスクリプションテーマディレクトリ",
+      "subThemeDirDesc": "サブスクリプションページのカスタムテンプレート (index.html/sub.html) を含むフォルダーの絶対パス（例: /etc/3x-ui/sub_templates/my-theme/）。空欄の場合はデフォルトのページを使用します。",
       "subEnableRouting": "ルーティングを有効化",
       "subEnableRoutingDesc": "VPNクライアントでルーティングを有効にするためのグローバル設定。(Happのみ)",
       "subRoutingRules": "ルーティングルール",

@@ -1011,6 +1011,8 @@
       "subProfileUrlDesc": "VPN 客户端中显示的网站链接",
       "subAnnounce": "公告",
       "subAnnounceDesc": "VPN 客户端中显示的公告文本",
+      "subThemeDir": "订阅主题目录",
+      "subThemeDirDesc": "包含自定义订阅页面模板 (index.html/sub.html) 的文件夹的绝对路径（例如 /etc/3x-ui/sub_templates/my-theme/）。留空则使用默认页面。",
       "subEnableRouting": "启用路由",
       "subEnableRoutingDesc": "在 VPN 客户端中启用路由的全局设置。（僅限 Happ）",
       "subRoutingRules": "路由規則",

@@ -1012,6 +1012,8 @@
       "subProfileUrlDesc": "A link to your website displayed in the VPN client",
       "subAnnounce": "Announce",
       "subAnnounceDesc": "The announcement text displayed in the VPN client",
+      "subThemeDir": "Sub Theme Directory",
+      "subThemeDirDesc": "Absolute path to a folder containing a custom index.html/sub.html subscription page template (e.g. /etc/3x-ui/sub_templates/my-theme/). Leave empty to use the default page.",
       "subEnableRouting": "Enable routing",
       "subEnableRoutingDesc": "Global setting to enable routing in the VPN client. (Only for Happ)",
       "subRoutingRules": "Routing rules",
