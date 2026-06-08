@@ -299,6 +299,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Two-factor authentication token",
         "type": "string"
       },
+      "warpUpdateInterval": {
+        "description": "WARP",
+        "minimum": 0,
+        "type": "integer"
+      },
       "webBasePath": {
         "description": "Base path for web panel URLs",
         "type": "string"
@@ -401,6 +406,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "trustedProxyCIDRs",
       "twoFactorEnable",
       "twoFactorToken",
+      "warpUpdateInterval",
       "webBasePath",
       "webCertFile",
       "webDomain",
@@ -727,6 +733,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Two-factor authentication token",
         "type": "string"
       },
+      "warpUpdateInterval": {
+        "description": "WARP",
+        "minimum": 0,
+        "type": "integer"
+      },
       "webBasePath": {
         "description": "Base path for web panel URLs",
         "type": "string"
@@ -835,6 +846,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "trustedProxyCIDRs",
       "twoFactorEnable",
       "twoFactorToken",
+      "warpUpdateInterval",
       "webBasePath",
       "webCertFile",
       "webDomain",

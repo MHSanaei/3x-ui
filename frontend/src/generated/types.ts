@@ -80,6 +80,7 @@ export interface AllSetting {
   trustedProxyCIDRs: string;
   twoFactorEnable: boolean;
   twoFactorToken: string;
+  warpUpdateInterval: number;
   webBasePath: string;
   webCertFile: string;
   webDomain: string;
@@ -169,6 +170,7 @@ export interface AllSettingView {
   trustedProxyCIDRs: string;
   twoFactorEnable: boolean;
   twoFactorToken: string;
+  warpUpdateInterval: number;
   webBasePath: string;
   webCertFile: string;
   webDomain: string;

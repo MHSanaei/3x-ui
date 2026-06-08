@@ -325,6 +325,11 @@
             "description": "Two-factor authentication token",
             "type": "string"
           },
+          "warpUpdateInterval": {
+            "description": "WARP",
+            "minimum": 0,
+            "type": "integer"
+          },
           "webBasePath": {
             "description": "Base path for web panel URLs",
             "type": "string"
@@ -427,6 +432,7 @@
           "trustedProxyCIDRs",
           "twoFactorEnable",
           "twoFactorToken",
+          "warpUpdateInterval",
           "webBasePath",
           "webCertFile",
           "webDomain",
@@ -753,6 +759,11 @@
             "description": "Two-factor authentication token",
             "type": "string"
           },
+          "warpUpdateInterval": {
+            "description": "WARP",
+            "minimum": 0,
+            "type": "integer"
+          },
           "webBasePath": {
             "description": "Base path for web panel URLs",
             "type": "string"
@@ -861,6 +872,7 @@
           "trustedProxyCIDRs",
           "twoFactorEnable",
           "twoFactorToken",
+          "warpUpdateInterval",
           "webBasePath",
           "webCertFile",
           "webDomain",
