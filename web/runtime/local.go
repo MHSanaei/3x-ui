@@ -159,3 +159,7 @@ func (l *Local) ResetClientTraffic(_ context.Context, _ *model.Inbound, _ string
 func (l *Local) ResetAllTraffics(_ context.Context) error {
 	return nil
 }
+
+func (l *Local) ResetInboundTraffic(_ context.Context, _ *model.Inbound) error {
+	return nil
+}

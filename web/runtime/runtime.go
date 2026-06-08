@@ -26,5 +26,6 @@ type Runtime interface {
 	RestartXray(ctx context.Context) error
 
 	ResetClientTraffic(ctx context.Context, ib *model.Inbound, email string) error
+	ResetInboundTraffic(ctx context.Context, ib *model.Inbound) error
 	ResetAllTraffics(ctx context.Context) error
 }

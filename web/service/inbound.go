@@ -3011,15 +3011,41 @@ func (s *InboundService) resetAllTrafficsLocked() error {
 		return err
 	}
 
+	nodes, err := (&NodeService{}).GetAll()
+	if err == nil {
+		for _, node := range nodes {
+			if rt, err := runtime.GetManager().RuntimeFor(&node.Id); err == nil {
+				if e := rt.ResetAllTraffics(context.Background()); e != nil {
+					logger.Warning("ResetAllTraffics: remote propagation to", rt.Name(), "failed:", e)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
 func (s *InboundService) ResetInboundTraffic(id int) error {
 	return submitTrafficWrite(func() error {
 		db := database.GetDB()
-		return db.Model(model.Inbound{}).
+		if err := db.Model(model.Inbound{}).
 			Where("id = ?", id).
-			Updates(map[string]any{"up": 0, "down": 0}).Error
+			Updates(map[string]any{"up": 0, "down": 0}).Error; err != nil {
+			return err
+		}
+
+		inbound, err := s.GetInbound(id)
+		if err == nil && inbound != nil && inbound.NodeID != nil {
+			if rt, rterr := s.runtimeFor(inbound); rterr == nil {
+				if e := rt.ResetInboundTraffic(context.Background(), inbound); e != nil {
+					logger.Warning("ResetInboundTraffic: remote propagation to", rt.Name(), "failed:", e)
+				}
+			} else {
+				logger.Warning("ResetInboundTraffic: runtime lookup failed:", rterr)
+			}
+		}
+
+		return nil
 	})
 }
 

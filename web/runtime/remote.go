@@ -399,6 +399,11 @@ func (r *Remote) ResetAllTraffics(ctx context.Context) error {
 	return err
 }
 
+func (r *Remote) ResetInboundTraffic(ctx context.Context, ib *model.Inbound) error {
+	_, err := r.do(ctx, http.MethodPost, fmt.Sprintf("panel/api/inbounds/%d/resetTraffic", ib.Id), nil)
+	return err
+}
+
 type TrafficSnapshot struct {
 	Inbounds     []*model.Inbound
 	OnlineEmails []string
