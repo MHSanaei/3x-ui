@@ -17,28 +17,28 @@
   <a href="https://goreportcard.com/report/github.com/mhsanaei/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/mhsanaei/3x-ui/v3" alt="Go Report Card"></a>
 </p>
 
-**3X-UI**, [Xray-core](https://github.com/XTLS/Xray-core) sunucularını yönetmek için geliştirilmiş, gelişmiş ve açık kaynaklı bir web kontrol panelidir. Tek bir VPS'den çok düğümlü (multi-node) kurulumlara kadar çok çeşitli proxy ve VPN protokollerini kurmak, yapılandırmak ve izlemek için temiz, çok dilli bir arayüz sağlar.
+**3X-UI**, [Xray-core](https://github.com/XTLS/Xray-core) sunucularını yönetmek için geliştirilmiş profesyonel, açık kaynaklı bir web kontrol panelidir. Tek bir sanal sunucudan (VPS) çok düğümlü (multi-node) dağıtımlara kadar çok çeşitli proxy ve VPN protokollerini kurmak, yapılandırmak ve izlemek için temiz, çok dilli bir arayüz sağlar.
 
-Orijinal X-UI projesinin geliştirilmiş bir çatalı (fork) olarak inşa edilen 3X-UI; daha geniş protokol desteği, iyileştirilmiş kararlılık, kullanıcı başına (per-client) trafik takibi ve birçok yaşam kalitesi (QoL) özelliği ekler.
+Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa edilen 3X-UI; çok daha geniş protokol desteği, artırılmış kararlılık, kullanıcı başına trafik hesaplama ve kullanım kolaylığı sağlayan birçok yeni özellik sunar.
 
 > [!IMPORTANT]
-> Bu proje yalnızca kişisel kullanım içindir. Lütfen yasa dışı amaçlarla veya üretim (production) ortamında kullanmayın.
+> Bu proje yalnızca kişisel kullanım için tasarlanmıştır. Lütfen yasadışı amaçlar için veya üretim (production) ortamında kullanmayın.
 
 ## Özellikler
 
-- **Çoklu protokol destekli bağlantı noktaları (Inbounds)** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel ve TUN.
-- **Modern aktarım (Transport) & güvenlik** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade ve XHTTP; TLS, XTLS ve REALITY ile güvenli hale getirilmiştir.
-- **Yedek bağlantılar (Fallbacks)** — Xray'in fallback desteğini kullanarak tek bir port (örn. 443) üzerinden birden fazla protokol (örn. VLESS ve Trojan) sunma.
-- **Kullanıcı bazlı yönetim** — Trafik kotaları, son kullanma tarihleri, IP sınırları, canlı çevrimiçi (online) durumu ve tek tıklamayla paylaşım bağlantıları, QR kodları ve abonelikler.
-- **Trafik istatistikleri** — Bağlantı noktası, kullanıcı ve çıkış noktası (outbound) bazında istatistikler ve sıfırlama kontrolleri.
-- **Çoklu düğüm (Multi-node) desteği** — Tek bir panelden birden fazla sunucuyu yönetin ve ölçeklendirin.
-- **Çıkış noktaları & yönlendirme (Outbound & Routing)** — WARP, NordVPN, özel yönlendirme kuralları, yük dengeleyiciler (load balancers) ve çıkış noktası proxy zincirleme.
-- **Dahili abonelik sunucusu** (Birden fazla çıktı formatıyla).
-- **Telegram botu** (Uzaktan izleme ve yönetim için).
-- **RESTful API** (Panel içi Swagger dokümantasyonu ile).
-- **Esnek veritabanı** — SQLite (varsayılan) veya PostgreSQL.
-- **13 Kullanıcı Arayüzü (UI) dili** (Karanlık ve aydınlık tema destekli).
-- **Fail2ban entegrasyonu** (Kullanıcı bazlı IP sınırlarını zorlamak için).
+- **Çoklu protokol destekli gelen bağlantılar (Inbounds)** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Karma), Dokodemo-door / Tunnel ve TUN.
+- **Modern aktarımlar (transports) ve güvenlik** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade ve XHTTP; TLS, XTLS ve REALITY ile güvene alınmıştır.
+- **Geri Dönüş (Fallbacks)** — Xray'in fallback desteğini kullanarak tek bir port üzerinde birden fazla protokole (ör. 443 üzerinde hem VLESS hem Trojan) hizmet verin.
+- **Kullanıcı başına yönetim** — Trafik kotaları, bitiş tarihleri, IP sınırları, canlı çevrimiçi (online) durumu ve tek tıkla paylaşım bağlantıları, QR kodları ve abonelikler.
+- **Trafik istatistikleri** — Gelen bağlantı (Inbound), istemci ve giden bağlantı (Outbound) bazında istatistikler ve sıfırlama kontrolleri.
+- **Çoklu düğüm (Multi-node) desteği** — Tek bir panel üzerinden birden fazla sunucuyu yönetin ve ölçeklendirin.
+- **Giden bağlantı (Outbound) ve yönlendirme** — WARP, NordVPN, özel yönlendirme kuralları, yük dengeleyiciler (load balancers) ve giden bağlantı proxy zincirleme (proxy chaining).
+- **Dahili abonelik sunucusu** (Birden fazla çıktı formatı ile).
+- Uzaktan izleme ve yönetim için **Telegram botu**.
+- Panel içi Swagger dokümantasyonuna sahip **RESTful API**.
+- **Esnek depolama** — SQLite (varsayılan) veya PostgreSQL.
+- Koyu ve açık tema seçenekleriyle **13 farklı UI dili**.
+- Kullanıcı başına IP limitlerini zorunlu kılmak için **Fail2ban entegrasyonu**.
 
 ## Ekran Görüntüleri
 
@@ -52,7 +52,7 @@ Orijinal X-UI projesinin geliştirilmiş bir çatalı (fork) olarak inşa edilen
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./media/02-add-inbound-dark.png">
-  <img alt="Bağlantı Noktaları" src="./media/02-add-inbound-light.png">
+  <img alt="Gelen Bağlantılar (Inbounds)" src="./media/02-add-inbound-light.png">
 </picture>
 
 <picture>
@@ -73,7 +73,7 @@ Orijinal X-UI projesinin geliştirilmiş bir çatalı (fork) olarak inşa edilen
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 ```
 
-Kurulum sırasında rastgele bir kullanıcı adı, şifre ve erişim yolu (path) oluşturulur. Kurulumdan sonra `x-ui` komutunu çalıştırarak yönetim menüsünü açabilir; buradan hizmeti başlatabilir/durdurabilir, giriş bilgilerinizi görüntüleyebilir veya sıfırlayabilir, SSL sertifikalarını yönetebilir ve daha fazlasını yapabilirsiniz.
+Kurulum sırasında rastgele bir kullanıcı adı, şifre ve erişim yolu oluşturulur. Kurulumdan sonra, hizmeti başlatabileceğiniz/durdurabileceğiniz, giriş bilgilerinizi görüntüleyebileceğiniz veya sıfırlayabileceğiniz, SSL sertifikalarını yönetebileceğiniz ve çok daha fazlasını yapabileceğiniz yönetim menüsünü açmak için terminalde `x-ui` komutunu çalıştırın.
 
 Tam dokümantasyon için lütfen [proje Wiki sayfasını](https://github.com/MHSanaei/3x-ui/wiki) ziyaret edin.
 
@@ -85,93 +85,93 @@ Tam dokümantasyon için lütfen [proje Wiki sayfasını](https://github.com/MHS
 
 ## Veritabanı Seçenekleri
 
-3X-UI, kurulum sırasında seçilebilen iki arka uç (backend) destekler:
+3X-UI kurulum sırasında seçilebilecek iki arka uç (backend) destekler:
 
-- **SQLite** (varsayılan) — `/etc/x-ui/x-ui.db` konumunda tek bir dosya. Sıfır kurulum gerektirir, küçük ve orta ölçekli dağıtımlar için idealdir.
-- **PostgreSQL** — Yüksek kullanıcı sayıları veya çok düğümlü (multi-node) kurulumlar için önerilir. Yükleyici sizin için PostgreSQL'i yerel olarak kurabilir veya mevcut bir sunucuya DSN ile bağlanabilir.
+- **SQLite** (varsayılan) — `/etc/x-ui/x-ui.db` konumunda tek bir dosya. Kurulum gerektirmez, küçük ve orta ölçekli dağıtımlar için idealdir.
+- **PostgreSQL** — Yüksek kullanıcı sayıları veya çoklu düğüm (multi-node) kurulumları için önerilir. Yükleyici sizin için yerel olarak PostgreSQL kurabilir veya mevcut bir sunucuya DSN bağlantısı kabul edebilir.
 
-Çalışma anında arka uç, ortam değişkenleri (environment variables) aracılığıyla seçilir (yükleyici bunları sizin için `/etc/default/x-ui` dosyasına yazar):
+Çalışma anında veritabanı türü ortam değişkenleri (environment variables) ile seçilir (yükleyici bunları sizin için `/etc/default/x-ui` dosyasına yazar):
 
 ```
 XUI_DB_TYPE=postgres
 XUI_DB_DSN=postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable
 ```
 
-### Mevcut bir SQLite kurulumunu PostgreSQL'e taşıma
+### Mevcut bir SQLite Kurulumunu PostgreSQL'e Taşıma
 
 ```bash
 x-ui migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
-# Ardından /etc/default/x-ui dosyasında XUI_DB_TYPE ve XUI_DB_DSN değerlerini ayarlayıp yeniden başlatın:
+# ardından /etc/default/x-ui içindeki XUI_DB_TYPE ve XUI_DB_DSN değerlerini ayarlayıp yeniden başlatın:
 systemctl restart x-ui
 ```
 
-Kaynak SQLite dosyasına dokunulmaz; yeni arka ucu doğruladıktan sonra eski dosyayı manuel olarak silebilirsiniz.
+Kaynak SQLite dosyasına dokunulmaz; yeni veritabanının düzgün çalıştığını doğruladıktan sonra eski SQLite dosyasını manuel olarak silebilirsiniz.
 
 ### Docker
 
-Varsayılan `docker compose up -d` komutu SQLite kullanmaya devam eder. Dahili PostgreSQL hizmetiyle çalıştırmak için `docker-compose.yml` dosyasındaki iki `XUI_DB_*` ortam değişkeni satırının başındaki yorum işaretini kaldırın ve profille başlatın:
+Varsayılan `docker compose up -d` komutu SQLite kullanmaya devam eder. Birlikte paketlenmiş PostgreSQL servisi ile çalıştırmak için, `docker-compose.yml` dosyasındaki iki `XUI_DB_*` değişken satırının yorumunu kaldırın ve profille başlatın:
 
 ```bash
 docker compose --profile postgres up -d
 ```
 
-İmaj, kullanıcı bazlı **IP sınırlarını** zorlamak için Fail2ban'i (varsayılan olarak etkindir) içerir. Fail2ban, ihlalcileri `iptables` ile engeller ve bu işlem `NET_ADMIN` yetkisi gerektirir. `docker-compose.yml` bunu `cap_add` aracılığıyla zaten sağlar; eğer container'ı bunun yerine `docker run` ile başlatırsanız yetkileri kendiniz eklemelisiniz, aksi takdirde engellemeler sadece günlüğe (log) kaydedilir ancak asla uygulanmaz:
+Docker imajı, kullanıcı başına **IP limitlerini** zorunlu kılmak için Fail2ban ile (varsayılan olarak etkindir) paketlenmiştir. Fail2ban, ihlalcileri `iptables` ile engeller ve bunun için `NET_ADMIN` yetkisine ihtiyaç duyar. `docker-compose.yml` bunu zaten `cap_add` üzerinden vermektedir; ancak konteyneri bunun yerine `docker run` ile başlatırsanız bu yetkileri kendiniz eklemelisiniz, aksi takdirde yasaklamalar günlüğe kaydedilir ancak uygulanmaz:
 
 ```bash
 docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 ```
 
-## Ortam Değişkenleri
+## Ortam Değişkenleri (Environment Variables)
 
 | Değişken | Açıklama | Varsayılan |
 | --- | --- | --- |
-| `XUI_DB_TYPE` | Veritabanı arka ucu: `sqlite` veya `postgres` | `sqlite` |
-| `XUI_DB_DSN` | PostgreSQL bağlantı dizesi (`XUI_DB_TYPE=postgres` olduğunda) | — |
-| `XUI_DB_FOLDER` | SQLite veritabanı dosyası için dizin | `/etc/x-ui` |
+| `XUI_DB_TYPE` | Veritabanı türü: `sqlite` veya `postgres` | `sqlite` |
+| `XUI_DB_DSN` | PostgreSQL bağlantı dizesi (eğer `XUI_DB_TYPE=postgres` ise) | — |
+| `XUI_DB_FOLDER` | SQLite veritabanı dizini | `/etc/x-ui` |
 | `XUI_DB_MAX_OPEN_CONNS` | Maksimum açık bağlantı sayısı (PostgreSQL havuzu) | — |
-| `XUI_DB_MAX_IDLE_CONNS` | Maksimum boşta bağlantı sayısı (PostgreSQL havuzu) | — |
-| `XUI_ENABLE_FAIL2BAN` | Fail2ban tabanlı IP sınırı zorlamasını etkinleştir | `true` |
-| `XUI_LOG_LEVEL` | Log detay seviyesi (`debug`, `info`, `warning`, `error`) | `info` |
+| `XUI_DB_MAX_IDLE_CONNS` | Maksimum boşta bekleme bağlantısı (PostgreSQL havuzu) | — |
+| `XUI_ENABLE_FAIL2BAN` | Fail2ban tabanlı IP limit uygulamasını etkinleştir | `true` |
+| `XUI_LOG_LEVEL` | Günlük (Log) ayrıntı seviyesi (`debug`, `info`, `warning`, `error`) | `info` |
 | `XUI_DEBUG` | Hata ayıklama (debug) modunu etkinleştir | `false` |
 
 ## Desteklenen Diller
 
-Panel kullanıcı arayüzü 13 dilde mevcuttur:
+Panel arayüzü 13 farklı dilde mevcuttur:
 
-English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
+İngilizce · Farsça · Arapça · Çince (Basitleştirilmiş) · Çince (Geleneksel) · İspanyolca · Rusça · Ukraynaca · Türkçe · Vietnamca · Japonca · Endonezce · Portekizce (Brezilya)
 
 ## Katkıda Bulunma
 
-Katkılara açığız. Lütfen bir sorun (issue) veya çekme isteği (pull request) açmadan önce [Katkıda Bulunma Rehberi](/CONTRIBUTING.md)'ni okuyun.
+Katkılarınızı her zaman bekliyoruz. Bir sorun (issue) açmadan veya pull request (PR) göndermeden önce lütfen [Katkıda Bulunma Kılavuzunu](/CONTRIBUTING.md) okuyun.
 
 ## Özel Teşekkürler
 
 - [alireza0](https://github.com/alireza0/)
 
-## Teşekkür
+## Teşekkür & Atıf
 
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (Lisans: **GPL-3.0**): _Dahili İran alan adları ve güvenlik/reklam engelleme odaklı geliştirilmiş v2ray/xray ve v2ray/xray-clients yönlendirme kuralları._
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (Lisans: **GPL-3.0**): _Rusya'daki engellenmiş alan adları ve adreslere dayalı otomatik olarak güncellenen V2Ray yönlendirme kuralları içerir._
+- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (Lisans: **GPL-3.0**): _Geliştirilmiş v2ray/xray ve v2ray/xray-clients yönlendirme (routing) kuralları; yerleşik İran alan adları ile güvenlik ve reklam engelleme odaklıdır._
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (Lisans: **GPL-3.0**): _Bu depo, Rusya'daki engellenen alan adları ve adreslere dayalı otomatik olarak güncellenen V2Ray yönlendirme kurallarını içerir._
 
 ## Topluluk Araçları
 
-3x-ui etrafında topluluk tarafından geliştirilen araçlar ve entegrasyonlar.
+3x-ui çevresindeki topluluk tarafından oluşturulmuş araçlar ve entegrasyonlar.
 
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Lisans: **MIT**): _Bağlantı noktalarını, kullanıcıları, panel ayarlarını ve Xray yapılandırmasını Terraform / OpenTofu ile kod olarak yönetin._
+- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Lisans: **MIT**): _Gelen bağlantılarnı, kullanıcıları, panel ayarlarını ve Xray yapılandırmasını Terraform / OpenTofu ile kod olarak (as code) yönetin._
 
 ## Projeyi Destekleyin
 
-**Eğer bu proje sizin için faydalıysa, bir :star2: (yıldız) verebilirsiniz.**
+**Eğer bu proje size faydalı olduysa, bir yıldız verebilirsiniz**:star2:
 
 <a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
-<img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
+<img src="./media/default-yellow.png" alt="Bana Bir Kahve Ismarla" style="height: 70px !important;width: 277px !important;" >
 </a>
 
 </br>
 <a href="https://nowpayments.io/donation/hsanaei" target="_blank" rel="noreferrer noopener">
-   <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
+   <img src="./media/donation-button-black.svg" alt="NOWPayments üzerinden Kripto Bağış Butonu">
 </a>
 
-## Zaman İçindeki Yıldız Sayısı
+## Yıldız Tablosu
 
-[![Zaman İçindeki Yıldız Sayısı](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+[![Zaman içerisindeki yıldız sayısı](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
