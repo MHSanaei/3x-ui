@@ -89,6 +89,7 @@ var defaultValueMap = map[string]string{
 	"subThemeDir":                 "",
 	"datepicker":                  "gregorian",
 	"warp":                        "",
+	"warpUpdateInterval":          "0",
 	"nord":                        "",
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
@@ -321,6 +322,22 @@ func (s *SettingService) getInt(key string) (int, error) {
 
 func (s *SettingService) setInt(key string, value int) error {
 	return s.setString(key, strconv.Itoa(value))
+}
+
+func (s *SettingService) GetWarpLastUpdate() (int64, error) {
+	val, err := s.getString("warpLastUpdate")
+	if err != nil || val == "" {
+		return 0, err
+	}
+	return strconv.ParseInt(val, 10, 64)
+}
+
+func (s *SettingService) SetWarpLastUpdate(val int64) error {
+	return s.saveSetting("warpLastUpdate", strconv.FormatInt(val, 10))
+}
+
+func (s *SettingService) SetWarpUpdateInterval(val string) error {
+	return s.saveSetting("warpUpdateInterval", val)
 }
 
 func (s *SettingService) GetXrayConfigTemplate() (string, error) {

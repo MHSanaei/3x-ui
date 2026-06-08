@@ -165,9 +165,17 @@ func (a *XraySettingController) warp(c *gin.Context) {
 		skey := c.PostForm("privateKey")
 		pkey := c.PostForm("publicKey")
 		resp, err = a.WarpService.RegWarp(skey, pkey)
+	case "changeIp":
+		resp, err = a.WarpService.ChangeWarpIP()
+		if err == nil {
+			a.XrayService.SetToNeedRestart()
+		}
 	case "license":
 		license := c.PostForm("license")
 		resp, err = a.WarpService.SetWarpLicense(license)
+	case "interval":
+		interval := c.PostForm("interval")
+		err = a.SettingService.SetWarpUpdateInterval(interval)
 	}
 
 	jsonObj(c, resp, err)
