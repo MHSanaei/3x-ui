@@ -23,8 +23,6 @@ const (
 	warpClientVer = "a-6.30-3596"
 )
 
-var warpHTTPClient = &http.Client{Timeout: 15 * time.Second}
-
 func (s *WarpService) GetWarpData() (string, error) {
 	return s.SettingService.GetWarp()
 }
@@ -46,7 +44,7 @@ func (s *WarpService) GetWarpConfig() (string, error) {
 	}
 	req.Header.Set("Authorization", "Bearer "+warpData["access_token"])
 
-	body, err := doWarpRequest(req)
+	body, err := s.doWarpRequest(req)
 	if err != nil {
 		return "", err
 	}
@@ -73,7 +71,7 @@ func (s *WarpService) RegWarp(secretKey string, publicKey string) (string, error
 	req.Header.Set("CF-Client-Version", warpClientVer)
 	req.Header.Set("Content-Type", "application/json")
 
-	body, err := doWarpRequest(req)
+	body, err := s.doWarpRequest(req)
 	if err != nil {
 		return "", err
 	}
@@ -148,7 +146,7 @@ func (s *WarpService) SetWarpLicense(license string) (string, error) {
 	req.Header.Set("Authorization", "Bearer "+warpData["access_token"])
 	req.Header.Set("Content-Type", "application/json")
 
-	body, err := doWarpRequest(req)
+	body, err := s.doWarpRequest(req)
 	if err != nil {
 		return "", err
 	}
@@ -190,8 +188,9 @@ func (s *WarpService) loadWarpCreds() (map[string]string, error) {
 
 // doWarpRequest sends the request and returns the response body on 2xx.
 // Non-2xx responses are returned as errors including the status code and body.
-func doWarpRequest(req *http.Request) ([]byte, error) {
-	resp, err := warpHTTPClient.Do(req)
+func (s *WarpService) doWarpRequest(req *http.Request) ([]byte, error) {
+	client := s.NewProxiedHTTPClient(15 * time.Second)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
