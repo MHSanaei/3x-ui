@@ -1455,6 +1455,11 @@
         "outboundUpdated": "Đã cập nhật outbound NordVPN"
       },
       "warp": {
+        "changeIp": "Đổi IP",
+        "changeIpSuccess": "Đã đổi IP WARP thành công!",
+        "autoUpdateIp": "Tự động cập nhật địa chỉ IP",
+        "intervalDays": "Khoảng thời gian (ngày)",
+        "intervalDesc": "0 để tắt. Tự động đổi địa chỉ IP.",
         "licenseError": "Không thiết lập được giấy phép WARP.",
         "fetchFirst": "Hãy lấy cấu hình WARP trước.",
         "createAccount": "Tạo tài khoản WARP",

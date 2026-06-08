@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/util"
 	"github.com/mhsanaei/3x-ui/v3/util/common"
 )
@@ -203,7 +204,9 @@ func (s *WarpService) ChangeWarpIP() (string, error) {
 	}
 
 	if license, ok := warpDataMap["license_key"]; ok && len(license) >= 26 {
-		_, _ = s.SetWarpLicense(license)
+		if _, licErr := s.SetWarpLicense(license); licErr != nil {
+			logger.Warning("ChangeWarpIP: failed to re-apply WARP license: ", licErr)
+		}
 	}
 
 	return result, nil

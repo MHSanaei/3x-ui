@@ -30,6 +30,13 @@ func (j *WarpIpJob) Run() {
 	lastUpdate, _ := j.settingService.GetWarpLastUpdate()
 	now := time.Now().Unix()
 
+	// First run after the feature is enabled (e.g. interval set via direct
+	// DB edit): establish a baseline instead of rotating immediately.
+	if lastUpdate == 0 {
+		_ = j.settingService.SetWarpLastUpdate(now)
+		return
+	}
+
 	if now-lastUpdate >= int64(interval*24*3600) {
 		logger.Info("Starting scheduled WARP IP update...")
 		_, err := j.warpService.ChangeWarpIP()

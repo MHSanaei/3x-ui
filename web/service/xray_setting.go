@@ -84,7 +84,7 @@ func (s *XraySettingService) UpdateWarpXraySetting(warpData map[string]string, w
 						settings["address"] = addrList
 					}
 				}
-				
+
 				var clientId string
 				if id, ok := conf["client_id"].(string); ok {
 					clientId = id

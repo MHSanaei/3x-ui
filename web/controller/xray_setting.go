@@ -3,6 +3,8 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/util/common"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
@@ -12,13 +14,13 @@ import (
 
 // XraySettingController handles Xray configuration and settings operations.
 type XraySettingController struct {
-	XraySettingService service.XraySettingService
-	SettingService     service.SettingService
-	InboundService     service.InboundService
-	OutboundService          service.OutboundService
-	XrayService              service.XrayService
-	WarpService              service.WarpService
-	NordService              service.NordService
+	XraySettingService          service.XraySettingService
+	SettingService              service.SettingService
+	InboundService              service.InboundService
+	OutboundService             service.OutboundService
+	XrayService                 service.XrayService
+	WarpService                 service.WarpService
+	NordService                 service.NordService
 	OutboundSubscriptionService service.OutboundSubscriptionService
 }
 
@@ -169,13 +171,22 @@ func (a *XraySettingController) warp(c *gin.Context) {
 		resp, err = a.WarpService.ChangeWarpIP()
 		if err == nil {
 			a.XrayService.SetToNeedRestart()
+			// Restart the auto-update clock so a scheduled rotation
+			// doesn't fire right after this manual one.
+			_ = a.SettingService.SetWarpLastUpdate(time.Now().Unix())
 		}
 	case "license":
 		license := c.PostForm("license")
 		resp, err = a.WarpService.SetWarpLicense(license)
 	case "interval":
-		interval := c.PostForm("interval")
-		err = a.SettingService.SetWarpUpdateInterval(interval)
+		interval, convErr := strconv.Atoi(c.PostForm("interval"))
+		if convErr != nil || interval < 0 {
+			err = common.NewError("invalid warp update interval")
+		} else if err = a.SettingService.SetWarpUpdateInterval(interval); err == nil && interval > 0 {
+			// Count the interval from now rather than from epoch 0,
+			// otherwise the job would rotate on its next tick.
+			_ = a.SettingService.SetWarpLastUpdate(time.Now().Unix())
+		}
 	}
 
 	jsonObj(c, resp, err)

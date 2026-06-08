@@ -336,8 +336,8 @@ func (s *SettingService) SetWarpLastUpdate(val int64) error {
 	return s.saveSetting("warpLastUpdate", strconv.FormatInt(val, 10))
 }
 
-func (s *SettingService) SetWarpUpdateInterval(val string) error {
-	return s.saveSetting("warpUpdateInterval", val)
+func (s *SettingService) SetWarpUpdateInterval(val int) error {
+	return s.setInt("warpUpdateInterval", val)
 }
 
 func (s *SettingService) GetXrayConfigTemplate() (string, error) {

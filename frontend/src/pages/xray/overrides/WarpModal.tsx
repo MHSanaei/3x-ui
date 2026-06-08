@@ -90,24 +90,29 @@ export default function WarpModal({
     return list.findIndex((o) => o?.tag === 'warp');
   }, [templateSettings?.outbounds]);
 
-  const collectConfig = useCallback((data: WarpData | null, config: WarpConfig | null) => {
-    const cfg = config?.config;
-    if (!cfg?.peers?.length) return;
-    const peer = cfg.peers[0];
-    setStagedOutbound({
-      tag: 'warp',
-      protocol: 'wireguard',
-      settings: {
-        mtu: 1420,
-        secretKey: data?.private_key,
-        address: addressesFor(cfg.interface?.addresses || {}),
-        reserved: reservedFor(cfg.client_id ?? data?.client_id),
-        domainStrategy: 'ForceIP',
-        peers: [{ publicKey: peer.public_key, endpoint: peer.endpoint?.host }],
-        noKernelTun: false,
-      },
-    });
-  }, []);
+  const collectConfig = useCallback(
+    (data: WarpData | null, config: WarpConfig | null): Record<string, unknown> | null => {
+      const cfg = config?.config;
+      if (!cfg?.peers?.length) return null;
+      const peer = cfg.peers[0];
+      const outbound: Record<string, unknown> = {
+        tag: 'warp',
+        protocol: 'wireguard',
+        settings: {
+          mtu: 1420,
+          secretKey: data?.private_key,
+          address: addressesFor(cfg.interface?.addresses || {}),
+          reserved: reservedFor(cfg.client_id ?? data?.client_id),
+          domainStrategy: 'ForceIP',
+          peers: [{ publicKey: peer.public_key, endpoint: peer.endpoint?.host }],
+          noKernelTun: false,
+        },
+      };
+      setStagedOutbound(outbound);
+      return outbound;
+    },
+    [],
+  );
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -172,7 +177,13 @@ export default function WarpModal({
         const parsed = JSON.parse(msg.obj);
         setWarpData(parsed.data);
         setWarpConfig(parsed.config);
-        collectConfig(parsed.data, parsed.config);
+        const built = collectConfig(parsed.data, parsed.config);
+        // The backend already persisted the new keys into the saved Xray
+        // template; keep the in-memory editor in sync so a later template
+        // save doesn't revert them to the old keys.
+        if (built && warpOutboundIndex >= 0) {
+          onResetOutbound({ index: warpOutboundIndex, outbound: built });
+        }
         messageApi.success(t('pages.xray.warp.changeIpSuccess', 'WARP IP changed successfully!'));
       }
     } finally {
@@ -183,8 +194,10 @@ export default function WarpModal({
   async function saveInterval() {
     setLoading(true);
     try {
-      await HttpUtil.post('/panel/api/xray/warp/interval', { interval: updateInterval });
-      messageApi.success(t('pages.setting.toasts.saveSuccess', 'Settings saved successfully'));
+      const msg = await HttpUtil.post('/panel/api/xray/warp/interval', { interval: updateInterval });
+      if (msg?.success) {
+        messageApi.success(t('pages.setting.toasts.saveSuccess', 'Settings saved successfully'));
+      }
     } finally {
       setLoading(false);
     }

@@ -1455,6 +1455,11 @@
         "outboundUpdated": "Outbound NordVPN diperbarui"
       },
       "warp": {
+        "changeIp": "Ganti IP",
+        "changeIpSuccess": "IP WARP berhasil diganti!",
+        "autoUpdateIp": "Perbarui Alamat IP Otomatis",
+        "intervalDays": "Interval (Hari)",
+        "intervalDesc": "0 untuk menonaktifkan. Mengganti alamat IP secara otomatis.",
         "licenseError": "Gagal mengatur lisensi WARP.",
         "fetchFirst": "Ambil konfig WARP terlebih dahulu.",
         "createAccount": "Buat akun WARP",
