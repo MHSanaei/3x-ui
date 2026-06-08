@@ -3,6 +3,7 @@ import { RandomUtil, Wireguard } from '@/utils';
 import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
 import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
+import type { MtprotoInboundSettings } from '@/schemas/protocols/inbound/mtproto';
 import type { ShadowsocksClient, ShadowsocksInboundSettings } from '@/schemas/protocols/inbound/shadowsocks';
 import type { TrojanClient, TrojanInboundSettings } from '@/schemas/protocols/inbound/trojan';
 import type { TunInboundSettings } from '@/schemas/protocols/inbound/tun';
@@ -200,6 +201,43 @@ export function createDefaultMixedInboundSettings(): MixedInboundSettings {
   };
 }
 
+function domainToHex(domain: string): string {
+  return Array.from(new TextEncoder().encode(domain))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// generateMtprotoSecret builds an "ee" FakeTLS secret: the marker, 16 random
+// bytes (32 hex chars), then the domain encoded as hex. Mirrors the Go
+// model.GenerateFakeTLSSecret; the backend re-derives it on save so this is
+// only for immediate display in the form.
+export function generateMtprotoSecret(domain: string): string {
+  return `ee${RandomUtil.randomSeq(32, { type: 'hex' })}${domainToHex(domain)}`;
+}
+
+// mtprotoSecretForDomain rewrites only the domain suffix of an existing secret,
+// preserving its 16-byte random middle when valid (generating one otherwise).
+// Mirrors the Go model.HealMtprotoSecret so editing the FakeTLS domain doesn't
+// needlessly rotate the secret's identity.
+export function mtprotoSecretForDomain(currentSecret: string, domain: string): string {
+  let body = currentSecret;
+  if (body.startsWith('ee') || body.startsWith('dd')) {
+    body = body.slice(2);
+  }
+  const middle = /^[0-9a-f]{32}/i.test(body)
+    ? body.slice(0, 32)
+    : RandomUtil.randomSeq(32, { type: 'hex' });
+  return `ee${middle}${domainToHex(domain)}`;
+}
+
+export function createDefaultMtprotoInboundSettings(): MtprotoInboundSettings {
+  const fakeTlsDomain = 'www.cloudflare.com';
+  return {
+    fakeTlsDomain,
+    secret: generateMtprotoSecret(fakeTlsDomain),
+  };
+}
+
 export function createDefaultTunnelInboundSettings(): TunnelInboundSettings {
   return {
     portMap: {},
@@ -261,7 +299,8 @@ export type AnyInboundSettings =
   | MixedInboundSettings
   | TunInboundSettings
   | TunnelInboundSettings
-  | WireguardInboundSettings;
+  | WireguardInboundSettings
+  | MtprotoInboundSettings;
 
 export function createDefaultInboundSettings(protocol: string): AnyInboundSettings | null {
   switch (protocol) {
@@ -275,6 +314,7 @@ export function createDefaultInboundSettings(protocol: string): AnyInboundSettin
     case 'tunnel':      return createDefaultTunnelInboundSettings();
     case 'tun':         return createDefaultTunInboundSettings();
     case 'wireguard':   return createDefaultWireguardInboundSettings();
+    case 'mtproto':     return createDefaultMtprotoInboundSettings();
     default:            return null;
   }
 }

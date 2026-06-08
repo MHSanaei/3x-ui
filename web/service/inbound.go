@@ -621,6 +621,17 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	}
 }
 
+// normalizeMtprotoSecret rebuilds an mtproto inbound's FakeTLS secret so it is
+// always valid and matches the configured domain before the row is persisted.
+func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
+	if inbound.Protocol != model.MTProto {
+		return
+	}
+	if healed, ok := model.HealMtprotoSecret(inbound.Settings); ok {
+		inbound.Settings = healed
+	}
+}
+
 // AddInbound creates a new inbound configuration.
 // It validates port uniqueness, client email uniqueness, and required fields,
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
@@ -628,6 +639,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	s.normalizeMtprotoSecret(inbound)
 
 	conflict, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
@@ -943,6 +955,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	s.normalizeMtprotoSecret(inbound)
 
 	conflict, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {

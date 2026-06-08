@@ -150,6 +150,16 @@ jobs:
           wget -q -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
           wget -q -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
           mv xray xray-linux-${{ matrix.platform }}
+          # mtg (MTProto sidecar) - only for arches mtg publishes
+          MTG_VER="2.2.8"
+          case "${{ matrix.platform }}" in
+            amd64|arm64|armv7|armv6|386)
+              wget -q "https://github.com/9seconds/mtg/releases/download/v${MTG_VER}/mtg-${MTG_VER}-linux-${{ matrix.platform }}.tar.gz"
+              tar -xzf "mtg-${MTG_VER}-linux-${{ matrix.platform }}.tar.gz"
+              mv "mtg-${MTG_VER}-linux-${{ matrix.platform }}/mtg" "mtg-linux-${{ matrix.platform }}" 2>/dev/null || mv mtg "mtg-linux-${{ matrix.platform }}"
+              rm -rf "mtg-${MTG_VER}-linux-${{ matrix.platform }}" "mtg-${MTG_VER}-linux-${{ matrix.platform }}.tar.gz"
+              ;;
+          esac
           cd ../..
 
       - name: Package
@@ -258,6 +268,15 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip_RU.dat"
           Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite_RU.dat"
           Rename-Item xray.exe xray-windows-amd64.exe
+
+          # Download mtg (MTProto sidecar) for Windows
+          $MTG_VER = "2.2.8"
+          Invoke-WebRequest -Uri "https://github.com/9seconds/mtg/releases/download/v$MTG_VER/mtg-$MTG_VER-windows-amd64.zip" -OutFile "mtg-windows-amd64.zip"
+          Expand-Archive -Path "mtg-windows-amd64.zip" -DestinationPath "mtg-tmp"
+          $mtgExe = Get-ChildItem -Path "mtg-tmp" -Recurse -Filter "mtg.exe" | Select-Object -First 1
+          Move-Item $mtgExe.FullName "mtg-windows-amd64.exe"
+          Remove-Item "mtg-windows-amd64.zip", "mtg-tmp" -Recurse -Force
+
           cd ..
           Copy-Item -Path ..\windows_files\* -Destination . -Recurse
           cd ..

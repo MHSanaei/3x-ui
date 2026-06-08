@@ -54,6 +54,7 @@ import {
   HttpFields,
   HysteriaFields,
   MixedFields,
+  MtprotoFields,
   ShadowsocksFields,
   TunFields,
   TunnelFields,
@@ -578,6 +579,8 @@ export default function InboundFormModal({
       {protocol === Protocols.HTTP && <HttpFields />}
       {protocol === Protocols.MIXED && <MixedFields mixedUdpOn={mixedUdpOn} />}
 
+      {protocol === Protocols.MTPROTO && <MtprotoFields />}
+
       {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields form={form} isSSWith2022={isSSWith2022} />}
 
       {protocol === Protocols.VLESS && <VlessFields saving={saving} selectedVlessAuth={selectedVlessAuth} network={network} security={security} getNewVlessEnc={getNewVlessEnc} clearVlessEnc={clearVlessEnc} />}
@@ -883,6 +886,7 @@ export default function InboundFormModal({
               Protocols.TUNNEL,
               Protocols.TUN,
               Protocols.WIREGUARD,
+              Protocols.MTPROTO,
             ] as string[]).includes(protocol) || isFallbackHost
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab, forceRender: true }]
               : []),
