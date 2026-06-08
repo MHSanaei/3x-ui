@@ -364,6 +364,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "transitive": false,
     "updatedAt": 1700000000,
     "uptimeSecs": 86400,
+    "xrayError": "",
+    "xrayState": "",
     "xrayVersion": "25.10.31"
   },
   "OutboundTraffics": {
@@ -381,6 +383,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "panelVersion": "v3.x.x",
     "status": "online",
     "uptimeSecs": 86400,
+    "xrayError": "",
+    "xrayState": "",
     "xrayVersion": "25.10.31"
   },
   "Setting": {
