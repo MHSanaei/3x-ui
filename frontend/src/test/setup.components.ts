@@ -76,5 +76,16 @@ afterEach(async () => {
 });
 
 import { HttpUtil } from '@/utils';
+import axios from 'axios';
+
+vi.mock('axios', () => {
+  return {
+    default: {
+      get: vi.fn().mockResolvedValue({ data: { success: true, obj: {} } }),
+      post: vi.fn().mockResolvedValue({ data: { success: true, obj: {} } }),
+    }
+  };
+});
+
 vi.spyOn(HttpUtil, 'post').mockResolvedValue({ success: true, obj: {} } as any);
 vi.spyOn(HttpUtil, 'get').mockResolvedValue({ success: true, obj: {} } as any);
