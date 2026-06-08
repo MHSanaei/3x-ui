@@ -5,9 +5,13 @@ This directory allows you to use custom HTML templates for your users' subscript
 ## How to use a Custom Template
 
 1. Go to the 3x-ui panel settings.
-2. Under "Subscription" -> "Panel Settings", locate the **Sub Theme Directory** field.
-3. Provide the absolute path to the folder containing your template (e.g. `/etc/3x-ui/sub_templates/tx-ui/`).
-4. Save the settings and restart the panel if needed.
+2. Under **Settings → Subscription → Information**, locate the **Sub Theme Directory** field.
+3. Provide the absolute path to the folder containing your template (e.g. `/etc/3x-ui/sub_templates/my-theme/`).
+4. Save the settings.
+
+> **Note:** 3x-ui does not ship any templates by default. Create your own template folder anywhere
+> on the server, put an `index.html` (or `sub.html`) inside it, and point **Sub Theme Directory** at
+> that absolute path. Leave the field empty to use the default built-in page.
 
 ## Creating a Template
 
@@ -25,24 +29,16 @@ When rendering the template, the following variables are injected into the templ
 * `{{ .total }}`: Formatted total traffic limit.
 * `{{ .used }}`: Formatted used traffic (download + upload).
 * `{{ .remained }}`: Formatted remaining traffic.
-* `{{ .expire }}`: Expiration time as an int64 timestamp (in milliseconds).
-* `{{ .lastOnline }}`: Last online time as an int64 timestamp.
+* `{{ .expire }}`: Expiration time as an int64 Unix timestamp in **seconds** (`0` means never). Multiply by 1000 for a JavaScript `Date`.
+* `{{ .lastOnline }}`: Last online time as an int64 Unix timestamp in **milliseconds** (`0` means never seen).
 * `{{ .downloadByte }}`: Download traffic in exact bytes (int64).
 * `{{ .uploadByte }}`: Upload traffic in exact bytes (int64).
 * `{{ .totalByte }}`: Total traffic limit in exact bytes (int64).
 * `{{ .subUrl }}`: The URL of the subscription page.
 * `{{ .subJsonUrl }}`: The URL for the JSON configuration of the subscription.
 * `{{ .subClashUrl }}`: The URL for the Clash/Mihomo configuration.
+* `{{ .subTitle }}`: The subscription title configured in the panel (Subscription → Information). Useful for page branding/headings. May be empty.
+* `{{ .subSupportUrl }}`: The support URL configured in the panel. Useful for a "Contact support" link. May be empty.
 * `{{ .links }}`: A list (slice) of string configurations (VMess, VLESS, etc. URLs). You can loop through them using `{{ range .links }} ... {{ end }}`.
 * `{{ .emails }}`: A list (slice) of emails related to the subscription.
 * `{{ .datepicker }}`: Current calendar format used by the panel (e.g. "gregorian" or "jalali").
-* `{{ .result }}`: Alias for `.links`, added for tx-ui compatibility.
-* `{{ .jsonUrl }}`: Alias for `.subJsonUrl`, added for tx-ui compatibility.
-
-### tx-ui Compatibility
-
-You can import subscription templates from [tx-ui (AghayeCoder/tx-ui)](https://github.com/AghayeCoder/tx-ui) directly. The `tx-ui` template is already included in this repository under the `tx-ui/` folder!
-
-To use it, set your **Sub Theme Directory** to the absolute path of the `tx-ui` template folder (e.g., `/opt/3x-ui/sub_templates/tx-ui/`).
-
-*Credit: The tx-ui template is created by [AghayeCoder](https://github.com/AghayeCoder/tx-ui).*

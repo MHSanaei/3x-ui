@@ -157,8 +157,8 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
                 onChange={(e) => updateSetting({ subAnnounce: e.target.value })} />
             </SettingListItem>
 
-            <SettingListItem paddings="small" title="Sub Theme Directory" description="Absolute path to a folder containing a custom index.html template (e.g. /etc/3x-ui/sub_templates/tx-ui/)">
-              <Input value={allSetting.subThemeDir} placeholder="/etc/3x-ui/sub_templates/tx-ui/"
+            <SettingListItem paddings="small" title={t('pages.settings.subThemeDir')} description={t('pages.settings.subThemeDirDesc')}>
+              <Input value={allSetting.subThemeDir} placeholder="/etc/3x-ui/sub_templates/my-theme/"
                 onChange={(e) => updateSetting({ subThemeDir: e.target.value })} />
             </SettingListItem>
 
