@@ -242,9 +242,13 @@ func mergeClientIps(old, new []IPWithTimestamp, staleCutoff int64) map[string]in
 func partitionLiveIps(ipMap map[string]int64, observedThisScan map[string]bool) (live, historical []IPWithTimestamp) {
 	live = make([]IPWithTimestamp, 0, len(observedThisScan))
 	historical = make([]IPWithTimestamp, 0, len(ipMap))
+	now := time.Now().Unix()
 	for ip, ts := range ipMap {
 		entry := IPWithTimestamp{IP: ip, Timestamp: ts}
-		if observedThisScan[ip] {
+		// Consider an IP "live" if it was seen locally in this scan, OR if its
+		// timestamp from the synced database is very recent (e.g. within 2 minutes).
+		// This ensures cluster-wide limits work even if the IP was seen on another node.
+		if observedThisScan[ip] || now-ts < 120 {
 			live = append(live, entry)
 		} else {
 			historical = append(historical, entry)
