@@ -1101,6 +1101,7 @@ export const sections: readonly Section[] = [
           { name: 'updateInterval', in: 'body (form)', type: 'integer', desc: 'Seconds between auto-refreshes. Default 600.' },
           { name: 'enabled', in: 'body (form)', type: 'boolean', desc: 'Whether the subscription is active. Default true.' },
           { name: 'allowPrivate', in: 'body (form)', type: 'boolean', desc: 'Allow the URL to point at a private/internal/loopback address (localhost/LAN). Default false (SSRF guard blocks private targets).' },
+          { name: 'prepend', in: 'body (form)', type: 'boolean', desc: 'Place this subscription\'s outbounds before the manual template outbounds (so one can become the default). Default false.' },
         ],
       },
       {
@@ -1133,6 +1134,15 @@ export const sections: readonly Section[] = [
         summary: 'Force an immediate re-fetch of the subscription and return the parsed outbounds. Signals Xray to reload.',
         params: [
           { name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/outbound-subs/:id/move',
+        summary: 'Reorder a subscription one step up or down in priority (controls its position in the merged outbounds).',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' },
+          { name: 'dir', in: 'body (form)', type: 'string', desc: '"up" to raise priority, anything else to lower it.' },
         ],
       },
       {

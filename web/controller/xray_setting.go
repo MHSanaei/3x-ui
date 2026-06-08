@@ -47,6 +47,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.GET("/outbound-subs", a.listOutboundSubs)
 	g.POST("/outbound-subs", a.createOutboundSub)
 	g.POST("/outbound-subs/:id/refresh", a.refreshOutboundSub)
+	g.POST("/outbound-subs/:id/move", a.moveOutboundSub)
 	g.POST("/outbound-subs/:id", a.updateOutboundSub)
 	g.DELETE("/outbound-subs/:id", a.deleteOutboundSub)
 	g.POST("/outbound-subs/:id/del", a.deleteOutboundSub) // axios-friendly alias
@@ -267,6 +268,7 @@ func (a *XraySettingController) createOutboundSub(c *gin.Context) {
 	prefix := c.PostForm("tagPrefix")
 	enabled := c.PostForm("enabled") != "false"
 	allowPrivate := c.PostForm("allowPrivate") == "true"
+	prepend := c.PostForm("prepend") == "true"
 	intervalStr := c.PostForm("updateInterval")
 	interval := 600
 	if intervalStr != "" {
@@ -274,7 +276,7 @@ func (a *XraySettingController) createOutboundSub(c *gin.Context) {
 			interval = v
 		}
 	}
-	sub, err := a.OutboundSubscriptionService.Create(remark, rawURL, prefix, enabled, interval, allowPrivate)
+	sub, err := a.OutboundSubscriptionService.Create(remark, rawURL, prefix, enabled, interval, allowPrivate, prepend)
 	if err != nil {
 		jsonMsg(c, "Failed to create outbound subscription", err)
 		return
@@ -294,6 +296,7 @@ func (a *XraySettingController) updateOutboundSub(c *gin.Context) {
 	prefix := c.PostForm("tagPrefix")
 	enabled := c.PostForm("enabled") != "false"
 	allowPrivate := c.PostForm("allowPrivate") == "true"
+	prepend := c.PostForm("prepend") == "true"
 	intervalStr := c.PostForm("updateInterval")
 	interval := 600
 	if intervalStr != "" {
@@ -301,7 +304,7 @@ func (a *XraySettingController) updateOutboundSub(c *gin.Context) {
 			interval = v
 		}
 	}
-	if err := a.OutboundSubscriptionService.Update(subID, remark, rawURL, prefix, enabled, interval, allowPrivate); err != nil {
+	if err := a.OutboundSubscriptionService.Update(subID, remark, rawURL, prefix, enabled, interval, allowPrivate, prepend); err != nil {
 		jsonMsg(c, "Failed to update outbound subscription", err)
 		return
 	}
@@ -341,6 +344,23 @@ func (a *XraySettingController) refreshOutboundSub(c *gin.Context) {
 	jsonObj(c, obs, nil)
 }
 
+func (a *XraySettingController) moveOutboundSub(c *gin.Context) {
+	id := c.Param("id")
+	var subID int
+	if _, err := fmt.Sscanf(id, "%d", &subID); err != nil {
+		jsonMsg(c, "Invalid id", err)
+		return
+	}
+	up := c.PostForm("dir") == "up"
+	if err := a.OutboundSubscriptionService.Move(subID, up); err != nil {
+		jsonMsg(c, "Failed to reorder outbound subscription", err)
+		return
+	}
+	// Order affects the merged outbounds, so xray needs a reload.
+	a.XrayService.SetToNeedRestart()
+	jsonObj(c, "", nil)
+}
+
 // parseOutboundSubURL is a preview endpoint: it fetches + parses the provided
 // URL but does not persist anything. Useful for the "add subscription" flow
 // so the user can see the resulting outbounds (and assigned tags) before saving.
@@ -356,7 +376,7 @@ func (a *XraySettingController) parseOutboundSubURL(c *gin.Context) {
 	// We don't have a direct "fetch once" that returns without storing, so we
 	// temporarily create a disabled row, refresh it, then delete. Cleaner would
 	// be to expose a pure ParseURL on the service, but this keeps the surface small.
-	tmp, err := svc.Create("preview", rawURL, "", false, 600, allowPrivate)
+	tmp, err := svc.Create("preview", rawURL, "", false, 600, allowPrivate, false)
 	if err != nil {
 		jsonMsg(c, "Failed to preview subscription", err)
 		return

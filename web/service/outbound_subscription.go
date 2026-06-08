@@ -32,10 +32,29 @@ func NewOutboundSubscriptionService() *OutboundSubscriptionService {
 func (s *OutboundSubscriptionService) List() ([]*model.OutboundSubscription, error) {
 	db := database.GetDB()
 	var subs []*model.OutboundSubscription
-	if err := db.Model(&model.OutboundSubscription{}).Order("id desc").Find(&subs).Error; err != nil {
+	if err := db.Model(&model.OutboundSubscription{}).Order("priority asc, id asc").Find(&subs).Error; err != nil {
 		return nil, err
 	}
+	for _, sub := range subs {
+		sub.OutboundCount = countOutbounds(sub.LastFetchedOutbounds)
+		// Don't ship the heavy raw blobs to the list view.
+		sub.LastFetchedOutbounds = ""
+		sub.LinkIdentities = ""
+	}
 	return subs, nil
+}
+
+// countOutbounds returns the number of outbounds in a stored LastFetchedOutbounds
+// JSON array (0 for empty/invalid).
+func countOutbounds(raw string) int {
+	if strings.TrimSpace(raw) == "" {
+		return 0
+	}
+	var arr []any
+	if json.Unmarshal([]byte(raw), &arr) != nil {
+		return 0
+	}
+	return len(arr)
 }
 
 // Get returns a single subscription by id.
@@ -90,7 +109,7 @@ func (s *OutboundSubscriptionService) nextDefaultSubPrefix(excludeId int) string
 	return fmt.Sprintf("sub%d-", defaultPrefixNumber(subs, excludeId))
 }
 
-func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate bool) (*model.OutboundSubscription, error) {
+func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend bool) (*model.OutboundSubscription, error) {
 	cleanURL, err := SanitizePublicHTTPURL(rawURL, allowPrivate)
 	if err != nil {
 		return nil, common.NewError("invalid subscription URL:", err)
@@ -105,11 +124,16 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, e
 	if prefix == "" {
 		prefix = s.nextDefaultSubPrefix(0)
 	}
+	// New subscriptions go to the end of the priority order.
+	var count int64
+	database.GetDB().Model(&model.OutboundSubscription{}).Count(&count)
 	sub := &model.OutboundSubscription{
 		Remark:         strings.TrimSpace(remark),
 		Url:            cleanURL,
 		Enabled:        enabled,
 		AllowPrivate:   allowPrivate,
+		Prepend:        prepend,
+		Priority:       int(count),
 		TagPrefix:      prefix,
 		UpdateInterval: updateInterval,
 	}
@@ -120,7 +144,7 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, e
 }
 
 // Update updates editable fields.
-func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate bool) error {
+func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend bool) error {
 	sub, err := s.Get(id)
 	if err != nil {
 		return err
@@ -143,6 +167,7 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix s
 	sub.Url = cleanURL
 	sub.Enabled = enabled
 	sub.AllowPrivate = allowPrivate
+	sub.Prepend = prepend
 	sub.TagPrefix = prefix
 	sub.UpdateInterval = updateInterval
 	return database.GetDB().Save(sub).Error
@@ -386,12 +411,23 @@ func assignStableTags(parsed []link.Outbound, identities []string, prev map[stri
 // that later subscriptions can shadow earlier ones if the admin uses colliding
 // prefixes (last writer wins inside xray, but we try to keep tags unique).
 func (s *OutboundSubscriptionService) AllActiveOutbounds() ([]any, error) {
-	db := database.GetDB()
-	var subs []*model.OutboundSubscription
-	if err := db.Where("enabled = ?", true).Order("id asc").Find(&subs).Error; err != nil {
+	prepend, appendList, err := s.activeOutboundsSplit()
+	if err != nil {
 		return nil, err
 	}
-	var all []any
+	return append(prepend, appendList...), nil
+}
+
+// activeOutboundsSplit returns the active subscription outbounds split into those
+// that should be placed BEFORE the manual template outbounds (Prepend) and those
+// placed AFTER. Within each group, subscriptions are ordered by Priority (then id)
+// so the admin can control the merged order.
+func (s *OutboundSubscriptionService) activeOutboundsSplit() (prepend []any, appendList []any, err error) {
+	db := database.GetDB()
+	var subs []*model.OutboundSubscription
+	if err := db.Where("enabled = ?", true).Order("priority asc, id asc").Find(&subs).Error; err != nil {
+		return nil, nil, err
+	}
 	for _, sub := range subs {
 		if strings.TrimSpace(sub.LastFetchedOutbounds) == "" {
 			continue
@@ -401,9 +437,49 @@ func (s *OutboundSubscriptionService) AllActiveOutbounds() ([]any, error) {
 			logger.Warningf("outbound sub %d has corrupt LastFetchedOutbounds: %v", sub.Id, err)
 			continue
 		}
-		all = append(all, arr...)
+		if sub.Prepend {
+			prepend = append(prepend, arr...)
+		} else {
+			appendList = append(appendList, arr...)
+		}
 	}
-	return all, nil
+	return prepend, appendList, nil
+}
+
+// Move shifts a subscription one step up or down in the priority order and
+// re-normalizes all priorities to a 0..n-1 sequence.
+func (s *OutboundSubscriptionService) Move(id int, up bool) error {
+	db := database.GetDB()
+	var subs []*model.OutboundSubscription
+	if err := db.Order("priority asc, id asc").Find(&subs).Error; err != nil {
+		return err
+	}
+	idx := -1
+	for i, sub := range subs {
+		if sub.Id == id {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return common.NewError("subscription not found")
+	}
+	swap := idx + 1
+	if up {
+		swap = idx - 1
+	}
+	if swap < 0 || swap >= len(subs) {
+		return nil // already at the edge
+	}
+	subs[idx], subs[swap] = subs[swap], subs[idx]
+	for i, sub := range subs {
+		if sub.Priority != i {
+			if err := db.Model(sub).Update("priority", i).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // AllActiveOutboundTags returns only the tags of active subscription outbounds.
