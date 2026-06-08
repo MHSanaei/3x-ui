@@ -406,6 +406,51 @@ func (s *InboundService) GetAllInboundClientIps() ([]model.InboundClientIps, err
 	return ips, err
 }
 
+// clientIpStaleAfterSeconds mirrors job.ipStaleAfterSeconds: client IPs older than
+// 30 minutes are evicted. Applying the same cutoff inside the cross-node merge keeps
+// the synced blob bounded and stops the master's push-back from resurrecting IPs that
+// a node has already pruned (otherwise the merge defeats the eviction cluster-wide).
+const clientIpStaleAfterSeconds = int64(30 * 60)
+
+// clientIpEntry is the on-disk shape of each element of InboundClientIps.Ips. Tags
+// match job.IPWithTimestamp so the blob round-trips with the access.log scanner.
+type clientIpEntry struct {
+	IP        string `json:"ip"`
+	Timestamp int64  `json:"timestamp"`
+}
+
+// mergeClientIpEntries unions old and incoming IP observations, dropping anything
+// older than cutoff, keeping the most recent timestamp per IP, and returning the
+// result sorted newest-first.
+func mergeClientIpEntries(old, incoming []clientIpEntry, cutoff int64) []clientIpEntry {
+	ipMap := make(map[string]int64, len(old)+len(incoming))
+	for _, e := range old {
+		if e.Timestamp < cutoff {
+			continue
+		}
+		ipMap[e.IP] = e.Timestamp
+	}
+	for _, e := range incoming {
+		if e.Timestamp < cutoff {
+			continue
+		}
+		if cur, ok := ipMap[e.IP]; !ok || e.Timestamp > cur {
+			ipMap[e.IP] = e.Timestamp
+		}
+	}
+	out := make([]clientIpEntry, 0, len(ipMap))
+	for ip, ts := range ipMap {
+		out = append(out, clientIpEntry{IP: ip, Timestamp: ts})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Timestamp > out[j].Timestamp })
+	return out
+}
+
+// MergeInboundClientIps folds client IPs synced from another node into the local
+// inbound_client_ips table without double-counting an IP seen on multiple nodes and
+// without resurrecting stale entries. Existing rows are updated in place; brand-new
+// clients (typically node-only clients with no local row) are created with a fresh
+// local id.
 func (s *InboundService) MergeInboundClientIps(incomingIps []model.InboundClientIps) error {
 	db := database.GetDB()
 	var currentIps []model.InboundClientIps
@@ -418,6 +463,9 @@ func (s *InboundService) MergeInboundClientIps(incomingIps []model.InboundClient
 		currentMap[currentIps[i].ClientEmail] = &currentIps[i]
 	}
 
+	now := time.Now().Unix()
+	cutoff := now - clientIpStaleAfterSeconds
+
 	tx := db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -429,48 +477,49 @@ func (s *InboundService) MergeInboundClientIps(incomingIps []model.InboundClient
 		if incoming.ClientEmail == "" || incoming.Ips == "" {
 			continue
 		}
+
+		var incomingEntries []clientIpEntry
+		_ = json.Unmarshal([]byte(incoming.Ips), &incomingEntries)
+
 		current, exists := currentMap[incoming.ClientEmail]
 		if !exists {
-			if err := tx.Create(&incoming).Error; err != nil {
+			// New client we've never seen locally. Drop stale entries up front and
+			// skip the row entirely if nothing is fresh, so we don't persist a row
+			// that is dead on arrival.
+			fresh := mergeClientIpEntries(nil, incomingEntries, cutoff)
+			if len(fresh) == 0 {
+				continue
+			}
+			b, _ := json.Marshal(fresh)
+			incoming.Ips = string(b)
+			// Never carry the remote node's primary key into the local table: id
+			// spaces are independent across nodes and the remote id would collide
+			// with an unrelated local row. OnConflict guards the race where
+			// check_client_ip_job creates the same brand-new email between the
+			// snapshot above and this insert.
+			incoming.Id = 0
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "client_email"}},
+				DoNothing: true,
+			}).Create(&incoming).Error; err != nil {
 				tx.Rollback()
 				return err
 			}
 			continue
 		}
 
-		type ipWithTimestamp struct {
-			IP        string `json:"ip"`
-			Timestamp int64  `json:"timestamp"`
-		}
-		var oldIps []ipWithTimestamp
-		var newIps []ipWithTimestamp
-
+		var oldEntries []clientIpEntry
 		if current.Ips != "" {
-			_ = json.Unmarshal([]byte(current.Ips), &oldIps)
-		}
-		if incoming.Ips != "" {
-			_ = json.Unmarshal([]byte(incoming.Ips), &newIps)
+			_ = json.Unmarshal([]byte(current.Ips), &oldEntries)
 		}
 
-		ipMap := make(map[string]int64)
-		for _, ip := range oldIps {
-			ipMap[ip.IP] = ip.Timestamp
-		}
-		for _, ip := range newIps {
-			if existing, ok := ipMap[ip.IP]; !ok || ip.Timestamp > existing {
-				ipMap[ip.IP] = ip.Timestamp
-			}
-		}
-
-		var merged []ipWithTimestamp
-		for ip, ts := range ipMap {
-			merged = append(merged, ipWithTimestamp{IP: ip, Timestamp: ts})
-		}
-		
-		sort.Slice(merged, func(i, j int) bool { return merged[i].Timestamp > merged[j].Timestamp })
+		merged := mergeClientIpEntries(oldEntries, incomingEntries, cutoff)
 		b, _ := json.Marshal(merged)
 		mergedStr := string(b)
 
+		// A concurrent check_client_ip_job db.Save on the same row can interleave
+		// with this update (benign last-writer-wins; any dropped IP reappears on the
+		// next scan/sync), so only write when the blob actually changed.
 		if current.Ips != mergedStr {
 			if err := tx.Model(&model.InboundClientIps{}).Where("id = ?", current.Id).Update("ips", mergedStr).Error; err != nil {
 				tx.Rollback()

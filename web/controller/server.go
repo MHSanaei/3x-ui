@@ -436,5 +436,5 @@ func (a *ServerController) setClientIps(c *gin.Context) {
 		return
 	}
 	err := (&service.InboundService{}).MergeInboundClientIps(ips)
-	jsonObj(c, "success", err)
+	jsonMsg(c, "Client IPs merged", err)
 }
