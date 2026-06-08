@@ -90,6 +90,22 @@ func isLoopbackHost(host string) bool {
 	return ip != nil && ip.IsLoopback()
 }
 
+// listenIsInternalOnly reports whether a bind address is reachable only from
+// the same host — a loopback IP or a unix-domain socket. Such an inbound can't
+// be dialed directly by a remote client, so when it is the child side of a
+// fallback its share link must be projected through the master. A public or
+// wildcard listen (""/0.0.0.0/::) is reachable on its own port and advertises
+// itself.
+func listenIsInternalOnly(listen string) bool {
+	if listen == "" {
+		return false
+	}
+	if listen[0] == '@' || listen[0] == '/' {
+		return true
+	}
+	return isLoopbackHost(listen)
+}
+
 // GetSubs retrieves subscription links for a given subscription ID and host.
 func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int64, xray.ClientTraffic, error) {
 	s.PrepareForRequest(host)
@@ -260,8 +276,18 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 // Returns true when a projection happened; sub services call this before
 // generating links so a child VLESS-WS bound to 127.0.0.1 emits the
 // master's :443 + TLS state instead of its own loopback endpoint.
+//
+// Projection only applies to a child that is not directly reachable on its
+// own listen (loopback or a unix-domain socket). An inbound on a public or
+// wildcard listen is reachable on its own port, so it advertises its own
+// port + security even when a stale fallback rule still names it as a child —
+// otherwise its share link would leak the master's port and Reality/TLS
+// settings (#4987).
 func (s *SubService) projectThroughFallbackMaster(inbound *model.Inbound) bool {
 	if inbound == nil {
+		return false
+	}
+	if !listenIsInternalOnly(inbound.Listen) {
 		return false
 	}
 	db := database.GetDB()

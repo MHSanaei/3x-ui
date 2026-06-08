@@ -22,7 +22,7 @@ function resolveDBPath() {
   return '/etc/x-ui/x-ui.db';
 }
 
-const PANEL_API_PREFIXES = ['panel/api/', 'panel/setting/', 'panel/xray/', 'panel/csrf-token'];
+const PANEL_API_PREFIXES = ['panel/api/', 'panel/csrf-token'];
 
 let cachedBasePath = '/';
 

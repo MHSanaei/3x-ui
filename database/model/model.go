@@ -44,13 +44,13 @@ type User struct {
 
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.
 type Inbound struct {
-	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`                                                                                                                 // Unique identifier
+	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`                                                                                                     // Unique identifier
 	UserId               int                  `json:"-"`                                                                                                                                                            // Associated user ID
 	Up                   int64                `json:"up" form:"up"`                                                                                                                                                 // Upload traffic in bytes
 	Down                 int64                `json:"down" form:"down"`                                                                                                                                             // Download traffic in bytes
 	Total                int64                `json:"total" form:"total"`                                                                                                                                           // Total traffic limit in bytes
-	Remark               string               `json:"remark" form:"remark"`                                                                                                                                         // Human-readable remark
-	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1"`                                                                                        // Whether the inbound is enabled
+	Remark               string               `json:"remark" form:"remark" example:"VLESS-443"`                                                                                                                     // Human-readable remark
+	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1" example:"true"`                                                                         // Whether the inbound is enabled
 	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                                                                                 // Expiration timestamp
 	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2" validate:"omitempty,oneof=never hourly daily weekly monthly"` // Traffic reset schedule
 	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                                                                                            // Last traffic reset timestamp
@@ -58,13 +58,21 @@ type Inbound struct {
 
 	// Xray configuration fields
 	Listen         string   `json:"listen" form:"listen"`
-	Port           int      `json:"port" form:"port" validate:"gte=0,lte=65535"`
-	Protocol       Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto"`
+	Port           int      `json:"port" form:"port" validate:"gte=0,lte=65535" example:"443"`
+	Protocol       Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto" example:"vless"`
 	Settings       string   `json:"settings" form:"settings"`
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
-	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
+	Tag            string   `json:"tag" form:"tag" gorm:"unique" example:"in-443-tcp"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
 	NodeID         *int     `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
+
+	// OriginNodeGuid is the panelGuid of the node that physically hosts this
+	// inbound, propagated up across hops (#4983). Empty for an inbound that
+	// lives on this panel's own xray; set to the originating node's GUID when
+	// the inbound was synced from a node (kept as-is across further hops). Lets
+	// the master attribute a deeply nested inbound to the real node instead of
+	// the intermediate one it was fetched through.
+	OriginNodeGuid string `json:"originNodeGuid,omitempty" form:"originNodeGuid" gorm:"column:origin_node_guid;index"`
 
 	// FallbackParent is populated by the API layer when this inbound is
 	// attached as a fallback child of a VLESS/Trojan TCP-TLS master.
@@ -435,42 +443,75 @@ type Setting struct {
 // endpoint over HTTP using the per-node ApiToken to populate the runtime
 // status fields below.
 type Node struct {
-	Id                  int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	Name                string `json:"name" form:"name" gorm:"uniqueIndex" validate:"required"`
+	Id                  int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
+	Name                string `json:"name" form:"name" gorm:"uniqueIndex" validate:"required" example:"de-fra-1"`
 	Remark              string `json:"remark" form:"remark"`
-	Scheme              string `json:"scheme" form:"scheme" validate:"omitempty,oneof=http https"`
-	Address             string `json:"address" form:"address" validate:"required"`
-	Port                int    `json:"port" form:"port" validate:"gte=1,lte=65535"`
-	BasePath            string `json:"basePath" form:"basePath"`
-	ApiToken            string `json:"apiToken" form:"apiToken" validate:"required"`
-	Enable              bool   `json:"enable" form:"enable" gorm:"default:true"`
+	Scheme              string `json:"scheme" form:"scheme" validate:"omitempty,oneof=http https" example:"https"`
+	Address             string `json:"address" form:"address" validate:"required" example:"node1.example.com"`
+	Port                int    `json:"port" form:"port" validate:"gte=1,lte=65535" example:"2053"`
+	BasePath            string `json:"basePath" form:"basePath" example:"/"`
+	ApiToken            string `json:"apiToken" form:"apiToken" validate:"required" example:"abcdef0123456789"`
+	Enable              bool   `json:"enable" form:"enable" gorm:"default:true" example:"true"`
 	AllowPrivateAddress bool   `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
 	TlsVerifyMode       string `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin"`
 	PinnedCertSha256    string `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
 
+	// Guid is the remote panel's stable self-identifier (its panelGuid),
+	// learned from each heartbeat. It is the globally stable node identity used
+	// to attribute online clients/inbounds to the physical node across a chain
+	// of nodes (#4983); panel-local autoincrement ids don't survive a hop.
+	// Observed-state only — never user-edited.
+	Guid string `json:"guid" gorm:"column:guid;index"`
+
 	// Heartbeat-updated fields. UpdatedAt advances on every probe even when
 	// the row is otherwise unchanged so the UI's "last seen" tooltip is
 	// truthful without us having to read LastHeartbeat separately.
-	Status        string  `json:"status" gorm:"default:unknown"` // online|offline|unknown
-	LastHeartbeat int64   `json:"lastHeartbeat"`                 // unix seconds, 0 = never
-	LatencyMs     int     `json:"latencyMs"`
-	XrayVersion   string  `json:"xrayVersion"`
-	PanelVersion  string  `json:"panelVersion" gorm:"column:panel_version"`
-	CpuPct        float64 `json:"cpuPct"`
-	MemPct        float64 `json:"memPct"`
-	UptimeSecs    uint64  `json:"uptimeSecs"`
+	Status        string  `json:"status" gorm:"default:unknown" example:"online"` // online|offline|unknown
+	LastHeartbeat int64   `json:"lastHeartbeat" example:"1700000000"`             // unix seconds, 0 = never
+	LatencyMs     int     `json:"latencyMs" example:"42"`
+	XrayVersion   string  `json:"xrayVersion" example:"25.10.31"`
+	PanelVersion  string  `json:"panelVersion" gorm:"column:panel_version" example:"v3.x.x"`
+	CpuPct        float64 `json:"cpuPct" example:"23.5"`
+	MemPct        float64 `json:"memPct" example:"45.1"`
+	UptimeSecs    uint64  `json:"uptimeSecs" example:"86400"`
 	LastError     string  `json:"lastError"`
 
 	ConfigDirty   bool  `json:"configDirty" gorm:"default:false"`
 	ConfigDirtyAt int64 `json:"configDirtyAt"`
 
-	InboundCount  int `json:"inboundCount" gorm:"-"`
-	ClientCount   int `json:"clientCount" gorm:"-"`
-	OnlineCount   int `json:"onlineCount" gorm:"-"`
-	DepletedCount int `json:"depletedCount" gorm:"-"`
+	InboundCount  int `json:"inboundCount" gorm:"-" example:"5"`
+	ClientCount   int `json:"clientCount" gorm:"-" example:"27"`
+	OnlineCount   int `json:"onlineCount" gorm:"-" example:"3"`
+	DepletedCount int `json:"depletedCount" gorm:"-" example:"1"`
 
-	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli"`
-	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	// ParentGuid + Transitive are set only when a node is surfaced as part of a
+	// node tree (#4983): direct nodes carry the master panel's own GUID, a
+	// transitive sub-node carries its parent node's GUID. Transitive nodes are
+	// read-only projections (Id == 0, not persisted) — never edited or deployed.
+	ParentGuid string `json:"parentGuid,omitempty" gorm:"-"`
+	Transitive bool   `json:"transitive,omitempty" gorm:"-"`
+
+	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli" example:"1700000000"`
+	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli" example:"1700000000"`
+}
+
+// NodeSummary is the read-only identity of a node as published one hop up: the
+// view a panel exposes about the nodes it directly manages, so a master can
+// surface transitive sub-nodes in a chained topology (#4983). Counts are
+// computed by the consuming master from its own per-GUID data, never trusted
+// from the child, so this carries identity/health only.
+type NodeSummary struct {
+	Guid          string `json:"guid"`
+	ParentGuid    string `json:"parentGuid"`
+	Name          string `json:"name"`
+	Address       string `json:"address"`
+	Scheme        string `json:"scheme"`
+	Port          int    `json:"port"`
+	Status        string `json:"status"`
+	LastHeartbeat int64  `json:"lastHeartbeat"`
+	LatencyMs     int    `json:"latencyMs"`
+	PanelVersion  string `json:"panelVersion"`
+	XrayVersion   string `json:"xrayVersion"`
 }
 
 type CustomGeoResource struct {

@@ -69,6 +69,14 @@ func run(root, outDir string) error {
 				"ClientTraffic",
 			),
 		},
+		{
+			Path: resolveRel(root, "web/service"),
+			StructAllow: setOf(
+				"InboundOption",
+				"ApiTokenView",
+				"ProbeResultUI",
+			),
+		},
 	}
 
 	schemas, aliases, err := walkPackages(requests)
@@ -94,11 +102,25 @@ func run(root, outDir string) error {
 	if err := emitTypes(typesBuf, schemas, aliases); err != nil {
 		return err
 	}
+	examplesBuf := &bytes.Buffer{}
+	if err := emitExamples(examplesBuf, schemas, aliases); err != nil {
+		return err
+	}
+	schemasBuf := &bytes.Buffer{}
+	if err := emitJSONSchema(schemasBuf, schemas, aliases); err != nil {
+		return err
+	}
 
 	if err := os.WriteFile(filepath.Join(target, "zod.ts"), zodBuf.Bytes(), 0o644); err != nil {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(target, "types.ts"), typesBuf.Bytes(), 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(target, "examples.ts"), examplesBuf.Bytes(), 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(target, "schemas.ts"), schemasBuf.Bytes(), 0o644); err != nil {
 		return err
 	}
 

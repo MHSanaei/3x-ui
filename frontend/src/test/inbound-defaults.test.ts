@@ -16,6 +16,7 @@ import {
   createDefaultVmessInboundSettings,
   createDefaultWireguardInboundSettings,
 } from '@/lib/xray/inbound-defaults';
+import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
 import { HttpInboundSettingsSchema } from '@/schemas/protocols/inbound/http';
 import { HysteriaClientSchema, HysteriaInboundSettingsSchema } from '@/schemas/protocols/inbound/hysteria';
 import { MixedInboundSettingsSchema } from '@/schemas/protocols/inbound/mixed';
@@ -145,5 +146,20 @@ describe('createDefault*InboundSettings factories', () => {
     });
     expect(s).toMatchSnapshot();
     expect(WireguardInboundSettingsSchema.parse(s)).toEqual(s);
+  });
+});
+
+describe('createHysteriaTlsSettingsWithDefaultCert', () => {
+  it('defaults Hysteria TLS to uTLS None and h3 ALPN', () => {
+    const tls = createHysteriaTlsSettingsWithDefaultCert();
+    expect(tls.alpn).toEqual(['h3']);
+    expect((tls.settings as Record<string, unknown>).fingerprint).toBe('');
+    expect(tls.certificates).toEqual([
+      expect.objectContaining({
+        useFile: true,
+        certificateFile: '',
+        keyFile: '',
+      }),
+    ]);
   });
 });

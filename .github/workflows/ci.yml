@@ -37,6 +37,23 @@ jobs:
           go list ./... | grep -v '/frontend/node_modules/' > /tmp/go-packages.txt
           go test $(cat /tmp/go-packages.txt)
 
+  codegen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - name: Regenerate schemas, examples and OpenAPI
+        run: npm run gen
+        working-directory: frontend
+      - name: Fail if generated files are stale (run 'npm run gen' and commit)
+        run: git diff --exit-code -- frontend/src/generated frontend/public/openapi.json
+
   govulncheck:
     runs-on: ubuntu-latest
     steps:
