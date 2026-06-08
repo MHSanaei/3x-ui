@@ -1362,7 +1362,6 @@
       "outboundSub": {
         "manage": "Subscriptions",
         "title": "Outbound Subscriptions",
-        "add": "Add subscription",
         "remark": "Remark (optional)",
         "remarkPlaceholder": "e.g. HK nodes",
         "url": "Subscription URL",
@@ -1374,6 +1373,8 @@
         "minutes": "min",
         "intervalHint": "Default 10 minutes. The background job checks frequently; each subscription only re-fetches when its own interval has passed.",
         "enabled": "Enabled",
+        "allowPrivate": "Allow private address",
+        "allowPrivateHint": "Permit localhost / LAN / private IPs for this subscription's URL. Off by default for security — enable only for a trusted local source.",
         "addButton": "Add",
         "active": "Active subscriptions",
         "empty": "No subscriptions yet. Add one above.",
