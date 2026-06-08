@@ -356,12 +356,13 @@ func (s *InboundService) annotateFallbackParents(db *gorm.DB, inbounds []*model.
 }
 
 type InboundOption struct {
-	Id             int    `json:"id"`
-	Remark         string `json:"remark"`
-	Tag            string `json:"tag"`
-	Protocol       string `json:"protocol"`
-	Port           int    `json:"port"`
-	TlsFlowCapable bool   `json:"tlsFlowCapable"`
+	Id             int    `json:"id" example:"1"`
+	Remark         string `json:"remark" example:"VLESS-443"`
+	Tag            string `json:"tag" example:"in-443-tcp"`
+	Protocol       string `json:"protocol" example:"vless"`
+	Port           int    `json:"port" example:"443"`
+	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
+	SsMethod       string `json:"ssMethod"`
 }
 
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
@@ -373,9 +374,10 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		Protocol       string `gorm:"column:protocol"`
 		Port           int    `gorm:"column:port"`
 		StreamSettings string `gorm:"column:stream_settings"`
+		Settings       string `gorm:"column:settings"`
 	}
 	err := db.Table("inbounds").
-		Select("id, remark, tag, protocol, port, stream_settings").
+		Select("id, remark, tag, protocol, port, stream_settings, settings").
 		Where("user_id = ?", userId).
 		Order("id ASC").
 		Scan(&rows).Error
@@ -391,9 +393,26 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			Protocol:       r.Protocol,
 			Port:           r.Port,
 			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings),
+			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
 		})
 	}
 	return out, nil
+}
+
+// inboundShadowsocksMethod extracts settings.method for Shadowsocks inbounds so
+// the client UI can generate a valid PSK (base64 of the method's key length)
+// for Shadowsocks 2022 ciphers. Returns "" for non-Shadowsocks inbounds.
+func inboundShadowsocksMethod(protocol, settings string) string {
+	if protocol != string(model.Shadowsocks) || settings == "" {
+		return ""
+	}
+	var s struct {
+		Method string `json:"method"`
+	}
+	if err := json.Unmarshal([]byte(settings), &s); err != nil {
+		return ""
+	}
+	return s.Method
 }
 
 // inboundCanEnableTlsFlow mirrors Inbound.canEnableTlsFlow() from the frontend:
@@ -602,6 +621,17 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	}
 }
 
+// normalizeMtprotoSecret rebuilds an mtproto inbound's FakeTLS secret so it is
+// always valid and matches the configured domain before the row is persisted.
+func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
+	if inbound.Protocol != model.MTProto {
+		return
+	}
+	if healed, ok := model.HealMtprotoSecret(inbound.Settings); ok {
+		inbound.Settings = healed
+	}
+}
+
 // AddInbound creates a new inbound configuration.
 // It validates port uniqueness, client email uniqueness, and required fields,
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
@@ -609,6 +639,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	s.normalizeMtprotoSecret(inbound)
 
 	conflict, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
@@ -924,6 +955,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	s.normalizeMtprotoSecret(inbound)
 
 	conflict, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {
@@ -1810,15 +1842,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				structuralChange = true
 			}
 
-			// Only allow the node to disable a client (cs.Enable=false), never
-			// to re-enable one the panel has already disabled. A stale snapshot
-			// from the node arriving after a central disable would otherwise
-			// overwrite enable=false back to true, letting the client accumulate
-			// far more traffic than their limit before being disabled again.
-			//
-			// Use dialect helper so the expression (and internal PG CASE from
-			// AND/GREATEST) is type-safe on Postgres and works on SQLite.
-			// See ClientTrafficEnableMergeExpr.
 			enableExpr := database.ClientTrafficEnableMergeExpr()
 			if err := tx.Exec(
 				fmt.Sprintf(
@@ -3532,6 +3555,40 @@ func (s *InboundService) MigrationRequirements() {
 		if err = tx.Migrator().DropColumn(&xray.ClientTraffic{}, "all_time"); err != nil {
 			return
 		}
+	}
+
+	// Normalize "enable" columns to boolean on Postgres. Legacy SQLite data
+	// (0/1 integers), partial migrations, or mixed write paths (public API
+	// inbound updates that flow through UpdateClientStat + client syncs, plus
+	// node traffic merge deltas) can leave the column as integer or with mixed
+	// interpretation. This (combined with the dialect-aware
+	// ClientTrafficEnableMergeExpr) prevents type problems in the node traffic
+	// sync merge (SetRemoteTraffic) and makes the sync robust even when
+	// inbounds are updated via the public API (incl. ones carrying
+	// externalProxy in streamSettings). The same expression is also safe on
+	// SQLite (no PG :: casts).
+	if database.IsPostgres() {
+		// Use DO block so it is idempotent and doesn't fail if already boolean.
+		normalizeBool := func(table, col string) {
+			tx.Exec(fmt.Sprintf(`
+				DO $$
+				BEGIN
+					IF EXISTS (
+						SELECT 1 FROM information_schema.columns
+						WHERE table_name = '%s' AND column_name = '%s'
+						  AND data_type <> 'boolean'
+					) THEN
+						ALTER TABLE %s ALTER COLUMN %s
+							TYPE boolean USING (CASE WHEN %s::text IN ('1','true','t','yes') THEN true ELSE false END);
+					END IF;
+				END $$;`, table, col, table, col, col))
+		}
+		normalizeBool("inbounds", "enable")
+		normalizeBool("client_traffics", "enable")
+		normalizeBool("nodes", "enable")
+		normalizeBool("clients", "enable")
+		normalizeBool("api_tokens", "enabled")
+		normalizeBool("outbound_subscriptions", "enabled")
 	}
 
 	// Fix inbounds based problems

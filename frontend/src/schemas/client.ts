@@ -43,6 +43,7 @@ export const InboundOptionSchema = z.object({
   protocol: z.string().optional(),
   port: z.number().optional(),
   tlsFlowCapable: z.boolean().optional(),
+  ssMethod: z.string().optional(),
 }).loose();
 
 export const InboundOptionsSchema = z.array(InboundOptionSchema);

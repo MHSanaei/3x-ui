@@ -3,6 +3,8 @@ package sub
 import (
 	"reflect"
 	"testing"
+
+	"github.com/mhsanaei/3x-ui/v3/database/model"
 )
 
 func TestEnsureUniqueProxyNames(t *testing.T) {
@@ -111,5 +113,62 @@ func TestApplyTransport_HTTPUpgrade(t *testing.T) {
 	headers, _ := opts["headers"].(map[string]any)
 	if headers["Host"] != "example.com" {
 		t.Fatalf("headers.Host = %v, want example.com", headers["Host"])
+	}
+}
+
+func TestBuildProxy_VLESSPostQuantumEncryptionUsesMihomoEncryptionField(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{remarkModel: "-i"}}
+	encryption := "mlkem768x25519plus.native.0rtt.client"
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.1",
+		Port:     443,
+		Protocol: model.VLESS,
+		Remark:   "pq",
+		Settings: `{"encryption":"` + encryption + `"}`,
+	}
+	client := model.Client{ID: "11111111-2222-4333-8444-555555555555"}
+	stream := map[string]any{
+		"network": "xhttp",
+		"xhttpSettings": map[string]any{
+			"path": "/",
+			"mode": "auto",
+		},
+		"security": "reality",
+		"realitySettings": map[string]any{
+			"publicKey":  "pub",
+			"serverName": "example.com",
+			"shortId":    "abcd",
+		},
+	}
+
+	proxy := svc.buildProxy(inbound, client, stream, "")
+
+	if proxy["encryption"] != encryption {
+		t.Fatalf("encryption = %v, want %q", proxy["encryption"], encryption)
+	}
+}
+
+func TestBuildProxy_VLESSNoneEncryptionOmittedForClash(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{remarkModel: "-i"}}
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.1",
+		Port:     443,
+		Protocol: model.VLESS,
+		Remark:   "plain",
+		Settings: `{"encryption":"none"}`,
+	}
+	client := model.Client{ID: "11111111-2222-4333-8444-555555555555"}
+	stream := map[string]any{
+		"network":  "tcp",
+		"security": "none",
+		"tcpSettings": map[string]any{
+			"header": map[string]any{"type": "none"},
+		},
+	}
+
+	proxy := svc.buildProxy(inbound, client, stream, "")
+
+	if _, ok := proxy["encryption"]; ok {
+		t.Fatalf("plain vless encryption should be omitted for mihomo: %#v", proxy)
 	}
 }
