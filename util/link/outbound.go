@@ -420,7 +420,7 @@ func parseHysteria2(link string) (*ParseResult, error) {
 	params := u.Query()
 
 	stream := map[string]any{
-		"network": "hysteria",
+		"network":  "hysteria",
 		"security": "tls",
 		"hysteriaSettings": map[string]any{
 			"version":        2,

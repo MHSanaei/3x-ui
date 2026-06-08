@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -168,6 +169,17 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 	sub.Url = cleanURL // persist the cleaned version
 
 	client := s.settingService.NewProxiedHTTPClient(30 * time.Second)
+	// Re-validate every redirect hop: the initial host is checked above, but a
+	// redirect could still point at a private/internal address (SSRF). Cap the
+	// redirect chain as well.
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return fmt.Errorf("stopped after 10 redirects")
+		}
+		ctx, cancel := context.WithTimeout(req.Context(), 5*time.Second)
+		defer cancel()
+		return rejectPrivateHost(ctx, req.URL.Hostname())
+	}
 
 	req, err := http.NewRequest("GET", sub.Url, nil)
 	if err != nil {
@@ -222,48 +234,11 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 		}
 	}
 
-	// Assign tags with stability
-	used := map[string]bool{} // global uniqueness within this refresh
-	// Seed used with tags that already exist from *other* subscriptions + template
-	// is hard here (we don't have the full picture). We at least avoid collisions
-	// inside this subscription's own set, and rely on the caller (config merge)
-	// or the user choosing good prefixes. For extra safety we append -N on dup.
-
-	assigned := make([]string, len(parsed))
-	for i, id := range identities {
-		candidate := ""
-		if old, ok := prev[id]; ok && old != "" {
-			candidate = old
-		}
-		if candidate == "" {
-			// try to reuse by rough positional match from previous fetch (best effort)
-			if old, ok := prevTagByIndex[i]; ok && old != "" {
-				candidate = old
-			}
-		}
-		if candidate == "" {
-			// fresh allocation
-			prefix := sub.TagPrefix
-			if prefix == "" {
-				prefix = fmt.Sprintf("sub%d-", sub.Id)
-			}
-			remark := ""
-			if m, ok := parsed[i]["tag"].(string); ok {
-				remark = m
-			}
-			candidate = link.SuggestTag(prefix, remark, i)
-		}
-		// ensure local uniqueness inside this batch
-		final := candidate
-		for k := 1; used[final]; k++ {
-			final = fmt.Sprintf("%s-%d", candidate, k)
-		}
-		used[final] = true
-		assigned[i] = final
-
-		// write back the tag into the outbound
-		parsed[i]["tag"] = final
-	}
+	// Assign tags with stability (identity reuse, positional fallback, then a
+	// fresh allocation), keeping tags unique within this batch. Extracted into a
+	// pure function so it can be unit-tested without network/DB. Tags are written
+	// back into the parsed outbounds in place.
+	assigned := assignStableTags(parsed, identities, prev, prevTagByIndex, sub.Id, sub.TagPrefix)
 
 	// Persist identities for next time
 	newIdent := map[string]string{}
@@ -295,6 +270,58 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 func (s *OutboundSubscriptionService) recordError(sub *model.OutboundSubscription, err error) {
 	sub.LastError = err.Error()
 	_ = database.GetDB().Model(sub).Update("last_error", sub.LastError).Error
+}
+
+// assignStableTags assigns a tag to each parsed outbound, preferring stability:
+//  1. reuse the tag previously mapped to the link's identity (prev),
+//  2. else reuse the tag at the same position from the last fetch (prevTagByIndex),
+//  3. else allocate a fresh tag from the prefix + remark (link.SuggestTag).
+//
+// Tags are kept unique within the batch by appending "-N" on collision, and are
+// written back into parsed[i]["tag"]. The returned slice holds the assigned tags
+// in order. When tagPrefix is empty a "sub<subID>-" prefix is used for fresh tags.
+func assignStableTags(parsed []link.Outbound, identities []string, prev map[string]string, prevTagByIndex map[int]string, subID int, tagPrefix string) []string {
+	used := map[string]bool{} // uniqueness within this refresh batch
+	assigned := make([]string, len(parsed))
+	for i := range parsed {
+		id := ""
+		if i < len(identities) {
+			id = identities[i]
+		}
+		candidate := ""
+		if old, ok := prev[id]; ok && old != "" {
+			candidate = old
+		}
+		if candidate == "" {
+			// try to reuse by rough positional match from previous fetch (best effort)
+			if old, ok := prevTagByIndex[i]; ok && old != "" {
+				candidate = old
+			}
+		}
+		if candidate == "" {
+			// fresh allocation
+			prefix := tagPrefix
+			if prefix == "" {
+				prefix = fmt.Sprintf("sub%d-", subID)
+			}
+			remark := ""
+			if m, ok := parsed[i]["tag"].(string); ok {
+				remark = m
+			}
+			candidate = link.SuggestTag(prefix, remark, i)
+		}
+		// ensure local uniqueness inside this batch
+		final := candidate
+		for k := 1; used[final]; k++ {
+			final = fmt.Sprintf("%s-%d", candidate, k)
+		}
+		used[final] = true
+		assigned[i] = final
+
+		// write back the tag into the outbound
+		parsed[i]["tag"] = final
+	}
+	return assigned
 }
 
 // AllActiveOutbounds returns the concatenation of the last-fetched outbounds

@@ -36,6 +36,7 @@ import './OutboundsTab.css';
 import type { OutboundRow } from './outbounds-tab-types';
 import { useOutboundColumns } from './useOutboundColumns';
 import OutboundCardList from './OutboundCardList';
+import SubscriptionOutbounds from './SubscriptionOutbounds';
 
 interface OutboundSub {
   id: number;
@@ -53,12 +54,14 @@ interface OutboundsTabProps {
   setTemplateSettings: SetTemplate;
   outboundsTraffic: OutboundTrafficRow[];
   outboundTestStates: Record<number, OutboundTestState>;
+  subscriptionTestStates: Record<string, OutboundTestState>;
   testingAll: boolean;
   inboundTags: string[];
   subscriptionOutbounds?: unknown[];
   isMobile: boolean;
   onResetTraffic: (tag: string) => void;
   onTest: (index: number, mode: string) => void;
+  onTestSubscription: (outbound: Record<string, unknown>, mode: string) => void;
   onTestAll: (mode: string) => void;
   onShowWarp: () => void;
   onShowNord: () => void;
@@ -70,12 +73,14 @@ export default function OutboundsTab({
   setTemplateSettings,
   outboundsTraffic,
   outboundTestStates,
+  subscriptionTestStates,
   testingAll,
   inboundTags: _inboundTags,
   subscriptionOutbounds,
   isMobile,
   onResetTraffic,
   onTest,
+  onTestSubscription,
   onTestAll,
   onShowWarp,
   onShowNord,
@@ -199,14 +204,14 @@ export default function OutboundsTab({
       const r = await HttpUtil.get('/panel/api/xray/outbound-subs');
       if (r?.success) setSubs(Array.isArray(r.obj) ? r.obj : []);
     } catch {
-      messageApi.error('Failed to load subscriptions');
+      messageApi.error(t('pages.xray.outboundSub.toastLoadFailed'));
     } finally {
       setSubsLoading(false);
     }
   }
   async function createSub() {
     if (!newSub.url.trim()) {
-      messageApi.warning('URL is required');
+      messageApi.warning(t('pages.xray.outboundSub.toastUrlRequired'));
       return;
     }
     try {
@@ -218,7 +223,7 @@ export default function OutboundsTab({
         enabled: newSub.enabled,
       });
       if (r?.success) {
-        messageApi.success('Subscription added');
+        messageApi.success(t('pages.xray.outboundSub.toastAdded'));
         const createdId = r.obj?.id;
         setNewSub({ remark: '', url: '', tagPrefix: '', updateInterval: 600, enabled: true });
         await loadSubs();
@@ -228,35 +233,35 @@ export default function OutboundsTab({
         }
         onRefreshXrayData?.();
       } else {
-        messageApi.error(r?.msg || 'Failed to add');
+        messageApi.error(r?.msg || t('pages.xray.outboundSub.toastAddFailed'));
       }
     } catch {
-      messageApi.error('Failed to add subscription');
+      messageApi.error(t('pages.xray.outboundSub.toastAddFailed'));
     }
   }
   async function refreshOne(id: number) {
     try {
       const r = await HttpUtil.post(`/panel/api/xray/outbound-subs/${id}/refresh`);
       if (r?.success) {
-        messageApi.success('Refreshed');
+        messageApi.success(t('pages.xray.outboundSub.toastRefreshed'));
         await loadSubs();
         onRefreshXrayData?.();
       } else {
-        messageApi.error(r?.msg || 'Refresh failed');
+        messageApi.error(r?.msg || t('pages.xray.outboundSub.toastRefreshFailed'));
       }
     } catch {
-      messageApi.error('Refresh failed');
+      messageApi.error(t('pages.xray.outboundSub.toastRefreshFailed'));
     }
   }
   async function deleteOne(id: number) {
     try {
       const r = await HttpUtil.post(`/panel/api/xray/outbound-subs/${id}/del`);
       if (r?.success) {
-        messageApi.success('Deleted');
+        messageApi.success(t('pages.xray.outboundSub.toastDeleted'));
         await loadSubs();
       }
     } catch {
-      messageApi.error('Delete failed');
+      messageApi.error(t('pages.xray.outboundSub.toastDeleteFailed'));
     }
   }
 
@@ -292,7 +297,7 @@ export default function OutboundsTab({
                 NordVPN
               </Button>
               <Button icon={<CloudOutlined />} onClick={openSubManager}>
-                Subscriptions
+                {t('pages.xray.outboundSub.manage')}
               </Button>
             </Space>
           </Col>
@@ -352,24 +357,19 @@ export default function OutboundsTab({
 
         {/* Subscription outbounds (read-only, merged at runtime) */}
         {Array.isArray(subscriptionOutbounds) && subscriptionOutbounds.length > 0 && (
-          <div style={{ marginTop: 16 }}>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>From outbound subscriptions (read-only)</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {(subscriptionOutbounds as Array<{ tag?: string; protocol?: string }>).map((o, i) => (
-                <span key={i} style={{ padding: '2px 8px', border: '1px solid #ddd', borderRadius: 4, fontSize: 12 }}>
-                  {o?.tag || '(no tag)'} · {o?.protocol || 'unknown'}
-                </span>
-              ))}
-            </div>
-            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
-              These are injected from active subscriptions. Manage subscriptions via the API or future UI panel.
-            </div>
-          </div>
+          <SubscriptionOutbounds
+            subscriptionOutbounds={subscriptionOutbounds}
+            outboundsTraffic={outboundsTraffic}
+            subscriptionTestStates={subscriptionTestStates}
+            testMode={testMode}
+            isMobile={isMobile}
+            onTestSubscription={onTestSubscription}
+          />
         )}
       </Space>
 
       <Drawer
-        title="Outbound Subscriptions"
+        title={t('pages.xray.outboundSub.title')}
         open={subDrawerOpen}
         onClose={() => setSubDrawerOpen(false)}
         size={isMobile ? '100%' : 520}
@@ -377,51 +377,51 @@ export default function OutboundsTab({
       >
         <Space orientation="vertical" style={{ width: '100%' }} size="large">
           <div>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Add subscription</div>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>{t('pages.xray.outboundSub.add')}</div>
             <Form layout="vertical" size="small">
-              <Form.Item label="Remark (optional)">
-                <Input value={newSub.remark} onChange={(e) => setNewSub({ ...newSub, remark: e.target.value })} placeholder="e.g. HK nodes" />
+              <Form.Item label={t('pages.xray.outboundSub.remark')}>
+                <Input value={newSub.remark} onChange={(e) => setNewSub({ ...newSub, remark: e.target.value })} placeholder={t('pages.xray.outboundSub.remarkPlaceholder')} />
               </Form.Item>
-              <Form.Item label="Subscription URL" required>
-                <Input value={newSub.url} onChange={(e) => setNewSub({ ...newSub, url: e.target.value })} placeholder="https://... (base64 list of links)" />
+              <Form.Item label={t('pages.xray.outboundSub.url')} required>
+                <Input value={newSub.url} onChange={(e) => setNewSub({ ...newSub, url: e.target.value })} placeholder={t('pages.xray.outboundSub.urlPlaceholder')} />
               </Form.Item>
-              <Form.Item label="Tag prefix">
-                <Input value={newSub.tagPrefix} onChange={(e) => setNewSub({ ...newSub, tagPrefix: e.target.value })} placeholder="hk-" />
+              <Form.Item label={t('pages.xray.outboundSub.tagPrefix')}>
+                <Input value={newSub.tagPrefix} onChange={(e) => setNewSub({ ...newSub, tagPrefix: e.target.value })} placeholder={t('pages.xray.outboundSub.tagPrefixPlaceholder')} />
               </Form.Item>
-              <Form.Item label="Update interval">
+              <Form.Item label={t('pages.xray.outboundSub.interval')}>
                 <Space>
                   <InputNumber
                     min={0}
                     value={intervalHours}
                     onChange={(v) => setIntervalHM(Number(v) || 0, intervalMinutes)}
                     style={{ width: 80 }}
-                  /> h
+                  /> {t('pages.xray.outboundSub.hours')}
                   <InputNumber
                     min={0}
                     max={59}
                     value={intervalMinutes}
                     onChange={(v) => setIntervalHM(intervalHours, Number(v) || 0)}
                     style={{ width: 80 }}
-                  /> min
+                  /> {t('pages.xray.outboundSub.minutes')}
                 </Space>
                 <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-                  Default 10 minutes. The background job checks frequently; each subscription only re-fetches when its own interval has passed.
+                  {t('pages.xray.outboundSub.intervalHint')}
                 </div>
               </Form.Item>
-              <Form.Item label="Enabled">
+              <Form.Item label={t('pages.xray.outboundSub.enabled')}>
                 <Switch checked={newSub.enabled} onChange={(v) => setNewSub({ ...newSub, enabled: v })} />
               </Form.Item>
-              <Button type="primary" onClick={createSub} icon={<PlusOutlined />}>Add</Button>
+              <Button type="primary" onClick={createSub} icon={<PlusOutlined />}>{t('pages.xray.outboundSub.addButton')}</Button>
             </Form>
           </div>
 
           <div>
             <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-              Active subscriptions
+              {t('pages.xray.outboundSub.active')}
               <Button size="small" icon={<ReloadOutlined />} onClick={loadSubs} loading={subsLoading} />
             </div>
             {subs.length === 0 ? (
-              <div style={{ color: '#888' }}>No subscriptions yet. Add one above.</div>
+              <div style={{ color: '#888' }}>{t('pages.xray.outboundSub.empty')}</div>
             ) : (
               <Table
                 size="small"
@@ -429,18 +429,18 @@ export default function OutboundsTab({
                 rowKey={(r) => r.id}
                 pagination={false}
                 columns={[
-                  { title: 'Remark', dataIndex: 'remark', key: 'remark' },
-                  { title: 'Prefix', dataIndex: 'tagPrefix', key: 'tagPrefix', render: (v) => v || <em>auto</em> },
-                  { title: 'Interval', dataIndex: 'updateInterval', key: 'updateInterval', render: (v) => `${Math.floor((v||0)/3600)}h ${Math.floor(((v||0)%3600)/60)}m` },
-                  { title: 'Last fetch', dataIndex: 'lastUpdated', key: 'lastUpdated', render: (v: number) => v ? new Date(v * 1000).toLocaleString() : 'never' },
-                  { title: 'Enabled', dataIndex: 'enabled', key: 'enabled', render: (v) => (v ? 'Yes' : 'No') },
+                  { title: t('pages.xray.outboundSub.colRemark'), dataIndex: 'remark', key: 'remark' },
+                  { title: t('pages.xray.outboundSub.colPrefix'), dataIndex: 'tagPrefix', key: 'tagPrefix', render: (v) => v || <em>{t('pages.xray.outboundSub.auto')}</em> },
+                  { title: t('pages.xray.outboundSub.colInterval'), dataIndex: 'updateInterval', key: 'updateInterval', render: (v) => `${Math.floor((v||0)/3600)}h ${Math.floor(((v||0)%3600)/60)}m` },
+                  { title: t('pages.xray.outboundSub.colLastFetch'), dataIndex: 'lastUpdated', key: 'lastUpdated', render: (v: number) => v ? new Date(v * 1000).toLocaleString() : t('pages.xray.outboundSub.never') },
+                  { title: t('pages.xray.outboundSub.colEnabled'), dataIndex: 'enabled', key: 'enabled', render: (v) => (v ? t('pages.xray.outboundSub.yes') : t('pages.xray.outboundSub.no')) },
                   {
                     title: '',
                     key: 'actions',
                     render: (_: unknown, r: OutboundSub) => (
                       <Space>
-                        <Button size="small" icon={<ReloadOutlined />} onClick={() => refreshOne(r.id)} title={r.lastError ? `Last error: ${r.lastError}` : 'Refresh now'} />
-                        <Popconfirm title="Delete this subscription?" onConfirm={() => deleteOne(r.id)}>
+                        <Button size="small" icon={<ReloadOutlined />} onClick={() => refreshOne(r.id)} title={r.lastError ? `${t('pages.xray.outboundSub.lastError')}: ${r.lastError}` : t('pages.xray.outboundSub.refreshNow')} />
+                        <Popconfirm title={t('pages.xray.outboundSub.deleteConfirm')} okText={t('delete')} cancelText={t('cancel')} onConfirm={() => deleteOne(r.id)}>
                           <Button size="small" danger icon={<DeleteOutlined />} />
                         </Popconfirm>
                       </Space>
@@ -450,7 +450,7 @@ export default function OutboundsTab({
               />
             )}
             <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
-              After adding or refreshing, restart Xray (or wait for the next auto-reload) to make the outbounds active.
+              {t('pages.xray.outboundSub.restartHint')}
             </div>
           </div>
         </Space>

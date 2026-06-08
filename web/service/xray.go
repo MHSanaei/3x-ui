@@ -259,10 +259,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	// These are additive and come after the outbounds defined in the template.
 	// Tags assigned by the subscription service are kept stable across refreshes
 	// so that balancers and routing rules continue to work.
-	if subSvc := (&OutboundSubscriptionService{}); subSvc != nil {
-		if extra, err := subSvc.AllActiveOutbounds(); err == nil && len(extra) > 0 {
-			mergeSubscriptionOutbounds(xrayConfig, extra)
-		}
+	subSvc := &OutboundSubscriptionService{}
+	if extra, err := subSvc.AllActiveOutbounds(); err == nil && len(extra) > 0 {
+		mergeSubscriptionOutbounds(xrayConfig, extra)
 	}
 
 	return xrayConfig, nil
