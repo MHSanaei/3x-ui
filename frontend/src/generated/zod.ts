@@ -400,6 +400,8 @@ export const NodeSchema = z.object({
   transitive: z.boolean().optional(),
   updatedAt: z.number().int(),
   uptimeSecs: z.number().int(),
+  xrayError: z.string(),
+  xrayState: z.string(),
   xrayVersion: z.string(),
 });
 export type Node = z.infer<typeof NodeSchema>;
@@ -421,6 +423,8 @@ export const ProbeResultUISchema = z.object({
   panelVersion: z.string(),
   status: z.string(),
   uptimeSecs: z.number().int(),
+  xrayError: z.string(),
+  xrayState: z.string(),
   xrayVersion: z.string(),
 });
 export type ProbeResultUI = z.infer<typeof ProbeResultUISchema>;

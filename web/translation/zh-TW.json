@@ -896,7 +896,9 @@
       "statusValues": {
         "online": "上線",
         "offline": "離線",
-        "unknown": "未知"
+        "unknown": "未知",
+        "xrayError": "Xray 錯誤",
+        "xrayStopped": "已停止"
       },
       "toasts": {
         "list": "載入節點失敗",

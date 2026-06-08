@@ -373,6 +373,8 @@ export interface Node {
   transitive?: boolean;
   updatedAt: number;
   uptimeSecs: number;
+  xrayError: string;
+  xrayState: string;
   xrayVersion: string;
 }
 
@@ -392,6 +394,8 @@ export interface ProbeResultUI {
   panelVersion: string;
   status: string;
   uptimeSecs: number;
+  xrayError: string;
+  xrayState: string;
   xrayVersion: string;
 }
 

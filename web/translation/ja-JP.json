@@ -896,7 +896,9 @@
       "statusValues": {
         "online": "オンライン",
         "offline": "オフライン",
-        "unknown": "不明"
+        "unknown": "不明",
+        "xrayError": "Xray エラー",
+        "xrayStopped": "停止"
       },
       "toasts": {
         "list": "ノードの読み込みに失敗しました",
