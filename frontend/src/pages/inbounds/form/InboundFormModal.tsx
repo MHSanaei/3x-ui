@@ -36,7 +36,7 @@ import { antdRule } from '@/utils/zodForm';
 import { Protocols } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
-import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
+import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
 import { TcpStreamSettingsSchema } from '@/schemas/protocols/stream/tcp';
 import { KcpStreamSettingsSchema } from '@/schemas/protocols/stream/kcp';
@@ -351,22 +351,11 @@ export default function InboundFormModal({
       // snap back to TCP so the standard network selector has a valid
       // starting point.
       if (next === Protocols.HYSTERIA) {
-        const tls = TlsStreamSettingsSchema.parse({}) as Record<string, unknown>;
-        tls.certificates = [{
-          useFile: true,
-          certificateFile: '',
-          keyFile: '',
-          certificate: [],
-          key: [],
-          oneTimeLoading: false,
-          usage: 'encipherment',
-          buildChain: false,
-        }];
         form.setFieldValue('streamSettings', {
           network: 'hysteria',
           security: 'tls',
           hysteriaSettings: HysteriaStreamSettingsSchema.parse({}),
-          tlsSettings: tls,
+          tlsSettings: createHysteriaTlsSettingsWithDefaultCert(),
           // Hysteria2 needs an obfs wrapper on the FinalMask side; seed
           // it with salamander + a random password so the listener boots
           // with a usable default. Re-selecting Hysteria from another

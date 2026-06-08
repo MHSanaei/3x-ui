@@ -22,6 +22,9 @@ export const UtlsFingerprintSchema = z.enum([
 ]);
 export type UtlsFingerprint = z.infer<typeof UtlsFingerprintSchema>;
 
+export const TlsFingerprintSchema = z.union([UtlsFingerprintSchema, z.literal('')]);
+export type TlsFingerprint = z.infer<typeof TlsFingerprintSchema>;
+
 export const AlpnSchema = z.enum(['h3', 'h2', 'http/1.1']);
 export type Alpn = z.infer<typeof AlpnSchema>;
 
@@ -51,7 +54,7 @@ export const TlsCertSchema = z.union([TlsCertFileSchema, TlsCertInlineSchema]);
 export type TlsCert = z.infer<typeof TlsCertSchema>;
 
 export const TlsClientSettingsSchema = z.object({
-  fingerprint: UtlsFingerprintSchema.default('chrome'),
+  fingerprint: TlsFingerprintSchema.default('chrome'),
   echConfigList: z.string().default(''),
   pinnedPeerCertSha256: z.array(z.string()).default([]),
 });
