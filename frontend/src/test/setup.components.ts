@@ -74,3 +74,19 @@ afterEach(async () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
 });
+
+import { HttpUtil } from '@/utils';
+
+vi.mock('axios', () => {
+  return {
+    default: {
+      get: vi.fn().mockResolvedValue({ data: { success: true, obj: {} } }),
+      post: vi.fn().mockResolvedValue({ data: { success: true, obj: {} } }),
+    }
+  };
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+vi.spyOn(HttpUtil, 'post').mockResolvedValue({ success: true, obj: {} } as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+vi.spyOn(HttpUtil, 'get').mockResolvedValue({ success: true, obj: {} } as any);

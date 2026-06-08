@@ -896,7 +896,9 @@
       "statusValues": {
         "online": "متصل",
         "offline": "غير متصل",
-        "unknown": "غير معروف"
+        "unknown": "غير معروف",
+        "xrayError": "خطأ Xray",
+        "xrayStopped": "متوقف"
       },
       "toasts": {
         "list": "فشل تحميل النودز",

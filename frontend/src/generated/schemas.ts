@@ -1630,6 +1630,13 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 86400,
         "type": "integer"
       },
+      "xrayError": {
+        "type": "string"
+      },
+      "xrayState": {
+        "description": "XrayState and XrayError are captured from the remote node's /panel/api/server/status\nduring heartbeats. They let the central panel distinguish \"panel API reachable\"\n(status=online) from \"Xray core itself has failed on the node\" for monitoring.",
+        "type": "string"
+      },
       "xrayVersion": {
         "example": "25.10.31",
         "type": "string"
@@ -1665,6 +1672,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "tlsVerifyMode",
       "updatedAt",
       "uptimeSecs",
+      "xrayError",
+      "xrayState",
       "xrayVersion"
     ],
     "type": "object"
@@ -1726,6 +1735,13 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 86400,
         "type": "integer"
       },
+      "xrayError": {
+        "type": "string"
+      },
+      "xrayState": {
+        "description": "XrayState/XrayError are populated on successful probes even when the node's\nXray core is not healthy. The UI uses them for a distinct \"panel ok, xray failed\" indicator.",
+        "type": "string"
+      },
       "xrayVersion": {
         "example": "25.10.31",
         "type": "string"
@@ -1739,6 +1755,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "panelVersion",
       "status",
       "uptimeSecs",
+      "xrayError",
+      "xrayState",
       "xrayVersion"
     ],
     "type": "object"

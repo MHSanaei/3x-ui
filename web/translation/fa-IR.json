@@ -896,7 +896,9 @@
       "statusValues": {
         "online": "آنلاین",
         "offline": "آفلاین",
-        "unknown": "نامشخص"
+        "unknown": "نامشخص",
+        "xrayError": "خطای Xray",
+        "xrayStopped": "متوقف"
       },
       "toasts": {
         "list": "بارگذاری نودها ناموفق",

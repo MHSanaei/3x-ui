@@ -897,7 +897,9 @@
       "statusValues": {
         "online": "Çevrimiçi",
         "offline": "Çevrimdışı",
-        "unknown": "Bilinmiyor"
+        "unknown": "Bilinmiyor",
+        "xrayError": "Xray Hatası",
+        "xrayStopped": "Durduruldu"
       },
       "toasts": {
         "list": "Düğümler yüklenemedi",

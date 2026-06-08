@@ -896,7 +896,9 @@
       "statusValues": {
         "online": "Online",
         "offline": "Offline",
-        "unknown": "Tidak diketahui"
+        "unknown": "Tidak diketahui",
+        "xrayError": "Kesalahan Xray",
+        "xrayStopped": "Berhenti"
       },
       "toasts": {
         "list": "Gagal memuat node",

@@ -35,6 +35,11 @@ type HeartbeatPatch struct {
 	MemPct        float64
 	UptimeSecs    uint64
 	LastError     string
+	// XrayState and XrayError come from the remote /panel/api/server/status when the
+	// panel API is reachable. They allow distinguishing panel connectivity from
+	// Xray core health on the node.
+	XrayState string
+	XrayError string
 }
 
 type NodeService struct{}
@@ -221,11 +226,20 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 	for id := range nodeByInbound {
 		inboundIDs = append(inboundIDs, id)
 	}
-	if err := db.Table("client_traffics").
-		Select("inbound_id, email, enable, total, up, down, expiry_time").
-		Where("inbound_id IN ?", inboundIDs).
-		Scan(&trafficRows).Error; err == nil {
-		depletedByNode := make(map[int]int)
+	// Chunk the IN clause to avoid "too many SQL variables" on SQLite
+	// when there are many node-owned inbounds (common with many nodes).
+	// sqliteMaxVars is defined in this package (inbound.go).
+	for _, batch := range chunkInts(inboundIDs, sqliteMaxVars) {
+		var page []trafficRow
+		if err := db.Table("client_traffics").
+			Select("inbound_id, email, enable, total, up, down, expiry_time").
+			Where("inbound_id IN ?", batch).
+			Scan(&page).Error; err == nil {
+			trafficRows = append(trafficRows, page...)
+		}
+	}
+	depletedByNode := make(map[int]int)
+	if len(trafficRows) > 0 {
 		for _, row := range trafficRows {
 			nodeID, ok := nodeByInbound[row.InboundID]
 			if !ok {
@@ -237,15 +251,15 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 				depletedByNode[nodeID]++
 			}
 		}
-		onlineByGuid := s.onlineEmailsByGuid()
-		for _, n := range nodes {
-			n.InboundCount = len(inboundsByNode[n.Id])
-			n.DepletedCount = depletedByNode[n.Id]
-			// Online is attributed to the node that physically hosts the client
-			// (by GUID): a client on a sub-node counts under the sub-node, not
-			// the intermediate node it syncs through (#4983).
-			n.OnlineCount = len(onlineByGuid[effectiveNodeGuid(n)])
-		}
+	}
+	onlineByGuid := s.onlineEmailsByGuid()
+	for _, n := range nodes {
+		n.InboundCount = len(inboundsByNode[n.Id])
+		n.DepletedCount = depletedByNode[n.Id]
+		// Online is attributed to the node that physically hosts the client
+		// (by GUID): a client on a sub-node counts under the sub-node, not
+		// the intermediate node it syncs through (#4983).
+		n.OnlineCount = len(onlineByGuid[effectiveNodeGuid(n)])
 	}
 
 	return nodes, nil
@@ -474,6 +488,8 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 		"mem_pct":        p.MemPct,
 		"uptime_secs":    p.UptimeSecs,
 		"last_error":     p.LastError,
+		"xray_state":     p.XrayState,
+		"xray_error":     p.XrayError,
 	}
 	// Only learn the GUID; never clear a known one if an old-build node (or a
 	// failed probe) reports none, so the stable identity survives blips.
@@ -607,7 +623,9 @@ func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch,
 				Total   uint64 `json:"total"`
 			} `json:"mem"`
 			Xray struct {
-				Version string `json:"version"`
+				Version  string `json:"version"`
+				State    string `json:"state"`
+				ErrorMsg string `json:"errorMsg"`
 			} `json:"xray"`
 			PanelVersion string `json:"panelVersion"`
 			PanelGuid    string `json:"panelGuid"`
@@ -628,6 +646,8 @@ func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch,
 		patch.MemPct = float64(o.Mem.Current) * 100.0 / float64(o.Mem.Total)
 	}
 	patch.XrayVersion = o.Xray.Version
+	patch.XrayState = o.Xray.State
+	patch.XrayError = o.Xray.ErrorMsg
 	patch.PanelVersion = o.PanelVersion
 	patch.Guid = o.PanelGuid
 	patch.UptimeSecs = o.Uptime
@@ -643,6 +663,10 @@ type ProbeResultUI struct {
 	MemPct       float64 `json:"memPct" example:"45.2"`
 	UptimeSecs   uint64  `json:"uptimeSecs" example:"86400"`
 	Error        string  `json:"error"`
+	// XrayState/XrayError are populated on successful probes even when the node's
+	// Xray core is not healthy. The UI uses them for a distinct "panel ok, xray failed" indicator.
+	XrayState string `json:"xrayState"`
+	XrayError string `json:"xrayError"`
 }
 
 func (p HeartbeatPatch) ToUI(ok bool) ProbeResultUI {
@@ -654,6 +678,8 @@ func (p HeartbeatPatch) ToUI(ok bool) ProbeResultUI {
 		MemPct:       p.MemPct,
 		UptimeSecs:   p.UptimeSecs,
 		Error:        FriendlyProbeError(p.LastError),
+		XrayState:    p.XrayState,
+		XrayError:    p.XrayError,
 	}
 	if ok {
 		r.Status = "online"

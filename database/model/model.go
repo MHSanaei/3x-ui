@@ -478,6 +478,12 @@ type Node struct {
 	UptimeSecs    uint64  `json:"uptimeSecs" example:"86400"`
 	LastError     string  `json:"lastError"`
 
+	// XrayState and XrayError are captured from the remote node's /panel/api/server/status
+	// during heartbeats. They let the central panel distinguish "panel API reachable"
+	// (status=online) from "Xray core itself has failed on the node" for monitoring.
+	XrayState string `json:"xrayState" gorm:"column:xray_state"`
+	XrayError string `json:"xrayError" gorm:"column:xray_error"`
+
 	ConfigDirty   bool  `json:"configDirty" gorm:"default:false"`
 	ConfigDirtyAt int64 `json:"configDirtyAt"`
 
@@ -514,6 +520,9 @@ type NodeSummary struct {
 	LatencyMs     int    `json:"latencyMs"`
 	PanelVersion  string `json:"panelVersion"`
 	XrayVersion   string `json:"xrayVersion"`
+	// XrayState/XrayError forwarded so masters can surface xray failure on transitive sub-nodes too.
+	XrayState string `json:"xrayState"`
+	XrayError string `json:"xrayError,omitempty"`
 }
 
 type CustomGeoResource struct {
@@ -713,18 +722,15 @@ type OutboundSubscription struct {
 	AllowPrivate         bool   `json:"allowPrivate" form:"allowPrivate" gorm:"default:false"`
 	TagPrefix            string `json:"tagPrefix" form:"tagPrefix"`
 	UpdateInterval       int    `json:"updateInterval" form:"updateInterval" gorm:"default:600"` // seconds between refreshes
-	Priority             int    `json:"priority" form:"priority" gorm:"default:0"`              // order among subscriptions in the merged outbounds (lower = earlier)
-	Prepend              bool   `json:"prepend" form:"prepend" gorm:"default:false"`            // place this subscription's outbounds before the manual template outbounds
+	Priority             int    `json:"priority" form:"priority" gorm:"default:0"`               // order among subscriptions in the merged outbounds (lower = earlier)
+	Prepend              bool   `json:"prepend" form:"prepend" gorm:"default:false"`             // place this subscription's outbounds before the manual template outbounds
 	LastUpdated          int64  `json:"lastUpdated" form:"lastUpdated"`
 	LastError            string `json:"lastError" form:"lastError"`
 	LastFetchedOutbounds string `json:"lastFetchedOutbounds" form:"lastFetchedOutbounds" gorm:"type:text"`
 	LinkIdentities       string `json:"-" gorm:"type:text;column:link_identities"`
 	CreatedAt            int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 	UpdatedAt            int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
-	// OutboundCount is a derived count of the last fetched outbounds (not
-	// persisted); List populates it so the UI can show how many outbounds a
-	// subscription produced without shipping the full payload.
-	OutboundCount int `json:"outboundCount" gorm:"-"`
+	OutboundCount        int    `json:"outboundCount" gorm:"-"`
 }
 
 func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientMergeConflict {
