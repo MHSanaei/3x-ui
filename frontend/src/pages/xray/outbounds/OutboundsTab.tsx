@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Button,
   Col,
-  Drawer,
+  Dropdown,
   Form,
   Input,
   InputNumber,
@@ -21,6 +21,7 @@ import {
   PlusOutlined,
   CloudOutlined,
   ApiOutlined,
+  MoreOutlined,
   RetweetOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
@@ -43,6 +44,7 @@ interface OutboundSub {
   remark?: string;
   url?: string;
   enabled?: boolean;
+  allowPrivate?: boolean;
   tagPrefix?: string;
   updateInterval?: number;
   lastUpdated?: number;
@@ -99,7 +101,7 @@ export default function OutboundsTab({
   const [subDrawerOpen, setSubDrawerOpen] = useState(false);
   const [subs, setSubs] = useState<OutboundSub[]>([]);
   const [subsLoading, setSubsLoading] = useState(false);
-  const [newSub, setNewSub] = useState({ remark: '', url: '', tagPrefix: '', updateInterval: 600, enabled: true });
+  const [newSub, setNewSub] = useState({ remark: '', url: '', tagPrefix: '', updateInterval: 600, enabled: true, allowPrivate: false });
 
   // Convenience: expose hours/minutes for the interval input
   const intervalHours = Math.floor((newSub.updateInterval || 600) / 3600);
@@ -221,11 +223,12 @@ export default function OutboundsTab({
         tagPrefix: newSub.tagPrefix,
         updateInterval: newSub.updateInterval,
         enabled: newSub.enabled,
+        allowPrivate: newSub.allowPrivate,
       });
       if (r?.success) {
         messageApi.success(t('pages.xray.outboundSub.toastAdded'));
         const createdId = r.obj?.id;
-        setNewSub({ remark: '', url: '', tagPrefix: '', updateInterval: 600, enabled: true });
+        setNewSub({ remark: '', url: '', tagPrefix: '', updateInterval: 600, enabled: true, allowPrivate: false });
         await loadSubs();
         if (createdId) {
           // First fetch so the user immediately sees the imported outbounds
@@ -259,6 +262,7 @@ export default function OutboundsTab({
       if (r?.success) {
         messageApi.success(t('pages.xray.outboundSub.toastDeleted'));
         await loadSubs();
+        onRefreshXrayData?.();
       }
     } catch {
       messageApi.error(t('pages.xray.outboundSub.toastDeleteFailed'));
@@ -290,15 +294,20 @@ export default function OutboundsTab({
               <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
                 {!isMobile && t('pages.xray.Outbounds')}
               </Button>
-              <Button type="primary" icon={<CloudOutlined />} onClick={onShowWarp}>
-                WARP
-              </Button>
-              <Button type="primary" icon={<ApiOutlined />} onClick={onShowNord}>
-                NordVPN
-              </Button>
               <Button icon={<CloudOutlined />} onClick={openSubManager}>
                 {t('pages.xray.outboundSub.manage')}
               </Button>
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  items: [
+                    { key: 'warp', icon: <CloudOutlined />, label: 'WARP', onClick: onShowWarp },
+                    { key: 'nord', icon: <ApiOutlined />, label: 'NordVPN', onClick: onShowNord },
+                  ],
+                }}
+              >
+                <Button icon={<MoreOutlined />}>{t('more')}</Button>
+              </Dropdown>
             </Space>
           </Col>
           <Col xs={24} sm={12} className="toolbar-right">
@@ -368,16 +377,16 @@ export default function OutboundsTab({
         )}
       </Space>
 
-      <Drawer
+      <Modal
         title={t('pages.xray.outboundSub.title')}
         open={subDrawerOpen}
-        onClose={() => setSubDrawerOpen(false)}
-        size={isMobile ? '100%' : 520}
+        onCancel={() => setSubDrawerOpen(false)}
+        footer={null}
+        width={isMobile ? '100%' : 640}
         destroyOnHidden
       >
         <Space orientation="vertical" style={{ width: '100%' }} size="large">
           <div>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>{t('pages.xray.outboundSub.add')}</div>
             <Form layout="vertical" size="small">
               <Form.Item label={t('pages.xray.outboundSub.remark')}>
                 <Input value={newSub.remark} onChange={(e) => setNewSub({ ...newSub, remark: e.target.value })} placeholder={t('pages.xray.outboundSub.remarkPlaceholder')} />
@@ -411,6 +420,12 @@ export default function OutboundsTab({
               <Form.Item label={t('pages.xray.outboundSub.enabled')}>
                 <Switch checked={newSub.enabled} onChange={(v) => setNewSub({ ...newSub, enabled: v })} />
               </Form.Item>
+              <Form.Item label={t('pages.xray.outboundSub.allowPrivate')}>
+                <Switch checked={newSub.allowPrivate} onChange={(v) => setNewSub({ ...newSub, allowPrivate: v })} />
+                <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+                  {t('pages.xray.outboundSub.allowPrivateHint')}
+                </div>
+              </Form.Item>
               <Button type="primary" onClick={createSub} icon={<PlusOutlined />}>{t('pages.xray.outboundSub.addButton')}</Button>
             </Form>
           </div>
@@ -431,7 +446,7 @@ export default function OutboundsTab({
                 columns={[
                   { title: t('pages.xray.outboundSub.colRemark'), dataIndex: 'remark', key: 'remark' },
                   { title: t('pages.xray.outboundSub.colPrefix'), dataIndex: 'tagPrefix', key: 'tagPrefix', render: (v) => v || <em>{t('pages.xray.outboundSub.auto')}</em> },
-                  { title: t('pages.xray.outboundSub.colInterval'), dataIndex: 'updateInterval', key: 'updateInterval', render: (v) => `${Math.floor((v||0)/3600)}h ${Math.floor(((v||0)%3600)/60)}m` },
+                  { title: t('pages.xray.outboundSub.colInterval'), dataIndex: 'updateInterval', key: 'updateInterval', render: (v) => `${Math.floor((v || 0) / 3600)}h ${Math.floor(((v || 0) % 3600) / 60)}m` },
                   { title: t('pages.xray.outboundSub.colLastFetch'), dataIndex: 'lastUpdated', key: 'lastUpdated', render: (v: number) => v ? new Date(v * 1000).toLocaleString() : t('pages.xray.outboundSub.never') },
                   { title: t('pages.xray.outboundSub.colEnabled'), dataIndex: 'enabled', key: 'enabled', render: (v) => (v ? t('pages.xray.outboundSub.yes') : t('pages.xray.outboundSub.no')) },
                   {
@@ -454,7 +469,7 @@ export default function OutboundsTab({
             </div>
           </div>
         </Space>
-      </Drawer>
+      </Modal>
     </>
   );
 }

@@ -3,8 +3,35 @@ package service
 import (
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/util/link"
 )
+
+func TestDefaultPrefixNumber(t *testing.T) {
+	mk := func(id int, prefix string) *model.OutboundSubscription {
+		return &model.OutboundSubscription{Id: id, TagPrefix: prefix}
+	}
+	cases := []struct {
+		name      string
+		subs      []*model.OutboundSubscription
+		excludeId int
+		want      int
+	}{
+		{"no subscriptions starts at 1", nil, 0, 1},
+		{"sequential prefixes give the next", []*model.OutboundSubscription{mk(1, "sub1-"), mk(2, "sub2-")}, 0, 3},
+		{"reuses the lowest freed number", []*model.OutboundSubscription{mk(2, "sub2-")}, 0, 1},
+		{"legacy blank prefix reserves its id", []*model.OutboundSubscription{mk(1, ""), mk(5, "sub3-")}, 0, 2},
+		{"custom prefixes are ignored", []*model.OutboundSubscription{mk(1, "hk-"), mk(2, "jp-")}, 0, 1},
+		{"excludes the edited subscription", []*model.OutboundSubscription{mk(5, "sub2-")}, 5, 1},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := defaultPrefixNumber(c.subs, c.excludeId); got != c.want {
+				t.Fatalf("got %d, want %d", got, c.want)
+			}
+		})
+	}
+}
 
 func TestAssignStableTags(t *testing.T) {
 	t.Run("reuses the tag mapped to a known identity", func(t *testing.T) {

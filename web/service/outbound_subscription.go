@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -48,8 +50,48 @@ func (s *OutboundSubscriptionService) Get(id int) (*model.OutboundSubscription, 
 
 // Create persists a new subscription. It does not fetch immediately; the caller
 // can call Refresh on the returned id if desired.
-func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, enabled bool, updateInterval int) (*model.OutboundSubscription, error) {
-	cleanURL, err := SanitizePublicHTTPURL(rawURL, false)
+var defaultPrefixRe = regexp.MustCompile(`^sub(\d+)-$`)
+
+// defaultPrefixNumber returns the smallest positive integer N that is not already
+// in use as a "subN-" tag prefix among the given subscriptions. This is used to
+// auto-name a subscription's outbounds when the user leaves the prefix blank, so
+// deleting a subscription frees its number for reuse instead of letting the
+// number grow forever with the auto-increment DB id. A subscription with a blank
+// prefix reserves its own id (it falls back to id-based "sub<id>-" tags).
+func defaultPrefixNumber(subs []*model.OutboundSubscription, excludeId int) int {
+	used := map[int]bool{}
+	for _, sub := range subs {
+		if sub.Id == excludeId {
+			continue
+		}
+		if sub.TagPrefix == "" {
+			used[sub.Id] = true
+			continue
+		}
+		if m := defaultPrefixRe.FindStringSubmatch(sub.TagPrefix); m != nil {
+			if n, err := strconv.Atoi(m[1]); err == nil {
+				used[n] = true
+			}
+		}
+	}
+	n := 1
+	for used[n] {
+		n++
+	}
+	return n
+}
+
+// nextDefaultSubPrefix builds the default "subN-" prefix for a new/edited
+// subscription, picking the smallest free N (excludeId skips a subscription's
+// own current prefix when editing).
+func (s *OutboundSubscriptionService) nextDefaultSubPrefix(excludeId int) string {
+	var subs []*model.OutboundSubscription
+	_ = database.GetDB().Find(&subs).Error
+	return fmt.Sprintf("sub%d-", defaultPrefixNumber(subs, excludeId))
+}
+
+func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate bool) (*model.OutboundSubscription, error) {
+	cleanURL, err := SanitizePublicHTTPURL(rawURL, allowPrivate)
 	if err != nil {
 		return nil, common.NewError("invalid subscription URL:", err)
 	}
@@ -59,11 +101,16 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, e
 	if updateInterval <= 0 {
 		updateInterval = 600
 	}
+	prefix := strings.TrimSpace(tagPrefix)
+	if prefix == "" {
+		prefix = s.nextDefaultSubPrefix(0)
+	}
 	sub := &model.OutboundSubscription{
 		Remark:         strings.TrimSpace(remark),
 		Url:            cleanURL,
 		Enabled:        enabled,
-		TagPrefix:      strings.TrimSpace(tagPrefix),
+		AllowPrivate:   allowPrivate,
+		TagPrefix:      prefix,
 		UpdateInterval: updateInterval,
 	}
 	if err := database.GetDB().Create(sub).Error; err != nil {
@@ -73,12 +120,12 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, e
 }
 
 // Update updates editable fields.
-func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix string, enabled bool, updateInterval int) error {
+func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate bool) error {
 	sub, err := s.Get(id)
 	if err != nil {
 		return err
 	}
-	cleanURL, err := SanitizePublicHTTPURL(rawURL, false)
+	cleanURL, err := SanitizePublicHTTPURL(rawURL, allowPrivate)
 	if err != nil {
 		return common.NewError("invalid subscription URL:", err)
 	}
@@ -88,10 +135,15 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix s
 	if updateInterval <= 0 {
 		updateInterval = 600
 	}
+	prefix := strings.TrimSpace(tagPrefix)
+	if prefix == "" {
+		prefix = s.nextDefaultSubPrefix(sub.Id)
+	}
 	sub.Remark = strings.TrimSpace(remark)
 	sub.Url = cleanURL
 	sub.Enabled = enabled
-	sub.TagPrefix = strings.TrimSpace(tagPrefix)
+	sub.AllowPrivate = allowPrivate
+	sub.TagPrefix = prefix
 	sub.UpdateInterval = updateInterval
 	return database.GetDB().Save(sub).Error
 }
@@ -157,8 +209,9 @@ func (s *OutboundSubscriptionService) RefreshAllEnabled() (int, error) {
 // fetchAndStore does the actual network + parse + stability + persist work.
 func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscription) ([]any, error) {
 	// Re-sanitize on every fetch (handles legacy rows + defense in depth against
-	// any direct DB tampering). Private targets are blocked.
-	cleanURL, err := SanitizePublicHTTPURL(sub.Url, false)
+	// any direct DB tampering). Private targets are blocked unless this
+	// subscription was explicitly created with AllowPrivate.
+	cleanURL, err := SanitizePublicHTTPURL(sub.Url, sub.AllowPrivate)
 	if err != nil {
 		s.recordError(sub, err)
 		return nil, err
@@ -175,6 +228,9 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 10 {
 			return fmt.Errorf("stopped after 10 redirects")
+		}
+		if sub.AllowPrivate {
+			return nil
 		}
 		ctx, cancel := context.WithTimeout(req.Context(), 5*time.Second)
 		defer cancel()
