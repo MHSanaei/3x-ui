@@ -1181,7 +1181,7 @@ install_acme() {
 
 ssl_cert_issue_main() {
     echo -e "${green}\t1.${plain} Get SSL (Domain)"
-    echo -e "${green}\t2.${plain} Revoke"
+    echo -e "${green}\t2.${plain} Revoke & Remove"
     echo -e "${green}\t3.${plain} Force Renew"
     echo -e "${green}\t4.${plain} Show Existing Domains"
     echo -e "${green}\t5.${plain} Set Cert paths for the panel"
@@ -1204,10 +1204,34 @@ ssl_cert_issue_main() {
             else
                 echo "Existing domains:"
                 echo "$domains"
-                read -rp "Please enter a domain from the list to revoke the certificate: " domain
+                read -rp "Please enter a domain from the list to revoke and remove the certificate: " domain
                 if echo "$domains" | grep -qw "$domain"; then
-                    ~/.acme.sh/acme.sh --revoke -d ${domain}
-                    LOGI "Certificate revoked for domain: $domain"
+                    # The IP-cert flow (option 6) stores files under /root/cert/ip, but acme.sh
+                    # tracks the cert under the actual IP address(es). Resolve those so renewal
+                    # state is torn down too; otherwise the acme.sh cron re-creates the deleted cert.
+                    local acme_ids="${domain}"
+                    if [[ "${domain}" == "ip" ]]; then
+                        acme_ids=$(~/.acme.sh/acme.sh --list 2> /dev/null | awk 'NR>1 {print $1}' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$|:')
+                    fi
+                    for id in ${acme_ids}; do
+                        # Best-effort revoke at the CA, then drop acme.sh renewal tracking.
+                        ~/.acme.sh/acme.sh --revoke -d "${id}" 2> /dev/null
+                        ~/.acme.sh/acme.sh --remove -d "${id}" 2> /dev/null
+                        # --remove leaves the cert files on disk, so delete the state dirs (RSA + ECC).
+                        rm -rf ~/.acme.sh/"${id}" ~/.acme.sh/"${id}_ecc"
+                    done
+                    # Delete the local certificate files for this domain.
+                    rm -rf "/root/cert/${domain}"
+                    LOGI "Certificate revoked and removed for domain: ${domain}"
+
+                    # If the panel currently serves this domain's cert, clear the stored paths
+                    # so it stops loading the now-deleted files, then restart.
+                    local existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+                    if [[ "${existing_cert}" == "/root/cert/${domain}/"* ]]; then
+                        ${xui_folder}/x-ui cert -reset
+                        LOGI "Cleared panel certificate paths referencing ${domain}; restarting panel."
+                        restart
+                    fi
                 else
                     echo "Invalid domain entered."
                 fi
