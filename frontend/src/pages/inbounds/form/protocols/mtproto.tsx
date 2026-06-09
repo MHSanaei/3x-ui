@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Form, Input, Space } from 'antd';
+import { Button, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
 import { generateMtprotoSecret, mtprotoSecretForDomain } from '@/lib/xray/inbound-defaults';
@@ -32,8 +32,44 @@ export default function MtprotoFields() {
           />
         </Space.Compact>
       </Form.Item>
-      <Form.Item wrapperCol={{ span: 24 }}>
-        <Alert type="info" showIcon message={t('pages.inbounds.form.mtprotoHint')} />
+      <Form.Item
+        name={['settings', 'domainFronting', 'ip']}
+        label={t('pages.inbounds.form.mtgDomainFrontingIp')}
+        tooltip={t('pages.inbounds.form.mtgDomainFrontingHint')}
+      >
+        <Input placeholder="127.0.0.1" />
+      </Form.Item>
+      <Form.Item name={['settings', 'domainFronting', 'port']} label={t('pages.inbounds.form.mtgDomainFrontingPort')}>
+        <InputNumber min={0} max={65535} placeholder="443" style={{ width: '100%' }} />
+      </Form.Item>
+      <Form.Item
+        name={['settings', 'domainFronting', 'proxyProtocol']}
+        label={t('pages.inbounds.form.mtgDomainFrontingProxyProtocol')}
+        valuePropName="checked"
+      >
+        <Switch />
+      </Form.Item>
+      <Form.Item
+        name={['settings', 'proxyProtocolListener']}
+        label={t('pages.inbounds.form.mtgProxyProtocolListener')}
+        valuePropName="checked"
+      >
+        <Switch />
+      </Form.Item>
+      <Form.Item name={['settings', 'preferIp']} label={t('pages.inbounds.form.mtgPreferIp')}>
+        <Select
+          allowClear
+          placeholder="prefer-ipv6"
+          options={[
+            { value: 'prefer-ipv6', label: 'prefer-ipv6' },
+            { value: 'prefer-ipv4', label: 'prefer-ipv4' },
+            { value: 'only-ipv6', label: 'only-ipv6' },
+            { value: 'only-ipv4', label: 'only-ipv4' },
+          ]}
+        />
+      </Form.Item>
+      <Form.Item name={['settings', 'debug']} label={t('pages.inbounds.form.mtgDebug')} valuePropName="checked">
+        <Switch />
       </Form.Item>
     </>
   );

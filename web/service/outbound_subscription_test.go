@@ -85,6 +85,32 @@ func TestAssignStableTags(t *testing.T) {
 	})
 }
 
+// TestOutboundsContainTag covers the guard that ensures the outbound under test
+// is present in the HTTP-probe config. Subscription outbounds aren't part of the
+// template outbounds the frontend sends as allOutbounds, so the probe must append
+// the tested outbound when its tag is missing (otherwise burstObservatory has
+// nothing to probe and every subscription test times out).
+func TestOutboundsContainTag(t *testing.T) {
+	template := []any{
+		map[string]any{"tag": "direct", "protocol": "freedom"},
+		map[string]any{"tag": "blocked", "protocol": "blackhole"},
+	}
+	if !outboundsContainTag(template, "direct") {
+		t.Fatal("expected tag 'direct' to be found")
+	}
+	if outboundsContainTag(template, "sub1-tokyo") {
+		t.Fatal("expected subscription tag to be absent from template outbounds")
+	}
+	if outboundsContainTag(nil, "anything") {
+		t.Fatal("expected empty slice to contain no tags")
+	}
+	// Tolerates non-map / untagged entries without panicking.
+	mixed := []any{"not-a-map", map[string]any{"protocol": "freedom"}}
+	if outboundsContainTag(mixed, "direct") {
+		t.Fatal("expected no match among untagged/non-map entries")
+	}
+}
+
 // TestSanitizePublicHTTPURLRejectsPrivateAndBadSchemes covers the SSRF guard used
 // when fetching subscription URLs. All rejected cases use literal IPs or bad
 // schemes so the test never performs real DNS resolution.
