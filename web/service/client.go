@@ -779,6 +779,20 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		updated.CreatedAt = existing.CreatedAt
 	}
 
+	// Preserve existing credentials when the caller omits them, so a partial
+	// update (e.g. only changing traffic/expiry) doesn't silently rotate the
+	// client's UUID/password/auth via fillProtocolDefaults. Supplying a new
+	// value still rotates it intentionally.
+	if updated.ID == "" {
+		updated.ID = existing.UUID
+	}
+	if updated.Password == "" {
+		updated.Password = existing.Password
+	}
+	if updated.Auth == "" {
+		updated.Auth = existing.Auth
+	}
+
 	if updated.Email != existing.Email {
 		var collisionCount int64
 		if err := database.GetDB().Model(&model.ClientRecord{}).
