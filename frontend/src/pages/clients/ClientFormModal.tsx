@@ -414,6 +414,7 @@ export default function ClientFormModal({
         cancelText={t('cancel')}
         okButtonProps={{ loading: submitting }}
         width={720}
+        zIndex={1000}
         style={{ top: 20 }}
         styles={{ body: { maxHeight: 'calc(100vh - 160px)', overflowY: 'auto', overflowX: 'hidden' } }}
         onOk={onSubmit}
@@ -630,6 +631,7 @@ export default function ClientFormModal({
         open={ipsModalOpen}
         title={`${t('pages.clients.ipLog')}${client?.email ? ` — ${client.email}` : ''}`}
         width={440}
+        zIndex={1100}
         onCancel={() => setIpsModalOpen(false)}
         footer={[
           <Button key="refresh" icon={<ReloadOutlined />} loading={ipsLoading} onClick={loadIps}>
