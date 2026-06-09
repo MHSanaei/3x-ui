@@ -505,6 +505,7 @@ exports[`InboundSchema (full) fixtures > parses vmess-tcp-tls byte-stably 1`] = 
   "settings": {
     "clients": [
       {
+        "alterId": 0,
         "comment": "",
         "email": "carol@example.test",
         "enable": true,
