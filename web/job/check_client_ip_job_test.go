@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+	"time"
 )
 
 func TestMergeClientIps_EvictsStaleOldEntries(t *testing.T) {
@@ -146,6 +147,26 @@ func TestPartitionLiveIps_EmptyScanLeavesDbIntact(t *testing.T) {
 	}
 	if got := collectIps(historical); !reflect.DeepEqual(got, []string{"A", "B"}) {
 		t.Fatalf("all merged entries should flow to historical\ngot:  %v\nwant: [A B]", got)
+	}
+}
+
+func TestPartitionLiveIps_RecentSyncedIpIsLive(t *testing.T) {
+	// Synced IPs from other nodes within 2 minutes should be counted as live
+	// even if they weren't observed in the local scan.
+	now := time.Now().Unix()
+	ipMap := map[string]int64{
+		"A": now - 30,  // synced 30s ago -> live
+		"B": now - 150, // synced 2m30s ago -> historical
+	}
+	observed := map[string]bool{}
+
+	live, historical := partitionLiveIps(ipMap, observed)
+
+	if got := collectIps(live); !reflect.DeepEqual(got, []string{"A"}) {
+		t.Fatalf("recent IP should be live\ngot:  %v\nwant: [A]", got)
+	}
+	if got := collectIps(historical); !reflect.DeepEqual(got, []string{"B"}) {
+		t.Fatalf("older IP should be historical\ngot:  %v\nwant: [B]", got)
 	}
 }
 

@@ -812,7 +812,8 @@
       "clientCount": "グループ内のクライアント",
       "totalGroups": "グループ合計",
       "totalGroupedClients": "グループのあるクライアント",
-      "emptyGroups": "空のグループ",
+      "trafficUsed": "使用済みトラフィック",
+      "totalTraffic": "合計トラフィック",
       "addGroup": "グループ追加",
       "createSuccess": "グループ「{name}」を作成しました。",
       "rename": "名前変更",
@@ -1454,6 +1455,11 @@
         "outboundUpdated": "NordVPN アウトバウンドを更新しました"
       },
       "warp": {
+        "changeIp": "IP を変更",
+        "changeIpSuccess": "WARP の IP を変更しました！",
+        "autoUpdateIp": "IP アドレスの自動更新",
+        "intervalDays": "間隔（日）",
+        "intervalDesc": "0 で無効。IP アドレスを自動的に変更します。",
         "licenseError": "WARP ライセンスの設定に失敗しました。",
         "fetchFirst": "先に WARP 構成を取得してください。",
         "createAccount": "WARP アカウントを作成",

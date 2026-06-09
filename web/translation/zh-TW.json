@@ -812,7 +812,8 @@
       "clientCount": "群組中的客戶端",
       "totalGroups": "群組總數",
       "totalGroupedClients": "有群組的客戶端",
-      "emptyGroups": "空群組",
+      "trafficUsed": "已用流量",
+      "totalTraffic": "總流量",
       "addGroup": "新增群組",
       "createSuccess": "已建立群組「{name}」。",
       "rename": "重新命名",
@@ -1454,6 +1455,11 @@
         "outboundUpdated": "NordVPN 出站已更新"
       },
       "warp": {
+        "changeIp": "更換 IP",
+        "changeIpSuccess": "WARP IP 更換成功！",
+        "autoUpdateIp": "自動更新 IP 位址",
+        "intervalDays": "間隔（天）",
+        "intervalDesc": "設為 0 停用。自動更換 IP 位址。",
         "licenseError": "設定 WARP 授權失敗。",
         "fetchFirst": "請先取得 WARP 設定。",
         "createAccount": "建立 WARP 帳號",

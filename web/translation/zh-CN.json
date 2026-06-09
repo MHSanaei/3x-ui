@@ -812,7 +812,8 @@
       "clientCount": "分组中的客户端",
       "totalGroups": "分组总数",
       "totalGroupedClients": "有分组的客户端",
-      "emptyGroups": "空分组",
+      "trafficUsed": "已用流量",
+      "totalTraffic": "总流量",
       "addGroup": "添加分组",
       "createSuccess": "已创建分组 “{name}”。",
       "rename": "重命名",
@@ -1454,6 +1455,11 @@
         "outboundUpdated": "NordVPN 出站已更新"
       },
       "warp": {
+        "changeIp": "更换 IP",
+        "changeIpSuccess": "WARP IP 更换成功！",
+        "autoUpdateIp": "自动更新 IP 地址",
+        "intervalDays": "间隔（天）",
+        "intervalDesc": "设为 0 禁用。自动更换 IP 地址。",
         "licenseError": "设置 WARP 许可证失败。",
         "fetchFirst": "请先获取 WARP 配置。",
         "createAccount": "创建 WARP 账户",

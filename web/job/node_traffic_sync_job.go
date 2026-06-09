@@ -16,6 +16,7 @@ const (
 	nodeTrafficSyncConcurrency    = 8
 	nodeTrafficSyncRequestTimeout = 4 * time.Second
 	nodeReconcileTimeout          = 30 * time.Second
+	nodeClientIpSyncInterval      = 10 * time.Second
 )
 
 type NodeTrafficSyncJob struct {
@@ -25,6 +26,8 @@ type NodeTrafficSyncJob struct {
 	xrayService    service.XrayService
 	running        sync.Mutex
 	structural     atomicBool
+	ipSyncMu       sync.Mutex
+	lastIpSync     int64
 }
 
 type atomicBool struct {
@@ -70,6 +73,16 @@ func (j *NodeTrafficSyncJob) Run() {
 		return
 	}
 
+	// Decide once per tick whether this run also syncs client IPs, and stamp the
+	// clock before the loop so two back-to-back 5s ticks can't both qualify.
+	doIpSync := false
+	j.ipSyncMu.Lock()
+	if now := time.Now().Unix(); now-j.lastIpSync >= int64(nodeClientIpSyncInterval/time.Second) {
+		doIpSync = true
+		j.lastIpSync = now
+	}
+	j.ipSyncMu.Unlock()
+
 	sem := make(chan struct{}, nodeTrafficSyncConcurrency)
 	var wg sync.WaitGroup
 	for _, n := range nodes {
@@ -81,7 +94,7 @@ func (j *NodeTrafficSyncJob) Run() {
 		go func(n *model.Node) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			j.syncOne(mgr, n)
+			j.syncOne(mgr, n, doIpSync)
 		}(n)
 	}
 	wg.Wait()
@@ -151,7 +164,7 @@ func (j *NodeTrafficSyncJob) Run() {
 	}
 }
 
-func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node) {
+func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSync bool) {
 	rt, err := mgr.RemoteFor(n)
 	if err != nil {
 		logger.Warning("node traffic sync: remote lookup failed for", n.Name, ":", err)
@@ -189,5 +202,29 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node) {
 	}
 	if changed {
 		j.structural.set()
+	}
+
+	if !doIpSync {
+		return
+	}
+
+	nodeIps, err := rt.FetchAllClientIps(ctx)
+	if err == nil && len(nodeIps) > 0 {
+		if err := j.inboundService.MergeInboundClientIps(nodeIps); err != nil {
+			logger.Warning("node traffic sync: merge client ips from", n.Name, "failed:", err)
+		}
+	} else if err != nil {
+		logger.Warning("node traffic sync: fetch client ips from", n.Name, "failed:", err)
+	}
+
+	masterIps, err := j.inboundService.GetAllInboundClientIps()
+	if err != nil {
+		logger.Warning("node traffic sync: load client ips for push to", n.Name, "failed:", err)
+		return
+	}
+	if len(masterIps) > 0 {
+		if err := rt.PushAllClientIps(ctx, masterIps); err != nil {
+			logger.Warning("node traffic sync: push client ips to", n.Name, "failed:", err)
+		}
 	}
 }

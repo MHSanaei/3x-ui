@@ -2,6 +2,7 @@ package service
 
 import (
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"slices"
 
@@ -37,6 +38,94 @@ func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
 	if err != nil {
 		return common.NewError("xray template config invalid:", err)
 	}
+	return nil
+}
+
+func (s *XraySettingService) UpdateWarpXraySetting(warpData map[string]string, warpConfig map[string]interface{}) error {
+	template, err := s.GetXrayConfigTemplate()
+	if err != nil {
+		return err
+	}
+
+	var cfg map[string]interface{}
+	if err := json.Unmarshal([]byte(template), &cfg); err != nil {
+		return err
+	}
+
+	outbounds, ok := cfg["outbounds"].([]interface{})
+	if !ok {
+		return nil
+	}
+
+	updated := false
+	for _, outIface := range outbounds {
+		out, ok := outIface.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if tag, ok := out["tag"].(string); ok && tag == "warp" {
+			settings, ok := out["settings"].(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			settings["secretKey"] = warpData["private_key"]
+
+			if conf, ok := warpConfig["config"].(map[string]interface{}); ok {
+				if iface, ok := conf["interface"].(map[string]interface{}); ok {
+					if addrs, ok := iface["addresses"].(map[string]interface{}); ok {
+						var addrList []string
+						if v4, ok := addrs["v4"].(string); ok && v4 != "" {
+							addrList = append(addrList, v4+"/32")
+						}
+						if v6, ok := addrs["v6"].(string); ok && v6 != "" {
+							addrList = append(addrList, v6+"/128")
+						}
+						settings["address"] = addrList
+					}
+				}
+
+				var clientId string
+				if id, ok := conf["client_id"].(string); ok {
+					clientId = id
+				} else if id, ok := warpData["client_id"]; ok {
+					clientId = id
+				}
+				if clientId != "" {
+					decoded, _ := base64.StdEncoding.DecodeString(clientId)
+					var res []int
+					for _, b := range decoded {
+						res = append(res, int(b))
+					}
+					settings["reserved"] = res
+				}
+
+				if peers, ok := conf["peers"].([]interface{}); ok && len(peers) > 0 {
+					if peer, ok := peers[0].(map[string]interface{}); ok {
+						if pSettings, ok := settings["peers"].([]interface{}); ok && len(pSettings) > 0 {
+							if pSet, ok := pSettings[0].(map[string]interface{}); ok {
+								pSet["publicKey"] = peer["public_key"]
+								if endpoint, ok := peer["endpoint"].(map[string]interface{}); ok {
+									pSet["endpoint"] = endpoint["host"]
+								}
+							}
+						}
+					}
+				}
+			}
+			updated = true
+			break
+		}
+	}
+
+	if updated {
+		outJSON, err := json.MarshalIndent(cfg, "", "  ")
+		if err != nil {
+			return err
+		}
+		return s.SaveXraySetting(string(outJSON))
+	}
+
 	return nil
 }
 

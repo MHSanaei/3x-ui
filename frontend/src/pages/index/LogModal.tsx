@@ -5,55 +5,12 @@ import { DownloadOutlined, SyncOutlined } from '@ant-design/icons';
 
 import { HttpUtil, FileManager, PromiseUtil } from '@/utils';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { parseLogLine } from './logParse';
 import './LogModal.css';
 
 interface LogModalProps {
   open: boolean;
   onClose: () => void;
-}
-
-interface ParsedLog {
-  date: string;
-  time: string;
-  stamp: string;
-  levelText: string;
-  levelClass: string;
-  service: string;
-  body: string;
-}
-
-const LEVELS = ['DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR'];
-const LEVEL_CLASSES = ['level-debug', 'level-info', 'level-notice', 'level-warning', 'level-error'];
-
-function parseLogLine(line: string): ParsedLog {
-  const [head, ...rest] = (line || '').split(' - ');
-  const message = rest.join(' - ');
-  const parts = head.split(' ');
-
-  let date = '';
-  let time = '';
-  let levelText: string;
-  if (parts.length >= 3) {
-    [date, time, levelText] = parts;
-  } else {
-    levelText = head;
-  }
-
-  const li = LEVELS.indexOf(levelText);
-  const levelClass = li >= 0 ? LEVEL_CLASSES[li] : 'level-unknown';
-
-  let service = '';
-  let body = message || '';
-  if (body.startsWith('XRAY:')) {
-    service = 'XRAY:';
-    body = body.slice('XRAY:'.length).trimStart();
-  } else if (body) {
-    service = 'X-UI:';
-  }
-
-  const stamp = [date, time].filter(Boolean).join(' ');
-
-  return { date, time, stamp, levelText, levelClass, service, body };
 }
 
 export default function LogModal({ open, onClose }: LogModalProps) {

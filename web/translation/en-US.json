@@ -813,7 +813,8 @@
       "clientCount": "Clients in group",
       "totalGroups": "Total groups",
       "totalGroupedClients": "Clients with a group",
-      "emptyGroups": "Empty groups",
+      "trafficUsed": "Traffic used",
+      "totalTraffic": "Total traffic",
       "addGroup": "Add Group",
       "createSuccess": "Group \"{name}\" created.",
       "rename": "Rename",
@@ -1455,6 +1456,11 @@
         "outboundUpdated": "NordVPN outbound updated"
       },
       "warp": {
+        "changeIp": "Change IP",
+        "changeIpSuccess": "WARP IP changed successfully!",
+        "autoUpdateIp": "Auto Update IP Address",
+        "intervalDays": "Interval (Days)",
+        "intervalDesc": "0 to disable. Changes IP address automatically.",
         "licenseError": "Failed to set WARP license.",
         "fetchFirst": "Fetch the WARP config first.",
         "createAccount": "Create WARP account",

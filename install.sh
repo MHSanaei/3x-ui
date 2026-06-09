@@ -1177,6 +1177,11 @@ install_x-ui() {
         else
             systemctl stop x-ui
         fi
+        # Kill any leftover mtg (MTProto) sidecars. x-ui runs them outside its own
+        # lifecycle, so on Linux a stale one can survive the stop and keep holding
+        # an inbound port with an outdated secret, silently breaking new clients.
+        # The freshly installed panel respawns a clean mtg per inbound on start.
+        pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
         rm ${xui_folder}/ -rf
     fi
 

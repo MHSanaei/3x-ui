@@ -442,6 +442,21 @@ export const sections: readonly Section[] = [
         body: 'sni=example.com',
         response: '{\n  "success": true,\n  "obj": {\n    "echKeySet": "...",\n    "echServerKeys": [...],\n    "echConfigList": "..."\n  }\n}',
       },
+      {
+        method: 'GET',
+        path: '/panel/api/server/clientIps',
+        summary: 'Fetch the fully aggregated inbound_client_ips database table. Used by nodes to sync recently active IPs across the cluster.',
+        responseSchema: 'InboundClientIps',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/clientIps',
+        summary: 'Submit a list of recently active IP timestamps. The panel merges them with the existing database to maintain a unified global IP-limit view.',
+        params: [
+          { name: 'ips', in: 'body (json)', type: 'object[]', desc: 'Array of InboundClientIps to merge.' },
+        ],
+      },
     ],
   },
 

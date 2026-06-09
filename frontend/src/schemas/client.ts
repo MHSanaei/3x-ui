@@ -126,6 +126,7 @@ export const ActiveInboundsByNodeSchema = z
 export const GroupSummarySchema = z.object({
   name: z.string(),
   clientCount: z.number(),
+  trafficUsed: z.number().nullable().transform((v) => v ?? 0),
 });
 
 export const GroupSummaryListSchema = z.array(GroupSummarySchema).nullable().transform((v) => v ?? []);

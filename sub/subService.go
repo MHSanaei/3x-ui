@@ -381,8 +381,7 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 }
 
 // genMtprotoLink builds a Telegram proxy deep link for an mtproto inbound:
-// tg://proxy?server=<addr>&port=<port>&secret=<ee FakeTLS secret>.
-func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string {
+func (s *SubService) genMtprotoLink(inbound *model.Inbound, _ string) string {
 	if inbound.Protocol != model.MTProto {
 		return ""
 	}
@@ -403,7 +402,7 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string
 		"port":   fmt.Sprintf("%d", inbound.Port),
 		"secret": secret,
 	}
-	return buildLinkWithParams("tg://proxy", params, s.genRemark(inbound, email, ""))
+	return buildLinkWithParams("tg://proxy", params, "")
 }
 
 // Protocol link generators are intentionally ordered as:

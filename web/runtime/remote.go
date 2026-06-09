@@ -399,6 +399,11 @@ func (r *Remote) ResetAllTraffics(ctx context.Context) error {
 	return err
 }
 
+func (r *Remote) ResetInboundTraffic(ctx context.Context, ib *model.Inbound) error {
+	_, err := r.do(ctx, http.MethodPost, fmt.Sprintf("panel/api/inbounds/%d/resetTraffic", ib.Id), nil)
+	return err
+}
+
 type TrafficSnapshot struct {
 	Inbounds     []*model.Inbound
 	OnlineEmails []string
@@ -532,4 +537,23 @@ func sanitizeStreamSettingsForRemote(streamSettings string) string {
 func isNonEmptySlice(v any) bool {
 	s, ok := v.([]any)
 	return ok && len(s) > 0
+}
+
+func (r *Remote) FetchAllClientIps(ctx context.Context) ([]model.InboundClientIps, error) {
+	env, err := r.do(ctx, http.MethodGet, "panel/api/server/clientIps", nil)
+	if err != nil {
+		return nil, err
+	}
+	var ips []model.InboundClientIps
+	if len(env.Obj) > 0 {
+		if err := json.Unmarshal(env.Obj, &ips); err != nil {
+			return nil, fmt.Errorf("decode client ips: %w", err)
+		}
+	}
+	return ips, nil
+}
+
+func (r *Remote) PushAllClientIps(ctx context.Context, ips []model.InboundClientIps) error {
+	_, err := r.do(ctx, http.MethodPost, "panel/api/server/clientIps", ips)
+	return err
 }

@@ -812,7 +812,8 @@
       "clientCount": "Client trong nhóm",
       "totalGroups": "Tổng số nhóm",
       "totalGroupedClients": "Client có nhóm",
-      "emptyGroups": "Nhóm trống",
+      "trafficUsed": "Lưu lượng đã dùng",
+      "totalTraffic": "Tổng lưu lượng",
       "addGroup": "Thêm nhóm",
       "createSuccess": "Đã tạo nhóm «{name}».",
       "rename": "Đổi tên",
@@ -1454,6 +1455,11 @@
         "outboundUpdated": "Đã cập nhật outbound NordVPN"
       },
       "warp": {
+        "changeIp": "Đổi IP",
+        "changeIpSuccess": "Đã đổi IP WARP thành công!",
+        "autoUpdateIp": "Tự động cập nhật địa chỉ IP",
+        "intervalDays": "Khoảng thời gian (ngày)",
+        "intervalDesc": "0 để tắt. Tự động đổi địa chỉ IP.",
         "licenseError": "Không thiết lập được giấy phép WARP.",
         "fetchFirst": "Hãy lấy cấu hình WARP trước.",
         "createAccount": "Tạo tài khoản WARP",

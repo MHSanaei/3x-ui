@@ -812,7 +812,8 @@
       "clientCount": "Клиентов в группе",
       "totalGroups": "Всего групп",
       "totalGroupedClients": "Клиенты с группой",
-      "emptyGroups": "Пустые группы",
+      "trafficUsed": "Использованный трафик",
+      "totalTraffic": "Общий трафик",
       "addGroup": "Добавить группу",
       "createSuccess": "Группа «{name}» создана.",
       "rename": "Переименовать",
@@ -1454,6 +1455,11 @@
         "outboundUpdated": "Исходящий NordVPN обновлён"
       },
       "warp": {
+        "changeIp": "Сменить IP",
+        "changeIpSuccess": "IP-адрес WARP успешно изменён!",
+        "autoUpdateIp": "Автоматическое обновление IP-адреса",
+        "intervalDays": "Интервал (дни)",
+        "intervalDesc": "0 — отключить. Автоматически меняет IP-адрес.",
         "licenseError": "Не удалось установить лицензию WARP.",
         "fetchFirst": "Сначала получите WARP-конфиг.",
         "createAccount": "Создать аккаунт WARP",

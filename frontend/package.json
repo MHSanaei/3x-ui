@@ -1,7 +1,7 @@
 {
   "name": "3x-ui-frontend",
   "private": true,
-  "version": "0.2.7",
+  "version": "0.3.0",
   "type": "module",
   "description": "3x-ui panel frontend (React 19 + Ant Design 6 + Vite 8).",
   "engines": {
@@ -65,5 +65,12 @@
     "react-debounce-input": {
       "react": "^19.0.0"
     }
+  },
+  "allowScripts": {
+    "@scarf/scarf": false,
+    "@tree-sitter-grammars/tree-sitter-yaml": false,
+    "tree-sitter": false,
+    "core-js-pure": false,
+    "tree-sitter-json": false
   }
 }

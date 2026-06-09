@@ -812,7 +812,8 @@
       "clientCount": "کاربران در گروه",
       "totalGroups": "تعداد گروه‌ها",
       "totalGroupedClients": "کاربران دارای گروه",
-      "emptyGroups": "گروه‌های خالی",
+      "trafficUsed": "ترافیک مصرف‌شده",
+      "totalTraffic": "مجموع ترافیک",
       "addGroup": "افزودن گروه",
       "createSuccess": "گروه «{name}» ایجاد شد.",
       "rename": "تغییر نام",
@@ -1454,6 +1455,11 @@
         "outboundUpdated": "خروجی NordVPN به‌روزرسانی شد"
       },
       "warp": {
+        "changeIp": "تغییر IP",
+        "changeIpSuccess": "آدرس IP وارپ با موفقیت تغییر کرد!",
+        "autoUpdateIp": "به‌روزرسانی خودکار آدرس IP",
+        "intervalDays": "بازه (روز)",
+        "intervalDesc": "برای غیرفعال‌سازی ۰ بگذارید. آدرس IP را به‌صورت خودکار تغییر می‌دهد.",
         "licenseError": "تنظیم لایسنس WARP ناموفق بود.",
         "fetchFirst": "ابتدا پیکربندی WARP را دریافت کنید.",
         "createAccount": "ایجاد حساب WARP",

@@ -812,7 +812,8 @@
       "clientCount": "عملاء في المجموعة",
       "totalGroups": "إجمالي المجموعات",
       "totalGroupedClients": "العملاء بمجموعة",
-      "emptyGroups": "مجموعات فارغة",
+      "trafficUsed": "حركة المرور المستخدمة",
+      "totalTraffic": "إجمالي حركة المرور",
       "addGroup": "إضافة مجموعة",
       "createSuccess": "تم إنشاء المجموعة «{name}».",
       "rename": "إعادة تسمية",
@@ -1454,6 +1455,11 @@
         "outboundUpdated": "تم تحديث صادر NordVPN"
       },
       "warp": {
+        "changeIp": "تغيير الـ IP",
+        "changeIpSuccess": "تم تغيير عنوان IP الخاص بـ WARP بنجاح!",
+        "autoUpdateIp": "التحديث التلقائي لعنوان IP",
+        "intervalDays": "الفاصل الزمني (أيام)",
+        "intervalDesc": "0 للتعطيل. يغيّر عنوان IP تلقائيًا.",
         "licenseError": "فشل تعيين رخصة WARP.",
         "fetchFirst": "احصل على تكوين WARP أولاً.",
         "createAccount": "إنشاء حساب WARP",
