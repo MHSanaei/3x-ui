@@ -11,6 +11,7 @@ import type { StreamSettings } from '@/schemas/api/inbound';
 import type { Sniffing } from '@/schemas/primitives';
 import type { z } from 'zod';
 import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
+import { canEnableSniffing } from '@/lib/xray/protocol-capabilities';
 
 // Plain-data adapter between the panel's stored inbound row shape and
 // the typed InboundFormValues that Form.useForm<T> carries inside
@@ -302,7 +303,9 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     protocol: values.protocol,
     settings: JSON.stringify(settingsPruned),
     streamSettings: streamPruned ? JSON.stringify(streamPruned) : '',
-    sniffing: JSON.stringify(normalizeSniffing(values.sniffing)),
+    // mtproto is mtg-served, not Xray, so sniffing never applies — emit empty
+    // rather than the default { enabled: false } so the row carries no sniffing.
+    sniffing: canEnableSniffing({ protocol: values.protocol }) ? JSON.stringify(normalizeSniffing(values.sniffing)) : '',
     tag: values.tag,
   };
   if (values.nodeId != null) payload.nodeId = values.nodeId;

@@ -23,6 +23,7 @@ import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
 import { composeInboundTag, isAutoInboundTag, type InboundTagInput } from '@/lib/xray/inbound-tag';
 import {
   canEnableReality,
+  canEnableSniffing,
   canEnableStream,
   canEnableTls,
   isSS2022,
@@ -160,6 +161,7 @@ export default function InboundFormModal({
   const network = Form.useWatch(['streamSettings', 'network'], form) ?? '';
   const security = Form.useWatch(['streamSettings', 'security'], form) ?? 'none';
   const streamEnabled = canEnableStream({ protocol });
+  const sniffingSupported = canEnableSniffing({ protocol });
 
   const wPort = Form.useWatch('port', form);
   const wListen = (Form.useWatch('listen', form) ?? '') as string;
@@ -776,7 +778,7 @@ export default function InboundFormModal({
                   <div className="advanced-editor-meta">
                     {t('pages.inbounds.advanced.allHelp')}
                   </div>
-                  <AdvancedAllEditor form={form} streamEnabled={streamEnabled} />
+                  <AdvancedAllEditor form={form} streamEnabled={streamEnabled} sniffingEnabled={sniffingSupported} />
                 </>
               ),
             },
@@ -820,25 +822,27 @@ export default function InboundFormModal({
                 ),
               }]
               : []),
-            {
-              key: 'sniffing',
-              label: t('pages.inbounds.advanced.sniffing'),
-              children: (
-                <>
-                  <div className="advanced-editor-meta">
-                    {t('pages.inbounds.advanced.sniffingHelp')}{' '}
-                    <code>{'{ sniffing: { ... } }'}</code>.
-                  </div>
-                  <AdvancedSliceEditor
-                    form={form}
-                    path="sniffing"
-                    wrapKey="sniffing"
-                    minHeight="240px"
-                    maxHeight="420px"
-                  />
-                </>
-              ),
-            },
+            ...(sniffingSupported
+              ? [{
+                key: 'sniffing',
+                label: t('pages.inbounds.advanced.sniffing'),
+                children: (
+                  <>
+                    <div className="advanced-editor-meta">
+                      {t('pages.inbounds.advanced.sniffingHelp')}{' '}
+                      <code>{'{ sniffing: { ... } }'}</code>.
+                    </div>
+                    <AdvancedSliceEditor
+                      form={form}
+                      path="sniffing"
+                      wrapKey="sniffing"
+                      minHeight="240px"
+                      maxHeight="420px"
+                    />
+                  </>
+                ),
+              }]
+              : []),
           ]}
         />
       </div>
@@ -896,7 +900,9 @@ export default function InboundFormModal({
                 { key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab, forceRender: true },
               ]
               : []),
-            { key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab, forceRender: true },
+            ...(sniffingSupported
+              ? [{ key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab, forceRender: true }]
+              : []),
             { key: 'advanced', label: t('pages.xray.advancedTemplate'), children: advancedTab, forceRender: true },
           ]} />
         </Form>

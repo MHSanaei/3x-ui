@@ -923,7 +923,6 @@ show_mtproto_status() {
             echo -e "mtproto inbound ${id} (${bind}): ${red}Not Running${plain}"
         fi
     done
-    echo -e "  ${yellow}mtg logs:${plain} journalctl -u x-ui --no-pager -n 200 | grep -i mtproto"
 }
 
 firewall_menu() {

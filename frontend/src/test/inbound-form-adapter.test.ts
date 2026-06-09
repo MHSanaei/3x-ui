@@ -142,6 +142,17 @@ describe('formValuesToWirePayload', () => {
     expect(payload.streamSettings).toBe('');
   });
 
+  it('emits empty sniffing for mtproto (mtg-served, not Xray)', () => {
+    const values = rawInboundToFormValues({
+      ...vlessRow,
+      protocol: 'mtproto',
+      settings: { fakeTlsDomain: 'www.cloudflare.com', secret: 'ee00' },
+    });
+    const payload = formValuesToWirePayload(values);
+    expect(payload.protocol).toBe('mtproto');
+    expect(payload.sniffing).toBe('');
+  });
+
   it('omits nodeId when null', () => {
     const values = rawInboundToFormValues({ ...vlessRow, nodeId: null });
     const payload = formValuesToWirePayload(values);
