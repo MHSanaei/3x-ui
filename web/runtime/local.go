@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
+	"github.com/mhsanaei/3x-ui/v3/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/xray"
 )
 
@@ -44,6 +45,13 @@ func (l *Local) withAPI(fn func(api *xray.XrayAPI) error) error {
 }
 
 func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
+	if ib.Protocol == model.MTProto {
+		inst, ok := mtproto.InstanceFromInbound(ib)
+		if !ok {
+			return nil
+		}
+		return mtproto.GetManager().Ensure(inst)
+	}
 	body, err := json.MarshalIndent(ib.GenXrayInboundConfig(), "", "  ")
 	if err != nil {
 		return err
@@ -54,6 +62,10 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 }
 
 func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
+	if ib.Protocol == model.MTProto {
+		mtproto.GetManager().Remove(ib.Id)
+		return nil
+	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
 		return api.DelInbound(ib.Tag)
 	})
@@ -68,12 +80,18 @@ func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) 
 }
 
 func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string]any) error {
+	if ib.Protocol == model.MTProto {
+		return nil
+	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
 		return api.AddUser(string(ib.Protocol), ib.Tag, userMap)
 	})
 }
 
 func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) error {
+	if ib.Protocol == model.MTProto {
+		return nil
+	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
 		return api.RemoveUser(ib.Tag, email)
 	})
@@ -139,5 +157,9 @@ func (l *Local) ResetClientTraffic(_ context.Context, _ *model.Inbound, _ string
 }
 
 func (l *Local) ResetAllTraffics(_ context.Context) error {
+	return nil
+}
+
+func (l *Local) ResetInboundTraffic(_ context.Context, _ *model.Inbound) error {
 	return nil
 }

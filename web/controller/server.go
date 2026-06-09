@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/database"
+	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/web/global"
@@ -56,10 +57,12 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getMigration", a.getMigration)
 	g.GET("/getNewUUID", a.getNewUUID)
 	g.GET("/getWebCertFiles", a.getWebCertFiles)
+	g.GET("/descendants", a.descendants)
 	g.GET("/getNewX25519Cert", a.getNewX25519Cert)
 	g.GET("/getNewmldsa65", a.getNewmldsa65)
 	g.GET("/getNewmlkem768", a.getNewmlkem768)
 	g.GET("/getNewVlessEnc", a.getNewVlessEnc)
+	g.GET("/clientIps", a.getClientIps)
 
 	g.POST("/stopXrayService", a.stopXrayService)
 	g.POST("/restartXrayService", a.restartXrayService)
@@ -71,6 +74,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/xraylogs/:count", a.getXrayLogs)
 	g.POST("/importDB", a.importDB)
 	g.POST("/getNewEchCert", a.getNewEchCert)
+	g.POST("/clientIps", a.setClientIps)
 }
 
 // startTask registers the @2s ticker that refreshes server status, samples
@@ -334,6 +338,14 @@ func (a *ServerController) importDB(c *gin.Context) {
 	jsonObj(c, I18nWeb(c, "pages.index.importDatabaseSuccess"), nil)
 }
 
+// descendants publishes read-only summaries of the nodes this panel manages so
+// a parent panel can surface them as transitive sub-nodes in a chained
+// topology. Called by the parent via the node's API token (#4983).
+func (a *ServerController) descendants(c *gin.Context) {
+	data, err := (&service.NodeService{}).LocalDescendants()
+	jsonObj(c, data, err)
+}
+
 // getWebCertFiles returns this panel's own web TLS certificate and key file
 // paths. The central panel calls it on a node (via the node's API token) so
 // "Set Cert from Panel" can fill a node-assigned inbound with paths that exist
@@ -410,4 +422,19 @@ func (a *ServerController) getNewmlkem768(c *gin.Context) {
 		return
 	}
 	jsonObj(c, out, nil)
+}
+
+func (a *ServerController) getClientIps(c *gin.Context) {
+	ips, err := (&service.InboundService{}).GetAllInboundClientIps()
+	jsonObj(c, ips, err)
+}
+
+func (a *ServerController) setClientIps(c *gin.Context) {
+	var ips []model.InboundClientIps
+	if err := c.ShouldBindJSON(&ips); err != nil {
+		jsonMsg(c, "invalid data", err)
+		return
+	}
+	err := (&service.InboundService{}).MergeInboundClientIps(ips)
+	jsonMsg(c, "Client IPs merged", err)
 }

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/mhsanaei/3x-ui/v3/database"
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
@@ -34,6 +35,7 @@ var defaultValueMap = map[string]string{
 	"webCertFile":                 "",
 	"webKeyFile":                  "",
 	"secret":                      random.Seq(32),
+	"panelGuid":                   uuid.NewString(),
 	"apiToken":                    "",
 	"webBasePath":                 "/",
 	"sessionMaxAge":               "360",
@@ -84,8 +86,10 @@ var defaultValueMap = map[string]string{
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
 	"subJsonFinalMask":            "",
+	"subThemeDir":                 "",
 	"datepicker":                  "gregorian",
 	"warp":                        "",
+	"warpUpdateInterval":          "0",
 	"nord":                        "",
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
@@ -320,6 +324,22 @@ func (s *SettingService) setInt(key string, value int) error {
 	return s.setString(key, strconv.Itoa(value))
 }
 
+func (s *SettingService) GetWarpLastUpdate() (int64, error) {
+	val, err := s.getString("warpLastUpdate")
+	if err != nil || val == "" {
+		return 0, err
+	}
+	return strconv.ParseInt(val, 10, 64)
+}
+
+func (s *SettingService) SetWarpLastUpdate(val int64) error {
+	return s.saveSetting("warpLastUpdate", strconv.FormatInt(val, 10))
+}
+
+func (s *SettingService) SetWarpUpdateInterval(val int) error {
+	return s.setInt("warpUpdateInterval", val)
+}
+
 func (s *SettingService) GetXrayConfigTemplate() (string, error) {
 	return s.getString("xrayTemplateConfig")
 }
@@ -508,6 +528,24 @@ func (s *SettingService) GetSecret() ([]byte, error) {
 	return []byte(secret), err
 }
 
+// GetPanelGuid returns this panel's stable self-identifier, persisting a
+// freshly generated UUID on first read. It is the globally stable node
+// identity used to attribute online clients and inbounds to the physical
+// node that hosts them across a chain of nodes (#4983), where per-panel
+// autoincrement node ids are meaningless one hop away.
+func (s *SettingService) GetPanelGuid() (string, error) {
+	guid, err := s.getString("panelGuid")
+	if err != nil {
+		return "", err
+	}
+	if guid == defaultValueMap["panelGuid"] {
+		if saveErr := s.saveSetting("panelGuid", guid); saveErr != nil {
+			logger.Warning("save panelGuid failed:", saveErr)
+		}
+	}
+	return guid, nil
+}
+
 func (s *SettingService) SetBasePath(basePath string) error {
 	if !strings.HasPrefix(basePath, "/") {
 		basePath = "/" + basePath
@@ -677,6 +715,10 @@ func (s *SettingService) GetSubJsonRules() (string, error) {
 
 func (s *SettingService) GetSubJsonFinalMask() (string, error) {
 	return s.getString("subJsonFinalMask")
+}
+
+func (s *SettingService) GetSubThemeDir() (string, error) {
+	return s.getString("subThemeDir")
 }
 
 func (s *SettingService) GetDatepicker() (string, error) {
@@ -953,6 +995,7 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		"defaultCert":    func() (any, error) { return s.GetCertFile() },
 		"defaultKey":     func() (any, error) { return s.GetKeyFile() },
 		"tgBotEnable":    func() (any, error) { return s.GetTgbotEnabled() },
+		"subThemeDir":    func() (any, error) { return s.GetSubThemeDir() },
 		"subEnable":      func() (any, error) { return s.GetSubEnable() },
 		"subJsonEnable":  func() (any, error) { return s.GetSubJsonEnable() },
 		"subClashEnable": func() (any, error) { return s.GetSubClashEnable() },

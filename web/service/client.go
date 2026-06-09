@@ -1714,15 +1714,19 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 type GroupSummary struct {
 	Name        string `json:"name"`
 	ClientCount int    `json:"clientCount"`
+	TrafficUsed int64  `json:"trafficUsed"`
 }
 
 func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 	db := database.GetDB()
+	// email is unique in both clients and client_traffics, so the LEFT JOIN
+	// never double-counts a client's traffic.
 	var derived []GroupSummary
-	if err := db.Model(&model.ClientRecord{}).
-		Select("group_name AS name, COUNT(*) AS client_count").
-		Where("group_name <> ''").
-		Group("group_name").
+	if err := db.Table("clients AS c").
+		Select("c.group_name AS name, COUNT(*) AS client_count, COALESCE(SUM(ct.up + ct.down), 0) AS traffic_used").
+		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email").
+		Where("c.group_name <> ''").
+		Group("c.group_name").
 		Scan(&derived).Error; err != nil {
 		return nil, err
 	}
@@ -1730,16 +1734,20 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 	if err := db.Find(&stored).Error; err != nil {
 		return nil, err
 	}
-	merged := make(map[string]int, len(derived)+len(stored))
+	type groupAgg struct {
+		count   int
+		traffic int64
+	}
+	merged := make(map[string]groupAgg, len(derived)+len(stored))
 	for _, g := range stored {
-		merged[g.Name] = 0
+		merged[g.Name] = groupAgg{}
 	}
 	for _, g := range derived {
-		merged[g.Name] = g.ClientCount
+		merged[g.Name] = groupAgg{count: g.ClientCount, traffic: g.TrafficUsed}
 	}
 	out := make([]GroupSummary, 0, len(merged))
-	for name, count := range merged {
-		out = append(out, GroupSummary{Name: name, ClientCount: count})
+	for name, agg := range merged {
+		out = append(out, GroupSummary{Name: name, ClientCount: agg.count, TrafficUsed: agg.traffic})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)

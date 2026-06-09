@@ -17,6 +17,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/config"
 	"github.com/mhsanaei/3x-ui/v3/logger"
+	"github.com/mhsanaei/3x-ui/v3/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/util/common"
 	"github.com/mhsanaei/3x-ui/v3/web/controller"
 	"github.com/mhsanaei/3x-ui/v3/web/job"
@@ -318,6 +319,11 @@ func (s *Server) startTask(restartXray bool) {
 		s.cron.AddJob("@every 5s", job.NewXrayTrafficJob())
 	}()
 
+	// Reconcile mtproto (mtg) sidecars and scrape their traffic
+	mtJob := job.NewMtprotoJob()
+	s.cron.AddJob("@every 10s", mtJob)
+	go mtJob.Run()
+
 	// check client ips from log file every 10 sec
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
 
@@ -325,8 +331,12 @@ func (s *Server) startTask(restartXray bool) {
 
 	s.cron.AddJob("@every 5s", job.NewNodeTrafficSyncJob())
 
+	// Outbound subscription auto-refresh (respects per-sub updateInterval)
+	s.cron.AddJob("@every 5m", job.NewOutboundSubscriptionJob())
+
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
+	s.cron.AddJob("@hourly", job.NewWarpIpJob())
 
 	// Inbound traffic reset jobs
 	// Run every hour
@@ -386,9 +396,8 @@ func (s *Server) Start() (err error) {
 	return s.start(true, true)
 }
 
-// StartPanelOnly initializes the panel during an in-process panel restart without cycling Xray.
 func (s *Server) StartPanelOnly() (err error) {
-	return s.start(false, false)
+	return s.start(false, true)
 }
 
 func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
@@ -493,15 +502,15 @@ func (s *Server) Stop() error {
 	return s.stop(true, true)
 }
 
-// StopPanelOnly stops only panel-owned HTTP/background resources for an in-process panel restart.
 func (s *Server) StopPanelOnly() error {
-	return s.stop(false, false)
+	return s.stop(false, true)
 }
 
 func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	s.cancel()
 	if stopXray {
 		s.xrayService.StopXray()
+		mtproto.GetManager().StopAll()
 	}
 	if s.cron != nil {
 		s.cron.Stop()

@@ -18,6 +18,7 @@ interface BalancersTabProps {
   templateSettings: XraySettingsValue | null;
   setTemplateSettings: SetTemplate;
   clientReverseTags: string[];
+  subscriptionOutboundTags?: string[];
   isMobile: boolean;
 }
 
@@ -90,6 +91,7 @@ export default function BalancersTab({
   templateSettings,
   setTemplateSettings,
   clientReverseTags,
+  subscriptionOutboundTags,
   isMobile,
 }: BalancersTabProps) {
   const { t } = useTranslation();
@@ -118,8 +120,11 @@ export default function BalancersTab({
     for (const tag of clientReverseTags || []) {
       if (tag) tags.add(tag);
     }
+    for (const tag of subscriptionOutboundTags || []) {
+      if (tag) tags.add(tag);
+    }
     return [...tags];
-  }, [templateSettings?.outbounds, clientReverseTags]);
+  }, [templateSettings?.outbounds, clientReverseTags, subscriptionOutboundTags]);
 
   const otherTags = useMemo(() => {
     if (editingIndex == null) return rows.map((b) => b.tag).filter(Boolean);

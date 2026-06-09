@@ -350,6 +350,7 @@ export default function OutboundFormModal({
           colon={false}
           labelCol={{ md: { span: 8 } }}
           wrapperCol={{ md: { span: 14 } }}
+          labelWrap
           onValuesChange={onValuesChange}
         >
           <Tabs

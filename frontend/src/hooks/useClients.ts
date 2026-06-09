@@ -142,7 +142,7 @@ async function fetchInboundOptions(): Promise<InboundOption[]> {
 }
 
 async function fetchDefaults(): Promise<Record<string, unknown>> {
-  const msg = await HttpUtil.post('/panel/setting/defaultSettings', undefined, { silent: true });
+  const msg = await HttpUtil.post('/panel/api/setting/defaultSettings', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch defaults');
   const validated = parseMsg(msg, DefaultsPayloadSchema, 'setting/defaultSettings');
   return validated.obj || {};

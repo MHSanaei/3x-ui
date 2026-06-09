@@ -27,6 +27,7 @@ type Field struct {
 	Skip     bool
 	Validate []ValidateRule
 	Doc      string
+	Example  string
 }
 
 type TypeRef struct {
@@ -59,10 +60,11 @@ type ValidateRule struct {
 	Param string
 }
 
-func parseStructTag(raw string) (json string, validate string, gormHasDash bool) {
+func parseStructTag(raw string) (json string, validate string, example string, gormHasDash bool) {
 	tag := reflect.StructTag(strings.Trim(raw, "`"))
 	json = tag.Get("json")
 	validate = tag.Get("validate")
+	example = tag.Get("example")
 	if g := tag.Get("gorm"); g != "" {
 		for part := range strings.SplitSeq(g, ";") {
 			if strings.TrimSpace(part) == "-" {

@@ -1,4 +1,5 @@
 import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
 import { Wireguard } from '@/utils';
 
 import type {
@@ -519,8 +520,8 @@ function freedomToWire(s: FreedomOutboundFormSettings) {
     userLevel: s.userLevel || undefined,
     proxyProtocol: s.proxyProtocol || undefined,
     fragment: fragmentEnabled ? Object.fromEntries(fragmentEntries) : undefined,
-    noises: s.noises.length > 0 ? s.noises : undefined,
-    finalRules: s.finalRules.length > 0
+    noises: s.noises && s.noises.length > 0 ? s.noises : undefined,
+    finalRules: s.finalRules && s.finalRules.length > 0
       ? s.finalRules.map((r) => ({
           action: r.action,
           network: r.network || undefined,
@@ -588,7 +589,7 @@ function stripUiOnlyStreamFields(stream: unknown): Raw {
     if (!xmuxEnabled) delete cleaned.xmux;
     next.xhttpSettings = dropEmptyStrings(cleaned);
   }
-  return next;
+  return normalizeStreamSettingsForWire(next, { side: 'outbound' }) as Raw;
 }
 
 function muxAllowed(values: OutboundFormValues): boolean {

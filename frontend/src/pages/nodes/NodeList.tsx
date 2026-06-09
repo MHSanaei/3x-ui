@@ -15,6 +15,7 @@ import {
 import type { BadgeProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
+  ApartmentOutlined,
   ClusterOutlined,
   CloudDownloadOutlined,
   DeleteOutlined,
@@ -56,7 +57,7 @@ function isUpdateEligible(n: NodeRecord): boolean {
 
 interface NodeRow extends NodeRecord {
   url: string;
-  key: number;
+  key: string | number;
 }
 
 function badgeStatus(status?: string): BadgeProps['status'] {
@@ -67,18 +68,63 @@ function badgeStatus(status?: string): BadgeProps['status'] {
   }
 }
 
-function StatusDot({ status }: { status?: string }) {
-  if (status === 'online') return <span className="online-dot" />;
+interface HealthProps {
+  status?: string;
+  xrayState?: string;
+  xrayError?: string;
+}
+
+// Purple: the node's panel API is reachable (status=online) but its Xray core
+// has failed or been stopped. Distinct from a normal offline/unknown node.
+const XRAY_ERROR_COLOR = '#722ED1';
+
+// True when the panel is online but Xray itself reports error/stop.
+function hasXrayProblem(status?: string, xrayState?: string): boolean {
+  if (status !== 'online') return false;
+  const xs = (xrayState || '').toLowerCase().trim();
+  return xs === 'error' || xs === 'stop';
+}
+
+// Tooltip text + icon color for the status cell. A real probe error (lastError)
+// is a warning and takes precedence; otherwise an Xray-core problem shows purple.
+function statusIssue(record: Pick<NodeRecord, 'status' | 'xrayState' | 'xrayError' | 'lastError'>) {
+  const tip = record.lastError || (hasXrayProblem(record.status, record.xrayState) ? record.xrayError : '') || '';
+  const iconColor = !record.lastError && hasXrayProblem(record.status, record.xrayState)
+    ? XRAY_ERROR_COLOR
+    : 'var(--ant-color-warning)';
+  return { tip, iconColor };
+}
+
+function StatusDot({ status, xrayState }: HealthProps) {
+  if (status === 'online') {
+    return hasXrayProblem(status, xrayState)
+      ? <span className="xray-error-dot" />
+      : <span className="online-dot" />;
+  }
   return <Badge status={badgeStatus(status)} />;
 }
 
-function StatusLabel({ status }: { status?: string }) {
+function StatusLabel({ status, xrayState }: HealthProps) {
   const { t } = useTranslation();
-  return (
-    <span style={status === 'online' ? { color: 'var(--ant-color-success)' } : undefined}>
-      {t(`pages.nodes.statusValues.${status || 'unknown'}`)}
-    </span>
-  );
+  if (status === 'online') {
+    const xs = (xrayState || '').toLowerCase().trim();
+    if (xs === 'error' || xs === 'stop') {
+      const detail = xs === 'error'
+        ? t('pages.nodes.statusValues.xrayError')
+        : t('pages.nodes.statusValues.xrayStopped');
+      return (
+        <span style={{ color: XRAY_ERROR_COLOR }}>
+          {t('pages.nodes.statusValues.online')} ({detail})
+        </span>
+      );
+    }
+    return (
+      <span style={{ color: 'var(--ant-color-success)' }}>
+        {t('pages.nodes.statusValues.online')}
+      </span>
+    );
+  }
+  return <span>{t(`pages.nodes.statusValues.${status || 'unknown'}`)}</span>;
 }
 
 function formatPct(p?: number): string {
@@ -131,14 +177,49 @@ export default function NodeList({
   const [statsNode, setStatsNode] = useState<NodeRow | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
-  const dataSource = useMemo<NodeRow[]>(
-    () => nodes.map((n) => ({
+  // Map a node GUID to its display name so a transitive sub-node can show which
+  // parent it is reached through (#4983).
+  const nameByGuid = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const n of nodes) if (n.guid) m.set(n.guid, n.name || n.guid);
+    return m;
+  }, [nodes]);
+
+  // Order direct nodes first, each immediately followed by its transitive
+  // sub-nodes, so the table reads as a parent -> child tree without colliding
+  // with the per-row history expander (transitive nodes carry id 0).
+  const dataSource = useMemo<NodeRow[]>(() => {
+    const toRow = (n: NodeRecord): NodeRow => ({
       ...n,
       url: `${n.scheme}://${n.address}:${n.port}${n.basePath || '/'}`,
-      key: n.id,
-    })),
-    [nodes],
-  );
+      key: n.transitive ? `t-${n.guid || ''}` : n.id,
+    });
+    const childrenByParent = new Map<string, NodeRecord[]>();
+    for (const n of nodes) {
+      if (n.transitive && n.parentGuid) {
+        const arr = childrenByParent.get(n.parentGuid) || [];
+        arr.push(n);
+        childrenByParent.set(n.parentGuid, arr);
+      }
+    }
+    const ordered: NodeRow[] = [];
+    const added = new Set<string>();
+    const push = (n: NodeRecord) => {
+      const row = toRow(n);
+      ordered.push(row);
+      added.add(String(row.key));
+    };
+    for (const n of nodes) {
+      if (n.transitive) continue;
+      push(n);
+      if (n.guid) for (const child of childrenByParent.get(n.guid) || []) push(child);
+    }
+    // Transitive nodes whose parent isn't in the list still get shown.
+    for (const n of nodes) {
+      if (n.transitive && !added.has(`t-${n.guid || ''}`)) push(n);
+    }
+    return ordered;
+  }, [nodes]);
 
   function toggleExpanded(id: number) {
     setExpandedIds((prev) => {
@@ -153,7 +234,11 @@ export default function NodeList({
       title: t('pages.nodes.actions'),
       align: 'center',
       width: 190,
-      render: (_value, record) => (
+      render: (_value, record) => record.transitive ? (
+        <Tooltip title={t('pages.nodes.subNodeTip', { parent: record.parentGuid ? (nameByGuid.get(record.parentGuid) || '-') : '-' })}>
+          <Tag icon={<ApartmentOutlined />} style={{ margin: 0 }}>{t('pages.nodes.subNode')}</Tag>
+        </Tooltip>
+      ) : (
         <Space>
           <Tooltip title={t('pages.nodes.probe')}>
             <Button type="text" size="small" icon={<ThunderboltOutlined />} onClick={() => onProbe(record)} />
@@ -177,7 +262,9 @@ export default function NodeList({
       dataIndex: 'enable',
       align: 'center',
       width: 80,
-      render: (_value, record) => (
+      render: (_value, record) => record.transitive ? (
+        <span style={{ opacity: 0.4 }}>—</span>
+      ) : (
         <Switch
           checked={!!record.enable}
           size="small"
@@ -190,8 +277,11 @@ export default function NodeList({
       dataIndex: 'name',
       ellipsis: true,
       render: (_value, record) => (
-        <div className="name-cell">
-          <span className="name">{record.name}</span>
+        <div className="name-cell" style={record.transitive ? { paddingInlineStart: 20 } : undefined}>
+          <span className="name">
+            {record.transitive && <ApartmentOutlined style={{ marginInlineEnd: 6, opacity: 0.6 }} />}
+            {record.name}
+          </span>
           {record.remark && <span className="remark">{record.remark}</span>}
         </div>
       ),
@@ -226,17 +316,20 @@ export default function NodeList({
       title: t('pages.nodes.status'),
       dataIndex: 'status',
       align: 'center',
-      render: (_value, record) => (
-        <Space size={4}>
-          <StatusDot status={record.status} />
-          <StatusLabel status={record.status} />
-          {record.lastError && (
-            <Tooltip title={record.lastError}>
-              <ExclamationCircleOutlined style={{ color: 'var(--ant-color-warning)' }} />
-            </Tooltip>
-          )}
-        </Space>
-      ),
+      render: (_value, record) => {
+        const { tip, iconColor } = statusIssue(record);
+        return (
+          <Space size={4}>
+            <StatusDot status={record.status} xrayState={record.xrayState} />
+            <StatusLabel status={record.status} xrayState={record.xrayState} />
+            {tip && (
+              <Tooltip title={tip}>
+                <ExclamationCircleOutlined style={{ color: iconColor }} />
+              </Tooltip>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: t('pages.nodes.cpu'),
@@ -316,7 +409,7 @@ export default function NodeList({
       width: 120,
       render: (_value, record) => relativeTime(record.lastHeartbeat),
     },
-  ], [t, showAddress, relativeTime, latestVersion, onToggleEnable, onProbe, onEdit, onDelete, onUpdateNode]);
+  ], [t, showAddress, relativeTime, latestVersion, onToggleEnable, onProbe, onEdit, onDelete, onUpdateNode, nameByGuid]);
 
   return (
     <Card size="small" hoverable>
@@ -340,11 +433,22 @@ export default function NodeList({
                 <div>{t('noData')}</div>
               </div>
             ) : (
-              dataSource.map((record) => (
+              dataSource.map((record) => record.transitive ? (
+                <div key={String(record.key)} className="node-card" style={{ paddingInlineStart: 16, opacity: 0.85 }}>
+                  <div className="card-head">
+                    <ApartmentOutlined style={{ opacity: 0.6 }} />
+                    <StatusDot status={record.status} xrayState={record.xrayState} />
+                    <span className="node-name">{record.name}</span>
+                    <div className="card-actions">
+                      <Tag icon={<ApartmentOutlined />} style={{ margin: 0 }}>{t('pages.nodes.subNode')}</Tag>
+                    </div>
+                  </div>
+                </div>
+              ) : (
                 <div key={record.id} className="node-card">
                   <div className="card-head" onClick={() => toggleExpanded(record.id)}>
                     <RightOutlined className={`card-expand${expandedIds.has(record.id) ? ' is-expanded' : ''}`} />
-                    <StatusDot status={record.status} />
+                    <StatusDot status={record.status} xrayState={record.xrayState} />
                     <span className="node-name">{record.name}</span>
                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
                       <Tooltip title={t('info')}>
@@ -438,13 +542,16 @@ export default function NodeList({
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.status')}</span>
-                  <StatusDot status={statsNode.status} />
-                  <StatusLabel status={statsNode.status} />
-                  {statsNode.lastError && (
-                    <Tooltip title={statsNode.lastError}>
-                      <ExclamationCircleOutlined style={{ color: 'var(--ant-color-warning)' }} />
-                    </Tooltip>
-                  )}
+                  <StatusDot status={statsNode.status} xrayState={statsNode.xrayState} />
+                  <StatusLabel status={statsNode.status} xrayState={statsNode.xrayState} />
+                  {(() => {
+                    const { tip, iconColor } = statusIssue(statsNode);
+                    return tip ? (
+                      <Tooltip title={tip}>
+                        <ExclamationCircleOutlined style={{ color: iconColor }} />
+                      </Tooltip>
+                    ) : null;
+                  })()}
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.cpu')}</span>
@@ -501,8 +608,8 @@ export default function NodeList({
           rowKey="id"
           rowSelection={dataSource.length > 1 ? {
             selectedRowKeys: selectedIds,
-            onChange: (keys) => onSelectionChange(keys as number[]),
-            getCheckboxProps: (record) => ({ disabled: !isUpdateEligible(record) }),
+            onChange: (keys) => onSelectionChange(keys.filter((k) => typeof k === 'number') as number[]),
+            getCheckboxProps: (record) => ({ disabled: !!record.transitive || !isUpdateEligible(record) }),
           } : undefined}
           locale={{
             emptyText: (
@@ -514,6 +621,7 @@ export default function NodeList({
           }}
           expandable={{
             expandedRowRender: (record) => <NodeHistoryPanel node={record} />,
+            rowExpandable: (record) => !record.transitive,
           }}
         />
       )}

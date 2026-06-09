@@ -183,13 +183,20 @@ export class RandomUtil {
   }
 
   static randomShadowsocksPassword(method: string = '2022-blake3-aes-256-gcm'): string {
-    let length = 32;
-    if (method === '2022-blake3-aes-128-gcm') {
-      length = 16;
-    }
+    const length = method === '2022-blake3-aes-128-gcm' ? 16 : 32;
     const array = new Uint8Array(length);
     window.crypto.getRandomValues(array);
     return Base64.alternativeEncode(String.fromCharCode(...array));
+  }
+
+  static isShadowsocks2022Password(password: string, method: string): boolean {
+    if (!method || method.substring(0, 4) !== '2022') return true;
+    const expected = method === '2022-blake3-aes-128-gcm' ? 16 : 32;
+    try {
+      return window.atob(password).length === expected;
+    } catch {
+      return false;
+    }
   }
 
   static randomBase64(length: number = 16): string {

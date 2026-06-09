@@ -1,6 +1,7 @@
 # Ignore editor and IDE settings
 .idea/
 .vscode/
+.cursor/
 .claude/
 .cache/
 .sync*

@@ -122,6 +122,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if inbound.NodeID != nil {
 			continue
 		}
+		if inbound.Protocol == model.MTProto {
+			continue
+		}
 		settings := map[string]any{}
 		json.Unmarshal([]byte(inbound.Settings), &settings)
 
@@ -251,7 +254,49 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		inboundConfig := inbound.GenXrayInboundConfig()
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
 	}
+
+	// Merge subscription-derived outbounds (if any) into the final outbounds array.
+	// These are additive: each subscription is placed before or after the template
+	// outbounds based on its Prepend flag, ordered by Priority. Tags assigned by the
+	// subscription service are kept stable across refreshes so that balancers and
+	// routing rules continue to work.
+	subSvc := &OutboundSubscriptionService{}
+	if prepend, appendList, err := subSvc.activeOutboundsSplit(); err == nil && (len(prepend) > 0 || len(appendList) > 0) {
+		mergeSubscriptionOutbounds(xrayConfig, prepend, appendList)
+	}
+
 	return xrayConfig, nil
+}
+
+// mergeSubscriptionOutbounds appends the subscription outbounds to the
+// OutboundConfigs array of the xray config. It works on the already-unmarshaled
+// template so that manually configured outbounds are never overwritten.
+//
+// Safety: if we cannot parse the template's outbounds array, we leave
+// OutboundConfigs exactly as it came from the template (we do not inject
+// subscription outbounds). This prevents us from accidentally dropping the
+// user's manually configured outbounds when the template is in a weird state.
+func mergeSubscriptionOutbounds(cfg *xray.Config, prepend, appendList []any) {
+	if len(prepend) == 0 && len(appendList) == 0 {
+		return
+	}
+	var templateOutbounds []any
+	if len(cfg.OutboundConfigs) > 0 {
+		if err := json.Unmarshal(cfg.OutboundConfigs, &templateOutbounds); err != nil {
+			// Corrupt template outbounds — do not touch the field at all.
+			// The user will see problems on Xray start / next save.
+			return
+		}
+	}
+	merged := make([]any, 0, len(prepend)+len(templateOutbounds)+len(appendList))
+	merged = append(merged, prepend...)
+	merged = append(merged, templateOutbounds...)
+	merged = append(merged, appendList...)
+	combined, err := json.MarshalIndent(merged, "", "  ")
+	if err != nil {
+		return
+	}
+	cfg.OutboundConfigs = json_util.RawMessage(combined)
 }
 
 // resolveXrayLogPaths rewrites relative `log.access` / `log.error` values to
