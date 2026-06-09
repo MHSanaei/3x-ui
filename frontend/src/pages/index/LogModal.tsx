@@ -24,26 +24,47 @@ interface ParsedLog {
 
 const LEVELS = ['DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR'];
 const LEVEL_CLASSES = ['level-debug', 'level-info', 'level-notice', 'level-warning', 'level-error'];
+const SYSLOG_PREFIX = /^([A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+\S+\s+\S+?:\s+(.*)$/;
 
 function parseLogLine(line: string): ParsedLog {
-  const [head, ...rest] = (line || '').split(' - ');
-  const message = rest.join(' - ');
-  const parts = head.split(' ');
+  let raw = (line || '').trim();
 
   let date = '';
   let time = '';
-  let levelText: string;
-  if (parts.length >= 3) {
-    [date, time, levelText] = parts;
+  let levelText = '';
+  let body = '';
+
+  const sys = raw.match(SYSLOG_PREFIX);
+  if (sys) {
+    const ts = sys[1].split(/\s+/);
+    time = ts.pop() || '';
+    date = ts.join(' ');
+    raw = sys[2];
+
+    const [head, ...rest] = raw.split(' - ');
+    if (rest.length > 0 && LEVELS.indexOf(head.trim()) >= 0) {
+      levelText = head.trim();
+      body = rest.join(' - ');
+    } else {
+      // Raw entry without the "LEVEL - " shape (e.g. subprocess stderr).
+      body = raw;
+    }
   } else {
-    levelText = head;
+    const [head, ...rest] = raw.split(' - ');
+    const message = rest.join(' - ');
+    const parts = head.split(' ');
+    if (parts.length >= 3) {
+      [date, time, levelText] = parts;
+    } else {
+      levelText = head;
+    }
+    body = message || '';
   }
 
   const li = LEVELS.indexOf(levelText);
   const levelClass = li >= 0 ? LEVEL_CLASSES[li] : 'level-unknown';
 
   let service = '';
-  let body = message || '';
   if (body.startsWith('XRAY:')) {
     service = 'XRAY:';
     body = body.slice('XRAY:'.length).trimStart();
