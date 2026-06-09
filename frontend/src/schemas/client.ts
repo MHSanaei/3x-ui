@@ -43,6 +43,7 @@ export const InboundOptionSchema = z.object({
   protocol: z.string().optional(),
   port: z.number().optional(),
   tlsFlowCapable: z.boolean().optional(),
+  ssMethod: z.string().optional(),
 }).loose();
 
 export const InboundOptionsSchema = z.array(InboundOptionSchema);
@@ -125,6 +126,7 @@ export const ActiveInboundsByNodeSchema = z
 export const GroupSummarySchema = z.object({
   name: z.string(),
   clientCount: z.number(),
+  trafficUsed: z.number().nullable().transform((v) => v ?? 0),
 });
 
 export const GroupSummaryListSchema = z.array(GroupSummarySchema).nullable().transform((v) => v ?? []);

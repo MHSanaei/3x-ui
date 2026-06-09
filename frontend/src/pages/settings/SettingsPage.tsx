@@ -142,7 +142,7 @@ export default function SettingsPage() {
       onOk: async () => {
         setSpinning(true);
         try {
-          const msg = await HttpUtil.post('/panel/setting/restartPanel') as ApiMsg;
+          const msg = await HttpUtil.post('/panel/api/setting/restartPanel') as ApiMsg;
           if (!msg?.success) return;
           await PromiseUtil.sleep(5000);
           window.location.replace(rebuildUrlAfterRestart());

@@ -81,6 +81,7 @@ type Status struct {
 		Version  string       `json:"version"`
 	} `json:"xray"`
 	PanelVersion string    `json:"panelVersion"`
+	PanelGuid    string    `json:"panelGuid"`
 	Uptime       uint64    `json:"uptime"`
 	Loads        []float64 `json:"loads"`
 	TcpCount     int       `json:"tcpCount"`
@@ -532,6 +533,9 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
 	status.PanelVersion = config.GetVersion()
+	if guid, err := s.settingService.GetPanelGuid(); err == nil {
+		status.PanelGuid = guid
+	}
 
 	// Application stats
 	var rtm runtime.MemStats

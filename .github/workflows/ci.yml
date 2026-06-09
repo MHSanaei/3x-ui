@@ -78,6 +78,54 @@ jobs:
 
           echo "docker=$docker" >> "$GITHUB_OUTPUT"
 
+  codegen:
+    name: Codegen Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Regenerate schemas, examples and OpenAPI
+        run: npm run gen
+        working-directory: frontend
+
+      - name: Fail if generated files are stale (run 'npm run gen' and commit)
+        run: git diff --exit-code -- frontend/src/generated frontend/public/openapi.json
+
+  govulncheck:
+    name: Go Vulnerability Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Stub web/dist for go:embed
+        run: mkdir -p web/dist && touch web/dist/.gitkeep
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: govulncheck ./...
+
   go-check:
     name: Go Checks
     runs-on: ubuntu-latest

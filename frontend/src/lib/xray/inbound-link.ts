@@ -680,6 +680,25 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
   return url.toString();
 }
 
+export interface GenMtprotoLinkInput {
+  inbound: Inbound;
+  address: string;
+  port?: number;
+}
+
+// Builds a Telegram proxy deep link for an mtproto inbound:
+export function genMtprotoLink(input: GenMtprotoLinkInput): string {
+  const { inbound, address, port = inbound.port } = input;
+  if (inbound.protocol !== 'mtproto') return '';
+  const secret = inbound.settings.secret ?? '';
+  if (secret.length === 0) return '';
+  const url = new URL('tg://proxy');
+  url.searchParams.set('server', address);
+  url.searchParams.set('port', String(port));
+  url.searchParams.set('secret', secret);
+  return url.toString();
+}
+
 export interface GenWireguardLinkInput {
   settings: WireguardInboundSettings;
   address: string;
@@ -867,6 +886,8 @@ export function genLink(input: GenLinkInput): string {
         clientAuth: client.auth ?? '',
         externalProxy,
       });
+    case 'mtproto':
+      return genMtprotoLink({ inbound, address, port });
     default:
       return '';
   }

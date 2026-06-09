@@ -45,6 +45,7 @@
 .nodes-page .ant-card.ant-card-hoverable:hover,
 .groups-page .ant-card.ant-card-hoverable:hover,
 .api-docs-page .ant-card.ant-card-hoverable:hover {
+  cursor: default;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 

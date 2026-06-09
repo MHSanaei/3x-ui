@@ -864,6 +864,7 @@ show_status() {
             ;;
     esac
     show_xray_status
+    show_mtproto_status
 }
 
 show_enable_status() {
@@ -895,6 +896,34 @@ show_xray_status() {
     else
         echo -e "xray state: ${red}Not Running${plain}"
     fi
+}
+
+# show_mtproto_status reports each mtproto inbound's mtg sidecar (one process per
+# inbound, run outside xray). Silent when no mtproto inbound is configured.
+show_mtproto_status() {
+    local cfg_dir="${xui_folder}/bin/mtproto"
+    local cfgs=()
+    if [[ -d "${cfg_dir}" ]]; then
+        for f in "${cfg_dir}"/mtg-*.toml; do
+            [[ -e "$f" ]] && cfgs+=("$f")
+        done
+    fi
+    [[ ${#cfgs[@]} -eq 0 ]] && return
+
+    local running
+    running=$(ps -ef | grep "mtg-linux" | grep -v "grep" | grep -oE 'mtg-[0-9]+\.toml')
+    for f in "${cfgs[@]}"; do
+        local name id bind
+        name=$(basename "$f")
+        id=$(echo "${name}" | sed -E 's/mtg-([0-9]+)\.toml/\1/')
+        bind=$(grep -E '^[[:space:]]*bind-to' "$f" | head -1 | cut -d'"' -f2)
+        if echo "${running}" | grep -qx "${name}"; then
+            echo -e "mtproto inbound ${id} (${bind}): ${green}Running${plain}"
+        else
+            echo -e "mtproto inbound ${id} (${bind}): ${red}Not Running${plain}"
+        fi
+    done
+    echo -e "  ${yellow}mtg logs:${plain} journalctl -u x-ui --no-pager -n 200 | grep -i mtproto"
 }
 
 firewall_menu() {
@@ -1181,7 +1210,7 @@ install_acme() {
 
 ssl_cert_issue_main() {
     echo -e "${green}\t1.${plain} Get SSL (Domain)"
-    echo -e "${green}\t2.${plain} Revoke"
+    echo -e "${green}\t2.${plain} Revoke & Remove"
     echo -e "${green}\t3.${plain} Force Renew"
     echo -e "${green}\t4.${plain} Show Existing Domains"
     echo -e "${green}\t5.${plain} Set Cert paths for the panel"
@@ -1204,10 +1233,34 @@ ssl_cert_issue_main() {
             else
                 echo "Existing domains:"
                 echo "$domains"
-                read -rp "Please enter a domain from the list to revoke the certificate: " domain
+                read -rp "Please enter a domain from the list to revoke and remove the certificate: " domain
                 if echo "$domains" | grep -qw "$domain"; then
-                    ~/.acme.sh/acme.sh --revoke -d ${domain}
-                    LOGI "Certificate revoked for domain: $domain"
+                    # The IP-cert flow (option 6) stores files under /root/cert/ip, but acme.sh
+                    # tracks the cert under the actual IP address(es). Resolve those so renewal
+                    # state is torn down too; otherwise the acme.sh cron re-creates the deleted cert.
+                    local acme_ids="${domain}"
+                    if [[ "${domain}" == "ip" ]]; then
+                        acme_ids=$(~/.acme.sh/acme.sh --list 2> /dev/null | awk 'NR>1 {print $1}' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$|:')
+                    fi
+                    for id in ${acme_ids}; do
+                        # Best-effort revoke at the CA, then drop acme.sh renewal tracking.
+                        ~/.acme.sh/acme.sh --revoke -d "${id}" 2> /dev/null
+                        ~/.acme.sh/acme.sh --remove -d "${id}" 2> /dev/null
+                        # --remove leaves the cert files on disk, so delete the state dirs (RSA + ECC).
+                        rm -rf ~/.acme.sh/"${id}" ~/.acme.sh/"${id}_ecc"
+                    done
+                    # Delete the local certificate files for this domain.
+                    rm -rf "/root/cert/${domain}"
+                    LOGI "Certificate revoked and removed for domain: ${domain}"
+
+                    # If the panel currently serves this domain's cert, clear the stored paths
+                    # so it stops loading the now-deleted files, then restart.
+                    local existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+                    if [[ "${existing_cert}" == "/root/cert/${domain}/"* ]]; then
+                        ${xui_folder}/x-ui cert -reset
+                        LOGI "Cleared panel certificate paths referencing ${domain}; restarting panel."
+                        restart
+                    fi
                 else
                     echo "Invalid domain entered."
                 fi
@@ -2795,6 +2848,7 @@ postgresql_menu() {
     echo -e "${green}\t6.${plain} Restart PostgreSQL"
     echo -e "${green}\t7.${plain} ${green}Enable${plain} Autostart on boot"
     echo -e "${green}\t8.${plain} View PostgreSQL Log"
+    echo -e "${green}\t9.${plain} Convert SQLite ${green}.db <-> .dump${plain}"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -rp "Choose an option: " choice
     case "$choice" in
@@ -2833,11 +2887,108 @@ postgresql_menu() {
             postgresql_log
             postgresql_menu
             ;;
+        9)
+            migrate_db_prompt
+            postgresql_menu
+            ;;
         *)
             echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
             postgresql_menu
             ;;
     esac
+}
+
+# Convert between the panel's SQLite database and a portable .dump (SQL text)
+# file using the bundled x-ui binary. With no arguments it dumps the installed
+# panel database; an optional second argument overrides the output path.
+#   x-ui migrateDB [file.db|file.dump] [output]
+migrate_db() {
+    local input="$1" output="$2"
+    local default_db="/etc/x-ui/x-ui.db"
+    local bin="${xui_folder}/x-ui"
+
+    [[ -z "$input" ]] && input="$default_db"
+
+    if [[ ! -x "$bin" ]]; then
+        LOGE "x-ui binary not found at ${bin}. Is the panel installed?"
+        return 1
+    fi
+
+    if ! "$bin" migrate-db -h 2>&1 | grep -q -- '-dump'; then
+        LOGE "This x-ui build does not support .db <-> .dump conversion yet."
+        LOGE "Update the panel first (x-ui update) to a version with 'migrate-db --dump/--restore'."
+        return 1
+    fi
+
+    if [[ ! -f "$input" ]]; then
+        LOGE "Input file not found: ${input}"
+        echo -e "Usage: ${green}x-ui migrateDB [file.db|file.dump] [output]${plain}"
+        return 1
+    fi
+
+    local mode
+    case "$input" in
+        *.db | *.sqlite | *.sqlite3)
+            mode="dump"
+            ;;
+        *.dump | *.sql)
+            mode="restore"
+            ;;
+        *)
+            if head -c 16 "$input" | grep -q "SQLite format 3"; then
+                mode="dump"
+            else
+                mode="restore"
+            fi
+            ;;
+    esac
+
+    if [[ "$mode" == "dump" ]]; then
+        [[ -z "$output" ]] && output="${input%.*}.dump"
+        if [[ -f "$output" ]]; then
+            confirm "Output ${output} already exists and will be overwritten. Continue?" "n" || return 0
+        fi
+        LOGI "Dumping SQLite database to SQL text:"
+        echo -e "  ${green}${input}${plain} -> ${green}${output}${plain}"
+        if "$bin" migrate-db --src "$input" --dump "$output"; then
+            LOGI "Done. Wrote ${output}."
+        else
+            LOGE "Dump failed."
+            return 1
+        fi
+    else
+        [[ -z "$output" ]] && output="${input%.*}.db"
+        if [[ "$output" == "$default_db" ]] && check_status > /dev/null 2>&1; then
+            LOGE "Refusing to restore into the live database (${default_db}) while x-ui is running."
+            LOGE "Stop the panel first (x-ui stop) or choose a different output path."
+            return 1
+        fi
+        if [[ -f "$output" ]]; then
+            confirm "Output ${output} already exists and will be overwritten. Continue?" "n" || return 0
+            rm -f "$output"
+        fi
+        LOGI "Rebuilding SQLite database from SQL text:"
+        echo -e "  ${green}${input}${plain} -> ${green}${output}${plain}"
+        if "$bin" migrate-db --restore "$input" --out "$output"; then
+            LOGI "Done. Created ${output}."
+        else
+            LOGE "Restore failed."
+            rm -f "$output"
+            return 1
+        fi
+    fi
+}
+
+# Interactive wrapper around migrate_db for the menu: prompts for the paths and
+# lets migrate_db auto-detect the direction.
+migrate_db_prompt() {
+    local default_db="/etc/x-ui/x-ui.db"
+    local input output
+    echo -e "Convert between a SQLite ${green}.db${plain} and a portable ${green}.dump${plain} (direction auto-detected)."
+    read -rp "Input file [${default_db}]: " input
+    input="${input:-$default_db}"
+    read -rp "Output file (leave empty to auto-name next to input): " output
+    migrate_db "$input" "$output"
 }
 
 show_usage() {
@@ -2857,6 +3008,7 @@ show_usage() {
 │  ${blue}x-ui banlog${plain}                - Check Fail2ban ban logs          │
 │  ${blue}x-ui update${plain}                - Update                           │
 │  ${blue}x-ui update-all-geofiles${plain}   - Update all geo files             │
+│  ${blue}x-ui migrateDB [file]${plain}      - Convert .db <-> .dump (SQLite)   │
 │  ${blue}x-ui legacy${plain}                - Legacy version                   │
 │  ${blue}x-ui install${plain}               - Install                          │
 │  ${blue}x-ui uninstall${plain}             - Uninstall                        │
@@ -3044,6 +3196,9 @@ if [[ $# > 0 ]]; then
             ;;
         "update-all-geofiles")
             check_install 0 && update_all_geofiles 0 && restart 0
+            ;;
+        "migrateDB")
+            migrate_db "$2" "$3"
             ;;
         *) show_usage ;;
     esac

@@ -231,7 +231,28 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	}
 	s.enrichClientStats(db, inbounds)
 	s.annotateFallbackParents(db, inbounds)
+	s.annotateLocalOriginGuid(inbounds)
 	return inbounds, nil
+}
+
+// annotateLocalOriginGuid fills OriginNodeGuid for this panel's OWN inbounds
+// (NodeID == nil) with the panel's stable GUID; inbounds synced from a node
+// already carry the originating node's GUID. Read-time only (not persisted) so
+// the per-inbound online view can scope by GUID uniformly across a chain of
+// nodes (#4983).
+func (s *InboundService) annotateLocalOriginGuid(inbounds []*model.Inbound) {
+	if len(inbounds) == 0 {
+		return
+	}
+	guid := s.panelGuid()
+	if guid == "" {
+		return
+	}
+	for _, ib := range inbounds {
+		if ib.OriginNodeGuid == "" && ib.NodeID == nil {
+			ib.OriginNodeGuid = guid
+		}
+	}
 }
 
 // GetInboundsSlim returns the same list of inbounds as GetInbounds but
@@ -252,6 +273,7 @@ func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 		return nil, err
 	}
 	s.annotateFallbackParents(db, inbounds)
+	s.annotateLocalOriginGuid(inbounds)
 	for _, ib := range inbounds {
 		ib.Settings = slimSettingsClients(ib.Settings)
 	}
@@ -334,12 +356,13 @@ func (s *InboundService) annotateFallbackParents(db *gorm.DB, inbounds []*model.
 }
 
 type InboundOption struct {
-	Id             int    `json:"id"`
-	Remark         string `json:"remark"`
-	Tag            string `json:"tag"`
-	Protocol       string `json:"protocol"`
-	Port           int    `json:"port"`
-	TlsFlowCapable bool   `json:"tlsFlowCapable"`
+	Id             int    `json:"id" example:"1"`
+	Remark         string `json:"remark" example:"VLESS-443"`
+	Tag            string `json:"tag" example:"in-443-tcp"`
+	Protocol       string `json:"protocol" example:"vless"`
+	Port           int    `json:"port" example:"443"`
+	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
+	SsMethod       string `json:"ssMethod"`
 }
 
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
@@ -351,9 +374,10 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		Protocol       string `gorm:"column:protocol"`
 		Port           int    `gorm:"column:port"`
 		StreamSettings string `gorm:"column:stream_settings"`
+		Settings       string `gorm:"column:settings"`
 	}
 	err := db.Table("inbounds").
-		Select("id, remark, tag, protocol, port, stream_settings").
+		Select("id, remark, tag, protocol, port, stream_settings, settings").
 		Where("user_id = ?", userId).
 		Order("id ASC").
 		Scan(&rows).Error
@@ -369,9 +393,157 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			Protocol:       r.Protocol,
 			Port:           r.Port,
 			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings),
+			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
 		})
 	}
 	return out, nil
+}
+
+func (s *InboundService) GetAllInboundClientIps() ([]model.InboundClientIps, error) {
+	db := database.GetDB()
+	var ips []model.InboundClientIps
+	err := db.Model(&model.InboundClientIps{}).Find(&ips).Error
+	return ips, err
+}
+
+// clientIpStaleAfterSeconds mirrors job.ipStaleAfterSeconds: client IPs older than
+// 30 minutes are evicted. Applying the same cutoff inside the cross-node merge keeps
+// the synced blob bounded and stops the master's push-back from resurrecting IPs that
+// a node has already pruned (otherwise the merge defeats the eviction cluster-wide).
+const clientIpStaleAfterSeconds = int64(30 * 60)
+
+// clientIpEntry is the on-disk shape of each element of InboundClientIps.Ips. Tags
+// match job.IPWithTimestamp so the blob round-trips with the access.log scanner.
+type clientIpEntry struct {
+	IP        string `json:"ip"`
+	Timestamp int64  `json:"timestamp"`
+}
+
+// mergeClientIpEntries unions old and incoming IP observations, dropping anything
+// older than cutoff, keeping the most recent timestamp per IP, and returning the
+// result sorted newest-first.
+func mergeClientIpEntries(old, incoming []clientIpEntry, cutoff int64) []clientIpEntry {
+	ipMap := make(map[string]int64, len(old)+len(incoming))
+	for _, e := range old {
+		if e.Timestamp < cutoff {
+			continue
+		}
+		ipMap[e.IP] = e.Timestamp
+	}
+	for _, e := range incoming {
+		if e.Timestamp < cutoff {
+			continue
+		}
+		if cur, ok := ipMap[e.IP]; !ok || e.Timestamp > cur {
+			ipMap[e.IP] = e.Timestamp
+		}
+	}
+	out := make([]clientIpEntry, 0, len(ipMap))
+	for ip, ts := range ipMap {
+		out = append(out, clientIpEntry{IP: ip, Timestamp: ts})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Timestamp > out[j].Timestamp })
+	return out
+}
+
+// MergeInboundClientIps folds client IPs synced from another node into the local
+// inbound_client_ips table without double-counting an IP seen on multiple nodes and
+// without resurrecting stale entries. Existing rows are updated in place; brand-new
+// clients (typically node-only clients with no local row) are created with a fresh
+// local id.
+func (s *InboundService) MergeInboundClientIps(incomingIps []model.InboundClientIps) error {
+	db := database.GetDB()
+	var currentIps []model.InboundClientIps
+	if err := db.Model(&model.InboundClientIps{}).Find(&currentIps).Error; err != nil {
+		return err
+	}
+
+	currentMap := make(map[string]*model.InboundClientIps, len(currentIps))
+	for i := range currentIps {
+		currentMap[currentIps[i].ClientEmail] = &currentIps[i]
+	}
+
+	now := time.Now().Unix()
+	cutoff := now - clientIpStaleAfterSeconds
+
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	for _, incoming := range incomingIps {
+		if incoming.ClientEmail == "" || incoming.Ips == "" {
+			continue
+		}
+
+		var incomingEntries []clientIpEntry
+		_ = json.Unmarshal([]byte(incoming.Ips), &incomingEntries)
+
+		current, exists := currentMap[incoming.ClientEmail]
+		if !exists {
+			// New client we've never seen locally. Drop stale entries up front and
+			// skip the row entirely if nothing is fresh, so we don't persist a row
+			// that is dead on arrival.
+			fresh := mergeClientIpEntries(nil, incomingEntries, cutoff)
+			if len(fresh) == 0 {
+				continue
+			}
+			b, _ := json.Marshal(fresh)
+			incoming.Ips = string(b)
+			// Never carry the remote node's primary key into the local table: id
+			// spaces are independent across nodes and the remote id would collide
+			// with an unrelated local row. OnConflict guards the race where
+			// check_client_ip_job creates the same brand-new email between the
+			// snapshot above and this insert.
+			incoming.Id = 0
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "client_email"}},
+				DoNothing: true,
+			}).Create(&incoming).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+			continue
+		}
+
+		var oldEntries []clientIpEntry
+		if current.Ips != "" {
+			_ = json.Unmarshal([]byte(current.Ips), &oldEntries)
+		}
+
+		merged := mergeClientIpEntries(oldEntries, incomingEntries, cutoff)
+		b, _ := json.Marshal(merged)
+		mergedStr := string(b)
+
+		// A concurrent check_client_ip_job db.Save on the same row can interleave
+		// with this update (benign last-writer-wins; any dropped IP reappears on the
+		// next scan/sync), so only write when the blob actually changed.
+		if current.Ips != mergedStr {
+			if err := tx.Model(&model.InboundClientIps{}).Where("id = ?", current.Id).Update("ips", mergedStr).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+	return tx.Commit().Error
+}
+
+// inboundShadowsocksMethod extracts settings.method for Shadowsocks inbounds so
+// the client UI can generate a valid PSK (base64 of the method's key length)
+// for Shadowsocks 2022 ciphers. Returns "" for non-Shadowsocks inbounds.
+func inboundShadowsocksMethod(protocol, settings string) string {
+	if protocol != string(model.Shadowsocks) || settings == "" {
+		return ""
+	}
+	var s struct {
+		Method string `json:"method"`
+	}
+	if err := json.Unmarshal([]byte(settings), &s); err != nil {
+		return ""
+	}
+	return s.Method
 }
 
 // inboundCanEnableTlsFlow mirrors Inbound.canEnableTlsFlow() from the frontend:
@@ -580,6 +752,17 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	}
 }
 
+// normalizeMtprotoSecret rebuilds an mtproto inbound's FakeTLS secret so it is
+// always valid and matches the configured domain before the row is persisted.
+func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
+	if inbound.Protocol != model.MTProto {
+		return
+	}
+	if healed, ok := model.HealMtprotoSecret(inbound.Settings); ok {
+		inbound.Settings = healed
+	}
+}
+
 // AddInbound creates a new inbound configuration.
 // It validates port uniqueness, client email uniqueness, and required fields,
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
@@ -591,6 +774,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	s.normalizeMtprotoSecret(inbound)
 
 	conflict, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
@@ -910,6 +1094,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	s.normalizeMtprotoSecret(inbound)
 
 	conflict, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {
@@ -1203,6 +1388,11 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		if err := s.DelClientStat(tx, email); err != nil {
 			return err
 		}
+		// Keep inbound_client_ips in sync when the inbound edit drops an
+		// email, so the IP-limit job doesn't keep a ghost tracking row (#4963).
+		if err := s.DelClientIPs(tx, email); err != nil {
+			return err
+		}
 	}
 	for i := range newClients {
 		email := newClients[i].Email
@@ -1458,6 +1648,21 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	db := database.GetDB()
 	now := time.Now().UnixMilli()
 
+	// originGuidFor attributes a synced inbound to the panel that physically
+	// hosts it: inbounds the node forwards from its own sub-nodes already carry
+	// a non-empty OriginNodeGuid (kept as-is across hops); the node's own local
+	// inbounds report empty, so they are attributed to the node's own GUID. An
+	// empty result (old-build node with no GUID yet) leaves attribution to the
+	// node_id fallback downstream (#4983).
+	var nodeRow model.Node
+	db.Select("guid").Where("id = ?", nodeID).First(&nodeRow)
+	originGuidFor := func(snapIb *model.Inbound) string {
+		if snapIb.OriginNodeGuid != "" {
+			return snapIb.OriginNodeGuid
+		}
+		return nodeRow.Guid
+	}
+
 	var central []model.Inbound
 	if err := db.Model(model.Inbound{}).
 		Where("node_id = ?", nodeID).
@@ -1601,22 +1806,24 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				continue
 			}
 			newIb := model.Inbound{
-				UserId:         defaultUserId,
-				NodeID:         &nodeID,
-				Tag:            chosenTag,
-				Listen:         snapIb.Listen,
-				Port:           snapIb.Port,
-				Protocol:       snapIb.Protocol,
-				Settings:       snapIb.Settings,
-				StreamSettings: snapIb.StreamSettings,
-				Sniffing:       snapIb.Sniffing,
-				TrafficReset:   snapIb.TrafficReset,
-				Enable:         snapIb.Enable,
-				Remark:         snapIb.Remark,
-				Total:          snapIb.Total,
-				ExpiryTime:     snapIb.ExpiryTime,
-				Up:             snapIb.Up,
-				Down:           snapIb.Down,
+				UserId:               defaultUserId,
+				NodeID:               &nodeID,
+				OriginNodeGuid:       originGuidFor(snapIb),
+				Tag:                  chosenTag,
+				Listen:               snapIb.Listen,
+				Port:                 snapIb.Port,
+				Protocol:             snapIb.Protocol,
+				Settings:             snapIb.Settings,
+				StreamSettings:       snapIb.StreamSettings,
+				Sniffing:             snapIb.Sniffing,
+				TrafficReset:         snapIb.TrafficReset,
+				LastTrafficResetTime: snapIb.LastTrafficResetTime,
+				Enable:               snapIb.Enable,
+				Remark:               snapIb.Remark,
+				Total:                snapIb.Total,
+				ExpiryTime:           snapIb.ExpiryTime,
+				Up:                   snapIb.Up,
+				Down:                 snapIb.Down,
 			}
 			if err := tx.Create(&newIb).Error; err != nil {
 				logger.Warningf("setRemoteTraffic: create central inbound for tag %q failed: %v", snapIb.Tag, err)
@@ -1645,10 +1852,17 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["stream_settings"] = snapIb.StreamSettings
 			updates["sniffing"] = snapIb.Sniffing
 			updates["traffic_reset"] = snapIb.TrafficReset
+			updates["last_traffic_reset_time"] = snapIb.LastTrafficResetTime
 		}
 		if !inGrace || (snapIb.Up+snapIb.Down) <= (c.Up+c.Down) {
 			updates["up"] = snapIb.Up
 			updates["down"] = snapIb.Down
+		}
+		// Physical-home attribution is independent of config-dirty state, so
+		// keep it current even while the node has pending offline edits. Writes
+		// once to backfill an existing row, then stays equal (#4983).
+		if og := originGuidFor(snapIb); c.OriginNodeGuid != og {
+			updates["origin_node_guid"] = og
 		}
 
 		if !dirty && (c.Settings != snapIb.Settings ||
@@ -1684,9 +1898,13 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			return false, err
 		}
 		if len(goneEmails) > 0 {
-			if err := tx.Where("node_id = ? AND email IN ?", nodeID, goneEmails).
-				Delete(&model.NodeClientTraffic{}).Error; err != nil {
-				return false, err
+			// Chunk to avoid SQLite bind var limit when a node has many clients
+			// removed (e.g. after API bulk delete or structural change on node inbound).
+			for _, batch := range chunkStrings(goneEmails, sqliteMaxVars) {
+				if err := tx.Where("node_id = ? AND email IN ?", nodeID, batch).
+					Delete(&model.NodeClientTraffic{}).Error; err != nil {
+					return false, err
+				}
 			}
 		}
 		if err := tx.Where("inbound_id = ?", c.Id).
@@ -1765,12 +1983,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				structuralChange = true
 			}
 
-			// Only allow the node to disable a client (cs.Enable=false), never
-			// to re-enable one the panel has already disabled. A stale snapshot
-			// from the node arriving after a central disable would otherwise
-			// overwrite enable=false back to true, letting the client accumulate
-			// far more traffic than their limit before being disabled again.
-			enableExpr := "CASE WHEN ? = 0 THEN 0 ELSE enable END"
+			enableExpr := database.ClientTrafficEnableMergeExpr()
 			if err := tx.Exec(
 				fmt.Sprintf(
 					`UPDATE client_traffics
@@ -1938,7 +2151,17 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	committed = true
 
 	if p != nil {
-		p.SetNodeOnlineClients(nodeID, snap.OnlineEmails)
+		tree := snap.OnlineTree
+		if len(tree) == 0 && len(snap.OnlineEmails) > 0 {
+			// Old-build node (no GUID tree): key its flat online list under its
+			// own effective identity so attribution still works for that branch.
+			effectiveGuid := nodeRow.Guid
+			if effectiveGuid == "" {
+				effectiveGuid = synthNodeGuid(nodeID)
+			}
+			tree = map[string][]string{effectiveGuid: snap.OnlineEmails}
+		}
+		p.SetNodeOnlineTree(nodeID, tree)
 	}
 
 	return structuralChange, nil
@@ -2929,15 +3152,41 @@ func (s *InboundService) resetAllTrafficsLocked() error {
 		return err
 	}
 
+	nodes, err := (&NodeService{}).GetAll()
+	if err == nil {
+		for _, node := range nodes {
+			if rt, err := runtime.GetManager().RuntimeFor(&node.Id); err == nil {
+				if e := rt.ResetAllTraffics(context.Background()); e != nil {
+					logger.Warning("ResetAllTraffics: remote propagation to", rt.Name(), "failed:", e)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
 func (s *InboundService) ResetInboundTraffic(id int) error {
 	return submitTrafficWrite(func() error {
 		db := database.GetDB()
-		return db.Model(model.Inbound{}).
+		if err := db.Model(model.Inbound{}).
 			Where("id = ?", id).
-			Updates(map[string]any{"up": 0, "down": 0}).Error
+			Updates(map[string]any{"up": 0, "down": 0}).Error; err != nil {
+			return err
+		}
+
+		inbound, err := s.GetInbound(id)
+		if err == nil && inbound != nil && inbound.NodeID != nil {
+			if rt, rterr := s.runtimeFor(inbound); rterr == nil {
+				if e := rt.ResetInboundTraffic(context.Background(), inbound); e != nil {
+					logger.Warning("ResetInboundTraffic: remote propagation to", rt.Name(), "failed:", e)
+				}
+			} else {
+				logger.Warning("ResetInboundTraffic: runtime lookup failed:", rterr)
+			}
+		}
+
+		return nil
 	})
 }
 
@@ -3475,6 +3724,40 @@ func (s *InboundService) MigrationRequirements() {
 		}
 	}
 
+	// Normalize "enable" columns to boolean on Postgres. Legacy SQLite data
+	// (0/1 integers), partial migrations, or mixed write paths (public API
+	// inbound updates that flow through UpdateClientStat + client syncs, plus
+	// node traffic merge deltas) can leave the column as integer or with mixed
+	// interpretation. This (combined with the dialect-aware
+	// ClientTrafficEnableMergeExpr) prevents type problems in the node traffic
+	// sync merge (SetRemoteTraffic) and makes the sync robust even when
+	// inbounds are updated via the public API (incl. ones carrying
+	// externalProxy in streamSettings). The same expression is also safe on
+	// SQLite (no PG :: casts).
+	if database.IsPostgres() {
+		// Use DO block so it is idempotent and doesn't fail if already boolean.
+		normalizeBool := func(table, col string) {
+			tx.Exec(fmt.Sprintf(`
+				DO $$
+				BEGIN
+					IF EXISTS (
+						SELECT 1 FROM information_schema.columns
+						WHERE table_name = '%s' AND column_name = '%s'
+						  AND data_type <> 'boolean'
+					) THEN
+						ALTER TABLE %s ALTER COLUMN %s
+							TYPE boolean USING (CASE WHEN %s::text IN ('1','true','t','yes') THEN true ELSE false END);
+					END IF;
+				END $$;`, table, col, table, col, col))
+		}
+		normalizeBool("inbounds", "enable")
+		normalizeBool("client_traffics", "enable")
+		normalizeBool("nodes", "enable")
+		normalizeBool("clients", "enable")
+		normalizeBool("api_tokens", "enabled")
+		normalizeBool("outbound_subscriptions", "enabled")
+	}
+
 	// Fix inbounds based problems
 	var inbounds []*model.Inbound
 	err = tx.Model(model.Inbound{}).Where("protocol IN (?)", []string{"vmess", "vless", "trojan", "shadowsocks", "hysteria"}).Find(&inbounds).Error
@@ -3575,7 +3858,7 @@ func (s *InboundService) MigrationRequirements() {
 	var externalProxy []struct {
 		Id             int
 		Port           int
-		StreamSettings []byte
+		StreamSettings string // text column on both DBs; safer than []byte for cross-DB scan
 	}
 	externalProxyQuery := `select id, port, stream_settings
 	from inbounds
@@ -3597,7 +3880,7 @@ func (s *InboundService) MigrationRequirements() {
 	for _, ep := range externalProxy {
 		var reverses any
 		var stream map[string]any
-		json.Unmarshal(ep.StreamSettings, &stream)
+		json.Unmarshal([]byte(ep.StreamSettings), &stream)
 		if tlsSettings, ok := stream["tlsSettings"].(map[string]any); ok {
 			if settings, ok := tlsSettings["settings"].(map[string]any); ok {
 				if domains, ok := settings["domains"].([]any); ok {
@@ -3619,9 +3902,17 @@ func (s *InboundService) MigrationRequirements() {
 		tx.Model(model.Inbound{}).Where("id = ?", ep.Id).Update("stream_settings", newStream)
 	}
 
-	err = tx.Raw(`UPDATE inbounds
-	SET tag = REPLACE(tag, '0.0.0.0:', '')
-	WHERE INSTR(tag, '0.0.0.0:') > 0;`).Error
+	// Legacy tag cleanup for old auto-generated tags (e.g. "0.0.0.0:443-...").
+	// Must be cross-DB: INSTR/REPLACE work on SQLite; Postgres needs position().
+	tagCleanup := `UPDATE inbounds
+		SET tag = REPLACE(tag, '0.0.0.0:', '')
+		WHERE INSTR(tag, '0.0.0.0:') > 0;`
+	if database.IsPostgres() {
+		tagCleanup = `UPDATE inbounds
+			SET tag = REPLACE(tag, '0.0.0.0:', '')
+			WHERE position('0.0.0.0:' in tag) > 0;`
+	}
+	err = tx.Raw(tagCleanup).Error
 	if err != nil {
 		return
 	}
@@ -3639,23 +3930,46 @@ func (s *InboundService) GetOnlineClients() []string {
 	return p.GetOnlineClients()
 }
 
-func (s *InboundService) GetOnlineClientsByNode() map[int][]string {
+// GetOnlineClientsByGuid returns online emails keyed by the panelGuid of the
+// node that physically hosts each set: this panel's own clients under its own
+// GUID, plus every node in the tree under its GUID (#4983). Replaces the old
+// node-id keying so a client three hops down is attributed to its real node,
+// not the intermediate one it was synced through.
+func (s *InboundService) GetOnlineClientsByGuid() map[string][]string {
 	if p == nil {
-		return map[int][]string{}
+		return map[string][]string{}
 	}
-	return p.GetOnlineClientsByNode()
+	out := p.GetMergedNodeTrees()
+	if local := p.GetLocalOnlineClients(); len(local) > 0 {
+		if guid := s.panelGuid(); guid != "" {
+			out[guid] = mergeEmails(out[guid], local)
+		}
+	}
+	return out
 }
 
-func (s *InboundService) GetActiveInboundsByNode() map[int][]string {
+// GetActiveInboundsByGuid returns the inbound tags that carried traffic within
+// the grace window for THIS panel, under its own GUID. Remote nodes don't
+// report per-inbound activity, so a GUID missing from the map means "don't
+// gate" for that node's inbounds.
+func (s *InboundService) GetActiveInboundsByGuid() map[string][]string {
 	if p == nil {
-		return map[int][]string{}
+		return map[string][]string{}
 	}
-	return p.GetActiveInboundsByNode()
+	active := p.GetLocalActiveInbounds()
+	if len(active) == 0 {
+		return map[string][]string{}
+	}
+	guid := s.panelGuid()
+	if guid == "" {
+		return map[string][]string{}
+	}
+	return map[string][]string{guid: active}
 }
 
-func (s *InboundService) SetNodeOnlineClients(nodeID int, emails []string) {
+func (s *InboundService) SetNodeOnlineTree(nodeID int, tree map[string][]string) {
 	if p != nil {
-		p.SetNodeOnlineClients(nodeID, emails)
+		p.SetNodeOnlineTree(nodeID, tree)
 	}
 }
 
@@ -3663,6 +3977,43 @@ func (s *InboundService) ClearNodeOnlineClients(nodeID int) {
 	if p != nil {
 		p.ClearNodeOnlineClients(nodeID)
 	}
+}
+
+// panelGuid returns this panel's stable self-identifier, used to key the local
+// panel's own clients in the per-node online maps (#4983).
+func (s *InboundService) panelGuid() string {
+	guid, _ := (&SettingService{}).GetPanelGuid()
+	return guid
+}
+
+// synthNodeGuid is the stable per-node fallback identity for a directly-attached
+// node whose panel hasn't reported a panelGuid yet (old build). Node ids are
+// master-local, so this only composes for direct nodes — exactly the pre-#4983
+// flat-topology case where an old-build node appears.
+func synthNodeGuid(nodeID int) string {
+	return fmt.Sprintf("node:%d", nodeID)
+}
+
+// mergeEmails returns the deduped union of two email slices.
+func mergeEmails(a, b []string) []string {
+	if len(a) == 0 {
+		return b
+	}
+	seen := make(map[string]struct{}, len(a)+len(b))
+	out := make([]string, 0, len(a)+len(b))
+	for _, e := range a {
+		if _, ok := seen[e]; !ok {
+			seen[e] = struct{}{}
+			out = append(out, e)
+		}
+	}
+	for _, e := range b {
+		if _, ok := seen[e]; !ok {
+			seen[e] = struct{}{}
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 func (s *InboundService) GetClientsLastOnline() (map[string]int64, error) {

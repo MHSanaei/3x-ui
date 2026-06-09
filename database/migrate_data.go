@@ -20,9 +20,20 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// migrationModels is the FK-aware order in which tables are created and copied.
-// Parents come before their children so foreign-key constraints stay satisfied
-// even when checks are not explicitly disabled.
+// migrationModels is the FK-aware order in which tables are created and copied
+// during `x-ui migrate-db --dsn` (SQLite → PostgreSQL data migration) and in
+// related tests.
+//
+// Important: When adding a new top-level model (like OutboundSubscription),
+// you must add it here **in addition to** the list in database/db.go:initModels().
+// This list is used for:
+//   - Creating the destination schema during cross-DB migration
+//   - Truncating tables
+//   - Copying data row-by-row
+//   - Resyncing Postgres sequences after bulk insert
+//
+// DumpSQLite / RestoreSQLite are schema-introspective (they read sqlite_master)
+// so they do not need manual updates.
 func migrationModels() []any {
 	return []any{
 		&model.User{},
@@ -39,6 +50,7 @@ func migrationModels() []any {
 		&model.ClientInbound{},
 		&model.InboundFallback{},
 		&model.NodeClientTraffic{},
+		&model.OutboundSubscription{},
 	}
 }
 

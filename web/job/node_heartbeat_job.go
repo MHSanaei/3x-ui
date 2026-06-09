@@ -59,7 +59,7 @@ func (j *NodeHeartbeatJob) Run() {
 	if !websocket.HasClients() {
 		return
 	}
-	updated, err := j.nodeService.GetAll()
+	updated, err := j.nodeService.GetNodeTree()
 	if err != nil {
 		logger.Warning("node heartbeat: load nodes for broadcast failed:", err)
 		return
@@ -78,5 +78,15 @@ func (j *NodeHeartbeatJob) probeOne(n *model.Node) {
 	}
 	if updErr := j.nodeService.UpdateHeartbeat(n.Id, patch); updErr != nil {
 		logger.Warning("node heartbeat: update node", n.Id, "failed:", updErr)
+	}
+	// Learn the nodes this node manages so the panel can surface them as
+	// transitive sub-nodes (#4983). Fresh context — the probe budget above may
+	// be spent. Drop them when the node is unreachable.
+	if patch.Status == "online" {
+		dctx, dcancel := context.WithTimeout(context.Background(), nodeHeartbeatRequestTimeout)
+		j.nodeService.RefreshDescendants(dctx, n)
+		dcancel()
+	} else {
+		j.nodeService.ClearDescendants(n.Id)
 	}
 }

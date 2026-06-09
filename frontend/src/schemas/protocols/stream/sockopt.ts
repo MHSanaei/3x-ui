@@ -57,14 +57,18 @@ export const SockoptStreamSettingsSchema = z.object({
   tcpMptcp: z.boolean().default(false),
   penetrate: z.boolean().default(false),
   domainStrategy: SockoptDomainStrategySchema.default('AsIs'),
-  tcpMaxSeg: z.number().int().min(0).default(1440),
+  // 0 = omit on the wire; xray-core skips sockopt fields <= 0 and uses OS defaults.
+  // Non-zero defaults here previously came from the xray docs *example* (clamp 600,
+  // maxSeg 1440, userTimeout 10000) and were written into every config when the
+  // panel sockopt switch was enabled, throttling long-haul links.
+  tcpMaxSeg: z.number().int().min(0).default(0),
   dialerProxy: z.string().default(''),
-  tcpKeepAliveInterval: z.number().int().min(0).default(45),
-  tcpKeepAliveIdle: z.number().int().min(0).default(45),
-  tcpUserTimeout: z.number().int().min(0).default(10000),
+  tcpKeepAliveInterval: z.number().int().min(0).default(0),
+  tcpKeepAliveIdle: z.number().int().min(0).default(0),
+  tcpUserTimeout: z.number().int().min(0).default(0),
   tcpcongestion: TcpCongestionSchema.default('bbr'),
   V6Only: z.boolean().default(false),
-  tcpWindowClamp: z.number().int().min(0).default(600),
+  tcpWindowClamp: z.number().int().min(0).default(0),
   interface: z.string().default(''),
   trustedXForwardedFor: z.array(z.string()).default([]),
   addressPortStrategy: AddressPortStrategySchema.default('none'),
