@@ -898,15 +898,6 @@ show_xray_status() {
     fi
 }
 
-check_mtproto_status() {
-    count=$(ps -ef | grep "mtg-linux" | grep -v "grep" | wc -l)
-    if [[ count -ne 0 ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
 # show_mtproto_status reports each mtproto inbound's mtg sidecar (one process per
 # inbound, run outside xray). Silent when no mtproto inbound is configured.
 show_mtproto_status() {
