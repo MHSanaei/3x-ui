@@ -576,49 +576,42 @@ export class ClipboardManager {
   }
 
   static _legacyCopy(text: string): boolean {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.setAttribute('readonly', '');
-    textarea.setAttribute('aria-hidden', 'true');
-    textarea.style.position = 'absolute';
-    textarea.style.left = '-9999px';
-    textarea.style.top = '0';
-    textarea.style.opacity = '1';
+    const span = document.createElement('span');
+    span.textContent = text;
+    span.style.whiteSpace = 'pre';
+    span.style.position = 'absolute';
+    span.style.left = '-9999px';
+    span.style.top = '0';
 
-    const active = document.activeElement as HTMLElement | null;
-    const host = (active && active !== document.body && active.parentElement)
-      ? active.parentElement
-      : document.body;
-    host.appendChild(textarea);
+    document.body.appendChild(span);
 
-    const sel0 = document.getSelection();
-    const prevSelection = sel0 && sel0.rangeCount ? sel0.getRangeAt(0) : null;
+    const selection = window.getSelection();
+    if (!selection) {
+      document.body.removeChild(span);
+      return false;
+    }
+
+    const prevSelection = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+
+    selection.removeAllRanges();
+    const range = window.document.createRange();
+    range.selectNodeContents(span);
+    selection.addRange(range);
 
     let ok = false;
     try {
-      textarea.focus({ preventScroll: true });
-      textarea.select();
-      textarea.setSelectionRange(0, text.length);
-      // Routed through a dynamic lookup so the @deprecated tag on
-      // Document.execCommand doesn't surface here. execCommand is the
-      // only copy path that works in insecure contexts (HTTP panels
-      // behind IP/localhost) — reached only after navigator.clipboard
-      // fails or is unavailable.
       const exec = (document as unknown as Record<string, unknown>)['execCommand'];
       if (typeof exec === 'function') {
         ok = (exec as (cmd: string) => boolean).call(document, 'copy');
       }
     } catch {}
 
-    host.removeChild(textarea);
-    if (active && typeof active.focus === 'function') {
-      try { active.focus({ preventScroll: true }); } catch {}
-    }
+    selection.removeAllRanges();
     if (prevSelection) {
-      const sel = document.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(prevSelection);
+      selection.addRange(prevSelection);
     }
+
+    document.body.removeChild(span);
     return ok;
   }
 }
