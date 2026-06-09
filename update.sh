@@ -890,6 +890,11 @@ update_x-ui() {
                 _fail "ERROR: x-ui systemd unit not installed."
             fi
         fi
+        # Kill any leftover mtg (MTProto) sidecars. x-ui runs them outside its own
+        # lifecycle, so on Linux a stale one can survive the stop and keep holding
+        # an inbound port with an outdated secret, silently breaking new clients.
+        # The new panel respawns a clean mtg per inbound on next start.
+        pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
         echo -e "${green}Removing old x-ui version...${plain}"
         rm ${xui_folder} -f > /dev/null 2>&1
         rm ${xui_folder}/x-ui.service -f > /dev/null 2>&1

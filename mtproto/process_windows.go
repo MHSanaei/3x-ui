@@ -51,16 +51,16 @@ func attachChildLifetime(cmd *exec.Cmd) {
 	}
 	job, err := ensureKillOnExitJob()
 	if err != nil {
-		logger.Warning("mtproto: kill-on-exit job unavailable:", err)
+		logger.Warningf("mtproto: kill-on-exit job unavailable: %v", err)
 		return
 	}
 	h, err := windows.OpenProcess(windows.PROCESS_SET_QUOTA|windows.PROCESS_TERMINATE, false, uint32(cmd.Process.Pid))
 	if err != nil {
-		logger.Warning("mtproto: OpenProcess for job attach failed:", err)
+		logger.Warningf("mtproto: OpenProcess for job attach failed: %v", err)
 		return
 	}
 	defer windows.CloseHandle(h)
 	if err := windows.AssignProcessToJobObject(job, h); err != nil {
-		logger.Warning("mtproto: AssignProcessToJobObject failed:", err)
+		logger.Warningf("mtproto: AssignProcessToJobObject failed: %v", err)
 	}
 }

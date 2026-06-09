@@ -864,6 +864,7 @@ show_status() {
             ;;
     esac
     show_xray_status
+    show_mtproto_status
 }
 
 show_enable_status() {
@@ -895,6 +896,34 @@ show_xray_status() {
     else
         echo -e "xray state: ${red}Not Running${plain}"
     fi
+}
+
+# show_mtproto_status reports each mtproto inbound's mtg sidecar (one process per
+# inbound, run outside xray). Silent when no mtproto inbound is configured.
+show_mtproto_status() {
+    local cfg_dir="${xui_folder}/bin/mtproto"
+    local cfgs=()
+    if [[ -d "${cfg_dir}" ]]; then
+        for f in "${cfg_dir}"/mtg-*.toml; do
+            [[ -e "$f" ]] && cfgs+=("$f")
+        done
+    fi
+    [[ ${#cfgs[@]} -eq 0 ]] && return
+
+    local running
+    running=$(ps -ef | grep "mtg-linux" | grep -v "grep" | grep -oE 'mtg-[0-9]+\.toml')
+    for f in "${cfgs[@]}"; do
+        local name id bind
+        name=$(basename "$f")
+        id=$(echo "${name}" | sed -E 's/mtg-([0-9]+)\.toml/\1/')
+        bind=$(grep -E '^[[:space:]]*bind-to' "$f" | head -1 | cut -d'"' -f2)
+        if echo "${running}" | grep -qx "${name}"; then
+            echo -e "mtproto inbound ${id} (${bind}): ${green}Running${plain}"
+        else
+            echo -e "mtproto inbound ${id} (${bind}): ${red}Not Running${plain}"
+        fi
+    done
+    echo -e "  ${yellow}mtg logs:${plain} journalctl -u x-ui --no-pager -n 200 | grep -i mtproto"
 }
 
 firewall_menu() {

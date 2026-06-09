@@ -49,22 +49,55 @@ var (
 	forceStopTimeout    = 2 * time.Second
 )
 
-type lastLineWriter struct {
+// procLogWriter consumes the mtg child process's stdout/stderr. It splits the
+// stream into lines, forwards each one to the x-ui log — so mtg's own messages,
+// including why it cannot reach Telegram, become visible in the panel log viewer
+// and journald — and remembers the most recent line for GetResult.
+type procLogWriter struct {
 	mu       sync.Mutex
+	label    string
+	buf      string
 	lastLine string
 }
 
-func (w *lastLineWriter) Write(p []byte) (int, error) {
-	line := strings.TrimSpace(string(p))
-	if line != "" {
-		w.mu.Lock()
-		w.lastLine = line
-		w.mu.Unlock()
+func (w *procLogWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.buf += string(p)
+	for {
+		i := strings.IndexByte(w.buf, '\n')
+		if i < 0 {
+			break
+		}
+		line := w.buf[:i]
+		w.buf = w.buf[i+1:]
+		w.emitLocked(line)
 	}
 	return len(p), nil
 }
 
-func (w *lastLineWriter) LastLine() string {
+// Flush emits any buffered partial line; called once the process exits so a
+// final un-terminated error line is not lost.
+func (w *procLogWriter) Flush() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.buf != "" {
+		line := w.buf
+		w.buf = ""
+		w.emitLocked(line)
+	}
+}
+
+func (w *procLogWriter) emitLocked(line string) {
+	trimmed := strings.TrimSpace(strings.TrimRight(line, "\r"))
+	if trimmed == "" {
+		return
+	}
+	w.lastLine = trimmed
+	logger.Infof("mtproto: mtg %s | %s", w.label, trimmed)
+}
+
+func (w *procLogWriter) LastLine() string {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	return w.lastLine
@@ -75,15 +108,15 @@ type Process struct {
 	cmd             *exec.Cmd
 	done            chan struct{}
 	configPath      string
-	logWriter       *lastLineWriter
+	logWriter       *procLogWriter
 	exitErr         error
 	intentionalStop atomic.Bool
 }
 
-func newProcess(configPath string) *Process {
+func newProcess(configPath, label string) *Process {
 	return &Process{
 		configPath: configPath,
-		logWriter:  &lastLineWriter{},
+		logWriter:  &procLogWriter{label: label},
 	}
 }
 
@@ -141,6 +174,7 @@ func (p *Process) Start() error {
 func (p *Process) wait(cmd *exec.Cmd) {
 	defer close(p.done)
 	err := cmd.Wait()
+	p.logWriter.Flush()
 	if err == nil || p.intentionalStop.Load() {
 		return
 	}
@@ -150,7 +184,7 @@ func (p *Process) wait(cmd *exec.Cmd) {
 			return
 		}
 	}
-	logger.Error("mtproto: mtg process exited:", err)
+	logger.Errorf("mtproto: mtg process exited: %v", err)
 	p.exitErr = err
 }
 
