@@ -8,13 +8,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/ndotvpn/3x-ui/releases"><img src="https://img.shields.io/github/v/release/ndotvpn/3x-ui" alt="Release"></a>
+  <a href="https://github.com/ndotvpn/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/ndotvpn/3x-ui/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/ndotvpn/3x-ui.svg" alt="GO Version"></a>
+  <a href="https://github.com/ndotvpn/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/ndotvpn/3x-ui/total.svg" alt="Downloads"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
-  <a href="https://goreportcard.com/report/github.com/mhsanaei/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/mhsanaei/3x-ui/v3" alt="Go Report Card"></a>
+  <a href="https://pkg.go.dev/github.com/ndotvpn/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/ndotvpn/3x-ui/v3.svg" alt="Go Reference"></a>
+  <a href="https://goreportcard.com/report/github.com/ndotvpn/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/ndotvpn/3x-ui/v3" alt="Go Report Card"></a>
 </p>
 
 **3X-UI** es un panel de control web avanzado y de código abierto para gestionar servidores [Xray-core](https://github.com/XTLS/Xray-core). Ofrece una interfaz limpia y multilingüe para desplegar, configurar y monitorear una amplia gama de protocolos de proxy y VPN — desde un único VPS hasta despliegues multinodo.
@@ -70,12 +70,12 @@ Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un sop
 ## Inicio Rápido
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/ndotvpn/3x-ui/master/install.sh)
 ```
 
 Durante la instalación se generan un nombre de usuario, una contraseña y una ruta de acceso aleatorios. Tras la instalación, ejecuta `x-ui` para abrir el menú de gestión, donde puedes iniciar/detener el servicio, ver o restablecer tus credenciales de acceso, gestionar certificados SSL y mucho más.
 
-Para la documentación completa, visita la [Wiki del proyecto](https://github.com/MHSanaei/3x-ui/wiki).
+Para la documentación completa, visita la [Wiki del proyecto](https://github.com/ndotvpn/3x-ui/wiki).
 
 ## Plataformas Compatibles
 
@@ -118,7 +118,7 @@ docker compose --profile postgres up -d
 La imagen incluye Fail2ban (habilitado de forma predeterminada) para aplicar **límites de IP** por cliente. Fail2ban banea a los infractores con `iptables`, lo que requiere la capacidad `NET_ADMIN`. `docker-compose.yml` ya la concede mediante `cap_add`; si en su lugar inicias el contenedor con `docker run`, añade tú mismo las capacidades, de lo contrario los baneos se registran pero nunca se aplican:
 
 ```bash
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
+docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/ndotvpn/3x-ui
 ```
 
 ## Variables de Entorno
@@ -174,4 +174,4 @@ Herramientas e integraciones construidas por la comunidad alrededor de 3x-ui.
 
 ## Estrellas a lo Largo del Tiempo
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+[![Stargazers over time](https://starchart.cc/ndotvpn/3x-ui.svg?variant=adaptive)](https://starchart.cc/ndotvpn/3x-ui)

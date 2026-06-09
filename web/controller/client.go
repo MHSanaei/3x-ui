@@ -3,11 +3,13 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/database/model"
+	"github.com/mhsanaei/3x-ui/v3/util/random"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 	"github.com/mhsanaei/3x-ui/v3/web/websocket"
 
@@ -132,7 +134,30 @@ func (a *ClientController) create(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientAddSuccess"), pendingNodeObj(a.inboundService.AnyNodePending(payload.InboundIds)), nil)
+
+	obj := pendingNodeObj(a.inboundService.AnyNodePending(payload.InboundIds))
+
+	if payload.GetClientJson && len(payload.InboundIds) > 0 {
+		inbound, ibErr := a.inboundService.GetInbound(payload.InboundIds[0])
+		if ibErr == nil {
+			clientRec, crErr := a.clientService.GetRecordByEmail(nil, payload.Client.Email)
+			if crErr == nil {
+				cfg, cfgErr := buildClientConfig(inbound, clientRec, resolveHost(c))
+				if cfgErr == nil {
+					var data gin.H
+					if obj != nil {
+						data = obj.(gin.H)
+					} else {
+						data = gin.H{}
+					}
+					data["clientConfig"] = cfg
+					obj = data
+				}
+			}
+		}
+	}
+
+	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientAddSuccess"), obj, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
@@ -495,4 +520,254 @@ func (a *ClientController) bulkResetTraffic(c *gin.Context) {
 	jsonObj(c, gin.H{"affected": affected}, nil)
 	a.xrayService.SetToNeedRestart()
 	notifyClientsChanged()
+}
+
+func isRoutableHost(host string) bool {
+	if host == "" {
+		return false
+	}
+	if ip := net.ParseIP(strings.Trim(host, "[]")); ip != nil {
+		return !ip.IsLoopback() && !ip.IsUnspecified()
+	}
+	return true
+}
+
+// resolveInboundAddress resolves the publicly reachable address for an inbound.
+// Priority: node address > routable listen address > request host.
+func resolveInboundAddress(inbound *model.Inbound, host string) string {
+	if listen := inbound.Listen; listen != "" && listen[0] != '@' && listen[0] != '/' && isRoutableHost(listen) {
+		return listen
+	}
+	return host
+}
+
+func sanitizeStreamSettings(raw string) map[string]any {
+	if raw == "" || raw == "{}" {
+		return nil
+	}
+	var ss map[string]any
+	if err := json.Unmarshal([]byte(raw), &ss); err != nil || len(ss) == 0 {
+		return nil
+	}
+	delete(ss, "sockopt")
+
+	switch security, _ := ss["security"].(string); security {
+	case "tls":
+		if tls, ok := ss["tlsSettings"].(map[string]any); ok {
+			clean := map[string]any{
+				"serverName": tls["serverName"],
+				"alpn":       tls["alpn"],
+			}
+			if settings, _ := tls["settings"].(map[string]any); settings != nil {
+				if fp, _ := settings["fingerprint"].(string); fp != "" {
+					clean["fingerprint"] = fp
+				}
+				if ech, _ := settings["echConfigList"].(string); ech != "" {
+					clean["echConfigList"] = ech
+				}
+				if pins, _ := settings["pinnedPeerCertSha256"].([]any); len(pins) > 0 {
+					clean["pinnedPeerCertSha256"] = pins
+				}
+			}
+			ss["tlsSettings"] = clean
+		}
+	case "reality":
+		if reality, ok := ss["realitySettings"].(map[string]any); ok {
+			clean := map[string]any{
+				"show":       false,
+				"publicKey":  reality["publicKey"],
+				"fingerprint": reality["fingerprint"],
+			}
+			if settings, _ := reality["settings"].(map[string]any); settings != nil {
+				if pk, _ := settings["publicKey"].(string); pk != "" {
+					clean["publicKey"] = pk
+				}
+				if fp, _ := settings["fingerprint"].(string); fp != "" {
+					clean["fingerprint"] = fp
+				}
+				if mldsa, _ := settings["mldsa65Verify"].(string); mldsa != "" {
+					clean["mldsa65Verify"] = mldsa
+				}
+			}
+			if serverNames, _ := reality["serverNames"].([]any); len(serverNames) > 0 {
+				clean["serverName"] = serverNames[0].(string)
+			}
+			if shortIds, _ := reality["shortIds"].([]any); len(shortIds) > 0 {
+				clean["shortId"] = shortIds[0].(string)
+			}
+			clean["spiderX"] = "/" + randomString(15)
+			ss["realitySettings"] = clean
+		}
+	}
+
+	network, _ := ss["network"].(string)
+	switch network {
+	case "tcp":
+		if tcp, ok := ss["tcpSettings"].(map[string]any); ok {
+			delete(tcp, "acceptProxyProtocol")
+		}
+	case "ws":
+		if ws, ok := ss["wsSettings"].(map[string]any); ok {
+			delete(ws, "acceptProxyProtocol")
+		}
+	case "httpupgrade":
+		if hu, ok := ss["httpupgradeSettings"].(map[string]any); ok {
+			delete(hu, "acceptProxyProtocol")
+		}
+	case "xhttp":
+		if xh, ok := ss["xhttpSettings"].(map[string]any); ok {
+			delete(xh, "acceptProxyProtocol")
+			delete(xh, "noSSEHeader")
+			delete(xh, "scMaxBufferedPosts")
+			delete(xh, "scStreamUpServerSecs")
+			delete(xh, "serverMaxHeaderBytes")
+		}
+	case "grpc":
+		if grpc, ok := ss["grpcSettings"].(map[string]any); ok {
+			delete(grpc, "acceptProxyProtocol")
+		}
+	}
+	return ss
+}
+
+func randomString(n int) string {
+	return random.Seq(n)
+}
+
+// buildClientConfig builds a V2Ray JSON config object compatible with v2rayNG
+// from an inbound and client record, using the same per-protocol format
+// as the v2rayNG V2rayConfig.OutboundBean data model.
+func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host string) (map[string]any, error) {
+	address := resolveInboundAddress(inbound, host)
+
+	streamSettings := sanitizeStreamSettings(inbound.StreamSettings)
+
+	outbound := map[string]any{
+		"protocol": string(inbound.Protocol),
+		"tag":      "proxy",
+	}
+
+	switch inbound.Protocol {
+	case model.VMESS:
+		security := client.Security
+		if security == "" {
+			security = "auto"
+		}
+		outbound["settings"] = map[string]any{
+			"vnext": []any{
+				map[string]any{
+					"address": address,
+					"port":    inbound.Port,
+					"users": []any{
+						map[string]any{
+							"id":       client.UUID,
+							"security": security,
+							"level":    8,
+						},
+					},
+				},
+			},
+		}
+
+	case model.VLESS:
+		var inboundSettings map[string]any
+		json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+		encryption, _ := inboundSettings["encryption"].(string)
+		user := map[string]any{
+			"id":         client.UUID,
+			"encryption": encryption,
+			"level":      8,
+		}
+		if client.Flow != "" {
+			user["flow"] = client.Flow
+		}
+		outbound["settings"] = map[string]any{
+			"vnext": []any{
+				map[string]any{
+					"address": address,
+					"port":    inbound.Port,
+					"users":   []any{user},
+				},
+			},
+		}
+
+	case model.Trojan:
+		outbound["settings"] = map[string]any{
+			"servers": []any{
+				map[string]any{
+					"address":  address,
+					"port":     inbound.Port,
+					"password": client.Password,
+					"level":    8,
+				},
+			},
+		}
+
+	case model.Shadowsocks:
+		var inboundSettings map[string]any
+		json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+		method, _ := inboundSettings["method"].(string)
+		password := client.Password
+		if strings.HasPrefix(method, "2022") {
+			if serverPassword, ok := inboundSettings["password"].(string); ok {
+				password = fmt.Sprintf("%s:%s", serverPassword, client.Password)
+			}
+		}
+		outbound["settings"] = map[string]any{
+			"servers": []any{
+				map[string]any{
+					"address":  address,
+					"port":     inbound.Port,
+					"password": password,
+					"method":   method,
+					"level":    8,
+				},
+			},
+		}
+
+	case model.Hysteria:
+		var inboundSettings map[string]any
+		json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+		version, _ := inboundSettings["version"].(float64)
+		outbound["settings"] = map[string]any{
+			"version": int(version),
+			"address": address,
+			"port":    inbound.Port,
+		}
+		// Build hysteria stream settings
+		var stream map[string]any
+		json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+		hyStream, _ := stream["hysteriaSettings"].(map[string]any)
+		if hyStream != nil {
+			outHyStream := map[string]any{
+				"version": int(version),
+				"auth":    client.Auth,
+			}
+			if udpIdleTimeout, ok := hyStream["udpIdleTimeout"].(float64); ok {
+				outHyStream["udpIdleTimeout"] = int(udpIdleTimeout)
+			}
+			if masquerade, ok := hyStream["masquerade"].(map[string]any); ok {
+				outHyStream["masquerade"] = masquerade
+			}
+			hyStream = outHyStream
+		}
+		if stream != nil {
+			stream["network"] = "hysteria"
+			stream["security"] = "tls"
+			delete(stream, "sockopt")
+			outbound["streamSettings"] = stream
+		}
+		streamSettings = nil // already handled above
+	}
+
+	if streamSettings != nil {
+		outbound["streamSettings"] = streamSettings
+	}
+
+	config := map[string]any{
+		"inbounds":  []any{map[string]any{}},
+		"outbounds": []any{outbound},
+	}
+
+	return config, nil
 }

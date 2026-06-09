@@ -8,13 +8,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/ndotvpn/3x-ui/releases"><img src="https://img.shields.io/github/v/release/ndotvpn/3x-ui" alt="Release"></a>
+  <a href="https://github.com/ndotvpn/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/ndotvpn/3x-ui/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/ndotvpn/3x-ui.svg" alt="GO Version"></a>
+  <a href="https://github.com/ndotvpn/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/ndotvpn/3x-ui/total.svg" alt="Downloads"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
-  <a href="https://goreportcard.com/report/github.com/mhsanaei/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/mhsanaei/3x-ui/v3" alt="Go Report Card"></a>
+  <a href="https://pkg.go.dev/github.com/ndotvpn/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/ndotvpn/3x-ui/v3.svg" alt="Go Reference"></a>
+  <a href="https://goreportcard.com/report/github.com/ndotvpn/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/ndotvpn/3x-ui/v3" alt="Go Report Card"></a>
 </p>
 
 **3X-UI** 是一个先进的开源 Web 控制面板，用于管理 [Xray-core](https://github.com/XTLS/Xray-core) 服务器。它提供简洁、多语言的界面，用于部署、配置和监控各种代理与 VPN 协议——从单台 VPS 到多节点部署。
@@ -70,12 +70,12 @@
 ## 快速开始
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/ndotvpn/3x-ui/master/install.sh)
 ```
 
 安装过程中会生成随机的用户名、密码和访问路径。安装完成后，运行 `x-ui` 打开管理菜单，您可以在其中启动/停止服务、查看或重置登录凭据、管理 SSL 证书等。
 
-完整文档请参阅 [项目Wiki](https://github.com/MHSanaei/3x-ui/wiki)。
+完整文档请参阅 [项目Wiki](https://github.com/ndotvpn/3x-ui/wiki)。
 
 ## 支持的平台
 
@@ -118,7 +118,7 @@ docker compose --profile postgres up -d
 该镜像捆绑了 Fail2ban（默认启用），用于强制执行按客户端的 **IP 限制**。Fail2ban 使用 `iptables` 封禁违规者，这需要 `NET_ADMIN` 权限。`docker-compose.yml` 已通过 `cap_add` 授予该权限；如果您改用 `docker run` 启动容器，请自行添加这些权限，否则封禁只会被记录而永远不会生效：
 
 ```bash
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
+docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/ndotvpn/3x-ui
 ```
 
 ## 环境变量
@@ -174,4 +174,4 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 ## 随时间变化的星标数
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+[![Stargazers over time](https://starchart.cc/ndotvpn/3x-ui.svg?variant=adaptive)](https://starchart.cc/ndotvpn/3x-ui)

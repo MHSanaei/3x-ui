@@ -520,8 +520,9 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 }
 
 type ClientCreatePayload struct {
-	Client     model.Client `json:"client"`
-	InboundIds []int        `json:"inboundIds"`
+	Client        model.Client `json:"client"`
+	InboundIds    []int        `json:"inboundIds"`
+	GetClientJson bool         `json:"getClientJson"`
 }
 
 func hasForbiddenClientChar(s string) bool {
