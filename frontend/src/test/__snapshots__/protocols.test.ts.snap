@@ -185,6 +185,7 @@ exports[`InboundSettingsSchema fixtures > parses vmess-basic byte-stably 1`] = `
   "settings": {
     "clients": [
       {
+        "alterId": 0,
         "comment": "primary tester",
         "email": "bob@example.test",
         "enable": true,
