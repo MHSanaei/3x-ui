@@ -54,7 +54,7 @@ function defaultUdpMaskSettings(type: string): Record<string, unknown> {
     case 'header-custom':
       return { client: [], server: [] };
     case 'noise':
-      return { reset: 0, noise: [] };
+      return { reset: 0, randRange: '', noise: [] };
     default:
       return {};
   }
@@ -579,6 +579,9 @@ function NoiseItems({
     <>
       <Form.Item label="Reset" name={[udpFieldName, 'settings', 'reset']}>
         <InputNumber min={0} />
+      </Form.Item>
+      <Form.Item label="Rand Range" name={[udpFieldName, 'settings', 'randRange']}>
+        <Input placeholder="e.g. 100-200" />
       </Form.Item>
       <Form.List name={[udpFieldName, 'settings', 'noise']}>
         {(items, { add, remove }) => (

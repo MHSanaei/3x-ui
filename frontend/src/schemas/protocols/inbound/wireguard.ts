@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+export const WireguardDomainStrategySchema = z.enum([
+  'ForceIP',
+  'ForceIPv4',
+  'ForceIPv4v6',
+  'ForceIPv6',
+  'ForceIPv6v4',
+]);
+export type WireguardDomainStrategy = z.infer<typeof WireguardDomainStrategySchema>;
+
 // Wireguard inbound is peer-based (no clients). Each peer is a client device
 // the server accepts; secretKey is the server-side private key and pubKey is
 // derived from it at runtime (not persisted on the wire). Inbound peers
@@ -19,5 +28,7 @@ export const WireguardInboundSettingsSchema = z.object({
   secretKey: z.string().min(1),
   peers: z.array(WireguardInboundPeerSchema).default([]),
   noKernelTun: z.boolean().default(false),
+  workers: z.number().int().min(1).optional(),
+  domainStrategy: WireguardDomainStrategySchema.optional(),
 });
 export type WireguardInboundSettings = z.infer<typeof WireguardInboundSettingsSchema>;

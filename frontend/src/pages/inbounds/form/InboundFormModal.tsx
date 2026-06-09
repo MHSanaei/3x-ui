@@ -643,7 +643,7 @@ export default function InboundFormModal({
 
   const streamTab = (
     <>
-      {protocol !== Protocols.HYSTERIA && (
+      {protocol !== Protocols.HYSTERIA && protocol !== Protocols.WIREGUARD && (
         <Form.Item label={t('transmission')} name={['streamSettings', 'network']}>
           <Select
             style={{ width: '75%' }}
