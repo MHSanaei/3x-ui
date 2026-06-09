@@ -640,6 +640,47 @@ export default function InboundInfoModal({
               </Tooltip>
             </dd>
           </div>
+          {(() => {
+            const s = inbound.settings;
+            const df = s.domainFronting as { ip?: string; port?: number; proxyProtocol?: boolean } | undefined;
+            const frontingTarget = df && (df.ip || df.port)
+              ? `${df.ip ?? ''}${df.port ? `:${df.port}` : ''}`
+              : '';
+            return (
+              <>
+                {frontingTarget && (
+                  <div className="info-row">
+                    <dt>{t('pages.inbounds.form.mtgDomainFrontingIp')}</dt>
+                    <dd><Tag color="blue" className="value-tag">{frontingTarget}</Tag></dd>
+                  </div>
+                )}
+                {df?.proxyProtocol && (
+                  <div className="info-row">
+                    <dt>{t('pages.inbounds.form.mtgDomainFrontingProxyProtocol')}</dt>
+                    <dd><Tag color="green" className="value-tag">{t('enabled')}</Tag></dd>
+                  </div>
+                )}
+                {Boolean(s.proxyProtocolListener) && (
+                  <div className="info-row">
+                    <dt>{t('pages.inbounds.form.mtgProxyProtocolListener')}</dt>
+                    <dd><Tag color="green" className="value-tag">{t('enabled')}</Tag></dd>
+                  </div>
+                )}
+                {Boolean(s.preferIp) && (
+                  <div className="info-row">
+                    <dt>{t('pages.inbounds.form.mtgPreferIp')}</dt>
+                    <dd><Tag color="blue" className="value-tag">{s.preferIp as string}</Tag></dd>
+                  </div>
+                )}
+                {Boolean(s.debug) && (
+                  <div className="info-row">
+                    <dt>{t('pages.inbounds.form.mtgDebug')}</dt>
+                    <dd><Tag color="green" className="value-tag">{t('enabled')}</Tag></dd>
+                  </div>
+                )}
+              </>
+            );
+          })()}
           {links.length > 0 && (
             <div className="info-row">
               <dt>{t('pages.inbounds.copyLink')}</dt>

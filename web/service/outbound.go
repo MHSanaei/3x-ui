@@ -352,8 +352,14 @@ func (s *OutboundService) testOutboundHTTP(outboundJSON string, testURL string, 
 			return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Invalid allOutbounds JSON: %v", err)}, nil
 		}
 	}
-	if len(allOutbounds) == 0 {
-		allOutbounds = []any{testOutbound}
+	// The outbound under test must be present in the config so burstObservatory
+	// has something with outboundTag to probe. allOutbounds is the template's
+	// outbounds (for dialerProxy chains); subscription outbounds are injected at
+	// runtime and aren't part of it, so without this the probe targets a tag that
+	// doesn't exist in the config and every test times out. Append (don't replace)
+	// so manual outbounds' dialerProxy chains keep resolving.
+	if !outboundsContainTag(allOutbounds, outboundTag) {
+		allOutbounds = append(allOutbounds, testOutbound)
 	}
 
 	metricsPort, err := findAvailablePort()
@@ -394,6 +400,18 @@ func (s *OutboundService) testOutboundHTTP(outboundJSON string, testURL string, 
 	}
 
 	return pollObservatoryResult(testProcess, metricsPort, outboundTag, 12*time.Second), nil
+}
+
+// outboundsContainTag reports whether any outbound in the slice has the given tag.
+func outboundsContainTag(outbounds []any, tag string) bool {
+	for _, ob := range outbounds {
+		if m, ok := ob.(map[string]any); ok {
+			if t, _ := m["tag"].(string); t == tag {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // createTestConfig builds a probe-only xray config: the original outbounds
