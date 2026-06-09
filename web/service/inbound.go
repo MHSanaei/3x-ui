@@ -546,8 +546,16 @@ func inboundShadowsocksMethod(protocol, settings string) string {
 	return s.Method
 }
 
+// isTcpLikeNetwork reports whether a stream network value uses the TCP L4
+// transport. Xray-core treats "raw" as an alias for bare TCP (it carries the
+// same protocol stack), so both values are eligible for fallbacks and
+// XTLS-Vision flow.
+func isTcpLikeNetwork(network string) bool {
+	return network == "tcp" || network == "raw"
+}
+
 // inboundCanEnableTlsFlow mirrors Inbound.canEnableTlsFlow() from the frontend:
-// XTLS Vision is only valid for VLESS on TCP with tls or reality.
+// XTLS Vision is only valid for VLESS on TCP/RAW with tls or reality.
 func inboundCanEnableTlsFlow(protocol, streamSettings string) bool {
 	if protocol != string(model.VLESS) {
 		return false
@@ -562,7 +570,7 @@ func inboundCanEnableTlsFlow(protocol, streamSettings string) bool {
 	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
 		return false
 	}
-	if stream.Network != "tcp" {
+	if !isTcpLikeNetwork(stream.Network) {
 		return false
 	}
 	return stream.Security == "tls" || stream.Security == "reality"
@@ -570,7 +578,7 @@ func inboundCanEnableTlsFlow(protocol, streamSettings string) bool {
 
 // inboundCanHostFallbacks gates the settings.fallbacks injection.
 // Xray only honors fallbacks on VLESS and Trojan inbounds carried over
-// TCP transport with TLS or Reality security.
+// TCP/RAW transport with TLS or Reality security.
 func inboundCanHostFallbacks(ib *model.Inbound) bool {
 	if ib == nil {
 		return false
@@ -583,7 +591,7 @@ func inboundCanHostFallbacks(ib *model.Inbound) bool {
 }
 
 // trojanStreamSupportsFallbacks mirrors the Trojan side of the same gate
-// (Trojan reuses XTLS-Vision capable streams: tcp + tls or reality).
+// (Trojan reuses XTLS-Vision capable streams: tcp/raw + tls or reality).
 func trojanStreamSupportsFallbacks(streamSettings string) bool {
 	if streamSettings == "" {
 		return false
@@ -595,7 +603,7 @@ func trojanStreamSupportsFallbacks(streamSettings string) bool {
 	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
 		return false
 	}
-	if stream.Network != "tcp" {
+	if !isTcpLikeNetwork(stream.Network) {
 		return false
 	}
 	return stream.Security == "tls" || stream.Security == "reality"

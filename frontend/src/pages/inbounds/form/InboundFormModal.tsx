@@ -181,7 +181,7 @@ export default function InboundFormModal({
   });
   const isFallbackHost =
     (protocol === Protocols.VLESS || protocol === Protocols.TROJAN)
-    && network === 'tcp'
+    && (network === 'tcp' || network === 'raw')
     && (security === 'tls' || security === 'reality');
 
   const {
