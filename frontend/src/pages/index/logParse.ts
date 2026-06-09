@@ -58,7 +58,7 @@ export function parseLogLine(line: string): ParsedLog {
   let date = '';
   let time = '';
   let levelText = '';
-  let body = '';
+  let body: string;
 
   const sys = raw.match(SYSLOG_PREFIX);
   if (sys) {
