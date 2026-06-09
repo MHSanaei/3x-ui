@@ -58,6 +58,9 @@ type managed struct {
 type Manager struct {
 	mu    sync.Mutex
 	procs map[int]*managed
+	// swept records that the one-time startup cleanup of orphaned mtg
+	// processes (survivors of a previous x-ui run) has already run.
+	swept bool
 }
 
 var (
@@ -107,7 +110,22 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 func (m *Manager) Ensure(inst Instance) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.sweepOrphansLocked()
 	return m.ensureLocked(inst)
+}
+
+// sweepOrphansLocked kills mtg processes left running by a previous x-ui run,
+// exactly once per process lifetime and before any of our own mtg are started.
+// Because x-ui owns every mtg process, anything alive at this point is an orphan
+// that would otherwise keep holding an inbound port with a stale secret.
+func (m *Manager) sweepOrphansLocked() {
+	if m.swept {
+		return
+	}
+	m.swept = true
+	if n := killStrayMtgProcesses(GetBinaryPath()); n > 0 {
+		logger.Warningf("mtproto: terminated %d orphaned mtg process(es) from a previous run", n)
+	}
 }
 
 func (m *Manager) ensureLocked(inst Instance) error {
@@ -160,6 +178,7 @@ func (m *Manager) Remove(id int) {
 func (m *Manager) Reconcile(desired []Instance) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.sweepOrphansLocked()
 	want := make(map[int]struct{}, len(desired))
 	for _, inst := range desired {
 		want[inst.Id] = struct{}{}
