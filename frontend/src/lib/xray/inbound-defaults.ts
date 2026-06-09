@@ -81,6 +81,7 @@ export function createDefaultVmessClient(seed: VmessClientSeed = {}): VmessClien
   return {
     id: seed.id ?? RandomUtil.randomUUID(),
     security: seed.security ?? 'auto',
+    alterId: 0,
     ...clientBase(seed),
   };
 }

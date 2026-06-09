@@ -552,12 +552,13 @@ func buildStream(network, security string) map[string]any {
 	default:
 		stream["tcpSettings"] = map[string]any{"header": map[string]any{"type": "none"}}
 	}
-	if security == "tls" {
+	switch security {
+	case "tls":
 		stream["tlsSettings"] = map[string]any{
 			"serverName": "", "alpn": []any{}, "fingerprint": "",
 			"echConfigList": "", "verifyPeerCertByName": "", "pinnedPeerCertSha256": "",
 		}
-	} else if security == "reality" {
+	case "reality":
 		stream["realitySettings"] = map[string]any{
 			"publicKey": "", "fingerprint": "chrome", "serverName": "",
 			"shortId": "", "spiderX": "", "mldsa65Verify": "",
@@ -624,7 +625,8 @@ func applyTransport(stream map[string]any, p url.Values) {
 
 func applySecurity(stream map[string]any, p url.Values) {
 	sec := stream["security"].(string)
-	if sec == "tls" {
+	switch sec {
+	case "tls":
 		tls := stream["tlsSettings"].(map[string]any)
 		tls["serverName"] = p.Get("sni")
 		tls["fingerprint"] = p.Get("fp")
@@ -633,7 +635,7 @@ func applySecurity(stream map[string]any, p url.Values) {
 		}
 		tls["echConfigList"] = p.Get("ech")
 		tls["pinnedPeerCertSha256"] = p.Get("pcs")
-	} else if sec == "reality" {
+	case "reality":
 		re := stream["realitySettings"].(map[string]any)
 		re["serverName"] = p.Get("sni")
 		re["fingerprint"] = firstNonEmpty(p.Get("fp"), "chrome")

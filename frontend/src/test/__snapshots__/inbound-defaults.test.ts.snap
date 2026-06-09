@@ -129,6 +129,7 @@ exports[`createDefaultVlessClient > produces a Zod-valid client 1`] = `
 
 exports[`createDefaultVmessClient > produces a Zod-valid client 1`] = `
 {
+  "alterId": 0,
   "comment": "",
   "email": "fixture@example.test",
   "enable": true,
