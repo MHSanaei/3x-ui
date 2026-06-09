@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -37,7 +38,7 @@ var defaultValueMap = map[string]string{
 	"secret":                      random.Seq(32),
 	"panelGuid":                   uuid.NewString(),
 	"apiToken":                    "",
-	"webBasePath":                 "/",
+	"webBasePath":                 getEnv("XUI_INIT_WEB_BASE_PATH", "/"),
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
 	"pageSize":                    "25",
@@ -235,6 +236,14 @@ func secretConfigured(value string) bool {
 
 func mustString(value string, _ error) string {
 	return value
+}
+
+func getEnv(key, fallback string) string {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	return val
 }
 
 func (s *SettingService) ResetSettings() error {
