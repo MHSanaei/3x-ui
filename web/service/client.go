@@ -1493,7 +1493,6 @@ func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email st
 	if err != nil {
 		return false, err
 	}
-
 	needRestart := false
 	if !rec.Enable {
 		updated := rec.ToClient()
