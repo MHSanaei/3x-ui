@@ -128,7 +128,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	if err := writeConfig(cfgPath, inst.Secret, inst.bindTo(), metricsPort); err != nil {
 		return err
 	}
-	proc := newProcess(cfgPath)
+	proc := newProcess(cfgPath, fmt.Sprintf("inbound %d", inst.Id))
 	if err := proc.Start(); err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		fingerprint: fp,
 		metricsPort: metricsPort,
 	}
-	logger.Info("mtproto: started mtg for inbound", inst.Id, "on", inst.bindTo())
+	logger.Infof("mtproto: started mtg for inbound %d on %s", inst.Id, inst.bindTo())
 	return nil
 }
 
@@ -150,7 +150,7 @@ func (m *Manager) Remove(id int) {
 		cur.proc.Stop()
 		delete(m.procs, id)
 		_ = os.Remove(configPathForID(id))
-		logger.Info("mtproto: stopped mtg for inbound", id)
+		logger.Infof("mtproto: stopped mtg for inbound %d", id)
 	}
 }
 
@@ -173,7 +173,7 @@ func (m *Manager) Reconcile(desired []Instance) {
 	}
 	for _, inst := range desired {
 		if err := m.ensureLocked(inst); err != nil {
-			logger.Warning("mtproto: reconcile failed for inbound", inst.Id, ":", err)
+			logger.Warningf("mtproto: reconcile failed for inbound %d: %v", inst.Id, err)
 		}
 	}
 }
