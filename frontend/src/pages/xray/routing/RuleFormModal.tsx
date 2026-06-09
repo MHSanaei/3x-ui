@@ -5,6 +5,7 @@ import { PlusOutlined, MinusOutlined, QuestionCircleOutlined } from '@ant-design
 import { InputAddon } from '@/components/ui';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import { RuleFormSchema, type RuleFormValues } from '@/schemas/xray';
+import { buildRemarkByTag } from './helpers';
 
 export interface RoutingRule {
   type?: string;
@@ -74,13 +75,7 @@ export default function RuleFormModal({
   const isEdit = rule != null;
 
   const { data: inboundOptions } = useInboundOptions();
-  const remarkByTag = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const ib of inboundOptions || []) {
-      if (ib.tag) map[ib.tag] = ib.remark?.trim() || ib.tag;
-    }
-    return map;
-  }, [inboundOptions]);
+  const remarkByTag = useMemo(() => buildRemarkByTag(inboundOptions || []), [inboundOptions]);
 
   useEffect(() => {
     if (!open) return;

@@ -18,6 +18,44 @@ export function chipPreview(value?: string): string {
   return `${parts[0]} +${parts.length - 1}`;
 }
 
+/** Same lookup as RuleFormModal inbound select: remark first, else tag. */
+export function buildRemarkByTag(
+  options: Array<{ tag?: string; remark?: string }>,
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const ib of options) {
+    if (ib.tag) map[ib.tag] = ib.remark?.trim() || ib.tag;
+  }
+  return map;
+}
+
+export function formatInboundTagsWithRemarks(
+  tags?: string,
+  remarkByTag: Record<string, string> = {},
+): string | undefined {
+  if (!tags) return undefined;
+  const formatted = csv(tags).map((tag) => {
+    const label = remarkByTag[tag]?.trim();
+    if (!label || label === tag) return tag;
+    return `${tag} (${label})`;
+  });
+  return formatted.length > 0 ? formatted.join(',') : undefined;
+}
+
+export function inboundTagsDisplayTitle(
+  tags?: string,
+  remarkByTag: Record<string, string> = {},
+): string | undefined {
+  return formatInboundTagsWithRemarks(tags, remarkByTag)?.split(',').join(', ');
+}
+
+export function inboundTagChipPreview(
+  tags?: string,
+  remarkByTag: Record<string, string> = {},
+): string {
+  return chipPreview(formatInboundTagsWithRemarks(tags, remarkByTag));
+}
+
 export function ruleCriteriaChips(rule: RuleRow) {
   const chips: { label: string; value?: string }[] = [];
   if (rule.domain) chips.push({ label: 'Domain', value: rule.domain });

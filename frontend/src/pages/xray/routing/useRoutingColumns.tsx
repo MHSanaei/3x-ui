@@ -13,7 +13,9 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
+import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import CriterionRow from './CriterionRow';
+import { buildRemarkByTag, formatInboundTagsWithRemarks, inboundTagsDisplayTitle } from './helpers';
 import type { RuleRow } from './types';
 
 interface RoutingColumnsParams {
@@ -40,6 +42,8 @@ export function useRoutingColumns({
   confirmDelete,
 }: RoutingColumnsParams): ColumnsType<RuleRow> {
   const { t } = useTranslation();
+  const { data: inboundOptions } = useInboundOptions();
+  const remarkByTag = useMemo(() => buildRemarkByTag(inboundOptions || []), [inboundOptions]);
   return useMemo(
     () => [
       {
@@ -131,13 +135,22 @@ export function useRoutingColumns({
         align: 'left',
         width: 180,
         key: 'inbound',
-        render: (_v, record) => (
-          <div className="criterion-flow">
-            {record.inboundTag && <CriterionRow label="Tag" value={record.inboundTag} title={`Inbound tag: ${record.inboundTag}`} />}
-            {record.user && <CriterionRow label="User" value={record.user} title={`User: ${record.user}`} />}
-            {!record.inboundTag && !record.user && <span className="criterion-empty">—</span>}
-          </div>
-        ),
+        render: (_v, record) => {
+          const inboundDisplay = formatInboundTagsWithRemarks(record.inboundTag, remarkByTag);
+          return (
+            <div className="criterion-flow">
+              {inboundDisplay && (
+                <CriterionRow
+                  label="Tag"
+                  value={inboundDisplay}
+                  title={`Inbound tag: ${inboundTagsDisplayTitle(record.inboundTag, remarkByTag) ?? inboundDisplay}`}
+                />
+              )}
+              {record.user && <CriterionRow label="User" value={record.user} title={`User: ${record.user}`} />}
+              {!inboundDisplay && !record.user && <span className="criterion-empty">—</span>}
+            </div>
+          );
+        },
       },
       {
         title: t('pages.xray.Outbounds'),
@@ -171,7 +184,6 @@ export function useRoutingColumns({
           ),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, isMobile, rowsLength, showSource, showBalancer],
+    [t, isMobile, rowsLength, showSource, showBalancer, remarkByTag, onHandlePointerDown, openEdit, moveUp, moveDown, confirmDelete],
   );
 }
