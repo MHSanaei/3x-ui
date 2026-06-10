@@ -95,7 +95,9 @@
     "active": "Active",
     "inactive": "Inactive",
     "unlimited": "Unlimited",
-    "noExpiry": "No expiry"
+    "noExpiry": "No expiry",
+    "copyAllConfigs": "Copy All Configs",
+    "copyAllConfigsCopied": "All configs copied"
   },
   "menu": {
     "theme": "Theme",

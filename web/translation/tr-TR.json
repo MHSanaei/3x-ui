@@ -95,7 +95,9 @@
     "active": "Aktif",
     "inactive": "Pasif",
     "unlimited": "Sınırsız",
-    "noExpiry": "Süresiz"
+    "noExpiry": "Süresiz",
+    "copyAllConfigs": "Tüm Yapılandırmaları Kopyala",
+    "copyAllConfigsCopied": "Tüm yapılandırmalar kopyalandı"
   },
   "menu": {
     "theme": "Tema",

@@ -95,7 +95,9 @@
     "active": "فعال",
     "inactive": "غیرفعال",
     "unlimited": "نامحدود",
-    "noExpiry": "بدون انقضا"
+    "noExpiry": "بدون انقضا",
+    "copyAllConfigs": "کپی همه کانفیگ‌ها",
+    "copyAllConfigsCopied": "همه کانفیگ‌ها کپی شدند"
   },
   "menu": {
     "theme": "تم",

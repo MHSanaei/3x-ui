@@ -95,7 +95,9 @@
     "active": "نشط",
     "inactive": "غير نشط",
     "unlimited": "غير محدود",
-    "noExpiry": "بدون انتهاء"
+    "noExpiry": "بدون انتهاء",
+    "copyAllConfigs": "نسخ جميع الإعدادات",
+    "copyAllConfigsCopied": "تم نسخ جميع الإعدادات"
   },
   "menu": {
     "theme": "الثيم",

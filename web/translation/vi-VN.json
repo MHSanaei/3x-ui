@@ -95,7 +95,9 @@
     "active": "Hoạt động",
     "inactive": "Không hoạt động",
     "unlimited": "Không giới hạn",
-    "noExpiry": "Không hết hạn"
+    "noExpiry": "Không hết hạn",
+    "copyAllConfigs": "Sao chép tất cả cấu hình",
+    "copyAllConfigsCopied": "Đã sao chép tất cả cấu hình"
   },
   "menu": {
     "theme": "Chủ đề",

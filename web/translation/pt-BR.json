@@ -95,7 +95,9 @@
     "active": "Ativo",
     "inactive": "Inativo",
     "unlimited": "Ilimitado",
-    "noExpiry": "Sem validade"
+    "noExpiry": "Sem validade",
+    "copyAllConfigs": "Copiar Todas as Configurações",
+    "copyAllConfigsCopied": "Todas as configurações copiadas"
   },
   "menu": {
     "theme": "Tema",
