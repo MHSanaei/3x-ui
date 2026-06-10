@@ -80,14 +80,15 @@ function DonateButton({ ariaLabel }: { ariaLabel: string }) {
 
 function VersionBadge({ version, collapsed }: { version: string; collapsed?: boolean }) {
   if (!version) return null;
-  const label = `v${version}`;
+  const label = version.startsWith('v') ? version : `v${version}`;
+  const href = `${REPO_URL}/releases/tag/${encodeURIComponent(label)}`;
   return (
     <a
-      href={REPO_URL}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       className={`sider-version${collapsed ? ' is-collapsed' : ''}`}
-      aria-label={`GitHub ${label}`}
+      aria-label={`GitHub release ${label}`}
       title={label}
     >
       <GithubOutlined />
