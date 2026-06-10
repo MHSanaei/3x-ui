@@ -69,6 +69,24 @@ exports[`InboundSettingsSchema fixtures > parses mtproto-basic byte-stably 1`] =
 }
 `;
 
+exports[`InboundSettingsSchema fixtures > parses mtproto-domain-fronting byte-stably 1`] = `
+{
+  "protocol": "mtproto",
+  "settings": {
+    "debug": true,
+    "domainFronting": {
+      "ip": "127.0.0.1",
+      "port": 9443,
+      "proxyProtocol": true,
+    },
+    "fakeTlsDomain": "www.cloudflare.com",
+    "preferIp": "prefer-ipv4",
+    "proxyProtocolListener": true,
+    "secret": "ee0123456789abcdef0123456789abcdef7777772e636c6f7564666c6172652e636f6d",
+  },
+}
+`;
+
 exports[`InboundSettingsSchema fixtures > parses shadowsocks-2022 byte-stably 1`] = `
 {
   "protocol": "shadowsocks",
@@ -167,6 +185,7 @@ exports[`InboundSettingsSchema fixtures > parses vmess-basic byte-stably 1`] = `
   "settings": {
     "clients": [
       {
+        "alterId": 0,
         "comment": "primary tester",
         "email": "bob@example.test",
         "enable": true,

@@ -1,0 +1,15 @@
+{
+  "protocol": "mtproto",
+  "settings": {
+    "fakeTlsDomain": "www.cloudflare.com",
+    "secret": "ee0123456789abcdef0123456789abcdef7777772e636c6f7564666c6172652e636f6d",
+    "proxyProtocolListener": true,
+    "preferIp": "prefer-ipv4",
+    "debug": true,
+    "domainFronting": {
+      "ip": "127.0.0.1",
+      "port": 9443,
+      "proxyProtocol": true
+    }
+  }
+}

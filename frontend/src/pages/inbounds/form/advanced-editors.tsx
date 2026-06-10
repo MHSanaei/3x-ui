@@ -92,9 +92,11 @@ export function AdvancedSliceEditor({
 export function AdvancedAllEditor({
   form,
   streamEnabled,
+  sniffingEnabled,
 }: {
   form: FormInstance<InboundFormValues>;
   streamEnabled: boolean;
+  sniffingEnabled: boolean;
 }) {
   // preserve: true — default useWatch returns only registered fields, so
   // sub-trees we never bound (settings.clients/fallbacks, sniffing
@@ -127,8 +129,10 @@ export function AdvancedAllEditor({
       protocol: wProtocol ?? '',
       tag: wTag ?? '',
       settings: settingsView,
-      sniffing: normalizeSniffing(wSniffing as Parameters<typeof normalizeSniffing>[0]),
     };
+    if (sniffingEnabled) {
+      out.sniffing = normalizeSniffing(wSniffing as Parameters<typeof normalizeSniffing>[0]);
+    }
     if (streamView) out.streamSettings = streamView;
     return JSON.stringify(out, null, 2);
   };
@@ -146,7 +150,7 @@ export function AdvancedAllEditor({
     setText(formStr);
     lastEmitRef.current = formStr;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wListen, wPort, wProtocol, wTag, wSettings, wSniffing, wStream, streamEnabled]);
+  }, [wListen, wPort, wProtocol, wTag, wSettings, wSniffing, wStream, streamEnabled, sniffingEnabled]);
 
   return (
     <JsonEditor
@@ -171,7 +175,7 @@ export function AdvancedAllEditor({
         if (parsed.settings && typeof parsed.settings === 'object') {
           form.setFieldValue('settings', parsed.settings);
         }
-        if (parsed.sniffing && typeof parsed.sniffing === 'object') {
+        if (sniffingEnabled && parsed.sniffing && typeof parsed.sniffing === 'object') {
           form.setFieldValue('sniffing', parsed.sniffing);
         }
         if (streamEnabled && parsed.streamSettings && typeof parsed.streamSettings === 'object') {
