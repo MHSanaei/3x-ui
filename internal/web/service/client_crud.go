@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -13,6 +14,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -374,7 +376,13 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 	}
 
 	needRestart := false
+	nodeIDs := make(map[int]struct{})
+
 	for _, ibId := range inboundIds {
+		if ib, getErr := inboundSvc.GetInbound(ibId); getErr == nil && ib.NodeID != nil {
+			nodeIDs[*ib.NodeID] = struct{}{}
+		}
+
 		if _, getErr := inboundSvc.GetInbound(ibId); getErr != nil {
 			if errors.Is(getErr, gorm.ErrRecordNotFound) {
 				continue
@@ -400,6 +408,16 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		}
 		if nr {
 			needRestart = true
+		}
+	}
+
+	mgr := runtime.GetManager()
+	if mgr != nil && existing.Email != "" {
+		for nID := range nodeIDs {
+			nodeIdPtr := nID // local copy for pointer
+			if rt, err := mgr.RuntimeFor(&nodeIdPtr); err == nil && rt != nil {
+				_ = rt.DeleteClient(context.Background(), existing.Email)
+			}
 		}
 	}
 
@@ -533,7 +551,13 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 		return false, common.NewError(fmt.Sprintf("client %q not found in any inbound or client record", email))
 	}
 	needRestart := false
+	nodeIDs := make(map[int]struct{})
+
 	for _, ibId := range inboundIds {
+		if ib, getErr := inboundSvc.GetInbound(ibId); getErr == nil && ib.NodeID != nil {
+			nodeIDs[*ib.NodeID] = struct{}{}
+		}
+
 		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, email, false)
 		if delErr != nil {
 			if errors.Is(delErr, ErrClientNotInInbound) {
@@ -545,6 +569,17 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 			needRestart = true
 		}
 	}
+
+	mgr := runtime.GetManager()
+	if mgr != nil && email != "" {
+		for nID := range nodeIDs {
+			nodeIdPtr := nID
+			if rt, err := mgr.RuntimeFor(&nodeIdPtr); err == nil && rt != nil {
+				_ = rt.DeleteClient(context.Background(), email)
+			}
+		}
+	}
+
 	if !keepTraffic {
 		db := database.GetDB()
 		if err := db.Where("email = ?", email).Delete(&xray.ClientTraffic{}).Error; err != nil {

@@ -1,0 +1,93 @@
+{
+  "nodes": [
+    {
+      "id": "media_06_settings_dark_screenshot",
+      "label": "Settings Dark Mode Screenshot",
+      "file_type": "image",
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_06_settings_dark_panel_settings_ui",
+      "label": "Panel Settings UI",
+      "file_type": "concept",
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_06_settings_dark_restart_requirement",
+      "label": "Restart Panel Requirement",
+      "file_type": "rationale",
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_06_settings_dark_general_settings",
+      "label": "General Panel Configuration",
+      "file_type": "concept",
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "media_06_settings_dark_screenshot",
+      "target": "media_06_settings_dark_panel_settings_ui",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_06_settings_dark_screenshot",
+      "target": "media_06_settings_dark_restart_requirement",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_06_settings_dark_screenshot",
+      "target": "media_06_settings_dark_general_settings",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_06_settings_dark_panel_settings_ui",
+      "target": "media_06_settings_dark_general_settings",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

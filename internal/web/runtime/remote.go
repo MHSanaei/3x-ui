@@ -319,6 +319,20 @@ func (r *Remote) DeleteUser(ctx context.Context, ib *model.Inbound, email string
 	return err
 }
 
+func (r *Remote) DeleteClient(ctx context.Context, email string) error {
+	if email == "" {
+		return nil
+	}
+	_, err := r.do(ctx, http.MethodDelete, "panel/api/clients/"+url.PathEscape(email), nil)
+	if err == nil {
+		return nil
+	}
+	if strings.Contains(strings.ToLower(err.Error()), "not found") {
+		return nil
+	}
+	return err
+}
+
 func (r *Remote) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail string, payload model.Client) error {
 	if oldEmail == "" {
 		oldEmail = payload.Email

@@ -1,0 +1,83 @@
+{
+  "nodes": [
+    {
+      "id": "media_07_configs_dark_ui",
+      "label": "3X-UI Xray Configs View",
+      "file_type": "image",
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_dark_xray_configs",
+      "label": "Xray Core Configurations",
+      "file_type": "concept",
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_dark_freedom_protocol",
+      "label": "Freedom Protocol Strategy",
+      "file_type": "concept",
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_dark_routing_strategy",
+      "label": "Overall Routing Strategy",
+      "file_type": "concept",
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "media_07_configs_dark_ui",
+      "target": "media_07_configs_dark_xray_configs",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_dark_xray_configs",
+      "target": "media_07_configs_dark_freedom_protocol",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_dark_xray_configs",
+      "target": "media_07_configs_dark_routing_strategy",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -1,0 +1,2549 @@
+{
+  "communities": {
+    "0": [
+      "api_inbound_inbound",
+      "inbound_vless_vlessclient",
+      "shared_vmess_vmesssecurity",
+      "stream_external_proxy_externalproxyentry",
+      "xray_inbound_defaults_vlessclientseed",
+      "xray_inbound_link_genalllinksinput",
+      "xray_inbound_link_genhysterialinkinput",
+      "xray_inbound_link_geninboundlinksinput",
+      "xray_inbound_link_genlinkinput",
+      "xray_inbound_link_genmtprotolinkinput",
+      "xray_inbound_link_genshadowsockslinkinput",
+      "xray_inbound_link_gentrojanlinkinput",
+      "xray_inbound_link_genvlesslinkinput",
+      "xray_inbound_link_genvmesslinkinput",
+      "xray_inbound_link_genwireguardfanoutinput"
+    ],
+    "1": [
+      "contributing_backend",
+      "contributing_frontend",
+      "contributing_zod",
+      "readme_3x_ui",
+      "readme_fail2ban",
+      "readme_postgresql",
+      "readme_sqlite",
+      "workflows_docker_build",
+      "workflows_release_build",
+      "workflows_release_mtg",
+      "workflows_release_xray_core"
+    ],
+    "2": [
+      "media_07_configs_light_advanced",
+      "media_07_configs_light_balancers",
+      "media_07_configs_light_basics",
+      "media_07_configs_light_dns",
+      "media_07_configs_light_outbounds",
+      "media_07_configs_light_restart_xray",
+      "media_07_configs_light_routing_rules",
+      "media_07_configs_light_ui",
+      "media_07_configs_light_xray_configs"
+    ],
+    "3": [
+      "media_08_api_docs_light_3x_ui_panel_api",
+      "media_08_api_docs_light_authentication",
+      "media_08_api_docs_light_csrf_token",
+      "media_08_api_docs_light_gettwofactorenable",
+      "media_08_api_docs_light_inbounds",
+      "media_08_api_docs_light_inbounds_list",
+      "media_08_api_docs_light_inbounds_list_slim",
+      "media_08_api_docs_light_login",
+      "media_08_api_docs_light_logout"
+    ],
+    "4": [
+      "media_01_overview_dark_dashboard_layout",
+      "media_01_overview_dark_network_metrics",
+      "media_01_overview_dark_screenshot",
+      "media_01_overview_dark_system_monitoring",
+      "media_01_overview_dark_xray_management"
+    ],
+    "5": [
+      "media_03_add_client_light_attached_inbounds",
+      "media_03_add_client_light_client_form",
+      "media_03_add_client_light_dialog",
+      "media_03_add_client_light_hysteria_auth",
+      "media_03_add_client_light_subscription_id"
+    ],
+    "6": [
+      "hooks_usexraysetting_outboundteststate",
+      "hooks_usexraysetting_usexraysettingresult",
+      "schemas_xray_outboundtestresult",
+      "schemas_xray_outboundtrafficrow"
+    ],
+    "7": [
+      "media_02_add_inbound_light_modal",
+      "media_02_add_inbound_light_traffic_reset",
+      "media_02_add_inbound_light_unix_socket",
+      "media_02_add_inbound_light_vless"
+    ],
+    "8": [
+      "media_03_client_light_client_list",
+      "media_03_client_light_client_management",
+      "media_03_client_light_status_dashboard",
+      "media_03_client_light_ui_screenshot"
+    ],
+    "9": [
+      "media_05_add_nodes_dark_api_token_auth",
+      "media_05_add_nodes_dark_remote_node",
+      "media_05_add_nodes_dark_screenshot",
+      "media_05_add_nodes_dark_tls_verification"
+    ],
+    "10": [
+      "media_05_add_nodes_light_add_node_ui",
+      "media_05_add_nodes_light_api_token_auth",
+      "media_05_add_nodes_light_remote_panel_integration",
+      "media_05_add_nodes_light_tls_verification"
+    ],
+    "11": [
+      "media_05_nodes_light",
+      "media_05_nodes_light_node_stats",
+      "media_05_nodes_light_node_table",
+      "media_05_nodes_light_nodes_page"
+    ],
+    "12": [
+      "media_06_settings_dark_general_settings",
+      "media_06_settings_dark_panel_settings_ui",
+      "media_06_settings_dark_restart_requirement",
+      "media_06_settings_dark_screenshot"
+    ],
+    "13": [
+      "media_07_bot_light_client_management_view",
+      "media_07_bot_light_inline_controls",
+      "media_07_bot_light_remote_administration",
+      "media_07_bot_light_ui_screenshot"
+    ],
+    "14": [
+      "media_07_configs_dark_freedom_protocol",
+      "media_07_configs_dark_routing_strategy",
+      "media_07_configs_dark_ui",
+      "media_07_configs_dark_xray_configs"
+    ],
+    "15": [
+      "media_08_api_docs_dark_api_docs",
+      "media_08_api_docs_dark_authentication",
+      "media_08_api_docs_dark_inbounds",
+      "media_08_api_docs_dark_screenshot"
+    ],
+    "16": [
+      "media_panel_bot_config_admin_chat_ids",
+      "media_panel_bot_config_screenshot",
+      "media_panel_bot_config_telegram_setup",
+      "media_panel_bot_config_telegram_token"
+    ],
+    "17": [
+      "media_02_add_inbound_dark_add_inbound_ui",
+      "media_02_add_inbound_dark_local_panel",
+      "media_02_add_inbound_dark_vless_protocol"
+    ],
+    "18": [
+      "media_03_add_client_dark_add_client_modal",
+      "media_03_add_client_dark_client_configuration",
+      "media_03_add_client_dark_screenshot"
+    ],
+    "19": [
+      "media_04_group_dark_add_group",
+      "media_04_group_dark_client_grouping",
+      "media_04_group_dark_screenshot"
+    ],
+    "20": [
+      "media_05_nodes_dark_node_health_monitoring",
+      "media_05_nodes_dark_nodes_management",
+      "media_05_nodes_dark_nodes_ui"
+    ],
+    "21": [
+      "media_06_settings_light_general_settings",
+      "media_06_settings_light_panel_settings",
+      "media_06_settings_light_security_warnings"
+    ],
+    "22": [
+      "media_newbot_bot_token",
+      "media_newbot_botfather",
+      "media_newbot_screenshot"
+    ],
+    "23": [
+      "forms_inbound_form_trafficreset",
+      "xray_inbound_form_adapter_wireinboundpayload"
+    ],
+    "24": [
+      "inbound_shadowsocks_shadowsocksinboundsettings",
+      "xray_inbound_defaults_shadowsocksinboundseed"
+    ],
+    "25": [
+      "inbound_vmess_vmessclient",
+      "xray_inbound_defaults_vmessclientseed"
+    ],
+    "26": [
+      "inbound_wireguard_wireguardinboundsettings",
+      "xray_inbound_link_genwireguardlinkinput"
+    ],
+    "27": [
+      "inbounds_useinbounds_subsettings",
+      "info_types_inboundinfomodalprops"
+    ],
+    "28": [
+      "list_types_dbinboundrecord",
+      "list_types_protocolflags"
+    ],
+    "29": [
+      "list_types_inboundlistprops",
+      "schemas_node_noderecord"
+    ],
+    "30": [
+      "media_04_group_light_groups_dashboard",
+      "media_04_group_light_image"
+    ],
+    "31": [
+      "media_apikey2_apikey_dialog",
+      "media_apikey2_global_api_key"
+    ],
+    "32": [
+      "media_botfather_telegram_bot_setup",
+      "media_botfather_ui_screenshot"
+    ],
+    "33": [
+      "media_default_yellow_buymeacoffee",
+      "media_default_yellow_image"
+    ],
+    "34": [
+      "media_user_id_screenshot",
+      "media_user_id_telegram_user_id"
+    ],
+    "35": [
+      "xray_protocol_capabilities_capabilityprotocolslice",
+      "xray_protocol_capabilities_capabilityvlessslice"
+    ],
+    "36": [
+      "api_axios_init_setupaxios"
+    ],
+    "37": [
+      "api_docs_apidocspage_apidocspage"
+    ],
+    "38": [
+      "api_docs_endpoints_endpoint"
+    ],
+    "39": [
+      "api_docs_endpoints_endpointparam"
+    ],
+    "40": [
+      "api_docs_endpoints_httpmethod"
+    ],
+    "41": [
+      "api_docs_endpoints_paramlocation"
+    ],
+    "42": [
+      "api_docs_endpoints_paramtype"
+    ],
+    "43": [
+      "api_docs_endpoints_section"
+    ],
+    "44": [
+      "api_docs_endpoints_subscriptionheader"
+    ],
+    "45": [
+      "api_inbound_inboundcore"
+    ],
+    "46": [
+      "api_inbound_sliminbound"
+    ],
+    "47": [
+      "api_inbound_streamsettings"
+    ],
+    "48": [
+      "api_invalidationtracker_isrecentlocalinvalidate"
+    ],
+    "49": [
+      "api_invalidationtracker_marklocalinvalidate"
+    ],
+    "50": [
+      "api_queryprovider_queryprovider"
+    ],
+    "51": [
+      "api_websocket_websocketclient"
+    ],
+    "52": [
+      "api_websocketbridge_usewebsocketbridge"
+    ],
+    "53": [
+      "balancers_balancerformmodal_balancerformvalue"
+    ],
+    "54": [
+      "basics_helpers_propagateoutboundtagrename"
+    ],
+    "55": [
+      "basics_helpers_rulegetter"
+    ],
+    "56": [
+      "basics_helpers_rulesetter"
+    ],
+    "57": [
+      "basics_helpers_syncoutbound"
+    ],
+    "58": [
+      "claude_graphify"
+    ],
+    "59": [
+      "clients_clientinfomodal_clientinfomodal"
+    ],
+    "60": [
+      "clients_filters_activefiltercount"
+    ],
+    "61": [
+      "clients_filters_clientfilters"
+    ],
+    "62": [
+      "clients_filters_emptyfilters"
+    ],
+    "63": [
+      "contributing_windows_build"
+    ],
+    "64": [
+      "dns_dnspresetsmodal_dnspresetsmodal"
+    ],
+    "65": [
+      "dns_dnsservermodal_dnsservermodal"
+    ],
+    "66": [
+      "dns_dnsservermodal_dnsservervalue"
+    ],
+    "67": [
+      "dns_helpers_addrfor"
+    ],
+    "68": [
+      "dns_helpers_domainsfor"
+    ],
+    "69": [
+      "dns_helpers_expectedipsfor"
+    ],
+    "70": [
+      "dns_types_dnsconfig"
+    ],
+    "71": [
+      "dns_types_fakednsrow"
+    ],
+    "72": [
+      "dns_types_hostrow"
+    ],
+    "73": [
+      "dns_usednscolumns_dnsserverrow"
+    ],
+    "74": [
+      "dns_usednscolumns_fakednstablerow"
+    ],
+    "75": [
+      "feedback_promptmodal_promptmodal"
+    ],
+    "76": [
+      "form_formatvalidationerror_formatinboundissue"
+    ],
+    "77": [
+      "form_formatvalidationerror_formatinboundvalidation"
+    ],
+    "78": [
+      "form_headermapeditor_headermapmode"
+    ],
+    "79": [
+      "form_headermapeditor_headermapvalue"
+    ],
+    "80": [
+      "form_jsoneditor_jsoneditorhandle"
+    ],
+    "81": [
+      "form_jsoneditor_jsoneditorprops"
+    ],
+    "82": [
+      "form_useinboundfallbacks_useinboundfallbacks"
+    ],
+    "83": [
+      "form_usesecurityactions_usesecurityactions"
+    ],
+    "84": [
+      "forms_inbound_form_fallbackrow"
+    ],
+    "85": [
+      "forms_inbound_form_inbounddbfields"
+    ],
+    "86": [
+      "forms_inbound_form_inboundformbase"
+    ],
+    "87": [
+      "forms_inbound_form_inboundformvalues"
+    ],
+    "88": [
+      "forms_inbound_form_inboundstreamformvalues"
+    ],
+    "89": [
+      "forms_outbound_form_blackholeoutboundformsettings"
+    ],
+    "90": [
+      "forms_outbound_form_dnsoutboundformsettings"
+    ],
+    "91": [
+      "forms_outbound_form_dnsruleform"
+    ],
+    "92": [
+      "forms_outbound_form_freedomfinalruleform"
+    ],
+    "93": [
+      "forms_outbound_form_freedomoutboundformsettings"
+    ],
+    "94": [
+      "forms_outbound_form_httpoutboundformsettings"
+    ],
+    "95": [
+      "forms_outbound_form_hysteriaoutboundformsettings"
+    ],
+    "96": [
+      "forms_outbound_form_loopbackoutboundformsettings"
+    ],
+    "97": [
+      "forms_outbound_form_muxform"
+    ],
+    "98": [
+      "forms_outbound_form_outboundformbase"
+    ],
+    "99": [
+      "forms_outbound_form_outboundformsettings"
+    ],
+    "100": [
+      "forms_outbound_form_outboundformvalues"
+    ],
+    "101": [
+      "forms_outbound_form_outboundstreamformvalues"
+    ],
+    "102": [
+      "forms_outbound_form_reversesniffingform"
+    ],
+    "103": [
+      "forms_outbound_form_shadowsocksoutboundformsettings"
+    ],
+    "104": [
+      "forms_outbound_form_socksoutboundformsettings"
+    ],
+    "105": [
+      "forms_outbound_form_trojanoutboundformsettings"
+    ],
+    "106": [
+      "forms_outbound_form_vlessoutboundformsettings"
+    ],
+    "107": [
+      "forms_outbound_form_vmessoutboundformsettings"
+    ],
+    "108": [
+      "forms_outbound_form_wireguardoutboundformpeer"
+    ],
+    "109": [
+      "forms_outbound_form_wireguardoutboundformsettings"
+    ],
+    "110": [
+      "frontend_src_pages_inbounds_form_protocols_http_tsx_protocols_http_httpfields"
+    ],
+    "111": [
+      "frontend_src_pages_inbounds_form_transport_grpc_tsx_transport_grpc_grpcform"
+    ],
+    "112": [
+      "frontend_src_pages_inbounds_form_transport_httpupgrade_tsx_transport_httpupgrade_httpupgradeform"
+    ],
+    "113": [
+      "frontend_src_pages_xray_outbounds_protocols_http_tsx_protocols_http_httpfields"
+    ],
+    "114": [
+      "frontend_src_pages_xray_outbounds_transport_grpc_tsx_transport_grpc_grpcform"
+    ],
+    "115": [
+      "frontend_src_pages_xray_outbounds_transport_httpupgrade_tsx_transport_httpupgrade_httpupgradeform"
+    ],
+    "116": [
+      "generated_types_allsetting"
+    ],
+    "117": [
+      "generated_types_allsettingview"
+    ],
+    "118": [
+      "generated_types_apitoken"
+    ],
+    "119": [
+      "generated_types_apitokenview"
+    ],
+    "120": [
+      "generated_types_client"
+    ],
+    "121": [
+      "generated_types_clientinbound"
+    ],
+    "122": [
+      "generated_types_clientrecord"
+    ],
+    "123": [
+      "generated_types_clientreverse"
+    ],
+    "124": [
+      "generated_types_clienttraffic"
+    ],
+    "125": [
+      "generated_types_customgeoresource"
+    ],
+    "126": [
+      "generated_types_fallbackparentinfo"
+    ],
+    "127": [
+      "generated_types_historyofseeders"
+    ],
+    "128": [
+      "generated_types_inbound"
+    ],
+    "129": [
+      "generated_types_inboundclientips"
+    ],
+    "130": [
+      "generated_types_inboundfallback"
+    ],
+    "131": [
+      "generated_types_inboundoption"
+    ],
+    "132": [
+      "generated_types_msg"
+    ],
+    "133": [
+      "generated_types_node"
+    ],
+    "134": [
+      "generated_types_outboundtraffics"
+    ],
+    "135": [
+      "generated_types_proberesultui"
+    ],
+    "136": [
+      "generated_types_processstate"
+    ],
+    "137": [
+      "generated_types_protocol"
+    ],
+    "138": [
+      "generated_types_setting"
+    ],
+    "139": [
+      "generated_types_sublinkprovider"
+    ],
+    "140": [
+      "generated_types_transportbits"
+    ],
+    "141": [
+      "generated_types_user"
+    ],
+    "142": [
+      "generated_zod_allsetting"
+    ],
+    "143": [
+      "generated_zod_allsettingview"
+    ],
+    "144": [
+      "generated_zod_apitoken"
+    ],
+    "145": [
+      "generated_zod_apitokenview"
+    ],
+    "146": [
+      "generated_zod_client"
+    ],
+    "147": [
+      "generated_zod_clientinbound"
+    ],
+    "148": [
+      "generated_zod_clientrecord"
+    ],
+    "149": [
+      "generated_zod_clientreverse"
+    ],
+    "150": [
+      "generated_zod_clienttraffic"
+    ],
+    "151": [
+      "generated_zod_customgeoresource"
+    ],
+    "152": [
+      "generated_zod_fallbackparentinfo"
+    ],
+    "153": [
+      "generated_zod_historyofseeders"
+    ],
+    "154": [
+      "generated_zod_inbound"
+    ],
+    "155": [
+      "generated_zod_inboundclientips"
+    ],
+    "156": [
+      "generated_zod_inboundfallback"
+    ],
+    "157": [
+      "generated_zod_inboundoption"
+    ],
+    "158": [
+      "generated_zod_msg"
+    ],
+    "159": [
+      "generated_zod_node"
+    ],
+    "160": [
+      "generated_zod_outboundtraffics"
+    ],
+    "161": [
+      "generated_zod_proberesultui"
+    ],
+    "162": [
+      "generated_zod_processstate"
+    ],
+    "163": [
+      "generated_zod_protocol"
+    ],
+    "164": [
+      "generated_zod_setting"
+    ],
+    "165": [
+      "generated_zod_sublinkprovider"
+    ],
+    "166": [
+      "generated_zod_transportbits"
+    ],
+    "167": [
+      "generated_zod_user"
+    ],
+    "168": [
+      "hooks_useclients_clientqueryparams"
+    ],
+    "169": [
+      "hooks_useclients_computeclientssummary"
+    ],
+    "170": [
+      "hooks_useclients_useclients"
+    ],
+    "171": [
+      "hooks_usedatepicker_setdatepicker"
+    ],
+    "172": [
+      "hooks_usedatepicker_usedatepicker"
+    ],
+    "173": [
+      "hooks_usemediaquery_usemediaquery"
+    ],
+    "174": [
+      "hooks_usepagetitle_usepagetitle"
+    ],
+    "175": [
+      "hooks_usetheme_buildantdthemeconfig"
+    ],
+    "176": [
+      "hooks_usetheme_pauseanimationsuntilleave"
+    ],
+    "177": [
+      "hooks_usetheme_themeprovider"
+    ],
+    "178": [
+      "hooks_usewebsocket_usewebsocket"
+    ],
+    "179": [
+      "hooks_usexraysetting_isudpoutbound"
+    ],
+    "180": [
+      "hooks_usexraysetting_settemplate"
+    ],
+    "181": [
+      "hooks_usexraysetting_usexraysetting"
+    ],
+    "182": [
+      "hooks_usexraysetting_xraysettingsvalue"
+    ],
+    "183": [
+      "i18n_react_readyi18n"
+    ],
+    "184": [
+      "inbound_http_httpaccount"
+    ],
+    "185": [
+      "inbound_http_httpinboundsettings"
+    ],
+    "186": [
+      "inbound_hysteria_hysteriaclient"
+    ],
+    "187": [
+      "inbound_hysteria_hysteriainboundsettings"
+    ],
+    "188": [
+      "inbound_index_inboundsettings"
+    ],
+    "189": [
+      "inbound_mixed_mixedaccount"
+    ],
+    "190": [
+      "inbound_mixed_mixedauth"
+    ],
+    "191": [
+      "inbound_mixed_mixedinboundsettings"
+    ],
+    "192": [
+      "inbound_mtproto_mtprotodomainfronting"
+    ],
+    "193": [
+      "inbound_mtproto_mtprotoinboundsettings"
+    ],
+    "194": [
+      "inbound_shadowsocks_shadowsocksclient"
+    ],
+    "195": [
+      "inbound_shadowsocks_ssnetwork"
+    ],
+    "196": [
+      "inbound_trojan_trojanclient"
+    ],
+    "197": [
+      "inbound_trojan_trojanfallback"
+    ],
+    "198": [
+      "inbound_trojan_trojaninboundsettings"
+    ],
+    "199": [
+      "inbound_tun_tuninboundsettings"
+    ],
+    "200": [
+      "inbound_tunnel_tunnelinboundsettings"
+    ],
+    "201": [
+      "inbound_tunnel_tunnelnetwork"
+    ],
+    "202": [
+      "inbound_vless_vlessfallback"
+    ],
+    "203": [
+      "inbound_vless_vlessinboundsettings"
+    ],
+    "204": [
+      "inbound_vmess_vmessinboundsettings"
+    ],
+    "205": [
+      "inbound_wireguard_wireguardinboundpeer"
+    ],
+    "206": [
+      "inbounds_useinbounds_useinbounds"
+    ],
+    "207": [
+      "index_backupmodal_backupmodal"
+    ],
+    "208": [
+      "index_customgeoformmodal_customgeorecord"
+    ],
+    "209": [
+      "index_logparse_parsedlog"
+    ],
+    "210": [
+      "index_logparse_parselogline"
+    ],
+    "211": [
+      "index_panelupdatemodal_panelupdateinfo"
+    ],
+    "212": [
+      "index_statuscard_statuscard"
+    ],
+    "213": [
+      "index_versionmodal_versionmodal"
+    ],
+    "214": [
+      "index_xraylogmodal_xraylogmodal"
+    ],
+    "215": [
+      "info_helpers_buildinboundinfo"
+    ],
+    "216": [
+      "info_helpers_copytext"
+    ],
+    "217": [
+      "info_helpers_downloadtext"
+    ],
+    "218": [
+      "info_helpers_formatipinfo"
+    ],
+    "219": [
+      "info_helpers_hassharelink"
+    ],
+    "220": [
+      "info_helpers_statscolor"
+    ],
+    "221": [
+      "info_inboundinfomodal_inboundinfomodal"
+    ],
+    "222": [
+      "info_types_clientsetting"
+    ],
+    "223": [
+      "info_types_clientstats"
+    ],
+    "224": [
+      "info_types_dbinboundlike"
+    ],
+    "225": [
+      "info_types_inboundinfo"
+    ],
+    "226": [
+      "layouts_panellayout_panellayout"
+    ],
+    "227": [
+      "lib_panel_version_ispanelupdateavailable"
+    ],
+    "228": [
+      "list_helpers_commanetworklabel"
+    ],
+    "229": [
+      "list_helpers_isinboundmultiuser"
+    ],
+    "230": [
+      "list_helpers_mixednetworklabel"
+    ],
+    "231": [
+      "list_helpers_networkl4"
+    ],
+    "232": [
+      "list_helpers_networklabel"
+    ],
+    "233": [
+      "list_helpers_readsettings"
+    ],
+    "234": [
+      "list_helpers_readstreamhints"
+    ],
+    "235": [
+      "list_helpers_shadowsocksnetworklabel"
+    ],
+    "236": [
+      "list_helpers_showqrcodemenu"
+    ],
+    "237": [
+      "list_helpers_tunnelnetworklabel"
+    ],
+    "238": [
+      "list_types_clientcountentry"
+    ],
+    "239": [
+      "list_types_generalaction"
+    ],
+    "240": [
+      "list_types_rowaction"
+    ],
+    "241": [
+      "list_types_streamhints"
+    ],
+    "242": [
+      "media_3x_ui_light_logo"
+    ],
+    "243": [
+      "models_dbinbound_clientstats"
+    ],
+    "244": [
+      "models_dbinbound_coerceinboundjsonfield"
+    ],
+    "245": [
+      "models_dbinbound_dbinbound"
+    ],
+    "246": [
+      "models_dbinbound_dbinboundinit"
+    ],
+    "247": [
+      "models_dbinbound_fallbackparentref"
+    ],
+    "248": [
+      "models_dbinbound_rawjsonfield"
+    ],
+    "249": [
+      "models_reality_targets_getrandomrealitytarget"
+    ],
+    "250": [
+      "models_reality_targets_realitytarget"
+    ],
+    "251": [
+      "models_setting_allsetting"
+    ],
+    "252": [
+      "models_status_appstats"
+    ],
+    "253": [
+      "models_status_curtotal"
+    ],
+    "254": [
+      "models_status_netio"
+    ],
+    "255": [
+      "models_status_nettraffic"
+    ],
+    "256": [
+      "models_status_publicip"
+    ],
+    "257": [
+      "models_status_status"
+    ],
+    "258": [
+      "models_status_xrayinfo"
+    ],
+    "259": [
+      "outbound_blackhole_blackholeoutboundsettings"
+    ],
+    "260": [
+      "outbound_blackhole_blackholeresponsetype"
+    ],
+    "261": [
+      "outbound_dns_dnsoutboundsettings"
+    ],
+    "262": [
+      "outbound_dns_dnsrule"
+    ],
+    "263": [
+      "outbound_freedom_freedomfinalrule"
+    ],
+    "264": [
+      "outbound_freedom_freedomfragment"
+    ],
+    "265": [
+      "outbound_freedom_freedomnoise"
+    ],
+    "266": [
+      "outbound_freedom_freedomoutboundsettings"
+    ],
+    "267": [
+      "outbound_freedom_outbounddomainstrategy"
+    ],
+    "268": [
+      "outbound_http_httpoutboundserver"
+    ],
+    "269": [
+      "outbound_http_httpoutboundsettings"
+    ],
+    "270": [
+      "outbound_http_httpoutbounduser"
+    ],
+    "271": [
+      "outbound_hysteria_hysteriaoutboundsettings"
+    ],
+    "272": [
+      "outbound_index_outboundsettings"
+    ],
+    "273": [
+      "outbound_loopback_loopbackoutboundsettings"
+    ],
+    "274": [
+      "outbound_shadowsocks_shadowsocksoutboundserver"
+    ],
+    "275": [
+      "outbound_shadowsocks_shadowsocksoutboundsettings"
+    ],
+    "276": [
+      "outbound_socks_socksoutboundserver"
+    ],
+    "277": [
+      "outbound_socks_socksoutboundsettings"
+    ],
+    "278": [
+      "outbound_socks_socksoutbounduser"
+    ],
+    "279": [
+      "outbound_trojan_trojanoutboundserver"
+    ],
+    "280": [
+      "outbound_trojan_trojanoutboundsettings"
+    ],
+    "281": [
+      "outbound_vless_vlessoutboundsettings"
+    ],
+    "282": [
+      "outbound_vmess_vmessoutboundserver"
+    ],
+    "283": [
+      "outbound_vmess_vmessoutboundsettings"
+    ],
+    "284": [
+      "outbound_vmess_vmessoutbounduser"
+    ],
+    "285": [
+      "outbound_wireguard_wireguarddomainstrategy"
+    ],
+    "286": [
+      "outbound_wireguard_wireguardoutboundpeer"
+    ],
+    "287": [
+      "outbound_wireguard_wireguardoutboundsettings"
+    ],
+    "288": [
+      "outbounds_outbound_form_helpers_applynetworkchange"
+    ],
+    "289": [
+      "outbounds_outbound_form_helpers_buildaddmodevalues"
+    ],
+    "290": [
+      "outbounds_outbound_form_helpers_hysteriastreamslice"
+    ],
+    "291": [
+      "outbounds_outbound_form_helpers_ismuxallowed"
+    ],
+    "292": [
+      "outbounds_outbound_form_helpers_newstreamslice"
+    ],
+    "293": [
+      "outbounds_outbounds_tab_helpers_hasbreakdown"
+    ],
+    "294": [
+      "outbounds_outbounds_tab_helpers_istesting"
+    ],
+    "295": [
+      "outbounds_outbounds_tab_helpers_isuntestable"
+    ],
+    "296": [
+      "outbounds_outbounds_tab_helpers_outboundaddresses"
+    ],
+    "297": [
+      "outbounds_outbounds_tab_helpers_showsecurity"
+    ],
+    "298": [
+      "outbounds_outbounds_tab_helpers_testresult"
+    ],
+    "299": [
+      "outbounds_outbounds_tab_helpers_trafficfor"
+    ],
+    "300": [
+      "outbounds_outbounds_tab_types_outboundrow"
+    ],
+    "301": [
+      "outbounds_outboundstab_outboundstab"
+    ],
+    "302": [
+      "outbounds_subscriptionoutbounds_subscriptionoutbounds"
+    ],
+    "303": [
+      "primitives_flow_flow"
+    ],
+    "304": [
+      "primitives_outbound_protocol_outbounddomainstrategy"
+    ],
+    "305": [
+      "primitives_port_inboundport"
+    ],
+    "306": [
+      "primitives_port_port"
+    ],
+    "307": [
+      "primitives_protocol_protocol"
+    ],
+    "308": [
+      "primitives_sniffing_sniffing"
+    ],
+    "309": [
+      "primitives_sniffing_sniffingdest"
+    ],
+    "310": [
+      "protocols_mixed_mixedfields"
+    ],
+    "311": [
+      "protocols_server_target_servertarget"
+    ],
+    "312": [
+      "protocols_shadowsocks_shadowsocksfields"
+    ],
+    "313": [
+      "protocols_socks_socksfields"
+    ],
+    "314": [
+      "protocols_trojan_trojanfields"
+    ],
+    "315": [
+      "protocols_tun_tunfields"
+    ],
+    "316": [
+      "protocols_vless_vlessfields"
+    ],
+    "317": [
+      "protocols_vmess_vmessfields"
+    ],
+    "318": [
+      "queries_useallsettings_useallsettings"
+    ],
+    "319": [
+      "queries_useinboundoptions_useinboundoptions"
+    ],
+    "320": [
+      "queries_usenodemutations_nodeupdateresult"
+    ],
+    "321": [
+      "queries_usenodemutations_usenodemutations"
+    ],
+    "322": [
+      "queries_usenodesquery_nodetotals"
+    ],
+    "323": [
+      "queries_usenodesquery_usenodesquery"
+    ],
+    "324": [
+      "queries_usestatusquery_usestatusquery"
+    ],
+    "325": [
+      "routing_criterionrow_criterionrow"
+    ],
+    "326": [
+      "routing_helpers_arrjoin"
+    ],
+    "327": [
+      "routing_helpers_chippreview"
+    ],
+    "328": [
+      "routing_helpers_csv"
+    ],
+    "329": [
+      "routing_helpers_rulecriteriachips"
+    ],
+    "330": [
+      "routing_ruleformmodal_routingrule"
+    ],
+    "331": [
+      "routing_types_rulerow"
+    ],
+    "332": [
+      "schemas_client_bulkadjustresult"
+    ],
+    "333": [
+      "schemas_client_bulkattachresult"
+    ],
+    "334": [
+      "schemas_client_bulkcreateresult"
+    ],
+    "335": [
+      "schemas_client_bulkdeleteresult"
+    ],
+    "336": [
+      "schemas_client_bulkdetachresult"
+    ],
+    "337": [
+      "schemas_client_clientbulkaddformvalues"
+    ],
+    "338": [
+      "schemas_client_clientbulkadjustformvalues"
+    ],
+    "339": [
+      "schemas_client_clientformvalues"
+    ],
+    "340": [
+      "schemas_client_clienthydrate"
+    ],
+    "341": [
+      "schemas_client_clientpageresponse"
+    ],
+    "342": [
+      "schemas_client_clientrecord"
+    ],
+    "343": [
+      "schemas_client_clientssummary"
+    ],
+    "344": [
+      "schemas_client_clienttraffic"
+    ],
+    "345": [
+      "schemas_client_groupsummary"
+    ],
+    "346": [
+      "schemas_client_hasforbiddenclientchars"
+    ],
+    "347": [
+      "schemas_client_inboundoption"
+    ],
+    "348": [
+      "schemas_client_onlinesschema"
+    ],
+    "349": [
+      "schemas_defaults_defaultspayload"
+    ],
+    "350": [
+      "schemas_dns_dnshosts"
+    ],
+    "351": [
+      "schemas_dns_dnsobject"
+    ],
+    "352": [
+      "schemas_dns_dnsquerystrategy"
+    ],
+    "353": [
+      "schemas_dns_dnsserverentry"
+    ],
+    "354": [
+      "schemas_dns_dnsserverobject"
+    ],
+    "355": [
+      "schemas_envelope_msgof"
+    ],
+    "356": [
+      "schemas_inbound_inbounddetail"
+    ],
+    "357": [
+      "schemas_inbound_inboundformvalues"
+    ],
+    "358": [
+      "schemas_inbound_lastonlinemap"
+    ],
+    "359": [
+      "schemas_inbound_sliminbound"
+    ],
+    "360": [
+      "schemas_login_loginformvalues"
+    ],
+    "361": [
+      "schemas_node_nodeformvalues"
+    ],
+    "362": [
+      "schemas_node_proberesult"
+    ],
+    "363": [
+      "schemas_routing_balancercostobject"
+    ],
+    "364": [
+      "schemas_routing_balancerobject"
+    ],
+    "365": [
+      "schemas_routing_balancerstrategy"
+    ],
+    "366": [
+      "schemas_routing_balancerstrategysettings"
+    ],
+    "367": [
+      "schemas_routing_balancerstrategytype"
+    ],
+    "368": [
+      "schemas_routing_ruleobject"
+    ],
+    "369": [
+      "schemas_routing_ruleprotocol"
+    ],
+    "370": [
+      "schemas_routing_rulewebhook"
+    ],
+    "371": [
+      "schemas_setting_allsettinginput"
+    ],
+    "372": [
+      "schemas_status_statusinput"
+    ],
+    "373": [
+      "schemas_xray_balancerformvalues"
+    ],
+    "374": [
+      "schemas_xray_customgeoformvalues"
+    ],
+    "375": [
+      "schemas_xray_ruleformvalues"
+    ],
+    "376": [
+      "schemas_xray_xrayconfigpayload"
+    ],
+    "377": [
+      "schemas_xray_xraysettingsvalue"
+    ],
+    "378": [
+      "security_index_security"
+    ],
+    "379": [
+      "security_index_securitysettings"
+    ],
+    "380": [
+      "security_none_nonesecuritysettings"
+    ],
+    "381": [
+      "security_reality_realityclientsettings"
+    ],
+    "382": [
+      "security_reality_realitystreamsettings"
+    ],
+    "383": [
+      "security_tls_alpn"
+    ],
+    "384": [
+      "security_tls_tlscert"
+    ],
+    "385": [
+      "security_tls_tlscertusage"
+    ],
+    "386": [
+      "security_tls_tlsclientsettings"
+    ],
+    "387": [
+      "security_tls_tlsfingerprint"
+    ],
+    "388": [
+      "security_tls_tlsstreamsettings"
+    ],
+    "389": [
+      "security_tls_tlsversion"
+    ],
+    "390": [
+      "security_tls_utlsfingerprint"
+    ],
+    "391": [
+      "settings_subjsonfinalmaskform_subjsonfinalmaskform"
+    ],
+    "392": [
+      "settings_uripath_normalizepath"
+    ],
+    "393": [
+      "settings_uripath_sanitizepath"
+    ],
+    "394": [
+      "shared_shadowsocks_ssmethod"
+    ],
+    "395": [
+      "stream_external_proxy_externalproxyforcetls"
+    ],
+    "396": [
+      "stream_finalmask_bbrprofile"
+    ],
+    "397": [
+      "stream_finalmask_finalmaskstreamsettings"
+    ],
+    "398": [
+      "stream_finalmask_quiccongestion"
+    ],
+    "399": [
+      "stream_finalmask_quicparams"
+    ],
+    "400": [
+      "stream_finalmask_quicudphop"
+    ],
+    "401": [
+      "stream_finalmask_tcpmask"
+    ],
+    "402": [
+      "stream_finalmask_tcpmasktype"
+    ],
+    "403": [
+      "stream_finalmask_udpmask"
+    ],
+    "404": [
+      "stream_finalmask_udpmasktype"
+    ],
+    "405": [
+      "stream_grpc_grpcstreamsettings"
+    ],
+    "406": [
+      "stream_httpupgrade_httpupgradestreamsettings"
+    ],
+    "407": [
+      "stream_hysteria_hysteriamasquerade"
+    ],
+    "408": [
+      "stream_hysteria_hysteriastreamsettings"
+    ],
+    "409": [
+      "stream_index_network"
+    ],
+    "410": [
+      "stream_index_networksettings"
+    ],
+    "411": [
+      "stream_index_streamextras"
+    ],
+    "412": [
+      "stream_kcp_kcpstreamsettings"
+    ],
+    "413": [
+      "stream_sockopt_addressportstrategy"
+    ],
+    "414": [
+      "stream_sockopt_customsockopt"
+    ],
+    "415": [
+      "stream_sockopt_happyeyeballs"
+    ],
+    "416": [
+      "stream_sockopt_sockoptdomainstrategy"
+    ],
+    "417": [
+      "stream_sockopt_sockoptstreamsettings"
+    ],
+    "418": [
+      "stream_sockopt_tcpcongestion"
+    ],
+    "419": [
+      "stream_sockopt_tproxymode"
+    ],
+    "420": [
+      "stream_tcp_tcpheader"
+    ],
+    "421": [
+      "stream_tcp_tcprequest"
+    ],
+    "422": [
+      "stream_tcp_tcpresponse"
+    ],
+    "423": [
+      "stream_tcp_tcpstreamsettings"
+    ],
+    "424": [
+      "stream_tcp_v2headermap"
+    ],
+    "425": [
+      "stream_ws_wsheadermap"
+    ],
+    "426": [
+      "stream_ws_wsstreamsettings"
+    ],
+    "427": [
+      "stream_xhttp_xhttpmode"
+    ],
+    "428": [
+      "stream_xhttp_xhttpstreamsettings"
+    ],
+    "429": [
+      "stream_xhttp_xhttpxmux"
+    ],
+    "430": [
+      "test_test_utils_chooseselectoption"
+    ],
+    "431": [
+      "test_test_utils_listselectoptions"
+    ],
+    "432": [
+      "test_test_utils_renderwithproviders"
+    ],
+    "433": [
+      "transport_finalmaskform_finalmaskformprops"
+    ],
+    "434": [
+      "ui_infinityicon_infinityicon"
+    ],
+    "435": [
+      "ui_inputaddon_inputaddon"
+    ],
+    "436": [
+      "ui_settinglistitem_settinglistitem"
+    ],
+    "437": [
+      "utility_lazymount_lazymount"
+    ],
+    "438": [
+      "utils_index_applydocumenttitle"
+    ],
+    "439": [
+      "utils_index_arrayutils"
+    ],
+    "440": [
+      "utils_index_base64"
+    ],
+    "441": [
+      "utils_index_buildurloptions"
+    ],
+    "442": [
+      "utils_index_calendarkind"
+    ],
+    "443": [
+      "utils_index_clientusagestats"
+    ],
+    "444": [
+      "utils_index_clipboardmanager"
+    ],
+    "445": [
+      "utils_index_colorutils"
+    ],
+    "446": [
+      "utils_index_cookiemanager"
+    ],
+    "447": [
+      "utils_index_cpuformatter"
+    ],
+    "448": [
+      "utils_index_expiryclient"
+    ],
+    "449": [
+      "utils_index_filemanager"
+    ],
+    "450": [
+      "utils_index_httpmodal"
+    ],
+    "451": [
+      "utils_index_httpoptions"
+    ],
+    "452": [
+      "utils_index_httputil"
+    ],
+    "453": [
+      "utils_index_intlutil"
+    ],
+    "454": [
+      "utils_index_languagemanager"
+    ],
+    "455": [
+      "utils_index_msg"
+    ],
+    "456": [
+      "utils_index_numberformatter"
+    ],
+    "457": [
+      "utils_index_objectutil"
+    ],
+    "458": [
+      "utils_index_promiseutil"
+    ],
+    "459": [
+      "utils_index_randomseqoptions"
+    ],
+    "460": [
+      "utils_index_randomutil"
+    ],
+    "461": [
+      "utils_index_sizeformatter"
+    ],
+    "462": [
+      "utils_index_supportedlanguage"
+    ],
+    "463": [
+      "utils_index_timeformatter"
+    ],
+    "464": [
+      "utils_index_urlbuilder"
+    ],
+    "465": [
+      "utils_index_usagecolor"
+    ],
+    "466": [
+      "utils_index_utils"
+    ],
+    "467": [
+      "utils_index_wireguard"
+    ],
+    "468": [
+      "utils_messagebus_getmessage"
+    ],
+    "469": [
+      "utils_messagebus_setmessageinstance"
+    ],
+    "470": [
+      "utils_zodform_antdrule"
+    ],
+    "471": [
+      "utils_zodvalidate_parsemsg"
+    ],
+    "472": [
+      "viz_sparkline_sparklineextrema"
+    ],
+    "473": [
+      "viz_sparkline_sparklinereferenceline"
+    ],
+    "474": [
+      "xray_headers_getheadervalue"
+    ],
+    "475": [
+      "xray_headers_headerentry"
+    ],
+    "476": [
+      "xray_headers_toheaders"
+    ],
+    "477": [
+      "xray_headers_tov2headers"
+    ],
+    "478": [
+      "xray_headers_v2headermap"
+    ],
+    "479": [
+      "xray_inbound_defaults_anyinboundsettings"
+    ],
+    "480": [
+      "xray_inbound_defaults_createdefaulthttpinboundsettings"
+    ],
+    "481": [
+      "xray_inbound_defaults_createdefaulthysteriaclient"
+    ],
+    "482": [
+      "xray_inbound_defaults_createdefaulthysteriainboundsettings"
+    ],
+    "483": [
+      "xray_inbound_defaults_createdefaultinboundsettings"
+    ],
+    "484": [
+      "xray_inbound_defaults_createdefaultmixedinboundsettings"
+    ],
+    "485": [
+      "xray_inbound_defaults_createdefaultmtprotoinboundsettings"
+    ],
+    "486": [
+      "xray_inbound_defaults_createdefaultshadowsocksclient"
+    ],
+    "487": [
+      "xray_inbound_defaults_createdefaultshadowsocksinboundsettings"
+    ],
+    "488": [
+      "xray_inbound_defaults_createdefaulttrojanclient"
+    ],
+    "489": [
+      "xray_inbound_defaults_createdefaulttrojaninboundsettings"
+    ],
+    "490": [
+      "xray_inbound_defaults_createdefaulttuninboundsettings"
+    ],
+    "491": [
+      "xray_inbound_defaults_createdefaulttunnelinboundsettings"
+    ],
+    "492": [
+      "xray_inbound_defaults_createdefaultvlessclient"
+    ],
+    "493": [
+      "xray_inbound_defaults_createdefaultvlessinboundsettings"
+    ],
+    "494": [
+      "xray_inbound_defaults_createdefaultvmessclient"
+    ],
+    "495": [
+      "xray_inbound_defaults_createdefaultvmessinboundsettings"
+    ],
+    "496": [
+      "xray_inbound_defaults_createdefaultwireguardinboundsettings"
+    ],
+    "497": [
+      "xray_inbound_defaults_generatemtprotosecret"
+    ],
+    "498": [
+      "xray_inbound_defaults_hysteriaclientseed"
+    ],
+    "499": [
+      "xray_inbound_defaults_hysteriainboundseed"
+    ],
+    "500": [
+      "xray_inbound_defaults_mtprotosecretfordomain"
+    ],
+    "501": [
+      "xray_inbound_defaults_shadowsocksclientseed"
+    ],
+    "502": [
+      "xray_inbound_defaults_trojanclientseed"
+    ],
+    "503": [
+      "xray_inbound_defaults_wireguardinboundseed"
+    ],
+    "504": [
+      "xray_inbound_form_adapter_droplegacyoptionalempties"
+    ],
+    "505": [
+      "xray_inbound_form_adapter_formvaluestowirepayload"
+    ],
+    "506": [
+      "xray_inbound_form_adapter_normalizeclients"
+    ],
+    "507": [
+      "xray_inbound_form_adapter_normalizesniffing"
+    ],
+    "508": [
+      "xray_inbound_form_adapter_pruneempty"
+    ],
+    "509": [
+      "xray_inbound_form_adapter_rawinboundrow"
+    ],
+    "510": [
+      "xray_inbound_form_adapter_rawinboundtoformvalues"
+    ],
+    "511": [
+      "xray_inbound_from_db_dbinboundlike"
+    ],
+    "512": [
+      "xray_inbound_from_db_inboundfromdb"
+    ],
+    "513": [
+      "xray_inbound_link_genalllinks"
+    ],
+    "514": [
+      "xray_inbound_link_genalllinksentry"
+    ],
+    "515": [
+      "xray_inbound_link_genhysterialink"
+    ],
+    "516": [
+      "xray_inbound_link_geninboundlinks"
+    ],
+    "517": [
+      "xray_inbound_link_genlink"
+    ],
+    "518": [
+      "xray_inbound_link_genmtprotolink"
+    ],
+    "519": [
+      "xray_inbound_link_genshadowsockslink"
+    ],
+    "520": [
+      "xray_inbound_link_gentrojanlink"
+    ],
+    "521": [
+      "xray_inbound_link_genvlesslink"
+    ],
+    "522": [
+      "xray_inbound_link_genvmesslink"
+    ],
+    "523": [
+      "xray_inbound_link_genwireguardconfig"
+    ],
+    "524": [
+      "xray_inbound_link_genwireguardconfigs"
+    ],
+    "525": [
+      "xray_inbound_link_genwireguardlink"
+    ],
+    "526": [
+      "xray_inbound_link_genwireguardlinks"
+    ],
+    "527": [
+      "xray_inbound_link_getinboundclients"
+    ],
+    "528": [
+      "xray_inbound_link_ispostquantumlink"
+    ],
+    "529": [
+      "xray_inbound_link_preferpublichost"
+    ],
+    "530": [
+      "xray_inbound_link_resolveaddr"
+    ],
+    "531": [
+      "xray_inbound_tag_composeinboundtag"
+    ],
+    "532": [
+      "xray_inbound_tag_inboundtaginput"
+    ],
+    "533": [
+      "xray_inbound_tag_isautoinboundtag"
+    ],
+    "534": [
+      "xray_inbound_tls_defaults_createhysteriatlssettingswithdefaultcert"
+    ],
+    "535": [
+      "xray_inbound_tls_defaults_createtlssettingswithdefaultcert"
+    ],
+    "536": [
+      "xray_link_label_linkmetatext"
+    ],
+    "537": [
+      "xray_link_label_linkparts"
+    ],
+    "538": [
+      "xray_link_label_parselinkparts"
+    ],
+    "539": [
+      "xray_outbound_defaults_anyoutboundsettings"
+    ],
+    "540": [
+      "xray_outbound_defaults_createdefaultblackholeoutboundsettings"
+    ],
+    "541": [
+      "xray_outbound_defaults_createdefaultdnsoutboundsettings"
+    ],
+    "542": [
+      "xray_outbound_defaults_createdefaultfreedomoutboundsettings"
+    ],
+    "543": [
+      "xray_outbound_defaults_createdefaulthttpoutboundsettings"
+    ],
+    "544": [
+      "xray_outbound_defaults_createdefaulthysteriaoutboundsettings"
+    ],
+    "545": [
+      "xray_outbound_defaults_createdefaultloopbackoutboundsettings"
+    ],
+    "546": [
+      "xray_outbound_defaults_createdefaultoutboundsettings"
+    ],
+    "547": [
+      "xray_outbound_defaults_createdefaultshadowsocksoutboundsettings"
+    ],
+    "548": [
+      "xray_outbound_defaults_createdefaultsocksoutboundsettings"
+    ],
+    "549": [
+      "xray_outbound_defaults_createdefaulttrojanoutboundsettings"
+    ],
+    "550": [
+      "xray_outbound_defaults_createdefaultvlessoutboundsettings"
+    ],
+    "551": [
+      "xray_outbound_defaults_createdefaultvmessoutboundsettings"
+    ],
+    "552": [
+      "xray_outbound_defaults_createdefaultwireguardoutboundsettings"
+    ],
+    "553": [
+      "xray_outbound_form_adapter_formvaluestowirepayload"
+    ],
+    "554": [
+      "xray_outbound_form_adapter_rawoutboundrow"
+    ],
+    "555": [
+      "xray_outbound_form_adapter_rawoutboundtoformvalues"
+    ],
+    "556": [
+      "xray_outbound_form_adapter_wireoutboundpayload"
+    ],
+    "557": [
+      "xray_outbound_link_parser_parsehysteria2link"
+    ],
+    "558": [
+      "xray_outbound_link_parser_parseoutboundlink"
+    ],
+    "559": [
+      "xray_outbound_link_parser_parseshadowsockslink"
+    ],
+    "560": [
+      "xray_outbound_link_parser_parsetrojanlink"
+    ],
+    "561": [
+      "xray_outbound_link_parser_parsevlesslink"
+    ],
+    "562": [
+      "xray_outbound_link_parser_parsevmesslink"
+    ],
+    "563": [
+      "xray_outbound_link_parser_parsewireguardlink"
+    ],
+    "564": [
+      "xray_protocol_capabilities_canenablereality"
+    ],
+    "565": [
+      "xray_protocol_capabilities_canenablesniffing"
+    ],
+    "566": [
+      "xray_protocol_capabilities_canenablestream"
+    ],
+    "567": [
+      "xray_protocol_capabilities_canenabletls"
+    ],
+    "568": [
+      "xray_protocol_capabilities_canenabletlsflow"
+    ],
+    "569": [
+      "xray_protocol_capabilities_canenablevisionseed"
+    ],
+    "570": [
+      "xray_protocol_capabilities_capabilityshadowsocksslice"
+    ],
+    "571": [
+      "xray_protocol_capabilities_isss2022"
+    ],
+    "572": [
+      "xray_protocol_capabilities_isssmultiuser"
+    ],
+    "573": [
+      "xray_stream_defaults_fillstreamdefaults"
+    ],
+    "574": [
+      "xray_stream_wire_normalize_normalizesockoptforwire"
+    ],
+    "575": [
+      "xray_stream_wire_normalize_normalizestreamsettingsforwire"
+    ],
+    "576": [
+      "xray_stream_wire_normalize_normalizexhttpforwire"
+    ],
+    "577": [
+      "xray_stream_wire_normalize_streamwireside"
+    ],
+    "578": [
+      "xray_stream_wire_normalize_validaterealitytarget"
+    ]
+  },
+  "cohesion": {
+    "0": 0.18095238095238095,
+    "1": 0.18181818181818182,
+    "2": 0.2222222222222222,
+    "3": 0.2222222222222222,
+    "4": 0.4,
+    "5": 0.4,
+    "6": 0.5,
+    "7": 0.5,
+    "8": 0.5,
+    "9": 0.8333333333333334,
+    "10": 0.5,
+    "11": 0.5,
+    "12": 0.6666666666666666,
+    "13": 0.5,
+    "14": 0.5,
+    "15": 0.5,
+    "16": 0.8333333333333334,
+    "17": 0.6666666666666666,
+    "18": 0.6666666666666666,
+    "19": 0.6666666666666666,
+    "20": 0.6666666666666666,
+    "21": 0.6666666666666666,
+    "22": 0.6666666666666666,
+    "23": 1.0,
+    "24": 1.0,
+    "25": 1.0,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0,
+    "37": 1.0,
+    "38": 1.0,
+    "39": 1.0,
+    "40": 1.0,
+    "41": 1.0,
+    "42": 1.0,
+    "43": 1.0,
+    "44": 1.0,
+    "45": 1.0,
+    "46": 1.0,
+    "47": 1.0,
+    "48": 1.0,
+    "49": 1.0,
+    "50": 1.0,
+    "51": 1.0,
+    "52": 1.0,
+    "53": 1.0,
+    "54": 1.0,
+    "55": 1.0,
+    "56": 1.0,
+    "57": 1.0,
+    "58": 1.0,
+    "59": 1.0,
+    "60": 1.0,
+    "61": 1.0,
+    "62": 1.0,
+    "63": 1.0,
+    "64": 1.0,
+    "65": 1.0,
+    "66": 1.0,
+    "67": 1.0,
+    "68": 1.0,
+    "69": 1.0,
+    "70": 1.0,
+    "71": 1.0,
+    "72": 1.0,
+    "73": 1.0,
+    "74": 1.0,
+    "75": 1.0,
+    "76": 1.0,
+    "77": 1.0,
+    "78": 1.0,
+    "79": 1.0,
+    "80": 1.0,
+    "81": 1.0,
+    "82": 1.0,
+    "83": 1.0,
+    "84": 1.0,
+    "85": 1.0,
+    "86": 1.0,
+    "87": 1.0,
+    "88": 1.0,
+    "89": 1.0,
+    "90": 1.0,
+    "91": 1.0,
+    "92": 1.0,
+    "93": 1.0,
+    "94": 1.0,
+    "95": 1.0,
+    "96": 1.0,
+    "97": 1.0,
+    "98": 1.0,
+    "99": 1.0,
+    "100": 1.0,
+    "101": 1.0,
+    "102": 1.0,
+    "103": 1.0,
+    "104": 1.0,
+    "105": 1.0,
+    "106": 1.0,
+    "107": 1.0,
+    "108": 1.0,
+    "109": 1.0,
+    "110": 1.0,
+    "111": 1.0,
+    "112": 1.0,
+    "113": 1.0,
+    "114": 1.0,
+    "115": 1.0,
+    "116": 1.0,
+    "117": 1.0,
+    "118": 1.0,
+    "119": 1.0,
+    "120": 1.0,
+    "121": 1.0,
+    "122": 1.0,
+    "123": 1.0,
+    "124": 1.0,
+    "125": 1.0,
+    "126": 1.0,
+    "127": 1.0,
+    "128": 1.0,
+    "129": 1.0,
+    "130": 1.0,
+    "131": 1.0,
+    "132": 1.0,
+    "133": 1.0,
+    "134": 1.0,
+    "135": 1.0,
+    "136": 1.0,
+    "137": 1.0,
+    "138": 1.0,
+    "139": 1.0,
+    "140": 1.0,
+    "141": 1.0,
+    "142": 1.0,
+    "143": 1.0,
+    "144": 1.0,
+    "145": 1.0,
+    "146": 1.0,
+    "147": 1.0,
+    "148": 1.0,
+    "149": 1.0,
+    "150": 1.0,
+    "151": 1.0,
+    "152": 1.0,
+    "153": 1.0,
+    "154": 1.0,
+    "155": 1.0,
+    "156": 1.0,
+    "157": 1.0,
+    "158": 1.0,
+    "159": 1.0,
+    "160": 1.0,
+    "161": 1.0,
+    "162": 1.0,
+    "163": 1.0,
+    "164": 1.0,
+    "165": 1.0,
+    "166": 1.0,
+    "167": 1.0,
+    "168": 1.0,
+    "169": 1.0,
+    "170": 1.0,
+    "171": 1.0,
+    "172": 1.0,
+    "173": 1.0,
+    "174": 1.0,
+    "175": 1.0,
+    "176": 1.0,
+    "177": 1.0,
+    "178": 1.0,
+    "179": 1.0,
+    "180": 1.0,
+    "181": 1.0,
+    "182": 1.0,
+    "183": 1.0,
+    "184": 1.0,
+    "185": 1.0,
+    "186": 1.0,
+    "187": 1.0,
+    "188": 1.0,
+    "189": 1.0,
+    "190": 1.0,
+    "191": 1.0,
+    "192": 1.0,
+    "193": 1.0,
+    "194": 1.0,
+    "195": 1.0,
+    "196": 1.0,
+    "197": 1.0,
+    "198": 1.0,
+    "199": 1.0,
+    "200": 1.0,
+    "201": 1.0,
+    "202": 1.0,
+    "203": 1.0,
+    "204": 1.0,
+    "205": 1.0,
+    "206": 1.0,
+    "207": 1.0,
+    "208": 1.0,
+    "209": 1.0,
+    "210": 1.0,
+    "211": 1.0,
+    "212": 1.0,
+    "213": 1.0,
+    "214": 1.0,
+    "215": 1.0,
+    "216": 1.0,
+    "217": 1.0,
+    "218": 1.0,
+    "219": 1.0,
+    "220": 1.0,
+    "221": 1.0,
+    "222": 1.0,
+    "223": 1.0,
+    "224": 1.0,
+    "225": 1.0,
+    "226": 1.0,
+    "227": 1.0,
+    "228": 1.0,
+    "229": 1.0,
+    "230": 1.0,
+    "231": 1.0,
+    "232": 1.0,
+    "233": 1.0,
+    "234": 1.0,
+    "235": 1.0,
+    "236": 1.0,
+    "237": 1.0,
+    "238": 1.0,
+    "239": 1.0,
+    "240": 1.0,
+    "241": 1.0,
+    "242": 1.0,
+    "243": 1.0,
+    "244": 1.0,
+    "245": 1.0,
+    "246": 1.0,
+    "247": 1.0,
+    "248": 1.0,
+    "249": 1.0,
+    "250": 1.0,
+    "251": 1.0,
+    "252": 1.0,
+    "253": 1.0,
+    "254": 1.0,
+    "255": 1.0,
+    "256": 1.0,
+    "257": 1.0,
+    "258": 1.0,
+    "259": 1.0,
+    "260": 1.0,
+    "261": 1.0,
+    "262": 1.0,
+    "263": 1.0,
+    "264": 1.0,
+    "265": 1.0,
+    "266": 1.0,
+    "267": 1.0,
+    "268": 1.0,
+    "269": 1.0,
+    "270": 1.0,
+    "271": 1.0,
+    "272": 1.0,
+    "273": 1.0,
+    "274": 1.0,
+    "275": 1.0,
+    "276": 1.0,
+    "277": 1.0,
+    "278": 1.0,
+    "279": 1.0,
+    "280": 1.0,
+    "281": 1.0,
+    "282": 1.0,
+    "283": 1.0,
+    "284": 1.0,
+    "285": 1.0,
+    "286": 1.0,
+    "287": 1.0,
+    "288": 1.0,
+    "289": 1.0,
+    "290": 1.0,
+    "291": 1.0,
+    "292": 1.0,
+    "293": 1.0,
+    "294": 1.0,
+    "295": 1.0,
+    "296": 1.0,
+    "297": 1.0,
+    "298": 1.0,
+    "299": 1.0,
+    "300": 1.0,
+    "301": 1.0,
+    "302": 1.0,
+    "303": 1.0,
+    "304": 1.0,
+    "305": 1.0,
+    "306": 1.0,
+    "307": 1.0,
+    "308": 1.0,
+    "309": 1.0,
+    "310": 1.0,
+    "311": 1.0,
+    "312": 1.0,
+    "313": 1.0,
+    "314": 1.0,
+    "315": 1.0,
+    "316": 1.0,
+    "317": 1.0,
+    "318": 1.0,
+    "319": 1.0,
+    "320": 1.0,
+    "321": 1.0,
+    "322": 1.0,
+    "323": 1.0,
+    "324": 1.0,
+    "325": 1.0,
+    "326": 1.0,
+    "327": 1.0,
+    "328": 1.0,
+    "329": 1.0,
+    "330": 1.0,
+    "331": 1.0,
+    "332": 1.0,
+    "333": 1.0,
+    "334": 1.0,
+    "335": 1.0,
+    "336": 1.0,
+    "337": 1.0,
+    "338": 1.0,
+    "339": 1.0,
+    "340": 1.0,
+    "341": 1.0,
+    "342": 1.0,
+    "343": 1.0,
+    "344": 1.0,
+    "345": 1.0,
+    "346": 1.0,
+    "347": 1.0,
+    "348": 1.0,
+    "349": 1.0,
+    "350": 1.0,
+    "351": 1.0,
+    "352": 1.0,
+    "353": 1.0,
+    "354": 1.0,
+    "355": 1.0,
+    "356": 1.0,
+    "357": 1.0,
+    "358": 1.0,
+    "359": 1.0,
+    "360": 1.0,
+    "361": 1.0,
+    "362": 1.0,
+    "363": 1.0,
+    "364": 1.0,
+    "365": 1.0,
+    "366": 1.0,
+    "367": 1.0,
+    "368": 1.0,
+    "369": 1.0,
+    "370": 1.0,
+    "371": 1.0,
+    "372": 1.0,
+    "373": 1.0,
+    "374": 1.0,
+    "375": 1.0,
+    "376": 1.0,
+    "377": 1.0,
+    "378": 1.0,
+    "379": 1.0,
+    "380": 1.0,
+    "381": 1.0,
+    "382": 1.0,
+    "383": 1.0,
+    "384": 1.0,
+    "385": 1.0,
+    "386": 1.0,
+    "387": 1.0,
+    "388": 1.0,
+    "389": 1.0,
+    "390": 1.0,
+    "391": 1.0,
+    "392": 1.0,
+    "393": 1.0,
+    "394": 1.0,
+    "395": 1.0,
+    "396": 1.0,
+    "397": 1.0,
+    "398": 1.0,
+    "399": 1.0,
+    "400": 1.0,
+    "401": 1.0,
+    "402": 1.0,
+    "403": 1.0,
+    "404": 1.0,
+    "405": 1.0,
+    "406": 1.0,
+    "407": 1.0,
+    "408": 1.0,
+    "409": 1.0,
+    "410": 1.0,
+    "411": 1.0,
+    "412": 1.0,
+    "413": 1.0,
+    "414": 1.0,
+    "415": 1.0,
+    "416": 1.0,
+    "417": 1.0,
+    "418": 1.0,
+    "419": 1.0,
+    "420": 1.0,
+    "421": 1.0,
+    "422": 1.0,
+    "423": 1.0,
+    "424": 1.0,
+    "425": 1.0,
+    "426": 1.0,
+    "427": 1.0,
+    "428": 1.0,
+    "429": 1.0,
+    "430": 1.0,
+    "431": 1.0,
+    "432": 1.0,
+    "433": 1.0,
+    "434": 1.0,
+    "435": 1.0,
+    "436": 1.0,
+    "437": 1.0,
+    "438": 1.0,
+    "439": 1.0,
+    "440": 1.0,
+    "441": 1.0,
+    "442": 1.0,
+    "443": 1.0,
+    "444": 1.0,
+    "445": 1.0,
+    "446": 1.0,
+    "447": 1.0,
+    "448": 1.0,
+    "449": 1.0,
+    "450": 1.0,
+    "451": 1.0,
+    "452": 1.0,
+    "453": 1.0,
+    "454": 1.0,
+    "455": 1.0,
+    "456": 1.0,
+    "457": 1.0,
+    "458": 1.0,
+    "459": 1.0,
+    "460": 1.0,
+    "461": 1.0,
+    "462": 1.0,
+    "463": 1.0,
+    "464": 1.0,
+    "465": 1.0,
+    "466": 1.0,
+    "467": 1.0,
+    "468": 1.0,
+    "469": 1.0,
+    "470": 1.0,
+    "471": 1.0,
+    "472": 1.0,
+    "473": 1.0,
+    "474": 1.0,
+    "475": 1.0,
+    "476": 1.0,
+    "477": 1.0,
+    "478": 1.0,
+    "479": 1.0,
+    "480": 1.0,
+    "481": 1.0,
+    "482": 1.0,
+    "483": 1.0,
+    "484": 1.0,
+    "485": 1.0,
+    "486": 1.0,
+    "487": 1.0,
+    "488": 1.0,
+    "489": 1.0,
+    "490": 1.0,
+    "491": 1.0,
+    "492": 1.0,
+    "493": 1.0,
+    "494": 1.0,
+    "495": 1.0,
+    "496": 1.0,
+    "497": 1.0,
+    "498": 1.0,
+    "499": 1.0,
+    "500": 1.0,
+    "501": 1.0,
+    "502": 1.0,
+    "503": 1.0,
+    "504": 1.0,
+    "505": 1.0,
+    "506": 1.0,
+    "507": 1.0,
+    "508": 1.0,
+    "509": 1.0,
+    "510": 1.0,
+    "511": 1.0,
+    "512": 1.0,
+    "513": 1.0,
+    "514": 1.0,
+    "515": 1.0,
+    "516": 1.0,
+    "517": 1.0,
+    "518": 1.0,
+    "519": 1.0,
+    "520": 1.0,
+    "521": 1.0,
+    "522": 1.0,
+    "523": 1.0,
+    "524": 1.0,
+    "525": 1.0,
+    "526": 1.0,
+    "527": 1.0,
+    "528": 1.0,
+    "529": 1.0,
+    "530": 1.0,
+    "531": 1.0,
+    "532": 1.0,
+    "533": 1.0,
+    "534": 1.0,
+    "535": 1.0,
+    "536": 1.0,
+    "537": 1.0,
+    "538": 1.0,
+    "539": 1.0,
+    "540": 1.0,
+    "541": 1.0,
+    "542": 1.0,
+    "543": 1.0,
+    "544": 1.0,
+    "545": 1.0,
+    "546": 1.0,
+    "547": 1.0,
+    "548": 1.0,
+    "549": 1.0,
+    "550": 1.0,
+    "551": 1.0,
+    "552": 1.0,
+    "553": 1.0,
+    "554": 1.0,
+    "555": 1.0,
+    "556": 1.0,
+    "557": 1.0,
+    "558": 1.0,
+    "559": 1.0,
+    "560": 1.0,
+    "561": 1.0,
+    "562": 1.0,
+    "563": 1.0,
+    "564": 1.0,
+    "565": 1.0,
+    "566": 1.0,
+    "567": 1.0,
+    "568": 1.0,
+    "569": 1.0,
+    "570": 1.0,
+    "571": 1.0,
+    "572": 1.0,
+    "573": 1.0,
+    "574": 1.0,
+    "575": 1.0,
+    "576": 1.0,
+    "577": 1.0,
+    "578": 1.0
+  },
+  "gods": [
+    {
+      "id": "api_inbound_inbound",
+      "label": "Inbound",
+      "degree": 10
+    },
+    {
+      "id": "media_07_configs_light_xray_configs",
+      "label": "Xray Configs Page",
+      "degree": 8
+    },
+    {
+      "id": "readme_3x_ui",
+      "label": "3X-UI Control Panel",
+      "degree": 7
+    },
+    {
+      "id": "stream_external_proxy_externalproxyentry",
+      "label": "ExternalProxyEntry",
+      "degree": 6
+    },
+    {
+      "id": "media_08_api_docs_light_authentication",
+      "label": "API Authentication Section",
+      "degree": 5
+    },
+    {
+      "id": "media_01_overview_dark_screenshot",
+      "label": "3X-UI Dark Mode Overview Screenshot",
+      "degree": 4
+    },
+    {
+      "id": "media_03_add_client_light_client_form",
+      "label": "Client Configuration Form",
+      "degree": 4
+    },
+    {
+      "id": "xray_inbound_link_genvmesslinkinput",
+      "label": "GenVmessLinkInput",
+      "degree": 3
+    },
+    {
+      "id": "xray_inbound_link_genvlesslinkinput",
+      "label": "GenVlessLinkInput",
+      "degree": 3
+    },
+    {
+      "id": "workflows_release_build",
+      "label": "Release Build Action",
+      "degree": 3
+    }
+  ],
+  "surprises": [
+    {
+      "source": "3X-UI Control Panel",
+      "target": "Go Backend Architecture",
+      "source_files": [
+        "README.md",
+        "CONTRIBUTING.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `Go Backend Architecture` unexpectedly reaches hub `3X-UI Control Panel`"
+    },
+    {
+      "source": "3X-UI Control Panel",
+      "target": "Frontend Architecture",
+      "source_files": [
+        "README.md",
+        "CONTRIBUTING.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `Frontend Architecture` unexpectedly reaches hub `3X-UI Control Panel`"
+    },
+    {
+      "source": "Docker Build Action",
+      "target": "3X-UI Control Panel",
+      "source_files": [
+        ".github/workflows/docker.yml",
+        "README.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `Docker Build Action` unexpectedly reaches hub `3X-UI Control Panel`"
+    },
+    {
+      "source": "Release Build Action",
+      "target": "3X-UI Control Panel",
+      "source_files": [
+        ".github/workflows/release.yml",
+        "README.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories"
+    },
+    {
+      "source": "GenTrojanLinkInput",
+      "target": "Inbound",
+      "source_files": [
+        "frontend/src/lib/xray/inbound-link.ts",
+        "frontend/src/schemas/api/inbound.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "peripheral node `GenTrojanLinkInput` unexpectedly reaches hub `Inbound`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "verify_inferred",
+      "question": "Are the 4 inferred relationships involving `3X-UI Control Panel` (e.g. with `Go Backend Architecture` and `Frontend Architecture`) actually correct?",
+      "why": "`3X-UI Control Panel` has 4 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `QueryProvider`, `setupAxios`, `markLocalInvalidate` to the rest of the system?",
+      "why": "639 weakly-connected nodes found - possible documentation gaps or missing edges."
+    }
+  ]
+}

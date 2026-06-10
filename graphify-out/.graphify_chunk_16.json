@@ -1,0 +1,55 @@
+{
+  "nodes": [
+    {
+      "id": "media_05_add_nodes_light_add_node_ui",
+      "label": "Add Node Dialog UI (Light Theme)",
+      "file_type": "image",
+      "source_file": "media/05-add-nodes-light.png"
+    },
+    {
+      "id": "media_05_add_nodes_light_remote_panel_integration",
+      "label": "Remote Panel Integration",
+      "file_type": "concept",
+      "source_file": "media/05-add-nodes-light.png"
+    },
+    {
+      "id": "media_05_add_nodes_light_tls_verification",
+      "label": "TLS Verification Options",
+      "file_type": "concept",
+      "source_file": "media/05-add-nodes-light.png"
+    },
+    {
+      "id": "media_05_add_nodes_light_api_token_auth",
+      "label": "API Token Authentication",
+      "file_type": "concept",
+      "source_file": "media/05-add-nodes-light.png"
+    }
+  ],
+  "edges": [
+    {
+      "source": "media_05_add_nodes_light_add_node_ui",
+      "target": "media_05_add_nodes_light_remote_panel_integration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/05-add-nodes-light.png"
+    },
+    {
+      "source": "media_05_add_nodes_light_add_node_ui",
+      "target": "media_05_add_nodes_light_tls_verification",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/05-add-nodes-light.png"
+    },
+    {
+      "source": "media_05_add_nodes_light_add_node_ui",
+      "target": "media_05_add_nodes_light_api_token_auth",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/05-add-nodes-light.png"
+    }
+  ],
+  "hyperedges": []
+}

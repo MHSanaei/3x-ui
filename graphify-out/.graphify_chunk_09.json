@@ -1,0 +1,62 @@
+{
+  "nodes": [
+    {
+      "id": "media_03_add_client_dark_screenshot",
+      "label": "Add Client Screenshot (Dark)",
+      "file_type": "image",
+      "source_file": "media/03-add-client-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_03_add_client_dark_add_client_modal",
+      "label": "Add Client Modal UI",
+      "file_type": "concept",
+      "source_file": "media/03-add-client-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_03_add_client_dark_client_configuration",
+      "label": "Client Configuration Attributes",
+      "file_type": "concept",
+      "source_file": "media/03-add-client-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "media_03_add_client_dark_screenshot",
+      "target": "media_03_add_client_dark_add_client_modal",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/03-add-client-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_03_add_client_dark_add_client_modal",
+      "target": "media_03_add_client_dark_client_configuration",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/03-add-client-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

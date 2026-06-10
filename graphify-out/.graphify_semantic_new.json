@@ -1,0 +1,2102 @@
+{
+  "nodes": [
+    {
+      "id": "readme_3x_ui",
+      "label": "3X-UI Control Panel",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_sqlite",
+      "label": "SQLite Storage",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_postgresql",
+      "label": "PostgreSQL Storage",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_fail2ban",
+      "label": "Fail2ban Integration",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "contributing_frontend",
+      "label": "Frontend Architecture",
+      "file_type": "concept",
+      "source_file": "CONTRIBUTING.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "contributing_backend",
+      "label": "Go Backend Architecture",
+      "file_type": "concept",
+      "source_file": "CONTRIBUTING.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "contributing_zod",
+      "label": "Zod Schemas",
+      "file_type": "concept",
+      "source_file": "CONTRIBUTING.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "contributing_windows_build",
+      "label": "Windows Build Requirements",
+      "file_type": "rationale",
+      "source_file": "CONTRIBUTING.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "claude_graphify",
+      "label": "Graphify Knowledge Graph",
+      "file_type": "concept",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "workflows_docker_build",
+      "label": "Docker Build Action",
+      "file_type": "concept",
+      "source_file": ".github/workflows/docker.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "workflows_release_build",
+      "label": "Release Build Action",
+      "file_type": "concept",
+      "source_file": ".github/workflows/release.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "workflows_release_xray_core",
+      "label": "Xray-core Dependencies",
+      "file_type": "concept",
+      "source_file": ".github/workflows/release.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "workflows_release_mtg",
+      "label": "mtg MTProto Sidecar",
+      "file_type": "concept",
+      "source_file": ".github/workflows/release.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_01_overview_dark_screenshot",
+      "label": "3X-UI Dark Mode Overview Screenshot",
+      "file_type": "image",
+      "source_file": "media/01-overview-dark.png",
+      "rationale": "Displays the main dashboard of the 3X-UI admin panel, showing system monitoring, Xray service status, and network statistics in a dark theme grid layout."
+    },
+    {
+      "id": "media_01_overview_dark_dashboard_layout",
+      "label": "Dark Mode Grid Dashboard Layout",
+      "file_type": "rationale",
+      "source_file": "media/01-overview-dark.png",
+      "rationale": "Uses a multi-card grid layout with a persistent left sidebar and top-heavy gauge visualizations, optimized for low-light monitoring."
+    },
+    {
+      "id": "media_01_overview_dark_system_monitoring",
+      "label": "System Resource Monitoring UI",
+      "file_type": "concept",
+      "source_file": "media/01-overview-dark.png",
+      "rationale": "Top row circular progress gauges provide a quick visual glance at the server's hardware utilization (CPU, RAM, Swap, Storage)."
+    },
+    {
+      "id": "media_01_overview_dark_xray_management",
+      "label": "Xray Core Management Interface",
+      "file_type": "concept",
+      "source_file": "media/01-overview-dark.png",
+      "rationale": "Provides quick controls to manage the Xray service, view its logs, restart it, and see its version and uptime."
+    },
+    {
+      "id": "media_01_overview_dark_network_metrics",
+      "label": "Network Traffic Metrics UI",
+      "file_type": "concept",
+      "source_file": "media/01-overview-dark.png",
+      "rationale": "Displays real-time upload/download speeds, total data transfer, and active TCP/UDP connections for the Xray core."
+    },
+    {
+      "id": "media_02_add_inbound_dark_add_inbound_ui",
+      "label": "Add Inbound UI",
+      "file_type": "image",
+      "source_file": "media/02-add-inbound-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_02_add_inbound_dark_vless_protocol",
+      "label": "vless Protocol",
+      "file_type": "concept",
+      "source_file": "media/02-add-inbound-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_02_add_inbound_dark_local_panel",
+      "label": "Local Panel Deployment",
+      "file_type": "concept",
+      "source_file": "media/02-add-inbound-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_02_add_inbound_light_modal",
+      "label": "Add Inbound Modal (Light Theme)",
+      "file_type": "image",
+      "source_file": "media/02-add-inbound-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_02_add_inbound_light_vless",
+      "label": "VLESS Protocol Selection",
+      "file_type": "concept",
+      "source_file": "media/02-add-inbound-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_02_add_inbound_light_unix_socket",
+      "label": "Unix Socket Path Support",
+      "file_type": "concept",
+      "source_file": "media/02-add-inbound-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_02_add_inbound_light_traffic_reset",
+      "label": "Traffic Reset Configuration",
+      "file_type": "concept",
+      "source_file": "media/02-add-inbound-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_03_add_client_dark_screenshot",
+      "label": "Add Client Screenshot (Dark)",
+      "file_type": "image",
+      "source_file": "media/03-add-client-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_03_add_client_dark_add_client_modal",
+      "label": "Add Client Modal UI",
+      "file_type": "concept",
+      "source_file": "media/03-add-client-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_03_add_client_dark_client_configuration",
+      "label": "Client Configuration Attributes",
+      "file_type": "concept",
+      "source_file": "media/03-add-client-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_03_add_client_light_dialog",
+      "label": "Add Client Dialog (Light Theme)",
+      "file_type": "image",
+      "source_file": "media/03-add-client-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_03_add_client_light_client_form",
+      "label": "Client Configuration Form",
+      "file_type": "concept",
+      "source_file": "media/03-add-client-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_03_add_client_light_hysteria_auth",
+      "label": "Hysteria Auth",
+      "file_type": "concept",
+      "source_file": "media/03-add-client-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_03_add_client_light_subscription_id",
+      "label": "Subscription ID",
+      "file_type": "concept",
+      "source_file": "media/03-add-client-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_03_add_client_light_attached_inbounds",
+      "label": "Attached Inbounds",
+      "file_type": "concept",
+      "source_file": "media/03-add-client-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_03_client_light_ui_screenshot",
+      "label": "3X-UI Clients Page (Light Mode)",
+      "file_type": "image",
+      "source_file": "media/03-client-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_03_client_light_client_management",
+      "label": "Client Management Interface",
+      "file_type": "concept",
+      "source_file": "media/03-client-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "The core functionality shown in the UI, enabling users to add, filter, view, and manage client connections including traffic limits, duration, and associated inbounds."
+    },
+    {
+      "id": "media_03_client_light_status_dashboard",
+      "label": "Client Status Dashboard",
+      "file_type": "concept",
+      "source_file": "media/03-client-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "A top-level summary showing aggregate statistics of clients, allowing quick overview of online, ended, depleting, disabled, and active clients."
+    },
+    {
+      "id": "media_03_client_light_client_list",
+      "label": "Client Data List",
+      "file_type": "concept",
+      "source_file": "media/03-client-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "A detailed table view showing individual client properties such as UUID, Attached inbounds, Traffic usage, Remaining quota, and status toggles for managing each client."
+    },
+    {
+      "id": "media_04_group_dark_screenshot",
+      "label": "Groups Management UI (Dark Mode)",
+      "file_type": "image",
+      "source_file": "media/04-group-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_04_group_dark_client_grouping",
+      "label": "Client Grouping Feature",
+      "file_type": "concept",
+      "source_file": "media/04-group-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_04_group_dark_add_group",
+      "label": "Add Group Action",
+      "file_type": "concept",
+      "source_file": "media/04-group-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_04_group_light_image",
+      "label": "04-group-light.png",
+      "file_type": "image",
+      "source_file": "media/04-group-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_04_group_light_groups_dashboard",
+      "label": "Groups Dashboard UI",
+      "file_type": "concept",
+      "source_file": "media/04-group-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_05_add_nodes_dark_screenshot",
+      "label": "Add Node Dialog (Dark Mode)",
+      "file_type": "image",
+      "source_file": "media/05-add-nodes-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_05_add_nodes_dark_remote_node",
+      "label": "Remote Node",
+      "file_type": "concept",
+      "source_file": "media/05-add-nodes-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_05_add_nodes_dark_tls_verification",
+      "label": "TLS Verification for Self-Signed Certs",
+      "file_type": "concept",
+      "source_file": "media/05-add-nodes-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_05_add_nodes_dark_api_token_auth",
+      "label": "API Token Authentication",
+      "file_type": "concept",
+      "source_file": "media/05-add-nodes-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_05_add_nodes_light_add_node_ui",
+      "label": "Add Node Dialog UI (Light Theme)",
+      "file_type": "image",
+      "source_file": "media/05-add-nodes-light.png"
+    },
+    {
+      "id": "media_05_add_nodes_light_remote_panel_integration",
+      "label": "Remote Panel Integration",
+      "file_type": "concept",
+      "source_file": "media/05-add-nodes-light.png"
+    },
+    {
+      "id": "media_05_add_nodes_light_tls_verification",
+      "label": "TLS Verification Options",
+      "file_type": "concept",
+      "source_file": "media/05-add-nodes-light.png"
+    },
+    {
+      "id": "media_05_add_nodes_light_api_token_auth",
+      "label": "API Token Authentication",
+      "file_type": "concept",
+      "source_file": "media/05-add-nodes-light.png"
+    },
+    {
+      "id": "media_05_nodes_dark_nodes_ui",
+      "label": "Nodes UI Screenshot",
+      "file_type": "image",
+      "source_file": "media/05-nodes-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_05_nodes_dark_nodes_management",
+      "label": "Nodes Management",
+      "file_type": "concept",
+      "source_file": "media/05-nodes-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Interface for adding, editing, enabling, and managing distributed nodes in the 3X-UI panel."
+    },
+    {
+      "id": "media_05_nodes_dark_node_health_monitoring",
+      "label": "Node Health Monitoring",
+      "file_type": "concept",
+      "source_file": "media/05-nodes-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Dashboard providing real-time metrics for nodes, including CPU, memory usage, latency, connectivity status, and software versions."
+    },
+    {
+      "id": "media_05_nodes_light",
+      "label": "05-nodes-light.png Screenshot",
+      "file_type": "image",
+      "source_file": "media/05-nodes-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_05_nodes_light_nodes_page",
+      "label": "3X-UI Nodes Page UI",
+      "file_type": "concept",
+      "source_file": "media/05-nodes-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_05_nodes_light_node_stats",
+      "label": "Node Status Statistics",
+      "file_type": "concept",
+      "source_file": "media/05-nodes-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_05_nodes_light_node_table",
+      "label": "Node List Table",
+      "file_type": "concept",
+      "source_file": "media/05-nodes-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_06_settings_dark_screenshot",
+      "label": "Settings Dark Mode Screenshot",
+      "file_type": "image",
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_06_settings_dark_panel_settings_ui",
+      "label": "Panel Settings UI",
+      "file_type": "concept",
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_06_settings_dark_restart_requirement",
+      "label": "Restart Panel Requirement",
+      "file_type": "rationale",
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_06_settings_dark_general_settings",
+      "label": "General Panel Configuration",
+      "file_type": "concept",
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_06_settings_light_panel_settings",
+      "label": "3X-UI Panel Settings (Light)",
+      "file_type": "image",
+      "source_file": "media/06-settings-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_06_settings_light_security_warnings",
+      "label": "Security Warnings Prompt",
+      "file_type": "concept",
+      "source_file": "media/06-settings-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_06_settings_light_general_settings",
+      "label": "General Settings Tab",
+      "file_type": "concept",
+      "source_file": "media/06-settings-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_bot_light_ui_screenshot",
+      "label": "Telegram Bot Interface Screenshot (Light)",
+      "file_type": "image",
+      "source_file": "media/07-bot-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_bot_light_client_management_view",
+      "label": "Telegram Bot Client Management View",
+      "file_type": "concept",
+      "source_file": "media/07-bot-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_bot_light_inline_controls",
+      "label": "Telegram Inline Controls for Clients",
+      "file_type": "concept",
+      "source_file": "media/07-bot-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_bot_light_remote_administration",
+      "label": "Remote Client Administration via Telegram",
+      "file_type": "rationale",
+      "source_file": "media/07-bot-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_dark_ui",
+      "label": "3X-UI Xray Configs View",
+      "file_type": "image",
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_dark_xray_configs",
+      "label": "Xray Core Configurations",
+      "file_type": "concept",
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_dark_freedom_protocol",
+      "label": "Freedom Protocol Strategy",
+      "file_type": "concept",
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_dark_routing_strategy",
+      "label": "Overall Routing Strategy",
+      "file_type": "concept",
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_light_ui",
+      "label": "Xray Configs UI (Light Theme)",
+      "file_type": "image",
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_light_xray_configs",
+      "label": "Xray Configs Page",
+      "file_type": "concept",
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_light_restart_xray",
+      "label": "Restart Xray Action",
+      "file_type": "concept",
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_light_basics",
+      "label": "Basics Settings Tab",
+      "file_type": "concept",
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_light_routing_rules",
+      "label": "Routing Rules Tab",
+      "file_type": "concept",
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_light_outbounds",
+      "label": "Outbounds Tab",
+      "file_type": "concept",
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_light_balancers",
+      "label": "Balancers Tab",
+      "file_type": "concept",
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_light_dns",
+      "label": "DNS Tab",
+      "file_type": "concept",
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_07_configs_light_advanced",
+      "label": "Advanced Settings Tab",
+      "file_type": "concept",
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_dark_screenshot",
+      "label": "3X-UI API Docs Dark Theme Screenshot",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_dark_api_docs",
+      "label": "3X-UI Panel API Documentation (OAS 3.0)",
+      "file_type": "concept",
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_dark_authentication",
+      "label": "Authentication API Endpoints",
+      "file_type": "concept",
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_dark_inbounds",
+      "label": "Inbounds API Endpoints",
+      "file_type": "concept",
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_3x_ui_panel_api",
+      "label": "3X-UI Panel API",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_authentication",
+      "label": "API Authentication Section",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_login",
+      "label": "POST /login",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_logout",
+      "label": "POST /logout",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_csrf_token",
+      "label": "GET /csrf-token",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_gettwofactorenable",
+      "label": "POST /getTwoFactorEnable",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_inbounds",
+      "label": "API Inbounds Section",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_inbounds_list",
+      "label": "GET /panel/api/inbounds/list",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_inbounds_list_slim",
+      "label": "GET /panel/api/inbounds/list/slim",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_3x_ui_light_logo",
+      "label": "3X-UI Light Logo",
+      "file_type": "image",
+      "source_file": "media/3x-ui-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_apikey2_apikey_dialog",
+      "label": "API Key Dialog",
+      "file_type": "image",
+      "source_file": "media/APIKey2.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_apikey2_global_api_key",
+      "label": "Global API Key",
+      "file_type": "concept",
+      "source_file": "media/APIKey2.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_botfather_ui_screenshot",
+      "label": "BotFather Chat UI Screenshot",
+      "file_type": "image",
+      "source_file": "media/botfather.png"
+    },
+    {
+      "id": "media_botfather_telegram_bot_setup",
+      "label": "Telegram Bot Setup",
+      "file_type": "concept",
+      "source_file": "media/botfather.png",
+      "rationale": "Demonstrates the initial interaction with BotFather on Telegram to create and manage bots, typically required for setting up 3x-ui Telegram notifications."
+    },
+    {
+      "id": "media_default_yellow_image",
+      "label": "Buy Me a Coffee Button Image",
+      "file_type": "image",
+      "source_file": "media/default-yellow.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_default_yellow_buymeacoffee",
+      "label": "Buy Me a Coffee (Donation)",
+      "file_type": "concept",
+      "source_file": "media/default-yellow.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_newbot_screenshot",
+      "label": "Telegram Bot Creation Screenshot",
+      "file_type": "image",
+      "source_file": "media/newbot.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_newbot_botfather",
+      "label": "BotFather",
+      "file_type": "concept",
+      "source_file": "media/newbot.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_newbot_bot_token",
+      "label": "Telegram Bot Token",
+      "file_type": "concept",
+      "source_file": "media/newbot.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_panel_bot_config_screenshot",
+      "label": "Panel Telegram Bot Config Screenshot",
+      "file_type": "image",
+      "source_file": "media/panel-bot-config.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_panel_bot_config_telegram_setup",
+      "label": "Telegram Bot Setup Flow",
+      "file_type": "concept",
+      "source_file": "media/panel-bot-config.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_panel_bot_config_telegram_token",
+      "label": "Telegram Token Config",
+      "file_type": "concept",
+      "source_file": "media/panel-bot-config.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_panel_bot_config_admin_chat_ids",
+      "label": "Telegram Admin Chat IDs Config",
+      "file_type": "concept",
+      "source_file": "media/panel-bot-config.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_user_id_screenshot",
+      "label": "Telegram User ID Extraction Screenshot",
+      "file_type": "image",
+      "source_file": "media/user-id.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_user_id_telegram_user_id",
+      "label": "Telegram User ID Concept",
+      "file_type": "concept",
+      "source_file": "media/user-id.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "readme_3x_ui",
+      "target": "readme_sqlite",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_3x_ui",
+      "target": "readme_postgresql",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_3x_ui",
+      "target": "readme_fail2ban",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_3x_ui",
+      "target": "contributing_frontend",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_3x_ui",
+      "target": "contributing_backend",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "contributing_frontend",
+      "target": "contributing_zod",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CONTRIBUTING.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "workflows_release_build",
+      "target": "workflows_release_xray_core",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/release.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "workflows_release_build",
+      "target": "workflows_release_mtg",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/release.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "workflows_docker_build",
+      "target": "readme_3x_ui",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/docker.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "workflows_release_build",
+      "target": "readme_3x_ui",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/release.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_01_overview_dark_screenshot",
+      "target": "media_01_overview_dark_dashboard_layout",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/01-overview-dark.png"
+    },
+    {
+      "source": "media_01_overview_dark_screenshot",
+      "target": "media_01_overview_dark_system_monitoring",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/01-overview-dark.png"
+    },
+    {
+      "source": "media_01_overview_dark_screenshot",
+      "target": "media_01_overview_dark_xray_management",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/01-overview-dark.png"
+    },
+    {
+      "source": "media_01_overview_dark_screenshot",
+      "target": "media_01_overview_dark_network_metrics",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/01-overview-dark.png"
+    },
+    {
+      "source": "media_02_add_inbound_dark_add_inbound_ui",
+      "target": "media_02_add_inbound_dark_vless_protocol",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/02-add-inbound-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_02_add_inbound_dark_add_inbound_ui",
+      "target": "media_02_add_inbound_dark_local_panel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/02-add-inbound-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_02_add_inbound_light_modal",
+      "target": "media_02_add_inbound_light_vless",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/02-add-inbound-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_02_add_inbound_light_modal",
+      "target": "media_02_add_inbound_light_unix_socket",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/02-add-inbound-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_02_add_inbound_light_modal",
+      "target": "media_02_add_inbound_light_traffic_reset",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/02-add-inbound-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_03_add_client_dark_screenshot",
+      "target": "media_03_add_client_dark_add_client_modal",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/03-add-client-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_03_add_client_dark_add_client_modal",
+      "target": "media_03_add_client_dark_client_configuration",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/03-add-client-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_03_add_client_light_dialog",
+      "target": "media_03_add_client_light_client_form",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/03-add-client-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_03_add_client_light_client_form",
+      "target": "media_03_add_client_light_hysteria_auth",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/03-add-client-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_03_add_client_light_client_form",
+      "target": "media_03_add_client_light_subscription_id",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/03-add-client-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_03_add_client_light_client_form",
+      "target": "media_03_add_client_light_attached_inbounds",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/03-add-client-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_03_client_light_ui_screenshot",
+      "target": "media_03_client_light_client_management",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/03-client-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_03_client_light_ui_screenshot",
+      "target": "media_03_client_light_status_dashboard",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/03-client-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_03_client_light_ui_screenshot",
+      "target": "media_03_client_light_client_list",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/03-client-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_04_group_dark_screenshot",
+      "target": "media_04_group_dark_client_grouping",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/04-group-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_04_group_dark_screenshot",
+      "target": "media_04_group_dark_add_group",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/04-group-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_04_group_light_image",
+      "target": "media_04_group_light_groups_dashboard",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/04-group-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_05_add_nodes_dark_screenshot",
+      "target": "media_05_add_nodes_dark_remote_node",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/05-add-nodes-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_05_add_nodes_dark_screenshot",
+      "target": "media_05_add_nodes_dark_tls_verification",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/05-add-nodes-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_05_add_nodes_dark_screenshot",
+      "target": "media_05_add_nodes_dark_api_token_auth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/05-add-nodes-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_05_add_nodes_dark_remote_node",
+      "target": "media_05_add_nodes_dark_tls_verification",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "media/05-add-nodes-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_05_add_nodes_dark_remote_node",
+      "target": "media_05_add_nodes_dark_api_token_auth",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/05-add-nodes-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_05_add_nodes_light_add_node_ui",
+      "target": "media_05_add_nodes_light_remote_panel_integration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/05-add-nodes-light.png"
+    },
+    {
+      "source": "media_05_add_nodes_light_add_node_ui",
+      "target": "media_05_add_nodes_light_tls_verification",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/05-add-nodes-light.png"
+    },
+    {
+      "source": "media_05_add_nodes_light_add_node_ui",
+      "target": "media_05_add_nodes_light_api_token_auth",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/05-add-nodes-light.png"
+    },
+    {
+      "source": "media_05_nodes_dark_nodes_ui",
+      "target": "media_05_nodes_dark_nodes_management",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/05-nodes-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_05_nodes_dark_nodes_ui",
+      "target": "media_05_nodes_dark_node_health_monitoring",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/05-nodes-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_05_nodes_light",
+      "target": "media_05_nodes_light_nodes_page",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/05-nodes-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_05_nodes_light_nodes_page",
+      "target": "media_05_nodes_light_node_stats",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/05-nodes-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_05_nodes_light_nodes_page",
+      "target": "media_05_nodes_light_node_table",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/05-nodes-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_06_settings_dark_screenshot",
+      "target": "media_06_settings_dark_panel_settings_ui",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_06_settings_dark_screenshot",
+      "target": "media_06_settings_dark_restart_requirement",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_06_settings_dark_screenshot",
+      "target": "media_06_settings_dark_general_settings",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_06_settings_dark_panel_settings_ui",
+      "target": "media_06_settings_dark_general_settings",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/06-settings-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_06_settings_light_panel_settings",
+      "target": "media_06_settings_light_security_warnings",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/06-settings-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_06_settings_light_panel_settings",
+      "target": "media_06_settings_light_general_settings",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/06-settings-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_bot_light_ui_screenshot",
+      "target": "media_07_bot_light_client_management_view",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-bot-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_bot_light_client_management_view",
+      "target": "media_07_bot_light_inline_controls",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-bot-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_bot_light_inline_controls",
+      "target": "media_07_bot_light_remote_administration",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "media/07-bot-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_dark_ui",
+      "target": "media_07_configs_dark_xray_configs",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_dark_xray_configs",
+      "target": "media_07_configs_dark_freedom_protocol",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_dark_xray_configs",
+      "target": "media_07_configs_dark_routing_strategy",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_light_ui",
+      "target": "media_07_configs_light_xray_configs",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_light_xray_configs",
+      "target": "media_07_configs_light_restart_xray",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_light_xray_configs",
+      "target": "media_07_configs_light_basics",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_light_xray_configs",
+      "target": "media_07_configs_light_routing_rules",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_light_xray_configs",
+      "target": "media_07_configs_light_outbounds",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_light_xray_configs",
+      "target": "media_07_configs_light_balancers",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_light_xray_configs",
+      "target": "media_07_configs_light_dns",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_07_configs_light_xray_configs",
+      "target": "media_07_configs_light_advanced",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_dark_screenshot",
+      "target": "media_08_api_docs_dark_api_docs",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_dark_api_docs",
+      "target": "media_08_api_docs_dark_authentication",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_dark_api_docs",
+      "target": "media_08_api_docs_dark_inbounds",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_3x_ui_panel_api",
+      "target": "media_08_api_docs_light_authentication",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_3x_ui_panel_api",
+      "target": "media_08_api_docs_light_inbounds",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_authentication",
+      "target": "media_08_api_docs_light_login",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_authentication",
+      "target": "media_08_api_docs_light_logout",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_authentication",
+      "target": "media_08_api_docs_light_csrf_token",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_authentication",
+      "target": "media_08_api_docs_light_gettwofactorenable",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_inbounds",
+      "target": "media_08_api_docs_light_inbounds_list",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_inbounds",
+      "target": "media_08_api_docs_light_inbounds_list_slim",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_apikey2_apikey_dialog",
+      "target": "media_apikey2_global_api_key",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "media/APIKey2.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_botfather_ui_screenshot",
+      "target": "media_botfather_telegram_bot_setup",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/botfather.png",
+      "weight": 1.0
+    },
+    {
+      "source": "media_default_yellow_image",
+      "target": "media_default_yellow_buymeacoffee",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/default-yellow.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_newbot_screenshot",
+      "target": "media_newbot_botfather",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/newbot.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_newbot_screenshot",
+      "target": "media_newbot_bot_token",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/newbot.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_panel_bot_config_screenshot",
+      "target": "media_panel_bot_config_telegram_setup",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/panel-bot-config.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_panel_bot_config_screenshot",
+      "target": "media_panel_bot_config_telegram_token",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/panel-bot-config.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_panel_bot_config_screenshot",
+      "target": "media_panel_bot_config_admin_chat_ids",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/panel-bot-config.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_panel_bot_config_telegram_setup",
+      "target": "media_panel_bot_config_telegram_token",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/panel-bot-config.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_panel_bot_config_telegram_setup",
+      "target": "media_panel_bot_config_admin_chat_ids",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/panel-bot-config.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_user_id_screenshot",
+      "target": "media_user_id_telegram_user_id",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/user-id.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "readme_storage_backends",
+      "label": "Storage Backends",
+      "nodes": [
+        "readme_sqlite",
+        "readme_postgresql"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    },
+    {
+      "id": "media_01_overview_dark_dashboard_components",
+      "label": "Overview Dashboard Components",
+      "nodes": [
+        "media_01_overview_dark_system_monitoring",
+        "media_01_overview_dark_xray_management",
+        "media_01_overview_dark_network_metrics"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/01-overview-dark.png"
+    },
+    {
+      "id": "media_03_add_client_light_client_parameters",
+      "label": "Client Form Parameters",
+      "nodes": [
+        "media_03_add_client_light_hysteria_auth",
+        "media_03_add_client_light_subscription_id",
+        "media_03_add_client_light_attached_inbounds"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/03-add-client-light.png"
+    },
+    {
+      "id": "media_07_bot_light_telegram_admin_flow",
+      "label": "Telegram Bot Administration",
+      "nodes": [
+        "media_07_bot_light_client_management_view",
+        "media_07_bot_light_inline_controls",
+        "media_07_bot_light_remote_administration"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "media/07-bot-light.png"
+    },
+    {
+      "id": "media_07_configs_light_xray_config_tabs",
+      "label": "Xray Configuration Tabs",
+      "nodes": [
+        "media_07_configs_light_basics",
+        "media_07_configs_light_routing_rules",
+        "media_07_configs_light_outbounds",
+        "media_07_configs_light_balancers",
+        "media_07_configs_light_dns",
+        "media_07_configs_light_advanced"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/07-configs-light.png"
+    },
+    {
+      "id": "media_panel_bot_config_setup_flow",
+      "label": "Telegram Bot Configuration Flow",
+      "nodes": [
+        "media_panel_bot_config_screenshot",
+        "media_panel_bot_config_telegram_setup",
+        "media_panel_bot_config_telegram_token",
+        "media_panel_bot_config_admin_chat_ids"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/panel-bot-config.png"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -1,0 +1,188 @@
+{
+  "nodes": [
+    {
+      "id": "media_08_api_docs_light_3x_ui_panel_api",
+      "label": "3X-UI Panel API",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_authentication",
+      "label": "API Authentication Section",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_login",
+      "label": "POST /login",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_logout",
+      "label": "POST /logout",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_csrf_token",
+      "label": "GET /csrf-token",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_gettwofactorenable",
+      "label": "POST /getTwoFactorEnable",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_inbounds",
+      "label": "API Inbounds Section",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_inbounds_list",
+      "label": "GET /panel/api/inbounds/list",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_light_inbounds_list_slim",
+      "label": "GET /panel/api/inbounds/list/slim",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "media_08_api_docs_light_3x_ui_panel_api",
+      "target": "media_08_api_docs_light_authentication",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_3x_ui_panel_api",
+      "target": "media_08_api_docs_light_inbounds",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_authentication",
+      "target": "media_08_api_docs_light_login",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_authentication",
+      "target": "media_08_api_docs_light_logout",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_authentication",
+      "target": "media_08_api_docs_light_csrf_token",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_authentication",
+      "target": "media_08_api_docs_light_gettwofactorenable",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_inbounds",
+      "target": "media_08_api_docs_light_inbounds_list",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_light_inbounds",
+      "target": "media_08_api_docs_light_inbounds_list_slim",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-light.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

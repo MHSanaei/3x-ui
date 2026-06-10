@@ -1,0 +1,41 @@
+{
+  "nodes": [
+    {
+      "id": "media_default_yellow_image",
+      "label": "Buy Me a Coffee Button Image",
+      "file_type": "image",
+      "source_file": "media/default-yellow.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_default_yellow_buymeacoffee",
+      "label": "Buy Me a Coffee (Donation)",
+      "file_type": "concept",
+      "source_file": "media/default-yellow.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "media_default_yellow_image",
+      "target": "media_default_yellow_buymeacoffee",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "media/default-yellow.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

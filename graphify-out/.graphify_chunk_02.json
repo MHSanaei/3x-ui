@@ -1,0 +1,366 @@
+{
+  "nodes": [
+    {
+      "id": "docker_compose_3xui",
+      "label": "3xui Docker Service",
+      "file_type": "code",
+      "source_file": "docker-compose.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docker_compose_postgres",
+      "label": "Postgres Docker Service",
+      "file_type": "code",
+      "source_file": "docker-compose.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docker_compose_fail2ban",
+      "label": "Fail2ban (Docker)",
+      "file_type": "concept",
+      "source_file": "docker-compose.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_custom_subscription_templates_custom_templates",
+      "label": "Custom Subscription Templates",
+      "file_type": "document",
+      "source_file": "docs/custom-subscription-templates.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_custom_subscription_templates_template_variables",
+      "label": "Template Variables",
+      "file_type": "concept",
+      "source_file": "docs/custom-subscription-templates.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_readme_vite_proxy",
+      "label": "Vite Dev Proxy",
+      "file_type": "concept",
+      "source_file": "frontend/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_readme_zod_schemas",
+      "label": "Zod Schemas",
+      "file_type": "rationale",
+      "source_file": "frontend/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_readme_validation_layers",
+      "label": "Validation Layers",
+      "file_type": "concept",
+      "source_file": "frontend/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_readme_form_pattern",
+      "label": "Form Pattern A",
+      "file_type": "rationale",
+      "source_file": "frontend/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_readme_golden_fixtures",
+      "label": "Golden Fixture Suites",
+      "file_type": "concept",
+      "source_file": "frontend/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_index_app",
+      "label": "App Root Div",
+      "file_type": "code",
+      "source_file": "frontend/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_index_main_tsx",
+      "label": "main.tsx Entry",
+      "file_type": "code",
+      "source_file": "frontend/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_login_app",
+      "label": "Login App Div",
+      "file_type": "code",
+      "source_file": "frontend/login.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_login_login_tsx",
+      "label": "login.tsx Entry",
+      "file_type": "code",
+      "source_file": "frontend/login.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_subpage_app",
+      "label": "Subpage App Div",
+      "file_type": "code",
+      "source_file": "frontend/subpage.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_subpage_subpage_tsx",
+      "label": "subpage.tsx Entry",
+      "file_type": "code",
+      "source_file": "frontend/subpage.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "windows_files_readme_limitations",
+      "label": "Windows Limitations",
+      "file_type": "concept",
+      "source_file": "windows_files/readme.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "windows_files_readme_sqlite_browser",
+      "label": "SQLite Browser Password Recovery",
+      "file_type": "concept",
+      "source_file": "windows_files/readme.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_zh_cn_iran_v2ray_rules",
+      "label": "Iran v2ray rules",
+      "file_type": "concept",
+      "source_file": "README.zh_CN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_zh_cn_russia_v2ray_rules",
+      "label": "Russia v2ray rules",
+      "file_type": "concept",
+      "source_file": "README.zh_CN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_zh_cn_terraform_provider",
+      "label": "terraform-provider-3x-ui",
+      "file_type": "concept",
+      "source_file": "README.zh_CN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_zh_cn_xray_core",
+      "label": "Xray-core",
+      "file_type": "concept",
+      "source_file": "README.zh_CN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_zh_cn_fail2ban",
+      "label": "Fail2ban Integration",
+      "file_type": "concept",
+      "source_file": "README.zh_CN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docker_compose_3xui",
+      "target": "docker_compose_postgres",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docker-compose.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docker_compose_3xui",
+      "target": "docker_compose_fail2ban",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docker-compose.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_custom_subscription_templates_custom_templates",
+      "target": "docs_custom_subscription_templates_template_variables",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/custom-subscription-templates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_readme_zod_schemas",
+      "target": "frontend_readme_validation_layers",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "frontend/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_readme_form_pattern",
+      "target": "frontend_readme_zod_schemas",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "frontend/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_readme_golden_fixtures",
+      "target": "frontend_readme_zod_schemas",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "frontend/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_index_app",
+      "target": "frontend_index_main_tsx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/index.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_login_app",
+      "target": "frontend_login_login_tsx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/login.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_subpage_app",
+      "target": "frontend_subpage_subpage_tsx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/subpage.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "frontend_readme_validation_architecture",
+      "label": "Frontend Validation Architecture",
+      "nodes": [
+        "frontend_readme_zod_schemas",
+        "frontend_readme_validation_layers",
+        "frontend_readme_form_pattern"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "frontend/README.md"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

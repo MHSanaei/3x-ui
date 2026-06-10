@@ -1,0 +1,19 @@
+func (s *NodeService) FetchCertFingerprint(ctx context.Context, n *model.Node) (string, error) {
+func (s *NodeService) GetAll() ([]*model.Node, error) {
+func (s *NodeService) onlineEmailsByGuid() map[string]map[string]struct{
+func (s *NodeService) GetById(id int) (*model.Node, error) {
+func (s *NodeService) NodeExists(id int) (bool, error) {
+func (s *NodeService) normalize(n *model.Node) error {
+func (s *NodeService) Create(n *model.Node) error {
+func (s *NodeService) Update(id int, in *model.Node) error {
+func (s *NodeService) Delete(id int) error {
+func (s *NodeService) SetEnable(id int, enable bool) error {
+func (s *NodeService) GetWebCertFiles(id int) (*runtime.WebCertFiles, error) {
+func (s *NodeService) UpdatePanels(ids []int) ([]NodeUpdateResult, error) {
+func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
+func (s *NodeService) MarkNodeDirty(id int) error {
+func (s *NodeService) ClearNodeDirty(id int, dirtyAt int64) error {
+func (s *NodeService) NodeSyncState(id int) (enabled bool, status string, dirty bool, dirtyAt int64, err error) {
+func (s *NodeService) IsNodePending(id int) bool {
+func (s *NodeService) AggregateNodeMetric(id int, metric string, bucketSeconds int, maxPoints int) []map[string]any {
+func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch, error) {

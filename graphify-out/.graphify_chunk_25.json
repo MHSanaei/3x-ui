@@ -1,0 +1,83 @@
+{
+  "nodes": [
+    {
+      "id": "media_08_api_docs_dark_screenshot",
+      "label": "3X-UI API Docs Dark Theme Screenshot",
+      "file_type": "image",
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_dark_api_docs",
+      "label": "3X-UI Panel API Documentation (OAS 3.0)",
+      "file_type": "concept",
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_dark_authentication",
+      "label": "Authentication API Endpoints",
+      "file_type": "concept",
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "media_08_api_docs_dark_inbounds",
+      "label": "Inbounds API Endpoints",
+      "file_type": "concept",
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "media_08_api_docs_dark_screenshot",
+      "target": "media_08_api_docs_dark_api_docs",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_dark_api_docs",
+      "target": "media_08_api_docs_dark_authentication",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "media_08_api_docs_dark_api_docs",
+      "target": "media_08_api_docs_dark_inbounds",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "media/08-api-docs-dark.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

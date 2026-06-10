@@ -21,6 +21,7 @@ type Runtime interface {
 	// per-user xray API calls without a DelInbound+AddInbound cycle.
 	UpdateUser(ctx context.Context, ib *model.Inbound, email string, payload model.Client) error
 	DeleteUser(ctx context.Context, ib *model.Inbound, email string) error
+	DeleteClient(ctx context.Context, email string) error
 	AddClient(ctx context.Context, ib *model.Inbound, client model.Client) error
 
 	RestartXray(ctx context.Context) error

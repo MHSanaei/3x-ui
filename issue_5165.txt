@@ -1,0 +1,70 @@
+### Describe the bug
+
+Когда я удаляю клиента с главной панели, в привязаных к нему панелях клиент не удаляется, а только отвязывается сам от себя, но в бд удаленного узала остается. 
+
+<img width="1366" height="768" alt="Image" src="https://github.com/user-attachments/assets/4748884e-eddc-49c1-8102-7dcac6bfc38a" />
+<img width="1366" height="768" alt="Image" src="https://github.com/user-attachments/assets/286229c3-50c3-4f1f-838e-0be98848773e" />
+<img width="1366" height="768" alt="Image" src="https://github.com/user-attachments/assets/a18e4848-0fac-4079-8ec7-2c6df5808431" />
+<img width="1366" height="768" alt="Image" src="https://github.com/user-attachments/assets/3febec19-f749-4c98-8ce8-c2690386fb6d" />
+<img width="1366" height="768" alt="Image" src="https://github.com/user-attachments/assets/21b8d893-7438-4fdd-a158-5f016c34c321" />
+<img width="1366" height="768" alt="Image" src="https://github.com/user-attachments/assets/b6653ccc-a510-461c-aaaa-32d207de82a5" />
+
+### How to reproduce the problem
+
+Открыть сраницу клиенты
+Созадть клиента
+Привязать к удаленному узлу/узлам
+Удалить клиента
+
+### Expected behavior
+
+При удалении клиента с главного узла, удаление на всех узлах, к которым был привязан
+
+### Actual behavior
+
+_No response_
+
+### Relevant logs
+
+```shell
+
+```
+
+### Screenshots
+
+_No response_
+
+### 3x-ui version
+
+3.3.0
+
+### Xray-core version
+
+26.6.1
+
+### How did you install 3x-ui?
+
+install.sh script
+
+### Operating system
+
+Debian 12
+
+### Which parts of the panel are affected?
+
+_No response_
+
+### Browser (only if it is a UI bug)
+
+_No response_
+
+### Is the panel behind a reverse proxy or CDN?
+
+No — direct access
+
+### Before submitting
+
+- [x] I searched [existing issues](../issues?q=is%3Aissue) and this bug has not been reported.
+- [x] I am running the latest released version of 3x-ui (or have verified the bug still exists on it).
+- [x] This bug report is written in English.
+- [x] I have redacted any sensitive data (tokens, real domains, client UUIDs).
