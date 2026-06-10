@@ -11,15 +11,17 @@ import (
 	"syscall"
 	_ "unsafe"
 
-	"github.com/mhsanaei/3x-ui/v3/config"
-	"github.com/mhsanaei/3x-ui/v3/database"
-	"github.com/mhsanaei/3x-ui/v3/logger"
-	"github.com/mhsanaei/3x-ui/v3/sub"
-	"github.com/mhsanaei/3x-ui/v3/util/crypto"
-	"github.com/mhsanaei/3x-ui/v3/util/sys"
-	"github.com/mhsanaei/3x-ui/v3/web"
-	"github.com/mhsanaei/3x-ui/v3/web/global"
-	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/config"
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/sub"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
+	"github.com/mhsanaei/3x-ui/v3/internal/web"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
 
 	"github.com/joho/godotenv"
 	"github.com/op/go-logging"
@@ -123,7 +125,7 @@ func runWebServer() {
 
 		default:
 			// --- FIX FOR TELEGRAM BOT CONFLICT (409) on full shutdown ---
-			service.StopBot()
+			tgbot.StopBot()
 			// ------------------------------------------------------------
 
 			server.Stop()
@@ -176,7 +178,7 @@ func showSetting(show bool) {
 			fmt.Println("get key file failed, error info:", err)
 		}
 
-		userService := service.UserService{}
+		userService := panel.UserService{}
 		userModel, err := userService.GetFirstUser()
 		if err != nil {
 			fmt.Println("get current user info failed, error info:", err)
@@ -270,7 +272,7 @@ func updateSetting(port int, username string, password string, webBasePath strin
 	}
 
 	settingService := service.SettingService{}
-	userService := service.UserService{}
+	userService := panel.UserService{}
 
 	if port > 0 {
 		err := settingService.SetPort(port)
@@ -401,7 +403,7 @@ func GetApiToken(getApiToken bool) {
 	if !getApiToken {
 		return
 	}
-	apiTokenService := service.ApiTokenService{}
+	apiTokenService := panel.ApiTokenService{}
 	tokens, err := apiTokenService.List()
 	if err != nil {
 		fmt.Println("get apiToken failed, error info:", err)
