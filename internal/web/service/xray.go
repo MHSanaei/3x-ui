@@ -273,7 +273,80 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		mergeSubscriptionOutbounds(xrayConfig, prepend, appendList)
 	}
 
+	// Wire the panel's own HTTP traffic through the configured outbound, after
+	// the subscription merge so subscription outbound tags are valid targets.
+	if egressTag, err := s.settingService.GetPanelOutbound(); err != nil {
+		logger.Warning("read panelOutbound setting failed:", err)
+	} else if egressTag != "" {
+		injectPanelEgress(xrayConfig, egressTag)
+	}
+
 	return xrayConfig, nil
+}
+
+// PanelEgressInboundTag is the tag of the loopback SOCKS inbound injected into
+// the generated config when a panel outbound is configured. The panel's own
+// HTTP clients dial through it to egress via the chosen outbound.
+const PanelEgressInboundTag = "panel-egress"
+
+// panelEgressBasePort is the first port tried for the egress bridge; ports
+// already taken by other inbounds in the generated config are skipped.
+const panelEgressBasePort = 62790
+
+// injectPanelEgress appends a loopback SOCKS inbound to the generated config
+// and prepends a routing rule sending it to outboundTag. Both live only in the
+// generated config — the stored template is never modified — and both are
+// hot-appliable, so changing the panel outbound never restarts the core.
+func injectPanelEgress(cfg *xray.Config, outboundTag string) {
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag == PanelEgressInboundTag {
+			logger.Warning("panel egress: inbound tag [", PanelEgressInboundTag, "] already exists, skipping injection")
+			return
+		}
+	}
+
+	// The rule must exist before the inbound takes traffic, otherwise the
+	// bridge would silently egress through the default outbound instead.
+	routing := map[string]any{}
+	if len(cfg.RouterConfig) > 0 {
+		if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+			logger.Warning("panel egress: routing section is unparsable, skipping injection:", err)
+			return
+		}
+	}
+	rules, _ := routing["rules"].([]any)
+	rule := map[string]any{
+		"type":        "field",
+		"inboundTag":  []any{PanelEgressInboundTag},
+		"outboundTag": outboundTag,
+	}
+	routing["rules"] = append([]any{rule}, rules...)
+	newRouting, err := json.Marshal(routing)
+	if err != nil {
+		logger.Warning("panel egress: failed to rebuild routing section, skipping injection:", err)
+		return
+	}
+	cfg.RouterConfig = json_util.RawMessage(newRouting)
+
+	used := make(map[int]struct{}, len(cfg.InboundConfigs))
+	for i := range cfg.InboundConfigs {
+		used[cfg.InboundConfigs[i].Port] = struct{}{}
+	}
+	port := panelEgressBasePort
+	for {
+		if _, taken := used[port]; !taken {
+			break
+		}
+		port++
+	}
+
+	cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
+		Listen:   json_util.RawMessage(`"127.0.0.1"`),
+		Port:     port,
+		Protocol: "socks",
+		Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
+		Tag:      PanelEgressInboundTag,
+	})
 }
 
 // mergeSubscriptionOutbounds appends the subscription outbounds to the

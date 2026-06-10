@@ -43,6 +43,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
 
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
   const [inboundOptions, setInboundOptions] = useState<{ label: string; value: string }[]>([]);
+  const [outboundOptions, setOutboundOptions] = useState<{ label: string; value: string }[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +61,38 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         })));
       } else {
         setInboundOptions([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      // Outbound tags for the panel egress picker: template outbounds plus
+      // subscription-derived outbounds, same candidate set as the geodata
+      // download picker.
+      const msg = await HttpUtil.post('/panel/api/xray/', undefined, { silent: true }) as ApiMsg<string>;
+      if (cancelled || !msg?.success || typeof msg.obj !== 'string') return;
+      try {
+        const payload = JSON.parse(msg.obj) as Record<string, unknown>;
+        const template = (payload.xraySetting || {}) as Record<string, unknown>;
+        const tags = new Set<string>();
+        const outbounds = Array.isArray(template.outbounds) ? template.outbounds : [];
+        for (const o of outbounds) {
+          if (!o || typeof o !== 'object') continue;
+          const rec = o as Record<string, unknown>;
+          if (rec.protocol === 'blackhole') continue; // dropping traffic is never a useful egress
+          const tag = rec.tag;
+          if (typeof tag === 'string' && tag) tags.add(tag);
+        }
+        const subTags = Array.isArray(payload.subscriptionOutboundTags) ? payload.subscriptionOutboundTags : [];
+        for (const tag of subTags) {
+          if (typeof tag === 'string' && tag) tags.add(tag);
+        }
+        setOutboundOptions([...tags].map((tag) => ({ label: tag, value: tag })));
+      } catch {
+        setOutboundOptions([]);
       }
     })();
     return () => { cancelled = true; };
@@ -133,11 +166,15 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
               />
             </SettingListItem>
 
-            <SettingListItem paddings="small" title={t('pages.settings.panelProxy')} description={t('pages.settings.panelProxyDesc')}>
-              <Input
-                value={allSetting.panelProxy}
-                placeholder="socks5:// or http://user:pass@host:port"
-                onChange={(e) => updateSetting({ panelProxy: e.target.value })}
+            <SettingListItem paddings="small" title={t('pages.settings.panelOutbound')} description={t('pages.settings.panelOutboundDesc')}>
+              <Select
+                style={{ width: '100%' }}
+                allowClear
+                showSearch
+                value={allSetting.panelOutbound || undefined}
+                placeholder={t('pages.settings.panelOutboundPh')}
+                options={outboundOptions}
+                onChange={(v) => updateSetting({ panelOutbound: (v as string | undefined) || '' })}
               />
             </SettingListItem>
 
