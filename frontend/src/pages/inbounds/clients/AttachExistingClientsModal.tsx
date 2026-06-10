@@ -182,7 +182,7 @@ export default function AttachExistingClientsModal({
         <Alert type="info" showIcon message={t('pages.inbounds.attachExistingNoClients')} />
       ) : (
         <Spin spinning={loading}>
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="small" style={{ width: '100%' }}>
             <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
               <Space wrap>
                 <Input.Search

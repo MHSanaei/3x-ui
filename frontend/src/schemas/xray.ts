@@ -72,26 +72,6 @@ export const OutboundTestResultSchema = z.object({
     .optional(),
 }).loose();
 
-export const CustomGeoFormSchema = z.object({
-  type: z.enum(['geosite', 'geoip']),
-  alias: z.string().regex(/^[a-z0-9_-]+$/, 'pages.index.customGeoValidationAlias'),
-  url: z
-    .string()
-    .trim()
-    .refine(
-      (u) => {
-        if (!/^https?:\/\//i.test(u)) return false;
-        try {
-          const parsed = new URL(u);
-          return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-        } catch {
-          return false;
-        }
-      },
-      { message: 'pages.index.customGeoValidationUrl' },
-    ),
-});
-
 export const RuleFormSchema = z.object({
   domain: z.string(),
   ip: z.string(),
@@ -123,7 +103,6 @@ export const OutboundTagSchema = z
 
 export type BalancerFormValues = z.infer<typeof BalancerFormSchema>;
 export type RuleFormValues = z.infer<typeof RuleFormSchema>;
-export type CustomGeoFormValues = z.infer<typeof CustomGeoFormSchema>;
 export type XraySettingsValue = z.infer<typeof XraySettingsValueSchema>;
 export type XrayConfigPayload = z.infer<typeof XrayConfigPayloadSchema>;
 export type OutboundTrafficRow = z.infer<typeof OutboundTrafficRowSchema>;

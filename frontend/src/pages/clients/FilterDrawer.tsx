@@ -94,7 +94,7 @@ export default function FilterDrawer({
             value={filters.buckets}
             onChange={(v) => patch('buckets', v as string[])}
           >
-            <Space direction="vertical">
+            <Space orientation="vertical">
               {BUCKET_KEYS.map((k) => (
                 <Checkbox key={k} value={k}>
                   {bucketLabel(k, t)}

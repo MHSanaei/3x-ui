@@ -525,18 +525,6 @@ type NodeSummary struct {
 	XrayError string `json:"xrayError,omitempty"`
 }
 
-type CustomGeoResource struct {
-	Id            int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Type          string `json:"type" gorm:"not null;uniqueIndex:idx_custom_geo_type_alias;column:geo_type"`
-	Alias         string `json:"alias" gorm:"not null;uniqueIndex:idx_custom_geo_type_alias"`
-	Url           string `json:"url" gorm:"not null"`
-	LocalPath     string `json:"localPath" gorm:"column:local_path"`
-	LastUpdatedAt int64  `json:"lastUpdatedAt" gorm:"default:0;column:last_updated_at"`
-	LastModified  string `json:"lastModified" gorm:"column:last_modified"`
-	CreatedAt     int64  `json:"createdAt" gorm:"autoCreateTime:milli;column:created_at"`
-	UpdatedAt     int64  `json:"updatedAt" gorm:"autoUpdateTime:milli;column:updated_at"`
-}
-
 type ClientReverse struct {
 	Tag string `json:"tag"`
 }
