@@ -777,19 +777,48 @@ function isUnixSocketListen(listen: string): boolean {
   return listen.startsWith('/') || listen.startsWith('@');
 }
 
+function isShareableHost(host: string): boolean {
+  const h = host.trim().replace(/^\[|\]$/g, '').toLowerCase();
+  if (h.length === 0) return false;
+  if (h === '0.0.0.0' || h === '::' || h === '::0') return false;
+  if (h === 'localhost' || h === '::1' || h.startsWith('127.')) return false;
+  return true;
+}
+
+function shareableListen(inbound: Inbound): string {
+  const listen = inbound.listen.trim();
+  return listen.length > 0 && !isUnixSocketListen(listen) && isShareableHost(listen)
+    ? listen
+    : '';
+}
+
+type ShareAddrStrategy = 'node' | 'listen' | 'auto' | 'custom';
+
+function shareAddrStrategy(inbound: Inbound): ShareAddrStrategy {
+  const strategy = inbound.shareAddrStrategy;
+  return strategy === 'listen' || strategy === 'auto' || strategy === 'custom'
+    ? strategy
+    : 'node';
+}
+
 // Orchestrators.
-// resolveAddr picks the host that goes into share/sub links. Order:
-//   1. hostOverride (caller supplies node address for node-managed inbounds)
-//   2. inbound's bind listen (when it's an explicit reachable address —
-//      not 0.0.0.0 and not a unix domain socket path)
-//   3. fallbackHostname (caller-supplied — typically window.location.hostname
-//      in the browser; tests pass a fixed value)
+// resolveAddr picks the host that goes into share/sub links. The default
+// `node` strategy keeps the previous node-address-first behavior for
+// node-managed inbounds; other strategies let a row prefer its listen address
+// or a custom endpoint.
 export function resolveAddr(inbound: Inbound, hostOverride: string, fallbackHostname: string): string {
-  if (hostOverride.length > 0) return hostOverride;
-  if (inbound.listen.length > 0 && inbound.listen !== '0.0.0.0' && !isUnixSocketListen(inbound.listen)) {
-    return inbound.listen;
+  const nodeAddr = hostOverride.trim();
+  const listenAddr = shareableListen(inbound);
+  const customAddr = (inbound.shareAddr ?? '').trim();
+  switch (shareAddrStrategy(inbound)) {
+    case 'listen':
+    case 'auto':
+      return listenAddr || nodeAddr || fallbackHostname;
+    case 'custom':
+      return customAddr || nodeAddr || listenAddr || fallbackHostname;
+    default:
+      return nodeAddr || listenAddr || fallbackHostname;
   }
-  return fallbackHostname;
 }
 
 // A loopback browser host means the panel was reached through a tunnel (e.g.

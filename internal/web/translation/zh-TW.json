@@ -587,7 +587,17 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "取得新 Seed",
-        "listenHelp": "也可以填寫 Unix socket 路徑（例如 /run/xray/in.sock），以使用通訊端而非 TCP 連接埠監聽——此時請將連接埠設為 0。"
+        "listenHelp": "也可以填寫 Unix socket 路徑（例如 /run/xray/in.sock），以使用通訊端而非 TCP 連接埠監聽——此時請將連接埠設為 0。",
+        "shareAddrStrategy": "分享地址策略",
+        "shareAddrStrategyHelp": "控制匯出分享連結、QR Code 和訂閱時寫入哪個地址。",
+        "shareAddr": "自訂分享地址",
+        "shareAddrHelp": "僅在分享地址策略為自訂時使用。填寫不帶協定的網域或 IP。",
+        "shareAddrStrategyOptions": {
+          "node": "節點地址",
+          "listen": "入站監聽地址",
+          "auto": "自動",
+          "custom": "自訂"
+        }
       },
       "info": {
         "mode": "模式",

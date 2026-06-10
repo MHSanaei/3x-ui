@@ -103,6 +103,8 @@ describe('rawInboundToFormValues', () => {
       if (name === 'empty stream settings drop to undefined') {
         expect(values.streamSettings).toBeUndefined();
       }
+      expect(values.shareAddrStrategy).toBe('node');
+      expect(values.shareAddr).toBe('');
     });
   }
 
@@ -163,6 +165,17 @@ describe('formValuesToWirePayload', () => {
     const values = rawInboundToFormValues({ ...vlessRow, nodeId: 42 });
     const payload = formValuesToWirePayload(values);
     expect(payload.nodeId).toBe(42);
+  });
+
+  it('round-trips share address strategy fields', () => {
+    const values = rawInboundToFormValues({
+      ...vlessRow,
+      shareAddrStrategy: 'custom',
+      shareAddr: 'edge.example.test',
+    });
+    const payload = formValuesToWirePayload(values);
+    expect(payload.shareAddrStrategy).toBe('custom');
+    expect(payload.shareAddr).toBe('edge.example.test');
   });
 
   it('round-trips top-level fields through raw → values → payload → values', () => {

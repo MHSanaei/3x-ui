@@ -752,6 +752,8 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.Settings = inbound.Settings
 	oldInbound.StreamSettings = inbound.StreamSettings
 	oldInbound.Sniffing = inbound.Sniffing
+	oldInbound.ShareAddrStrategy = inbound.ShareAddrStrategy
+	oldInbound.ShareAddr = inbound.ShareAddr
 	if oldTagWasAuto && inbound.Tag == tag {
 		inbound.Tag = ""
 	}

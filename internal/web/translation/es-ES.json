@@ -587,7 +587,17 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "Obtener nuevo Seed",
-        "listenHelp": "También puedes introducir una ruta de socket Unix (p. ej. /run/xray/in.sock) para escuchar en un socket en lugar de un puerto TCP; en ese caso, establece el Puerto en 0."
+        "listenHelp": "También puedes introducir una ruta de socket Unix (p. ej. /run/xray/in.sock) para escuchar en un socket en lugar de un puerto TCP; en ese caso, establece el Puerto en 0.",
+        "shareAddrStrategy": "Share address strategy",
+        "shareAddrStrategyHelp": "Controls which address is written into exported share links, QR codes, and subscriptions.",
+        "shareAddr": "Custom share address",
+        "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme.",
+        "shareAddrStrategyOptions": {
+          "node": "Node address",
+          "listen": "Inbound listen",
+          "auto": "Auto",
+          "custom": "Custom"
+        }
       },
       "info": {
         "mode": "Modo",

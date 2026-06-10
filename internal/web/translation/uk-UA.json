@@ -587,7 +587,17 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "Отримати новий Seed",
-        "listenHelp": "Можна також указати шлях Unix-сокета (наприклад, /run/xray/in.sock), щоб слухати сокет замість TCP-порту — у цьому разі встановіть порт 0."
+        "listenHelp": "Можна також указати шлях Unix-сокета (наприклад, /run/xray/in.sock), щоб слухати сокет замість TCP-порту — у цьому разі встановіть порт 0.",
+        "shareAddrStrategy": "Share address strategy",
+        "shareAddrStrategyHelp": "Controls which address is written into exported share links, QR codes, and subscriptions.",
+        "shareAddr": "Custom share address",
+        "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme.",
+        "shareAddrStrategyOptions": {
+          "node": "Node address",
+          "listen": "Inbound listen",
+          "auto": "Auto",
+          "custom": "Custom"
+        }
       },
       "info": {
         "mode": "Режим",

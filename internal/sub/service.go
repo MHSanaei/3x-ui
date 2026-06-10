@@ -769,25 +769,74 @@ func (s *SubService) loadNodes() {
 	s.nodesByID = m
 }
 
-// resolveInboundAddress picks the host an external client should connect to:
-//  1. node-managed inbound -> the node's address
-//  2. an explicit, client-reachable bind Listen -> that Listen
-//  3. otherwise the subscriber's request host (s.address)
-//
-// A loopback/wildcard bind or a unix-domain-socket listen is a server-side
-// detail and is never advertised; External Proxy remains the way to advertise
-// an arbitrary endpoint. Mirrors the frontend's resolveAddr so the panel QR and
-// the subscription agree.
+// resolveInboundAddress picks the host an external client should connect to.
+// The default `node` strategy preserves the existing node-address-first
+// behaviour for node-managed inbounds. Other strategies let an inbound advertise
+// its own routable listen address or a custom endpoint.
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
+	if inbound == nil {
+		return s.address
+	}
+	nodeAddr := s.resolveNodeAddress(inbound)
+	listenAddr := routableListenAddress(inbound)
+	customAddr := strings.TrimSpace(inbound.ShareAddr)
+
+	switch normalizeShareAddrStrategy(inbound.ShareAddrStrategy) {
+	case "listen", "auto":
+		if listenAddr != "" {
+			return listenAddr
+		}
+		if nodeAddr != "" {
+			return nodeAddr
+		}
+	case "custom":
+		if customAddr != "" {
+			return customAddr
+		}
+		if nodeAddr != "" {
+			return nodeAddr
+		}
+		if listenAddr != "" {
+			return listenAddr
+		}
+	default:
+		if nodeAddr != "" {
+			return nodeAddr
+		}
+		if listenAddr != "" {
+			return listenAddr
+		}
+	}
+	return s.address
+}
+
+func normalizeShareAddrStrategy(strategy string) string {
+	strategy = strings.TrimSpace(strategy)
+	switch strategy {
+	case "listen", "auto", "custom":
+		return strategy
+	default:
+		return "node"
+	}
+}
+
+func (s *SubService) resolveNodeAddress(inbound *model.Inbound) string {
 	if inbound.NodeID != nil && s.nodesByID != nil {
 		if n, ok := s.nodesByID[*inbound.NodeID]; ok && n.Address != "" {
 			return n.Address
 		}
 	}
-	if listen := inbound.Listen; listen != "" && listen[0] != '@' && listen[0] != '/' && isRoutableHost(listen) {
+	return ""
+}
+
+func routableListenAddress(inbound *model.Inbound) string {
+	if inbound == nil {
+		return ""
+	}
+	if listen := strings.TrimSpace(inbound.Listen); listen != "" && listen[0] != '@' && listen[0] != '/' && isRoutableHost(listen) {
 		return listen
 	}
-	return s.address
+	return ""
 }
 
 func findClientIndex(clients []model.Client, email string) int {

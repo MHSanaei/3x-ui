@@ -119,6 +119,46 @@ func TestResolveInboundAddress(t *testing.T) {
 		}
 	})
 
+	t.Run("listen strategy lets node-managed inbound advertise its own listen address", func(t *testing.T) {
+		id := 7
+		s := &SubService{
+			address:   reqHost,
+			nodesByID: map[int]*model.Node{7: {Id: 7, Address: "node7.example.com"}},
+		}
+		ib := &model.Inbound{NodeID: &id, Listen: "1.2.3.4", ShareAddrStrategy: "listen"}
+		if got := s.resolveInboundAddress(ib); got != "1.2.3.4" {
+			t.Fatalf("listen strategy address = %q, want 1.2.3.4", got)
+		}
+	})
+
+	t.Run("auto strategy prefers routable listen then node address", func(t *testing.T) {
+		id := 7
+		s := &SubService{
+			address:   reqHost,
+			nodesByID: map[int]*model.Node{7: {Id: 7, Address: "node7.example.com"}},
+		}
+		if got := s.resolveInboundAddress(&model.Inbound{NodeID: &id, Listen: "1.2.3.4", ShareAddrStrategy: "auto"}); got != "1.2.3.4" {
+			t.Fatalf("auto strategy with listen = %q, want 1.2.3.4", got)
+		}
+		if got := s.resolveInboundAddress(&model.Inbound{NodeID: &id, Listen: "0.0.0.0", ShareAddrStrategy: "auto"}); got != "node7.example.com" {
+			t.Fatalf("auto strategy without listen = %q, want node7.example.com", got)
+		}
+	})
+
+	t.Run("custom strategy uses custom address and falls back safely", func(t *testing.T) {
+		id := 7
+		s := &SubService{
+			address:   reqHost,
+			nodesByID: map[int]*model.Node{7: {Id: 7, Address: "node7.example.com"}},
+		}
+		if got := s.resolveInboundAddress(&model.Inbound{NodeID: &id, Listen: "1.2.3.4", ShareAddrStrategy: "custom", ShareAddr: "edge.example.com"}); got != "edge.example.com" {
+			t.Fatalf("custom strategy address = %q, want edge.example.com", got)
+		}
+		if got := s.resolveInboundAddress(&model.Inbound{NodeID: &id, Listen: "1.2.3.4", ShareAddrStrategy: "custom"}); got != "node7.example.com" {
+			t.Fatalf("custom strategy fallback = %q, want node7.example.com", got)
+		}
+	})
+
 	t.Run("node id with no known node falls back to subscriber host", func(t *testing.T) {
 		id := 9
 		s := &SubService{address: reqHost, nodesByID: map[int]*model.Node{}}
