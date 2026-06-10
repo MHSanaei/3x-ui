@@ -1,6 +1,6 @@
 # 3x-ui Custom Subscription Templates
 
-This directory allows you to use custom HTML templates for your users' subscription pages.
+3x-ui can render your users' subscription pages from your own custom HTML templates.
 
 ## How to use a Custom Template
 
