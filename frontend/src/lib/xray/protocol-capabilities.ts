@@ -16,16 +16,16 @@ const SS_BLAKE3_CHACHA20 = '2022-blake3-chacha20-poly1305';
 
 export interface CapabilityProtocolSlice {
   protocol: string;
+  settings?: { encryption?: string };
   streamSettings?: { network?: string; security?: string };
 }
 
 export interface CapabilityVlessSlice extends CapabilityProtocolSlice {
-  settings?: { clients?: { flow?: string }[] };
+  settings?: { encryption?: string; clients?: { flow?: string }[] };
 }
 
-export interface CapabilityShadowsocksSlice {
-  protocol: string;
-  settings?: { method?: string };
+export interface CapabilityShadowsocksSlice extends CapabilityProtocolSlice {
+  settings?: { encryption?: string; method?: string };
 }
 
 export function canEnableTls(values: CapabilityProtocolSlice): boolean {
@@ -40,10 +40,19 @@ export function canEnableReality(values: CapabilityProtocolSlice): boolean {
 }
 
 export function canEnableTlsFlow(values: CapabilityProtocolSlice): boolean {
+  if (values.protocol !== 'vless') return false;
   const security = values.streamSettings?.security;
-  if (security !== 'tls' && security !== 'reality') return false;
-  if (values.streamSettings?.network !== 'tcp') return false;
-  return values.protocol === 'vless';
+  const network = values.streamSettings?.network;
+
+  if (security === 'tls' || security === 'reality') {
+    if (network === 'tcp') return true;
+  }
+
+  if (network === 'xhttp' && values.settings?.encryption === 'vlessenc') {
+    return true;
+  }
+
+  return false;
 }
 
 export function canEnableStream(values: { protocol: string }): boolean {

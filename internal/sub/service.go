@@ -484,6 +484,11 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		}
 	default:
 		params["security"] = "none"
+		if streamNetwork == "xhttp" && len(clients[clientIndex].Flow) > 0 {
+			if encryption, ok := settings["encryption"].(string); ok && encryption == "vlessenc" {
+				params["flow"] = clients[clientIndex].Flow
+			}
+		}
 	}
 
 	externalProxies, _ := stream["externalProxy"].([]any)
