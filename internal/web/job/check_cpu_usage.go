@@ -1,0 +1,41 @@
+package job
+
+import (
+	"strconv"
+	"time"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
+
+	"github.com/shirou/gopsutil/v4/cpu"
+)
+
+// CheckCpuJob monitors CPU usage and sends Telegram notifications when usage exceeds the configured threshold.
+type CheckCpuJob struct {
+	tgbotService   tgbot.Tgbot
+	settingService service.SettingService
+}
+
+// NewCheckCpuJob creates a new CPU monitoring job instance.
+func NewCheckCpuJob() *CheckCpuJob {
+	return new(CheckCpuJob)
+}
+
+// Run checks CPU usage over the last minute and sends a Telegram alert if it exceeds the threshold.
+func (j *CheckCpuJob) Run() {
+	threshold, err := j.settingService.GetTgCpu()
+	if err != nil || threshold <= 0 {
+		// If threshold cannot be retrieved or is not set, skip sending notifications
+		return
+	}
+
+	// get latest status of server
+	percent, err := cpu.Percent(1*time.Minute, false)
+	if err == nil && percent[0] > float64(threshold) {
+		msg := j.tgbotService.I18nBot("tgbot.messages.cpuThreshold",
+			"Percent=="+strconv.FormatFloat(percent[0], 'f', 2, 64),
+			"Threshold=="+strconv.Itoa(threshold))
+
+		j.tgbotService.SendMsgToTgbotAdmins(msg)
+	}
+}

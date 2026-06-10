@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	root := flag.String("root", ".", "repository root containing database/model and web/entity")
+	root := flag.String("root", ".", "repository root containing internal/database/model and internal/web/entity")
 	outDir := flag.String("out", "frontend/src/generated", "output directory relative to root")
 	flag.Parse()
 
@@ -22,7 +22,7 @@ func main() {
 func run(root, outDir string) error {
 	requests := []packageRequest{
 		{
-			Path: resolveRel(root, "database/model"),
+			Path: resolveRel(root, "internal/database/model"),
 			StructAllow: setOf(
 				"User",
 				"Inbound",
@@ -56,7 +56,7 @@ func run(root, outDir string) error {
 			},
 		},
 		{
-			Path: resolveRel(root, "web/entity"),
+			Path: resolveRel(root, "internal/web/entity"),
 			StructAllow: setOf(
 				"Msg",
 				"AllSetting",
@@ -64,18 +64,21 @@ func run(root, outDir string) error {
 			),
 		},
 		{
-			Path: resolveRel(root, "xray"),
+			Path: resolveRel(root, "internal/xray"),
 			StructAllow: setOf(
 				"ClientTraffic",
 			),
 		},
 		{
-			Path: resolveRel(root, "web/service"),
+			Path: resolveRel(root, "internal/web/service"),
 			StructAllow: setOf(
 				"InboundOption",
-				"ApiTokenView",
 				"ProbeResultUI",
 			),
+		},
+		{
+			Path:        resolveRel(root, "internal/web/service/panel"),
+			StructAllow: setOf("ApiTokenView"),
 		},
 	}
 
