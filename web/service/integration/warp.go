@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/logger"
-	"github.com/mhsanaei/3x-ui/v3/util"
+	"github.com/mhsanaei/3x-ui/v3/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/util/common"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 )
@@ -179,7 +179,7 @@ func (s *WarpService) ChangeWarpIP() (string, error) {
 		return "", err
 	}
 
-	privKey, pubKey, err := util.GenerateWireguardKeypair()
+	privKey, pubKey, err := wireguard.GenerateWireguardKeypair()
 	if err != nil {
 		return "", err
 	}
