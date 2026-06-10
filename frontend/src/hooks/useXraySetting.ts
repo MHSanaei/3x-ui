@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 
-import { HttpUtil, Msg, PromiseUtil } from '@/utils';
+import { HttpUtil, Msg } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
 import { keys } from '@/api/queryKeys';
 import {
@@ -53,7 +53,6 @@ export interface UseXraySettingResult {
   clientReverseTags: string[];
   subscriptionOutbounds: unknown[];
   subscriptionOutboundTags: string[];
-  restartResult: string;
   outboundsTraffic: OutboundTrafficRow[];
   outboundTestStates: Record<number, OutboundTestState>;
   subscriptionTestStates: Record<string, OutboundTestState>;
@@ -74,7 +73,6 @@ export interface UseXraySettingResult {
   testAllOutbounds: (mode?: string) => Promise<void>;
   saveAll: () => Promise<void>;
   resetToDefault: () => Promise<void>;
-  restartXray: () => Promise<void>;
 }
 
 type XrayConfigPayload = z.infer<typeof XrayConfigPayloadSchema>;
@@ -128,7 +126,6 @@ export function useXraySetting(): UseXraySettingResult {
   const [clientReverseTags, setClientReverseTags] = useState<string[]>([]);
   const [subscriptionOutbounds, setSubscriptionOutbounds] = useState<unknown[]>([]);
   const [subscriptionOutboundTags, setSubscriptionOutboundTags] = useState<string[]>([]);
-  const [restartResult, setRestartResult] = useState('');
   const [outboundTestStates, setOutboundTestStates] = useState<Record<number, OutboundTestState>>({});
   // Subscription outbounds aren't in templateSettings.outbounds, so their test
   // results are keyed by tag rather than by index.
@@ -238,18 +235,6 @@ export function useXraySetting(): UseXraySettingResult {
     },
   });
 
-  const restartMut = useMutation({
-    mutationFn: async () => {
-      const msg = await HttpUtil.post('/panel/api/server/restartXrayService');
-      if (!msg?.success) return msg;
-      await PromiseUtil.sleep(500);
-      const r = await HttpUtil.get('/panel/api/xray/getXrayResult');
-      const validated = parseMsg(r, z.string(), 'xray/getXrayResult');
-      if (validated?.success) setRestartResult(validated.obj || '');
-      return msg;
-    },
-  });
-
   const resetDefaultMut = useMutation({
     mutationFn: async (): Promise<Msg<XraySettingsValue>> => {
       const raw = await HttpUtil.get('/panel/api/setting/getDefaultJsonConfig');
@@ -265,10 +250,9 @@ export function useXraySetting(): UseXraySettingResult {
 
   const saveAll = useCallback(async () => { await saveMut.mutateAsync(); }, [saveMut]);
   const resetOutboundsTraffic = useCallback(async (tag: string) => { await resetTrafficMut.mutateAsync(tag); }, [resetTrafficMut]);
-  const restartXray = useCallback(async () => { await restartMut.mutateAsync(); }, [restartMut]);
   const resetToDefault = useCallback(async () => { await resetDefaultMut.mutateAsync(); }, [resetDefaultMut]);
 
-  const spinning = saveMut.isPending || restartMut.isPending || resetDefaultMut.isPending;
+  const spinning = saveMut.isPending || resetDefaultMut.isPending;
 
   // Shared POST + parse for a single outbound test. Returns an OutboundTestResult
   // (success or a failure-shaped result); callers store it under their own key.
@@ -384,7 +368,6 @@ export function useXraySetting(): UseXraySettingResult {
       clientReverseTags,
       subscriptionOutbounds,
       subscriptionOutboundTags,
-      restartResult,
       outboundsTraffic,
       outboundTestStates,
       subscriptionTestStates,
@@ -397,7 +380,6 @@ export function useXraySetting(): UseXraySettingResult {
       testAllOutbounds,
       saveAll,
       resetToDefault,
-      restartXray,
     }),
     [
       fetched,
@@ -414,7 +396,6 @@ export function useXraySetting(): UseXraySettingResult {
       clientReverseTags,
       subscriptionOutbounds,
       subscriptionOutboundTags,
-      restartResult,
       outboundsTraffic,
       outboundTestStates,
       subscriptionTestStates,
@@ -427,7 +408,6 @@ export function useXraySetting(): UseXraySettingResult {
       testAllOutbounds,
       saveAll,
       resetToDefault,
-      restartXray,
     ],
   );
 }

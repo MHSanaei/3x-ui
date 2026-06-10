@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Modal, Space, Table, Tabs } from 'antd';
-import { ControlOutlined, PlusOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { AimOutlined, ControlOutlined, PlusOutlined, UnorderedListOutlined } from '@ant-design/icons';
 
 import { catTabLabel } from '@/pages/settings/catTabLabel';
 import RoutingBasic from './RoutingBasic';
+import RouteTester from './RouteTester';
 import RuleFormModal from './RuleFormModal';
 import type { RoutingRule } from './RuleFormModal';
 import RuleCardList from './RuleCardList';
@@ -311,6 +312,11 @@ export default function RoutingTab({
                 )}
               </Space>
             ),
+          },
+          {
+            key: 'tester',
+            label: catTabLabel(<AimOutlined />, t('pages.xray.routeTester'), isMobile),
+            children: <RouteTester inboundTags={inboundTagOptions} isMobile={isMobile} />,
           },
         ]}
       />
