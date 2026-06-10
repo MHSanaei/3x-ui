@@ -1,6 +1,6 @@
 services:
   3xui:
-    image: xidahuang/3xuidash:main
+    image: xidahuang/3x-ui:main
     container_name: 3xui_app
     # hostname: yourhostname <- optional
     # The bundled Fail2ban (XUI_ENABLE_FAIL2BAN below) enforces the IP limit

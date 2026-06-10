@@ -26,7 +26,7 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: |
-            xidahuang/3xuidash
+            xidahuang/3x-ui
           tags: |
             type=raw,value=${{ github.ref_name }}
             type=raw,value=latest
@@ -83,7 +83,7 @@ jobs:
           echo "" >> release_notes.md
           echo "### 🐳 Docker 镜像" >> release_notes.md
           echo "\`\`\`bash" >> release_notes.md
-          echo "docker pull xidahuang/3xuidash:${{ github.ref_name }}" >> release_notes.md
+          echo "docker pull xidahuang/3x-ui:${{ github.ref_name }}" >> release_notes.md
           echo "\`\`\`" >> release_notes.md
 
       - name: Create GitHub Release

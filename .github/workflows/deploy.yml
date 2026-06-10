@@ -1,4 +1,4 @@
-name: Build & Deploy 3xuidash
+name: Build & Deploy 3x-ui
 
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ on:
       - "v*"
 
 concurrency:
-  group: deploy-3xuidash
+  group: deploy-3x-ui
   cancel-in-progress: false
 
 permissions:
@@ -30,7 +30,7 @@ permissions:
   packages: write
 
 env:
-  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/3xuidash
+  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/3x-ui
 
 jobs:
   prepare:
@@ -125,7 +125,7 @@ jobs:
                     port: (.port // 22),
                     user: .user,
                     key_suffix: .key_suffix,
-                    command: (.command // "sudo /usr/local/sbin/deploy-3xuidash")
+                    command: (.command // "sudo /usr/local/sbin/deploy-3x-ui")
                   })
               ' <<< "$DEPLOY_TARGETS_JSON"
             )"
@@ -139,7 +139,7 @@ jobs:
                     port: (.port // 22),
                     user: .user,
                     key_suffix: .key_suffix,
-                    command: (.command // "sudo /usr/local/sbin/deploy-3xuidash")
+                    command: (.command // "sudo /usr/local/sbin/deploy-3x-ui")
                   })
               ' <<< "$DEPLOY_TARGETS_JSON"
             )"
@@ -272,7 +272,7 @@ jobs:
                     port: (.port // 22),
                     user: .user,
                     key_suffix: .key_suffix,
-                    command: (.command // "sudo /usr/local/sbin/deploy-3xuidash")
+                    command: (.command // "sudo /usr/local/sbin/deploy-3x-ui")
                   })
               ' <<< "$DEPLOY_TARGETS_JSON"
             )"
@@ -286,7 +286,7 @@ jobs:
                     port: (.port // 22),
                     user: .user,
                     key_suffix: .key_suffix,
-                    command: (.command // "sudo /usr/local/sbin/deploy-3xuidash")
+                    command: (.command // "sudo /usr/local/sbin/deploy-3x-ui")
                   })
               ' <<< "$DEPLOY_TARGETS_JSON"
             )"
@@ -339,15 +339,15 @@ jobs:
 
             mkdir -p ~/.ssh
             chmod 700 ~/.ssh
-            install -m 600 /dev/null ~/.ssh/deploy_3xuidash
-            printf '%s\n' "$private_key" > ~/.ssh/deploy_3xuidash
-            chmod 600 ~/.ssh/deploy_3xuidash
+            install -m 600 /dev/null ~/.ssh/deploy_3x_ui
+            printf '%s\n' "$private_key" > ~/.ssh/deploy_3x_ui
+            chmod 600 ~/.ssh/deploy_3x_ui
             cat > ~/.ssh/config <<SSHCONF
           Host deploy-target
               HostName __XUIDASH_DEPLOY_HOST__
               Port __XUIDASH_DEPLOY_PORT__
               User __XUIDASH_DEPLOY_USER__
-              IdentityFile ~/.ssh/deploy_3xuidash
+              IdentityFile ~/.ssh/deploy_3x_ui
               IdentitiesOnly yes
               ServerAliveInterval 60
               StrictHostKeyChecking accept-new
@@ -361,7 +361,7 @@ jobs:
               ~/.ssh/config
             chmod 600 ~/.ssh/config
 
-            ssh deploy-target "$command" "$IMAGE_VERSION"
+            ssh -n deploy-target "$command" "$IMAGE_VERSION"
           done < <(jq -r '.[] | @base64' <<< "$candidates")
 
           if [[ "$deploy_count" -eq 0 ]]; then
