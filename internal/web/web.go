@@ -218,9 +218,6 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		engine.StaticFS(basePath+"assets", http.FS(&wrapDistFS{FS: distFS}))
 	}
 
-	// Apply the redirect middleware (`/xui` to `/panel`)
-	engine.Use(middleware.RedirectMiddleware(basePath))
-
 	// Hand the embedded `dist/` filesystem to the controller package
 	// before any HTML-serving controller is constructed. Phase 8
 	// cutover: every HTML route reads from internal/web/dist/ instead of

@@ -1,5 +1,5 @@
 // Package middleware provides HTTP middleware functions for the 3x-ui web panel,
-// including domain validation and URL redirection utilities.
+// including domain validation utilities.
 package middleware
 
 import (
