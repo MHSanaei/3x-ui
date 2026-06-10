@@ -861,61 +861,6 @@ export const sections: readonly Section[] = [
   },
 
   {
-    id: 'custom-geo',
-    title: 'Custom Geo',
-    description:
-      'Manage user-supplied GeoIP / GeoSite source files. All endpoints under /panel/api/custom-geo.',
-    endpoints: [
-      {
-        method: 'GET',
-        path: '/panel/api/custom-geo/list',
-        summary: 'List configured custom geo sources with their type, alias, URL, status, and last-download timestamp.',
-      },
-      {
-        method: 'GET',
-        path: '/panel/api/custom-geo/aliases',
-        summary: 'List geo aliases currently usable in routing rules — both built-in defaults and the user-configured ones.',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/custom-geo/add',
-        summary: 'Register a custom geo source. Alias is auto-normalised; URL must point to a .dat / .json blob.',
-        body:
-          '{\n  "type": "geoip",\n  "alias": "myips",\n  "url": "https://example.com/geo/my.dat"\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/custom-geo/update/:id',
-        summary: 'Replace a custom geo source. Same body shape as /add.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Custom geo source ID.' },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/custom-geo/delete/:id',
-        summary: 'Remove a custom geo source and its cached file.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Custom geo source ID.' },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/custom-geo/download/:id',
-        summary: 'Re-download one custom geo source on demand.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Custom geo source ID.' },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/custom-geo/update-all',
-        summary: 'Re-download every configured custom geo source. Errors are reported per-source in the response.',
-      },
-    ],
-  },
-
-  {
     id: 'backup',
     title: 'Backup',
     description: 'Operations that interact with the configured Telegram bot.',

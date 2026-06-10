@@ -158,7 +158,7 @@ export default function AttachClientsModal({
         {t('pages.inbounds.attachClientsDesc', { count: clientRows.length })}
       </Typography.Paragraph>
 
-      <Space direction="vertical" size="small" style={{ width: '100%', marginBottom: 12 }}>
+      <Space orientation="vertical" size="small" style={{ width: '100%', marginBottom: 12 }}>
         <Typography.Text strong>{t('pages.inbounds.attachClientsSelectLabel')}</Typography.Text>
         <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
           <Input.Search

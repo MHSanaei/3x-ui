@@ -263,18 +263,6 @@ export interface ClientTraffic {
   uuid: string;
 }
 
-export interface CustomGeoResource {
-  alias: string;
-  createdAt: number;
-  id: number;
-  lastModified: string;
-  lastUpdatedAt: number;
-  localPath: string;
-  type: string;
-  updatedAt: number;
-  url: string;
-}
-
 export interface FallbackParentInfo {
   masterId: number;
   path?: string;
