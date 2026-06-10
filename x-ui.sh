@@ -700,6 +700,13 @@ disable_optimization() {
         rm -f /etc/sysctl.d/99-bbr-x-ui.conf
     fi
     
+    if [[ "$XUI_IN_DOCKER" != "true" && -f /swapfile ]]; then
+        echo -e "${info} Removing auto-deployed swapfile..."
+        swapoff /swapfile >/dev/null 2>&1 || true
+        rm -f /swapfile
+        sed -i '/^\/swapfile/d' /etc/fstab
+    fi
+    
     sysctl --system > /dev/null 2>&1 || true
 
     echo -e "${green}System optimizations have been removed successfully.${plain}"
@@ -751,7 +758,43 @@ enable_optimization() {
         fi
     fi
 
-    # 2. Set limits in /etc/security/limits.conf or limits.d
+    # 2. Deploy Swap if eligible
+    if [[ "$XUI_IN_DOCKER" != "true" && ! -f /.dockerenv && ! -f /run/.containerenv ]]; then
+        local swap_count=$(swapon --show | wc -l 2>/dev/null || echo 0)
+        if [ "$swap_count" -le 1 ]; then
+            echo -e "${info} No active swap found, checking RAM for auto-swap deployment..."
+            local total_ram_mb=$(free -m | awk '/^Mem:/{print $2}')
+            if [ -n "$total_ram_mb" ] && [ "$total_ram_mb" -gt 0 ]; then
+                local swap_mb=0
+                if [ "$total_ram_mb" -lt 2048 ]; then
+                    swap_mb=$((total_ram_mb * 2))
+                elif [ "$total_ram_mb" -lt 8192 ]; then
+                    swap_mb=$total_ram_mb
+                else
+                    swap_mb=4096
+                fi
+                
+                if [ "$swap_mb" -gt 0 ]; then
+                    echo -e "${info} Total RAM: ${total_ram_mb}MB. Deploying Swap: ${swap_mb}MB."
+                    if ! fallocate -l ${swap_mb}M /swapfile 2>/dev/null; then
+                        dd if=/dev/zero of=/swapfile bs=1M count=${swap_mb} status=none
+                    fi
+                    chmod 600 /swapfile
+                    mkswap /swapfile >/dev/null 2>&1
+                    swapon /swapfile >/dev/null 2>&1
+                    
+                    if ! grep -q "/swapfile" /etc/fstab; then
+                        echo "/swapfile none swap sw 0 0" >> /etc/fstab
+                    fi
+                    echo -e "${green}Swap deployed successfully.${plain}"
+                fi
+            fi
+        else
+            echo -e "${info} Swap space already exists. Skipping swap deployment."
+        fi
+    fi
+
+    # 3. Set limits in /etc/security/limits.conf or limits.d
     if [ -d "/etc/security/limits.d" ]; then
         {
             echo "* soft nofile 131072"
@@ -764,7 +807,7 @@ enable_optimization() {
         fi
     fi
 
-    # 3. Apply sysctl configs
+    # 4. Apply sysctl configs
     if [ -d "/etc/sysctl.d/" ]; then
         {
             echo "net.core.default_qdisc = fq"
@@ -774,8 +817,13 @@ enable_optimization() {
             echo "net.core.netdev_max_backlog = 65535"
             echo "net.core.rmem_max = 16777216"
             echo "net.core.wmem_max = 16777216"
+            echo "net.ipv4.udp_rmem_min = 8192"
+            echo "net.ipv4.udp_wmem_min = 8192"
             echo "net.ipv4.tcp_max_syn_backlog = 65535"
             echo "net.ipv4.tcp_fin_timeout = 15"
+            echo "net.ipv4.tcp_keepalive_time = 600"
+            echo "net.ipv4.tcp_keepalive_intvl = 30"
+            echo "net.ipv4.tcp_keepalive_probes = 5"
             echo "net.ipv4.tcp_tw_reuse = 1"
             echo "net.ipv4.ip_local_port_range = 1024 65535"
             echo "net.ipv4.tcp_fastopen = 3"
@@ -786,6 +834,8 @@ enable_optimization() {
             echo "net.ipv4.tcp_mem = 8388608 16777216 33554432"
             echo "net.ipv4.tcp_slow_start_after_idle = 0"
             echo "net.ipv4.tcp_mtu_probing = 1"
+            echo "vm.swappiness = 10"
+            echo "vm.vfs_cache_pressure = 50"
         } > "/etc/sysctl.d/99-xui-optimization.conf"
         
         # Backup old BBR settings if exists, and remove it
@@ -803,8 +853,13 @@ enable_optimization() {
         sysctl -w net.core.netdev_max_backlog=65535 > /dev/null 2>&1 || true
         sysctl -w net.core.rmem_max=16777216 > /dev/null 2>&1 || true
         sysctl -w net.core.wmem_max=16777216 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.udp_rmem_min=8192 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.udp_wmem_min=8192 > /dev/null 2>&1 || true
         sysctl -w net.ipv4.tcp_max_syn_backlog=65535 > /dev/null 2>&1 || true
         sysctl -w net.ipv4.tcp_fin_timeout=15 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_keepalive_time=600 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_keepalive_intvl=30 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_keepalive_probes=5 > /dev/null 2>&1 || true
         sysctl -w net.ipv4.tcp_tw_reuse=1 > /dev/null 2>&1 || true
         sysctl -w net.ipv4.ip_local_port_range="1024 65535" > /dev/null 2>&1 || true
         sysctl -w net.ipv4.tcp_fastopen=3 > /dev/null 2>&1 || true
@@ -815,11 +870,13 @@ enable_optimization() {
         sysctl -w net.ipv4.tcp_mem="8388608 16777216 33554432" > /dev/null 2>&1 || true
         sysctl -w net.ipv4.tcp_slow_start_after_idle=0 > /dev/null 2>&1 || true
         sysctl -w net.ipv4.tcp_mtu_probing=1 > /dev/null 2>&1 || true
+        sysctl -w vm.swappiness=10 > /dev/null 2>&1 || true
+        sysctl -w vm.vfs_cache_pressure=50 > /dev/null 2>&1 || true
     fi
 
     # Verify BBR is enabled as a test
     if [[ $(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null) == "bbr" ]]; then
-        echo -e "${green}System optimizations and BBR applied successfully.${plain}"
+        echo -e "${green}System optimizations, swap, and BBR applied successfully.${plain}"
     else
         echo -e "${red}Failed to apply BBR, but other optimizations may have succeeded.${plain}"
     fi
