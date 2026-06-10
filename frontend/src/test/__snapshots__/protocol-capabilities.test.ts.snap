@@ -1683,7 +1683,7 @@ exports[`protocol capability predicates > vmess-basic :: xhttp/tls 1`] = `
 exports[`protocol capability predicates > wireguard-basic :: grpc/none 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1695,7 +1695,7 @@ exports[`protocol capability predicates > wireguard-basic :: grpc/none 1`] = `
 exports[`protocol capability predicates > wireguard-basic :: grpc/reality 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1707,7 +1707,7 @@ exports[`protocol capability predicates > wireguard-basic :: grpc/reality 1`] = 
 exports[`protocol capability predicates > wireguard-basic :: grpc/tls 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1719,7 +1719,7 @@ exports[`protocol capability predicates > wireguard-basic :: grpc/tls 1`] = `
 exports[`protocol capability predicates > wireguard-basic :: httpupgrade/none 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1731,7 +1731,7 @@ exports[`protocol capability predicates > wireguard-basic :: httpupgrade/none 1`
 exports[`protocol capability predicates > wireguard-basic :: httpupgrade/tls 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1743,7 +1743,7 @@ exports[`protocol capability predicates > wireguard-basic :: httpupgrade/tls 1`]
 exports[`protocol capability predicates > wireguard-basic :: kcp/none 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1755,7 +1755,7 @@ exports[`protocol capability predicates > wireguard-basic :: kcp/none 1`] = `
 exports[`protocol capability predicates > wireguard-basic :: tcp/none 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1767,7 +1767,7 @@ exports[`protocol capability predicates > wireguard-basic :: tcp/none 1`] = `
 exports[`protocol capability predicates > wireguard-basic :: tcp/reality 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1779,7 +1779,7 @@ exports[`protocol capability predicates > wireguard-basic :: tcp/reality 1`] = `
 exports[`protocol capability predicates > wireguard-basic :: tcp/tls 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1791,7 +1791,7 @@ exports[`protocol capability predicates > wireguard-basic :: tcp/tls 1`] = `
 exports[`protocol capability predicates > wireguard-basic :: ws/none 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1803,7 +1803,7 @@ exports[`protocol capability predicates > wireguard-basic :: ws/none 1`] = `
 exports[`protocol capability predicates > wireguard-basic :: ws/tls 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1815,7 +1815,7 @@ exports[`protocol capability predicates > wireguard-basic :: ws/tls 1`] = `
 exports[`protocol capability predicates > wireguard-basic :: xhttp/none 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1827,7 +1827,7 @@ exports[`protocol capability predicates > wireguard-basic :: xhttp/none 1`] = `
 exports[`protocol capability predicates > wireguard-basic :: xhttp/reality 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1839,7 +1839,7 @@ exports[`protocol capability predicates > wireguard-basic :: xhttp/reality 1`] =
 exports[`protocol capability predicates > wireguard-basic :: xhttp/tls 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
