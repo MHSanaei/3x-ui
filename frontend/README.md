@@ -3,7 +3,7 @@
 React 19 + Ant Design 6 + TypeScript + Vite 8. Three SPA bundles —
 `index.html` (admin panel SPA, all `/panel/*` routes), `login.html`
 (login + 2FA), and `subpage.html` (public subscription viewer). All
-three are built into `../web/dist/` and embedded into the Go binary
+three are built into `../internal/web/dist/` and embedded into the Go binary
 via `embed.FS`.
 
 State is split between local `useState`, TanStack Query for server
@@ -30,7 +30,7 @@ production-style links work without round-tripping through Go.
 | Command | What |
 |---|---|
 | `npm run dev` | Vite dev server with API + WS proxy to Go |
-| `npm run build` | Regenerates OpenAPI + Zod, then builds into `../web/dist/` |
+| `npm run build` | Regenerates OpenAPI + Zod, then builds into `../internal/web/dist/` |
 | `npm run preview` | Serve the built bundle locally |
 | `npm run typecheck` | `tsc --noEmit` (strict, no emit) |
 | `npm run lint` | ESLint flat config (`@typescript-eslint` + `react-hooks`) |
@@ -62,11 +62,11 @@ the wall-clock time.
 npm run build
 ```
 
-Outputs to `../web/dist/` (HTML at the root, hashed JS/CSS under
+Outputs to `../internal/web/dist/` (HTML at the root, hashed JS/CSS under
 `assets/`). `manualChunks` splits AntD, icons, codemirror, and
 react-query into separate vendor bundles to keep the per-page
 initial JS small. The Go binary embeds this directory at compile
-time and `web/controller/dist.go` serves the per-page HTML.
+time and `internal/web/controller/dist.go` serves the per-page HTML.
 
 ## Layout
 
@@ -93,7 +93,7 @@ frontend/
     ├── hooks/           # useClients, useTheme, useWebSocket, …
     ├── api/             # Axios + CSRF interceptor, TanStack Query bridge,
     │                    #   WebSocket client + queryClient.ts
-    ├── i18n/            # react-i18next init (locales in web/translation/)
+    ├── i18n/            # react-i18next init (locales in internal/web/translation/)
     ├── lib/xray/        # Pure functions: link generation, defaults,
     │                    #   form ⇄ wire adapters, protocol capabilities
     ├── schemas/         # Zod source-of-truth (see "Schemas" below)

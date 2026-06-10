@@ -33,7 +33,7 @@ Built as an enhanced fork of the original X-UI project, 3X-UI adds broader proto
 - **Traffic statistics** — per inbound, per client, and per outbound, with reset controls.
 - **Multi-node support** — manage and scale across multiple servers from a single panel.
 - **Outbound & routing** — WARP, NordVPN, custom routing rules, load balancers, and outbound proxy chaining.
-- **Built-in subscription server** with multiple output formats.
+- **Built-in subscription server** with multiple output formats and [custom page templates](docs/custom-subscription-templates.md).
 - **Telegram bot** for remote monitoring and management.
 - **RESTful API** with in-panel Swagger documentation.
 - **Flexible storage** — SQLite (default) or PostgreSQL.
