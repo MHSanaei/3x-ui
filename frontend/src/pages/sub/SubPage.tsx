@@ -111,12 +111,12 @@ export default function SubPage() {
     if (ok) messageApi.success(t('copied'));
   }, [t, messageApi]);
 
-const copyAll = useCallback(async () => {
-  if (links.length === 0) return;
-  const allLinks = links.join('\n');
-  const ok = await ClipboardManager.copyText(allLinks);
-  if (ok) messageApi.success(t('subscription.copyAllConfigsCopied'));
-}, [links, t, messageApi]);
+  const copyAll = useCallback(async () => {
+    if (links.length === 0) return;
+    const allLinks = links.join('\n');
+    const ok = await ClipboardManager.copyText(allLinks);
+    if (ok) messageApi.success(t('subscription.copyAllConfigsCopied'));
+  }, [links, t, messageApi]);
 
   const open = useCallback((url: string) => {
     if (!url) return;
