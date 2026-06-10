@@ -445,18 +445,20 @@ type Setting struct {
 // endpoint over HTTP using the per-node ApiToken to populate the runtime
 // status fields below.
 type Node struct {
-	Id                  int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
-	Name                string `json:"name" form:"name" gorm:"uniqueIndex" validate:"required" example:"de-fra-1"`
-	Remark              string `json:"remark" form:"remark"`
-	Scheme              string `json:"scheme" form:"scheme" validate:"omitempty,oneof=http https" example:"https"`
-	Address             string `json:"address" form:"address" validate:"required" example:"node1.example.com"`
-	Port                int    `json:"port" form:"port" validate:"gte=1,lte=65535" example:"2053"`
-	BasePath            string `json:"basePath" form:"basePath" example:"/"`
-	ApiToken            string `json:"apiToken" form:"apiToken" validate:"required" example:"abcdef0123456789"`
-	Enable              bool   `json:"enable" form:"enable" gorm:"default:true" example:"true"`
-	AllowPrivateAddress bool   `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
-	TlsVerifyMode       string `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin"`
-	PinnedCertSha256    string `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
+	Id                  int      `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
+	Name                string   `json:"name" form:"name" gorm:"uniqueIndex" validate:"required" example:"de-fra-1"`
+	Remark              string   `json:"remark" form:"remark"`
+	Scheme              string   `json:"scheme" form:"scheme" validate:"omitempty,oneof=http https" example:"https"`
+	Address             string   `json:"address" form:"address" validate:"required" example:"node1.example.com"`
+	Port                int      `json:"port" form:"port" validate:"gte=1,lte=65535" example:"2053"`
+	BasePath            string   `json:"basePath" form:"basePath" example:"/"`
+	ApiToken            string   `json:"apiToken" form:"apiToken" validate:"required" example:"abcdef0123456789"`
+	Enable              bool     `json:"enable" form:"enable" gorm:"default:true" example:"true"`
+	AllowPrivateAddress bool     `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
+	TlsVerifyMode       string   `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin"`
+	PinnedCertSha256    string   `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
+	InboundSyncMode     string   `json:"inboundSyncMode" form:"inboundSyncMode" gorm:"column:inbound_sync_mode;default:all" validate:"omitempty,oneof=all selected"`
+	InboundTags         []string `json:"inboundTags" form:"inboundTags" gorm:"serializer:json;column:inbound_tags"`
 
 	// Guid is the remote panel's stable self-identifier (its panelGuid),
 	// learned from each heartbeat. It is the globally stable node identity used

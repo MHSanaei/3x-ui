@@ -44,6 +44,13 @@ type Remote struct {
 	remoteIDByTag map[string]int
 }
 
+type RemoteInboundOption struct {
+	Tag      string         `json:"tag"`
+	Remark   string         `json:"remark"`
+	Protocol model.Protocol `json:"protocol"`
+	Port     int            `json:"port"`
+}
+
 func NewRemote(n *model.Node) *Remote {
 	return &Remote{
 		node:          n,
@@ -202,6 +209,18 @@ func (r *Remote) ListRemoteTags(ctx context.Context) ([]string, error) {
 		tags = append(tags, tag)
 	}
 	return tags, nil
+}
+
+func (r *Remote) ListInboundOptions(ctx context.Context) ([]RemoteInboundOption, error) {
+	env, err := r.do(ctx, http.MethodGet, "panel/api/inbounds/list", nil)
+	if err != nil {
+		return nil, err
+	}
+	var list []RemoteInboundOption
+	if err := json.Unmarshal(env.Obj, &list); err != nil {
+		return nil, fmt.Errorf("decode inbound list: %w", err)
+	}
+	return list, nil
 }
 
 func (r *Remote) refreshRemoteIDs(ctx context.Context) error {
