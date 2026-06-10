@@ -191,8 +191,8 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	var assetsFS http.FileSystem
-	if _, err := os.Stat("web/dist/assets"); err == nil {
-		assetsFS = http.FS(os.DirFS("web/dist/assets"))
+	if _, err := os.Stat("internal/web/dist/assets"); err == nil {
+		assetsFS = http.FS(os.DirFS("internal/web/dist/assets"))
 	} else if subFS, err := fs.Sub(distFS, "dist/assets"); err == nil {
 		assetsFS = http.FS(subFS)
 	} else {

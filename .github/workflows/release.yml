@@ -53,8 +53,8 @@ jobs:
           check-latest: true
 
       # Frontend dist must be built BEFORE go build — Go's //go:embed
-      # all:dist directive in web/web.go requires web/dist/ to exist
-      # at compile time. web/dist/ is .gitignored, so on a fresh CI
+      # all:dist directive in internal/web/web.go requires internal/web/dist/ to exist
+      # at compile time. internal/web/dist/ is .gitignored, so on a fresh CI
       # checkout it doesn't exist until vite emits it.
       - name: Setup Node.js
         uses: actions/setup-node@v6

@@ -182,14 +182,14 @@ func (a *SUBController) subs(c *gin.Context) {
 	}
 }
 
-// serveSubPage renders web/dist/subpage.html for the current subscription
+// serveSubPage renders internal/web/dist/subpage.html for the current subscription
 // request. The Vite-built SPA reads window.__SUB_PAGE_DATA__ on mount —
 // we inject that here, along with window.X_UI_BASE_PATH so the
 // page's static asset references resolve correctly when the panel runs
 // behind a URL prefix.
 func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageData) {
 	var body []byte
-	if diskBody, diskErr := os.ReadFile("web/dist/subpage.html"); diskErr == nil {
+	if diskBody, diskErr := os.ReadFile("internal/web/dist/subpage.html"); diskErr == nil {
 		body = diskBody
 	} else {
 		readBody, err := distFS.ReadFile("dist/subpage.html")

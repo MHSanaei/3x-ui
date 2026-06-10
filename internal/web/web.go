@@ -41,7 +41,7 @@ import (
 //go:embed translation/*
 var i18nFS embed.FS
 
-// distFS embeds the Vite-built frontend (web/dist/). Every user-facing
+// distFS embeds the Vite-built frontend (internal/web/dist/). Every user-facing
 // HTML route is served straight out of this FS — the legacy Go
 // templates and `web/assets/` tree are gone post-Phase 8.
 
@@ -213,7 +213,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	// restarting the binary; in prod we serve the embedded dist FS
 	// rooted at `dist/assets/`.
 	if config.IsDebug() {
-		engine.StaticFS(basePath+"assets", http.FS(os.DirFS("web/dist/assets")))
+		engine.StaticFS(basePath+"assets", http.FS(os.DirFS("internal/web/dist/assets")))
 	} else {
 		engine.StaticFS(basePath+"assets", http.FS(&wrapDistFS{FS: distFS}))
 	}
@@ -223,7 +223,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	// Hand the embedded `dist/` filesystem to the controller package
 	// before any HTML-serving controller is constructed. Phase 8
-	// cutover: every HTML route reads from web/dist/ instead of
+	// cutover: every HTML route reads from internal/web/dist/ instead of
 	// rendering a legacy template.
 	controller.SetDistFS(distFS)
 

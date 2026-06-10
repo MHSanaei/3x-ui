@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	root := flag.String("root", ".", "repository root containing database/model and web/entity")
+	root := flag.String("root", ".", "repository root containing internal/database/model and internal/web/entity")
 	outDir := flag.String("out", "frontend/src/generated", "output directory relative to root")
 	flag.Parse()
 

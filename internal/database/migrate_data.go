@@ -25,7 +25,7 @@ import (
 // related tests.
 //
 // Important: When adding a new top-level model (like OutboundSubscription),
-// you must add it here **in addition to** the list in database/db.go:initModels().
+// you must add it here **in addition to** the list in internal/database/db.go:initModels().
 // This list is used for:
 //   - Creating the destination schema during cross-DB migration
 //   - Truncating tables

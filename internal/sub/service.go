@@ -991,7 +991,7 @@ func applyVmessTLSParams(stream map[string]any, obj map[string]any) {
 
 // pinnedSha256List extracts tlsSettings.settings.pinnedPeerCertSha256 as a
 // []string. The field is panel-only (stripped before the run-config reaches
-// xray-core via web/service/xray.go) but flows into share links so clients
+// xray-core via internal/web/service/xray.go) but flows into share links so clients
 // can pin the server's certificate hash.
 func pinnedSha256List(tlsClientSettings any) ([]string, bool) {
 	raw, ok := searchKey(tlsClientSettings, "pinnedPeerCertSha256")
@@ -1025,7 +1025,7 @@ func pinnedSha256List(tlsClientSettings any) ([]string, bool) {
 // it. Hysteria2 clients hex-decode pinSHA256 and crash on a base64 value, so
 // each entry is coerced to bare hex here. Anything that is neither a 32-byte
 // hex nor a 32-byte base64 SHA-256 is returned unchanged so unexpected data is
-// not silently dropped. Mirrors decodeCertPin in web/service/node.go.
+// not silently dropped. Mirrors decodeCertPin in internal/web/service/node.go.
 func hysteriaPinHex(pin string) string {
 	pin = strings.TrimSpace(pin)
 	if h := strings.ReplaceAll(pin, ":", ""); len(h) == hex.EncodedLen(sha256.Size) {

@@ -147,7 +147,7 @@ func LocalizerMiddleware() gin.HandlerFunc {
 	}
 }
 
-// loadTranslationsFromDisk attempts to load translation files from "web/translation" using the local filesystem.
+// loadTranslationsFromDisk attempts to load translation files from "internal/web/translation" using the local filesystem.
 func loadTranslationsFromDisk(bundle *i18n.Bundle) error {
 	root := os.DirFS("internal/web")
 	return fs.WalkDir(root, "translation", func(path string, d fs.DirEntry, err error) error {
