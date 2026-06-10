@@ -372,9 +372,15 @@ export default function InboundFormModal({
             }],
           },
         });
+      } else if (next === Protocols.WIREGUARD) {
+        // Wireguard has no user-selectable transport: the listener is always
+        // UDP and only finalmask/sockopt from streamSettings apply. Drop the
+        // leftover network/transport slices so the stream tab doesn't render
+        // a TCP sub-form and the wire payload carries no dead tcpSettings.
+        form.setFieldValue('streamSettings', { security: 'none' });
       } else {
         const current = form.getFieldValue('streamSettings') as { network?: string } | undefined;
-        if (current?.network === 'hysteria') {
+        if (current?.network === 'hysteria' || !current?.network) {
           form.setFieldValue('streamSettings', { network: 'tcp', security: 'none', tcpSettings: {} });
         }
       }
@@ -645,7 +651,7 @@ export default function InboundFormModal({
 
   const streamTab = (
     <>
-      {protocol !== Protocols.HYSTERIA && (
+      {protocol !== Protocols.HYSTERIA && protocol !== Protocols.WIREGUARD && (
         <Form.Item label={t('transmission')} name={['streamSettings', 'network']}>
           <Select
             style={{ width: '75%' }}
@@ -683,7 +689,10 @@ export default function InboundFormModal({
 
       {network === 'kcp' && <KcpForm />}
 
-      <ExternalProxyForm toggleExternalProxy={toggleExternalProxy} />
+      {/* externalProxy only feeds client share links, and wireguard's
+          per-peer .conf fanout resolves its host elsewhere — the section
+          would be dead weight on a wireguard inbound. */}
+      {protocol !== Protocols.WIREGUARD && <ExternalProxyForm toggleExternalProxy={toggleExternalProxy} />}
 
       <SockoptForm toggleSockopt={toggleSockopt} />
 
@@ -897,7 +906,11 @@ export default function InboundFormModal({
             ...(streamEnabled
               ? [
                 { key: 'stream', label: t('pages.inbounds.streamTab'), children: streamTab, forceRender: true },
-                { key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab, forceRender: true },
+                // Wireguard can't do TLS/Reality (canEnableTls is false), so
+                // the security tab would only show a fully disabled radio.
+                ...(protocol !== Protocols.WIREGUARD
+                  ? [{ key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab, forceRender: true }]
+                  : []),
               ]
               : []),
             ...(sniffingSupported
