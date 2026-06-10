@@ -3,7 +3,8 @@
     "services": [
       "HandlerService",
       "LoggerService",
-      "StatsService"
+      "StatsService",
+      "RoutingService"
     ],
     "tag": "api"
   },
