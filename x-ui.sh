@@ -834,6 +834,12 @@ enable_optimization() {
             echo "net.ipv4.tcp_mem = 8388608 16777216 33554432"
             echo "net.ipv4.tcp_slow_start_after_idle = 0"
             echo "net.ipv4.tcp_mtu_probing = 1"
+            echo "net.ipv4.tcp_base_mss = 1024"
+            echo "net.ipv4.tcp_no_metrics_save = 1"
+            echo "net.ipv4.tcp_ecn = 0"
+            echo "net.ipv4.tcp_frto = 2"
+            echo "net.ipv4.tcp_retries2 = 8"
+            echo "net.ipv4.tcp_max_tw_buckets = 1440000"
             echo "vm.swappiness = 10"
             echo "vm.vfs_cache_pressure = 50"
         } > "/etc/sysctl.d/99-xui-optimization.conf"
@@ -870,6 +876,12 @@ enable_optimization() {
         sysctl -w net.ipv4.tcp_mem="8388608 16777216 33554432" > /dev/null 2>&1 || true
         sysctl -w net.ipv4.tcp_slow_start_after_idle=0 > /dev/null 2>&1 || true
         sysctl -w net.ipv4.tcp_mtu_probing=1 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_base_mss=1024 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_no_metrics_save=1 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_ecn=0 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_frto=2 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_retries2=8 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_max_tw_buckets=1440000 > /dev/null 2>&1 || true
         sysctl -w vm.swappiness=10 > /dev/null 2>&1 || true
         sysctl -w vm.vfs_cache_pressure=50 > /dev/null 2>&1 || true
     fi
