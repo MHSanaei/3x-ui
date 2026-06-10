@@ -942,7 +942,14 @@ func (s *ClientService) SetClientEnableByEmail(inboundSvc *InboundService, clien
 	return newEnabled == enable, needRestart, nil
 }
 
-func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, clientEmail string, count int) (bool, error) {
+// applyClientFieldByEmail loads the inbound currently hosting clientEmail,
+// confirms the client exists, applies mutate to the matching client (plus a
+// refreshed updated_at), and hands a single-client update payload to
+// UpdateInboundClient. The rebuilt clients array intentionally contains only
+// the matched client — that is the input contract UpdateInboundClient expects
+// (clients[0] is the new data; clientEmail locates the row to replace). It
+// backs the single-field by-email setters below.
+func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clientEmail string, mutate func(c map[string]any)) (bool, error) {
 	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
 	if err != nil {
 		return false, err
@@ -978,7 +985,7 @@ func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, cl
 	for client_index := range clients {
 		c := clients[client_index].(map[string]any)
 		if c["email"] == clientEmail {
-			c["limitIp"] = count
+			mutate(c)
 			c["updated_at"] = time.Now().Unix() * 1000
 			newClients = append(newClients, any(c))
 		}
@@ -989,111 +996,26 @@ func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, cl
 		return false, err
 	}
 	inbound.Settings = string(modifiedSettings)
-	needRestart, err := s.UpdateInboundClient(inboundSvc, inbound, clientEmail)
-	return needRestart, err
+	return s.UpdateInboundClient(inboundSvc, inbound, clientEmail)
+}
+
+func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, clientEmail string, count int) (bool, error) {
+	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
+		c["limitIp"] = count
+	})
 }
 
 func (s *ClientService) ResetClientExpiryTimeByEmail(inboundSvc *InboundService, clientEmail string, expiry_time int64) (bool, error) {
-	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
-	if err != nil {
-		return false, err
-	}
-	if inbound == nil {
-		return false, common.NewError("Inbound Not Found For Email:", clientEmail)
-	}
-
-	oldClients, err := inboundSvc.GetClients(inbound)
-	if err != nil {
-		return false, err
-	}
-
-	found := false
-	for _, oldClient := range oldClients {
-		if oldClient.Email == clientEmail {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return false, common.NewError("Client Not Found For Email:", clientEmail)
-	}
-
-	var settings map[string]any
-	err = json.Unmarshal([]byte(inbound.Settings), &settings)
-	if err != nil {
-		return false, err
-	}
-	clients := settings["clients"].([]any)
-	var newClients []any
-	for client_index := range clients {
-		c := clients[client_index].(map[string]any)
-		if c["email"] == clientEmail {
-			c["expiryTime"] = expiry_time
-			c["updated_at"] = time.Now().Unix() * 1000
-			newClients = append(newClients, any(c))
-		}
-	}
-	settings["clients"] = newClients
-	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return false, err
-	}
-	inbound.Settings = string(modifiedSettings)
-	needRestart, err := s.UpdateInboundClient(inboundSvc, inbound, clientEmail)
-	return needRestart, err
+	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
+		c["expiryTime"] = expiry_time
+	})
 }
 
 func (s *ClientService) ResetClientTrafficLimitByEmail(inboundSvc *InboundService, clientEmail string, totalGB int) (bool, error) {
 	if totalGB < 0 {
 		return false, common.NewError("totalGB must be >= 0")
 	}
-	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
-	if err != nil {
-		return false, err
-	}
-	if inbound == nil {
-		return false, common.NewError("Inbound Not Found For Email:", clientEmail)
-	}
-
-	oldClients, err := inboundSvc.GetClients(inbound)
-	if err != nil {
-		return false, err
-	}
-
-	found := false
-	for _, oldClient := range oldClients {
-		if oldClient.Email == clientEmail {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return false, common.NewError("Client Not Found For Email:", clientEmail)
-	}
-
-	var settings map[string]any
-	err = json.Unmarshal([]byte(inbound.Settings), &settings)
-	if err != nil {
-		return false, err
-	}
-	clients := settings["clients"].([]any)
-	var newClients []any
-	for client_index := range clients {
-		c := clients[client_index].(map[string]any)
-		if c["email"] == clientEmail {
-			c["totalGB"] = totalGB * 1024 * 1024 * 1024
-			c["updated_at"] = time.Now().Unix() * 1000
-			newClients = append(newClients, any(c))
-		}
-	}
-	settings["clients"] = newClients
-	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return false, err
-	}
-	inbound.Settings = string(modifiedSettings)
-	needRestart, err := s.UpdateInboundClient(inboundSvc, inbound, clientEmail)
-	return needRestart, err
+	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
+		c["totalGB"] = totalGB * 1024 * 1024 * 1024
+	})
 }
