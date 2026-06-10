@@ -781,6 +781,7 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 			"address":  address,
 			"port":     inbound.Port,
 			"password": client.Password,
+			"ota":      false,
 			"level":    8,
 		}
 		if client.Flow != "" {
@@ -864,6 +865,10 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 
 	if streamSettings != nil {
 		outbound["streamSettings"] = streamSettings
+	} else {
+		outbound["streamSettings"] = map[string]any{
+			"network": "tcp",
+		}
 	}
 
 	config := map[string]any{
