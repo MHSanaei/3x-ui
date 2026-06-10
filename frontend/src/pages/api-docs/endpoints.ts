@@ -1046,6 +1046,40 @@ export const sections: readonly Section[] = [
         body: 'outbound={"protocol":"freedom","settings":{}}&mode=tcp',
       },
       {
+        method: 'POST',
+        path: '/panel/api/xray/balancerStatus',
+        summary: 'Live state of routing balancers in the running core (RoutingService.GetBalancerInfo): current override and the targets the strategy prefers. Returns a map keyed by balancer tag.',
+        params: [
+          { name: 'tags', in: 'body (form)', type: 'string', desc: 'Comma-separated balancer tags to query (e.g. "b1,b2").' },
+        ],
+        body: 'tags=b1,b2',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/balancerOverride',
+        summary: 'Force a balancer in the running core to always pick one outbound (RoutingService.OverrideBalancerTarget). Applied live without a restart; cleared automatically when Xray restarts.',
+        params: [
+          { name: 'tag', in: 'body (form)', type: 'string', desc: 'Balancer tag (required).' },
+          { name: 'target', in: 'body (form)', type: 'string', desc: 'Outbound tag to force. Empty clears the override and returns control to the strategy.' },
+        ],
+        body: 'tag=b1&target=proxy',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/routeTest',
+        summary: 'Ask the running core which outbound its router would pick for a synthetic connection (RoutingService.TestRoute). No traffic is sent.',
+        params: [
+          { name: 'domain', in: 'body (form)', type: 'string', desc: 'Target domain. Either domain or ip is required.' },
+          { name: 'ip', in: 'body (form)', type: 'string', desc: 'Target IP. Either domain or ip is required.' },
+          { name: 'port', in: 'body (form)', type: 'number', desc: 'Target port (optional).' },
+          { name: 'network', in: 'body (form)', type: 'string', desc: '"tcp" (default) or "udp".' },
+          { name: 'inboundTag', in: 'body (form)', type: 'string', desc: 'Simulate arrival on this inbound (optional).' },
+          { name: 'protocol', in: 'body (form)', type: 'string', desc: 'Sniffed protocol such as http, tls, bittorrent (optional).' },
+          { name: 'email', in: 'body (form)', type: 'string', desc: 'User attribution for user-based rules (optional).' },
+        ],
+        body: 'domain=example.com&port=443&network=tcp',
+      },
+      {
         method: 'GET',
         path: '/panel/api/xray/outbound-subs',
         summary: 'List all outbound subscriptions (remote URLs that supply additional outbounds), newest first.',
