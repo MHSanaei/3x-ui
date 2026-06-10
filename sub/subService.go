@@ -2058,9 +2058,6 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 		host = h
 	}
 	if host == "" {
-		host = c.GetHeader("X-Real-IP")
-	}
-	if host == "" {
 		var err error
 		host, _, err = net.SplitHostPort(c.Request.Host)
 		if err != nil {
