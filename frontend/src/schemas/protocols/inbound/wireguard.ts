@@ -26,6 +26,7 @@ export const WireguardInboundPeerSchema = z.object({
   preSharedKey: z.string().optional(),
   allowedIPs: z.array(z.string()).default([]),
   keepAlive: optionalClearedInt(z.number().int().min(0)),
+  comment: z.string().optional(),
 });
 export type WireguardInboundPeer = z.infer<typeof WireguardInboundPeerSchema>;
 

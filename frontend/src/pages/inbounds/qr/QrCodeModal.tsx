@@ -119,19 +119,29 @@ export default function QrCodeModal({
     links.forEach((link, idx) => {
       items.push({ key: `l${idx}`, header: link.remark || `Link ${idx + 1}`, value: link.link });
     });
+    
+    let parsedSettings: any = {};
+    try {
+      if (dbInbound?.settings) {
+        parsedSettings = typeof dbInbound.settings === 'string' ? JSON.parse(dbInbound.settings) : dbInbound.settings;
+      }
+    } catch (e) {}
+
     wireguardConfigs.forEach((cfg, idx) => {
+      const peer = parsedSettings?.peers?.[idx];
+      const commentLabel = peer?.comment ? ` (${peer.comment})` : '';
       items.push({
         key: `wc${idx}`,
-        header: `Peer ${idx + 1} config`,
+        header: `Peer ${idx + 1}${commentLabel} config`,
         value: cfg,
         downloadName: `peer-${idx + 1}.conf`,
       });
       if (wireguardLinks[idx]) {
-        items.push({ key: `wl${idx}`, header: `Peer ${idx + 1} link`, value: wireguardLinks[idx] });
+        items.push({ key: `wl${idx}`, header: `Peer ${idx + 1}${commentLabel} link`, value: wireguardLinks[idx] });
       }
     });
     return items;
-  }, [subLink, subJsonLink, links, wireguardConfigs, wireguardLinks, t]);
+  }, [subLink, subJsonLink, links, wireguardConfigs, wireguardLinks, dbInbound, t]);
 
   const collapseItems: CollapseProps['items'] = useMemo(
     () => qrItems.map((item) => ({
