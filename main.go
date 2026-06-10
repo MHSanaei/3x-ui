@@ -20,6 +20,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/web"
 	"github.com/mhsanaei/3x-ui/v3/web/global"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/service/panel"
 
 	"github.com/joho/godotenv"
 	"github.com/op/go-logging"
@@ -176,7 +177,7 @@ func showSetting(show bool) {
 			fmt.Println("get key file failed, error info:", err)
 		}
 
-		userService := service.UserService{}
+		userService := panel.UserService{}
 		userModel, err := userService.GetFirstUser()
 		if err != nil {
 			fmt.Println("get current user info failed, error info:", err)
@@ -270,7 +271,7 @@ func updateSetting(port int, username string, password string, webBasePath strin
 	}
 
 	settingService := service.SettingService{}
-	userService := service.UserService{}
+	userService := panel.UserService{}
 
 	if port > 0 {
 		err := settingService.SetPort(port)
@@ -401,7 +402,7 @@ func GetApiToken(getApiToken bool) {
 	if !getApiToken {
 		return
 	}
-	apiTokenService := service.ApiTokenService{}
+	apiTokenService := panel.ApiTokenService{}
 	tokens, err := apiTokenService.List()
 	if err != nil {
 		fmt.Println("get apiToken failed, error info:", err)

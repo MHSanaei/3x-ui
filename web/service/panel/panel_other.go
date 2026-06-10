@@ -1,6 +1,6 @@
 //go:build !linux
 
-package service
+package panel
 
 import "os/exec"
 

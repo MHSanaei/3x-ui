@@ -26,6 +26,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/web/network"
 	"github.com/mhsanaei/3x-ui/v3/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/web/websocket"
 
 	"github.com/gin-contrib/gzip"
@@ -237,7 +238,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	// Initialize WebSocket controller — service owns per-connection pumps,
 	// controller is HTTP-layer only (auth + upgrade).
-	s.ws = controller.NewWebSocketController(service.NewWebSocketService(s.wsHub))
+	s.ws = controller.NewWebSocketController(panel.NewWebSocketService(s.wsHub))
 	// Register WebSocket route with basePath (g already has basePath prefix)
 	g.GET("/ws", s.ws.HandleWebSocket)
 

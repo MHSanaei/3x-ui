@@ -1,4 +1,4 @@
-package service
+package panel
 
 import (
 	"errors"
@@ -8,6 +8,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/util/crypto"
 	ldaputil "github.com/mhsanaei/3x-ui/v3/util/ldap"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
 	"github.com/xlzd/gotp"
 	"gorm.io/gorm"
 )
@@ -15,7 +16,7 @@ import (
 // UserService provides business logic for user management and authentication.
 // It handles user creation, login, password management, and 2FA operations.
 type UserService struct {
-	settingService SettingService
+	settingService service.SettingService
 }
 
 // GetFirstUser retrieves the first user from the database.

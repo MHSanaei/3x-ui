@@ -2,7 +2,7 @@
 // and bridges the HTTP-layer controller to the broadcast hub. The controller
 // handles the upgrade handshake and authentication, then hands the raw
 // connection to this service which takes ownership of its lifecycle.
-package service
+package panel
 
 import (
 	"time"

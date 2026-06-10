@@ -9,6 +9,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/web/session"
 
 	"github.com/gin-gonic/gin"
@@ -25,9 +26,9 @@ type updateUserForm struct {
 // SettingController handles settings and user management operations.
 type SettingController struct {
 	settingService  service.SettingService
-	userService     service.UserService
-	panelService    service.PanelService
-	apiTokenService service.ApiTokenService
+	userService     panel.UserService
+	panelService    panel.PanelService
+	apiTokenService panel.ApiTokenService
 }
 
 // NewSettingController creates a new SettingController and initializes its routes.

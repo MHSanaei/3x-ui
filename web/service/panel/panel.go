@@ -1,4 +1,4 @@
-package service
+package panel
 
 import (
 	"encoding/json"
@@ -17,6 +17,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/config"
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/web/global"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
 )
 
 // PanelService provides business logic for panel management operations.
@@ -131,7 +132,7 @@ func (s *PanelService) StartUpdate() error {
 }
 
 func downloadPanelUpdater() (string, error) {
-	client := (&SettingService{}).NewProxiedHTTPClient(15 * time.Second)
+	client := (&service.SettingService{}).NewProxiedHTTPClient(15 * time.Second)
 	resp, err := client.Get(panelUpdaterURL)
 	if err != nil {
 		return "", fmt.Errorf("download panel updater: %w", err)
@@ -169,7 +170,7 @@ func downloadPanelUpdater() (string, error) {
 }
 
 func fetchLatestPanelVersion() (string, error) {
-	client := (&SettingService{}).NewProxiedHTTPClient(10 * time.Second)
+	client := (&service.SettingService{}).NewProxiedHTTPClient(10 * time.Second)
 	resp, err := client.Get("https://api.github.com/repos/MHSanaei/3x-ui/releases/latest")
 	if err != nil {
 		return "", err
@@ -179,7 +180,7 @@ func fetchLatestPanelVersion() (string, error) {
 		return "", fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, resp.Status)
 	}
 
-	var release Release
+	var release service.Release
 	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
 		return "", err
 	}

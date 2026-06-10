@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/logger"
-	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/web/session"
 
 	"github.com/gin-gonic/gin"
@@ -49,14 +49,14 @@ func checkSameOrigin(r *http.Request) bool {
 
 // WebSocketController handles the HTTP→WebSocket upgrade for real-time updates.
 // All per-connection lifecycle (pumps, hub registration) lives in
-// service.WebSocketService — this controller is HTTP-layer only.
+// panel.WebSocketService — this controller is HTTP-layer only.
 type WebSocketController struct {
 	BaseController
-	service *service.WebSocketService
+	service *panel.WebSocketService
 }
 
 // NewWebSocketController creates a controller wired to the given service.
-func NewWebSocketController(svc *service.WebSocketService) *WebSocketController {
+func NewWebSocketController(svc *panel.WebSocketService) *WebSocketController {
 	return &WebSocketController{service: svc}
 }
 

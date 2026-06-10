@@ -8,6 +8,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/web/session"
 
 	"github.com/gin-gonic/gin"
@@ -25,7 +26,7 @@ type IndexController struct {
 	BaseController
 
 	settingService service.SettingService
-	userService    service.UserService
+	userService    panel.UserService
 	tgbot          service.Tgbot
 }
 
