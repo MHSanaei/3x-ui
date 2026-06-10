@@ -906,9 +906,9 @@ export default function InboundFormModal({
             ...(streamEnabled
               ? [
                 { key: 'stream', label: t('pages.inbounds.streamTab'), children: streamTab, forceRender: true },
-                // Wireguard can't do TLS/Reality (canEnableTls is false), so
+                // Wireguard and Tunnel can't do TLS/Reality (canEnableTls is false), so
                 // the security tab would only show a fully disabled radio.
-                ...(protocol !== Protocols.WIREGUARD
+                ...(protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL
                   ? [{ key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab, forceRender: true }]
                   : []),
               ]
