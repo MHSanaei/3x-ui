@@ -1,4 +1,4 @@
-package service
+package tgbot
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/util/common"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
 	"github.com/mhsanaei/3x-ui/v3/xray"
 
 	"github.com/mymmrac/telego"
@@ -131,7 +132,7 @@ func (t *Tgbot) SubmitAddClient() (bool, error) {
 		TgID:       tgIDInt,
 	}
 
-	return t.clientService.Create(&t.inboundService, &ClientCreatePayload{
+	return t.clientService.Create(&t.inboundService, &service.ClientCreatePayload{
 		Client:     client,
 		InboundIds: inboundIDs,
 	})
@@ -475,7 +476,7 @@ func (t *Tgbot) clientInfoMsg(
 	}
 
 	enabled := ""
-	isEnabled, err := t.clientService.checkIsEnabledByEmail(&t.inboundService, traffic.Email)
+	isEnabled, err := t.clientService.CheckIsEnabledByEmail(&t.inboundService, traffic.Email)
 	if err != nil {
 		logger.Warning(err)
 		enabled = t.I18nBot("tgbot.wentWrong")
@@ -494,8 +495,8 @@ func (t *Tgbot) clientInfoMsg(
 
 	status := t.I18nBot("tgbot.offline")
 	isOnline := false
-	if p.IsRunning() {
-		if slices.Contains(p.GetOnlineClients(), traffic.Email) {
+	if service.XrayProcess().IsRunning() {
+		if slices.Contains(service.XrayProcess().GetOnlineClients(), traffic.Email) {
 			status = t.I18nBot("tgbot.online")
 			isOnline = true
 		}

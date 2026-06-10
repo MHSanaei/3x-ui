@@ -5,13 +5,14 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/service/tgbot"
 
 	"github.com/shirou/gopsutil/v4/cpu"
 )
 
 // CheckCpuJob monitors CPU usage and sends Telegram notifications when usage exceeds the configured threshold.
 type CheckCpuJob struct {
-	tgbotService   service.Tgbot
+	tgbotService   tgbot.Tgbot
 	settingService service.SettingService
 }
 

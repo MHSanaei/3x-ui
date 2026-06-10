@@ -842,7 +842,7 @@ func (s *ClientService) SetClientTelegramUserID(inboundSvc *InboundService, traf
 	return needRestart, err
 }
 
-func (s *ClientService) checkIsEnabledByEmail(inboundSvc *InboundService, clientEmail string) (bool, error) {
+func (s *ClientService) CheckIsEnabledByEmail(inboundSvc *InboundService, clientEmail string) (bool, error) {
 	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
 	if err != nil {
 		return false, err
@@ -928,7 +928,7 @@ func (s *ClientService) ToggleClientEnableByEmail(inboundSvc *InboundService, cl
 }
 
 func (s *ClientService) SetClientEnableByEmail(inboundSvc *InboundService, clientEmail string, enable bool) (bool, bool, error) {
-	current, err := s.checkIsEnabledByEmail(inboundSvc, clientEmail)
+	current, err := s.CheckIsEnabledByEmail(inboundSvc, clientEmail)
 	if err != nil {
 		return false, false, err
 	}

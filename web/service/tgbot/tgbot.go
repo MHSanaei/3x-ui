@@ -1,4 +1,4 @@
-package service
+package tgbot
 
 import (
 	"context"
@@ -19,6 +19,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/util/common"
 	"github.com/mhsanaei/3x-ui/v3/web/global"
 	"github.com/mhsanaei/3x-ui/v3/web/locale"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
 
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -48,7 +49,7 @@ var (
 
 	// Simple cache for frequently accessed data
 	statusCache struct {
-		data      *Status
+		data      *service.Status
 		timestamp time.Time
 		mutex     sync.RWMutex
 	}
@@ -103,12 +104,12 @@ type LoginAttempt struct {
 // Tgbot provides business logic for Telegram bot integration.
 // It handles bot commands, user interactions, and status reporting via Telegram.
 type Tgbot struct {
-	inboundService InboundService
-	clientService  ClientService
-	settingService SettingService
-	serverService  ServerService
-	xrayService    XrayService
-	lastStatus     *Status
+	inboundService service.InboundService
+	clientService  service.ClientService
+	settingService service.SettingService
+	serverService  service.ServerService
+	xrayService    service.XrayService
+	lastStatus     *service.Status
 }
 
 // NewTgbot creates a new Tgbot instance.
@@ -127,7 +128,7 @@ func (t *Tgbot) GetHashStorage() *global.HashStorage {
 }
 
 // getCachedStatus returns cached server status if it's fresh enough (less than 5 seconds old)
-func (t *Tgbot) getCachedStatus() (*Status, bool) {
+func (t *Tgbot) getCachedStatus() (*service.Status, bool) {
 	statusCache.mutex.RLock()
 	defer statusCache.mutex.RUnlock()
 
@@ -138,7 +139,7 @@ func (t *Tgbot) getCachedStatus() (*Status, bool) {
 }
 
 // setCachedStatus updates the status cache
-func (t *Tgbot) setCachedStatus(status *Status) {
+func (t *Tgbot) setCachedStatus(status *service.Status) {
 	statusCache.mutex.Lock()
 	defer statusCache.mutex.Unlock()
 
@@ -344,7 +345,7 @@ func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*tel
 
 	// Validate API server URL if provided
 	if apiServerUrl != "" {
-		safeURL, err := SanitizePublicHTTPURL(apiServerUrl, false)
+		safeURL, err := service.SanitizePublicHTTPURL(apiServerUrl, false)
 		if err != nil {
 			logger.Warningf("Invalid or blocked API server URL, using default: %v", err)
 			apiServerUrl = ""

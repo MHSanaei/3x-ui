@@ -8,6 +8,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 	"github.com/mhsanaei/3x-ui/v3/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/web/service/panel"
+	"github.com/mhsanaei/3x-ui/v3/web/service/tgbot"
 	"github.com/mhsanaei/3x-ui/v3/web/session"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +25,7 @@ type APIController struct {
 	settingService        service.SettingService
 	userService           panel.UserService
 	apiTokenService       panel.ApiTokenService
-	Tgbot                 service.Tgbot
+	Tgbot                 tgbot.Tgbot
 }
 
 // NewAPIController creates a new APIController instance and initializes its routes.

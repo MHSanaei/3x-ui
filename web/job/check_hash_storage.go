@@ -1,12 +1,10 @@
 package job
 
-import (
-	"github.com/mhsanaei/3x-ui/v3/web/service"
-)
+import "github.com/mhsanaei/3x-ui/v3/web/service/tgbot"
 
 // CheckHashStorageJob periodically cleans up expired hash entries from the Telegram bot's hash storage.
 type CheckHashStorageJob struct {
-	tgbotService service.Tgbot
+	tgbotService tgbot.Tgbot
 }
 
 // NewCheckHashStorageJob creates a new hash storage cleanup job instance.

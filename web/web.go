@@ -28,6 +28,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 	"github.com/mhsanaei/3x-ui/v3/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/web/service/panel"
+	"github.com/mhsanaei/3x-ui/v3/web/service/tgbot"
 	"github.com/mhsanaei/3x-ui/v3/web/websocket"
 
 	"github.com/gin-contrib/gzip"
@@ -108,7 +109,7 @@ type Server struct {
 
 	xrayService      service.XrayService
 	settingService   service.SettingService
-	tgbotService     service.Tgbot
+	tgbotService     tgbot.Tgbot
 	customGeoService *integration.CustomGeoService
 
 	wsHub *websocket.Hub

@@ -273,7 +273,7 @@ func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID
 	}
 
 	occupiedEmails := map[string]struct{}{}
-	allEmails, err := s.getAllEmails()
+	allEmails, err := s.GetAllEmails()
 	if err != nil {
 		return result, false, err
 	}

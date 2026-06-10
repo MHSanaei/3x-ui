@@ -21,6 +21,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/web/global"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 	"github.com/mhsanaei/3x-ui/v3/web/service/panel"
+	"github.com/mhsanaei/3x-ui/v3/web/service/tgbot"
 
 	"github.com/joho/godotenv"
 	"github.com/op/go-logging"
@@ -124,7 +125,7 @@ func runWebServer() {
 
 		default:
 			// --- FIX FOR TELEGRAM BOT CONFLICT (409) on full shutdown ---
-			service.StopBot()
+			tgbot.StopBot()
 			// ------------------------------------------------------------
 
 			server.Stop()

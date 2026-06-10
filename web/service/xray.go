@@ -38,6 +38,13 @@ func (s *XrayService) IsXrayRunning() bool {
 	return p != nil && p.IsRunning()
 }
 
+// XrayProcess returns the current Xray process instance (may be nil when Xray
+// is not running). It exposes the package-level process to callers outside this
+// package (e.g. the tgbot subpackage) without changing access semantics.
+func XrayProcess() *xray.Process {
+	return p
+}
+
 // GetXrayErr returns the error from the Xray process, if any.
 func (s *XrayService) GetXrayErr() error {
 	if p == nil {
