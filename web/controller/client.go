@@ -739,6 +739,9 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 		var inboundSettings map[string]any
 		json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
 		encryption, _ := inboundSettings["encryption"].(string)
+		if encryption == "" {
+			encryption = "none"
+		}
 		user := map[string]any{
 			"id":         client.UUID,
 			"encryption": encryption,
