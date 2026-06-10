@@ -161,6 +161,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	// node_id fallback downstream (#4983).
 	var nodeRow model.Node
 	db.Select("guid").Where("id = ?", nodeID).First(&nodeRow)
+
+	if nodeRow.Guid != "" && nodeRow.Guid == s.panelGuid() {
+		logger.Warningf("setRemoteTraffic: node %d has identical panelGuid to this master! Ignoring sync to prevent data corruption (cloned database detected). Do not clone the master database to a node.", nodeID)
+		return false, errors.New("node has identical panelGuid to master (cloned database detected)")
+	}
 	originGuidFor := func(snapIb *model.Inbound) string {
 		if snapIb.OriginNodeGuid != "" {
 			return snapIb.OriginNodeGuid
