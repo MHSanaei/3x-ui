@@ -159,7 +159,7 @@ export function useInboundColumns({
           if (!cc) return null;
           return (
             <>
-              <Tag className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>
+              <Tag className="client-count-tag" style={{ margin: 0, marginRight: 4, padding: '0 2px' }}>
                 <TeamOutlined /> {cc.clients}
               </Tag>
               {cc.active.length > 0 && (

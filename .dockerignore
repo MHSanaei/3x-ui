@@ -1,9 +1,10 @@
 .git
 **/node_modules
-web/dist
+internal/web/dist
 build
 db
 cert
 pgdata
+x-ui/
 *.db
 *.dump
