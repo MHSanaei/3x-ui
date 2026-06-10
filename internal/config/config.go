@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"testing"
 )
 
 //go:embed version
@@ -139,6 +140,12 @@ func GetLogFolder() string {
 	logFolderPath := os.Getenv("XUI_LOG_FOLDER")
 	if logFolderPath != "" {
 		return logFolderPath
+	}
+	// Under `go test` the Windows default below is CWD-relative ("./log"), which
+	// scatters a log/ directory through the source tree (one per tested package).
+	// Redirect test runs to a shared temp folder so the source tree stays clean.
+	if testing.Testing() {
+		return filepath.Join(os.TempDir(), "3x-ui-test-log")
 	}
 	if runtime.GOOS == "windows" {
 		return filepath.Join(".", "log")
