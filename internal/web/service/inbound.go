@@ -25,6 +25,24 @@ type InboundService struct {
 	fallbackService FallbackService
 }
 
+func normalizeInboundShareAddrStrategy(strategy string) string {
+	strategy = strings.TrimSpace(strategy)
+	switch strategy {
+	case "listen", "custom":
+		return strategy
+	default:
+		return "node"
+	}
+}
+
+func normalizeInboundShareAddress(inbound *model.Inbound) {
+	if inbound == nil {
+		return
+	}
+	inbound.ShareAddrStrategy = normalizeInboundShareAddrStrategy(inbound.ShareAddrStrategy)
+	inbound.ShareAddr = strings.TrimSpace(inbound.ShareAddr)
+}
+
 // GetInbounds retrieves all inbounds for a specific user with client stats.
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
@@ -325,6 +343,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
+	normalizeInboundShareAddress(inbound)
 
 	conflict, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
@@ -752,8 +771,15 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.Settings = inbound.Settings
 	oldInbound.StreamSettings = inbound.StreamSettings
 	oldInbound.Sniffing = inbound.Sniffing
-	oldInbound.ShareAddrStrategy = inbound.ShareAddrStrategy
-	oldInbound.ShareAddr = inbound.ShareAddr
+	if strings.TrimSpace(inbound.ShareAddrStrategy) == "" {
+		oldInbound.ShareAddrStrategy = normalizeInboundShareAddrStrategy(oldInbound.ShareAddrStrategy)
+		inbound.ShareAddrStrategy = oldInbound.ShareAddrStrategy
+		inbound.ShareAddr = oldInbound.ShareAddr
+	} else {
+		normalizeInboundShareAddress(inbound)
+		oldInbound.ShareAddrStrategy = inbound.ShareAddrStrategy
+		oldInbound.ShareAddr = inbound.ShareAddr
+	}
 	if oldTagWasAuto && inbound.Tag == tag {
 		inbound.Tag = ""
 	}

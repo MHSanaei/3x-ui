@@ -98,3 +98,44 @@ func TestUpdateInbound_KeepsCustomTagOnPortChange(t *testing.T) {
 		t.Fatalf("returned tag = %q, want my-custom-tag", got.Tag)
 	}
 }
+
+func TestUpdateInbound_PreservesShareAddressFieldsWhenOmitted(t *testing.T) {
+	setupConflictDB(t)
+
+	existing := model.Inbound{
+		Tag:               "in-443-tcp",
+		Enable:            true,
+		Listen:            "0.0.0.0",
+		Port:              443,
+		Protocol:          model.VLESS,
+		StreamSettings:    `{"network":"tcp"}`,
+		Settings:          `{"clients":[]}`,
+		ShareAddrStrategy: "custom",
+		ShareAddr:         "edge.example.com",
+	}
+	if err := database.GetDB().Create(&existing).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+
+	update := existing
+	update.Remark = "updated"
+	update.ShareAddrStrategy = ""
+	update.ShareAddr = ""
+
+	svc := &InboundService{}
+	got, _, err := svc.UpdateInbound(&update)
+	if err != nil {
+		t.Fatalf("UpdateInbound: %v", err)
+	}
+
+	var reloaded model.Inbound
+	if err := database.GetDB().First(&reloaded, existing.Id).Error; err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if reloaded.ShareAddrStrategy != "custom" || reloaded.ShareAddr != "edge.example.com" {
+		t.Fatalf("persisted share fields = (%q, %q), want (custom, edge.example.com)", reloaded.ShareAddrStrategy, reloaded.ShareAddr)
+	}
+	if got.ShareAddrStrategy != "custom" || got.ShareAddr != "edge.example.com" {
+		t.Fatalf("returned share fields = (%q, %q), want (custom, edge.example.com)", got.ShareAddrStrategy, got.ShareAddr)
+	}
+}

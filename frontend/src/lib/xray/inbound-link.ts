@@ -792,11 +792,11 @@ function shareableListen(inbound: Inbound): string {
     : '';
 }
 
-type ShareAddrStrategy = 'node' | 'listen' | 'auto' | 'custom';
+type ShareAddrStrategy = 'node' | 'listen' | 'custom';
 
 function shareAddrStrategy(inbound: Inbound): ShareAddrStrategy {
   const strategy = inbound.shareAddrStrategy;
-  return strategy === 'listen' || strategy === 'auto' || strategy === 'custom'
+  return strategy === 'listen' || strategy === 'custom'
     ? strategy
     : 'node';
 }
@@ -812,7 +812,6 @@ export function resolveAddr(inbound: Inbound, hostOverride: string, fallbackHost
   const customAddr = (inbound.shareAddr ?? '').trim();
   switch (shareAddrStrategy(inbound)) {
     case 'listen':
-    case 'auto':
       return listenAddr || nodeAddr || fallbackHostname;
     case 'custom':
       return customAddr || nodeAddr || listenAddr || fallbackHostname;

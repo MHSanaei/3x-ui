@@ -25,7 +25,7 @@ export type InboundStreamFormValues = z.infer<typeof InboundStreamFormSchema>;
 
 export const TrafficResetSchema = z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']);
 export type TrafficReset = z.infer<typeof TrafficResetSchema>;
-export const ShareAddrStrategySchema = z.enum(['node', 'listen', 'auto', 'custom']);
+export const ShareAddrStrategySchema = z.enum(['node', 'listen', 'custom']);
 export type ShareAddrStrategy = z.infer<typeof ShareAddrStrategySchema>;
 
 // Db-side fields layered on top of the xray slice. These mirror the

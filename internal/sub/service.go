@@ -79,21 +79,29 @@ func isRoutableHost(host string) bool {
 	if host == "" {
 		return false
 	}
-	if ip := net.ParseIP(strings.Trim(host, "[]")); ip != nil {
+	host = strings.Trim(strings.TrimSpace(host), "[]")
+	if strings.EqualFold(host, "localhost") {
+		return false
+	}
+	if ip := net.ParseIP(host); ip != nil {
 		return !ip.IsLoopback() && !ip.IsUnspecified()
 	}
 	return true
 }
 
 func isLoopbackHost(host string) bool {
-	ip := net.ParseIP(strings.Trim(host, "[]"))
+	host = strings.Trim(strings.TrimSpace(host), "[]")
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
 	return ip != nil && ip.IsLoopback()
 }
 
 // listenIsInternalOnly reports whether a bind address is reachable only from
-// the same host — a loopback IP or a unix-domain socket. Such an inbound can't
-// be dialed directly by a remote client, so when it is the child side of a
-// fallback its share link must be projected through the master. A public or
+// the same host — localhost, a loopback IP, or a unix-domain socket. Such an
+// inbound can't be dialed directly by a remote client, so when it is the child
+// side of a fallback its share link must be projected through the master. A public or
 // wildcard listen (""/0.0.0.0/::) is reachable on its own port and advertises
 // itself.
 func listenIsInternalOnly(listen string) bool {
@@ -782,7 +790,7 @@ func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 	customAddr := strings.TrimSpace(inbound.ShareAddr)
 
 	switch normalizeShareAddrStrategy(inbound.ShareAddrStrategy) {
-	case "listen", "auto":
+	case "listen":
 		if listenAddr != "" {
 			return listenAddr
 		}
@@ -813,7 +821,7 @@ func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 func normalizeShareAddrStrategy(strategy string) string {
 	strategy = strings.TrimSpace(strategy)
 	switch strategy {
-	case "listen", "auto", "custom":
+	case "listen", "custom":
 		return strategy
 	default:
 		return "node"

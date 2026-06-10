@@ -595,7 +595,6 @@
         "shareAddrStrategyOptions": {
           "node": "节点地址",
           "listen": "入站监听地址",
-          "auto": "自动",
           "custom": "自定义"
         }
       },

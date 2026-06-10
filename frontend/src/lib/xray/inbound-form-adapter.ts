@@ -86,7 +86,7 @@ function coerceJsonObject(value: unknown): Record<string, unknown> {
 }
 
 const TRAFFIC_RESETS: TrafficReset[] = ['never', 'hourly', 'daily', 'weekly', 'monthly'];
-const SHARE_ADDR_STRATEGIES: ShareAddrStrategy[] = ['node', 'listen', 'auto', 'custom'];
+const SHARE_ADDR_STRATEGIES: ShareAddrStrategy[] = ['node', 'listen', 'custom'];
 
 function coerceTrafficReset(v: unknown): TrafficReset {
   return typeof v === 'string' && (TRAFFIC_RESETS as string[]).includes(v)

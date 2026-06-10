@@ -84,7 +84,7 @@ import type { NodeRecord } from '@/api/queries/useNodesQuery';
 
 const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
 const TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'] as const;
-const SHARE_ADDR_STRATEGIES = ['node', 'listen', 'auto', 'custom'] as const;
+const SHARE_ADDR_STRATEGIES = ['node', 'listen', 'custom'] as const;
 const NODE_ELIGIBLE_PROTOCOLS = new Set<string>([
   Protocols.VLESS,
   Protocols.VMESS,

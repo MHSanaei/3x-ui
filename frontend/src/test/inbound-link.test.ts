@@ -318,14 +318,19 @@ describe('resolveAddr precedence', () => {
     )).toBe('10.0.0.1');
   });
 
-  it('uses auto strategy to prefer listen and fall back to node override', () => {
+  it('uses listen strategy to prefer listen and fall back to node override', () => {
     expect(resolveAddr(
-      { ...baseInbound, listen: '10.0.0.1', shareAddrStrategy: 'auto', shareAddr: '' } as never,
+      { ...baseInbound, listen: '10.0.0.1', shareAddrStrategy: 'listen', shareAddr: '' } as never,
       'node.example.test',
       'fallback.test',
     )).toBe('10.0.0.1');
     expect(resolveAddr(
-      { ...baseInbound, listen: '0.0.0.0', shareAddrStrategy: 'auto', shareAddr: '' } as never,
+      { ...baseInbound, listen: '0.0.0.0', shareAddrStrategy: 'listen', shareAddr: '' } as never,
+      'node.example.test',
+      'fallback.test',
+    )).toBe('node.example.test');
+    expect(resolveAddr(
+      { ...baseInbound, listen: 'localhost', shareAddrStrategy: 'listen', shareAddr: '' } as never,
       'node.example.test',
       'fallback.test',
     )).toBe('node.example.test');

@@ -595,7 +595,6 @@
         "shareAddrStrategyOptions": {
           "node": "Node address",
           "listen": "Inbound listen",
-          "auto": "Auto",
           "custom": "Custom"
         }
       },

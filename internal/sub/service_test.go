@@ -53,7 +53,7 @@ func TestIsRoutableHost(t *testing.T) {
 			t.Fatalf("isRoutableHost(%q) = false, want true", v)
 		}
 	}
-	notRoutable := []string{"", "0.0.0.0", "::", "::0", "127.0.0.1", "127.0.0.2", "::1", "[::1]"}
+	notRoutable := []string{"", "0.0.0.0", "::", "::0", "127.0.0.1", "127.0.0.2", "::1", "[::1]", "localhost", "LOCALHOST"}
 	for _, v := range notRoutable {
 		if isRoutableHost(v) {
 			t.Fatalf("isRoutableHost(%q) = true, want false", v)
@@ -64,7 +64,7 @@ func TestIsRoutableHost(t *testing.T) {
 func TestListenIsInternalOnly(t *testing.T) {
 	// Reachable only from the same host -> a fallback child here must be
 	// projected through its master.
-	internalOnly := []string{"127.0.0.1", "127.0.0.2", "::1", "[::1]", "@fallback", "/run/x.sock"}
+	internalOnly := []string{"127.0.0.1", "127.0.0.2", "::1", "[::1]", "localhost", "@fallback", "/run/x.sock"}
 	for _, v := range internalOnly {
 		if !listenIsInternalOnly(v) {
 			t.Fatalf("listenIsInternalOnly(%q) = false, want true", v)
@@ -131,17 +131,20 @@ func TestResolveInboundAddress(t *testing.T) {
 		}
 	})
 
-	t.Run("auto strategy prefers routable listen then node address", func(t *testing.T) {
+	t.Run("listen strategy prefers routable listen then node address", func(t *testing.T) {
 		id := 7
 		s := &SubService{
 			address:   reqHost,
 			nodesByID: map[int]*model.Node{7: {Id: 7, Address: "node7.example.com"}},
 		}
-		if got := s.resolveInboundAddress(&model.Inbound{NodeID: &id, Listen: "1.2.3.4", ShareAddrStrategy: "auto"}); got != "1.2.3.4" {
-			t.Fatalf("auto strategy with listen = %q, want 1.2.3.4", got)
+		if got := s.resolveInboundAddress(&model.Inbound{NodeID: &id, Listen: "1.2.3.4", ShareAddrStrategy: "listen"}); got != "1.2.3.4" {
+			t.Fatalf("listen strategy with listen = %q, want 1.2.3.4", got)
 		}
-		if got := s.resolveInboundAddress(&model.Inbound{NodeID: &id, Listen: "0.0.0.0", ShareAddrStrategy: "auto"}); got != "node7.example.com" {
-			t.Fatalf("auto strategy without listen = %q, want node7.example.com", got)
+		if got := s.resolveInboundAddress(&model.Inbound{NodeID: &id, Listen: "0.0.0.0", ShareAddrStrategy: "listen"}); got != "node7.example.com" {
+			t.Fatalf("listen strategy without listen = %q, want node7.example.com", got)
+		}
+		if got := s.resolveInboundAddress(&model.Inbound{NodeID: &id, Listen: "localhost", ShareAddrStrategy: "listen"}); got != "node7.example.com" {
+			t.Fatalf("listen strategy with localhost listen = %q, want node7.example.com", got)
 		}
 	})
 
