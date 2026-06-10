@@ -215,10 +215,10 @@ func TestAddDelClientPostgresScale(t *testing.T) {
 			}
 			addDur := time.Since(start)
 
-			delId := clients[n/2].ID
+			delEmail := clients[n/2].Email
 			start = time.Now()
-			if _, err := svc.DelInboundClient(inboundSvc, ib.Id, delId, false); err != nil {
-				t.Fatalf("DelInboundClient: %v", err)
+			if _, err := svc.DelInboundClientByEmail(inboundSvc, ib.Id, delEmail, false); err != nil {
+				t.Fatalf("DelInboundClientByEmail: %v", err)
 			}
 			delDur := time.Since(start)
 
