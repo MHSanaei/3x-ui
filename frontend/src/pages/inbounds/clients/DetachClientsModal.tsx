@@ -147,7 +147,7 @@ export default function DetachClientsModal({
         {t('pages.inbounds.detachClientsDesc', { count: clientRows.length })}
       </Typography.Paragraph>
 
-      <Space direction="vertical" size="small" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="small" style={{ width: '100%' }}>
         <Typography.Text strong>{t('pages.inbounds.detachClientsSelectLabel')}</Typography.Text>
         <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
           <Input.Search

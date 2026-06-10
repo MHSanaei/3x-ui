@@ -280,19 +280,6 @@ export const ClientTrafficSchema = z.object({
 });
 export type ClientTraffic = z.infer<typeof ClientTrafficSchema>;
 
-export const CustomGeoResourceSchema = z.object({
-  alias: z.string(),
-  createdAt: z.number().int(),
-  id: z.number().int(),
-  lastModified: z.string(),
-  lastUpdatedAt: z.number().int(),
-  localPath: z.string(),
-  type: z.string(),
-  updatedAt: z.number().int(),
-  url: z.string(),
-});
-export type CustomGeoResource = z.infer<typeof CustomGeoResourceSchema>;
-
 export const FallbackParentInfoSchema = z.object({
   masterId: z.number().int(),
   path: z.string().optional(),

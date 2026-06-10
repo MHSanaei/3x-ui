@@ -1193,49 +1193,6 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
-  "CustomGeoResource": {
-    "properties": {
-      "alias": {
-        "type": "string"
-      },
-      "createdAt": {
-        "type": "integer"
-      },
-      "id": {
-        "type": "integer"
-      },
-      "lastModified": {
-        "type": "string"
-      },
-      "lastUpdatedAt": {
-        "type": "integer"
-      },
-      "localPath": {
-        "type": "string"
-      },
-      "type": {
-        "type": "string"
-      },
-      "updatedAt": {
-        "type": "integer"
-      },
-      "url": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "alias",
-      "createdAt",
-      "id",
-      "lastModified",
-      "lastUpdatedAt",
-      "localPath",
-      "type",
-      "updatedAt",
-      "url"
-    ],
-    "type": "object"
-  },
   "FallbackParentInfo": {
     "description": "FallbackParentInfo carries everything the frontend needs to rewrite a\nchild inbound's client link: where to connect (the master's address\nand port) and which path matched on the master's fallbacks array.\nThe frontend already has the master inbound in its dbInbounds list,\nso we only ship identifiers + the match path here.",
     "properties": {

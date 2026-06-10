@@ -23,6 +23,7 @@ type Config struct {
 	Observatory      json_util.RawMessage `json:"observatory,omitempty"`
 	BurstObservatory json_util.RawMessage `json:"burstObservatory,omitempty"`
 	Metrics          json_util.RawMessage `json:"metrics"`
+	Geodata          json_util.RawMessage `json:"geodata,omitempty"`
 }
 
 // Equals compares two Config instances for deep equality.
@@ -66,6 +67,9 @@ func (c *Config) Equals(other *Config) bool {
 		return false
 	}
 	if !bytes.Equal(c.Metrics, other.Metrics) {
+		return false
+	}
+	if !bytes.Equal(c.Geodata, other.Geodata) {
 		return false
 	}
 	return true

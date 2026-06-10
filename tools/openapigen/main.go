@@ -33,7 +33,6 @@ func run(root, outDir string) error {
 				"HistoryOfSeeders",
 				"Setting",
 				"Node",
-				"CustomGeoResource",
 				"ClientReverse",
 				"Client",
 				"ClientRecord",
