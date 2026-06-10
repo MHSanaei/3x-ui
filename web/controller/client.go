@@ -574,8 +574,7 @@ func sanitizeStreamSettings(raw string) map[string]any {
 	case "reality":
 		if reality, ok := ss["realitySettings"].(map[string]any); ok {
 			clean := map[string]any{
-				"show":       false,
-				"publicKey":  reality["publicKey"],
+				"publicKey":   reality["publicKey"],
 				"fingerprint": reality["fingerprint"],
 			}
 			if settings, _ := reality["settings"].(map[string]any); settings != nil {
@@ -662,7 +661,6 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 						map[string]any{
 							"id":       client.UUID,
 							"security": security,
-							"level":    8,
 						},
 					},
 				},
@@ -676,7 +674,6 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 		user := map[string]any{
 			"id":         client.UUID,
 			"encryption": encryption,
-			"level":      8,
 		}
 		if client.Flow != "" {
 			user["flow"] = client.Flow
@@ -698,7 +695,6 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 					"address":  address,
 					"port":     inbound.Port,
 					"password": client.Password,
-					"level":    8,
 				},
 			},
 		}
@@ -720,7 +716,6 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 					"port":     inbound.Port,
 					"password": password,
 					"method":   method,
-					"level":    8,
 				},
 			},
 		}
@@ -765,8 +760,58 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 	}
 
 	config := map[string]any{
-		"inbounds":  []any{map[string]any{}},
-		"outbounds": []any{outbound},
+		"log": map[string]any{
+			"loglevel": "warning",
+		},
+		"inbounds": []any{
+			map[string]any{
+				"tag":      "socks-in",
+				"listen":   "127.0.0.1",
+				"port":     10808,
+				"protocol": "socks",
+				"settings": map[string]any{
+					"auth": "noauth",
+					"udp":  true,
+				},
+				"sniffing": map[string]any{
+					"enabled":     true,
+					"destOverride": []any{"http", "tls"},
+				},
+			},
+		},
+		"outbounds": []any{
+			outbound,
+			map[string]any{
+				"tag":      "direct",
+				"protocol": "freedom",
+				"settings": map[string]any{
+					"domainStrategy": "UseIP",
+				},
+			},
+			map[string]any{
+				"tag":      "block",
+				"protocol": "blackhole",
+				"settings": map[string]any{
+					"response": map[string]any{
+						"type": "http",
+					},
+				},
+			},
+		},
+		"routing": map[string]any{
+			"domainStrategy": "AsIs",
+			"rules": []any{
+				map[string]any{
+					"type":        "field",
+					"inboundTag":  []any{"socks-in"},
+					"outboundTag": "proxy",
+				},
+			},
+		},
+		"dns": map[string]any{
+			"hosts":  map[string]any{},
+			"servers": []any{},
+		},
 	}
 
 	return config, nil
