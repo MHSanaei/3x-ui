@@ -1,0 +1,1021 @@
+package service
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+)
+
+// delInboundClients removes several clients from a single inbound in one pass:
+// one settings rewrite, one runtime sweep, one Save and one SyncInbound for the
+// whole batch, instead of repeating the full per-client cycle. It mirrors the
+// semantics of DelInboundClientByEmail for each removed client. needRestart is
+// the OR across all removals.
+func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId int, recs []*model.ClientRecord, keepTraffic bool) (bool, error) {
+	if len(recs) == 0 {
+		return false, nil
+	}
+	defer lockInbound(inboundId).Unlock()
+
+	oldInbound, err := inboundSvc.GetInbound(inboundId)
+	if err != nil {
+		logger.Error("Load Old Data Error")
+		return false, err
+	}
+
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
+		return false, err
+	}
+
+	// Match by email — the client's stable identity (see Delete). Removes every
+	// entry carrying a wanted email, independent of credential drift.
+	wanted := make(map[string]struct{}, len(recs))
+	for _, rec := range recs {
+		if rec.Email != "" {
+			wanted[rec.Email] = struct{}{}
+		}
+	}
+
+	interfaceClients, ok := settings["clients"].([]any)
+	if !ok {
+		return false, common.NewError("invalid clients format in inbound settings")
+	}
+
+	type removedClient struct {
+		email      string
+		needApiDel bool
+	}
+	removed := make([]removedClient, 0, len(wanted))
+	newClients := make([]any, 0, len(interfaceClients))
+	for _, client := range interfaceClients {
+		c, ok := client.(map[string]any)
+		if !ok {
+			newClients = append(newClients, client)
+			continue
+		}
+		email, _ := c["email"].(string)
+		if _, hit := wanted[email]; hit && email != "" {
+			enable, _ := c["enable"].(bool)
+			removed = append(removed, removedClient{email: email, needApiDel: enable})
+			continue
+		}
+		newClients = append(newClients, client)
+	}
+
+	if len(removed) == 0 {
+		return false, nil
+	}
+
+	db := database.GetDB()
+	newClients = compactOrphans(db, newClients)
+	if newClients == nil {
+		newClients = []any{}
+	}
+	settings["clients"] = newClients
+	newSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return false, err
+	}
+	oldInbound.Settings = string(newSettings)
+
+	var sharedSet map[string]bool
+	if !keepTraffic {
+		removedEmails := make([]string, 0, len(removed))
+		for _, r := range removed {
+			if r.email != "" {
+				removedEmails = append(removedEmails, r.email)
+			}
+		}
+		var sharedErr error
+		sharedSet, sharedErr = inboundSvc.emailsUsedByOtherInbounds(removedEmails, inboundId)
+		if sharedErr != nil {
+			return false, sharedErr
+		}
+	}
+
+	needRestart := false
+	markDirty := false
+	for _, r := range removed {
+		email := r.email
+		emailShared := sharedSet[strings.ToLower(strings.TrimSpace(email))]
+		if !emailShared && !keepTraffic {
+			if err := inboundSvc.DelClientIPs(db, email); err != nil {
+				logger.Error("Error in delete client IPs")
+				return needRestart, err
+			}
+		}
+		if len(email) > 0 {
+			var enables []bool
+			if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).Limit(1).Pluck("enable", &enables).Error; err != nil {
+				logger.Error("Get stats error")
+				return needRestart, err
+			}
+			notDepleted := len(enables) > 0 && enables[0]
+			if !emailShared && !keepTraffic {
+				if err := inboundSvc.DelClientStat(db, email); err != nil {
+					logger.Error("Delete stats Data Error")
+					return needRestart, err
+				}
+			}
+			if r.needApiDel && notDepleted && oldInbound.NodeID == nil {
+				rt, rterr := inboundSvc.runtimeFor(oldInbound)
+				if rterr != nil {
+					needRestart = true
+				} else if err1 := rt.RemoveUser(context.Background(), oldInbound, email); err1 != nil {
+					if !strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+						needRestart = true
+					}
+				}
+			}
+		}
+		if oldInbound.NodeID != nil && len(email) > 0 {
+			rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+			if perr != nil {
+				return needRestart, perr
+			}
+			if dirty {
+				markDirty = true
+			}
+			if push {
+				if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
+					logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
+					markDirty = true
+				}
+			}
+		}
+	}
+
+	if err := db.Save(oldInbound).Error; err != nil {
+		return needRestart, err
+	}
+	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
+	if gcErr != nil {
+		return needRestart, gcErr
+	}
+	if err := s.SyncInbound(db, inboundId, finalClients); err != nil {
+		return needRestart, err
+	}
+	if markDirty && oldInbound.NodeID != nil {
+		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
+			logger.Warning("mark node dirty failed:", dErr)
+		}
+	}
+	return needRestart, nil
+}
+
+func (s *ClientService) checkEmailsExistForClients(inboundSvc *InboundService, clients []model.Client, emailSubIDs map[string]string) (string, error) {
+	if emailSubIDs == nil {
+		var err error
+		emailSubIDs, err = inboundSvc.getAllEmailSubIDs()
+		if err != nil {
+			return "", err
+		}
+	}
+	seen := make(map[string]string, len(clients))
+	for _, client := range clients {
+		if client.Email == "" {
+			continue
+		}
+		key := strings.ToLower(client.Email)
+		if prev, ok := seen[key]; ok {
+			if prev != client.SubID || client.SubID == "" {
+				return client.Email, nil
+			}
+			continue
+		}
+		seen[key] = client.SubID
+		if existingSub, ok := emailSubIDs[key]; ok {
+			if client.SubID == "" || existingSub == "" || existingSub != client.SubID {
+				return client.Email, nil
+			}
+		}
+	}
+	return "", nil
+}
+
+func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model.Inbound) (bool, error) {
+	return s.addInboundClient(inboundSvc, data, nil)
+}
+
+// addInboundClient is AddInboundClient with an optional precomputed email→subId
+// map. Bulk callers pass a single snapshot so the global getAllEmailSubIDs scan
+// runs once for the whole batch instead of once per target inbound; a nil map
+// makes it compute its own (the single-add path).
+func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model.Inbound, emailSubIDs map[string]string) (bool, error) {
+	defer lockInbound(data.Id).Unlock()
+
+	clients, err := inboundSvc.GetClients(data)
+	if err != nil {
+		return false, err
+	}
+
+	var settings map[string]any
+	err = json.Unmarshal([]byte(data.Settings), &settings)
+	if err != nil {
+		return false, err
+	}
+
+	interfaceClients := settings["clients"].([]any)
+	nowTs := time.Now().Unix() * 1000
+	for i := range interfaceClients {
+		if cm, ok := interfaceClients[i].(map[string]any); ok {
+			if _, ok2 := cm["created_at"]; !ok2 {
+				cm["created_at"] = nowTs
+			}
+			cm["updated_at"] = nowTs
+			existingSub, _ := cm["subId"].(string)
+			if strings.TrimSpace(existingSub) == "" {
+				cm["subId"] = random.NumLower(16)
+			}
+			interfaceClients[i] = cm
+		}
+	}
+	existEmail, err := s.checkEmailsExistForClients(inboundSvc, clients, emailSubIDs)
+	if err != nil {
+		return false, err
+	}
+	if existEmail != "" {
+		return false, common.NewError("Duplicate email:", existEmail)
+	}
+
+	oldInbound, err := inboundSvc.GetInbound(data.Id)
+	if err != nil {
+		return false, err
+	}
+
+	for _, client := range clients {
+		if strings.TrimSpace(client.Email) == "" {
+			return false, common.NewError("client email is required")
+		}
+		switch oldInbound.Protocol {
+		case "trojan":
+			if client.Password == "" {
+				return false, common.NewError("empty client ID")
+			}
+		case "shadowsocks":
+			if client.Email == "" {
+				return false, common.NewError("empty client ID")
+			}
+		case "hysteria":
+			if client.Auth == "" {
+				return false, common.NewError("empty client ID")
+			}
+		default:
+			if client.ID == "" {
+				return false, common.NewError("empty client ID")
+			}
+		}
+	}
+
+	var oldSettings map[string]any
+	err = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
+	if err != nil {
+		return false, err
+	}
+
+	if oldInbound.Protocol == model.Shadowsocks {
+		applyShadowsocksClientMethod(interfaceClients, oldSettings)
+	}
+
+	oldClients := oldSettings["clients"].([]any)
+	oldClients = compactOrphans(database.GetDB(), oldClients)
+	oldClients = append(oldClients, interfaceClients...)
+
+	oldSettings["clients"] = oldClients
+
+	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
+	if err != nil {
+		return false, err
+	}
+
+	oldInbound.Settings = string(newSettings)
+
+	db := database.GetDB()
+	tx := db.Begin()
+
+	markDirty := false
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+		if markDirty && oldInbound.NodeID != nil {
+			if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
+				logger.Warning("mark node dirty failed:", dErr)
+			}
+		}
+	}()
+
+	needRestart := false
+	rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+	if perr != nil {
+		err = perr
+		return false, err
+	}
+	if dirty {
+		markDirty = true
+	}
+	if oldInbound.NodeID == nil {
+		if !push {
+			needRestart = true
+		} else {
+			for _, client := range clients {
+				if len(client.Email) == 0 {
+					needRestart = true
+					continue
+				}
+				inboundSvc.AddClientStat(tx, data.Id, &client)
+				if !client.Enable {
+					continue
+				}
+				cipher := ""
+				if oldInbound.Protocol == "shadowsocks" {
+					cipher = oldSettings["method"].(string)
+				}
+				err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
+					"email":    client.Email,
+					"id":       client.ID,
+					"auth":     client.Auth,
+					"security": client.Security,
+					"flow":     client.Flow,
+					"password": client.Password,
+					"cipher":   cipher,
+				})
+				if err1 == nil {
+					logger.Debug("Client added on", rt.Name(), ":", client.Email)
+				} else {
+					logger.Debug("Error in adding client on", rt.Name(), ":", err1)
+					needRestart = true
+				}
+			}
+		}
+	} else {
+		for _, client := range clients {
+			if len(client.Email) > 0 {
+				inboundSvc.AddClientStat(tx, data.Id, &client)
+			}
+			if push {
+				if err1 := rt.AddClient(context.Background(), oldInbound, client); err1 != nil {
+					logger.Warning("Error in adding client on", rt.Name(), ":", err1)
+					markDirty = true
+					push = false
+				}
+			}
+		}
+	}
+
+	if err = tx.Save(oldInbound).Error; err != nil {
+		return false, err
+	}
+	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
+	if gcErr != nil {
+		err = gcErr
+		return false, err
+	}
+	if err = s.SyncInbound(tx, oldInbound.Id, finalClients); err != nil {
+		return false, err
+	}
+	return needRestart, nil
+}
+
+func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *model.Inbound, oldEmail string) (bool, error) {
+	defer lockInbound(data.Id).Unlock()
+
+	clients, err := inboundSvc.GetClients(data)
+	if err != nil {
+		return false, err
+	}
+
+	var settings map[string]any
+	err = json.Unmarshal([]byte(data.Settings), &settings)
+	if err != nil {
+		return false, err
+	}
+
+	interfaceClients := settings["clients"].([]any)
+
+	oldInbound, err := inboundSvc.GetInbound(data.Id)
+	if err != nil {
+		return false, err
+	}
+
+	oldClients, err := inboundSvc.GetClients(oldInbound)
+	if err != nil {
+		return false, err
+	}
+
+	newClientId := ""
+	switch oldInbound.Protocol {
+	case "trojan":
+		newClientId = clients[0].Password
+	case "shadowsocks":
+		newClientId = clients[0].Email
+	case "hysteria":
+		newClientId = clients[0].Auth
+	default:
+		newClientId = clients[0].ID
+	}
+
+	// Locate the client to replace by email — the client's stable identity.
+	// Credentials (uuid/password/auth) can drift from the inbound JSON, so they
+	// are never used for matching.
+	clientIndex := -1
+	for index, oldClient := range oldClients {
+		if strings.EqualFold(oldClient.Email, oldEmail) {
+			oldEmail = oldClient.Email
+			clientIndex = index
+			break
+		}
+	}
+
+	if newClientId == "" || clientIndex == -1 {
+		return false, common.NewError("empty client ID")
+	}
+	if strings.TrimSpace(clients[0].Email) == "" {
+		return false, common.NewError("client email is required")
+	}
+
+	if clients[0].Email != oldEmail {
+		existEmail, err := s.checkEmailsExistForClients(inboundSvc, clients, nil)
+		if err != nil {
+			return false, err
+		}
+		if existEmail != "" {
+			return false, common.NewError("Duplicate email:", existEmail)
+		}
+	}
+
+	var oldSettings map[string]any
+	err = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
+	if err != nil {
+		return false, err
+	}
+	settingsClients := oldSettings["clients"].([]any)
+	var preservedCreated any
+	var preservedSubID string
+	if clientIndex >= 0 && clientIndex < len(settingsClients) {
+		if oldMap, ok := settingsClients[clientIndex].(map[string]any); ok {
+			if v, ok2 := oldMap["created_at"]; ok2 {
+				preservedCreated = v
+			}
+			preservedSubID, _ = oldMap["subId"].(string)
+		}
+	}
+	if len(interfaceClients) > 0 {
+		if newMap, ok := interfaceClients[0].(map[string]any); ok {
+			if preservedCreated == nil {
+				preservedCreated = time.Now().Unix() * 1000
+			}
+			newMap["created_at"] = preservedCreated
+			newMap["updated_at"] = time.Now().Unix() * 1000
+			newSub, _ := newMap["subId"].(string)
+			if strings.TrimSpace(newSub) == "" {
+				if strings.TrimSpace(preservedSubID) != "" {
+					newMap["subId"] = preservedSubID
+				} else {
+					newMap["subId"] = random.NumLower(16)
+				}
+			}
+			interfaceClients[0] = newMap
+		}
+	}
+	if oldInbound.Protocol == model.Shadowsocks {
+		applyShadowsocksClientMethod(interfaceClients, oldSettings)
+	}
+	settingsClients[clientIndex] = interfaceClients[0]
+	oldSettings["clients"] = settingsClients
+
+	if oldInbound.Protocol == model.VLESS {
+		hasVisionFlow := false
+		for _, c := range settingsClients {
+			cm, ok := c.(map[string]any)
+			if !ok {
+				continue
+			}
+			if flow, _ := cm["flow"].(string); flow == "xtls-rprx-vision" {
+				hasVisionFlow = true
+				break
+			}
+		}
+		if !hasVisionFlow {
+			delete(oldSettings, "testseed")
+		}
+	}
+
+	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
+	if err != nil {
+		return false, err
+	}
+
+	oldInbound.Settings = string(newSettings)
+	db := database.GetDB()
+	tx := db.Begin()
+
+	markDirty := false
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+		if markDirty && oldInbound.NodeID != nil {
+			if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
+				logger.Warning("mark node dirty failed:", dErr)
+			}
+		}
+	}()
+
+	if len(clients[0].Email) > 0 {
+		if len(oldEmail) > 0 {
+			emailUnchanged := strings.EqualFold(oldEmail, clients[0].Email)
+			targetExists := int64(0)
+			if !emailUnchanged {
+				if err = tx.Model(xray.ClientTraffic{}).Where("email = ?", clients[0].Email).Count(&targetExists).Error; err != nil {
+					return false, err
+				}
+			}
+			if emailUnchanged || targetExists == 0 {
+				err = inboundSvc.UpdateClientStat(tx, oldEmail, &clients[0])
+				if err != nil {
+					return false, err
+				}
+				err = inboundSvc.UpdateClientIPs(tx, oldEmail, clients[0].Email)
+				if err != nil {
+					return false, err
+				}
+			} else {
+				stillUsed, sErr := inboundSvc.emailUsedByOtherInbounds(oldEmail, data.Id)
+				if sErr != nil {
+					return false, sErr
+				}
+				if !stillUsed {
+					if err = inboundSvc.DelClientStat(tx, oldEmail); err != nil {
+						return false, err
+					}
+					if err = inboundSvc.DelClientIPs(tx, oldEmail); err != nil {
+						return false, err
+					}
+				}
+				if err = inboundSvc.UpdateClientStat(tx, clients[0].Email, &clients[0]); err != nil {
+					return false, err
+				}
+			}
+		} else {
+			inboundSvc.AddClientStat(tx, data.Id, &clients[0])
+		}
+	} else {
+		stillUsed, err := inboundSvc.emailUsedByOtherInbounds(oldEmail, data.Id)
+		if err != nil {
+			return false, err
+		}
+		if !stillUsed {
+			err = inboundSvc.DelClientStat(tx, oldEmail)
+			if err != nil {
+				return false, err
+			}
+			err = inboundSvc.DelClientIPs(tx, oldEmail)
+			if err != nil {
+				return false, err
+			}
+		}
+	}
+	needRestart := false
+	if len(oldEmail) > 0 {
+		rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+		if perr != nil {
+			err = perr
+			return false, err
+		}
+		if dirty {
+			markDirty = true
+		}
+		if oldInbound.NodeID == nil {
+			if !push {
+				needRestart = true
+			} else {
+				if oldClients[clientIndex].Enable {
+					err1 := rt.RemoveUser(context.Background(), oldInbound, oldEmail)
+					if err1 == nil {
+						logger.Debug("Old client deleted on", rt.Name(), ":", oldEmail)
+					} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", oldEmail)) {
+						logger.Debug("User is already deleted. Nothing to do more...")
+					} else {
+						logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
+						needRestart = true
+					}
+				}
+				if clients[0].Enable {
+					cipher := ""
+					if oldInbound.Protocol == "shadowsocks" {
+						cipher = oldSettings["method"].(string)
+					}
+					err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
+						"email":    clients[0].Email,
+						"id":       clients[0].ID,
+						"security": clients[0].Security,
+						"flow":     clients[0].Flow,
+						"auth":     clients[0].Auth,
+						"password": clients[0].Password,
+						"cipher":   cipher,
+					})
+					if err1 == nil {
+						logger.Debug("Client edited on", rt.Name(), ":", clients[0].Email)
+					} else {
+						logger.Debug("Error in adding client on", rt.Name(), ":", err1)
+						needRestart = true
+					}
+				}
+			}
+		} else if push {
+			if err1 := rt.UpdateUser(context.Background(), oldInbound, oldEmail, clients[0]); err1 != nil {
+				logger.Warning("Error in updating client on", rt.Name(), ":", err1)
+				markDirty = true
+			}
+		}
+	} else {
+		logger.Debug("Client old email not found")
+		needRestart = true
+	}
+	if err = tx.Save(oldInbound).Error; err != nil {
+		return false, err
+	}
+	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
+	if gcErr != nil {
+		err = gcErr
+		return false, err
+	}
+	if err = s.SyncInbound(tx, oldInbound.Id, finalClients); err != nil {
+		return false, err
+	}
+	return needRestart, nil
+}
+
+func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inboundId int, email string, keepTraffic bool) (bool, error) {
+	defer lockInbound(inboundId).Unlock()
+
+	oldInbound, err := inboundSvc.GetInbound(inboundId)
+	if err != nil {
+		logger.Error("Load Old Data Error")
+		return false, err
+	}
+
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
+		return false, err
+	}
+
+	interfaceClients, ok := settings["clients"].([]any)
+	if !ok {
+		return false, common.NewError("invalid clients format in inbound settings")
+	}
+
+	var newClients []any
+	needApiDel := false
+	found := false
+
+	for _, client := range interfaceClients {
+		c, ok := client.(map[string]any)
+		if !ok {
+			continue
+		}
+		if cEmail, ok := c["email"].(string); ok && cEmail == email {
+			found = true
+			needApiDel, _ = c["enable"].(bool)
+		} else {
+			newClients = append(newClients, client)
+		}
+	}
+
+	if !found {
+		return false, fmt.Errorf("%w for email: %s", ErrClientNotInInbound, email)
+	}
+	db := database.GetDB()
+	newClients = compactOrphans(db, newClients)
+	if newClients == nil {
+		newClients = []any{}
+	}
+	settings["clients"] = newClients
+	newSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return false, err
+	}
+
+	oldInbound.Settings = string(newSettings)
+
+	emailShared, err := inboundSvc.emailUsedByOtherInbounds(email, inboundId)
+	if err != nil {
+		return false, err
+	}
+
+	if !emailShared && !keepTraffic {
+		if err := inboundSvc.DelClientIPs(db, email); err != nil {
+			logger.Error("Error in delete client IPs")
+			return false, err
+		}
+	}
+
+	needRestart := false
+	markDirty := false
+
+	if len(email) > 0 && !emailShared {
+		if !keepTraffic {
+			traffic, err := inboundSvc.GetClientTrafficByEmail(email)
+			if err != nil {
+				return false, err
+			}
+			if traffic != nil {
+				if err := inboundSvc.DelClientStat(db, email); err != nil {
+					logger.Error("Delete stats Data Error")
+					return false, err
+				}
+			}
+		}
+
+		if needApiDel {
+			rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+			if perr != nil {
+				return false, perr
+			}
+			if dirty {
+				markDirty = true
+			}
+			if oldInbound.NodeID == nil {
+				if !push {
+					needRestart = true
+				} else if err1 := rt.RemoveUser(context.Background(), oldInbound, email); err1 == nil {
+					logger.Debug("Client deleted on", rt.Name(), ":", email)
+					needRestart = false
+				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+					logger.Debug("User is already deleted. Nothing to do more...")
+				} else {
+					logger.Debug("Error in deleting client on", rt.Name(), ":", email)
+					needRestart = true
+				}
+			} else if push {
+				if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
+					logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
+					markDirty = true
+				}
+			}
+		}
+	}
+
+	if err := db.Save(oldInbound).Error; err != nil {
+		return false, err
+	}
+	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
+	if gcErr != nil {
+		return false, gcErr
+	}
+	if err := s.SyncInbound(db, inboundId, finalClients); err != nil {
+		return false, err
+	}
+	if markDirty && oldInbound.NodeID != nil {
+		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
+			logger.Warning("mark node dirty failed:", dErr)
+		}
+	}
+	return needRestart, nil
+}
+
+func (s *ClientService) SetClientTelegramUserID(inboundSvc *InboundService, trafficId int, tgId int64) (bool, error) {
+	traffic, inbound, err := inboundSvc.GetClientInboundByTrafficID(trafficId)
+	if err != nil {
+		return false, err
+	}
+	if inbound == nil {
+		return false, common.NewError("Inbound Not Found For Traffic ID:", trafficId)
+	}
+
+	clientEmail := traffic.Email
+
+	oldClients, err := inboundSvc.GetClients(inbound)
+	if err != nil {
+		return false, err
+	}
+
+	found := false
+	for _, oldClient := range oldClients {
+		if oldClient.Email == clientEmail {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return false, common.NewError("Client Not Found For Email:", clientEmail)
+	}
+
+	var settings map[string]any
+	err = json.Unmarshal([]byte(inbound.Settings), &settings)
+	if err != nil {
+		return false, err
+	}
+	clients := settings["clients"].([]any)
+	var newClients []any
+	for client_index := range clients {
+		c := clients[client_index].(map[string]any)
+		if c["email"] == clientEmail {
+			c["tgId"] = tgId
+			c["updated_at"] = time.Now().Unix() * 1000
+			newClients = append(newClients, any(c))
+		}
+	}
+	settings["clients"] = newClients
+	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return false, err
+	}
+	inbound.Settings = string(modifiedSettings)
+	needRestart, err := s.UpdateInboundClient(inboundSvc, inbound, clientEmail)
+	return needRestart, err
+}
+
+func (s *ClientService) CheckIsEnabledByEmail(inboundSvc *InboundService, clientEmail string) (bool, error) {
+	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
+	if err != nil {
+		return false, err
+	}
+	if inbound == nil {
+		return false, common.NewError("Inbound Not Found For Email:", clientEmail)
+	}
+
+	clients, err := inboundSvc.GetClients(inbound)
+	if err != nil {
+		return false, err
+	}
+
+	isEnable := false
+
+	for _, client := range clients {
+		if client.Email == clientEmail {
+			isEnable = client.Enable
+			break
+		}
+	}
+
+	return isEnable, err
+}
+
+func (s *ClientService) ToggleClientEnableByEmail(inboundSvc *InboundService, clientEmail string) (bool, bool, error) {
+	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
+	if err != nil {
+		return false, false, err
+	}
+	if inbound == nil {
+		return false, false, common.NewError("Inbound Not Found For Email:", clientEmail)
+	}
+
+	oldClients, err := inboundSvc.GetClients(inbound)
+	if err != nil {
+		return false, false, err
+	}
+
+	found := false
+	clientOldEnabled := false
+
+	for _, oldClient := range oldClients {
+		if oldClient.Email == clientEmail {
+			found = true
+			clientOldEnabled = oldClient.Enable
+			break
+		}
+	}
+
+	if !found {
+		return false, false, common.NewError("Client Not Found For Email:", clientEmail)
+	}
+
+	var settings map[string]any
+	err = json.Unmarshal([]byte(inbound.Settings), &settings)
+	if err != nil {
+		return false, false, err
+	}
+	clients := settings["clients"].([]any)
+	var newClients []any
+	for client_index := range clients {
+		c := clients[client_index].(map[string]any)
+		if c["email"] == clientEmail {
+			c["enable"] = !clientOldEnabled
+			c["updated_at"] = time.Now().Unix() * 1000
+			newClients = append(newClients, any(c))
+		}
+	}
+	settings["clients"] = newClients
+	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return false, false, err
+	}
+	inbound.Settings = string(modifiedSettings)
+
+	needRestart, err := s.UpdateInboundClient(inboundSvc, inbound, clientEmail)
+	if err != nil {
+		return false, needRestart, err
+	}
+
+	return !clientOldEnabled, needRestart, nil
+}
+
+func (s *ClientService) SetClientEnableByEmail(inboundSvc *InboundService, clientEmail string, enable bool) (bool, bool, error) {
+	current, err := s.CheckIsEnabledByEmail(inboundSvc, clientEmail)
+	if err != nil {
+		return false, false, err
+	}
+	if current == enable {
+		return false, false, nil
+	}
+	newEnabled, needRestart, err := s.ToggleClientEnableByEmail(inboundSvc, clientEmail)
+	if err != nil {
+		return false, needRestart, err
+	}
+	return newEnabled == enable, needRestart, nil
+}
+
+// applyClientFieldByEmail loads the inbound currently hosting clientEmail,
+// confirms the client exists, applies mutate to the matching client (plus a
+// refreshed updated_at), and hands a single-client update payload to
+// UpdateInboundClient. The rebuilt clients array intentionally contains only
+// the matched client — that is the input contract UpdateInboundClient expects
+// (clients[0] is the new data; clientEmail locates the row to replace). It
+// backs the single-field by-email setters below.
+func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clientEmail string, mutate func(c map[string]any)) (bool, error) {
+	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
+	if err != nil {
+		return false, err
+	}
+	if inbound == nil {
+		return false, common.NewError("Inbound Not Found For Email:", clientEmail)
+	}
+
+	oldClients, err := inboundSvc.GetClients(inbound)
+	if err != nil {
+		return false, err
+	}
+
+	found := false
+	for _, oldClient := range oldClients {
+		if oldClient.Email == clientEmail {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return false, common.NewError("Client Not Found For Email:", clientEmail)
+	}
+
+	var settings map[string]any
+	err = json.Unmarshal([]byte(inbound.Settings), &settings)
+	if err != nil {
+		return false, err
+	}
+	clients := settings["clients"].([]any)
+	var newClients []any
+	for client_index := range clients {
+		c := clients[client_index].(map[string]any)
+		if c["email"] == clientEmail {
+			mutate(c)
+			c["updated_at"] = time.Now().Unix() * 1000
+			newClients = append(newClients, any(c))
+		}
+	}
+	settings["clients"] = newClients
+	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return false, err
+	}
+	inbound.Settings = string(modifiedSettings)
+	return s.UpdateInboundClient(inboundSvc, inbound, clientEmail)
+}
+
+func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, clientEmail string, count int) (bool, error) {
+	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
+		c["limitIp"] = count
+	})
+}
+
+func (s *ClientService) ResetClientExpiryTimeByEmail(inboundSvc *InboundService, clientEmail string, expiry_time int64) (bool, error) {
+	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
+		c["expiryTime"] = expiry_time
+	})
+}
+
+func (s *ClientService) ResetClientTrafficLimitByEmail(inboundSvc *InboundService, clientEmail string, totalGB int) (bool, error) {
+	if totalGB < 0 {
+		return false, common.NewError("totalGB must be >= 0")
+	}
+	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
+		c["totalGB"] = totalGB * 1024 * 1024 * 1024
+	})
+}

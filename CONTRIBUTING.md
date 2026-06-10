@@ -135,7 +135,7 @@ The panel UI is a **React 19 + Ant Design 6 + TypeScript** app under `frontend/`
 
 ### Architecture
 
-The frontend ships **three Vite bundles**, each emitted into `web/dist/` and embedded into the Go binary at compile time via `embed.FS`:
+The frontend ships **three Vite bundles**, each emitted into `internal/web/dist/` and embedded into the Go binary at compile time via `embed.FS`:
 
 - **`index.html`** — the admin panel, a **single-page app**. `src/main.tsx` mounts a `react-router` `createBrowserRouter` (see `src/routes.tsx`) under the `/panel` basename; every route (`/panel`, `/panel/inbounds`, `/panel/clients`, `/panel/groups`, `/panel/nodes`, `/panel/settings`, `/panel/xray`, `/panel/api-docs`) is lazy-loaded inside a shared `PanelLayout` (sidebar + header + `<Outlet>`).
 - **`login.html`** — the login + 2FA screen (`src/entries/login.tsx`), a standalone bundle.
@@ -153,7 +153,7 @@ Panel navigation happens client-side through React Router, and per-route code is
 
 ### i18n
 
-Locale strings live in `web/translation/<locale>.json`, **not** under `frontend/`. The Go binary embeds the same JSON and serves it to both backend templates and `react-i18next` (initialized in `src/i18n/react.ts`). When a new English key is added it must also land in **every** non-English locale — missing keys do not break the build, they just render the raw key in the UI.
+Locale strings live in `internal/web/translation/<locale>.json`, **not** under `frontend/`. The Go binary embeds the same JSON and serves it to both backend templates and `react-i18next` (initialized in `src/i18n/react.ts`). When a new English key is added it must also land in **every** non-English locale — missing keys do not break the build, they just render the raw key in the UI.
 
 ### Two dev workflows
 
@@ -184,7 +184,7 @@ Only a genuinely **standalone bundle** (like `login` or `subpage`, reachable wit
 - **No `//` line comments** in committed JS/TS/Vue/Go. HTML `<!-- ... -->` is fine for template structure. Names should carry the meaning; rename rather than annotate. Comments are reserved for the *why*, and only when the reason is surprising.
 - **RTL is a first-class concern.** Persian and Arabic users matter — RTL is enabled through AntD's `ConfigProvider direction="rtl"`. When writing Persian text in toasts or labels, isolate code identifiers on their own lines so RTL reading flows.
 - **Schemas over `any`.** New config shapes go in `src/schemas/`; `@typescript-eslint/no-explicit-any` is an error and production schemas use no `.loose()`. Validate form fields with `antdRule(Schema.shape.field, t)` rather than inline `z.string()` in rules.
-- **Document new endpoints.** Every new `g.POST`/`g.GET` in `web/controller/` needs a matching entry in `src/pages/api-docs/endpoints.ts` — it drives both the in-panel API docs and the generated OpenAPI/Zod (`npm run gen:api` / `gen:zod`).
+- **Document new endpoints.** Every new `g.POST`/`g.GET` in `internal/web/controller/` needs a matching entry in `src/pages/api-docs/endpoints.ts` — it drives both the in-panel API docs and the generated OpenAPI/Zod (`npm run gen:api` / `gen:zod`).
 - **Do not break link generation.** Share-link logic lives in `src/lib/xray/` (`inbound-link.ts`, `outbound-link-parser.ts`, …) and is round-tripped by the golden fixture suite — run `npm run test` after any change to URL generation, defaults, or TLS/Reality handling, and regenerate snapshots (`npx vitest run -u`) only for intentional changes. Two runtime paths consume it: the **inbounds page** and the **clients page** subscription links (`/panel/api/clients/subLinks/:subId` → backend `GetSubs`); exercise both.
 - **Vite is pinned to an exact version** (no `^`) in `frontend/package.json` — currently `8.0.16` — so local, CI, and release builds resolve identically. Bump it deliberately and verify both `npm run dev` and `npm run build` afterward.
 
@@ -209,7 +209,7 @@ frontend/
     ├── components/        — cross-page React components
     ├── hooks/             — reusable hooks (useTheme, useWebSocket, useClients, useDatepicker, …)
     ├── api/               — Axios + CSRF interceptor, TanStack Query provider/keys, WebSocket client
-    ├── i18n/              — react-i18next bootstrap (JSON lives in web/translation/)
+    ├── i18n/              — react-i18next bootstrap (JSON lives in internal/web/translation/)
     ├── lib/xray/          — pure xray logic: link generation, defaults, form ⇄ wire adapters
     ├── schemas/           — Zod source of truth for the xray config model
     ├── generated/         — code-generated Zod + TS types from Go (do not hand-edit)
@@ -226,12 +226,12 @@ For deeper notes on the frontend toolchain see [`frontend/README.md`](frontend/R
 | Path | Contents |
 |------|----------|
 | `main.go` | Process entry point, CLI subcommands, signal handling |
-| `web/` | Gin HTTP server, controllers, services, embedded frontend assets |
+| `internal/web/` | Gin HTTP server, controllers, services, embedded frontend assets |
 | `frontend/` | React + Ant Design 6 + TypeScript source for the panel UI |
-| `database/` | GORM models, migrations, seeders (SQLite / PostgreSQL) |
-| `xray/` | Xray-core process lifecycle and gRPC API client |
-| `sub/` | Subscription endpoints (raw, JSON, Clash) |
-| `config/` | Environment-variable helpers, paths, defaults |
+| `internal/database/` | GORM models, migrations, seeders (SQLite / PostgreSQL) |
+| `internal/xray/` | Xray-core process lifecycle and gRPC API client |
+| `internal/sub/` | Subscription endpoints (raw, JSON, Clash) |
+| `internal/config/` | Environment-variable helpers, paths, defaults |
 | `x-ui/` | **Runtime data** — db, logs, xray binary, geo files (gitignored) |
 
 ## Sending a pull request
