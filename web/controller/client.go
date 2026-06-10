@@ -724,6 +724,9 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 	outbound := map[string]any{
 		"protocol": string(inbound.Protocol),
 		"tag":      "proxy",
+		"mux": map[string]any{
+			"enabled": false,
+		},
 	}
 
 	switch inbound.Protocol {
@@ -732,17 +735,18 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 		if security == "" {
 			security = "auto"
 		}
+		user := map[string]any{
+			"id":       client.UUID,
+			"alterId":  0,
+			"security": security,
+			"level":    8,
+		}
 		outbound["settings"] = map[string]any{
 			"vnext": []any{
 				map[string]any{
 					"address": address,
 					"port":    inbound.Port,
-					"users": []any{
-						map[string]any{
-							"id":       client.UUID,
-							"security": security,
-						},
-					},
+					"users":   []any{user},
 				},
 			},
 		}
@@ -757,6 +761,7 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 		user := map[string]any{
 			"id":         client.UUID,
 			"encryption": encryption,
+			"level":      8,
 		}
 		if client.Flow != "" {
 			user["flow"] = client.Flow
@@ -772,14 +777,17 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 		}
 
 	case model.Trojan:
+		server := map[string]any{
+			"address":  address,
+			"port":     inbound.Port,
+			"password": client.Password,
+			"level":    8,
+		}
+		if client.Flow != "" {
+			server["flow"] = client.Flow
+		}
 		outbound["settings"] = map[string]any{
-			"servers": []any{
-				map[string]any{
-					"address":  address,
-					"port":     inbound.Port,
-					"password": client.Password,
-				},
-			},
+			"servers": []any{server},
 		}
 
 	case model.Shadowsocks:
@@ -799,6 +807,8 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 					"port":     inbound.Port,
 					"password": password,
 					"method":   method,
+					"ota":      false,
+					"level":    8,
 				},
 			},
 		}
@@ -812,12 +822,8 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 			"address": address,
 			"port":    inbound.Port,
 		}
-		// Build hysteria stream settings. Use sanitized stream settings as base
-		// so TLS fields are properly cleaned, then augment with hysteria-specific
-		// fields.
 		var hs map[string]any
 		if streamSettings != nil {
-			// Clone the sanitized stream settings map.
 			hs = make(map[string]any, len(streamSettings)+1)
 			for k, v := range streamSettings {
 				hs[k] = v
@@ -827,13 +833,10 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 		}
 		hs["network"] = "hysteria"
 		hs["security"] = "tls"
-		// Build the hysteriaSettings sub-object.
 		hyS := map[string]any{
-			"auth": client.Auth,
+			"auth":    client.Auth,
+			"version": int(version),
 		}
-		// version inside hysteriaSettings as well
-		hyS["version"] = int(version)
-		// Copy over extra hysteria fields from the sanitized stream settings.
 		if rawHy, ok := hs["hysteriaSettings"].(map[string]any); ok {
 			if v, ok := rawHy["up"]; ok {
 				hyS["up"] = v
@@ -856,7 +859,7 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 		}
 		hs["hysteriaSettings"] = hyS
 		outbound["streamSettings"] = hs
-		streamSettings = nil // already handled above
+		streamSettings = nil
 	}
 
 	if streamSettings != nil {
@@ -864,18 +867,34 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 	}
 
 	config := map[string]any{
+		"stats": map[string]any{},
 		"log": map[string]any{
 			"loglevel": "warning",
 		},
+		"policy": map[string]any{
+			"levels": map[string]any{
+				"8": map[string]any{
+					"handshake":    4,
+					"connIdle":     300,
+					"uplinkOnly":   1,
+					"downlinkOnly": 1,
+				},
+			},
+			"system": map[string]any{
+				"statsOutboundUplink":   true,
+				"statsOutboundDownlink": true,
+			},
+		},
 		"inbounds": []any{
 			map[string]any{
-				"tag":      "socks-in",
+				"tag":      "socks",
 				"listen":   "127.0.0.1",
 				"port":     10808,
 				"protocol": "socks",
 				"settings": map[string]any{
-					"auth": "noauth",
-					"udp":  true,
+					"auth":      "noauth",
+					"udp":       true,
+					"userLevel": 8,
 				},
 				"sniffing": map[string]any{
 					"enabled":     true,
@@ -907,7 +926,7 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 			"rules": []any{
 				map[string]any{
 					"type":        "field",
-					"inboundTag":  []any{"socks-in"},
+					"inboundTag":  []any{"socks"},
 					"outboundTag": "proxy",
 				},
 			},
