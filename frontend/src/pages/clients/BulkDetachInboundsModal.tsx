@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Modal, Select, Typography, message } from 'antd';
 
+import { SelectAllClearButtons } from '@/components/form';
 import type { InboundOption } from '@/hooks/useClients';
 import type { BulkDetachResult } from '@/schemas/client';
 
@@ -81,16 +82,23 @@ export default function BulkDetachInboundsModal({
         {targetOptions.length === 0 ? (
           <Alert type="info" showIcon message={t('pages.clients.detachFromInboundsNoTargets')} />
         ) : (
-          <Select
-            mode="multiple"
-            style={{ width: '100%' }}
-            value={targetIds}
-            onChange={setTargetIds}
-            options={targetOptions}
-            placeholder={t('pages.clients.detachFromInboundsTargets')}
-            optionFilterProp="label"
-            autoFocus
-          />
+          <>
+            <SelectAllClearButtons
+              options={targetOptions}
+              value={targetIds}
+              onChange={setTargetIds}
+            />
+            <Select
+              mode="multiple"
+              style={{ width: '100%' }}
+              value={targetIds}
+              onChange={setTargetIds}
+              options={targetOptions}
+              placeholder={t('pages.clients.detachFromInboundsTargets')}
+              optionFilterProp="label"
+              autoFocus
+            />
+          </>
         )}
       </Modal>
     </>

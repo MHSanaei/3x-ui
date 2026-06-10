@@ -731,6 +731,8 @@
       "duration": "Duration",
       "attachedInbounds": "Attached inbounds",
       "selectInbound": "Select one or more inbounds",
+      "selectAllInbounds": "Select all",
+      "clearAllInbounds": "Clear all",
       "noSubId": "This client has no subId, no shareable link.",
       "noLinks": "No shareable links — attach this client to a protocol-capable inbound first.",
       "link": "Link",

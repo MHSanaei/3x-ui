@@ -731,6 +731,8 @@
       "duration": "Süre",
       "attachedInbounds": "Bağlı Gelen Bağlantılar",
       "selectInbound": "Bir veya Daha Fazla Gelen Bağlantı Seçin",
+      "selectAllInbounds": "Tümünü Seç",
+      "clearAllInbounds": "Tümünü Temizle",
       "noSubId": "Bu kullanıcının subId'si yok, dolayısıyla paylaşılabilir bir bağlantısı bulunmuyor.",
       "noLinks": "Paylaşılabilir bağlantı yok — önce bu kullanıcıyı bir protokole sahip olan gelen bağlantıya bağlayın.",
       "link": "Bağlantı",
@@ -1716,4 +1718,3 @@
     }
   }
 }
-
