@@ -541,6 +541,38 @@ func resolveInboundAddress(inbound *model.Inbound, host string) string {
 	return host
 }
 
+// ensureStringList normalises v to a []any list of strings.
+// It handles: string (comma-separated), []any, []string.
+func ensureStringList(v any) []any {
+	switch val := v.(type) {
+	case string:
+		if val == "" {
+			return nil
+		}
+		parts := strings.Split(val, ",")
+		out := make([]any, 0, len(parts))
+		for _, p := range parts {
+			if trimmed := strings.TrimSpace(p); trimmed != "" {
+				out = append(out, trimmed)
+			}
+		}
+		return out
+	case []any:
+		return val
+	case []string:
+		out := make([]any, len(val))
+		for i, s := range val {
+			out[i] = s
+		}
+		return out
+	}
+	return nil
+}
+
+// sanitizeStreamSettings strips server-side fields from the inbound's
+// streamSettings JSON and returns a map suitable for a client config.
+// The output follows v2rayNG's TlsSettingsBean pattern where TLS fields
+// go into "tlsSettings" and Reality fields go into "realitySettings".
 func sanitizeStreamSettings(raw string) map[string]any {
 	if raw == "" || raw == "{}" {
 		return nil
@@ -550,55 +582,87 @@ func sanitizeStreamSettings(raw string) map[string]any {
 		return nil
 	}
 	delete(ss, "sockopt")
+	delete(ss, "realitySettings")
+	delete(ss, "tlsSettings")
 
-	switch security, _ := ss["security"].(string); security {
+	security, _ := ss["security"].(string)
+	switch security {
 	case "tls":
-		if tls, ok := ss["tlsSettings"].(map[string]any); ok {
-			clean := map[string]any{
-				"serverName": tls["serverName"],
-				"alpn":       tls["alpn"],
-			}
-			if settings, _ := tls["settings"].(map[string]any); settings != nil {
-				if fp, _ := settings["fingerprint"].(string); fp != "" {
-					clean["fingerprint"] = fp
-				}
-				if ech, _ := settings["echConfigList"].(string); ech != "" {
-					clean["echConfigList"] = ech
-				}
-				if pins, _ := settings["pinnedPeerCertSha256"].([]any); len(pins) > 0 {
-					clean["pinnedPeerCertSha256"] = pins
-				}
-			}
-			ss["tlsSettings"] = clean
+		var rawTLS map[string]any
+		if err := json.Unmarshal([]byte(raw), &rawTLS); err != nil {
+			break
 		}
+		tls, _ := rawTLS["tlsSettings"].(map[string]any)
+		if tls == nil {
+			break
+		}
+		clean := map[string]any{
+			"allowInsecure": false,
+		}
+		if sn, _ := tls["serverName"].(string); sn != "" {
+			clean["serverName"] = sn
+		}
+		if alpn := ensureStringList(tls["alpn"]); len(alpn) > 0 {
+			clean["alpn"] = alpn
+		}
+		if ai, ok := tls["allowInsecure"].(bool); ok {
+			clean["allowInsecure"] = ai
+		}
+		if settings, _ := tls["settings"].(map[string]any); settings != nil {
+			if fp, _ := settings["fingerprint"].(string); fp != "" {
+				clean["fingerprint"] = fp
+			}
+			if ech, _ := settings["echConfigList"].(string); ech != "" {
+				clean["echConfigList"] = ech
+			}
+			if pins, _ := settings["pinnedPeerCertSha256"].([]any); len(pins) > 0 {
+				clean["pinnedPeerCertSha256"] = pins
+			}
+		}
+		ss["tlsSettings"] = clean
+
 	case "reality":
-		if reality, ok := ss["realitySettings"].(map[string]any); ok {
-			clean := map[string]any{
-				"publicKey":   reality["publicKey"],
-				"fingerprint": reality["fingerprint"],
-			}
-			if settings, _ := reality["settings"].(map[string]any); settings != nil {
-				if pk, _ := settings["publicKey"].(string); pk != "" {
-					clean["publicKey"] = pk
-				}
-				if fp, _ := settings["fingerprint"].(string); fp != "" {
-					clean["fingerprint"] = fp
-				}
-				if mldsa, _ := settings["mldsa65Verify"].(string); mldsa != "" {
-					clean["mldsa65Verify"] = mldsa
-				}
-			}
-			if serverNames, _ := reality["serverNames"].([]any); len(serverNames) > 0 {
-				clean["serverName"] = serverNames[0].(string)
-			}
-			if shortIds, _ := reality["shortIds"].([]any); len(shortIds) > 0 {
-				clean["shortId"] = shortIds[0].(string)
-			}
-			clean["spiderX"] = "/" + randomString(15)
-			ss["realitySettings"] = clean
+		var rawReality map[string]any
+		if err := json.Unmarshal([]byte(raw), &rawReality); err != nil {
+			break
 		}
+		reality, _ := rawReality["realitySettings"].(map[string]any)
+		if reality == nil {
+			break
+		}
+		clean := map[string]any{}
+		if pk, _ := reality["publicKey"].(string); pk != "" {
+			clean["publicKey"] = pk
+		}
+		if fp, _ := reality["fingerprint"].(string); fp != "" {
+			clean["fingerprint"] = fp
+		}
+		if settings, _ := reality["settings"].(map[string]any); settings != nil {
+			if pk, _ := settings["publicKey"].(string); pk != "" {
+				clean["publicKey"] = pk
+			}
+			if fp, _ := settings["fingerprint"].(string); fp != "" {
+				clean["fingerprint"] = fp
+			}
+			if mldsa, _ := settings["mldsa65Verify"].(string); mldsa != "" {
+				clean["mldsa65Verify"] = mldsa
+			}
+		}
+		if serverNames, _ := reality["serverNames"].([]any); len(serverNames) > 0 {
+			if sn, ok := serverNames[0].(string); ok && sn != "" {
+				clean["serverName"] = sn
+			}
+		}
+		if shortIds, _ := reality["shortIds"].([]any); len(shortIds) > 0 {
+			if sid, ok := shortIds[0].(string); ok && sid != "" {
+				clean["shortId"] = sid
+			}
+		}
+		clean["spiderX"] = "/" + randomString(15)
+		ss["realitySettings"] = clean
 	}
 
+	// Strip server-side fields from transport settings.
 	network, _ := ss["network"].(string)
 	switch network {
 	case "tcp":
@@ -689,14 +753,16 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 		}
 
 	case model.Trojan:
+		server := map[string]any{
+			"address":  address,
+			"port":     inbound.Port,
+			"password": client.Password,
+		}
+		if client.Flow != "" {
+			server["flow"] = client.Flow
+		}
 		outbound["settings"] = map[string]any{
-			"servers": []any{
-				map[string]any{
-					"address":  address,
-					"port":     inbound.Port,
-					"password": client.Password,
-				},
-			},
+			"servers": []any{server},
 		}
 
 	case model.Shadowsocks:
@@ -729,24 +795,24 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 			"address": address,
 			"port":    inbound.Port,
 		}
-		// Build hysteria stream settings
+		// Build hysteria stream settings from inbound stream settings.
 		var stream map[string]any
 		json.Unmarshal([]byte(inbound.StreamSettings), &stream)
-		hyStream, _ := stream["hysteriaSettings"].(map[string]any)
-		if hyStream != nil {
-			outHyStream := map[string]any{
-				"version": int(version),
-				"auth":    client.Auth,
-			}
-			if udpIdleTimeout, ok := hyStream["udpIdleTimeout"].(float64); ok {
-				outHyStream["udpIdleTimeout"] = int(udpIdleTimeout)
-			}
-			if masquerade, ok := hyStream["masquerade"].(map[string]any); ok {
-				outHyStream["masquerade"] = masquerade
-			}
-			hyStream = outHyStream
-		}
 		if stream != nil {
+			hyStream, _ := stream["hysteriaSettings"].(map[string]any)
+			if hyStream != nil {
+				outHyStream := map[string]any{
+					"version": int(version),
+					"auth":    client.Auth,
+				}
+				if udpIdleTimeout, ok := hyStream["udpIdleTimeout"].(float64); ok {
+					outHyStream["udpIdleTimeout"] = int(udpIdleTimeout)
+				}
+				if masquerade, ok := hyStream["masquerade"].(map[string]any); ok {
+					outHyStream["masquerade"] = masquerade
+				}
+				stream["hysteriaSettings"] = outHyStream
+			}
 			stream["network"] = "hysteria"
 			stream["security"] = "tls"
 			delete(stream, "sockopt")
