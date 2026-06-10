@@ -1402,25 +1402,11 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 	return nil
 }
 
-func (s *InboundService) getClientPrimaryKey(protocol model.Protocol, client model.Client) string {
-	switch protocol {
-	case model.Trojan:
-		return client.Password
-	case model.Shadowsocks:
-		return client.Email
-	case model.Hysteria:
-		return client.Auth
-	default:
-		return client.ID
-	}
-}
-
-func (s *InboundService) writeBackClientSubID(sourceInboundID int, sourceProtocol model.Protocol, client model.Client, subID string) (bool, error) {
+func (s *InboundService) writeBackClientSubID(sourceInboundID int, client model.Client, subID string) (bool, error) {
 	client.SubID = subID
 	client.UpdatedAt = time.Now().UnixMilli()
-	clientID := s.getClientPrimaryKey(sourceProtocol, client)
-	if clientID == "" {
-		return false, common.NewError("empty client ID")
+	if client.Email == "" {
+		return false, common.NewError("empty client email")
 	}
 
 	settingsBytes, err := json.Marshal(map[string][]model.Client{
@@ -1434,7 +1420,7 @@ func (s *InboundService) writeBackClientSubID(sourceInboundID int, sourceProtoco
 		Id:       sourceInboundID,
 		Settings: string(settingsBytes),
 	}
-	return s.clientService.UpdateInboundClient(s, updatePayload, clientID)
+	return s.clientService.UpdateInboundClient(s, updatePayload, client.Email)
 }
 
 func (s *InboundService) generateRandomCredential(targetProtocol model.Protocol) string {
@@ -1554,7 +1540,7 @@ func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID
 
 		if sourceClient.SubID == "" {
 			newSubID := uuid.NewString()
-			subNeedRestart, subErr := s.writeBackClientSubID(sourceInbound.Id, sourceInbound.Protocol, sourceClient, newSubID)
+			subNeedRestart, subErr := s.writeBackClientSubID(sourceInbound.Id, sourceClient, newSubID)
 			if subErr != nil {
 				result.Errors = append(result.Errors, fmt.Sprintf("%s: failed to write source subId: %v", originalEmail, subErr))
 				continue
