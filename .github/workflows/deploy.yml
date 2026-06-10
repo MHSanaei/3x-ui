@@ -2,101 +2,349 @@ name: Build & Deploy 3xuidash
 
 on:
   workflow_dispatch:
+    inputs:
+      version_tag:
+        description: "Version tag to build/deploy, for example v3.3.0. Leave empty to use the latest v* tag."
+        required: false
+        type: string
+      target:
+        description: "Deployment target name from XUIDASH_DEPLOY_TARGETS, or all."
+        required: false
+        default: "all"
+        type: string
+      publish_release:
+        description: "Create or update the GitHub Release for the resolved version tag."
+        required: false
+        default: true
+        type: boolean
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 concurrency:
   group: deploy-3xuidash
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  packages: write
+
 env:
-  IMAGE: xidahuang/3xuidash
-  TARBALL: /tmp/3xuidash-image.tar.gz
-  REMOTE_TARBALL: /tmp/3xuidash-incoming.tar.gz
-  REMOTE_COMPOSE_DIR: /root/3x-ui
-  IMAGE_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.sha }}
+  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/3xuidash
 
 jobs:
-  build:
-    runs-on: [self-hosted, ca1]
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-          fetch-depth: 1
-
-      - name: Build image on ca1
-        run: |
-          docker build \
-            --build-arg XUI_ASSET_VERSION=${{ env.IMAGE_VERSION }} \
-            --build-arg TARGETARCH=amd64 \
-            -t "$IMAGE:latest" \
-            -t "$IMAGE:${IMAGE_VERSION}" \
-            .
-          docker images "$IMAGE" | head -5
-
-      - name: Save image to tarball
-        run: |
-          rm -f "$TARBALL"
-          docker save "$IMAGE:latest" | gzip -1 > "$TARBALL"
-          ls -lh "$TARBALL"
-
-  deploy:
-    needs: build
-    runs-on: [self-hosted, ca1]
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        host: [los1, los2, los3, ca1-self]
-    steps:
-      - name: Transfer to ${{ matrix.host }}
-        run: |
-          scp -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 "$TARBALL" "${{ matrix.host }}:$REMOTE_TARBALL"
-
-      - name: Load & restart on ${{ matrix.host }}
-        run: |
-          ssh -o ConnectTimeout=15 ${{ matrix.host }} "bash -s" <<REMOTE
-          set -euo pipefail
-          cd "$REMOTE_COMPOSE_DIR"
-          echo "[${{ matrix.host }}] loading image..."
-          docker load < "$REMOTE_TARBALL"
-          echo "[${{ matrix.host }}] compose up -d..."
-          docker compose up -d
-          echo "[${{ matrix.host }}] pruning dangling..."
-          docker image prune -f
-          echo "[${{ matrix.host }}] cleanup tar..."
-          rm -f "$REMOTE_TARBALL"
-          echo "[${{ matrix.host }}] status:"
-          docker ps --filter name=3xui_app --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
-          REMOTE
-
-  release:
-    needs: deploy
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && needs.deploy.result == 'success'
-    permissions:
-      contents: write
+  prepare:
+    name: Resolve version and targets
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      image_version: ${{ steps.version.outputs.image_version }}
+      release_tag: ${{ steps.version.outputs.release_tag }}
+      target_sha: ${{ steps.version.outputs.target_sha }}
+      short_sha: ${{ steps.version.outputs.short_sha }}
+      deploy_targets: ${{ steps.targets.outputs.deploy_targets }}
+      deploy_count: ${{ steps.targets.outputs.deploy_count }}
+      skipped_targets: ${{ steps.targets.outputs.skipped_targets }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Generate release notes
+      - name: Resolve version
+        id: version
+        shell: bash
         run: |
-          prev_tag="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)"
+          set -euo pipefail
+
+          git fetch --force --tags origin
+
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            image_version="${GITHUB_REF_NAME}"
+            release_tag="${GITHUB_REF_NAME}"
+            target_ref="${GITHUB_REF_NAME}"
+          else
+            requested_tag="${{ inputs.version_tag || '' }}"
+            if [[ -n "$requested_tag" ]]; then
+              if ! git rev-parse --verify --quiet "${requested_tag}^{commit}" >/dev/null; then
+                echo "Requested tag '${requested_tag}' does not exist." >&2
+                exit 1
+              fi
+              image_version="$requested_tag"
+              release_tag="$requested_tag"
+              target_ref="$requested_tag"
+            else
+              latest_tag="$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
+              if [[ -n "$latest_tag" ]]; then
+                image_version="$latest_tag"
+                release_tag="$latest_tag"
+                target_ref="$latest_tag"
+              else
+                image_version="$(git rev-parse --short=12 HEAD)"
+                release_tag=""
+                target_ref="HEAD"
+              fi
+            fi
+          fi
+
+          target_sha="$(git rev-parse "${target_ref}^{commit}")"
+          short_sha="$(git rev-parse --short=12 "$target_sha")"
+
           {
-            echo "## Release ${GITHUB_REF_NAME}"
+            echo "image_version=${image_version}"
+            echo "release_tag=${release_tag}"
+            echo "target_sha=${target_sha}"
+            echo "short_sha=${short_sha}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Image version: ${image_version}"
+          echo "Release tag: ${release_tag:-<none>}"
+          echo "Target SHA: ${target_sha}"
+
+      - name: Resolve deployment targets
+        id: targets
+        shell: bash
+        env:
+          DEPLOY_TARGETS_JSON: ${{ secrets.XUIDASH_DEPLOY_TARGETS }}
+          ALL_SECRETS_JSON: ${{ toJSON(secrets) }}
+          REQUESTED_TARGET: ${{ inputs.target || 'all' }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$REQUESTED_TARGET" ]]; then
+            echo "Deployment target cannot be empty. Use all or a target name from XUIDASH_DEPLOY_TARGETS." >&2
+            exit 1
+          fi
+
+          jq -e 'type == "array"' <<< "$DEPLOY_TARGETS_JSON" >/dev/null
+
+          if [[ "$REQUESTED_TARGET" == "all" ]]; then
+            candidates="$(
+              jq -c '
+                map({
+                    name: .name,
+                    host: .host,
+                    port: (.port // 22),
+                    user: .user,
+                    key_suffix: .key_suffix,
+                    command: (.command // "sudo /usr/local/sbin/deploy-3xuidash")
+                  })
+              ' <<< "$DEPLOY_TARGETS_JSON"
+            )"
+          else
+            candidates="$(
+              jq -c --arg target "$REQUESTED_TARGET" '
+                map(select(.name == $target))
+                | map({
+                    name: .name,
+                    host: .host,
+                    port: (.port // 22),
+                    user: .user,
+                    key_suffix: .key_suffix,
+                    command: (.command // "sudo /usr/local/sbin/deploy-3xuidash")
+                  })
+              ' <<< "$DEPLOY_TARGETS_JSON"
+            )"
+          fi
+
+          matched_count="$(jq 'length' <<< "$candidates")"
+          if [[ "$matched_count" -eq 0 ]]; then
+            echo "No deployment targets matched '${REQUESTED_TARGET}'." >&2
+            exit 1
+          fi
+
+          targets="[]"
+          skipped_targets="[]"
+
+          while IFS= read -r encoded_target; do
+            target_json="$(base64 -d <<< "$encoded_target")"
+            name="$(jq -r '.name // ""' <<< "$target_json")"
+            host="$(jq -r '.host // ""' <<< "$target_json")"
+            port="$(jq -r '.port // ""' <<< "$target_json")"
+            user="$(jq -r '.user // ""' <<< "$target_json")"
+            key_suffix="$(jq -r '.key_suffix // ""' <<< "$target_json")"
+            command="$(jq -r '.command // ""' <<< "$target_json")"
+            display_name="${name:-<unnamed>}"
+            reason=""
+
+            if [[ -z "$name" ]]; then
+              reason="missing name"
+            elif [[ -z "$host" ]]; then
+              reason="missing host"
+            elif [[ -z "$user" ]]; then
+              reason="missing user"
+            elif ! jq -e '(.port | type) == "number"' <<< "$target_json" >/dev/null; then
+              reason="invalid port"
+            elif [[ -z "$key_suffix" ]]; then
+              reason="missing key_suffix"
+            elif [[ ! "$key_suffix" =~ ^[A-Z0-9_]+$ ]]; then
+              reason="invalid key_suffix"
+            elif [[ -z "$command" ]]; then
+              reason="missing command"
+            fi
+
+            if [[ -z "$reason" ]]; then
+              secret_name="XUIDASH_DEPLOY_KEY_${key_suffix}"
+              private_key="$(jq -r --arg name "$secret_name" '.[$name] // empty' <<< "$ALL_SECRETS_JSON")"
+              if [[ -z "$private_key" ]]; then
+                reason="missing secret ${secret_name}"
+              fi
+            fi
+
+            if [[ -n "$reason" ]]; then
+              echo "Skip target ${display_name}: ${reason}."
+              skipped_targets="$(jq -c --arg name "$display_name" --arg reason "$reason" '. + [{name: $name, reason: $reason}]' <<< "$skipped_targets")"
+              continue
+            fi
+
+            targets="$(jq -c --argjson target "$target_json" '. + [$target]' <<< "$targets")"
+          done < <(jq -r '.[] | @base64' <<< "$candidates")
+
+          deploy_count="$(jq 'length' <<< "$targets")"
+
+          if [[ "$deploy_count" -eq 0 ]]; then
+            echo "No deployment targets are ready; skipping build and deploy."
+          fi
+
+          echo "deploy_targets=${targets}" >> "$GITHUB_OUTPUT"
+          echo "deploy_count=${deploy_count}" >> "$GITHUB_OUTPUT"
+          echo "skipped_targets=${skipped_targets}" >> "$GITHUB_OUTPUT"
+          jq -r '.[] | "Deploy target: \(.name)"' <<< "$targets"
+
+  build:
+    name: Build and push image
+    needs: prepare
+    if: needs.prepare.outputs.deploy_count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.target_sha }}
+          submodules: true
+          fetch-depth: 1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        shell: bash
+        run: |
+          echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build and push image
+        shell: bash
+        run: |
+          IMAGE_VERSION="${{ needs.prepare.outputs.image_version }}"
+
+          docker buildx build \
+            --platform linux/amd64 \
+            --build-arg XUI_ASSET_VERSION="${IMAGE_VERSION}" \
+            --build-arg TARGETARCH=amd64 \
+            -t "$GHCR_IMAGE:latest" \
+            -t "$GHCR_IMAGE:${IMAGE_VERSION}" \
+            --push \
+            .
+
+  deploy:
+    name: Deploy to ${{ matrix.target.name }}
+    needs: [prepare, build]
+    if: needs.prepare.outputs.deploy_count != '0' && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.prepare.outputs.deploy_targets) }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        env:
+          ALL_SECRETS_JSON: ${{ toJSON(secrets) }}
+        run: |
+          set -euo pipefail
+
+          secret_name="XUIDASH_DEPLOY_KEY_${{ matrix.target.key_suffix }}"
+          private_key="$(jq -r --arg name "$secret_name" '.[$name] // empty' <<< "$ALL_SECRETS_JSON")"
+          if [[ -z "$private_key" ]]; then
+            echo "Missing deployment SSH key secret '${secret_name}' for target '${{ matrix.target.name }}'." >&2
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          install -m 600 /dev/null ~/.ssh/deploy_3xuidash
+          printf '%s\n' "$private_key" > ~/.ssh/deploy_3xuidash
+          chmod 600 ~/.ssh/deploy_3xuidash
+          cat > ~/.ssh/config <<SSHCONF
+          Host deploy-target
+              HostName __XUIDASH_DEPLOY_HOST__
+              Port __XUIDASH_DEPLOY_PORT__
+              User __XUIDASH_DEPLOY_USER__
+              IdentityFile ~/.ssh/deploy_3xuidash
+              IdentitiesOnly yes
+              ServerAliveInterval 60
+              StrictHostKeyChecking accept-new
+              UserKnownHostsFile ~/.ssh/known_hosts
+              ConnectTimeout 10
+          SSHCONF
+          sed -i \
+            -e "s|__XUIDASH_DEPLOY_HOST__|${{ matrix.target.host }}|g" \
+            -e "s|__XUIDASH_DEPLOY_PORT__|${{ matrix.target.port }}|g" \
+            -e "s|__XUIDASH_DEPLOY_USER__|${{ matrix.target.user }}|g" \
+            ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy ${{ matrix.target.name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh deploy-target '${{ matrix.target.command }}' '${{ needs.prepare.outputs.image_version }}'
+
+  release:
+    name: Create GitHub Release
+    needs: [prepare, deploy]
+    if: >-
+      success() &&
+      needs.prepare.outputs.deploy_count != '0' &&
+      needs.prepare.outputs.release_tag != '' &&
+      (
+        startsWith(github.ref, 'refs/tags/') ||
+        (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.target_sha }}
+          fetch-depth: 0
+
+      - name: Fetch tags for release notes
+        shell: bash
+        run: git fetch --force --tags origin
+
+      - name: Generate release notes
+        shell: bash
+        run: |
+          TAG_NAME="${{ needs.prepare.outputs.release_tag }}"
+          TARGET_SHA="${{ needs.prepare.outputs.target_sha }}"
+          prev_tag="$(git describe --tags --abbrev=0 "${TAG_NAME}^" 2>/dev/null || true)"
+          {
+            echo "## Release ${TAG_NAME}"
             echo
-            echo "Automated source release after successful deploy for tag \`${GITHUB_REF_NAME}\`."
+            echo "Automated source release for tag \`${TAG_NAME}\`."
             echo
             if [ -n "$prev_tag" ]; then
               echo "Changes since \`${prev_tag}\`:"
               echo
-              git log "${prev_tag}..HEAD" --pretty=format:"- %s (%h)"
+              git log "${prev_tag}..${TARGET_SHA}" --pretty=format:"- %s (%h)"
             else
               echo "Initial tagged release in this repository."
             fi
@@ -105,26 +353,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          name: ${{ github.ref_name }}
+          tag_name: ${{ needs.prepare.outputs.release_tag }}
+          target_commitish: ${{ needs.prepare.outputs.target_sha }}
+          name: ${{ needs.prepare.outputs.release_tag }}
           body_path: release_notes.md
           draft: false
           prerelease: false
           generate_release_notes: true
-
-  cleanup:
-    needs: [deploy, release]
-    if: always()
-    runs-on: [self-hosted, ca1]
-    steps:
-      - name: Cleanup tar on ca1
-        run: rm -f "$TARBALL"
-
-      - name: Prune old image tags on ca1 (keep latest + 3 recent non-latest tags)
-        if: needs.deploy.result == 'success'
-        run: |
-          docker images "$IMAGE" --format '{{.Tag}} {{.CreatedAt}}' \
-            | awk '$1 != "latest" { print }' \
-            | sort -k2 -r \
-            | awk 'NR>3 {print $1}' \
-            | xargs -r -I{} docker rmi "$IMAGE:{}" 2>/dev/null || true
-

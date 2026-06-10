@@ -4,39 +4,48 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing tag to publish
+        description: "Tag name to release, for example v3.3.0."
+        required: true
+        type: string
+      target_sha:
+        description: "Commit SHA the tag points to."
         required: true
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   release:
-    permissions:
-      contents: write
+    name: Create source release
     runs-on: ubuntu-latest
+    env:
+      TAG_NAME: ${{ inputs.tag }}
+      TARGET_SHA: ${{ inputs.target_sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
+          ref: ${{ env.TARGET_SHA }}
           fetch-depth: 0
-          ref: refs/tags/${{ inputs.tag }}
 
-      - name: Ensure tag exists
-        run: git rev-parse "refs/tags/${{ inputs.tag }}"
+      - name: Fetch tags
+        shell: bash
+        run: git fetch --force --tags origin
 
       - name: Generate release notes
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
         run: |
-          prev_tag="$(git describe --tags --abbrev=0 "refs/tags/${RELEASE_TAG}^" 2>/dev/null || true)"
+          prev_tag="$(git describe --tags --abbrev=0 "${TAG_NAME}^" 2>/dev/null || true)"
           {
-            echo "## Release ${RELEASE_TAG}"
+            echo "## Release ${TAG_NAME}"
             echo
-            echo "Manual source release for tag \`${RELEASE_TAG}\`."
+            echo "Automated source release for tag \`${TAG_NAME}\`."
             echo
             if [ -n "$prev_tag" ]; then
               echo "Changes since \`${prev_tag}\`:"
               echo
-              git log "${prev_tag}..refs/tags/${RELEASE_TAG}" --pretty=format:"- %s (%h)"
+              git log "${prev_tag}..${TARGET_SHA}" --pretty=format:"- %s (%h)"
             else
               echo "Initial tagged release in this repository."
             fi
@@ -45,8 +54,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ inputs.tag }}
-          name: ${{ inputs.tag }}
+          tag_name: ${{ env.TAG_NAME }}
+          target_commitish: ${{ env.TARGET_SHA }}
+          name: ${{ env.TAG_NAME }}
           body_path: release_notes.md
           draft: false
           prerelease: false

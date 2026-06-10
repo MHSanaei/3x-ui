@@ -10,7 +10,7 @@ jobs:
       - name: Explain current publish flow
         run: |
           echo "DockerHub publishing has been retired."
-          echo "Formal tag releases now use deploy.yml on the self-hosted ca1 runner plus release.yml for GitHub Releases."
+          echo "Formal tag releases now use deploy.yml to build GHCR images and deploy over SSH, plus release.yml for GitHub Releases."
 
   build:
     if: false
