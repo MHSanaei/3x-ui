@@ -289,7 +289,8 @@ func (s *InboundService) getAllEmailSubIDs() (map[string]string, error) {
 }
 
 // normalizeStreamSettings clears StreamSettings for protocols that don't use it.
-// Only vmess, vless, trojan, shadowsocks, and hysteria protocols use streamSettings.
+// Only vmess, vless, trojan, shadowsocks, hysteria, and wireguard protocols use
+// streamSettings (wireguard for finalmask UDP masks and sockopt on its listener).
 func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	protocolsWithStream := map[model.Protocol]bool{
 		model.VMESS:       true,
@@ -297,6 +298,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 		model.Trojan:      true,
 		model.Shadowsocks: true,
 		model.Hysteria:    true,
+		model.WireGuard:   true,
 	}
 
 	if !protocolsWithStream[inbound.Protocol] {

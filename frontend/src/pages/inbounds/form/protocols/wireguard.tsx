@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Divider, Form, Input, InputNumber, Space, Switch, Select } from 'antd';
+import { Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { MinusOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { Wireguard } from '@/utils';
@@ -62,10 +62,10 @@ export default function WireguardFields({ wgPubKey, regenInboundWg, regenWgPeerK
       >
         <Switch />
       </Form.Item>
-      <Form.Item name={['settings', 'workers']} label={t('pages.xray.wireguard.workers')}>
+      <Form.Item name={['settings', 'workers']} label='Workers'>
         <InputNumber min={1} />
       </Form.Item>
-      <Form.Item name={['settings', 'domainStrategy']} label={t('pages.inbounds.domainStrategy')}>
+      <Form.Item name={['settings', 'domainStrategy']} label={t('pages.xray.wireguard.domainStrategy')}>
         <Select
           allowClear
           options={[
