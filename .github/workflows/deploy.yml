@@ -42,9 +42,7 @@ jobs:
       release_tag: ${{ steps.version.outputs.release_tag }}
       target_sha: ${{ steps.version.outputs.target_sha }}
       short_sha: ${{ steps.version.outputs.short_sha }}
-      deploy_targets: ${{ steps.targets.outputs.deploy_targets }}
       deploy_count: ${{ steps.targets.outputs.deploy_count }}
-      skipped_targets: ${{ steps.targets.outputs.skipped_targets }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -206,9 +204,7 @@ jobs:
             echo "No deployment targets are ready; skipping build and deploy."
           fi
 
-          echo "deploy_targets=${targets}" >> "$GITHUB_OUTPUT"
           echo "deploy_count=${deploy_count}" >> "$GITHUB_OUTPUT"
-          echo "skipped_targets=${skipped_targets}" >> "$GITHUB_OUTPUT"
           jq -r '.[] | "Deploy target: \(.name)"' <<< "$targets"
 
   build:
@@ -251,36 +247,102 @@ jobs:
             .
 
   deploy:
-    name: Deploy to ${{ matrix.target.name }}
+    name: Deploy configured targets
     needs: [prepare, build]
     if: needs.prepare.outputs.deploy_count != '0' && needs.build.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        target: ${{ fromJSON(needs.prepare.outputs.deploy_targets) }}
     steps:
-      - name: Configure SSH
+      - name: Deploy ready targets
         shell: bash
         env:
+          DEPLOY_TARGETS_JSON: ${{ secrets.XUIDASH_DEPLOY_TARGETS }}
           ALL_SECRETS_JSON: ${{ toJSON(secrets) }}
+          REQUESTED_TARGET: ${{ inputs.target || 'all' }}
+          IMAGE_VERSION: ${{ needs.prepare.outputs.image_version }}
         run: |
           set -euo pipefail
 
-          secret_name="XUIDASH_DEPLOY_KEY_${{ matrix.target.key_suffix }}"
-          private_key="$(jq -r --arg name "$secret_name" '.[$name] // empty' <<< "$ALL_SECRETS_JSON")"
-          if [[ -z "$private_key" ]]; then
-            echo "Missing deployment SSH key secret '${secret_name}' for target '${{ matrix.target.name }}'." >&2
-            exit 1
+          if [[ "$REQUESTED_TARGET" == "all" ]]; then
+            candidates="$(
+              jq -c '
+                map({
+                    name: .name,
+                    host: .host,
+                    port: (.port // 22),
+                    user: .user,
+                    key_suffix: .key_suffix,
+                    command: (.command // "sudo /usr/local/sbin/deploy-3xuidash")
+                  })
+              ' <<< "$DEPLOY_TARGETS_JSON"
+            )"
+          else
+            candidates="$(
+              jq -c --arg target "$REQUESTED_TARGET" '
+                map(select(.name == $target))
+                | map({
+                    name: .name,
+                    host: .host,
+                    port: (.port // 22),
+                    user: .user,
+                    key_suffix: .key_suffix,
+                    command: (.command // "sudo /usr/local/sbin/deploy-3xuidash")
+                  })
+              ' <<< "$DEPLOY_TARGETS_JSON"
+            )"
           fi
 
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          install -m 600 /dev/null ~/.ssh/deploy_3xuidash
-          printf '%s\n' "$private_key" > ~/.ssh/deploy_3xuidash
-          chmod 600 ~/.ssh/deploy_3xuidash
-          cat > ~/.ssh/config <<SSHCONF
+          deploy_count=0
+
+          while IFS= read -r encoded_target; do
+            target_json="$(base64 -d <<< "$encoded_target")"
+            name="$(jq -r '.name // ""' <<< "$target_json")"
+            host="$(jq -r '.host // ""' <<< "$target_json")"
+            user="$(jq -r '.user // ""' <<< "$target_json")"
+            key_suffix="$(jq -r '.key_suffix // ""' <<< "$target_json")"
+            command="$(jq -r '.command // ""' <<< "$target_json")"
+            display_name="${name:-<unnamed>}"
+            reason=""
+
+            if [[ -z "$name" ]]; then
+              reason="missing name"
+            elif [[ -z "$host" ]]; then
+              reason="missing host"
+            elif [[ -z "$user" ]]; then
+              reason="missing user"
+            elif ! jq -e '(.port | type) == "number"' <<< "$target_json" >/dev/null; then
+              reason="invalid port"
+            elif [[ -z "$key_suffix" ]]; then
+              reason="missing key_suffix"
+            elif [[ ! "$key_suffix" =~ ^[A-Z0-9_]+$ ]]; then
+              reason="invalid key_suffix"
+            elif [[ -z "$command" ]]; then
+              reason="missing command"
+            fi
+
+            if [[ -z "$reason" ]]; then
+              secret_name="XUIDASH_DEPLOY_KEY_${key_suffix}"
+              private_key="$(jq -r --arg name "$secret_name" '.[$name] // empty' <<< "$ALL_SECRETS_JSON")"
+              if [[ -z "$private_key" ]]; then
+                reason="missing secret ${secret_name}"
+              fi
+            fi
+
+            if [[ -n "$reason" ]]; then
+              echo "Skip target ${display_name}: ${reason}."
+              continue
+            fi
+
+            port="$(jq -r '.port' <<< "$target_json")"
+            deploy_count=$((deploy_count + 1))
+            echo "Deploy target: ${name}"
+
+            mkdir -p ~/.ssh
+            chmod 700 ~/.ssh
+            install -m 600 /dev/null ~/.ssh/deploy_3xuidash
+            printf '%s\n' "$private_key" > ~/.ssh/deploy_3xuidash
+            chmod 600 ~/.ssh/deploy_3xuidash
+            cat > ~/.ssh/config <<SSHCONF
           Host deploy-target
               HostName __XUIDASH_DEPLOY_HOST__
               Port __XUIDASH_DEPLOY_PORT__
@@ -292,18 +354,19 @@ jobs:
               UserKnownHostsFile ~/.ssh/known_hosts
               ConnectTimeout 10
           SSHCONF
-          sed -i \
-            -e "s|__XUIDASH_DEPLOY_HOST__|${{ matrix.target.host }}|g" \
-            -e "s|__XUIDASH_DEPLOY_PORT__|${{ matrix.target.port }}|g" \
-            -e "s|__XUIDASH_DEPLOY_USER__|${{ matrix.target.user }}|g" \
-            ~/.ssh/config
-          chmod 600 ~/.ssh/config
+            sed -i \
+              -e "s|__XUIDASH_DEPLOY_HOST__|${host}|g" \
+              -e "s|__XUIDASH_DEPLOY_PORT__|${port}|g" \
+              -e "s|__XUIDASH_DEPLOY_USER__|${user}|g" \
+              ~/.ssh/config
+            chmod 600 ~/.ssh/config
 
-      - name: Deploy ${{ matrix.target.name }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          ssh deploy-target '${{ matrix.target.command }}' '${{ needs.prepare.outputs.image_version }}'
+            ssh deploy-target "$command" "$IMAGE_VERSION"
+          done < <(jq -r '.[] | @base64' <<< "$candidates")
+
+          if [[ "$deploy_count" -eq 0 ]]; then
+            echo "No deployment targets are ready; skipping deploy."
+          fi
 
   release:
     name: Create GitHub Release
