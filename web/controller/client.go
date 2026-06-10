@@ -656,11 +656,15 @@ func sanitizeStreamSettings(raw string) map[string]any {
 			if sn, ok := serverNames[0].(string); ok && sn != "" {
 				clean["serverName"] = sn
 			}
+		} else if sn, _ := reality["serverName"].(string); sn != "" {
+			clean["serverName"] = sn
 		}
 		if shortIds, _ := reality["shortIds"].([]any); len(shortIds) > 0 {
 			if sid, ok := shortIds[0].(string); ok && sid != "" {
 				clean["shortId"] = sid
 			}
+		} else if sid, _ := reality["shortId"].(string); sid != "" {
+			clean["shortId"] = sid
 		}
 		clean["spiderX"] = "/" + randomString(15)
 		ss["realitySettings"] = clean
@@ -673,11 +677,19 @@ func sanitizeStreamSettings(raw string) map[string]any {
 		if tcp, ok := ss["tcpSettings"].(map[string]any); ok {
 			delete(tcp, "acceptProxyProtocol")
 		}
-	case "ws":
-		if ws, ok := ss["wsSettings"].(map[string]any); ok {
-			delete(ws, "acceptProxyProtocol")
-		}
-	case "httpupgrade":
+		case "kcp":
+			if kcp, ok := ss["kcpSettings"].(map[string]any); ok {
+				delete(kcp, "header")
+				delete(kcp, "seed")
+				if finalMask, _ := kcp["finalMask"].(string); finalMask == "" {
+					kcp["finalMask"] = "mkcp-original"
+				}
+			}
+		case "ws":
+			if ws, ok := ss["wsSettings"].(map[string]any); ok {
+				delete(ws, "acceptProxyProtocol")
+			}
+		case "httpupgrade":
 		if hu, ok := ss["httpupgradeSettings"].(map[string]any); ok {
 			delete(hu, "acceptProxyProtocol")
 		}
