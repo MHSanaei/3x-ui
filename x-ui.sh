@@ -695,7 +695,7 @@ disable_bbr() {
             sysctl -w net.ipv4.tcp_window_scaling="$(echo "$old_settings" | awk -F: '{print $4}')"
         fi
         rm /etc/sysctl.d/99-bbr-x-ui.conf
-        sysctl --system
+        sysctl --system 2>/dev/null
     else
         # Replace BBR with CUBIC configurations
         if [ -f "/etc/sysctl.conf" ]; then
@@ -703,7 +703,7 @@ disable_bbr() {
             sed -i 's/net.ipv4.tcp_congestion_control=bbr/net.ipv4.tcp_congestion_control=cubic/' /etc/sysctl.conf
             sed -i 's/net.ipv4.tcp_ecn=1/net.ipv4.tcp_ecn=2/' /etc/sysctl.conf
             sed -i 's/net.ipv4.tcp_window_scaling=1/net.ipv4.tcp_window_scaling=0/' /etc/sysctl.conf
-            sysctl -p
+            sysctl -p 2>/dev/null
         fi
     fi
 
@@ -736,7 +736,7 @@ enable_bbr() {
             sed -i 's/^net.ipv4.tcp_ecn/# &/' /etc/sysctl.conf
             sed -i 's/^net.ipv4.tcp_window_scaling/# &/' /etc/sysctl.conf
         fi
-        sysctl --system
+        sysctl --system 2>/dev/null
     else
         sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
         sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
@@ -746,7 +746,7 @@ enable_bbr() {
         echo "net.ipv4.tcp_congestion_control=bbr" | tee -a /etc/sysctl.conf
         echo "net.ipv4.tcp_ecn=1" | tee -a /etc/sysctl.conf
         echo "net.ipv4.tcp_window_scaling=1" | tee -a /etc/sysctl.conf
-        sysctl -p
+        sysctl -p 2>/dev/null
     fi
 
     # Verify that BBR is enabled
