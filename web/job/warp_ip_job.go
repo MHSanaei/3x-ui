@@ -5,11 +5,12 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/service/integration"
 )
 
 type WarpIpJob struct {
 	settingService service.SettingService
-	warpService    service.WarpService
+	warpService    integration.WarpService
 	xrayService    service.XrayService
 }
 

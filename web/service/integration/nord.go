@@ -1,4 +1,4 @@
-package service
+package integration
 
 import (
 	"encoding/json"
@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/util/common"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
 )
 
 type NordService struct {
-	SettingService
+	service.SettingService
 }
 
 var nordHTTPClient = &http.Client{Timeout: 15 * time.Second}

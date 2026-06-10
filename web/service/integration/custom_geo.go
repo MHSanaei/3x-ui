@@ -1,4 +1,4 @@
-package service
+package integration
 
 import (
 	"context"
@@ -20,6 +20,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/util/netproxy"
 	"github.com/mhsanaei/3x-ui/v3/util/netsafe"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
 )
 
 const (
@@ -70,7 +71,7 @@ type CustomGeoUpdateAllResult struct {
 }
 
 type CustomGeoService struct {
-	serverService    *ServerService
+	serverService    *service.ServerService
 	updateAllGetAll  func() ([]model.CustomGeoResource, error)
 	updateAllApply   func(id int, onStartup bool) (string, error)
 	updateAllRestart func() error
@@ -79,12 +80,12 @@ type CustomGeoService struct {
 
 func NewCustomGeoService() *CustomGeoService {
 	s := &CustomGeoService{
-		serverService: &ServerService{},
+		serverService: &service.ServerService{},
 	}
 	s.updateAllGetAll = s.GetAll
 	s.updateAllApply = s.applyDownloadAndPersist
 	s.updateAllRestart = func() error { return s.serverService.RestartXrayService() }
-	s.getPanelProxy = (&SettingService{}).GetPanelProxy
+	s.getPanelProxy = (&service.SettingService{}).GetPanelProxy
 	return s
 }
 

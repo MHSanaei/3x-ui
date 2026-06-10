@@ -26,6 +26,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/web/network"
 	"github.com/mhsanaei/3x-ui/v3/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/web/websocket"
 
@@ -108,7 +109,7 @@ type Server struct {
 	xrayService      service.XrayService
 	settingService   service.SettingService
 	tgbotService     service.Tgbot
-	customGeoService *service.CustomGeoService
+	customGeoService *integration.CustomGeoService
 
 	wsHub *websocket.Hub
 
@@ -390,7 +391,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		SetNeedRestart: func() { s.xrayService.SetToNeedRestart() },
 	}))
 
-	s.customGeoService = service.NewCustomGeoService()
+	s.customGeoService = integration.NewCustomGeoService()
 
 	engine, err := s.initRouter()
 	if err != nil {

@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/mhsanaei/3x-ui/v3/util/netsafe"
 )
 
 // SanitizeHTTPURL validates and normalizes an http(s) URL without resolving
@@ -79,4 +81,8 @@ func rejectPrivateHost(ctx context.Context, hostname string) error {
 		}
 	}
 	return nil
+}
+
+func isBlockedIP(ip net.IP) bool {
+	return netsafe.IsBlockedIP(ip)
 }

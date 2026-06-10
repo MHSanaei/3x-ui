@@ -8,17 +8,17 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/web/entity"
-	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/service/integration"
 
 	"github.com/gin-gonic/gin"
 )
 
 type CustomGeoController struct {
 	BaseController
-	customGeoService *service.CustomGeoService
+	customGeoService *integration.CustomGeoService
 }
 
-func NewCustomGeoController(g *gin.RouterGroup, customGeo *service.CustomGeoService) *CustomGeoController {
+func NewCustomGeoController(g *gin.RouterGroup, customGeo *integration.CustomGeoService) *CustomGeoController {
 	a := &CustomGeoController{customGeoService: customGeo}
 	a.initRouter(g)
 	return a
@@ -39,33 +39,33 @@ func mapCustomGeoErr(c *gin.Context, err error) error {
 		return nil
 	}
 	switch {
-	case errors.Is(err, service.ErrCustomGeoInvalidType):
+	case errors.Is(err, integration.ErrCustomGeoInvalidType):
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrInvalidType"))
-	case errors.Is(err, service.ErrCustomGeoAliasRequired):
+	case errors.Is(err, integration.ErrCustomGeoAliasRequired):
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrAliasRequired"))
-	case errors.Is(err, service.ErrCustomGeoAliasPattern):
+	case errors.Is(err, integration.ErrCustomGeoAliasPattern):
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrAliasPattern"))
-	case errors.Is(err, service.ErrCustomGeoAliasReserved):
+	case errors.Is(err, integration.ErrCustomGeoAliasReserved):
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrAliasReserved"))
-	case errors.Is(err, service.ErrCustomGeoURLRequired):
+	case errors.Is(err, integration.ErrCustomGeoURLRequired):
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrUrlRequired"))
-	case errors.Is(err, service.ErrCustomGeoInvalidURL):
+	case errors.Is(err, integration.ErrCustomGeoInvalidURL):
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrInvalidUrl"))
-	case errors.Is(err, service.ErrCustomGeoURLScheme):
+	case errors.Is(err, integration.ErrCustomGeoURLScheme):
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrUrlScheme"))
-	case errors.Is(err, service.ErrCustomGeoURLHost):
+	case errors.Is(err, integration.ErrCustomGeoURLHost):
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrUrlHost"))
-	case errors.Is(err, service.ErrCustomGeoDuplicateAlias):
+	case errors.Is(err, integration.ErrCustomGeoDuplicateAlias):
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrDuplicateAlias"))
-	case errors.Is(err, service.ErrCustomGeoNotFound):
+	case errors.Is(err, integration.ErrCustomGeoNotFound):
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrNotFound"))
-	case errors.Is(err, service.ErrCustomGeoDownload):
+	case errors.Is(err, integration.ErrCustomGeoDownload):
 		logger.Warning("custom geo download:", err)
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrDownload"))
-	case errors.Is(err, service.ErrCustomGeoSSRFBlocked):
+	case errors.Is(err, integration.ErrCustomGeoSSRFBlocked):
 		logger.Warning("custom geo SSRF blocked:", err)
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrUrlHost"))
-	case errors.Is(err, service.ErrCustomGeoPathTraversal):
+	case errors.Is(err, integration.ErrCustomGeoPathTraversal):
 		logger.Warning("custom geo path traversal blocked:", err)
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrDownload"))
 	default:

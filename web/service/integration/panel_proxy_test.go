@@ -1,4 +1,4 @@
-package service
+package integration
 
 import (
 	"net/http"

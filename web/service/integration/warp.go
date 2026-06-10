@@ -1,4 +1,4 @@
-package service
+package integration
 
 import (
 	"bytes"
@@ -12,12 +12,13 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/util"
 	"github.com/mhsanaei/3x-ui/v3/util/common"
+	"github.com/mhsanaei/3x-ui/v3/web/service"
 )
 
 // WarpService provides business logic for Cloudflare WARP integration.
 // It manages WARP configuration and connectivity settings.
 type WarpService struct {
-	SettingService
+	service.SettingService
 }
 
 const (
@@ -196,7 +197,7 @@ func (s *WarpService) ChangeWarpIP() (string, error) {
 		return "", err
 	}
 
-	xraySvc := XraySettingService{}
+	xraySvc := service.XraySettingService{}
 	if err := xraySvc.UpdateWarpXraySetting(parsed.Data, parsed.Config); err != nil {
 		return "", err
 	}
