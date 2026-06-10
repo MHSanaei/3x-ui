@@ -589,7 +589,7 @@
         "getNewSeed": "Lấy Seed mới",
         "listenHelp": "Bạn cũng có thể nhập đường dẫn Unix socket (ví dụ /run/xray/in.sock) để lắng nghe trên socket thay vì cổng TCP — khi đó hãy đặt Port là 0.",
         "shareAddrStrategy": "Share address strategy",
-        "shareAddrStrategyHelp": "Controls which address is written into exported share links, QR codes, and subscriptions.",
+        "shareAddrStrategyHelp": "Controls which address is written into exported share links and QR codes. Subscription links are not affected.",
         "shareAddr": "Custom share address",
         "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme.",
         "shareAddrStrategyOptions": {

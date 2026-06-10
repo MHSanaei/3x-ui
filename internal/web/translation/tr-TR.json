@@ -590,7 +590,7 @@
         "getNewSeed": "Yeni Seed Al",
         "listenHelp": "TCP portu yerine bir Unix soket yolu da girebilirsiniz (örn. /run/xray/in.sock) — bu durumda Port'u 0 olarak ayarlayın.",
         "shareAddrStrategy": "Share address strategy",
-        "shareAddrStrategyHelp": "Controls which address is written into exported share links, QR codes, and subscriptions.",
+        "shareAddrStrategyHelp": "Controls which address is written into exported share links and QR codes. Subscription links are not affected.",
         "shareAddr": "Custom share address",
         "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme.",
         "shareAddrStrategyOptions": {

@@ -589,7 +589,7 @@
         "getNewSeed": "新しい Seed を取得",
         "listenHelp": "TCP ポートの代わりに Unix ソケットのパス（例: /run/xray/in.sock）を入力してソケットでリッスンすることもできます。その場合はポートを 0 に設定してください。",
         "shareAddrStrategy": "Share address strategy",
-        "shareAddrStrategyHelp": "Controls which address is written into exported share links, QR codes, and subscriptions.",
+        "shareAddrStrategyHelp": "Controls which address is written into exported share links and QR codes. Subscription links are not affected.",
         "shareAddr": "Custom share address",
         "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme.",
         "shareAddrStrategyOptions": {

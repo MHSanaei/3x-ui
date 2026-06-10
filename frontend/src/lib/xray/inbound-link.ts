@@ -829,10 +829,9 @@ function isLoopbackHost(host: string): boolean {
 
 // preferPublicHost is the browser-side analog of the backend's
 // configuredPublicHost: when the panel is reached on a loopback host, prefer a
-// configured public host (Sub/Web Domain) for share/QR links so they match the
-// subscription links instead of leaking localhost. An explicit per-inbound
-// listen or node override still wins, since resolveAddr only reaches the
-// fallbackHostname after those.
+// configured public host (Sub/Web Domain) for share/QR links instead of leaking
+// localhost. An explicit per-inbound listen or node override still wins, since
+// resolveAddr only reaches the fallbackHostname after those.
 export function preferPublicHost(browserHost: string, publicHost: string): string {
   return publicHost && isLoopbackHost(browserHost) ? publicHost : browserHost;
 }

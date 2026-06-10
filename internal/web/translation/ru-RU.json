@@ -589,7 +589,7 @@
         "getNewSeed": "Получить новый Seed",
         "listenHelp": "Можно также указать путь Unix-сокета (например, /run/xray/in.sock), чтобы слушать сокет вместо TCP-порта — в этом случае задайте порт 0.",
         "shareAddrStrategy": "Share address strategy",
-        "shareAddrStrategyHelp": "Controls which address is written into exported share links, QR codes, and subscriptions.",
+        "shareAddrStrategyHelp": "Controls which address is written into exported share links and QR codes. Subscription links are not affected.",
         "shareAddr": "Custom share address",
         "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme.",
         "shareAddrStrategyOptions": {
