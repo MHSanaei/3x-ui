@@ -2,17 +2,17 @@ import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import { LanguageManager } from '@/utils';
-import enUS from '../../../web/translation/en-US.json';
+import enUS from '../../../internal/web/translation/en-US.json';
 
 const FALLBACK = 'en-US';
 
 const lazyModules = import.meta.glob([
-  '../../../web/translation/*.json',
-  '!../../../web/translation/en-US.json',
+  '../../../internal/web/translation/*.json',
+  '!../../../internal/web/translation/en-US.json',
 ]);
 
 function moduleKeyFor(code: string): string {
-  return `../../../web/translation/${code}.json`;
+  return `../../../internal/web/translation/${code}.json`;
 }
 
 let active: string = LanguageManager.getLanguage();

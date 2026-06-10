@@ -30,8 +30,8 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: Stub web/dist for go:embed
-        run: mkdir -p web/dist && touch web/dist/.gitkeep
+      - name: Stub internal/web/dist for go:embed
+        run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
       - name: Test
         run: |
           go list ./... | grep -v '/frontend/node_modules/' > /tmp/go-packages.txt
@@ -62,8 +62,8 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: Stub web/dist for go:embed
-        run: mkdir -p web/dist && touch web/dist/.gitkeep
+      - name: Stub internal/web/dist for go:embed
+        run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - name: Run govulncheck
