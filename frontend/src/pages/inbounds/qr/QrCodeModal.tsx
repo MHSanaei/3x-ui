@@ -120,15 +120,20 @@ export default function QrCodeModal({
       items.push({ key: `l${idx}`, header: link.remark || `Link ${idx + 1}`, value: link.link });
     });
     
-    let parsedSettings: any = {};
+    let peers: { comment?: string }[] = [];
     try {
       if (dbInbound?.settings) {
-        parsedSettings = typeof dbInbound.settings === 'string' ? JSON.parse(dbInbound.settings) : dbInbound.settings;
+        const parsed = typeof dbInbound.settings === 'string' ? JSON.parse(dbInbound.settings) : dbInbound.settings;
+        if (parsed && Array.isArray((parsed as Record<string, unknown>).peers)) {
+          peers = (parsed as Record<string, unknown>).peers as { comment?: string }[];
+        }
       }
-    } catch (e) {}
+    } catch (_e) {
+      // ignore
+    }
 
     wireguardConfigs.forEach((cfg, idx) => {
-      const peer = parsedSettings?.peers?.[idx];
+      const peer = peers[idx];
       const commentLabel = peer?.comment ? ` (${peer.comment})` : '';
       items.push({
         key: `wc${idx}`,
