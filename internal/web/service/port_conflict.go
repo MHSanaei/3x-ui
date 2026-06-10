@@ -1,0 +1,271 @@
+package service
+
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+)
+
+type transportBits uint8
+
+const (
+	transportTCP transportBits = 1 << iota
+	transportUDP
+)
+
+func inboundTransports(protocol model.Protocol, streamSettings, settings string) transportBits {
+	// protocols that ignore streamSettings entirely.
+	switch protocol {
+	case model.Hysteria, model.WireGuard:
+		return transportUDP
+	case model.MTProto:
+		return transportTCP
+	}
+
+	var bits transportBits
+
+	// peek at streamSettings.network to spot udp-based transports.
+	// parse errors are non-fatal: missing or weird streamSettings just
+	// keeps the default tcp bit below.
+	network := ""
+	if streamSettings != "" {
+		var ss map[string]any
+		if json.Unmarshal([]byte(streamSettings), &ss) == nil {
+			if n, _ := ss["network"].(string); n != "" {
+				network = n
+			}
+		}
+	}
+	switch network {
+	case "kcp", "quic":
+		bits |= transportUDP
+	default:
+		bits |= transportTCP
+	}
+
+	// a few protocols carry their L4 choice in settings instead of (or in
+	// addition to) streamSettings: SS / Tunnel via a CSV field that wins
+	// outright, Mixed via an additive udp boolean.
+	if settings != "" {
+		var st map[string]any
+		if json.Unmarshal([]byte(settings), &st) == nil {
+			switch protocol {
+			case model.Shadowsocks, model.Tunnel:
+				key := "network"
+				if protocol == model.Tunnel {
+					key = "allowedNetwork"
+				}
+				if n, ok := st[key].(string); ok && n != "" {
+					bits = 0
+					for part := range strings.SplitSeq(n, ",") {
+						switch strings.TrimSpace(part) {
+						case "tcp":
+							bits |= transportTCP
+						case "udp":
+							bits |= transportUDP
+						}
+					}
+				}
+			case model.Mixed:
+				// socks/http "mixed" inbound: settings.udp=true means it
+				// also relays udp on the same port (socks5 udp associate).
+				if udpOn, _ := st["udp"].(bool); udpOn {
+					bits |= transportUDP
+				}
+			}
+		}
+	}
+
+	// safety net: never return zero, even if every parse failed.
+	if bits == 0 {
+		bits = transportTCP
+	}
+	return bits
+}
+
+func listenOverlaps(a, b string) bool {
+	if isAnyListen(a) || isAnyListen(b) {
+		return true
+	}
+	return a == b
+}
+
+func isAnyListen(s string) bool {
+	return s == "" || s == "0.0.0.0" || s == "::" || s == "::0"
+}
+
+type portConflictDetail struct {
+	InboundID  int
+	Remark     string
+	Tag        string
+	Listen     string
+	Port       int
+	Transports transportBits
+}
+
+// String renders the detail as a single-line, user-facing summary.
+func (d *portConflictDetail) String() string {
+	name := d.Remark
+	if name == "" {
+		name = d.Tag
+	}
+	if name == "" {
+		name = fmt.Sprintf("#%d", d.InboundID)
+	} else {
+		name = fmt.Sprintf("'%s' (#%d)", name, d.InboundID)
+	}
+	listen := d.Listen
+	if isAnyListen(listen) {
+		listen = "*"
+	}
+	return fmt.Sprintf("port %d (%s) already used by inbound %s on %s",
+		d.Port, transportTagSuffix(d.Transports), name, listen)
+}
+
+func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int) (*portConflictDetail, error) {
+	db := database.GetDB()
+
+	var candidates []*model.Inbound
+	q := db.Model(model.Inbound{}).Where("port = ?", inbound.Port)
+	if ignoreId > 0 {
+		q = q.Where("id != ?", ignoreId)
+	}
+	if err := q.Find(&candidates).Error; err != nil {
+		return nil, err
+	}
+
+	newBits := inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings)
+	for _, c := range candidates {
+		if !sameNode(c.NodeID, inbound.NodeID) {
+			continue
+		}
+		if !listenOverlaps(c.Listen, inbound.Listen) {
+			continue
+		}
+		existingBits := inboundTransports(c.Protocol, c.StreamSettings, c.Settings)
+		shared := existingBits & newBits
+		if shared == 0 {
+			continue
+		}
+		return &portConflictDetail{
+			InboundID:  c.Id,
+			Remark:     c.Remark,
+			Tag:        c.Tag,
+			Listen:     c.Listen,
+			Port:       c.Port,
+			Transports: shared,
+		}, nil
+	}
+	return nil, nil
+}
+
+func sameNode(a, b *int) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
+
+func baseInboundTag(port int) string {
+	return fmt.Sprintf("in-%v", port)
+}
+
+func transportTagSuffix(b transportBits) string {
+	switch b {
+	case transportTCP:
+		return "tcp"
+	case transportUDP:
+		return "udp"
+	case transportTCP | transportUDP:
+		return "tcpudp"
+	}
+	return "any"
+}
+
+// nodeTagPrefix scopes a tag to one remote node so the same listen+port
+// can live on the central panel and on a node without bumping the global
+// UNIQUE(inbounds.tag) constraint. nil → "" (local panel).
+func nodeTagPrefix(nodeID *int) string {
+	if nodeID == nil {
+		return ""
+	}
+	return fmt.Sprintf("n%d-", *nodeID)
+}
+
+func composeInboundTag(port int, nodeID *int, bits transportBits) string {
+	return nodeTagPrefix(nodeID) + baseInboundTag(port) + "-" + transportTagSuffix(bits)
+}
+
+func isAutoGeneratedTag(tag string, port int, nodeID *int, bits transportBits) bool {
+	base := composeInboundTag(port, nodeID, bits)
+	if tag == base {
+		return true
+	}
+	suffix, ok := strings.CutPrefix(tag, base+"-")
+	if !ok || suffix == "" {
+		return false
+	}
+	for _, r := range suffix {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *InboundService) generateInboundTag(inbound *model.Inbound, ignoreId int) (string, error) {
+	bits := inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings)
+	candidate := composeInboundTag(inbound.Port, inbound.NodeID, bits)
+	exists, err := s.tagExists(candidate, ignoreId)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return candidate, nil
+	}
+
+	for i := 2; i < 100; i++ {
+		c := fmt.Sprintf("%s-%d", candidate, i)
+		exists, err = s.tagExists(c, ignoreId)
+		if err != nil {
+			return "", err
+		}
+		if !exists {
+			return c, nil
+		}
+	}
+	return "", common.NewError("could not pick a unique inbound tag for port:", inbound.Port)
+}
+
+func (s *InboundService) resolveInboundTag(inbound *model.Inbound, ignoreId int) (string, error) {
+	if inbound.Tag != "" {
+		taken, err := s.tagExists(inbound.Tag, ignoreId)
+		if err != nil {
+			return "", err
+		}
+		if !taken {
+			return inbound.Tag, nil
+		}
+	}
+	return s.generateInboundTag(inbound, ignoreId)
+}
+
+func (s *InboundService) tagExists(tag string, ignoreId int) (bool, error) {
+	db := database.GetDB()
+	q := db.Model(model.Inbound{}).Where("tag = ?", tag)
+	if ignoreId > 0 {
+		q = q.Where("id != ?", ignoreId)
+	}
+	var count int64
+	if err := q.Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}

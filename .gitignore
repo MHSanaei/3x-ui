@@ -16,19 +16,16 @@ tmp/
 # Ignore build and distribution directories
 backup/
 bin/
+x-ui/
 dist/
-!web/dist/
-web/dist/*
-!web/dist/.gitkeep
+!internal/web/dist/
+internal/web/dist/*
+!internal/web/dist/.gitkeep
 release/
 node_modules/
 
 # Ignore compiled binaries
 main
-
-# Ignore script and executable files
-/release.sh
-/x-ui
 
 # Ignore OS specific files
 .DS_Store

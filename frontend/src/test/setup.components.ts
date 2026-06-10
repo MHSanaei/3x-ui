@@ -3,7 +3,7 @@ import { cleanup } from '@testing-library/react';
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-import enUS from '../../../web/translation/en-US.json';
+import enUS from '../../../internal/web/translation/en-US.json';
 
 vi.mock('persian-calendar-suite', () => ({
   PersianDateTimePicker: () => null,
