@@ -30,7 +30,7 @@ export interface AllSetting {
   ldapUserFilter: string;
   ldapVlessField: string;
   pageSize: number;
-  panelProxy: string;
+  panelOutbound: string;
   remarkModel: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
@@ -120,7 +120,7 @@ export interface AllSettingView {
   ldapUserFilter: string;
   ldapVlessField: string;
   pageSize: number;
-  panelProxy: string;
+  panelOutbound: string;
   remarkModel: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;

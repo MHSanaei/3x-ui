@@ -65,10 +65,14 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
       );
 
       // Download outbound candidates: template outbounds + subscription outbounds.
+      // Skip blackhole outbounds — routing a download through one just drops it.
       const tags = new Set<string>();
       const outbounds = Array.isArray(template.outbounds) ? template.outbounds : [];
       for (const o of outbounds) {
-        const tag = o && typeof o === 'object' ? (o as Record<string, unknown>).tag : undefined;
+        if (!o || typeof o !== 'object') continue;
+        const rec = o as Record<string, unknown>;
+        if (rec.protocol === 'blackhole') continue;
+        const tag = rec.tag;
         if (typeof tag === 'string' && tag) tags.add(tag);
       }
       const subTags = Array.isArray(payload.subscriptionOutboundTags)

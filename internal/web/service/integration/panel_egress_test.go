@@ -28,7 +28,7 @@ func originServer(t *testing.T, hits *int64) *httptest.Server {
 	}))
 }
 
-func TestPanelProxy_NetproxyHelperRoutesThroughProxy(t *testing.T) {
+func TestPanelEgress_NetproxyHelperRoutesThroughProxy(t *testing.T) {
 	var proxyHits, originHits int64
 	proxy := recordingProxy(t, &proxyHits)
 	defer proxy.Close()
