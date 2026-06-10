@@ -615,8 +615,12 @@ func sanitizeStreamSettings(raw string) map[string]any {
 			if ech, _ := settings["echConfigList"].(string); ech != "" {
 				clean["echConfigList"] = ech
 			}
-			if pins, _ := settings["pinnedPeerCertSha256"].([]any); len(pins) > 0 {
-				clean["pinnedPeerCertSha256"] = pins
+			if pin, _ := settings["pinnedPeerCertSha256"].(string); pin != "" {
+				clean["pinnedPeerCertSha256"] = pin
+			} else if pins, _ := settings["pinnedPeerCertSha256"].([]any); len(pins) > 0 {
+				if s, _ := pins[0].(string); s != "" {
+					clean["pinnedPeerCertSha256"] = s
+				}
 			}
 		}
 		ss["tlsSettings"] = clean
@@ -753,16 +757,14 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 		}
 
 	case model.Trojan:
-		server := map[string]any{
-			"address":  address,
-			"port":     inbound.Port,
-			"password": client.Password,
-		}
-		if client.Flow != "" {
-			server["flow"] = client.Flow
-		}
 		outbound["settings"] = map[string]any{
-			"servers": []any{server},
+			"servers": []any{
+				map[string]any{
+					"address":  address,
+					"port":     inbound.Port,
+					"password": client.Password,
+				},
+			},
 		}
 
 	case model.Shadowsocks:
@@ -795,29 +797,50 @@ func buildClientConfig(inbound *model.Inbound, client *model.ClientRecord, host 
 			"address": address,
 			"port":    inbound.Port,
 		}
-		// Build hysteria stream settings from inbound stream settings.
-		var stream map[string]any
-		json.Unmarshal([]byte(inbound.StreamSettings), &stream)
-		if stream != nil {
-			hyStream, _ := stream["hysteriaSettings"].(map[string]any)
-			if hyStream != nil {
-				outHyStream := map[string]any{
-					"version": int(version),
-					"auth":    client.Auth,
-				}
-				if udpIdleTimeout, ok := hyStream["udpIdleTimeout"].(float64); ok {
-					outHyStream["udpIdleTimeout"] = int(udpIdleTimeout)
-				}
-				if masquerade, ok := hyStream["masquerade"].(map[string]any); ok {
-					outHyStream["masquerade"] = masquerade
-				}
-				stream["hysteriaSettings"] = outHyStream
+		// Build hysteria stream settings. Use sanitized stream settings as base
+		// so TLS fields are properly cleaned, then augment with hysteria-specific
+		// fields.
+		var hs map[string]any
+		if streamSettings != nil {
+			// Clone the sanitized stream settings map.
+			hs = make(map[string]any, len(streamSettings)+1)
+			for k, v := range streamSettings {
+				hs[k] = v
 			}
-			stream["network"] = "hysteria"
-			stream["security"] = "tls"
-			delete(stream, "sockopt")
-			outbound["streamSettings"] = stream
+		} else {
+			hs = map[string]any{}
 		}
+		hs["network"] = "hysteria"
+		hs["security"] = "tls"
+		// Build the hysteriaSettings sub-object.
+		hyS := map[string]any{
+			"auth": client.Auth,
+		}
+		// version inside hysteriaSettings as well
+		hyS["version"] = int(version)
+		// Copy over extra hysteria fields from the sanitized stream settings.
+		if rawHy, ok := hs["hysteriaSettings"].(map[string]any); ok {
+			if v, ok := rawHy["up"]; ok {
+				hyS["up"] = v
+			}
+			if v, ok := rawHy["down"]; ok {
+				hyS["down"] = v
+			}
+			if v, ok := rawHy["upMbps"]; ok {
+				hyS["upMbps"] = v
+			}
+			if v, ok := rawHy["downMbps"]; ok {
+				hyS["downMbps"] = v
+			}
+			if v, ok := rawHy["udpIdleTimeout"]; ok {
+				hyS["udpIdleTimeout"] = v
+			}
+			if v, ok := rawHy["masquerade"]; ok {
+				hyS["masquerade"] = v
+			}
+		}
+		hs["hysteriaSettings"] = hyS
+		outbound["streamSettings"] = hs
 		streamSettings = nil // already handled above
 	}
 
