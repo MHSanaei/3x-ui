@@ -141,3 +141,16 @@ func TestSanitizePublicHTTPURLRejectsPrivateAndBadSchemes(t *testing.T) {
 		}
 	})
 }
+
+// outboundsContainTag mirrors the small helper in the outbound subpackage so
+// these subscription tests can assert on tag presence without importing it.
+func outboundsContainTag(outbounds []any, tag string) bool {
+	for _, ob := range outbounds {
+		if m, ok := ob.(map[string]any); ok {
+			if t, _ := m["tag"].(string); t == tag {
+				return true
+			}
+		}
+	}
+	return false
+}

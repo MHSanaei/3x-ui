@@ -9,6 +9,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/util/common"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
 	"github.com/mhsanaei/3x-ui/v3/web/service/integration"
+	"github.com/mhsanaei/3x-ui/v3/web/service/outbound"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,7 +19,7 @@ type XraySettingController struct {
 	XraySettingService          service.XraySettingService
 	SettingService              service.SettingService
 	InboundService              service.InboundService
-	OutboundService             service.OutboundService
+	OutboundService             outbound.OutboundService
 	XrayService                 service.XrayService
 	WarpService                 integration.WarpService
 	NordService                 integration.NordService

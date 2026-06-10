@@ -5,6 +5,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/logger"
 	"github.com/mhsanaei/3x-ui/v3/web/service"
+	"github.com/mhsanaei/3x-ui/v3/web/service/outbound"
 	"github.com/mhsanaei/3x-ui/v3/web/websocket"
 	"github.com/mhsanaei/3x-ui/v3/xray"
 
@@ -16,7 +17,7 @@ type XrayTrafficJob struct {
 	settingService  service.SettingService
 	xrayService     service.XrayService
 	inboundService  service.InboundService
-	outboundService service.OutboundService
+	outboundService outbound.OutboundService
 }
 
 // NewXrayTrafficJob creates a new traffic collection job instance.
