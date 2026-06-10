@@ -688,8 +688,12 @@ disable_bbr() {
 
     if [ -f "/etc/sysctl.d/99-bbr-x-ui.conf" ]; then
         old_settings=$(head -1 /etc/sysctl.d/99-bbr-x-ui.conf | tr -d '#')
-        sysctl -w net.core.default_qdisc="${old_settings%:*}"
-        sysctl -w net.ipv4.tcp_congestion_control="${old_settings#*:}"
+        sysctl -w net.core.default_qdisc="$(echo "$old_settings" | awk -F: '{print $1}')"
+        sysctl -w net.ipv4.tcp_congestion_control="$(echo "$old_settings" | awk -F: '{print $2}')"
+        if [ "$(echo "$old_settings" | awk -F: '{print NF}')" -ge 4 ]; then
+            sysctl -w net.ipv4.tcp_ecn="$(echo "$old_settings" | awk -F: '{print $3}')"
+            sysctl -w net.ipv4.tcp_window_scaling="$(echo "$old_settings" | awk -F: '{print $4}')"
+        fi
         rm /etc/sysctl.d/99-bbr-x-ui.conf
         sysctl --system
     else
@@ -697,6 +701,8 @@ disable_bbr() {
         if [ -f "/etc/sysctl.conf" ]; then
             sed -i 's/net.core.default_qdisc=fq/net.core.default_qdisc=pfifo_fast/' /etc/sysctl.conf
             sed -i 's/net.ipv4.tcp_congestion_control=bbr/net.ipv4.tcp_congestion_control=cubic/' /etc/sysctl.conf
+            sed -i 's/net.ipv4.tcp_ecn=1/net.ipv4.tcp_ecn=2/' /etc/sysctl.conf
+            sed -i 's/net.ipv4.tcp_window_scaling=1/net.ipv4.tcp_window_scaling=0/' /etc/sysctl.conf
             sysctl -p
         fi
     fi
@@ -717,21 +723,29 @@ enable_bbr() {
     # Enable BBR
     if [ -d "/etc/sysctl.d/" ]; then
         {
-            echo "#$(sysctl -n net.core.default_qdisc):$(sysctl -n net.ipv4.tcp_congestion_control)"
+            echo "#$(sysctl -n net.core.default_qdisc):$(sysctl -n net.ipv4.tcp_congestion_control):$(sysctl -n net.ipv4.tcp_ecn):$(sysctl -n net.ipv4.tcp_window_scaling)"
             echo "net.core.default_qdisc = fq"
             echo "net.ipv4.tcp_congestion_control = bbr"
+            echo "net.ipv4.tcp_ecn = 1"
+            echo "net.ipv4.tcp_window_scaling = 1"
         } > "/etc/sysctl.d/99-bbr-x-ui.conf"
         if [ -f "/etc/sysctl.conf" ]; then
             # Backup old settings from sysctl.conf, if any
             sed -i 's/^net.core.default_qdisc/# &/' /etc/sysctl.conf
             sed -i 's/^net.ipv4.tcp_congestion_control/# &/' /etc/sysctl.conf
+            sed -i 's/^net.ipv4.tcp_ecn/# &/' /etc/sysctl.conf
+            sed -i 's/^net.ipv4.tcp_window_scaling/# &/' /etc/sysctl.conf
         fi
         sysctl --system
     else
         sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
         sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+        sed -i '/net.ipv4.tcp_ecn/d' /etc/sysctl.conf
+        sed -i '/net.ipv4.tcp_window_scaling/d' /etc/sysctl.conf
         echo "net.core.default_qdisc=fq" | tee -a /etc/sysctl.conf
         echo "net.ipv4.tcp_congestion_control=bbr" | tee -a /etc/sysctl.conf
+        echo "net.ipv4.tcp_ecn=1" | tee -a /etc/sysctl.conf
+        echo "net.ipv4.tcp_window_scaling=1" | tee -a /etc/sysctl.conf
         sysctl -p
     fi
 
