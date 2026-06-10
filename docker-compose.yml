@@ -1,8 +1,6 @@
 services:
   3xui:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+    image: xidahuang/3xuidash:main
     container_name: 3xui_app
     # hostname: yourhostname <- optional
     # The bundled Fail2ban (XUI_ENABLE_FAIL2BAN below) enforces the IP limit
@@ -15,9 +13,14 @@ services:
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
+      - ./access.log:/app/access.log
+      - ./error.log:/app/error.log
     environment:
+      TZ: Asia/Shanghai
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
+      XUI_KEEP_ACCESS_LOG: "true"
+      XUI_SITE_NAME: "3xui"
       # To use PostgreSQL instead of the default SQLite, run:
       #   docker compose --profile postgres up -d
       # and uncomment the two lines below.

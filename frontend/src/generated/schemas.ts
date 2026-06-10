@@ -1313,6 +1313,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "nodeId": {
+        "description": "NodeID points at the remote panel (Node) where this inbound's xray\nactually runs. NULL means the inbound runs on the local xray (the\npre-multi-node behaviour). Existing rows migrate to NULL with no\nbackfill.",
         "nullable": true,
         "type": "integer"
       },
@@ -1350,6 +1351,14 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "settings": {},
       "sniffing": {},
+      "speedLimit": {
+        "description": "Inbound port speed limit (implemented via OS traffic control, e.g. tc).\nUnit: Mbps. 0 means unlimited.",
+        "type": "integer"
+      },
+      "speedLimitType": {
+        "description": "\"all\", \"up\", \"down\"",
+        "type": "string"
+      },
       "streamSettings": {},
       "tag": {
         "example": "in-443-tcp",
@@ -1388,6 +1397,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "remark",
       "settings",
       "sniffing",
+      "speedLimit",
+      "speedLimitType",
       "streamSettings",
       "tag",
       "total",

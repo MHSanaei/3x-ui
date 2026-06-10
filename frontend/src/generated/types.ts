@@ -302,6 +302,8 @@ export interface Inbound {
   remark: string;
   settings: unknown;
   sniffing: unknown;
+  speedLimit: number;
+  speedLimitType: string;
   streamSettings: unknown;
   tag: string;
   total: number;

@@ -300,6 +300,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "remark": "VLESS-443",
     "settings": null,
     "sniffing": null,
+    "speedLimit": 0,
+    "speedLimitType": "",
     "streamSettings": null,
     "tag": "in-443-tcp",
     "total": 0,

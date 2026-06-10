@@ -1339,6 +1339,7 @@
             "type": "string"
           },
           "nodeId": {
+            "description": "NodeID points at the remote panel (Node) where this inbound's xray\nactually runs. NULL means the inbound runs on the local xray (the\npre-multi-node behaviour). Existing rows migrate to NULL with no\nbackfill.",
             "nullable": true,
             "type": "integer"
           },
@@ -1376,6 +1377,14 @@
           },
           "settings": {},
           "sniffing": {},
+          "speedLimit": {
+            "description": "Inbound port speed limit (implemented via OS traffic control, e.g. tc).\nUnit: Mbps. 0 means unlimited.",
+            "type": "integer"
+          },
+          "speedLimitType": {
+            "description": "\"all\", \"up\", \"down\"",
+            "type": "string"
+          },
           "streamSettings": {},
           "tag": {
             "example": "in-443-tcp",
@@ -1414,6 +1423,8 @@
           "remark",
           "settings",
           "sniffing",
+          "speedLimit",
+          "speedLimitType",
           "streamSettings",
           "tag",
           "total",
@@ -2164,6 +2175,8 @@
                       "remark": "VLESS-443",
                       "settings": null,
                       "sniffing": null,
+                      "speedLimit": 0,
+                      "speedLimitType": "",
                       "streamSettings": null,
                       "tag": "in-443-tcp",
                       "total": 0,

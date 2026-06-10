@@ -450,6 +450,11 @@
       "periodicTrafficResetTitle": "流量重置",
       "periodicTrafficResetDesc": "按指定間隔自動重置流量計數器",
       "lastReset": "上次重置",
+      "speedLimit": "入站限速",
+      "speedLimitDesc": "使用 tc 對目前入站套用入站級頻寬限制。該入站下所有用戶端共享此限制。0 = 不限速，單位：Mbps。",
+      "speedLimitModeAll": "全部",
+      "speedLimitModeUp": "上行",
+      "speedLimitModeDown": "下行",
       "periodicTrafficReset": {
         "never": "從不",
         "daily": "每日",

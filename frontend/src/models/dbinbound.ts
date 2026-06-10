@@ -31,6 +31,8 @@ export type DBInboundInit = Partial<{
     expiryTime: number;
     trafficReset: string;
     lastTrafficResetTime: number;
+    speedLimit: number;
+    speedLimitType: string;
     listen: string;
     port: number;
     protocol: string;
@@ -74,6 +76,8 @@ export class DBInbound {
     expiryTime: number;
     trafficReset: string;
     lastTrafficResetTime: number;
+    speedLimit: number;
+    speedLimitType: string;
 
     listen: string;
     port: number;
@@ -100,6 +104,8 @@ export class DBInbound {
         this.expiryTime = 0;
         this.trafficReset = "never";
         this.lastTrafficResetTime = 0;
+        this.speedLimit = 0;
+        this.speedLimitType = "all";
 
         this.listen = "";
         this.port = 0;
@@ -116,6 +122,10 @@ export class DBInbound {
             return;
         }
         ObjectUtil.cloneProps(this, data);
+        this.speedLimit = Number(this.speedLimit) || 0;
+        if (!this.speedLimitType) {
+            this.speedLimitType = "all";
+        }
     }
 
     get totalGB(): number {

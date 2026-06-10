@@ -399,6 +399,10 @@ func (s *XrayService) RestartXray(isForce bool) error {
 		return err
 	}
 
+	// Traffic control is independent from the Xray config and must be reconciled
+	// after every successful start/restart.
+	s.ApplyInboundPortSpeedLimits()
+
 	return nil
 }
 

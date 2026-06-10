@@ -450,6 +450,11 @@
       "periodicTrafficResetTitle": "Traffic Reset",
       "periodicTrafficResetDesc": "Automatically reset traffic counter at specified intervals",
       "lastReset": "Last Reset",
+      "speedLimit": "Speed Limit",
+      "speedLimitDesc": "Apply an inbound-level bandwidth limit via tc. All clients under this inbound share this limit. 0 = Unlimited. Unit: Mbps.",
+      "speedLimitModeAll": "All",
+      "speedLimitModeUp": "Up",
+      "speedLimitModeDown": "Down",
       "periodicTrafficReset": {
         "never": "Never",
         "daily": "Daily",

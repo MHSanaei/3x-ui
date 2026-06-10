@@ -13,6 +13,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/config"
 	"github.com/mhsanaei/3x-ui/v3/database"
 	"github.com/mhsanaei/3x-ui/v3/database/model"
 	"github.com/mhsanaei/3x-ui/v3/logger"
@@ -74,6 +75,12 @@ func (j *CheckClientIpJob) Run() {
 }
 
 func (j *CheckClientIpJob) clearAccessLog() {
+	if !config.ShouldTruncateAccessLog() {
+		logger.Debug("[LimitIP] Access log preservation is enabled; skipping truncation.")
+		j.lastClear = time.Now().Unix()
+		return
+	}
+
 	logAccessP, err := os.OpenFile(xray.GetAccessPersistentLogPath(), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	j.checkError(err)
 	defer logAccessP.Close()

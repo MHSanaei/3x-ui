@@ -18,6 +18,10 @@ var version string
 //go:embed name
 var name string
 
+// AssetVersion is optionally injected at build time to bust browser caches for static assets.
+// When empty, GetAssetVersion falls back to the semantic application version.
+var AssetVersion string
+
 // LogLevel represents the logging level for the application.
 type LogLevel string
 
@@ -33,6 +37,14 @@ const (
 // GetVersion returns the version string of the 3x-ui application.
 func GetVersion() string {
 	return strings.TrimSpace(version)
+}
+
+// GetAssetVersion returns the build-specific asset version used for static asset cache busting.
+func GetAssetVersion() string {
+	if v := strings.TrimSpace(AssetVersion); v != "" {
+		return v
+	}
+	return GetVersion()
 }
 
 // GetName returns the name of the 3x-ui application.
@@ -144,6 +156,21 @@ func GetLogFolder() string {
 		return filepath.Join(".", "log")
 	}
 	return "/var/log/x-ui"
+}
+
+// ShouldTruncateAccessLog returns false when XUI_KEEP_ACCESS_LOG is set to "true",
+// allowing administrators to preserve the access log without periodic truncation.
+func ShouldTruncateAccessLog() bool {
+	return os.Getenv("XUI_KEEP_ACCESS_LOG") != "true"
+}
+
+// GetSiteName returns the site name used in UI titles, defaulting to "3xui".
+func GetSiteName() string {
+	siteName := strings.TrimSpace(os.Getenv("XUI_SITE_NAME"))
+	if siteName == "" {
+		return "3xui"
+	}
+	return siteName
 }
 
 func copyFile(src, dst string) error {

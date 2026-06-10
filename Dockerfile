@@ -4,7 +4,7 @@
 FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+RUN npm ci --include=optional --ignore-scripts --no-audit --fund=false
 COPY frontend/ ./
 COPY web/translation /src/web/translation
 RUN npm run build
@@ -27,8 +27,10 @@ COPY --from=frontend /src/web/dist ./web/dist
 
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
-RUN go build -ldflags "-w -s" -o build/x-ui main.go
-RUN ./DockerInit.sh "$TARGETARCH"
+ARG XUI_ASSET_VERSION=""
+RUN go build -ldflags "-w -s -X github.com/mhsanaei/3x-ui/v3/config.AssetVersion=${XUI_ASSET_VERSION}" -o build/x-ui main.go
+RUN sed -i 's/\r$//' ./DockerInit.sh ./DockerEntrypoint.sh ./x-ui.sh \
+  && sh ./DockerInit.sh "$TARGETARCH"
 
 # ========================================================
 # Stage: Final Image of 3x-ui
@@ -43,6 +45,7 @@ RUN apk add --no-cache --update \
   fail2ban \
   bash \
   curl \
+  iproute2 \
   openssl
 
 COPY --from=builder /app/build/ /app/
@@ -61,6 +64,9 @@ RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
 RUN chmod +x \
   /app/DockerEntrypoint.sh \
   /app/x-ui \
+  /usr/bin/x-ui
+RUN sed -i 's/\r$//' \
+  /app/DockerEntrypoint.sh \
   /usr/bin/x-ui
 
 ENV XUI_IN_DOCKER="true"

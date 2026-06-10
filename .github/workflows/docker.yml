@@ -1,17 +1,19 @@
-name: Release 3X-UI for Docker
-
-permissions:
-  contents: read
-  packages: write
+name: Docker Workflow Placeholder
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - "v*.*.*"
 
 jobs:
+  info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain current publish flow
+        run: |
+          echo "DockerHub publishing has been retired."
+          echo "Formal tag releases now use deploy.yml on the self-hosted ca1 runner plus release.yml for GitHub Releases."
+
   build:
+    if: false
     runs-on: ubuntu-latest
 
     steps:
@@ -24,15 +26,10 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: |
-            hsanaeii/3x-ui
-            ghcr.io/mhsanaei/3x-ui
+            xidahuang/3xuidash
           tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+            type=raw,value=${{ github.ref_name }}
+            type=raw,value=latest
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -43,18 +40,57 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Login to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v6,linux/386
+          platforms: linux/amd64
+          build-args: |
+            XUI_ASSET_VERSION=${{ github.ref_name }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: false
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate Release Notes
+        run: |
+          # 获取上一个 tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          echo "## 🚀 更新内容" > release_notes.md
+          echo "" >> release_notes.md
+
+          if [ -n "$PREV_TAG" ]; then
+            echo "### 📝 提交记录" >> release_notes.md
+            echo "" >> release_notes.md
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" >> release_notes.md
+          else
+            echo "### 📝 提交记录" >> release_notes.md
+            echo "" >> release_notes.md
+            git log --pretty=format:"- %s (%h)" -20 >> release_notes.md
+          fi
+
+          echo "" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### 🐳 Docker 镜像" >> release_notes.md
+          echo "\`\`\`bash" >> release_notes.md
+          echo "docker pull xidahuang/3xuidash:${{ github.ref_name }}" >> release_notes.md
+          echo "\`\`\`" >> release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ github.ref_name }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true

@@ -132,7 +132,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
   }, []);
 
   useEffect(() => {
-     
+
     loadApiTokens();
   }, [loadApiTokens]);
 

@@ -8,6 +8,7 @@ import {
   Modal,
   Radio,
   Select,
+  Space,
   Switch,
   Tabs,
   Tooltip,
@@ -531,6 +532,31 @@ export default function InboundFormModal({
             label: t(`pages.inbounds.periodicTrafficReset.${r}`),
           }))}
         />
+      </Form.Item>
+
+      <Form.Item
+        label={
+          <Tooltip title={t('pages.inbounds.speedLimitDesc')}>
+            {t('pages.inbounds.speedLimit')}
+          </Tooltip>
+        }
+      >
+        <Space.Compact block>
+          <Form.Item name="speedLimitType" noStyle>
+            <Select
+              style={{ width: 112 }}
+              options={[
+                { value: 'all', label: t('pages.inbounds.speedLimitModeAll') },
+                { value: 'up', label: t('pages.inbounds.speedLimitModeUp') },
+                { value: 'down', label: t('pages.inbounds.speedLimitModeDown') },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item name="speedLimit" noStyle>
+            <InputNumber min={0} style={{ width: 'calc(100% - 176px)' }} />
+          </Form.Item>
+          <Input value="Mbps" disabled style={{ width: 64, textAlign: 'center' }} />
+        </Space.Compact>
       </Form.Item>
 
       <Form.Item

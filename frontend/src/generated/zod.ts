@@ -324,6 +324,8 @@ export const InboundSchema = z.object({
   remark: z.string(),
   settings: z.unknown(),
   sniffing: z.unknown(),
+  speedLimit: z.number().int(),
+  speedLimitType: z.string(),
   streamSettings: z.unknown(),
   tag: z.string(),
   total: z.number().int(),

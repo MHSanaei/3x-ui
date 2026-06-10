@@ -1,4 +1,4 @@
-import type { InboundFormValues, TrafficReset } from '@/schemas/forms/inbound-form';
+import type { InboundFormValues, SpeedLimitType, TrafficReset } from '@/schemas/forms/inbound-form';
 import type { InboundSettings } from '@/schemas/protocols/inbound';
 import {
   HysteriaClientSchema,
@@ -36,6 +36,8 @@ export interface RawInboundRow {
   expiryTime?: number;
   trafficReset?: string;
   lastTrafficResetTime?: number;
+  speedLimit?: number;
+  speedLimitType?: string;
   nodeId?: number | null;
   clientStats?: unknown;
 }
@@ -52,6 +54,8 @@ export interface WireInboundPayload {
   expiryTime: number;
   trafficReset: TrafficReset;
   lastTrafficResetTime: number;
+  speedLimit: number;
+  speedLimitType: SpeedLimitType;
   listen: string;
   port: number;
   protocol: string;
@@ -82,11 +86,18 @@ function coerceJsonObject(value: unknown): Record<string, unknown> {
 }
 
 const TRAFFIC_RESETS: TrafficReset[] = ['never', 'hourly', 'daily', 'weekly', 'monthly'];
+const SPEED_LIMIT_TYPES: SpeedLimitType[] = ['all', 'up', 'down'];
 
 function coerceTrafficReset(v: unknown): TrafficReset {
   return typeof v === 'string' && (TRAFFIC_RESETS as string[]).includes(v)
     ? (v as TrafficReset)
     : 'never';
+}
+
+function coerceSpeedLimitType(v: unknown): SpeedLimitType {
+  return typeof v === 'string' && (SPEED_LIMIT_TYPES as string[]).includes(v)
+    ? (v as SpeedLimitType)
+    : 'all';
 }
 
 // Network values that map to a required `${network}Settings` key in
@@ -161,6 +172,8 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     total: row.total ?? 0,
     trafficReset: coerceTrafficReset(row.trafficReset),
     lastTrafficResetTime: row.lastTrafficResetTime ?? 0,
+    speedLimit: row.speedLimit ?? 0,
+    speedLimitType: coerceSpeedLimitType(row.speedLimitType),
     nodeId: row.nodeId ?? null,
     protocol,
     settings,
@@ -298,6 +311,8 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     expiryTime: values.expiryTime,
     trafficReset: values.trafficReset,
     lastTrafficResetTime: values.lastTrafficResetTime,
+    speedLimit: values.speedLimit,
+    speedLimitType: values.speedLimitType,
     listen: values.listen,
     port: values.port,
     protocol: values.protocol,

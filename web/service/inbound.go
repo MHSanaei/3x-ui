@@ -768,6 +768,10 @@ func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	if inbound.SpeedLimitType == "" {
+		inbound.SpeedLimitType = "all"
+	}
+
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
@@ -1084,6 +1088,10 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 }
 
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	if inbound.SpeedLimitType == "" {
+		inbound.SpeedLimitType = "all"
+	}
+
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
@@ -1198,6 +1206,8 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.Settings = inbound.Settings
 	oldInbound.StreamSettings = inbound.StreamSettings
 	oldInbound.Sniffing = inbound.Sniffing
+	oldInbound.SpeedLimit = inbound.SpeedLimit
+	oldInbound.SpeedLimitType = inbound.SpeedLimitType
 	if oldTagWasAuto && inbound.Tag == tag {
 		inbound.Tag = ""
 	}

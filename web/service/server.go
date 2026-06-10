@@ -1028,6 +1028,7 @@ func (s *ServerService) GetXrayLogs(
 		for i, part := range parts {
 
 			if i == 0 {
+				// access.log timestamps are local time without zone; parse in local tz then convert to UTC for JSON
 				dateTime, err := time.ParseInLocation("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1], time.Local)
 				if err != nil {
 					continue

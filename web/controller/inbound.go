@@ -23,6 +23,13 @@ type InboundController struct {
 	fallbackService service.FallbackService
 }
 
+func (a *InboundController) reconcileInboundSpeedLimits(needRestart bool) {
+	if needRestart {
+		return
+	}
+	a.xrayService.ApplyInboundPortSpeedLimits()
+}
+
 // NewInboundController creates a new InboundController and sets up its routes.
 func NewInboundController(g *gin.RouterGroup) *InboundController {
 	a := &InboundController{}
@@ -155,6 +162,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	a.reconcileInboundSpeedLimits(needRestart)
 	a.broadcastInboundsUpdate(user.Id)
 	notifyClientsChanged()
 }
@@ -175,6 +183,7 @@ func (a *InboundController) delInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	a.reconcileInboundSpeedLimits(needRestart)
 	user := session.GetLoginUser(c)
 	a.broadcastInboundsUpdate(user.Id)
 	notifyClientsChanged()
@@ -235,6 +244,7 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	a.reconcileInboundSpeedLimits(needRestart)
 	user := session.GetLoginUser(c)
 	a.broadcastInboundsUpdate(user.Id)
 	notifyClientsChanged()
@@ -268,6 +278,7 @@ func (a *InboundController) setInboundEnable(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	a.reconcileInboundSpeedLimits(needRestart)
 	// Cross-admin sync: lightweight invalidate signal (a few hundred bytes)
 	// instead of fetching + serialising the whole inbound list. Other open
 	// sessions re-fetch via REST. The toggling admin's own UI already
@@ -376,6 +387,7 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	a.reconcileInboundSpeedLimits(needRestart)
 	a.broadcastInboundsUpdate(user.Id)
 	notifyClientsChanged()
 }

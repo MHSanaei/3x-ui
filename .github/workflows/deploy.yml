@@ -1,0 +1,130 @@
+name: Build & Deploy 3xuidash
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: deploy-3xuidash
+  cancel-in-progress: false
+
+env:
+  IMAGE: xidahuang/3xuidash
+  TARBALL: /tmp/3xuidash-image.tar.gz
+  REMOTE_TARBALL: /tmp/3xuidash-incoming.tar.gz
+  REMOTE_COMPOSE_DIR: /root/3x-ui
+  IMAGE_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.sha }}
+
+jobs:
+  build:
+    runs-on: [self-hosted, ca1]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+          fetch-depth: 1
+
+      - name: Build image on ca1
+        run: |
+          docker build \
+            --build-arg XUI_ASSET_VERSION=${{ env.IMAGE_VERSION }} \
+            --build-arg TARGETARCH=amd64 \
+            -t "$IMAGE:latest" \
+            -t "$IMAGE:${IMAGE_VERSION}" \
+            .
+          docker images "$IMAGE" | head -5
+
+      - name: Save image to tarball
+        run: |
+          rm -f "$TARBALL"
+          docker save "$IMAGE:latest" | gzip -1 > "$TARBALL"
+          ls -lh "$TARBALL"
+
+  deploy:
+    needs: build
+    runs-on: [self-hosted, ca1]
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [los1, los2, los3, ca1-self]
+    steps:
+      - name: Transfer to ${{ matrix.host }}
+        run: |
+          scp -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 "$TARBALL" "${{ matrix.host }}:$REMOTE_TARBALL"
+
+      - name: Load & restart on ${{ matrix.host }}
+        run: |
+          ssh -o ConnectTimeout=15 ${{ matrix.host }} "bash -s" <<REMOTE
+          set -euo pipefail
+          cd "$REMOTE_COMPOSE_DIR"
+          echo "[${{ matrix.host }}] loading image..."
+          docker load < "$REMOTE_TARBALL"
+          echo "[${{ matrix.host }}] compose up -d..."
+          docker compose up -d
+          echo "[${{ matrix.host }}] pruning dangling..."
+          docker image prune -f
+          echo "[${{ matrix.host }}] cleanup tar..."
+          rm -f "$REMOTE_TARBALL"
+          echo "[${{ matrix.host }}] status:"
+          docker ps --filter name=3xui_app --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+          REMOTE
+
+  release:
+    needs: deploy
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && needs.deploy.result == 'success'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes
+        run: |
+          prev_tag="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)"
+          {
+            echo "## Release ${GITHUB_REF_NAME}"
+            echo
+            echo "Automated source release after successful deploy for tag \`${GITHUB_REF_NAME}\`."
+            echo
+            if [ -n "$prev_tag" ]; then
+              echo "Changes since \`${prev_tag}\`:"
+              echo
+              git log "${prev_tag}..HEAD" --pretty=format:"- %s (%h)"
+            else
+              echo "Initial tagged release in this repository."
+            fi
+          } > release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ github.ref_name }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+
+  cleanup:
+    needs: [deploy, release]
+    if: always()
+    runs-on: [self-hosted, ca1]
+    steps:
+      - name: Cleanup tar on ca1
+        run: rm -f "$TARBALL"
+
+      - name: Prune old image tags on ca1 (keep latest + 3 recent non-latest tags)
+        if: needs.deploy.result == 'success'
+        run: |
+          docker images "$IMAGE" --format '{{.Tag}} {{.CreatedAt}}' \
+            | awk '$1 != "latest" { print }' \
+            | sort -k2 -r \
+            | awk 'NR>3 {print $1}' \
+            | xargs -r -I{} docker rmi "$IMAGE:{}" 2>/dev/null || true
+

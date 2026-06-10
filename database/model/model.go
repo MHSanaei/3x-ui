@@ -64,7 +64,17 @@ type Inbound struct {
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique" example:"in-443-tcp"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
-	NodeID         *int     `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
+
+	// Inbound port speed limit (implemented via OS traffic control, e.g. tc).
+	// Unit: Mbps. 0 means unlimited.
+	SpeedLimit     int    `json:"speedLimit" form:"speedLimit" gorm:"default:0"`
+	SpeedLimitType string `json:"speedLimitType" form:"speedLimitType" gorm:"default:all"` // "all", "up", "down"
+
+	// NodeID points at the remote panel (Node) where this inbound's xray
+	// actually runs. NULL means the inbound runs on the local xray (the
+	// pre-multi-node behaviour). Existing rows migrate to NULL with no
+	// backfill.
+	NodeID *int `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
 
 	// OriginNodeGuid is the panelGuid of the node that physically hosts this
 	// inbound, propagated up across hops (#4983). Empty for an inbound that

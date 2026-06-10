@@ -82,12 +82,12 @@ export default function SettingsPage() {
   const [entryIsIP, setEntryIsIP] = useState(false);
 
   useEffect(() => {
-     
+
     const host = window.location.hostname;
     setEntryHost(host);
     setEntryPort(window.location.port);
     setEntryIsIP(isIp(host));
-     
+
   }, []);
 
   const [alertVisible, setAlertVisible] = useState(true);

@@ -25,6 +25,8 @@ export type InboundStreamFormValues = z.infer<typeof InboundStreamFormSchema>;
 
 export const TrafficResetSchema = z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']);
 export type TrafficReset = z.infer<typeof TrafficResetSchema>;
+export const SpeedLimitTypeSchema = z.enum(['all', 'up', 'down']);
+export type SpeedLimitType = z.infer<typeof SpeedLimitTypeSchema>;
 
 // Db-side fields layered on top of the xray slice. These mirror the
 // DBInbound model — they live in the SQL row, not in xray's config.
@@ -34,6 +36,8 @@ export const InboundDbFieldsSchema = z.object({
   total: z.number().int().min(0).default(0),
   trafficReset: TrafficResetSchema.default('never'),
   lastTrafficResetTime: z.number().int().default(0),
+  speedLimit: z.number().int().min(0).default(0),
+  speedLimitType: SpeedLimitTypeSchema.default('all'),
   nodeId: z.number().int().nullable().optional(),
 });
 export type InboundDbFields = z.infer<typeof InboundDbFieldsSchema>;
