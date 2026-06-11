@@ -18,6 +18,7 @@ services:
     environment:
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
+      # XUI_INIT_WEB_BASE_PATH: "/"
       # To use PostgreSQL instead of the default SQLite, run:
       #   docker compose --profile postgres up -d
       # and uncomment the two lines below.

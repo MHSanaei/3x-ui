@@ -72,6 +72,7 @@ XUI_DEBUG=true
 XUI_DB_FOLDER=x-ui
 XUI_LOG_FOLDER=x-ui
 XUI_BIN_FOLDER=x-ui
+XUI_INIT_WEB_BASE_PATH=/
 ```
 
 Drop the xray binary (`xray-windows-amd64.exe` on Windows, `xray-linux-amd64` on Linux, etc.) plus the matching `geoip.dat` and `geosite.dat` files into `x-ui/`. The easiest source is a [released Xray-core build](https://github.com/XTLS/Xray-core/releases). On Windows, `wintun.dll` is also required for testing TUN inbounds.
@@ -254,6 +255,7 @@ For deeper notes on the frontend toolchain see [`frontend/README.md`](frontend/R
 | `XUI_DB_FOLDER` | platform default | Where `x-ui.db` lives |
 | `XUI_LOG_FOLDER` | platform default | Where `3xui.log` lives |
 | `XUI_BIN_FOLDER` | `bin` | Where the xray binary, geo files, and xray `config.json` live |
+| `XUI_INIT_WEB_BASE_PATH` | `/` | The initial URI path for the web panel |
 | `XUI_DB_TYPE` | `sqlite` | Set to `postgres` to use PostgreSQL via `XUI_DB_DSN` |
 | `XUI_DB_DSN` | — | PostgreSQL DSN when `XUI_DB_TYPE=postgres` |
 
