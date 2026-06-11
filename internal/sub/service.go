@@ -2123,10 +2123,34 @@ func (s *SubService) BuildURLs(subPath, subJsonPath, subClashPath, subId string)
 	base := s.settingService.BuildSubURIBase(s.address)
 
 	subURL = s.buildSingleURL(configuredSubURI, base, subPath, subId)
-	subJsonURL = s.buildSingleURL(configuredSubJsonURI, base, subJsonPath, subId)
-	subClashURL = s.buildSingleURL(configuredSubClashURI, base, subClashPath, subId)
+
+	// When subURI is explicitly configured (reverse-proxy setup), use its
+	// scheme+host as the base for JSON and Clash URLs so they match the
+	// reverse-proxy endpoint instead of the raw sub-server port.
+	var jsonClashBase string
+	if configuredSubURI != "" {
+		jsonClashBase = s.extractBaseFromURI(configuredSubURI)
+	} else {
+		jsonClashBase = base
+	}
+
+	subJsonURL = s.buildSingleURL(configuredSubJsonURI, jsonClashBase, subJsonPath, subId)
+	subClashURL = s.buildSingleURL(configuredSubClashURI, jsonClashBase, subClashPath, subId)
 
 	return subURL, subJsonURL, subClashURL
+}
+
+// extractBaseFromURI extracts scheme://host from a configured URI.
+// e.g., "https://example.com/sub-xxx/" → "https://example.com"
+func (s *SubService) extractBaseFromURI(uri string) string {
+	if uri == "" {
+		return ""
+	}
+	u, err := url.Parse(uri)
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("%s://%s", u.Scheme, u.Host)
 }
 
 // buildSingleURL constructs a single URL using configured URI or base components
