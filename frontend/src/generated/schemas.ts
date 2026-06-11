@@ -1306,6 +1306,17 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "settings": {},
+      "shareAddr": {
+        "type": "string"
+      },
+      "shareAddrStrategy": {
+        "enum": [
+          "node",
+          "listen",
+          "custom"
+        ],
+        "type": "string"
+      },
       "sniffing": {},
       "streamSettings": {},
       "tag": {
@@ -1344,6 +1355,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "protocol",
       "remark",
       "settings",
+      "shareAddr",
+      "shareAddrStrategy",
       "sniffing",
       "streamSettings",
       "tag",

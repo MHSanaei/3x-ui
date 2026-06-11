@@ -288,6 +288,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "protocol": "vless",
     "remark": "VLESS-443",
     "settings": null,
+    "shareAddr": "",
+    "shareAddrStrategy": "node",
     "sniffing": null,
     "streamSettings": null,
     "tag": "in-443-tcp",

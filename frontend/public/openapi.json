@@ -1332,6 +1332,17 @@
             "type": "string"
           },
           "settings": {},
+          "shareAddr": {
+            "type": "string"
+          },
+          "shareAddrStrategy": {
+            "enum": [
+              "node",
+              "listen",
+              "custom"
+            ],
+            "type": "string"
+          },
           "sniffing": {},
           "streamSettings": {},
           "tag": {
@@ -1370,6 +1381,8 @@
           "protocol",
           "remark",
           "settings",
+          "shareAddr",
+          "shareAddrStrategy",
           "sniffing",
           "streamSettings",
           "tag",
@@ -2116,6 +2129,8 @@
                       "protocol": "vless",
                       "remark": "VLESS-443",
                       "settings": null,
+                      "shareAddr": "",
+                      "shareAddrStrategy": "node",
                       "sniffing": null,
                       "streamSettings": null,
                       "tag": "in-443-tcp",
