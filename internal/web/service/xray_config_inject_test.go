@@ -169,6 +169,55 @@ func TestInjectPanelEgress(t *testing.T) {
 	}
 }
 
+func TestInjectPanelEgress_BalancerTag(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.RouterConfig = json_util.RawMessage(`{"domainStrategy":"AsIs","rules":[],"balancers":[{"tag":"lb","selector":["warp"]}]}`)
+
+	// A tag that names a balancer must be targeted via balancerTag so the
+	// router resolves it; an outbound tag coexisting with balancers still uses
+	// outboundTag.
+	injectPanelEgress(cfg, "lb")
+
+	var routing struct {
+		Rules []struct {
+			InboundTag  []string `json:"inboundTag"`
+			OutboundTag string   `json:"outboundTag"`
+			BalancerTag string   `json:"balancerTag"`
+			Type        string   `json:"type"`
+		} `json:"rules"`
+	}
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 1 {
+		t.Fatalf("expected the egress rule, got %+v", routing.Rules)
+	}
+	first := routing.Rules[0]
+	if first.BalancerTag != "lb" || first.OutboundTag != "" {
+		t.Fatalf("a balancer tag must target balancerTag, not outboundTag, got %+v", first)
+	}
+	if len(first.InboundTag) != 1 || first.InboundTag[0] != PanelEgressInboundTag {
+		t.Fatalf("egress rule must bind the egress inbound, got %+v", first)
+	}
+
+	// A non-balancer tag alongside balancers keeps the plain outbound path.
+	cfg2 := egressTestConfig()
+	cfg2.RouterConfig = json_util.RawMessage(`{"rules":[],"balancers":[{"tag":"lb","selector":["warp"]}]}`)
+	injectPanelEgress(cfg2, "warp")
+	var routing2 struct {
+		Rules []struct {
+			OutboundTag string `json:"outboundTag"`
+			BalancerTag string `json:"balancerTag"`
+		} `json:"rules"`
+	}
+	if err := json.Unmarshal(cfg2.RouterConfig, &routing2); err != nil {
+		t.Fatal(err)
+	}
+	if routing2.Rules[0].OutboundTag != "warp" || routing2.Rules[0].BalancerTag != "" {
+		t.Fatalf("a concrete outbound must target outboundTag, got %+v", routing2.Rules[0])
+	}
+}
+
 func TestInjectPanelEgress_PortCollision(t *testing.T) {
 	cfg := egressTestConfig()
 	cfg.InboundConfigs = append(cfg.InboundConfigs,

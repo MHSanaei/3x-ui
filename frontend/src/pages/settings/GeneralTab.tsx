@@ -43,7 +43,8 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
 
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
   const [inboundOptions, setInboundOptions] = useState<{ label: string; value: string }[]>([]);
-  const [outboundOptions, setOutboundOptions] = useState<{ label: string; value: string }[]>([]);
+  const [outboundTagList, setOutboundTagList] = useState<string[]>([]);
+  const [balancerTagList, setBalancerTagList] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,9 +70,11 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // Outbound tags for the panel egress picker: template outbounds plus
-      // subscription-derived outbounds, same candidate set as the geodata
-      // download picker.
+      // Candidates for the panel egress picker: template outbounds plus
+      // subscription-derived outbounds, and routing balancers. The panel egress
+      // is injected as a routing rule, so a balancer tag is a valid target
+      // (it load-balances the panel's own traffic). The geodata picker, by
+      // contrast, dials a forced tag and can only use a concrete outbound.
       const msg = await HttpUtil.post('/panel/api/xray/', undefined, { silent: true }) as ApiMsg<string>;
       if (cancelled || !msg?.success || typeof msg.obj !== 'string') return;
       try {
@@ -90,13 +93,37 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         for (const tag of subTags) {
           if (typeof tag === 'string' && tag) tags.add(tag);
         }
-        setOutboundOptions([...tags].map((tag) => ({ label: tag, value: tag })));
+        const balancerTags: string[] = [];
+        const routing = (template.routing || {}) as Record<string, unknown>;
+        const balancers = Array.isArray(routing.balancers) ? routing.balancers : [];
+        for (const b of balancers) {
+          if (!b || typeof b !== 'object') continue;
+          const tag = (b as Record<string, unknown>).tag;
+          if (typeof tag === 'string' && tag && !tags.has(tag)) balancerTags.push(tag);
+        }
+        setOutboundTagList([...tags]);
+        setBalancerTagList(balancerTags);
       } catch {
-        setOutboundOptions([]);
+        setOutboundTagList([]);
+        setBalancerTagList([]);
       }
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Outbound tags and balancer tags share one picker. When balancers exist they
+  // get their own labeled group so it's clear the selection routes through a
+  // balancer rather than a single outbound.
+  const outboundOptions = useMemo<
+    ({ label: string; value: string } | { label: string; options: { label: string; value: string }[] })[]
+  >(() => {
+    const outOpts = outboundTagList.map((tag) => ({ label: tag, value: tag }));
+    if (balancerTagList.length === 0) return outOpts;
+    return [
+      { label: t('pages.xray.Outbounds'), options: outOpts },
+      { label: t('pages.xray.Balancers'), options: balancerTagList.map((tag) => ({ label: tag, value: tag })) },
+    ];
+  }, [outboundTagList, balancerTagList, t]);
 
   const ldapInboundTagList = useMemo(() => {
     const csv = allSetting.ldapInboundTags || '';
