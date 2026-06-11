@@ -55,6 +55,13 @@ export function useInboundColumns({
         width: 30,
       },
       {
+        title: t('pages.inbounds.sortingIndex'),
+        dataIndex: 'sortingIndex',
+        key: 'sortingIndex',
+        align: 'right',
+        width: 30,
+      },
+      {
         title: t('pages.inbounds.operate'),
         key: 'action',
         align: 'center',

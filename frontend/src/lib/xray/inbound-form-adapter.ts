@@ -32,6 +32,7 @@ export interface RawInboundRow {
   down?: number;
   total?: number;
   remark?: string;
+  sortingIndex?: number;
   enable?: boolean;
   expiryTime?: number;
   trafficReset?: string;
@@ -50,6 +51,7 @@ export interface WireInboundPayload {
   down: number;
   total: number;
   remark: string;
+  sortingIndex: number;
   enable: boolean;
   expiryTime: number;
   trafficReset: TrafficReset;
@@ -160,6 +162,7 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
 
   return {
     remark: row.remark ?? '',
+    sortingIndex: row.sortingIndex ?? 0,
     enable: row.enable ?? true,
     port: row.port ?? 0,
     listen: row.listen ?? '',
@@ -307,6 +310,7 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     down: values.down,
     total: values.total,
     remark: values.remark,
+    sortingIndex: values.sortingIndex,
     enable: values.enable,
     expiryTime: values.expiryTime,
     trafficReset: values.trafficReset,

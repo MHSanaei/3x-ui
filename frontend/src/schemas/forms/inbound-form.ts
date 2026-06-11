@@ -47,6 +47,7 @@ export type InboundDbFields = z.infer<typeof InboundDbFieldsSchema>;
 // `streamSettings` are layered on via intersection below.
 export const InboundFormBaseSchema = z.object({
   remark: z.string().default(''),
+  sortingIndex: z.number().int().min(-32768).max(32767).default(0),
   enable: z.boolean().default(true),
   port: InboundPortSchema,
   listen: z.string().default(''),

@@ -27,6 +27,7 @@ export type DBInboundInit = Partial<{
     down: number;
     total: number;
     remark: string;
+    sortingIndex: number;
     enable: boolean;
     expiryTime: number;
     trafficReset: string;
@@ -72,6 +73,7 @@ export class DBInbound {
     down: number;
     total: number;
     remark: string;
+    sortingIndex: number;
     enable: boolean;
     expiryTime: number;
     trafficReset: string;
@@ -100,6 +102,7 @@ export class DBInbound {
         this.down = 0;
         this.total = 0;
         this.remark = "";
+        this.sortingIndex = 0;
         this.enable = true;
         this.expiryTime = 0;
         this.trafficReset = "never";

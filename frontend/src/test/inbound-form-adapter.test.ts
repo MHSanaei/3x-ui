@@ -6,7 +6,7 @@ import {
   formValuesToWirePayload,
   type RawInboundRow,
 } from '@/lib/xray/inbound-form-adapter';
-import { InboundFormSchema } from '@/schemas/forms/inbound-form';
+import { InboundFormBaseSchema, InboundFormSchema } from '@/schemas/forms/inbound-form';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 
 // Round-trip: raw DB row → InboundFormValues → wire payload, asserting
@@ -260,5 +260,50 @@ describe('formValuesToWirePayload', () => {
     expect(replay.up).toBe(original.up);
     expect(replay.down).toBe(original.down);
     expect(replay.streamSettings).toEqual(original.streamSettings);
+  });
+});
+
+describe('sortingIndex', () => {
+  it('rawInboundToFormValues defaults to 0 when field is absent', () => {
+    const values = rawInboundToFormValues({ ...vlessRow, sortingIndex: undefined });
+    expect(values.sortingIndex).toBe(0);
+  });
+
+  it('rawInboundToFormValues preserves the provided value', () => {
+    const values = rawInboundToFormValues({ ...vlessRow, sortingIndex: 5 });
+    expect(values.sortingIndex).toBe(5);
+  });
+
+  it('rawInboundToFormValues preserves negative values', () => {
+    const values = rawInboundToFormValues({ ...vlessRow, sortingIndex: -10 });
+    expect(values.sortingIndex).toBe(-10);
+  });
+
+  it('formValuesToWirePayload includes sortingIndex in the payload', () => {
+    const values = rawInboundToFormValues({ ...vlessRow, sortingIndex: 3 });
+    const payload = formValuesToWirePayload(values);
+    expect(payload.sortingIndex).toBe(3);
+  });
+
+  it('sortingIndex round-trips through raw → values → payload', () => {
+    const values = rawInboundToFormValues({ ...vlessRow, sortingIndex: 42 });
+    const payload = formValuesToWirePayload(values);
+    const replay = rawInboundToFormValues({ ...vlessRow, sortingIndex: payload.sortingIndex });
+    expect(replay.sortingIndex).toBe(42);
+  });
+
+  it('InboundFormBaseSchema rejects values outside int16 range', () => {
+    expect(InboundFormBaseSchema.partial().safeParse({ sortingIndex: 32768 }).success).toBe(false);
+    expect(InboundFormBaseSchema.partial().safeParse({ sortingIndex: -32769 }).success).toBe(false);
+  });
+
+  it('InboundFormBaseSchema accepts boundary values', () => {
+    expect(InboundFormBaseSchema.partial().safeParse({ sortingIndex: 32767 }).success).toBe(true);
+    expect(InboundFormBaseSchema.partial().safeParse({ sortingIndex: -32768 }).success).toBe(true);
+    expect(InboundFormBaseSchema.partial().safeParse({ sortingIndex: 0 }).success).toBe(true);
+  });
+
+  it('InboundFormBaseSchema rejects non-integer values', () => {
+    expect(InboundFormBaseSchema.partial().safeParse({ sortingIndex: 1.5 }).success).toBe(false);
   });
 });

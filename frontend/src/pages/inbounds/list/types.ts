@@ -20,6 +20,7 @@ export type ProtocolFlags = {
 
 export interface DBInboundRecord extends ProtocolFlags {
   id: number;
+  sortingIndex: number;
   enable: boolean;
   remark: string;
   port: number;

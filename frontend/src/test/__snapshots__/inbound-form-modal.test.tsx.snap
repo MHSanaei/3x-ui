@@ -4,6 +4,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > http 
 [
   "Enabled",
   "Remark",
+  "Sorting index",
   "Protocol",
   "Address",
   "Share address strategy",
@@ -19,6 +20,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > hyste
 [
   "Enabled",
   "Remark",
+  "Sorting index",
   "Protocol",
   "Address",
   "Share address strategy",
@@ -34,6 +36,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > mixed
 [
   "Enabled",
   "Remark",
+  "Sorting index",
   "Protocol",
   "Address",
   "Share address strategy",
@@ -49,6 +52,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > shado
 [
   "Enabled",
   "Remark",
+  "Sorting index",
   "Protocol",
   "Address",
   "Share address strategy",
@@ -64,6 +68,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > troja
 [
   "Enabled",
   "Remark",
+  "Sorting index",
   "Protocol",
   "Address",
   "Share address strategy",
@@ -79,6 +84,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > tun 1
 [
   "Enabled",
   "Remark",
+  "Sorting index",
   "Protocol",
   "Address",
   "Share address strategy",
@@ -94,6 +100,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > tunne
 [
   "Enabled",
   "Remark",
+  "Sorting index",
   "Protocol",
   "Address",
   "Share address strategy",
@@ -109,6 +116,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > vless
 [
   "Enabled",
   "Remark",
+  "Sorting index",
   "Protocol",
   "Address",
   "Share address strategy",
@@ -124,6 +132,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > vmess
 [
   "Enabled",
   "Remark",
+  "Sorting index",
   "Protocol",
   "Address",
   "Share address strategy",
@@ -139,6 +148,7 @@ exports[`InboundFormModal > field structure is stable for every protocol > wireg
 [
   "Enabled",
   "Remark",
+  "Sorting index",
   "Protocol",
   "Address",
   "Share address strategy",

@@ -515,6 +515,14 @@ export default function InboundFormModal({
         <Input />
       </Form.Item>
 
+      <Form.Item
+          name="sortingIndex"
+          label={t('pages.inbounds.sortingIndex')}
+          extra={t('pages.inbounds.form.sortingIndexHelp')}
+      >
+        <InputNumber min={-32768} max={32767} />
+      </Form.Item>
+
       {selectableNodes.length > 0 && isNodeEligible && (
         <Form.Item name="nodeId" label={t('pages.inbounds.deployTo')}>
           <Select
