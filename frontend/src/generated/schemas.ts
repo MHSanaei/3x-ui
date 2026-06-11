@@ -94,8 +94,8 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
-      "panelProxy": {
-        "description": "Proxy URL for the panel's own outbound requests (GitHub/Telegram)",
+      "panelOutbound": {
+        "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
         "type": "string"
       },
       "remarkModel": {
@@ -357,7 +357,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserFilter",
       "ldapVlessField",
       "pageSize",
-      "panelProxy",
+      "panelOutbound",
       "remarkModel",
       "restartXrayOnClientDisable",
       "sessionMaxAge",
@@ -528,8 +528,8 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
-      "panelProxy": {
-        "description": "Proxy URL for the panel's own outbound requests (GitHub/Telegram)",
+      "panelOutbound": {
+        "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
         "type": "string"
       },
       "remarkModel": {
@@ -797,7 +797,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserFilter",
       "ldapVlessField",
       "pageSize",
-      "panelProxy",
+      "panelOutbound",
       "remarkModel",
       "restartXrayOnClientDisable",
       "sessionMaxAge",
@@ -1190,49 +1190,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "total",
       "up",
       "uuid"
-    ],
-    "type": "object"
-  },
-  "CustomGeoResource": {
-    "properties": {
-      "alias": {
-        "type": "string"
-      },
-      "createdAt": {
-        "type": "integer"
-      },
-      "id": {
-        "type": "integer"
-      },
-      "lastModified": {
-        "type": "string"
-      },
-      "lastUpdatedAt": {
-        "type": "integer"
-      },
-      "localPath": {
-        "type": "string"
-      },
-      "type": {
-        "type": "string"
-      },
-      "updatedAt": {
-        "type": "integer"
-      },
-      "url": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "alias",
-      "createdAt",
-      "id",
-      "lastModified",
-      "lastUpdatedAt",
-      "localPath",
-      "type",
-      "updatedAt",
-      "url"
     ],
     "type": "object"
   },

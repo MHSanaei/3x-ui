@@ -26,7 +26,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/network"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
@@ -107,10 +106,9 @@ type Server struct {
 	api   *controller.APIController
 	ws    *controller.WebSocketController
 
-	xrayService      service.XrayService
-	settingService   service.SettingService
-	tgbotService     tgbot.Tgbot
-	customGeoService *integration.CustomGeoService
+	xrayService    service.XrayService
+	settingService service.SettingService
+	tgbotService   tgbot.Tgbot
 
 	wsHub *websocket.Hub
 
@@ -229,7 +227,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
 	g.GET("/panel/api/openapi.json", controller.ServeOpenAPISpec)
-	s.api = controller.NewAPIController(g, s.customGeoService)
+	s.api = controller.NewAPIController(g)
 
 	// Initialize WebSocket hub
 	s.wsHub = websocket.NewHub()
@@ -257,7 +255,6 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
 // jobs) which the panel relies on for periodic maintenance and monitoring.
 func (s *Server) startTask(restartXray bool) {
-	s.customGeoService.EnsureOnStartup()
 	if restartXray {
 		err := s.xrayService.RestartXray(true)
 		if err != nil {
@@ -388,8 +385,6 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		APIPort:        func() int { return s.xrayService.GetXrayAPIPort() },
 		SetNeedRestart: func() { s.xrayService.SetToNeedRestart() },
 	}))
-
-	s.customGeoService = integration.NewCustomGeoService()
 
 	engine, err := s.initRouter()
 	if err != nil {

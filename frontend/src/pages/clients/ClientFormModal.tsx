@@ -32,6 +32,9 @@ const MULTI_CLIENT_PROTOCOLS = new Set([
   'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria',
 ]);
 
+const CLIENT_FORM_MODAL_Z_INDEX = 1000;
+const CLIENT_IP_LOG_MODAL_Z_INDEX = CLIENT_FORM_MODAL_Z_INDEX + 1;
+
 interface ApiMsg<T = unknown> {
   success?: boolean;
   obj?: T;
@@ -414,6 +417,7 @@ export default function ClientFormModal({
         cancelText={t('cancel')}
         okButtonProps={{ loading: submitting }}
         width={720}
+        zIndex={CLIENT_FORM_MODAL_Z_INDEX}
         style={{ top: 20 }}
         styles={{ body: { maxHeight: 'calc(100vh - 160px)', overflowY: 'auto', overflowX: 'hidden' } }}
         onOk={onSubmit}
@@ -630,6 +634,7 @@ export default function ClientFormModal({
         open={ipsModalOpen}
         title={`${t('pages.clients.ipLog')}${client?.email ? ` — ${client.email}` : ''}`}
         width={440}
+        zIndex={CLIENT_IP_LOG_MODAL_Z_INDEX}
         onCancel={() => setIpsModalOpen(false)}
         footer={[
           <Button key="refresh" icon={<ReloadOutlined />} loading={ipsLoading} onClick={loadIps}>

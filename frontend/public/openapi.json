@@ -120,8 +120,8 @@
             "minimum": 0,
             "type": "integer"
           },
-          "panelProxy": {
-            "description": "Proxy URL for the panel's own outbound requests (GitHub/Telegram)",
+          "panelOutbound": {
+            "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
             "type": "string"
           },
           "remarkModel": {
@@ -383,7 +383,7 @@
           "ldapUserFilter",
           "ldapVlessField",
           "pageSize",
-          "panelProxy",
+          "panelOutbound",
           "remarkModel",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
@@ -554,8 +554,8 @@
             "minimum": 0,
             "type": "integer"
           },
-          "panelProxy": {
-            "description": "Proxy URL for the panel's own outbound requests (GitHub/Telegram)",
+          "panelOutbound": {
+            "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
             "type": "string"
           },
           "remarkModel": {
@@ -823,7 +823,7 @@
           "ldapUserFilter",
           "ldapVlessField",
           "pageSize",
-          "panelProxy",
+          "panelOutbound",
           "remarkModel",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
@@ -1216,49 +1216,6 @@
           "total",
           "up",
           "uuid"
-        ],
-        "type": "object"
-      },
-      "CustomGeoResource": {
-        "properties": {
-          "alias": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "integer"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "lastModified": {
-            "type": "string"
-          },
-          "lastUpdatedAt": {
-            "type": "integer"
-          },
-          "localPath": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "integer"
-          },
-          "url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "alias",
-          "createdAt",
-          "id",
-          "lastModified",
-          "lastUpdatedAt",
-          "localPath",
-          "type",
-          "updatedAt",
-          "url"
         ],
         "type": "object"
       },
@@ -1881,10 +1838,6 @@
       "description": "Manage remote 3x-ui panels acting as nodes for a central panel. All endpoints under /panel/api/nodes."
     },
     {
-      "name": "Custom Geo",
-      "description": "Manage user-supplied GeoIP / GeoSite source files. All endpoints under /panel/api/custom-geo."
-    },
-    {
       "name": "Backup",
       "description": "Operations that interact with the configured Telegram bot."
     },
@@ -2232,7 +2185,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Lightweight picker projection of the authenticated user’s inbounds. Returns id, remark, tag, protocol, port, a server-computed tlsFlowCapable flag (true for VLESS / port-fallback on TCP with tls or reality), and ssMethod (the Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the client UI to generate a valid Shadowsocks 2022 PSK). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.",
+        "summary": "Lightweight picker projection of the authenticated user’s inbounds. Returns id, remark, tag, protocol, port, a server-computed tlsFlowCapable flag (true for VLESS on TCP with tls or reality, or on XHTTP with VLESS encryption / vlessenc enabled), and ssMethod (the Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the client UI to generate a valid Shadowsocks 2022 PSK). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.",
         "operationId": "get_panel_api_inbounds_options",
         "responses": {
           "200": {
@@ -6593,264 +6546,6 @@
         }
       }
     },
-    "/panel/api/custom-geo/list": {
-      "get": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "List configured custom geo sources with their type, alias, URL, status, and last-download timestamp.",
-        "operationId": "get_panel_api_custom_geo_list",
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/aliases": {
-      "get": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "List geo aliases currently usable in routing rules — both built-in defaults and the user-configured ones.",
-        "operationId": "get_panel_api_custom_geo_aliases",
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/add": {
-      "post": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "Register a custom geo source. Alias is auto-normalised; URL must point to a .dat / .json blob.",
-        "operationId": "post_panel_api_custom_geo_add",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              },
-              "example": {
-                "type": "geoip",
-                "alias": "myips",
-                "url": "https://example.com/geo/my.dat"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/update/{id}": {
-      "post": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "Replace a custom geo source. Same body shape as /add.",
-        "operationId": "post_panel_api_custom_geo_update_id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Custom geo source ID.",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/delete/{id}": {
-      "post": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "Remove a custom geo source and its cached file.",
-        "operationId": "post_panel_api_custom_geo_delete_id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Custom geo source ID.",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/download/{id}": {
-      "post": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "Re-download one custom geo source on demand.",
-        "operationId": "post_panel_api_custom_geo_download_id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Custom geo source ID.",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/update-all": {
-      "post": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "Re-download every configured custom geo source. Errors are reported per-source in the response.",
-        "operationId": "post_panel_api_custom_geo_update_all",
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/panel/api/backuptotgbot": {
       "post": {
         "tags": [
@@ -7636,6 +7331,126 @@
         ],
         "summary": "Test an outbound configuration. Sends the outbound JSON (required), optionally all outbounds (to resolve sockopt.dialerProxy dependencies), and a mode flag.",
         "operationId": "post_panel_api_xray_testOutbound",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/balancerStatus": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Live state of routing balancers in the running core (RoutingService.GetBalancerInfo): current override and the targets the strategy prefers. Returns a map keyed by balancer tag.",
+        "operationId": "post_panel_api_xray_balancerStatus",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/balancerOverride": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Force a balancer in the running core to always pick one outbound (RoutingService.OverrideBalancerTarget). Applied live without a restart; cleared automatically when Xray restarts.",
+        "operationId": "post_panel_api_xray_balancerOverride",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/routeTest": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Ask the running core which outbound its router would pick for a synthetic connection (RoutingService.TestRoute). No traffic is sent.",
+        "operationId": "post_panel_api_xray_routeTest",
         "requestBody": {
           "required": true,
           "content": {

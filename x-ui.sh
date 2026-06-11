@@ -2100,7 +2100,7 @@ install_iplimit() {
         case "${release}" in
             ubuntu)
                 apt-get update
-                if [[ "${os_version}" -ge 24 ]]; then
+                if [[ "${os_version}" -ge 2400 ]]; then
                     apt-get install python3-pip -y
                     python3 -m pip install pyasynchat --break-system-packages
                 fi
@@ -2302,8 +2302,8 @@ create_iplimit_jails() {
     # Uncomment 'allowipv6 = auto' in fail2ban.conf
     sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
 
-    # On Debian 12+ fail2ban's default backend should be changed to systemd
-    if [[ "${release}" == "debian" && ${os_version} -ge 12 ]]; then
+    # On Debian 12+ and Ubuntu 22.04+ fail2ban's default backend should be changed to systemd
+    if [[ ( "${release}" == "debian" && ${os_version} -ge 12 ) || ( "${release}" == "ubuntu" && ${os_version} -ge 2200 ) ]]; then
         sed -i '0,/action =/s/backend = auto/backend = systemd/' /etc/fail2ban/jail.conf
     fi
 

@@ -6,7 +6,6 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
@@ -29,9 +28,9 @@ type APIController struct {
 }
 
 // NewAPIController creates a new APIController instance and initializes its routes.
-func NewAPIController(g *gin.RouterGroup, customGeo *integration.CustomGeoService) *APIController {
+func NewAPIController(g *gin.RouterGroup) *APIController {
 	a := &APIController{}
-	a.initRouter(g, customGeo)
+	a.initRouter(g)
 	return a
 }
 
@@ -60,7 +59,7 @@ func (a *APIController) checkAPIAuth(c *gin.Context) {
 }
 
 // initRouter sets up the API routes for inbounds, server, and other endpoints.
-func (a *APIController) initRouter(g *gin.RouterGroup, customGeo *integration.CustomGeoService) {
+func (a *APIController) initRouter(g *gin.RouterGroup) {
 	// Main API group
 	api := g.Group("/panel/api")
 	api.Use(a.checkAPIAuth)
@@ -81,8 +80,6 @@ func (a *APIController) initRouter(g *gin.RouterGroup, customGeo *integration.Cu
 	// Nodes API — multi-panel management
 	nodes := api.Group("/nodes")
 	a.nodeController = NewNodeController(nodes)
-
-	NewCustomGeoController(api.Group("/custom-geo"), customGeo)
 
 	// Settings + Xray config management live under the API surface too, so the
 	// same API token drives them. Paths are /panel/api/setting/* and

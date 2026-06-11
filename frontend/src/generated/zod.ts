@@ -38,7 +38,7 @@ export const AllSettingSchema = z.object({
   ldapUserFilter: z.string(),
   ldapVlessField: z.string(),
   pageSize: z.number().int().min(0).max(1000),
-  panelProxy: z.string(),
+  panelOutbound: z.string(),
   remarkModel: z.string(),
   restartXrayOnClientDisable: z.boolean(),
   sessionMaxAge: z.number().int().min(1).max(525600),
@@ -129,7 +129,7 @@ export const AllSettingViewSchema = z.object({
   ldapUserFilter: z.string(),
   ldapVlessField: z.string(),
   pageSize: z.number().int().min(0).max(1000),
-  panelProxy: z.string(),
+  panelOutbound: z.string(),
   remarkModel: z.string(),
   restartXrayOnClientDisable: z.boolean(),
   sessionMaxAge: z.number().int().min(1).max(525600),
@@ -279,19 +279,6 @@ export const ClientTrafficSchema = z.object({
   uuid: z.string(),
 });
 export type ClientTraffic = z.infer<typeof ClientTrafficSchema>;
-
-export const CustomGeoResourceSchema = z.object({
-  alias: z.string(),
-  createdAt: z.number().int(),
-  id: z.number().int(),
-  lastModified: z.string(),
-  lastUpdatedAt: z.number().int(),
-  localPath: z.string(),
-  type: z.string(),
-  updatedAt: z.number().int(),
-  url: z.string(),
-});
-export type CustomGeoResource = z.infer<typeof CustomGeoResourceSchema>;
 
 export const FallbackParentInfoSchema = z.object({
   masterId: z.number().int(),

@@ -10,23 +10,31 @@ import (
 
 func TestClientWithInboundFlow_GatesByInboundCapability(t *testing.T) {
 	const vision = "xtls-rprx-vision"
+	const enc = `{"encryption":"mlkem768x25519plus.native.0rtt.G3cdPSd1-NnlpTbWNSM5vHsT5VNzWfFzYSKwbUMnV1Y"}`
 	cases := []struct {
 		name           string
 		protocol       model.Protocol
 		streamSettings string
+		settings       string
 		wantFlow       string
 	}{
-		{"vless tcp reality keeps flow", model.VLESS, `{"network":"tcp","security":"reality"}`, vision},
-		{"vless tcp tls keeps flow", model.VLESS, `{"network":"tcp","security":"tls"}`, vision},
-		{"vless ws tls clears flow", model.VLESS, `{"network":"ws","security":"tls"}`, ""},
-		{"vless grpc tls clears flow", model.VLESS, `{"network":"grpc","security":"tls"}`, ""},
-		{"vless tcp none clears flow", model.VLESS, `{"network":"tcp","security":"none"}`, ""},
-		{"vmess tcp tls clears flow", model.VMESS, `{"network":"tcp","security":"tls"}`, ""},
-		{"empty stream clears flow", model.VLESS, "", ""},
+		{"vless tcp reality keeps flow", model.VLESS, `{"network":"tcp","security":"reality"}`, "", vision},
+		{"vless tcp tls keeps flow", model.VLESS, `{"network":"tcp","security":"tls"}`, "", vision},
+		{"vless ws tls clears flow", model.VLESS, `{"network":"ws","security":"tls"}`, "", ""},
+		{"vless grpc tls clears flow", model.VLESS, `{"network":"grpc","security":"tls"}`, "", ""},
+		{"vless tcp none clears flow", model.VLESS, `{"network":"tcp","security":"none"}`, "", ""},
+		{"vmess tcp tls clears flow", model.VMESS, `{"network":"tcp","security":"tls"}`, "", ""},
+		{"empty stream clears flow", model.VLESS, "", "", ""},
+		// vlessenc (ML-KEM) keeps Vision flow without transport TLS only on XHTTP.
+		// TCP without tls/reality clears it even with vlessenc set.
+		{"vless tcp vlessenc clears flow", model.VLESS, `{"network":"tcp","security":"none"}`, enc, ""},
+		{"vless xhttp vlessenc keeps flow", model.VLESS, `{"network":"xhttp","security":"none"}`, enc, vision},
+		{"vless xhttp no encryption clears flow", model.VLESS, `{"network":"xhttp","security":"none"}`, `{"encryption":"none"}`, ""},
+		{"vless xhttp empty settings clears flow", model.VLESS, `{"network":"xhttp","security":"none"}`, "", ""},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			ib := &model.Inbound{Protocol: tc.protocol, StreamSettings: tc.streamSettings}
+			ib := &model.Inbound{Protocol: tc.protocol, StreamSettings: tc.streamSettings, Settings: tc.settings}
 			got := clientWithInboundFlow(model.Client{Email: "x@example.com", Flow: vision}, ib)
 			if got.Flow != tc.wantFlow {
 				t.Errorf("Flow = %q, want %q", got.Flow, tc.wantFlow)
