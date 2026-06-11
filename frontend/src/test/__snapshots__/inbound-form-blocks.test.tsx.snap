@@ -130,5 +130,6 @@ exports[`inbound transport forms > XhttpForm field structure is stable 1`] = `
   "Session Placement",
   "Sequence Placement",
   "No SSE Header",
+  "XMUX",
 ]
 `;
