@@ -116,7 +116,7 @@ export default function SubPage() {
     const allLinks = links.join('\n');
     const ok = await ClipboardManager.copyText(allLinks);
     if (ok) messageApi.success(t('subscription.copyAllConfigsCopied'));
-  }, [links, t, messageApi]);
+  }, [t, messageApi]);
 
   const open = useCallback((url: string) => {
     if (!url) return;
