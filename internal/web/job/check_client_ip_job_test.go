@@ -22,7 +22,7 @@ func TestMergeClientIps_EvictsStaleOldEntries(t *testing.T) {
 		{IP: "2.2.2.2", Timestamp: 2000}, // same IP, newer log line
 	}
 
-	got := mergeClientIps(old, new, 1000)
+	got := mergeClientIps(old, new, 1000, false)
 
 	want := map[string]int64{"2.2.2.2": 2000}
 	if !reflect.DeepEqual(got, want) {
@@ -36,7 +36,7 @@ func TestMergeClientIps_KeepsFreshOldEntriesUnchanged(t *testing.T) {
 	old := []IPWithTimestamp{
 		{IP: "1.1.1.1", Timestamp: 1500},
 	}
-	got := mergeClientIps(old, nil, 1000)
+	got := mergeClientIps(old, nil, 1000, false)
 
 	want := map[string]int64{"1.1.1.1": 1500}
 	if !reflect.DeepEqual(got, want) {
@@ -48,7 +48,7 @@ func TestMergeClientIps_PrefersLaterTimestampForSameIp(t *testing.T) {
 	old := []IPWithTimestamp{{IP: "1.1.1.1", Timestamp: 1500}}
 	new := []IPWithTimestamp{{IP: "1.1.1.1", Timestamp: 1700}}
 
-	got := mergeClientIps(old, new, 1000)
+	got := mergeClientIps(old, new, 1000, false)
 
 	if got["1.1.1.1"] != 1700 {
 		t.Fatalf("expected latest timestamp 1700, got %d", got["1.1.1.1"])
@@ -59,7 +59,7 @@ func TestMergeClientIps_DropsStaleNewEntries(t *testing.T) {
 	// A log line with a clock-skewed old timestamp must not resurrect a
 	// stale IP past the cutoff.
 	new := []IPWithTimestamp{{IP: "1.1.1.1", Timestamp: 500}}
-	got := mergeClientIps(nil, new, 1000)
+	got := mergeClientIps(nil, new, 1000, false)
 
 	if len(got) != 0 {
 		t.Fatalf("stale new IP should have been dropped, got %v", got)
@@ -72,11 +72,71 @@ func TestMergeClientIps_NoStaleCutoffStillWorks(t *testing.T) {
 	old := []IPWithTimestamp{{IP: "1.1.1.1", Timestamp: 100}}
 	new := []IPWithTimestamp{{IP: "2.2.2.2", Timestamp: 200}}
 
-	got := mergeClientIps(old, new, 0)
+	got := mergeClientIps(old, new, 0, false)
 
 	want := map[string]int64{"1.1.1.1": 100, "2.2.2.2": 200}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("zero cutoff should keep everything\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestMergeClientIps_LiveObservationsBypassStaleCutoff(t *testing.T) {
+	// online-API mode: lastSeen is set when the connection was dispatched, so
+	// a connection held open for hours has an "old" timestamp while being live
+	// by definition. It must survive the stale cutoff.
+	new := []IPWithTimestamp{{IP: "1.1.1.1", Timestamp: 500}} // opened long ago, still connected
+	got := mergeClientIps(nil, new, 1000, true)
+
+	want := map[string]int64{"1.1.1.1": 500}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("live observation must bypass the stale cutoff\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestMergeClientIps_LiveModeStillEvictsStaleOldEntries(t *testing.T) {
+	// the bypass applies only to this scan's observations — persisted entries
+	// from past scans still age out as before.
+	old := []IPWithTimestamp{{IP: "2.2.2.2", Timestamp: 100}}
+	new := []IPWithTimestamp{{IP: "1.1.1.1", Timestamp: 2000}}
+	got := mergeClientIps(old, new, 1000, true)
+
+	want := map[string]int64{"1.1.1.1": 2000}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("stale db entry must still be evicted in live mode\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestSelectIpsToBan(t *testing.T) {
+	live := []IPWithTimestamp{ // sorted oldest-first, as partitionLiveIps returns
+		{IP: "A", Timestamp: 100},
+		{IP: "B", Timestamp: 200},
+		{IP: "C", Timestamp: 300},
+	}
+
+	// over the limit: oldest connections are banned, newest keep the slots
+	kept, banned := selectIpsToBan(live, 1)
+	if got := collectIps(kept); !reflect.DeepEqual(got, []string{"C"}) {
+		t.Fatalf("newest ip must keep the slot, got %v", got)
+	}
+	if got := collectIps(banned); !reflect.DeepEqual(got, []string{"A", "B"}) {
+		t.Fatalf("older ips must be banned oldest-first, got %v", got)
+	}
+
+	// at the limit: nothing banned
+	kept, banned = selectIpsToBan(live, 3)
+	if len(banned) != 0 || len(kept) != 3 {
+		t.Fatalf("at-limit set must not ban, kept=%v banned=%v", kept, banned)
+	}
+
+	// under the limit: nothing banned
+	kept, banned = selectIpsToBan(live[:1], 3)
+	if len(banned) != 0 || len(kept) != 1 {
+		t.Fatalf("under-limit set must not ban, kept=%v banned=%v", kept, banned)
+	}
+
+	// defensive: non-positive limit never reaches enforcement, but must not panic
+	if _, banned := selectIpsToBan(live, 0); banned != nil {
+		t.Fatalf("zero limit must not ban, got %v", banned)
 	}
 }
 

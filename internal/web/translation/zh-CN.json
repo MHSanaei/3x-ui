@@ -627,6 +627,8 @@
       }
     },
     "clients": {
+      "tabBasic": "基本",
+      "tabConfig": "配置",
       "add": "添加客户端",
       "edit": "编辑客户端",
       "submitAdd": "添加客户端",

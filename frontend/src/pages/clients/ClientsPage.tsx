@@ -196,7 +196,7 @@ export default function ClientsPage() {
     allGroups,
     setQuery,
     inbounds, onlines, loading, fetched, fetchError, subSettings,
-    ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
+    tgBotEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, bulkAttach, detach, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
@@ -1219,7 +1219,6 @@ export default function ClientsPage() {
             client={editingClient}
             attachedIds={editingAttachedIds}
             inbounds={inbounds}
-            ipLimitEnable={ipLimitEnable}
             tgBotEnable={tgBotEnable}
             groups={allGroups}
             save={onSave}
@@ -1248,7 +1247,6 @@ export default function ClientsPage() {
           <ClientBulkAddModal
             open={bulkAddOpen}
             inbounds={inbounds}
-            ipLimitEnable={ipLimitEnable}
             groups={allGroups}
             onOpenChange={setBulkAddOpen}
             onSaved={() => setBulkAddOpen(false)}

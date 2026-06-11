@@ -627,6 +627,8 @@
       }
     },
     "clients": {
+      "tabBasic": "基本",
+      "tabConfig": "設定",
       "add": "クライアントを追加",
       "edit": "クライアントを編集",
       "submitAdd": "クライアントを追加",

@@ -14,7 +14,7 @@ import './XrayStatusCard.css';
 interface XrayStatusCardProps {
   status: Status;
   isMobile: boolean;
-  ipLimitEnable: boolean;
+  accessLogEnable: boolean;
   onStopXray: () => void;
   onRestartXray: () => void;
   onOpenLogs: () => void;
@@ -31,7 +31,7 @@ const XRAY_STATE_KEYS: Record<string, string> = {
 export default function XrayStatusCard({
   status,
   isMobile,
-  ipLimitEnable,
+  accessLogEnable,
   onStopXray,
   onRestartXray,
   onOpenLogs,
@@ -86,7 +86,9 @@ export default function XrayStatusCard({
     );
 
   const actions = [
-    ...(ipLimitEnable
+    // the xray log viewer reads the access log file, so the button only makes
+    // sense when one is configured (unlike IP limit, which no longer needs it)
+    ...(accessLogEnable
       ? [
           <Space className="action" key="xraylogs" onClick={onOpenXrayLogs}>
             <BarsOutlined />

@@ -628,6 +628,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Temel",
+      "tabConfig": "Yapılandırma",
       "add": "Kullanıcı Ekle",
       "edit": "Kullanıcıyı Düzenle",
       "submitAdd": "Kullanıcı Ekle",

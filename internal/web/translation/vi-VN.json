@@ -627,6 +627,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Cơ bản",
+      "tabConfig": "Cấu hình",
       "add": "Thêm khách hàng",
       "edit": "Chỉnh sửa khách hàng",
       "submitAdd": "Thêm khách hàng",

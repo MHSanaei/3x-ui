@@ -627,6 +627,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Dasar",
+      "tabConfig": "Konfigurasi",
       "add": "Tambah klien",
       "edit": "Ubah klien",
       "submitAdd": "Tambah klien",

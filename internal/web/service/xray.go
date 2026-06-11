@@ -116,6 +116,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	}
 	xrayConfig.LogConfig = resolveXrayLogPaths(xrayConfig.LogConfig)
 	xrayConfig.API = ensureAPIServices(xrayConfig.API)
+	xrayConfig.Policy = ensureStatsPolicy(xrayConfig.Policy)
 
 	_, _, _ = s.inboundService.AddTraffic(nil, nil)
 
@@ -421,6 +422,51 @@ func ensureAPIServices(api json_util.RawMessage) json_util.RawMessage {
 	return out
 }
 
+// ensureStatsPolicy guarantees every policy level in the generated config has
+// statsUserOnline enabled, so the core tracks per-email online IPs for the
+// panel's online view and access-log-free IP limiting. Generated clients carry
+// no explicit level, so level "0" is created when absent. The flag is panel
+// infrastructure and is forced on even over an explicit false in the template,
+// same as the api services above. An entirely missing or unparsable policy
+// block is left alone; the stored template itself is never modified — only the
+// generated runtime config.
+func ensureStatsPolicy(policy json_util.RawMessage) json_util.RawMessage {
+	if len(policy) == 0 {
+		return policy
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(policy, &parsed); err != nil {
+		return policy
+	}
+	levels, _ := parsed["levels"].(map[string]any)
+	if levels == nil {
+		levels = make(map[string]any)
+	}
+	if _, ok := levels["0"]; !ok {
+		levels["0"] = map[string]any{}
+	}
+	changed := false
+	for _, raw := range levels {
+		level, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		if enabled, ok := level["statsUserOnline"].(bool); !ok || !enabled {
+			level["statsUserOnline"] = true
+			changed = true
+		}
+	}
+	if !changed {
+		return policy
+	}
+	parsed["levels"] = levels
+	out, err := json.Marshal(parsed)
+	if err != nil {
+		return policy
+	}
+	return out
+}
+
 // resolveXrayLogPaths rewrites relative `log.access` / `log.error` values to
 // absolute paths under config.GetLogFolder(), so Xray writes those files
 // alongside the panel's other logs regardless of the working directory the
@@ -491,6 +537,43 @@ func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, 
 		return nil, nil, err
 	}
 	return traffic, clientTraffic, nil
+}
+
+// GetOnlineUsers returns connection-based online users (email + source IPs)
+// from the running core's online-stats API. ok=false means the API is not
+// available — xray isn't running or the core predates the online-stats RPCs —
+// and callers must use the legacy traffic-delta / access-log paths. The
+// capability is probed lazily per process: an Unimplemented answer pins this
+// core as unsupported until the next restart, while transient errors leave the
+// capability undecided so a flaky poll can't lock in legacy mode.
+func (s *XrayService) GetOnlineUsers() ([]xray.OnlineUser, bool, error) {
+	if !s.IsXrayRunning() {
+		return nil, false, nil
+	}
+	if p.OnlineAPISupport() == xray.OnlineAPIUnsupported {
+		return nil, false, nil
+	}
+	if err := s.xrayAPI.Init(p.GetAPIPort()); err != nil {
+		logger.Debug("Failed to initialize Xray API:", err)
+		return nil, false, err
+	}
+	defer s.xrayAPI.Close()
+
+	users, err := s.xrayAPI.GetOnlineUsers()
+	if err != nil {
+		if xray.IsUnimplementedErr(err) {
+			p.SetOnlineAPISupport(xray.OnlineAPIUnsupported)
+			logger.Info("xray core does not support the online-stats API; falling back to traffic-delta onlines and access-log IP limit")
+			return nil, false, nil
+		}
+		logger.Debug("Failed to fetch Xray online users:", err)
+		return nil, false, err
+	}
+	if p.OnlineAPISupport() == xray.OnlineAPIUnknown {
+		p.SetOnlineAPISupport(xray.OnlineAPISupported)
+		logger.Info("xray core supports the online-stats API; using connection-based onlines and access-log-free IP limit")
+	}
+	return users, true, nil
 }
 
 // BalancerStatus is the live view of one balancer for the panel UI. Running

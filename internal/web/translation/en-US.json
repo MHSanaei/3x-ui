@@ -628,6 +628,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Basic",
+      "tabConfig": "Config",
       "add": "Add Client",
       "edit": "Edit Client",
       "submitAdd": "Add Client",
