@@ -588,14 +588,14 @@
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "دریافت Seed جدید",
         "listenHelp": "می‌توانید به‌جای پورت TCP یک مسیر سوکت یونیکس وارد کنید (مثلاً /run/xray/in.sock) تا روی سوکت گوش داده شود — در این حالت پورت را روی ۰ بگذارید.",
-        "shareAddrStrategy": "Share address strategy",
-        "shareAddrStrategyHelp": "Controls which address is written into exported share links and QR codes. Subscription links are not affected.",
-        "shareAddr": "Custom share address",
-        "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme.",
+        "shareAddrStrategy": "راهبرد آدرس اشتراک‌گذاری",
+        "shareAddrStrategyHelp": "مشخص می‌کند کدام آدرس در لینک‌های اشتراک‌گذاری خروجی و کدهای QR نوشته شود. لینک‌های اشتراک تحت تأثیر قرار نمی‌گیرند.",
+        "shareAddr": "آدرس اشتراک‌گذاری سفارشی",
+        "shareAddrHelp": "فقط زمانی استفاده می‌شود که راهبرد آدرس اشتراک‌گذاری روی سفارشی باشد. میزبان یا IP را بدون طرح و پورت وارد کنید.",
         "shareAddrStrategyOptions": {
-          "node": "Node address",
-          "listen": "Inbound listen",
-          "custom": "Custom"
+          "node": "آدرس نود",
+          "listen": "آدرس شنود ورودی",
+          "custom": "سفارشی"
         }
       },
       "info": {

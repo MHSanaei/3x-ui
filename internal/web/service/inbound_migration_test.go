@@ -112,11 +112,23 @@ func TestMigrationRequirements_NormalizesShareAddressFields(t *testing.T) {
 		Settings:       `{"clients":[]}`,
 		StreamSettings: `{"network":"tcp","security":"none"}`,
 	}
+	invalidAddress := &model.Inbound{
+		UserId:         1,
+		Tag:            "invalid-share-address",
+		Enable:         true,
+		Port:           31003,
+		Protocol:       model.VLESS,
+		Settings:       `{"clients":[]}`,
+		StreamSettings: `{"network":"tcp","security":"none"}`,
+	}
 	if err := db.Create(invalidStrategy).Error; err != nil {
 		t.Fatalf("create invalid strategy inbound: %v", err)
 	}
 	if err := db.Create(paddedStrategy).Error; err != nil {
 		t.Fatalf("create padded strategy inbound: %v", err)
+	}
+	if err := db.Create(invalidAddress).Error; err != nil {
+		t.Fatalf("create invalid address inbound: %v", err)
 	}
 	if err := db.Model(&model.Inbound{}).Where("id = ?", invalidStrategy.Id).Updates(map[string]any{
 		"share_addr_strategy": " auto ",
@@ -129,6 +141,12 @@ func TestMigrationRequirements_NormalizesShareAddressFields(t *testing.T) {
 		"share_addr":          "  10.0.0.1  ",
 	}).Error; err != nil {
 		t.Fatalf("seed padded share fields: %v", err)
+	}
+	if err := db.Model(&model.Inbound{}).Where("id = ?", invalidAddress.Id).Updates(map[string]any{
+		"share_addr_strategy": "custom",
+		"share_addr":          "edge.example.com:8443",
+	}).Error; err != nil {
+		t.Fatalf("seed invalid address share fields: %v", err)
 	}
 
 	svc := InboundService{}
@@ -148,5 +166,13 @@ func TestMigrationRequirements_NormalizesShareAddressFields(t *testing.T) {
 	}
 	if gotPadded.ShareAddrStrategy != "listen" || gotPadded.ShareAddr != "10.0.0.1" {
 		t.Fatalf("padded share fields = (%q, %q), want (listen, 10.0.0.1)", gotPadded.ShareAddrStrategy, gotPadded.ShareAddr)
+	}
+
+	var gotInvalidAddress model.Inbound
+	if err := db.First(&gotInvalidAddress, invalidAddress.Id).Error; err != nil {
+		t.Fatalf("reload invalid address inbound: %v", err)
+	}
+	if gotInvalidAddress.ShareAddrStrategy != "node" || gotInvalidAddress.ShareAddr != "" {
+		t.Fatalf("invalid address share fields = (%q, %q), want (node, empty)", gotInvalidAddress.ShareAddrStrategy, gotInvalidAddress.ShareAddr)
 	}
 }

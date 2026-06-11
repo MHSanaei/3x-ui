@@ -591,7 +591,7 @@
         "shareAddrStrategy": "分享地址策略",
         "shareAddrStrategyHelp": "控制匯出分享連結和 QR Code 時寫入哪個地址，不影響訂閱連結。",
         "shareAddr": "自訂分享地址",
-        "shareAddrHelp": "僅在分享地址策略為自訂時使用。填寫不帶協定的網域或 IP。",
+        "shareAddrHelp": "僅在分享地址策略為自訂時使用。填寫不帶協定和連接埠的網域或 IP。",
         "shareAddrStrategyOptions": {
           "node": "節點地址",
           "listen": "入站監聽地址",

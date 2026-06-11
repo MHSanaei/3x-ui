@@ -139,3 +139,44 @@ func TestUpdateInbound_PreservesShareAddressFieldsWhenOmitted(t *testing.T) {
 		t.Fatalf("returned share fields = (%q, %q), want (custom, edge.example.com)", got.ShareAddrStrategy, got.ShareAddr)
 	}
 }
+
+func TestNormalizeInboundShareAddressStrict_RequiresHostOnly(t *testing.T) {
+	tests := []struct {
+		name    string
+		addr    string
+		want    string
+		wantErr bool
+	}{
+		{name: "hostname", addr: " edge.example.com ", want: "edge.example.com"},
+		{name: "ipv4", addr: "203.0.113.10", want: "203.0.113.10"},
+		{name: "bare ipv6", addr: "2001:db8::1", want: "[2001:db8::1]"},
+		{name: "bracketed ipv6", addr: "[2001:db8::2]", want: "[2001:db8::2]"},
+		{name: "scheme rejected", addr: "https://edge.example.com", wantErr: true},
+		{name: "port rejected", addr: "edge.example.com:8443", wantErr: true},
+		{name: "bracketed ipv6 port rejected", addr: "[2001:db8::1]:8443", wantErr: true},
+		{name: "path rejected", addr: "edge.example.com/path", wantErr: true},
+		{name: "space rejected", addr: "bad host", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			inbound := &model.Inbound{
+				ShareAddrStrategy: "custom",
+				ShareAddr:         tt.addr,
+			}
+			err := normalizeInboundShareAddressStrict(inbound)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("normalizeInboundShareAddressStrict(%q) expected error", tt.addr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("normalizeInboundShareAddressStrict(%q): %v", tt.addr, err)
+			}
+			if inbound.ShareAddr != tt.want {
+				t.Fatalf("ShareAddr = %q, want %q", inbound.ShareAddr, tt.want)
+			}
+		})
+	}
+}

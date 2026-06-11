@@ -592,7 +592,7 @@
         "shareAddrStrategy": "Share address strategy",
         "shareAddrStrategyHelp": "Controls which address is written into exported share links and QR codes. Subscription links are not affected.",
         "shareAddr": "Custom share address",
-        "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme.",
+        "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme or port.",
         "shareAddrStrategyOptions": {
           "node": "Node address",
           "listen": "Inbound listen",

@@ -588,14 +588,14 @@
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "新しい Seed を取得",
         "listenHelp": "TCP ポートの代わりに Unix ソケットのパス（例: /run/xray/in.sock）を入力してソケットでリッスンすることもできます。その場合はポートを 0 に設定してください。",
-        "shareAddrStrategy": "Share address strategy",
-        "shareAddrStrategyHelp": "Controls which address is written into exported share links and QR codes. Subscription links are not affected.",
-        "shareAddr": "Custom share address",
-        "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme.",
+        "shareAddrStrategy": "共有アドレス戦略",
+        "shareAddrStrategyHelp": "エクスポートされる共有リンクとQRコードに書き込むアドレスを制御します。サブスクリプションリンクには影響しません。",
+        "shareAddr": "カスタム共有アドレス",
+        "shareAddrHelp": "共有アドレス戦略がカスタムの場合のみ使用されます。スキームやポートを含めずにホスト名またはIPを入力してください。",
         "shareAddrStrategyOptions": {
-          "node": "Node address",
-          "listen": "Inbound listen",
-          "custom": "Custom"
+          "node": "ノードアドレス",
+          "listen": "インバウンドのリッスンアドレス",
+          "custom": "カスタム"
         }
       },
       "info": {

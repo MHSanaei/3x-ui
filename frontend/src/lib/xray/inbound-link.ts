@@ -21,6 +21,7 @@ import { getHeaderValue } from './headers';
 // directly.
 
 type ForceTls = 'same' | 'tls' | 'none';
+const SHARE_HOSTNAME_RE = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/;
 
 // xHTTP headers ship as Record<string, string> on the wire (Zod schema)
 // rather than the legacy class's HeaderEntry[]. Lookup by case-folded key.
@@ -777,8 +778,36 @@ function isUnixSocketListen(listen: string): boolean {
   return listen.startsWith('/') || listen.startsWith('@');
 }
 
+function normalizeShareHost(host: string): string {
+  const h = host.trim();
+  if (
+    h.length === 0
+    || h.includes('://')
+    || h.startsWith('//')
+    || /[/?#@]/.test(h)
+  ) {
+    return '';
+  }
+  if (h.startsWith('[')) {
+    if (!h.endsWith(']')) return '';
+    try {
+      return new URL(`http://${h}`).hostname;
+    } catch {
+      return '';
+    }
+  }
+  if (h.includes(':')) {
+    try {
+      return new URL(`http://[${h}]`).hostname;
+    } catch {
+      return '';
+    }
+  }
+  return SHARE_HOSTNAME_RE.test(h) ? h : '';
+}
+
 function isShareableHost(host: string): boolean {
-  const h = host.trim().replace(/^\[|\]$/g, '').toLowerCase();
+  const h = normalizeShareHost(host).replace(/^\[|\]$/g, '').toLowerCase();
   if (h.length === 0) return false;
   if (h === '0.0.0.0' || h === '::' || h === '::0') return false;
   if (h === 'localhost' || h === '::1' || h.startsWith('127.')) return false;
@@ -788,7 +817,7 @@ function isShareableHost(host: string): boolean {
 function shareableListen(inbound: Inbound): string {
   const listen = inbound.listen.trim();
   return listen.length > 0 && !isUnixSocketListen(listen) && isShareableHost(listen)
-    ? listen
+    ? normalizeShareHost(listen)
     : '';
 }
 
@@ -807,16 +836,17 @@ function shareAddrStrategy(inbound: Inbound): ShareAddrStrategy {
 // node-managed inbounds; other strategies let a row prefer its listen address
 // or a custom endpoint.
 export function resolveAddr(inbound: Inbound, hostOverride: string, fallbackHostname: string): string {
-  const nodeAddr = hostOverride.trim();
+  const nodeAddr = normalizeShareHost(hostOverride);
   const listenAddr = shareableListen(inbound);
-  const customAddr = (inbound.shareAddr ?? '').trim();
+  const customAddr = normalizeShareHost(inbound.shareAddr ?? '');
+  const fallbackAddr = normalizeShareHost(fallbackHostname);
   switch (shareAddrStrategy(inbound)) {
     case 'listen':
-      return listenAddr || nodeAddr || fallbackHostname;
+      return listenAddr || nodeAddr || fallbackAddr;
     case 'custom':
-      return customAddr || nodeAddr || listenAddr || fallbackHostname;
+      return customAddr || nodeAddr || listenAddr || fallbackAddr;
     default:
-      return nodeAddr || listenAddr || fallbackHostname;
+      return nodeAddr || listenAddr || fallbackAddr;
   }
 }
 

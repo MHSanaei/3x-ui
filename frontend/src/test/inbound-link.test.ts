@@ -343,6 +343,24 @@ describe('resolveAddr precedence', () => {
       'fallback.test',
     )).toBe('edge.example.test');
   });
+
+  it('normalizes a bare IPv6 custom strategy address', () => {
+    expect(resolveAddr(
+      { ...baseInbound, listen: '10.0.0.1', shareAddrStrategy: 'custom', shareAddr: '2001:db8::2' } as never,
+      'node.example.test',
+      'fallback.test',
+    )).toBe('[2001:db8::2]');
+  });
+
+  it('ignores invalid custom strategy addresses and falls back to node override', () => {
+    for (const shareAddr of ['https://edge.example.test', 'edge.example.test:8443', '[2001:db8::2]:8443', 'bad host']) {
+      expect(resolveAddr(
+        { ...baseInbound, listen: '10.0.0.1', shareAddrStrategy: 'custom', shareAddr } as never,
+        'node.example.test',
+        'fallback.test',
+      )).toBe('node.example.test');
+    }
+  });
 });
 
 // #4829: reaching the panel through an SSH tunnel (127.0.0.1/localhost) must not

@@ -591,7 +591,7 @@
         "shareAddrStrategy": "分享地址策略",
         "shareAddrStrategyHelp": "控制导出分享链接和二维码时写入哪个地址，不影响订阅链接。",
         "shareAddr": "自定义分享地址",
-        "shareAddrHelp": "仅在分享地址策略为自定义时使用。填写不带协议的域名或 IP。",
+        "shareAddrHelp": "仅在分享地址策略为自定义时使用。填写不带协议和端口的域名或 IP。",
         "shareAddrStrategyOptions": {
           "node": "节点地址",
           "listen": "入站监听地址",
