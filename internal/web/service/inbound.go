@@ -43,6 +43,23 @@ func normalizeInboundShareAddress(inbound *model.Inbound) {
 	inbound.ShareAddr = strings.TrimSpace(inbound.ShareAddr)
 }
 
+func normalizeInboundShareAddressColumns(tx *gorm.DB) error {
+	if tx == nil || !tx.Migrator().HasColumn(&model.Inbound{}, "share_addr_strategy") {
+		return nil
+	}
+
+	strategyExpr := `CASE TRIM(COALESCE(share_addr_strategy, '')) WHEN 'listen' THEN 'listen' WHEN 'custom' THEN 'custom' ELSE 'node' END`
+	if err := tx.Exec(`UPDATE inbounds SET share_addr_strategy = ` + strategyExpr + ` WHERE share_addr_strategy IS NULL OR share_addr_strategy <> ` + strategyExpr).Error; err != nil {
+		return err
+	}
+	if tx.Migrator().HasColumn(&model.Inbound{}, "share_addr") {
+		if err := tx.Exec(`UPDATE inbounds SET share_addr = TRIM(share_addr) WHERE share_addr IS NOT NULL AND share_addr <> TRIM(share_addr)`).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // GetInbounds retrieves all inbounds for a specific user with client stats.
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
@@ -772,7 +789,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.StreamSettings = inbound.StreamSettings
 	oldInbound.Sniffing = inbound.Sniffing
 	if strings.TrimSpace(inbound.ShareAddrStrategy) == "" {
-		oldInbound.ShareAddrStrategy = normalizeInboundShareAddrStrategy(oldInbound.ShareAddrStrategy)
+		normalizeInboundShareAddress(oldInbound)
 		inbound.ShareAddrStrategy = oldInbound.ShareAddrStrategy
 		inbound.ShareAddr = oldInbound.ShareAddr
 	} else {

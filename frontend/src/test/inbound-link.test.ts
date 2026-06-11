@@ -310,12 +310,12 @@ describe('resolveAddr precedence', () => {
     )).toBe('fallback.test');
   });
 
-  it('uses listen strategy before node override', () => {
+  it('uses listen strategy with a shareable IPv6 listen before node override', () => {
     expect(resolveAddr(
-      { ...baseInbound, listen: '10.0.0.1', shareAddrStrategy: 'listen', shareAddr: '' } as never,
+      { ...baseInbound, listen: '[2001:db8::1]', shareAddrStrategy: 'listen', shareAddr: '' } as never,
       'node.example.test',
       'fallback.test',
-    )).toBe('10.0.0.1');
+    )).toBe('[2001:db8::1]');
   });
 
   it('uses listen strategy to prefer listen and fall back to node override', () => {

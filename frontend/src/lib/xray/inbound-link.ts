@@ -802,7 +802,7 @@ function shareAddrStrategy(inbound: Inbound): ShareAddrStrategy {
 }
 
 // Orchestrators.
-// resolveAddr picks the host that goes into share/sub links. The default
+// resolveAddr picks the host that goes into share/QR links. The default
 // `node` strategy keeps the previous node-address-first behavior for
 // node-managed inbounds; other strategies let a row prefer its listen address
 // or a custom endpoint.

@@ -111,7 +111,7 @@ func TestUpdateInbound_PreservesShareAddressFieldsWhenOmitted(t *testing.T) {
 		StreamSettings:    `{"network":"tcp"}`,
 		Settings:          `{"clients":[]}`,
 		ShareAddrStrategy: "custom",
-		ShareAddr:         "edge.example.com",
+		ShareAddr:         "  edge.example.com  ",
 	}
 	if err := database.GetDB().Create(&existing).Error; err != nil {
 		t.Fatalf("seed inbound: %v", err)

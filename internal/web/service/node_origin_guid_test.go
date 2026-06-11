@@ -127,3 +127,45 @@ func TestSetRemoteTraffic_PreservesLocalShareAddressStrategy(t *testing.T) {
 		t.Fatalf("sync should still update regular remote fields; port = %d, want 8443", ib.Port)
 	}
 }
+
+func TestSetRemoteTraffic_DefaultsShareAddressFieldsForNewCentralInbound(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	const nodeID = 1
+	if err := db.Create(&model.Node{
+		Id:       nodeID,
+		Name:     "node2",
+		Address:  "10.0.0.2",
+		Port:     2053,
+		ApiToken: "t",
+		Guid:     "node2-guid",
+	}).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+
+	snap := &runtime.TrafficSnapshot{
+		Inbounds: []*model.Inbound{{
+			Tag:               "remote-in",
+			Enable:            true,
+			Port:              8443,
+			Protocol:          model.VLESS,
+			Settings:          `{"clients":[]}`,
+			ShareAddrStrategy: "custom",
+			ShareAddr:         "remote.example.com",
+		}},
+	}
+
+	svc := InboundService{}
+	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false); err != nil {
+		t.Fatalf("setRemoteTrafficLocked: %v", err)
+	}
+
+	var ib model.Inbound
+	if err := db.Where("tag = ?", "remote-in").First(&ib).Error; err != nil {
+		t.Fatalf("load inbound: %v", err)
+	}
+	if ib.ShareAddrStrategy != "node" || ib.ShareAddr != "" {
+		t.Fatalf("new central inbound share fields = (%q, %q), want (node, empty)", ib.ShareAddrStrategy, ib.ShareAddr)
+	}
+}
