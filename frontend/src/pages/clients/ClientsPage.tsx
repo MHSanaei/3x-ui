@@ -47,6 +47,7 @@ import {
 } from '@ant-design/icons';
 
 import { useTheme } from '@/hooks/useTheme';
+import { formatInboundLabel } from '@/lib/inbounds/label';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useClients } from '@/hooks/useClients';
@@ -303,7 +304,7 @@ export default function ClientsPage() {
 
   function inboundLabel(id: number) {
     const ib = inboundsById[id];
-    return ib?.remark?.trim() || ib?.tag || '';
+    return formatInboundLabel(ib?.tag, ib?.remark);
   }
 
   const clientBucket = useCallback((row: ClientRecord | null | undefined): Bucket | null => {
@@ -684,7 +685,7 @@ export default function ClientsPage() {
           const ib = inboundsById[id];
           const proto = (ib?.protocol || '').toLowerCase();
           const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
-          const compactLabel = ib?.remark?.trim() || ib?.tag || '';
+          const compactLabel = formatInboundLabel(ib?.tag, ib?.remark);
           return (
             <Tooltip key={id} title={inboundLabel(id)}>
               <Tag color={color} style={{ margin: 2 }}>
