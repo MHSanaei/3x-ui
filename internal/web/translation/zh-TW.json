@@ -282,7 +282,8 @@
         "quickAdded": "已新增 {n} 個回落",
         "quickAddedNone": "沒有可新增的新入站",
         "routesWhen": "當條件成立時路由",
-        "defaultCatchAll": "預設 — 兜底匹配其餘"
+        "defaultCatchAll": "預設 — 兜底匹配其餘",
+        "needsTls": "在「安全」分頁選擇 TLS 或 Reality 後即可設定回落（僅限 RAW 上的 VLESS/Trojan）。"
       },
       "protocol": "協議",
       "port": "連接埠",

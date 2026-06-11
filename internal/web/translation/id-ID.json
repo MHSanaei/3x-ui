@@ -282,7 +282,8 @@
         "quickAdded": "Menambahkan {n} fallback",
         "quickAddedNone": "Tidak ada inbound baru yang memenuhi syarat",
         "routesWhen": "Diarahkan ketika",
-        "defaultCatchAll": "Default — menangkap apa pun lainnya"
+        "defaultCatchAll": "Default — menangkap apa pun lainnya",
+        "needsTls": "Fallback tersedia setelah memilih TLS atau Reality di tab Keamanan (hanya VLESS/Trojan melalui RAW)."
       },
       "protocol": "Protokol",
       "port": "Port",

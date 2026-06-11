@@ -282,7 +282,8 @@
         "quickAdded": "Đã thêm {n} fallback",
         "quickAddedNone": "Không có inbound mới nào đủ điều kiện",
         "routesWhen": "Định tuyến khi",
-        "defaultCatchAll": "Mặc định — bắt mọi thứ khác"
+        "defaultCatchAll": "Mặc định — bắt mọi thứ khác",
+        "needsTls": "Fallback khả dụng sau khi chọn TLS hoặc Reality trong thẻ Bảo mật (chỉ VLESS/Trojan trên RAW)."
       },
       "protocol": "Giao thức",
       "port": "Cổng",

@@ -282,7 +282,8 @@
         "quickAdded": "تمت إضافة {n} fallback",
         "quickAddedNone": "لا توجد inbounds جديدة مؤهلة للإضافة",
         "routesWhen": "يوجَّه عندما",
-        "defaultCatchAll": "افتراضي — يلتقط أي شيء آخر"
+        "defaultCatchAll": "افتراضي — يلتقط أي شيء آخر",
+        "needsTls": "تصبح الـ Fallbacks متاحة بعد اختيار TLS أو Reality في تبويب الأمان (فقط VLESS/Trojan عبر RAW)."
       },
       "protocol": "بروتوكول",
       "port": "المنفذ",

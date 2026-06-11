@@ -282,7 +282,8 @@
         "quickAdded": "{n} 件のフォールバックを追加しました",
         "quickAddedNone": "追加可能な新規インバウンドはありません",
         "routesWhen": "次の条件でルーティング",
-        "defaultCatchAll": "デフォルト — その他すべてを捕捉"
+        "defaultCatchAll": "デフォルト — その他すべてを捕捉",
+        "needsTls": "フォールバックは、セキュリティタブで TLS または Reality を選択すると設定できます（RAW 上の VLESS/Trojan のみ）。"
       },
       "protocol": "プロトコル",
       "port": "ポート",

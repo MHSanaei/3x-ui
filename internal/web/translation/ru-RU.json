@@ -282,7 +282,8 @@
         "quickAdded": "Добавлено {n} фолбэк(ов)",
         "quickAddedNone": "Нет новых подходящих инбаундов",
         "routesWhen": "Маршрутизирует, когда",
-        "defaultCatchAll": "По умолчанию — ловит всё остальное"
+        "defaultCatchAll": "По умолчанию — ловит всё остальное",
+        "needsTls": "Fallbacks станут доступны после выбора TLS или Reality на вкладке «Безопасность» (только VLESS/Trojan поверх RAW)."
       },
       "protocol": "Протокол",
       "port": "Порт",

@@ -282,7 +282,8 @@
         "quickAdded": "Se añadieron {n} fallback(s)",
         "quickAddedNone": "No hay nuevos inbounds elegibles",
         "routesWhen": "Enruta cuando",
-        "defaultCatchAll": "Por defecto — captura cualquier otra cosa"
+        "defaultCatchAll": "Por defecto — captura cualquier otra cosa",
+        "needsTls": "Los fallbacks estarán disponibles al seleccionar TLS o Reality en la pestaña de Seguridad (solo VLESS/Trojan sobre RAW)."
       },
       "protocol": "Protocolo",
       "port": "Puerto",

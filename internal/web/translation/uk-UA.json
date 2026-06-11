@@ -282,7 +282,8 @@
         "quickAdded": "Додано {n} фолбек(ів)",
         "quickAddedNone": "Немає нових придатних інбаундів",
         "routesWhen": "Маршрутизує, коли",
-        "defaultCatchAll": "За замовчуванням — ловить усе інше"
+        "defaultCatchAll": "За замовчуванням — ловить усе інше",
+        "needsTls": "Fallbacks стануть доступні після вибору TLS або Reality на вкладці «Безпека» (лише VLESS/Trojan поверх RAW)."
       },
       "protocol": "Протокол",
       "port": "Порт",

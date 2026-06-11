@@ -282,7 +282,8 @@
         "quickAdded": "{n} fallback eklendi",
         "quickAddedNone": "Eklenecek yeni uygun gelen bağlantı yok",
         "routesWhen": "Şu Durumda Yönlendirir",
-        "defaultCatchAll": "Varsayılan — başka her şeyi yakalar"
+        "defaultCatchAll": "Varsayılan — başka her şeyi yakalar",
+        "needsTls": "Geri düşüşler (fallback), Güvenlik sekmesinde TLS veya Reality seçildiğinde kullanılabilir olur (yalnızca RAW üzerinde VLESS/Trojan)."
       },
       "protocol": "Protokol",
       "port": "Port",
