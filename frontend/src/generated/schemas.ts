@@ -1318,6 +1318,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "sniffing": {},
+      "sortingIndex": {
+        "description": "Field used to sort the inbound list",
+        "type": "integer"
+      },
       "streamSettings": {},
       "tag": {
         "example": "in-443-tcp",
@@ -1358,6 +1362,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "shareAddr",
       "shareAddrStrategy",
       "sniffing",
+      "sortingIndex",
       "streamSettings",
       "tag",
       "total",

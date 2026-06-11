@@ -313,6 +313,7 @@ export const InboundSchema = z.object({
   shareAddr: z.string(),
   shareAddrStrategy: z.enum(['node', 'listen', 'custom']),
   sniffing: z.unknown(),
+  sortingIndex: z.number().int(),
   streamSettings: z.unknown(),
   tag: z.string(),
   total: z.number().int(),
