@@ -1572,6 +1572,19 @@
             "example": 5,
             "type": "integer"
           },
+          "inboundSyncMode": {
+            "enum": [
+              "all",
+              "selected"
+            ],
+            "type": "string"
+          },
+          "inboundTags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "lastError": {
             "type": "string"
           },
@@ -1675,6 +1688,8 @@
           "guid",
           "id",
           "inboundCount",
+          "inboundSyncMode",
+          "inboundTags",
           "lastError",
           "lastHeartbeat",
           "latencyMs",
@@ -6011,6 +6026,10 @@
                       "guid": "",
                       "id": 1,
                       "inboundCount": 5,
+                      "inboundSyncMode": "all",
+                      "inboundTags": [
+                        ""
+                      ],
                       "lastError": "",
                       "lastHeartbeat": 1700000000,
                       "latencyMs": 42,
@@ -6444,6 +6463,65 @@
                 "example": {
                   "success": true,
                   "obj": "k3b1...base64-sha256...="
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/inbounds": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Use unsaved node connection details to list the remote inbounds available for selective import.",
+        "operationId": "post_panel_api_nodes_inbounds",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "name": "de-fra-1",
+                "scheme": "https",
+                "address": "node1.example.com",
+                "port": 2053,
+                "basePath": "/",
+                "apiToken": "abcdef..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "tag": "inbound-443",
+                      "remark": "VLESS",
+                      "protocol": "vless",
+                      "port": 443
+                    }
+                  ]
                 }
               }
             }

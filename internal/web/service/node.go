@@ -347,6 +347,25 @@ func (s *NodeService) normalize(n *model.Node) error {
 		n.TlsVerifyMode = "verify"
 	}
 	n.PinnedCertSha256 = strings.TrimSpace(n.PinnedCertSha256)
+	if n.InboundSyncMode != "selected" {
+		n.InboundSyncMode = "all"
+		n.InboundTags = nil
+	} else {
+		seen := make(map[string]struct{}, len(n.InboundTags))
+		tags := make([]string, 0, len(n.InboundTags))
+		for _, tag := range n.InboundTags {
+			tag = strings.TrimSpace(tag)
+			if tag == "" {
+				continue
+			}
+			if _, ok := seen[tag]; ok {
+				continue
+			}
+			seen[tag] = struct{}{}
+			tags = append(tags, tag)
+		}
+		n.InboundTags = tags
+	}
 	if n.TlsVerifyMode == "pin" {
 		if _, err := decodeCertPin(n.PinnedCertSha256); err != nil {
 			return common.NewError(err.Error())
@@ -368,6 +387,10 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 	if err := s.normalize(in); err != nil {
 		return err
 	}
+	inboundTagsJSON, err := json.Marshal(in.InboundTags)
+	if err != nil {
+		return err
+	}
 	db := database.GetDB()
 	existing := &model.Node{}
 	if err := db.Where("id = ?", id).First(existing).Error; err != nil {
@@ -385,6 +408,8 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		"allow_private_address": in.AllowPrivateAddress,
 		"tls_verify_mode":       in.TlsVerifyMode,
 		"pinned_cert_sha256":    in.PinnedCertSha256,
+		"inbound_sync_mode":     in.InboundSyncMode,
+		"inbound_tags":          string(inboundTagsJSON),
 	}
 	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
@@ -393,6 +418,66 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		mgr.InvalidateNode(id)
 	}
 	return nil
+}
+
+func (s *NodeService) GetRemoteInboundOptions(ctx context.Context, n *model.Node) ([]runtime.RemoteInboundOption, error) {
+	if err := s.normalize(n); err != nil {
+		return nil, err
+	}
+	return runtime.NewRemote(n).ListInboundOptions(ctx)
+}
+
+// EnsureInboundTagAllowed adds a panel-managed inbound's tag to the node's
+// selection when the node syncs in "selected" mode. Without it, the next
+// traffic sync would filter the tag out of the snapshot and the orphan sweep
+// would silently delete the central row the panel just created or renamed.
+// Tags are only ever added (never removed): on a rename the node may keep
+// reporting the old tag until the remote update lands, and a leftover entry
+// that matches nothing is harmless.
+func (s *NodeService) EnsureInboundTagAllowed(nodeID int, tag string) error {
+	tag = strings.TrimSpace(tag)
+	if nodeID <= 0 || tag == "" {
+		return nil
+	}
+	db := database.GetDB()
+	node := &model.Node{}
+	if err := db.Where("id = ?", nodeID).First(node).Error; err != nil {
+		return err
+	}
+	if node.InboundSyncMode != "selected" {
+		return nil
+	}
+	for _, t := range node.InboundTags {
+		if t == tag {
+			return nil
+		}
+	}
+	buf, err := json.Marshal(append(node.InboundTags, tag))
+	if err != nil {
+		return err
+	}
+	return db.Model(model.Node{}).Where("id = ?", nodeID).
+		Updates(map[string]any{"inbound_tags": string(buf)}).Error
+}
+
+func FilterNodeSnapshot(n *model.Node, snap *runtime.TrafficSnapshot) {
+	if n == nil || snap == nil || n.InboundSyncMode != "selected" {
+		return
+	}
+	allowed := make(map[string]struct{}, len(n.InboundTags))
+	for _, tag := range n.InboundTags {
+		allowed[tag] = struct{}{}
+	}
+	filtered := make([]*model.Inbound, 0, len(snap.Inbounds))
+	for _, inbound := range snap.Inbounds {
+		if inbound == nil {
+			continue
+		}
+		if _, ok := allowed[inbound.Tag]; ok {
+			filtered = append(filtered, inbound)
+		}
+	}
+	snap.Inbounds = filtered
 }
 
 func (s *NodeService) Delete(id int) error {

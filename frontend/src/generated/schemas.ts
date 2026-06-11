@@ -1546,6 +1546,19 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 5,
         "type": "integer"
       },
+      "inboundSyncMode": {
+        "enum": [
+          "all",
+          "selected"
+        ],
+        "type": "string"
+      },
+      "inboundTags": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "lastError": {
         "type": "string"
       },
@@ -1649,6 +1662,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "guid",
       "id",
       "inboundCount",
+      "inboundSyncMode",
+      "inboundTags",
       "lastError",
       "lastHeartbeat",
       "latencyMs",

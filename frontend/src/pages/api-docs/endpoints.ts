@@ -845,6 +845,13 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/nodes/inbounds',
+        summary: 'Use unsaved node connection details to list the remote inbounds available for selective import.',
+        body: '{\n  "name": "de-fra-1",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef..."\n}',
+        response: '{\n  "success": true,\n  "obj": [\n    { "tag": "inbound-443", "remark": "VLESS", "protocol": "vless", "port": 443 }\n  ]\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/nodes/probe/:id',
         summary: 'Probe an existing node, updating its cached health state.',
         params: [
