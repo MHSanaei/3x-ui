@@ -289,6 +289,8 @@ export interface Inbound {
   protocol: Protocol;
   remark: string;
   settings: unknown;
+  shareAddr: string;
+  shareAddrStrategy: string;
   sniffing: unknown;
   streamSettings: unknown;
   tag: string;

@@ -52,6 +52,9 @@ func (s *InboundService) MigrationRequirements() {
 			return
 		}
 	}
+	if err = normalizeInboundShareAddressColumns(tx); err != nil {
+		return
+	}
 
 	// Normalize "enable" columns to boolean on Postgres. Legacy SQLite data
 	// (0/1 integers), partial migrations, or mixed write paths (public API

@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"sort"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -23,6 +25,125 @@ type InboundService struct {
 	xrayApi         xray.XrayAPI
 	clientService   ClientService
 	fallbackService FallbackService
+}
+
+func normalizeInboundShareAddrStrategy(strategy string) string {
+	strategy = strings.TrimSpace(strategy)
+	switch strategy {
+	case "listen", "custom":
+		return strategy
+	default:
+		return "node"
+	}
+}
+
+func normalizeInboundShareAddress(inbound *model.Inbound) {
+	if inbound == nil {
+		return
+	}
+	inbound.ShareAddrStrategy = normalizeInboundShareAddrStrategy(inbound.ShareAddrStrategy)
+	if addr, err := normalizeInboundShareHost(inbound.ShareAddr); err == nil {
+		inbound.ShareAddr = addr
+	} else {
+		inbound.ShareAddr = strings.TrimSpace(inbound.ShareAddr)
+	}
+}
+
+func normalizeInboundShareAddressStrict(inbound *model.Inbound) error {
+	if inbound == nil {
+		return nil
+	}
+	inbound.ShareAddrStrategy = normalizeInboundShareAddrStrategy(inbound.ShareAddrStrategy)
+	addr, err := normalizeInboundShareHost(inbound.ShareAddr)
+	if err != nil {
+		return common.NewError("shareAddr must be a host or IP without scheme or port")
+	}
+	inbound.ShareAddr = addr
+	return nil
+}
+
+func normalizeInboundShareHost(raw string) (string, error) {
+	addr := strings.TrimSpace(raw)
+	if addr == "" {
+		return "", nil
+	}
+	if strings.Contains(addr, "://") || strings.HasPrefix(addr, "//") || strings.ContainsAny(addr, "/?#@") {
+		return "", fmt.Errorf("invalid share address %q", raw)
+	}
+	if strings.HasPrefix(addr, "[") {
+		if !strings.HasSuffix(addr, "]") {
+			return "", fmt.Errorf("invalid IPv6 host %q", raw)
+		}
+		ip := net.ParseIP(addr[1 : len(addr)-1])
+		if ip == nil || ip.To4() != nil {
+			return "", fmt.Errorf("invalid IPv6 host %q", raw)
+		}
+		return "[" + ip.String() + "]", nil
+	}
+	if strings.Contains(addr, ":") {
+		if _, _, err := net.SplitHostPort(addr); err == nil {
+			return "", fmt.Errorf("share address must not include port")
+		}
+		ip := net.ParseIP(addr)
+		if ip == nil || ip.To4() != nil {
+			return "", fmt.Errorf("invalid IPv6 host %q", raw)
+		}
+		return "[" + ip.String() + "]", nil
+	}
+	host, err := netsafe.NormalizeHost(addr)
+	if err != nil {
+		return "", err
+	}
+	return host, nil
+}
+
+func normalizeInboundShareAddressColumns(tx *gorm.DB) error {
+	if tx == nil || !tx.Migrator().HasColumn(&model.Inbound{}, "share_addr_strategy") {
+		return nil
+	}
+
+	strategyExpr := `CASE TRIM(COALESCE(share_addr_strategy, '')) WHEN 'listen' THEN 'listen' WHEN 'custom' THEN 'custom' ELSE 'node' END`
+	if err := tx.Exec(`UPDATE inbounds SET share_addr_strategy = ` + strategyExpr + ` WHERE share_addr_strategy IS NULL OR share_addr_strategy <> ` + strategyExpr).Error; err != nil {
+		return err
+	}
+	hasShareAddr := tx.Migrator().HasColumn(&model.Inbound{}, "share_addr")
+	if hasShareAddr {
+		if err := tx.Exec(`UPDATE inbounds SET share_addr = TRIM(share_addr) WHERE share_addr IS NOT NULL AND share_addr <> TRIM(share_addr)`).Error; err != nil {
+			return err
+		}
+	}
+	if !hasShareAddr {
+		return nil
+	}
+	var rows []struct {
+		Id                int
+		ShareAddrStrategy string
+		ShareAddr         string
+	}
+	if err := tx.Model(&model.Inbound{}).Select("id", "share_addr_strategy", "share_addr").Find(&rows).Error; err != nil {
+		return err
+	}
+	for _, row := range rows {
+		strategy := normalizeInboundShareAddrStrategy(row.ShareAddrStrategy)
+		addr, addrErr := normalizeInboundShareHost(row.ShareAddr)
+		if addrErr != nil {
+			strategy = "node"
+			addr = ""
+		}
+		updates := map[string]any{}
+		if strategy != row.ShareAddrStrategy {
+			updates["share_addr_strategy"] = strategy
+		}
+		if addr != row.ShareAddr {
+			updates["share_addr"] = addr
+		}
+		if len(updates) > 0 {
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", row.Id).Updates(updates).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // GetInbounds retrieves all inbounds for a specific user with client stats.
@@ -332,6 +453,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
+	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
+		return inbound, false, err
+	}
 
 	conflict, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
@@ -760,6 +884,17 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.Settings = inbound.Settings
 	oldInbound.StreamSettings = inbound.StreamSettings
 	oldInbound.Sniffing = inbound.Sniffing
+	if strings.TrimSpace(inbound.ShareAddrStrategy) == "" {
+		normalizeInboundShareAddress(oldInbound)
+		inbound.ShareAddrStrategy = oldInbound.ShareAddrStrategy
+		inbound.ShareAddr = oldInbound.ShareAddr
+	} else {
+		if err := normalizeInboundShareAddressStrict(inbound); err != nil {
+			return inbound, false, err
+		}
+		oldInbound.ShareAddrStrategy = inbound.ShareAddrStrategy
+		oldInbound.ShareAddr = inbound.ShareAddr
+	}
 	if oldTagWasAuto && inbound.Tag == tag {
 		inbound.Tag = ""
 	}
