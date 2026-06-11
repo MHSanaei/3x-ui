@@ -20,6 +20,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
 import { HttpUtil, RandomUtil } from '@/utils';
+import { formatInboundLabel } from '@/lib/inbounds/label';
 import { DateTimePicker } from '@/components/form';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
@@ -288,9 +289,9 @@ export default function ClientFormModal({
     () => (inbounds || [])
       .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
       .map((ib) => ({
-        label: ib.remark?.trim() || ib.tag || '',
+        label: formatInboundLabel(ib.tag, ib.remark),
         value: ib.id,
-        title: ib.remark?.trim() || ib.tag || '',
+        title: formatInboundLabel(ib.tag, ib.remark),
       })),
     [inbounds],
   );

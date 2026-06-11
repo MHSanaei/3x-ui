@@ -4,6 +4,7 @@ import { Alert, Input, Modal, Select, Space, Spin, Table, Tag, Typography, messa
 import type { ColumnsType } from 'antd/es/table';
 
 import { HttpUtil } from '@/utils';
+import { formatInboundLabel } from '@/lib/inbounds/label';
 import type { DBInbound } from '@/models/dbinbound';
 
 interface AttachExistingClientsModalProps {
@@ -170,7 +171,7 @@ export default function AttachExistingClientsModal({
       okButtonProps={{ disabled: selectedEmails.length === 0, loading: saving }}
       okText={t('pages.inbounds.attachClients')}
       cancelText={t('cancel')}
-      title={t('pages.inbounds.attachExistingTitle', { remark: target?.remark?.trim() || target?.tag || '' })}
+      title={t('pages.inbounds.attachExistingTitle', { remark: formatInboundLabel(target?.tag, target?.remark) })}
       width={680}
     >
       {messageContextHolder}
