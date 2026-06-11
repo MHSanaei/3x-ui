@@ -427,6 +427,39 @@ func (s *NodeService) GetRemoteInboundOptions(ctx context.Context, n *model.Node
 	return runtime.NewRemote(n).ListInboundOptions(ctx)
 }
 
+// EnsureInboundTagAllowed adds a panel-managed inbound's tag to the node's
+// selection when the node syncs in "selected" mode. Without it, the next
+// traffic sync would filter the tag out of the snapshot and the orphan sweep
+// would silently delete the central row the panel just created or renamed.
+// Tags are only ever added (never removed): on a rename the node may keep
+// reporting the old tag until the remote update lands, and a leftover entry
+// that matches nothing is harmless.
+func (s *NodeService) EnsureInboundTagAllowed(nodeID int, tag string) error {
+	tag = strings.TrimSpace(tag)
+	if nodeID <= 0 || tag == "" {
+		return nil
+	}
+	db := database.GetDB()
+	node := &model.Node{}
+	if err := db.Where("id = ?", nodeID).First(node).Error; err != nil {
+		return err
+	}
+	if node.InboundSyncMode != "selected" {
+		return nil
+	}
+	for _, t := range node.InboundTags {
+		if t == tag {
+			return nil
+		}
+	}
+	buf, err := json.Marshal(append(node.InboundTags, tag))
+	if err != nil {
+		return err
+	}
+	return db.Model(model.Node{}).Where("id = ?", nodeID).
+		Updates(map[string]any{"inbound_tags": string(buf)}).Error
+}
+
 func FilterNodeSnapshot(n *model.Node, snap *runtime.TrafficSnapshot) {
 	if n == nil || snap == nil || n.InboundSyncMode != "selected" {
 		return

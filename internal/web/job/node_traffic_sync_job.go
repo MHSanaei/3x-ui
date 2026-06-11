@@ -239,7 +239,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 
 	if n.ConfigDirty {
 		reconcileCtx, reconcileCancel := context.WithTimeout(context.Background(), nodeReconcileTimeout)
-		reconcileErr := j.inboundService.ReconcileNode(reconcileCtx, rt, n.Id)
+		reconcileErr := j.inboundService.ReconcileNode(reconcileCtx, rt, n)
 		reconcileCancel()
 		if reconcileErr != nil {
 			logger.Warning("node traffic sync: reconcile for", n.Name, "failed:", reconcileErr)

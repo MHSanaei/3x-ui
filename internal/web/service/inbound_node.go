@@ -76,10 +76,11 @@ func (s *InboundService) AnyNodePending(inboundIds []int) bool {
 	return false
 }
 
-func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, nodeID int) error {
-	if rt == nil || nodeID <= 0 {
+func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, n *model.Node) error {
+	if rt == nil || n == nil || n.Id <= 0 {
 		return nil
 	}
+	nodeID := n.Id
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	if err := db.Model(model.Inbound{}).Where("node_id = ?", nodeID).Find(&inbounds).Error; err != nil {
@@ -104,9 +105,25 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 			return fmt.Errorf("reconcile inbound %q: %w", ib.Tag, err)
 		}
 	}
+	// In "selected" sync mode the panel only manages the selected tags: the
+	// rest were never imported, so their absence from the local DB must not
+	// delete them from the node. Only a selected tag missing locally (the
+	// panel deleted it while the node was unreachable) may be swept.
+	var selected map[string]struct{}
+	if n.InboundSyncMode == "selected" {
+		selected = make(map[string]struct{}, len(n.InboundTags))
+		for _, tag := range n.InboundTags {
+			selected[tag] = struct{}{}
+		}
+	}
 	for _, tag := range remoteTags {
 		if _, want := desiredTags[tag]; want {
 			continue
+		}
+		if selected != nil {
+			if _, managed := selected[tag]; !managed {
+				continue
+			}
 		}
 		if err := rt.DelInbound(ctx, &model.Inbound{Tag: tag}); err != nil {
 			return fmt.Errorf("reconcile delete %q: %w", tag, err)

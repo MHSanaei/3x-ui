@@ -559,6 +559,14 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, err
 	}
 
+	// Before the deferred commit, so a node in "selected" sync mode cannot
+	// sweep the new central row in the gap before its tag is allowed.
+	if inbound.NodeID != nil {
+		if aErr := (&NodeService{}).EnsureInboundTagAllowed(*inbound.NodeID, inbound.Tag); aErr != nil {
+			logger.Warning("allow inbound tag on node failed:", aErr)
+		}
+	}
+
 	needRestart := false
 	if inbound.Enable {
 		rt, push, dirty, perr := s.nodePushPlan(inbound)
@@ -946,6 +954,14 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		} else if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, oldInbound); err2 != nil {
 			logger.Warning("Unable to update inbound on", rt.Name(), ":", err2)
 			markDirty = true
+		}
+	}
+
+	// A rename must allow the new tag before the deferred commit, or a node in
+	// "selected" sync mode would sweep the renamed central row on the next pull.
+	if oldInbound.NodeID != nil {
+		if aErr := (&NodeService{}).EnsureInboundTagAllowed(*oldInbound.NodeID, oldInbound.Tag); aErr != nil {
+			logger.Warning("allow inbound tag on node failed:", aErr)
 		}
 	}
 
