@@ -688,10 +688,12 @@ disable_bbr() {
 
     if [ -f "/etc/sysctl.d/99-bbr-x-ui.conf" ]; then
         old_settings=$(head -1 /etc/sysctl.d/99-bbr-x-ui.conf | tr -d '#')
+        # sysctl -w already restores the live values, so no `sysctl --system`
+        # afterwards — it would re-apply every sysctl file on the host and
+        # surface unrelated errors from the distro's own defaults (see issue #5160)
         sysctl -w net.core.default_qdisc="${old_settings%:*}"
         sysctl -w net.ipv4.tcp_congestion_control="${old_settings#*:}"
         rm /etc/sysctl.d/99-bbr-x-ui.conf
-        sysctl --system
     else
         # Replace BBR with CUBIC configurations
         if [ -f "/etc/sysctl.conf" ]; then
@@ -726,7 +728,10 @@ enable_bbr() {
             sed -i 's/^net.core.default_qdisc/# &/' /etc/sysctl.conf
             sed -i 's/^net.ipv4.tcp_congestion_control/# &/' /etc/sysctl.conf
         fi
-        sysctl --system
+        # Apply only our config file; `sysctl --system` would re-apply every
+        # sysctl file on the host and surface unrelated errors from the distro's
+        # own defaults (see issue #5160)
+        sysctl -p /etc/sysctl.d/99-bbr-x-ui.conf
     else
         sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
         sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
