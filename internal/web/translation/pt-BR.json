@@ -627,6 +627,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Básico",
+      "tabConfig": "Configuração",
       "add": "Adicionar cliente",
       "edit": "Editar cliente",
       "submitAdd": "Adicionar cliente",

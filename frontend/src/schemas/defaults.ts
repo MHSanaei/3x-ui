@@ -15,6 +15,7 @@ export const DefaultsPayloadSchema = z.object({
   remarkModel: z.string().optional(),
   datepicker: z.enum(['gregorian', 'jalalian']).optional(),
   ipLimitEnable: z.boolean().optional(),
+  accessLogEnable: z.boolean().optional(),
   webDomain: z.string().optional(),
   subDomain: z.string().optional(),
 }).loose();
