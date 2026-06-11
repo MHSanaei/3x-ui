@@ -856,7 +856,7 @@
       "basePath": "ベースパス",
       "apiToken": "API トークン",
       "apiTokenPlaceholder": "リモートパネルの設定ページから取得したトークン",
-      "apiTokenHint": "リモートパネルでは、設定 → APIトークン でAPIトークンを確認できます。",
+      "apiTokenHint": "リモートパネルでは、セキュリティ設定 → APIトークン でAPIトークンを確認できます。",
       "regenerate": "トークンを再生成",
       "regenerateConfirm": "再生成すると現在のトークンは無効になります。これを使用しているすべての中央パネルは更新されるまでアクセスできなくなります。続行しますか？",
       "allowPrivateAddress": "プライベートアドレスを許可",
