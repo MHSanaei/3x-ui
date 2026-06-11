@@ -15,7 +15,7 @@ import type { ColumnsType } from 'antd/es/table';
 
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import CriterionRow from './CriterionRow';
-import { buildRemarkByTag, formatInboundTagsWithRemarks, inboundTagsDisplayTitle } from './helpers';
+import { buildRemarkByTag, formatInboundTagList, inboundTagsDisplayTitle } from './helpers';
 import type { RuleRow } from './types';
 
 interface RoutingColumnsParams {
@@ -136,18 +136,18 @@ export function useRoutingColumns({
         width: 180,
         key: 'inbound',
         render: (_v, record) => {
-          const inboundDisplay = formatInboundTagsWithRemarks(record.inboundTag, remarkByTag);
+          const inboundParts = formatInboundTagList(record.inboundTag, remarkByTag);
           return (
             <div className="criterion-flow">
-              {inboundDisplay && (
+              {inboundParts.length > 0 && (
                 <CriterionRow
                   label="Tag"
-                  value={inboundDisplay}
-                  title={`Inbound tag: ${inboundTagsDisplayTitle(record.inboundTag, remarkByTag) ?? inboundDisplay}`}
+                  values={inboundParts}
+                  title={`Inbound tag: ${inboundTagsDisplayTitle(record.inboundTag, remarkByTag) ?? inboundParts.join(', ')}`}
                 />
               )}
               {record.user && <CriterionRow label="User" value={record.user} title={`User: ${record.user}`} />}
-              {!inboundDisplay && !record.user && <span className="criterion-empty">—</span>}
+              {inboundParts.length === 0 && !record.user && <span className="criterion-empty">—</span>}
             </div>
           );
         },

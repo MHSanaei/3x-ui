@@ -5,7 +5,7 @@ import { PlusOutlined, MinusOutlined, QuestionCircleOutlined } from '@ant-design
 import { InputAddon } from '@/components/ui';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import { RuleFormSchema, type RuleFormValues } from '@/schemas/xray';
-import { buildRemarkByTag } from './helpers';
+import { buildRemarkByTag, formatInboundTag } from './helpers';
 
 export interface RoutingRule {
   type?: string;
@@ -274,7 +274,7 @@ export default function RuleFormModal({
             mode="multiple"
             value={form.inboundTag}
             onChange={(v) => update('inboundTag', v)}
-            options={inboundTags.map((tag) => ({ value: tag, label: remarkByTag[tag] || tag }))}
+            options={inboundTags.map((tag) => ({ value: tag, label: formatInboundTag(tag, remarkByTag) }))}
           />
         </Form.Item>
 

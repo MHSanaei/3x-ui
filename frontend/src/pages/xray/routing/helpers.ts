@@ -11,11 +11,14 @@ export function csv(value?: string): string[] {
   return String(value).split(',').map((s) => s.trim()).filter(Boolean);
 }
 
-export function chipPreview(value?: string): string {
-  const parts = csv(value);
+export function chipPreviewParts(parts: string[]): string {
   if (parts.length === 0) return '';
   if (parts.length === 1) return parts[0];
   return `${parts[0]} +${parts.length - 1}`;
+}
+
+export function chipPreview(value?: string): string {
+  return chipPreviewParts(csv(value));
 }
 
 /** Same lookup as RuleFormModal inbound select: remark first, else tag. */
@@ -29,31 +32,41 @@ export function buildRemarkByTag(
   return map;
 }
 
-export function formatInboundTagsWithRemarks(
+/** Format a single inbound tag as `tag (remark)`, or just `tag` when no distinct remark. */
+export function formatInboundTag(
+  tag: string,
+  remarkByTag: Record<string, string> = {},
+): string {
+  const label = remarkByTag[tag]?.trim();
+  if (!label || label === tag) return tag;
+  return `${tag} (${label})`;
+}
+
+/**
+ * Formatted inbound entries — `tag (remark)` when a distinct remark exists, else
+ * `tag`. Returns an array (not a joined string) so callers never have to re-split
+ * on commas, which a remark may legitimately contain.
+ */
+export function formatInboundTagList(
   tags?: string,
   remarkByTag: Record<string, string> = {},
-): string | undefined {
-  if (!tags) return undefined;
-  const formatted = csv(tags).map((tag) => {
-    const label = remarkByTag[tag]?.trim();
-    if (!label || label === tag) return tag;
-    return `${tag} (${label})`;
-  });
-  return formatted.length > 0 ? formatted.join(',') : undefined;
+): string[] {
+  return csv(tags).map((tag) => formatInboundTag(tag, remarkByTag));
 }
 
 export function inboundTagsDisplayTitle(
   tags?: string,
   remarkByTag: Record<string, string> = {},
 ): string | undefined {
-  return formatInboundTagsWithRemarks(tags, remarkByTag)?.split(',').join(', ');
+  const list = formatInboundTagList(tags, remarkByTag);
+  return list.length > 0 ? list.join(', ') : undefined;
 }
 
 export function inboundTagChipPreview(
   tags?: string,
   remarkByTag: Record<string, string> = {},
 ): string {
-  return chipPreview(formatInboundTagsWithRemarks(tags, remarkByTag));
+  return chipPreviewParts(formatInboundTagList(tags, remarkByTag));
 }
 
 export function ruleCriteriaChips(rule: RuleRow) {
