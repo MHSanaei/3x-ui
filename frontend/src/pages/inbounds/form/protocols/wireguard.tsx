@@ -153,6 +153,9 @@ export default function WireguardFields({ wgPubKey, regenInboundWg, regenWgPeerK
                 <Form.Item name={[field.name, 'keepAlive']} label={t('pages.inbounds.form.keepAlive')}>
                   <InputNumber min={0} />
                 </Form.Item>
+                <Form.Item name={[field.name, 'comment']} label={t('pages.inbounds.form.comment', 'Comment')}>
+                  <Input />
+                </Form.Item>
               </div>
             ))}
           </>

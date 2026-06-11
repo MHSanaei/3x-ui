@@ -810,7 +810,7 @@ export default function InboundInfoModal({
               </dd>
             </div>
           </dl>
-          {Array.isArray(inbound.settings.peers) && (inbound.settings.peers as { privateKey: string; publicKey: string; psk: string; allowedIPs?: string[]; keepAlive?: number }[]).map((peer, idx) => (
+          {Array.isArray(inbound.settings.peers) && (inbound.settings.peers as { privateKey: string; publicKey: string; psk: string; allowedIPs?: string[]; keepAlive?: number; comment?: string }[]).map((peer, idx) => (
             <Fragment key={idx}>
               <Divider>{t('pages.inbounds.info.peerNumber', { n: idx + 1 })}</Divider>
               <dl className="info-list info-list-block">
@@ -820,7 +820,10 @@ export default function InboundInfoModal({
                 </div>
                 <div className="info-row">
                   <dt>{t('pages.xray.wireguard.publicKey')}</dt>
-                  <dd><Tag className="value-tag">{peer.publicKey}</Tag></dd>
+                  <dd>
+                    <Tag className="value-tag">{peer.publicKey}</Tag>
+                    {peer.comment && <Tag color="blue">{peer.comment}</Tag>}
+                  </dd>
                 </div>
                 <div className="info-row">
                   <dt>PSK</dt>
@@ -842,7 +845,7 @@ export default function InboundInfoModal({
               {wireguardConfigs[idx] && (
                 <div className="link-panel">
                   <div className="link-panel-header">
-                    <Tag color="green">{t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}</Tag>
+                    <Tag color="green">{t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}{peer.comment ? ` (${peer.comment})` : ''}</Tag>
                     <Tooltip title={t('copy')}>
                       <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(wireguardConfigs[idx], t)} />
                     </Tooltip>
@@ -856,7 +859,7 @@ export default function InboundInfoModal({
               {wireguardLinks[idx] && (
                 <div className="link-panel">
                   <div className="link-panel-header">
-                    <Tag color="green">Peer {idx + 1} link</Tag>
+                    <Tag color="green">Peer {idx + 1} link{peer.comment ? ` (${peer.comment})` : ''}</Tag>
                     <Tooltip title={t('copy')}>
                       <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(wireguardLinks[idx], t)} />
                     </Tooltip>

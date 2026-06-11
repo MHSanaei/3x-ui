@@ -244,6 +244,10 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		if stripped, ok := StripVlessInboundEncryption(settings); ok {
 			settings = stripped
 		}
+	case WireGuard:
+		if stripped, ok := StripWireguardPeerComments(settings); ok {
+			settings = stripped
+		}
 	}
 	return &xray.InboundConfig{
 		Listen:         json_util.RawMessage(listen),
@@ -302,6 +306,40 @@ func StripVlessInboundEncryption(settings string) (string, bool) {
 		return settings, false
 	}
 	delete(parsed, "encryption")
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
+}
+
+func StripWireguardPeerComments(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	peers, ok := parsed["peers"].([]any)
+	if !ok {
+		return settings, false
+	}
+	changed := false
+	for i := range peers {
+		pm, ok := peers[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		if _, has := pm["comment"]; has {
+			delete(pm, "comment")
+			peers[i] = pm
+			changed = true
+		}
+	}
+	if !changed {
+		return settings, false
+	}
 	out, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {
 		return settings, false
