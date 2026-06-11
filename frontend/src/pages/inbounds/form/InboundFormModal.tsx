@@ -176,6 +176,10 @@ export default function InboundFormModal({
   const selectableNodes = (availableNodes || []).filter((n) => n.enable);
   const protocol = (Form.useWatch('protocol', form) ?? '') as string;
   const isNodeEligible = NODE_ELIGIBLE_PROTOCOLS.has(protocol);
+  // The `node` share-address strategy only means something when the inbound can
+  // actually live on a node — otherwise the node address it would resolve to is
+  // always empty. Offer it only then; `listen`/`custom` work for local inbounds.
+  const nodeShareOptionAvailable = selectableNodes.length > 0 && isNodeEligible;
   const sniffingEnabled = Form.useWatch(['sniffing', 'enabled'], form) ?? false;
   const vlessEncryption = Form.useWatch(['settings', 'encryption'], form) ?? '';
   const ssMethod = Form.useWatch(['settings', 'method'], form);
@@ -370,6 +374,18 @@ export default function InboundFormModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, wPort, wNodeId, protocol, network, mixedUdpOn, wSsNetwork, wTunnelNetwork]);
 
+  // Keep the strategy value inside the visible option set: when `node` isn't
+  // offered (no node, or a protocol that can't deploy to one) fall back to
+  // `listen`, which yields the same link for a local inbound. Mirrors how the
+  // protocol reset drops a nodeId that no longer applies.
+  useEffect(() => {
+    if (!open) return;
+    if (!nodeShareOptionAvailable && shareAddrStrategy === 'node') {
+      form.setFieldValue('shareAddrStrategy', 'listen');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, nodeShareOptionAvailable, shareAddrStrategy]);
+
   // Why: protocol picker reset cascades through the form — clearing the
   // settings DU branch and dropping a nodeId that no longer applies. The
   // legacy modal did this imperatively in onProtocolChange; here we hook
@@ -532,10 +548,12 @@ export default function InboundFormModal({
         extra={t('pages.inbounds.form.shareAddrStrategyHelp')}
       >
         <Select
-          options={SHARE_ADDR_STRATEGIES.map((strategy) => ({
-            value: strategy,
-            label: t(`pages.inbounds.form.shareAddrStrategyOptions.${strategy}`),
-          }))}
+          options={SHARE_ADDR_STRATEGIES
+            .filter((strategy) => strategy !== 'node' || nodeShareOptionAvailable)
+            .map((strategy) => ({
+              value: strategy,
+              label: t(`pages.inbounds.form.shareAddrStrategyOptions.${strategy}`),
+            }))}
         />
       </Form.Item>
 
