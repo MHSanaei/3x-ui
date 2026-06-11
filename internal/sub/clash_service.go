@@ -9,15 +9,12 @@ import (
 	yaml "github.com/goccy/go-yaml"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 type SubClashService struct {
-	inboundService service.InboundService
-	enableRouting  bool
-	clashRules     string
-	SubService     *SubService
+	enableRouting bool
+	clashRules    string
+	SubService    *SubService
 }
 
 func NewSubClashService(enableRouting bool, clashRules string, subService *SubService) *SubClashService {
@@ -36,19 +33,14 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
-		clients, err := s.inboundService.GetClients(inbound)
-		if err != nil {
-			logger.Error("SubClashService - GetClients: Unable to get clients from inbound")
-		}
-		if clients == nil {
+		clients := s.SubService.matchingClients(inbound, subId)
+		if len(clients) == 0 {
 			continue
 		}
 		s.SubService.projectThroughFallbackMaster(inbound)
 		for _, client := range clients {
-			if client.SubID == subId {
-				seenEmails[client.Email] = struct{}{}
-				proxies = append(proxies, s.getProxies(inbound, client, host)...)
-			}
+			seenEmails[client.Email] = struct{}{}
+			proxies = append(proxies, s.getProxies(inbound, client, host)...)
 		}
 	}
 

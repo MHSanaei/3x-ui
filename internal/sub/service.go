@@ -106,6 +106,36 @@ func listenIsInternalOnly(listen string) bool {
 	return isLoopbackHost(listen)
 }
 
+// matchingClients returns the inbound's clients whose SubID equals subId,
+// deduplicated by email. settings.clients can accumulate duplicate entries
+// for the same client (multi-node sync/import drift, old DBs): SyncInbound
+// dedupes the normalized client_inbounds rows on write but never rewrites
+// the legacy JSON, and the subscription builders iterate that JSON — so
+// without this guard every duplicate became a duplicate profile in the
+// output (#5134). Link generation keys purely on (inbound, email), so
+// same-email entries are pure duplicates and dropping them is lossless.
+func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []model.Client {
+	clients, err := s.inboundService.GetClients(inbound)
+	if err != nil {
+		logger.Error("SubService - GetClients: Unable to get clients from inbound")
+		return nil
+	}
+	var out []model.Client
+	seen := make(map[string]struct{}, len(clients))
+	for _, client := range clients {
+		if client.SubID != subId {
+			continue
+		}
+		key := strings.ToLower(client.Email)
+		if _, dup := seen[key]; dup {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, client)
+	}
+	return out
+}
+
 // GetSubs retrieves subscription links for a given subscription ID and host.
 func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int64, xray.ClientTraffic, error) {
 	s.PrepareForRequest(host)
@@ -134,23 +164,18 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
-		clients, err := s.inboundService.GetClients(inbound)
-		if err != nil {
-			logger.Error("SubService - GetClients: Unable to get clients from inbound")
-		}
-		if clients == nil {
+		clients := s.matchingClients(inbound, subId)
+		if len(clients) == 0 {
 			continue
 		}
 		s.projectThroughFallbackMaster(inbound)
 		for _, client := range clients {
-			if client.SubID == subId {
-				if client.Enable {
-					hasEnabledClient = true
-				}
-				result = append(result, s.GetLink(inbound, client.Email))
-				emails = append(emails, client.Email)
-				seenEmails[client.Email] = struct{}{}
+			if client.Enable {
+				hasEnabledClient = true
 			}
+			result = append(result, s.GetLink(inbound, client.Email))
+			emails = append(emails, client.Email)
+			seenEmails[client.Email] = struct{}{}
 		}
 	}
 
