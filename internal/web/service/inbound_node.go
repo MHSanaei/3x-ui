@@ -124,10 +124,7 @@ const resetGracePeriodMs int64 = 30000
 // long after a real disconnect.
 const onlineGracePeriodMs int64 = 20000
 
-type nodeTrafficCounter struct {
-	Up   int64
-	Down int64
-}
+
 
 func (s *InboundService) upsertNodeBaseline(tx *gorm.DB, nodeID int, email string, up, down int64) error {
 	return tx.Clauses(clause.OnConflict{
@@ -213,7 +210,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		centralCSByEmail[centralClientStats[i].Email] = &centralClientStats[i]
 	}
 
-	nodeBaselines := make(map[string]nodeTrafficCounter)
+	nodeBaselines := make(map[string]runtime.NodeTrafficCounter)
 	var baselineRows []model.NodeClientTraffic
 	if err := db.Model(&model.NodeClientTraffic{}).
 		Where("node_id = ?", nodeID).
@@ -221,7 +218,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		return false, err
 	}
 	for i := range baselineRows {
-		nodeBaselines[baselineRows[i].Email] = nodeTrafficCounter{Up: baselineRows[i].Up, Down: baselineRows[i].Down}
+		nodeBaselines[baselineRows[i].Email] = runtime.NodeTrafficCounter{Up: baselineRows[i].Up, Down: baselineRows[i].Down}
 	}
 
 	var existingEmailsList []string
@@ -440,8 +437,20 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			snapEmails[cs.Email] = struct{}{}
 
 			base, seen := nodeBaselines[cs.Email]
+
+			if snap.PushedBaselines != nil {
+				if pushed, ok := snap.PushedBaselines[cs.Email]; ok {
+					if pushed.Up > base.Up {
+						base.Up = pushed.Up
+					}
+					if pushed.Down > base.Down {
+						base.Down = pushed.Down
+					}
+				}
+			}
+
 			var deltaUp, deltaDown int64
-			if seen {
+			if seen || snap.PushedBaselines != nil {
 				if deltaUp = cs.Up - base.Up; deltaUp < 0 {
 					deltaUp = cs.Up
 				}
@@ -476,7 +485,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, cs.Up, cs.Down); err != nil {
 					return false, err
 				}
-				nodeBaselines[cs.Email] = nodeTrafficCounter{Up: cs.Up, Down: cs.Down}
+				nodeBaselines[cs.Email] = runtime.NodeTrafficCounter{Up: cs.Up, Down: cs.Down}
 				continue
 			}
 
@@ -506,7 +515,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, cs.Up, cs.Down); err != nil {
 				return false, err
 			}
-			nodeBaselines[cs.Email] = nodeTrafficCounter{Up: cs.Up, Down: cs.Down}
+			nodeBaselines[cs.Email] = runtime.NodeTrafficCounter{Up: cs.Up, Down: cs.Down}
 		}
 
 		for k, existing := range centralCS {

@@ -148,6 +148,24 @@ func (j *NodeTrafficSyncJob) Run() {
 		logger.Warning("node traffic sync: get all client traffics for websocket failed:", err)
 	} else if len(stats) > 0 {
 		clientStats["clients"] = stats
+
+		for _, n := range nodes {
+			if !n.Enable || n.Status != "online" {
+				continue
+			}
+			rt, err := mgr.RemoteFor(n)
+			if err == nil {
+				go func(node *model.Node, remote runtime.Runtime) {
+					ctx, cancel := context.WithTimeout(context.Background(), nodeTrafficSyncRequestTimeout)
+					defer cancel()
+					if r, ok := remote.(*runtime.Remote); ok {
+						if err := r.PushAllClientTraffics(ctx, stats); err != nil {
+							logger.Warning("push global traffic to", node.Name, "failed:", err)
+						}
+					}
+				}(n, rt)
+			}
+		}
 	}
 	if summary, err := j.inboundService.GetInboundsTrafficSummary(); err != nil {
 		logger.Warning("node traffic sync: get inbounds summary for websocket failed:", err)

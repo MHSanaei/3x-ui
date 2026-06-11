@@ -18,6 +18,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 const remoteHTTPTimeout = 10 * time.Second
@@ -404,6 +405,11 @@ func (r *Remote) ResetInboundTraffic(ctx context.Context, ib *model.Inbound) err
 	return err
 }
 
+type NodeTrafficCounter struct {
+	Up   int64 `json:"up"`
+	Down int64 `json:"down"`
+}
+
 type TrafficSnapshot struct {
 	Inbounds     []*model.Inbound
 	OnlineEmails []string
@@ -414,6 +420,7 @@ type TrafficSnapshot struct {
 	// the per-GUID endpoint — OnlineEmails is the fallback then.
 	OnlineTree    map[string][]string
 	LastOnlineMap map[string]int64
+	PushedBaselines map[string]NodeTrafficCounter `json:"pushedBaselines"`
 }
 
 func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, error) {
@@ -449,7 +456,17 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 		_ = json.Unmarshal(envLastOnline.Obj, &snap.LastOnlineMap)
 	}
 
+	envPushed, err := r.do(ctx, http.MethodGet, "panel/api/inbounds/pushedBaselines", nil)
+	if err == nil && len(envPushed.Obj) > 0 {
+		_ = json.Unmarshal(envPushed.Obj, &snap.PushedBaselines)
+	}
+
 	return snap, nil
+}
+
+func (r *Remote) PushAllClientTraffics(ctx context.Context, traffics []*xray.ClientTraffic) error {
+	_, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/pushClientTraffics", traffics)
+	return err
 }
 
 func wireInbound(ib *model.Inbound) url.Values {
