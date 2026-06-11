@@ -132,6 +132,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 		s.emailInRemark = true
 	}
 
+	seenKey := make(map[string]struct{})
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
 		clients, err := s.inboundService.GetClients(inbound)
@@ -144,6 +145,12 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 		s.projectThroughFallbackMaster(inbound)
 		for _, client := range clients {
 			if client.SubID == subId {
+				key := fmt.Sprintf("%d|%s", inbound.Id, client.Email)
+				if _, dup := seenKey[key]; dup {
+					continue
+				}
+				seenKey[key] = struct{}{}
+
 				if client.Enable {
 					hasEnabledClient = true
 				}

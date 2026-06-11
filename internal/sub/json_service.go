@@ -72,6 +72,7 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	var header string
 	var configArray []json_util.RawMessage
 
+	seenKey := make(map[string]struct{})
 	seenEmails := make(map[string]struct{})
 	// Prepare Inbounds
 	for _, inbound := range inbounds {
@@ -86,6 +87,12 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 
 		for _, client := range clients {
 			if client.SubID == subId {
+				key := fmt.Sprintf("%d|%s", inbound.Id, client.Email)
+				if _, dup := seenKey[key]; dup {
+					continue
+				}
+				seenKey[key] = struct{}{}
+
 				seenEmails[client.Email] = struct{}{}
 				configArray = append(configArray, s.getConfig(inbound, client, host)...)
 			}
