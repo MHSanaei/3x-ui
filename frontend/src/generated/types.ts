@@ -348,6 +348,8 @@ export interface Node {
   guid: string;
   id: number;
   inboundCount: number;
+  inboundSyncMode: string;
+  inboundTags: string[];
   lastError: string;
   lastHeartbeat: number;
   latencyMs: number;

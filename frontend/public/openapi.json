@@ -1572,6 +1572,19 @@
             "example": 5,
             "type": "integer"
           },
+          "inboundSyncMode": {
+            "enum": [
+              "all",
+              "selected"
+            ],
+            "type": "string"
+          },
+          "inboundTags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "lastError": {
             "type": "string"
           },
@@ -1675,6 +1688,8 @@
           "guid",
           "id",
           "inboundCount",
+          "inboundSyncMode",
+          "inboundTags",
           "lastError",
           "lastHeartbeat",
           "latencyMs",
@@ -6011,6 +6026,10 @@
                       "guid": "",
                       "id": 1,
                       "inboundCount": 5,
+                      "inboundSyncMode": "all",
+                      "inboundTags": [
+                        ""
+                      ],
                       "lastError": "",
                       "lastHeartbeat": 1700000000,
                       "latencyMs": 42,

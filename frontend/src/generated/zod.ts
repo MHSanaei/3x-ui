@@ -374,6 +374,8 @@ export const NodeSchema = z.object({
   guid: z.string(),
   id: z.number().int(),
   inboundCount: z.number().int(),
+  inboundSyncMode: z.enum(['all', 'selected']),
+  inboundTags: z.array(z.string()),
   lastError: z.string(),
   lastHeartbeat: z.number().int(),
   latencyMs: z.number().int(),

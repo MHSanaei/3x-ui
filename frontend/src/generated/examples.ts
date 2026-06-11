@@ -342,6 +342,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "guid": "",
     "id": 1,
     "inboundCount": 5,
+    "inboundSyncMode": "all",
+    "inboundTags": [
+      ""
+    ],
     "lastError": "",
     "lastHeartbeat": 1700000000,
     "latencyMs": 42,
