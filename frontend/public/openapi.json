@@ -120,8 +120,8 @@
             "minimum": 0,
             "type": "integer"
           },
-          "panelProxy": {
-            "description": "Proxy URL for the panel's own outbound requests (GitHub/Telegram)",
+          "panelOutbound": {
+            "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
             "type": "string"
           },
           "remarkModel": {
@@ -383,7 +383,7 @@
           "ldapUserFilter",
           "ldapVlessField",
           "pageSize",
-          "panelProxy",
+          "panelOutbound",
           "remarkModel",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
@@ -554,8 +554,8 @@
             "minimum": 0,
             "type": "integer"
           },
-          "panelProxy": {
-            "description": "Proxy URL for the panel's own outbound requests (GitHub/Telegram)",
+          "panelOutbound": {
+            "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
             "type": "string"
           },
           "remarkModel": {
@@ -823,7 +823,7 @@
           "ldapUserFilter",
           "ldapVlessField",
           "pageSize",
-          "panelProxy",
+          "panelOutbound",
           "remarkModel",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
@@ -2185,7 +2185,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Lightweight picker projection of the authenticated user’s inbounds. Returns id, remark, tag, protocol, port, a server-computed tlsFlowCapable flag (true for VLESS / port-fallback on TCP with tls or reality), and ssMethod (the Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the client UI to generate a valid Shadowsocks 2022 PSK). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.",
+        "summary": "Lightweight picker projection of the authenticated user’s inbounds. Returns id, remark, tag, protocol, port, a server-computed tlsFlowCapable flag (true for VLESS on TCP with tls or reality, or on XHTTP with VLESS encryption / vlessenc enabled), and ssMethod (the Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the client UI to generate a valid Shadowsocks 2022 PSK). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.",
         "operationId": "get_panel_api_inbounds_options",
         "responses": {
           "200": {
@@ -7331,6 +7331,126 @@
         ],
         "summary": "Test an outbound configuration. Sends the outbound JSON (required), optionally all outbounds (to resolve sockopt.dialerProxy dependencies), and a mode flag.",
         "operationId": "post_panel_api_xray_testOutbound",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/balancerStatus": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Live state of routing balancers in the running core (RoutingService.GetBalancerInfo): current override and the targets the strategy prefers. Returns a map keyed by balancer tag.",
+        "operationId": "post_panel_api_xray_balancerStatus",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/balancerOverride": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Force a balancer in the running core to always pick one outbound (RoutingService.OverrideBalancerTarget). Applied live without a restart; cleared automatically when Xray restarts.",
+        "operationId": "post_panel_api_xray_balancerOverride",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/routeTest": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Ask the running core which outbound its router would pick for a synthetic connection (RoutingService.TestRoute). No traffic is sent.",
+        "operationId": "post_panel_api_xray_routeTest",
         "requestBody": {
           "required": true,
           "content": {

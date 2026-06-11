@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
 import { RandomUtil, SizeFormatter } from '@/utils';
+import { formatInboundLabel } from '@/lib/inbounds/label';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { useClients, type InboundOption } from '@/hooks/useClients';
@@ -109,7 +110,7 @@ export default function ClientBulkAddModal({
     () => (inbounds || [])
       .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
       .map((ib) => ({
-        label: ib.remark?.trim() || ib.tag || '',
+        label: formatInboundLabel(ib.tag, ib.remark),
         value: ib.id,
       })),
     [inbounds],

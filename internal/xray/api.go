@@ -8,14 +8,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net"
+	"os"
+	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 
 	"github.com/xtls/xray-core/app/proxyman/command"
+	routerService "github.com/xtls/xray-core/app/router/command"
 	statsService "github.com/xtls/xray-core/app/stats/command"
+	xnet "github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/infra/conf"
@@ -33,6 +40,7 @@ import (
 type XrayAPI struct {
 	HandlerServiceClient *command.HandlerServiceClient
 	StatsServiceClient   *statsService.StatsServiceClient
+	RoutingServiceClient *routerService.RoutingServiceClient
 	grpcClient           *grpc.ClientConn
 	isConnected          bool
 	StatsLastValues      map[string]int64
@@ -86,9 +94,11 @@ func (x *XrayAPI) Init(apiPort int) error {
 
 	hsClient := command.NewHandlerServiceClient(conn)
 	ssClient := statsService.NewStatsServiceClient(conn)
+	rsClient := routerService.NewRoutingServiceClient(conn)
 
 	x.HandlerServiceClient = &hsClient
 	x.StatsServiceClient = &ssClient
+	x.RoutingServiceClient = &rsClient
 
 	return nil
 }
@@ -100,6 +110,7 @@ func (x *XrayAPI) Close() {
 	}
 	x.HandlerServiceClient = nil
 	x.StatsServiceClient = nil
+	x.RoutingServiceClient = nil
 	x.isConnected = false
 }
 
@@ -132,6 +143,245 @@ func (x *XrayAPI) DelInbound(tag string) error {
 		Tag: tag,
 	})
 	return err
+}
+
+// AddOutbound adds a new outbound configuration to the Xray core via gRPC.
+func (x *XrayAPI) AddOutbound(outbound []byte) error {
+	if x.HandlerServiceClient == nil {
+		return common.NewError("xray HandlerServiceClient is not initialized")
+	}
+	client := *x.HandlerServiceClient
+
+	conf := new(conf.OutboundDetourConfig)
+	if err := json.Unmarshal(outbound, conf); err != nil {
+		logger.Debug("Failed to unmarshal outbound:", err)
+		return err
+	}
+	config, err := conf.Build()
+	if err != nil {
+		logger.Debug("Failed to build outbound detour:", err)
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err = client.AddOutbound(ctx, &command.AddOutboundRequest{Outbound: config})
+	return err
+}
+
+// DelOutbound removes an outbound configuration from the Xray core by tag.
+func (x *XrayAPI) DelOutbound(tag string) error {
+	if x.HandlerServiceClient == nil {
+		return common.NewError("xray HandlerServiceClient is not initialized")
+	}
+	client := *x.HandlerServiceClient
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err := client.RemoveOutbound(ctx, &command.RemoveOutboundRequest{Tag: tag})
+	return err
+}
+
+// ApplyRoutingConfig replaces the routing rules and balancers of the running
+// Xray core with the given routing section (the JSON value of the top-level
+// "routing" key) via the RoutingService gRPC API. Note that this cannot change
+// routing.domainStrategy/domainMatcher — those are fixed at process start.
+func (x *XrayAPI) ApplyRoutingConfig(routing []byte) error {
+	if x.RoutingServiceClient == nil {
+		return common.NewError("xray RoutingServiceClient is not initialized")
+	}
+
+	// Rules referencing geoip:/geosite: need the dat files; point xray-core's
+	// in-process loader at the panel's bin folder where they live.
+	ensureXrayAssetLocation()
+
+	routerConf := new(conf.RouterConfig)
+	if err := json.Unmarshal(routing, routerConf); err != nil {
+		logger.Debug("Failed to unmarshal routing config:", err)
+		return err
+	}
+	config, err := routerConf.Build()
+	if err != nil {
+		logger.Debug("Failed to build routing config:", err)
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	_, err = (*x.RoutingServiceClient).AddRule(ctx, &routerService.AddRuleRequest{
+		ShouldAppend: false,
+		Config:       serial.ToTypedMessage(config),
+	})
+	return err
+}
+
+// BalancerInfo is the live state of one balancer inside the running core.
+type BalancerInfo struct {
+	Tag string `json:"tag"`
+	// Override is the outbound tag an admin forced via the API; empty when
+	// the strategy is in control.
+	Override string `json:"override"`
+	// Selected are the outbound tags the strategy currently prefers, best
+	// first (xray's "principle target" list).
+	Selected []string `json:"selected"`
+}
+
+// GetBalancerInfo queries the running core for a balancer's current override
+// and the targets its strategy would pick right now.
+func (x *XrayAPI) GetBalancerInfo(tag string) (*BalancerInfo, error) {
+	if x.RoutingServiceClient == nil {
+		return nil, common.NewError("xray RoutingServiceClient is not initialized")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	resp, err := (*x.RoutingServiceClient).GetBalancerInfo(ctx, &routerService.GetBalancerInfoRequest{Tag: tag})
+	if err != nil {
+		return nil, err
+	}
+
+	info := &BalancerInfo{Tag: tag}
+	if balancer := resp.GetBalancer(); balancer != nil {
+		if balancer.Override != nil {
+			info.Override = balancer.Override.Target
+		}
+		if balancer.PrincipleTarget != nil {
+			info.Selected = balancer.PrincipleTarget.Tag
+		}
+	}
+	return info, nil
+}
+
+// SetBalancerTarget forces a balancer to always pick the given outbound tag.
+// An empty target clears the override and hands control back to the strategy.
+func (x *XrayAPI) SetBalancerTarget(tag, target string) error {
+	if x.RoutingServiceClient == nil {
+		return common.NewError("xray RoutingServiceClient is not initialized")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err := (*x.RoutingServiceClient).OverrideBalancerTarget(ctx, &routerService.OverrideBalancerTargetRequest{
+		BalancerTag: tag,
+		Target:      target,
+	})
+	return err
+}
+
+// RouteTestRequest describes a synthetic connection to ask the running core
+// which outbound its router would pick for it.
+type RouteTestRequest struct {
+	InboundTag string // optional: simulate arrival on this inbound
+	Domain     string // target domain (sniffed/SOCKS-style destination)
+	IP         string // target IP, used when Domain is empty or alongside it
+	Port       int
+	Network    string // "tcp" (default) or "udp"
+	Protocol   string // optional sniffed protocol: http, tls, bittorrent, ...
+	Email      string // optional user attribution for user-based rules
+}
+
+// RouteTestResult is the routing decision the core reported.
+type RouteTestResult struct {
+	// Matched is false when no routing rule matched — traffic would use the
+	// default (first) outbound and OutboundTag is empty.
+	Matched     bool     `json:"matched"`
+	OutboundTag string   `json:"outboundTag"`
+	// GroupTags lists the balancer chain the decision went through, when any.
+	GroupTags []string `json:"groupTags,omitempty"`
+}
+
+// TestRoute asks the running core's router which outbound it would pick for
+// the described connection, without sending any traffic.
+func (x *XrayAPI) TestRoute(req RouteTestRequest) (*RouteTestResult, error) {
+	if x.RoutingServiceClient == nil {
+		return nil, common.NewError("xray RoutingServiceClient is not initialized")
+	}
+
+	network := xnet.Network_TCP
+	if strings.EqualFold(req.Network, "udp") {
+		network = xnet.Network_UDP
+	}
+	rc := &routerService.RoutingContext{
+		InboundTag:   req.InboundTag,
+		Network:      network,
+		TargetDomain: req.Domain,
+		TargetPort:   uint32(req.Port),
+		Protocol:     req.Protocol,
+		User:         req.Email,
+	}
+	if req.IP != "" {
+		parsed := net.ParseIP(req.IP)
+		if parsed == nil {
+			return nil, common.NewErrorf("invalid IP address: %s", req.IP)
+		}
+		if v4 := parsed.To4(); v4 != nil {
+			rc.TargetIPs = [][]byte{v4}
+		} else {
+			rc.TargetIPs = [][]byte{parsed.To16()}
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	resp, err := (*x.RoutingServiceClient).TestRoute(ctx, &routerService.TestRouteRequest{
+		RoutingContext: rc,
+		PublishResult:  false,
+	})
+	if err != nil {
+		// The router reports "no rule matched" as an error; for the caller
+		// that simply means the default outbound takes the traffic.
+		if strings.Contains(strings.ToLower(err.Error()), "not enough information") {
+			return &RouteTestResult{Matched: false}, nil
+		}
+		return nil, err
+	}
+
+	return &RouteTestResult{
+		Matched:     true,
+		OutboundTag: resp.GetOutboundTag(),
+		GroupTags:   resp.GetOutboundGroupTags(),
+	}, nil
+}
+
+// IsMissingHandlerErr reports whether err is xray's response to removing a
+// handler (inbound/outbound) that does not exist — e.g. it was already
+// removed through the runtime API while the panel's config snapshot was
+// stale. Safe to treat as success for removal operations.
+func IsMissingHandlerErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "not found") ||
+		strings.Contains(msg, "not enough information")
+}
+
+// IsExistingTagErr reports whether err is xray's response to adding a handler
+// whose tag is already taken by a running handler.
+func IsExistingTagErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "existing tag")
+}
+
+// ensureXrayAssetLocation makes geoip.dat/geosite.dat resolvable when xray-core
+// config builders run inside the panel process. The xray binary resolves assets
+// relative to its own executable, but the panel binary lives one level above
+// the bin folder, so an explicit location is required.
+func ensureXrayAssetLocation() {
+	if os.Getenv("XRAY_LOCATION_ASSET") != "" || os.Getenv("xray.location.asset") != "" {
+		return
+	}
+	if abs, err := filepath.Abs(config.GetBinFolderPath()); err == nil {
+		os.Setenv("XRAY_LOCATION_ASSET", abs)
+	}
 }
 
 // AddUser adds a user to an inbound in the Xray core using the specified protocol and user data.

@@ -66,6 +66,12 @@ func (c *Config) Equals(other *Config) bool {
 	if !bytes.Equal(c.FakeDNS, other.FakeDNS) {
 		return false
 	}
+	if !bytes.Equal(c.Observatory, other.Observatory) {
+		return false
+	}
+	if !bytes.Equal(c.BurstObservatory, other.BurstObservatory) {
+		return false
+	}
 	if !bytes.Equal(c.Metrics, other.Metrics) {
 		return false
 	}

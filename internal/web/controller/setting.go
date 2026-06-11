@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
@@ -29,6 +30,7 @@ type SettingController struct {
 	userService     panel.UserService
 	panelService    panel.PanelService
 	apiTokenService panel.ApiTokenService
+	xrayService     service.XrayService
 }
 
 // NewSettingController creates a new SettingController and initializes its routes.
@@ -81,10 +83,19 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 		return
 	}
 	oldTwoFactor, twoFactorErr := a.settingService.GetTwoFactorEnable()
+	oldPanelOutbound, _ := a.settingService.GetPanelOutbound()
 	err := a.settingService.UpdateAllSetting(allSetting)
 	if err == nil && twoFactorErr == nil && !oldTwoFactor && allSetting.TwoFactorEnable {
 		if bumpErr := a.userService.BumpLoginEpoch(); bumpErr != nil {
 			err = bumpErr
+		}
+	}
+	if err == nil && allSetting.PanelOutbound != oldPanelOutbound {
+		// The egress bridge lives in the generated config; reconcile the
+		// running core. One SOCKS inbound plus one routing rule — both
+		// hot-appliable, so this normally does not restart Xray.
+		if applyErr := a.xrayService.RestartXray(false); applyErr != nil {
+			logger.Warning("apply panel outbound change failed:", applyErr)
 		}
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)

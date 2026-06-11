@@ -4,6 +4,7 @@ import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
 import { CopyOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
+import { formatInboundLabel } from '@/lib/inbounds/label';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
@@ -316,7 +317,7 @@ export default function ClientInfoModal({
                         const ib = inboundsById[id];
                         const proto = (ib?.protocol || '').toLowerCase();
                         const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
-                        const label = ib?.remark?.trim() || ib?.tag || '';
+                        const label = formatInboundLabel(ib?.tag, ib?.remark);
                         return (
                           <Tooltip key={id} title={label}>
                             <Tag color={color}>{label}</Tag>
