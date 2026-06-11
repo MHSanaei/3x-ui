@@ -95,3 +95,25 @@ func TestBuildURLs_DerivesJsonFromConfiguredSubURI(t *testing.T) {
 		t.Fatalf("clashURL = %q (should derive scheme+host from subURI), want %q", clashURL, "https://example.com/clash/ABC")
 	}
 }
+
+// A malformed subURI (no scheme/host) must not leak a broken base into the
+// JSON/Clash URLs; BuildURLs should fall back to the request-derived base.
+func TestBuildURLs_MalformedSubURIFallsBackToRequestBase(t *testing.T) {
+	initSubDB(t)
+	s := &SubService{}
+	s.PrepareForRequest("sub.example.com")
+
+	// A value with no scheme can't yield a usable scheme+host.
+	database.GetDB().Exec(
+		"INSERT INTO settings (key, value) VALUES (?, ?)",
+		"subURI", "example.com/sub-xxx/")
+
+	_, jsonURL, clashURL := s.BuildURLs("/sub-xxx/", "/json/", "/clash/", "ABC")
+
+	if jsonURL != "http://sub.example.com:2096/json/ABC" {
+		t.Fatalf("jsonURL = %q, want fallback to request base %q", jsonURL, "http://sub.example.com:2096/json/ABC")
+	}
+	if clashURL != "http://sub.example.com:2096/clash/ABC" {
+		t.Fatalf("clashURL = %q, want fallback to request base %q", clashURL, "http://sub.example.com:2096/clash/ABC")
+	}
+}
