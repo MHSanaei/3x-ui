@@ -52,6 +52,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { useClients } from '@/hooks/useClients';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import ClientTrafficCell from '@/components/clients/ClientTrafficCell';
 import AppSidebar from '@/layouts/AppSidebar';
 import { IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
@@ -342,15 +343,6 @@ export default function ClientsPage() {
   // Sort is server-side now; the page already arrives in the requested
   // order, so we just hand it through.
   const sortedClients = filteredClients;
-
-  function trafficLabel(row: ClientRecord) {
-    const t0 = row.traffic;
-    if (!t0) return '-';
-    const used = (t0.up || 0) + (t0.down || 0);
-    const total = row.totalGB || 0;
-    if (total <= 0) return `${SizeFormatter.sizeFormat(used)} / ∞`;
-    return `${SizeFormatter.sizeFormat(used)} / ${SizeFormatter.sizeFormat(total)}`;
-  }
 
   function remainingLabel(row: ClientRecord) {
     const total = row.totalGB || 0;
@@ -726,7 +718,16 @@ export default function ClientsPage() {
     {
       title: t('pages.clients.traffic'),
       key: 'traffic',
-      render: (_v, record) => trafficLabel(record),
+      width: 240,
+      render: (_v, record) => (
+        <ClientTrafficCell
+          up={record.traffic?.up}
+          down={record.traffic?.down}
+          total={record.totalGB}
+          enabled={record.enable}
+          trafficDiff={trafficDiff}
+        />
+      ),
     },
     {
       title: t('pages.clients.remaining'),
@@ -744,7 +745,7 @@ export default function ClientsPage() {
       ),
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups, datepicker]);
+  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups, datepicker, trafficDiff]);
 
   const tablePagination = {
     current: currentPage,
@@ -1186,6 +1187,14 @@ export default function ClientsPage() {
                                       </Dropdown>
                                     </div>
                                   </div>
+                                  <ClientTrafficCell
+                                    compact
+                                    up={row.traffic?.up}
+                                    down={row.traffic?.down}
+                                    total={row.totalGB}
+                                    enabled={row.enable}
+                                    trafficDiff={trafficDiff}
+                                  />
                                 </div>
                               );
                             })}
