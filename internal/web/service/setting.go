@@ -38,7 +38,7 @@ var defaultValueMap = map[string]string{
 	"secret":                      random.Seq(32),
 	"panelGuid":                   uuid.NewString(),
 	"apiToken":                    "",
-	"webBasePath":                 getEnv("XUI_INIT_WEB_BASE_PATH", "/"),
+	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
 	"pageSize":                    "25",
@@ -241,6 +241,10 @@ func mustString(value string, _ error) string {
 func getEnv(key, fallback string) string {
 	val, ok := os.LookupEnv(key)
 	if !ok {
+		return fallback
+	}
+	val = strings.TrimSpace(val)
+	if val == "" {
 		return fallback
 	}
 	return val
@@ -596,13 +600,7 @@ func (s *SettingService) GetBasePath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !strings.HasPrefix(basePath, "/") {
-		basePath = "/" + basePath
-	}
-	if !strings.HasSuffix(basePath, "/") {
-		basePath += "/"
-	}
-	return basePath, nil
+	return normalizeBasePath(basePath), nil
 }
 
 func (s *SettingService) GetTimeLocation() (*time.Location, error) {
