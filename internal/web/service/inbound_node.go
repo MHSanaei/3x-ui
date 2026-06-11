@@ -262,6 +262,22 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
+	// Union of every email the snapshot still reports, across all inbounds.
+	// The (node, email) baseline rows are keyed per node, not per inbound, so
+	// the sweeps below must only drop one when the email left the node
+	// entirely — an email whose stats moved to (or always lived under) a
+	// sibling inbound still needs its baseline for the sibling's delta
+	// computation (#5202).
+	snapEmailsAll := make(map[string]struct{})
+	for _, snapIb := range snap.Inbounds {
+		if snapIb == nil {
+			continue
+		}
+		for i := range snapIb.ClientStats {
+			snapEmailsAll[snapIb.ClientStats[i].Email] = struct{}{}
+		}
+	}
+
 	tx := db.Begin()
 	committed := false
 	defer func() {
@@ -421,9 +437,17 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			return false, err
 		}
 		if len(goneEmails) > 0 {
+			// Baselines are per (node, email), not per inbound: keep them for
+			// emails the snapshot still reports under a sibling inbound (#5202).
+			baselineGone := make([]string, 0, len(goneEmails))
+			for _, e := range goneEmails {
+				if _, still := snapEmailsAll[e]; !still {
+					baselineGone = append(baselineGone, e)
+				}
+			}
 			// Chunk to avoid SQLite bind var limit when a node has many clients
 			// removed (e.g. after API bulk delete or structural change on node inbound).
-			for _, batch := range chunkStrings(goneEmails, sqliteMaxVars) {
+			for _, batch := range chunkStrings(baselineGone, sqliteMaxVars) {
 				if err := tx.Where("node_id = ? AND email IN ?", nodeID, batch).
 					Delete(&model.NodeClientTraffic{}).Error; err != nil {
 					return false, err
@@ -552,6 +576,13 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				continue
 			}
 			if _, kept := snapEmails[k.email]; kept {
+				continue
+			}
+			// Gone from this inbound's stats but still reported by the node under
+			// a sibling inbound: both the shared accumulator row and the (node,
+			// email) baseline must survive, or the sibling's next delta would
+			// compute against nothing and freeze the counter (#5202).
+			if _, still := snapEmailsAll[k.email]; still {
 				continue
 			}
 			if err := tx.Where("node_id = ? AND email = ?", nodeID, existing.Email).
