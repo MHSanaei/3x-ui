@@ -95,7 +95,9 @@
     "active": "فعال",
     "inactive": "غیرفعال",
     "unlimited": "نامحدود",
-    "noExpiry": "بدون انقضا"
+    "noExpiry": "بدون انقضا",
+    "copyAllConfigs": "کپی همه کانفیگ‌ها",
+    "copyAllConfigsCopied": "همه کانفیگ‌ها کپی شدند"
   },
   "menu": {
     "theme": "تم",
@@ -634,6 +636,8 @@
       }
     },
     "clients": {
+      "tabBasic": "پایه",
+      "tabConfig": "پیکربندی",
       "add": "افزودن کلاینت",
       "edit": "ویرایش کلاینت",
       "submitAdd": "افزودن کلاینت",
@@ -710,6 +714,8 @@
       "duration": "مدت",
       "attachedInbounds": "اینباندهای متصل",
       "selectInbound": "یک یا چند اینباند انتخاب کنید",
+      "selectAllInbounds": "انتخاب همه",
+      "clearAllInbounds": "پاک کردن همه",
       "noSubId": "این کلاینت subId ندارد، لینک اشتراک‌گذاری وجود ندارد.",
       "noLinks": "لینکی برای اشتراک‌گذاری نیست — ابتدا این کلاینت را به یک اینباند با پروتکل سازگار متصل کنید.",
       "link": "لینک",

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -37,7 +38,7 @@ var defaultValueMap = map[string]string{
 	"secret":                      random.Seq(32),
 	"panelGuid":                   uuid.NewString(),
 	"apiToken":                    "",
-	"webBasePath":                 "/",
+	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
 	"pageSize":                    "25",
@@ -235,6 +236,18 @@ func secretConfigured(value string) bool {
 
 func mustString(value string, _ error) string {
 	return value
+}
+
+func getEnv(key, fallback string) string {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	val = strings.TrimSpace(val)
+	if val == "" {
+		return fallback
+	}
+	return val
 }
 
 func (s *SettingService) ResetSettings() error {
@@ -587,13 +600,7 @@ func (s *SettingService) GetBasePath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !strings.HasPrefix(basePath, "/") {
-		basePath = "/" + basePath
-	}
-	if !strings.HasSuffix(basePath, "/") {
-		basePath += "/"
-	}
-	return basePath, nil
+	return normalizeBasePath(basePath), nil
 }
 
 func (s *SettingService) GetTimeLocation() (*time.Location, error) {
@@ -791,7 +798,18 @@ func (s *SettingService) SetRestartXrayOnClientDisable(value bool) error {
 	return s.setBool("restartXrayOnClientDisable", value)
 }
 
+// GetIpLimitEnable reports whether the IP-limit feature is available. Always
+// true since the panel enforces limits via the core's online-stats API; on an
+// older core the job falls back to access-log parsing and warns there when the
+// log is missing, so the UI no longer hides the field behind that condition.
 func (s *SettingService) GetIpLimitEnable() (bool, error) {
+	return true, nil
+}
+
+// GetAccessLogEnable reports whether an Xray access log is configured. Used by
+// the UI for features that genuinely read the log file (the xray log viewer) —
+// distinct from IP limiting, which works without it.
+func (s *SettingService) GetAccessLogEnable() (bool, error) {
 	accessLogPath, err := xray.GetAccessLogPath()
 	if err != nil {
 		return false, err
@@ -1015,25 +1033,26 @@ func (s *SettingService) BuildSubURIBase(host string) string {
 func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 	type settingFunc func() (any, error)
 	settings := map[string]settingFunc{
-		"expireDiff":     func() (any, error) { return s.GetExpireDiff() },
-		"trafficDiff":    func() (any, error) { return s.GetTrafficDiff() },
-		"pageSize":       func() (any, error) { return s.GetPageSize() },
-		"defaultCert":    func() (any, error) { return s.GetCertFile() },
-		"defaultKey":     func() (any, error) { return s.GetKeyFile() },
-		"tgBotEnable":    func() (any, error) { return s.GetTgbotEnabled() },
-		"subThemeDir":    func() (any, error) { return s.GetSubThemeDir() },
-		"subEnable":      func() (any, error) { return s.GetSubEnable() },
-		"subJsonEnable":  func() (any, error) { return s.GetSubJsonEnable() },
-		"subClashEnable": func() (any, error) { return s.GetSubClashEnable() },
-		"subTitle":       func() (any, error) { return s.GetSubTitle() },
-		"subURI":         func() (any, error) { return s.GetSubURI() },
-		"subJsonURI":     func() (any, error) { return s.GetSubJsonURI() },
-		"subClashURI":    func() (any, error) { return s.GetSubClashURI() },
-		"remarkModel":    func() (any, error) { return s.GetRemarkModel() },
-		"datepicker":     func() (any, error) { return s.GetDatepicker() },
-		"ipLimitEnable":  func() (any, error) { return s.GetIpLimitEnable() },
-		"webDomain":      func() (any, error) { return s.GetWebDomain() },
-		"subDomain":      func() (any, error) { return s.GetSubDomain() },
+		"expireDiff":      func() (any, error) { return s.GetExpireDiff() },
+		"trafficDiff":     func() (any, error) { return s.GetTrafficDiff() },
+		"pageSize":        func() (any, error) { return s.GetPageSize() },
+		"defaultCert":     func() (any, error) { return s.GetCertFile() },
+		"defaultKey":      func() (any, error) { return s.GetKeyFile() },
+		"tgBotEnable":     func() (any, error) { return s.GetTgbotEnabled() },
+		"subThemeDir":     func() (any, error) { return s.GetSubThemeDir() },
+		"subEnable":       func() (any, error) { return s.GetSubEnable() },
+		"subJsonEnable":   func() (any, error) { return s.GetSubJsonEnable() },
+		"subClashEnable":  func() (any, error) { return s.GetSubClashEnable() },
+		"subTitle":        func() (any, error) { return s.GetSubTitle() },
+		"subURI":          func() (any, error) { return s.GetSubURI() },
+		"subJsonURI":      func() (any, error) { return s.GetSubJsonURI() },
+		"subClashURI":     func() (any, error) { return s.GetSubClashURI() },
+		"remarkModel":     func() (any, error) { return s.GetRemarkModel() },
+		"datepicker":      func() (any, error) { return s.GetDatepicker() },
+		"ipLimitEnable":   func() (any, error) { return s.GetIpLimitEnable() },
+		"accessLogEnable": func() (any, error) { return s.GetAccessLogEnable() },
+		"webDomain":       func() (any, error) { return s.GetWebDomain() },
+		"subDomain":       func() (any, error) { return s.GetSubDomain() },
 	}
 
 	result := make(map[string]any)

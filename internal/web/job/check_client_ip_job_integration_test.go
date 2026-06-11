@@ -199,7 +199,7 @@ func TestUpdateInboundClientIps_LiveIpNotBannedByStillFreshHistoricals(t *testin
 	if err != nil {
 		t.Fatalf("getInboundByEmail: %v", err)
 	}
-	shouldCleanLog := j.updateInboundClientIps(row, inbound, email, live, true)
+	shouldCleanLog := j.updateInboundClientIps(row, inbound, email, live, true, false)
 
 	if shouldCleanLog {
 		t.Fatalf("shouldCleanLog must be false, nothing should have been banned with 1 live ip under limit 3")
@@ -252,7 +252,7 @@ func TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getInboundByEmail: %v", err)
 	}
-	shouldCleanLog := j.updateInboundClientIps(row, inbound, email, live, true)
+	shouldCleanLog := j.updateInboundClientIps(row, inbound, email, live, true, false)
 
 	if !shouldCleanLog {
 		t.Fatalf("shouldCleanLog must be true when the live set exceeds the limit")

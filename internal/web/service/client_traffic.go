@@ -101,7 +101,7 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 				}
 				affected += int(res.RowsAffected)
 			}
-			return nil
+			return clearGlobalTraffic(tx, cleanEmails...)
 		})
 	})
 	if err != nil {
@@ -128,12 +128,23 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) error {
 			whereText += " = ?"
 		}
 
+		var resetEmails []string
+		if err := tx.Model(xray.ClientTraffic{}).
+			Where(whereText, id).
+			Pluck("email", &resetEmails).Error; err != nil {
+			return err
+		}
+
 		result := tx.Model(xray.ClientTraffic{}).
 			Where(whereText, id).
 			Updates(map[string]any{"enable": true, "up": 0, "down": 0})
 
 		if result.Error != nil {
 			return result.Error
+		}
+
+		if err := clearGlobalTraffic(tx, resetEmails...); err != nil {
+			return err
 		}
 
 		inboundWhereText := "id "
@@ -155,11 +166,15 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) error {
 }
 
 func (s *ClientService) ResetAllTraffics() (bool, error) {
-	res := database.GetDB().Model(&xray.ClientTraffic{}).
+	db := database.GetDB()
+	res := db.Model(&xray.ClientTraffic{}).
 		Where("1 = 1").
 		Updates(map[string]any{"up": 0, "down": 0})
 	if res.Error != nil {
 		return false, res.Error
+	}
+	if err := db.Where("1 = 1").Delete(&model.ClientGlobalTraffic{}).Error; err != nil {
+		return false, err
 	}
 	return res.RowsAffected > 0, nil
 }

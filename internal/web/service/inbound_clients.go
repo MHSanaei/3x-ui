@@ -31,6 +31,31 @@ func (s *InboundService) enrichClientStats(db *gorm.DB, inbounds []*model.Inboun
 	if len(inbounds) == 0 {
 		return
 	}
+	clientsByInbound := s.backfillClientStats(db, inbounds)
+	for i, inbound := range inbounds {
+		clients := clientsByInbound[i]
+		if len(clients) == 0 || len(inbound.ClientStats) == 0 {
+			continue
+		}
+		cMap := make(map[string]model.Client, len(clients))
+		for _, c := range clients {
+			cMap[strings.ToLower(c.Email)] = c
+		}
+		for j := range inbound.ClientStats {
+			email := strings.ToLower(inbound.ClientStats[j].Email)
+			if c, ok := cMap[email]; ok {
+				inbound.ClientStats[j].UUID = c.ID
+				inbound.ClientStats[j].SubId = c.SubID
+			}
+		}
+	}
+}
+
+// backfillClientStats tops up each inbound's preloaded ClientStats with rows
+// owned by a sibling inbound: client_traffics is keyed on email, so a client
+// attached to several inbounds has one row that only preloads on the inbound
+// it was created on. Returns the parsed clients per inbound for reuse.
+func (s *InboundService) backfillClientStats(db *gorm.DB, inbounds []*model.Inbound) [][]model.Client {
 	clientsByInbound := make([][]model.Client, len(inbounds))
 	seenByInbound := make([]map[string]struct{}, len(inbounds))
 	missing := make(map[string]struct{})
@@ -69,7 +94,7 @@ func (s *InboundService) enrichClientStats(db *gorm.DB, inbounds []*model.Inboun
 			extra = append(extra, page...)
 		}
 		if loadErr != nil {
-			logger.Warning("enrichClientStats:", loadErr)
+			logger.Warning("backfillClientStats:", loadErr)
 		} else {
 			byEmail := make(map[string]xray.ClientTraffic, len(extra))
 			for _, st := range extra {
@@ -92,23 +117,7 @@ func (s *InboundService) enrichClientStats(db *gorm.DB, inbounds []*model.Inboun
 			}
 		}
 	}
-	for i, inbound := range inbounds {
-		clients := clientsByInbound[i]
-		if len(clients) == 0 || len(inbound.ClientStats) == 0 {
-			continue
-		}
-		cMap := make(map[string]model.Client, len(clients))
-		for _, c := range clients {
-			cMap[strings.ToLower(c.Email)] = c
-		}
-		for j := range inbound.ClientStats {
-			email := strings.ToLower(inbound.ClientStats[j].Email)
-			if c, ok := cMap[email]; ok {
-				inbound.ClientStats[j].UUID = c.ID
-				inbound.ClientStats[j].SubId = c.SubID
-			}
-		}
-	}
+	return clientsByInbound
 }
 
 // emailUsedByOtherInbounds reports whether email lives in any inbound other
@@ -210,7 +219,7 @@ func (s *InboundService) buildTargetClientFromSource(source model.Client, target
 	case model.VLESS:
 		target.ID = s.generateRandomCredential(targetProtocol)
 		if (flow == "xtls-rprx-vision" || flow == "xtls-rprx-vision-udp443") &&
-			inboundCanEnableTlsFlow(string(targetProtocol), targetInbound.StreamSettings) {
+			inboundCanEnableTlsFlow(string(targetProtocol), targetInbound.StreamSettings, targetInbound.Settings) {
 			target.Flow = flow
 		}
 	case model.Trojan, model.Shadowsocks:

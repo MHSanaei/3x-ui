@@ -129,3 +129,21 @@ func TestClearNodeOnlineClientsDropsNode(t *testing.T) {
 		t.Errorf("node 3's subtree should be absent after ClearNodeOnlineClients")
 	}
 }
+
+// TestOnlineAPISupportTriState pins the lazy capability probe contract: a new
+// process starts Unknown (so the first caller probes), and the flag holds
+// whatever the probe recorded until the process is replaced on restart.
+func TestOnlineAPISupportTriState(t *testing.T) {
+	p := newOnlineTestProcess()
+	if got := p.OnlineAPISupport(); got != OnlineAPIUnknown {
+		t.Fatalf("new process must start with OnlineAPIUnknown, got %v", got)
+	}
+	p.SetOnlineAPISupport(OnlineAPISupported)
+	if got := p.OnlineAPISupport(); got != OnlineAPISupported {
+		t.Fatalf("expected OnlineAPISupported, got %v", got)
+	}
+	p.SetOnlineAPISupport(OnlineAPIUnsupported)
+	if got := p.OnlineAPISupport(); got != OnlineAPIUnsupported {
+		t.Fatalf("expected OnlineAPIUnsupported, got %v", got)
+	}
+}

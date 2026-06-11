@@ -95,7 +95,9 @@
     "active": "有効",
     "inactive": "無効",
     "unlimited": "無制限",
-    "noExpiry": "期限なし"
+    "noExpiry": "期限なし",
+    "copyAllConfigs": "すべての設定をコピー",
+    "copyAllConfigsCopied": "すべての設定をコピーしました"
   },
   "menu": {
     "theme": "テーマ",
@@ -634,6 +636,8 @@
       }
     },
     "clients": {
+      "tabBasic": "基本",
+      "tabConfig": "設定",
       "add": "クライアントを追加",
       "edit": "クライアントを編集",
       "submitAdd": "クライアントを追加",
@@ -710,6 +714,8 @@
       "duration": "期間",
       "attachedInbounds": "関連付けされたインバウンド",
       "selectInbound": "1 つ以上のインバウンドを選択",
+      "selectAllInbounds": "すべて選択",
+      "clearAllInbounds": "すべてクリア",
       "noSubId": "このクライアントには subId がなく、共有可能なリンクはありません。",
       "noLinks": "共有可能なリンクがありません — まずこのクライアントを対応するプロトコルのインバウンドに関連付けてください。",
       "link": "リンク",

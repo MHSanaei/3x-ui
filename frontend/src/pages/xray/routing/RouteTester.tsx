@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Col, Input, InputNumber, Row, Select, Space, Tag } from 'antd';
 import { AimOutlined } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
+import { useInboundOptions } from '@/api/queries/useInboundOptions';
+import { buildRemarkByTag, formatInboundTag } from './helpers';
 
 interface RouteTesterProps {
   inboundTags: string[];
@@ -21,6 +23,8 @@ const PROTOCOL_OPTIONS = ['http', 'tls', 'quic', 'bittorrent'].map((p) => ({ lab
 
 export default function RouteTester({ inboundTags, isMobile }: RouteTesterProps) {
   const { t } = useTranslation();
+  const { data: inboundOptions } = useInboundOptions();
+  const remarkByTag = useMemo(() => buildRemarkByTag(inboundOptions || []), [inboundOptions]);
   const [dest, setDest] = useState('');
   const [port, setPort] = useState<number | null>(443);
   const [network, setNetwork] = useState('tcp');
@@ -97,7 +101,7 @@ export default function RouteTester({ inboundTags, isMobile }: RouteTesterProps)
             allowClear
             value={inboundTag}
             onChange={setInboundTag}
-            options={inboundTags.filter(Boolean).map((tag) => ({ label: tag, value: tag }))}
+            options={inboundTags.filter(Boolean).map((tag) => ({ label: formatInboundTag(tag, remarkByTag), value: tag }))}
           />
         </Col>
         <Col xs={12} sm={4}>

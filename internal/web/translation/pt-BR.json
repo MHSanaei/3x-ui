@@ -95,7 +95,9 @@
     "active": "Ativo",
     "inactive": "Inativo",
     "unlimited": "Ilimitado",
-    "noExpiry": "Sem validade"
+    "noExpiry": "Sem validade",
+    "copyAllConfigs": "Copiar Todas as Configurações",
+    "copyAllConfigsCopied": "Todas as configurações copiadas"
   },
   "menu": {
     "theme": "Tema",
@@ -634,6 +636,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Básico",
+      "tabConfig": "Configuração",
       "add": "Adicionar cliente",
       "edit": "Editar cliente",
       "submitAdd": "Adicionar cliente",
@@ -710,6 +714,8 @@
       "duration": "Duração",
       "attachedInbounds": "Inbounds associados",
       "selectInbound": "Selecione um ou mais inbounds",
+      "selectAllInbounds": "Selecionar tudo",
+      "clearAllInbounds": "Limpar tudo",
       "noSubId": "Este cliente não tem subId, sem link compartilhável.",
       "noLinks": "Sem links compartilháveis — associe primeiro este cliente a um inbound compatível com o protocolo.",
       "link": "Link",

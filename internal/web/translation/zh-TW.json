@@ -95,7 +95,9 @@
     "active": "啟用",
     "inactive": "停用",
     "unlimited": "無限制",
-    "noExpiry": "無到期"
+    "noExpiry": "無到期",
+    "copyAllConfigs": "複製全部配置",
+    "copyAllConfigsCopied": "已複製全部配置"
   },
   "menu": {
     "theme": "主題",
@@ -634,6 +636,8 @@
       }
     },
     "clients": {
+      "tabBasic": "基本",
+      "tabConfig": "配置",
       "add": "新增客戶端",
       "edit": "編輯客戶端",
       "submitAdd": "新增客戶端",
@@ -710,6 +714,8 @@
       "duration": "時長",
       "attachedInbounds": "關聯入站",
       "selectInbound": "選擇一個或多個入站",
+      "selectAllInbounds": "全選",
+      "clearAllInbounds": "全部清除",
       "noSubId": "此客戶端沒有 subId，無法產生共享連結。",
       "noLinks": "沒有可共享的連結 — 請先將此客戶端關聯至支援協定的入站。",
       "link": "連結",

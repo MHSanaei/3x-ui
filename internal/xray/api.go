@@ -33,7 +33,9 @@ import (
 	"github.com/xtls/xray-core/proxy/vless"
 	"github.com/xtls/xray-core/proxy/vmess"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 // XrayAPI is a gRPC client for managing Xray core configuration, inbounds, outbounds, and statistics.
@@ -289,8 +291,8 @@ type RouteTestRequest struct {
 type RouteTestResult struct {
 	// Matched is false when no routing rule matched — traffic would use the
 	// default (first) outbound and OutboundTag is empty.
-	Matched     bool     `json:"matched"`
-	OutboundTag string   `json:"outboundTag"`
+	Matched     bool   `json:"matched"`
+	OutboundTag string `json:"outboundTag"`
 	// GroupTags lists the balancer chain the decision went through, when any.
 	GroupTags []string `json:"groupTags,omitempty"`
 }
@@ -569,6 +571,62 @@ func (x *XrayAPI) GetTraffic() ([]*Traffic, []*ClientTraffic, error) {
 		}
 	}
 	return mapToSlice(tagTrafficMap), mapToSlice(emailTrafficMap), nil
+}
+
+// OnlineIP is one source address of a live connection, with the unix time (seconds)
+// the core last dispatched a link from it.
+type OnlineIP struct {
+	IP       string `json:"ip"`
+	LastSeen int64  `json:"lastSeen"`
+}
+
+// OnlineUser is a client email with at least one live connection and the source
+// IPs of those connections, as tracked by Xray's statsUserOnline policy.
+type OnlineUser struct {
+	Email string     `json:"email"`
+	IPs   []OnlineIP `json:"ips"`
+}
+
+// GetOnlineUsers returns every user with at least one live connection plus their
+// source IPs, via StatsService.GetUsersStats (one RPC covers all users). Requires
+// statsUserOnline enabled in the policy levels; older cores return Unimplemented.
+func (x *XrayAPI) GetOnlineUsers() ([]OnlineUser, error) {
+	if x.grpcClient == nil {
+		return nil, common.NewError("xray api is not initialized")
+	}
+	if x.StatsServiceClient == nil {
+		return nil, common.NewError("xray StatsServiceClient is not initialized")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	resp, err := (*x.StatsServiceClient).GetUsersStats(ctx, &statsService.GetUsersStatsRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]OnlineUser, 0, len(resp.GetUsers()))
+	for _, u := range resp.GetUsers() {
+		if u == nil || u.GetEmail() == "" {
+			continue
+		}
+		ips := make([]OnlineIP, 0, len(u.GetIps()))
+		for _, entry := range u.GetIps() {
+			if entry == nil || entry.GetIp() == "" {
+				continue
+			}
+			ips = append(ips, OnlineIP{IP: entry.GetIp(), LastSeen: entry.GetLastSeen()})
+		}
+		users = append(users, OnlineUser{Email: u.GetEmail(), IPs: ips})
+	}
+	return users, nil
+}
+
+// IsUnimplementedErr reports whether err is the running core saying it lacks an
+// RPC (an older Xray binary without the online-stats API).
+func IsUnimplementedErr(err error) bool {
+	return status.Code(err) == codes.Unimplemented
 }
 
 // processTraffic aggregates a traffic stat into trafficMap using regex matches and value.

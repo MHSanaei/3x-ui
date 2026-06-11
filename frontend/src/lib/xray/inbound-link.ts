@@ -318,7 +318,7 @@ export function genVlessLink(input: GenVlessLinkInput): string {
 
   const security = forceTls === 'same' ? stream.security : forceTls;
   const params = new URLSearchParams();
-  params.set('type', stream.network);
+  params.set('type', stream.network ?? 'tcp');
   params.set('encryption', inbound.settings.encryption);
 
   if (stream.network === 'tcp') {
@@ -502,7 +502,7 @@ export function genTrojanLink(input: GenTrojanLinkInput): string {
 
   const security = forceTls === 'same' ? stream.security : forceTls;
   const params = new URLSearchParams();
-  params.set('type', stream.network);
+  params.set('type', stream.network ?? 'tcp');
 
   writeNetworkParams(stream, params);
   applyFinalMaskToParams(stream.finalmask, params);
@@ -559,7 +559,7 @@ export function genShadowsocksLink(input: GenShadowsocksLinkInput): string {
 
   const security = forceTls === 'same' ? stream.security : forceTls;
   const params = new URLSearchParams();
-  params.set('type', stream.network);
+  params.set('type', stream.network ?? 'tcp');
 
   writeNetworkParams(stream, params);
   applyFinalMaskToParams(stream.finalmask, params);

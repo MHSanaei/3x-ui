@@ -386,6 +386,11 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	if err != nil {
 		return false, 0, err
 	}
+	// A renewed client starts a fresh quota window: drop the cross-panel rows
+	// too, or the stale pushed totals would re-deplete it immediately.
+	if err = clearGlobalTraffic(tx, renewEmails...); err != nil {
+		return false, 0, err
+	}
 	if p != nil {
 		err1 = s.xrayApi.Init(p.GetAPIPort())
 		if err1 != nil {
@@ -436,6 +441,9 @@ func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
 	if err := tx.Where("email = ?", email).Delete(xray.ClientTraffic{}).Error; err != nil {
 		return err
 	}
+	if err := clearGlobalTraffic(tx, email); err != nil {
+		return err
+	}
 	return tx.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error
 }
 
@@ -445,6 +453,9 @@ func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) er
 		end := min(start+chunk, len(emails))
 		batch := emails[start:end]
 		if err := tx.Where("email IN ?", batch).Delete(xray.ClientTraffic{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("email IN ?", batch).Delete(&model.ClientGlobalTraffic{}).Error; err != nil {
 			return err
 		}
 		if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
@@ -457,6 +468,9 @@ func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) er
 func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 	return submitTrafficWrite(func() error {
 		db := database.GetDB()
+		if err := clearGlobalTraffic(db, clientEmail); err != nil {
+			return err
+		}
 		return db.Model(xray.ClientTraffic{}).
 			Where("email = ?", clientEmail).
 			Updates(map[string]any{"enable": true, "up": 0, "down": 0}).Error
@@ -548,6 +562,9 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 	db := database.GetDB()
 	err = db.Save(traffic).Error
 	if err != nil {
+		return false, err
+	}
+	if err := clearGlobalTraffic(db, clientEmail); err != nil {
 		return false, err
 	}
 
@@ -820,6 +837,28 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 	return traffics, nil
 }
 
+// BumpClientsLastOnline sets client_traffics.last_online to now for the given
+// emails. Used in online-API mode for clients that hold a live connection but
+// moved no bytes this poll — the traffic path (addClientTraffic) only bumps
+// last_online on a non-zero delta, so idle-but-connected clients would
+// otherwise show a stale "last online" while being reported online.
+func (s *InboundService) BumpClientsLastOnline(emails []string) error {
+	uniq := uniqueNonEmptyStrings(emails)
+	if len(uniq) == 0 {
+		return nil
+	}
+	now := time.Now().UnixMilli()
+	return submitTrafficWrite(func() error {
+		db := database.GetDB()
+		for _, batch := range chunkStrings(uniq, sqliteMaxVars) {
+			if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Update("last_online", now).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func (s *InboundService) GetActiveClientTraffics(emails []string) ([]*xray.ClientTraffic, error) {
 	uniq := uniqueNonEmptyStrings(emails)
 	if len(uniq) == 0 {
@@ -848,6 +887,7 @@ func (s *InboundService) GetAllClientTraffics() ([]*xray.ClientTraffic, error) {
 	if err := db.Model(xray.ClientTraffic{}).Find(&traffics).Error; err != nil {
 		return nil, err
 	}
+	overlayGlobalTraffic(db, traffics)
 	return traffics, nil
 }
 
@@ -880,6 +920,7 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.Cl
 	if len(traffics) == 0 {
 		return nil, nil
 	}
+	overlayGlobalTraffic(db, traffics)
 	t := traffics[0]
 
 	if rec, rErr := s.clientService.GetRecordByEmail(db, email); rErr == nil && rec != nil {

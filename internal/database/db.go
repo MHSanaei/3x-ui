@@ -72,6 +72,7 @@ func initModels() error {
 		&model.ClientGroup{},
 		&model.InboundFallback{},
 		&model.NodeClientTraffic{},
+		&model.ClientGlobalTraffic{},
 		&model.OutboundSubscription{},
 	}
 	for _, mdl := range models {

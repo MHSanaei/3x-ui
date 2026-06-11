@@ -16,6 +16,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -27,10 +28,14 @@ type IPWithTimestamp struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
-// CheckClientIpJob monitors client IP addresses from access logs and manages IP blocking based on configured limits.
+// CheckClientIpJob monitors client IP addresses and manages IP blocking based
+// on configured limits. The per-client IPs come from the core's online-stats
+// API when the running core supports it (no access log needed), falling back
+// to access-log parsing on older cores.
 type CheckClientIpJob struct {
 	lastClear     int64
 	disAllowedIps []string
+	xrayService   service.XrayService
 }
 
 var job *CheckClientIpJob
@@ -50,27 +55,81 @@ func (j *CheckClientIpJob) Run() {
 		j.lastClear = time.Now().Unix()
 	}
 
-	shouldClearAccessLog := false
 	fail2BanEnabled := isFail2BanEnabled()
 	hasLimit := fail2BanEnabled && j.hasLimitIp()
 	f2bInstalled := false
 	if hasLimit {
 		f2bInstalled = j.checkFail2BanInstalled()
 	}
+
+	if observed, apiMode := j.collectFromOnlineAPI(); apiMode {
+		if fail2BanEnabled {
+			j.processObserved(observed, j.resolveEnforce(hasLimit, f2bInstalled), true)
+		}
+		// The core tracks online IPs itself, so no access log is needed in this
+		// mode; still rotate a user-configured access log hourly so it doesn't
+		// grow unboundedly. The enforcement-triggered rotation is skipped —
+		// nothing here reads the log.
+		if j.checkAccessLogAvailable(false) && time.Now().Unix()-j.lastClear > 3600 {
+			j.clearAccessLog()
+		}
+		return
+	}
+
+	shouldClearAccessLog := false
 	isAccessLogAvailable := j.checkAccessLogAvailable(hasLimit)
 
 	if fail2BanEnabled && isAccessLogAvailable {
-		enforce := hasLimit
-		if hasLimit && runtime.GOOS != "windows" && !f2bInstalled {
-			logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
-			enforce = false
-		}
-		shouldClearAccessLog = j.processLogFile(enforce)
+		shouldClearAccessLog = j.processLogFile(j.resolveEnforce(hasLimit, f2bInstalled))
 	}
 
 	if shouldClearAccessLog || (isAccessLogAvailable && time.Now().Unix()-j.lastClear > 3600) {
 		j.clearAccessLog()
 	}
+}
+
+// resolveEnforce decides whether limits can actually be enforced this run,
+// warning when fail2ban is missing on a platform that needs it.
+func (j *CheckClientIpJob) resolveEnforce(hasLimit, f2bInstalled bool) bool {
+	if hasLimit && runtime.GOOS != "windows" && !f2bInstalled {
+		logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
+		return false
+	}
+	return hasLimit
+}
+
+// collectFromOnlineAPI builds per-email IP observations (email -> ip ->
+// last-seen unix seconds) from the core's online-stats API. ok=false means the
+// API is unavailable — xray not running, an older core, or a transient gRPC
+// failure — and the caller must fall back to access-log parsing.
+func (j *CheckClientIpJob) collectFromOnlineAPI() (map[string]map[string]int64, bool) {
+	onlineUsers, ok, err := j.xrayService.GetOnlineUsers()
+	if err != nil {
+		logger.Debug("[LimitIP] online-stats API unavailable this run:", err)
+		return nil, false
+	}
+	if !ok {
+		return nil, false
+	}
+	now := time.Now().Unix()
+	observed := make(map[string]map[string]int64, len(onlineUsers))
+	for _, user := range onlineUsers {
+		for _, entry := range user.IPs {
+			// No localhost guard needed here: the core's OnlineMap.AddIP drops
+			// 127.0.0.1/[::1] itself, so they never reach this list.
+			ts := entry.LastSeen
+			if ts <= 0 {
+				ts = now
+			}
+			if _, exists := observed[user.Email]; !exists {
+				observed[user.Email] = make(map[string]int64)
+			}
+			if existing, seen := observed[user.Email][entry.IP]; !seen || ts > existing {
+				observed[user.Email][entry.IP] = ts
+			}
+		}
+	}
+	return observed, true
 }
 
 func (j *CheckClientIpJob) clearAccessLog() {
@@ -183,18 +242,26 @@ func (j *CheckClientIpJob) processLogFile(enforce bool) bool {
 		j.checkError(err)
 	}
 
-	shouldCleanLog := false
-	for email, ipTimestamps := range inboundClientIps {
+	return j.processObserved(inboundClientIps, enforce, false)
+}
 
-		// The access log can still reference a client that was just renamed
+// processObserved runs collection + enforcement for one scan's observations
+// (email -> ip -> last-seen unix seconds). observedAreLive marks the
+// observations as live connections (online-stats API) rather than recent log
+// lines: live entries bypass the stale cutoff, since a connection that opened
+// hours ago is still live even though its timestamp is old.
+func (j *CheckClientIpJob) processObserved(observed map[string]map[string]int64, enforce, observedAreLive bool) bool {
+	shouldCleanLog := false
+	for email, ipTimestamps := range observed {
+
+		// The observations can still reference a client that was just renamed
 		// or deleted; its email no longer matches any inbound. Skip it (and
 		// drop any orphaned tracking row) instead of recreating a row and
-		// logging an ERROR every run until the log rotates out the old email
-		// (#4963).
+		// logging an ERROR every run (#4963).
 		inbound, err := j.getInboundByEmail(email)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				logger.Debugf("[LimitIP] skipping stale access-log email %q (renamed or deleted)", email)
+				logger.Debugf("[LimitIP] skipping stale observed email %q (renamed or deleted)", email)
 				j.delInboundClientIps(email)
 			} else {
 				j.checkError(err)
@@ -214,13 +281,17 @@ func (j *CheckClientIpJob) processLogFile(enforce bool) bool {
 			continue
 		}
 
-		shouldCleanLog = j.updateInboundClientIps(clientIpsRecord, inbound, email, ipsWithTime, enforce) || shouldCleanLog
+		shouldCleanLog = j.updateInboundClientIps(clientIpsRecord, inbound, email, ipsWithTime, enforce, observedAreLive) || shouldCleanLog
 	}
 
 	return shouldCleanLog
 }
 
-func mergeClientIps(old, new []IPWithTimestamp, staleCutoff int64) map[string]int64 {
+// mergeClientIps folds this scan's observations into the persisted set,
+// dropping entries older than staleCutoff. newAlwaysLive exempts the new
+// entries from that cutoff: an API-observed IP is a live connection by
+// definition, even when its lastSeen (set at dispatch time) is hours old.
+func mergeClientIps(old, new []IPWithTimestamp, staleCutoff int64, newAlwaysLive bool) map[string]int64 {
 	ipMap := make(map[string]int64, len(old)+len(new))
 	for _, ipTime := range old {
 		if ipTime.Timestamp < staleCutoff {
@@ -229,7 +300,7 @@ func mergeClientIps(old, new []IPWithTimestamp, staleCutoff int64) map[string]in
 		ipMap[ipTime.IP] = ipTime.Timestamp
 	}
 	for _, ipTime := range new {
-		if ipTime.Timestamp < staleCutoff {
+		if !newAlwaysLive && ipTime.Timestamp < staleCutoff {
 			continue
 		}
 		if existingTime, ok := ipMap[ipTime.IP]; !ok || ipTime.Timestamp > existingTime {
@@ -237,6 +308,16 @@ func mergeClientIps(old, new []IPWithTimestamp, staleCutoff int64) map[string]in
 		}
 	}
 	return ipMap
+}
+
+// selectIpsToBan splits the live IPs (sorted oldest-first by partitionLiveIps)
+// into the newest `limit` entries to keep and the older remainder to ban.
+func selectIpsToBan(live []IPWithTimestamp, limit int) (kept, banned []IPWithTimestamp) {
+	if limit <= 0 || len(live) <= limit {
+		return live, nil
+	}
+	cutoff := len(live) - limit
+	return live[cutoff:], live[:cutoff]
 }
 
 func partitionLiveIps(ipMap map[string]int64, observedThisScan map[string]bool) (live, historical []IPWithTimestamp) {
@@ -343,7 +424,7 @@ func (j *CheckClientIpJob) delInboundClientIps(clientEmail string) {
 	}
 }
 
-func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.InboundClientIps, inbound *model.Inbound, clientEmail string, newIpsWithTime []IPWithTimestamp, enforce bool) bool {
+func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.InboundClientIps, inbound *model.Inbound, clientEmail string, newIpsWithTime []IPWithTimestamp, enforce, observedAreLive bool) bool {
 	if inbound.Settings == "" {
 		logger.Debug("wrong data:", inbound)
 		return false
@@ -380,7 +461,7 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 		json.Unmarshal([]byte(inboundClientIps.Ips), &oldIpsWithTime)
 	}
 
-	ipMap := mergeClientIps(oldIpsWithTime, newIpsWithTime, time.Now().Unix()-ipStaleAfterSeconds)
+	ipMap := mergeClientIps(oldIpsWithTime, newIpsWithTime, time.Now().Unix()-ipStaleAfterSeconds, observedAreLive)
 
 	// only ips seen in this scan count toward the limit. see
 	// partitionLiveIps.
@@ -394,14 +475,9 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 	j.disAllowedIps = []string{}
 
 	// historical db-only ips are excluded from this count on purpose.
-	var keptLive []IPWithTimestamp
-	if len(liveIps) > limitIp {
+	keptLive, bannedLive := selectIpsToBan(liveIps, limitIp)
+	if len(bannedLive) > 0 {
 		shouldCleanLog = true
-
-		// keep the newest live ips, ban older ones.
-		cutoff := len(liveIps) - limitIp
-		keptLive = liveIps[cutoff:]
-		bannedLive := liveIps[:cutoff]
 
 		logIpFile, err := os.OpenFile(xray.GetIPLimitLogPath(), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
@@ -422,8 +498,6 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 
 		// force xray to drop existing connections from banned ips
 		j.disconnectClientTemporarily(inbound, clientEmail, clients)
-	} else {
-		keptLive = liveIps
 	}
 
 	// keep kept-live + historical in the blob so the panel keeps showing

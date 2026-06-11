@@ -95,7 +95,9 @@
     "active": "Aktif",
     "inactive": "Pasif",
     "unlimited": "Sınırsız",
-    "noExpiry": "Süresiz"
+    "noExpiry": "Süresiz",
+    "copyAllConfigs": "Tüm Yapılandırmaları Kopyala",
+    "copyAllConfigsCopied": "Tüm yapılandırmalar kopyalandı"
   },
   "menu": {
     "theme": "Tema",
@@ -635,6 +637,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Temel",
+      "tabConfig": "Yapılandırma",
       "add": "Kullanıcı Ekle",
       "edit": "Kullanıcıyı Düzenle",
       "submitAdd": "Kullanıcı Ekle",
@@ -711,6 +715,8 @@
       "duration": "Süre",
       "attachedInbounds": "Bağlı Gelen Bağlantılar",
       "selectInbound": "Bir veya Daha Fazla Gelen Bağlantı Seçin",
+      "selectAllInbounds": "Tümünü Seç",
+      "clearAllInbounds": "Tümünü Temizle",
       "noSubId": "Bu kullanıcının subId'si yok, dolayısıyla paylaşılabilir bir bağlantısı bulunmuyor.",
       "noLinks": "Paylaşılabilir bağlantı yok — önce bu kullanıcıyı bir protokole sahip olan gelen bağlantıya bağlayın.",
       "link": "Bağlantı",

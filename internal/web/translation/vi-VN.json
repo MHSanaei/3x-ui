@@ -95,7 +95,9 @@
     "active": "Hoạt động",
     "inactive": "Không hoạt động",
     "unlimited": "Không giới hạn",
-    "noExpiry": "Không hết hạn"
+    "noExpiry": "Không hết hạn",
+    "copyAllConfigs": "Sao chép tất cả cấu hình",
+    "copyAllConfigsCopied": "Đã sao chép tất cả cấu hình"
   },
   "menu": {
     "theme": "Chủ đề",
@@ -634,6 +636,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Cơ bản",
+      "tabConfig": "Cấu hình",
       "add": "Thêm khách hàng",
       "edit": "Chỉnh sửa khách hàng",
       "submitAdd": "Thêm khách hàng",
@@ -710,6 +714,8 @@
       "duration": "Thời hạn",
       "attachedInbounds": "Inbound đã gắn",
       "selectInbound": "Chọn một hoặc nhiều inbound",
+      "selectAllInbounds": "Chọn tất cả",
+      "clearAllInbounds": "Xóa tất cả",
       "noSubId": "Khách hàng này không có subId, không có liên kết chia sẻ.",
       "noLinks": "Không có liên kết chia sẻ — hãy gắn khách hàng này vào một inbound có giao thức tương thích trước.",
       "link": "Liên kết",

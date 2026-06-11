@@ -95,7 +95,9 @@
     "active": "Aktif",
     "inactive": "Nonaktif",
     "unlimited": "Tanpa batas",
-    "noExpiry": "Tanpa kedaluwarsa"
+    "noExpiry": "Tanpa kedaluwarsa",
+    "copyAllConfigs": "Salin Semua Konfigurasi",
+    "copyAllConfigsCopied": "Semua konfigurasi tersalin"
   },
   "menu": {
     "theme": "Tema",
@@ -634,6 +636,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Dasar",
+      "tabConfig": "Konfigurasi",
       "add": "Tambah klien",
       "edit": "Ubah klien",
       "submitAdd": "Tambah klien",
@@ -710,6 +714,8 @@
       "duration": "Durasi",
       "attachedInbounds": "Inbound terlampir",
       "selectInbound": "Pilih satu atau lebih inbound",
+      "selectAllInbounds": "Pilih semua",
+      "clearAllInbounds": "Hapus semua",
       "noSubId": "Klien ini tidak punya subId, tidak ada tautan yang bisa dibagikan.",
       "noLinks": "Tidak ada tautan yang bisa dibagikan — lampirkan klien ini ke inbound yang mendukung protokol terlebih dahulu.",
       "link": "Tautan",

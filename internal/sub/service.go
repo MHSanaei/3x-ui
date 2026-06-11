@@ -445,6 +445,20 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	return buildVmessLink(obj)
 }
 
+// vlessEncryptionEnabled reports whether the VLESS inbound settings enable
+// VLESS-level encryption (vlessenc / ML-KEM). When on, the encryption/decryption
+// fields hold a generated dotted string (e.g. "mlkem768x25519plus.native.0rtt.<key>");
+// "none" or empty means off. The value is never the literal "vlessenc" — that is
+// the `xray vlessenc` CLI subcommand name, not a stored value.
+func vlessEncryptionEnabled(settings map[string]any) bool {
+	for _, key := range []string{"encryption", "decryption"} {
+		if v, ok := settings[key].(string); ok && v != "" && v != "none" {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.VLESS {
 		return ""
@@ -484,6 +498,11 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		}
 	default:
 		params["security"] = "none"
+		// VLESS encryption (vlessenc / ML-KEM) carries XTLS Vision over XHTTP
+		// without transport TLS.
+		if streamNetwork == "xhttp" && len(clients[clientIndex].Flow) > 0 && vlessEncryptionEnabled(settings) {
+			params["flow"] = clients[clientIndex].Flow
+		}
 	}
 
 	externalProxies, _ := stream["externalProxy"].([]any)
@@ -2104,10 +2123,35 @@ func (s *SubService) BuildURLs(subPath, subJsonPath, subClashPath, subId string)
 	base := s.settingService.BuildSubURIBase(s.address)
 
 	subURL = s.buildSingleURL(configuredSubURI, base, subPath, subId)
-	subJsonURL = s.buildSingleURL(configuredSubJsonURI, base, subJsonPath, subId)
-	subClashURL = s.buildSingleURL(configuredSubClashURI, base, subClashPath, subId)
+
+	// When subURI is explicitly configured (reverse-proxy setup), use its
+	// scheme+host as the base for JSON and Clash URLs so they match the
+	// reverse-proxy endpoint instead of the raw sub-server port. Fall back
+	// to the request-derived base if subURI is empty or can't be parsed
+	// into a scheme+host (e.g. a malformed value with no scheme).
+	jsonClashBase := base
+	if configuredSubURI != "" {
+		if derived := s.extractBaseFromURI(configuredSubURI); derived != "" {
+			jsonClashBase = derived
+		}
+	}
+
+	subJsonURL = s.buildSingleURL(configuredSubJsonURI, jsonClashBase, subJsonPath, subId)
+	subClashURL = s.buildSingleURL(configuredSubClashURI, jsonClashBase, subClashPath, subId)
 
 	return subURL, subJsonURL, subClashURL
+}
+
+// extractBaseFromURI extracts scheme://host from a configured URI.
+// e.g., "https://example.com/sub-xxx/" → "https://example.com".
+// Returns "" when the URI is empty or lacks a scheme/host, so callers can
+// fall back to the request-derived base instead of emitting a broken value.
+func (s *SubService) extractBaseFromURI(uri string) string {
+	u, err := url.Parse(uri)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s://%s", u.Scheme, u.Host)
 }
 
 // buildSingleURL constructs a single URL using configured URI or base components

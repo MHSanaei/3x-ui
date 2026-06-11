@@ -225,25 +225,35 @@ export function useInbounds() {
       const inboundActive = activeForNode === undefined || !dbInbound.tag || activeForNode.has(dbInbound.tag);
 
       if (dbInbound.enable) {
+        const statsByEmail = new Map<string, { email: string; total: number; up: number; down: number; expiryTime: number }>();
+        for (const stats of clientStats) {
+          if (stats.email) statsByEmail.set(stats.email.toLowerCase(), stats);
+        }
         for (const client of clients) {
           if (client.comment && client.email) comments.set(client.email, client.comment);
-          if (client.enable) {
-            if (client.email) active.push(client.email);
-            if (client.email && inboundActive && nodeOnline?.has(client.email)) online.push(client.email);
-          } else if (client.email) {
-            deactive.push(client.email);
-          }
-        }
-        for (const stats of clientStats) {
-          const exhausted = stats.total > 0 && stats.up + stats.down >= stats.total;
-          const expired = stats.expiryTime > 0 && stats.expiryTime <= now;
+          if (!client.email) continue;
+          const stats = statsByEmail.get(client.email.toLowerCase());
+          const exhausted = stats != null && stats.total > 0 && stats.up + stats.down >= stats.total;
+          const expired = stats != null && stats.expiryTime > 0 && stats.expiryTime <= now;
+          // Depleted wins over disabled (same priority as computeClientsSummary):
+          // the auto-disable job also flips client.enable off in settings when a
+          // client ends, so checking enable first would file every ended client
+          // under "Disabled".
           if (expired || exhausted) {
-            depleted.push(stats.email);
-          } else {
+            depleted.push(client.email);
+            continue;
+          }
+          if (!client.enable) {
+            deactive.push(client.email);
+            continue;
+          }
+          active.push(client.email);
+          if (inboundActive && nodeOnline?.has(client.email)) online.push(client.email);
+          if (stats) {
             const expiringSoon =
               (stats.expiryTime > 0 && stats.expiryTime - now < expireDiffRef.current) ||
               (stats.total > 0 && stats.total - (stats.up + stats.down) < trafficDiffRef.current);
-            if (expiringSoon) expiring.push(stats.email);
+            if (expiringSoon) expiring.push(client.email);
           }
         }
       } else {

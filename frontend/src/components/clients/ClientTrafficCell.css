@@ -1,0 +1,90 @@
+.client-traffic-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--ant-color-fill-quaternary);
+}
+
+.client-traffic-cell.is-compact {
+  gap: 6px;
+  padding: 2px 8px;
+  margin-top: 6px;
+}
+
+.client-traffic-cell-used,
+.client-traffic-cell-limit {
+  flex: 0 0 72px;
+  min-width: 72px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.client-traffic-cell.is-compact .client-traffic-cell-used {
+  flex-basis: 64px;
+  min-width: 64px;
+  font-size: 11px;
+}
+
+.client-traffic-cell-used {
+  text-align: end;
+  color: var(--ant-color-text);
+}
+
+.client-traffic-cell-limit {
+  text-align: start;
+  color: var(--ant-color-text-secondary);
+}
+
+.client-traffic-cell-bar {
+  flex: 1 1 60px;
+  min-width: 48px;
+}
+
+.client-traffic-cell-bar.ant-progress {
+  margin: 0;
+  line-height: 1;
+}
+
+.client-traffic-cell-bar .ant-progress-outer,
+.client-traffic-cell-bar .ant-progress-inner {
+  display: block;
+}
+
+.client-traffic-cell-bar .ant-progress-inner {
+  background: var(--ant-color-fill-secondary);
+}
+
+.client-traffic-cell.is-unlimited .client-traffic-cell-bar .ant-progress-inner .ant-progress-bg {
+  background-color: color-mix(in srgb, #722ed1 35%, transparent);
+  border: 1px solid color-mix(in srgb, #722ed1 55%, transparent);
+}
+
+.client-traffic-cell-infinity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  color: var(--ant-color-purple);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.client-traffic-popover table {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+.client-traffic-popover td {
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.client-traffic-popover td:first-child {
+  color: var(--ant-color-text-secondary);
+}

@@ -47,11 +47,13 @@ import {
 } from '@ant-design/icons';
 
 import { useTheme } from '@/hooks/useTheme';
+import { formatInboundLabel } from '@/lib/inbounds/label';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useClients } from '@/hooks/useClients';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import ClientTrafficCell from '@/components/clients/ClientTrafficCell';
 import AppSidebar from '@/layouts/AppSidebar';
 import { IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
@@ -194,7 +196,7 @@ export default function ClientsPage() {
     allGroups,
     setQuery,
     inbounds, onlines, loading, fetched, fetchError, subSettings,
-    ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
+    tgBotEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, bulkAttach, detach, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
@@ -302,7 +304,7 @@ export default function ClientsPage() {
 
   function inboundLabel(id: number) {
     const ib = inboundsById[id];
-    return ib?.remark?.trim() || ib?.tag || '';
+    return formatInboundLabel(ib?.tag, ib?.remark);
   }
 
   const clientBucket = useCallback((row: ClientRecord | null | undefined): Bucket | null => {
@@ -342,15 +344,6 @@ export default function ClientsPage() {
   // Sort is server-side now; the page already arrives in the requested
   // order, so we just hand it through.
   const sortedClients = filteredClients;
-
-  function trafficLabel(row: ClientRecord) {
-    const t0 = row.traffic;
-    if (!t0) return '-';
-    const used = (t0.up || 0) + (t0.down || 0);
-    const total = row.totalGB || 0;
-    if (total <= 0) return `${SizeFormatter.sizeFormat(used)} / ∞`;
-    return `${SizeFormatter.sizeFormat(used)} / ${SizeFormatter.sizeFormat(total)}`;
-  }
 
   function remainingLabel(row: ClientRecord) {
     const total = row.totalGB || 0;
@@ -692,7 +685,7 @@ export default function ClientsPage() {
           const ib = inboundsById[id];
           const proto = (ib?.protocol || '').toLowerCase();
           const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
-          const compactLabel = ib?.remark?.trim() || ib?.tag || '';
+          const compactLabel = formatInboundLabel(ib?.tag, ib?.remark);
           return (
             <Tooltip key={id} title={inboundLabel(id)}>
               <Tag color={color} style={{ margin: 2 }}>
@@ -726,7 +719,16 @@ export default function ClientsPage() {
     {
       title: t('pages.clients.traffic'),
       key: 'traffic',
-      render: (_v, record) => trafficLabel(record),
+      width: 240,
+      render: (_v, record) => (
+        <ClientTrafficCell
+          up={record.traffic?.up}
+          down={record.traffic?.down}
+          total={record.totalGB}
+          enabled={record.enable}
+          trafficDiff={trafficDiff}
+        />
+      ),
     },
     {
       title: t('pages.clients.remaining'),
@@ -744,7 +746,7 @@ export default function ClientsPage() {
       ),
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups, datepicker]);
+  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups, datepicker, trafficDiff]);
 
   const tablePagination = {
     current: currentPage,
@@ -1139,7 +1141,9 @@ export default function ClientsPage() {
                                       checked={selectedRowKeys.includes(row.email)}
                                       onChange={(e) => toggleSelect(row.email, e.target.checked)}
                                     />
-                                    <Badge status={bucketBadgeStatus(bucket)} />
+                                    {row.enable && bucket !== 'depleted' && isOnline(row.email)
+                                      ? <span className="online-dot" style={{ marginInlineEnd: 0 }} />
+                                      : <Badge status={bucketBadgeStatus(bucket)} />}
                                     <span className="tag-name">{row.email}</span>
                                     {bucket === 'depleted' && <Tag color="red" className="status-tag">{t('depleted')}</Tag>}
                                     {bucket === 'expiring' && <Tag color="orange" className="status-tag">{t('depletingSoon')}</Tag>}
@@ -1186,6 +1190,14 @@ export default function ClientsPage() {
                                       </Dropdown>
                                     </div>
                                   </div>
+                                  <ClientTrafficCell
+                                    compact
+                                    up={row.traffic?.up}
+                                    down={row.traffic?.down}
+                                    total={row.totalGB}
+                                    enabled={row.enable}
+                                    trafficDiff={trafficDiff}
+                                  />
                                 </div>
                               );
                             })}
@@ -1207,7 +1219,6 @@ export default function ClientsPage() {
             client={editingClient}
             attachedIds={editingAttachedIds}
             inbounds={inbounds}
-            ipLimitEnable={ipLimitEnable}
             tgBotEnable={tgBotEnable}
             groups={allGroups}
             save={onSave}
@@ -1236,7 +1247,6 @@ export default function ClientsPage() {
           <ClientBulkAddModal
             open={bulkAddOpen}
             inbounds={inbounds}
-            ipLimitEnable={ipLimitEnable}
             groups={allGroups}
             onOpenChange={setBulkAddOpen}
             onSaved={() => setBulkAddOpen(false)}

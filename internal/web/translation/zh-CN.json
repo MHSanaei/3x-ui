@@ -95,7 +95,9 @@
     "active": "启用",
     "inactive": "停用",
     "unlimited": "无限制",
-    "noExpiry": "无到期"
+    "noExpiry": "无到期",
+    "copyAllConfigs": "复制全部配置",
+    "copyAllConfigsCopied": "已复制全部配置"
   },
   "menu": {
     "theme": "主题",
@@ -634,6 +636,8 @@
       }
     },
     "clients": {
+      "tabBasic": "基本",
+      "tabConfig": "配置",
       "add": "添加客户端",
       "edit": "编辑客户端",
       "submitAdd": "添加客户端",
@@ -710,6 +714,8 @@
       "duration": "时长",
       "attachedInbounds": "关联入站",
       "selectInbound": "选择一个或多个入站",
+      "selectAllInbounds": "全选",
+      "clearAllInbounds": "全部清除",
       "noSubId": "该客户端没有 subId，无法生成共享链接。",
       "noLinks": "没有可共享的链接 — 请先将此客户端关联到支持协议的入站。",
       "link": "链接",
