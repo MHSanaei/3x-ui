@@ -411,10 +411,27 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					return false, err
 				}
 			}
-		}
-		if err := tx.Where("inbound_id = ?", c.Id).
-			Delete(&xray.ClientTraffic{}).Error; err != nil {
-			return false, err
+			// The per-email row is the shared accumulator across every inbound
+			// (and node) the email is attached to. Only drop it when this was the
+			// email's last inbound — wiping it while a sibling still feeds it
+			// loses the summed history, and the next node sync would re-seed the
+			// row with that node's counter alone.
+			sharedEmails, sErr := s.emailsUsedByOtherInbounds(goneEmails, c.Id)
+			if sErr != nil {
+				return false, sErr
+			}
+			delEmails := make([]string, 0, len(goneEmails))
+			for _, e := range goneEmails {
+				if !sharedEmails[strings.ToLower(strings.TrimSpace(e))] {
+					delEmails = append(delEmails, e)
+				}
+			}
+			for _, batch := range chunkStrings(delEmails, sqliteMaxVars) {
+				if err := tx.Where("inbound_id = ? AND email IN ?", c.Id, batch).
+					Delete(&xray.ClientTraffic{}).Error; err != nil {
+					return false, err
+				}
+			}
 		}
 		if err := s.clientService.DetachInbound(tx, c.Id); err != nil {
 			return false, err
@@ -523,9 +540,17 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				Delete(&model.NodeClientTraffic{}).Error; err != nil {
 				return false, err
 			}
-			if err := tx.Where("inbound_id = ? AND email = ?", c.Id, existing.Email).
-				Delete(&xray.ClientTraffic{}).Error; err != nil {
-				return false, err
+			// Same shared-accumulator rule as the inbound-removal sweep above:
+			// keep the row while another inbound still references the email.
+			stillUsed, uErr := s.emailUsedByOtherInbounds(existing.Email, c.Id)
+			if uErr != nil {
+				return false, uErr
+			}
+			if !stillUsed {
+				if err := tx.Where("inbound_id = ? AND email = ?", c.Id, existing.Email).
+					Delete(&xray.ClientTraffic{}).Error; err != nil {
+					return false, err
+				}
 			}
 			structuralChange = true
 		}
