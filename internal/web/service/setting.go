@@ -95,7 +95,7 @@ var defaultValueMap = map[string]string{
 	"externalTrafficInformURI":    "",
 	"restartXrayOnClientDisable":  "true",
 	"xrayOutboundTestUrl":         "https://www.google.com/generate_204",
-	"panelProxy":                  "",
+	"panelOutbound":               "",
 
 	// LDAP defaults
 	"ldapEnable":            "false",
@@ -384,26 +384,52 @@ func (s *SettingService) SetTgBotProxy(token string) error {
 	return s.setString("tgBotProxy", token)
 }
 
-func (s *SettingService) GetPanelProxy() (string, error) {
-	return s.getString("panelProxy")
+// GetPanelOutbound returns the Xray outbound tag the panel's own outbound
+// requests (version checks, Telegram, subscription fetches) are routed through.
+func (s *SettingService) GetPanelOutbound() (string, error) {
+	return s.getString("panelOutbound")
 }
 
-func (s *SettingService) SetPanelProxy(proxyUrl string) error {
-	return s.setString("panelProxy", proxyUrl)
+func (s *SettingService) SetPanelOutbound(tag string) error {
+	return s.setString("panelOutbound", tag)
+}
+
+// PanelEgressProxyURL resolves the loopback SOCKS bridge that the generated
+// config exposes when a panel outbound is configured (see injectPanelEgress).
+// It returns "" — meaning a direct connection — when the feature is off or
+// the bridge is not present in the running core yet.
+func (s *SettingService) PanelEgressProxyURL() string {
+	tag, err := s.GetPanelOutbound()
+	if err != nil || tag == "" {
+		return ""
+	}
+	proc := XrayProcess()
+	if proc == nil || !proc.IsRunning() {
+		logger.Warning("panel outbound [", tag, "] is set but Xray is not running, using a direct connection")
+		return ""
+	}
+	cfg := proc.GetConfig()
+	if cfg == nil {
+		return ""
+	}
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag == PanelEgressInboundTag {
+			return fmt.Sprintf("socks5://127.0.0.1:%d", cfg.InboundConfigs[i].Port)
+		}
+	}
+	logger.Warning("panel outbound [", tag, "] is set but the egress bridge is not in the running config, using a direct connection")
+	return ""
 }
 
 // NewProxiedHTTPClient returns an HTTP client that routes the panel's own
-// outbound requests through the configured panelProxy setting. An invalid or
-// missing proxy falls back to a direct client so existing behavior is preserved.
+// outbound requests through the configured panel outbound (via the loopback
+// SOCKS bridge in the running Xray). When the feature is off or the bridge
+// is unavailable it falls back to a direct client.
 func (s *SettingService) NewProxiedHTTPClient(timeout time.Duration) *http.Client {
-	proxyUrl, err := s.GetPanelProxy()
-	if err != nil {
-		logger.Warning("Failed to read panel proxy setting:", err)
-		proxyUrl = ""
-	}
+	proxyUrl := s.PanelEgressProxyURL()
 	client, err := netproxy.NewHTTPClient(proxyUrl, timeout)
 	if err != nil {
-		logger.Warningf("Invalid panel proxy %q, using direct connection: %v", proxyUrl, err)
+		logger.Warningf("Invalid panel egress proxy %q, using direct connection: %v", proxyUrl, err)
 		return &http.Client{Timeout: timeout}
 	}
 	return client

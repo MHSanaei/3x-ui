@@ -2,8 +2,8 @@ import { Tooltip } from 'antd';
 
 import { csv } from './helpers';
 
-export default function CriterionRow({ label, value, title }: { label: string; value?: string; title: string }) {
-  const parts = csv(value);
+export default function CriterionRow({ label, value, values, title }: { label: string; value?: string; values?: string[]; title: string }) {
+  const parts = values ?? csv(value);
   if (parts.length === 0) return null;
   return (
     <Tooltip title={title}>

@@ -94,8 +94,8 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
-      "panelProxy": {
-        "description": "Proxy URL for the panel's own outbound requests (GitHub/Telegram)",
+      "panelOutbound": {
+        "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
         "type": "string"
       },
       "remarkModel": {
@@ -357,7 +357,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserFilter",
       "ldapVlessField",
       "pageSize",
-      "panelProxy",
+      "panelOutbound",
       "remarkModel",
       "restartXrayOnClientDisable",
       "sessionMaxAge",
@@ -528,8 +528,8 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
-      "panelProxy": {
-        "description": "Proxy URL for the panel's own outbound requests (GitHub/Telegram)",
+      "panelOutbound": {
+        "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
         "type": "string"
       },
       "remarkModel": {
@@ -797,7 +797,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserFilter",
       "ldapVlessField",
       "pageSize",
-      "panelProxy",
+      "panelOutbound",
       "remarkModel",
       "restartXrayOnClientDisable",
       "sessionMaxAge",
