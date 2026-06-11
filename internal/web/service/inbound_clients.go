@@ -210,7 +210,7 @@ func (s *InboundService) buildTargetClientFromSource(source model.Client, target
 	case model.VLESS:
 		target.ID = s.generateRandomCredential(targetProtocol)
 		if (flow == "xtls-rprx-vision" || flow == "xtls-rprx-vision-udp443") &&
-			inboundCanEnableTlsFlow(string(targetProtocol), targetInbound.StreamSettings) {
+			inboundCanEnableTlsFlow(string(targetProtocol), targetInbound.StreamSettings, targetInbound.Settings) {
 			target.Flow = flow
 		}
 	case model.Trojan, model.Shadowsocks:

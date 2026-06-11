@@ -180,6 +180,35 @@ describe('protocol-capability helpers with raw coerced shapes', () => {
       streamSettings: { network: 'tcp', security: 'tls' },
     })).toBe(false);
   });
+
+  it('canEnableTlsFlow allows vless + xhttp when vlessenc encryption is set', () => {
+    const enc = 'mlkem768x25519plus.native.0rtt.G3cdPSd1-NnlpTbWNSM5vHsT5VNzWfFzYSKwbUMnV1Y';
+    const dec = 'mlkem768x25519plus.native.600s.mMFxPe7lz5xoq2qBk22cQYefu5fpc_2dGR8lMOKem0E';
+    // XHTTP + a real (generated) encryption value → Vision flow allowed.
+    expect(canEnableTlsFlow({
+      protocol: 'vless',
+      settings: { encryption: enc },
+      streamSettings: { network: 'xhttp', security: 'none' },
+    })).toBe(true);
+    // decryption alone (server-side value) is enough on XHTTP.
+    expect(canEnableTlsFlow({
+      protocol: 'vless',
+      settings: { decryption: dec, encryption: 'none' },
+      streamSettings: { network: 'xhttp', security: 'none' },
+    })).toBe(true);
+    // No encryption → stays gated off.
+    expect(canEnableTlsFlow({
+      protocol: 'vless',
+      settings: { encryption: 'none' },
+      streamSettings: { network: 'xhttp', security: 'none' },
+    })).toBe(false);
+    // vlessenc is XHTTP-only: TCP without tls/reality is not Vision-capable.
+    expect(canEnableTlsFlow({
+      protocol: 'vless',
+      settings: { decryption: dec, encryption: enc },
+      streamSettings: { network: 'tcp', security: 'none' },
+    })).toBe(false);
+  });
 });
 
 describe('getInboundClients with schema-shaped inbound', () => {
