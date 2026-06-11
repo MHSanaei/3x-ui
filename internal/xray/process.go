@@ -172,6 +172,12 @@ type process struct {
 	nodeOnlineTrees map[int]map[string][]string
 	onlineMu        sync.RWMutex
 
+	// onlineAPISupport caches whether the running core implements the
+	// online-stats RPCs (GetUsersStats). A new process is created on every
+	// restart/version switch, so the flag resets to Unknown and is re-probed
+	// lazily by the first caller.
+	onlineAPISupport atomic.Int32
+
 	config     *Config
 	configPath string // if set, use this path instead of GetConfigPath() and remove on Stop
 	logWriter  *LogWriter
@@ -179,6 +185,29 @@ type process struct {
 	startTime  time.Time
 
 	intentionalStop atomic.Bool
+}
+
+// OnlineAPISupport describes whether the running Xray core implements the
+// online-stats API (statsUserOnline + GetUsersStats).
+type OnlineAPISupport int32
+
+const (
+	// OnlineAPIUnknown means support has not been probed yet for this process.
+	OnlineAPIUnknown OnlineAPISupport = iota
+	// OnlineAPISupported means the core answered the online-stats RPC.
+	OnlineAPISupported
+	// OnlineAPIUnsupported means the core returned Unimplemented (older binary).
+	OnlineAPIUnsupported
+)
+
+// OnlineAPISupport returns the cached online-stats capability of this process.
+func (p *process) OnlineAPISupport() OnlineAPISupport {
+	return OnlineAPISupport(p.onlineAPISupport.Load())
+}
+
+// SetOnlineAPISupport records the probed online-stats capability of this process.
+func (p *process) SetOnlineAPISupport(v OnlineAPISupport) {
+	p.onlineAPISupport.Store(int32(v))
 }
 
 var (

@@ -21,7 +21,6 @@ const MULTI_CLIENT_PROTOCOLS = new Set([
 interface ClientBulkAddModalProps {
   open: boolean;
   inbounds: InboundOption[];
-  ipLimitEnable?: boolean;
   groups?: string[];
   onOpenChange: (open: boolean) => void;
   onSaved?: () => void;
@@ -52,7 +51,6 @@ function emptyForm(): FormState {
 export default function ClientBulkAddModal({
   open,
   inbounds,
-  ipLimitEnable = false,
   groups = [],
   onOpenChange,
   onSaved,
@@ -316,11 +314,9 @@ export default function ClientBulkAddModal({
             </Form.Item>
           )}
 
-          {ipLimitEnable && (
-            <Form.Item label={t('pages.clients.limitIp')}>
-              <InputNumber value={form.limitIp} min={0} onChange={(v) => update('limitIp', Number(v) || 0)} />
-            </Form.Item>
-          )}
+          <Form.Item label={t('pages.clients.limitIp')}>
+            <InputNumber value={form.limitIp} min={0} onChange={(v) => update('limitIp', Number(v) || 0)} />
+          </Form.Item>
 
           <Form.Item label={t('pages.clients.totalGB')}>
             <InputNumber value={form.totalGB} min={0} step={1} onChange={(v) => update('totalGB', Number(v) || 0)} />

@@ -627,6 +627,8 @@
       }
     },
     "clients": {
+      "tabBasic": "基本",
+      "tabConfig": "配置",
       "add": "新增客戶端",
       "edit": "編輯客戶端",
       "submitAdd": "新增客戶端",

@@ -48,13 +48,25 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error
 	return needRestart, count, err
 }
 
+// depletedClientsCond matches clients that exhausted their quota or expired.
+// Besides the local counters it also trips on the cross-panel usage a master
+// pushed into client_global_traffics — that's what lets a node cut a client
+// whose combined usage exceeds the quota even though the local share doesn't
+// (placeholders: now).
+const depletedClientsCond = `((total > 0 AND up + down >= total)
+	OR (expiry_time > 0 AND expiry_time <= ?)
+	OR (total > 0 AND EXISTS (
+		SELECT 1 FROM client_global_traffics g
+		WHERE g.email = client_traffics.email AND g.up + g.down >= client_traffics.total
+	)))`
+
 func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int, error) {
 	now := time.Now().Unix() * 1000
 	needRestart := false
 
 	var depletedRows []xray.ClientTraffic
 	err := tx.Model(xray.ClientTraffic{}).
-		Where("((total > 0 AND up + down >= total) OR (expiry_time > 0 AND expiry_time <= ?)) AND enable = ?", now, true).
+		Where(depletedClientsCond+" AND enable = ?", now, true).
 		Find(&depletedRows).Error
 	if err != nil {
 		return false, 0, nil, err
@@ -130,7 +142,7 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 	}
 
 	result := tx.Model(xray.ClientTraffic{}).
-		Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ?", now, true).
+		Where(depletedClientsCond+" AND enable = ?", now, true).
 		Update("enable", false)
 	err = result.Error
 	count := result.RowsAffected

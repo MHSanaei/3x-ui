@@ -125,6 +125,7 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 			}
 			stats = append(stats, batchStats...)
 		}
+		overlayGlobalTrafficValues(db, stats)
 		for i := range stats {
 			trafficByEmail[stats[i].Email] = &stats[i]
 		}

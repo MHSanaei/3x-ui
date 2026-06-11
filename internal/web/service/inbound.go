@@ -78,6 +78,13 @@ func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 	}
 	s.annotateFallbackParents(db, inbounds)
 	s.annotateLocalOriginGuid(inbounds)
+	// Top up stats rows owned by sibling inbounds (multi-attached clients)
+	// so the list's depleted/expiring badges see every client; the UUID/SubId
+	// enrichment stays skipped. Must run before slimming strips the settings.
+	s.backfillClientStats(db, inbounds)
+	// Slim feeds the panel UI only (masters poll the full list), so the badge
+	// math may see the cross-panel totals a master pushed.
+	s.overlayInboundsClientStats(db, inbounds)
 	for _, ib := range inbounds {
 		ib.Settings = slimSettingsClients(ib.Settings)
 	}
@@ -567,6 +574,7 @@ func (s *InboundService) GetInboundDetail(id int) (*model.Inbound, error) {
 		return nil, err
 	}
 	s.enrichClientStats(db, []*model.Inbound{inbound})
+	s.overlayInboundsClientStats(db, []*model.Inbound{inbound})
 	return inbound, nil
 }
 

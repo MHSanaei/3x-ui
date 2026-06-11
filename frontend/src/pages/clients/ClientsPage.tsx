@@ -196,7 +196,7 @@ export default function ClientsPage() {
     allGroups,
     setQuery,
     inbounds, onlines, loading, fetched, fetchError, subSettings,
-    ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
+    tgBotEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, bulkAttach, detach, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
@@ -1141,7 +1141,9 @@ export default function ClientsPage() {
                                       checked={selectedRowKeys.includes(row.email)}
                                       onChange={(e) => toggleSelect(row.email, e.target.checked)}
                                     />
-                                    <Badge status={bucketBadgeStatus(bucket)} />
+                                    {row.enable && bucket !== 'depleted' && isOnline(row.email)
+                                      ? <span className="online-dot" style={{ marginInlineEnd: 0 }} />
+                                      : <Badge status={bucketBadgeStatus(bucket)} />}
                                     <span className="tag-name">{row.email}</span>
                                     {bucket === 'depleted' && <Tag color="red" className="status-tag">{t('depleted')}</Tag>}
                                     {bucket === 'expiring' && <Tag color="orange" className="status-tag">{t('depletingSoon')}</Tag>}
@@ -1217,7 +1219,6 @@ export default function ClientsPage() {
             client={editingClient}
             attachedIds={editingAttachedIds}
             inbounds={inbounds}
-            ipLimitEnable={ipLimitEnable}
             tgBotEnable={tgBotEnable}
             groups={allGroups}
             save={onSave}
@@ -1246,7 +1247,6 @@ export default function ClientsPage() {
           <ClientBulkAddModal
             open={bulkAddOpen}
             inbounds={inbounds}
-            ipLimitEnable={ipLimitEnable}
             groups={allGroups}
             onOpenChange={setBulkAddOpen}
             onSaved={() => setBulkAddOpen(false)}
