@@ -95,7 +95,9 @@
     "active": "Aktif",
     "inactive": "Nonaktif",
     "unlimited": "Tanpa batas",
-    "noExpiry": "Tanpa kedaluwarsa"
+    "noExpiry": "Tanpa kedaluwarsa",
+    "copyAllConfigs": "Salin Semua Konfigurasi",
+    "copyAllConfigsCopied": "Semua konfigurasi tersalin"
   },
   "menu": {
     "theme": "Tema",

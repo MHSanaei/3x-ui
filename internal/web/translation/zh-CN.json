@@ -95,7 +95,9 @@
     "active": "启用",
     "inactive": "停用",
     "unlimited": "无限制",
-    "noExpiry": "无到期"
+    "noExpiry": "无到期",
+    "copyAllConfigs": "复制全部配置",
+    "copyAllConfigsCopied": "已复制全部配置"
   },
   "menu": {
     "theme": "主题",

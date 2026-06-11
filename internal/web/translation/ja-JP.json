@@ -95,7 +95,9 @@
     "active": "有効",
     "inactive": "無効",
     "unlimited": "無制限",
-    "noExpiry": "期限なし"
+    "noExpiry": "期限なし",
+    "copyAllConfigs": "すべての設定をコピー",
+    "copyAllConfigsCopied": "すべての設定をコピーしました"
   },
   "menu": {
     "theme": "テーマ",

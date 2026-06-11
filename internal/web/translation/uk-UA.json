@@ -95,7 +95,9 @@
     "active": "Активна",
     "inactive": "Неактивна",
     "unlimited": "Безліміт",
-    "noExpiry": "Без строку"
+    "noExpiry": "Без строку",
+    "copyAllConfigs": "Копіювати всі конфігурації",
+    "copyAllConfigsCopied": "Всі конфігурації скопійовано"
   },
   "menu": {
     "theme": "Тема",
