@@ -703,6 +703,8 @@
       "duration": "时长",
       "attachedInbounds": "关联入站",
       "selectInbound": "选择一个或多个入站",
+      "selectAllInbounds": "全选",
+      "clearAllInbounds": "全部清除",
       "noSubId": "该客户端没有 subId，无法生成共享链接。",
       "noLinks": "没有可共享的链接 — 请先将此客户端关联到支持协议的入站。",
       "link": "链接",

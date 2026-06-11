@@ -703,6 +703,8 @@
       "duration": "Durasi",
       "attachedInbounds": "Inbound terlampir",
       "selectInbound": "Pilih satu atau lebih inbound",
+      "selectAllInbounds": "Pilih semua",
+      "clearAllInbounds": "Hapus semua",
       "noSubId": "Klien ini tidak punya subId, tidak ada tautan yang bisa dibagikan.",
       "noLinks": "Tidak ada tautan yang bisa dibagikan — lampirkan klien ini ke inbound yang mendukung protokol terlebih dahulu.",
       "link": "Tautan",

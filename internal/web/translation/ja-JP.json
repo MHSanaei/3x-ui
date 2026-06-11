@@ -703,6 +703,8 @@
       "duration": "期間",
       "attachedInbounds": "関連付けされたインバウンド",
       "selectInbound": "1 つ以上のインバウンドを選択",
+      "selectAllInbounds": "すべて選択",
+      "clearAllInbounds": "すべてクリア",
       "noSubId": "このクライアントには subId がなく、共有可能なリンクはありません。",
       "noLinks": "共有可能なリンクがありません — まずこのクライアントを対応するプロトコルのインバウンドに関連付けてください。",
       "link": "リンク",

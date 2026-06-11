@@ -703,6 +703,8 @@
       "duration": "Duración",
       "attachedInbounds": "Inbounds asociados",
       "selectInbound": "Selecciona uno o más inbounds",
+      "selectAllInbounds": "Seleccionar todo",
+      "clearAllInbounds": "Limpiar todo",
       "noSubId": "Este cliente no tiene subId, no hay enlace compartible.",
       "noLinks": "No hay enlaces compartibles — asocia primero este cliente a un inbound con protocolo válido.",
       "link": "Enlace",
