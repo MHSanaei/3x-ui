@@ -591,7 +591,7 @@
         "getNewSeed": "获取新 Seed",
         "listenHelp": "也可以填写 Unix socket 路径（例如 /run/xray/in.sock），以使用套接字而非 TCP 端口监听——此时请将端口设为 0。",
         "shareAddrStrategy": "分享地址策略",
-        "shareAddrStrategyHelp": "控制导出分享链接和二维码时写入哪个地址，不影响订阅链接。",
+        "shareAddrStrategyHelp": "控制导出分享链接、二维码和订阅输出时写入哪个地址。",
         "shareAddr": "自定义分享地址",
         "shareAddrHelp": "仅在分享地址策略为自定义时使用。填写不带协议和端口的域名或 IP。",
         "shareAddrStrategyOptions": {

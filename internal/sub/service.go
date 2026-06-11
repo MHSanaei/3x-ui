@@ -788,23 +788,42 @@ func (s *SubService) loadNodes() {
 	s.nodesByID = m
 }
 
-// resolveInboundAddress picks the host an external client should connect to:
-//  1. node-managed inbound -> the node's address
-//  2. an explicit, client-reachable bind Listen -> that Listen
-//  3. otherwise the subscriber's request host (s.address)
+// resolveInboundAddress picks the host an external client should connect to,
+// honoring the inbound's share address strategy the same way the panel's
+// share/QR link builder does (#5208):
+//   - "listen": an explicit, client-reachable bind Listen wins, backed by the
+//     node's address for node-managed inbounds;
+//   - "custom": the inbound's ShareAddr wins, then node, then listen;
+//   - "node" (default, and any unknown value): the node's address for
+//     node-managed inbounds, then a routable Listen — the pre-strategy order.
 //
-// A loopback/wildcard bind or a unix-domain-socket listen is a server-side
-// detail and is never advertised; External Proxy remains the way to advertise
-// an arbitrary endpoint. This subscription path intentionally ignores
-// per-inbound share address settings because subscription URLs are panel-owned.
+// Every chain ends at the subscriber's request host (s.address). A
+// loopback/wildcard bind or a unix-domain-socket listen is a server-side
+// detail and is never advertised; External Proxy still overrides everything
+// upstream of this call.
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
+	var nodeAddr string
 	if inbound.NodeID != nil && s.nodesByID != nil {
-		if n, ok := s.nodesByID[*inbound.NodeID]; ok && n.Address != "" {
-			return n.Address
+		if n, ok := s.nodesByID[*inbound.NodeID]; ok {
+			nodeAddr = n.Address
 		}
 	}
+	var listenAddr string
 	if listen := inbound.Listen; listen != "" && listen[0] != '@' && listen[0] != '/' && isRoutableHost(listen) {
-		return listen
+		listenAddr = listen
+	}
+
+	candidates := []string{nodeAddr, listenAddr}
+	switch inbound.ShareAddrStrategy {
+	case "listen":
+		candidates = []string{listenAddr, nodeAddr}
+	case "custom":
+		candidates = []string{strings.TrimSpace(inbound.ShareAddr), nodeAddr, listenAddr}
+	}
+	for _, c := range candidates {
+		if c != "" {
+			return c
+		}
 	}
 	return s.address
 }

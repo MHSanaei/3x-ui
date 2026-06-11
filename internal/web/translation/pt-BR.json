@@ -591,7 +591,7 @@
         "getNewSeed": "Obter novo Seed",
         "listenHelp": "Você também pode informar um caminho de socket Unix (ex.: /run/xray/in.sock) para escutar em um socket em vez de uma porta TCP — nesse caso, defina a Porta como 0.",
         "shareAddrStrategy": "Estratégia de endereço de compartilhamento",
-        "shareAddrStrategyHelp": "Controla qual endereço é gravado nos links de compartilhamento exportados e nos códigos QR. Links de assinatura não são afetados.",
+        "shareAddrStrategyHelp": "Controla qual endereço é gravado nos links de compartilhamento exportados, códigos QR e na saída de assinatura.",
         "shareAddr": "Endereço de compartilhamento personalizado",
         "shareAddrHelp": "Usado apenas quando a estratégia de endereço de compartilhamento é Personalizada. Informe um host ou IP sem esquema nem porta.",
         "shareAddrStrategyOptions": {
