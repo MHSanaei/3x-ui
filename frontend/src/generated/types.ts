@@ -30,7 +30,7 @@ export interface AllSetting {
   ldapUserFilter: string;
   ldapVlessField: string;
   pageSize: number;
-  panelProxy: string;
+  panelOutbound: string;
   remarkModel: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
@@ -120,7 +120,7 @@ export interface AllSettingView {
   ldapUserFilter: string;
   ldapVlessField: string;
   pageSize: number;
-  panelProxy: string;
+  panelOutbound: string;
   remarkModel: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
@@ -261,18 +261,6 @@ export interface ClientTraffic {
   total: number;
   up: number;
   uuid: string;
-}
-
-export interface CustomGeoResource {
-  alias: string;
-  createdAt: number;
-  id: number;
-  lastModified: string;
-  lastUpdatedAt: number;
-  localPath: string;
-  type: string;
-  updatedAt: number;
-  url: string;
 }
 
 export interface FallbackParentInfo {

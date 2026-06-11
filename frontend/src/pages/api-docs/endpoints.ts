@@ -122,7 +122,7 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/inbounds/options',
-        summary: 'Lightweight picker projection of the authenticated user’s inbounds. Returns id, remark, tag, protocol, port, a server-computed tlsFlowCapable flag (true for VLESS / port-fallback on TCP with tls or reality), and ssMethod (the Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the client UI to generate a valid Shadowsocks 2022 PSK). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.',
+        summary: 'Lightweight picker projection of the authenticated user’s inbounds. Returns id, remark, tag, protocol, port, a server-computed tlsFlowCapable flag (true for VLESS on TCP with tls or reality, or on XHTTP with VLESS encryption / vlessenc enabled), and ssMethod (the Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the client UI to generate a valid Shadowsocks 2022 PSK). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.',
         responseSchema: 'InboundOption',
         responseSchemaArray: true,
       },
@@ -861,61 +861,6 @@ export const sections: readonly Section[] = [
   },
 
   {
-    id: 'custom-geo',
-    title: 'Custom Geo',
-    description:
-      'Manage user-supplied GeoIP / GeoSite source files. All endpoints under /panel/api/custom-geo.',
-    endpoints: [
-      {
-        method: 'GET',
-        path: '/panel/api/custom-geo/list',
-        summary: 'List configured custom geo sources with their type, alias, URL, status, and last-download timestamp.',
-      },
-      {
-        method: 'GET',
-        path: '/panel/api/custom-geo/aliases',
-        summary: 'List geo aliases currently usable in routing rules — both built-in defaults and the user-configured ones.',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/custom-geo/add',
-        summary: 'Register a custom geo source. Alias is auto-normalised; URL must point to a .dat / .json blob.',
-        body:
-          '{\n  "type": "geoip",\n  "alias": "myips",\n  "url": "https://example.com/geo/my.dat"\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/custom-geo/update/:id',
-        summary: 'Replace a custom geo source. Same body shape as /add.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Custom geo source ID.' },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/custom-geo/delete/:id',
-        summary: 'Remove a custom geo source and its cached file.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Custom geo source ID.' },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/custom-geo/download/:id',
-        summary: 'Re-download one custom geo source on demand.',
-        params: [
-          { name: 'id', in: 'path', type: 'number', desc: 'Custom geo source ID.' },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/custom-geo/update-all',
-        summary: 'Re-download every configured custom geo source. Errors are reported per-source in the response.',
-      },
-    ],
-  },
-
-  {
     id: 'backup',
     title: 'Backup',
     description: 'Operations that interact with the configured Telegram bot.',
@@ -1099,6 +1044,40 @@ export const sections: readonly Section[] = [
           { name: 'mode', in: 'body (form)', type: 'string', desc: '"tcp" for a fast dial-only probe (parallel-safe). Default/empty uses a full HTTP probe through a temp xray instance.' },
         ],
         body: 'outbound={"protocol":"freedom","settings":{}}&mode=tcp',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/balancerStatus',
+        summary: 'Live state of routing balancers in the running core (RoutingService.GetBalancerInfo): current override and the targets the strategy prefers. Returns a map keyed by balancer tag.',
+        params: [
+          { name: 'tags', in: 'body (form)', type: 'string', desc: 'Comma-separated balancer tags to query (e.g. "b1,b2").' },
+        ],
+        body: 'tags=b1,b2',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/balancerOverride',
+        summary: 'Force a balancer in the running core to always pick one outbound (RoutingService.OverrideBalancerTarget). Applied live without a restart; cleared automatically when Xray restarts.',
+        params: [
+          { name: 'tag', in: 'body (form)', type: 'string', desc: 'Balancer tag (required).' },
+          { name: 'target', in: 'body (form)', type: 'string', desc: 'Outbound tag to force. Empty clears the override and returns control to the strategy.' },
+        ],
+        body: 'tag=b1&target=proxy',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/routeTest',
+        summary: 'Ask the running core which outbound its router would pick for a synthetic connection (RoutingService.TestRoute). No traffic is sent.',
+        params: [
+          { name: 'domain', in: 'body (form)', type: 'string', desc: 'Target domain. Either domain or ip is required.' },
+          { name: 'ip', in: 'body (form)', type: 'string', desc: 'Target IP. Either domain or ip is required.' },
+          { name: 'port', in: 'body (form)', type: 'number', desc: 'Target port (optional).' },
+          { name: 'network', in: 'body (form)', type: 'string', desc: '"tcp" (default) or "udp".' },
+          { name: 'inboundTag', in: 'body (form)', type: 'string', desc: 'Simulate arrival on this inbound (optional).' },
+          { name: 'protocol', in: 'body (form)', type: 'string', desc: 'Sniffed protocol such as http, tls, bittorrent (optional).' },
+          { name: 'email', in: 'body (form)', type: 'string', desc: 'User attribution for user-based rules (optional).' },
+        ],
+        body: 'domain=example.com&port=443&network=tcp',
       },
       {
         method: 'GET',

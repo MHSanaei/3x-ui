@@ -65,7 +65,6 @@ func initModels() error {
 		&model.InboundClientIps{},
 		&xray.ClientTraffic{},
 		&model.HistoryOfSeeders{},
-		&model.CustomGeoResource{},
 		&model.Node{},
 		&model.ApiToken{},
 		&model.ClientRecord{},
