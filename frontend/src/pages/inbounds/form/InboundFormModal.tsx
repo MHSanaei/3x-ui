@@ -162,6 +162,15 @@ export default function InboundFormModal({
   const security = Form.useWatch(['streamSettings', 'security'], form) ?? 'none';
   const streamEnabled = canEnableStream({ protocol });
   const sniffingSupported = canEnableSniffing({ protocol });
+  // Wireguard (always a UDP listener) and Tunnel (dokodemo-door) expose no
+  // user-selectable transport — their stream tab is just sockopt, which is all
+  // Tunnel's TProxy/redirect mode needs (sockopt.tproxy). Hysteria carries its
+  // own dedicated transport form. For all of these the RAW/mKCP/WS/... network
+  // picker and the per-network sub-forms are hidden.
+  const hasSelectableTransport =
+    protocol !== Protocols.HYSTERIA
+    && protocol !== Protocols.WIREGUARD
+    && protocol !== Protocols.TUNNEL;
 
   const wPort = Form.useWatch('port', form);
   const wListen = (Form.useWatch('listen', form) ?? '') as string;
@@ -372,11 +381,13 @@ export default function InboundFormModal({
             }],
           },
         });
-      } else if (next === Protocols.WIREGUARD) {
-        // Wireguard has no user-selectable transport: the listener is always
-        // UDP and only finalmask/sockopt from streamSettings apply. Drop the
-        // leftover network/transport slices so the stream tab doesn't render
-        // a TCP sub-form and the wire payload carries no dead tcpSettings.
+      } else if (next === Protocols.WIREGUARD || next === Protocols.TUNNEL) {
+        // Wireguard and Tunnel (dokodemo-door) have no user-selectable
+        // transport: wireguard is always a UDP listener, and tunnel only needs
+        // `sockopt.tproxy` for its TProxy/redirect mode. Drop the leftover
+        // network/transport slices so the stream tab doesn't render a TCP
+        // sub-form and the wire payload carries no dead tcpSettings — the
+        // sockopt section (with TProxy) stays available.
         form.setFieldValue('streamSettings', { security: 'none' });
       } else {
         const current = form.getFieldValue('streamSettings') as { network?: string } | undefined;
@@ -651,7 +662,7 @@ export default function InboundFormModal({
 
   const streamTab = (
     <>
-      {protocol !== Protocols.HYSTERIA && protocol !== Protocols.WIREGUARD && (
+      {hasSelectableTransport && (
         <Form.Item label={t('transmission')} name={['streamSettings', 'network']}>
           <Select
             style={{ width: '75%' }}
@@ -677,31 +688,41 @@ export default function InboundFormModal({
           HTTP server when probed. */}
       {protocol === Protocols.HYSTERIA && <HysteriaFields form={form} />}
 
-      {network === 'tcp' && <RawForm />}
+      {hasSelectableTransport && (
+        <>
+          {network === 'tcp' && <RawForm />}
 
-      {network === 'ws' && <WsForm />}
+          {network === 'ws' && <WsForm />}
 
-      {network === 'grpc' && <GrpcForm />}
+          {network === 'grpc' && <GrpcForm />}
 
-      {network === 'xhttp' && <XhttpForm form={form} />}
+          {network === 'xhttp' && <XhttpForm form={form} />}
 
-      {network === 'httpupgrade' && <HttpUpgradeForm />}
+          {network === 'httpupgrade' && <HttpUpgradeForm />}
 
-      {network === 'kcp' && <KcpForm />}
+          {network === 'kcp' && <KcpForm />}
+        </>
+      )}
 
-      {/* externalProxy only feeds client share links, and wireguard's
-          per-peer .conf fanout resolves its host elsewhere — the section
-          would be dead weight on a wireguard inbound. */}
-      {protocol !== Protocols.WIREGUARD && <ExternalProxyForm toggleExternalProxy={toggleExternalProxy} />}
+      {/* externalProxy only feeds client share links. Wireguard's per-peer
+          .conf fanout resolves its host elsewhere, and tunnel (dokodemo-door)
+          has no clients at all — the section is dead weight on both. */}
+      {protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL && (
+        <ExternalProxyForm toggleExternalProxy={toggleExternalProxy} />
+      )}
 
       <SockoptForm toggleSockopt={toggleSockopt} />
 
-      <FinalMaskForm
-        name={['streamSettings', 'finalmask']}
-        network={network as string}
-        protocol={protocol}
-        form={form}
-      />
+      {/* Transport masks don't apply to tunnel (a transparent forwarder), so
+          its stream tab is just sockopt + TProxy. */}
+      {protocol !== Protocols.TUNNEL && (
+        <FinalMaskForm
+          name={['streamSettings', 'finalmask']}
+          network={network as string}
+          protocol={protocol}
+          form={form}
+        />
+      )}
     </>
   );
 
