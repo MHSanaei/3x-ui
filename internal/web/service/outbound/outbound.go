@@ -399,7 +399,7 @@ func (s *OutboundService) testOutboundHTTP(outboundJSON string, testURL string, 
 		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Xray process exited: %s", result)}, nil
 	}
 
-	return pollObservatoryResult(testProcess, metricsPort, outboundTag, 12*time.Second), nil
+	return pollObservatoryResult(testProcess, metricsPort, outboundTag, 15*time.Second), nil
 }
 
 // outboundsContainTag reports whether any outbound in the slice has the given tag.
@@ -414,11 +414,6 @@ func outboundsContainTag(outbounds []any, tag string) bool {
 	return false
 }
 
-// createTestConfig builds a probe-only xray config: the original outbounds
-// are kept as-is so dialerProxy chains still resolve, a burstObservatory
-// is wired to probe the target tag, and a metrics listener exposes the
-// observatory snapshot via /debug/vars. No inbound or routing rules are
-// needed — burstObservatory issues the probe traffic itself.
 func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []any, metricsPort int, probeURL string) *xray.Config {
 	processedOutbounds := make([]any, len(allOutbounds))
 	for i, ob := range allOutbounds {
@@ -449,7 +444,7 @@ func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []an
 			"destination":   probeURL,
 			"interval":      "1s",
 			"connectivity":  "",
-			"timeout":       "5s",
+			"timeout":       "10s",
 			"samplingCount": 1,
 		},
 	})
@@ -462,7 +457,7 @@ func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []an
 	logConfig := map[string]any{
 		"loglevel": "warning",
 		"access":   "none",
-		"error":    "none",
+		"error":    "",
 		"dnsLog":   false,
 	}
 	logJSON, _ := json.Marshal(logConfig)
@@ -491,11 +486,6 @@ type observatoryEntry struct {
 	OutboundTag  string `json:"outbound_tag"`
 }
 
-// pollObservatoryResult repeatedly reads /debug/vars and returns as soon
-// as the target outbound reports alive=true. burstObservatory updates the
-// snapshot after each ping (interval=1s, timeout=5s), so a healthy
-// outbound usually surfaces within ~2s and the timeout caps the wait for
-// truly dead ones.
 func pollObservatoryResult(testProcess *xray.Process, metricsPort int, tag string, timeout time.Duration) *TestOutboundResult {
 	url := fmt.Sprintf("http://127.0.0.1:%d/debug/vars", metricsPort)
 	client := &http.Client{Timeout: 2 * time.Second}
@@ -522,9 +512,9 @@ func pollObservatoryResult(testProcess *xray.Process, metricsPort int, tag strin
 		time.Sleep(400 * time.Millisecond)
 	}
 
-	msg := "Probe timed out — outbound did not become reachable"
+	msg := "Probe timed out — outbound did not become reachable (see Xray log for details)"
 	if sawEntry && lastEntry.LastTryTime > 0 {
-		msg = fmt.Sprintf("All probes failed (last attempt %ds ago)", time.Now().Unix()-lastEntry.LastTryTime)
+		msg = fmt.Sprintf("All probes failed (last attempt %ds ago; see Xray log for details)", time.Now().Unix()-lastEntry.LastTryTime)
 	}
 	return &TestOutboundResult{Mode: "http", Success: false, Error: msg}
 }
