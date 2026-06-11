@@ -53,8 +53,12 @@ func TestXrayAPI_E2E(t *testing.T) {
 				map[string]any{"type": "field", "inboundTag": []string{"api"}, "outboundTag": "api"},
 			},
 		},
-		"policy": map[string]any{},
-		"stats":  map[string]any{},
+		"policy": map[string]any{
+			"levels": map[string]any{
+				"0": map[string]any{"statsUserOnline": true},
+			},
+		},
+		"stats": map[string]any{},
 	}
 	cfgBytes, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
@@ -128,6 +132,19 @@ func TestXrayAPI_E2E(t *testing.T) {
 	}
 	if !IsMissingHandlerErr(err) {
 		t.Fatalf("missing inbound error not matched by IsMissingHandlerErr: %q", err)
+	}
+
+	// --- online-stats API ---
+	// statsUserOnline is enabled in the policy above; with no client
+	// connections the call must succeed and return an empty set. This proves
+	// the GetUsersStats plumbing against a real core (an older binary would
+	// return Unimplemented here — see IsUnimplementedErr).
+	online, err := api.GetOnlineUsers()
+	if err != nil {
+		t.Fatalf("GetOnlineUsers: %v", err)
+	}
+	if len(online) != 0 {
+		t.Fatalf("expected no online users on an idle core, got %+v", online)
 	}
 
 	// --- routing (rules + balancers replace) ---

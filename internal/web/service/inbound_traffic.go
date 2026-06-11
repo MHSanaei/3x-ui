@@ -837,6 +837,28 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 	return traffics, nil
 }
 
+// BumpClientsLastOnline sets client_traffics.last_online to now for the given
+// emails. Used in online-API mode for clients that hold a live connection but
+// moved no bytes this poll — the traffic path (addClientTraffic) only bumps
+// last_online on a non-zero delta, so idle-but-connected clients would
+// otherwise show a stale "last online" while being reported online.
+func (s *InboundService) BumpClientsLastOnline(emails []string) error {
+	uniq := uniqueNonEmptyStrings(emails)
+	if len(uniq) == 0 {
+		return nil
+	}
+	now := time.Now().UnixMilli()
+	return submitTrafficWrite(func() error {
+		db := database.GetDB()
+		for _, batch := range chunkStrings(uniq, sqliteMaxVars) {
+			if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Update("last_online", now).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func (s *InboundService) GetActiveClientTraffics(emails []string) ([]*xray.ClientTraffic, error) {
 	uniq := uniqueNonEmptyStrings(emails)
 	if len(uniq) == 0 {

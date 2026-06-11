@@ -66,21 +66,37 @@ func (j *XrayTrafficJob) Run() {
 		j.xrayService.SetToNeedRestart()
 	}
 
-	lastOnlineMap, err := j.inboundService.GetClientsLastOnline()
-	if err != nil {
-		logger.Warning("get clients last online failed:", err)
-	}
-	if lastOnlineMap == nil {
-		lastOnlineMap = make(map[string]int64)
-	}
 	// Derive the local online set from this poll's per-email deltas rather
 	// than the shared last_online column, which remote-node syncs also bump
 	// and would otherwise make a client active only on a remote node appear
 	// online on local inbounds.
 	activeEmails := make([]string, 0, len(clientTraffics))
+	deltaActive := make(map[string]bool, len(clientTraffics))
 	for _, ct := range clientTraffics {
 		if ct != nil && ct.Up+ct.Down > 0 {
 			activeEmails = append(activeEmails, ct.Email)
+			deltaActive[ct.Email] = true
+		}
+	}
+	// When the core supports the online-stats API, union in connection-based
+	// onlines. Neither signal alone covers everything: an idle-but-connected
+	// client moves no bytes between polls (the delta heuristic's blind spot),
+	// while a short-lived connection can close before this poll yet still show
+	// in the delta. Older cores fall back to deltas alone.
+	if onlineUsers, apiMode, ouErr := j.xrayService.GetOnlineUsers(); ouErr != nil {
+		logger.Debug("get online users from xray api failed:", ouErr)
+	} else if apiMode {
+		idleOnline := make([]string, 0, len(onlineUsers))
+		for _, u := range onlineUsers {
+			if !deltaActive[u.Email] {
+				activeEmails = append(activeEmails, u.Email)
+				idleOnline = append(idleOnline, u.Email)
+			}
+		}
+		// The traffic path only bumps last_online on a non-zero delta; keep the
+		// column fresh for clients kept online purely by a live connection.
+		if err := j.inboundService.BumpClientsLastOnline(idleOnline); err != nil {
+			logger.Warning("bump last online for connected clients failed:", err)
 		}
 	}
 	// Pair the email signal with the inbound tags that moved bytes this poll.
@@ -100,6 +116,13 @@ func (j *XrayTrafficJob) Run() {
 		return
 	}
 
+	lastOnlineMap, err := j.inboundService.GetClientsLastOnline()
+	if err != nil {
+		logger.Warning("get clients last online failed:", err)
+	}
+	if lastOnlineMap == nil {
+		lastOnlineMap = make(map[string]int64)
+	}
 	onlineClients := j.inboundService.GetOnlineClients()
 	if onlineClients == nil {
 		onlineClients = []string{}
