@@ -89,6 +89,13 @@
   min-height: calc(100vh - 120px);
 }
 
+/* Tall action menus (e.g. the inbound/client context menus) must stay inside
+   the viewport even when antd flips them upward near the screen edge. */
+.ant-dropdown .ant-dropdown-menu {
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
 .ant-dropdown-menu-item:not(.ant-dropdown-menu-item-disabled):not(.ant-dropdown-menu-item-danger):hover,
 .ant-dropdown-menu-item:not(.ant-dropdown-menu-item-disabled):not(.ant-dropdown-menu-item-danger):hover .ant-dropdown-menu-title-content,
 .ant-dropdown-menu-item:not(.ant-dropdown-menu-item-disabled):not(.ant-dropdown-menu-item-danger):hover > .anticon {
