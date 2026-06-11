@@ -41,7 +41,10 @@ export const XHttpStreamSettingsSchema = z.object({
   seqKey: z.string().default(''),
   uplinkDataPlacement: z.string().default(''),
   uplinkDataKey: z.string().default(''),
-  scMaxEachPostBytes: z.string().default('1000000'),
+  // Empty default on purpose: xray-core already defaults to 1MB/30ms, and
+  // baking the literal values into every config and share link gives DPI a
+  // stable fingerprint (#5141 — TSPU keys on scMinPostsIntervalMs=30).
+  scMaxEachPostBytes: z.string().default(''),
   noSSEHeader: z.boolean().default(false),
   scMaxBufferedPosts: z.number().int().min(0).default(30),
   scStreamUpServerSecs: z.string().default('20-80'),
@@ -51,7 +54,7 @@ export const XHttpStreamSettingsSchema = z.object({
   // Outbound-only fields. Server (inbound) listener ignores these. The
   // panel embeds them in share-link `extra` blobs so the same xhttp
   // config can roundtrip on both sides.
-  scMinPostsIntervalMs: z.string().default('30'),
+  scMinPostsIntervalMs: z.string().default(''),
   uplinkChunkSize: z.number().int().min(0).default(0),
   noGRPCHeader: z.boolean().default(false),
   xmux: XHttpXmuxSchema.optional(),

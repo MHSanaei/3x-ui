@@ -8,3 +8,4 @@ DockerEntrypoint.sh text eol=lf
 # with core.autocrlf=true doesn't show phantom CRLF-only "modified" diffs.
 frontend/src/generated/** text eol=lf
 frontend/public/openapi.json text eol=lf
+frontend\src\test\__snapshots__\** text eol=lf
