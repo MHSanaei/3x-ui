@@ -386,6 +386,11 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	if err != nil {
 		return false, 0, err
 	}
+	// A renewed client starts a fresh quota window: drop the cross-panel rows
+	// too, or the stale pushed totals would re-deplete it immediately.
+	if err = clearGlobalTraffic(tx, renewEmails...); err != nil {
+		return false, 0, err
+	}
 	if p != nil {
 		err1 = s.xrayApi.Init(p.GetAPIPort())
 		if err1 != nil {
@@ -436,6 +441,9 @@ func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
 	if err := tx.Where("email = ?", email).Delete(xray.ClientTraffic{}).Error; err != nil {
 		return err
 	}
+	if err := clearGlobalTraffic(tx, email); err != nil {
+		return err
+	}
 	return tx.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error
 }
 
@@ -445,6 +453,9 @@ func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) er
 		end := min(start+chunk, len(emails))
 		batch := emails[start:end]
 		if err := tx.Where("email IN ?", batch).Delete(xray.ClientTraffic{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("email IN ?", batch).Delete(&model.ClientGlobalTraffic{}).Error; err != nil {
 			return err
 		}
 		if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
@@ -457,6 +468,9 @@ func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) er
 func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 	return submitTrafficWrite(func() error {
 		db := database.GetDB()
+		if err := clearGlobalTraffic(db, clientEmail); err != nil {
+			return err
+		}
 		return db.Model(xray.ClientTraffic{}).
 			Where("email = ?", clientEmail).
 			Updates(map[string]any{"enable": true, "up": 0, "down": 0}).Error
@@ -548,6 +562,9 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 	db := database.GetDB()
 	err = db.Save(traffic).Error
 	if err != nil {
+		return false, err
+	}
+	if err := clearGlobalTraffic(db, clientEmail); err != nil {
 		return false, err
 	}
 
@@ -848,6 +865,7 @@ func (s *InboundService) GetAllClientTraffics() ([]*xray.ClientTraffic, error) {
 	if err := db.Model(xray.ClientTraffic{}).Find(&traffics).Error; err != nil {
 		return nil, err
 	}
+	overlayGlobalTraffic(db, traffics)
 	return traffics, nil
 }
 
@@ -880,6 +898,7 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.Cl
 	if len(traffics) == 0 {
 		return nil, nil
 	}
+	overlayGlobalTraffic(db, traffics)
 	t := traffics[0]
 
 	if rec, rErr := s.clientService.GetRecordByEmail(db, email); rErr == nil && rec != nil {

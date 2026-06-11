@@ -2709,6 +2709,59 @@
         }
       }
     },
+    "/panel/api/inbounds/pushClientTraffics": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Receive a master panel's aggregated per-client usage, keyed by the master's GUID. Stored in a side table used only for the UI display overlay and local quota enforcement — never folded into the local counters that masters poll, so delta accounting stays intact. Called panel-to-panel by the node traffic sync job.",
+        "operationId": "post_panel_api_inbounds_pushClientTraffics",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "masterGuid": "9f6c2d-…",
+                "traffics": [
+                  {
+                    "email": "alice",
+                    "up": 1048576,
+                    "down": 2097152
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/inbounds/{id}/fallbacks": {
       "get": {
         "tags": [

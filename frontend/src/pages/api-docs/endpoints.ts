@@ -206,6 +206,17 @@ export const sections: readonly Section[] = [
         ],
       },
       {
+        method: 'POST',
+        path: '/panel/api/inbounds/pushClientTraffics',
+        summary: 'Receive a master panel\'s aggregated per-client usage, keyed by the master\'s GUID. Stored in a side table used only for the UI display overlay and local quota enforcement — never folded into the local counters that masters poll, so delta accounting stays intact. Called panel-to-panel by the node traffic sync job.',
+        params: [
+          { name: 'masterGuid', in: 'body (json)', type: 'string', desc: 'Stable GUID of the pushing master panel.' },
+          { name: 'traffics', in: 'body (json)', type: 'object[]', desc: 'Client traffic rows; only email/up/down are read.' },
+        ],
+        body: '{\n  "masterGuid": "9f6c2d-…",\n  "traffics": [\n    { "email": "alice", "up": 1048576, "down": 2097152 }\n  ]\n}',
+        response: '{\n  "success": true\n}',
+      },
+      {
         method: 'GET',
         path: '/panel/api/inbounds/:id/fallbacks',
         summary: 'List the fallback rules attached to a master VLESS/Trojan TCP-TLS inbound. Each rule links one child inbound (the dest) to optional SNI/ALPN/path/dest/xver match criteria. When dest is empty the child inbound\'s listen+port is used.',
