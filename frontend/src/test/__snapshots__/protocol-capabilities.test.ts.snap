@@ -1179,7 +1179,7 @@ exports[`protocol capability predicates > trojan-basic :: xhttp/tls 1`] = `
 exports[`protocol capability predicates > tunnel-basic :: grpc/none 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1191,7 +1191,7 @@ exports[`protocol capability predicates > tunnel-basic :: grpc/none 1`] = `
 exports[`protocol capability predicates > tunnel-basic :: grpc/reality 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1203,7 +1203,7 @@ exports[`protocol capability predicates > tunnel-basic :: grpc/reality 1`] = `
 exports[`protocol capability predicates > tunnel-basic :: grpc/tls 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1215,7 +1215,7 @@ exports[`protocol capability predicates > tunnel-basic :: grpc/tls 1`] = `
 exports[`protocol capability predicates > tunnel-basic :: httpupgrade/none 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1227,7 +1227,7 @@ exports[`protocol capability predicates > tunnel-basic :: httpupgrade/none 1`] =
 exports[`protocol capability predicates > tunnel-basic :: httpupgrade/tls 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1239,7 +1239,7 @@ exports[`protocol capability predicates > tunnel-basic :: httpupgrade/tls 1`] = 
 exports[`protocol capability predicates > tunnel-basic :: kcp/none 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1251,7 +1251,7 @@ exports[`protocol capability predicates > tunnel-basic :: kcp/none 1`] = `
 exports[`protocol capability predicates > tunnel-basic :: tcp/none 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1263,7 +1263,7 @@ exports[`protocol capability predicates > tunnel-basic :: tcp/none 1`] = `
 exports[`protocol capability predicates > tunnel-basic :: tcp/reality 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1275,7 +1275,7 @@ exports[`protocol capability predicates > tunnel-basic :: tcp/reality 1`] = `
 exports[`protocol capability predicates > tunnel-basic :: tcp/tls 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1287,7 +1287,7 @@ exports[`protocol capability predicates > tunnel-basic :: tcp/tls 1`] = `
 exports[`protocol capability predicates > tunnel-basic :: ws/none 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1299,7 +1299,7 @@ exports[`protocol capability predicates > tunnel-basic :: ws/none 1`] = `
 exports[`protocol capability predicates > tunnel-basic :: ws/tls 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1311,7 +1311,7 @@ exports[`protocol capability predicates > tunnel-basic :: ws/tls 1`] = `
 exports[`protocol capability predicates > tunnel-basic :: xhttp/none 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1323,7 +1323,7 @@ exports[`protocol capability predicates > tunnel-basic :: xhttp/none 1`] = `
 exports[`protocol capability predicates > tunnel-basic :: xhttp/reality 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
@@ -1335,7 +1335,7 @@ exports[`protocol capability predicates > tunnel-basic :: xhttp/reality 1`] = `
 exports[`protocol capability predicates > tunnel-basic :: xhttp/tls 1`] = `
 {
   "canEnableReality": false,
-  "canEnableStream": false,
+  "canEnableStream": true,
   "canEnableTls": false,
   "canEnableTlsFlow": false,
   "canEnableVisionSeed": false,
