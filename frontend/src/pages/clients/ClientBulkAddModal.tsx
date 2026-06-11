@@ -6,8 +6,9 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
 import { RandomUtil, SizeFormatter } from '@/utils';
+import { formatInboundLabel } from '@/lib/inbounds/label';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
-import { DateTimePicker } from '@/components/form';
+import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { useClients, type InboundOption } from '@/hooks/useClients';
 import { ClientBulkAddFormSchema, type ClientBulkAddFormValues } from '@/schemas/client';
 
@@ -109,7 +110,7 @@ export default function ClientBulkAddModal({
     () => (inbounds || [])
       .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
       .map((ib) => ({
-        label: ib.remark?.trim() || ib.tag || '',
+        label: formatInboundLabel(ib.tag, ib.remark),
         value: ib.id,
       })),
     [inbounds],
@@ -212,6 +213,11 @@ export default function ClientBulkAddModal({
       >
         <Form colon={false} labelCol={{ sm: { span: 8 } }} wrapperCol={{ sm: { span: 14 } }}>
           <Form.Item label={t('pages.clients.attachedInbounds')} required>
+            <SelectAllClearButtons
+              options={inboundOptions}
+              value={form.inboundIds}
+              onChange={(v) => update('inboundIds', v)}
+            />
             <Select
               mode="multiple"
               value={form.inboundIds}

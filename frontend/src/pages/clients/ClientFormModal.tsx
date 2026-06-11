@@ -18,9 +18,9 @@ import {
 import { EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-
 import { HttpUtil, RandomUtil } from '@/utils';
-import { DateTimePicker } from '@/components/form';
+import { formatInboundLabel } from '@/lib/inbounds/label';
+import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { ClientFormSchema, ClientCreateFormSchema } from '@/schemas/client';
@@ -288,9 +288,9 @@ export default function ClientFormModal({
     () => (inbounds || [])
       .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
       .map((ib) => ({
-        label: ib.remark?.trim() || ib.tag || '',
+        label: formatInboundLabel(ib.tag, ib.remark),
         value: ib.id,
-        title: ib.remark?.trim() || ib.tag || '',
+        title: formatInboundLabel(ib.tag, ib.remark),
       })),
     [inbounds],
   );
@@ -600,6 +600,11 @@ export default function ClientFormModal({
           </Row>
 
           <Form.Item label={t('pages.clients.attachedInbounds')} required={!isEdit}>
+            <SelectAllClearButtons
+              options={inboundOptions}
+              value={form.inboundIds}
+              onChange={(v) => update('inboundIds', v)}
+            />
             <Select
               mode="multiple"
               value={form.inboundIds}

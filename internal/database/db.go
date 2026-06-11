@@ -65,7 +65,6 @@ func initModels() error {
 		&model.InboundClientIps{},
 		&xray.ClientTraffic{},
 		&model.HistoryOfSeeders{},
-		&model.CustomGeoResource{},
 		&model.Node{},
 		&model.ApiToken{},
 		&model.ClientRecord{},
@@ -73,6 +72,7 @@ func initModels() error {
 		&model.ClientGroup{},
 		&model.InboundFallback{},
 		&model.NodeClientTraffic{},
+		&model.ClientGlobalTraffic{},
 		&model.OutboundSubscription{},
 	}
 	for _, mdl := range models {

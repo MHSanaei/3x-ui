@@ -11,6 +11,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/gin-gonic/gin"
 )
@@ -77,6 +78,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/import", a.importInbound)
 	g.POST("/:id/fallbacks", a.setFallbacks)
+	g.POST("/pushClientTraffics", a.pushClientTraffics)
 }
 
 // getInbounds retrieves the list of inbounds for the logged-in user.
@@ -337,6 +339,24 @@ func (a *InboundController) resetAllTraffics(c *gin.Context) {
 		a.xrayService.SetToNeedRestart()
 	}
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.resetAllTrafficSuccess"), nil)
+}
+
+// pushClientTraffics receives a master panel's aggregated per-client usage
+// (see InboundService.AcceptGlobalTraffic for the storage semantics).
+func (a *InboundController) pushClientTraffics(c *gin.Context) {
+	var req struct {
+		MasterGuid string                `json:"masterGuid"`
+		Traffics   []*xray.ClientTraffic `json:"traffics"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if err := a.inboundService.AcceptGlobalTraffic(req.MasterGuid, req.Traffics); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, "success", nil)
 }
 
 // importInbound imports an inbound configuration from provided data.

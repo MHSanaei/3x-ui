@@ -26,7 +26,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapUserFilter": "",
     "ldapVlessField": "",
     "pageSize": 0,
-    "panelProxy": "",
+    "panelOutbound": "",
     "remarkModel": "",
     "restartXrayOnClientDisable": false,
     "sessionMaxAge": 1,
@@ -115,7 +115,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapUserFilter": "",
     "ldapVlessField": "",
     "pageSize": 0,
-    "panelProxy": "",
+    "panelOutbound": "",
     "remarkModel": "",
     "restartXrayOnClientDisable": false,
     "sessionMaxAge": 1,
@@ -249,17 +249,6 @@ export const EXAMPLES: Record<string, unknown> = {
     "total": 10737418240,
     "up": 1048576,
     "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
-  },
-  "CustomGeoResource": {
-    "alias": "",
-    "createdAt": 0,
-    "id": 0,
-    "lastModified": "",
-    "lastUpdatedAt": 0,
-    "localPath": "",
-    "type": "",
-    "updatedAt": 0,
-    "url": ""
   },
   "FallbackParentInfo": {
     "masterId": 0,

@@ -18,6 +18,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
 import type { InboundOption } from '@/hooks/useClients';
+import { formatInboundLabel } from '@/lib/inbounds/label';
 import { emptyFilters, type ClientFilters } from './filters';
 
 interface FilterDrawerProps {
@@ -50,7 +51,7 @@ export default function FilterDrawer({
   const inboundOptions = useMemo(
     () => inbounds.map((ib) => ({
       value: ib.id,
-      label: ib.remark?.trim() || ib.tag || '',
+      label: formatInboundLabel(ib.tag, ib.remark),
     })),
     [inbounds],
   );
@@ -94,7 +95,7 @@ export default function FilterDrawer({
             value={filters.buckets}
             onChange={(v) => patch('buckets', v as string[])}
           >
-            <Space direction="vertical">
+            <Space orientation="vertical">
               {BUCKET_KEYS.map((k) => (
                 <Checkbox key={k} value={k}>
                   {bucketLabel(k, t)}

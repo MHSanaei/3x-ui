@@ -130,6 +130,7 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_DB_FOLDER` | SQLite 数据库文件所在目录 | `/etc/x-ui` |
 | `XUI_DB_MAX_OPEN_CONNS` | 最大打开连接数（PostgreSQL 连接池） | — |
 | `XUI_DB_MAX_IDLE_CONNS` | 最大空闲连接数（PostgreSQL 连接池） | — |
+| `XUI_INIT_WEB_BASE_PATH` | Web 面板的初始 URI 路径 | `/` |
 | `XUI_ENABLE_FAIL2BAN` | 启用基于 Fail2ban 的 IP 限制 | `true` |
 | `XUI_LOG_LEVEL` | 日志级别（`debug`、`info`、`warning`、`error`） | `info` |
 | `XUI_DEBUG` | 启用调试模式 | `false` |

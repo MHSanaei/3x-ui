@@ -18,6 +18,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 const remoteHTTPTimeout = 10 * time.Second
@@ -469,6 +470,20 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 	}
 
 	return snap, nil
+}
+
+// PushGlobalClientTraffics sends this panel's aggregated per-client usage to
+// the node, tagged with this panel's GUID so the node keeps one row per
+// pushing master. Display/enforcement input on the node only — the node never
+// folds these into the counters it reports back, so this panel's (and any
+// other master's) delta accounting over the node snapshot stays intact.
+func (r *Remote) PushGlobalClientTraffics(ctx context.Context, masterGuid string, traffics []*xray.ClientTraffic) error {
+	payload := map[string]any{
+		"masterGuid": masterGuid,
+		"traffics":   traffics,
+	}
+	_, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/pushClientTraffics", payload)
+	return err
 }
 
 func wireInbound(ib *model.Inbound) url.Values {

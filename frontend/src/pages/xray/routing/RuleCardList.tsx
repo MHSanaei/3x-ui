@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Dropdown, Tag, Tooltip } from 'antd';
 import {
@@ -11,7 +12,8 @@ import {
   HolderOutlined,
 } from '@ant-design/icons';
 
-import { chipPreview, ruleCriteriaChips } from './helpers';
+import { useInboundOptions } from '@/api/queries/useInboundOptions';
+import { buildRemarkByTag, chipPreview, inboundTagChipPreview, inboundTagsDisplayTitle, ruleCriteriaChips } from './helpers';
 import type { RuleRow } from './types';
 
 interface RuleCardListProps {
@@ -36,6 +38,8 @@ export default function RuleCardList({
   confirmDelete,
 }: RuleCardListProps) {
   const { t } = useTranslation();
+  const { data: inboundOptions } = useInboundOptions();
+  const remarkByTag = useMemo(() => buildRemarkByTag(inboundOptions || []), [inboundOptions]);
   return (
     <div className="rule-list">
       {rows.length === 0 ? (
@@ -74,7 +78,11 @@ export default function RuleCardList({
               <div className="flow-side">
                 <span className="flow-label">{t('pages.xray.Inbounds')}</span>
                 {rule.inboundTag ? (
-                  <Tag color="blue" className="flow-tag">{chipPreview(rule.inboundTag)}</Tag>
+                  <Tooltip title={inboundTagsDisplayTitle(rule.inboundTag, remarkByTag)}>
+                    <Tag color="blue" className="flow-tag">
+                      {inboundTagChipPreview(rule.inboundTag, remarkByTag)}
+                    </Tag>
+                  </Tooltip>
                 ) : (
                   <span className="criterion-empty">any</span>
                 )}

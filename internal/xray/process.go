@@ -249,6 +249,13 @@ func (p *Process) GetConfig() *Config {
 	return p.config
 }
 
+// SetConfig replaces the stored configuration snapshot after the running
+// process has been reconciled with it through the gRPC API (hot apply), so
+// later change detection compares against what is actually running.
+func (p *Process) SetConfig(config *Config) {
+	p.config = config
+}
+
 // GetOnlineClients returns the union of locally-online clients and
 // node-online clients from every registered remote panel. Dedupes by
 // email so a client connected to both a local and a node-managed inbound

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 	_ "unsafe"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -403,6 +404,11 @@ func GetApiToken(getApiToken bool) {
 	if !getApiToken {
 		return
 	}
+	err := database.InitDB(config.GetDBPath())
+	if err != nil {
+		fmt.Println("open database failed, error info:", err)
+		return
+	}
 	apiTokenService := panel.ApiTokenService{}
 	tokens, err := apiTokenService.List()
 	if err != nil {
@@ -410,7 +416,18 @@ func GetApiToken(getApiToken bool) {
 		return
 	}
 	if len(tokens) > 0 {
-		fmt.Println("apiToken:", tokens[0].Token)
+		fmt.Printf("There are %d API token(s) configured. Existing tokens cannot be retrieved in plaintext because only hashes are stored.\n", len(tokens))
+		fmt.Println("If you have lost your token, you can manage and generate new tokens through the Panel UI (Settings -> API Tokens).")
+		
+		// Create a new fallback token so the CLI is still useful without the UI
+		fallbackName := fmt.Sprintf("cli-fallback-%d", time.Now().Unix())
+		created, err := apiTokenService.Create(fallbackName)
+		if err != nil {
+			fmt.Println("Failed to create a fallback API token:", err)
+			return
+		}
+		fmt.Println("\nA new fallback token has been generated for your convenience:")
+		fmt.Println("apiToken:", created.Token)
 		return
 	}
 	created, err := apiTokenService.Create("install")
