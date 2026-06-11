@@ -317,9 +317,17 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 	}
 	rules, _ := routing["rules"].([]any)
 	rule := map[string]any{
-		"type":        "field",
-		"inboundTag":  []any{PanelEgressInboundTag},
-		"outboundTag": outboundTag,
+		"type":       "field",
+		"inboundTag": []any{PanelEgressInboundTag},
+	}
+	// The configured tag may name a routing balancer instead of a concrete
+	// outbound. A field rule can target either, so emit the matching key —
+	// balancerTag load-balances the panel's own traffic across the balancer's
+	// outbounds, while a plain outbound tag keeps the original behavior.
+	if routingTagIsBalancer(routing, outboundTag) {
+		rule["balancerTag"] = outboundTag
+	} else {
+		rule["outboundTag"] = outboundTag
 	}
 	routing["rules"] = append([]any{rule}, rules...)
 	newRouting, err := json.Marshal(routing)
@@ -348,6 +356,29 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 		Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
 		Tag:      PanelEgressInboundTag,
 	})
+}
+
+// routingTagIsBalancer reports whether tag names a balancer in the parsed
+// routing section. The panel-egress rule targets a balancer via balancerTag and
+// a concrete outbound via outboundTag, so the caller picks the key from this.
+func routingTagIsBalancer(routing map[string]any, tag string) bool {
+	if tag == "" {
+		return false
+	}
+	balancers, ok := routing["balancers"].([]any)
+	if !ok {
+		return false
+	}
+	for _, b := range balancers {
+		bm, ok := b.(map[string]any)
+		if !ok {
+			continue
+		}
+		if t, ok := bm["tag"].(string); ok && t == tag {
+			return true
+		}
+	}
+	return false
 }
 
 // mergeSubscriptionOutbounds appends the subscription outbounds to the
