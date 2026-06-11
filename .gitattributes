@@ -3,3 +3,8 @@
 *.sh text eol=lf
 DockerInit.sh text eol=lf
 DockerEntrypoint.sh text eol=lf
+
+# Generated files (regenerated from Go) must stay LF so a Windows regen
+# with core.autocrlf=true doesn't show phantom CRLF-only "modified" diffs.
+frontend/src/generated/** text eol=lf
+frontend/public/openapi.json text eol=lf
