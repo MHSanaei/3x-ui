@@ -589,7 +589,16 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "Obtener nuevo Seed",
-        "listenHelp": "También puedes introducir una ruta de socket Unix (p. ej. /run/xray/in.sock) para escuchar en un socket en lugar de un puerto TCP; en ese caso, establece el Puerto en 0."
+        "listenHelp": "También puedes introducir una ruta de socket Unix (p. ej. /run/xray/in.sock) para escuchar en un socket en lugar de un puerto TCP; en ese caso, establece el Puerto en 0.",
+        "shareAddrStrategy": "Estrategia de dirección para compartir",
+        "shareAddrStrategyHelp": "Controla qué dirección se escribe en los enlaces compartidos exportados y códigos QR. Los enlaces de suscripción no se ven afectados.",
+        "shareAddr": "Dirección compartida personalizada",
+        "shareAddrHelp": "Solo se usa cuando la estrategia de dirección para compartir es Personalizada. Introduce un host o IP sin esquema ni puerto.",
+        "shareAddrStrategyOptions": {
+          "node": "Dirección del nodo",
+          "listen": "Dirección de escucha del inbound",
+          "custom": "Personalizada"
+        }
       },
       "info": {
         "mode": "Modo",

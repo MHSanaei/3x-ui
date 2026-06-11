@@ -589,7 +589,16 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "Lấy Seed mới",
-        "listenHelp": "Bạn cũng có thể nhập đường dẫn Unix socket (ví dụ /run/xray/in.sock) để lắng nghe trên socket thay vì cổng TCP — khi đó hãy đặt Port là 0."
+        "listenHelp": "Bạn cũng có thể nhập đường dẫn Unix socket (ví dụ /run/xray/in.sock) để lắng nghe trên socket thay vì cổng TCP — khi đó hãy đặt Port là 0.",
+        "shareAddrStrategy": "Chiến lược địa chỉ chia sẻ",
+        "shareAddrStrategyHelp": "Kiểm soát địa chỉ được ghi vào liên kết chia sẻ đã xuất và mã QR. Liên kết đăng ký không bị ảnh hưởng.",
+        "shareAddr": "Địa chỉ chia sẻ tùy chỉnh",
+        "shareAddrHelp": "Chỉ dùng khi chiến lược địa chỉ chia sẻ là Tùy chỉnh. Nhập host hoặc IP không kèm giao thức hoặc cổng.",
+        "shareAddrStrategyOptions": {
+          "node": "Địa chỉ node",
+          "listen": "Địa chỉ listen inbound",
+          "custom": "Tùy chỉnh"
+        }
       },
       "info": {
         "mode": "Chế độ",

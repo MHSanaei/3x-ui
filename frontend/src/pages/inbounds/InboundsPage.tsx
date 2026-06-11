@@ -457,6 +457,8 @@ export default function InboundsPage() {
           settings: clonedSettings,
           streamSettings: streamSettingsString,
           sniffing: sniffingString,
+          shareAddrStrategy: dbInbound.shareAddrStrategy,
+          shareAddr: dbInbound.shareAddr,
         };
         const msg = await HttpUtil.post('/panel/api/inbounds/add', data);
         if (msg?.success) await refresh();

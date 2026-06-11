@@ -795,8 +795,8 @@ func (s *SubService) loadNodes() {
 //
 // A loopback/wildcard bind or a unix-domain-socket listen is a server-side
 // detail and is never advertised; External Proxy remains the way to advertise
-// an arbitrary endpoint. Mirrors the frontend's resolveAddr so the panel QR and
-// the subscription agree.
+// an arbitrary endpoint. This subscription path intentionally ignores
+// per-inbound share address settings because subscription URLs are panel-owned.
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 	if inbound.NodeID != nil && s.nodesByID != nil {
 		if n, ok := s.nodesByID[*inbound.NodeID]; ok && n.Address != "" {

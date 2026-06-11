@@ -310,6 +310,8 @@ export const InboundSchema = z.object({
   protocol: z.enum(['vmess', 'vless', 'trojan', 'shadowsocks', 'wireguard', 'hysteria', 'http', 'mixed', 'tunnel', 'tun', 'mtproto']),
   remark: z.string(),
   settings: z.unknown(),
+  shareAddr: z.string(),
+  shareAddrStrategy: z.enum(['node', 'listen', 'custom']),
   sniffing: z.unknown(),
   streamSettings: z.unknown(),
   tag: z.string(),

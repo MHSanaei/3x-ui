@@ -480,6 +480,14 @@ func wireInbound(ib *model.Inbound) url.Values {
 	v.Set("streamSettings", sanitizeStreamSettingsForRemote(ib.StreamSettings))
 	v.Set("tag", ib.Tag)
 	v.Set("sniffing", ib.Sniffing)
+	shareAddrStrategy := strings.TrimSpace(ib.ShareAddrStrategy)
+	switch shareAddrStrategy {
+	case "listen", "custom":
+	default:
+		shareAddrStrategy = "node"
+	}
+	v.Set("shareAddrStrategy", shareAddrStrategy)
+	v.Set("shareAddr", ib.ShareAddr)
 	if ib.TrafficReset != "" {
 		v.Set("trafficReset", ib.TrafficReset)
 	}

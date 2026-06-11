@@ -36,6 +36,33 @@ func TestCacheGetTag_PrefixAgnostic(t *testing.T) {
 	}
 }
 
+func TestWireInboundIncludesShareAddressFields(t *testing.T) {
+	values := wireInbound(&model.Inbound{
+		ShareAddrStrategy: "custom",
+		ShareAddr:         "edge.example.com",
+	})
+
+	if got := values.Get("shareAddrStrategy"); got != "custom" {
+		t.Fatalf("shareAddrStrategy = %q, want custom", got)
+	}
+	if got := values.Get("shareAddr"); got != "edge.example.com" {
+		t.Fatalf("shareAddr = %q, want edge.example.com", got)
+	}
+}
+
+func TestWireInboundDefaultsShareAddressStrategy(t *testing.T) {
+	values := wireInbound(&model.Inbound{})
+
+	if got := values.Get("shareAddrStrategy"); got != "node" {
+		t.Fatalf("shareAddrStrategy = %q, want node", got)
+	}
+
+	values = wireInbound(&model.Inbound{ShareAddrStrategy: "auto"})
+	if got := values.Get("shareAddrStrategy"); got != "node" {
+		t.Fatalf("invalid shareAddrStrategy = %q, want node", got)
+	}
+}
+
 func TestSanitizeStreamSettingsForRemote(t *testing.T) {
 	tests := []struct {
 		name  string

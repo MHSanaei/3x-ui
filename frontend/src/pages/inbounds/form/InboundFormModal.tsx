@@ -84,6 +84,8 @@ import type { NodeRecord } from '@/api/queries/useNodesQuery';
 
 const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
 const TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'] as const;
+const SHARE_ADDR_STRATEGIES = ['node', 'listen', 'custom'] as const;
+const SHARE_ADDR_HOSTNAME_RE = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/;
 const NODE_ELIGIBLE_PROTOCOLS = new Set<string>([
   Protocols.VLESS,
   Protocols.VMESS,
@@ -92,6 +94,30 @@ const NODE_ELIGIBLE_PROTOCOLS = new Set<string>([
   Protocols.HYSTERIA,
   Protocols.WIREGUARD,
 ]);
+
+function isValidShareAddrInput(value: string): boolean {
+  const v = value.trim();
+  if (v.length === 0) return true;
+  if (v.includes('://') || v.startsWith('//') || /[/?#@]/.test(v)) return false;
+  if (v.startsWith('[')) {
+    if (!v.endsWith(']')) return false;
+    try {
+      new URL(`http://${v}`);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  if (v.includes(':')) {
+    try {
+      new URL(`http://[${v}]`);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return SHARE_ADDR_HOSTNAME_RE.test(v);
+}
 
 interface InboundFormModalProps {
   open: boolean;
@@ -176,6 +202,7 @@ export default function InboundFormModal({
   const wListen = (Form.useWatch('listen', form) ?? '') as string;
   const isUdsListen = wListen.startsWith('/');
   const wNodeId = Form.useWatch('nodeId', form) ?? null;
+  const shareAddrStrategy = Form.useWatch('shareAddrStrategy', form) ?? 'node';
   const wTag = Form.useWatch('tag', form) ?? '';
   const wSsNetwork = Form.useWatch(['settings', 'network'], form);
   const wTunnelNetwork = Form.useWatch(['settings', 'allowedNetwork'], form);
@@ -498,6 +525,36 @@ export default function InboundFormModal({
       >
         <Input placeholder={t('pages.inbounds.monitorDesc')} />
       </Form.Item>
+
+      <Form.Item
+        name="shareAddrStrategy"
+        label={t('pages.inbounds.form.shareAddrStrategy')}
+        extra={t('pages.inbounds.form.shareAddrStrategyHelp')}
+      >
+        <Select
+          options={SHARE_ADDR_STRATEGIES.map((strategy) => ({
+            value: strategy,
+            label: t(`pages.inbounds.form.shareAddrStrategyOptions.${strategy}`),
+          }))}
+        />
+      </Form.Item>
+
+      {shareAddrStrategy === 'custom' && (
+        <Form.Item
+          name="shareAddr"
+          label={t('pages.inbounds.form.shareAddr')}
+          extra={t('pages.inbounds.form.shareAddrHelp')}
+          rules={[{
+            validator: (_, value) => (
+              isValidShareAddrInput(String(value ?? ''))
+                ? Promise.resolve()
+                : Promise.reject(new Error(t('pages.inbounds.form.shareAddrHelp')))
+            ),
+          }]}
+        >
+          <Input placeholder="edge.example.com" />
+        </Form.Item>
+      )}
 
       <Form.Item
         name="port"

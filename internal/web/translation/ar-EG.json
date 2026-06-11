@@ -589,7 +589,16 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "احصل على Seed جديد",
-        "listenHelp": "يمكنك أيضًا إدخال مسار Unix socket (مثل /run/xray/in.sock) للاستماع على socket بدلاً من منفذ TCP — في هذه الحالة اضبط المنفذ على 0."
+        "listenHelp": "يمكنك أيضًا إدخال مسار Unix socket (مثل /run/xray/in.sock) للاستماع على socket بدلاً من منفذ TCP — في هذه الحالة اضبط المنفذ على 0.",
+        "shareAddrStrategy": "استراتيجية عنوان المشاركة",
+        "shareAddrStrategyHelp": "تحدد العنوان الذي يُكتب في روابط المشاركة المصدّرة ورموز QR. لا تتأثر روابط الاشتراك.",
+        "shareAddr": "عنوان مشاركة مخصص",
+        "shareAddrHelp": "يُستخدم فقط عندما تكون استراتيجية عنوان المشاركة مخصصة. أدخل اسم مضيف أو عنوان IP بدون بروتوكول أو منفذ.",
+        "shareAddrStrategyOptions": {
+          "node": "عنوان العقدة",
+          "listen": "عنوان استماع الوارد",
+          "custom": "مخصص"
+        }
       },
       "info": {
         "mode": "الوضع",
