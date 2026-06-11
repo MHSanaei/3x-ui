@@ -158,10 +158,15 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
   if (streamSettings) {
     healStreamNetworkKey(streamSettings as unknown as Record<string, unknown>);
     synthesizeTlsCertUseFile(streamSettings as unknown as Record<string, unknown>);
-    const xh = (streamSettings as any).xhttpSettings;
-    if (xh?.xmux && typeof xh.xmux === 'object' && !Array.isArray(xh.xmux)) {
-      xh.enableXmux = true;
-      xh.xmux = { ...XMUX_DEFAULTS, ...xh.xmux };
+    const streamRecord = streamSettings as unknown as Record<string, unknown>;
+    const xh = streamRecord.xhttpSettings;
+    if (xh && typeof xh === 'object' && !Array.isArray(xh)) {
+      const xhttp = xh as Record<string, unknown>;
+      const xmux = xhttp.xmux;
+      if (xmux && typeof xmux === 'object' && !Array.isArray(xmux)) {
+        xhttp.enableXmux = true;
+        xhttp.xmux = { ...XMUX_DEFAULTS, ...(xmux as Record<string, unknown>) };
+      }
     }
   }
   const sniffing = coerceJsonObject(row.sniffing) as unknown as Sniffing;
