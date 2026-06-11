@@ -68,7 +68,7 @@ export default function ClientTrafficCell({
           showInfo={false}
           strokeColor={display.strokeColor}
           status={display.status}
-          size={compact ? 'small' : 'default'}
+          size={compact ? 'small' : 'medium'}
         />
         <span className="client-traffic-cell-limit">
           {display.isUnlimited ? (
