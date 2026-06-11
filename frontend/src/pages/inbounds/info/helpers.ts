@@ -121,6 +121,10 @@ export function buildInboundInfo(dbInbound: DBInboundLike): InboundInfo {
     }),
     isVlessTlsFlow: canEnableTlsFlow({
       protocol: dbInbound.protocol,
+      settings: {
+        encryption: settings.encryption as string | undefined,
+        decryption: settings.decryption as string | undefined,
+      },
       streamSettings: { network, security },
     }),
     host: readNetworkHost(stream, network),

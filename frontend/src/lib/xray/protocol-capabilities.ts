@@ -16,12 +16,12 @@ const SS_BLAKE3_CHACHA20 = '2022-blake3-chacha20-poly1305';
 
 export interface CapabilityProtocolSlice {
   protocol: string;
-  settings?: { encryption?: string };
+  settings?: { encryption?: string; decryption?: string };
   streamSettings?: { network?: string; security?: string };
 }
 
 export interface CapabilityVlessSlice extends CapabilityProtocolSlice {
-  settings?: { encryption?: string; clients?: { flow?: string }[] };
+  settings?: { encryption?: string; decryption?: string; clients?: { flow?: string }[] };
 }
 
 export interface CapabilityShadowsocksSlice extends CapabilityProtocolSlice {
@@ -39,18 +39,26 @@ export function canEnableReality(values: CapabilityProtocolSlice): boolean {
   return REALITY_NETWORKS.includes(values.streamSettings?.network ?? '');
 }
 
+// VLESS encryption (vlessenc / ML-KEM) is on when encryption or decryption holds
+// a generated value (e.g. "mlkem768x25519plus.native.0rtt.<key>") rather than
+// the "none"/"" sentinel. The value is never the literal "vlessenc" (that is the
+// `xray vlessenc` subcommand). decryption is the server-side value; encryption is
+// stored for link generation — either being set means it is on.
+function hasVlessEncryption(settings: CapabilityProtocolSlice['settings']): boolean {
+  const isSet = (v?: string) => v != null && v !== '' && v !== 'none';
+  return isSet(settings?.encryption) || isSet(settings?.decryption);
+}
+
 export function canEnableTlsFlow(values: CapabilityProtocolSlice): boolean {
   if (values.protocol !== 'vless') return false;
-  const security = values.streamSettings?.security;
   const network = values.streamSettings?.network;
+  const security = values.streamSettings?.security;
 
-  if (security === 'tls' || security === 'reality') {
-    if (network === 'tcp') return true;
-  }
+  // Classic XTLS Vision: raw TCP carried over TLS or REALITY.
+  if (network === 'tcp' && (security === 'tls' || security === 'reality')) return true;
 
-  if (network === 'xhttp' && values.settings?.encryption === 'vlessenc') {
-    return true;
-  }
+  // vlessenc carries Vision over XHTTP without transport TLS.
+  if (network === 'xhttp' && hasVlessEncryption(values.settings)) return true;
 
   return false;
 }

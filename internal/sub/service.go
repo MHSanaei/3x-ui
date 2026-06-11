@@ -445,6 +445,20 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	return buildVmessLink(obj)
 }
 
+// vlessEncryptionEnabled reports whether the VLESS inbound settings enable
+// VLESS-level encryption (vlessenc / ML-KEM). When on, the encryption/decryption
+// fields hold a generated dotted string (e.g. "mlkem768x25519plus.native.0rtt.<key>");
+// "none" or empty means off. The value is never the literal "vlessenc" — that is
+// the `xray vlessenc` CLI subcommand name, not a stored value.
+func vlessEncryptionEnabled(settings map[string]any) bool {
+	for _, key := range []string{"encryption", "decryption"} {
+		if v, ok := settings[key].(string); ok && v != "" && v != "none" {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.VLESS {
 		return ""
@@ -484,10 +498,10 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		}
 	default:
 		params["security"] = "none"
-		if streamNetwork == "xhttp" && len(clients[clientIndex].Flow) > 0 {
-			if encryption, ok := settings["encryption"].(string); ok && encryption == "vlessenc" {
-				params["flow"] = clients[clientIndex].Flow
-			}
+		// VLESS encryption (vlessenc / ML-KEM) carries XTLS Vision over XHTTP
+		// without transport TLS.
+		if streamNetwork == "xhttp" && len(clients[clientIndex].Flow) > 0 && vlessEncryptionEnabled(settings) {
+			params["flow"] = clients[clientIndex].Flow
 		}
 	}
 
