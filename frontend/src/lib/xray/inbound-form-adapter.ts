@@ -12,6 +12,9 @@ import type { Sniffing } from '@/schemas/primitives';
 import type { z } from 'zod';
 import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
 import { canEnableSniffing } from '@/lib/xray/protocol-capabilities';
+import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+
+const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
 
 // Plain-data adapter between the panel's stored inbound row shape and
 // the typed InboundFormValues that Form.useForm<T> carries inside
@@ -155,6 +158,11 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
   if (streamSettings) {
     healStreamNetworkKey(streamSettings as unknown as Record<string, unknown>);
     synthesizeTlsCertUseFile(streamSettings as unknown as Record<string, unknown>);
+    const xh = (streamSettings as any).xhttpSettings;
+    if (xh?.xmux && typeof xh.xmux === 'object' && !Array.isArray(xh.xmux)) {
+      xh.enableXmux = true;
+      xh.xmux = { ...XMUX_DEFAULTS, ...xh.xmux };
+    }
   }
   const sniffing = coerceJsonObject(row.sniffing) as unknown as Sniffing;
 

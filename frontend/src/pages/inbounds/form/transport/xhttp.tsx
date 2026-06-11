@@ -3,6 +3,9 @@ import { Form, Input, InputNumber, Select, Switch, type FormInstance } from 'ant
 
 import { HeaderMapEditor } from '@/components/form';
 import type { InboundFormValues } from '@/schemas/forms/inbound-form';
+import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+
+const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
 
 export default function XhttpForm({ form }: { form: FormInstance<InboundFormValues> }) {
   const { t } = useTranslation();
@@ -11,6 +14,15 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
   const xhttpSessionPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'sessionPlacement'], form);
   const xhttpSeqPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'seqPlacement'], form);
   const xhttpUplinkPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'uplinkDataPlacement'], form);
+
+  function onXmuxToggle(checked: boolean) {
+    if (!checked) return;
+    const existing = form.getFieldValue(['streamSettings', 'xhttpSettings', 'xmux']);
+    const hasValues = existing && typeof existing === 'object' && Object.keys(existing).length > 0;
+    if (hasValues) return;
+    form.setFieldValue(['streamSettings', 'xhttpSettings', 'xmux'], { ...XMUX_DEFAULTS });
+  }
+
   return (
     <>
       <Form.Item name={['streamSettings', 'xhttpSettings', 'host']} label={t('host')}>
@@ -212,6 +224,65 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
         valuePropName="checked"
       >
         <Switch />
+      </Form.Item>
+      {/* XMUX is the connection-multiplexing layer
+          xHTTP uses to fan out parallel requests over
+          a small pool of upstream connections. UI-only
+          toggle (enableXmux) hides the 6 nested knobs
+          when off. */}
+      <Form.Item
+        label="XMUX"
+        name={['streamSettings', 'xhttpSettings', 'enableXmux']}
+        valuePropName="checked"
+      >
+        <Switch onChange={onXmuxToggle} />
+      </Form.Item>
+      <Form.Item shouldUpdate noStyle>
+        {() => {
+          if (!form.getFieldValue([
+            'streamSettings', 'xhttpSettings', 'enableXmux',
+          ])) return null;
+          return (
+            <>
+              <Form.Item
+                label={t('pages.xray.outboundForm.maxConcurrency')}
+                name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConcurrency']}
+              >
+                <Input placeholder="16-32" />
+              </Form.Item>
+              <Form.Item
+                label={t('pages.xray.outboundForm.maxConnections')}
+                name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConnections']}
+              >
+                <Input placeholder="0" />
+              </Form.Item>
+              <Form.Item
+                label={t('pages.xray.outboundForm.maxReuseTimes')}
+                name={['streamSettings', 'xhttpSettings', 'xmux', 'cMaxReuseTimes']}
+              >
+                <Input />
+              </Form.Item>
+              <Form.Item
+                label={t('pages.xray.outboundForm.maxRequestTimes')}
+                name={['streamSettings', 'xhttpSettings', 'xmux', 'hMaxRequestTimes']}
+              >
+                <Input placeholder="600-900" />
+              </Form.Item>
+              <Form.Item
+                label={t('pages.xray.outboundForm.maxReusableSecs')}
+                name={['streamSettings', 'xhttpSettings', 'xmux', 'hMaxReusableSecs']}
+              >
+                <Input placeholder="1800-3000" />
+              </Form.Item>
+              <Form.Item
+                label={t('pages.xray.outboundForm.keepAlivePeriod')}
+                name={['streamSettings', 'xhttpSettings', 'xmux', 'hKeepAlivePeriod']}
+              >
+                <InputNumber min={0} style={{ width: '100%' }} />
+              </Form.Item>
+            </>
+          );
+        }}
       </Form.Item>
     </>
   );
