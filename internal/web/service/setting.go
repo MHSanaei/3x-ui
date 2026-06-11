@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -37,7 +38,7 @@ var defaultValueMap = map[string]string{
 	"secret":                      random.Seq(32),
 	"panelGuid":                   uuid.NewString(),
 	"apiToken":                    "",
-	"webBasePath":                 "/",
+	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
 	"pageSize":                    "25",
@@ -235,6 +236,18 @@ func secretConfigured(value string) bool {
 
 func mustString(value string, _ error) string {
 	return value
+}
+
+func getEnv(key, fallback string) string {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	val = strings.TrimSpace(val)
+	if val == "" {
+		return fallback
+	}
+	return val
 }
 
 func (s *SettingService) ResetSettings() error {
@@ -587,13 +600,7 @@ func (s *SettingService) GetBasePath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !strings.HasPrefix(basePath, "/") {
-		basePath = "/" + basePath
-	}
-	if !strings.HasSuffix(basePath, "/") {
-		basePath += "/"
-	}
-	return basePath, nil
+	return normalizeBasePath(basePath), nil
 }
 
 func (s *SettingService) GetTimeLocation() (*time.Location, error) {

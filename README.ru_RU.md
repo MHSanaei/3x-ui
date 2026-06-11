@@ -130,6 +130,7 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_DB_FOLDER` | Каталог для файла базы данных SQLite | `/etc/x-ui` |
 | `XUI_DB_MAX_OPEN_CONNS` | Максимум открытых соединений (пул PostgreSQL) | — |
 | `XUI_DB_MAX_IDLE_CONNS` | Максимум простаивающих соединений (пул PostgreSQL) | — |
+| `XUI_INIT_WEB_BASE_PATH` | Начальный URI-путь для веб-панели | `/` |
 | `XUI_ENABLE_FAIL2BAN` | Включить применение лимитов IP на основе Fail2ban | `true` |
 | `XUI_LOG_LEVEL` | Уровень логирования (`debug`, `info`, `warning`, `error`) | `info` |
 | `XUI_DEBUG` | Включить режим отладки | `false` |
