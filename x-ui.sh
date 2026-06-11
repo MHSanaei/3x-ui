@@ -655,9 +655,9 @@ show_log() {
     fi
 }
 
-bbr_menu() {
-    echo -e "${green}\t1.${plain} Enable BBR"
-    echo -e "${green}\t2.${plain} Disable BBR"
+optimization_menu() {
+    echo -e "${green}\t1.${plain} Apply System Optimizations"
+    echo -e "${green}\t2.${plain} Remove System Optimizations"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -rp "Choose an option: " choice
     case "$choice" in
@@ -665,81 +665,230 @@ bbr_menu() {
             show_menu
             ;;
         1)
-            enable_bbr
-            bbr_menu
+            enable_optimization
+            optimization_menu
             ;;
         2)
-            disable_bbr
-            bbr_menu
+            disable_optimization
+            optimization_menu
             ;;
         *)
             echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
-            bbr_menu
+            optimization_menu
             ;;
     esac
 }
 
-disable_bbr() {
-
-    if [[ $(sysctl -n net.ipv4.tcp_congestion_control) != "bbr" ]] || [[ ! $(sysctl -n net.core.default_qdisc) =~ ^(fq|cake)$ ]]; then
-        echo -e "${yellow}BBR is not currently enabled.${plain}"
-        before_show_menu
+disable_optimization() {
+    echo -e "${info} Removing system optimizations..."
+    
+    if [ -f "/etc/sysctl.d/99-xui-optimization.conf" ]; then
+        rm -f "/etc/sysctl.d/99-xui-optimization.conf"
     fi
-
+    if [ -f "/etc/security/limits.d/99-xui-optimization.conf" ]; then
+        rm -f "/etc/security/limits.d/99-xui-optimization.conf"
+    fi
+    
+    # Revert BBR to CUBIC if it was applied via optimization
+    if [[ $(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null) == "bbr" ]]; then
+        sysctl -w net.ipv4.tcp_congestion_control=cubic > /dev/null 2>&1 || true
+        sysctl -w net.core.default_qdisc=pfifo_fast > /dev/null 2>&1 || true
+    fi
+    
+    # Also clean up old BBR conf if exists
     if [ -f "/etc/sysctl.d/99-bbr-x-ui.conf" ]; then
-        old_settings=$(head -1 /etc/sysctl.d/99-bbr-x-ui.conf | tr -d '#')
-        sysctl -w net.core.default_qdisc="${old_settings%:*}"
-        sysctl -w net.ipv4.tcp_congestion_control="${old_settings#*:}"
-        rm /etc/sysctl.d/99-bbr-x-ui.conf
-        sysctl --system
-    else
-        # Replace BBR with CUBIC configurations
-        if [ -f "/etc/sysctl.conf" ]; then
-            sed -i 's/net.core.default_qdisc=fq/net.core.default_qdisc=pfifo_fast/' /etc/sysctl.conf
-            sed -i 's/net.ipv4.tcp_congestion_control=bbr/net.ipv4.tcp_congestion_control=cubic/' /etc/sysctl.conf
-            sysctl -p
-        fi
+        rm -f /etc/sysctl.d/99-bbr-x-ui.conf
     fi
+    
+    if [[ "$XUI_IN_DOCKER" != "true" && -f /swapfile ]]; then
+        echo -e "${info} Removing auto-deployed swapfile..."
+        swapoff /swapfile >/dev/null 2>&1 || true
+        rm -f /swapfile
+        sed -i '/^\/swapfile/d' /etc/fstab
+    fi
+    
+    sysctl --system > /dev/null 2>&1 || true
 
-    if [[ $(sysctl -n net.ipv4.tcp_congestion_control) != "bbr" ]]; then
-        echo -e "${green}BBR has been replaced with CUBIC successfully.${plain}"
-    else
-        echo -e "${red}Failed to replace BBR with CUBIC. Please check your system configuration.${plain}"
-    fi
+    echo -e "${green}System optimizations have been removed successfully.${plain}"
 }
 
-enable_bbr() {
-    if [[ $(sysctl -n net.ipv4.tcp_congestion_control) == "bbr" ]] && [[ $(sysctl -n net.core.default_qdisc) =~ ^(fq|cake)$ ]]; then
-        echo -e "${green}BBR is already enabled!${plain}"
-        before_show_menu
+enable_optimization() {
+    echo -e "${info} Applying system optimizations..."
+
+    # 1. Install irqbalance if cores > 2
+    local cores=$(nproc --all 2>/dev/null || echo 1)
+    if [ "$cores" -gt 2 ]; then
+        if ! command -v irqbalance >/dev/null 2>&1; then
+            echo -e "${info} CPU cores > 2, installing irqbalance..."
+            case "${release}" in
+                ubuntu | debian | armbian)
+                    apt-get update > /dev/null 2>&1 && apt-get install irqbalance -y > /dev/null 2>&1
+                    ;;
+                fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+                    dnf -y update > /dev/null 2>&1 && dnf -y install irqbalance > /dev/null 2>&1
+                    ;;
+                centos)
+                    if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                        yum -y update > /dev/null 2>&1 && yum -y install irqbalance > /dev/null 2>&1
+                    else
+                        dnf -y update > /dev/null 2>&1 && dnf -y install irqbalance > /dev/null 2>&1
+                    fi
+                    ;;
+                arch | manjaro | parch)
+                    pacman -Sy --noconfirm irqbalance > /dev/null 2>&1
+                    ;;
+                opensuse-tumbleweed | opensuse-leap)
+                    zypper refresh > /dev/null 2>&1 && zypper -q install -y irqbalance > /dev/null 2>&1
+                    ;;
+                alpine)
+                    apk add irqbalance > /dev/null 2>&1
+                    ;;
+                *)
+                    LOGW "Unsupported OS for automatic irqbalance installation"
+                    ;;
+            esac
+        fi
+        
+        # Start and enable irqbalance
+        if command -v systemctl >/dev/null 2>&1; then
+            systemctl enable irqbalance > /dev/null 2>&1 || true
+            systemctl start irqbalance > /dev/null 2>&1 || true
+        elif command -v service >/dev/null 2>&1; then
+            service irqbalance start > /dev/null 2>&1 || true
+        fi
     fi
 
-    # Enable BBR
+    # 2. Deploy Swap if eligible
+    if [[ "$XUI_IN_DOCKER" != "true" && ! -f /.dockerenv && ! -f /run/.containerenv ]]; then
+        local swap_count=$(swapon --show | wc -l 2>/dev/null || echo 0)
+        if [ "$swap_count" -le 1 ]; then
+            echo -e "${info} No active swap found, checking RAM for auto-swap deployment..."
+            local total_ram_mb=$(free -m | awk '/^Mem:/{print $2}')
+            if [ -n "$total_ram_mb" ] && [ "$total_ram_mb" -gt 0 ]; then
+                local swap_mb=0
+                if [ "$total_ram_mb" -lt 2048 ]; then
+                    swap_mb=$((total_ram_mb * 2))
+                elif [ "$total_ram_mb" -lt 8192 ]; then
+                    swap_mb=$total_ram_mb
+                else
+                    swap_mb=4096
+                fi
+                
+                if [ "$swap_mb" -gt 0 ]; then
+                    echo -e "${info} Total RAM: ${total_ram_mb}MB. Deploying Swap: ${swap_mb}MB."
+                    if ! fallocate -l ${swap_mb}M /swapfile 2>/dev/null; then
+                        dd if=/dev/zero of=/swapfile bs=1M count=${swap_mb} status=none
+                    fi
+                    chmod 600 /swapfile
+                    mkswap /swapfile >/dev/null 2>&1
+                    swapon /swapfile >/dev/null 2>&1
+                    
+                    if ! grep -q "/swapfile" /etc/fstab; then
+                        echo "/swapfile none swap sw 0 0" >> /etc/fstab
+                    fi
+                    echo -e "${green}Swap deployed successfully.${plain}"
+                fi
+            fi
+        else
+            echo -e "${info} Swap space already exists. Skipping swap deployment."
+        fi
+    fi
+
+    # 3. Set limits in /etc/security/limits.conf or limits.d
+    if [ -d "/etc/security/limits.d" ]; then
+        {
+            echo "* soft nofile 131072"
+            echo "* hard nofile 131072"
+        } > "/etc/security/limits.d/99-xui-optimization.conf"
+    elif [ -f "/etc/security/limits.conf" ]; then
+        if ! grep -q "soft nofile 131072" /etc/security/limits.conf; then
+            echo "* soft nofile 131072" >> /etc/security/limits.conf
+            echo "* hard nofile 131072" >> /etc/security/limits.conf
+        fi
+    fi
+
+    # 4. Apply sysctl configs
     if [ -d "/etc/sysctl.d/" ]; then
         {
-            echo "#$(sysctl -n net.core.default_qdisc):$(sysctl -n net.ipv4.tcp_congestion_control)"
             echo "net.core.default_qdisc = fq"
             echo "net.ipv4.tcp_congestion_control = bbr"
-        } > "/etc/sysctl.d/99-bbr-x-ui.conf"
-        if [ -f "/etc/sysctl.conf" ]; then
-            # Backup old settings from sysctl.conf, if any
-            sed -i 's/^net.core.default_qdisc/# &/' /etc/sysctl.conf
-            sed -i 's/^net.ipv4.tcp_congestion_control/# &/' /etc/sysctl.conf
+            echo "net.ipv4.tcp_notsent_lowat = 16384"
+            echo "net.core.somaxconn = 65535"
+            echo "net.core.netdev_max_backlog = 65535"
+            echo "net.core.rmem_max = 16777216"
+            echo "net.core.wmem_max = 16777216"
+            echo "net.ipv4.udp_rmem_min = 8192"
+            echo "net.ipv4.udp_wmem_min = 8192"
+            echo "net.ipv4.tcp_max_syn_backlog = 65535"
+            echo "net.ipv4.tcp_fin_timeout = 15"
+            echo "net.ipv4.tcp_keepalive_time = 600"
+            echo "net.ipv4.tcp_keepalive_intvl = 30"
+            echo "net.ipv4.tcp_keepalive_probes = 5"
+            echo "net.ipv4.tcp_tw_reuse = 1"
+            echo "net.ipv4.ip_local_port_range = 1024 65535"
+            echo "net.ipv4.tcp_fastopen = 3"
+            echo "net.core.rmem_default = 1048576"
+            echo "net.core.wmem_default = 1048576"
+            echo "net.ipv4.tcp_rmem = 4096 87380 16777216"
+            echo "net.ipv4.tcp_wmem = 4096 65536 16777216"
+            echo "net.ipv4.tcp_mem = 8388608 16777216 33554432"
+            echo "net.ipv4.tcp_slow_start_after_idle = 0"
+            echo "net.ipv4.tcp_mtu_probing = 1"
+            echo "net.ipv4.tcp_base_mss = 1024"
+            echo "net.ipv4.tcp_no_metrics_save = 1"
+            echo "net.ipv4.tcp_ecn = 0"
+            echo "net.ipv4.tcp_frto = 2"
+            echo "net.ipv4.tcp_max_tw_buckets = 1440000"
+            echo "vm.swappiness = 10"
+            echo "vm.vfs_cache_pressure = 50"
+        } > "/etc/sysctl.d/99-xui-optimization.conf"
+        
+        # Backup old BBR settings if exists, and remove it
+        if [ -f "/etc/sysctl.d/99-bbr-x-ui.conf" ]; then
+            rm -f "/etc/sysctl.d/99-bbr-x-ui.conf"
         fi
-        sysctl --system
+        
+        sysctl --system > /dev/null 2>&1 || true
     else
-        sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
-        sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
-        echo "net.core.default_qdisc=fq" | tee -a /etc/sysctl.conf
-        echo "net.ipv4.tcp_congestion_control=bbr" | tee -a /etc/sysctl.conf
-        sysctl -p
+        # Fallback if sysctl.d doesn't exist
+        sysctl -w net.core.default_qdisc=fq > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_congestion_control=bbr > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_notsent_lowat=16384 > /dev/null 2>&1 || true
+        sysctl -w net.core.somaxconn=65535 > /dev/null 2>&1 || true
+        sysctl -w net.core.netdev_max_backlog=65535 > /dev/null 2>&1 || true
+        sysctl -w net.core.rmem_max=16777216 > /dev/null 2>&1 || true
+        sysctl -w net.core.wmem_max=16777216 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.udp_rmem_min=8192 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.udp_wmem_min=8192 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_max_syn_backlog=65535 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_fin_timeout=15 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_keepalive_time=600 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_keepalive_intvl=30 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_keepalive_probes=5 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_tw_reuse=1 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.ip_local_port_range="1024 65535" > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_fastopen=3 > /dev/null 2>&1 || true
+        sysctl -w net.core.rmem_default=1048576 > /dev/null 2>&1 || true
+        sysctl -w net.core.wmem_default=1048576 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_rmem="4096 87380 16777216" > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_wmem="4096 65536 16777216" > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_mem="8388608 16777216 33554432" > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_slow_start_after_idle=0 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_mtu_probing=1 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_base_mss=1024 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_no_metrics_save=1 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_ecn=0 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_frto=2 > /dev/null 2>&1 || true
+        sysctl -w net.ipv4.tcp_max_tw_buckets=1440000 > /dev/null 2>&1 || true
+        sysctl -w vm.swappiness=10 > /dev/null 2>&1 || true
+        sysctl -w vm.vfs_cache_pressure=50 > /dev/null 2>&1 || true
     fi
 
-    # Verify that BBR is enabled
-    if [[ $(sysctl -n net.ipv4.tcp_congestion_control) == "bbr" ]]; then
-        echo -e "${green}BBR has been enabled successfully.${plain}"
+    # Verify BBR is enabled as a test
+    if [[ $(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null) == "bbr" ]]; then
+        echo -e "${green}System optimizations, swap, and BBR applied successfully.${plain}"
     else
-        echo -e "${red}Failed to enable BBR. Please check your system configuration.${plain}"
+        echo -e "${red}Failed to apply BBR, but other optimizations may have succeeded.${plain}"
     fi
 }
 
@@ -3048,7 +3197,7 @@ show_menu() {
 │  ${green}22.${plain} Firewall Management                       │
 │  ${green}23.${plain} SSH Port Forwarding Management            │
 │────────────────────────────────────────────────│
-│  ${green}24.${plain} Enable BBR                                │
+│  ${green}24.${plain} System Optimization                       │
 │  ${green}25.${plain} Update Geo Files                          │
 │  ${green}26.${plain} Speedtest by Ookla                        │
 │────────────────────────────────────────────────│
@@ -3132,7 +3281,7 @@ show_menu() {
             SSH_port_forwarding
             ;;
         24)
-            bbr_menu
+            optimization_menu
             ;;
         25)
             update_geo
