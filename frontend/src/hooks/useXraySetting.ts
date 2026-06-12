@@ -81,7 +81,7 @@ export interface UseXraySettingResult {
 
 type XrayConfigPayload = z.infer<typeof XrayConfigPayloadSchema>;
 
-async function fetchXrayConfig(): Promise<XrayConfigPayload> {
+export async function fetchXrayConfig(): Promise<XrayConfigPayload> {
   const msg = await HttpUtil.post('/panel/api/xray/', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to load xray config');
   if (typeof msg.obj !== 'string') throw new Error('Malformed xray config response: expected string');

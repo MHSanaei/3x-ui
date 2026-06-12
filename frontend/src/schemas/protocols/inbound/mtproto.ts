@@ -22,5 +22,12 @@ export const MtprotoInboundSettingsSchema = z.object({
   preferIp: z.enum(['prefer-ipv6', 'prefer-ipv4', 'only-ipv6', 'only-ipv4']).optional(),
   debug: z.boolean().optional(),
   domainFronting: MtprotoDomainFrontingSchema.optional(),
+  // When set, the mtg sidecar dials Telegram through a loopback SOCKS bridge in
+  // the Xray config so the egress obeys routing rules. `outboundTag` optionally
+  // forces that traffic out a specific outbound/balancer. `routeXrayPort` is the
+  // bridge port; it is allocated and owned by the backend (never edited here).
+  routeThroughXray: z.boolean().optional(),
+  outboundTag: z.string().optional(),
+  routeXrayPort: z.number().int().min(0).max(65535).optional(),
 });
 export type MtprotoInboundSettings = z.infer<typeof MtprotoInboundSettingsSchema>;

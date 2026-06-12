@@ -14,6 +14,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -451,6 +452,108 @@ func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
 	}
 }
 
+// mtprotoRoutesThroughXray reports whether an mtproto inbound is configured to
+// egress through the core's router (the loopback SOCKS bridge in §xray.go).
+func mtprotoRoutesThroughXray(inbound *model.Inbound) bool {
+	if inbound == nil || inbound.Protocol != model.MTProto {
+		return false
+	}
+	var parsed struct {
+		RouteThroughXray bool `json:"routeThroughXray"`
+	}
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
+		return false
+	}
+	return parsed.RouteThroughXray
+}
+
+func settingsRouteXrayPort(parsed map[string]any) int {
+	switch v := parsed["routeXrayPort"].(type) {
+	case float64:
+		return int(v)
+	case int:
+		return v
+	case json.Number:
+		if n, err := v.Int64(); err == nil {
+			return int(n)
+		}
+	}
+	return 0
+}
+
+func parseRouteXrayPort(settings string) int {
+	if settings == "" {
+		return 0
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return 0
+	}
+	return settingsRouteXrayPort(parsed)
+}
+
+// normalizeMtprotoXrayPort guarantees a routed mtproto inbound carries a stable
+// loopback egress port in its settings, so the generated Xray SOCKS bridge and
+// the mtg sidecar agree on where mtg dials out. The port is backend-owned: it is
+// allocated once when routing is first enabled and preserved across edits
+// (carried over from oldSettings, which wins over any value the client echoed
+// back). When routing is off it — together with the now-inert outbound
+// selection — is stripped so a disabled bridge leaves nothing stale behind.
+//
+// It returns an error when an egress port cannot be allocated or persisted, so
+// the caller refuses the save rather than storing a routed-but-portless inbound,
+// which would otherwise route no traffic and have its mtg metrics skipped (see
+// mtproto_job) — silently losing its accounting.
+func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSettings string) error {
+	if inbound.Protocol != model.MTProto {
+		return nil
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed == nil {
+		return nil
+	}
+	routed, _ := parsed["routeThroughXray"].(bool)
+	if !routed {
+		_, hadPort := parsed["routeXrayPort"]
+		_, hadTag := parsed["outboundTag"]
+		if !hadPort && !hadTag {
+			return nil
+		}
+		delete(parsed, "routeXrayPort")
+		delete(parsed, "outboundTag")
+		if bs, err := json.MarshalIndent(parsed, "", "  "); err == nil {
+			inbound.Settings = string(bs)
+		} else {
+			logger.Warning("mtproto: failed to marshal settings after disabling routing:", err)
+		}
+		return nil
+	}
+
+	// Prefer the already-stored port (carried across edits), then any value the
+	// client sent, then allocate a fresh one.
+	port := parseRouteXrayPort(oldSettings)
+	if port <= 0 {
+		port = settingsRouteXrayPort(parsed)
+	}
+	if port <= 0 {
+		allocated, err := mtproto.FreeLocalPort()
+		if err != nil {
+			return common.NewError("mtproto: could not allocate an Xray egress port:", err)
+		}
+		port = allocated
+	}
+	if settingsRouteXrayPort(parsed) == port {
+		return nil
+	}
+	parsed["routeXrayPort"] = port
+	bs, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return common.NewError("mtproto: could not persist the Xray egress port:", err)
+	}
+	inbound.Settings = string(bs)
+	return nil
+}
+
 // AddInbound creates a new inbound configuration.
 // It validates port uniqueness, client email uniqueness, and required fields,
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
@@ -459,6 +562,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
+	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
+		return inbound, false, err
+	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
 		return inbound, false, err
@@ -622,6 +728,13 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 	}
 
+	// A routed mtproto inbound is not an Xray inbound itself, so the runtime
+	// push above only (re)starts the mtg sidecar. The egress SOCKS bridge lives
+	// in the generated config, so force a regen to wire it in.
+	if mtprotoRoutesThroughXray(inbound) {
+		needRestart = true
+	}
+
 	return inbound, needRestart, err
 }
 
@@ -684,6 +797,10 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 				return needRestart, err
 			}
 		}
+	}
+	// Drop the egress SOCKS bridge a routed mtproto inbound left in the config.
+	if mtprotoRoutesThroughXray(&ib) {
+		needRestart = true
 	}
 	return needRestart, nil
 }
@@ -827,6 +944,13 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	inbound.NodeID = oldInbound.NodeID
+	// Capture the pre-edit routing state before oldInbound.Settings is replaced
+	// with the new settings further down, then ensure a routed inbound keeps a
+	// stable egress port (reusing the one already stored).
+	oldRoutedMtproto := mtprotoRoutesThroughXray(oldInbound)
+	if err := s.normalizeMtprotoXrayPort(inbound, oldInbound.Settings); err != nil {
+		return inbound, false, err
+	}
 
 	tag := oldInbound.Tag
 	oldBits := inboundTransports(oldInbound.Protocol, oldInbound.StreamSettings, oldInbound.Settings)
@@ -1008,6 +1132,11 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	}
 	if err = s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
 		return inbound, false, err
+	}
+	// (Re)generate the Xray config whenever routing was or is now enabled, so the
+	// egress SOCKS bridge is added, moved, or dropped to match the new settings.
+	if mtprotoRoutesThroughXray(inbound) || oldRoutedMtproto {
+		needRestart = true
 	}
 	return inbound, needRestart, nil
 }
