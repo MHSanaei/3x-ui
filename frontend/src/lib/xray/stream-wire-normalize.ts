@@ -115,11 +115,11 @@ export function normalizeXhttpForWire(
 ): Record<string, unknown> {
   const out: Record<string, unknown> = { ...raw };
   const mode = typeof out.mode === 'string' && out.mode !== '' ? out.mode : 'auto';
-
+  const enableXmux = out.enableXmux === true;
   delete out.enableXmux;
 
   if (side === 'inbound') {
-    delete out.xmux;
+    if (!enableXmux) delete out.xmux;
     delete out.scMinPostsIntervalMs;
     delete out.uplinkChunkSize;
   }

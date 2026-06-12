@@ -65,6 +65,30 @@ describe('normalizeXhttpForWire stream-one', () => {
     expect(out.xmux).toEqual({ maxConcurrency: '16-32' });
     expect(out).not.toHaveProperty('scMaxEachPostBytes');
   });
+
+  it('keeps inbound xmux when enableXmux is on (for the share-link extra)', () => {
+    const out = normalizeXhttpForWire({
+      path: '/app',
+      mode: 'auto',
+      enableXmux: true,
+      xmux: { maxConcurrency: '16-32' },
+    }, 'inbound');
+
+    expect(out).not.toHaveProperty('enableXmux');
+    expect(out.xmux).toEqual({ maxConcurrency: '16-32' });
+  });
+
+  it('drops inbound xmux when enableXmux is off', () => {
+    const out = normalizeXhttpForWire({
+      path: '/app',
+      mode: 'auto',
+      enableXmux: false,
+      xmux: { maxConcurrency: '16-32' },
+    }, 'inbound');
+
+    expect(out).not.toHaveProperty('enableXmux');
+    expect(out).not.toHaveProperty('xmux');
+  });
 });
 
 describe('normalizeSockoptForWire', () => {
