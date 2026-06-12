@@ -503,12 +503,19 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/clients/get/:email',
-        summary: 'Fetch one client by email, including the inbound IDs it is attached to.',
+        summary: 'Fetch one client by email, including the inbound IDs and outbound tags it is attached to.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
         ],
         response:
-          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5]\n  }\n}',
+          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5],\n    "outboundTags": ["warp"]\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/outboundOptions',
+        summary: 'List selectable outbound tags from the Xray template and active outbound subscriptions for client outbound attachments.',
+        response:
+          '{\n  "success": true,\n  "obj": [\n    { "tag": "warp", "protocol": "wireguard", "remark": "warp", "source": "template" }\n  ]\n}',
       },
       {
         method: 'POST',
@@ -517,8 +524,9 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'client', in: 'body (json)', type: 'object', desc: 'Client fields: email, subId, id (uuid), password, auth, flow, totalGB, expiryTime, limitIp, tgId (numeric Telegram user ID, 0 = none), comment, enable.' },
           { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to attach the client to. At least one required.' },
+          { name: 'outboundTags', in: 'body (json)', type: 'array', desc: 'Outbound tags to include as per-client subscription configs. Optional.' },
         ],
-        body: '{\n  "client": {\n    "email": "alice@example.com",\n    "totalGB": 53687091200,\n    "expiryTime": 1735689600000,\n    "tgId": 0,\n    "limitIp": 0,\n    "enable": true\n  },\n  "inboundIds": [3, 5]\n}',
+        body: '{\n  "client": {\n    "email": "alice@example.com",\n    "totalGB": 53687091200,\n    "expiryTime": 1735689600000,\n    "tgId": 0,\n    "limitIp": 0,\n    "enable": true\n  },\n  "inboundIds": [3, 5],\n  "outboundTags": ["warp"]\n}',
         response: '{\n  "success": true,\n  "msg": "Client added"\n}',
       },
       {
@@ -561,6 +569,28 @@ export const sections: readonly Section[] = [
           { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to detach.' },
         ],
         body: '{\n  "inboundIds": [5]\n}',
+        response: '{\n  "success": true\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/:email/attachOutbounds',
+        summary: 'Attach an existing client to one or more outbound tags for subscription output.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          { name: 'outboundTags', in: 'body (json)', type: 'array', desc: 'Outbound tags to attach.' },
+        ],
+        body: '{\n  "outboundTags": ["warp"]\n}',
+        response: '{\n  "success": true\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/:email/detachOutbounds',
+        summary: 'Detach outbound subscription configs from a client without changing the outbound definitions.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          { name: 'outboundTags', in: 'body (json)', type: 'array', desc: 'Outbound tags to detach.' },
+        ],
+        body: '{\n  "outboundTags": ["warp"]\n}',
         response: '{\n  "success": true\n}',
       },
       {

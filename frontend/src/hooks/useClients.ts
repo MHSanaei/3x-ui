@@ -9,6 +9,7 @@ import {
   ClientHydrateSchema,
   ClientPageResponseSchema,
   InboundOptionsSchema,
+  OutboundOptionsSchema,
   OnlinesSchema,
   BulkAdjustResultSchema,
   BulkAttachResultSchema,
@@ -22,6 +23,7 @@ import {
   type ClientsSummary,
   type ClientPageResponse,
   type InboundOption,
+  type OutboundOption,
   type BulkAdjustResult,
   type BulkAttachResult,
   type BulkCreateResult,
@@ -30,7 +32,7 @@ import {
 } from '@/schemas/client';
 import { DefaultsPayloadSchema } from '@/schemas/defaults';
 
-export type { ClientRecord, ClientTraffic, ClientsSummary, InboundOption };
+export type { ClientRecord, ClientTraffic, ClientsSummary, InboundOption, OutboundOption };
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
 
@@ -141,6 +143,13 @@ async function fetchInboundOptions(): Promise<InboundOption[]> {
   return Array.isArray(validated.obj) ? validated.obj : [];
 }
 
+async function fetchOutboundOptions(): Promise<OutboundOption[]> {
+  const msg = await HttpUtil.get('/panel/api/clients/outboundOptions', undefined, { silent: true });
+  if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch outbound options');
+  const validated = parseMsg(msg, OutboundOptionsSchema, 'clients/outboundOptions');
+  return Array.isArray(validated.obj) ? validated.obj : [];
+}
+
 async function fetchDefaults(): Promise<Record<string, unknown>> {
   const msg = await HttpUtil.post('/panel/api/setting/defaultSettings', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch defaults');
@@ -192,6 +201,12 @@ export function useClients() {
     staleTime: Infinity,
   });
 
+  const outboundOptionsQuery = useQuery({
+    queryKey: keys.clients.outboundOptions(),
+    queryFn: fetchOutboundOptions,
+    staleTime: Infinity,
+  });
+
   const defaultsQuery = useQuery({
     queryKey: keys.settings.defaults(),
     queryFn: fetchDefaults,
@@ -218,6 +233,7 @@ export function useClients() {
   const loading = listQuery.isFetching;
 
   const inbounds = inboundOptionsQuery.data ?? [];
+  const outbounds = outboundOptionsQuery.data ?? [];
   const onlines = useMemo(() => onlinesQuery.data ?? [], [onlinesQuery.data]);
 
   const defaults = defaultsQuery.data ?? {};
@@ -349,6 +365,12 @@ export function useClients() {
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
+  const attachOutboundsMut = useMutation({
+    mutationFn: ({ email, outboundTags }: { email: string; outboundTags: string[] }) =>
+      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/attachOutbounds`, { outboundTags }, JSON_HEADERS),
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
   const bulkAttachMut = useMutation({
     mutationFn: async (payload: { emails: string[]; inboundIds: number[] }): Promise<Msg<BulkAttachResult>> => {
       const raw = await HttpUtil.post('/panel/api/clients/bulkAttach', payload, JSON_HEADERS);
@@ -360,6 +382,12 @@ export function useClients() {
   const detachMut = useMutation({
     mutationFn: ({ email, inboundIds }: { email: string; inboundIds: number[] }) =>
       HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/detach`, { inboundIds }, JSON_HEADERS),
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
+  const detachOutboundsMut = useMutation({
+    mutationFn: ({ email, outboundTags }: { email: string; outboundTags: string[] }) =>
+      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/detachOutbounds`, { outboundTags }, JSON_HEADERS),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
@@ -423,6 +451,11 @@ export function useClients() {
     if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return attachMut.mutateAsync({ email, inboundIds });
   }, [attachMut]);
+  const attachOutbounds = useCallback((email: string, outboundTags: string[]) => {
+    if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
+    if (!Array.isArray(outboundTags) || outboundTags.length === 0) return Promise.resolve(null as unknown as Msg<unknown>);
+    return attachOutboundsMut.mutateAsync({ email, outboundTags });
+  }, [attachOutboundsMut]);
   const bulkAttach = useCallback((emails: string[], inboundIds: number[]) => {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkAttachResult>);
     if (!Array.isArray(inboundIds) || inboundIds.length === 0) return Promise.resolve(null as unknown as Msg<BulkAttachResult>);
@@ -432,6 +465,11 @@ export function useClients() {
     if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return detachMut.mutateAsync({ email, inboundIds });
   }, [detachMut]);
+  const detachOutbounds = useCallback((email: string, outboundTags: string[]) => {
+    if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
+    if (!Array.isArray(outboundTags) || outboundTags.length === 0) return Promise.resolve(null as unknown as Msg<unknown>);
+    return detachOutboundsMut.mutateAsync({ email, outboundTags });
+  }, [detachOutboundsMut]);
   const bulkDetach = useCallback((emails: string[], inboundIds: number[]) => {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkDetachResult>);
     if (!Array.isArray(inboundIds) || inboundIds.length === 0) return Promise.resolve(null as unknown as Msg<BulkDetachResult>);
@@ -531,6 +569,7 @@ export function useClients() {
     query,
     setQuery,
     inbounds,
+    outbounds,
     onlines,
     loading,
     fetched,
@@ -551,8 +590,10 @@ export function useClients() {
     bulkAddToGroup,
     bulkRemoveFromGroup,
     attach,
+    attachOutbounds,
     bulkAttach,
     detach,
+    detachOutbounds,
     bulkDetach,
     resetTraffic,
     resetAllTraffics,

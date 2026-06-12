@@ -4390,7 +4390,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Fetch one client by email, including the inbound IDs it is attached to.",
+        "summary": "Fetch one client by email, including the inbound IDs and outbound tags it is attached to.",
         "operationId": "get_panel_api_clients_get_email",
         "parameters": [
           {
@@ -4426,6 +4426,47 @@
         }
       }
     },
+    "/panel/api/clients/outboundOptions": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "List selectable outbound tags from the Xray template and active outbound subscriptions for client outbound attachments.",
+        "operationId": "get_panel_api_clients_outboundOptions",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "tag": "warp",
+                      "protocol": "wireguard",
+                      "remark": "warp",
+                      "source": "template"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/add": {
       "post": {
         "tags": [
@@ -4452,6 +4493,9 @@
                 "inboundIds": [
                   3,
                   5
+                ],
+                "outboundTags": [
+                  "warp"
                 ]
               }
             }
@@ -4688,6 +4732,124 @@
               "example": {
                 "inboundIds": [
                   5
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/{email}/attachOutbounds": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Attach an existing client to one or more outbound tags for subscription output.",
+        "operationId": "post_panel_api_clients_email_attachOutbounds",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "outboundTags": [
+                  "warp"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/{email}/detachOutbounds": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Detach outbound subscription configs from a client without changing the outbound definitions.",
+        "operationId": "post_panel_api_clients_email_detachOutbounds",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "outboundTags": [
+                  "warp"
                 ]
               }
             }

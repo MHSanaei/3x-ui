@@ -422,6 +422,7 @@ func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []an
 			processedOutbounds[i] = ob
 			continue
 		}
+		delete(outbound, "clientExternalConfig")
 		if protocol, ok := outbound["protocol"].(string); ok && protocol == "wireguard" {
 			if settings, ok := outbound["settings"].(map[string]any); ok {
 				settings["noKernelTun"] = true

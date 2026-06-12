@@ -147,8 +147,12 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 	if err != nil {
 		return nil, nil, 0, traffic, err
 	}
+	outbounds, outboundOwners, err := s.getAttachedOutboundsBySubId(subId)
+	if err != nil {
+		return nil, nil, 0, traffic, err
+	}
 
-	if len(inbounds) == 0 {
+	if len(inbounds) == 0 && len(outbounds) == 0 {
 		return nil, nil, 0, traffic, nil
 	}
 
@@ -176,6 +180,20 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 			result = append(result, s.GetLink(inbound, client.Email))
 			emails = append(emails, client.Email)
 			seenEmails[client.Email] = struct{}{}
+		}
+	}
+	for i, outbound := range outbounds {
+		if i >= len(outboundOwners) {
+			continue
+		}
+		rec := outboundOwners[i]
+		if rec.Enable {
+			hasEnabledClient = true
+		}
+		if link := s.outboundShareLink(outbound, rec); link != "" {
+			result = append(result, link)
+			emails = append(emails, rec.Email)
+			seenEmails[rec.Email] = struct{}{}
 		}
 	}
 

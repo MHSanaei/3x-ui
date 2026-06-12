@@ -584,6 +584,14 @@ export default function OutboundFormModal({
                     />
 
                     <MuxForm form={form} protocol={protocol} network={network} />
+
+                    <Form.Item
+                      label={t('pages.xray.outboundForm.clientExternalConfig')}
+                      name="clientExternalConfig"
+                      valuePropName="checked"
+                    >
+                      <Switch />
+                    </Form.Item>
                   </>
                 ),
               },

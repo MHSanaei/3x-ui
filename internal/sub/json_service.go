@@ -62,8 +62,15 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	// resolveInboundAddress call inside picks node-aware host values.
 	s.SubService.PrepareForRequest(host)
 	inbounds, err := s.SubService.getInboundsBySubId(subId)
-	if err != nil || len(inbounds) == 0 {
+	if err != nil {
 		return "", "", err
+	}
+	outbounds, outboundOwners, err := s.SubService.getAttachedOutboundsBySubId(subId)
+	if err != nil {
+		return "", "", err
+	}
+	if len(inbounds) == 0 && len(outbounds) == 0 {
+		return "", "", nil
 	}
 
 	var header string
@@ -82,6 +89,21 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 			seenEmails[client.Email] = struct{}{}
 			configArray = append(configArray, s.getConfig(inbound, client, host)...)
 		}
+	}
+	for i, outbound := range outbounds {
+		if i >= len(outboundOwners) {
+			continue
+		}
+		rec := outboundOwners[i]
+		seenEmails[rec.Email] = struct{}{}
+		newOutbounds := []json_util.RawMessage{personalizedOutboundConfig(outbound, rec)}
+		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
+		newConfigJson := make(map[string]any)
+		maps.Copy(newConfigJson, s.configJson)
+		newConfigJson["outbounds"] = newOutbounds
+		newConfigJson["remarks"] = rec.Email
+		newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
+		configArray = append(configArray, newConfig)
 	}
 
 	if len(configArray) == 0 {

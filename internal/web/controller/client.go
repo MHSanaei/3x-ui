@@ -49,6 +49,7 @@ func NewClientController(g *gin.RouterGroup) *ClientController {
 func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.GET("/list", a.list)
 	g.GET("/list/paged", a.listPaged)
+	g.GET("/outboundOptions", a.outboundOptions)
 	g.GET("/get/:email", a.get)
 	g.GET("/traffic/:email", a.getTrafficByEmail)
 	g.GET("/subLinks/:subId", a.getSubLinks)
@@ -59,6 +60,8 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/del/:email", a.delete)
 	g.POST("/:email/attach", a.attach)
 	g.POST("/:email/detach", a.detach)
+	g.POST("/:email/attachOutbounds", a.attachOutbounds)
+	g.POST("/:email/detachOutbounds", a.detachOutbounds)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/delDepleted", a.delDepleted)
 	g.POST("/bulkAdjust", a.bulkAdjust)
@@ -112,6 +115,11 @@ func (a *ClientController) get(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "get"), err)
 		return
 	}
+	outboundTags, err := a.clientService.GetOutboundTagsForRecord(rec.Id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
 	flow, err := a.clientService.EffectiveFlow(nil, rec.Id)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "get"), err)
@@ -125,7 +133,18 @@ func (a *ClientController) get(c *gin.Context) {
 	if t, tErr := a.inboundService.GetClientTrafficByEmail(email); tErr == nil && t != nil {
 		usedTraffic = t.Up + t.Down
 	}
-	jsonObj(c, gin.H{"client": rec, "inboundIds": inboundIds, "usedTraffic": usedTraffic}, nil)
+	jsonObj(c, gin.H{"client": rec, "inboundIds": inboundIds, "outboundTags": outboundTags, "usedTraffic": usedTraffic}, nil)
+}
+
+func (a *ClientController) outboundOptions(c *gin.Context) {
+	xraySettingSvc := &service.XraySettingService{}
+	outboundSubSvc := service.NewOutboundSubscriptionService()
+	options, err := a.clientService.OutboundOptions(xraySettingSvc, outboundSubSvc)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	jsonObj(c, options, nil)
 }
 
 func (a *ClientController) create(c *gin.Context) {
@@ -185,6 +204,10 @@ type attachDetachBody struct {
 	InboundIds []int `json:"inboundIds"`
 }
 
+type outboundAttachDetachBody struct {
+	OutboundTags []string `json:"outboundTags"`
+}
+
 func (a *ClientController) attach(c *gin.Context) {
 	email := c.Param("email")
 	var body attachDetachBody
@@ -201,6 +224,36 @@ func (a *ClientController) attach(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	notifyClientsChanged()
+}
+
+func (a *ClientController) attachOutbounds(c *gin.Context) {
+	email := c.Param("email")
+	var body outboundAttachDetachBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if err := a.clientService.AttachOutboundsByEmail(email, body.OutboundTags); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientUpdateSuccess"), nil)
+	notifyClientsChanged()
+}
+
+func (a *ClientController) detachOutbounds(c *gin.Context) {
+	email := c.Param("email")
+	var body outboundAttachDetachBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if err := a.clientService.DetachOutboundsByEmail(email, body.OutboundTags); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientUpdateSuccess"), nil)
 	notifyClientsChanged()
 }
 
