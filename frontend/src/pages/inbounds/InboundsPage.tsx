@@ -16,7 +16,8 @@ import {
 
 import { setMessageInstance } from '@/utils/messageBus';
 import {
-  SwapOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
   PieChartOutlined,
   BarsOutlined,
 } from '@ant-design/icons';
@@ -585,8 +586,14 @@ export default function InboundsPage() {
                         <Col xs={12} sm={12} md={8}>
                           <Statistic
                             title={t('pages.inbounds.totalDownUp')}
-                            value={`${SizeFormatter.sizeFormat(totals.up)} / ${SizeFormatter.sizeFormat(totals.down)}`}
-                            prefix={<SwapOutlined />}
+                            value={0}
+                            formatter={() => (
+                              <span>
+                                <ArrowUpOutlined /> {SizeFormatter.sizeFormat(totals.up)}
+                                {' / '}
+                                <ArrowDownOutlined /> {SizeFormatter.sizeFormat(totals.down)}
+                              </span>
+                            )}
                           />
                         </Col>
                         <Col xs={12} sm={12} md={8}>
