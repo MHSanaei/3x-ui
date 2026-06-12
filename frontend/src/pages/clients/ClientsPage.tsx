@@ -605,19 +605,19 @@ export default function ClientsPage() {
       render: (_v, record) => (
         <Space size={4}>
           <Tooltip title={t('pages.clients.qrCode')}>
-            <Button size="small" type="text" icon={<QrcodeOutlined />} onClick={() => onShowQr(record)} />
+            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<QrcodeOutlined />} onClick={() => onShowQr(record)} />
           </Tooltip>
           <Tooltip title={t('pages.clients.clientInfo')}>
-            <Button size="small" type="text" icon={<InfoCircleOutlined />} onClick={() => onShowInfo(record)} />
+            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<InfoCircleOutlined />} onClick={() => onShowInfo(record)} />
           </Tooltip>
           <Tooltip title={t('pages.inbounds.resetTraffic')}>
-            <Button size="small" type="text" icon={<RetweetOutlined />} onClick={() => onResetTraffic(record)} />
+            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<RetweetOutlined />} onClick={() => onResetTraffic(record)} />
           </Tooltip>
           <Tooltip title={t('edit')}>
-            <Button size="small" type="text" icon={<EditOutlined />} onClick={() => onEdit(record)} />
+            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<EditOutlined />} onClick={() => onEdit(record)} />
           </Tooltip>
           <Tooltip title={t('delete')}>
-            <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
+            <Button size="small" type="text" danger style={{ fontSize: 18 }} icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
           </Tooltip>
         </Space>
       ),
@@ -663,6 +663,7 @@ export default function ClientsPage() {
     {
       title: t('pages.clients.client'),
       key: 'email',
+      width: 220,
       render: (_v, record) => (
         <div className="email-cell">
           <span className="email">{record.email}</span>
@@ -742,7 +743,6 @@ export default function ClientsPage() {
     {
       title: t('pages.clients.traffic'),
       key: 'traffic',
-      width: 240,
       render: (_v, record) => (
         <ClientTrafficCell
           up={record.traffic?.up}
@@ -762,6 +762,7 @@ export default function ClientsPage() {
     {
       title: t('pages.clients.duration'),
       key: 'expiryTime',
+      width: 130,
       render: (_v, record) => (
         <Tooltip title={expiryLabel(record)}>
           <Tag color={expiryColor(record)}>{record.expiryTime ? expiryRelative(record) : '∞'}</Tag>
