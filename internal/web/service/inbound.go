@@ -19,6 +19,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type InboundService struct {
@@ -550,15 +551,39 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 	}()
 
-	err = tx.Save(inbound).Error
-	if err == nil {
-		if len(inbound.ClientStats) == 0 {
-			for _, client := range clients {
-				s.AddClientStat(tx, inbound.Id, &client)
-			}
-		}
-	} else {
+	// Omit the ClientStats has-many association: GORM's cascade would INSERT
+	// those rows with an ON CONFLICT target on the primary key only, which
+	// collides with the globally-unique client_traffics.email when an imported
+	// inbound carries clients that another inbound already created (e.g.
+	// importing two inbounds that share the same clients). We insert the stats
+	// ourselves below with the same email-conflict guard AddClientStat uses.
+	err = tx.Omit("ClientStats").Save(inbound).Error
+	if err != nil {
 		return inbound, false, err
+	}
+	// Imported stats first, so their traffic counters survive; emails that
+	// already own a (shared) row are skipped instead of tripping the unique
+	// constraint.
+	for i := range inbound.ClientStats {
+		if inbound.ClientStats[i].Email == "" {
+			continue
+		}
+		inbound.ClientStats[i].Id = 0
+		inbound.ClientStats[i].InboundId = inbound.Id
+		if err = tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "email"}},
+			DoNothing: true,
+		}).Create(&inbound.ClientStats[i]).Error; err != nil {
+			return inbound, false, err
+		}
+	}
+	// Then make sure every client has a stats row. AddClientStat is a no-op
+	// where one exists (including the rows just inserted), and fills the gap
+	// for clients an import payload didn't carry stats for.
+	for _, client := range clients {
+		if err = s.AddClientStat(tx, inbound.Id, &client); err != nil {
+			return inbound, false, err
+		}
 	}
 
 	if err = s.clientService.SyncInbound(tx, inbound.Id, clients); err != nil {
