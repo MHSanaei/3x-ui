@@ -673,6 +673,10 @@
       "searchPlaceholder": "Buscar email, comentário, sub ID, UUID, senha, auth…",
       "filterTitle": "Filtrar clientes",
       "clearAllFilters": "Limpar tudo",
+      "filters": {
+        "nodes": "Nós",
+        "localPanel": "Local (este painel)"
+      },
       "showingCount": "Mostrando {shown} de {total}",
       "sortOldest": "Mais antigos primeiro",
       "sortNewest": "Mais novos primeiro",

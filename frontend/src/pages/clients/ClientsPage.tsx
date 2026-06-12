@@ -51,6 +51,7 @@ import { formatInboundLabel } from '@/lib/inbounds/label';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useClients } from '@/hooks/useClients';
+import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import ClientTrafficCell from '@/components/clients/ClientTrafficCell';
@@ -148,6 +149,7 @@ function readFilterState(): PersistedFilterState {
         buckets: Array.isArray(fromRaw.buckets) ? fromRaw.buckets : [],
         protocols: Array.isArray(fromRaw.protocols) ? fromRaw.protocols : [],
         inboundIds: Array.isArray(fromRaw.inboundIds) ? fromRaw.inboundIds : [],
+        nodeIds: Array.isArray(fromRaw.nodeIds) ? fromRaw.nodeIds : [],
         groups: Array.isArray(fromRaw.groups) ? fromRaw.groups : [],
       },
       sort: typeof raw.sort === 'string' ? raw.sort : '',
@@ -209,6 +211,10 @@ export default function ClientsPage() {
     client_stats: applyClientStatsEvent,
   });
 
+  // Node list for the Nodes filter; the section only renders when the panel
+  // actually manages nodes (#4997).
+  const { nodes } = useNodesQuery();
+
   const [togglingEmail, setTogglingEmail] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
@@ -255,6 +261,23 @@ export default function ClientsPage() {
     setCurrentPage(1);
   }, [debouncedSearch, filters, sortColumn, sortOrder]);
 
+  // The node filter maps onto inbound ids client-side (#4997): the paging API
+  // already accepts an inbound CSV, so nodes never have to reach the backend.
+  // Sentinel 0 = "local panel" (inbounds without a nodeId).
+  const effectiveInboundCsv = useMemo(() => {
+    if (!filters.nodeIds.length) return filters.inboundIds.join(',');
+    const nodeSet = new Set(filters.nodeIds);
+    const nodeInboundIds = inbounds
+      .filter((ib) => nodeSet.has(ib.nodeId ?? 0))
+      .map((ib) => ib.id);
+    const pool = filters.inboundIds.length
+      ? nodeInboundIds.filter((id) => filters.inboundIds.includes(id))
+      : nodeInboundIds;
+    // Nothing matches the selected nodes: send an impossible id so the filter
+    // yields an honest empty result instead of being silently ignored.
+    return pool.length ? pool.join(',') : '-1';
+  }, [filters.nodeIds, filters.inboundIds, inbounds]);
+
   useEffect(() => {
     setQuery({
       page: currentPage,
@@ -262,7 +285,7 @@ export default function ClientsPage() {
       search: debouncedSearch,
       filter: filters.buckets.join(','),
       protocol: filters.protocols.join(','),
-      inbound: filters.inboundIds.join(','),
+      inbound: effectiveInboundCsv,
       expiryFrom: filters.expiryFrom,
       expiryTo: filters.expiryTo,
       usageFrom: gbToBytes(filters.usageFromGB),
@@ -274,7 +297,7 @@ export default function ClientsPage() {
       sort: sortColumn || undefined,
       order: sortOrder || undefined,
     });
-  }, [setQuery, currentPage, tablePageSize, debouncedSearch, filters, sortColumn, sortOrder]);
+  }, [setQuery, currentPage, tablePageSize, debouncedSearch, filters, effectiveInboundCsv, sortColumn, sortOrder]);
 
   const activeCount = activeFilterCount(filters);
 
@@ -1333,6 +1356,7 @@ export default function ClientsPage() {
             inbounds={inbounds}
             protocols={protocolOptions}
             groups={groupOptions}
+            nodes={nodes}
           />
         </LazyMount>
       </Layout>

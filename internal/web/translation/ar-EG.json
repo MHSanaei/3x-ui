@@ -673,6 +673,10 @@
       "searchPlaceholder": "ابحث بالبريد، التعليق، sub ID، UUID، كلمة المرور، auth…",
       "filterTitle": "تصفية العملاء",
       "clearAllFilters": "مسح الكل",
+      "filters": {
+        "nodes": "النودز",
+        "localPanel": "محلي (هذه اللوحة)"
+      },
       "showingCount": "عرض {shown} من {total}",
       "sortOldest": "الأقدم أولاً",
       "sortNewest": "الأحدث أولاً",

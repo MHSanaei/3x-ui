@@ -295,6 +295,9 @@ type InboundOption struct {
 	Port           int    `json:"port" example:"443"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
 	SsMethod       string `json:"ssMethod"`
+	// Hosting node; nil for this panel's own inbounds. Lets the clients
+	// page map a node filter onto inbound IDs (#4997).
+	NodeId *int `json:"nodeId,omitempty"`
 }
 
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
@@ -307,9 +310,10 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		Port           int    `gorm:"column:port"`
 		StreamSettings string `gorm:"column:stream_settings"`
 		Settings       string `gorm:"column:settings"`
+		NodeId         *int   `gorm:"column:node_id"`
 	}
 	err := db.Table("inbounds").
-		Select("id, remark, tag, protocol, port, stream_settings, settings").
+		Select("id, remark, tag, protocol, port, stream_settings, settings, node_id").
 		Where("user_id = ?", userId).
 		Order("id ASC").
 		Scan(&rows).Error
@@ -326,6 +330,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			Port:           r.Port,
 			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
 			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
+			NodeId:         r.NodeId,
 		})
 	}
 	return out, nil

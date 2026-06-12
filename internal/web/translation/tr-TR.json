@@ -674,6 +674,10 @@
       "searchPlaceholder": "E-posta, yorum, sub ID, UUID, parola, auth ara…",
       "filterTitle": "Kullanıcıları Filtrele",
       "clearAllFilters": "Tümünü Temizle",
+      "filters": {
+        "nodes": "Düğümler",
+        "localPanel": "Yerel (bu panel)"
+      },
       "showingCount": "{total} içinden {shown} gösteriliyor",
       "sortOldest": "Önce En Eski",
       "sortNewest": "Önce En Yeni",

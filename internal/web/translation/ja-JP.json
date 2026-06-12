@@ -673,6 +673,10 @@
       "searchPlaceholder": "メール、コメント、sub ID、UUID、パスワード、auth を検索…",
       "filterTitle": "クライアントをフィルタ",
       "clearAllFilters": "すべてクリア",
+      "filters": {
+        "nodes": "ノード",
+        "localPanel": "ローカル（このパネル）"
+      },
       "showingCount": "{total} 件中 {shown} 件を表示",
       "sortOldest": "古い順",
       "sortNewest": "新しい順",

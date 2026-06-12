@@ -674,6 +674,10 @@
       "searchPlaceholder": "Search email, comment, sub ID, UUID, password, auth…",
       "filterTitle": "Filter clients",
       "clearAllFilters": "Clear all",
+      "filters": {
+        "nodes": "Nodes",
+        "localPanel": "Local (this panel)"
+      },
       "showingCount": "Showing {shown} of {total}",
       "sortOldest": "Oldest first",
       "sortNewest": "Newest first",
