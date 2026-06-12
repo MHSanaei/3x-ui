@@ -210,6 +210,11 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 onChange={(v) => updateSetting({ pageSize: Number(v) || 0 })} />
             </SettingListItem>
 
+            <SettingListItem paddings="small" title={t('pages.settings.restartXrayOnClientDisable')} description={t('pages.settings.restartXrayOnClientDisableDesc')}>
+              <Switch checked={allSetting.restartXrayOnClientDisable}
+                onChange={(v) => updateSetting({ restartXrayOnClientDisable: v })} />
+            </SettingListItem>
+
             <SettingListItem paddings="small" title={t('pages.settings.language')}>
               <Select
                 value={lang}
@@ -266,10 +271,6 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 placeholder="(http|https)://domain[:port]/path/"
                 onChange={(e) => updateSetting({ externalTrafficInformURI: e.target.value })}
               />
-            </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.restartXrayOnClientDisable')} description={t('pages.settings.restartXrayOnClientDisableDesc')}>
-              <Switch checked={allSetting.restartXrayOnClientDisable}
-                onChange={(v) => updateSetting({ restartXrayOnClientDisable: v })} />
             </SettingListItem>
           </>
         ),

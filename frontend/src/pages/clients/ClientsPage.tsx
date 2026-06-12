@@ -165,15 +165,15 @@ function gbToBytes(gb: number | undefined): number {
 }
 
 const SORT_OPTIONS: { value: string; column: string; order: 'ascend' | 'descend'; labelKey: string }[] = [
-  { value: 'createdAt:ascend',    column: 'createdAt',  order: 'ascend',   labelKey: 'pages.clients.sortOldest' },
-  { value: 'createdAt:descend',   column: 'createdAt',  order: 'descend',  labelKey: 'pages.clients.sortNewest' },
-  { value: 'updatedAt:descend',   column: 'updatedAt',  order: 'descend',  labelKey: 'pages.clients.sortRecentlyUpdated' },
-  { value: 'lastOnline:descend',  column: 'lastOnline', order: 'descend',  labelKey: 'pages.clients.sortRecentlyOnline' },
-  { value: 'email:ascend',        column: 'email',      order: 'ascend',   labelKey: 'pages.clients.sortEmailAZ' },
-  { value: 'email:descend',       column: 'email',      order: 'descend',  labelKey: 'pages.clients.sortEmailZA' },
-  { value: 'traffic:descend',     column: 'traffic',    order: 'descend',  labelKey: 'pages.clients.sortMostTraffic' },
-  { value: 'remaining:descend',   column: 'remaining',  order: 'descend',  labelKey: 'pages.clients.sortHighestRemaining' },
-  { value: 'expiryTime:ascend',   column: 'expiryTime', order: 'ascend',   labelKey: 'pages.clients.sortExpiringSoonest' },
+  { value: 'createdAt:ascend', column: 'createdAt', order: 'ascend', labelKey: 'pages.clients.sortOldest' },
+  { value: 'createdAt:descend', column: 'createdAt', order: 'descend', labelKey: 'pages.clients.sortNewest' },
+  { value: 'updatedAt:descend', column: 'updatedAt', order: 'descend', labelKey: 'pages.clients.sortRecentlyUpdated' },
+  { value: 'lastOnline:descend', column: 'lastOnline', order: 'descend', labelKey: 'pages.clients.sortRecentlyOnline' },
+  { value: 'email:ascend', column: 'email', order: 'ascend', labelKey: 'pages.clients.sortEmailAZ' },
+  { value: 'email:descend', column: 'email', order: 'descend', labelKey: 'pages.clients.sortEmailZA' },
+  { value: 'traffic:descend', column: 'traffic', order: 'descend', labelKey: 'pages.clients.sortMostTraffic' },
+  { value: 'remaining:descend', column: 'remaining', order: 'descend', labelKey: 'pages.clients.sortHighestRemaining' },
+  { value: 'expiryTime:ascend', column: 'expiryTime', order: 'ascend', labelKey: 'pages.clients.sortExpiringSoonest' },
 ];
 
 const DEFAULT_SORT = SORT_OPTIONS[0];
@@ -617,19 +617,19 @@ export default function ClientsPage() {
       render: (_v, record) => (
         <Space size={4}>
           <Tooltip title={t('pages.clients.qrCode')}>
-            <Button size="small" type="text" icon={<QrcodeOutlined />} onClick={() => onShowQr(record)} />
+            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<QrcodeOutlined />} onClick={() => onShowQr(record)} />
           </Tooltip>
           <Tooltip title={t('pages.clients.clientInfo')}>
-            <Button size="small" type="text" icon={<InfoCircleOutlined />} onClick={() => onShowInfo(record)} />
+            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<InfoCircleOutlined />} onClick={() => onShowInfo(record)} />
           </Tooltip>
           <Tooltip title={t('pages.inbounds.resetTraffic')}>
-            <Button size="small" type="text" icon={<RetweetOutlined />} onClick={() => onResetTraffic(record)} />
+            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<RetweetOutlined />} onClick={() => onResetTraffic(record)} />
           </Tooltip>
           <Tooltip title={t('edit')}>
-            <Button size="small" type="text" icon={<EditOutlined />} onClick={() => onEdit(record)} />
+            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<EditOutlined />} onClick={() => onEdit(record)} />
           </Tooltip>
           <Tooltip title={t('delete')}>
-            <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
+            <Button size="small" type="text" danger style={{ fontSize: 18 }} icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
           </Tooltip>
         </Space>
       ),
@@ -675,6 +675,7 @@ export default function ClientsPage() {
     {
       title: t('pages.clients.client'),
       key: 'email',
+      width: 220,
       render: (_v, record) => (
         <div className="email-cell">
           <span className="email">{record.email}</span>
@@ -754,7 +755,7 @@ export default function ClientsPage() {
     {
       title: t('pages.clients.traffic'),
       key: 'traffic',
-      width: 240,
+      width: 300,
       render: (_v, record) => (
         <ClientTrafficCell
           up={record.traffic?.up}
@@ -774,6 +775,7 @@ export default function ClientsPage() {
     {
       title: t('pages.clients.duration'),
       key: 'expiryTime',
+      width: 130,
       render: (_v, record) => (
         <Tooltip title={expiryLabel(record)}>
           <Tag color={expiryColor(record)}>{record.expiryTime ? expiryRelative(record) : '∞'}</Tag>
@@ -935,40 +937,40 @@ export default function ClientsPage() {
                             menu={{
                               items: selectedRowKeys.length > 0
                                 ? [
-                                    {
-                                      key: 'adjust',
-                                      icon: <ClockCircleOutlined />,
-                                      label: t('pages.clients.adjust'),
-                                      onClick: () => setBulkAdjustOpen(true),
-                                    },
-                                    {
-                                      key: 'subLinks',
-                                      icon: <LinkOutlined />,
-                                      label: t('pages.clients.subLinks'),
-                                      onClick: () => setSubLinksOpen(true),
-                                    },
-                                  ]
+                                  {
+                                    key: 'adjust',
+                                    icon: <ClockCircleOutlined />,
+                                    label: t('pages.clients.adjust'),
+                                    onClick: () => setBulkAdjustOpen(true),
+                                  },
+                                  {
+                                    key: 'subLinks',
+                                    icon: <LinkOutlined />,
+                                    label: t('pages.clients.subLinks'),
+                                    onClick: () => setSubLinksOpen(true),
+                                  },
+                                ]
                                 : [
-                                    {
-                                      key: 'bulk',
-                                      icon: <UsergroupAddOutlined />,
-                                      label: t('pages.clients.bulk'),
-                                      onClick: () => setBulkAddOpen(true),
-                                    },
-                                    {
-                                      key: 'resetAll',
-                                      icon: <RetweetOutlined />,
-                                      label: t('pages.clients.resetAllTraffics'),
-                                      onClick: onResetAllTraffics,
-                                    },
-                                    {
-                                      key: 'delDepleted',
-                                      icon: <RestOutlined />,
-                                      label: t('pages.clients.delDepleted'),
-                                      danger: true,
-                                      onClick: onDelDepleted,
-                                    },
-                                  ],
+                                  {
+                                    key: 'bulk',
+                                    icon: <UsergroupAddOutlined />,
+                                    label: t('pages.clients.bulk'),
+                                    onClick: () => setBulkAddOpen(true),
+                                  },
+                                  {
+                                    key: 'resetAll',
+                                    icon: <RetweetOutlined />,
+                                    label: t('pages.clients.resetAllTraffics'),
+                                    onClick: onResetAllTraffics,
+                                  },
+                                  {
+                                    key: 'delDepleted',
+                                    icon: <RestOutlined />,
+                                    label: t('pages.clients.delDepleted'),
+                                    danger: true,
+                                    onClick: onDelDepleted,
+                                  },
+                                ],
                             }}
                           >
                             <Button icon={<MoreOutlined />}>
@@ -1259,6 +1261,7 @@ export default function ClientsPage() {
             tgBotEnable={tgBotEnable}
             groups={allGroups}
             save={onSave}
+            resetTraffic={resetTraffic}
             onOpenChange={setFormOpen}
           />
         </LazyMount>

@@ -48,6 +48,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/update", a.updateSetting)
 	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
 	g.POST("/testOutbound", a.testOutbound)
+	g.POST("/testOutbounds", a.testOutbounds)
 	g.POST("/balancerStatus", a.balancerStatus)
 	g.POST("/balancerOverride", a.balancerOverride)
 	g.POST("/routeTest", a.routeTest)
@@ -284,6 +285,39 @@ func (a *XraySettingController) testOutbound(c *gin.Context) {
 	}
 
 	jsonObj(c, result, nil)
+}
+
+// testOutbounds tests a batch of outbound configurations through one shared
+// temp xray instance and returns an array of results in input order.
+// Form "outbounds": JSON array of outbound configs (required).
+// Optional form "allOutbounds": JSON array of all outbounds; used to resolve sockopt.dialerProxy dependencies.
+// Optional form "mode": "tcp" for fast dial-only probes, anything else
+// (default) for real HTTP requests routed through each outbound.
+func (a *XraySettingController) testOutbounds(c *gin.Context) {
+	outboundsJSON := c.PostForm("outbounds")
+	allOutboundsJSON := c.PostForm("allOutbounds")
+	mode := c.PostForm("mode")
+
+	if outboundsJSON == "" {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewError("outbounds parameter is required"))
+		return
+	}
+
+	// Load the test URL from server settings to prevent SSRF via user-controlled URLs
+	testURL, _ := a.SettingService.GetXrayOutboundTestUrl()
+	testURL, err := service.SanitizePublicHTTPURL(testURL, false)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+
+	results, err := a.OutboundService.TestOutbounds(outboundsJSON, testURL, allOutboundsJSON, mode)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+
+	jsonObj(c, results, nil)
 }
 
 // balancerStatus reports the live state (override + strategy picks) of the

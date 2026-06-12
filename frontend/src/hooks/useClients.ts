@@ -271,12 +271,6 @@ export function useClients() {
     return { ...live, total: serverSummary.total || live.total };
   }, [allClientStats, onlines, expireDiff, trafficDiff, listQuery.data?.summary]);
 
-  // Client mutations (add/update/remove/attach/detach/resetTraffic/…) all
-  // mutate inbound rows server-side too — adding a client appends to
-  // settings.clients on each attached inbound, the slim list's per-inbound
-  // client count is derived from that. Invalidate both buckets so the
-  // Inbounds page and any open edit modal pick up the new shape without
-  // a manual reload.
   const invalidateAll = useCallback(
     () => {
       markLocalInvalidate();
@@ -284,6 +278,7 @@ export function useClients() {
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
         queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
+        queryClient.invalidateQueries({ queryKey: keys.xray.config() }),
       ]);
     },
     [queryClient],

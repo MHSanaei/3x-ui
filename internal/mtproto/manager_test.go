@@ -40,7 +40,8 @@ func TestInstanceFromInbound(t *testing.T) {
 		Protocol: model.MTProto,
 		Settings: `{"fakeTlsDomain":"example.com","secret":"",` +
 			`"debug":true,"proxyProtocolListener":true,"preferIp":"prefer-ipv4",` +
-			`"domainFronting":{"ip":"127.0.0.1","port":9443,"proxyProtocol":true}}`,
+			`"domainFronting":{"ip":"127.0.0.1","port":9443,"proxyProtocol":true},` +
+			`"routeThroughXray":true,"routeXrayPort":50000}`,
 	}
 	inst, ok := InstanceFromInbound(ib)
 	if !ok {
@@ -57,6 +58,9 @@ func TestInstanceFromInbound(t *testing.T) {
 	}
 	if inst.FrontingIP != "127.0.0.1" || inst.FrontingPort != 9443 || !inst.FrontingProxyProtocol {
 		t.Fatalf("domain-fronting not parsed: %+v", inst)
+	}
+	if !inst.RouteThroughXray || inst.XrayRoutePort != 50000 {
+		t.Fatalf("xray routing not parsed: %+v", inst)
 	}
 
 	if _, ok := InstanceFromInbound(&model.Inbound{Protocol: model.VLESS}); ok {
@@ -108,6 +112,32 @@ func TestRenderConfig(t *testing.T) {
 	}
 }
 
+func TestRenderConfigXrayEgress(t *testing.T) {
+	// Routing through Xray emits a [network] proxies upstream pointing at the
+	// loopback SOCKS bridge, before the prometheus block.
+	routed := renderConfig(Instance{
+		Secret: "ee22", Listen: "0.0.0.0", Port: 443,
+		RouteThroughXray: true, XrayRoutePort: 50000,
+	}, 7000)
+	if !strings.Contains(routed, "[network]") ||
+		!strings.Contains(routed, `proxies = ["socks5://127.0.0.1:50000"]`) {
+		t.Fatalf("routed config must emit the SOCKS upstream:\n%s", routed)
+	}
+	if strings.Index(routed, "[network]") > strings.Index(routed, "[stats.prometheus]") {
+		t.Fatalf("[network] must precede [stats.prometheus]:\n%s", routed)
+	}
+
+	// Without the flag (or without a port) the section is omitted.
+	for _, inst := range []Instance{
+		{Secret: "ee", Listen: "0.0.0.0", Port: 443},
+		{Secret: "ee", Listen: "0.0.0.0", Port: 443, RouteThroughXray: true},
+	} {
+		if got := renderConfig(inst, 7000); strings.Contains(got, "[network]") {
+			t.Fatalf("unrouted config must omit [network]:\n%s", got)
+		}
+	}
+}
+
 func TestFingerprintReactsToOptions(t *testing.T) {
 	base := Instance{Secret: "ee", Listen: "0.0.0.0", Port: 443}
 	for name, mutate := range map[string]func(*Instance){
@@ -117,6 +147,8 @@ func TestFingerprintReactsToOptions(t *testing.T) {
 		"frontingIP":    func(i *Instance) { i.FrontingIP = "127.0.0.1" },
 		"frontingPort":  func(i *Instance) { i.FrontingPort = 9443 },
 		"frontingProxy": func(i *Instance) { i.FrontingProxyProtocol = true },
+		"routeXray":     func(i *Instance) { i.RouteThroughXray = true },
+		"routeXrayPort": func(i *Instance) { i.XrayRoutePort = 50000 },
 	} {
 		changed := base
 		mutate(&changed)

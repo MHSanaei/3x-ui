@@ -210,6 +210,25 @@
   color: #e04141;
 }
 
+.outbound-test-popover .breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.outbound-test-popover .breakdown-row .bd-label {
+  flex: 1;
+  min-width: 0;
+  opacity: 0.85;
+}
+
+.outbound-test-popover .breakdown-row .bd-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  opacity: 0.75;
+}
+
 .subscription-outbounds-head {
   margin-bottom: 8px;
 }

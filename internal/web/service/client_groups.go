@@ -14,6 +14,8 @@ type GroupSummary struct {
 	Name        string `json:"name"`
 	ClientCount int    `json:"clientCount"`
 	TrafficUsed int64  `json:"trafficUsed"`
+	Up          int64  `json:"up"`
+	Down        int64  `json:"down"`
 }
 
 func (s *ClientService) ListGroups() ([]GroupSummary, error) {
@@ -22,7 +24,7 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 	// never double-counts a client's traffic.
 	var derived []GroupSummary
 	if err := db.Table("clients AS c").
-		Select("c.group_name AS name, COUNT(*) AS client_count, COALESCE(SUM(ct.up + ct.down), 0) AS traffic_used").
+		Select("c.group_name AS name, COUNT(*) AS client_count, COALESCE(SUM(ct.up + ct.down), 0) AS traffic_used, COALESCE(SUM(ct.up), 0) AS up, COALESCE(SUM(ct.down), 0) AS down").
 		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email").
 		Where("c.group_name <> ''").
 		Group("c.group_name").
@@ -36,17 +38,19 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 	type groupAgg struct {
 		count   int
 		traffic int64
+		up      int64
+		down    int64
 	}
 	merged := make(map[string]groupAgg, len(derived)+len(stored))
 	for _, g := range stored {
 		merged[g.Name] = groupAgg{}
 	}
 	for _, g := range derived {
-		merged[g.Name] = groupAgg{count: g.ClientCount, traffic: g.TrafficUsed}
+		merged[g.Name] = groupAgg{count: g.ClientCount, traffic: g.TrafficUsed, up: g.Up, down: g.Down}
 	}
 	out := make([]GroupSummary, 0, len(merged))
 	for name, agg := range merged {
-		out = append(out, GroupSummary{Name: name, ClientCount: agg.count, TrafficUsed: agg.traffic})
+		out = append(out, GroupSummary{Name: name, ClientCount: agg.count, TrafficUsed: agg.traffic, Up: agg.up, Down: agg.down})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)

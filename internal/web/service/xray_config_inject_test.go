@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -269,5 +270,101 @@ func TestInjectPanelEgress_BadRoutingSkips(t *testing.T) {
 	}
 	if string(cfg.RouterConfig) != `{not json` {
 		t.Fatal("unparsable routing must be left untouched")
+	}
+}
+
+func mtprotoInbound(tag string, settings string) *model.Inbound {
+	return &model.Inbound{Tag: tag, Protocol: model.MTProto, Enable: true, Settings: settings}
+}
+
+func TestInjectMtprotoEgress_WithOutbound(t *testing.T) {
+	cfg := egressTestConfig()
+	injectMtprotoEgress(cfg, mtprotoInbound("inbound-443",
+		`{"routeThroughXray":true,"routeXrayPort":50000,"outboundTag":"warp"}`))
+
+	if len(cfg.InboundConfigs) != 2 {
+		t.Fatalf("expected the bridge inbound to be appended, got %d", len(cfg.InboundConfigs))
+	}
+	ib := cfg.InboundConfigs[1]
+	if ib.Tag != "inbound-443" || ib.Protocol != "socks" || ib.Port != 50000 {
+		t.Fatalf("unexpected bridge inbound: %+v", ib)
+	}
+	if string(ib.Listen) != `"127.0.0.1"` {
+		t.Fatalf("bridge must listen on loopback, got %s", ib.Listen)
+	}
+
+	var routing egressRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 2 {
+		t.Fatalf("expected the egress rule prepended to the existing rule, got %+v", routing.Rules)
+	}
+	first := routing.Rules[0]
+	if first.Type != "field" || first.OutboundTag != "warp" ||
+		len(first.InboundTag) != 1 || first.InboundTag[0] != "inbound-443" {
+		t.Fatalf("egress rule must bind the inbound tag to the outbound, got %+v", first)
+	}
+}
+
+func TestInjectMtprotoEgress_NoOutboundLeavesRouting(t *testing.T) {
+	cfg := egressTestConfig()
+	before := string(cfg.RouterConfig)
+	injectMtprotoEgress(cfg, mtprotoInbound("inbound-443",
+		`{"routeThroughXray":true,"routeXrayPort":50001}`))
+
+	if len(cfg.InboundConfigs) != 2 || cfg.InboundConfigs[1].Port != 50001 {
+		t.Fatalf("bridge must still be appended without an outbound, got %+v", cfg.InboundConfigs)
+	}
+	if string(cfg.RouterConfig) != before {
+		t.Fatalf("no outbound means no rule change, got %s", cfg.RouterConfig)
+	}
+}
+
+func TestInjectMtprotoEgress_BalancerTag(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.RouterConfig = json_util.RawMessage(`{"rules":[],"balancers":[{"tag":"lb","selector":["warp"]}]}`)
+	injectMtprotoEgress(cfg, mtprotoInbound("inbound-443",
+		`{"routeThroughXray":true,"routeXrayPort":50002,"outboundTag":"lb"}`))
+
+	var routing struct {
+		Rules []struct {
+			OutboundTag string `json:"outboundTag"`
+			BalancerTag string `json:"balancerTag"`
+		} `json:"rules"`
+	}
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 1 || routing.Rules[0].BalancerTag != "lb" || routing.Rules[0].OutboundTag != "" {
+		t.Fatalf("a balancer tag must target balancerTag, got %+v", routing.Rules)
+	}
+}
+
+func TestInjectMtprotoEgress_Disabled(t *testing.T) {
+	// Not routed, and routed-but-portless, are both no-ops.
+	for _, settings := range []string{
+		`{"routeThroughXray":false,"routeXrayPort":50000}`,
+		`{"routeThroughXray":true}`,
+		`{"routeThroughXray":true,"routeXrayPort":0}`,
+	} {
+		cfg := egressTestConfig()
+		before := string(cfg.RouterConfig)
+		injectMtprotoEgress(cfg, mtprotoInbound("inbound-443", settings))
+		if len(cfg.InboundConfigs) != 1 || string(cfg.RouterConfig) != before {
+			t.Fatalf("settings %s must be a no-op, got %d inbounds", settings, len(cfg.InboundConfigs))
+		}
+	}
+}
+
+func TestInjectMtprotoEgress_TagCollisionSkips(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.InboundConfigs = append(cfg.InboundConfigs,
+		xray.InboundConfig{Port: 443, Protocol: "vless", Tag: "inbound-443"})
+	before := string(cfg.RouterConfig)
+	injectMtprotoEgress(cfg, mtprotoInbound("inbound-443",
+		`{"routeThroughXray":true,"routeXrayPort":50003,"outboundTag":"warp"}`))
+	if len(cfg.InboundConfigs) != 2 || string(cfg.RouterConfig) != before {
+		t.Fatal("a real inbound already owning the tag must make the bridge a no-op")
 	}
 }

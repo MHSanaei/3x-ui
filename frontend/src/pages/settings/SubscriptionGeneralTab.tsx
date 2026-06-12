@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { Divider, Input, InputNumber, Select, Space, Switch, Tabs } from 'antd';
-import { ClockCircleOutlined, InfoCircleOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons';
+import { Input, InputNumber, Select, Space, Switch, Tabs } from 'antd';
+import { BranchesOutlined, IdcardOutlined, InfoCircleOutlined, NodeIndexOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
@@ -139,8 +139,18 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
               </Space.Compact>
             </SettingListItem>
 
-            <Divider>{t('pages.settings.subTitle')}</Divider>
-
+            <SettingListItem paddings="small" title={t('pages.settings.subUpdates')} description={t('pages.settings.subUpdatesDesc')}>
+              <InputNumber value={allSetting.subUpdates} min={1} style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ subUpdates: Number(v) || 0 })} />
+            </SettingListItem>
+          </>
+        ),
+      },
+      {
+        key: '3',
+        label: catTabLabel(<IdcardOutlined />, t('pages.settings.profile'), isMobile),
+        children: (
+          <>
             <SettingListItem paddings="small" title={t('pages.settings.subTitle')} description={t('pages.settings.subTitleDesc')}>
               <Input value={allSetting.subTitle} onChange={(e) => updateSetting({ subTitle: e.target.value })} />
             </SettingListItem>
@@ -156,40 +166,30 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
               <Input.TextArea value={allSetting.subAnnounce}
                 onChange={(e) => updateSetting({ subAnnounce: e.target.value })} />
             </SettingListItem>
-
-            <SettingListItem paddings="small" title={t('pages.settings.subThemeDir')} description={t('pages.settings.subThemeDirDesc')}>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.subThemeDir')}
+              description={(
+                <>
+                  {t('pages.settings.subThemeDirDesc')}{' '}
+                  <a
+                    href="https://github.com/MHSanaei/3x-ui/blob/main/docs/custom-subscription-templates.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('pages.settings.subThemeDirDocs')}
+                  </a>
+                </>
+              )}
+            >
               <Input value={allSetting.subThemeDir} placeholder="/etc/3x-ui/sub_templates/my-theme/"
                 onChange={(e) => updateSetting({ subThemeDir: e.target.value })} />
-            </SettingListItem>
-
-            <Divider>Happ</Divider>
-
-            <SettingListItem paddings="small" title={t('pages.settings.subEnableRouting')} description={t('pages.settings.subEnableRoutingDesc')}>
-              <Switch checked={allSetting.subEnableRouting} onChange={(v) => updateSetting({ subEnableRouting: v })} />
-            </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.subRoutingRules')} description={t('pages.settings.subRoutingRulesDesc')}>
-              <Input.TextArea value={allSetting.subRoutingRules} placeholder="happ://routing/add/..."
-                onChange={(e) => updateSetting({ subRoutingRules: e.target.value })} />
-            </SettingListItem>
-
-            <Divider>Clash / Mihomo</Divider>
-
-            <SettingListItem paddings="small" title={t('pages.settings.subClashEnableRouting')} description={t('pages.settings.subClashEnableRoutingDesc')}>
-              <Switch checked={allSetting.subClashEnableRouting} onChange={(v) => updateSetting({ subClashEnableRouting: v })} />
-            </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.subClashRoutingRules')} description={t('pages.settings.subClashRoutingRulesDesc')}>
-              <Input.TextArea
-                value={allSetting.subClashRules}
-                rows={8}
-                placeholder={'GEOSITE,category-ir,DIRECT\nGEOIP,private,DIRECT'}
-                onChange={(e) => updateSetting({ subClashRules: e.target.value })}
-              />
             </SettingListItem>
           </>
         ),
       },
       {
-        key: '3',
+        key: '4',
         label: catTabLabel(<SafetyCertificateOutlined />, t('pages.settings.certs'), isMobile),
         children: (
           <>
@@ -203,13 +203,35 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
         ),
       },
       {
-        key: '4',
-        label: catTabLabel(<ClockCircleOutlined />, t('pages.settings.intervals'), isMobile),
+        key: '5',
+        label: catTabLabel(<BranchesOutlined />, 'Happ', isMobile),
         children: (
           <>
-            <SettingListItem paddings="small" title={t('pages.settings.subUpdates')} description={t('pages.settings.subUpdatesDesc')}>
-              <InputNumber value={allSetting.subUpdates} min={1} style={{ width: '100%' }}
-                onChange={(v) => updateSetting({ subUpdates: Number(v) || 0 })} />
+            <SettingListItem paddings="small" title={t('pages.settings.subEnableRouting')} description={t('pages.settings.subEnableRoutingDesc')}>
+              <Switch checked={allSetting.subEnableRouting} onChange={(v) => updateSetting({ subEnableRouting: v })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subRoutingRules')} description={t('pages.settings.subRoutingRulesDesc')}>
+              <Input.TextArea value={allSetting.subRoutingRules} placeholder="happ://routing/add/..."
+                onChange={(e) => updateSetting({ subRoutingRules: e.target.value })} />
+            </SettingListItem>
+          </>
+        ),
+      },
+      {
+        key: '6',
+        label: catTabLabel(<NodeIndexOutlined />, 'Clash / Mihomo', isMobile),
+        children: (
+          <>
+            <SettingListItem paddings="small" title={t('pages.settings.subClashEnableRouting')} description={t('pages.settings.subClashEnableRoutingDesc')}>
+              <Switch checked={allSetting.subClashEnableRouting} onChange={(v) => updateSetting({ subClashEnableRouting: v })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subClashRoutingRules')} description={t('pages.settings.subClashRoutingRulesDesc')}>
+              <Input.TextArea
+                value={allSetting.subClashRules}
+                rows={8}
+                placeholder={'GEOSITE,category-ir,DIRECT\nGEOIP,private,DIRECT'}
+                onChange={(e) => updateSetting({ subClashRules: e.target.value })}
+              />
             </SettingListItem>
           </>
         ),

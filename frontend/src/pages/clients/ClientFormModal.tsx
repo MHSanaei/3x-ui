@@ -8,6 +8,7 @@ import {
   Input,
   InputNumber,
   Modal,
+  Popconfirm,
   Row,
   Select,
   Space,
@@ -17,7 +18,7 @@ import {
   Tooltip,
   message,
 } from 'antd';
-import { EyeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { EyeOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { HttpUtil, RandomUtil } from '@/utils';
@@ -39,6 +40,7 @@ const CLIENT_IP_LOG_MODAL_Z_INDEX = CLIENT_FORM_MODAL_Z_INDEX + 1;
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
+  msg?: string;
   obj?: T;
 }
 
@@ -77,6 +79,7 @@ interface ClientFormModalProps {
     payload: Record<string, unknown> | SaveCreatePayload,
     meta: SaveMetaEdit | SaveMetaCreate,
   ) => Promise<ApiMsg | null>;
+  resetTraffic?: (client: ClientRecord) => Promise<ApiMsg | null>;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -159,6 +162,7 @@ export default function ClientFormModal({
   tgBotEnable = false,
   groups = [],
   save,
+  resetTraffic,
   onOpenChange,
 }: ClientFormModalProps) {
   const { t } = useTranslation();
@@ -167,6 +171,7 @@ export default function ClientFormModal({
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [clientIps, setClientIps] = useState<string[]>([]);
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
@@ -371,6 +376,21 @@ export default function ClientFormModal({
     onOpenChange(false);
   }
 
+  async function onResetTraffic() {
+    if (!isEdit || !client?.email || !resetTraffic) return;
+    setResetting(true);
+    try {
+      const msg = await resetTraffic(client);
+      if (msg?.success) {
+        messageApi.success(t('pages.clients.toasts.trafficReset'));
+      } else {
+        messageApi.error(msg?.msg || t('somethingWentWrong'));
+      }
+    } finally {
+      setResetting(false);
+    }
+  }
+
   async function onSubmit() {
     const schema = isEdit ? ClientFormSchema : ClientCreateFormSchema;
     const validated = schema.safeParse({
@@ -463,15 +483,35 @@ export default function ClientFormModal({
         open={open}
         title={isEdit ? t('pages.clients.editClient') : t('pages.clients.addClient')}
         destroyOnHidden
-        okText={isEdit ? t('save') : t('create')}
-        cancelText={t('cancel')}
-        okButtonProps={{ loading: submitting }}
         width={720}
         zIndex={CLIENT_FORM_MODAL_Z_INDEX}
         style={{ top: 20 }}
         styles={{ body: { maxHeight: 'calc(100vh - 160px)', overflowY: 'auto', overflowX: 'hidden' } }}
-        onOk={onSubmit}
         onCancel={close}
+        footer={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {isEdit && resetTraffic && (
+              <Popconfirm
+                title={t('pages.inbounds.resetTraffic')}
+                description={t('pages.inbounds.resetTrafficContent')}
+                okText={t('reset')}
+                cancelText={t('cancel')}
+                zIndex={CLIENT_IP_LOG_MODAL_Z_INDEX}
+                onConfirm={onResetTraffic}
+              >
+                <Button color="danger" variant="filled" icon={<RetweetOutlined />} loading={resetting}>
+                  {t('pages.inbounds.resetTraffic')}
+                </Button>
+              </Popconfirm>
+            )}
+            <div style={{ marginInlineStart: 'auto', display: 'flex', gap: 8 }}>
+              <Button onClick={close}>{t('cancel')}</Button>
+              <Button type="primary" loading={submitting} onClick={onSubmit}>
+                {isEdit ? t('save') : t('create')}
+              </Button>
+            </div>
+          </div>
+        }
       >
         <Form layout="vertical">
           <Tabs

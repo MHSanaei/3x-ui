@@ -3,10 +3,13 @@ import { Button, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
 import { generateMtprotoSecret, mtprotoSecretForDomain } from '@/lib/xray/inbound-defaults';
+import { useOutboundTags } from '@/api/queries/useOutboundTags';
 
 export default function MtprotoFields() {
   const { t } = useTranslation();
   const form = Form.useFormInstance();
+  const routeThroughXray = Form.useWatch(['settings', 'routeThroughXray'], form) as boolean | undefined;
+  const { data: outboundTags } = useOutboundTags();
   return (
     <>
       <Form.Item name={['settings', 'fakeTlsDomain']} label={t('pages.inbounds.form.fakeTlsDomain')}>
@@ -71,6 +74,28 @@ export default function MtprotoFields() {
       <Form.Item name={['settings', 'debug']} label={t('pages.inbounds.form.mtgDebug')} valuePropName="checked">
         <Switch />
       </Form.Item>
+      <Form.Item
+        name={['settings', 'routeThroughXray']}
+        label={t('pages.inbounds.form.mtgRouteThroughXray')}
+        tooltip={t('pages.inbounds.form.mtgRouteThroughXrayHint')}
+        valuePropName="checked"
+      >
+        <Switch />
+      </Form.Item>
+      {routeThroughXray && (
+        <Form.Item
+          name={['settings', 'outboundTag']}
+          label={t('pages.inbounds.form.mtgRouteOutbound')}
+          tooltip={t('pages.inbounds.form.mtgRouteOutboundHint')}
+        >
+          <Select
+            allowClear
+            showSearch
+            placeholder={t('pages.inbounds.form.mtgRouteOutboundPlaceholder')}
+            options={(outboundTags ?? []).map((tag) => ({ value: tag, label: tag }))}
+          />
+        </Form.Item>
+      )}
     </>
   );
 }

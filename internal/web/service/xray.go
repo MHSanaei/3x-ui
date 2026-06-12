@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -275,6 +276,19 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		mergeSubscriptionOutbounds(xrayConfig, prepend, appendList)
 	}
 
+	// Route opted-in local mtproto inbounds through the core's router. Each one
+	// gets a loopback SOCKS bridge — tagged with the inbound's own tag so it is
+	// matchable in routing rules — that its mtg sidecar dials Telegram through.
+	// Done after the subscription merge so a selected subscription outbound (or
+	// balancer) is a valid rule target.
+	for i := range inbounds {
+		inbound := inbounds[i]
+		if inbound.Protocol != model.MTProto || !inbound.Enable || inbound.NodeID != nil {
+			continue
+		}
+		injectMtprotoEgress(xrayConfig, inbound)
+	}
+
 	// Wire the panel's own HTTP traffic through the configured outbound, after
 	// the subscription merge so subscription outbound tags are valid targets.
 	if egressTag, err := s.settingService.GetPanelOutbound(); err != nil {
@@ -411,6 +425,75 @@ func routingTagIsBalancer(routing map[string]any, tag string) bool {
 	return false
 }
 
+// mtprotoEgressSocksSettings is the loopback SOCKS server a routed mtproto
+// inbound exposes for its mtg sidecar to dial Telegram through. mtg makes plain
+// TCP connections, so UDP is left off (matching the panel egress bridge).
+const mtprotoEgressSocksSettings = `{"auth":"noauth","udp":false}`
+
+// injectMtprotoEgress wires one routed mtproto inbound into the generated
+// config: it appends a loopback SOCKS inbound (tagged with the inbound's own tag,
+// on the egress port persisted in settings) and, when an outbound is selected,
+// prepends a routing rule sending that tag to it. Both live only in the generated
+// config — the stored template is untouched — and both are hot-appliable, so
+// toggling routing never forces a full Xray restart. Mirrors injectPanelEgress.
+func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
+	var parsed struct {
+		RouteThroughXray bool   `json:"routeThroughXray"`
+		RouteXrayPort    int    `json:"routeXrayPort"`
+		OutboundTag      string `json:"outboundTag"`
+	}
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
+		return
+	}
+	if !parsed.RouteThroughXray || parsed.RouteXrayPort <= 0 || inbound.Tag == "" {
+		return
+	}
+	tag := inbound.Tag
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag == tag {
+			logger.Warning("mtproto egress: inbound tag [", tag, "] already present in generated config, skipping bridge")
+			return
+		}
+	}
+
+	if parsed.OutboundTag != "" {
+		routing := map[string]any{}
+		parseOK := true
+		if len(cfg.RouterConfig) > 0 {
+			if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+				logger.Warning("mtproto egress: routing section is unparsable, skipping rule:", err)
+				parseOK = false
+			}
+		}
+		if parseOK {
+			rules, _ := routing["rules"].([]any)
+			rule := map[string]any{
+				"type":       "field",
+				"inboundTag": []any{tag},
+			}
+			if routingTagIsBalancer(routing, parsed.OutboundTag) {
+				rule["balancerTag"] = parsed.OutboundTag
+			} else {
+				rule["outboundTag"] = parsed.OutboundTag
+			}
+			routing["rules"] = append([]any{rule}, rules...)
+			if newRouting, err := json.Marshal(routing); err == nil {
+				cfg.RouterConfig = json_util.RawMessage(newRouting)
+			} else {
+				logger.Warning("mtproto egress: failed to rebuild routing section, skipping rule:", err)
+			}
+		}
+	}
+
+	cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
+		Listen:   json_util.RawMessage(`"127.0.0.1"`),
+		Port:     parsed.RouteXrayPort,
+		Protocol: "socks",
+		Settings: json_util.RawMessage(mtprotoEgressSocksSettings),
+		Tag:      tag,
+	})
+}
+
 // mergeSubscriptionOutbounds appends the subscription outbounds to the
 // OutboundConfigs array of the xray config. It works on the already-unmarshaled
 // template so that manually configured outbounds are never overwritten.
@@ -528,11 +611,6 @@ func ensureStatsPolicy(policy json_util.RawMessage) json_util.RawMessage {
 	return out
 }
 
-// resolveXrayLogPaths rewrites relative `log.access` / `log.error` values to
-// absolute paths under config.GetLogFolder(), so Xray writes those files
-// alongside the panel's other logs regardless of the working directory the
-// panel was launched from. Values that are empty, "none", or already absolute
-// are left untouched, as are unparseable log blocks.
 func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 	if len(logCfg) == 0 {
 		return logCfg
@@ -551,21 +629,15 @@ func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 		if trimmed == "" || strings.EqualFold(trimmed, "none") {
 			continue
 		}
-		if filepath.IsAbs(trimmed) {
+		base := path.Base(filepath.ToSlash(trimmed))
+		if base == "" || base == "." || base == ".." || base == "/" {
 			continue
 		}
-		cleaned := filepath.ToSlash(filepath.Clean(trimmed))
-		base := filepath.Base(cleaned)
-		if base == "" || base == "." || base == string(filepath.Separator) {
+		confined := filepath.Join(config.GetLogFolder(), base)
+		if confined == trimmed {
 			continue
 		}
-		// Only rewrite bare names ("./access.log", "access.log").
-		// A nested relative path like "./logs/foo.log" is treated as
-		// a deliberate user choice and left alone.
-		if cleaned != base {
-			continue
-		}
-		parsed[key] = filepath.Join(config.GetLogFolder(), base)
+		parsed[key] = confined
 		changed = true
 	}
 	if !changed {

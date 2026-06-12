@@ -205,7 +205,7 @@ export default function InboundFormModal({
 
   const wPort = Form.useWatch('port', form);
   const wListen = (Form.useWatch('listen', form) ?? '') as string;
-  const isUdsListen = wListen.startsWith('/');
+  const isUdsListen = wListen.startsWith('/') || wListen.startsWith('@');
   const wNodeId = Form.useWatch('nodeId', form) ?? null;
   const shareAddrStrategy = Form.useWatch('shareAddrStrategy', form) ?? 'node';
   const wTag = Form.useWatch('tag', form) ?? '';
@@ -381,7 +381,8 @@ export default function InboundFormModal({
   // protocol reset drops a nodeId that no longer applies.
   useEffect(() => {
     if (!open) return;
-    if (!nodeShareOptionAvailable && shareAddrStrategy === 'node') {
+    const current = form.getFieldValue('shareAddrStrategy') as InboundFormValues['shareAddrStrategy'] | undefined;
+    if (!nodeShareOptionAvailable && (current ?? 'node') === 'node') {
       form.setFieldValue('shareAddrStrategy', 'listen');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -691,13 +692,13 @@ export default function InboundFormModal({
       {isFallbackHost && fallbacksCard}
       {(protocol === Protocols.VLESS || protocol === Protocols.TROJAN)
         && network === 'tcp' && !isFallbackHost && (
-        <Alert
-          className="mt-12"
-          type="info"
-          showIcon
-          message={t('pages.inbounds.fallbacks.needsTls')}
-        />
-      )}
+          <Alert
+            className="mt-12"
+            type="info"
+            showIcon
+            message={t('pages.inbounds.fallbacks.needsTls')}
+          />
+        )}
     </>
   );
 
@@ -748,6 +749,12 @@ export default function InboundFormModal({
           ...fm,
           udp: [...udp, { type: 'mkcp-legacy', settings: { header: '', value: '' } }],
         };
+      }
+    } else {
+      const fm = cleaned.finalmask as Record<string, unknown> | undefined;
+      if (fm && Array.isArray(fm.udp)) {
+        const udp = (fm.udp as unknown[]).filter((m) => (m as { type?: string })?.type !== 'mkcp-legacy');
+        cleaned.finalmask = { ...fm, udp };
       }
     }
     form.setFieldValue('streamSettings', cleaned);
