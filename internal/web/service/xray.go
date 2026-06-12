@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -498,11 +499,6 @@ func ensureStatsPolicy(policy json_util.RawMessage) json_util.RawMessage {
 	return out
 }
 
-// resolveXrayLogPaths rewrites relative `log.access` / `log.error` values to
-// absolute paths under config.GetLogFolder(), so Xray writes those files
-// alongside the panel's other logs regardless of the working directory the
-// panel was launched from. Values that are empty, "none", or already absolute
-// are left untouched, as are unparseable log blocks.
 func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 	if len(logCfg) == 0 {
 		return logCfg
@@ -521,21 +517,15 @@ func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 		if trimmed == "" || strings.EqualFold(trimmed, "none") {
 			continue
 		}
-		if filepath.IsAbs(trimmed) {
+		base := path.Base(filepath.ToSlash(trimmed))
+		if base == "" || base == "." || base == ".." || base == "/" {
 			continue
 		}
-		cleaned := filepath.ToSlash(filepath.Clean(trimmed))
-		base := filepath.Base(cleaned)
-		if base == "" || base == "." || base == string(filepath.Separator) {
+		confined := filepath.Join(config.GetLogFolder(), base)
+		if confined == trimmed {
 			continue
 		}
-		// Only rewrite bare names ("./access.log", "access.log").
-		// A nested relative path like "./logs/foo.log" is treated as
-		// a deliberate user choice and left alone.
-		if cleaned != base {
-			continue
-		}
-		parsed[key] = filepath.Join(config.GetLogFolder(), base)
+		parsed[key] = confined
 		changed = true
 	}
 	if !changed {
