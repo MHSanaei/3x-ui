@@ -819,6 +819,7 @@
       "upload": "Tải lên",
       "download": "Tải xuống",
       "totalTraffic": "Tổng lưu lượng",
+      "totalUpDown": "Tổng tải lên / tải xuống",
       "addGroup": "Thêm nhóm",
       "createSuccess": "Đã tạo nhóm «{name}».",
       "rename": "Đổi tên",

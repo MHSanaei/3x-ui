@@ -29,6 +29,7 @@ import {
   EditOutlined,
   LinkOutlined,
   MoreOutlined,
+  PieChartOutlined,
   PlusOutlined,
   RetweetOutlined,
   TagsOutlined,
@@ -480,30 +481,39 @@ export default function GroupsPage() {
                   <Col span={24}>
                     <Card size="small" hoverable className="summary-card">
                       <Row gutter={[16, isMobile ? 16 : 12]}>
-                        <Col xs={12} sm={8}>
+                        <Col xs={12} sm={12} md={6}>
                           <Statistic
                             title={t('pages.groups.totalGroups')}
                             value={String(totalGroups)}
                             prefix={<TagsOutlined />}
                           />
                         </Col>
-                        <Col xs={12} sm={8}>
+                        <Col xs={12} sm={12} md={6}>
                           <Statistic
                             title={t('pages.groups.totalGroupedClients')}
                             value={String(totalClients)}
                             prefix={<TeamOutlined />}
                           />
                         </Col>
-                        <Col xs={24} sm={8}>
+                        <Col xs={12} sm={12} md={6}>
+                          <Statistic
+                            title={t('pages.groups.totalUpDown')}
+                            value={0}
+                            formatter={() => (
+                              <span>
+                                <ArrowUpOutlined /> {SizeFormatter.sizeFormat(totalUpload)}
+                                {' / '}
+                                <ArrowDownOutlined /> {SizeFormatter.sizeFormat(totalDownload)}
+                              </span>
+                            )}
+                          />
+                        </Col>
+                        <Col xs={12} sm={12} md={6}>
                           <Statistic
                             title={t('pages.groups.totalTraffic')}
                             value={SizeFormatter.sizeFormat(totalTraffic)}
-                            prefix={<RetweetOutlined />}
+                            prefix={<PieChartOutlined />}
                           />
-                          <Space size={16} style={{ marginTop: 4, color: 'var(--ant-color-text-secondary)', fontSize: 13 }}>
-                            <span><ArrowUpOutlined /> {SizeFormatter.sizeFormat(totalUpload)}</span>
-                            <span><ArrowDownOutlined /> {SizeFormatter.sizeFormat(totalDownload)}</span>
-                          </Space>
                         </Col>
                       </Row>
                     </Card>

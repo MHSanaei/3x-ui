@@ -819,6 +819,7 @@
       "upload": "上传",
       "download": "下载",
       "totalTraffic": "总流量",
+      "totalUpDown": "总上传 / 下载",
       "addGroup": "添加分组",
       "createSuccess": "已创建分组 “{name}”。",
       "rename": "重命名",

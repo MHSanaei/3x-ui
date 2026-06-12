@@ -819,6 +819,7 @@
       "upload": "Envio",
       "download": "Recebimento",
       "totalTraffic": "Tráfego total",
+      "totalUpDown": "Total de envio / recebimento",
       "addGroup": "Adicionar grupo",
       "createSuccess": "Grupo «{name}» criado.",
       "rename": "Renomear",

@@ -819,6 +819,7 @@
       "upload": "上傳",
       "download": "下載",
       "totalTraffic": "總流量",
+      "totalUpDown": "總上傳 / 下載",
       "addGroup": "新增群組",
       "createSuccess": "已建立群組「{name}」。",
       "rename": "重新命名",

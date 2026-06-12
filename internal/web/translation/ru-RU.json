@@ -819,6 +819,7 @@
       "upload": "Отправлено",
       "download": "Получено",
       "totalTraffic": "Общий трафик",
+      "totalUpDown": "Всего отправлено / получено",
       "addGroup": "Добавить группу",
       "createSuccess": "Группа «{name}» создана.",
       "rename": "Переименовать",

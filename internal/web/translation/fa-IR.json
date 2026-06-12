@@ -819,6 +819,7 @@
       "upload": "آپلود",
       "download": "دانلود",
       "totalTraffic": "مجموع ترافیک",
+      "totalUpDown": "مجموع آپلود / دانلود",
       "addGroup": "افزودن گروه",
       "createSuccess": "گروه «{name}» ایجاد شد.",
       "rename": "تغییر نام",

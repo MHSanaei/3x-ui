@@ -819,6 +819,7 @@
       "upload": "アップロード",
       "download": "ダウンロード",
       "totalTraffic": "合計トラフィック",
+      "totalUpDown": "合計アップロード / ダウンロード",
       "addGroup": "グループ追加",
       "createSuccess": "グループ「{name}」を作成しました。",
       "rename": "名前変更",

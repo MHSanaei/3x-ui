@@ -819,6 +819,7 @@
       "upload": "Subida",
       "download": "Bajada",
       "totalTraffic": "Tráfico total",
+      "totalUpDown": "Subida / bajada total",
       "addGroup": "Añadir grupo",
       "createSuccess": "Grupo «{name}» creado.",
       "rename": "Renombrar",

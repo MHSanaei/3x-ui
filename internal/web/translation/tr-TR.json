@@ -820,6 +820,7 @@
       "upload": "Yükleme",
       "download": "İndirme",
       "totalTraffic": "Toplam trafik",
+      "totalUpDown": "Toplam yükleme / indirme",
       "addGroup": "Grup ekle",
       "createSuccess": "«{name}» grubu oluşturuldu.",
       "rename": "Yeniden adlandır",

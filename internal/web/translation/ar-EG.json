@@ -819,6 +819,7 @@
       "upload": "رفع",
       "download": "تنزيل",
       "totalTraffic": "إجمالي حركة المرور",
+      "totalUpDown": "إجمالي الرفع / التنزيل",
       "addGroup": "إضافة مجموعة",
       "createSuccess": "تم إنشاء المجموعة «{name}».",
       "rename": "إعادة تسمية",

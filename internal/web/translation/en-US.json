@@ -820,6 +820,7 @@
       "upload": "Upload",
       "download": "Download",
       "totalTraffic": "Total traffic",
+      "totalUpDown": "Total upload / download",
       "addGroup": "Add Group",
       "createSuccess": "Group \"{name}\" created.",
       "rename": "Rename",

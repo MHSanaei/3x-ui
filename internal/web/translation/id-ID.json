@@ -819,6 +819,7 @@
       "upload": "Unggah",
       "download": "Unduh",
       "totalTraffic": "Total trafik",
+      "totalUpDown": "Total unggah / unduh",
       "addGroup": "Tambah grup",
       "createSuccess": "Grup «{name}» dibuat.",
       "rename": "Ubah nama",
