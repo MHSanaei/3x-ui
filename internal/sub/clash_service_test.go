@@ -148,6 +148,63 @@ func TestBuildProxy_VLESSPostQuantumEncryptionUsesMihomoEncryptionField(t *testi
 	}
 }
 
+func TestBuildProxy_VLESSFlowXhttpRealityVlessenc(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{remarkModel: "-i"}}
+	encryption := "mlkem768x25519plus.native.0rtt.client"
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.1",
+		Port:     443,
+		Protocol: model.VLESS,
+		Remark:   "pq-flow",
+		Settings: `{"encryption":"` + encryption + `"}`,
+	}
+	client := model.Client{ID: "11111111-2222-4333-8444-555555555555", Flow: "xtls-rprx-vision"}
+	stream := map[string]any{
+		"network": "xhttp",
+		"xhttpSettings": map[string]any{
+			"path": "/",
+			"mode": "auto",
+		},
+		"security": "reality",
+		"realitySettings": map[string]any{
+			"publicKey":  "pub",
+			"serverName": "example.com",
+			"shortId":    "abcd",
+		},
+	}
+
+	proxy := svc.buildProxy(inbound, client, stream, "")
+
+	if proxy["flow"] != "xtls-rprx-vision" {
+		t.Fatalf("xhttp+reality+vlessenc Clash proxy must carry the vision flow (#5232): %#v", proxy)
+	}
+}
+
+func TestBuildProxy_VLESSFlowDroppedWithoutVisionSupport(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{remarkModel: "-i"}}
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.1",
+		Port:     443,
+		Protocol: model.VLESS,
+		Remark:   "plain-flow",
+		Settings: `{"encryption":"none"}`,
+	}
+	client := model.Client{ID: "11111111-2222-4333-8444-555555555555", Flow: "xtls-rprx-vision"}
+	stream := map[string]any{
+		"network":  "tcp",
+		"security": "none",
+		"tcpSettings": map[string]any{
+			"header": map[string]any{"type": "none"},
+		},
+	}
+
+	proxy := svc.buildProxy(inbound, client, stream, "")
+
+	if _, ok := proxy["flow"]; ok {
+		t.Fatalf("tcp without tls/reality must not carry a flow: %#v", proxy)
+	}
+}
+
 func TestBuildProxy_VLESSNoneEncryptionOmittedForClash(t *testing.T) {
 	svc := &SubClashService{SubService: &SubService{remarkModel: "-i"}}
 	inbound := &model.Inbound{
