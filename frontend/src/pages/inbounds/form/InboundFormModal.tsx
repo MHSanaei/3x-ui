@@ -381,7 +381,8 @@ export default function InboundFormModal({
   // protocol reset drops a nodeId that no longer applies.
   useEffect(() => {
     if (!open) return;
-    if (!nodeShareOptionAvailable && shareAddrStrategy === 'node') {
+    const current = form.getFieldValue('shareAddrStrategy') as InboundFormValues['shareAddrStrategy'] | undefined;
+    if (!nodeShareOptionAvailable && (current ?? 'node') === 'node') {
       form.setFieldValue('shareAddrStrategy', 'listen');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
