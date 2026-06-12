@@ -102,6 +102,12 @@ export default function WireguardFields({ wgPubKey, regenInboundWg, regenWgPeerK
                 <Divider titlePlacement="center">
                   <Space>
                     <span>{t('pages.inbounds.info.peerNumber', { n: idx + 1 })}</span>
+                    <Form.Item noStyle shouldUpdate>
+                      {() => {
+                        const comment = form.getFieldValue(['settings', 'peers', field.name, 'comment']) as string | undefined;
+                        return comment ? <span style={{ opacity: 0.65 }}>— {comment}</span> : null;
+                      }}
+                    </Form.Item>
                     {fields.length > 1 && (
                       <Button
                         size="small"
@@ -112,6 +118,9 @@ export default function WireguardFields({ wgPubKey, regenInboundWg, regenWgPeerK
                     )}
                   </Space>
                 </Divider>
+                <Form.Item name={[field.name, 'comment']} label={t('comment')}>
+                  <Input placeholder="e.g. Alice's laptop" />
+                </Form.Item>
                 <Form.Item label={t('pages.xray.wireguard.secretKey')}>
                   <Space.Compact block>
                     <Form.Item name={[field.name, 'privateKey']} noStyle>
