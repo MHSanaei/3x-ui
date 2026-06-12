@@ -146,12 +146,14 @@ export default function InboundsPage() {
   const [textTitle, setTextTitle] = useState('');
   const [textContent, setTextContent] = useState('');
   const [textFileName, setTextFileName] = useState('');
+  const [textJson, setTextJson] = useState(false);
 
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptTitle, setPromptTitle] = useState('');
   const [promptOkText, setPromptOkText] = useState('OK');
   const [promptType, setPromptType] = useState<'textarea' | 'input'>('textarea');
   const [promptInitial, setPromptInitial] = useState('');
+  const [promptJson, setPromptJson] = useState(false);
   const [promptLoading, setPromptLoading] = useState(false);
   const [promptHandler, setPromptHandler] = useState<((value: string) => Promise<boolean | void> | boolean | void) | null>(null);
 
@@ -163,10 +165,11 @@ export default function InboundsPage() {
   const infoNodeAddress = useMemo(() => hostOverrideFor(infoDbInbound), [infoDbInbound, hostOverrideFor]);
   const qrNodeAddress = useMemo(() => hostOverrideFor(qrDbInbound), [qrDbInbound, hostOverrideFor]);
 
-  const openText = useCallback((opts: { title: string; content: string; fileName?: string }) => {
+  const openText = useCallback((opts: { title: string; content: string; fileName?: string; json?: boolean }) => {
     setTextTitle(opts.title);
     setTextContent(opts.content);
     setTextFileName(opts.fileName || '');
+    setTextJson(opts.json || false);
     setTextOpen(true);
   }, []);
 
@@ -175,12 +178,14 @@ export default function InboundsPage() {
     okText?: string;
     type?: 'textarea' | 'input';
     value?: string;
+    json?: boolean;
     confirm: (value: string) => Promise<boolean | void> | boolean | void;
   }) => {
     setPromptTitle(opts.title);
     setPromptOkText(opts.okText || t('confirm'));
     setPromptType(opts.type || 'textarea');
     setPromptInitial(opts.value || '');
+    setPromptJson(opts.json || false);
     setPromptHandler(() => opts.confirm);
     setPromptOpen(true);
   }, [t]);
@@ -267,7 +272,7 @@ export default function InboundsPage() {
   }, [checkFallback, remarkModel, hostOverrideFor, subSettings.publicHost, openText, t]);
 
   const exportInboundClipboard = useCallback((dbInbound: DBInbound) => {
-    openText({ title: t('pages.inbounds.inboundJsonTitle'), content: JSON.stringify(dbInbound, null, 2) });
+    openText({ title: t('pages.inbounds.inboundJsonTitle'), content: JSON.stringify(dbInbound, null, 2), json: true });
   }, [openText, t]);
 
   const exportInboundSubs = useCallback((dbInbound: DBInbound) => {
@@ -327,6 +332,7 @@ export default function InboundsPage() {
       okText: t('pages.inbounds.import'),
       type: 'textarea',
       value: '',
+      json: true,
       confirm: async (value) => {
         const msg = await HttpUtil.post('/panel/api/inbounds/import', { data: value });
         if (msg?.success) {
@@ -705,6 +711,7 @@ export default function InboundsPage() {
             title={textTitle}
             content={textContent}
             fileName={textFileName}
+            json={textJson}
           />
         </LazyMount>
         <LazyMount when={promptOpen}>
@@ -716,6 +723,7 @@ export default function InboundsPage() {
             type={promptType}
             initialValue={promptInitial}
             loading={promptLoading}
+            json={promptJson}
             onConfirm={onPromptConfirm}
           />
         </LazyMount>
