@@ -691,13 +691,13 @@ export default function InboundFormModal({
       {isFallbackHost && fallbacksCard}
       {(protocol === Protocols.VLESS || protocol === Protocols.TROJAN)
         && network === 'tcp' && !isFallbackHost && (
-        <Alert
-          className="mt-12"
-          type="info"
-          showIcon
-          message={t('pages.inbounds.fallbacks.needsTls')}
-        />
-      )}
+          <Alert
+            className="mt-12"
+            type="info"
+            showIcon
+            message={t('pages.inbounds.fallbacks.needsTls')}
+          />
+        )}
     </>
   );
 
@@ -748,6 +748,12 @@ export default function InboundFormModal({
           ...fm,
           udp: [...udp, { type: 'mkcp-legacy', settings: { header: '', value: '' } }],
         };
+      }
+    } else {
+      const fm = cleaned.finalmask as Record<string, unknown> | undefined;
+      if (fm && Array.isArray(fm.udp)) {
+        const udp = (fm.udp as unknown[]).filter((m) => (m as { type?: string })?.type !== 'mkcp-legacy');
+        cleaned.finalmask = { ...fm, udp };
       }
     }
     form.setFieldValue('streamSettings', cleaned);
