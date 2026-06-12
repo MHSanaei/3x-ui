@@ -42,12 +42,6 @@ export function showSecurity(security?: string): boolean {
   return security === 'tls' || security === 'reality';
 }
 
-export function hasBreakdown(r: { endpoints?: unknown[]; error?: string } | null | undefined): boolean {
-  if (!r) return false;
-  if (r.endpoints?.length) return true;
-  return !!r.error;
-}
-
 export function trafficFor(outboundsTraffic: OutboundTrafficRow[], o: OutboundRow): { up: number; down: number } {
   const tr = outboundsTraffic.find((x) => x.tag === o.tag);
   return { up: tr?.up || 0, down: tr?.down || 0 };

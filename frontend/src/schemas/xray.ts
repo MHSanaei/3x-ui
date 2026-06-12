@@ -56,10 +56,18 @@ export const OutboundTrafficRowSchema = z.object({
 export const OutboundTrafficListSchema = z.array(OutboundTrafficRowSchema);
 
 export const OutboundTestResultSchema = z.object({
+  tag: z.string().optional(),
   success: z.boolean(),
   delay: z.number().optional(),
   error: z.string().optional(),
   mode: z.string().optional(),
+  // HTTP-mode extras: status answered by the test URL plus the httptrace
+  // timing breakdown (dial to local inbound / target TLS via the outbound /
+  // time to first byte).
+  httpStatus: z.number().optional(),
+  connectMs: z.number().optional(),
+  tlsMs: z.number().optional(),
+  ttfbMs: z.number().optional(),
   endpoints: z
     .array(
       z.object({
@@ -71,6 +79,9 @@ export const OutboundTestResultSchema = z.object({
     )
     .optional(),
 }).loose();
+
+// Batch results from /xray/testOutbounds, aligned with the request order.
+export const OutboundTestResultListSchema = z.array(OutboundTestResultSchema);
 
 export const RuleFormSchema = z.object({
   domain: z.string(),

@@ -1,12 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Popover, Table, Tag, Tooltip } from 'antd';
-import {
-  ThunderboltOutlined,
-  CheckCircleFilled,
-  CloseCircleFilled,
-  LoadingOutlined,
-} from '@ant-design/icons';
+import { Button, Table, Tag, Tooltip } from 'antd';
+import { ThunderboltOutlined, LoadingOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
 import { SizeFormatter } from '@/utils';
@@ -15,8 +10,8 @@ import { isUdpOutbound } from '@/hooks/useXraySetting';
 import type { OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 
 import type { OutboundRow } from './outbounds-tab-types';
+import TestResultPopover from './TestResultPopover';
 import {
-  hasBreakdown,
   isTesting,
   isUntestable,
   outboundAddresses,
@@ -103,36 +98,7 @@ export default function SubscriptionOutbounds({
     const key = record.tag || '';
     const r = testResult(subscriptionTestStates, key);
     if (!r) return isTesting(subscriptionTestStates, key) ? <LoadingOutlined /> : <span className="empty">—</span>;
-    return (
-      <Popover
-        placement="topLeft"
-        rootClassName="outbound-test-popover"
-        content={
-          <div className="timing-breakdown">
-            <div className={`td-head ${r.success ? 'ok' : 'fail'}`}>
-              {r.success ? <span>{r.delay} ms</span> : <span>{r.error || 'failed'}</span>}
-              {r.mode && <span className="mode-badge">{String(r.mode).toUpperCase()}</span>}
-            </div>
-            {hasBreakdown(r) && (
-              <>
-                {(r.endpoints || []).map((ep) => (
-                  <div key={ep.address} className="endpoint-row">
-                    <span className={ep.success ? 'dot-ok' : 'dot-fail'}>●</span>
-                    <span className="ep-addr">{ep.address}</span>
-                    <span className="ep-meta">{ep.success ? `${ep.delay} ms` : ep.error || 'failed'}</span>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        }
-      >
-        <span className={r.success ? 'pill-ok' : 'pill-fail'}>
-          {r.success ? <CheckCircleFilled /> : <CloseCircleFilled />}
-          {r.success ? <span>{r.delay}&nbsp;ms</span> : <span>failed</span>}
-        </span>
-      </Popover>
-    );
+    return <TestResultPopover result={r} />;
   };
 
   const testButton = (record: OutboundRow) => {

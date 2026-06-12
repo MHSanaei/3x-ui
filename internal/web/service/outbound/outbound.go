@@ -4,17 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"net/http"
-	"os"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -23,11 +19,6 @@ import (
 // OutboundService provides business logic for managing Xray outbound configurations.
 // It handles outbound traffic monitoring and statistics.
 type OutboundService struct{}
-
-// httpTestSemaphore serialises HTTP-mode probes (each one spawns a temp xray
-// instance, which is too expensive to run in parallel). TCP-mode probes are
-// dial-only and don't need the semaphore.
-var httpTestSemaphore sync.Mutex
 
 func (s *OutboundService) AddTraffic(traffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool) {
 	var err error
@@ -119,13 +110,24 @@ func (s *OutboundService) ResetOutboundTraffic(tag string) error {
 
 // TestOutboundResult represents the result of testing an outbound.
 // Delay is in milliseconds. Endpoints is only populated for TCP-mode
-// probes; HTTP mode reports the round-trip delay measured by xray's
-// burstObservatory probe.
+// probes; HTTP mode reports the time of a real HTTP request routed
+// through the outbound, with an optional timing breakdown.
 type TestOutboundResult struct {
+	Tag     string `json:"tag,omitempty"`
 	Success bool   `json:"success"`
 	Delay   int64  `json:"delay"`
 	Error   string `json:"error,omitempty"`
 	Mode    string `json:"mode,omitempty"`
+
+	// HTTP-mode extras. Any HTTP response counts as reachable; HTTPStatus
+	// records what the test URL answered. ConnectMs is the dial to the local
+	// test inbound; TLSMs covers outbound-chain establishment + target TLS
+	// (https URLs only, since xray ACKs the SOCKS CONNECT before dialing
+	// upstream); TTFBMs is request start → first response byte.
+	HTTPStatus int   `json:"httpStatus,omitempty"`
+	ConnectMs  int64 `json:"connectMs,omitempty"`
+	TLSMs      int64 `json:"tlsMs,omitempty"`
+	TTFBMs     int64 `json:"ttfbMs,omitempty"`
 
 	Endpoints []TestEndpointResult `json:"endpoints,omitempty"`
 }
@@ -139,31 +141,6 @@ type TestEndpointResult struct {
 	Error   string `json:"error,omitempty"`
 }
 
-// TestOutbound dispatches to the chosen probe mode:
-//   - mode="tcp": dial the outbound's host:port directly. No xray spin-up,
-//     parallel-safe, ~100ms per endpoint. Doesn't validate the proxy
-//     protocol — only that the remote is reachable on TCP.
-//   - mode="" or "http": spin a temp xray instance, route a real HTTP
-//     request through it, return delay + a DNS/Connect/TLS/TTFB breakdown.
-//     Authoritative but expensive and serialised by httpTestSemaphore.
-//
-// allOutboundsJSON is only consulted in HTTP mode (it backs
-// sockopt.dialerProxy chains during test).
-func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string, mode string) (*TestOutboundResult, error) {
-	if mode == "tcp" {
-		// A bare TCP dial only proves reachability for TCP-based proxies.
-		// UDP protocols (wireguard, hysteria, kcp/quic transports) ignore
-		// unauthenticated packets, so a raw dial can't tell "reachable" from
-		// "dead" — route them through the authoritative xray handshake probe.
-		var ob map[string]any
-		if json.Unmarshal([]byte(outboundJSON), &ob) == nil && outboundTransportIsUDP(ob) {
-			return s.testOutboundHTTP(outboundJSON, testURL, allOutboundsJSON)
-		}
-		return s.testOutboundTCP(outboundJSON)
-	}
-	return s.testOutboundHTTP(outboundJSON, testURL, allOutboundsJSON)
-}
-
 func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundResult, error) {
 	var ob map[string]any
 	if err := json.Unmarshal([]byte(outboundJSON), &ob); err != nil {
@@ -172,12 +149,12 @@ func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundRes
 	tag, _ := ob["tag"].(string)
 	protocol, _ := ob["protocol"].(string)
 	if protocol == "blackhole" || protocol == "freedom" || tag == "blocked" {
-		return &TestOutboundResult{Mode: "tcp", Success: false, Error: "Outbound has no testable endpoint"}, nil
+		return &TestOutboundResult{Tag: tag, Mode: "tcp", Success: false, Error: "Outbound has no testable endpoint"}, nil
 	}
 
 	endpoints := extractOutboundEndpoints(ob)
 	if len(endpoints) == 0 {
-		return &TestOutboundResult{Mode: "tcp", Success: false, Error: "No testable endpoint"}, nil
+		return &TestOutboundResult{Tag: tag, Mode: "tcp", Success: false, Error: "No testable endpoint"}, nil
 	}
 
 	results := make([]TestEndpointResult, len(endpoints))
@@ -203,7 +180,7 @@ func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundRes
 		}
 	}
 
-	out := &TestOutboundResult{Mode: "tcp", Endpoints: results}
+	out := &TestOutboundResult{Tag: tag, Mode: "tcp", Endpoints: results}
 	if bestDelay >= 0 {
 		out.Success = true
 		out.Delay = bestDelay
@@ -311,277 +288,4 @@ func numAsInt(v any) int {
 		}
 	}
 	return 0
-}
-
-// testOutboundHTTP spins up a temporary xray instance whose only job is
-// to run a burstObservatory probe against the target outbound, then polls
-// xray's metrics /debug/vars endpoint until that outbound is reported
-// alive (success) or the deadline expires (failure). The probe lives
-// inside xray, so the measured delay and any failure reason reflect what
-// xray itself sees over the real proxy chain — no SOCKS round-trip on
-// the client side.
-func (s *OutboundService) testOutboundHTTP(outboundJSON string, testURL string, allOutboundsJSON string) (*TestOutboundResult, error) {
-	if testURL == "" {
-		testURL = "https://www.google.com/generate_204"
-	}
-
-	if !httpTestSemaphore.TryLock() {
-		return &TestOutboundResult{
-			Mode:    "http",
-			Success: false,
-			Error:   "Another outbound test is already running, please wait",
-		}, nil
-	}
-	defer httpTestSemaphore.Unlock()
-
-	var testOutbound map[string]any
-	if err := json.Unmarshal([]byte(outboundJSON), &testOutbound); err != nil {
-		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Invalid outbound JSON: %v", err)}, nil
-	}
-	outboundTag, _ := testOutbound["tag"].(string)
-	if outboundTag == "" {
-		return &TestOutboundResult{Mode: "http", Success: false, Error: "Outbound has no tag"}, nil
-	}
-	if protocol, _ := testOutbound["protocol"].(string); protocol == "blackhole" || outboundTag == "blocked" {
-		return &TestOutboundResult{Mode: "http", Success: false, Error: "Blocked/blackhole outbound cannot be tested"}, nil
-	}
-
-	var allOutbounds []any
-	if allOutboundsJSON != "" {
-		if err := json.Unmarshal([]byte(allOutboundsJSON), &allOutbounds); err != nil {
-			return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Invalid allOutbounds JSON: %v", err)}, nil
-		}
-	}
-	// The outbound under test must be present in the config so burstObservatory
-	// has something with outboundTag to probe. allOutbounds is the template's
-	// outbounds (for dialerProxy chains); subscription outbounds are injected at
-	// runtime and aren't part of it, so without this the probe targets a tag that
-	// doesn't exist in the config and every test times out. Append (don't replace)
-	// so manual outbounds' dialerProxy chains keep resolving.
-	if !outboundsContainTag(allOutbounds, outboundTag) {
-		allOutbounds = append(allOutbounds, testOutbound)
-	}
-
-	metricsPort, err := findAvailablePort()
-	if err != nil {
-		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Failed to find available port: %v", err)}, nil
-	}
-
-	testConfig := s.createTestConfig(outboundTag, allOutbounds, metricsPort, testURL)
-
-	testConfigPath, err := createTestConfigPath()
-	if err != nil {
-		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Failed to create test config path: %v", err)}, nil
-	}
-	defer os.Remove(testConfigPath)
-
-	testProcess := xray.NewTestProcess(testConfig, testConfigPath)
-	defer func() {
-		if testProcess.IsRunning() {
-			testProcess.Stop()
-		}
-	}()
-
-	if err := testProcess.Start(); err != nil {
-		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Failed to start test xray instance: %v", err)}, nil
-	}
-
-	if err := waitForPort(metricsPort, 5*time.Second); err != nil {
-		if !testProcess.IsRunning() {
-			result := testProcess.GetResult()
-			return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Xray process exited: %s", result)}, nil
-		}
-		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Xray failed to start metrics listener: %v", err)}, nil
-	}
-
-	if !testProcess.IsRunning() {
-		result := testProcess.GetResult()
-		return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Xray process exited: %s", result)}, nil
-	}
-
-	return pollObservatoryResult(testProcess, metricsPort, outboundTag, 15*time.Second), nil
-}
-
-// outboundsContainTag reports whether any outbound in the slice has the given tag.
-func outboundsContainTag(outbounds []any, tag string) bool {
-	for _, ob := range outbounds {
-		if m, ok := ob.(map[string]any); ok {
-			if t, _ := m["tag"].(string); t == tag {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []any, metricsPort int, probeURL string) *xray.Config {
-	processedOutbounds := make([]any, len(allOutbounds))
-	for i, ob := range allOutbounds {
-		outbound, ok := ob.(map[string]any)
-		if !ok {
-			processedOutbounds[i] = ob
-			continue
-		}
-		if protocol, ok := outbound["protocol"].(string); ok && protocol == "wireguard" {
-			if settings, ok := outbound["settings"].(map[string]any); ok {
-				settings["noKernelTun"] = true
-			} else {
-				outbound["settings"] = map[string]any{"noKernelTun": true}
-			}
-		}
-		processedOutbounds[i] = outbound
-	}
-	outboundsJSON, _ := json.Marshal(processedOutbounds)
-
-	routingJSON, _ := json.Marshal(map[string]any{
-		"domainStrategy": "AsIs",
-		"rules":          []any{},
-	})
-
-	burstObservatoryJSON, _ := json.Marshal(map[string]any{
-		"subjectSelector": []string{outboundTag},
-		"pingConfig": map[string]any{
-			"destination":   probeURL,
-			"interval":      "1s",
-			"connectivity":  "",
-			"timeout":       "10s",
-			"samplingCount": 1,
-		},
-	})
-
-	metricsJSON, _ := json.Marshal(map[string]any{
-		"tag":    "test-metrics",
-		"listen": fmt.Sprintf("127.0.0.1:%d", metricsPort),
-	})
-
-	logConfig := map[string]any{
-		"loglevel": "warning",
-		"access":   "none",
-		"error":    "",
-		"dnsLog":   false,
-	}
-	logJSON, _ := json.Marshal(logConfig)
-
-	cfg := &xray.Config{
-		LogConfig:        json_util.RawMessage(logJSON),
-		InboundConfigs:   []xray.InboundConfig{},
-		OutboundConfigs:  json_util.RawMessage(string(outboundsJSON)),
-		RouterConfig:     json_util.RawMessage(string(routingJSON)),
-		Policy:           json_util.RawMessage(`{}`),
-		Stats:            json_util.RawMessage(`{}`),
-		BurstObservatory: json_util.RawMessage(string(burstObservatoryJSON)),
-		Metrics:          json_util.RawMessage(string(metricsJSON)),
-	}
-
-	return cfg
-}
-
-// observatoryEntry mirrors the per-outbound shape published by xray's
-// observatory under /debug/vars.
-type observatoryEntry struct {
-	Alive        bool   `json:"alive"`
-	Delay        int64  `json:"delay"`
-	LastSeenTime int64  `json:"last_seen_time"`
-	LastTryTime  int64  `json:"last_try_time"`
-	OutboundTag  string `json:"outbound_tag"`
-}
-
-func pollObservatoryResult(testProcess *xray.Process, metricsPort int, tag string, timeout time.Duration) *TestOutboundResult {
-	url := fmt.Sprintf("http://127.0.0.1:%d/debug/vars", metricsPort)
-	client := &http.Client{Timeout: 2 * time.Second}
-	deadline := time.Now().Add(timeout)
-	var lastEntry observatoryEntry
-	var sawEntry bool
-	for time.Now().Before(deadline) {
-		if !testProcess.IsRunning() {
-			result := testProcess.GetResult()
-			return &TestOutboundResult{Mode: "http", Success: false, Error: fmt.Sprintf("Xray process exited: %s", result)}
-		}
-		entry, ok := fetchObservatoryEntry(client, url, tag)
-		if ok {
-			if entry.Alive {
-				delay := entry.Delay
-				if delay <= 0 {
-					delay = 1
-				}
-				return &TestOutboundResult{Mode: "http", Success: true, Delay: delay}
-			}
-			lastEntry = entry
-			sawEntry = true
-		}
-		time.Sleep(400 * time.Millisecond)
-	}
-
-	msg := "Probe timed out — outbound did not become reachable (see Xray log for details)"
-	if sawEntry && lastEntry.LastTryTime > 0 {
-		msg = fmt.Sprintf("All probes failed (last attempt %ds ago; see Xray log for details)", time.Now().Unix()-lastEntry.LastTryTime)
-	}
-	return &TestOutboundResult{Mode: "http", Success: false, Error: msg}
-}
-
-func fetchObservatoryEntry(client *http.Client, url, tag string) (observatoryEntry, bool) {
-	resp, err := client.Get(url)
-	if err != nil {
-		return observatoryEntry{}, false
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return observatoryEntry{}, false
-	}
-	var payload struct {
-		Observatory map[string]observatoryEntry `json:"observatory"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return observatoryEntry{}, false
-	}
-	if entry, ok := payload.Observatory[tag]; ok {
-		return entry, true
-	}
-	for _, entry := range payload.Observatory {
-		if entry.OutboundTag == tag {
-			return entry, true
-		}
-	}
-	return observatoryEntry{}, false
-}
-
-// waitForPort polls until the given TCP port is accepting connections or the timeout expires.
-func waitForPort(port int, timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), 100*time.Millisecond)
-		if err == nil {
-			conn.Close()
-			return nil
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-	return fmt.Errorf("port %d not ready after %v", port, timeout)
-}
-
-// findAvailablePort finds an available port for testing
-func findAvailablePort() (int, error) {
-	listener, err := net.Listen("tcp", ":0")
-	if err != nil {
-		return 0, err
-	}
-	defer listener.Close()
-
-	addr := listener.Addr().(*net.TCPAddr)
-	return addr.Port, nil
-}
-
-// createTestConfigPath returns a unique path for a temporary xray config file in the bin folder.
-// The temp file is created and closed so the path is reserved; Start() will overwrite it.
-func createTestConfigPath() (string, error) {
-	tmpFile, err := os.CreateTemp(config.GetBinFolderPath(), "xray_test_*.json")
-	if err != nil {
-		return "", err
-	}
-	path := tmpFile.Name()
-	if err := tmpFile.Close(); err != nil {
-		os.Remove(path)
-		return "", err
-	}
-	return path, nil
 }
