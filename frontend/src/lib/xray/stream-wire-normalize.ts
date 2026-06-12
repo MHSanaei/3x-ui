@@ -41,6 +41,36 @@ function hasMeaningfulHeaders(headers: unknown): boolean {
   return isRecord(headers) && Object.keys(headers).length > 0;
 }
 
+// Upper bound of an xray-core Int32Range value: "16-32" -> 32, "4" -> 4,
+// 4 -> 4, "" / null -> 0. xmux fields are ranges, and xray-core keys its
+// mutual-exclusivity check on the `.To` (upper) side.
+function int32RangeUpper(v: unknown): number {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  if (typeof v !== 'string') return 0;
+  const trimmed = v.trim();
+  if (trimmed === '') return 0;
+  const parts = trimmed.split('-');
+  const n = Number(parts[parts.length - 1]);
+  return Number.isFinite(n) ? n : 0;
+}
+
+// xray-core's XmuxConfig rejects a config that sets BOTH maxConnections
+// and maxConcurrency ("maxConnections cannot be specified together with
+// maxConcurrency"). The panel pre-fills maxConcurrency ("16-32") whenever
+// XMUX is enabled, so any explicit maxConnections would otherwise always
+// collide and make xray refuse the config. maxConnections defaults to 0
+// (off), so a positive value is an explicit opt-in to connection-pool
+// mode — honor it and drop the leftover default maxConcurrency, matching
+// core's "one strategy at a time" semantics.
+function resolveXmuxExclusivity(xmux: Record<string, unknown>): Record<string, unknown> {
+  if (int32RangeUpper(xmux.maxConnections) > 0 && int32RangeUpper(xmux.maxConcurrency) > 0) {
+    const out = { ...xmux };
+    delete out.maxConcurrency;
+    return out;
+  }
+  return xmux;
+}
+
 /** Validates REALITY inbound `target` / `dest` (must include a port). */
 export function validateRealityTarget(target: string): string | undefined {
   const trimmed = target.trim();
@@ -115,13 +145,17 @@ export function normalizeXhttpForWire(
 ): Record<string, unknown> {
   const out: Record<string, unknown> = { ...raw };
   const mode = typeof out.mode === 'string' && out.mode !== '' ? out.mode : 'auto';
-
+  const enableXmux = out.enableXmux === true;
   delete out.enableXmux;
 
   if (side === 'inbound') {
-    delete out.xmux;
+    if (!enableXmux) delete out.xmux;
     delete out.scMinPostsIntervalMs;
     delete out.uplinkChunkSize;
+  }
+
+  if (isRecord(out.xmux)) {
+    out.xmux = resolveXmuxExclusivity(out.xmux);
   }
 
   dropEmptyStrings(out, PLACEMENT_STRING_FIELDS);

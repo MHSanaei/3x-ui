@@ -65,6 +65,69 @@ describe('normalizeXhttpForWire stream-one', () => {
     expect(out.xmux).toEqual({ maxConcurrency: '16-32' });
     expect(out).not.toHaveProperty('scMaxEachPostBytes');
   });
+
+  it('keeps inbound xmux when enableXmux is on (for the share-link extra)', () => {
+    const out = normalizeXhttpForWire({
+      path: '/app',
+      mode: 'auto',
+      enableXmux: true,
+      xmux: { maxConcurrency: '16-32' },
+    }, 'inbound');
+
+    expect(out).not.toHaveProperty('enableXmux');
+    expect(out.xmux).toEqual({ maxConcurrency: '16-32' });
+  });
+
+  it('drops inbound xmux when enableXmux is off', () => {
+    const out = normalizeXhttpForWire({
+      path: '/app',
+      mode: 'auto',
+      enableXmux: false,
+      xmux: { maxConcurrency: '16-32' },
+    }, 'inbound');
+
+    expect(out).not.toHaveProperty('enableXmux');
+    expect(out).not.toHaveProperty('xmux');
+  });
+
+  // xray-core rejects a config with both maxConnections and maxConcurrency.
+  it('drops maxConcurrency when maxConnections is set (xray-core exclusivity)', () => {
+    const out = normalizeXhttpForWire({
+      path: '/app',
+      mode: 'auto',
+      enableXmux: true,
+      xmux: { maxConcurrency: '16-32', maxConnections: 4, hKeepAlivePeriod: 30 },
+    }, 'inbound');
+
+    const xmux = out.xmux as Record<string, unknown>;
+    expect(xmux).not.toHaveProperty('maxConcurrency');
+    expect(xmux.maxConnections).toBe(4);
+    expect(xmux.hKeepAlivePeriod).toBe(30);
+  });
+
+  it('keeps maxConcurrency when maxConnections is 0/unset', () => {
+    const out = normalizeXhttpForWire({
+      path: '/app',
+      mode: 'stream-one',
+      xmux: { maxConcurrency: '16-32', maxConnections: 0 },
+    }, 'outbound');
+
+    const xmux = out.xmux as Record<string, unknown>;
+    expect(xmux.maxConcurrency).toBe('16-32');
+    expect(xmux.maxConnections).toBe(0);
+  });
+
+  it('applies xmux exclusivity on the outbound side too', () => {
+    const out = normalizeXhttpForWire({
+      path: '/app',
+      mode: 'stream-one',
+      xmux: { maxConcurrency: '16-32', maxConnections: '8' },
+    }, 'outbound');
+
+    const xmux = out.xmux as Record<string, unknown>;
+    expect(xmux).not.toHaveProperty('maxConcurrency');
+    expect(xmux.maxConnections).toBe('8');
+  });
 });
 
 describe('normalizeSockoptForWire', () => {

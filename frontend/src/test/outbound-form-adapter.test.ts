@@ -399,11 +399,15 @@ describe('outbound-form-adapter: xhttp xmux toggle', () => {
     });
   });
 
-  it('round-trips xmux on save and strips the UI-only enableXmux flag', () => {
+  it('round-trips xmux on save, strips enableXmux, and enforces xmux exclusivity', () => {
     const back = formValuesToWirePayload(rawOutboundToFormValues(xmuxWire));
     const xhttp = (back.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
     expect(xhttp).not.toHaveProperty('enableXmux');
-    expect(xhttp.xmux).toMatchObject({ maxConcurrency: '11', maxConnections: '1' });
+    const xmux = xhttp.xmux as Record<string, unknown>;
+    // xray-core rejects maxConnections + maxConcurrency together; the
+    // explicit maxConnections wins and maxConcurrency is dropped.
+    expect(xmux).not.toHaveProperty('maxConcurrency');
+    expect(xmux).toMatchObject({ maxConnections: '1', hMaxRequestTimes: '1', hMaxReusableSecs: '1' });
   });
 
   it('drops xmux on save when the toggle is off', () => {
