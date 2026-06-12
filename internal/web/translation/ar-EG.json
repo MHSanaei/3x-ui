@@ -282,7 +282,8 @@
         "quickAdded": "تمت إضافة {n} fallback",
         "quickAddedNone": "لا توجد inbounds جديدة مؤهلة للإضافة",
         "routesWhen": "يوجَّه عندما",
-        "defaultCatchAll": "افتراضي — يلتقط أي شيء آخر"
+        "defaultCatchAll": "افتراضي — يلتقط أي شيء آخر",
+        "needsTls": "تصبح الـ Fallbacks متاحة بعد اختيار TLS أو Reality في تبويب الأمان (فقط VLESS/Trojan عبر RAW)."
       },
       "protocol": "بروتوكول",
       "port": "المنفذ",
@@ -855,7 +856,7 @@
       "basePath": "المسار الأساسي",
       "apiToken": "رمز API",
       "apiTokenPlaceholder": "التوكن من صفحة إعدادات البانل البعيد",
-      "apiTokenHint": "البانل البعيد بيعرض توكن API بتاعه في الإعدادات → توكن API.",
+      "apiTokenHint": "البانل البعيد بيعرض توكن API بتاعه في المصادقة → توكن API.",
       "regenerate": "تجديد التوكن",
       "regenerateConfirm": "تجديد التوكن هيلغي التوكن الحالي. أي بانل مركزي بيستخدمه هيفقد الصلاحية لحد ما تحدّث التوكن. تكمّل؟",
       "allowPrivateAddress": "السماح بالعنوان الخاص",

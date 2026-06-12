@@ -282,7 +282,8 @@
         "quickAdded": "{n} fallback(s) adicionado(s)",
         "quickAddedNone": "Nenhum inbound novo elegível para adicionar",
         "routesWhen": "Roteia quando",
-        "defaultCatchAll": "Padrão — captura qualquer outra coisa"
+        "defaultCatchAll": "Padrão — captura qualquer outra coisa",
+        "needsTls": "Os fallbacks ficam disponíveis após selecionar TLS ou Reality na aba Segurança (apenas VLESS/Trojan sobre RAW)."
       },
       "protocol": "Protocolo",
       "port": "Porta",
@@ -855,7 +856,7 @@
       "basePath": "Caminho base",
       "apiToken": "Token API",
       "apiTokenPlaceholder": "Token da página de Configurações do painel remoto",
-      "apiTokenHint": "O painel remoto exibe o token da API em Configurações → Token da API.",
+      "apiTokenHint": "O painel remoto exibe o token da API em Autenticação → Token da API.",
       "regenerate": "Regenerar token",
       "regenerateConfirm": "Regenerar invalida o token atual. Qualquer painel central que o utilize perderá acesso até ser atualizado. Continuar?",
       "allowPrivateAddress": "Permitir endereço privado",

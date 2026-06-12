@@ -125,6 +125,8 @@ export function normalizeXhttpForWire(
   }
 
   dropEmptyStrings(out, PLACEMENT_STRING_FIELDS);
+  // Empty tuning fields mean "use xray-core's default" — never emit them.
+  dropEmptyStrings(out, ['scMaxEachPostBytes', 'scMinPostsIntervalMs', 'scStreamUpServerSecs']);
 
   if (!hasMeaningfulHeaders(out.headers)) {
     delete out.headers;

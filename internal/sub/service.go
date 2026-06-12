@@ -1519,6 +1519,19 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 	if len(extra) > 0 {
 		orders['o'] = extra
 	}
+	// A node-hosted inbound usually shares its remark with the local copy it
+	// was synced from, so a multi-node subscription would list several
+	// identically-named entries differing only by address (#5035). Tag such
+	// entries with the node name unless the admin already put it in the remark.
+	if inbound.NodeID != nil && s.nodesByID != nil {
+		if n, ok := s.nodesByID[*inbound.NodeID]; ok && n != nil && n.Name != "" && !strings.Contains(orders['i'], n.Name) {
+			if orders['i'] != "" {
+				orders['i'] += "@" + n.Name
+			} else {
+				orders['i'] = n.Name
+			}
+		}
+	}
 
 	var remark []string
 	for i := 0; i < len(orderChars); i++ {
@@ -1648,8 +1661,16 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 		"uplinkDataPlacement", "uplinkDataKey",
 		"scMaxEachPostBytes", "scMinPostsIntervalMs",
 	}
+	// Values matching xray-core's own defaults are redundant on the wire and
+	// the literal scMinPostsIntervalMs=30 is a known DPI fingerprint (#5141).
+	// Old panels seeded these defaults into every xhttp inbound, so filter
+	// them here instead of requiring every stored config to be re-saved.
+	coreDefaults := map[string]string{
+		"scMaxEachPostBytes":   "1000000",
+		"scMinPostsIntervalMs": "30",
+	}
 	for _, field := range stringFields {
-		if v, ok := xhttp[field].(string); ok && len(v) > 0 {
+		if v, ok := xhttp[field].(string); ok && len(v) > 0 && v != coreDefaults[field] {
 			extra[field] = v
 		}
 	}

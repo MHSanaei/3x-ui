@@ -45,7 +45,7 @@ export function newStreamSlice(network: string): Record<string, unknown> {
         network: 'xhttp',
         xhttpSettings: {
           path: '/', host: '', mode: '', headers: [],
-          xPaddingBytes: '100-1000', scMaxEachPostBytes: '1000000',
+          xPaddingBytes: '100-1000',
         },
       };
     case 'hysteria':

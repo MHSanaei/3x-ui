@@ -282,7 +282,8 @@
         "quickAdded": "Se añadieron {n} fallback(s)",
         "quickAddedNone": "No hay nuevos inbounds elegibles",
         "routesWhen": "Enruta cuando",
-        "defaultCatchAll": "Por defecto — captura cualquier otra cosa"
+        "defaultCatchAll": "Por defecto — captura cualquier otra cosa",
+        "needsTls": "Los fallbacks estarán disponibles al seleccionar TLS o Reality en la pestaña de Seguridad (solo VLESS/Trojan sobre RAW)."
       },
       "protocol": "Protocolo",
       "port": "Puerto",
@@ -855,7 +856,7 @@
       "basePath": "Ruta base",
       "apiToken": "Token API",
       "apiTokenPlaceholder": "Token desde la página de Configuración del panel remoto",
-      "apiTokenHint": "El panel remoto expone su token de API en Configuración → Token de API.",
+      "apiTokenHint": "El panel remoto expone su token de API en Configuraciones de Seguridad → Token de API.",
       "regenerate": "Regenerar token",
       "regenerateConfirm": "Regenerar invalida el token actual. Cualquier panel central que lo use perderá el acceso hasta que se actualice. ¿Continuar?",
       "allowPrivateAddress": "Permitir dirección privada",

@@ -282,7 +282,8 @@
         "quickAdded": "Menambahkan {n} fallback",
         "quickAddedNone": "Tidak ada inbound baru yang memenuhi syarat",
         "routesWhen": "Diarahkan ketika",
-        "defaultCatchAll": "Default — menangkap apa pun lainnya"
+        "defaultCatchAll": "Default — menangkap apa pun lainnya",
+        "needsTls": "Fallback tersedia setelah memilih TLS atau Reality di tab Keamanan (hanya VLESS/Trojan melalui RAW)."
       },
       "protocol": "Protokol",
       "port": "Port",
@@ -855,7 +856,7 @@
       "basePath": "Path dasar",
       "apiToken": "Token API",
       "apiTokenPlaceholder": "Token dari halaman Pengaturan panel jarak jauh",
-      "apiTokenHint": "Panel jarak jauh menampilkan token API-nya di Pengaturan → Token API.",
+      "apiTokenHint": "Panel jarak jauh menampilkan token API-nya di Otentikasi → Token API.",
       "regenerate": "Buat Ulang Token",
       "regenerateConfirm": "Membuat ulang akan membatalkan token saat ini. Setiap panel pusat yang menggunakannya akan kehilangan akses sampai diperbarui. Lanjutkan?",
       "allowPrivateAddress": "Izinkan alamat pribadi",

@@ -282,7 +282,8 @@
         "quickAdded": "已添加 {n} 条回落",
         "quickAddedNone": "没有可添加的新入站",
         "routesWhen": "当满足条件时路由",
-        "defaultCatchAll": "默认 — 兜底匹配其他所有"
+        "defaultCatchAll": "默认 — 兜底匹配其他所有",
+        "needsTls": "在“安全”标签页选择 TLS 或 Reality 后即可配置回落（仅限 RAW 上的 VLESS/Trojan）。"
       },
       "protocol": "协议",
       "port": "端口",
@@ -855,7 +856,7 @@
       "basePath": "基础路径",
       "apiToken": "API 令牌",
       "apiTokenPlaceholder": "远程面板设置页中的令牌",
-      "apiTokenHint": "远程面板在 设置 → API 令牌 中显示其 API 令牌。",
+      "apiTokenHint": "远程面板在 安全设定 → API 令牌 中显示其 API 令牌。",
       "regenerate": "重新生成令牌",
       "regenerateConfirm": "重新生成会使当前令牌失效。任何使用该令牌的中央面板都会失去访问权限，直至更新。是否继续？",
       "allowPrivateAddress": "允许私有地址",

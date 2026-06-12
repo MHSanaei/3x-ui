@@ -59,9 +59,15 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
     'uplinkDataKey',
     'scMaxEachPostBytes',
   ] as const;
+  // Values matching xray-core's own defaults stay off the wire — old panels
+  // seeded them into every config and the literal values are a DPI
+  // fingerprint (#5141). Mirrors the sub service's filter.
+  const coreDefaults: Partial<Record<(typeof stringFields)[number], string>> = {
+    scMaxEachPostBytes: '1000000',
+  };
   for (const k of stringFields) {
     const v = xhttp[k];
-    if (typeof v === 'string' && v.length > 0) extra[k] = v;
+    if (typeof v === 'string' && v.length > 0 && v !== coreDefaults[k]) extra[k] = v;
   }
 
   // Headers on the wire are a record; emit them as a map upstream's

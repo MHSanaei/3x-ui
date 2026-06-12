@@ -282,7 +282,8 @@
         "quickAdded": "Added {n} fallback(s)",
         "quickAddedNone": "No new eligible inbounds to add",
         "routesWhen": "Routes when",
-        "defaultCatchAll": "Default — catches anything else"
+        "defaultCatchAll": "Default — catches anything else",
+        "needsTls": "Fallbacks become available once Security is set to TLS or Reality on the Security tab (VLESS/Trojan over RAW only)."
       },
       "protocol": "Protocol",
       "port": "Port",
@@ -856,7 +857,7 @@
       "basePath": "Base Path",
       "apiToken": "API Token",
       "apiTokenPlaceholder": "Token from the remote panel's Settings page",
-      "apiTokenHint": "The remote panel exposes its API token under Settings → API Token.",
+      "apiTokenHint": "The remote panel exposes its API token under Authentication → API Token.",
       "regenerate": "Regenerate Token",
       "regenerateConfirm": "Regenerating invalidates the current token. Any central panel using it will lose access until updated. Continue?",
       "allowPrivateAddress": "Allow private address",
