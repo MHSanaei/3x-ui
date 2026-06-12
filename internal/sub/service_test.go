@@ -26,6 +26,21 @@ func TestSubscriptionExpiryFromClient(t *testing.T) {
 	}
 }
 
+// The name an admin gives a node is panel-internal and must not leak into
+// the remarks end users see in their client apps (#5231) — not even for
+// node-hosted inbounds, which briefly carried a node-name suffix (#5035).
+func TestGenRemarkOmitsNodeName(t *testing.T) {
+	nodeID := 7
+	s := &SubService{
+		remarkModel: "-ieo",
+		nodesByID:   map[int]*model.Node{7: {Id: 7, Name: "Berlin", Address: "node7.example.com"}},
+	}
+	ib := &model.Inbound{Remark: "vless-tcp", NodeID: &nodeID}
+	if got := s.genRemark(ib, "", ""); got != "vless-tcp" {
+		t.Fatalf("remark = %q, want %q (node name must not leak into client-visible remarks)", got, "vless-tcp")
+	}
+}
+
 func TestFindClientIndex(t *testing.T) {
 	clients := []model.Client{
 		{Email: "a@example.com"},
