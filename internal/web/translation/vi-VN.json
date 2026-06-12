@@ -416,6 +416,7 @@
       },
       "telegramDesc": "Vui lòng cung cấp ID Trò chuyện Telegram. (sử dụng lệnh '/id' trong bot) hoặc ({'@'}userinfobot)",
       "subscriptionDesc": "Bạn có thể tìm liên kết gói đăng ký của mình trong Chi tiết, cũng như bạn có thể sử dụng cùng tên cho nhiều cấu hình khác nhau",
+      "subSortIndex": "Thứ tự sub",
       "same": "Giống nhau",
       "inboundInfo": "Thông tin Inbound",
       "exportInbound": "Xuất nhập khẩu",
@@ -595,6 +596,8 @@
         "shareAddrStrategyHelp": "Kiểm soát địa chỉ được ghi vào liên kết chia sẻ đã xuất, mã QR và nội dung đăng ký.",
         "shareAddr": "Địa chỉ chia sẻ tùy chỉnh",
         "shareAddrHelp": "Chỉ dùng khi chiến lược địa chỉ chia sẻ là Tùy chỉnh. Nhập host hoặc IP không kèm giao thức hoặc cổng.",
+        "subSortIndex": "Thứ tự trong gói đăng ký",
+        "subSortIndexHelp": "Vị trí liên kết của inbound này trong nội dung gói đăng ký (trang đăng ký và ứng dụng khách). Giá trị nhỏ hơn xếp trước; giá trị bằng nhau giữ thứ tự tạo. Không ảnh hưởng đến danh sách inbound trong bảng điều khiển.",
         "shareAddrStrategyOptions": {
           "node": "Địa chỉ node",
           "listen": "Địa chỉ listen inbound",

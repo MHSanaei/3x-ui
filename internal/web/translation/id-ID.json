@@ -416,6 +416,7 @@
       },
       "telegramDesc": "Harap berikan ID Obrolan Telegram. (gunakan perintah '/id' di bot) atau ({'@'}userinfobot)",
       "subscriptionDesc": "Untuk menemukan URL langganan Anda, buka 'Rincian'. Selain itu, Anda dapat menggunakan nama yang sama untuk beberapa klien.",
+      "subSortIndex": "Urutan sub",
       "same": "Sama",
       "inboundInfo": "Informasi Inbound",
       "exportInbound": "Ekspor Masuk",
@@ -595,6 +596,8 @@
         "shareAddrStrategyHelp": "Menentukan alamat yang ditulis ke tautan berbagi yang diekspor, kode QR, dan keluaran langganan.",
         "shareAddr": "Alamat berbagi kustom",
         "shareAddrHelp": "Hanya digunakan saat strategi alamat berbagi adalah Kustom. Masukkan host atau IP tanpa skema atau port.",
+        "subSortIndex": "Urutan dalam langganan",
+        "subSortIndexHelp": "Posisi tautan inbound ini dalam keluaran langganan (halaman langganan dan aplikasi klien). Nilai lebih kecil tampil lebih dulu; nilai sama mempertahankan urutan pembuatan. Tidak memengaruhi daftar inbound di panel.",
         "shareAddrStrategyOptions": {
           "node": "Alamat node",
           "listen": "Alamat listen inbound",

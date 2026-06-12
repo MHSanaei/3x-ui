@@ -416,6 +416,7 @@
       },
       "telegramDesc": "Por favor, proporciona el ID de Chat de Telegram. (usa el comando '/id' en el bot) o ({'@'}userinfobot)",
       "subscriptionDesc": "Puedes encontrar tu enlace de suscripción en Detalles, también puedes usar el mismo nombre para varias configuraciones.",
+      "subSortIndex": "Orden sub",
       "same": "misma",
       "inboundInfo": "Información de entrada",
       "exportInbound": "Exportación entrante",
@@ -595,6 +596,8 @@
         "shareAddrStrategyHelp": "Controla qué dirección se escribe en los enlaces compartidos exportados, códigos QR y la salida de suscripción.",
         "shareAddr": "Dirección compartida personalizada",
         "shareAddrHelp": "Solo se usa cuando la estrategia de dirección para compartir es Personalizada. Introduce un host o IP sin esquema ni puerto.",
+        "subSortIndex": "Orden en la suscripción",
+        "subSortIndexHelp": "Posición de los enlaces de esta entrada en la salida de la suscripción (página de suscripción y apps cliente). Los valores más bajos van primero; con valores iguales se mantiene el orden de creación. No afecta a la lista de entradas del panel.",
         "shareAddrStrategyOptions": {
           "node": "Dirección del nodo",
           "listen": "Dirección de escucha del inbound",

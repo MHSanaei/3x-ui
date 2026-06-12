@@ -284,7 +284,7 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		WHERE
 			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria')
 			AND clients.sub_id = ? AND inbounds.enable = ?
-	)`, subId, true).Find(&inbounds).Error
+	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC").Find(&inbounds).Error
 	if err != nil {
 		return nil, err
 	}

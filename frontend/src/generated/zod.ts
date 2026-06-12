@@ -314,6 +314,7 @@ export const InboundSchema = z.object({
   shareAddrStrategy: z.enum(['node', 'listen', 'custom']),
   sniffing: z.unknown(),
   streamSettings: z.unknown(),
+  subSortIndex: z.number().int().min(1),
   tag: z.string(),
   total: z.number().int(),
   trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']),

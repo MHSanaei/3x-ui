@@ -358,6 +358,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				LastTrafficResetTime: snapIb.LastTrafficResetTime,
 				Enable:               snapIb.Enable,
 				Remark:               snapIb.Remark,
+				SubSortIndex:         normalizeSubSortIndex(snapIb.SubSortIndex),
 				Total:                snapIb.Total,
 				ExpiryTime:           snapIb.ExpiryTime,
 				Up:                   snapIb.Up,
@@ -382,6 +383,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if !dirty {
 			updates["enable"] = snapIb.Enable
 			updates["remark"] = snapIb.Remark
+			updates["sub_sort_index"] = normalizeSubSortIndex(snapIb.SubSortIndex)
 			updates["listen"] = snapIb.Listen
 			updates["port"] = snapIb.Port
 			updates["protocol"] = snapIb.Protocol

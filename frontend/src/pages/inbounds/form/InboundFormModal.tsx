@@ -576,6 +576,14 @@ export default function InboundFormModal({
       )}
 
       <Form.Item
+        name="subSortIndex"
+        label={t('pages.inbounds.form.subSortIndex')}
+        extra={t('pages.inbounds.form.subSortIndexHelp')}
+      >
+        <InputNumber min={1} />
+      </Form.Item>
+
+      <Form.Item
         name="port"
         label={t('pages.inbounds.port')}
         rules={[antdRule(InboundFormBaseSchema.shape.port, t)]}

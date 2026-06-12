@@ -292,6 +292,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "shareAddrStrategy": "node",
     "sniffing": null,
     "streamSettings": null,
+    "subSortIndex": 1,
     "tag": "in-443-tcp",
     "total": 0,
     "trafficReset": "never",

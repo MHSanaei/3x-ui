@@ -93,6 +93,11 @@ export default function InboundList({
     [dbInbounds],
   );
 
+  const hasAnySubSortIndex = useMemo(
+    () => dbInbounds.some((i) => (i.subSortIndex ?? 1) > 1),
+    [dbInbounds],
+  );
+
   const toggleSelect = useCallback((id: number, checked: boolean) => {
     setSelectedRowKeys((prev) => {
       const next = new Set(prev);
@@ -115,6 +120,7 @@ export default function InboundList({
 
   const columns = useInboundColumns({
     hasAnyRemark,
+    hasAnySubSortIndex,
     hasActiveNode,
     nodesById,
     clientCount,

@@ -293,6 +293,7 @@ export interface Inbound {
   shareAddrStrategy: string;
   sniffing: unknown;
   streamSettings: unknown;
+  subSortIndex: number;
   tag: string;
   total: number;
   trafficReset: string;

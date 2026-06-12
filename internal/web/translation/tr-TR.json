@@ -416,6 +416,7 @@
       },
       "telegramDesc": "Lütfen Telegram Sohbet Kimliği (Chat ID) sağlayın. ({'@'}userinfobot'tan öğrenebilir veya botta '/id' komutunu kullanabilirsiniz.)",
       "subscriptionDesc": "Abonelik URL'nizi bulmak için 'Detaylar'a gidin. Aynı adı birden fazla kullanıcı için kullanabilirsiniz.",
+      "subSortIndex": "Sıralama",
       "same": "Aynı",
       "inboundInfo": "Gelen Bağlantı Bilgileri",
       "exportInbound": "Gelen Bağlantını Dışa Aktar",
@@ -596,6 +597,8 @@
         "shareAddrStrategyHelp": "Dışa aktarılan paylaşım bağlantılarına, QR kodlarına ve abonelik çıktısına hangi adresin yazılacağını belirler.",
         "shareAddr": "Özel paylaşım adresi",
         "shareAddrHelp": "Yalnızca paylaşım adresi stratejisi Özel olduğunda kullanılır. Şema veya port olmadan bir ana makine ya da IP girin.",
+        "subSortIndex": "Abonelikte sıralama",
+        "subSortIndexHelp": "Bu gelen bağlantının linklerinin abonelik çıktısındaki (abonelik sayfası ve istemci uygulamaları) konumu. Küçük değerler önce gelir; eşit değerlerde oluşturulma sırası korunur. Paneldeki gelen bağlantı listesini etkilemez.",
         "shareAddrStrategyOptions": {
           "node": "Düğüm adresi",
           "listen": "Inbound dinleme adresi",

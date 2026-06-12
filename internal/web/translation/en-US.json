@@ -416,6 +416,7 @@
       },
       "telegramDesc": "Please provide Telegram Chat ID. (use '/id' command in the bot) or ({'@'}userinfobot)",
       "subscriptionDesc": "To find your subscription URL, navigate to the 'Details'. Additionally, you can use the same name for several clients.",
+      "subSortIndex": "Sub order",
       "same": "Same",
       "inboundInfo": "Inbound Information",
       "exportInbound": "Export Inbound",
@@ -596,6 +597,8 @@
         "shareAddrStrategyHelp": "Controls which address is written into exported share links, QR codes, and subscription output.",
         "shareAddr": "Custom share address",
         "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme or port.",
+        "subSortIndex": "Subscription sort order",
+        "subSortIndexHelp": "Position of this inbound's links in subscription output (sub page and client apps). Lower values come first; equal values keep creation order. Does not affect the panel inbound list.",
         "shareAddrStrategyOptions": {
           "node": "Node address",
           "listen": "Inbound listen",

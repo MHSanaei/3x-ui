@@ -416,6 +416,7 @@
       },
       "telegramDesc": "Por favor, forneça o ID do Chat do Telegram. (use o comando '/id' no bot) ou ({'@'}userinfobot)",
       "subscriptionDesc": "Para encontrar seu URL de assinatura, navegue até 'Detalhes'. Além disso, você pode usar o mesmo nome para vários clientes.",
+      "subSortIndex": "Ordem sub",
       "same": "Igual",
       "inboundInfo": "Informações do Inbound",
       "exportInbound": "Exportar Inbound",
@@ -595,6 +596,8 @@
         "shareAddrStrategyHelp": "Controla qual endereço é gravado nos links de compartilhamento exportados, códigos QR e na saída de assinatura.",
         "shareAddr": "Endereço de compartilhamento personalizado",
         "shareAddrHelp": "Usado apenas quando a estratégia de endereço de compartilhamento é Personalizada. Informe um host ou IP sem esquema nem porta.",
+        "subSortIndex": "Ordem na assinatura",
+        "subSortIndexHelp": "Posição dos links desta entrada na saída da assinatura (página de assinatura e aplicativos cliente). Valores menores vêm primeiro; valores iguais mantêm a ordem de criação. Não afeta a lista de entradas do painel.",
         "shareAddrStrategyOptions": {
           "node": "Endereço do nó",
           "listen": "Endereço de escuta do inbound",
