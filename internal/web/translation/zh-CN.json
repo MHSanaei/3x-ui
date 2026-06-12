@@ -591,7 +591,7 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "获取新 Seed",
-        "listenHelp": "也可以填写 Unix socket 路径（例如 /run/xray/in.sock），以使用套接字而非 TCP 端口监听——此时请将端口设为 0。",
+        "listenHelp": "也可以填写 Unix socket 路径（例如 /run/xray/in.sock），或以 @ 为前缀的抽象套接字名称（例如 @xray/in.sock），以使用套接字而非 TCP 端口监听——此时请将端口设为 0。",
         "shareAddrStrategy": "分享地址策略",
         "shareAddrStrategyHelp": "控制导出分享链接、二维码和订阅输出时写入哪个地址。",
         "shareAddr": "自定义分享地址",

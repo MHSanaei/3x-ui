@@ -205,7 +205,7 @@ export default function InboundFormModal({
 
   const wPort = Form.useWatch('port', form);
   const wListen = (Form.useWatch('listen', form) ?? '') as string;
-  const isUdsListen = wListen.startsWith('/');
+  const isUdsListen = wListen.startsWith('/') || wListen.startsWith('@');
   const wNodeId = Form.useWatch('nodeId', form) ?? null;
   const shareAddrStrategy = Form.useWatch('shareAddrStrategy', form) ?? 'node';
   const wTag = Form.useWatch('tag', form) ?? '';

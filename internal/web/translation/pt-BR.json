@@ -591,7 +591,7 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "Obter novo Seed",
-        "listenHelp": "Você também pode informar um caminho de socket Unix (ex.: /run/xray/in.sock) para escutar em um socket em vez de uma porta TCP — nesse caso, defina a Porta como 0.",
+        "listenHelp": "Você também pode informar um caminho de socket Unix (ex.: /run/xray/in.sock), ou um nome de socket abstrato com o prefixo @ (ex.: @xray/in.sock), para escutar em um socket em vez de uma porta TCP — nesse caso, defina a Porta como 0.",
         "shareAddrStrategy": "Estratégia de endereço de compartilhamento",
         "shareAddrStrategyHelp": "Controla qual endereço é gravado nos links de compartilhamento exportados, códigos QR e na saída de assinatura.",
         "shareAddr": "Endereço de compartilhamento personalizado",

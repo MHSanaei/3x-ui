@@ -591,7 +591,7 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "取得新 Seed",
-        "listenHelp": "也可以填寫 Unix socket 路徑（例如 /run/xray/in.sock），以使用通訊端而非 TCP 連接埠監聽——此時請將連接埠設為 0。",
+        "listenHelp": "也可以填寫 Unix socket 路徑（例如 /run/xray/in.sock），或以 @ 為前綴的抽象通訊端名稱（例如 @xray/in.sock），以使用通訊端而非 TCP 連接埠監聽——此時請將連接埠設為 0。",
         "shareAddrStrategy": "分享地址策略",
         "shareAddrStrategyHelp": "控制匯出分享連結、QR Code 和訂閱輸出時寫入哪個地址。",
         "shareAddr": "自訂分享地址",

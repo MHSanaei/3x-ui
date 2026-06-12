@@ -591,7 +591,7 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "新しい Seed を取得",
-        "listenHelp": "TCP ポートの代わりに Unix ソケットのパス（例: /run/xray/in.sock）を入力してソケットでリッスンすることもできます。その場合はポートを 0 に設定してください。",
+        "listenHelp": "TCP ポートの代わりに Unix ソケットのパス（例: /run/xray/in.sock）、または @ を先頭に付けた抽象ソケット名（例: @xray/in.sock）を入力してソケットでリッスンすることもできます。その場合はポートを 0 に設定してください。",
         "shareAddrStrategy": "共有アドレス戦略",
         "shareAddrStrategyHelp": "エクスポートされる共有リンク、QRコード、サブスクリプション出力に書き込むアドレスを制御します。",
         "shareAddr": "カスタム共有アドレス",
