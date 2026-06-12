@@ -490,6 +490,7 @@ func wireInbound(ib *model.Inbound) url.Values {
 	v := url.Values{}
 	v.Set("total", strconv.FormatInt(ib.Total, 10))
 	v.Set("remark", ib.Remark)
+	v.Set("subSortIndex", strconv.Itoa(ib.SubSortIndex))
 	v.Set("enable", strconv.FormatBool(ib.Enable))
 	v.Set("expiryTime", strconv.FormatInt(ib.ExpiryTime, 10))
 	v.Set("listen", ib.Listen)

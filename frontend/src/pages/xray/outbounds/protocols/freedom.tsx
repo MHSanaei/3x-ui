@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Select, Switch, type FormInstance } from 'antd';
+import { AutoComplete, Button, Form, Input, InputNumber, Select, Switch, type FormInstance } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 
 import { OutboundDomainStrategies } from '@/schemas/primitives';
@@ -67,12 +67,24 @@ export default function FreedomFields({ form }: { form: FormInstance<OutboundFor
                   <Form.Item
                     label={t('pages.settings.subFormats.packets')}
                     name={['settings', 'fragment', 'packets']}
+                    rules={[{
+                      validator: (_rule, value) => {
+                        const str = String(value ?? '').trim();
+                        // xray accepts "tlshello" or any packet-number range (#5075)
+                        if (str === '' || str === 'tlshello' || /^\d+-\d+$/.test(str)) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(new Error('Use "tlshello" or a packet range like 1-3'));
+                      },
+                    }]}
                   >
-                    <Select
+                    <AutoComplete
                       options={[
-                        { value: '1-3', label: '1-3' },
                         { value: 'tlshello', label: 'tlshello' },
+                        { value: '1-3', label: '1-3' },
+                        { value: '1-5', label: '1-5' },
                       ]}
+                      placeholder="tlshello or n-m, e.g. 1-3"
                     />
                   </Form.Item>
                   <Form.Item label={t('pages.settings.subFormats.length')} name={['settings', 'fragment', 'length']}>

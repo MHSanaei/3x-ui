@@ -1,6 +1,6 @@
 import { useMemo, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Popover, Switch, Tag, type TableColumnType } from 'antd';
+import { Popover, Switch, Tag, Tooltip, type TableColumnType } from 'antd';
 import { TeamOutlined } from '@ant-design/icons';
 
 import { SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
@@ -21,6 +21,7 @@ import type { ClientCountEntry, DBInboundRecord, RowAction } from './types';
 
 interface UseInboundColumnsParams {
   hasAnyRemark: boolean;
+  hasAnySubSortIndex: boolean;
   hasActiveNode: boolean;
   nodesById: Map<number, NodeRecord>;
   clientCount: Record<number, ClientCountEntry>;
@@ -33,6 +34,7 @@ interface UseInboundColumnsParams {
 
 export function useInboundColumns({
   hasAnyRemark,
+  hasAnySubSortIndex,
   hasActiveNode,
   nodesById,
   clientCount,
@@ -110,6 +112,20 @@ export function useInboundColumns({
             <Tag color={node.status === 'online' ? 'blue' : 'red'}>{node.name}</Tag>
           );
         },
+      });
+    }
+
+    if (hasAnySubSortIndex) {
+      cols.push({
+        title: (
+          <Tooltip title={t('pages.inbounds.form.subSortIndex')}>
+            {t('pages.inbounds.subSortIndex')}
+          </Tooltip>
+        ),
+        dataIndex: 'subSortIndex',
+        key: 'subSortIndex',
+        align: 'right',
+        width: 70,
       });
     }
 
@@ -267,5 +283,5 @@ export function useInboundColumns({
     );
 
     return cols;
-  }, [t, hasAnyRemark, hasActiveNode, nodesById, clientCount, subEnable, expireDiff, trafficDiff, datepicker, onRowAction, onSwitchEnable]);
+  }, [t, hasAnyRemark, hasAnySubSortIndex, hasActiveNode, nodesById, clientCount, subEnable, expireDiff, trafficDiff, datepicker, onRowAction, onSwitchEnable]);
 }

@@ -91,6 +91,9 @@ func initModels() error {
 	if err := pruneOrphanedClientInbounds(); err != nil {
 		return err
 	}
+	if err := normalizeInboundSubSortIndex(); err != nil {
+		return err
+	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -119,6 +122,21 @@ func pruneOrphanedClientInbounds() error {
 	}
 	if res.RowsAffected > 0 {
 		log.Printf("Pruned %d orphaned client_inbounds row(s)", res.RowsAffected)
+	}
+	return nil
+}
+
+// normalizeInboundSubSortIndex lifts sub_sort_index values below the 1-based
+// minimum (rows written by builds that defaulted the column to 0, or by nodes
+// predating the field) so they cannot sort ahead of explicitly ranked inbounds.
+func normalizeInboundSubSortIndex() error {
+	res := db.Exec("UPDATE inbounds SET sub_sort_index = 1 WHERE sub_sort_index < 1")
+	if res.Error != nil {
+		log.Printf("Error normalizing inbound sub_sort_index: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Normalized sub_sort_index on %d inbound(s)", res.RowsAffected)
 	}
 	return nil
 }

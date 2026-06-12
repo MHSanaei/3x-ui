@@ -95,6 +95,8 @@ export class AllSetting {
     if (data != null) {
       ObjectUtil.cloneProps(this, data);
     }
+    const cpu = Math.round(Number(this.tgCpu));
+    this.tgCpu = Number.isFinite(cpu) ? Math.min(100, Math.max(0, cpu)) : 80;
   }
 
   equals(other: AllSetting): boolean {

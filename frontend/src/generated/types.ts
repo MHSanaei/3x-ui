@@ -293,6 +293,7 @@ export interface Inbound {
   shareAddrStrategy: string;
   sniffing: unknown;
   streamSettings: unknown;
+  subSortIndex: number;
   tag: string;
   total: number;
   trafficReset: string;
@@ -319,6 +320,7 @@ export interface InboundFallback {
 
 export interface InboundOption {
   id: number;
+  nodeId?: number | null;
   port: number;
   protocol: string;
   remark: string;

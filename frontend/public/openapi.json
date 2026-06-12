@@ -1345,6 +1345,12 @@
           },
           "sniffing": {},
           "streamSettings": {},
+          "subSortIndex": {
+            "description": "1-based sort order of this inbound's links in subscription output only (lower first; ties by id)",
+            "example": 1,
+            "minimum": 1,
+            "type": "integer"
+          },
           "tag": {
             "example": "in-443-tcp",
             "type": "string"
@@ -1385,6 +1391,7 @@
           "shareAddrStrategy",
           "sniffing",
           "streamSettings",
+          "subSortIndex",
           "tag",
           "total",
           "trafficReset",
@@ -1457,6 +1464,11 @@
         "properties": {
           "id": {
             "example": 1,
+            "type": "integer"
+          },
+          "nodeId": {
+            "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
+            "nullable": true,
             "type": "integer"
           },
           "port": {
@@ -2148,6 +2160,7 @@
                       "shareAddrStrategy": "node",
                       "sniffing": null,
                       "streamSettings": null,
+                      "subSortIndex": 1,
                       "tag": "in-443-tcp",
                       "total": 0,
                       "trafficReset": "never",
@@ -2244,6 +2257,7 @@
                   "obj": [
                     {
                       "id": 1,
+                      "nodeId": null,
                       "port": 443,
                       "protocol": "vless",
                       "remark": "VLESS-443",

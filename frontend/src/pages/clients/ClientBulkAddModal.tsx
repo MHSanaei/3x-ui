@@ -288,11 +288,7 @@ export default function ClientBulkAddModal({
               placeholder={t('pages.clients.groupPlaceholder')}
               options={groups.map((g) => ({ value: g }))}
               onChange={(v) => update('group', v ?? '')}
-              filterOption={(input, option) =>
-                String(option?.value ?? '').toLowerCase().includes((input || '').toLowerCase())
-              }
               allowClear
-              style={{ width: '100%' }}
             />
           </Form.Item>
 

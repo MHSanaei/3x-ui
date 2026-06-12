@@ -14,6 +14,7 @@ import {
   Switch,
   Tabs,
   Tag,
+  Tooltip,
   message,
 } from 'antd';
 import { EyeOutlined, ReloadOutlined } from '@ant-design/icons';
@@ -428,7 +429,7 @@ export default function ClientFormModal({
             items={[
               {
                 key: 'basic',
-                label: t('pages.clients.tabBasic'),
+                label: t('pages.clients.tabBasics'),
                 children: (
                   <>
                     <Row gutter={16}>
@@ -441,20 +442,31 @@ export default function ClientFormModal({
                               style={{ flex: 1 }}
                               onChange={(e) => update('email', e.target.value)}
                             />
-                            <Button icon={<ReloadOutlined />} onClick={() => update('email', RandomUtil.randomLowerAndNum(12))} />
+                            {!isEdit && (
+                              <Button icon={<ReloadOutlined />} onClick={() => update('email', RandomUtil.randomLowerAndNum(12))} />
+                            )}
                           </Space.Compact>
                         </Form.Item>
                       </Col>
-                      <Col xs={24} md={8}>
-                        <Form.Item label={t('pages.clients.totalGB')}>
+                      <Col xs={24} md={6}>
+                        <Form.Item label={t('pages.clients.totalGB')} tooltip={t('pages.clients.totalGBDesc')}>
                           <InputNumber value={form.totalGB} min={0} step={1} style={{ width: '100%' }}
                             onChange={(v) => update('totalGB', Number(v) || 0)} />
                         </Form.Item>
                       </Col>
-                      <Col xs={24} md={4}>
-                        <Form.Item label={t('pages.clients.limitIp')}>
-                          <InputNumber value={form.limitIp} min={0} style={{ width: '100%' }}
-                            onChange={(v) => update('limitIp', Number(v) || 0)} />
+                      <Col xs={24} md={6}>
+                        <Form.Item label={t('pages.clients.limitIp')} tooltip={t('pages.clients.limitIpDesc')}>
+                          <Space.Compact style={{ display: 'flex' }}>
+                            <InputNumber value={form.limitIp} min={0} style={{ flex: 1 }}
+                              onChange={(v) => update('limitIp', Number(v) || 0)} />
+                            {isEdit && (
+                              <Tooltip title={t('pages.clients.ipLog')}>
+                                <Button icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
+                                  {clientIps.length > 0 ? clientIps.length : ''}
+                                </Button>
+                              </Tooltip>
+                            )}
+                          </Space.Compact>
                         </Form.Item>
                       </Col>
                     </Row>
@@ -489,7 +501,7 @@ export default function ClientFormModal({
                       </Col>
                       <Col xs={12} md={6}>
                         <Form.Item
-                          label={t('pages.clients.renew')}
+                          label={t('pages.clients.renewDays')}
                           tooltip={t('pages.clients.renewDesc')}
                         >
                           <InputNumber value={form.reset} min={0} style={{ width: '100%' }}
@@ -499,16 +511,7 @@ export default function ClientFormModal({
                     </Row>
 
                     <Row gutter={16}>
-                      {tgBotEnable && (
-                        <Col xs={24} md={12}>
-                          <Form.Item label={t('pages.clients.telegramId')}>
-                            <InputNumber value={form.tgId} min={0} controls={false}
-                              placeholder={t('pages.clients.telegramIdPlaceholder')} style={{ width: '100%' }}
-                              onChange={(v) => update('tgId', Number(v) || 0)} />
-                          </Form.Item>
-                        </Col>
-                      )}
-                      <Col xs={24} md={tgBotEnable ? 12 : 24}>
+                      <Col xs={24} md={12}>
                         <Form.Item label={t('pages.clients.comment')}>
                           <Input value={form.comment} onChange={(e) => update('comment', e.target.value)} />
                         </Form.Item>
@@ -520,15 +523,33 @@ export default function ClientFormModal({
                             placeholder={t('pages.clients.groupPlaceholder')}
                             options={groups.map((g) => ({ value: g }))}
                             onChange={(v) => update('group', v ?? '')}
-                            filterOption={(input, option) =>
-                              String(option?.value ?? '').toLowerCase().includes((input || '').toLowerCase())
-                            }
                             allowClear
-                            style={{ width: '100%' }}
                           />
                         </Form.Item>
                       </Col>
                     </Row>
+
+                    {(tgBotEnable || showReverseTag) && (
+                      <Row gutter={16}>
+                        {tgBotEnable && (
+                          <Col xs={24} md={12}>
+                            <Form.Item label={t('pages.clients.telegramId')}>
+                              <InputNumber value={form.tgId} min={0} controls={false}
+                                placeholder={t('pages.clients.telegramIdPlaceholder')} style={{ width: '100%' }}
+                                onChange={(v) => update('tgId', Number(v) || 0)} />
+                            </Form.Item>
+                          </Col>
+                        )}
+                        {showReverseTag && (
+                          <Col xs={24} md={12}>
+                            <Form.Item label={t('pages.clients.reverseTag')}>
+                              <Input value={form.reverseTag} placeholder={t('pages.clients.reverseTagPlaceholder')}
+                                onChange={(e) => update('reverseTag', e.target.value)} />
+                            </Form.Item>
+                          </Col>
+                        )}
+                      </Row>
+                    )}
 
                     <Form.Item label={t('pages.clients.attachedInbounds')} required={!isEdit}>
                       <SelectAllClearButtons
@@ -555,20 +576,12 @@ export default function ClientFormModal({
                       <Switch checked={form.enable} onChange={(v) => update('enable', v)} />
                       <span style={{ marginLeft: 8 }}>{t('enable')}</span>
                     </Form.Item>
-
-                    {isEdit && (
-                      <Form.Item label={t('pages.clients.ipLog')}>
-                        <Button icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
-                          {clientIps.length > 0 ? clientIps.length : ''}
-                        </Button>
-                      </Form.Item>
-                    )}
                   </>
                 ),
               },
               {
                 key: 'config',
-                label: t('pages.clients.tabConfig'),
+                label: t('pages.clients.tabCredentials'),
                 children: (
                   <>
                     <Row gutter={16}>
@@ -632,14 +645,6 @@ export default function ClientFormModal({
                               onChange={(v) => update('security', v)}
                               options={VMESS_SECURITY_OPTIONS.map((k) => ({ value: k, label: k }))}
                             />
-                          </Form.Item>
-                        </Col>
-                      )}
-                      {showReverseTag && (
-                        <Col xs={24} md={12}>
-                          <Form.Item label={t('pages.clients.reverseTag')}>
-                            <Input value={form.reverseTag} placeholder={t('pages.clients.reverseTagPlaceholder')}
-                              onChange={(e) => update('reverseTag', e.target.value)} />
                           </Form.Item>
                         </Col>
                       )}

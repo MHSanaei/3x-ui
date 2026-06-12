@@ -1319,6 +1319,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "sniffing": {},
       "streamSettings": {},
+      "subSortIndex": {
+        "description": "1-based sort order of this inbound's links in subscription output only (lower first; ties by id)",
+        "example": 1,
+        "minimum": 1,
+        "type": "integer"
+      },
       "tag": {
         "example": "in-443-tcp",
         "type": "string"
@@ -1359,6 +1365,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "shareAddrStrategy",
       "sniffing",
       "streamSettings",
+      "subSortIndex",
       "tag",
       "total",
       "trafficReset",
@@ -1431,6 +1438,11 @@ export const SCHEMAS: Record<string, unknown> = {
     "properties": {
       "id": {
         "example": 1,
+        "type": "integer"
+      },
+      "nodeId": {
+        "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
+        "nullable": true,
         "type": "integer"
       },
       "port": {

@@ -85,6 +85,8 @@ export default function NodeFormModal({
         ...(node as unknown as Partial<NodeFormValues>),
         id: node.id,
         scheme: (node.scheme as 'http' | 'https') || base.scheme,
+        inboundSyncMode: (node.inboundSyncMode as 'all' | 'selected') || base.inboundSyncMode,
+        inboundTags: node.inboundTags ?? [],
       }
       : base;
     if (next.scheme === 'http') next.tlsVerifyMode = 'skip';

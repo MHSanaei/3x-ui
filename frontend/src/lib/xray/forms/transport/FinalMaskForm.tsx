@@ -1,4 +1,4 @@
-import { Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
+import { AutoComplete, Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { FormInstance } from 'antd/es/form';
 import type { NamePath } from 'antd/es/form/interface';
@@ -205,13 +205,18 @@ function TcpMaskItem({
           if (type === 'fragment') {
             return (
               <>
-                <Form.Item label="Packets" name={[fieldName, 'settings', 'packets']}>
-                  <Select
+                <Form.Item
+                  label="Packets"
+                  name={[fieldName, 'settings', 'packets']}
+                  rules={[{ validator: validateFragmentPackets }]}
+                >
+                  <AutoComplete
                     options={[
                       { value: 'tlshello', label: 'tlshello' },
                       { value: '1-3', label: '1-3' },
                       { value: '1-5', label: '1-5' },
                     ]}
+                    placeholder="tlshello or n-m, e.g. 1-3"
                   />
                 </Form.Item>
                 <Form.Item
@@ -262,6 +267,16 @@ function TcpMaskItem({
       </Form.Item>
     </div>
   );
+}
+
+// xray's fragment `packets` accepts "tlshello" or an arbitrary packet-number
+// range like "1-3" (#5075 — presets only covered the common cases).
+function validateFragmentPackets(_rule: unknown, value: unknown): Promise<void> {
+  const str = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+  if (str.length === 0 || str === 'tlshello' || /^\d+-\d+$/.test(str)) {
+    return Promise.resolve();
+  }
+  return Promise.reject(new Error('Use "tlshello" or a packet range like 1-3'));
 }
 
 // Walks a deep object path safely. Used inside shouldUpdate which gets

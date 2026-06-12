@@ -295,6 +295,9 @@ type InboundOption struct {
 	Port           int    `json:"port" example:"443"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
 	SsMethod       string `json:"ssMethod"`
+	// Hosting node; nil for this panel's own inbounds. Lets the clients
+	// page map a node filter onto inbound IDs (#4997).
+	NodeId *int `json:"nodeId,omitempty"`
 }
 
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
@@ -307,9 +310,10 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		Port           int    `gorm:"column:port"`
 		StreamSettings string `gorm:"column:stream_settings"`
 		Settings       string `gorm:"column:settings"`
+		NodeId         *int   `gorm:"column:node_id"`
 	}
 	err := db.Table("inbounds").
-		Select("id, remark, tag, protocol, port, stream_settings, settings").
+		Select("id, remark, tag, protocol, port, stream_settings, settings, node_id").
 		Where("user_id = ?", userId).
 		Order("id ASC").
 		Scan(&rows).Error
@@ -326,6 +330,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			Port:           r.Port,
 			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
 			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
+			NodeId:         r.NodeId,
 		})
 	}
 	return out, nil
@@ -453,6 +458,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
+	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
 		return inbound, false, err
 	}
@@ -781,6 +787,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
+	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 
 	conflict, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {
@@ -883,6 +890,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 
 	oldInbound.Total = inbound.Total
 	oldInbound.Remark = inbound.Remark
+	oldInbound.SubSortIndex = inbound.SubSortIndex
 	oldInbound.Enable = inbound.Enable
 	oldInbound.ExpiryTime = inbound.ExpiryTime
 	oldInbound.TrafficReset = inbound.TrafficReset
