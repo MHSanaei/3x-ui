@@ -36,6 +36,7 @@ Thumbs.db
 x-ui.db
 x-ui.db-shm
 x-ui.db-wal
+system_metrics.gob
 *.dump
 
 # Ignore Docker specific files

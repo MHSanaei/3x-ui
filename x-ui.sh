@@ -50,6 +50,18 @@ is_domain() {
     [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+(xn--[a-z0-9]{2,}|[A-Za-z]{2,})$ ]] && return 0 || return 1
 }
 
+# acme.sh's standalone server binds IPv4 by default; --listen-v6 makes it
+# v6-only, which breaks HTTP-01 validation when the domain's A record points
+# at this host's IPv4 (#4994). Only force IPv6 when the host has no global
+# IPv4 address at all.
+acme_listen_flag() {
+    if ip -4 addr show scope global 2> /dev/null | grep -q "inet "; then
+        echo ""
+    else
+        echo "--listen-v6"
+    fi
+}
+
 # check root
 [[ $EUID -ne 0 ]] && LOGE "ERROR: You must be root to run this script! \n" && exit 1
 
@@ -361,11 +373,25 @@ check_config() {
 
     if [[ -n "$existing_cert" ]]; then
         local domain=$(basename "$(dirname "$existing_cert")")
+        # The cert folder name is only the certificate's first domain. A
+        # multidomain (SAN) certificate may be served under any name it covers,
+        # so read the real names from the certificate itself (#5070).
+        local cert_sans=""
+        if [[ -f "$existing_cert" ]] && command -v openssl > /dev/null 2>&1; then
+            cert_sans=$(openssl x509 -in "$existing_cert" -noout -ext subjectAltName 2> /dev/null \
+                | grep -Eo 'DNS:[^,[:space:]]+' | cut -d: -f2)
+            if [[ -n "$cert_sans" ]] && ! echo "$cert_sans" | grep -qx "$domain"; then
+                domain=$(echo "$cert_sans" | head -n1)
+            fi
+        fi
 
         if [[ "$domain" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
             echo -e "${green}Access URL: https://${domain}:${existing_port}${existing_webBasePath}${plain}"
         else
             echo -e "${green}Access URL: https://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
+        fi
+        if [[ -n "$cert_sans" && $(echo "$cert_sans" | wc -l) -gt 1 ]]; then
+            echo -e "${yellow}The certificate also covers:${plain} $(echo "$cert_sans" | grep -vx "$domain" | tr '\n' ' ')"
         fi
     else
         echo -e "${red}⚠ WARNING: No SSL certificate configured!${plain}"
@@ -1231,7 +1257,7 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         2)
-            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
             if [ -z "$domains" ]; then
                 echo "No certificates found to revoke."
             else
@@ -1272,7 +1298,7 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         3)
-            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
             if [ -z "$domains" ]; then
                 echo "No certificates found to renew."
             else
@@ -1289,9 +1315,9 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         4)
-            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
             if [ -z "$domains" ]; then
-                echo "No certificates found."
+                echo "No certificates found under /root/cert."
             else
                 echo "Existing domains and their paths:"
                 for domain in $domains; do
@@ -1306,10 +1332,39 @@ ssl_cert_issue_main() {
                     fi
                 done
             fi
+            # The panel's configured certificate may live outside /root/cert
+            # (e.g. certbot under /etc/letsencrypt) — show it too (#5070).
+            local panel_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+            if [[ -n "${panel_cert}" && "${panel_cert}" != /root/cert/* ]]; then
+                echo -e "Panel certificate (custom path): ${panel_cert}"
+                if [[ -f "${panel_cert}" ]] && command -v openssl > /dev/null 2>&1; then
+                    local panel_sans=$(openssl x509 -in "${panel_cert}" -noout -ext subjectAltName 2> /dev/null \
+                        | grep -Eo 'DNS:[^,[:space:]]+' | cut -d: -f2 | tr '\n' ' ')
+                    [[ -n "${panel_sans}" ]] && echo -e "\tCovers: ${panel_sans}"
+                fi
+            fi
             ssl_cert_issue_main
             ;;
         5)
-            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+            echo -e "${green}\t1.${plain} Use a certificate from /root/cert"
+            echo -e "${green}\t2.${plain} Enter custom certificate file paths (e.g. certbot, /etc/letsencrypt/...)"
+            read -rp "Choose an option: " pathChoice
+            if [[ "$pathChoice" == "2" ]]; then
+                read -rp "Certificate file path (fullchain): " webCertFile
+                read -rp "Private key file path: " webKeyFile
+                if [[ -f "${webCertFile}" && -f "${webKeyFile}" ]]; then
+                    ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+                    echo "Panel certificate paths set:"
+                    echo "  - Certificate File: $webCertFile"
+                    echo "  - Private Key File: $webKeyFile"
+                    restart
+                else
+                    echo "Certificate or private key file not found."
+                fi
+                ssl_cert_issue_main
+                return
+            fi
+            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
             if [ -z "$domains" ]; then
                 echo "No certificates found."
             else
@@ -1691,7 +1746,7 @@ ssl_cert_issue() {
     if [[ ${cert_exists} -eq 0 ]]; then
         # issue the certificate
         ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
-        ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
+        ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport ${WebPort} --force
         if [ $? -ne 0 ]; then
             LOGE "Issuing certificate failed, please check logs."
             rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc

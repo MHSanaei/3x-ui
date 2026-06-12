@@ -25,7 +25,8 @@ export type HysteriaMasquerade = z.infer<typeof HysteriaMasqueradeSchema>;
 export const HysteriaStreamSettingsSchema = z.object({
   version: z.literal(2).default(2),
   auth: z.string().default(''),
-  udpIdleTimeout: z.number().int().min(1).default(60),
+  // Xray-core rejects values outside 2-600 seconds at startup.
+  udpIdleTimeout: z.number().int().min(2).max(600).default(60),
   masquerade: HysteriaMasqueradeSchema.optional(),
 });
 export type HysteriaStreamSettings = z.infer<typeof HysteriaStreamSettingsSchema>;

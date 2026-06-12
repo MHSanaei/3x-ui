@@ -316,6 +316,7 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "InboundOption": {
     "id": 1,
+    "nodeId": null,
     "port": 443,
     "protocol": "vless",
     "remark": "VLESS-443",

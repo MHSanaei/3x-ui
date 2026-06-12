@@ -5,6 +5,7 @@ import {
   Card,
   Checkbox,
   Dropdown,
+  Select,
   Space,
   Switch,
   Table,
@@ -50,6 +51,29 @@ export default function InboundList({
   const { t } = useTranslation();
   const [statsRecord, setStatsRecord] = useState<DBInboundRecord | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
+  // Node filter (#4997): 'all' shows everything, 0 is the local-panel
+  // sentinel (inbounds without a nodeId), otherwise a node id. Session-only.
+  const [nodeFilter, setNodeFilter] = useState<number | 'all'>('all');
+
+  const showNodeFilter = useMemo(
+    () => nodesById.size > 0 || dbInbounds.some((ib) => ib.nodeId != null),
+    [nodesById, dbInbounds],
+  );
+
+  const nodeFilterOptions = useMemo(
+    () => [
+      { value: 'all' as const, label: t('pages.clients.filters.nodes') },
+      { value: 0, label: t('pages.clients.filters.localPanel') },
+      ...Array.from(nodesById.values()).map((n) => ({ value: n.id, label: n.name || `#${n.id}` })),
+    ],
+    [nodesById, t],
+  );
+
+  const visibleInbounds = useMemo(() => {
+    if (nodeFilter === 'all') return dbInbounds;
+    if (nodeFilter === 0) return dbInbounds.filter((ib) => ib.nodeId == null);
+    return dbInbounds.filter((ib) => ib.nodeId === nodeFilter);
+  }, [dbInbounds, nodeFilter]);
 
   const onSwitchEnable = useCallback(async (dbInbound: DBInboundRecord, next: boolean) => {
     const previous = dbInbound.enable;
@@ -78,11 +102,11 @@ export default function InboundList({
   }, []);
 
   const selectAll = useCallback((checked: boolean) => {
-    setSelectedRowKeys(checked ? dbInbounds.map((i) => i.id) : []);
-  }, [dbInbounds]);
+    setSelectedRowKeys(checked ? visibleInbounds.map((i) => i.id) : []);
+  }, [visibleInbounds]);
 
-  const allSelected = dbInbounds.length > 0 && selectedRowKeys.length === dbInbounds.length;
-  const someSelected = selectedRowKeys.length > 0 && selectedRowKeys.length < dbInbounds.length;
+  const allSelected = visibleInbounds.length > 0 && selectedRowKeys.length === visibleInbounds.length;
+  const someSelected = selectedRowKeys.length > 0 && selectedRowKeys.length < visibleInbounds.length;
 
   const handleBulkDelete = useCallback(async () => {
     const ok = await onBulkDelete(selectedRowKeys);
@@ -131,6 +155,15 @@ export default function InboundList({
               {!isMobile && t('pages.inbounds.generalActions')}
             </Button>
           </Dropdown>
+          {showNodeFilter && (
+            <Select
+              value={nodeFilter}
+              onChange={(v) => setNodeFilter(v)}
+              options={nodeFilterOptions}
+              popupMatchSelectWidth={false}
+              style={{ minWidth: isMobile ? 90 : 140 }}
+            />
+          )}
           {selectedRowKeys.length > 0 && (
             <>
               <Tag color="blue" closable onClose={() => setSelectedRowKeys([])} style={{ marginInlineEnd: 0 }}>
@@ -147,7 +180,7 @@ export default function InboundList({
       <Space orientation="vertical" style={{ width: '100%' }}>
         {isMobile ? (
           <div className="inbound-cards">
-            {dbInbounds.length === 0 ? (
+            {visibleInbounds.length === 0 ? (
               <div className="card-empty">
                 <ImportOutlined style={{ fontSize: 28, opacity: 0.5 }} />
                 <div>{t('noData')}</div>
@@ -166,7 +199,7 @@ export default function InboundList({
                   <span className="bulk-count">{selectedRowKeys.length}</span>
                 )}
               </div>
-              {dbInbounds.map((record) => (
+              {visibleInbounds.map((record) => (
                 <div key={record.id} className={`inbound-card${selectedRowKeys.includes(record.id) ? ' is-selected' : ''}`}>
                   <div className="card-head">
                     <Checkbox
@@ -204,13 +237,13 @@ export default function InboundList({
         ) : (
           <Table
             columns={columns}
-            dataSource={dbInbounds}
+            dataSource={visibleInbounds}
             rowKey={(r) => r.id}
             rowSelection={{
               selectedRowKeys,
               onChange: (keys: Key[]) => setSelectedRowKeys(keys as number[]),
             }}
-            pagination={paginationFor(dbInbounds)}
+            pagination={paginationFor(visibleInbounds)}
             scroll={{ x: 1000 }}
             style={{ marginTop: 10 }}
             size="small"

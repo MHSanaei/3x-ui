@@ -59,9 +59,15 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
     'uplinkDataKey',
     'scMaxEachPostBytes',
   ] as const;
+  // Values matching xray-core's own defaults stay off the wire — old panels
+  // seeded them into every config and the literal values are a DPI
+  // fingerprint (#5141). Mirrors the sub service's filter.
+  const coreDefaults: Partial<Record<(typeof stringFields)[number], string>> = {
+    scMaxEachPostBytes: '1000000',
+  };
   for (const k of stringFields) {
     const v = xhttp[k];
-    if (typeof v === 'string' && v.length > 0) extra[k] = v;
+    if (typeof v === 'string' && v.length > 0 && v !== coreDefaults[k]) extra[k] = v;
   }
 
   // Headers on the wire are a record; emit them as a map upstream's
@@ -1073,11 +1079,11 @@ export function genWireguardLinks(input: GenWireguardFanoutInput): string {
   const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
   const sep = remarkModel.charAt(0);
   return inbound.settings.peers
-    .map((_p, i) => genWireguardLink({
+    .map((p, i) => genWireguardLink({
       settings: inbound.settings as WireguardInboundSettings,
       address: addr,
       port: inbound.port,
-      remark: `${remark}${sep}${i + 1}`,
+      remark: `${remark}${sep}${i + 1}${wgPeerCommentSuffix(p)}`,
       peerIndex: i,
     }))
     .join('\r\n');
@@ -1089,14 +1095,21 @@ export function genWireguardConfigs(input: GenWireguardFanoutInput): string {
   const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
   const sep = remarkModel.charAt(0);
   return inbound.settings.peers
-    .map((_p, i) => genWireguardConfig({
+    .map((p, i) => genWireguardConfig({
       settings: inbound.settings as WireguardInboundSettings,
       address: addr,
       port: inbound.port,
-      remark: `${remark}${sep}${i + 1}`,
+      remark: `${remark}${sep}${i + 1}${wgPeerCommentSuffix(p)}`,
       peerIndex: i,
     }))
     .join('\r\n');
+}
+
+// Peer comments (#5168) are panel-side annotations; when present they ride
+// along in the share remark so the device is identifiable in client apps.
+function wgPeerCommentSuffix(peer: unknown): string {
+  const comment = (peer as { comment?: unknown })?.comment;
+  return typeof comment === 'string' && comment.trim() !== '' ? ` (${comment.trim()})` : '';
 }
 
 export function isPostQuantumLink(link: string): boolean {

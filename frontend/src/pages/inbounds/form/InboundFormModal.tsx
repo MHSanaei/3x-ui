@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import {
+  Alert,
   Form,
   Input,
   InputNumber,
@@ -688,6 +689,15 @@ export default function InboundFormModal({
       {protocol === Protocols.VLESS && <VlessFields saving={saving} selectedVlessAuth={selectedVlessAuth} network={network} security={security} getNewVlessEnc={getNewVlessEnc} clearVlessEnc={clearVlessEnc} />}
 
       {isFallbackHost && fallbacksCard}
+      {(protocol === Protocols.VLESS || protocol === Protocols.TROJAN)
+        && network === 'tcp' && !isFallbackHost && (
+        <Alert
+          className="mt-12"
+          type="info"
+          showIcon
+          message={t('pages.inbounds.fallbacks.needsTls')}
+        />
+      )}
     </>
   );
 

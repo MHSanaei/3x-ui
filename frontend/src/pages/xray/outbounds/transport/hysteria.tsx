@@ -25,7 +25,7 @@ export default function HysteriaForm({ form }: { form: FormInstance }) {
         label={t('pages.inbounds.form.udpIdleTimeout')}
         name={['streamSettings', 'hysteriaSettings', 'udpIdleTimeout']}
       >
-        <InputNumber min={1} style={{ width: '100%' }} />
+        <InputNumber min={2} max={600} style={{ width: '100%' }} />
       </Form.Item>
 
       <Form.Item label={t('pages.inbounds.form.masquerade')}>

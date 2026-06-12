@@ -320,6 +320,7 @@ export interface InboundFallback {
 
 export interface InboundOption {
   id: number;
+  nodeId?: number | null;
   port: number;
   protocol: string;
   remark: string;

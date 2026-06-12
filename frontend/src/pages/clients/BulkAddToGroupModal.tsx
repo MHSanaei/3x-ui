@@ -66,11 +66,7 @@ export default function BulkAddToGroupModal({
               placeholder={t('pages.clients.groupName')}
               options={groups.map((g) => ({ value: g }))}
               onChange={(v) => setValue(v ?? '')}
-              filterOption={(input, option) =>
-                String(option?.value ?? '').toLowerCase().includes((input || '').toLowerCase())
-              }
               allowClear
-              style={{ width: '100%' }}
               autoFocus
             />
           </Form.Item>

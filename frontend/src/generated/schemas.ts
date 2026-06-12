@@ -1438,6 +1438,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 1,
         "type": "integer"
       },
+      "nodeId": {
+        "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
+        "nullable": true,
+        "type": "integer"
+      },
       "port": {
         "example": 443,
         "type": "integer"
