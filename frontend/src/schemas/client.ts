@@ -129,6 +129,8 @@ export const GroupSummarySchema = z.object({
   name: z.string(),
   clientCount: z.number(),
   trafficUsed: z.number().nullable().transform((v) => v ?? 0),
+  up: z.number().nullable().transform((v) => v ?? 0),
+  down: z.number().nullable().transform((v) => v ?? 0),
 });
 
 export const GroupSummaryListSchema = z.array(GroupSummarySchema).nullable().transform((v) => v ?? []);

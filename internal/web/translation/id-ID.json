@@ -812,10 +812,12 @@
     "groups": {
       "title": "Grup",
       "name": "Nama",
-      "clientCount": "Klien di grup",
+      "clientCount": "Klien",
       "totalGroups": "Total grup",
       "totalGroupedClients": "Klien dengan grup",
       "trafficUsed": "Trafik terpakai",
+      "upload": "Unggah",
+      "download": "Unduh",
       "totalTraffic": "Total trafik",
       "addGroup": "Tambah grup",
       "createSuccess": "Grup «{name}» dibuat.",

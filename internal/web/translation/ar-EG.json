@@ -812,10 +812,12 @@
     "groups": {
       "title": "المجموعات",
       "name": "الاسم",
-      "clientCount": "عملاء في المجموعة",
+      "clientCount": "العملاء",
       "totalGroups": "إجمالي المجموعات",
       "totalGroupedClients": "العملاء بمجموعة",
       "trafficUsed": "حركة المرور المستخدمة",
+      "upload": "رفع",
+      "download": "تنزيل",
       "totalTraffic": "إجمالي حركة المرور",
       "addGroup": "إضافة مجموعة",
       "createSuccess": "تم إنشاء المجموعة «{name}».",

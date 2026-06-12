@@ -812,10 +812,12 @@
     "groups": {
       "title": "Grupos",
       "name": "Nome",
-      "clientCount": "Clientes no grupo",
+      "clientCount": "Clientes",
       "totalGroups": "Total de grupos",
       "totalGroupedClients": "Clientes com grupo",
       "trafficUsed": "Tráfego usado",
+      "upload": "Envio",
+      "download": "Recebimento",
       "totalTraffic": "Tráfego total",
       "addGroup": "Adicionar grupo",
       "createSuccess": "Grupo «{name}» criado.",

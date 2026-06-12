@@ -812,10 +812,12 @@
     "groups": {
       "title": "Групи",
       "name": "Назва",
-      "clientCount": "Клієнтів у групі",
+      "clientCount": "Клієнти",
       "totalGroups": "Всього груп",
       "totalGroupedClients": "Клієнти з групою",
       "trafficUsed": "Використаний трафік",
+      "upload": "Вивантаження",
+      "download": "Завантаження",
       "totalTraffic": "Загальний трафік",
       "addGroup": "Додати групу",
       "createSuccess": "Групу «{name}» створено.",

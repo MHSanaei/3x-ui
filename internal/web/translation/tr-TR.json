@@ -813,10 +813,12 @@
     "groups": {
       "title": "Gruplar",
       "name": "İsim",
-      "clientCount": "Gruptaki kullanıcılar",
+      "clientCount": "Kullanıcılar",
       "totalGroups": "Toplam grup",
       "totalGroupedClients": "Grubu olan kullanıcılar",
       "trafficUsed": "Kullanılan trafik",
+      "upload": "Yükleme",
+      "download": "İndirme",
       "totalTraffic": "Toplam trafik",
       "addGroup": "Grup ekle",
       "createSuccess": "«{name}» grubu oluşturuldu.",

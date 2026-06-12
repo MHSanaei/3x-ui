@@ -812,10 +812,12 @@
     "groups": {
       "title": "گروه‌ها",
       "name": "نام",
-      "clientCount": "کاربران در گروه",
+      "clientCount": "کاربران",
       "totalGroups": "تعداد گروه‌ها",
       "totalGroupedClients": "کاربران دارای گروه",
       "trafficUsed": "ترافیک مصرف‌شده",
+      "upload": "آپلود",
+      "download": "دانلود",
       "totalTraffic": "مجموع ترافیک",
       "addGroup": "افزودن گروه",
       "createSuccess": "گروه «{name}» ایجاد شد.",

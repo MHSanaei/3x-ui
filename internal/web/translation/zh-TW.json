@@ -812,10 +812,12 @@
     "groups": {
       "title": "群組",
       "name": "名稱",
-      "clientCount": "群組中的客戶端",
+      "clientCount": "客戶端",
       "totalGroups": "群組總數",
       "totalGroupedClients": "有群組的客戶端",
       "trafficUsed": "已用流量",
+      "upload": "上傳",
+      "download": "下載",
       "totalTraffic": "總流量",
       "addGroup": "新增群組",
       "createSuccess": "已建立群組「{name}」。",

@@ -22,6 +22,8 @@ import {
 } from 'antd';
 import type { MenuProps, TableColumnsType } from 'antd';
 import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
   ClockCircleOutlined,
   DeleteOutlined,
   EditOutlined,
@@ -163,6 +165,14 @@ export default function GroupsPage() {
   );
   const totalTraffic = useMemo(
     () => groups.reduce((acc, g) => acc + (g.trafficUsed || 0), 0),
+    [groups],
+  );
+  const totalUpload = useMemo(
+    () => groups.reduce((acc, g) => acc + (g.up || 0), 0),
+    [groups],
+  );
+  const totalDownload = useMemo(
+    () => groups.reduce((acc, g) => acc + (g.down || 0), 0),
     [groups],
   );
 
@@ -418,6 +428,20 @@ export default function GroupsPage() {
       render: (count: number) => <span>{count || 0}</span>,
     },
     {
+      title: t('pages.groups.upload'),
+      dataIndex: 'up',
+      key: 'up',
+      width: 140,
+      render: (bytes: number) => <span>{SizeFormatter.sizeFormat(bytes || 0)}</span>,
+    },
+    {
+      title: t('pages.groups.download'),
+      dataIndex: 'down',
+      key: 'down',
+      width: 140,
+      render: (bytes: number) => <span>{SizeFormatter.sizeFormat(bytes || 0)}</span>,
+    },
+    {
       title: t('pages.groups.trafficUsed'),
       dataIndex: 'trafficUsed',
       key: 'trafficUsed',
@@ -456,26 +480,30 @@ export default function GroupsPage() {
                   <Col span={24}>
                     <Card size="small" hoverable className="summary-card">
                       <Row gutter={[16, isMobile ? 16 : 12]}>
-                        <Col xs={12} sm={8} md={6}>
+                        <Col xs={12} sm={8}>
                           <Statistic
                             title={t('pages.groups.totalGroups')}
                             value={String(totalGroups)}
                             prefix={<TagsOutlined />}
                           />
                         </Col>
-                        <Col xs={12} sm={8} md={6}>
+                        <Col xs={12} sm={8}>
                           <Statistic
                             title={t('pages.groups.totalGroupedClients')}
                             value={String(totalClients)}
                             prefix={<TeamOutlined />}
                           />
                         </Col>
-                        <Col xs={12} sm={8} md={6}>
+                        <Col xs={24} sm={8}>
                           <Statistic
                             title={t('pages.groups.totalTraffic')}
                             value={SizeFormatter.sizeFormat(totalTraffic)}
                             prefix={<RetweetOutlined />}
                           />
+                          <Space size={16} style={{ marginTop: 4, color: 'var(--ant-color-text-secondary)', fontSize: 13 }}>
+                            <span><ArrowUpOutlined /> {SizeFormatter.sizeFormat(totalUpload)}</span>
+                            <span><ArrowDownOutlined /> {SizeFormatter.sizeFormat(totalDownload)}</span>
+                          </Space>
                         </Col>
                       </Row>
                     </Card>

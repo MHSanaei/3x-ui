@@ -812,10 +812,12 @@
     "groups": {
       "title": "グループ",
       "name": "名前",
-      "clientCount": "グループ内のクライアント",
+      "clientCount": "クライアント",
       "totalGroups": "グループ合計",
       "totalGroupedClients": "グループのあるクライアント",
       "trafficUsed": "使用済みトラフィック",
+      "upload": "アップロード",
+      "download": "ダウンロード",
       "totalTraffic": "合計トラフィック",
       "addGroup": "グループ追加",
       "createSuccess": "グループ「{name}」を作成しました。",

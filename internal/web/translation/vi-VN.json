@@ -812,10 +812,12 @@
     "groups": {
       "title": "Nhóm",
       "name": "Tên",
-      "clientCount": "Client trong nhóm",
+      "clientCount": "Client",
       "totalGroups": "Tổng số nhóm",
       "totalGroupedClients": "Client có nhóm",
       "trafficUsed": "Lưu lượng đã dùng",
+      "upload": "Tải lên",
+      "download": "Tải xuống",
       "totalTraffic": "Tổng lưu lượng",
       "addGroup": "Thêm nhóm",
       "createSuccess": "Đã tạo nhóm «{name}».",
