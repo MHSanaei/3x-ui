@@ -119,6 +119,13 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 			needRestart = true
 		}
 	}
+	rec, recErr := s.GetRecordByEmail(nil, client.Email)
+	if recErr != nil {
+		return needRestart, recErr
+	}
+	if err := s.SetOutboundTagsForRecord(rec.Id, payload.OutboundTags); err != nil {
+		return needRestart, err
+	}
 	return needRestart, nil
 }
 
@@ -405,6 +412,9 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 
 	db := database.GetDB()
 	if err := db.Where("client_id = ?", id).Delete(&model.ClientInbound{}).Error; err != nil {
+		return needRestart, err
+	}
+	if err := db.Where("client_id = ?", id).Delete(&model.ClientOutbound{}).Error; err != nil {
 		return needRestart, err
 	}
 	if !keepTraffic && existing.Email != "" {

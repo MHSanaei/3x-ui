@@ -25,7 +25,7 @@ import { HttpUtil, RandomUtil } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
-import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import type { ClientRecord, InboundOption, OutboundOption } from '@/hooks/useClients';
 import { ClientFormSchema, ClientCreateFormSchema } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
@@ -51,6 +51,8 @@ interface SaveMetaEdit {
   email: string;
   attach: number[];
   detach: number[];
+  attachOutbounds: string[];
+  detachOutbounds: string[];
 }
 
 interface SaveMetaCreate {
@@ -60,6 +62,7 @@ interface SaveMetaCreate {
 interface SaveCreatePayload {
   client: Record<string, unknown>;
   inboundIds: number[];
+  outboundTags: string[];
 }
 
 interface ClientFormModalProps {
@@ -67,7 +70,9 @@ interface ClientFormModalProps {
   mode: Mode;
   client: ClientRecord | null;
   inbounds: InboundOption[];
+  outbounds: OutboundOption[];
   attachedIds?: number[];
+  attachedOutboundTags?: string[];
   tgBotEnable?: boolean;
   groups?: string[];
   save: (
@@ -98,6 +103,7 @@ interface FormState {
   comment: string;
   enable: boolean;
   inboundIds: number[];
+  outboundTags: string[];
 }
 
 function emptyForm(): FormState {
@@ -121,6 +127,7 @@ function emptyForm(): FormState {
     comment: '',
     enable: true,
     inboundIds: [],
+    outboundTags: [],
   };
 }
 
@@ -134,12 +141,24 @@ function gbToBytes(gb: number): number {
   return Math.round(gb * 1024 * 1024 * 1024);
 }
 
+function AttachedOutboundsLabel({ title, qualifier }: { title: string; qualifier: string }) {
+  return (
+    <span>
+      {title}
+      {' '}
+      <span style={{ fontSize: 12, opacity: 0.72 }}>({qualifier})</span>
+    </span>
+  );
+}
+
 export default function ClientFormModal({
   open,
   mode,
   client,
   inbounds,
+  outbounds,
   attachedIds = [],
+  attachedOutboundTags = [],
   tgBotEnable = false,
   groups = [],
   save,
@@ -186,6 +205,7 @@ export default function ClientFormModal({
         comment: client.comment || '',
         enable: !!client.enable,
         inboundIds: Array.isArray(attachedIds) ? [...attachedIds] : [],
+        outboundTags: Array.isArray(attachedOutboundTags) ? [...attachedOutboundTags] : [],
       };
       if (et < 0) {
         next.delayedStart = true;
@@ -300,6 +320,29 @@ export default function ClientFormModal({
     [inbounds],
   );
 
+  const outboundOptions = useMemo(
+    () => (outbounds || []).map((ob) => {
+      const suffix = [ob.protocol, ob.source].filter(Boolean).join(' / ');
+      const label = suffix ? `${ob.tag} (${suffix})` : ob.tag;
+      return {
+        label,
+        value: ob.tag,
+        title: label,
+      };
+    }),
+    [outbounds],
+  );
+
+  const outboundOptionTags = useMemo(
+    () => new Set(outboundOptions.map((opt) => opt.value)),
+    [outboundOptions],
+  );
+
+  const visibleOutboundTags = useMemo(
+    () => (form.outboundTags || []).filter((tag) => outboundOptionTags.has(tag)),
+    [form.outboundTags, outboundOptionTags],
+  );
+
   async function loadIps() {
     if (!isEdit || !client?.email) return;
     setIpsLoading(true);
@@ -369,6 +412,7 @@ export default function ClientFormModal({
       comment: form.comment,
       enable: form.enable,
       inboundIds: form.inboundIds,
+      outboundTags: visibleOutboundTags,
     });
     if (!validated.success) {
       const issue = validated.error.issues[0];
@@ -408,15 +452,21 @@ export default function ClientFormModal({
         const next = new Set(form.inboundIds || []);
         const toAttach = [...next].filter((id) => !original.has(id));
         const toDetach = [...original].filter((id) => !next.has(id));
+        const originalOutbounds = new Set(attachedOutboundTags || []);
+        const nextOutbounds = new Set(visibleOutboundTags || []);
+        const toAttachOutbounds = [...nextOutbounds].filter((tag) => !originalOutbounds.has(tag));
+        const toDetachOutbounds = [...originalOutbounds].filter((tag) => !nextOutbounds.has(tag));
         msg = await save(clientPayload, {
           isEdit: true,
           email: client.email,
           attach: toAttach,
           detach: toDetach,
+          attachOutbounds: toAttachOutbounds,
+          detachOutbounds: toDetachOutbounds,
         });
       } else {
         msg = await save(
-          { client: clientPayload, inboundIds: form.inboundIds },
+          { client: clientPayload, inboundIds: form.inboundIds, outboundTags: visibleOutboundTags },
           { isEdit: false },
         );
       }
@@ -603,6 +653,34 @@ export default function ClientFormModal({
                         onChange={(v) => update('inboundIds', v)}
                         options={inboundOptions}
                         placeholder={t('pages.clients.selectInbound')}
+                        maxTagCount="responsive"
+                        placement="topLeft"
+                        listHeight={220}
+                        showSearch={{
+                          filterOption: (input, option) => ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase()),
+                        }}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      label={(
+                        <AttachedOutboundsLabel
+                          title={t('pages.clients.attachedOutbounds')}
+                          qualifier={t('pages.clients.externalConfigQualifier')}
+                        />
+                      )}
+                    >
+                      <SelectAllClearButtons
+                        options={outboundOptions}
+                        value={visibleOutboundTags}
+                        onChange={(v) => update('outboundTags', v)}
+                      />
+                      <Select
+                        mode="multiple"
+                        value={visibleOutboundTags}
+                        onChange={(v) => update('outboundTags', v)}
+                        options={outboundOptions}
+                        placeholder={t('pages.clients.selectOutbound')}
                         maxTagCount="responsive"
                         placement="topLeft"
                         listHeight={220}

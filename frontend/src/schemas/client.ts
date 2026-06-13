@@ -30,6 +30,7 @@ export const ClientRecordSchema = z.object({
   enable: z.boolean().optional(),
   reset: z.number().optional(),
   inboundIds: nullableNumberArray.optional(),
+  outboundTags: nullableStringArray.optional(),
   traffic: ClientTrafficSchema.nullable().optional(),
   reverse: z.object({ tag: z.string().optional() }).loose().nullable().optional(),
   createdAt: z.number().optional(),
@@ -74,7 +75,17 @@ export const ClientPageResponseSchema = z.object({
 export const ClientHydrateSchema = z.object({
   client: ClientRecordSchema,
   inboundIds: nullableNumberArray,
+  outboundTags: nullableStringArray.optional(),
 });
+
+export const OutboundOptionSchema = z.object({
+  tag: z.string(),
+  remark: z.string().optional(),
+  protocol: z.string().optional(),
+  source: z.string().optional(),
+}).loose();
+
+export const OutboundOptionsSchema = z.array(OutboundOptionSchema);
 
 export const BulkAdjustResultSchema = z.object({
   adjusted: z.number(),
@@ -167,6 +178,7 @@ export const ClientFormSchema = z.object({
   comment: z.string(),
   enable: z.boolean(),
   inboundIds: z.array(z.number()),
+  outboundTags: z.array(z.string()),
 });
 
 export const ClientCreateFormSchema = ClientFormSchema.extend({
@@ -203,6 +215,7 @@ export const ClientBulkAddFormSchema = z.object({
 export type ClientRecord = z.infer<typeof ClientRecordSchema>;
 export type ClientTraffic = z.infer<typeof ClientTrafficSchema>;
 export type InboundOption = z.infer<typeof InboundOptionSchema>;
+export type OutboundOption = z.infer<typeof OutboundOptionSchema>;
 export type ClientsSummary = z.infer<typeof ClientsSummarySchema>;
 export type ClientPageResponse = z.infer<typeof ClientPageResponseSchema>;
 export type ClientHydrate = z.infer<typeof ClientHydrateSchema>;

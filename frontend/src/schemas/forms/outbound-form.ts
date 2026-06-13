@@ -252,6 +252,7 @@ export type OutboundStreamFormValues = z.infer<typeof OutboundStreamFormSchema>;
 export const OutboundFormBaseSchema = z.object({
   tag: z.string().default(''),
   sendThrough: z.string().default(''),
+  clientExternalConfig: z.boolean().default(false),
   streamSettings: OutboundStreamFormSchema.optional(),
   mux: MuxFormSchema.default({
     enabled: false,

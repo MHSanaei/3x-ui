@@ -85,6 +85,57 @@ func (s *ClientService) GetInboundIdsForRecord(id int) ([]int, error) {
 	return ids, nil
 }
 
+func (s *ClientService) GetOutboundTagsForRecord(id int) ([]string, error) {
+	var tags []string
+	err := database.GetDB().Table("client_outbounds").
+		Where("client_id = ?", id).
+		Order("outbound_tag ASC").
+		Pluck("outbound_tag", &tags).Error
+	if err != nil {
+		return nil, err
+	}
+	return tags, nil
+}
+
+func (s *ClientService) SetOutboundTagsForRecord(id int, tags []string) error {
+	db := database.GetDB()
+	clean := make([]string, 0, len(tags))
+	seen := make(map[string]struct{}, len(tags))
+	for _, tag := range tags {
+		tag = strings.TrimSpace(tag)
+		if tag == "" {
+			continue
+		}
+		if _, ok := seen[tag]; ok {
+			continue
+		}
+		seen[tag] = struct{}{}
+		clean = append(clean, tag)
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("client_id = ?", id).Delete(&model.ClientOutbound{}).Error; err != nil {
+			return err
+		}
+		for _, tag := range clean {
+			if err := tx.Create(&model.ClientOutbound{ClientId: id, OutboundTag: tag}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (s *ClientService) SetOutboundTagsByEmail(email string, tags []string) error {
+	if email == "" {
+		return nil
+	}
+	rec, err := s.GetRecordByEmail(nil, email)
+	if err != nil {
+		return err
+	}
+	return s.SetOutboundTagsForRecord(rec.Id, tags)
+}
+
 func (s *ClientService) List() ([]ClientWithAttachments, error) {
 	db := database.GetDB()
 	var rows []model.ClientRecord
@@ -105,6 +156,7 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 	}
 
 	attachments := make(map[int][]int, len(rows))
+	outboundAttachments := make(map[int][]string, len(rows))
 	for _, batch := range chunkInts(clientIds, sqlInChunk) {
 		var links []model.ClientInbound
 		if err := db.Where("client_id IN ?", batch).Find(&links).Error; err != nil {
@@ -112,6 +164,13 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 		}
 		for _, l := range links {
 			attachments[l.ClientId] = append(attachments[l.ClientId], l.InboundId)
+		}
+		var outLinks []model.ClientOutbound
+		if err := db.Where("client_id IN ?", batch).Find(&outLinks).Error; err != nil {
+			return nil, err
+		}
+		for _, l := range outLinks {
+			outboundAttachments[l.ClientId] = append(outboundAttachments[l.ClientId], l.OutboundTag)
 		}
 	}
 
@@ -136,6 +195,7 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 		out = append(out, ClientWithAttachments{
 			ClientRecord: rows[i],
 			InboundIds:   attachments[rows[i].Id],
+			OutboundTags: outboundAttachments[rows[i].Id],
 			Traffic:      trafficByEmail[rows[i].Email],
 		})
 	}

@@ -197,9 +197,9 @@ export default function ClientsPage() {
     summary: serverSummary,
     allGroups,
     setQuery,
-    inbounds, onlines, loading, transitioning, fetched, fetchError, subSettings,
+    inbounds, outbounds, onlines, loading, transitioning, fetched, fetchError, subSettings,
     tgBotEnable, expireDiff, trafficDiff, pageSize,
-    create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, bulkAttach, detach, bulkDetach,
+    create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, attachOutbounds, bulkAttach, detach, detachOutbounds, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
     refresh,
@@ -220,6 +220,7 @@ export default function ClientsPage() {
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [editingClient, setEditingClient] = useState<ClientRecord | null>(null);
   const [editingAttachedIds, setEditingAttachedIds] = useState<number[]>([]);
+  const [editingAttachedOutboundTags, setEditingAttachedOutboundTags] = useState<string[]>([]);
   const [infoOpen, setInfoOpen] = useState(false);
   const [infoClient, setInfoClient] = useState<ClientRecord | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
@@ -429,6 +430,7 @@ export default function ClientsPage() {
     setFormMode('add');
     setEditingClient(null);
     setEditingAttachedIds([]);
+    setEditingAttachedOutboundTags([]);
     setFormOpen(true);
   }
 
@@ -441,6 +443,8 @@ export default function ClientsPage() {
     setEditingClient(merged);
     const ids = full?.inboundIds ?? (Array.isArray(row.inboundIds) ? row.inboundIds : []);
     setEditingAttachedIds([...ids]);
+    const outboundTags = full?.outboundTags ?? (Array.isArray(row.outboundTags) ? row.outboundTags : []);
+    setEditingAttachedOutboundTags([...outboundTags]);
     setFormOpen(true);
   }
 
@@ -566,8 +570,8 @@ export default function ClientsPage() {
   }
 
   const onSave = useCallback(async (
-    payload: Record<string, unknown> | { client: Record<string, unknown>; inboundIds: number[] },
-    meta: { isEdit: false } | { isEdit: true; email: string; attach: number[]; detach: number[] },
+    payload: Record<string, unknown> | { client: Record<string, unknown>; inboundIds: number[]; outboundTags: string[] },
+    meta: { isEdit: false } | { isEdit: true; email: string; attach: number[]; detach: number[]; attachOutbounds: string[]; detachOutbounds: string[] },
   ) => {
     if (!meta.isEdit) {
       return create(payload);
@@ -582,8 +586,16 @@ export default function ClientsPage() {
       const r = await detach(meta.email, meta.detach);
       if (!r?.success) return r;
     }
+    if (Array.isArray(meta.attachOutbounds) && meta.attachOutbounds.length > 0) {
+      const r = await attachOutbounds(meta.email, meta.attachOutbounds);
+      if (!r?.success) return r;
+    }
+    if (Array.isArray(meta.detachOutbounds) && meta.detachOutbounds.length > 0) {
+      const r = await detachOutbounds(meta.email, meta.detachOutbounds);
+      if (!r?.success) return r;
+    }
     return updateMsg;
-  }, [create, update, attach, detach]);
+  }, [create, update, attach, detach, attachOutbounds, detachOutbounds]);
 
   const pageClass = useMemo(() => {
     const classes = ['clients-page'];
@@ -1243,7 +1255,9 @@ export default function ClientsPage() {
             mode={formMode}
             client={editingClient}
             attachedIds={editingAttachedIds}
+            attachedOutboundTags={editingAttachedOutboundTags}
             inbounds={inbounds}
+            outbounds={outbounds}
             tgBotEnable={tgBotEnable}
             groups={allGroups}
             save={onSave}

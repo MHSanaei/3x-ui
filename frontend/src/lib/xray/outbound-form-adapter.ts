@@ -344,6 +344,7 @@ export interface RawOutboundRow {
   tag?: string;
   protocol?: string;
   sendThrough?: string;
+  clientExternalConfig?: unknown;
   settings?: unknown;
   streamSettings?: unknown;
   mux?: unknown;
@@ -371,6 +372,7 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
   const settings = asObject(raw.settings);
   const tag = asString(raw.tag);
   const sendThrough = asString(raw.sendThrough);
+  const clientExternalConfig = asBool(raw.clientExternalConfig);
   const mux = muxFromWire(raw.mux);
   const hasStream = raw.streamSettings
     && typeof raw.streamSettings === 'object'
@@ -400,6 +402,7 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
     ...typed,
     tag,
     sendThrough,
+    clientExternalConfig,
     mux,
     streamSettings,
   };
@@ -629,6 +632,7 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
     settings,
   };
   if (values.tag) result.tag = values.tag;
+  if (values.clientExternalConfig) result.clientExternalConfig = true;
 
   // streamSettings emission gates on canEnableStream — non-stream protocols
   // still emit just `sockopt` if that key is present (legacy behavior).

@@ -115,6 +115,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	stripPanelOutboundMetadata(xrayConfig)
 	xrayConfig.LogConfig = resolveXrayLogPaths(xrayConfig.LogConfig)
 	xrayConfig.API = ensureAPIServices(xrayConfig.API)
 	xrayConfig.Policy = ensureStatsPolicy(xrayConfig.Policy)
@@ -370,6 +371,35 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 		Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
 		Tag:      PanelEgressInboundTag,
 	})
+}
+
+func stripPanelOutboundMetadata(cfg *xray.Config) {
+	if cfg == nil || len(cfg.OutboundConfigs) == 0 {
+		return
+	}
+	var outbounds []any
+	if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
+		return
+	}
+	changed := false
+	for _, raw := range outbounds {
+		m, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		if _, ok := m["clientExternalConfig"]; ok {
+			delete(m, "clientExternalConfig")
+			changed = true
+		}
+	}
+	if !changed {
+		return
+	}
+	b, err := json.MarshalIndent(outbounds, "", "  ")
+	if err != nil {
+		return
+	}
+	cfg.OutboundConfigs = json_util.RawMessage(b)
 }
 
 // routingTagIsBalancer reports whether tag names a balancer in the parsed

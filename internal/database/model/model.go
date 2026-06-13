@@ -629,6 +629,14 @@ type ClientInbound struct {
 
 func (ClientInbound) TableName() string { return "client_inbounds" }
 
+type ClientOutbound struct {
+	ClientId    int    `json:"clientId" gorm:"primaryKey;column:client_id;index"`
+	OutboundTag string `json:"outboundTag" gorm:"primaryKey;column:outbound_tag;index"`
+	CreatedAt   int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+}
+
+func (ClientOutbound) TableName() string { return "client_outbounds" }
+
 type InboundFallback struct {
 	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	MasterId  int    `json:"masterId" gorm:"index;not null;column:master_id"`
