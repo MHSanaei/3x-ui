@@ -84,6 +84,7 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 	}
 	oldTwoFactor, twoFactorErr := a.settingService.GetTwoFactorEnable()
 	oldPanelOutbound, _ := a.settingService.GetPanelOutbound()
+	oldTgBotOutbound, _ := a.settingService.GetTgBotOutbound()
 	err := a.settingService.UpdateAllSetting(allSetting)
 	if err == nil && twoFactorErr == nil && !oldTwoFactor && allSetting.TwoFactorEnable {
 		if bumpErr := a.userService.BumpLoginEpoch(); bumpErr != nil {
@@ -93,9 +94,14 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 	if err == nil && allSetting.PanelOutbound != oldPanelOutbound {
 		// The egress bridge lives in the generated config; reconcile the
 		// running core. One SOCKS inbound plus one routing rule — both
-		// hot-appliable, so this normally does not restart Xray.
+		// hot-applicable, so this normally does not restart Xray.
 		if applyErr := a.xrayService.RestartXray(false); applyErr != nil {
 			logger.Warning("apply panel outbound change failed:", applyErr)
+		}
+	}
+	if err == nil && allSetting.TgBotOutbound != oldTgBotOutbound {
+		if applyErr := a.xrayService.RestartXray(false); applyErr != nil {
+			logger.Warning("apply tgBot outbound change failed:", applyErr)
 		}
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)

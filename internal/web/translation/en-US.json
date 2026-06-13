@@ -1191,7 +1191,10 @@
         "userPassMustBeNotEmpty": "The new username and password are empty",
         "getOutboundTrafficError": "Error getting traffic",
         "resetOutboundTrafficError": "Error resetting outbound traffic"
-      }
+      },
+      "tgBotOutbound": "Telegram Bot Traffic Outbound",
+      "tgBotOutboundDesc": "Routes Telegram bot requests through this Xray outbound/balancer to bypass server-side filtering. A loopback bridge inbound is added to the running config automatically and applied live. Leave empty for a direct connection.",
+      "tgBotOutboundPh": "Direct connection"
     },
     "xray": {
       "title": "Xray Configs",

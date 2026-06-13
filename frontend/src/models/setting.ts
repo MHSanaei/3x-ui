@@ -25,6 +25,7 @@ export class AllSetting {
   tgBotLoginNotify = true;
   tgCpu = 80;
   tgLang = 'en-US';
+  tgBotOutbound = '';
   twoFactorEnable = false;
   twoFactorToken = '';
   xrayTemplateConfig = '';

@@ -234,11 +234,11 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		logger.Warning("Failed to get Telegram bot proxy URL:", err)
 	}
 
-	// Fall back to the panel-wide egress bridge when no dedicated bot proxy is
-	// set. Resolved once at bot start: if Xray comes up later, the bot keeps
-	// its direct connection until it is restarted.
+	// Try bot-specific outbound first, then panel egress, then direct connection
 	if tgBotProxy == "" {
-		if egress := t.settingService.PanelEgressProxyURL(); egress != "" && isSupportedBotProxyScheme(egress) {
+		if egress := t.settingService.TgBotEgressProxyURL(); egress != "" && isSupportedBotProxyScheme(egress) {
+			tgBotProxy = egress
+		} else if egress := t.settingService.PanelEgressProxyURL(); egress != "" && isSupportedBotProxyScheme(egress) {
 			tgBotProxy = egress
 		}
 	}

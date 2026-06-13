@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input, InputNumber, Select, Space, Switch, Tabs } from 'antd';
 import { BellOutlined, SettingOutlined } from '@ant-design/icons';
 import { LanguageManager } from '@/utils';
+import { HttpUtil } from '@/utils';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -144,6 +145,58 @@ function NotifyTimeField({ value, onChange }: { value: string; onChange: (v: str
 export default function TelegramTab({ allSetting, updateSetting }: TelegramTabProps) {
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
+  const [outboundTagList, setOutboundTagList] = useState<string[]>([]);
+  const [balancerTagList, setBalancerTagList] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const msg = await HttpUtil.post('/panel/api/xray/', undefined, { silent: true }) as { success?: boolean; obj?: string };
+      if (cancelled || !msg?.success || typeof msg.obj !== 'string') return;
+      try {
+        const payload = JSON.parse(msg.obj) as Record<string, unknown>;
+        const template = (payload.xraySetting || {}) as Record<string, unknown>;
+        const tags = new Set<string>();
+        const outbounds = Array.isArray(template.outbounds) ? template.outbounds : [];
+        for (const o of outbounds) {
+          if (!o || typeof o !== 'object') continue;
+          const rec = o as Record<string, unknown>;
+          if (rec.protocol === 'blackhole') continue;
+          const tag = rec.tag;
+          if (typeof tag === 'string' && tag) tags.add(tag);
+        }
+        const subTags = Array.isArray(payload.subscriptionOutboundTags) ? payload.subscriptionOutboundTags : [];
+        for (const tag of subTags) {
+          if (typeof tag === 'string' && tag) tags.add(tag);
+        }
+        const balancerTags: string[] = [];
+        const routing = (template.routing || {}) as Record<string, unknown>;
+        const balancers = Array.isArray(routing.balancers) ? routing.balancers : [];
+        for (const b of balancers) {
+          if (!b || typeof b !== 'object') continue;
+          const tag = (b as Record<string, unknown>).tag;
+          if (typeof tag === 'string' && tag && !tags.has(tag)) balancerTags.push(tag);
+        }
+        setOutboundTagList([...tags]);
+        setBalancerTagList(balancerTags);
+      } catch {
+        setOutboundTagList([]);
+        setBalancerTagList([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const outboundOptions = useMemo<
+    ({ label: string; value: string } | { label: string; options: { label: string; value: string }[] })[]
+  >(() => {
+    const outOpts = outboundTagList.map((tag) => ({ label: tag, value: tag }));
+    if (balancerTagList.length === 0) return outOpts;
+    return [
+      { label: t('pages.xray.Outbounds'), options: outOpts },
+      { label: t('pages.xray.Balancers'), options: balancerTagList.map((tag) => ({ label: tag, value: tag })) },
+    ];
+  }, [outboundTagList, balancerTagList, t]);
 
   const langOptions = useMemo(
     () => LanguageManager.supportedLanguages.map((l: { value: string; name: string; icon: string }) => ({
@@ -197,6 +250,18 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
             <SettingListItem paddings="small" title={t('pages.settings.telegramAPIServer')} description={t('pages.settings.telegramAPIServerDesc')}>
               <Input value={allSetting.tgBotAPIServer} placeholder="https://api.example.com"
                 onChange={(e) => updateSetting({ tgBotAPIServer: e.target.value })} />
+            </SettingListItem>
+
+            <SettingListItem paddings="small" title={t('pages.settings.tgBotOutbound')} description={t('pages.settings.tgBotOutboundDesc')}>
+              <Select
+                style={{ width: '100%' }}
+                allowClear
+                showSearch
+                value={allSetting.tgBotOutbound || undefined}
+                placeholder={t('pages.settings.tgBotOutboundPh')}
+                options={outboundOptions}
+                onChange={(v) => updateSetting({ tgBotOutbound: (v as string | undefined) || '' })}
+              />
             </SettingListItem>
           </>
         ),

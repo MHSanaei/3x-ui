@@ -397,6 +397,37 @@ func (s *SettingService) SetTgBotProxy(token string) error {
 	return s.setString("tgBotProxy", token)
 }
 
+// GetTgBotOutbound returns the outbound/balancer tag for Telegram bot routing through Xray.
+func (s *SettingService) GetTgBotOutbound() (string, error) {
+	return s.getString("tgBotOutbound")
+}
+
+func (s *SettingService) SetTgBotOutbound(tag string) error {
+	return s.setString("tgBotOutbound", tag)
+}
+
+// TgBotEgressProxyURL resolves the SOCKS bridge for the Telegram bot outbound.
+func (s *SettingService) TgBotEgressProxyURL() string {
+	tag, err := s.GetTgBotOutbound()
+	if err != nil || tag == "" {
+		return ""
+	}
+	proc := XrayProcess()
+	if proc == nil || !proc.IsRunning() {
+		return ""
+	}
+	cfg := proc.GetConfig()
+	if cfg == nil {
+		return ""
+	}
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag == tgBotEgressInboundTag {
+			return fmt.Sprintf("socks5://127.0.0.1:%d", cfg.InboundConfigs[i].Port)
+		}
+	}
+	return ""
+}
+
 // GetPanelOutbound returns the Xray outbound tag the panel's own outbound
 // requests (version checks, Telegram, subscription fetches) are routed through.
 func (s *SettingService) GetPanelOutbound() (string, error) {

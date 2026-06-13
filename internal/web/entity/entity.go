@@ -49,6 +49,7 @@ type AllSetting struct {
 	TgBotLoginNotify bool   `json:"tgBotLoginNotify" form:"tgBotLoginNotify"`    // Send login notifications
 	TgCpu            int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"` // CPU usage threshold for alerts (percent)
 	TgLang           string `json:"tgLang" form:"tgLang"`                        // Telegram bot language
+	TgBotOutbound    string `json:"tgBotOutbound" form:"tgBotOutbound"`          // Outbound/balancer tag for Telegram bot routing
 
 	// Security settings
 	TimeLocation    string `json:"timeLocation" form:"timeLocation"`       // Time zone location

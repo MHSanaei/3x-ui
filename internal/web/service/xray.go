@@ -296,6 +296,13 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		injectPanelEgress(xrayConfig, egressTag)
 	}
 
+	// Wire Telegram bot through its own outbound/balancer if configured.
+	if botTag, err := s.settingService.GetTgBotOutbound(); err != nil {
+		logger.Warning("read tgBotOutbound setting failed:", err)
+	} else if botTag != "" {
+		injectTgBotEgress(xrayConfig, botTag)
+	}
+
 	return xrayConfig, nil
 }
 
@@ -307,6 +314,15 @@ const PanelEgressInboundTag = "panel-egress"
 // panelEgressBasePort is the first port tried for the egress bridge; ports
 // already taken by other inbounds in the generated config are skipped.
 const panelEgressBasePort = 62790
+
+// TgBotEgressInboundTag is the tag of the loopback SOCKS inbound for Telegram bot egress.
+const TgBotEgressInboundTag = "tgbot-egress"
+
+// tgBotEgressInboundTag is the lowercase version used in setting.go lookups.
+const tgBotEgressInboundTag = TgBotEgressInboundTag
+
+// tgBotEgressBasePort is the first port tried for the bot egress bridge.
+const tgBotEgressBasePort = 62800
 
 // injectPanelEgress appends a loopback SOCKS inbound to the generated config
 // and prepends a routing rule sending it to outboundTag. Both live only in the
@@ -369,6 +385,59 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 		Protocol: "socks",
 		Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
 		Tag:      PanelEgressInboundTag,
+	})
+}
+
+// injectTgBotEgress appends a loopback SOCKS inbound and routing rule for the
+// Telegram bot outbound. Mirrors injectPanelEgress but uses its own tag and port range.
+func injectTgBotEgress(cfg *xray.Config, outboundTag string) {
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag == TgBotEgressInboundTag {
+			return
+		}
+	}
+
+	routing := map[string]any{}
+	if len(cfg.RouterConfig) > 0 {
+		if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+			return
+		}
+	}
+	rules, _ := routing["rules"].([]any)
+	rule := map[string]any{
+		"type":       "field",
+		"inboundTag": []any{TgBotEgressInboundTag},
+	}
+	if routingTagIsBalancer(routing, outboundTag) {
+		rule["balancerTag"] = outboundTag
+	} else {
+		rule["outboundTag"] = outboundTag
+	}
+	routing["rules"] = append([]any{rule}, rules...)
+	newRouting, err := json.Marshal(routing)
+	if err != nil {
+		return
+	}
+	cfg.RouterConfig = json_util.RawMessage(newRouting)
+
+	used := make(map[int]struct{}, len(cfg.InboundConfigs))
+	for i := range cfg.InboundConfigs {
+		used[cfg.InboundConfigs[i].Port] = struct{}{}
+	}
+	port := tgBotEgressBasePort
+	for {
+		if _, taken := used[port]; !taken {
+			break
+		}
+		port++
+	}
+
+	cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
+		Listen:   json_util.RawMessage(`"127.0.0.1"`),
+		Port:     port,
+		Protocol: "socks",
+		Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
+		Tag:      TgBotEgressInboundTag,
 	})
 }
 
