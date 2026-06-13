@@ -208,11 +208,12 @@ func (s *SubClashService) buildProxy(inbound *model.Inbound, client model.Client
 	case model.VLESS:
 		proxy["type"] = "vless"
 		proxy["uuid"] = client.ID
-		if client.Flow != "" && network == "tcp" {
-			proxy["flow"] = client.Flow
-		}
 		var inboundSettings map[string]any
 		json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+		streamSecurity, _ := stream["security"].(string)
+		if client.Flow != "" && vlessFlowAllowed(network, streamSecurity, inboundSettings) {
+			proxy["flow"] = client.Flow
+		}
 		if encryption, ok := inboundSettings["encryption"].(string); ok {
 			encryption = strings.TrimSpace(encryption)
 			if encryption != "" && encryption != "none" {

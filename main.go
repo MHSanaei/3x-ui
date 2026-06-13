@@ -418,7 +418,7 @@ func GetApiToken(getApiToken bool) {
 	if len(tokens) > 0 {
 		fmt.Printf("There are %d API token(s) configured. Existing tokens cannot be retrieved in plaintext because only hashes are stored.\n", len(tokens))
 		fmt.Println("If you have lost your token, you can manage and generate new tokens through the Panel UI (Settings -> API Tokens).")
-		
+
 		// Create a new fallback token so the CLI is still useful without the UI
 		fallbackName := fmt.Sprintf("cli-fallback-%d", time.Now().Unix())
 		created, err := apiTokenService.Create(fallbackName)

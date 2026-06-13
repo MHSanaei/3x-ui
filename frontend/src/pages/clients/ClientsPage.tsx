@@ -197,7 +197,7 @@ export default function ClientsPage() {
     summary: serverSummary,
     allGroups,
     setQuery,
-    inbounds, outbounds, onlines, loading, fetched, fetchError, subSettings,
+    inbounds, outbounds, onlines, loading, transitioning, fetched, fetchError, subSettings,
     tgBotEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, attachOutbounds, bulkAttach, detach, detachOutbounds, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
@@ -661,7 +661,7 @@ export default function ClientsPage() {
           </Tooltip>
         );
         if (record.enable && isOnline(record.email)) return (
-          <Tag color="green"><span className="online-dot" />{t('pages.clients.online')}</Tag>
+          <Tag color="green" className="dot-tag"><span className="online-dot" />{t('pages.clients.online')}</Tag>
         );
         if (!record.enable) return <Tag>{t('disabled')}</Tag>;
         if (bucket === 'expiring') return <Tag color="orange">{t('depletingSoon')}</Tag>;
@@ -1112,7 +1112,7 @@ export default function ClientsPage() {
                         <Table<ClientRecord>
                           columns={columns}
                           dataSource={sortedClients}
-                          loading={loading}
+                          loading={transitioning}
                           rowKey="email"
                           rowSelection={rowSelection}
                           pagination={tablePagination}
@@ -1129,7 +1129,7 @@ export default function ClientsPage() {
                           }}
                         />
                       ) : (
-                        <Spin spinning={loading}>
+                        <Spin spinning={transitioning}>
                           <div className="client-cards">
                             {filteredClients.length > 0 && (
                               <div className="card-bulk-bar">

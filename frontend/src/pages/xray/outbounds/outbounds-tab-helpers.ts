@@ -31,10 +31,13 @@ export function outboundAddresses(o: OutboundRow): string[] {
   }
 }
 
-export function isUntestable(o: OutboundRow, mode: string): boolean {
+export function isUntestable(o: OutboundRow): boolean {
   if (!o) return true;
   if (o.protocol === Protocols.Blackhole || o.protocol === Protocols.Loopback || o.tag === 'blocked') return true;
-  if (mode === 'tcp' && (o.protocol === Protocols.Freedom || o.protocol === Protocols.DNS)) return true;
+  // freedom ("direct") and dns aren't proxies — a TCP dial has no endpoint and
+  // an HTTP probe would only measure the host's own direct reachability, so
+  // they're untestable in every mode.
+  if (o.protocol === Protocols.Freedom || o.protocol === Protocols.DNS) return true;
   return false;
 }
 

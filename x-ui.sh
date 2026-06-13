@@ -1148,9 +1148,11 @@ delete_ports() {
 }
 
 update_all_geofiles() {
-    update_geofiles "main"
-    update_geofiles "IR"
-    update_geofiles "RU"
+    local failed=0
+    update_geofiles "main" || failed=1
+    update_geofiles "IR" || failed=1
+    update_geofiles "RU" || failed=1
+    return $failed
 }
 
 update_geofiles() {
@@ -1168,12 +1170,39 @@ update_geofiles() {
             dat_source="runetfreedom/russia-v2ray-rules-dat"
             ;;
     esac
+    local failed=0 http_code
     for dat in "${dat_files[@]}"; do
         # Remove suffix for remote filename (e.g., geoip_IR -> geoip)
         remote_file="${dat%%_*}"
-        curl -fLRo ${xui_folder}/bin/${dat}.dat -z ${xui_folder}/bin/${dat}.dat \
-            https://github.com/${dat_source}/releases/latest/download/${remote_file}.dat
+        # -z skips the download (server answers 304) when the local copy is already current
+        http_code=$(curl -sSfLRo ${xui_folder}/bin/${dat}.dat -z ${xui_folder}/bin/${dat}.dat -w '%{http_code}' \
+            https://github.com/${dat_source}/releases/latest/download/${remote_file}.dat)
+        if [[ $? -ne 0 ]]; then
+            echo -e "${red}${dat}.dat: download failed${plain}"
+            failed=1
+        elif [[ "$http_code" == "304" ]]; then
+            echo -e "${dat}.dat: already up to date"
+        else
+            echo -e "${green}${dat}.dat: updated${plain}"
+            geo_updated=1
+        fi
     done
+    return $failed
+}
+
+run_geo_update() {
+    local name="$1"
+    shift
+    geo_updated=0
+    "$@"
+    if [[ $? -ne 0 ]]; then
+        echo -e "${red}Some ${name} could not be updated. Check the errors above.${plain}"
+    elif [[ $geo_updated -eq 1 ]]; then
+        echo -e "${green}${name} have been updated successfully!${plain}"
+        restart
+    else
+        echo -e "${green}${name} are already up to date, restart is not needed.${plain}"
+    fi
 }
 
 update_geo() {
@@ -1189,24 +1218,16 @@ update_geo() {
             show_menu
             ;;
         1)
-            update_geofiles "main"
-            echo -e "${green}Loyalsoldier datasets have been updated successfully!${plain}"
-            restart
+            run_geo_update "Loyalsoldier datasets" update_geofiles "main"
             ;;
         2)
-            update_geofiles "IR"
-            echo -e "${green}chocolate4u datasets have been updated successfully!${plain}"
-            restart
+            run_geo_update "chocolate4u datasets" update_geofiles "IR"
             ;;
         3)
-            update_geofiles "RU"
-            echo -e "${green}runetfreedom datasets have been updated successfully!${plain}"
-            restart
+            run_geo_update "runetfreedom datasets" update_geofiles "RU"
             ;;
         4)
-            update_all_geofiles
-            echo -e "${green}All geo files have been updated successfully!${plain}"
-            restart
+            run_geo_update "geo files" update_all_geofiles
             ;;
         *)
             echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
@@ -3254,7 +3275,10 @@ if [[ $# > 0 ]]; then
             check_install 0 && uninstall 0
             ;;
         "update-all-geofiles")
-            check_install 0 && update_all_geofiles 0 && restart 0
+            geo_updated=0
+            if check_install 0 && update_all_geofiles 0; then
+                [[ $geo_updated -eq 0 ]] || restart 0
+            fi
             ;;
         "migrateDB")
             migrate_db "$2" "$3"
