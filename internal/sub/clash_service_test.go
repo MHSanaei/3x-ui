@@ -141,7 +141,7 @@ func TestBuildProxy_VLESSPostQuantumEncryptionUsesMihomoEncryptionField(t *testi
 		},
 	}
 
-	proxy := svc.buildProxy(inbound, client, stream, "")
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, "")
 
 	if proxy["encryption"] != encryption {
 		t.Fatalf("encryption = %v, want %q", proxy["encryption"], encryption)
@@ -166,7 +166,7 @@ func TestBuildProxy_VLESSNoneEncryptionOmittedForClash(t *testing.T) {
 		},
 	}
 
-	proxy := svc.buildProxy(inbound, client, stream, "")
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, "")
 
 	if _, ok := proxy["encryption"]; ok {
 		t.Fatalf("plain vless encryption should be omitted for mihomo: %#v", proxy)
