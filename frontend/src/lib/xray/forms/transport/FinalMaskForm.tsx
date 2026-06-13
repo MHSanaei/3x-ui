@@ -4,7 +4,9 @@ import type { FormInstance } from 'antd/es/form';
 import type { NamePath } from 'antd/es/form/interface';
 
 import { RandomUtil } from '@/utils';
-import { OutboundProtocols } from '@/schemas/primitives';
+import { OutboundProtocols, UTLS_FINGERPRINT } from '@/schemas/primitives';
+
+const UTLS_FINGERPRINT_OPTIONS = Object.values(UTLS_FINGERPRINT).map((value) => ({ value, label: value }));
 
 export interface FinalMaskFormProps {
   name: NamePath;
@@ -471,20 +473,25 @@ function UdpMaskItem({
           const type = getFieldValue([...absolutePath, 'type']) as string | undefined;
           if (type === 'salamander') {
             return (
-              <Form.Item label="Password">
-                <Space.Compact block>
-                  <Form.Item name={[fieldName, 'settings', 'password']} noStyle>
-                    <Input placeholder="Obfuscation password" style={{ width: 'calc(100% - 32px)' }} />
-                  </Form.Item>
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={() => form.setFieldValue(
-                      [...absolutePath, 'settings', 'password'],
-                      RandomUtil.randomLowerAndNum(16),
-                    )}
-                  />
-                </Space.Compact>
-              </Form.Item>
+              <>
+                <Form.Item label="Password">
+                  <Space.Compact block>
+                    <Form.Item name={[fieldName, 'settings', 'password']} noStyle>
+                      <Input placeholder="Obfuscation password" style={{ width: 'calc(100% - 32px)' }} />
+                    </Form.Item>
+                    <Button
+                      icon={<ReloadOutlined />}
+                      onClick={() => form.setFieldValue(
+                        [...absolutePath, 'settings', 'password'],
+                        RandomUtil.randomLowerAndNum(16),
+                      )}
+                    />
+                  </Space.Compact>
+                </Form.Item>
+                <Form.Item label="Packet Size" name={[fieldName, 'settings', 'packetSize']}>
+                  <Input placeholder="e.g. 100-200 — enables Gecko (leave empty for plain Salamander)" />
+                </Form.Item>
+              </>
             );
           }
           if (type === 'mkcp-legacy') {
@@ -536,6 +543,35 @@ function UdpMaskItem({
                 </Form.Item>
                 <Form.Item label="STUN Servers" name={[fieldName, 'settings', 'stunServers']}>
                   <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} placeholder="host:port" />
+                </Form.Item>
+                <Divider plain style={{ margin: '8px 0' }}>TLS (optional)</Divider>
+                <Form.Item label="Server Name" name={[fieldName, 'settings', 'tlsConfig', 'serverName']}>
+                  <Input placeholder="SNI for the realm server (leave empty to skip TLS)" />
+                </Form.Item>
+                <Form.Item label="ALPN" name={[fieldName, 'settings', 'tlsConfig', 'alpn']}>
+                  <Select
+                    mode="multiple"
+                    style={{ width: '100%' }}
+                    options={[
+                      { value: 'h3', label: 'h3' },
+                      { value: 'h2', label: 'h2' },
+                      { value: 'http/1.1', label: 'http/1.1' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="Fingerprint" name={[fieldName, 'settings', 'tlsConfig', 'fingerprint']}>
+                  <Select
+                    allowClear
+                    style={{ width: '100%' }}
+                    options={UTLS_FINGERPRINT_OPTIONS}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label="Allow Insecure"
+                  name={[fieldName, 'settings', 'tlsConfig', 'allowInsecure']}
+                  valuePropName="checked"
+                >
+                  <Switch />
                 </Form.Item>
               </>
             );
