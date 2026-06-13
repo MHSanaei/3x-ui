@@ -58,6 +58,7 @@ export default function RoutingTab({
     () =>
       rules.map((rule, idx) => {
         const r: RuleRow = { key: idx };
+        r.enabled = rule.enabled !== false;
         r.domain = arrJoin(rule.domain);
         r.ip = arrJoin(rule.ip);
         r.port = rule.port;
@@ -185,6 +186,13 @@ export default function RoutingTab({
       [list[idx + 1], list[idx]] = [list[idx], list[idx + 1]];
     });
   }
+  function toggleRule(idx: number, enabled: boolean) {
+    mutate((tt) => {
+      const list = tt.routing?.rules;
+      if (!list || !list[idx]) return;
+      list[idx].enabled = enabled;
+    });
+  }
 
   function onHandlePointerDown(idx: number, ev: React.PointerEvent) {
     if (ev.button != null && ev.button !== 0) return;
@@ -247,6 +255,7 @@ export default function RoutingTab({
     moveUp,
     moveDown,
     confirmDelete,
+    toggleRule,
   });
 
   const tableScrollX = desktopColumns.reduce((sum, c) => {
@@ -289,6 +298,7 @@ export default function RoutingTab({
                     moveUp={moveUp}
                     moveDown={moveDown}
                     confirmDelete={confirmDelete}
+                    toggleRule={toggleRule}
                   />
                 ) : (
                   <Table

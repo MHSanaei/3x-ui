@@ -1,17 +1,9 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Dropdown, Tag } from 'antd';
-import {
-  MoreOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  ExportOutlined,
-  ClusterOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined,
-  HolderOutlined,
-} from '@ant-design/icons';
+import { MoreOutlined, EditOutlined, DeleteOutlined, ExportOutlined, ClusterOutlined, ArrowUpOutlined, ArrowDownOutlined, HolderOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { Switch } from 'antd';
 
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import CriterionRow from './CriterionRow';
@@ -28,6 +20,7 @@ interface RoutingColumnsParams {
   moveUp: (idx: number) => void;
   moveDown: (idx: number) => void;
   confirmDelete: (idx: number) => void;
+  toggleRule: (idx: number, enabled: boolean) => void;
 }
 
 export function useRoutingColumns({
@@ -40,6 +33,7 @@ export function useRoutingColumns({
   moveUp,
   moveDown,
   confirmDelete,
+  toggleRule,
 }: RoutingColumnsParams): ColumnsType<RuleRow> {
   const { t } = useTranslation();
   const { data: inboundOptions } = useInboundOptions();
@@ -49,42 +43,64 @@ export function useRoutingColumns({
       {
         title: '#',
         align: 'center',
-        width: 100,
-        key: 'action',
+        width: 60,
+        key: 'index',
         render: (_v, _r, index) => (
-          <div className="action-cell">
+          <div className="action-cell" style={{ justifyContent: 'center' }}>
             <HolderOutlined
               className="drag-handle"
               title={t('pages.xray.routing.dragToReorder')}
               onPointerDown={(ev: React.PointerEvent) => onHandlePointerDown(index, ev)}
             />
             <span className="row-index">{index + 1}</span>
-            <div className={!isMobile ? 'action-buttons' : ''}>
-              {!isMobile && (
-                <Button shape="circle" size="small" icon={<EditOutlined />} onClick={() => openEdit(index)} />
-              )}
-              <Dropdown
-                trigger={['click']}
-                menu={{
-                  items: [
-                    ...(isMobile
-                      ? [{ key: 'edit', label: <><EditOutlined /> {t('edit')}</>, onClick: () => openEdit(index) }]
-                      : []),
-                    { key: 'up', label: <ArrowUpOutlined />, disabled: index === 0, onClick: () => moveUp(index) },
-                    {
-                      key: 'down',
-                      label: <ArrowDownOutlined />,
-                      disabled: index === rowsLength - 1,
-                      onClick: () => moveDown(index),
-                    },
-                    { key: 'del', danger: true, label: <><DeleteOutlined /> {t('delete')}</>, onClick: () => confirmDelete(index) },
-                  ],
-                }}
-              >
-                <Button shape="circle" size="small" icon={<MoreOutlined />} />
-              </Dropdown>
-            </div>
           </div>
+        ),
+      },
+      {
+        title: t('pages.clients.actions'),
+        align: 'center',
+        width: 80,
+        key: 'action',
+        render: (_v, _r, index) => (
+          <div className={!isMobile ? 'action-buttons' : ''} style={{ justifyContent: 'center', margin: 0 }}>
+            {!isMobile && (
+              <Button shape="circle" size="small" icon={<EditOutlined />} onClick={() => openEdit(index)} />
+            )}
+            <Dropdown
+              trigger={['click']}
+              menu={{
+                items: [
+                  ...(isMobile
+                    ? [{ key: 'edit', label: <><EditOutlined /> {t('edit')}</>, onClick: () => openEdit(index) }]
+                    : []),
+                  { key: 'up', label: <ArrowUpOutlined />, disabled: index === 0, onClick: () => moveUp(index) },
+                  {
+                    key: 'down',
+                    label: <ArrowDownOutlined />,
+                    disabled: index === rowsLength - 1,
+                    onClick: () => moveDown(index),
+                  },
+                  { key: 'del', danger: true, label: <><DeleteOutlined /> {t('delete')}</>, onClick: () => confirmDelete(index) },
+                ],
+              }}
+            >
+              <Button shape="circle" size="small" icon={<MoreOutlined />} />
+            </Dropdown>
+          </div>
+        ),
+      },
+      {
+        title: t('enable'),
+        align: 'center',
+        width: 80,
+        key: 'enabled',
+        render: (_v, _r, index) => (
+          <Switch
+            size="small"
+            checked={_r.enabled !== false}
+            onChange={(checked) => toggleRule(index, checked)}
+            disabled={_r.outboundTag === 'api' && _r.inboundTag?.split(',').map((s) => s.trim()).includes('api')}
+          />
         ),
       },
       {
@@ -184,6 +200,6 @@ export function useRoutingColumns({
           ),
       },
     ],
-    [t, isMobile, rowsLength, showSource, showBalancer, remarkByTag, onHandlePointerDown, openEdit, moveUp, moveDown, confirmDelete],
+    [t, isMobile, rowsLength, showSource, showBalancer, remarkByTag, onHandlePointerDown, openEdit, moveUp, moveDown, confirmDelete, toggleRule],
   );
 }

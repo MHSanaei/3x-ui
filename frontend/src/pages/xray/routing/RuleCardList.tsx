@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Dropdown, Tag, Tooltip } from 'antd';
+import { Button, Dropdown, Tag, Tooltip, Switch } from 'antd';
 import {
   MoreOutlined,
   EditOutlined,
@@ -25,6 +25,7 @@ interface RuleCardListProps {
   moveUp: (idx: number) => void;
   moveDown: (idx: number) => void;
   confirmDelete: (idx: number) => void;
+  toggleRule: (idx: number, enabled: boolean) => void;
 }
 
 export default function RuleCardList({
@@ -36,6 +37,7 @@ export default function RuleCardList({
   moveUp,
   moveDown,
   confirmDelete,
+  toggleRule,
 }: RuleCardListProps) {
   const { t } = useTranslation();
   const { data: inboundOptions } = useInboundOptions();
@@ -50,7 +52,9 @@ export default function RuleCardList({
             key={rule.key}
             className={`rule-card ${draggedIndex === index ? 'row-dragging' : ''} ${
               dropTargetIndex === index && draggedIndex != null && index < draggedIndex ? 'drop-before' : ''
-            } ${dropTargetIndex === index && draggedIndex != null && index > draggedIndex ? 'drop-after' : ''}`}
+            } ${dropTargetIndex === index && draggedIndex != null && index > draggedIndex ? 'drop-after' : ''} ${
+              rule.enabled === false ? 'rule-disabled' : ''
+            }`}
             data-row-key={index}
           >
             <div className="rule-card-head">
@@ -72,6 +76,13 @@ export default function RuleCardList({
               >
                 <Button shape="circle" size="small" icon={<MoreOutlined />} />
               </Dropdown>
+              <Switch
+                size="small"
+                checked={rule.enabled !== false}
+                onChange={(checked) => toggleRule(index, checked)}
+                disabled={rule.outboundTag === 'api' && rule.inboundTag?.split(',').map((s) => s.trim()).includes('api')}
+                style={{ marginLeft: 8 }}
+              />
             </div>
 
             <div className="rule-flow">

@@ -118,6 +118,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	xrayConfig.LogConfig = resolveXrayLogPaths(xrayConfig.LogConfig)
 	xrayConfig.API = ensureAPIServices(xrayConfig.API)
 	xrayConfig.Policy = ensureStatsPolicy(xrayConfig.Policy)
+	xrayConfig.RouterConfig = stripDisabledRules(xrayConfig.RouterConfig)
 
 	_, _, _ = s.inboundService.AddTraffic(nil, nil)
 
@@ -616,6 +617,52 @@ func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 	out, err := json.Marshal(parsed)
 	if err != nil {
 		return logCfg
+	}
+	return out
+}
+
+func stripDisabledRules(routerCfg json_util.RawMessage) json_util.RawMessage {
+	if len(routerCfg) == 0 {
+		return routerCfg
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(routerCfg, &parsed); err != nil {
+		return routerCfg
+	}
+	rules, ok := parsed["rules"].([]any)
+	if !ok || len(rules) == 0 {
+		return routerCfg
+	}
+
+	var activeRules []any
+	changed := false
+	for _, rawRule := range rules {
+		rule, ok := rawRule.(map[string]any)
+		if !ok {
+			activeRules = append(activeRules, rawRule)
+			continue
+		}
+
+		if enabledRaw, exists := rule["enabled"]; exists {
+			enabled, ok := enabledRaw.(bool)
+			if ok && !enabled {
+				changed = true
+				continue
+			}
+			delete(rule, "enabled")
+			changed = true
+		}
+		activeRules = append(activeRules, rule)
+	}
+
+	if !changed {
+		return routerCfg
+	}
+
+	parsed["rules"] = activeRules
+	out, err := json.Marshal(parsed)
+	if err != nil {
+		return routerCfg
 	}
 	return out
 }
