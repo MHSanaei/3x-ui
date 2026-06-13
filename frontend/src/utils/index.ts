@@ -654,6 +654,16 @@ export class SizeFormatter {
     if (size < SizeFormatter.ONE_PB) return (size / SizeFormatter.ONE_TB).toFixed(2) + ' TB';
     return (size / SizeFormatter.ONE_PB).toFixed(2) + ' PB';
   }
+
+  static speedFormat(bps: number | null | undefined): string {
+    if (bps == null || bps <= 0) return '0 B/s';
+    if (bps < SizeFormatter.ONE_KB) return bps.toFixed(0) + ' B/s';
+    if (bps < SizeFormatter.ONE_MB) return (bps / SizeFormatter.ONE_KB).toFixed(2) + ' KB/s';
+    if (bps < SizeFormatter.ONE_GB) return (bps / SizeFormatter.ONE_MB).toFixed(2) + ' MB/s';
+    if (bps < SizeFormatter.ONE_TB) return (bps / SizeFormatter.ONE_GB).toFixed(2) + ' GB/s';
+    if (bps < SizeFormatter.ONE_PB) return (bps / SizeFormatter.ONE_TB).toFixed(2) + ' TB/s';
+    return (bps / SizeFormatter.ONE_PB).toFixed(2) + ' PB/s';
+  }
 }
 
 export class CPUFormatter {
