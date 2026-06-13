@@ -3,6 +3,11 @@ package runtime
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
+	"crypto/tls"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +22,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -43,6 +49,7 @@ type Remote struct {
 
 	mu            sync.RWMutex
 	remoteIDByTag map[string]int
+	client        *http.Client
 }
 
 type RemoteInboundOption struct {
@@ -53,9 +60,44 @@ type RemoteInboundOption struct {
 }
 
 func NewRemote(n *model.Node) *Remote {
+	client := remoteHTTPClient
+
+	if proxyUrl := strings.TrimSpace(n.ProxyUrl); proxyUrl != "" {
+		if c, err := netproxy.NewHTTPClient(proxyUrl, remoteHTTPTimeout); err == nil {
+			mode := n.TlsVerifyMode
+			if mode == "" {
+				mode = "verify"
+			}
+			if n.Scheme == "https" && mode != "verify" {
+				if transport, ok := c.Transport.(*http.Transport); ok {
+					tlsCfg := &tls.Config{InsecureSkipVerify: true}
+					if mode == "pin" {
+						if want, err := decodeCertPin(n.PinnedCertSha256); err == nil {
+							tlsCfg.VerifyConnection = func(cs tls.ConnectionState) error {
+								if len(cs.PeerCertificates) == 0 {
+									return errors.New("node presented no certificate")
+								}
+								sum := sha256.Sum256(cs.PeerCertificates[0].Raw)
+								if subtle.ConstantTimeCompare(sum[:], want) != 1 {
+									return errors.New("node certificate does not match pinned SHA-256")
+								}
+								return nil
+							}
+						}
+					}
+					transport.TLSClientConfig = tlsCfg
+				}
+			}
+			client = c
+		} else {
+			logger.Warning("failed to create proxy client for node", n.Name, ":", err)
+		}
+	}
+
 	return &Remote{
 		node:          n,
 		remoteIDByTag: make(map[string]int),
+		client:        client,
 	}
 }
 
@@ -129,7 +171,7 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 		req.Header.Set("Content-Type", contentType)
 	}
 
-	resp, err := remoteHTTPClient.Do(req)
+	resp, err := r.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("%s %s: %w", method, path, err)
 	}
@@ -580,6 +622,22 @@ func sanitizeStreamSettingsForRemote(streamSettings string) string {
 func isNonEmptySlice(v any) bool {
 	s, ok := v.([]any)
 	return ok && len(s) > 0
+}
+
+func decodeCertPin(s string) ([]byte, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, errors.New("certificate pin is empty")
+	}
+	if b, err := hex.DecodeString(strings.ReplaceAll(s, ":", "")); err == nil && len(b) == sha256.Size {
+		return b, nil
+	}
+	for _, enc := range []*base64.Encoding{base64.StdEncoding, base64.RawStdEncoding, base64.URLEncoding, base64.RawURLEncoding} {
+		if b, err := enc.DecodeString(s); err == nil && len(b) == sha256.Size {
+			return b, nil
+		}
+	}
+	return nil, errors.New("certificate pin must be a SHA-256 hash (base64 or hex)")
 }
 
 func (r *Remote) FetchAllClientIps(ctx context.Context) ([]model.InboundClientIps, error) {
