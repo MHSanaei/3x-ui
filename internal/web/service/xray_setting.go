@@ -237,6 +237,7 @@ func EnsureStatsRouting(raw string) (string, error) {
 			"outboundTag": "api",
 		}
 	}
+	delete(apiRule, "enabled")
 	rules = append([]map[string]any{apiRule}, rules...)
 
 	rulesJSON, err := json.Marshal(rules)
