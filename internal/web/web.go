@@ -153,6 +153,13 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	sendHSTS := directHTTPS && !config.IsSkipHSTS()
 	engine.Use(middleware.SecurityHeadersMiddleware(sendHSTS))
 
+	// Cap request bodies on state-changing requests so a stolen session/API
+	// token or a buggy client can't force large allocations or long DB
+	// transactions via bulk create/attach/import endpoints. GET/HEAD/OPTIONS
+	// carry no body and are left untouched. Follow-up: make the limit a setting.
+	const maxRequestBodyBytes = 10 << 20 // 10 MiB
+	engine.Use(middleware.MaxBodyBytes(maxRequestBodyBytes))
+
 	webDomain, err := s.settingService.GetWebDomain()
 	if err != nil {
 		return nil, err
