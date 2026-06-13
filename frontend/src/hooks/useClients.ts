@@ -183,6 +183,9 @@ export function useClients() {
     queryKey: keys.clients.list(query),
     queryFn: () => fetchClientPage(query),
     staleTime: Infinity,
+    // List is sorted/paged server-side, so the WS patch can't add new or
+    // re-sort rows; poll the current page to keep it live (pauses when hidden).
+    refetchInterval: 5000,
     placeholderData: keepPreviousData,
   });
 
@@ -216,6 +219,9 @@ export function useClients() {
   const fetched = listQuery.data !== undefined || listQuery.isError;
   const fetchError = listQuery.error ? (listQuery.error as Error).message : '';
   const loading = listQuery.isFetching;
+  // Showing kept-previous data for a new key (filter/sort/page) — drives the
+  // table overlay so the 5s background poll doesn't flash it.
+  const transitioning = listQuery.isPlaceholderData;
 
   const inbounds = inboundOptionsQuery.data ?? [];
   const onlines = useMemo(() => onlinesQuery.data ?? [], [onlinesQuery.data]);
@@ -528,6 +534,7 @@ export function useClients() {
     inbounds,
     onlines,
     loading,
+    transitioning,
     fetched,
     fetchError,
     subSettings,

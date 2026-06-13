@@ -197,7 +197,7 @@ export default function ClientsPage() {
     summary: serverSummary,
     allGroups,
     setQuery,
-    inbounds, onlines, loading, fetched, fetchError, subSettings,
+    inbounds, onlines, loading, transitioning, fetched, fetchError, subSettings,
     tgBotEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, bulkAttach, detach, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
@@ -1100,7 +1100,7 @@ export default function ClientsPage() {
                         <Table<ClientRecord>
                           columns={columns}
                           dataSource={sortedClients}
-                          loading={loading}
+                          loading={transitioning}
                           rowKey="email"
                           rowSelection={rowSelection}
                           pagination={tablePagination}
@@ -1117,7 +1117,7 @@ export default function ClientsPage() {
                           }}
                         />
                       ) : (
-                        <Spin spinning={loading}>
+                        <Spin spinning={transitioning}>
                           <div className="client-cards">
                             {filteredClients.length > 0 && (
                               <div className="card-bulk-bar">
