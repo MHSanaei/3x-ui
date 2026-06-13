@@ -409,7 +409,7 @@ func injectNodeEgresses(cfg *xray.Config, nodes []*model.Node) {
 	}
 
 	rules, _ := routing["rules"].([]any)
-	newRules := make([]any, 0, len(rules)+len(nodes))
+	newRules := make([]any, 0)
 
 	for _, n := range nodes {
 		if !n.Enable || n.OutboundTag == "" {
