@@ -384,6 +384,7 @@ export const NodeSchema = z.object({
   memPct: z.number(),
   name: z.string(),
   onlineCount: z.number().int(),
+  outboundTag: z.string(),
   panelVersion: z.string(),
   parentGuid: z.string().optional(),
   pinnedCertSha256: z.string(),
