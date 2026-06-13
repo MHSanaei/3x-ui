@@ -3,6 +3,11 @@ package runtime
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
+	"crypto/tls"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -39,7 +44,8 @@ type envelope struct {
 }
 
 type Remote struct {
-	node *model.Node
+	node   *model.Node
+	client *http.Client
 
 	mu            sync.RWMutex
 	remoteIDByTag map[string]int
@@ -55,8 +61,75 @@ type RemoteInboundOption struct {
 func NewRemote(n *model.Node) *Remote {
 	return &Remote{
 		node:          n,
+		client:        tlsClientForNode(n),
 		remoteIDByTag: make(map[string]int),
 	}
+}
+
+// tlsClientForNode mirrors web/service.nodeHTTPClientFor so that runtime node
+// sync honors the same per-node TLS trust model as the management UI: "verify"
+// (or any http node) uses the shared SSRF-guarded client with default chain
+// validation; "skip" disables validation; "pin" disables the default chain
+// check but verifies the leaf certificate SHA-256 against the stored pin. A
+// malformed pin falls back to the default verifying client (fail safe, never
+// silently skip) and is logged.
+//
+// NOTE (follow-up): de-duplicate by extracting a shared model.Node TLS config
+// helper used by both web/service and web/runtime.
+func tlsClientForNode(n *model.Node) *http.Client {
+	mode := n.TlsVerifyMode
+	if mode == "" {
+		mode = "verify"
+	}
+	if mode == "verify" || n.Scheme == "http" {
+		return remoteHTTPClient
+	}
+	tlsCfg := &tls.Config{InsecureSkipVerify: true} // lgtm[go/disabled-certificate-check]
+	if mode == "pin" {
+		want, err := decodeCertPin(n.PinnedCertSha256)
+		if err != nil {
+			logger.Warningf("node %s has TlsVerifyMode=pin but an invalid pin (%v); falling back to default certificate verification", n.Name, err)
+			return remoteHTTPClient
+		}
+		tlsCfg.VerifyConnection = func(cs tls.ConnectionState) error {
+			if len(cs.PeerCertificates) == 0 {
+				return errors.New("node presented no certificate")
+			}
+			sum := sha256.Sum256(cs.PeerCertificates[0].Raw)
+			if subtle.ConstantTimeCompare(sum[:], want) != 1 {
+				return errors.New("node certificate does not match pinned SHA-256")
+			}
+			return nil
+		}
+	}
+	return &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        64,
+			MaxIdleConnsPerHost: 4,
+			IdleConnTimeout:     60 * time.Second,
+			DialContext:         netsafe.SSRFGuardedDialContext,
+			TLSClientConfig:     tlsCfg,
+		},
+	}
+}
+
+// decodeCertPin accepts a SHA-256 certificate hash as base64 (Xray's
+// pinnedPeerCertSha256 format) or hex with optional colons and returns the raw
+// 32 bytes.
+func decodeCertPin(s string) ([]byte, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, errors.New("certificate pin is empty")
+	}
+	if b, err := hex.DecodeString(strings.ReplaceAll(s, ":", "")); err == nil && len(b) == sha256.Size {
+		return b, nil
+	}
+	for _, enc := range []*base64.Encoding{base64.StdEncoding, base64.RawStdEncoding, base64.URLEncoding, base64.RawURLEncoding} {
+		if b, err := enc.DecodeString(s); err == nil && len(b) == sha256.Size {
+			return b, nil
+		}
+	}
+	return nil, errors.New("certificate pin must be a SHA-256 hash (base64 or hex)")
 }
 
 func (r *Remote) Name() string { return "node:" + r.node.Name }
@@ -129,7 +202,7 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 		req.Header.Set("Content-Type", contentType)
 	}
 
-	resp, err := remoteHTTPClient.Do(req)
+	resp, err := r.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("%s %s: %w", method, path, err)
 	}
