@@ -649,7 +649,7 @@ export default function ClientsPage() {
           </Tooltip>
         );
         if (record.enable && isOnline(record.email)) return (
-          <Tag color="green"><span className="online-dot" />{t('pages.clients.online')}</Tag>
+          <Tag color="green" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px'}}><span className="online-dot" />{t('pages.clients.online')}</Tag>
         );
         if (!record.enable) return <Tag>{t('disabled')}</Tag>;
         if (bucket === 'expiring') return <Tag color="orange">{t('depletingSoon')}</Tag>;
