@@ -1,6 +1,7 @@
 {
   "udp": [
     { "type": "salamander", "settings": { "password": "swordfish" } },
+    { "type": "salamander", "settings": { "password": "gecko", "packetSize": "512-1200" } },
     { "type": "mkcp-legacy", "settings": { "header": "", "value": "abcdef0123456789" } },
     { "type": "mkcp-legacy", "settings": { "header": "dns", "value": "cloudflare.com" } },
     { "type": "mkcp-legacy", "settings": { "header": "wireguard", "value": "" } },

@@ -121,6 +121,13 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses udp-mask byte-stably 1`
     },
     {
       "settings": {
+        "packetSize": "512-1200",
+        "password": "gecko",
+      },
+      "type": "salamander",
+    },
+    {
+      "settings": {
         "header": "",
         "value": "abcdef0123456789",
       },

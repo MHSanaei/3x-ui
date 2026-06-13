@@ -18,6 +18,31 @@ export interface FinalMaskFormProps {
 }
 
 const TCP_NETWORKS = ['raw', 'tcp', 'httpupgrade', 'ws', 'grpc', 'xhttp'];
+const DEFAULT_GECKO_PACKET_SIZE = { min: 512, max: 1200 };
+
+export function parseGeckoPacketSize(value: unknown): { min: number; max: number } | null {
+  const str = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+  const match = /^(\d+)-(\d+)$/.exec(str);
+  if (!match) return null;
+  const min = Number(match[1]);
+  const max = Number(match[2]);
+  if (!Number.isSafeInteger(min) || !Number.isSafeInteger(max) || min <= 0 || max <= 0 || max < min) {
+    return null;
+  }
+  return { min, max };
+}
+
+function formatGeckoPacketSize(min: number, max: number): string {
+  return `${min}-${max}`;
+}
+
+function splitGeckoPacketSize(value: unknown): { min: number | null; max: number | null } {
+  const str = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+  const [minRaw = '', maxRaw = ''] = str.split('-', 2);
+  const min = /^\d+$/.test(minRaw) ? Number(minRaw) : null;
+  const max = /^\d+$/.test(maxRaw) ? Number(maxRaw) : null;
+  return { min, max };
+}
 
 function asPath(name: NamePath): (string | number)[] {
   return Array.isArray(name) ? [...name] : [name];
@@ -58,6 +83,11 @@ function defaultUdpMaskSettings(type: string): Record<string, unknown> {
     default:
       return {};
   }
+}
+
+function validateGeckoPacketSize(_rule: unknown, value: unknown): Promise<void> {
+  if (parseGeckoPacketSize(value)) return Promise.resolve();
+  return Promise.reject(new Error('Use a positive packet size range like 512-1200, with max >= min'));
 }
 
 function defaultClientServerItem(): Record<string, unknown> {
@@ -470,22 +500,7 @@ function UdpMaskItem({
         {({ getFieldValue }) => {
           const type = getFieldValue([...absolutePath, 'type']) as string | undefined;
           if (type === 'salamander') {
-            return (
-              <Form.Item label="Password">
-                <Space.Compact block>
-                  <Form.Item name={[fieldName, 'settings', 'password']} noStyle>
-                    <Input placeholder="Obfuscation password" style={{ width: 'calc(100% - 32px)' }} />
-                  </Form.Item>
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={() => form.setFieldValue(
-                      [...absolutePath, 'settings', 'password'],
-                      RandomUtil.randomLowerAndNum(16),
-                    )}
-                  />
-                </Space.Compact>
-              </Form.Item>
-            );
+            return <SalamanderUdpMaskSettings fieldName={fieldName} form={form} absolutePath={absolutePath} />;
           }
           if (type === 'mkcp-legacy') {
             return (
@@ -562,6 +577,109 @@ function UdpMaskItem({
         }}
       </Form.Item>
     </div>
+  );
+}
+
+function SalamanderUdpMaskSettings({
+  fieldName, form, absolutePath,
+}: {
+  fieldName: number;
+  form: FormInstance;
+  absolutePath: (string | number)[];
+}) {
+  const packetSizePath = [...absolutePath, 'settings', 'packetSize'];
+  const packetSize = Form.useWatch(packetSizePath, { form, preserve: true });
+  const mode = typeof packetSize === 'string' && packetSize.trim() !== '' ? 'gecko' : 'salamander';
+
+  return (
+    <>
+      <Form.Item
+        label="Mode"
+        extra={mode === 'gecko'
+          ? 'Builds on Salamander and additionally fragments/pads QUIC handshake packets. In Xray-core, Gecko is represented as Salamander finalmask with packetSize.'
+          : 'Scrambles packets into random-looking bytes.'}
+      >
+        <Select
+          value={mode}
+          onChange={(next) => {
+            if (next === 'gecko') {
+              const current = form.getFieldValue(packetSizePath);
+              form.setFieldValue(
+                packetSizePath,
+                parseGeckoPacketSize(current)
+                  ? current
+                  : formatGeckoPacketSize(DEFAULT_GECKO_PACKET_SIZE.min, DEFAULT_GECKO_PACKET_SIZE.max),
+              );
+            } else {
+              form.setFieldValue(packetSizePath, undefined);
+            }
+          }}
+          options={[
+            { value: 'salamander', label: 'Salamander' },
+            { value: 'gecko', label: 'Gecko experimental' },
+          ]}
+        />
+      </Form.Item>
+
+      <Form.Item label="Password">
+        <Space.Compact block>
+          <Form.Item name={[fieldName, 'settings', 'password']} noStyle>
+            <Input placeholder="Obfuscation password" style={{ width: 'calc(100% - 32px)' }} />
+          </Form.Item>
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => form.setFieldValue(
+              [...absolutePath, 'settings', 'password'],
+              RandomUtil.randomLowerAndNum(16),
+            )}
+          />
+        </Space.Compact>
+      </Form.Item>
+
+      {mode === 'gecko' && (
+        <Form.Item
+          label="Packet size"
+          name={[fieldName, 'settings', 'packetSize']}
+          rules={[{ validator: validateGeckoPacketSize }]}
+          extra="Serialized as a string range, for example 512-1200."
+        >
+          <GeckoPacketSizeInput />
+        </Form.Item>
+      )}
+    </>
+  );
+}
+
+function GeckoPacketSizeInput({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange?: (value: string) => void;
+}) {
+  const { min, max } = splitGeckoPacketSize(value);
+
+  return (
+    <Space.Compact block>
+      <InputNumber
+        addonBefore="Min"
+        min={1}
+        precision={0}
+        value={min}
+        placeholder={String(DEFAULT_GECKO_PACKET_SIZE.min)}
+        onChange={(next) => onChange?.(`${next ?? ''}-${max ?? ''}`)}
+        style={{ width: '50%' }}
+      />
+      <InputNumber
+        addonBefore="Max"
+        min={1}
+        precision={0}
+        value={max}
+        placeholder={String(DEFAULT_GECKO_PACKET_SIZE.max)}
+        onChange={(next) => onChange?.(`${min ?? ''}-${next ?? ''}`)}
+        style={{ width: '50%' }}
+      />
+    </Space.Compact>
   );
 }
 
