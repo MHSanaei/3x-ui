@@ -172,7 +172,7 @@ export function useOutboundColumns({
               type="primary"
               shape="circle"
               loading={isTesting(outboundTestStates, index)}
-              disabled={isUntestable(record, testMode) || isTesting(outboundTestStates, index)}
+              disabled={isUntestable(record) || isTesting(outboundTestStates, index)}
               icon={<ThunderboltOutlined />}
               onClick={() => onTest(index, testMode)}
             />
