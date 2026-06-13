@@ -49,11 +49,18 @@ func NewSubService(showInfo bool, remarkModel string) *SubService {
 	}
 }
 
-// PrepareForRequest sets per-request state (host + nodes map) on the
-// shared SubService. Called by every entry point — GetSubs, GetJson,
-// GetClash — so resolveInboundAddress sees the right host and the
-// freshly-loaded node map regardless of which sub flavour the client
-// hit.
+// ForRequest returns a shallow copy with request-scoped state populated.
+// Subscription controllers share one base SubService, so request-specific
+// fields such as address and nodesByID must live on a per-request copy.
+func (s *SubService) ForRequest(host string) *SubService {
+	req := *s
+	req.PrepareForRequest(host)
+	return &req
+}
+
+// PrepareForRequest sets per-request state (host + nodes map) on this
+// SubService instance. HTTP handlers should call ForRequest instead so the
+// controller's shared base service is never mutated by concurrent requests.
 func (s *SubService) PrepareForRequest(host string) {
 	if !isRoutableHost(host) {
 		if d := s.configuredPublicHost(); d != "" {
@@ -139,7 +146,10 @@ func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []mod
 
 // GetSubs retrieves subscription links for a given subscription ID and host.
 func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int64, xray.ClientTraffic, error) {
-	s.PrepareForRequest(host)
+	return s.ForRequest(host).getSubs(subId)
+}
+
+func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.ClientTraffic, error) {
 	var result []string
 	var emails []string
 	var traffic xray.ClientTraffic
