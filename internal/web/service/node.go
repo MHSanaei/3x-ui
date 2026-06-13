@@ -20,6 +20,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 )
@@ -54,8 +55,8 @@ var nodeHTTPClient = &http.Client{
 }
 
 // nodeHTTPClientFor returns the HTTP client used to reach a node, honoring its
-// per-node TLS verification mode. "verify" (or any http node) uses the shared
-// client with default certificate validation. "skip" disables validation.
+// per-node proxy URL and TLS verification mode. "verify" (or any http node)
+// with no proxy uses the shared client. "skip" disables certificate validation.
 // "pin" disables the default chain check but verifies the leaf certificate's
 // SHA-256 against the stored pin, keeping MITM protection for self-signed certs.
 func nodeHTTPClientFor(n *model.Node) (*http.Client, error) {
@@ -63,35 +64,68 @@ func nodeHTTPClientFor(n *model.Node) (*http.Client, error) {
 	if mode == "" {
 		mode = "verify"
 	}
-	if mode == "verify" || n.Scheme == "http" {
+	proxyUrl := strings.TrimSpace(n.ProxyUrl)
+
+	if proxyUrl == "" && (mode == "verify" || n.Scheme == "http") {
 		return nodeHTTPClient, nil
 	}
-	tlsCfg := &tls.Config{InsecureSkipVerify: true}
-	if mode == "pin" {
-		want, err := decodeCertPin(n.PinnedCertSha256)
+
+	if proxyUrl == "" {
+		tlsCfg, err := nodeTLSConfig(mode, n.PinnedCertSha256)
 		if err != nil {
 			return nil, err
 		}
-		tlsCfg.VerifyConnection = func(cs tls.ConnectionState) error {
-			if len(cs.PeerCertificates) == 0 {
-				return common.NewError("node presented no certificate")
-			}
-			sum := sha256.Sum256(cs.PeerCertificates[0].Raw)
-			if subtle.ConstantTimeCompare(sum[:], want) != 1 {
-				return common.NewError("node certificate does not match pinned SHA-256")
-			}
-			return nil
-		}
+		return &http.Client{
+			Transport: &http.Transport{
+				MaxIdleConns:        64,
+				MaxIdleConnsPerHost: 4,
+				IdleConnTimeout:     60 * time.Second,
+				DialContext:         netsafe.SSRFGuardedDialContext,
+				TLSClientConfig:     tlsCfg,
+			},
+		}, nil
 	}
-	return &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConns:        64,
-			MaxIdleConnsPerHost: 4,
-			IdleConnTimeout:     60 * time.Second,
-			DialContext:         netsafe.SSRFGuardedDialContext,
-			TLSClientConfig:     tlsCfg,
-		},
-	}, nil
+
+	client, err := netproxy.NewHTTPClient(proxyUrl, 0)
+	if err != nil {
+		return nil, err
+	}
+	if mode == "verify" || n.Scheme == "http" {
+		return client, nil
+	}
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok {
+		return client, nil
+	}
+	tlsCfg, err := nodeTLSConfig(mode, n.PinnedCertSha256)
+	if err != nil {
+		return nil, err
+	}
+	transport.TLSClientConfig = tlsCfg
+	return client, nil
+}
+
+// nodeTLSConfig builds a TLS config for the given verification mode.
+func nodeTLSConfig(mode, pinnedCertSha256 string) (*tls.Config, error) {
+	tlsCfg := &tls.Config{InsecureSkipVerify: true}
+	if mode != "pin" {
+		return tlsCfg, nil
+	}
+	want, err := decodeCertPin(pinnedCertSha256)
+	if err != nil {
+		return nil, err
+	}
+	tlsCfg.VerifyConnection = func(cs tls.ConnectionState) error {
+		if len(cs.PeerCertificates) == 0 {
+			return common.NewError("node presented no certificate")
+		}
+		sum := sha256.Sum256(cs.PeerCertificates[0].Raw)
+		if subtle.ConstantTimeCompare(sum[:], want) != 1 {
+			return common.NewError("node certificate does not match pinned SHA-256")
+		}
+		return nil
+	}
+	return tlsCfg, nil
 }
 
 // decodeCertPin accepts a SHA-256 certificate hash as base64 (the format used
@@ -142,11 +176,25 @@ func (s *NodeService) FetchCertFingerprint(ctx context.Context, n *model.Node) (
 	if err != nil {
 		return "", err
 	}
-	client := &http.Client{
-		Transport: &http.Transport{
-			DialContext:     netsafe.SSRFGuardedDialContext,
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // lgtm[go/disabled-certificate-check]
-		},
+	var client *http.Client
+	if proxyUrl := strings.TrimSpace(n.ProxyUrl); proxyUrl != "" {
+		c, err := netproxy.NewHTTPClient(proxyUrl, 0)
+		if err != nil {
+			return "", err
+		}
+		transport, ok := c.Transport.(*http.Transport)
+		if !ok {
+			return "", common.NewError("unexpected transport type")
+		}
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // lgtm[go/disabled-certificate-check]
+		client = c
+	} else {
+		client = &http.Client{
+			Transport: &http.Transport{
+				DialContext:     netsafe.SSRFGuardedDialContext,
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // lgtm[go/disabled-certificate-check]
+			},
+		}
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -347,6 +395,12 @@ func (s *NodeService) normalize(n *model.Node) error {
 		n.TlsVerifyMode = "verify"
 	}
 	n.PinnedCertSha256 = strings.TrimSpace(n.PinnedCertSha256)
+	n.ProxyUrl = strings.TrimSpace(n.ProxyUrl)
+	if n.ProxyUrl != "" {
+		if _, err := netproxy.NewHTTPClient(n.ProxyUrl, 0); err != nil {
+			return common.NewError("invalid proxy url: " + err.Error())
+		}
+	}
 	if n.InboundSyncMode != "selected" {
 		n.InboundSyncMode = "all"
 		n.InboundTags = nil
@@ -408,6 +462,7 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		"allow_private_address": in.AllowPrivateAddress,
 		"tls_verify_mode":       in.TlsVerifyMode,
 		"pinned_cert_sha256":    in.PinnedCertSha256,
+		"proxy_url":             in.ProxyUrl,
 		"inbound_sync_mode":     in.InboundSyncMode,
 		"inbound_tags":          string(inboundTagsJSON),
 	}

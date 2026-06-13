@@ -212,3 +212,49 @@ func TestFilterNodeSnapshot(t *testing.T) {
 		t.Fatalf("empty selection kept %d inbounds, want 0", len(none.Inbounds))
 	}
 }
+
+func TestNodeService_Normalize_AcceptsEmptyProxy(t *testing.T) {
+	s := &NodeService{}
+	n := &model.Node{Name: "n", Address: "example.com", Port: 443, ProxyUrl: "   "}
+	if err := s.normalize(n); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if n.ProxyUrl != "" {
+		t.Fatalf("ProxyUrl not trimmed/emptied: %q", n.ProxyUrl)
+	}
+}
+
+func TestNodeService_Normalize_AcceptsSocks5Proxy(t *testing.T) {
+	s := &NodeService{}
+	n := &model.Node{Name: "n", Address: "example.com", Port: 443, ProxyUrl: "socks5://127.0.0.1:1080"}
+	if err := s.normalize(n); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestNodeService_Normalize_AcceptsHttpProxy(t *testing.T) {
+	s := &NodeService{}
+	n := &model.Node{Name: "n", Address: "example.com", Port: 443, ProxyUrl: "http://proxy.example.com:8080"}
+	if err := s.normalize(n); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestNodeService_Normalize_RejectsBadProxyScheme(t *testing.T) {
+	s := &NodeService{}
+	n := &model.Node{Name: "n", Address: "example.com", Port: 443, ProxyUrl: "ftp://127.0.0.1:1080"}
+	if err := s.normalize(n); err == nil {
+		t.Fatal("expected error for unsupported proxy scheme")
+	}
+}
+
+func TestNodeService_Normalize_TrimsProxyUrl(t *testing.T) {
+	s := &NodeService{}
+	n := &model.Node{Name: "n", Address: "example.com", Port: 443, ProxyUrl: "  socks5://127.0.0.1:1080  "}
+	if err := s.normalize(n); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if n.ProxyUrl != "socks5://127.0.0.1:1080" {
+		t.Fatalf("ProxyUrl = %q, want socks5://127.0.0.1:1080", n.ProxyUrl)
+	}
+}
