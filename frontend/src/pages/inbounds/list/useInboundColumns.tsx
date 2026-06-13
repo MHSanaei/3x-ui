@@ -17,7 +17,7 @@ import {
   tunnelNetworkLabel,
   mixedNetworkLabel,
 } from './helpers';
-import type { ClientCountEntry, DBInboundRecord, RowAction } from './types';
+import type { ClientCountEntry, DBInboundRecord, InboundSpeedEntry, RowAction } from './types';
 
 interface UseInboundColumnsParams {
   hasAnyRemark: boolean;
@@ -25,6 +25,7 @@ interface UseInboundColumnsParams {
   hasActiveNode: boolean;
   nodesById: Map<number, NodeRecord>;
   clientCount: Record<number, ClientCountEntry>;
+  inboundSpeed: Record<number, InboundSpeedEntry>;
   subEnable: boolean;
   expireDiff: number;
   trafficDiff: number;
@@ -38,6 +39,7 @@ export function useInboundColumns({
   hasActiveNode,
   nodesById,
   clientCount,
+  inboundSpeed,
   subEnable,
   expireDiff,
   trafficDiff,
@@ -263,6 +265,33 @@ export function useInboundColumns({
         ),
       },
       {
+        title: t('pages.inbounds.speed'),
+        key: 'speed',
+        align: 'center',
+        width: 90,
+        render: (_, record) => {
+          const speed = inboundSpeed[record.id];
+          if (!speed || (speed.up <= 0 && speed.down <= 0)) {
+            return <Tag color='default'>—</Tag>;
+          }
+          return (
+            <Tooltip title={(
+              <div>
+                <div>↑ {SizeFormatter.speedFormat(speed.up)}</div>
+                <div>↓ {SizeFormatter.speedFormat(speed.down)}</div>
+              </div>
+            )}
+            >
+              <Tag color='blue'>
+                ↑ {SizeFormatter.speedFormat(speed.up)}
+                {' / '}
+                ↓ {SizeFormatter.speedFormat(speed.down)}
+              </Tag>
+            </Tooltip>
+          );
+        },
+      },
+      {
         title: t('pages.inbounds.expireDate'),
         key: 'expiryTime',
         align: 'center',
@@ -283,5 +312,5 @@ export function useInboundColumns({
     );
 
     return cols;
-  }, [t, hasAnyRemark, hasAnySubSortIndex, hasActiveNode, nodesById, clientCount, subEnable, expireDiff, trafficDiff, datepicker, onRowAction, onSwitchEnable]);
+  }, [t, hasAnyRemark, hasAnySubSortIndex, hasActiveNode, nodesById, clientCount, inboundSpeed, subEnable, expireDiff, trafficDiff, datepicker, onRowAction, onSwitchEnable]);
 }
