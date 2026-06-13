@@ -26,6 +26,22 @@ export interface SubSettings {
 
 type DBInboundInstance = InstanceType<typeof DBInbound>;
 
+// Server-side traffic polling interval in seconds. XrayTrafficJob broadcasts
+// deltas accumulated over this window, so dividing by it yields bytes/sec.
+const TRAFFIC_POLL_INTERVAL_S = 5;
+
+interface TrafficDelta {
+  Tag: string;
+  Up: number;
+  Down: number;
+  IsInbound?: boolean;
+}
+
+interface InboundSpeed {
+  up: number;
+  down: number;
+}
+
 interface ClientRollup {
   clients: number;
   active: string[];
@@ -178,6 +194,8 @@ export function useInbounds() {
 
   const [clientCount, setClientCount] = useState<Record<number, ClientRollup>>({});
   const [statsVersion, setStatsVersion] = useState(0);
+
+  const [inboundSpeed, setInboundSpeed] = useState<Record<number, InboundSpeed>>({});
 
   const [onlineClients, setOnlineClients] = useState<string[]>([]);
   const onlineClientsRef = useRef<string[]>([]);
@@ -383,7 +401,13 @@ export function useInbounds() {
   const applyTrafficEvent = useCallback(
     (payload: unknown) => {
       if (!payload || typeof payload !== 'object') return;
-      const p = payload as { onlineClients?: string[]; onlineByGuid?: Record<string, string[]>; activeInbounds?: Record<string, string[]>; lastOnlineMap?: Record<string, number> };
+      const p = payload as {
+        traffics?: TrafficDelta[];
+        onlineClients?: string[];
+        onlineByGuid?: Record<string, string[]>;
+        activeInbounds?: Record<string, string[]>;
+        lastOnlineMap?: Record<string, number>;
+      };
       if (Array.isArray(p.onlineClients)) {
         onlineClientsRef.current = p.onlineClients;
         setOnlineClients(p.onlineClients);
@@ -396,6 +420,24 @@ export function useInbounds() {
       }
       if (p.lastOnlineMap && typeof p.lastOnlineMap === 'object') {
         setLastOnlineMap((prev) => ({ ...prev, ...p.lastOnlineMap! }));
+      }
+      if (Array.isArray(p.traffics) && p.traffics.length > 0) {
+        const byTag = new Map<string, TrafficDelta>();
+        for (const tr of p.traffics) {
+          if (!tr || typeof tr.Tag !== 'string') continue;
+          if (tr.IsInbound === false) continue;
+          byTag.set(tr.Tag, tr);
+        }
+        const nextSpeed: Record<number, InboundSpeed> = {};
+        for (const ib of dbInboundsRef.current) {
+          const delta = byTag.get(ib.tag);
+          if (!delta) continue;
+          nextSpeed[ib.id] = {
+            up: (delta.Up || 0) / TRAFFIC_POLL_INTERVAL_S,
+            down: (delta.Down || 0) / TRAFFIC_POLL_INTERVAL_S,
+          };
+        }
+        setInboundSpeed(nextSpeed);
       }
       rebuildClientCount();
     },
@@ -481,6 +523,7 @@ export function useInbounds() {
     clientCount,
     onlineClients,
     lastOnlineMap,
+    inboundSpeed,
     statsVersion,
     totals,
     expireDiff,
