@@ -109,7 +109,7 @@ func TestReconcileNode_SelectedModeLeavesUnselectedRemoteInbounds(t *testing.T) 
 	seedInboundConflictNode(t, "keep", "", 443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, &node.Id)
 
 	svc := InboundService{}
-	if err := svc.ReconcileNode(context.Background(), runtime.NewRemote(node), node); err != nil {
+	if err := svc.ReconcileNode(context.Background(), runtime.NewRemote(node, nil), node); err != nil {
 		t.Fatalf("ReconcileNode: %v", err)
 	}
 
@@ -133,7 +133,7 @@ func TestReconcileNode_AllModeDeletesUndesiredRemoteInbounds(t *testing.T) {
 	seedInboundConflictNode(t, "keep", "", 443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, &node.Id)
 
 	svc := InboundService{}
-	if err := svc.ReconcileNode(context.Background(), runtime.NewRemote(node), node); err != nil {
+	if err := svc.ReconcileNode(context.Background(), runtime.NewRemote(node, nil), node); err != nil {
 		t.Fatalf("ReconcileNode: %v", err)
 	}
 

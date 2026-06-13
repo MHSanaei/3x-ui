@@ -462,6 +462,7 @@ type Node struct {
 	PinnedCertSha256    string   `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
 	InboundSyncMode     string   `json:"inboundSyncMode" form:"inboundSyncMode" gorm:"column:inbound_sync_mode;default:all" validate:"omitempty,oneof=all selected"`
 	InboundTags         []string `json:"inboundTags" form:"inboundTags" gorm:"serializer:json;column:inbound_tags"`
+	OutboundTag         string   `json:"outboundTag" form:"outboundTag" gorm:"column:outbound_tag"`
 
 	// Guid is the remote panel's stable self-identifier (its panelGuid),
 	// learned from each heartbeat. It is the globally stable node identity used

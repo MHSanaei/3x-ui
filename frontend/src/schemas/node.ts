@@ -34,6 +34,7 @@ export const NodeRecordSchema = z.object({
   inboundSyncMode: z.enum(['all', 'selected']).optional(),
   // Backend serializes a nil []string as null for nodes saved before #5178.
   inboundTags: z.array(z.string()).nullish(),
+  outboundTag: z.string().optional(),
   // Multi-hop node tree (#4983): a node's stable GUID, its parent's GUID, and
   // whether it's a read-only transitive sub-node surfaced from a downstream node.
   guid: z.string().optional(),
@@ -70,6 +71,7 @@ export const NodeFormSchema = z.object({
   // Unmounted when sync mode is "all" (absent from antd onFinish values) and
   // serialized as null by the backend for a nil slice — tolerate both.
   inboundTags: z.array(z.string()).nullish().transform((tags) => tags ?? []),
+  outboundTag: z.string().optional(),
 });
 
 export type NodeRecord = z.infer<typeof NodeRecordSchema>;
