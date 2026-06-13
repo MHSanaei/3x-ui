@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -31,6 +32,7 @@ var (
 type XrayService struct {
 	inboundService InboundService
 	settingService SettingService
+	nodeService    NodeService
 	xrayAPI        xray.XrayAPI
 }
 
@@ -296,6 +298,13 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		injectPanelEgress(xrayConfig, egressTag)
 	}
 
+	nodes, err := s.nodeService.GetAll()
+	if err != nil {
+		logger.Warning("read nodes for egress injection failed:", err)
+	} else {
+		injectNodeEgresses(xrayConfig, nodes)
+	}
+
 	return xrayConfig, nil
 }
 
@@ -370,6 +379,88 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 		Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
 		Tag:      PanelEgressInboundTag,
 	})
+}
+
+// NodeEgressInboundTag returns the loopback SOCKS inbound tag for a given node.
+func NodeEgressInboundTag(nodeID int) string {
+	return fmt.Sprintf("node-egress-%d", nodeID)
+}
+
+// nodeEgressBasePort is the first port tried for node egress bridges.
+const nodeEgressBasePort = 62800
+
+// injectNodeEgresses appends a loopback SOCKS inbound per enabled node that has
+// an OutboundTag, and prepends a routing rule sending that inbound's traffic to
+// the selected outbound tag. These bridges are hot-appliable.
+func injectNodeEgresses(cfg *xray.Config, nodes []*model.Node) {
+	routing := map[string]any{}
+	if len(cfg.RouterConfig) > 0 {
+		if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+			logger.Warning("node egress: routing section is unparsable, skipping injection:", err)
+			return
+		}
+	}
+
+	used := make(map[int]struct{}, len(cfg.InboundConfigs))
+	usedTags := make(map[string]struct{}, len(cfg.InboundConfigs))
+	for i := range cfg.InboundConfigs {
+		used[cfg.InboundConfigs[i].Port] = struct{}{}
+		usedTags[cfg.InboundConfigs[i].Tag] = struct{}{}
+	}
+
+	rules, _ := routing["rules"].([]any)
+	newRules := make([]any, 0, len(rules)+len(nodes))
+
+	for _, n := range nodes {
+		if !n.Enable || n.OutboundTag == "" {
+			continue
+		}
+		tag := NodeEgressInboundTag(n.Id)
+		if _, exists := usedTags[tag]; exists {
+			logger.Warning("node egress: inbound tag [", tag, "] already exists, skipping")
+			continue
+		}
+		usedTags[tag] = struct{}{}
+
+		rule := map[string]any{
+			"type":       "field",
+			"inboundTag": []any{tag},
+		}
+		if routingTagIsBalancer(routing, n.OutboundTag) {
+			rule["balancerTag"] = n.OutboundTag
+		} else {
+			rule["outboundTag"] = n.OutboundTag
+		}
+		newRules = append(newRules, rule)
+
+		port := nodeEgressBasePort + n.Id
+		for {
+			if _, taken := used[port]; !taken {
+				break
+			}
+			port++
+		}
+		used[port] = struct{}{}
+
+		cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
+			Listen:   json_util.RawMessage(`"127.0.0.1"`),
+			Port:     port,
+			Protocol: "socks",
+			Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
+			Tag:      tag,
+		})
+	}
+
+	if len(newRules) == 0 {
+		return
+	}
+	routing["rules"] = append(newRules, rules...)
+	newRouting, err := json.Marshal(routing)
+	if err != nil {
+		logger.Warning("node egress: failed to rebuild routing section, skipping injection:", err)
+		return
+	}
+	cfg.RouterConfig = json_util.RawMessage(newRouting)
 }
 
 // routingTagIsBalancer reports whether tag names a balancer in the parsed

@@ -17,9 +17,12 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 type HeartbeatPatch struct {
@@ -339,6 +342,7 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		"pinned_cert_sha256":    in.PinnedCertSha256,
 		"inbound_sync_mode":     in.InboundSyncMode,
 		"inbound_tags":          string(inboundTagsJSON),
+		"outbound_tag":          in.OutboundTag,
 	}
 	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
@@ -353,7 +357,7 @@ func (s *NodeService) GetRemoteInboundOptions(ctx context.Context, n *model.Node
 	if err := s.normalize(n); err != nil {
 		return nil, err
 	}
-	return runtime.NewRemote(n).ListInboundOptions(ctx)
+	return runtime.NewRemote(n, nil).ListInboundOptions(ctx)
 }
 
 // EnsureInboundTagAllowed adds a panel-managed inbound's tag to the node's
@@ -427,7 +431,13 @@ func (s *NodeService) Delete(id int) error {
 
 func (s *NodeService) SetEnable(id int, enable bool) error {
 	db := database.GetDB()
-	return db.Model(model.Node{}).Where("id = ?", id).Update("enable", enable).Error
+	if err := db.Model(model.Node{}).Where("id = ?", id).Update("enable", enable).Error; err != nil {
+		return err
+	}
+	if mgr := runtime.GetManager(); mgr != nil {
+		mgr.InvalidateNode(id)
+	}
+	return nil
 }
 
 // GetWebCertFiles asks a node for its own web TLS certificate/key file paths,
@@ -588,6 +598,115 @@ func (s *NodeService) AggregateNodeMetric(id int, metric string, bucketSeconds i
 }
 
 func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch, error) {
+	proxyURL := ""
+	if n.OutboundTag != "" {
+		if mgr := runtime.GetManager(); mgr != nil {
+			proxyURL = mgr.NodeEgressProxyURL(n.Id)
+		}
+	}
+	return s.probe(ctx, n, proxyURL)
+}
+
+func (s *NodeService) ProbeWithOutbound(ctx context.Context, n *model.Node, outboundTag string) (HeartbeatPatch, error) {
+	if outboundTag == "" {
+		return s.Probe(ctx, n)
+	}
+	proc := XrayProcess()
+	if proc == nil || !proc.IsRunning() {
+		return s.Probe(ctx, n)
+	}
+	apiPort := proc.GetAPIPort()
+	if apiPort <= 0 {
+		return s.Probe(ctx, n)
+	}
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return s.Probe(ctx, n)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	listener.Close()
+
+	tag := fmt.Sprintf("node-test-%d-%d", n.Id, time.Now().UnixNano())
+	proxyURL := fmt.Sprintf("socks5://127.0.0.1:%d", port)
+
+	inboundJSON, err := json.Marshal(xray.InboundConfig{
+		Listen:   json_util.RawMessage(`"127.0.0.1"`),
+		Port:     port,
+		Protocol: "socks",
+		Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
+		Tag:      tag,
+	})
+	if err != nil {
+		return s.Probe(ctx, n)
+	}
+
+	cfg := proc.GetConfig()
+	routing := map[string]any{}
+	if len(cfg.RouterConfig) > 0 {
+		_ = json.Unmarshal(cfg.RouterConfig, &routing)
+	}
+	rules, _ := routing["rules"].([]any)
+	rule := map[string]any{
+		"type":       "field",
+		"inboundTag": []any{tag},
+	}
+	if routingTagIsBalancer(routing, outboundTag) {
+		rule["balancerTag"] = outboundTag
+	} else {
+		rule["outboundTag"] = outboundTag
+	}
+	routing["rules"] = append([]any{rule}, rules...)
+	routingJSON, err := json.Marshal(routing)
+	if err != nil {
+		return s.Probe(ctx, n)
+	}
+	originalRoutingJSON := cfg.RouterConfig
+
+	api := xray.XrayAPI{}
+	if err := api.Init(apiPort); err != nil {
+		return s.Probe(ctx, n)
+	}
+	defer api.Close()
+
+	if err := api.AddInbound(inboundJSON); err != nil {
+		return s.Probe(ctx, n)
+	}
+	removed := false
+	defer func() {
+		if removed {
+			return
+		}
+		if err := api.DelInbound(tag); err != nil {
+			logger.Warning("remove temp node test inbound failed:", err)
+		}
+	}()
+
+	if err := api.ApplyRoutingConfig(routingJSON); err != nil {
+		return s.Probe(ctx, n)
+	}
+	defer func() {
+		restore := originalRoutingJSON
+		if len(restore) == 0 {
+			restore = []byte("{}")
+		}
+		if err := api.ApplyRoutingConfig(restore); err != nil {
+			logger.Warning("restore routing after node test failed:", err)
+		}
+	}()
+
+	patch, err := s.probe(ctx, n, proxyURL)
+	removed = true
+	if delErr := api.DelInbound(tag); delErr != nil {
+		logger.Warning("remove temp node test inbound failed:", delErr)
+	}
+	if err != nil {
+		return patch, err
+	}
+	return patch, nil
+}
+
+func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string) (HeartbeatPatch, error) {
 	patch := HeartbeatPatch{LastHeartbeat: time.Now().Unix()}
 
 	addr, err := netsafe.NormalizeHost(n.Address)
@@ -621,7 +740,7 @@ func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch,
 	}
 	req.Header.Set("Accept", "application/json")
 
-	client, err := runtime.HTTPClientForNode(n)
+	client, err := runtime.HTTPClientForNode(n, proxyURL)
 	if err != nil {
 		patch.LastError = err.Error()
 		return patch, err

@@ -434,6 +434,26 @@ func (s *SettingService) PanelEgressProxyURL() string {
 	return ""
 }
 
+func (s *SettingService) NodeEgressProxyURL(nodeID int) string {
+	tag := NodeEgressInboundTag(nodeID)
+	proc := XrayProcess()
+	if proc == nil || !proc.IsRunning() {
+		logger.Warning("node outbound [", tag, "] is set but Xray is not running, using a direct connection")
+		return ""
+	}
+	cfg := proc.GetConfig()
+	if cfg == nil {
+		return ""
+	}
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag == tag {
+			return fmt.Sprintf("socks5://127.0.0.1:%d", cfg.InboundConfigs[i].Port)
+		}
+	}
+	logger.Warning("node outbound [", tag, "] is set but the egress bridge is not in the running config, using a direct connection")
+	return ""
+}
+
 // NewProxiedHTTPClient returns an HTTP client that routes the panel's own
 // outbound requests through the configured panel outbound (via the loopback
 // SOCKS bridge in the running Xray). When the feature is off or the bridge

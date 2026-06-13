@@ -385,6 +385,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		APIPort:        func() int { return s.xrayService.GetXrayAPIPort() },
 		SetNeedRestart: func() { s.xrayService.SetToNeedRestart() },
 	}))
+	runtime.GetManager().SetNodeEgressResolver(&s.settingService)
 
 	engine, err := s.initRouter()
 	if err != nil {
