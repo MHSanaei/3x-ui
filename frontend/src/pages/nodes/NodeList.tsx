@@ -23,6 +23,7 @@ import {
   ExclamationCircleOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
+  GlobalOutlined,
   InfoCircleOutlined,
   MoreOutlined,
   PlusOutlined,
@@ -281,6 +282,11 @@ export default function NodeList({
           <span className="name">
             {record.transitive && <ApartmentOutlined style={{ marginInlineEnd: 6, opacity: 0.6 }} />}
             {record.name}
+            {record.proxyUrl && (
+              <Tooltip title={t('pages.nodes.proxyTooltip')}>
+                <GlobalOutlined style={{ marginInlineStart: 6, opacity: 0.7, color: 'var(--ant-color-primary)' }} />
+              </Tooltip>
+            )}
           </span>
           {record.remark && <span className="remark">{record.remark}</span>}
         </div>
@@ -439,6 +445,11 @@ export default function NodeList({
                     <ApartmentOutlined style={{ opacity: 0.6 }} />
                     <StatusDot status={record.status} xrayState={record.xrayState} />
                     <span className="node-name">{record.name}</span>
+                    {record.proxyUrl && (
+                      <Tooltip title={t('pages.nodes.proxyTooltip')}>
+                        <GlobalOutlined style={{ marginInlineStart: 4, opacity: 0.7, color: 'var(--ant-color-primary)' }} />
+                      </Tooltip>
+                    )}
                     <div className="card-actions">
                       <Tag icon={<ApartmentOutlined />} style={{ margin: 0 }}>{t('pages.nodes.subNode')}</Tag>
                     </div>
@@ -450,6 +461,11 @@ export default function NodeList({
                     <RightOutlined className={`card-expand${expandedIds.has(record.id) ? ' is-expanded' : ''}`} />
                     <StatusDot status={record.status} xrayState={record.xrayState} />
                     <span className="node-name">{record.name}</span>
+                    {record.proxyUrl && (
+                      <Tooltip title={t('pages.nodes.proxyTooltip')}>
+                        <GlobalOutlined style={{ marginInlineStart: 4, opacity: 0.7, color: 'var(--ant-color-primary)' }} />
+                      </Tooltip>
+                    )}
                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
                       <Tooltip title={t('info')}>
                         <InfoCircleOutlined

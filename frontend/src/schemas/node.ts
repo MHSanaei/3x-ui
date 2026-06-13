@@ -31,6 +31,7 @@ export const NodeRecordSchema = z.object({
   allowPrivateAddress: z.boolean().optional(),
   tlsVerifyMode: z.enum(['verify', 'skip', 'pin']).optional(),
   pinnedCertSha256: z.string().optional(),
+  proxyUrl: z.string().optional(),
   inboundSyncMode: z.enum(['all', 'selected']).optional(),
   // Backend serializes a nil []string as null for nodes saved before #5178.
   inboundTags: z.array(z.string()).nullish(),
@@ -66,6 +67,7 @@ export const NodeFormSchema = z.object({
   allowPrivateAddress: z.boolean(),
   tlsVerifyMode: z.enum(['verify', 'skip', 'pin']),
   pinnedCertSha256: z.string().optional().default(''),
+  proxyUrl: z.string().optional().default(''),
   inboundSyncMode: z.enum(['all', 'selected']).optional().default('all'),
   // Unmounted when sync mode is "all" (absent from antd onFinish values) and
   // serialized as null by the backend for a nil slice — tolerate both.

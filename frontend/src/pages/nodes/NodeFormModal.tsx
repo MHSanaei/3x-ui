@@ -43,6 +43,7 @@ function defaultValues(): NodeFormValues {
     port: 2053,
     basePath: '/',
     apiToken: '',
+    proxyUrl: '',
     enable: true,
     allowPrivateAddress: false,
     tlsVerifyMode: 'verify',
@@ -111,6 +112,7 @@ export default function NodeFormModal({
       port: values.port,
       basePath: values.basePath.trim() || '/',
       apiToken: values.apiToken.trim(),
+      proxyUrl: values.proxyUrl?.trim() || '',
       enable: values.enable,
       allowPrivateAddress: values.allowPrivateAddress,
       tlsVerifyMode: values.tlsVerifyMode,
@@ -354,6 +356,15 @@ export default function NodeFormModal({
             extra={t('pages.nodes.apiTokenHint')}
           >
             <Input.Password placeholder={t('pages.nodes.apiTokenPlaceholder')} />
+          </Form.Item>
+
+          <Form.Item
+            label={t('pages.nodes.proxyUrl')}
+            name="proxyUrl"
+            rules={[antdRule(NodeFormSchema.shape.proxyUrl, t)]}
+            extra={t('pages.nodes.proxyUrlHint')}
+          >
+            <Input placeholder={t('pages.nodes.proxyUrlPlaceholder')} />
           </Form.Item>
 
           <Form.Item
