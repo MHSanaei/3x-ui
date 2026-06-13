@@ -200,7 +200,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash", "LegacyProxySettingsCleanup"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -286,7 +286,25 @@ func runSeeders(isUsersEmpty bool) error {
 			return err
 		}
 	}
+
+	if !slices.Contains(seedersHistory, "LegacyProxySettingsCleanup") {
+		if err := clearLegacyProxySettings(); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+// clearLegacyProxySettings drops the deprecated panelProxy/tgBotProxy rows so a
+// stale tgBotProxy no longer masks the panelOutbound egress fallback.
+func clearLegacyProxySettings() error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("key IN ?", []string{"panelProxy", "tgBotProxy"}).
+			Delete(&model.Setting{}).Error; err != nil {
+			return err
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "LegacyProxySettingsCleanup"}).Error
+	})
 }
 
 func normalizeInboundClientTgId() error {
