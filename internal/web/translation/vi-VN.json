@@ -876,7 +876,7 @@
       "apiTokenPlaceholder": "Token từ trang Cài đặt của panel từ xa",
       "apiTokenHint": "Panel từ xa hiển thị token API tại Bảo mật → Token API.",
       "proxyUrl": "URL Proxy",
-      "proxyUrlPlaceholder": "socks5://127.0.0.1:1080 hoặc http://proxy:8080",
+      "proxyUrlPlaceholder": "socks5://user:pass@127.0.0.1:1080 hoặc http://user:pass@proxy:8080",
       "proxyUrlHint": "Proxy tùy chọn để panel kết nối đến node này.",
       "proxyTooltip": "Node này được kết nối qua proxy",
       "regenerate": "Tạo lại token",

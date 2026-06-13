@@ -877,7 +877,7 @@
       "apiTokenPlaceholder": "Uzak panelin Ayarlar sayfasındaki token",
       "apiTokenHint": "Uzak panel API token'ını Kimlik Doğrulama → API Token altında gösterir.",
       "proxyUrl": "Proxy URL",
-      "proxyUrlPlaceholder": "socks5://127.0.0.1:1080 veya http://proxy:8080",
+      "proxyUrlPlaceholder": "socks5://user:pass@127.0.0.1:1080 veya http://user:pass@proxy:8080",
       "proxyUrlHint": "Panelin bu düğüme erişmesi için isteğe bağlı proxy.",
       "proxyTooltip": "Bu düğüm proxy üzerinden erişiliyor",
       "regenerate": "Token'ı Yeniden Oluştur",

@@ -877,7 +877,7 @@
       "apiTokenPlaceholder": "Token from the remote panel's Settings page",
       "apiTokenHint": "The remote panel exposes its API token under Authentication → API Token.",
       "proxyUrl": "Proxy URL",
-      "proxyUrlPlaceholder": "socks5://127.0.0.1:1080 or http://proxy:8080",
+      "proxyUrlPlaceholder": "socks5://user:pass@127.0.0.1:1080 or http://user:pass@proxy:8080",
       "proxyUrlHint": "Optional proxy for the panel to reach this node.",
       "proxyTooltip": "This node is reached through a proxy",
       "regenerate": "Regenerate Token",

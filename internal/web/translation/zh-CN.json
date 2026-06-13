@@ -876,7 +876,7 @@
       "apiTokenPlaceholder": "远程面板设置页中的令牌",
       "apiTokenHint": "远程面板在 安全设定 → API 令牌 中显示其 API 令牌。",
       "proxyUrl": "代理 URL",
-      "proxyUrlPlaceholder": "socks5://127.0.0.1:1080 或 http://proxy:8080",
+      "proxyUrlPlaceholder": "socks5://user:pass@127.0.0.1:1080 或 http://user:pass@proxy:8080",
       "proxyUrlHint": "面板连接此节点的可选代理。",
       "proxyTooltip": "此节点通过代理连接",
       "regenerate": "重新生成令牌",

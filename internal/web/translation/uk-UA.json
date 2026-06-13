@@ -876,7 +876,7 @@
       "apiTokenPlaceholder": "Токен зі сторінки Налаштувань віддаленої панелі",
       "apiTokenHint": "Віддалена панель показує свій токен API в Автентифікація → Токен API.",
       "proxyUrl": "URL проксі",
-      "proxyUrlPlaceholder": "socks5://127.0.0.1:1080 або http://proxy:8080",
+      "proxyUrlPlaceholder": "socks5://user:pass@127.0.0.1:1080 або http://user:pass@proxy:8080",
       "proxyUrlHint": "Опціональний проксі для доступу панелі до цього вузла.",
       "proxyTooltip": "Цей вузол доступний через проксі",
       "regenerate": "Перегенерувати токен",

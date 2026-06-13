@@ -876,7 +876,7 @@
       "apiTokenPlaceholder": "توکن از صفحه تنظیمات پنل ریموت",
       "apiTokenHint": "پنل ریموت توکن API خودش را در بخش احرازهویت → توکن API نمایش می‌دهد.",
       "proxyUrl": "آدرس پراکسی",
-      "proxyUrlPlaceholder": "socks5://127.0.0.1:1080 یا http://proxy:8080",
+      "proxyUrlPlaceholder": "socks5://user:pass@127.0.0.1:1080 یا http://user:pass@proxy:8080",
       "proxyUrlHint": "پراکسی اختیاری برای دسترسی پنل به این نود.",
       "proxyTooltip": "این نود از طریق پراکسی دسترسی می‌شود",
       "regenerate": "تولید مجدد توکن",

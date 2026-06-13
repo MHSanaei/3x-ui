@@ -876,7 +876,7 @@
       "apiTokenPlaceholder": "遠端面板設定頁中的權杖",
       "apiTokenHint": "遠端面板在 安全設定 → API 權杖 中顯示其 API 權杖。",
       "proxyUrl": "代理 URL",
-      "proxyUrlPlaceholder": "socks5://127.0.0.1:1080 或 http://proxy:8080",
+      "proxyUrlPlaceholder": "socks5://user:pass@127.0.0.1:1080 或 http://user:pass@proxy:8080",
       "proxyUrlHint": "面板連接此節點的可選代理。",
       "proxyTooltip": "此節點透過代理連線",
       "regenerate": "重新產生權杖",

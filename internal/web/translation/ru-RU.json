@@ -876,7 +876,7 @@
       "apiTokenPlaceholder": "Токен со страницы Настроек удалённой панели",
       "apiTokenHint": "Удалённая панель показывает свой токен API в разделе Учетная запись → Токен API.",
       "proxyUrl": "URL прокси",
-      "proxyUrlPlaceholder": "socks5://127.0.0.1:1080 или http://proxy:8080",
+      "proxyUrlPlaceholder": "socks5://user:pass@127.0.0.1:1080 или http://user:pass@proxy:8080",
       "proxyUrlHint": "Опциональный прокси для доступа панели к этому узлу.",
       "proxyTooltip": "Этот узел доступен через прокси",
       "regenerate": "Сгенерировать токен заново",

@@ -876,7 +876,7 @@
       "apiTokenPlaceholder": "リモートパネルの設定ページから取得したトークン",
       "apiTokenHint": "リモートパネルでは、セキュリティ設定 → APIトークン でAPIトークンを確認できます。",
       "proxyUrl": "プロキシURL",
-      "proxyUrlPlaceholder": "socks5://127.0.0.1:1080 または http://proxy:8080",
+      "proxyUrlPlaceholder": "socks5://user:pass@127.0.0.1:1080 または http://user:pass@proxy:8080",
       "proxyUrlHint": "パネルがこのノードに接続するためのオプションのプロキシ。",
       "proxyTooltip": "このノードはプロキシ経由で接続されています",
       "regenerate": "トークンを再生成",

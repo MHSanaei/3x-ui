@@ -876,7 +876,7 @@
       "apiTokenPlaceholder": "التوكن من صفحة إعدادات البانل البعيد",
       "apiTokenHint": "البانل البعيد بيعرض توكن API بتاعه في المصادقة → توكن API.",
       "proxyUrl": "رابط البروكسي",
-      "proxyUrlPlaceholder": "socks5://127.0.0.1:1080 أو http://proxy:8080",
+      "proxyUrlPlaceholder": "socks5://user:pass@127.0.0.1:1080 أو http://user:pass@proxy:8080",
       "proxyUrlHint": "بروكسي اختياري للوصول إلى هذا النود من البانل.",
       "proxyTooltip": "هذا النود يتم الوصول إليه عبر بروكسي",
       "regenerate": "تجديد التوكن",

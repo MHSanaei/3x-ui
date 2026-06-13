@@ -876,7 +876,7 @@
       "apiTokenPlaceholder": "Token dari halaman Pengaturan panel jarak jauh",
       "apiTokenHint": "Panel jarak jauh menampilkan token API-nya di Otentikasi → Token API.",
       "proxyUrl": "URL Proxy",
-      "proxyUrlPlaceholder": "socks5://127.0.0.1:1080 atau http://proxy:8080",
+      "proxyUrlPlaceholder": "socks5://user:pass@127.0.0.1:1080 atau http://user:pass@proxy:8080",
       "proxyUrlHint": "Proxy opsional untuk panel menjangkau node ini.",
       "proxyTooltip": "Node ini dijangkau melalui proxy",
       "regenerate": "Buat Ulang Token",
