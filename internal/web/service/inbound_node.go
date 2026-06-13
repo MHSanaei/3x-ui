@@ -76,10 +76,11 @@ func (s *InboundService) AnyNodePending(inboundIds []int) bool {
 	return false
 }
 
-func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, nodeID int) error {
-	if rt == nil || nodeID <= 0 {
+func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, n *model.Node) error {
+	if rt == nil || n == nil || n.Id <= 0 {
 		return nil
 	}
+	nodeID := n.Id
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	if err := db.Model(model.Inbound{}).Where("node_id = ?", nodeID).Find(&inbounds).Error; err != nil {
@@ -104,9 +105,25 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 			return fmt.Errorf("reconcile inbound %q: %w", ib.Tag, err)
 		}
 	}
+	// In "selected" sync mode the panel only manages the selected tags: the
+	// rest were never imported, so their absence from the local DB must not
+	// delete them from the node. Only a selected tag missing locally (the
+	// panel deleted it while the node was unreachable) may be swept.
+	var selected map[string]struct{}
+	if n.InboundSyncMode == "selected" {
+		selected = make(map[string]struct{}, len(n.InboundTags))
+		for _, tag := range n.InboundTags {
+			selected[tag] = struct{}{}
+		}
+	}
 	for _, tag := range remoteTags {
 		if _, want := desiredTags[tag]; want {
 			continue
+		}
+		if selected != nil {
+			if _, managed := selected[tag]; !managed {
+				continue
+			}
 		}
 		if err := rt.DelInbound(ctx, &model.Inbound{Tag: tag}); err != nil {
 			return fmt.Errorf("reconcile delete %q: %w", tag, err)
@@ -245,6 +262,22 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
+	// Union of every email the snapshot still reports, across all inbounds.
+	// The (node, email) baseline rows are keyed per node, not per inbound, so
+	// the sweeps below must only drop one when the email left the node
+	// entirely — an email whose stats moved to (or always lived under) a
+	// sibling inbound still needs its baseline for the sibling's delta
+	// computation (#5202).
+	snapEmailsAll := make(map[string]struct{})
+	for _, snapIb := range snap.Inbounds {
+		if snapIb == nil {
+			continue
+		}
+		for i := range snapIb.ClientStats {
+			snapEmailsAll[snapIb.ClientStats[i].Email] = struct{}{}
+		}
+	}
+
 	tx := db.Begin()
 	committed := false
 	defer func() {
@@ -325,10 +358,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				LastTrafficResetTime: snapIb.LastTrafficResetTime,
 				Enable:               snapIb.Enable,
 				Remark:               snapIb.Remark,
+				SubSortIndex:         normalizeSubSortIndex(snapIb.SubSortIndex),
 				Total:                snapIb.Total,
 				ExpiryTime:           snapIb.ExpiryTime,
 				Up:                   snapIb.Up,
 				Down:                 snapIb.Down,
+				ShareAddrStrategy:    "node",
 			}
 			if err := tx.Create(&newIb).Error; err != nil {
 				logger.Warningf("setRemoteTraffic: create central inbound for tag %q failed: %v", snapIb.Tag, err)
@@ -348,6 +383,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if !dirty {
 			updates["enable"] = snapIb.Enable
 			updates["remark"] = snapIb.Remark
+			updates["sub_sort_index"] = normalizeSubSortIndex(snapIb.SubSortIndex)
 			updates["listen"] = snapIb.Listen
 			updates["port"] = snapIb.Port
 			updates["protocol"] = snapIb.Protocol
@@ -403,18 +439,43 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			return false, err
 		}
 		if len(goneEmails) > 0 {
+			// Baselines are per (node, email), not per inbound: keep them for
+			// emails the snapshot still reports under a sibling inbound (#5202).
+			baselineGone := make([]string, 0, len(goneEmails))
+			for _, e := range goneEmails {
+				if _, still := snapEmailsAll[e]; !still {
+					baselineGone = append(baselineGone, e)
+				}
+			}
 			// Chunk to avoid SQLite bind var limit when a node has many clients
 			// removed (e.g. after API bulk delete or structural change on node inbound).
-			for _, batch := range chunkStrings(goneEmails, sqliteMaxVars) {
+			for _, batch := range chunkStrings(baselineGone, sqliteMaxVars) {
 				if err := tx.Where("node_id = ? AND email IN ?", nodeID, batch).
 					Delete(&model.NodeClientTraffic{}).Error; err != nil {
 					return false, err
 				}
 			}
-		}
-		if err := tx.Where("inbound_id = ?", c.Id).
-			Delete(&xray.ClientTraffic{}).Error; err != nil {
-			return false, err
+			// The per-email row is the shared accumulator across every inbound
+			// (and node) the email is attached to. Only drop it when this was the
+			// email's last inbound — wiping it while a sibling still feeds it
+			// loses the summed history, and the next node sync would re-seed the
+			// row with that node's counter alone.
+			sharedEmails, sErr := s.emailsUsedByOtherInbounds(goneEmails, c.Id)
+			if sErr != nil {
+				return false, sErr
+			}
+			delEmails := make([]string, 0, len(goneEmails))
+			for _, e := range goneEmails {
+				if !sharedEmails[strings.ToLower(strings.TrimSpace(e))] {
+					delEmails = append(delEmails, e)
+				}
+			}
+			for _, batch := range chunkStrings(delEmails, sqliteMaxVars) {
+				if err := tx.Where("inbound_id = ? AND email IN ?", c.Id, batch).
+					Delete(&xray.ClientTraffic{}).Error; err != nil {
+					return false, err
+				}
+			}
 		}
 		if err := s.clientService.DetachInbound(tx, c.Id); err != nil {
 			return false, err
@@ -519,13 +580,28 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if _, kept := snapEmails[k.email]; kept {
 				continue
 			}
+			// Gone from this inbound's stats but still reported by the node under
+			// a sibling inbound: both the shared accumulator row and the (node,
+			// email) baseline must survive, or the sibling's next delta would
+			// compute against nothing and freeze the counter (#5202).
+			if _, still := snapEmailsAll[k.email]; still {
+				continue
+			}
 			if err := tx.Where("node_id = ? AND email = ?", nodeID, existing.Email).
 				Delete(&model.NodeClientTraffic{}).Error; err != nil {
 				return false, err
 			}
-			if err := tx.Where("inbound_id = ? AND email = ?", c.Id, existing.Email).
-				Delete(&xray.ClientTraffic{}).Error; err != nil {
-				return false, err
+			// Same shared-accumulator rule as the inbound-removal sweep above:
+			// keep the row while another inbound still references the email.
+			stillUsed, uErr := s.emailUsedByOtherInbounds(existing.Email, c.Id)
+			if uErr != nil {
+				return false, uErr
+			}
+			if !stillUsed {
+				if err := tx.Where("inbound_id = ? AND email = ?", c.Id, existing.Email).
+					Delete(&xray.ClientTraffic{}).Error; err != nil {
+					return false, err
+				}
 			}
 			structuralChange = true
 		}

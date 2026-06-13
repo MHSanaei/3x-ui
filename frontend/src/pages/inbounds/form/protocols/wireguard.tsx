@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Divider, Form, Input, InputNumber, Space, Switch } from 'antd';
+import { Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { MinusOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { Wireguard } from '@/utils';
@@ -62,6 +62,21 @@ export default function WireguardFields({ wgPubKey, regenInboundWg, regenWgPeerK
       >
         <Switch />
       </Form.Item>
+      <Form.Item name={['settings', 'workers']} label='Workers'>
+        <InputNumber min={1} />
+      </Form.Item>
+      <Form.Item name={['settings', 'domainStrategy']} label={t('pages.xray.wireguard.domainStrategy')}>
+        <Select
+          allowClear
+          options={[
+            { value: 'ForceIP', label: 'ForceIP' },
+            { value: 'ForceIPv4', label: 'ForceIPv4' },
+            { value: 'ForceIPv4v6', label: 'ForceIPv4v6' },
+            { value: 'ForceIPv6', label: 'ForceIPv6' },
+            { value: 'ForceIPv6v4', label: 'ForceIPv6v4' },
+          ]}
+        />
+      </Form.Item>
       <Form.List name={['settings', 'peers']}>
         {(fields, { add, remove }) => (
           <>
@@ -87,6 +102,12 @@ export default function WireguardFields({ wgPubKey, regenInboundWg, regenWgPeerK
                 <Divider titlePlacement="center">
                   <Space>
                     <span>{t('pages.inbounds.info.peerNumber', { n: idx + 1 })}</span>
+                    <Form.Item noStyle shouldUpdate>
+                      {() => {
+                        const comment = form.getFieldValue(['settings', 'peers', field.name, 'comment']) as string | undefined;
+                        return comment ? <span style={{ opacity: 0.65 }}>— {comment}</span> : null;
+                      }}
+                    </Form.Item>
                     {fields.length > 1 && (
                       <Button
                         size="small"
@@ -97,6 +118,9 @@ export default function WireguardFields({ wgPubKey, regenInboundWg, regenWgPeerK
                     )}
                   </Space>
                 </Divider>
+                <Form.Item name={[field.name, 'comment']} label={t('comment')}>
+                  <Input placeholder="e.g. Alice's laptop" />
+                </Form.Item>
                 <Form.Item label={t('pages.xray.wireguard.secretKey')}>
                   <Space.Compact block>
                     <Form.Item name={[field.name, 'privateKey']} noStyle>

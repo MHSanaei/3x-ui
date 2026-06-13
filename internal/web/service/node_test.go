@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 )
 
 func TestNormalizeBasePath(t *testing.T) {
@@ -158,5 +159,56 @@ func TestNodeService_Normalize_OverridesUnknownScheme(t *testing.T) {
 	}
 	if n.Scheme != "https" {
 		t.Fatalf("Scheme = %q, want https", n.Scheme)
+	}
+}
+
+func TestNodeService_NormalizeInboundSelection(t *testing.T) {
+	s := &NodeService{}
+	n := &model.Node{
+		Name:            "n",
+		Address:         "example.com",
+		Port:            443,
+		InboundSyncMode: "selected",
+		InboundTags:     []string{" alpha ", "", "beta", "alpha"},
+	}
+	if err := s.normalize(n); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if n.InboundSyncMode != "selected" {
+		t.Fatalf("InboundSyncMode = %q, want selected", n.InboundSyncMode)
+	}
+	if len(n.InboundTags) != 2 || n.InboundTags[0] != "alpha" || n.InboundTags[1] != "beta" {
+		t.Fatalf("InboundTags = %#v, want [alpha beta]", n.InboundTags)
+	}
+}
+
+func TestFilterNodeSnapshot(t *testing.T) {
+	snapshot := func() *runtime.TrafficSnapshot {
+		return &runtime.TrafficSnapshot{Inbounds: []*model.Inbound{
+			{Tag: "alpha"},
+			{Tag: "beta"},
+			{Tag: "gamma"},
+		}}
+	}
+
+	all := snapshot()
+	FilterNodeSnapshot(&model.Node{InboundSyncMode: "all"}, all)
+	if len(all.Inbounds) != 3 {
+		t.Fatalf("all mode kept %d inbounds, want 3", len(all.Inbounds))
+	}
+
+	selected := snapshot()
+	FilterNodeSnapshot(&model.Node{
+		InboundSyncMode: "selected",
+		InboundTags:     []string{"beta"},
+	}, selected)
+	if len(selected.Inbounds) != 1 || selected.Inbounds[0].Tag != "beta" {
+		t.Fatalf("selected mode produced %#v, want only beta", selected.Inbounds)
+	}
+
+	none := snapshot()
+	FilterNodeSnapshot(&model.Node{InboundSyncMode: "selected"}, none)
+	if len(none.Inbounds) != 0 {
+		t.Fatalf("empty selection kept %d inbounds, want 0", len(none.Inbounds))
 	}
 }

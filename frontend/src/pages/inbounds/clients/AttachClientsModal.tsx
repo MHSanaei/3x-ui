@@ -4,6 +4,7 @@ import { Alert, Input, Modal, Select, Space, Table, Tag, Typography, message } f
 import type { ColumnsType } from 'antd/es/table';
 
 import { HttpUtil } from '@/utils';
+import { formatInboundLabel } from '@/lib/inbounds/label';
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 import { isInboundMultiUser } from '../list';
 
@@ -69,7 +70,7 @@ export default function AttachClientsModal({
     if (!source) return [];
     return (dbInbounds || [])
       .filter((ib) => ib.id !== source.id && isInboundMultiUser(ib))
-      .map((ib) => ({ value: ib.id, label: ib.remark?.trim() || ib.tag || '' }));
+      .map((ib) => ({ value: ib.id, label: formatInboundLabel(ib.tag, ib.remark) }));
   }, [dbInbounds, source]);
 
   const filteredRows = useMemo(() => {
@@ -150,7 +151,7 @@ export default function AttachClientsModal({
       }}
       okText={t('pages.inbounds.attachClients')}
       cancelText={t('cancel')}
-      title={t('pages.inbounds.attachClientsTitle', { remark: source?.remark?.trim() || source?.tag || '' })}
+      title={t('pages.inbounds.attachClientsTitle', { remark: formatInboundLabel(source?.tag, source?.remark) })}
       width={680}
     >
       {messageContextHolder}
@@ -158,7 +159,7 @@ export default function AttachClientsModal({
         {t('pages.inbounds.attachClientsDesc', { count: clientRows.length })}
       </Typography.Paragraph>
 
-      <Space direction="vertical" size="small" style={{ width: '100%', marginBottom: 12 }}>
+      <Space orientation="vertical" size="small" style={{ width: '100%', marginBottom: 12 }}>
         <Typography.Text strong>{t('pages.inbounds.attachClientsSelectLabel')}</Typography.Text>
         <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
           <Input.Search

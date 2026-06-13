@@ -14,6 +14,7 @@ import {
   message,
 } from 'antd';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
+import type { RemoteInboundOption } from '@/api/queries/useNodeMutations';
 import type { Msg } from '@/utils';
 import { NodeFormSchema, type NodeFormValues, type ProbeResult } from '@/schemas/node';
 import { antdRule } from '@/utils/zodForm';
@@ -27,6 +28,7 @@ interface NodeFormModalProps {
   node: NodeRecord | null;
   testConnection: (payload: Partial<NodeRecord>) => Promise<Msg<ProbeResult>>;
   fetchFingerprint: (payload: Partial<NodeRecord>) => Promise<Msg<string>>;
+  fetchInbounds: (payload: Partial<NodeRecord>) => Promise<Msg<RemoteInboundOption[]>>;
   save: (payload: Partial<NodeRecord>) => Promise<Msg<unknown>>;
   onOpenChange: (open: boolean) => void;
 }
@@ -45,6 +47,8 @@ function defaultValues(): NodeFormValues {
     allowPrivateAddress: false,
     tlsVerifyMode: 'verify',
     pinnedCertSha256: '',
+    inboundSyncMode: 'all',
+    inboundTags: [],
   };
 }
 
@@ -54,6 +58,7 @@ export default function NodeFormModal({
   node,
   testConnection,
   fetchFingerprint,
+  fetchInbounds,
   save,
   onOpenChange,
 }: NodeFormModalProps) {
@@ -64,9 +69,12 @@ export default function NodeFormModal({
   const [submitting, setSubmitting] = useState(false);
   const [testing, setTesting] = useState(false);
   const [fetchingPin, setFetchingPin] = useState(false);
+  const [fetchingInbounds, setFetchingInbounds] = useState(false);
+  const [inboundOptions, setInboundOptions] = useState<RemoteInboundOption[]>([]);
   const [testResult, setTestResult] = useState<ProbeResult | null>(null);
   const scheme = Form.useWatch('scheme', form) ?? 'https';
   const tlsVerifyMode = Form.useWatch('tlsVerifyMode', form) ?? 'verify';
+  const inboundSyncMode = Form.useWatch('inboundSyncMode', form) ?? 'all';
 
   useEffect(() => {
     if (!open) return;
@@ -77,11 +85,14 @@ export default function NodeFormModal({
         ...(node as unknown as Partial<NodeFormValues>),
         id: node.id,
         scheme: (node.scheme as 'http' | 'https') || base.scheme,
+        inboundSyncMode: (node.inboundSyncMode as 'all' | 'selected') || base.inboundSyncMode,
+        inboundTags: node.inboundTags ?? [],
       }
       : base;
     if (next.scheme === 'http') next.tlsVerifyMode = 'skip';
     form.resetFields();
     form.setFieldsValue(next);
+    setInboundOptions((next.inboundTags || []).map((tag) => ({ tag })));
     setTestResult(null);
   }, [open, mode, node, form]);
 
@@ -104,6 +115,8 @@ export default function NodeFormModal({
       allowPrivateAddress: values.allowPrivateAddress,
       tlsVerifyMode: values.tlsVerifyMode,
       pinnedCertSha256: values.tlsVerifyMode === 'pin' ? values.pinnedCertSha256.trim() : '',
+      inboundSyncMode: values.inboundSyncMode,
+      inboundTags: values.inboundSyncMode === 'selected' ? values.inboundTags : [],
     };
   }
 
@@ -146,6 +159,26 @@ export default function NodeFormModal({
       }
     } finally {
       setFetchingPin(false);
+    }
+  }
+
+  async function onFetchInbounds() {
+    try {
+      await form.validateFields(['name', 'address', 'port', 'apiToken']);
+    } catch {
+      return;
+    }
+    setFetchingInbounds(true);
+    try {
+      const msg = await fetchInbounds(buildPayload(form.getFieldsValue(true)));
+      if (msg?.success && Array.isArray(msg.obj)) {
+        setInboundOptions(msg.obj);
+        messageApi.success(t('pages.nodes.inboundsLoaded', { count: msg.obj.length }));
+      } else {
+        messageApi.error(msg?.msg || t('pages.nodes.inboundsLoadFailed'));
+      }
+    } finally {
+      setFetchingInbounds(false);
     }
   }
 
@@ -322,6 +355,46 @@ export default function NodeFormModal({
           >
             <Input.Password placeholder={t('pages.nodes.apiTokenPlaceholder')} />
           </Form.Item>
+
+          <Form.Item
+            label={t('pages.nodes.inboundSyncMode')}
+            name="inboundSyncMode"
+            extra={t('pages.nodes.inboundSyncModeHint')}
+          >
+            <Select
+              options={[
+                { value: 'all', label: t('pages.nodes.allInbounds') },
+                { value: 'selected', label: t('pages.nodes.selectedInbounds') },
+              ]}
+            />
+          </Form.Item>
+
+          {inboundSyncMode === 'selected' && (
+            <Form.Item
+              label={t('pages.nodes.inboundTags')}
+              name="inboundTags"
+              extra={t('pages.nodes.inboundTagsHint')}
+            >
+              <Select
+                mode="multiple"
+                allowClear
+                loading={fetchingInbounds}
+                placeholder={t('pages.nodes.inboundTagsPlaceholder')}
+                popupRender={(menu) => (
+                  <>
+                    <Button type="text" block loading={fetchingInbounds} onClick={onFetchInbounds}>
+                      {t('pages.nodes.loadInbounds')}
+                    </Button>
+                    {menu}
+                  </>
+                )}
+                options={inboundOptions.map((inbound) => ({
+                  value: inbound.tag,
+                  label: `${inbound.remark || inbound.tag}${inbound.protocol ? ` (${inbound.protocol}:${inbound.port || 0})` : ''}`,
+                }))}
+              />
+            </Form.Item>
+          )}
 
           <div className="test-row">
             <Button type="default" loading={testing} onClick={onTest}>

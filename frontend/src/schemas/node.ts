@@ -31,6 +31,9 @@ export const NodeRecordSchema = z.object({
   allowPrivateAddress: z.boolean().optional(),
   tlsVerifyMode: z.enum(['verify', 'skip', 'pin']).optional(),
   pinnedCertSha256: z.string().optional(),
+  inboundSyncMode: z.enum(['all', 'selected']).optional(),
+  // Backend serializes a nil []string as null for nodes saved before #5178.
+  inboundTags: z.array(z.string()).nullish(),
   // Multi-hop node tree (#4983): a node's stable GUID, its parent's GUID, and
   // whether it's a read-only transitive sub-node surfaced from a downstream node.
   guid: z.string().optional(),
@@ -63,6 +66,10 @@ export const NodeFormSchema = z.object({
   allowPrivateAddress: z.boolean(),
   tlsVerifyMode: z.enum(['verify', 'skip', 'pin']),
   pinnedCertSha256: z.string().optional().default(''),
+  inboundSyncMode: z.enum(['all', 'selected']).optional().default('all'),
+  // Unmounted when sync mode is "all" (absent from antd onFinish values) and
+  // serialized as null by the backend for a nil slice — tolerate both.
+  inboundTags: z.array(z.string()).nullish().transform((tags) => tags ?? []),
 });
 
 export type NodeRecord = z.infer<typeof NodeRecordSchema>;

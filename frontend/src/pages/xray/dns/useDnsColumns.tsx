@@ -61,8 +61,7 @@ export function useDnsServerColumns({
         render: (_v, record) => <span className="muted">{expectedIPsFor(record.server)}</span>,
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t],
+    [t, openEditServer, deleteServer],
   );
 }
 
@@ -116,7 +115,6 @@ export function useFakednsColumns({
         ),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [deleteFakedns, updateFakednsField],
   );
 }

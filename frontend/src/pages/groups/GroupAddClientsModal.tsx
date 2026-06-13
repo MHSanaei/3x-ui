@@ -122,7 +122,7 @@ export default function GroupAddClientsModal({
         {t('pages.groups.addToGroupDesc')}
       </Typography.Paragraph>
 
-      <Space direction="vertical" size="small" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="small" style={{ width: '100%' }}>
         <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
           <Input.Search
             allowClear

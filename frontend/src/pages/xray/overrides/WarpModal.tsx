@@ -103,9 +103,17 @@ export default function WarpModal({
           secretKey: data?.private_key,
           address: addressesFor(cfg.interface?.addresses || {}),
           reserved: reservedFor(cfg.client_id ?? data?.client_id),
-          domainStrategy: 'ForceIP',
+          // Prefer IPv4 with IPv6 fallback: plain ForceIP may pick the AAAA
+          // record for engage.cloudflareclient.com, and a host with
+          // half-configured IPv6 then blackholes the handshake with no error
+          // logged (#5205).
+          domainStrategy: 'ForceIPv4v6',
           peers: [{ publicKey: peer.public_key, endpoint: peer.endpoint?.host }],
-          noKernelTun: false,
+          // Userspace TUN: kernel TUN needs CAP_NET_ADMIN + fwmark routing and
+          // fails silently on many VPS setups, and it is a different data path
+          // than the panel's connectivity test (which always probes with
+          // noKernelTun=true), so "test ok" and "traffic flows" can disagree.
+          noKernelTun: true,
         },
       };
       setStagedOutbound(outbound);

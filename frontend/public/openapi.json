@@ -120,8 +120,8 @@
             "minimum": 0,
             "type": "integer"
           },
-          "panelProxy": {
-            "description": "Proxy URL for the panel's own outbound requests (GitHub/Telegram)",
+          "panelOutbound": {
+            "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
             "type": "string"
           },
           "remarkModel": {
@@ -383,7 +383,7 @@
           "ldapUserFilter",
           "ldapVlessField",
           "pageSize",
-          "panelProxy",
+          "panelOutbound",
           "remarkModel",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
@@ -554,8 +554,8 @@
             "minimum": 0,
             "type": "integer"
           },
-          "panelProxy": {
-            "description": "Proxy URL for the panel's own outbound requests (GitHub/Telegram)",
+          "panelOutbound": {
+            "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
             "type": "string"
           },
           "remarkModel": {
@@ -823,7 +823,7 @@
           "ldapUserFilter",
           "ldapVlessField",
           "pageSize",
-          "panelProxy",
+          "panelOutbound",
           "remarkModel",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
@@ -1219,49 +1219,6 @@
         ],
         "type": "object"
       },
-      "CustomGeoResource": {
-        "properties": {
-          "alias": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "integer"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "lastModified": {
-            "type": "string"
-          },
-          "lastUpdatedAt": {
-            "type": "integer"
-          },
-          "localPath": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "integer"
-          },
-          "url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "alias",
-          "createdAt",
-          "id",
-          "lastModified",
-          "lastUpdatedAt",
-          "localPath",
-          "type",
-          "updatedAt",
-          "url"
-        ],
-        "type": "object"
-      },
       "FallbackParentInfo": {
         "description": "FallbackParentInfo carries everything the frontend needs to rewrite a\nchild inbound's client link: where to connect (the master's address\nand port) and which path matched on the master's fallbacks array.\nThe frontend already has the master inbound in its dbInbounds list,\nso we only ship identifiers + the match path here.",
         "properties": {
@@ -1375,8 +1332,25 @@
             "type": "string"
           },
           "settings": {},
+          "shareAddr": {
+            "type": "string"
+          },
+          "shareAddrStrategy": {
+            "enum": [
+              "node",
+              "listen",
+              "custom"
+            ],
+            "type": "string"
+          },
           "sniffing": {},
           "streamSettings": {},
+          "subSortIndex": {
+            "description": "1-based sort order of this inbound's links in subscription output only (lower first; ties by id)",
+            "example": 1,
+            "minimum": 1,
+            "type": "integer"
+          },
           "tag": {
             "example": "in-443-tcp",
             "type": "string"
@@ -1413,8 +1387,11 @@
           "protocol",
           "remark",
           "settings",
+          "shareAddr",
+          "shareAddrStrategy",
           "sniffing",
           "streamSettings",
+          "subSortIndex",
           "tag",
           "total",
           "trafficReset",
@@ -1487,6 +1464,11 @@
         "properties": {
           "id": {
             "example": 1,
+            "type": "integer"
+          },
+          "nodeId": {
+            "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
+            "nullable": true,
             "type": "integer"
           },
           "port": {
@@ -1602,6 +1584,19 @@
             "example": 5,
             "type": "integer"
           },
+          "inboundSyncMode": {
+            "enum": [
+              "all",
+              "selected"
+            ],
+            "type": "string"
+          },
+          "inboundTags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "lastError": {
             "type": "string"
           },
@@ -1705,6 +1700,8 @@
           "guid",
           "id",
           "inboundCount",
+          "inboundSyncMode",
+          "inboundTags",
           "lastError",
           "lastHeartbeat",
           "latencyMs",
@@ -1879,10 +1876,6 @@
     {
       "name": "Nodes",
       "description": "Manage remote 3x-ui panels acting as nodes for a central panel. All endpoints under /panel/api/nodes."
-    },
-    {
-      "name": "Custom Geo",
-      "description": "Manage user-supplied GeoIP / GeoSite source files. All endpoints under /panel/api/custom-geo."
     },
     {
       "name": "Backup",
@@ -2163,8 +2156,11 @@
                       "protocol": "vless",
                       "remark": "VLESS-443",
                       "settings": null,
+                      "shareAddr": "",
+                      "shareAddrStrategy": "node",
                       "sniffing": null,
                       "streamSettings": null,
+                      "subSortIndex": 1,
                       "tag": "in-443-tcp",
                       "total": 0,
                       "trafficReset": "never",
@@ -2232,7 +2228,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Lightweight picker projection of the authenticated user’s inbounds. Returns id, remark, tag, protocol, port, a server-computed tlsFlowCapable flag (true for VLESS / port-fallback on TCP with tls or reality), and ssMethod (the Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the client UI to generate a valid Shadowsocks 2022 PSK). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.",
+        "summary": "Lightweight picker projection of the authenticated user’s inbounds. Returns id, remark, tag, protocol, port, a server-computed tlsFlowCapable flag (true for VLESS on TCP with tls or reality, or on XHTTP with VLESS encryption / vlessenc enabled), and ssMethod (the Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the client UI to generate a valid Shadowsocks 2022 PSK). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.",
         "operationId": "get_panel_api_inbounds_options",
         "responses": {
           "200": {
@@ -2261,6 +2257,7 @@
                   "obj": [
                     {
                       "id": 1,
+                      "nodeId": null,
                       "port": 443,
                       "protocol": "vless",
                       "remark": "VLESS-443",
@@ -2749,6 +2746,59 @@
                     },
                     "obj": {}
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/pushClientTraffics": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Receive a master panel's aggregated per-client usage, keyed by the master's GUID. Stored in a side table used only for the UI display overlay and local quota enforcement — never folded into the local counters that masters poll, so delta accounting stays intact. Called panel-to-panel by the node traffic sync job.",
+        "operationId": "post_panel_api_inbounds_pushClientTraffics",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "masterGuid": "9f6c2d-…",
+                "traffics": [
+                  {
+                    "email": "alice",
+                    "up": 1048576,
+                    "down": 2097152
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
                 }
               }
             }
@@ -5990,6 +6040,10 @@
                       "guid": "",
                       "id": 1,
                       "inboundCount": 5,
+                      "inboundSyncMode": "all",
+                      "inboundTags": [
+                        ""
+                      ],
                       "lastError": "",
                       "lastHeartbeat": 1700000000,
                       "latencyMs": 42,
@@ -6430,6 +6484,65 @@
         }
       }
     },
+    "/panel/api/nodes/inbounds": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Use unsaved node connection details to list the remote inbounds available for selective import.",
+        "operationId": "post_panel_api_nodes_inbounds",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "name": "de-fra-1",
+                "scheme": "https",
+                "address": "node1.example.com",
+                "port": 2053,
+                "basePath": "/",
+                "apiToken": "abcdef..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "tag": "inbound-443",
+                      "remark": "VLESS",
+                      "protocol": "vless",
+                      "port": 443
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/nodes/probe/{id}": {
       "post": {
         "tags": [
@@ -6570,264 +6683,6 @@
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/list": {
-      "get": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "List configured custom geo sources with their type, alias, URL, status, and last-download timestamp.",
-        "operationId": "get_panel_api_custom_geo_list",
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/aliases": {
-      "get": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "List geo aliases currently usable in routing rules — both built-in defaults and the user-configured ones.",
-        "operationId": "get_panel_api_custom_geo_aliases",
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/add": {
-      "post": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "Register a custom geo source. Alias is auto-normalised; URL must point to a .dat / .json blob.",
-        "operationId": "post_panel_api_custom_geo_add",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              },
-              "example": {
-                "type": "geoip",
-                "alias": "myips",
-                "url": "https://example.com/geo/my.dat"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/update/{id}": {
-      "post": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "Replace a custom geo source. Same body shape as /add.",
-        "operationId": "post_panel_api_custom_geo_update_id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Custom geo source ID.",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/delete/{id}": {
-      "post": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "Remove a custom geo source and its cached file.",
-        "operationId": "post_panel_api_custom_geo_delete_id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Custom geo source ID.",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/download/{id}": {
-      "post": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "Re-download one custom geo source on demand.",
-        "operationId": "post_panel_api_custom_geo_download_id",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Custom geo source ID.",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/custom-geo/update-all": {
-      "post": {
-        "tags": [
-          "Custom Geo"
-        ],
-        "summary": "Re-download every configured custom geo source. Errors are reported per-source in the response.",
-        "operationId": "post_panel_api_custom_geo_update_all",
         "responses": {
           "200": {
             "description": "Successful response",
@@ -7636,6 +7491,166 @@
         ],
         "summary": "Test an outbound configuration. Sends the outbound JSON (required), optionally all outbounds (to resolve sockopt.dialerProxy dependencies), and a mode flag.",
         "operationId": "post_panel_api_xray_testOutbound",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/testOutbounds": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Test a batch of outbounds (max 50) through one shared temp xray instance. Returns an array of results in input order, each with the outbound tag, delay, HTTP status and a connect/TLS/TTFB timing breakdown.",
+        "operationId": "post_panel_api_xray_testOutbounds",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/balancerStatus": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Live state of routing balancers in the running core (RoutingService.GetBalancerInfo): current override and the targets the strategy prefers. Returns a map keyed by balancer tag.",
+        "operationId": "post_panel_api_xray_balancerStatus",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/balancerOverride": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Force a balancer in the running core to always pick one outbound (RoutingService.OverrideBalancerTarget). Applied live without a restart; cleared automatically when Xray restarts.",
+        "operationId": "post_panel_api_xray_balancerOverride",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/routeTest": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Ask the running core which outbound its router would pick for a synthetic connection (RoutingService.TestRoute). No traffic is sent.",
+        "operationId": "post_panel_api_xray_routeTest",
         "requestBody": {
           "required": true,
           "content": {

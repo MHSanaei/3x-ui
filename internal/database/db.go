@@ -65,7 +65,6 @@ func initModels() error {
 		&model.InboundClientIps{},
 		&xray.ClientTraffic{},
 		&model.HistoryOfSeeders{},
-		&model.CustomGeoResource{},
 		&model.Node{},
 		&model.ApiToken{},
 		&model.ClientRecord{},
@@ -73,6 +72,7 @@ func initModels() error {
 		&model.ClientGroup{},
 		&model.InboundFallback{},
 		&model.NodeClientTraffic{},
+		&model.ClientGlobalTraffic{},
 		&model.OutboundSubscription{},
 	}
 	for _, mdl := range models {
@@ -89,6 +89,9 @@ func initModels() error {
 		return err
 	}
 	if err := pruneOrphanedClientInbounds(); err != nil {
+		return err
+	}
+	if err := normalizeInboundSubSortIndex(); err != nil {
 		return err
 	}
 	if IsPostgres() {
@@ -119,6 +122,21 @@ func pruneOrphanedClientInbounds() error {
 	}
 	if res.RowsAffected > 0 {
 		log.Printf("Pruned %d orphaned client_inbounds row(s)", res.RowsAffected)
+	}
+	return nil
+}
+
+// normalizeInboundSubSortIndex lifts sub_sort_index values below the 1-based
+// minimum (rows written by builds that defaulted the column to 0, or by nodes
+// predating the field) so they cannot sort ahead of explicitly ranked inbounds.
+func normalizeInboundSubSortIndex() error {
+	res := db.Exec("UPDATE inbounds SET sub_sort_index = 1 WHERE sub_sort_index < 1")
+	if res.Error != nil {
+		log.Printf("Error normalizing inbound sub_sort_index: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Normalized sub_sort_index on %d inbound(s)", res.RowsAffected)
 	}
 	return nil
 }
@@ -182,7 +200,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash", "LegacyProxySettingsCleanup"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -268,7 +286,25 @@ func runSeeders(isUsersEmpty bool) error {
 			return err
 		}
 	}
+
+	if !slices.Contains(seedersHistory, "LegacyProxySettingsCleanup") {
+		if err := clearLegacyProxySettings(); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+// clearLegacyProxySettings drops the deprecated panelProxy/tgBotProxy rows so a
+// stale tgBotProxy no longer masks the panelOutbound egress fallback.
+func clearLegacyProxySettings() error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("key IN ?", []string{"panelProxy", "tgBotProxy"}).
+			Delete(&model.Setting{}).Error; err != nil {
+			return err
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "LegacyProxySettingsCleanup"}).Error
+	})
 }
 
 func normalizeInboundClientTgId() error {

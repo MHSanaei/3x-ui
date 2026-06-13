@@ -81,6 +81,18 @@ is_domain() {
     [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+(xn--[a-z0-9]{2,}|[A-Za-z]{2,})$ ]] && return 0 || return 1
 }
 
+# acme.sh's standalone server binds IPv4 by default; --listen-v6 makes it
+# v6-only, which breaks HTTP-01 validation when the domain's A record points
+# at this host's IPv4 (#4994). Only force IPv6 when the host has no global
+# IPv4 address at all.
+acme_listen_flag() {
+    if ip -4 addr show scope global 2> /dev/null | grep -q "inet "; then
+        echo ""
+    else
+        echo "--listen-v6"
+    fi
+}
+
 # Port helpers
 is_port_in_use() {
     local port="$1"
@@ -200,7 +212,7 @@ setup_ssl_certificate() {
     echo -e "${yellow}Note: Port 80 must be open and accessible from the internet${plain}"
 
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force > /dev/null 2>&1
-    ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport 80 --force
+    ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport 80 --force
 
     if [ $? -ne 0 ]; then
         echo -e "${yellow}Failed to issue certificate for ${domain}${plain}"
@@ -465,7 +477,7 @@ ssl_cert_issue() {
     if [[ ${cert_exists} -eq 0 ]]; then
         # issue the certificate
         ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
-        ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
+        ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport ${WebPort} --force
         if [ $? -ne 0 ]; then
             echo -e "${red}Issuing certificate failed, please check logs.${plain}"
             rm -rf ~/.acme.sh/${domain}
@@ -751,6 +763,8 @@ prompt_and_setup_ssl() {
 }
 
 config_after_update() {
+    local panel_needs_restart=0
+
     echo -e "${yellow}x-ui settings:${plain}"
     ${xui_folder}/x-ui setting -show true
     ${xui_folder}/x-ui migrate
@@ -798,6 +812,7 @@ config_after_update() {
         local config_webBasePath=$(gen_random_string 18)
         ${xui_folder}/x-ui setting -webBasePath "${config_webBasePath}"
         existing_webBasePath="${config_webBasePath}"
+        panel_needs_restart=1
         echo -e "${green}New WebBasePath: ${config_webBasePath}${plain}"
     fi
 
@@ -831,6 +846,11 @@ config_after_update() {
         echo -e "${green}═══════════════════════════════════════════${plain}"
         echo -e "${green}Access URL: https://${cert_domain}:${existing_port}/${existing_webBasePath}${plain}"
         echo -e "${green}═══════════════════════════════════════════${plain}"
+    fi
+
+    if [[ "$panel_needs_restart" -eq 1 ]]; then
+        echo -e "${yellow}Restarting panel to apply the new web base path...${plain}"
+        systemctl restart x-ui 2> /dev/null || rc-service x-ui restart 2> /dev/null
     fi
 }
 

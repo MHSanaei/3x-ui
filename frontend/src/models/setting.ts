@@ -9,7 +9,7 @@ export class AllSetting {
   webBasePath = '/';
   sessionMaxAge = 360;
   trustedProxyCIDRs = '127.0.0.1/32,::1/128';
-  panelProxy = '';
+  panelOutbound = '';
   pageSize = 25;
   expireDiff = 0;
   trafficDiff = 0;
@@ -95,6 +95,8 @@ export class AllSetting {
     if (data != null) {
       ObjectUtil.cloneProps(this, data);
     }
+    const cpu = Math.round(Number(this.tgCpu));
+    this.tgCpu = Number.isFinite(cpu) ? Math.min(100, Math.max(0, cpu)) : 80;
   }
 
   equals(other: AllSetting): boolean {

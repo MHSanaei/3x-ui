@@ -1,4 +1,4 @@
-import type { InboundFormValues, TrafficReset } from '@/schemas/forms/inbound-form';
+import type { InboundFormValues, ShareAddrStrategy, TrafficReset } from '@/schemas/forms/inbound-form';
 import type { InboundSettings } from '@/schemas/protocols/inbound';
 import {
   HysteriaClientSchema,
@@ -12,6 +12,9 @@ import type { Sniffing } from '@/schemas/primitives';
 import type { z } from 'zod';
 import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
 import { canEnableSniffing } from '@/lib/xray/protocol-capabilities';
+import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+
+const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
 
 // Plain-data adapter between the panel's stored inbound row shape and
 // the typed InboundFormValues that Form.useForm<T> carries inside
@@ -37,6 +40,9 @@ export interface RawInboundRow {
   trafficReset?: string;
   lastTrafficResetTime?: number;
   nodeId?: number | null;
+  shareAddrStrategy?: string;
+  shareAddr?: string;
+  subSortIndex?: number;
   clientStats?: unknown;
 }
 
@@ -61,6 +67,9 @@ export interface WireInboundPayload {
   tag: string;
   clientStats?: unknown;
   nodeId?: number;
+  shareAddrStrategy: ShareAddrStrategy;
+  shareAddr: string;
+  subSortIndex: number;
 }
 
 function coerceJsonObject(value: unknown): Record<string, unknown> {
@@ -82,11 +91,18 @@ function coerceJsonObject(value: unknown): Record<string, unknown> {
 }
 
 const TRAFFIC_RESETS: TrafficReset[] = ['never', 'hourly', 'daily', 'weekly', 'monthly'];
+const SHARE_ADDR_STRATEGIES: ShareAddrStrategy[] = ['node', 'listen', 'custom'];
 
 function coerceTrafficReset(v: unknown): TrafficReset {
   return typeof v === 'string' && (TRAFFIC_RESETS as string[]).includes(v)
     ? (v as TrafficReset)
     : 'never';
+}
+
+function coerceShareAddrStrategy(v: unknown): ShareAddrStrategy {
+  return typeof v === 'string' && (SHARE_ADDR_STRATEGIES as string[]).includes(v)
+    ? (v as ShareAddrStrategy)
+    : 'node';
 }
 
 // Network values that map to a required `${network}Settings` key in
@@ -144,6 +160,16 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
   if (streamSettings) {
     healStreamNetworkKey(streamSettings as unknown as Record<string, unknown>);
     synthesizeTlsCertUseFile(streamSettings as unknown as Record<string, unknown>);
+    const streamRecord = streamSettings as unknown as Record<string, unknown>;
+    const xh = streamRecord.xhttpSettings;
+    if (xh && typeof xh === 'object' && !Array.isArray(xh)) {
+      const xhttp = xh as Record<string, unknown>;
+      const xmux = xhttp.xmux;
+      if (xmux && typeof xmux === 'object' && !Array.isArray(xmux)) {
+        xhttp.enableXmux = true;
+        xhttp.xmux = { ...XMUX_DEFAULTS, ...(xmux as Record<string, unknown>) };
+      }
+    }
   }
   const sniffing = coerceJsonObject(row.sniffing) as unknown as Sniffing;
 
@@ -162,6 +188,9 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     trafficReset: coerceTrafficReset(row.trafficReset),
     lastTrafficResetTime: row.lastTrafficResetTime ?? 0,
     nodeId: row.nodeId ?? null,
+    shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
+    shareAddr: row.shareAddr ?? '',
+    subSortIndex: Math.max(1, row.subSortIndex ?? 1),
     protocol,
     settings,
   } as InboundFormValues;
@@ -307,6 +336,9 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     // rather than the default { enabled: false } so the row carries no sniffing.
     sniffing: canEnableSniffing({ protocol: values.protocol }) ? JSON.stringify(normalizeSniffing(values.sniffing)) : '',
     tag: values.tag,
+    shareAddrStrategy: values.shareAddrStrategy,
+    shareAddr: values.shareAddr,
+    subSortIndex: values.subSortIndex,
   };
   if (values.nodeId != null) payload.nodeId = values.nodeId;
   return payload;

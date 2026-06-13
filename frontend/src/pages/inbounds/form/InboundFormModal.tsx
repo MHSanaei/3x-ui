@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import {
+  Alert,
   Form,
   Input,
   InputNumber,
@@ -84,6 +85,8 @@ import type { NodeRecord } from '@/api/queries/useNodesQuery';
 
 const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
 const TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'] as const;
+const SHARE_ADDR_STRATEGIES = ['node', 'listen', 'custom'] as const;
+const SHARE_ADDR_HOSTNAME_RE = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/;
 const NODE_ELIGIBLE_PROTOCOLS = new Set<string>([
   Protocols.VLESS,
   Protocols.VMESS,
@@ -92,6 +95,30 @@ const NODE_ELIGIBLE_PROTOCOLS = new Set<string>([
   Protocols.HYSTERIA,
   Protocols.WIREGUARD,
 ]);
+
+function isValidShareAddrInput(value: string): boolean {
+  const v = value.trim();
+  if (v.length === 0) return true;
+  if (v.includes('://') || v.startsWith('//') || /[/?#@]/.test(v)) return false;
+  if (v.startsWith('[')) {
+    if (!v.endsWith(']')) return false;
+    try {
+      new URL(`http://${v}`);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  if (v.includes(':')) {
+    try {
+      new URL(`http://[${v}]`);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return SHARE_ADDR_HOSTNAME_RE.test(v);
+}
 
 interface InboundFormModalProps {
   open: boolean;
@@ -150,6 +177,10 @@ export default function InboundFormModal({
   const selectableNodes = (availableNodes || []).filter((n) => n.enable);
   const protocol = (Form.useWatch('protocol', form) ?? '') as string;
   const isNodeEligible = NODE_ELIGIBLE_PROTOCOLS.has(protocol);
+  // The `node` share-address strategy only means something when the inbound can
+  // actually live on a node — otherwise the node address it would resolve to is
+  // always empty. Offer it only then; `listen`/`custom` work for local inbounds.
+  const nodeShareOptionAvailable = selectableNodes.length > 0 && isNodeEligible;
   const sniffingEnabled = Form.useWatch(['sniffing', 'enabled'], form) ?? false;
   const vlessEncryption = Form.useWatch(['settings', 'encryption'], form) ?? '';
   const ssMethod = Form.useWatch(['settings', 'method'], form);
@@ -162,11 +193,21 @@ export default function InboundFormModal({
   const security = Form.useWatch(['streamSettings', 'security'], form) ?? 'none';
   const streamEnabled = canEnableStream({ protocol });
   const sniffingSupported = canEnableSniffing({ protocol });
+  // Wireguard (always a UDP listener) and Tunnel (dokodemo-door) expose no
+  // user-selectable transport — their stream tab is just sockopt, which is all
+  // Tunnel's TProxy/redirect mode needs (sockopt.tproxy). Hysteria carries its
+  // own dedicated transport form. For all of these the RAW/mKCP/WS/... network
+  // picker and the per-network sub-forms are hidden.
+  const hasSelectableTransport =
+    protocol !== Protocols.HYSTERIA
+    && protocol !== Protocols.WIREGUARD
+    && protocol !== Protocols.TUNNEL;
 
   const wPort = Form.useWatch('port', form);
   const wListen = (Form.useWatch('listen', form) ?? '') as string;
-  const isUdsListen = wListen.startsWith('/');
+  const isUdsListen = wListen.startsWith('/') || wListen.startsWith('@');
   const wNodeId = Form.useWatch('nodeId', form) ?? null;
+  const shareAddrStrategy = Form.useWatch('shareAddrStrategy', form) ?? 'node';
   const wTag = Form.useWatch('tag', form) ?? '';
   const wSsNetwork = Form.useWatch(['settings', 'network'], form);
   const wTunnelNetwork = Form.useWatch(['settings', 'allowedNetwork'], form);
@@ -334,6 +375,19 @@ export default function InboundFormModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, wPort, wNodeId, protocol, network, mixedUdpOn, wSsNetwork, wTunnelNetwork]);
 
+  // Keep the strategy value inside the visible option set: when `node` isn't
+  // offered (no node, or a protocol that can't deploy to one) fall back to
+  // `listen`, which yields the same link for a local inbound. Mirrors how the
+  // protocol reset drops a nodeId that no longer applies.
+  useEffect(() => {
+    if (!open) return;
+    const current = form.getFieldValue('shareAddrStrategy') as InboundFormValues['shareAddrStrategy'] | undefined;
+    if (!nodeShareOptionAvailable && (current ?? 'node') === 'node') {
+      form.setFieldValue('shareAddrStrategy', 'listen');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, nodeShareOptionAvailable, shareAddrStrategy]);
+
   // Why: protocol picker reset cascades through the form — clearing the
   // settings DU branch and dropping a nodeId that no longer applies. The
   // legacy modal did this imperatively in onProtocolChange; here we hook
@@ -372,9 +426,17 @@ export default function InboundFormModal({
             }],
           },
         });
+      } else if (next === Protocols.WIREGUARD || next === Protocols.TUNNEL) {
+        // Wireguard and Tunnel (dokodemo-door) have no user-selectable
+        // transport: wireguard is always a UDP listener, and tunnel only needs
+        // `sockopt.tproxy` for its TProxy/redirect mode. Drop the leftover
+        // network/transport slices so the stream tab doesn't render a TCP
+        // sub-form and the wire payload carries no dead tcpSettings — the
+        // sockopt section (with TProxy) stays available.
+        form.setFieldValue('streamSettings', { security: 'none' });
       } else {
         const current = form.getFieldValue('streamSettings') as { network?: string } | undefined;
-        if (current?.network === 'hysteria') {
+        if (current?.network === 'hysteria' || !current?.network) {
           form.setFieldValue('streamSettings', { network: 'tcp', security: 'none', tcpSettings: {} });
         }
       }
@@ -483,6 +545,46 @@ export default function InboundFormModal({
       </Form.Item>
 
       <Form.Item
+        name="shareAddrStrategy"
+        label={t('pages.inbounds.form.shareAddrStrategy')}
+        extra={t('pages.inbounds.form.shareAddrStrategyHelp')}
+      >
+        <Select
+          options={SHARE_ADDR_STRATEGIES
+            .filter((strategy) => strategy !== 'node' || nodeShareOptionAvailable)
+            .map((strategy) => ({
+              value: strategy,
+              label: t(`pages.inbounds.form.shareAddrStrategyOptions.${strategy}`),
+            }))}
+        />
+      </Form.Item>
+
+      {shareAddrStrategy === 'custom' && (
+        <Form.Item
+          name="shareAddr"
+          label={t('pages.inbounds.form.shareAddr')}
+          extra={t('pages.inbounds.form.shareAddrHelp')}
+          rules={[{
+            validator: (_, value) => (
+              isValidShareAddrInput(String(value ?? ''))
+                ? Promise.resolve()
+                : Promise.reject(new Error(t('pages.inbounds.form.shareAddrHelp')))
+            ),
+          }]}
+        >
+          <Input placeholder="edge.example.com" />
+        </Form.Item>
+      )}
+
+      <Form.Item
+        name="subSortIndex"
+        label={t('pages.inbounds.form.subSortIndex')}
+        extra={t('pages.inbounds.form.subSortIndexHelp')}
+      >
+        <InputNumber min={1} />
+      </Form.Item>
+
+      <Form.Item
         name="port"
         label={t('pages.inbounds.port')}
         rules={[antdRule(InboundFormBaseSchema.shape.port, t)]}
@@ -588,6 +690,15 @@ export default function InboundFormModal({
       {protocol === Protocols.VLESS && <VlessFields saving={saving} selectedVlessAuth={selectedVlessAuth} network={network} security={security} getNewVlessEnc={getNewVlessEnc} clearVlessEnc={clearVlessEnc} />}
 
       {isFallbackHost && fallbacksCard}
+      {(protocol === Protocols.VLESS || protocol === Protocols.TROJAN)
+        && network === 'tcp' && !isFallbackHost && (
+          <Alert
+            className="mt-12"
+            type="info"
+            showIcon
+            message={t('pages.inbounds.fallbacks.needsTls')}
+          />
+        )}
     </>
   );
 
@@ -639,13 +750,19 @@ export default function InboundFormModal({
           udp: [...udp, { type: 'mkcp-legacy', settings: { header: '', value: '' } }],
         };
       }
+    } else {
+      const fm = cleaned.finalmask as Record<string, unknown> | undefined;
+      if (fm && Array.isArray(fm.udp)) {
+        const udp = (fm.udp as unknown[]).filter((m) => (m as { type?: string })?.type !== 'mkcp-legacy');
+        cleaned.finalmask = { ...fm, udp };
+      }
     }
     form.setFieldValue('streamSettings', cleaned);
   };
 
   const streamTab = (
     <>
-      {protocol !== Protocols.HYSTERIA && (
+      {hasSelectableTransport && (
         <Form.Item label={t('transmission')} name={['streamSettings', 'network']}>
           <Select
             style={{ width: '75%' }}
@@ -671,28 +788,41 @@ export default function InboundFormModal({
           HTTP server when probed. */}
       {protocol === Protocols.HYSTERIA && <HysteriaFields form={form} />}
 
-      {network === 'tcp' && <RawForm />}
+      {hasSelectableTransport && (
+        <>
+          {network === 'tcp' && <RawForm />}
 
-      {network === 'ws' && <WsForm />}
+          {network === 'ws' && <WsForm />}
 
-      {network === 'grpc' && <GrpcForm />}
+          {network === 'grpc' && <GrpcForm />}
 
-      {network === 'xhttp' && <XhttpForm form={form} />}
+          {network === 'xhttp' && <XhttpForm form={form} />}
 
-      {network === 'httpupgrade' && <HttpUpgradeForm />}
+          {network === 'httpupgrade' && <HttpUpgradeForm />}
 
-      {network === 'kcp' && <KcpForm />}
+          {network === 'kcp' && <KcpForm />}
+        </>
+      )}
 
-      <ExternalProxyForm toggleExternalProxy={toggleExternalProxy} />
+      {/* externalProxy only feeds client share links. Wireguard's per-peer
+          .conf fanout resolves its host elsewhere, and tunnel (dokodemo-door)
+          has no clients at all — the section is dead weight on both. */}
+      {protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL && (
+        <ExternalProxyForm toggleExternalProxy={toggleExternalProxy} />
+      )}
 
       <SockoptForm toggleSockopt={toggleSockopt} />
 
-      <FinalMaskForm
-        name={['streamSettings', 'finalmask']}
-        network={network as string}
-        protocol={protocol}
-        form={form}
-      />
+      {/* Transport masks don't apply to tunnel (a transparent forwarder), so
+          its stream tab is just sockopt + TProxy. */}
+      {protocol !== Protocols.TUNNEL && (
+        <FinalMaskForm
+          name={['streamSettings', 'finalmask']}
+          network={network as string}
+          protocol={protocol}
+          form={form}
+        />
+      )}
     </>
   );
 
@@ -897,7 +1027,11 @@ export default function InboundFormModal({
             ...(streamEnabled
               ? [
                 { key: 'stream', label: t('pages.inbounds.streamTab'), children: streamTab, forceRender: true },
-                { key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab, forceRender: true },
+                // Wireguard and Tunnel can't do TLS/Reality (canEnableTls is false), so
+                // the security tab would only show a fully disabled radio.
+                ...(protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL
+                  ? [{ key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab, forceRender: true }]
+                  : []),
               ]
               : []),
             ...(sniffingSupported

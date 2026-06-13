@@ -37,6 +37,7 @@ func (a *NodeController) initRouter(g *gin.RouterGroup) {
 
 	g.POST("/test", a.test)
 	g.POST("/certFingerprint", a.certFingerprint)
+	g.POST("/inbounds", a.inbounds)
 	g.POST("/probe/:id", a.probe)
 	g.POST("/updatePanel", a.updatePanel)
 	g.GET("/history/:id/:metric/:bucket", a.history)
@@ -158,6 +159,18 @@ func (a *NodeController) setEnable(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.update"), nil)
+}
+
+func (a *NodeController) inbounds(c *gin.Context) {
+	n := &model.Node{}
+	if err := c.ShouldBind(n); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.obtain"), err)
+		return
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+	options, err := a.nodeService.GetRemoteInboundOptions(ctx, n)
+	jsonObj(c, options, err)
 }
 
 func (a *NodeController) test(c *gin.Context) {

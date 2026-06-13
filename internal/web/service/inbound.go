@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"sort"
 	"strings"
 	"time"
@@ -13,16 +14,138 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type InboundService struct {
 	xrayApi         xray.XrayAPI
 	clientService   ClientService
 	fallbackService FallbackService
+}
+
+func normalizeInboundShareAddrStrategy(strategy string) string {
+	strategy = strings.TrimSpace(strategy)
+	switch strategy {
+	case "listen", "custom":
+		return strategy
+	default:
+		return "node"
+	}
+}
+
+func normalizeInboundShareAddress(inbound *model.Inbound) {
+	if inbound == nil {
+		return
+	}
+	inbound.ShareAddrStrategy = normalizeInboundShareAddrStrategy(inbound.ShareAddrStrategy)
+	if addr, err := normalizeInboundShareHost(inbound.ShareAddr); err == nil {
+		inbound.ShareAddr = addr
+	} else {
+		inbound.ShareAddr = strings.TrimSpace(inbound.ShareAddr)
+	}
+}
+
+func normalizeInboundShareAddressStrict(inbound *model.Inbound) error {
+	if inbound == nil {
+		return nil
+	}
+	inbound.ShareAddrStrategy = normalizeInboundShareAddrStrategy(inbound.ShareAddrStrategy)
+	addr, err := normalizeInboundShareHost(inbound.ShareAddr)
+	if err != nil {
+		return common.NewError("shareAddr must be a host or IP without scheme or port")
+	}
+	inbound.ShareAddr = addr
+	return nil
+}
+
+func normalizeInboundShareHost(raw string) (string, error) {
+	addr := strings.TrimSpace(raw)
+	if addr == "" {
+		return "", nil
+	}
+	if strings.Contains(addr, "://") || strings.HasPrefix(addr, "//") || strings.ContainsAny(addr, "/?#@") {
+		return "", fmt.Errorf("invalid share address %q", raw)
+	}
+	if strings.HasPrefix(addr, "[") {
+		if !strings.HasSuffix(addr, "]") {
+			return "", fmt.Errorf("invalid IPv6 host %q", raw)
+		}
+		ip := net.ParseIP(addr[1 : len(addr)-1])
+		if ip == nil || ip.To4() != nil {
+			return "", fmt.Errorf("invalid IPv6 host %q", raw)
+		}
+		return "[" + ip.String() + "]", nil
+	}
+	if strings.Contains(addr, ":") {
+		if _, _, err := net.SplitHostPort(addr); err == nil {
+			return "", fmt.Errorf("share address must not include port")
+		}
+		ip := net.ParseIP(addr)
+		if ip == nil || ip.To4() != nil {
+			return "", fmt.Errorf("invalid IPv6 host %q", raw)
+		}
+		return "[" + ip.String() + "]", nil
+	}
+	host, err := netsafe.NormalizeHost(addr)
+	if err != nil {
+		return "", err
+	}
+	return host, nil
+}
+
+func normalizeInboundShareAddressColumns(tx *gorm.DB) error {
+	if tx == nil || !tx.Migrator().HasColumn(&model.Inbound{}, "share_addr_strategy") {
+		return nil
+	}
+
+	strategyExpr := `CASE TRIM(COALESCE(share_addr_strategy, '')) WHEN 'listen' THEN 'listen' WHEN 'custom' THEN 'custom' ELSE 'node' END`
+	if err := tx.Exec(`UPDATE inbounds SET share_addr_strategy = ` + strategyExpr + ` WHERE share_addr_strategy IS NULL OR share_addr_strategy <> ` + strategyExpr).Error; err != nil {
+		return err
+	}
+	hasShareAddr := tx.Migrator().HasColumn(&model.Inbound{}, "share_addr")
+	if hasShareAddr {
+		if err := tx.Exec(`UPDATE inbounds SET share_addr = TRIM(share_addr) WHERE share_addr IS NOT NULL AND share_addr <> TRIM(share_addr)`).Error; err != nil {
+			return err
+		}
+	}
+	if !hasShareAddr {
+		return nil
+	}
+	var rows []struct {
+		Id                int
+		ShareAddrStrategy string
+		ShareAddr         string
+	}
+	if err := tx.Model(&model.Inbound{}).Select("id", "share_addr_strategy", "share_addr").Find(&rows).Error; err != nil {
+		return err
+	}
+	for _, row := range rows {
+		strategy := normalizeInboundShareAddrStrategy(row.ShareAddrStrategy)
+		addr, addrErr := normalizeInboundShareHost(row.ShareAddr)
+		if addrErr != nil {
+			strategy = "node"
+			addr = ""
+		}
+		updates := map[string]any{}
+		if strategy != row.ShareAddrStrategy {
+			updates["share_addr_strategy"] = strategy
+		}
+		if addr != row.ShareAddr {
+			updates["share_addr"] = addr
+		}
+		if len(updates) > 0 {
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", row.Id).Updates(updates).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // GetInbounds retrieves all inbounds for a specific user with client stats.
@@ -78,6 +201,13 @@ func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 	}
 	s.annotateFallbackParents(db, inbounds)
 	s.annotateLocalOriginGuid(inbounds)
+	// Top up stats rows owned by sibling inbounds (multi-attached clients)
+	// so the list's depleted/expiring badges see every client; the UUID/SubId
+	// enrichment stays skipped. Must run before slimming strips the settings.
+	s.backfillClientStats(db, inbounds)
+	// Slim feeds the panel UI only (masters poll the full list), so the badge
+	// math may see the cross-panel totals a master pushed.
+	s.overlayInboundsClientStats(db, inbounds)
 	for _, ib := range inbounds {
 		ib.Settings = slimSettingsClients(ib.Settings)
 	}
@@ -167,6 +297,9 @@ type InboundOption struct {
 	Port           int    `json:"port" example:"443"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
 	SsMethod       string `json:"ssMethod"`
+	// Hosting node; nil for this panel's own inbounds. Lets the clients
+	// page map a node filter onto inbound IDs (#4997).
+	NodeId *int `json:"nodeId,omitempty"`
 }
 
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
@@ -179,9 +312,10 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		Port           int    `gorm:"column:port"`
 		StreamSettings string `gorm:"column:stream_settings"`
 		Settings       string `gorm:"column:settings"`
+		NodeId         *int   `gorm:"column:node_id"`
 	}
 	err := db.Table("inbounds").
-		Select("id, remark, tag, protocol, port, stream_settings, settings").
+		Select("id, remark, tag, protocol, port, stream_settings, settings, node_id").
 		Where("user_id = ?", userId).
 		Order("id ASC").
 		Scan(&rows).Error
@@ -196,8 +330,9 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			Tag:            r.Tag,
 			Protocol:       r.Protocol,
 			Port:           r.Port,
-			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings),
+			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
 			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
+			NodeId:         r.NodeId,
 		})
 	}
 	return out, nil
@@ -289,7 +424,8 @@ func (s *InboundService) getAllEmailSubIDs() (map[string]string, error) {
 }
 
 // normalizeStreamSettings clears StreamSettings for protocols that don't use it.
-// Only vmess, vless, trojan, shadowsocks, and hysteria protocols use streamSettings.
+// Only vmess, vless, trojan, shadowsocks, hysteria, and wireguard protocols use
+// streamSettings (wireguard for finalmask UDP masks and sockopt on its listener).
 func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	protocolsWithStream := map[model.Protocol]bool{
 		model.VMESS:       true,
@@ -297,6 +433,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 		model.Trojan:      true,
 		model.Shadowsocks: true,
 		model.Hysteria:    true,
+		model.WireGuard:   true,
 	}
 
 	if !protocolsWithStream[inbound.Protocol] {
@@ -315,6 +452,108 @@ func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
 	}
 }
 
+// mtprotoRoutesThroughXray reports whether an mtproto inbound is configured to
+// egress through the core's router (the loopback SOCKS bridge in §xray.go).
+func mtprotoRoutesThroughXray(inbound *model.Inbound) bool {
+	if inbound == nil || inbound.Protocol != model.MTProto {
+		return false
+	}
+	var parsed struct {
+		RouteThroughXray bool `json:"routeThroughXray"`
+	}
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
+		return false
+	}
+	return parsed.RouteThroughXray
+}
+
+func settingsRouteXrayPort(parsed map[string]any) int {
+	switch v := parsed["routeXrayPort"].(type) {
+	case float64:
+		return int(v)
+	case int:
+		return v
+	case json.Number:
+		if n, err := v.Int64(); err == nil {
+			return int(n)
+		}
+	}
+	return 0
+}
+
+func parseRouteXrayPort(settings string) int {
+	if settings == "" {
+		return 0
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return 0
+	}
+	return settingsRouteXrayPort(parsed)
+}
+
+// normalizeMtprotoXrayPort guarantees a routed mtproto inbound carries a stable
+// loopback egress port in its settings, so the generated Xray SOCKS bridge and
+// the mtg sidecar agree on where mtg dials out. The port is backend-owned: it is
+// allocated once when routing is first enabled and preserved across edits
+// (carried over from oldSettings, which wins over any value the client echoed
+// back). When routing is off it — together with the now-inert outbound
+// selection — is stripped so a disabled bridge leaves nothing stale behind.
+//
+// It returns an error when an egress port cannot be allocated or persisted, so
+// the caller refuses the save rather than storing a routed-but-portless inbound,
+// which would otherwise route no traffic and have its mtg metrics skipped (see
+// mtproto_job) — silently losing its accounting.
+func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSettings string) error {
+	if inbound.Protocol != model.MTProto {
+		return nil
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed == nil {
+		return nil
+	}
+	routed, _ := parsed["routeThroughXray"].(bool)
+	if !routed {
+		_, hadPort := parsed["routeXrayPort"]
+		_, hadTag := parsed["outboundTag"]
+		if !hadPort && !hadTag {
+			return nil
+		}
+		delete(parsed, "routeXrayPort")
+		delete(parsed, "outboundTag")
+		if bs, err := json.MarshalIndent(parsed, "", "  "); err == nil {
+			inbound.Settings = string(bs)
+		} else {
+			logger.Warning("mtproto: failed to marshal settings after disabling routing:", err)
+		}
+		return nil
+	}
+
+	// Prefer the already-stored port (carried across edits), then any value the
+	// client sent, then allocate a fresh one.
+	port := parseRouteXrayPort(oldSettings)
+	if port <= 0 {
+		port = settingsRouteXrayPort(parsed)
+	}
+	if port <= 0 {
+		allocated, err := mtproto.FreeLocalPort()
+		if err != nil {
+			return common.NewError("mtproto: could not allocate an Xray egress port:", err)
+		}
+		port = allocated
+	}
+	if settingsRouteXrayPort(parsed) == port {
+		return nil
+	}
+	parsed["routeXrayPort"] = port
+	bs, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return common.NewError("mtproto: could not persist the Xray egress port:", err)
+	}
+	inbound.Settings = string(bs)
+	return nil
+}
+
 // AddInbound creates a new inbound configuration.
 // It validates port uniqueness, client email uniqueness, and required fields,
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
@@ -323,6 +562,13 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
+	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
+		return inbound, false, err
+	}
+	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
+	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
+		return inbound, false, err
+	}
 
 	conflict, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
@@ -411,19 +657,51 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 	}()
 
-	err = tx.Save(inbound).Error
-	if err == nil {
-		if len(inbound.ClientStats) == 0 {
-			for _, client := range clients {
-				s.AddClientStat(tx, inbound.Id, &client)
-			}
-		}
-	} else {
+	// Omit the ClientStats has-many association: GORM's cascade would INSERT
+	// those rows with an ON CONFLICT target on the primary key only, which
+	// collides with the globally-unique client_traffics.email when an imported
+	// inbound carries clients that another inbound already created (e.g.
+	// importing two inbounds that share the same clients). We insert the stats
+	// ourselves below with the same email-conflict guard AddClientStat uses.
+	err = tx.Omit("ClientStats").Save(inbound).Error
+	if err != nil {
 		return inbound, false, err
+	}
+	// Imported stats first, so their traffic counters survive; emails that
+	// already own a (shared) row are skipped instead of tripping the unique
+	// constraint.
+	for i := range inbound.ClientStats {
+		if inbound.ClientStats[i].Email == "" {
+			continue
+		}
+		inbound.ClientStats[i].Id = 0
+		inbound.ClientStats[i].InboundId = inbound.Id
+		if err = tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "email"}},
+			DoNothing: true,
+		}).Create(&inbound.ClientStats[i]).Error; err != nil {
+			return inbound, false, err
+		}
+	}
+	// Then make sure every client has a stats row. AddClientStat is a no-op
+	// where one exists (including the rows just inserted), and fills the gap
+	// for clients an import payload didn't carry stats for.
+	for _, client := range clients {
+		if err = s.AddClientStat(tx, inbound.Id, &client); err != nil {
+			return inbound, false, err
+		}
 	}
 
 	if err = s.clientService.SyncInbound(tx, inbound.Id, clients); err != nil {
 		return inbound, false, err
+	}
+
+	// Before the deferred commit, so a node in "selected" sync mode cannot
+	// sweep the new central row in the gap before its tag is allowed.
+	if inbound.NodeID != nil {
+		if aErr := (&NodeService{}).EnsureInboundTagAllowed(*inbound.NodeID, inbound.Tag); aErr != nil {
+			logger.Warning("allow inbound tag on node failed:", aErr)
+		}
 	}
 
 	needRestart := false
@@ -448,6 +726,13 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 				}
 			}
 		}
+	}
+
+	// A routed mtproto inbound is not an Xray inbound itself, so the runtime
+	// push above only (re)starts the mtg sidecar. The egress SOCKS bridge lives
+	// in the generated config, so force a regen to wire it in.
+	if mtprotoRoutesThroughXray(inbound) {
+		needRestart = true
 	}
 
 	return inbound, needRestart, err
@@ -513,6 +798,10 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 			}
 		}
 	}
+	// Drop the egress SOCKS bridge a routed mtproto inbound left in the config.
+	if mtprotoRoutesThroughXray(&ib) {
+		needRestart = true
+	}
 	return needRestart, nil
 }
 
@@ -565,6 +854,7 @@ func (s *InboundService) GetInboundDetail(id int) (*model.Inbound, error) {
 		return nil, err
 	}
 	s.enrichClientStats(db, []*model.Inbound{inbound})
+	s.overlayInboundsClientStats(db, []*model.Inbound{inbound})
 	return inbound, nil
 }
 
@@ -639,6 +929,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
+	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 
 	conflict, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {
@@ -653,6 +944,13 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	inbound.NodeID = oldInbound.NodeID
+	// Capture the pre-edit routing state before oldInbound.Settings is replaced
+	// with the new settings further down, then ensure a routed inbound keeps a
+	// stable egress port (reusing the one already stored).
+	oldRoutedMtproto := mtprotoRoutesThroughXray(oldInbound)
+	if err := s.normalizeMtprotoXrayPort(inbound, oldInbound.Settings); err != nil {
+		return inbound, false, err
+	}
 
 	tag := oldInbound.Tag
 	oldBits := inboundTransports(oldInbound.Protocol, oldInbound.StreamSettings, oldInbound.Settings)
@@ -741,6 +1039,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 
 	oldInbound.Total = inbound.Total
 	oldInbound.Remark = inbound.Remark
+	oldInbound.SubSortIndex = inbound.SubSortIndex
 	oldInbound.Enable = inbound.Enable
 	oldInbound.ExpiryTime = inbound.ExpiryTime
 	oldInbound.TrafficReset = inbound.TrafficReset
@@ -750,6 +1049,17 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.Settings = inbound.Settings
 	oldInbound.StreamSettings = inbound.StreamSettings
 	oldInbound.Sniffing = inbound.Sniffing
+	if strings.TrimSpace(inbound.ShareAddrStrategy) == "" {
+		normalizeInboundShareAddress(oldInbound)
+		inbound.ShareAddrStrategy = oldInbound.ShareAddrStrategy
+		inbound.ShareAddr = oldInbound.ShareAddr
+	} else {
+		if err := normalizeInboundShareAddressStrict(inbound); err != nil {
+			return inbound, false, err
+		}
+		oldInbound.ShareAddrStrategy = inbound.ShareAddrStrategy
+		oldInbound.ShareAddr = inbound.ShareAddr
+	}
 	if oldTagWasAuto && inbound.Tag == tag {
 		inbound.Tag = ""
 	}
@@ -804,6 +1114,14 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		}
 	}
 
+	// A rename must allow the new tag before the deferred commit, or a node in
+	// "selected" sync mode would sweep the renamed central row on the next pull.
+	if oldInbound.NodeID != nil {
+		if aErr := (&NodeService{}).EnsureInboundTagAllowed(*oldInbound.NodeID, oldInbound.Tag); aErr != nil {
+			logger.Warning("allow inbound tag on node failed:", aErr)
+		}
+	}
+
 	if err = tx.Save(oldInbound).Error; err != nil {
 		return inbound, false, err
 	}
@@ -814,6 +1132,11 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	}
 	if err = s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
 		return inbound, false, err
+	}
+	// (Re)generate the Xray config whenever routing was or is now enabled, so the
+	// egress SOCKS bridge is added, moved, or dropped to match the new settings.
+	if mtprotoRoutesThroughXray(inbound) || oldRoutedMtproto {
+		needRestart = true
 	}
 	return inbound, needRestart, nil
 }

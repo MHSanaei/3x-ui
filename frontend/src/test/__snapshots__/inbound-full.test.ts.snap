@@ -27,6 +27,8 @@ exports[`InboundSchema (full) fixtures > parses hysteria-v1-tls byte-stably 1`] 
     ],
     "version": 1,
   },
+  "shareAddr": "",
+  "shareAddrStrategy": "node",
   "sniffing": {
     "destOverride": [
       "http",
@@ -112,6 +114,8 @@ exports[`InboundSchema (full) fixtures > parses shadowsocks-tcp-2022 byte-stably
     "network": "tcp,udp",
     "password": "ZmFrZS1zZXJ2ZXItcGFzc3dvcmQtMDAwMQ==",
   },
+  "shareAddr": "",
+  "shareAddrStrategy": "node",
   "sniffing": {
     "destOverride": [
       "http",
@@ -168,6 +172,8 @@ exports[`InboundSchema (full) fixtures > parses trojan-ws-tls byte-stably 1`] = 
     ],
     "fallbacks": [],
   },
+  "shareAddr": "",
+  "shareAddrStrategy": "node",
   "sniffing": {
     "destOverride": [
       "http",
@@ -257,6 +263,8 @@ exports[`InboundSchema (full) fixtures > parses vless-tcp-reality byte-stably 1`
     "encryption": "none",
     "fallbacks": [],
   },
+  "shareAddr": "",
+  "shareAddrStrategy": "node",
   "sniffing": {
     "destOverride": [
       "http",
@@ -341,6 +349,8 @@ exports[`InboundSchema (full) fixtures > parses vless-ws-tls byte-stably 1`] = `
     "encryption": "none",
     "fallbacks": [],
   },
+  "shareAddr": "",
+  "shareAddrStrategy": "node",
   "sniffing": {
     "destOverride": [
       "http",
@@ -430,6 +440,8 @@ exports[`InboundSchema (full) fixtures > parses vless-ws-tls-pinned byte-stably 
     "encryption": "none",
     "fallbacks": [],
   },
+  "shareAddr": "",
+  "shareAddrStrategy": "node",
   "sniffing": {
     "destOverride": [
       "http",
@@ -520,6 +532,8 @@ exports[`InboundSchema (full) fixtures > parses vmess-tcp-tls byte-stably 1`] = 
       },
     ],
   },
+  "shareAddr": "",
+  "shareAddrStrategy": "node",
   "sniffing": {
     "destOverride": [
       "http",
@@ -603,6 +617,8 @@ exports[`InboundSchema (full) fixtures > parses wireguard-server byte-stably 1`]
     ],
     "secretKey": "iJ2cBkrSGqRwIfYIDIxk7hr5RXfdR93MfJUL7yqkkH8=",
   },
+  "shareAddr": "",
+  "shareAddrStrategy": "node",
   "sniffing": {
     "destOverride": [
       "http",

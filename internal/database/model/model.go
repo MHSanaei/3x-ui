@@ -50,6 +50,7 @@ type Inbound struct {
 	Down                 int64                `json:"down" form:"down"`                                                                                                                                             // Download traffic in bytes
 	Total                int64                `json:"total" form:"total"`                                                                                                                                           // Total traffic limit in bytes
 	Remark               string               `json:"remark" form:"remark" example:"VLESS-443"`                                                                                                                     // Human-readable remark
+	SubSortIndex         int                  `json:"subSortIndex" form:"subSortIndex" gorm:"default:1" validate:"omitempty,gte=1" example:"1"`                                                                     // 1-based sort order of this inbound's links in subscription output only (lower first; ties by id)
 	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1" example:"true"`                                                                         // Whether the inbound is enabled
 	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                                                                                 // Expiration timestamp
 	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2" validate:"omitempty,oneof=never hourly daily weekly monthly"` // Traffic reset schedule
@@ -57,14 +58,16 @@ type Inbound struct {
 	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                                                                                     // Client traffic statistics
 
 	// Xray configuration fields
-	Listen         string   `json:"listen" form:"listen"`
-	Port           int      `json:"port" form:"port" validate:"gte=0,lte=65535" example:"443"`
-	Protocol       Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto" example:"vless"`
-	Settings       string   `json:"settings" form:"settings"`
-	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
-	Tag            string   `json:"tag" form:"tag" gorm:"unique" example:"in-443-tcp"`
-	Sniffing       string   `json:"sniffing" form:"sniffing"`
-	NodeID         *int     `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
+	Listen            string   `json:"listen" form:"listen"`
+	Port              int      `json:"port" form:"port" validate:"gte=0,lte=65535" example:"443"`
+	Protocol          Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto" example:"vless"`
+	Settings          string   `json:"settings" form:"settings"`
+	StreamSettings    string   `json:"streamSettings" form:"streamSettings"`
+	Tag               string   `json:"tag" form:"tag" gorm:"unique" example:"in-443-tcp"`
+	Sniffing          string   `json:"sniffing" form:"sniffing"`
+	NodeID            *int     `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
+	ShareAddrStrategy string   `json:"shareAddrStrategy" form:"shareAddrStrategy" gorm:"column:share_addr_strategy;default:node" validate:"omitempty,oneof=node listen custom"`
+	ShareAddr         string   `json:"shareAddr" form:"shareAddr" gorm:"column:share_addr"`
 
 	// OriginNodeGuid is the panelGuid of the node that physically hosts this
 	// inbound, propagated up across hops (#4983). Empty for an inbound that
@@ -445,18 +448,20 @@ type Setting struct {
 // endpoint over HTTP using the per-node ApiToken to populate the runtime
 // status fields below.
 type Node struct {
-	Id                  int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
-	Name                string `json:"name" form:"name" gorm:"uniqueIndex" validate:"required" example:"de-fra-1"`
-	Remark              string `json:"remark" form:"remark"`
-	Scheme              string `json:"scheme" form:"scheme" validate:"omitempty,oneof=http https" example:"https"`
-	Address             string `json:"address" form:"address" validate:"required" example:"node1.example.com"`
-	Port                int    `json:"port" form:"port" validate:"gte=1,lte=65535" example:"2053"`
-	BasePath            string `json:"basePath" form:"basePath" example:"/"`
-	ApiToken            string `json:"apiToken" form:"apiToken" validate:"required" example:"abcdef0123456789"`
-	Enable              bool   `json:"enable" form:"enable" gorm:"default:true" example:"true"`
-	AllowPrivateAddress bool   `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
-	TlsVerifyMode       string `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin"`
-	PinnedCertSha256    string `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
+	Id                  int      `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
+	Name                string   `json:"name" form:"name" gorm:"uniqueIndex" validate:"required" example:"de-fra-1"`
+	Remark              string   `json:"remark" form:"remark"`
+	Scheme              string   `json:"scheme" form:"scheme" validate:"omitempty,oneof=http https" example:"https"`
+	Address             string   `json:"address" form:"address" validate:"required" example:"node1.example.com"`
+	Port                int      `json:"port" form:"port" validate:"gte=1,lte=65535" example:"2053"`
+	BasePath            string   `json:"basePath" form:"basePath" example:"/"`
+	ApiToken            string   `json:"apiToken" form:"apiToken" validate:"required" example:"abcdef0123456789"`
+	Enable              bool     `json:"enable" form:"enable" gorm:"default:true" example:"true"`
+	AllowPrivateAddress bool     `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
+	TlsVerifyMode       string   `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin"`
+	PinnedCertSha256    string   `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
+	InboundSyncMode     string   `json:"inboundSyncMode" form:"inboundSyncMode" gorm:"column:inbound_sync_mode;default:all" validate:"omitempty,oneof=all selected"`
+	InboundTags         []string `json:"inboundTags" form:"inboundTags" gorm:"serializer:json;column:inbound_tags"`
 
 	// Guid is the remote panel's stable self-identifier (its panelGuid),
 	// learned from each heartbeat. It is the globally stable node identity used
@@ -523,18 +528,6 @@ type NodeSummary struct {
 	// XrayState/XrayError forwarded so masters can surface xray failure on transitive sub-nodes too.
 	XrayState string `json:"xrayState"`
 	XrayError string `json:"xrayError,omitempty"`
-}
-
-type CustomGeoResource struct {
-	Id            int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Type          string `json:"type" gorm:"not null;uniqueIndex:idx_custom_geo_type_alias;column:geo_type"`
-	Alias         string `json:"alias" gorm:"not null;uniqueIndex:idx_custom_geo_type_alias"`
-	Url           string `json:"url" gorm:"not null"`
-	LocalPath     string `json:"localPath" gorm:"column:local_path"`
-	LastUpdatedAt int64  `json:"lastUpdatedAt" gorm:"default:0;column:last_updated_at"`
-	LastModified  string `json:"lastModified" gorm:"column:last_modified"`
-	CreatedAt     int64  `json:"createdAt" gorm:"autoCreateTime:milli;column:created_at"`
-	UpdatedAt     int64  `json:"updatedAt" gorm:"autoUpdateTime:milli;column:updated_at"`
 }
 
 type ClientReverse struct {

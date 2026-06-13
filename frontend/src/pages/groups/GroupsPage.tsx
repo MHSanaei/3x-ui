@@ -22,11 +22,14 @@ import {
 } from 'antd';
 import type { MenuProps, TableColumnsType } from 'antd';
 import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
   ClockCircleOutlined,
   DeleteOutlined,
   EditOutlined,
   LinkOutlined,
   MoreOutlined,
+  PieChartOutlined,
   PlusOutlined,
   RetweetOutlined,
   TagsOutlined,
@@ -163,6 +166,14 @@ export default function GroupsPage() {
   );
   const totalTraffic = useMemo(
     () => groups.reduce((acc, g) => acc + (g.trafficUsed || 0), 0),
+    [groups],
+  );
+  const totalUpload = useMemo(
+    () => groups.reduce((acc, g) => acc + (g.up || 0), 0),
+    [groups],
+  );
+  const totalDownload = useMemo(
+    () => groups.reduce((acc, g) => acc + (g.down || 0), 0),
     [groups],
   );
 
@@ -396,10 +407,10 @@ export default function GroupsPage() {
       render: (_v, row) => (
         <Space size={4}>
           <Dropdown trigger={['click']} menu={{ items: rowActions(row) }}>
-            <Button size="small" type="text" icon={<MoreOutlined />} />
+            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<MoreOutlined />} />
           </Dropdown>
           <Tooltip title={t('pages.groups.rename')}>
-            <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openRename(row)} />
+            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<EditOutlined />} onClick={() => openRename(row)} />
           </Tooltip>
         </Space>
       ),
@@ -416,6 +427,20 @@ export default function GroupsPage() {
       key: 'clientCount',
       width: 180,
       render: (count: number) => <span>{count || 0}</span>,
+    },
+    {
+      title: t('pages.groups.upload'),
+      dataIndex: 'up',
+      key: 'up',
+      width: 140,
+      render: (bytes: number) => <span>{SizeFormatter.sizeFormat(bytes || 0)}</span>,
+    },
+    {
+      title: t('pages.groups.download'),
+      dataIndex: 'down',
+      key: 'down',
+      width: 140,
+      render: (bytes: number) => <span>{SizeFormatter.sizeFormat(bytes || 0)}</span>,
     },
     {
       title: t('pages.groups.trafficUsed'),
@@ -456,25 +481,38 @@ export default function GroupsPage() {
                   <Col span={24}>
                     <Card size="small" hoverable className="summary-card">
                       <Row gutter={[16, isMobile ? 16 : 12]}>
-                        <Col xs={12} sm={8} md={6}>
+                        <Col xs={12} sm={12} md={6}>
                           <Statistic
                             title={t('pages.groups.totalGroups')}
                             value={String(totalGroups)}
                             prefix={<TagsOutlined />}
                           />
                         </Col>
-                        <Col xs={12} sm={8} md={6}>
+                        <Col xs={12} sm={12} md={6}>
                           <Statistic
                             title={t('pages.groups.totalGroupedClients')}
                             value={String(totalClients)}
                             prefix={<TeamOutlined />}
                           />
                         </Col>
-                        <Col xs={12} sm={8} md={6}>
+                        <Col xs={12} sm={12} md={6}>
+                          <Statistic
+                            title={t('pages.groups.totalUpDown')}
+                            value={0}
+                            formatter={() => (
+                              <span>
+                                <ArrowUpOutlined /> {SizeFormatter.sizeFormat(totalUpload)}
+                                {' / '}
+                                <ArrowDownOutlined /> {SizeFormatter.sizeFormat(totalDownload)}
+                              </span>
+                            )}
+                          />
+                        </Col>
+                        <Col xs={12} sm={12} md={6}>
                           <Statistic
                             title={t('pages.groups.totalTraffic')}
                             value={SizeFormatter.sizeFormat(totalTraffic)}
-                            prefix={<RetweetOutlined />}
+                            prefix={<PieChartOutlined />}
                           />
                         </Col>
                       </Row>

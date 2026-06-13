@@ -39,7 +39,6 @@ func migrationModels() []any {
 		&model.User{},
 		&model.Setting{},
 		&model.HistoryOfSeeders{},
-		&model.CustomGeoResource{},
 		&model.Node{},
 		&model.ApiToken{},
 		&model.Inbound{},

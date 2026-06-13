@@ -106,6 +106,36 @@ func listenIsInternalOnly(listen string) bool {
 	return isLoopbackHost(listen)
 }
 
+// matchingClients returns the inbound's clients whose SubID equals subId,
+// deduplicated by email. settings.clients can accumulate duplicate entries
+// for the same client (multi-node sync/import drift, old DBs): SyncInbound
+// dedupes the normalized client_inbounds rows on write but never rewrites
+// the legacy JSON, and the subscription builders iterate that JSON — so
+// without this guard every duplicate became a duplicate profile in the
+// output (#5134). Link generation keys purely on (inbound, email), so
+// same-email entries are pure duplicates and dropping them is lossless.
+func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []model.Client {
+	clients, err := s.inboundService.GetClients(inbound)
+	if err != nil {
+		logger.Error("SubService - GetClients: Unable to get clients from inbound")
+		return nil
+	}
+	var out []model.Client
+	seen := make(map[string]struct{}, len(clients))
+	for _, client := range clients {
+		if client.SubID != subId {
+			continue
+		}
+		key := strings.ToLower(client.Email)
+		if _, dup := seen[key]; dup {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, client)
+	}
+	return out
+}
+
 // GetSubs retrieves subscription links for a given subscription ID and host.
 func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int64, xray.ClientTraffic, error) {
 	s.PrepareForRequest(host)
@@ -134,23 +164,18 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
-		clients, err := s.inboundService.GetClients(inbound)
-		if err != nil {
-			logger.Error("SubService - GetClients: Unable to get clients from inbound")
-		}
-		if clients == nil {
+		clients := s.matchingClients(inbound, subId)
+		if len(clients) == 0 {
 			continue
 		}
 		s.projectThroughFallbackMaster(inbound)
 		for _, client := range clients {
-			if client.SubID == subId {
-				if client.Enable {
-					hasEnabledClient = true
-				}
-				result = append(result, s.GetLink(inbound, client.Email))
-				emails = append(emails, client.Email)
-				seenEmails[client.Email] = struct{}{}
+			if client.Enable {
+				hasEnabledClient = true
 			}
+			result = append(result, s.GetLink(inbound, client.Email))
+			emails = append(emails, client.Email)
+			seenEmails[client.Email] = struct{}{}
 		}
 	}
 
@@ -259,7 +284,7 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		WHERE
 			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria')
 			AND clients.sub_id = ? AND inbounds.enable = ?
-	)`, subId, true).Find(&inbounds).Error
+	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC").Find(&inbounds).Error
 	if err != nil {
 		return nil, err
 	}
@@ -445,6 +470,37 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	return buildVmessLink(obj)
 }
 
+// vlessEncryptionEnabled reports whether the VLESS inbound settings enable
+// VLESS-level encryption (vlessenc / ML-KEM). When on, the encryption/decryption
+// fields hold a generated dotted string (e.g. "mlkem768x25519plus.native.0rtt.<key>");
+// "none" or empty means off. The value is never the literal "vlessenc" — that is
+// the `xray vlessenc` CLI subcommand name, not a stored value.
+func vlessEncryptionEnabled(settings map[string]any) bool {
+	for _, key := range []string{"encryption", "decryption"} {
+		if v, ok := settings[key].(string); ok && v != "" && v != "none" {
+			return true
+		}
+	}
+	return false
+}
+
+// vlessFlowAllowed reports whether a client's XTLS Vision flow belongs in
+// generated links/configs. Mirrors inboundCanEnableTlsFlow in
+// internal/web/service: Vision runs on TCP with tls/reality (classic), and on
+// XHTTP whenever VLESS encryption (vlessenc / ML-KEM) is enabled — there the
+// VLESS-level encryption stands in for the transport TLS that Vision relies
+// on, regardless of the stream security layer (so XHTTP+REALITY+vlessenc
+// keeps its flow too).
+func vlessFlowAllowed(network, security string, settings map[string]any) bool {
+	switch network {
+	case "tcp":
+		return security == "tls" || security == "reality"
+	case "xhttp":
+		return vlessEncryptionEnabled(settings)
+	}
+	return false
+}
+
 func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.VLESS {
 		return ""
@@ -474,16 +530,13 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	switch security {
 	case "tls":
 		applyShareTLSParams(stream, params)
-		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
-			params["flow"] = clients[clientIndex].Flow
-		}
 	case "reality":
 		applyShareRealityParams(stream, params)
-		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
-			params["flow"] = clients[clientIndex].Flow
-		}
 	default:
 		params["security"] = "none"
+	}
+	if len(clients[clientIndex].Flow) > 0 && vlessFlowAllowed(streamNetwork, security, settings) {
+		params["flow"] = clients[clientIndex].Flow
 	}
 
 	externalProxies, _ := stream["externalProxy"].([]any)
@@ -769,23 +822,42 @@ func (s *SubService) loadNodes() {
 	s.nodesByID = m
 }
 
-// resolveInboundAddress picks the host an external client should connect to:
-//  1. node-managed inbound -> the node's address
-//  2. an explicit, client-reachable bind Listen -> that Listen
-//  3. otherwise the subscriber's request host (s.address)
+// resolveInboundAddress picks the host an external client should connect to,
+// honoring the inbound's share address strategy the same way the panel's
+// share/QR link builder does (#5208):
+//   - "listen": an explicit, client-reachable bind Listen wins, backed by the
+//     node's address for node-managed inbounds;
+//   - "custom": the inbound's ShareAddr wins, then node, then listen;
+//   - "node" (default, and any unknown value): the node's address for
+//     node-managed inbounds, then a routable Listen — the pre-strategy order.
 //
-// A loopback/wildcard bind or a unix-domain-socket listen is a server-side
-// detail and is never advertised; External Proxy remains the way to advertise
-// an arbitrary endpoint. Mirrors the frontend's resolveAddr so the panel QR and
-// the subscription agree.
+// Every chain ends at the subscriber's request host (s.address). A
+// loopback/wildcard bind or a unix-domain-socket listen is a server-side
+// detail and is never advertised; External Proxy still overrides everything
+// upstream of this call.
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
+	var nodeAddr string
 	if inbound.NodeID != nil && s.nodesByID != nil {
-		if n, ok := s.nodesByID[*inbound.NodeID]; ok && n.Address != "" {
-			return n.Address
+		if n, ok := s.nodesByID[*inbound.NodeID]; ok {
+			nodeAddr = n.Address
 		}
 	}
+	var listenAddr string
 	if listen := inbound.Listen; listen != "" && listen[0] != '@' && listen[0] != '/' && isRoutableHost(listen) {
-		return listen
+		listenAddr = listen
+	}
+
+	candidates := []string{nodeAddr, listenAddr}
+	switch inbound.ShareAddrStrategy {
+	case "listen":
+		candidates = []string{listenAddr, nodeAddr}
+	case "custom":
+		candidates = []string{strings.TrimSpace(inbound.ShareAddr), nodeAddr, listenAddr}
+	}
+	for _, c := range candidates {
+		if c != "" {
+			return c
+		}
 	}
 	return s.address
 }
@@ -1585,8 +1657,16 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 		"uplinkDataPlacement", "uplinkDataKey",
 		"scMaxEachPostBytes", "scMinPostsIntervalMs",
 	}
+	// Values matching xray-core's own defaults are redundant on the wire and
+	// the literal scMinPostsIntervalMs=30 is a known DPI fingerprint (#5141).
+	// Old panels seeded these defaults into every xhttp inbound, so filter
+	// them here instead of requiring every stored config to be re-saved.
+	coreDefaults := map[string]string{
+		"scMaxEachPostBytes":   "1000000",
+		"scMinPostsIntervalMs": "30",
+	}
 	for _, field := range stringFields {
-		if v, ok := xhttp[field].(string); ok && len(v) > 0 {
+		if v, ok := xhttp[field].(string); ok && len(v) > 0 && v != coreDefaults[field] {
 			extra[field] = v
 		}
 	}
@@ -2104,10 +2184,35 @@ func (s *SubService) BuildURLs(subPath, subJsonPath, subClashPath, subId string)
 	base := s.settingService.BuildSubURIBase(s.address)
 
 	subURL = s.buildSingleURL(configuredSubURI, base, subPath, subId)
-	subJsonURL = s.buildSingleURL(configuredSubJsonURI, base, subJsonPath, subId)
-	subClashURL = s.buildSingleURL(configuredSubClashURI, base, subClashPath, subId)
+
+	// When subURI is explicitly configured (reverse-proxy setup), use its
+	// scheme+host as the base for JSON and Clash URLs so they match the
+	// reverse-proxy endpoint instead of the raw sub-server port. Fall back
+	// to the request-derived base if subURI is empty or can't be parsed
+	// into a scheme+host (e.g. a malformed value with no scheme).
+	jsonClashBase := base
+	if configuredSubURI != "" {
+		if derived := s.extractBaseFromURI(configuredSubURI); derived != "" {
+			jsonClashBase = derived
+		}
+	}
+
+	subJsonURL = s.buildSingleURL(configuredSubJsonURI, jsonClashBase, subJsonPath, subId)
+	subClashURL = s.buildSingleURL(configuredSubClashURI, jsonClashBase, subClashPath, subId)
 
 	return subURL, subJsonURL, subClashURL
+}
+
+// extractBaseFromURI extracts scheme://host from a configured URI.
+// e.g., "https://example.com/sub-xxx/" → "https://example.com".
+// Returns "" when the URI is empty or lacks a scheme/host, so callers can
+// fall back to the request-derived base instead of emitting a broken value.
+func (s *SubService) extractBaseFromURI(uri string) string {
+	u, err := url.Parse(uri)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s://%s", u.Scheme, u.Host)
 }
 
 // buildSingleURL constructs a single URL using configured URI or base components

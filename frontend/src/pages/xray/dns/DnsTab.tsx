@@ -128,16 +128,31 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
     return list.map((server, idx) => ({ key: idx, server }));
   }, [dns?.servers]);
 
+  // Stable callbacks: the column definitions in useDnsServerColumns are
+  // memoized, so they must be able to depend on these (see issue #5155)
+  const openEditServer = useCallback(
+    (idx: number) => {
+      setEditingServer((dns?.servers || [])[idx] || null);
+      setEditingIndex(idx);
+      setServerModalOpen(true);
+    },
+    [dns?.servers],
+  );
+  const deleteServer = useCallback(
+    (idx: number) => {
+      mutate((tt) => {
+        const cfg = tt.dns as DnsConfig | undefined;
+        if (cfg?.servers) cfg.servers.splice(idx, 1);
+      });
+    },
+    [mutate],
+  );
+
   const dnsColumns = useDnsServerColumns({ openEditServer, deleteServer });
 
   function openAddServer() {
     setEditingServer(null);
     setEditingIndex(null);
-    setServerModalOpen(true);
-  }
-  function openEditServer(idx: number) {
-    setEditingServer((dns?.servers || [])[idx] || null);
-    setEditingIndex(idx);
     setServerModalOpen(true);
   }
   function onServerConfirm(value: DnsServerValue) {
@@ -149,12 +164,6 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
       else cfg.servers[editingIndex] = value;
     });
     setServerModalOpen(false);
-  }
-  function deleteServer(idx: number) {
-    mutate((tt) => {
-      const cfg = tt.dns as DnsConfig | undefined;
-      if (cfg?.servers) cfg.servers.splice(idx, 1);
-    });
   }
   function clearAllServers() {
     modal.confirm({
@@ -182,27 +191,34 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
     return list.map((entry, idx) => ({ key: idx, ...entry }));
   }, [templateSettings?.fakedns]);
 
+  const deleteFakedns = useCallback(
+    (idx: number) => {
+      mutate((tt) => {
+        const list = tt.fakedns as FakednsRow[] | undefined;
+        if (!list) return;
+        list.splice(idx, 1);
+        if (list.length === 0) tt.fakedns = null;
+      });
+    },
+    [mutate],
+  );
+  const updateFakednsField = useCallback(
+    (idx: number, field: 'ipPool' | 'poolSize', value: string | number) => {
+      mutate((tt) => {
+        const list = tt.fakedns as FakednsRow[] | undefined;
+        if (!list?.[idx]) return;
+        (list[idx] as unknown as Record<string, unknown>)[field] = value;
+      });
+    },
+    [mutate],
+  );
+
   const fakednsColumns = useFakednsColumns({ deleteFakedns, updateFakednsField });
 
   function addFakedns() {
     mutate((tt) => {
       if (!Array.isArray(tt.fakedns)) tt.fakedns = [];
       (tt.fakedns as FakednsRow[]).push(DEFAULT_FAKEDNS());
-    });
-  }
-  function deleteFakedns(idx: number) {
-    mutate((tt) => {
-      const list = tt.fakedns as FakednsRow[] | undefined;
-      if (!list) return;
-      list.splice(idx, 1);
-      if (list.length === 0) tt.fakedns = null;
-    });
-  }
-  function updateFakednsField(idx: number, field: 'ipPool' | 'poolSize', value: string | number) {
-    mutate((tt) => {
-      const list = tt.fakedns as FakednsRow[] | undefined;
-      if (!list?.[idx]) return;
-      (list[idx] as unknown as Record<string, unknown>)[field] = value;
     });
   }
 

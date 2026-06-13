@@ -50,6 +50,18 @@ is_domain() {
     [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+(xn--[a-z0-9]{2,}|[A-Za-z]{2,})$ ]] && return 0 || return 1
 }
 
+# acme.sh's standalone server binds IPv4 by default; --listen-v6 makes it
+# v6-only, which breaks HTTP-01 validation when the domain's A record points
+# at this host's IPv4 (#4994). Only force IPv6 when the host has no global
+# IPv4 address at all.
+acme_listen_flag() {
+    if ip -4 addr show scope global 2> /dev/null | grep -q "inet "; then
+        echo ""
+    else
+        echo "--listen-v6"
+    fi
+}
+
 # check root
 [[ $EUID -ne 0 ]] && LOGE "ERROR: You must be root to run this script! \n" && exit 1
 
@@ -361,11 +373,25 @@ check_config() {
 
     if [[ -n "$existing_cert" ]]; then
         local domain=$(basename "$(dirname "$existing_cert")")
+        # The cert folder name is only the certificate's first domain. A
+        # multidomain (SAN) certificate may be served under any name it covers,
+        # so read the real names from the certificate itself (#5070).
+        local cert_sans=""
+        if [[ -f "$existing_cert" ]] && command -v openssl > /dev/null 2>&1; then
+            cert_sans=$(openssl x509 -in "$existing_cert" -noout -ext subjectAltName 2> /dev/null \
+                | grep -Eo 'DNS:[^,[:space:]]+' | cut -d: -f2)
+            if [[ -n "$cert_sans" ]] && ! echo "$cert_sans" | grep -qx "$domain"; then
+                domain=$(echo "$cert_sans" | head -n1)
+            fi
+        fi
 
         if [[ "$domain" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
             echo -e "${green}Access URL: https://${domain}:${existing_port}${existing_webBasePath}${plain}"
         else
             echo -e "${green}Access URL: https://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
+        fi
+        if [[ -n "$cert_sans" && $(echo "$cert_sans" | wc -l) -gt 1 ]]; then
+            echo -e "${yellow}The certificate also covers:${plain} $(echo "$cert_sans" | grep -vx "$domain" | tr '\n' ' ')"
         fi
     else
         echo -e "${red}⚠ WARNING: No SSL certificate configured!${plain}"
@@ -688,10 +714,12 @@ disable_bbr() {
 
     if [ -f "/etc/sysctl.d/99-bbr-x-ui.conf" ]; then
         old_settings=$(head -1 /etc/sysctl.d/99-bbr-x-ui.conf | tr -d '#')
+        # sysctl -w already restores the live values, so no `sysctl --system`
+        # afterwards — it would re-apply every sysctl file on the host and
+        # surface unrelated errors from the distro's own defaults (see issue #5160)
         sysctl -w net.core.default_qdisc="${old_settings%:*}"
         sysctl -w net.ipv4.tcp_congestion_control="${old_settings#*:}"
         rm /etc/sysctl.d/99-bbr-x-ui.conf
-        sysctl --system
     else
         # Replace BBR with CUBIC configurations
         if [ -f "/etc/sysctl.conf" ]; then
@@ -726,7 +754,10 @@ enable_bbr() {
             sed -i 's/^net.core.default_qdisc/# &/' /etc/sysctl.conf
             sed -i 's/^net.ipv4.tcp_congestion_control/# &/' /etc/sysctl.conf
         fi
-        sysctl --system
+        # Apply only our config file; `sysctl --system` would re-apply every
+        # sysctl file on the host and surface unrelated errors from the distro's
+        # own defaults (see issue #5160)
+        sysctl -p /etc/sysctl.d/99-bbr-x-ui.conf
     else
         sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
         sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
@@ -1117,9 +1148,11 @@ delete_ports() {
 }
 
 update_all_geofiles() {
-    update_geofiles "main"
-    update_geofiles "IR"
-    update_geofiles "RU"
+    local failed=0
+    update_geofiles "main" || failed=1
+    update_geofiles "IR" || failed=1
+    update_geofiles "RU" || failed=1
+    return $failed
 }
 
 update_geofiles() {
@@ -1137,12 +1170,39 @@ update_geofiles() {
             dat_source="runetfreedom/russia-v2ray-rules-dat"
             ;;
     esac
+    local failed=0 http_code
     for dat in "${dat_files[@]}"; do
         # Remove suffix for remote filename (e.g., geoip_IR -> geoip)
         remote_file="${dat%%_*}"
-        curl -fLRo ${xui_folder}/bin/${dat}.dat -z ${xui_folder}/bin/${dat}.dat \
-            https://github.com/${dat_source}/releases/latest/download/${remote_file}.dat
+        # -z skips the download (server answers 304) when the local copy is already current
+        http_code=$(curl -sSfLRo ${xui_folder}/bin/${dat}.dat -z ${xui_folder}/bin/${dat}.dat -w '%{http_code}' \
+            https://github.com/${dat_source}/releases/latest/download/${remote_file}.dat)
+        if [[ $? -ne 0 ]]; then
+            echo -e "${red}${dat}.dat: download failed${plain}"
+            failed=1
+        elif [[ "$http_code" == "304" ]]; then
+            echo -e "${dat}.dat: already up to date"
+        else
+            echo -e "${green}${dat}.dat: updated${plain}"
+            geo_updated=1
+        fi
     done
+    return $failed
+}
+
+run_geo_update() {
+    local name="$1"
+    shift
+    geo_updated=0
+    "$@"
+    if [[ $? -ne 0 ]]; then
+        echo -e "${red}Some ${name} could not be updated. Check the errors above.${plain}"
+    elif [[ $geo_updated -eq 1 ]]; then
+        echo -e "${green}${name} have been updated successfully!${plain}"
+        restart
+    else
+        echo -e "${green}${name} are already up to date, restart is not needed.${plain}"
+    fi
 }
 
 update_geo() {
@@ -1158,24 +1218,16 @@ update_geo() {
             show_menu
             ;;
         1)
-            update_geofiles "main"
-            echo -e "${green}Loyalsoldier datasets have been updated successfully!${plain}"
-            restart
+            run_geo_update "Loyalsoldier datasets" update_geofiles "main"
             ;;
         2)
-            update_geofiles "IR"
-            echo -e "${green}chocolate4u datasets have been updated successfully!${plain}"
-            restart
+            run_geo_update "chocolate4u datasets" update_geofiles "IR"
             ;;
         3)
-            update_geofiles "RU"
-            echo -e "${green}runetfreedom datasets have been updated successfully!${plain}"
-            restart
+            run_geo_update "runetfreedom datasets" update_geofiles "RU"
             ;;
         4)
-            update_all_geofiles
-            echo -e "${green}All geo files have been updated successfully!${plain}"
-            restart
+            run_geo_update "geo files" update_all_geofiles
             ;;
         *)
             echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
@@ -1226,7 +1278,7 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         2)
-            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
             if [ -z "$domains" ]; then
                 echo "No certificates found to revoke."
             else
@@ -1267,7 +1319,7 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         3)
-            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
             if [ -z "$domains" ]; then
                 echo "No certificates found to renew."
             else
@@ -1284,9 +1336,9 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         4)
-            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
             if [ -z "$domains" ]; then
-                echo "No certificates found."
+                echo "No certificates found under /root/cert."
             else
                 echo "Existing domains and their paths:"
                 for domain in $domains; do
@@ -1301,10 +1353,39 @@ ssl_cert_issue_main() {
                     fi
                 done
             fi
+            # The panel's configured certificate may live outside /root/cert
+            # (e.g. certbot under /etc/letsencrypt) — show it too (#5070).
+            local panel_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+            if [[ -n "${panel_cert}" && "${panel_cert}" != /root/cert/* ]]; then
+                echo -e "Panel certificate (custom path): ${panel_cert}"
+                if [[ -f "${panel_cert}" ]] && command -v openssl > /dev/null 2>&1; then
+                    local panel_sans=$(openssl x509 -in "${panel_cert}" -noout -ext subjectAltName 2> /dev/null \
+                        | grep -Eo 'DNS:[^,[:space:]]+' | cut -d: -f2 | tr '\n' ' ')
+                    [[ -n "${panel_sans}" ]] && echo -e "\tCovers: ${panel_sans}"
+                fi
+            fi
             ssl_cert_issue_main
             ;;
         5)
-            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+            echo -e "${green}\t1.${plain} Use a certificate from /root/cert"
+            echo -e "${green}\t2.${plain} Enter custom certificate file paths (e.g. certbot, /etc/letsencrypt/...)"
+            read -rp "Choose an option: " pathChoice
+            if [[ "$pathChoice" == "2" ]]; then
+                read -rp "Certificate file path (fullchain): " webCertFile
+                read -rp "Private key file path: " webKeyFile
+                if [[ -f "${webCertFile}" && -f "${webKeyFile}" ]]; then
+                    ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+                    echo "Panel certificate paths set:"
+                    echo "  - Certificate File: $webCertFile"
+                    echo "  - Private Key File: $webKeyFile"
+                    restart
+                else
+                    echo "Certificate or private key file not found."
+                fi
+                ssl_cert_issue_main
+                return
+            fi
+            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
             if [ -z "$domains" ]; then
                 echo "No certificates found."
             else
@@ -1686,7 +1767,7 @@ ssl_cert_issue() {
     if [[ ${cert_exists} -eq 0 ]]; then
         # issue the certificate
         ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
-        ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
+        ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport ${WebPort} --force
         if [ $? -ne 0 ]; then
             LOGE "Issuing certificate failed, please check logs."
             rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
@@ -2100,7 +2181,7 @@ install_iplimit() {
         case "${release}" in
             ubuntu)
                 apt-get update
-                if [[ "${os_version}" -ge 24 ]]; then
+                if [[ "${os_version}" -ge 2400 ]]; then
                     apt-get install python3-pip -y
                     python3 -m pip install pyasynchat --break-system-packages
                 fi
@@ -2302,8 +2383,8 @@ create_iplimit_jails() {
     # Uncomment 'allowipv6 = auto' in fail2ban.conf
     sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
 
-    # On Debian 12+ fail2ban's default backend should be changed to systemd
-    if [[ "${release}" == "debian" && ${os_version} -ge 12 ]]; then
+    # On Debian 12+ and Ubuntu 22.04+ fail2ban's default backend should be changed to systemd
+    if [[ ( "${release}" == "debian" && ${os_version} -ge 12 ) || ( "${release}" == "ubuntu" && ${os_version} -ge 2200 ) ]]; then
         sed -i '0,/action =/s/backend = auto/backend = systemd/' /etc/fail2ban/jail.conf
     fi
 
@@ -3194,7 +3275,10 @@ if [[ $# > 0 ]]; then
             check_install 0 && uninstall 0
             ;;
         "update-all-geofiles")
-            check_install 0 && update_all_geofiles 0 && restart 0
+            geo_updated=0
+            if check_install 0 && update_all_geofiles 0; then
+                [[ $geo_updated -eq 0 ]] || restart 0
+            fi
             ;;
         "migrateDB")
             migrate_db "$2" "$3"

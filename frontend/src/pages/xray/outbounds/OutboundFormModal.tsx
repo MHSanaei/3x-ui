@@ -156,10 +156,17 @@ export default function OutboundFormModal({
 
   useEffect(() => {
     if (!streamAllowed) return;
+    // Wireguard dials its own UDP — only finalmask/sockopt apply, never a
+    // transport. Don't seed network 'tcp'; clear a leftover one (from a
+    // protocol switch) so the transmission/security blocks stay hidden.
+    if (protocol === 'wireguard') {
+      if (network) form.setFieldValue('streamSettings', { security: 'none' });
+      return;
+    }
     if (network) return;
     form.setFieldValue('streamSettings', { ...newStreamSlice('tcp'), security: 'none' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streamAllowed, network]);
+  }, [streamAllowed, network, protocol]);
 
   useEffect(() => {
     if (protocol !== 'hysteria') return;
@@ -565,7 +572,7 @@ export default function OutboundFormModal({
 
                     {security === 'reality' && realityAllowed && <RealityForm />}
 
-                    {((streamAllowed && network) || !streamAllowed) && (
+                    {((streamAllowed && network) || !streamAllowed || protocol === 'wireguard') && (
                       <SockoptForm form={form} outboundTags={existingTags} />
                     )}
 

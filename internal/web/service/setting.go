@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -37,7 +38,7 @@ var defaultValueMap = map[string]string{
 	"secret":                      random.Seq(32),
 	"panelGuid":                   uuid.NewString(),
 	"apiToken":                    "",
-	"webBasePath":                 "/",
+	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
 	"pageSize":                    "25",
@@ -95,7 +96,7 @@ var defaultValueMap = map[string]string{
 	"externalTrafficInformURI":    "",
 	"restartXrayOnClientDisable":  "true",
 	"xrayOutboundTestUrl":         "https://www.google.com/generate_204",
-	"panelProxy":                  "",
+	"panelOutbound":               "",
 
 	// LDAP defaults
 	"ldapEnable":            "false",
@@ -235,6 +236,18 @@ func secretConfigured(value string) bool {
 
 func mustString(value string, _ error) string {
 	return value
+}
+
+func getEnv(key, fallback string) string {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	val = strings.TrimSpace(val)
+	if val == "" {
+		return fallback
+	}
+	return val
 }
 
 func (s *SettingService) ResetSettings() error {
@@ -384,26 +397,52 @@ func (s *SettingService) SetTgBotProxy(token string) error {
 	return s.setString("tgBotProxy", token)
 }
 
-func (s *SettingService) GetPanelProxy() (string, error) {
-	return s.getString("panelProxy")
+// GetPanelOutbound returns the Xray outbound tag the panel's own outbound
+// requests (version checks, Telegram, subscription fetches) are routed through.
+func (s *SettingService) GetPanelOutbound() (string, error) {
+	return s.getString("panelOutbound")
 }
 
-func (s *SettingService) SetPanelProxy(proxyUrl string) error {
-	return s.setString("panelProxy", proxyUrl)
+func (s *SettingService) SetPanelOutbound(tag string) error {
+	return s.setString("panelOutbound", tag)
+}
+
+// PanelEgressProxyURL resolves the loopback SOCKS bridge that the generated
+// config exposes when a panel outbound is configured (see injectPanelEgress).
+// It returns "" — meaning a direct connection — when the feature is off or
+// the bridge is not present in the running core yet.
+func (s *SettingService) PanelEgressProxyURL() string {
+	tag, err := s.GetPanelOutbound()
+	if err != nil || tag == "" {
+		return ""
+	}
+	proc := XrayProcess()
+	if proc == nil || !proc.IsRunning() {
+		logger.Warning("panel outbound [", tag, "] is set but Xray is not running, using a direct connection")
+		return ""
+	}
+	cfg := proc.GetConfig()
+	if cfg == nil {
+		return ""
+	}
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag == PanelEgressInboundTag {
+			return fmt.Sprintf("socks5://127.0.0.1:%d", cfg.InboundConfigs[i].Port)
+		}
+	}
+	logger.Warning("panel outbound [", tag, "] is set but the egress bridge is not in the running config, using a direct connection")
+	return ""
 }
 
 // NewProxiedHTTPClient returns an HTTP client that routes the panel's own
-// outbound requests through the configured panelProxy setting. An invalid or
-// missing proxy falls back to a direct client so existing behavior is preserved.
+// outbound requests through the configured panel outbound (via the loopback
+// SOCKS bridge in the running Xray). When the feature is off or the bridge
+// is unavailable it falls back to a direct client.
 func (s *SettingService) NewProxiedHTTPClient(timeout time.Duration) *http.Client {
-	proxyUrl, err := s.GetPanelProxy()
-	if err != nil {
-		logger.Warning("Failed to read panel proxy setting:", err)
-		proxyUrl = ""
-	}
+	proxyUrl := s.PanelEgressProxyURL()
 	client, err := netproxy.NewHTTPClient(proxyUrl, timeout)
 	if err != nil {
-		logger.Warningf("Invalid panel proxy %q, using direct connection: %v", proxyUrl, err)
+		logger.Warningf("Invalid panel egress proxy %q, using direct connection: %v", proxyUrl, err)
 		return &http.Client{Timeout: timeout}
 	}
 	return client
@@ -561,13 +600,7 @@ func (s *SettingService) GetBasePath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !strings.HasPrefix(basePath, "/") {
-		basePath = "/" + basePath
-	}
-	if !strings.HasSuffix(basePath, "/") {
-		basePath += "/"
-	}
-	return basePath, nil
+	return normalizeBasePath(basePath), nil
 }
 
 func (s *SettingService) GetTimeLocation() (*time.Location, error) {
@@ -765,7 +798,18 @@ func (s *SettingService) SetRestartXrayOnClientDisable(value bool) error {
 	return s.setBool("restartXrayOnClientDisable", value)
 }
 
+// GetIpLimitEnable reports whether the IP-limit feature is available. Always
+// true since the panel enforces limits via the core's online-stats API; on an
+// older core the job falls back to access-log parsing and warns there when the
+// log is missing, so the UI no longer hides the field behind that condition.
 func (s *SettingService) GetIpLimitEnable() (bool, error) {
+	return true, nil
+}
+
+// GetAccessLogEnable reports whether an Xray access log is configured. Used by
+// the UI for features that genuinely read the log file (the xray log viewer) —
+// distinct from IP limiting, which works without it.
+func (s *SettingService) GetAccessLogEnable() (bool, error) {
 	accessLogPath, err := xray.GetAccessLogPath()
 	if err != nil {
 		return false, err
@@ -989,25 +1033,26 @@ func (s *SettingService) BuildSubURIBase(host string) string {
 func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 	type settingFunc func() (any, error)
 	settings := map[string]settingFunc{
-		"expireDiff":     func() (any, error) { return s.GetExpireDiff() },
-		"trafficDiff":    func() (any, error) { return s.GetTrafficDiff() },
-		"pageSize":       func() (any, error) { return s.GetPageSize() },
-		"defaultCert":    func() (any, error) { return s.GetCertFile() },
-		"defaultKey":     func() (any, error) { return s.GetKeyFile() },
-		"tgBotEnable":    func() (any, error) { return s.GetTgbotEnabled() },
-		"subThemeDir":    func() (any, error) { return s.GetSubThemeDir() },
-		"subEnable":      func() (any, error) { return s.GetSubEnable() },
-		"subJsonEnable":  func() (any, error) { return s.GetSubJsonEnable() },
-		"subClashEnable": func() (any, error) { return s.GetSubClashEnable() },
-		"subTitle":       func() (any, error) { return s.GetSubTitle() },
-		"subURI":         func() (any, error) { return s.GetSubURI() },
-		"subJsonURI":     func() (any, error) { return s.GetSubJsonURI() },
-		"subClashURI":    func() (any, error) { return s.GetSubClashURI() },
-		"remarkModel":    func() (any, error) { return s.GetRemarkModel() },
-		"datepicker":     func() (any, error) { return s.GetDatepicker() },
-		"ipLimitEnable":  func() (any, error) { return s.GetIpLimitEnable() },
-		"webDomain":      func() (any, error) { return s.GetWebDomain() },
-		"subDomain":      func() (any, error) { return s.GetSubDomain() },
+		"expireDiff":      func() (any, error) { return s.GetExpireDiff() },
+		"trafficDiff":     func() (any, error) { return s.GetTrafficDiff() },
+		"pageSize":        func() (any, error) { return s.GetPageSize() },
+		"defaultCert":     func() (any, error) { return s.GetCertFile() },
+		"defaultKey":      func() (any, error) { return s.GetKeyFile() },
+		"tgBotEnable":     func() (any, error) { return s.GetTgbotEnabled() },
+		"subThemeDir":     func() (any, error) { return s.GetSubThemeDir() },
+		"subEnable":       func() (any, error) { return s.GetSubEnable() },
+		"subJsonEnable":   func() (any, error) { return s.GetSubJsonEnable() },
+		"subClashEnable":  func() (any, error) { return s.GetSubClashEnable() },
+		"subTitle":        func() (any, error) { return s.GetSubTitle() },
+		"subURI":          func() (any, error) { return s.GetSubURI() },
+		"subJsonURI":      func() (any, error) { return s.GetSubJsonURI() },
+		"subClashURI":     func() (any, error) { return s.GetSubClashURI() },
+		"remarkModel":     func() (any, error) { return s.GetRemarkModel() },
+		"datepicker":      func() (any, error) { return s.GetDatepicker() },
+		"ipLimitEnable":   func() (any, error) { return s.GetIpLimitEnable() },
+		"accessLogEnable": func() (any, error) { return s.GetAccessLogEnable() },
+		"webDomain":       func() (any, error) { return s.GetWebDomain() },
+		"subDomain":       func() (any, error) { return s.GetSubDomain() },
 	}
 
 	result := make(map[string]any)

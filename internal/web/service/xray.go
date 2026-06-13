@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -115,6 +116,8 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		return nil, err
 	}
 	xrayConfig.LogConfig = resolveXrayLogPaths(xrayConfig.LogConfig)
+	xrayConfig.API = ensureAPIServices(xrayConfig.API)
+	xrayConfig.Policy = ensureStatsPolicy(xrayConfig.Policy)
 
 	_, _, _ = s.inboundService.AddTraffic(nil, nil)
 
@@ -272,7 +275,193 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		mergeSubscriptionOutbounds(xrayConfig, prepend, appendList)
 	}
 
+	// Route opted-in local mtproto inbounds through the core's router. Each one
+	// gets a loopback SOCKS bridge — tagged with the inbound's own tag so it is
+	// matchable in routing rules — that its mtg sidecar dials Telegram through.
+	// Done after the subscription merge so a selected subscription outbound (or
+	// balancer) is a valid rule target.
+	for i := range inbounds {
+		inbound := inbounds[i]
+		if inbound.Protocol != model.MTProto || !inbound.Enable || inbound.NodeID != nil {
+			continue
+		}
+		injectMtprotoEgress(xrayConfig, inbound)
+	}
+
+	// Wire the panel's own HTTP traffic through the configured outbound, after
+	// the subscription merge so subscription outbound tags are valid targets.
+	if egressTag, err := s.settingService.GetPanelOutbound(); err != nil {
+		logger.Warning("read panelOutbound setting failed:", err)
+	} else if egressTag != "" {
+		injectPanelEgress(xrayConfig, egressTag)
+	}
+
 	return xrayConfig, nil
+}
+
+// PanelEgressInboundTag is the tag of the loopback SOCKS inbound injected into
+// the generated config when a panel outbound is configured. The panel's own
+// HTTP clients dial through it to egress via the chosen outbound.
+const PanelEgressInboundTag = "panel-egress"
+
+// panelEgressBasePort is the first port tried for the egress bridge; ports
+// already taken by other inbounds in the generated config are skipped.
+const panelEgressBasePort = 62790
+
+// injectPanelEgress appends a loopback SOCKS inbound to the generated config
+// and prepends a routing rule sending it to outboundTag. Both live only in the
+// generated config — the stored template is never modified — and both are
+// hot-appliable, so changing the panel outbound never restarts the core.
+func injectPanelEgress(cfg *xray.Config, outboundTag string) {
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag == PanelEgressInboundTag {
+			logger.Warning("panel egress: inbound tag [", PanelEgressInboundTag, "] already exists, skipping injection")
+			return
+		}
+	}
+
+	// The rule must exist before the inbound takes traffic, otherwise the
+	// bridge would silently egress through the default outbound instead.
+	routing := map[string]any{}
+	if len(cfg.RouterConfig) > 0 {
+		if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+			logger.Warning("panel egress: routing section is unparsable, skipping injection:", err)
+			return
+		}
+	}
+	rules, _ := routing["rules"].([]any)
+	rule := map[string]any{
+		"type":       "field",
+		"inboundTag": []any{PanelEgressInboundTag},
+	}
+	// The configured tag may name a routing balancer instead of a concrete
+	// outbound. A field rule can target either, so emit the matching key —
+	// balancerTag load-balances the panel's own traffic across the balancer's
+	// outbounds, while a plain outbound tag keeps the original behavior.
+	if routingTagIsBalancer(routing, outboundTag) {
+		rule["balancerTag"] = outboundTag
+	} else {
+		rule["outboundTag"] = outboundTag
+	}
+	routing["rules"] = append([]any{rule}, rules...)
+	newRouting, err := json.Marshal(routing)
+	if err != nil {
+		logger.Warning("panel egress: failed to rebuild routing section, skipping injection:", err)
+		return
+	}
+	cfg.RouterConfig = json_util.RawMessage(newRouting)
+
+	used := make(map[int]struct{}, len(cfg.InboundConfigs))
+	for i := range cfg.InboundConfigs {
+		used[cfg.InboundConfigs[i].Port] = struct{}{}
+	}
+	port := panelEgressBasePort
+	for {
+		if _, taken := used[port]; !taken {
+			break
+		}
+		port++
+	}
+
+	cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
+		Listen:   json_util.RawMessage(`"127.0.0.1"`),
+		Port:     port,
+		Protocol: "socks",
+		Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
+		Tag:      PanelEgressInboundTag,
+	})
+}
+
+// routingTagIsBalancer reports whether tag names a balancer in the parsed
+// routing section. The panel-egress rule targets a balancer via balancerTag and
+// a concrete outbound via outboundTag, so the caller picks the key from this.
+func routingTagIsBalancer(routing map[string]any, tag string) bool {
+	if tag == "" {
+		return false
+	}
+	balancers, ok := routing["balancers"].([]any)
+	if !ok {
+		return false
+	}
+	for _, b := range balancers {
+		bm, ok := b.(map[string]any)
+		if !ok {
+			continue
+		}
+		if t, ok := bm["tag"].(string); ok && t == tag {
+			return true
+		}
+	}
+	return false
+}
+
+// mtprotoEgressSocksSettings is the loopback SOCKS server a routed mtproto
+// inbound exposes for its mtg sidecar to dial Telegram through. mtg makes plain
+// TCP connections, so UDP is left off (matching the panel egress bridge).
+const mtprotoEgressSocksSettings = `{"auth":"noauth","udp":false}`
+
+// injectMtprotoEgress wires one routed mtproto inbound into the generated
+// config: it appends a loopback SOCKS inbound (tagged with the inbound's own tag,
+// on the egress port persisted in settings) and, when an outbound is selected,
+// prepends a routing rule sending that tag to it. Both live only in the generated
+// config — the stored template is untouched — and both are hot-appliable, so
+// toggling routing never forces a full Xray restart. Mirrors injectPanelEgress.
+func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
+	var parsed struct {
+		RouteThroughXray bool   `json:"routeThroughXray"`
+		RouteXrayPort    int    `json:"routeXrayPort"`
+		OutboundTag      string `json:"outboundTag"`
+	}
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
+		return
+	}
+	if !parsed.RouteThroughXray || parsed.RouteXrayPort <= 0 || inbound.Tag == "" {
+		return
+	}
+	tag := inbound.Tag
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag == tag {
+			logger.Warning("mtproto egress: inbound tag [", tag, "] already present in generated config, skipping bridge")
+			return
+		}
+	}
+
+	if parsed.OutboundTag != "" {
+		routing := map[string]any{}
+		parseOK := true
+		if len(cfg.RouterConfig) > 0 {
+			if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+				logger.Warning("mtproto egress: routing section is unparsable, skipping rule:", err)
+				parseOK = false
+			}
+		}
+		if parseOK {
+			rules, _ := routing["rules"].([]any)
+			rule := map[string]any{
+				"type":       "field",
+				"inboundTag": []any{tag},
+			}
+			if routingTagIsBalancer(routing, parsed.OutboundTag) {
+				rule["balancerTag"] = parsed.OutboundTag
+			} else {
+				rule["outboundTag"] = parsed.OutboundTag
+			}
+			routing["rules"] = append([]any{rule}, rules...)
+			if newRouting, err := json.Marshal(routing); err == nil {
+				cfg.RouterConfig = json_util.RawMessage(newRouting)
+			} else {
+				logger.Warning("mtproto egress: failed to rebuild routing section, skipping rule:", err)
+			}
+		}
+	}
+
+	cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
+		Listen:   json_util.RawMessage(`"127.0.0.1"`),
+		Port:     parsed.RouteXrayPort,
+		Protocol: "socks",
+		Settings: json_util.RawMessage(mtprotoEgressSocksSettings),
+		Tag:      tag,
+	})
 }
 
 // mergeSubscriptionOutbounds appends the subscription outbounds to the
@@ -306,11 +495,92 @@ func mergeSubscriptionOutbounds(cfg *xray.Config, prepend, appendList []any) {
 	cfg.OutboundConfigs = json_util.RawMessage(combined)
 }
 
-// resolveXrayLogPaths rewrites relative `log.access` / `log.error` values to
-// absolute paths under config.GetLogFolder(), so Xray writes those files
-// alongside the panel's other logs regardless of the working directory the
-// panel was launched from. Values that are empty, "none", or already absolute
-// are left untouched, as are unparseable log blocks.
+// ensureAPIServices guarantees the gRPC services the panel depends on are
+// listed in the generated config's api block: HandlerService and StatsService
+// have always been required for inbound/user management and traffic polling,
+// and RoutingService enables hot routing reload on templates saved before it
+// was added to the default template. The stored template itself is not
+// modified — only the generated runtime config.
+func ensureAPIServices(api json_util.RawMessage) json_util.RawMessage {
+	if len(api) == 0 {
+		// No api block means the panel's API integration is deliberately
+		// disabled; don't resurrect it behind the user's back.
+		return api
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(api, &parsed); err != nil {
+		return api
+	}
+	services, _ := parsed["services"].([]any)
+	have := make(map[string]bool, len(services))
+	for _, svc := range services {
+		if name, ok := svc.(string); ok {
+			have[name] = true
+		}
+	}
+	added := false
+	for _, name := range []string{"HandlerService", "StatsService", "RoutingService"} {
+		if !have[name] {
+			services = append(services, name)
+			added = true
+		}
+	}
+	if !added {
+		return api
+	}
+	parsed["services"] = services
+	out, err := json.Marshal(parsed)
+	if err != nil {
+		return api
+	}
+	return out
+}
+
+// ensureStatsPolicy guarantees every policy level in the generated config has
+// statsUserOnline enabled, so the core tracks per-email online IPs for the
+// panel's online view and access-log-free IP limiting. Generated clients carry
+// no explicit level, so level "0" is created when absent. The flag is panel
+// infrastructure and is forced on even over an explicit false in the template,
+// same as the api services above. An entirely missing or unparsable policy
+// block is left alone; the stored template itself is never modified — only the
+// generated runtime config.
+func ensureStatsPolicy(policy json_util.RawMessage) json_util.RawMessage {
+	if len(policy) == 0 {
+		return policy
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(policy, &parsed); err != nil {
+		return policy
+	}
+	levels, _ := parsed["levels"].(map[string]any)
+	if levels == nil {
+		levels = make(map[string]any)
+	}
+	if _, ok := levels["0"]; !ok {
+		levels["0"] = map[string]any{}
+	}
+	changed := false
+	for _, raw := range levels {
+		level, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		if enabled, ok := level["statsUserOnline"].(bool); !ok || !enabled {
+			level["statsUserOnline"] = true
+			changed = true
+		}
+	}
+	if !changed {
+		return policy
+	}
+	parsed["levels"] = levels
+	out, err := json.Marshal(parsed)
+	if err != nil {
+		return policy
+	}
+	return out
+}
+
 func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 	if len(logCfg) == 0 {
 		return logCfg
@@ -329,21 +599,15 @@ func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 		if trimmed == "" || strings.EqualFold(trimmed, "none") {
 			continue
 		}
-		if filepath.IsAbs(trimmed) {
+		base := path.Base(filepath.ToSlash(trimmed))
+		if base == "" || base == "." || base == ".." || base == "/" {
 			continue
 		}
-		cleaned := filepath.ToSlash(filepath.Clean(trimmed))
-		base := filepath.Base(cleaned)
-		if base == "" || base == "." || base == string(filepath.Separator) {
+		confined := filepath.Join(config.GetLogFolder(), base)
+		if confined == trimmed {
 			continue
 		}
-		// Only rewrite bare names ("./access.log", "access.log").
-		// A nested relative path like "./logs/foo.log" is treated as
-		// a deliberate user choice and left alone.
-		if cleaned != base {
-			continue
-		}
-		parsed[key] = filepath.Join(config.GetLogFolder(), base)
+		parsed[key] = confined
 		changed = true
 	}
 	if !changed {
@@ -378,7 +642,118 @@ func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, 
 	return traffic, clientTraffic, nil
 }
 
-// RestartXray restarts the Xray process, optionally forcing a restart even if config unchanged.
+// GetOnlineUsers returns connection-based online users (email + source IPs)
+// from the running core's online-stats API. ok=false means the API is not
+// available — xray isn't running or the core predates the online-stats RPCs —
+// and callers must use the legacy traffic-delta / access-log paths. The
+// capability is probed lazily per process: an Unimplemented answer pins this
+// core as unsupported until the next restart, while transient errors leave the
+// capability undecided so a flaky poll can't lock in legacy mode.
+func (s *XrayService) GetOnlineUsers() ([]xray.OnlineUser, bool, error) {
+	if !s.IsXrayRunning() {
+		return nil, false, nil
+	}
+	if p.OnlineAPISupport() == xray.OnlineAPIUnsupported {
+		return nil, false, nil
+	}
+	if err := s.xrayAPI.Init(p.GetAPIPort()); err != nil {
+		logger.Debug("Failed to initialize Xray API:", err)
+		return nil, false, err
+	}
+	defer s.xrayAPI.Close()
+
+	users, err := s.xrayAPI.GetOnlineUsers()
+	if err != nil {
+		if xray.IsUnimplementedErr(err) {
+			p.SetOnlineAPISupport(xray.OnlineAPIUnsupported)
+			logger.Info("xray core does not support the online-stats API; falling back to traffic-delta onlines and access-log IP limit")
+			return nil, false, nil
+		}
+		logger.Debug("Failed to fetch Xray online users:", err)
+		return nil, false, err
+	}
+	if p.OnlineAPISupport() == xray.OnlineAPIUnknown {
+		p.SetOnlineAPISupport(xray.OnlineAPISupported)
+		logger.Info("xray core supports the online-stats API; using connection-based onlines and access-log-free IP limit")
+	}
+	return users, true, nil
+}
+
+// BalancerStatus is the live view of one balancer for the panel UI. Running
+// is false when the balancer isn't present in the running core (e.g. xray is
+// stopped or the balancer hasn't been saved/applied yet).
+type BalancerStatus struct {
+	Tag      string   `json:"tag"`
+	Running  bool     `json:"running"`
+	Override string   `json:"override"`
+	Selected []string `json:"selected"`
+}
+
+// GetBalancersStatus queries the running core for the live state of the
+// given balancer tags. Per-tag failures are reported as Running=false rather
+// than failing the whole call, so the UI can render saved-but-not-applied
+// balancers alongside live ones.
+func (s *XrayService) GetBalancersStatus(tags []string) ([]BalancerStatus, error) {
+	statuses := make([]BalancerStatus, 0, len(tags))
+	if !s.IsXrayRunning() {
+		for _, tag := range tags {
+			statuses = append(statuses, BalancerStatus{Tag: tag})
+		}
+		return statuses, nil
+	}
+	if err := s.xrayAPI.Init(p.GetAPIPort()); err != nil {
+		return nil, err
+	}
+	defer s.xrayAPI.Close()
+
+	for _, tag := range tags {
+		info, err := s.xrayAPI.GetBalancerInfo(tag)
+		if err != nil {
+			logger.Debug("get balancer info [", tag, "] failed:", err)
+			statuses = append(statuses, BalancerStatus{Tag: tag})
+			continue
+		}
+		statuses = append(statuses, BalancerStatus{
+			Tag:      tag,
+			Running:  true,
+			Override: info.Override,
+			Selected: info.Selected,
+		})
+	}
+	return statuses, nil
+}
+
+// OverrideBalancer forces a balancer in the running core to use the given
+// outbound tag; an empty target clears the override.
+func (s *XrayService) OverrideBalancer(tag, target string) error {
+	if !s.IsXrayRunning() {
+		return errors.New("xray is not running")
+	}
+	if err := s.xrayAPI.Init(p.GetAPIPort()); err != nil {
+		return err
+	}
+	defer s.xrayAPI.Close()
+	return s.xrayAPI.SetBalancerTarget(tag, target)
+}
+
+// TestRoute asks the running core which outbound its router picks for the
+// described connection.
+func (s *XrayService) TestRoute(req xray.RouteTestRequest) (*xray.RouteTestResult, error) {
+	if !s.IsXrayRunning() {
+		return nil, errors.New("xray is not running")
+	}
+	if err := s.xrayAPI.Init(p.GetAPIPort()); err != nil {
+		return nil, err
+	}
+	defer s.xrayAPI.Close()
+	return s.xrayAPI.TestRoute(req)
+}
+
+// RestartXray reconciles the running Xray process with the current desired
+// config. When isForce is false it first tries to apply the changes through
+// the Xray gRPC API without restarting the process (inbounds, outbounds and
+// routing rules/balancers are hot-reloadable); only changes the core cannot
+// take at runtime — or a force request — stop and restart the process.
 func (s *XrayService) RestartXray(isForce bool) error {
 	lock.Lock()
 	defer lock.Unlock()
@@ -391,8 +766,13 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	}
 
 	if s.IsXrayRunning() {
-		if !isForce && p.GetConfig().Equals(xrayConfig) && !isNeedXrayRestart.Load() {
+		configUnchanged := p.GetConfig().Equals(xrayConfig)
+		if !isForce && configUnchanged && !isNeedXrayRestart.Load() {
 			logger.Debug("It does not need to restart Xray")
+			return nil
+		}
+		if !isForce && !configUnchanged && s.tryHotApply(xrayConfig) {
+			logger.Info("Xray config changes applied through the core API, no restart needed")
 			return nil
 		}
 		p.Stop()
@@ -407,6 +787,112 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	}
 
 	return nil
+}
+
+// tryHotApply attempts to reconcile the running Xray instance with newCfg
+// through the core gRPC API (HandlerService for inbounds/outbounds,
+// RoutingService for rules/balancers). It returns true when the running
+// instance now matches newCfg; on any failure it returns false and the
+// caller falls back to a full process restart, which cleans up whatever was
+// partially applied. Callers must hold the package-level lock.
+func (s *XrayService) tryHotApply(newCfg *xray.Config) bool {
+	oldCfg := p.GetConfig()
+	diff, ok := xray.ComputeHotDiff(oldCfg, newCfg)
+	if !ok {
+		logger.Debug("hot apply: config change is not API-applicable, falling back to restart")
+		return false
+	}
+	if diff.Empty() {
+		p.SetConfig(newCfg)
+		return true
+	}
+
+	apiPort := p.GetAPIPort()
+	if apiPort <= 0 {
+		return false
+	}
+	// A dedicated client: s.xrayAPI may be in use by traffic polling on other
+	// service instances and is reset around restarts.
+	hotAPI := xray.XrayAPI{}
+	if err := hotAPI.Init(apiPort); err != nil {
+		logger.Debug("hot apply: failed to init xray api:", err)
+		return false
+	}
+	defer hotAPI.Close()
+
+	// Removals first so changed handlers and port swaps never collide with
+	// the additions that follow.
+	for _, tag := range diff.RemovedInboundTags {
+		if err := hotAPI.DelInbound(tag); err != nil && !xray.IsMissingHandlerErr(err) {
+			logger.Info("hot apply: remove inbound [", tag, "] failed:", err)
+			return false
+		}
+	}
+	for _, tag := range diff.RemovedOutboundTags {
+		if err := hotAPI.DelOutbound(tag); err != nil && !xray.IsMissingHandlerErr(err) {
+			logger.Info("hot apply: remove outbound [", tag, "] failed:", err)
+			return false
+		}
+	}
+	for _, ob := range diff.AddedOutbounds {
+		if err := addOutboundReconciling(&hotAPI, ob); err != nil {
+			logger.Info("hot apply: add outbound failed:", err)
+			return false
+		}
+	}
+	for _, ib := range diff.AddedInbounds {
+		if err := addInboundReconciling(&hotAPI, ib); err != nil {
+			logger.Info("hot apply: add inbound failed:", err)
+			return false
+		}
+	}
+	if diff.RoutingConfig != nil {
+		if err := hotAPI.ApplyRoutingConfig(diff.RoutingConfig); err != nil {
+			logger.Info("hot apply: apply routing config failed:", err)
+			return false
+		}
+	}
+
+	p.SetConfig(newCfg)
+	return true
+}
+
+// addInboundReconciling adds an inbound, and on a tag conflict (the handler
+// was already created through the runtime API while the stored snapshot was
+// stale) replaces the existing handler instead.
+func addInboundReconciling(api *xray.XrayAPI, inbound []byte) error {
+	err := api.AddInbound(inbound)
+	if err == nil || !xray.IsExistingTagErr(err) {
+		return err
+	}
+	var meta struct {
+		Tag string `json:"tag"`
+	}
+	if jsonErr := json.Unmarshal(inbound, &meta); jsonErr != nil || meta.Tag == "" {
+		return err
+	}
+	if delErr := api.DelInbound(meta.Tag); delErr != nil && !xray.IsMissingHandlerErr(delErr) {
+		return delErr
+	}
+	return api.AddInbound(inbound)
+}
+
+// addOutboundReconciling mirrors addInboundReconciling for outbounds.
+func addOutboundReconciling(api *xray.XrayAPI, outbound []byte) error {
+	err := api.AddOutbound(outbound)
+	if err == nil || !xray.IsExistingTagErr(err) {
+		return err
+	}
+	var meta struct {
+		Tag string `json:"tag"`
+	}
+	if jsonErr := json.Unmarshal(outbound, &meta); jsonErr != nil || meta.Tag == "" {
+		return err
+	}
+	if delErr := api.DelOutbound(meta.Tag); delErr != nil && !xray.IsMissingHandlerErr(delErr) {
+		return delErr
+	}
+	return api.AddOutbound(outbound)
 }
 
 // StopXray stops the running Xray process.

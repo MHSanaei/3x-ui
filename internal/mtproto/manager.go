@@ -32,6 +32,12 @@ type Instance struct {
 	FrontingIP            string
 	FrontingPort          int
 	FrontingProxyProtocol bool
+
+	// When RouteThroughXray is set, mtg dials Telegram through the loopback
+	// SOCKS bridge the panel injects into the Xray config at XrayRoutePort, so
+	// the egress obeys the core's routing rules instead of going out directly.
+	RouteThroughXray bool
+	XrayRoutePort    int
 }
 
 func (inst Instance) bindTo() string {
@@ -54,6 +60,8 @@ func (inst Instance) fingerprint() string {
 		inst.FrontingIP,
 		strconv.Itoa(inst.FrontingPort),
 		strconv.FormatBool(inst.FrontingProxyProtocol),
+		strconv.FormatBool(inst.RouteThroughXray),
+		strconv.Itoa(inst.XrayRoutePort),
 	}, "|")
 }
 
@@ -117,6 +125,8 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 			Port          int    `json:"port"`
 			ProxyProtocol bool   `json:"proxyProtocol"`
 		} `json:"domainFronting"`
+		RouteThroughXray bool `json:"routeThroughXray"`
+		RouteXrayPort    int  `json:"routeXrayPort"`
 	}
 	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
 		return Instance{}, false
@@ -136,6 +146,8 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		FrontingIP:            parsed.DomainFronting.IP,
 		FrontingPort:          parsed.DomainFronting.Port,
 		FrontingProxyProtocol: parsed.DomainFronting.ProxyProtocol,
+		RouteThroughXray:      parsed.RouteThroughXray,
+		XrayRoutePort:         parsed.RouteXrayPort,
 	}, true
 }
 
@@ -172,7 +184,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		cur.proc.Stop()
 		delete(m.procs, inst.Id)
 	}
-	metricsPort, err := freeLocalPort()
+	metricsPort, err := FreeLocalPort()
 	if err != nil {
 		return err
 	}
@@ -307,7 +319,10 @@ func (m *Manager) CollectTraffic() []Traffic {
 	return out
 }
 
-func freeLocalPort() (int, error) {
+// FreeLocalPort asks the OS for an unused loopback TCP port. It is used both
+// for mtg's metrics endpoint and to allocate the per-inbound SOCKS egress
+// bridge port persisted into mtproto inbound settings.
+func FreeLocalPort() (int, error) {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return 0, err
@@ -344,6 +359,12 @@ func renderConfig(inst Instance, metricsPort int) string {
 		if inst.FrontingProxyProtocol {
 			b.WriteString("proxy-protocol = true\n")
 		}
+	}
+	// When the inbound opts into Xray routing, mtg reaches Telegram through the
+	// loopback SOCKS bridge the panel injects into the running Xray config. mtg
+	// only supports SOCKS5 upstreams, which is exactly what the bridge exposes.
+	if inst.RouteThroughXray && inst.XrayRoutePort > 0 {
+		fmt.Fprintf(&b, "\n[network]\nproxies = [\"socks5://127.0.0.1:%d\"]\n", inst.XrayRoutePort)
 	}
 	fmt.Fprintf(&b, "\n[stats.prometheus]\nenabled = true\nbind-to = \"127.0.0.1:%d\"\nhttp-path = \"/metrics\"\nmetric-prefix = \"mtg\"\n", metricsPort)
 	return b.String()

@@ -26,7 +26,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapUserFilter": "",
     "ldapVlessField": "",
     "pageSize": 0,
-    "panelProxy": "",
+    "panelOutbound": "",
     "remarkModel": "",
     "restartXrayOnClientDisable": false,
     "sessionMaxAge": 1,
@@ -115,7 +115,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapUserFilter": "",
     "ldapVlessField": "",
     "pageSize": 0,
-    "panelProxy": "",
+    "panelOutbound": "",
     "remarkModel": "",
     "restartXrayOnClientDisable": false,
     "sessionMaxAge": 1,
@@ -250,17 +250,6 @@ export const EXAMPLES: Record<string, unknown> = {
     "up": 1048576,
     "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
   },
-  "CustomGeoResource": {
-    "alias": "",
-    "createdAt": 0,
-    "id": 0,
-    "lastModified": "",
-    "lastUpdatedAt": 0,
-    "localPath": "",
-    "type": "",
-    "updatedAt": 0,
-    "url": ""
-  },
   "FallbackParentInfo": {
     "masterId": 0,
     "path": ""
@@ -299,8 +288,11 @@ export const EXAMPLES: Record<string, unknown> = {
     "protocol": "vless",
     "remark": "VLESS-443",
     "settings": null,
+    "shareAddr": "",
+    "shareAddrStrategy": "node",
     "sniffing": null,
     "streamSettings": null,
+    "subSortIndex": 1,
     "tag": "in-443-tcp",
     "total": 0,
     "trafficReset": "never",
@@ -324,6 +316,7 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "InboundOption": {
     "id": 1,
+    "nodeId": null,
     "port": 443,
     "protocol": "vless",
     "remark": "VLESS-443",
@@ -351,6 +344,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "guid": "",
     "id": 1,
     "inboundCount": 5,
+    "inboundSyncMode": "all",
+    "inboundTags": [
+      ""
+    ],
     "lastError": "",
     "lastHeartbeat": 1700000000,
     "latencyMs": 42,

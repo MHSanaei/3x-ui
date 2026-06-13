@@ -146,7 +146,7 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 }
 
 func clientWithInboundFlow(c model.Client, ib *model.Inbound) model.Client {
-	if !inboundCanEnableTlsFlow(string(ib.Protocol), ib.StreamSettings) {
+	if !inboundCanEnableTlsFlow(string(ib.Protocol), ib.StreamSettings, ib.Settings) {
 		c.Flow = ""
 	}
 	return c
@@ -411,6 +411,9 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		if err := db.Where("email = ?", existing.Email).Delete(&xray.ClientTraffic{}).Error; err != nil {
 			return needRestart, err
 		}
+		if err := clearGlobalTraffic(db, existing.Email); err != nil {
+			return needRestart, err
+		}
 		if err := db.Where("client_email = ?", existing.Email).Delete(&model.InboundClientIps{}).Error; err != nil {
 			return needRestart, err
 		}
@@ -548,6 +551,9 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 	if !keepTraffic {
 		db := database.GetDB()
 		if err := db.Where("email = ?", email).Delete(&xray.ClientTraffic{}).Error; err != nil {
+			return needRestart, err
+		}
+		if err := clearGlobalTraffic(db, email); err != nil {
 			return needRestart, err
 		}
 		if err := db.Where("client_email = ?", email).Delete(&model.InboundClientIps{}).Error; err != nil {

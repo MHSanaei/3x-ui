@@ -3,6 +3,8 @@ import { Input, Modal } from 'antd';
 import type { InputRef } from 'antd';
 import { useTranslation } from 'react-i18next';
 
+import JsonEditor from '@/components/form/JsonEditor';
+
 interface PromptModalProps {
   open: boolean;
   onClose: () => void;
@@ -11,6 +13,7 @@ interface PromptModalProps {
   type?: 'input' | 'textarea';
   initialValue?: string;
   loading?: boolean;
+  json?: boolean;
   onConfirm: (value: string) => void;
 }
 
@@ -22,6 +25,7 @@ export default function PromptModal({
   type = 'input',
   initialValue = '',
   loading = false,
+  json = false,
   onConfirm,
 }: PromptModalProps) {
   const { t } = useTranslation();
@@ -63,7 +67,9 @@ export default function PromptModal({
       onCancel={onClose}
       destroyOnHidden
     >
-      {type === 'textarea' ? (
+      {json ? (
+        <JsonEditor value={value} onChange={setValue} minHeight="240px" maxHeight="60vh" />
+      ) : type === 'textarea' ? (
         <Input.TextArea
           ref={(el) => { textareaRef.current = (el as unknown as { resizableTextArea?: { textArea: HTMLTextAreaElement } })?.resizableTextArea?.textArea ?? null; }}
           value={value}

@@ -43,6 +43,8 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
 
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
   const [inboundOptions, setInboundOptions] = useState<{ label: string; value: string }[]>([]);
+  const [outboundTagList, setOutboundTagList] = useState<string[]>([]);
+  const [balancerTagList, setBalancerTagList] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +66,64 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
     })();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      // Candidates for the panel egress picker: template outbounds plus
+      // subscription-derived outbounds, and routing balancers. The panel egress
+      // is injected as a routing rule, so a balancer tag is a valid target
+      // (it load-balances the panel's own traffic). The geodata picker, by
+      // contrast, dials a forced tag and can only use a concrete outbound.
+      const msg = await HttpUtil.post('/panel/api/xray/', undefined, { silent: true }) as ApiMsg<string>;
+      if (cancelled || !msg?.success || typeof msg.obj !== 'string') return;
+      try {
+        const payload = JSON.parse(msg.obj) as Record<string, unknown>;
+        const template = (payload.xraySetting || {}) as Record<string, unknown>;
+        const tags = new Set<string>();
+        const outbounds = Array.isArray(template.outbounds) ? template.outbounds : [];
+        for (const o of outbounds) {
+          if (!o || typeof o !== 'object') continue;
+          const rec = o as Record<string, unknown>;
+          if (rec.protocol === 'blackhole') continue; // dropping traffic is never a useful egress
+          const tag = rec.tag;
+          if (typeof tag === 'string' && tag) tags.add(tag);
+        }
+        const subTags = Array.isArray(payload.subscriptionOutboundTags) ? payload.subscriptionOutboundTags : [];
+        for (const tag of subTags) {
+          if (typeof tag === 'string' && tag) tags.add(tag);
+        }
+        const balancerTags: string[] = [];
+        const routing = (template.routing || {}) as Record<string, unknown>;
+        const balancers = Array.isArray(routing.balancers) ? routing.balancers : [];
+        for (const b of balancers) {
+          if (!b || typeof b !== 'object') continue;
+          const tag = (b as Record<string, unknown>).tag;
+          if (typeof tag === 'string' && tag && !tags.has(tag)) balancerTags.push(tag);
+        }
+        setOutboundTagList([...tags]);
+        setBalancerTagList(balancerTags);
+      } catch {
+        setOutboundTagList([]);
+        setBalancerTagList([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Outbound tags and balancer tags share one picker. When balancers exist they
+  // get their own labeled group so it's clear the selection routes through a
+  // balancer rather than a single outbound.
+  const outboundOptions = useMemo<
+    ({ label: string; value: string } | { label: string; options: { label: string; value: string }[] })[]
+  >(() => {
+    const outOpts = outboundTagList.map((tag) => ({ label: tag, value: tag }));
+    if (balancerTagList.length === 0) return outOpts;
+    return [
+      { label: t('pages.xray.Outbounds'), options: outOpts },
+      { label: t('pages.xray.Balancers'), options: balancerTagList.map((tag) => ({ label: tag, value: tag })) },
+    ];
+  }, [outboundTagList, balancerTagList, t]);
 
   const ldapInboundTagList = useMemo(() => {
     const csv = allSetting.ldapInboundTags || '';
@@ -133,17 +193,26 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
               />
             </SettingListItem>
 
-            <SettingListItem paddings="small" title={t('pages.settings.panelProxy')} description={t('pages.settings.panelProxyDesc')}>
-              <Input
-                value={allSetting.panelProxy}
-                placeholder="socks5:// or http://user:pass@host:port"
-                onChange={(e) => updateSetting({ panelProxy: e.target.value })}
+            <SettingListItem paddings="small" title={t('pages.settings.panelOutbound')} description={t('pages.settings.panelOutboundDesc')}>
+              <Select
+                style={{ width: '100%' }}
+                allowClear
+                showSearch
+                value={allSetting.panelOutbound || undefined}
+                placeholder={t('pages.settings.panelOutboundPh')}
+                options={outboundOptions}
+                onChange={(v) => updateSetting({ panelOutbound: (v as string | undefined) || '' })}
               />
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.pageSize')} description={t('pages.settings.pageSizeDesc')}>
               <InputNumber value={allSetting.pageSize} min={0} max={1000} step={5} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ pageSize: Number(v) || 0 })} />
+            </SettingListItem>
+
+            <SettingListItem paddings="small" title={t('pages.settings.restartXrayOnClientDisable')} description={t('pages.settings.restartXrayOnClientDisableDesc')}>
+              <Switch checked={allSetting.restartXrayOnClientDisable}
+                onChange={(v) => updateSetting({ restartXrayOnClientDisable: v })} />
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.language')}>
@@ -202,10 +271,6 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 placeholder="(http|https)://domain[:port]/path/"
                 onChange={(e) => updateSetting({ externalTrafficInformURI: e.target.value })}
               />
-            </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.restartXrayOnClientDisable')} description={t('pages.settings.restartXrayOnClientDisableDesc')}>
-              <Switch checked={allSetting.restartXrayOnClientDisable}
-                onChange={(v) => updateSetting({ restartXrayOnClientDisable: v })} />
             </SettingListItem>
           </>
         ),

@@ -99,8 +99,6 @@ func TestAPIRoutesDocumented(t *testing.T) {
 			basePath = "/panel/api/setting"
 		case "xray_setting.go":
 			basePath = "/panel/api/xray"
-		case "custom_geo.go":
-			basePath = "/panel/api/custom-geo"
 		case "websocket.go":
 			basePath = ""
 		}

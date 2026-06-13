@@ -64,7 +64,7 @@ export default function IndexPage() {
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
-  const [ipLimitEnable, setIpLimitEnable] = useState(false);
+  const [accessLogEnable, setAccessLogEnable] = useState(false);
   const [panelUpdateInfo, setPanelUpdateInfo] = useState<PanelUpdateInfo>({
     currentVersion: '',
     latestVersion: '',
@@ -87,8 +87,8 @@ export default function IndexPage() {
   const [loadingTip, setLoadingTip] = useState(t('loading'));
 
   useEffect(() => {
-    HttpUtil.post<{ ipLimitEnable?: boolean }>('/panel/api/setting/defaultSettings').then((msg) => {
-      if (msg?.success && msg.obj) setIpLimitEnable(!!msg.obj.ipLimitEnable);
+    HttpUtil.post<{ accessLogEnable?: boolean }>('/panel/api/setting/defaultSettings').then((msg) => {
+      if (msg?.success && msg.obj) setAccessLogEnable(!!msg.obj.accessLogEnable);
     });
     HttpUtil.get<PanelUpdateInfo>('/panel/api/server/getPanelUpdateInfo').then((msg) => {
       if (msg?.success && msg.obj) setPanelUpdateInfo(msg.obj);
@@ -186,7 +186,7 @@ export default function IndexPage() {
                     <XrayStatusCard
                       status={status}
                       isMobile={isMobile}
-                      ipLimitEnable={ipLimitEnable}
+                      accessLogEnable={accessLogEnable}
                       onStopXray={stopXray}
                       onRestartXray={restartXray}
                       onOpenXrayLogs={() => setXrayLogsOpen(true)}

@@ -15,6 +15,13 @@ export interface NodeUpdateResult {
   error?: string;
 }
 
+export interface RemoteInboundOption {
+  tag: string;
+  remark?: string;
+  protocol?: string;
+  port?: number;
+}
+
 export function useNodeMutations() {
   const queryClient = useQueryClient();
   const invalidate = () => queryClient.invalidateQueries({ queryKey: keys.nodes.root() });
@@ -72,5 +79,7 @@ export function useNodeMutations() {
     },
     fetchFingerprint: (payload: Partial<NodeRecord>): Promise<Msg<string>> =>
       HttpUtil.post<string>('/panel/api/nodes/certFingerprint', payload),
+    fetchInbounds: (payload: Partial<NodeRecord>): Promise<Msg<RemoteInboundOption[]>> =>
+      HttpUtil.post<RemoteInboundOption[]>('/panel/api/nodes/inbounds', payload),
   };
 }

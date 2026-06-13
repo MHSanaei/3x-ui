@@ -1,5 +1,6 @@
-# Shell scripts must stay LF so the Docker build works when the repo is
-# checked out on Windows (CRLF breaks the script shebang -> exit 127).
 *.sh text eol=lf
 DockerInit.sh text eol=lf
 DockerEntrypoint.sh text eol=lf
+frontend/src/generated/** text eol=lf
+frontend/public/openapi.json text eol=lf
+frontend/src/test/__snapshots__/** text eol=lf

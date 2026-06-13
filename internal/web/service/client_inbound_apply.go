@@ -949,54 +949,78 @@ func (s *ClientService) SetClientEnableByEmail(inboundSvc *InboundService, clien
 // the matched client — that is the input contract UpdateInboundClient expects
 // (clients[0] is the new data; clientEmail locates the row to replace). It
 // backs the single-field by-email setters below.
+// applyClientFieldByEmail mutates a client field on every inbound the email is
+// attached to. A multi-inbound client is one logical identity: patching only
+// the first inbound's JSON would leave the siblings stale, and the next
+// SyncInbound over a stale sibling would revert the edit in the normalized
+// records (#5039).
 func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clientEmail string, mutate func(c map[string]any)) (bool, error) {
-	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
+	inboundIds, err := s.GetInboundIdsForEmail(database.GetDB(), clientEmail)
 	if err != nil {
 		return false, err
 	}
-	if inbound == nil {
-		return false, common.NewError("Inbound Not Found For Email:", clientEmail)
-	}
-
-	oldClients, err := inboundSvc.GetClients(inbound)
-	if err != nil {
-		return false, err
-	}
-
-	found := false
-	for _, oldClient := range oldClients {
-		if oldClient.Email == clientEmail {
-			found = true
-			break
+	if len(inboundIds) == 0 {
+		// Legacy fallback for clients that only live in the inbound JSON and
+		// were never normalized into client_inbounds.
+		_, inbound, gErr := inboundSvc.GetClientInboundByEmail(clientEmail)
+		if gErr != nil {
+			return false, gErr
 		}
+		if inbound == nil {
+			return false, common.NewError("Inbound Not Found For Email:", clientEmail)
+		}
+		inboundIds = []int{inbound.Id}
+	}
+
+	needRestart := false
+	found := false
+	for _, ibId := range inboundIds {
+		inbound, gErr := inboundSvc.GetInbound(ibId)
+		if gErr != nil {
+			return needRestart, gErr
+		}
+
+		var settings map[string]any
+		if uErr := json.Unmarshal([]byte(inbound.Settings), &settings); uErr != nil {
+			return needRestart, uErr
+		}
+		clients, _ := settings["clients"].([]any)
+		// UpdateInboundClient expects a single-client payload, so keep only the
+		// matching entry in the scratch copy; it splices the result back into
+		// the inbound's full client list itself.
+		var newClients []any
+		for client_index := range clients {
+			c, ok := clients[client_index].(map[string]any)
+			if !ok {
+				continue
+			}
+			if c["email"] == clientEmail {
+				mutate(c)
+				c["updated_at"] = time.Now().Unix() * 1000
+				newClients = append(newClients, any(c))
+			}
+		}
+		if len(newClients) == 0 {
+			continue
+		}
+		found = true
+		settings["clients"] = newClients
+		modifiedSettings, mErr := json.MarshalIndent(settings, "", "  ")
+		if mErr != nil {
+			return needRestart, mErr
+		}
+		inbound.Settings = string(modifiedSettings)
+		nr, uErr := s.UpdateInboundClient(inboundSvc, inbound, clientEmail)
+		if uErr != nil {
+			return needRestart, uErr
+		}
+		needRestart = needRestart || nr
 	}
 
 	if !found {
-		return false, common.NewError("Client Not Found For Email:", clientEmail)
+		return needRestart, common.NewError("Client Not Found For Email:", clientEmail)
 	}
-
-	var settings map[string]any
-	err = json.Unmarshal([]byte(inbound.Settings), &settings)
-	if err != nil {
-		return false, err
-	}
-	clients := settings["clients"].([]any)
-	var newClients []any
-	for client_index := range clients {
-		c := clients[client_index].(map[string]any)
-		if c["email"] == clientEmail {
-			mutate(c)
-			c["updated_at"] = time.Now().Unix() * 1000
-			newClients = append(newClients, any(c))
-		}
-	}
-	settings["clients"] = newClients
-	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return false, err
-	}
-	inbound.Settings = string(modifiedSettings)
-	return s.UpdateInboundClient(inboundSvc, inbound, clientEmail)
+	return needRestart, nil
 }
 
 func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, clientEmail string, count int) (bool, error) {

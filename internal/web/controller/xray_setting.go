@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/outbound"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/gin-gonic/gin"
 )
@@ -46,6 +48,10 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/update", a.updateSetting)
 	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
 	g.POST("/testOutbound", a.testOutbound)
+	g.POST("/testOutbounds", a.testOutbounds)
+	g.POST("/balancerStatus", a.balancerStatus)
+	g.POST("/balancerOverride", a.balancerOverride)
+	g.POST("/routeTest", a.routeTest)
 
 	// Outbound subscription (remote outbound lists)
 	g.GET("/outbound-subs", a.listOutboundSubs)
@@ -120,7 +126,9 @@ func (a *XraySettingController) getXraySetting(c *gin.Context) {
 	jsonObj(c, string(result), nil)
 }
 
-// updateSetting updates the Xray configuration settings.
+// updateSetting updates the Xray configuration settings and applies them to
+// the running core right away — through the gRPC API when only inbounds,
+// outbounds or routing rules changed, with a process restart otherwise.
 func (a *XraySettingController) updateSetting(c *gin.Context) {
 	xraySetting := c.PostForm("xraySetting")
 	if err := a.XraySettingService.SaveXraySetting(xraySetting); err != nil {
@@ -134,6 +142,13 @@ func (a *XraySettingController) updateSetting(c *gin.Context) {
 	if err := a.SettingService.SetXrayOutboundTestUrl(outboundTestUrl); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 		return
+	}
+	// Only reconcile a running core; a manually stopped xray stays stopped.
+	if a.XrayService.IsXrayRunning() {
+		if err := a.XrayService.RestartXray(false); err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+			return
+		}
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), nil)
 }
@@ -269,6 +284,110 @@ func (a *XraySettingController) testOutbound(c *gin.Context) {
 		return
 	}
 
+	jsonObj(c, result, nil)
+}
+
+// testOutbounds tests a batch of outbound configurations through one shared
+// temp xray instance and returns an array of results in input order.
+// Form "outbounds": JSON array of outbound configs (required).
+// Optional form "allOutbounds": JSON array of all outbounds; used to resolve sockopt.dialerProxy dependencies.
+// Optional form "mode": "tcp" for fast dial-only probes, anything else
+// (default) for real HTTP requests routed through each outbound.
+func (a *XraySettingController) testOutbounds(c *gin.Context) {
+	outboundsJSON := c.PostForm("outbounds")
+	allOutboundsJSON := c.PostForm("allOutbounds")
+	mode := c.PostForm("mode")
+
+	if outboundsJSON == "" {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewError("outbounds parameter is required"))
+		return
+	}
+
+	// Load the test URL from server settings to prevent SSRF via user-controlled URLs
+	testURL, _ := a.SettingService.GetXrayOutboundTestUrl()
+	testURL, err := service.SanitizePublicHTTPURL(testURL, false)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+
+	results, err := a.OutboundService.TestOutbounds(outboundsJSON, testURL, allOutboundsJSON, mode)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+
+	jsonObj(c, results, nil)
+}
+
+// balancerStatus reports the live state (override + strategy picks) of the
+// balancer tags given as a comma-separated "tags" form field.
+func (a *XraySettingController) balancerStatus(c *gin.Context) {
+	raw := c.PostForm("tags")
+	var tags []string
+	for _, tag := range strings.Split(raw, ",") {
+		if tag = strings.TrimSpace(tag); tag != "" {
+			tags = append(tags, tag)
+		}
+	}
+	statuses, err := a.XrayService.GetBalancersStatus(tags)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	byTag := make(map[string]service.BalancerStatus, len(statuses))
+	for _, status := range statuses {
+		byTag[status.Tag] = status
+	}
+	jsonObj(c, byTag, nil)
+}
+
+// balancerOverride forces a balancer to a specific outbound tag; an empty
+// "target" clears the override.
+func (a *XraySettingController) balancerOverride(c *gin.Context) {
+	tag := c.PostForm("tag")
+	if tag == "" {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewError("tag is required"))
+		return
+	}
+	target := c.PostForm("target")
+	if err := a.XrayService.OverrideBalancer(tag, target); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, "", nil)
+}
+
+// routeTest asks the running core which outbound it would route a synthetic
+// connection to.
+func (a *XraySettingController) routeTest(c *gin.Context) {
+	port := 0
+	if portStr := c.PostForm("port"); portStr != "" {
+		parsed, err := strconv.Atoi(portStr)
+		if err != nil || parsed < 0 || parsed > 65535 {
+			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewError("invalid port"))
+			return
+		}
+		port = parsed
+	}
+	req := xray.RouteTestRequest{
+		InboundTag: c.PostForm("inboundTag"),
+		Domain:     c.PostForm("domain"),
+		IP:         c.PostForm("ip"),
+		Port:       port,
+		Network:    c.PostForm("network"),
+		Protocol:   c.PostForm("protocol"),
+		Email:      c.PostForm("email"),
+	}
+	if req.Domain == "" && req.IP == "" {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewError("domain or ip is required"))
+		return
+	}
+	result, err := a.XrayService.TestRoute(req)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
 	jsonObj(c, result, nil)
 }
 

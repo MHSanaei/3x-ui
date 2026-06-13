@@ -3,10 +3,8 @@ package service
 import (
 	"context"
 	"crypto/sha256"
-	"crypto/subtle"
 	"crypto/tls"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -43,75 +41,6 @@ type HeartbeatPatch struct {
 }
 
 type NodeService struct{}
-
-var nodeHTTPClient = &http.Client{
-	Transport: &http.Transport{
-		MaxIdleConns:        64,
-		MaxIdleConnsPerHost: 4,
-		IdleConnTimeout:     60 * time.Second,
-		DialContext:         netsafe.SSRFGuardedDialContext,
-	},
-}
-
-// nodeHTTPClientFor returns the HTTP client used to reach a node, honoring its
-// per-node TLS verification mode. "verify" (or any http node) uses the shared
-// client with default certificate validation. "skip" disables validation.
-// "pin" disables the default chain check but verifies the leaf certificate's
-// SHA-256 against the stored pin, keeping MITM protection for self-signed certs.
-func nodeHTTPClientFor(n *model.Node) (*http.Client, error) {
-	mode := n.TlsVerifyMode
-	if mode == "" {
-		mode = "verify"
-	}
-	if mode == "verify" || n.Scheme == "http" {
-		return nodeHTTPClient, nil
-	}
-	tlsCfg := &tls.Config{InsecureSkipVerify: true}
-	if mode == "pin" {
-		want, err := decodeCertPin(n.PinnedCertSha256)
-		if err != nil {
-			return nil, err
-		}
-		tlsCfg.VerifyConnection = func(cs tls.ConnectionState) error {
-			if len(cs.PeerCertificates) == 0 {
-				return common.NewError("node presented no certificate")
-			}
-			sum := sha256.Sum256(cs.PeerCertificates[0].Raw)
-			if subtle.ConstantTimeCompare(sum[:], want) != 1 {
-				return common.NewError("node certificate does not match pinned SHA-256")
-			}
-			return nil
-		}
-	}
-	return &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConns:        64,
-			MaxIdleConnsPerHost: 4,
-			IdleConnTimeout:     60 * time.Second,
-			DialContext:         netsafe.SSRFGuardedDialContext,
-			TLSClientConfig:     tlsCfg,
-		},
-	}, nil
-}
-
-// decodeCertPin accepts a SHA-256 certificate hash as base64 (the format used
-// by Xray's pinnedPeerCertSha256) or hex with optional colons (the openssl
-// -fingerprint style) and returns the 32 raw bytes.
-func decodeCertPin(s string) ([]byte, error) {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return nil, common.NewError("certificate pin is empty")
-	}
-	if b, err := hex.DecodeString(strings.ReplaceAll(s, ":", "")); err == nil && len(b) == sha256.Size {
-		return b, nil
-	}
-	for _, enc := range []*base64.Encoding{base64.StdEncoding, base64.RawStdEncoding, base64.URLEncoding, base64.RawURLEncoding} {
-		if b, err := enc.DecodeString(s); err == nil && len(b) == sha256.Size {
-			return b, nil
-		}
-	}
-	return nil, common.NewError("certificate pin must be a SHA-256 hash (base64 or hex)")
-}
 
 // FetchCertFingerprint connects to the node over HTTPS without verifying the
 // certificate and returns the leaf certificate's SHA-256 as base64, so the UI
@@ -347,8 +276,27 @@ func (s *NodeService) normalize(n *model.Node) error {
 		n.TlsVerifyMode = "verify"
 	}
 	n.PinnedCertSha256 = strings.TrimSpace(n.PinnedCertSha256)
+	if n.InboundSyncMode != "selected" {
+		n.InboundSyncMode = "all"
+		n.InboundTags = nil
+	} else {
+		seen := make(map[string]struct{}, len(n.InboundTags))
+		tags := make([]string, 0, len(n.InboundTags))
+		for _, tag := range n.InboundTags {
+			tag = strings.TrimSpace(tag)
+			if tag == "" {
+				continue
+			}
+			if _, ok := seen[tag]; ok {
+				continue
+			}
+			seen[tag] = struct{}{}
+			tags = append(tags, tag)
+		}
+		n.InboundTags = tags
+	}
 	if n.TlsVerifyMode == "pin" {
-		if _, err := decodeCertPin(n.PinnedCertSha256); err != nil {
+		if _, err := runtime.DecodeCertPin(n.PinnedCertSha256); err != nil {
 			return common.NewError(err.Error())
 		}
 	}
@@ -368,6 +316,10 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 	if err := s.normalize(in); err != nil {
 		return err
 	}
+	inboundTagsJSON, err := json.Marshal(in.InboundTags)
+	if err != nil {
+		return err
+	}
 	db := database.GetDB()
 	existing := &model.Node{}
 	if err := db.Where("id = ?", id).First(existing).Error; err != nil {
@@ -385,6 +337,8 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		"allow_private_address": in.AllowPrivateAddress,
 		"tls_verify_mode":       in.TlsVerifyMode,
 		"pinned_cert_sha256":    in.PinnedCertSha256,
+		"inbound_sync_mode":     in.InboundSyncMode,
+		"inbound_tags":          string(inboundTagsJSON),
 	}
 	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
@@ -393,6 +347,66 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		mgr.InvalidateNode(id)
 	}
 	return nil
+}
+
+func (s *NodeService) GetRemoteInboundOptions(ctx context.Context, n *model.Node) ([]runtime.RemoteInboundOption, error) {
+	if err := s.normalize(n); err != nil {
+		return nil, err
+	}
+	return runtime.NewRemote(n).ListInboundOptions(ctx)
+}
+
+// EnsureInboundTagAllowed adds a panel-managed inbound's tag to the node's
+// selection when the node syncs in "selected" mode. Without it, the next
+// traffic sync would filter the tag out of the snapshot and the orphan sweep
+// would silently delete the central row the panel just created or renamed.
+// Tags are only ever added (never removed): on a rename the node may keep
+// reporting the old tag until the remote update lands, and a leftover entry
+// that matches nothing is harmless.
+func (s *NodeService) EnsureInboundTagAllowed(nodeID int, tag string) error {
+	tag = strings.TrimSpace(tag)
+	if nodeID <= 0 || tag == "" {
+		return nil
+	}
+	db := database.GetDB()
+	node := &model.Node{}
+	if err := db.Where("id = ?", nodeID).First(node).Error; err != nil {
+		return err
+	}
+	if node.InboundSyncMode != "selected" {
+		return nil
+	}
+	for _, t := range node.InboundTags {
+		if t == tag {
+			return nil
+		}
+	}
+	buf, err := json.Marshal(append(node.InboundTags, tag))
+	if err != nil {
+		return err
+	}
+	return db.Model(model.Node{}).Where("id = ?", nodeID).
+		Updates(map[string]any{"inbound_tags": string(buf)}).Error
+}
+
+func FilterNodeSnapshot(n *model.Node, snap *runtime.TrafficSnapshot) {
+	if n == nil || snap == nil || n.InboundSyncMode != "selected" {
+		return
+	}
+	allowed := make(map[string]struct{}, len(n.InboundTags))
+	for _, tag := range n.InboundTags {
+		allowed[tag] = struct{}{}
+	}
+	filtered := make([]*model.Inbound, 0, len(snap.Inbounds))
+	for _, inbound := range snap.Inbounds {
+		if inbound == nil {
+			continue
+		}
+		if _, ok := allowed[inbound.Tag]; ok {
+			filtered = append(filtered, inbound)
+		}
+	}
+	snap.Inbounds = filtered
 }
 
 func (s *NodeService) Delete(id int) error {
@@ -607,7 +621,7 @@ func (s *NodeService) Probe(ctx context.Context, n *model.Node) (HeartbeatPatch,
 	}
 	req.Header.Set("Accept", "application/json")
 
-	client, err := nodeHTTPClientFor(n)
+	client, err := runtime.HTTPClientForNode(n)
 	if err != nil {
 		patch.LastError = err.Error()
 		return patch, err

@@ -114,7 +114,7 @@ function buildStream(network: string, security: string): Raw {
     case 'xhttp':
       stream.xhttpSettings = {
         path: '/', host: '', mode: 'auto', headers: {},
-        xPaddingBytes: '100-1000', scMaxEachPostBytes: '1000000',
+        xPaddingBytes: '100-1000',
       };
       break;
     default:

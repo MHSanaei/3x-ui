@@ -1,4 +1,4 @@
-import { Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
+import { AutoComplete, Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { FormInstance } from 'antd/es/form';
 import type { NamePath } from 'antd/es/form/interface';
@@ -96,8 +96,12 @@ function defaultUdpHop(): Record<string, unknown> {
 export default function FinalMaskForm({ name, network, protocol, form, showAll = false }: FinalMaskFormProps) {
   const base = asPath(name);
   const isHysteria = protocol === OutboundProtocols.Hysteria || protocol === 'hysteria';
-  const showTcp = showAll || TCP_NETWORKS.includes(network);
-  const showUdp = showAll || isHysteria || network === 'kcp';
+  // Wireguard carries no user-selectable transport (always a UDP listener/
+  // dialer), so only the UDP mask section applies — TCP masks would never
+  // wrap anything even though the leftover network value may be 'tcp'.
+  const isWireguard = protocol === 'wireguard';
+  const showTcp = showAll || (!isWireguard && TCP_NETWORKS.includes(network));
+  const showUdp = showAll || isHysteria || isWireguard || network === 'kcp';
   const showQuic = showAll || isHysteria || network === 'xhttp';
   const quicParams = Form.useWatch([...base, 'quicParams'], { form, preserve: true });
   const hasQuicParams = quicParams != null;
@@ -107,7 +111,7 @@ export default function FinalMaskForm({ name, network, protocol, form, showAll =
   return (
     <>
       {showTcp && <TcpMasksList base={base} form={form} />}
-      {showUdp && <UdpMasksList base={base} form={form} isHysteria={isHysteria} network={network} />}
+      {showUdp && <UdpMasksList base={base} form={form} isHysteria={isHysteria} isWireguard={isWireguard} network={network} />}
       {showQuic && (
         <>
           <Form.Item label="QUIC Params">
@@ -201,13 +205,18 @@ function TcpMaskItem({
           if (type === 'fragment') {
             return (
               <>
-                <Form.Item label="Packets" name={[fieldName, 'settings', 'packets']}>
-                  <Select
+                <Form.Item
+                  label="Packets"
+                  name={[fieldName, 'settings', 'packets']}
+                  rules={[{ validator: validateFragmentPackets }]}
+                >
+                  <AutoComplete
                     options={[
                       { value: 'tlshello', label: 'tlshello' },
                       { value: '1-3', label: '1-3' },
                       { value: '1-5', label: '1-5' },
                     ]}
+                    placeholder="tlshello or n-m, e.g. 1-3"
                   />
                 </Form.Item>
                 <Form.Item
@@ -260,6 +269,16 @@ function TcpMaskItem({
   );
 }
 
+// xray's fragment `packets` accepts "tlshello" or an arbitrary packet-number
+// range like "1-3" (#5075 — presets only covered the common cases).
+function validateFragmentPackets(_rule: unknown, value: unknown): Promise<void> {
+  const str = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+  if (str.length === 0 || str === 'tlshello' || /^\d+-\d+$/.test(str)) {
+    return Promise.resolve();
+  }
+  return Promise.reject(new Error('Use "tlshello" or a packet range like 1-3'));
+}
+
 // Walks a deep object path safely. Used inside shouldUpdate which gets
 // the whole form values blob; we need to compare a deep field across
 // prev/curr without crashing on missing intermediates.
@@ -271,6 +290,22 @@ function validateFragmentLength(_rule: unknown, value: unknown): Promise<void> {
   const min = Number(str.split('-')[0]);
   if (!Number.isFinite(min) || min <= 0) {
     return Promise.reject(new Error('Length minimum must be greater than 0 (e.g. 100-200)'));
+  }
+  return Promise.resolve();
+}
+
+// randRange bytes must sit in 0-255 — xray rejects the whole config with
+// "invalid randRange" otherwise (reversed ranges like "200-100" are fine,
+// xray reorders them).
+function validateRandRange(_rule: unknown, value: unknown): Promise<void> {
+  const str = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+  if (str.length === 0) return Promise.resolve();
+  const m = /^(\d{1,3})(?:-(\d{1,3}))?$/.exec(str);
+  if (!m) return Promise.reject(new Error('Use a byte value or range like 0-255'));
+  const from = Number(m[1]);
+  const to = m[2] !== undefined ? Number(m[2]) : from;
+  if (from > 255 || to > 255) {
+    return Promise.reject(new Error('randRange bytes must be within 0-255'));
   }
   return Promise.resolve();
 }
@@ -345,8 +380,8 @@ function HeaderCustomGroups({
 }
 
 function UdpMasksList({
-  base, form, isHysteria, network,
-}: { base: (string | number)[]; form: FormInstance; isHysteria: boolean; network: string }) {
+  base, form, isHysteria, isWireguard, network,
+}: { base: (string | number)[]; form: FormInstance; isHysteria: boolean; isWireguard: boolean; network: string }) {
   return (
     <Form.List name={[...base, 'udp']}>
       {(fields, { add, remove }) => (
@@ -357,7 +392,7 @@ function UdpMasksList({
               size="small"
               icon={<PlusOutlined />}
               onClick={() => {
-                const def = isHysteria ? 'salamander' : 'mkcp-legacy';
+                const def = isHysteria || isWireguard ? 'salamander' : 'mkcp-legacy';
                 add({ type: def, settings: defaultUdpMaskSettings(def) });
               }}
             />
@@ -370,6 +405,7 @@ function UdpMasksList({
               form={form}
               listPath={[...base, 'udp']}
               isHysteria={isHysteria}
+              isWireguard={isWireguard}
               network={network}
               onRemove={() => remove(field.name)}
             />
@@ -381,13 +417,14 @@ function UdpMasksList({
 }
 
 function UdpMaskItem({
-  fieldName, displayIndex, form, listPath, isHysteria, network, onRemove,
+  fieldName, displayIndex, form, listPath, isHysteria, isWireguard, network, onRemove,
 }: {
   fieldName: number;
   displayIndex: number;
   form: FormInstance;
   listPath: (string | number)[];
   isHysteria: boolean;
+  isWireguard: boolean;
   network: string;
   onRemove: () => void;
 }) {
@@ -404,6 +441,9 @@ function UdpMaskItem({
   const options = isHysteria
     ? [{ value: 'salamander', label: 'Salamander (Hysteria2)' }]
     : [
+      // Salamander is the mask xray-core's own wireguard finalmask example
+      // uses; it stays hysteria-only elsewhere to keep legacy parity.
+      ...(isWireguard ? [{ value: 'salamander', label: 'Salamander' }] : []),
       { value: 'mkcp-legacy', label: 'mKCP Legacy' },
       { value: 'xdns', label: 'xDNS' },
       { value: 'xicmp', label: 'xICMP' },
@@ -674,7 +714,15 @@ function ItemEditor({
                     <InputNumber min={0} />
                   )}
                 </Form.Item>
-                <Form.Item label="Rand Range" name={[fieldName, 'randRange']}>
+                {/* Cleared must become undefined, not '': xray parses an
+                    explicit "" as the range 0-0 (all-zero fill bytes), while
+                    an omitted randRange falls back to the 0-255 default. */}
+                <Form.Item
+                  label="Rand Range"
+                  name={[fieldName, 'randRange']}
+                  normalize={(v) => (v === '' ? undefined : v)}
+                  rules={[{ validator: validateRandRange }]}
+                >
                   <Input placeholder="0-255" />
                 </Form.Item>
               </>

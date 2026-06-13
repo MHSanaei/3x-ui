@@ -8,10 +8,8 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 //go:embed default.json
@@ -24,8 +22,7 @@ type SubJsonService struct {
 	finalMask        string
 	mux              string
 
-	inboundService service.InboundService
-	SubService     *SubService
+	SubService *SubService
 }
 
 // NewSubJsonService creates a new JSON subscription service with the given configuration.
@@ -75,20 +72,15 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	seenEmails := make(map[string]struct{})
 	// Prepare Inbounds
 	for _, inbound := range inbounds {
-		clients, err := s.inboundService.GetClients(inbound)
-		if err != nil {
-			logger.Error("SubJsonService - GetClients: Unable to get clients from inbound")
-		}
-		if clients == nil {
+		clients := s.SubService.matchingClients(inbound, subId)
+		if len(clients) == 0 {
 			continue
 		}
 		s.SubService.projectThroughFallbackMaster(inbound)
 
 		for _, client := range clients {
-			if client.SubID == subId {
-				seenEmails[client.Email] = struct{}{}
-				configArray = append(configArray, s.getConfig(inbound, client, host)...)
-			}
+			seenEmails[client.Email] = struct{}{}
+			configArray = append(configArray, s.getConfig(inbound, client, host)...)
 		}
 	}
 
@@ -225,6 +217,15 @@ func (s *SubJsonService) streamData(stream string) map[string]any {
 			delete(xhttp, "scMaxBufferedPosts")
 			delete(xhttp, "scStreamUpServerSecs")
 			delete(xhttp, "serverMaxHeaderBytes")
+			// Values matching xray-core's own defaults stay off the wire:
+			// old panels seeded them into every stored config and the
+			// literal scMinPostsIntervalMs=30 is a DPI fingerprint (#5141).
+			if v, _ := xhttp["scMaxEachPostBytes"].(string); v == "" || v == "1000000" {
+				delete(xhttp, "scMaxEachPostBytes")
+			}
+			if v, _ := xhttp["scMinPostsIntervalMs"].(string); v == "" || v == "30" {
+				delete(xhttp, "scMinPostsIntervalMs")
+			}
 		}
 	}
 	return streamSettings

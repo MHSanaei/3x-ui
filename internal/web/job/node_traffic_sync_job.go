@@ -2,6 +2,7 @@ package job
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 const (
@@ -17,6 +19,7 @@ const (
 	nodeTrafficSyncRequestTimeout = 4 * time.Second
 	nodeReconcileTimeout          = 30 * time.Second
 	nodeClientIpSyncInterval      = 10 * time.Second
+	nodeGlobalPushInterval        = 30 * time.Second
 )
 
 type NodeTrafficSyncJob struct {
@@ -28,6 +31,8 @@ type NodeTrafficSyncJob struct {
 	structural     atomicBool
 	ipSyncMu       sync.Mutex
 	lastIpSync     int64
+	globalPushMu   sync.Mutex
+	lastGlobalPush int64
 }
 
 type atomicBool struct {
@@ -115,6 +120,8 @@ func (j *NodeTrafficSyncJob) Run() {
 		j.structural.set()
 	}
 
+	j.maybePushGlobals(mgr, nodes)
+
 	lastOnline, err := j.inboundService.GetClientsLastOnline()
 	if err != nil {
 		logger.Warning("node traffic sync: get last-online failed:", err)
@@ -164,6 +171,65 @@ func (j *NodeTrafficSyncJob) Run() {
 	}
 }
 
+// maybePushGlobals broadcasts this panel's aggregated per-client usage to its
+// online nodes so each node can display the client's cross-panel total and
+// enforce its quota locally (see InboundService.AcceptGlobalTraffic). Scoped
+// per node to the clients that node actually hosts, and throttled — the
+// aggregates only need to reach nodes on a human timescale, not every poll.
+func (j *NodeTrafficSyncJob) maybePushGlobals(mgr *runtime.Manager, nodes []*model.Node) {
+	j.globalPushMu.Lock()
+	now := time.Now().Unix()
+	if now-j.lastGlobalPush < int64(nodeGlobalPushInterval/time.Second) {
+		j.globalPushMu.Unlock()
+		return
+	}
+	j.lastGlobalPush = now
+	j.globalPushMu.Unlock()
+
+	masterGuid, err := j.settingService.GetPanelGuid()
+	if err != nil || masterGuid == "" {
+		return
+	}
+
+	sem := make(chan struct{}, nodeTrafficSyncConcurrency)
+	var wg sync.WaitGroup
+	for _, n := range nodes {
+		if !n.Enable || n.Status != "online" {
+			continue
+		}
+		remote, err := mgr.RemoteFor(n)
+		if err != nil {
+			continue
+		}
+		traffics, err := j.inboundService.GetNodeClientTraffics(n.Id)
+		if err != nil {
+			logger.Warning("node traffic sync: load globals for", n.Name, "failed:", err)
+			continue
+		}
+		if len(traffics) == 0 {
+			continue
+		}
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(n *model.Node, remote *runtime.Remote, traffics []*xray.ClientTraffic) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			ctx, cancel := context.WithTimeout(context.Background(), nodeTrafficSyncRequestTimeout)
+			defer cancel()
+			if err := remote.PushGlobalClientTraffics(ctx, masterGuid, traffics); err != nil {
+				// An old-build node without the endpoint answers 404 — not worth a
+				// warning every cycle.
+				if strings.Contains(err.Error(), "HTTP 404") {
+					logger.Debug("node traffic sync: node", n.Name, "has no global-traffic endpoint (old build)")
+				} else {
+					logger.Warning("node traffic sync: push globals to", n.Name, "failed:", err)
+				}
+			}
+		}(n, remote, traffics)
+	}
+	wg.Wait()
+}
+
 func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSync bool) {
 	rt, err := mgr.RemoteFor(n)
 	if err != nil {
@@ -173,7 +239,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 
 	if n.ConfigDirty {
 		reconcileCtx, reconcileCancel := context.WithTimeout(context.Background(), nodeReconcileTimeout)
-		reconcileErr := j.inboundService.ReconcileNode(reconcileCtx, rt, n.Id)
+		reconcileErr := j.inboundService.ReconcileNode(reconcileCtx, rt, n)
 		reconcileCancel()
 		if reconcileErr != nil {
 			logger.Warning("node traffic sync: reconcile for", n.Name, "failed:", reconcileErr)
@@ -194,6 +260,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 		j.inboundService.ClearNodeOnlineClients(n.Id)
 		return
 	}
+	service.FilterNodeSnapshot(n, snap)
 	_, _, dirty, _, _ := j.nodeService.NodeSyncState(n.Id)
 	changed, err := j.inboundService.SetRemoteTraffic(n.Id, snap, dirty)
 	if err != nil {

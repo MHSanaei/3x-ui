@@ -25,6 +25,8 @@ export type InboundStreamFormValues = z.infer<typeof InboundStreamFormSchema>;
 
 export const TrafficResetSchema = z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']);
 export type TrafficReset = z.infer<typeof TrafficResetSchema>;
+export const ShareAddrStrategySchema = z.enum(['node', 'listen', 'custom']);
+export type ShareAddrStrategy = z.infer<typeof ShareAddrStrategySchema>;
 
 // Db-side fields layered on top of the xray slice. These mirror the
 // DBInbound model — they live in the SQL row, not in xray's config.
@@ -35,6 +37,9 @@ export const InboundDbFieldsSchema = z.object({
   trafficReset: TrafficResetSchema.default('never'),
   lastTrafficResetTime: z.number().int().default(0),
   nodeId: z.number().int().nullable().optional(),
+  shareAddrStrategy: ShareAddrStrategySchema.default('node'),
+  shareAddr: z.string().default(''),
+  subSortIndex: z.number().int().min(1).default(1),
 });
 export type InboundDbFields = z.infer<typeof InboundDbFieldsSchema>;
 

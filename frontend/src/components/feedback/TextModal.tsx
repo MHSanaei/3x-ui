@@ -2,6 +2,7 @@ import { Button, Input, Modal, message } from 'antd';
 import { CopyOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 
+import JsonEditor from '@/components/form/JsonEditor';
 import { ClipboardManager, FileManager } from '@/utils';
 
 interface TextModalProps {
@@ -10,9 +11,10 @@ interface TextModalProps {
   title: string;
   content: string;
   fileName?: string;
+  json?: boolean;
 }
 
-export default function TextModal({ open, onClose, title, content, fileName = '' }: TextModalProps) {
+export default function TextModal({ open, onClose, title, content, fileName = '', json = false }: TextModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   async function copy() {
@@ -45,16 +47,20 @@ export default function TextModal({ open, onClose, title, content, fileName = ''
         </>
       )}
     >
-      <Input.TextArea
-        value={content}
-        readOnly
-        autoSize={{ minRows: 10, maxRows: 20 }}
-        style={{
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-          fontSize: 12,
-          overflowY: 'auto',
-        }}
-      />
+      {json ? (
+        <JsonEditor value={content} readOnly minHeight="240px" maxHeight="60vh" />
+      ) : (
+        <Input.TextArea
+          value={content}
+          readOnly
+          autoSize={{ minRows: 10, maxRows: 20 }}
+          style={{
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            fontSize: 12,
+            overflowY: 'auto',
+          }}
+        />
+      )}
       </Modal>
     </>
   );

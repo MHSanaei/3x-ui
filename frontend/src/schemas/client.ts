@@ -44,6 +44,8 @@ export const InboundOptionSchema = z.object({
   port: z.number().optional(),
   tlsFlowCapable: z.boolean().optional(),
   ssMethod: z.string().optional(),
+  // Hosting node id; absent/null for this panel's own inbounds (#4997).
+  nodeId: z.number().nullable().optional(),
 }).loose();
 
 export const InboundOptionsSchema = z.array(InboundOptionSchema);
@@ -127,6 +129,8 @@ export const GroupSummarySchema = z.object({
   name: z.string(),
   clientCount: z.number(),
   trafficUsed: z.number().nullable().transform((v) => v ?? 0),
+  up: z.number().nullable().transform((v) => v ?? 0),
+  down: z.number().nullable().transform((v) => v ?? 0),
 });
 
 export const GroupSummaryListSchema = z.array(GroupSummarySchema).nullable().transform((v) => v ?? []);

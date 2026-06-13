@@ -545,9 +545,11 @@ func buildStream(network, security string) map[string]any {
 	case "httpupgrade":
 		stream["httpupgradeSettings"] = map[string]any{"path": "/", "host": "", "headers": map[string]any{}}
 	case "xhttp":
+		// No scMaxEachPostBytes/scMinPostsIntervalMs seed: xray-core's own
+		// defaults apply, and the literal values fingerprint traffic (#5141).
 		stream["xhttpSettings"] = map[string]any{
 			"path": "/", "host": "", "mode": "auto", "headers": map[string]any{},
-			"xPaddingBytes": "100-1000", "scMaxEachPostBytes": "1000000",
+			"xPaddingBytes": "100-1000",
 		}
 	default:
 		stream["tcpSettings"] = map[string]any{"header": map[string]any{"type": "none"}}

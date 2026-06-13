@@ -21,6 +21,7 @@ import { getHeaderValue } from './headers';
 // directly.
 
 type ForceTls = 'same' | 'tls' | 'none';
+const SHARE_HOSTNAME_RE = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/;
 
 // xHTTP headers ship as Record<string, string> on the wire (Zod schema)
 // rather than the legacy class's HeaderEntry[]. Lookup by case-folded key.
@@ -58,9 +59,15 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
     'uplinkDataKey',
     'scMaxEachPostBytes',
   ] as const;
+  // Values matching xray-core's own defaults stay off the wire — old panels
+  // seeded them into every config and the literal values are a DPI
+  // fingerprint (#5141). Mirrors the sub service's filter.
+  const coreDefaults: Partial<Record<(typeof stringFields)[number], string>> = {
+    scMaxEachPostBytes: '1000000',
+  };
   for (const k of stringFields) {
     const v = xhttp[k];
-    if (typeof v === 'string' && v.length > 0) extra[k] = v;
+    if (typeof v === 'string' && v.length > 0 && v !== coreDefaults[k]) extra[k] = v;
   }
 
   // Headers on the wire are a record; emit them as a map upstream's
@@ -317,7 +324,7 @@ export function genVlessLink(input: GenVlessLinkInput): string {
 
   const security = forceTls === 'same' ? stream.security : forceTls;
   const params = new URLSearchParams();
-  params.set('type', stream.network);
+  params.set('type', stream.network ?? 'tcp');
   params.set('encryption', inbound.settings.encryption);
 
   if (stream.network === 'tcp') {
@@ -501,7 +508,7 @@ export function genTrojanLink(input: GenTrojanLinkInput): string {
 
   const security = forceTls === 'same' ? stream.security : forceTls;
   const params = new URLSearchParams();
-  params.set('type', stream.network);
+  params.set('type', stream.network ?? 'tcp');
 
   writeNetworkParams(stream, params);
   applyFinalMaskToParams(stream.finalmask, params);
@@ -558,7 +565,7 @@ export function genShadowsocksLink(input: GenShadowsocksLinkInput): string {
 
   const security = forceTls === 'same' ? stream.security : forceTls;
   const params = new URLSearchParams();
-  params.set('type', stream.network);
+  params.set('type', stream.network ?? 'tcp');
 
   writeNetworkParams(stream, params);
   applyFinalMaskToParams(stream.finalmask, params);
@@ -777,19 +784,76 @@ function isUnixSocketListen(listen: string): boolean {
   return listen.startsWith('/') || listen.startsWith('@');
 }
 
-// Orchestrators.
-// resolveAddr picks the host that goes into share/sub links. Order:
-//   1. hostOverride (caller supplies node address for node-managed inbounds)
-//   2. inbound's bind listen (when it's an explicit reachable address —
-//      not 0.0.0.0 and not a unix domain socket path)
-//   3. fallbackHostname (caller-supplied — typically window.location.hostname
-//      in the browser; tests pass a fixed value)
-export function resolveAddr(inbound: Inbound, hostOverride: string, fallbackHostname: string): string {
-  if (hostOverride.length > 0) return hostOverride;
-  if (inbound.listen.length > 0 && inbound.listen !== '0.0.0.0' && !isUnixSocketListen(inbound.listen)) {
-    return inbound.listen;
+function normalizeShareHost(host: string): string {
+  const h = host.trim();
+  if (
+    h.length === 0
+    || h.includes('://')
+    || h.startsWith('//')
+    || /[/?#@]/.test(h)
+  ) {
+    return '';
   }
-  return fallbackHostname;
+  if (h.startsWith('[')) {
+    if (!h.endsWith(']')) return '';
+    try {
+      return new URL(`http://${h}`).hostname;
+    } catch {
+      return '';
+    }
+  }
+  if (h.includes(':')) {
+    try {
+      return new URL(`http://[${h}]`).hostname;
+    } catch {
+      return '';
+    }
+  }
+  return SHARE_HOSTNAME_RE.test(h) ? h : '';
+}
+
+function isShareableHost(host: string): boolean {
+  const h = normalizeShareHost(host).replace(/^\[|\]$/g, '').toLowerCase();
+  if (h.length === 0) return false;
+  if (h === '0.0.0.0' || h === '::' || h === '::0') return false;
+  if (h === 'localhost' || h === '::1' || h.startsWith('127.')) return false;
+  return true;
+}
+
+function shareableListen(inbound: Inbound): string {
+  const listen = inbound.listen.trim();
+  return listen.length > 0 && !isUnixSocketListen(listen) && isShareableHost(listen)
+    ? normalizeShareHost(listen)
+    : '';
+}
+
+type ShareAddrStrategy = 'node' | 'listen' | 'custom';
+
+function shareAddrStrategy(inbound: Inbound): ShareAddrStrategy {
+  const strategy = inbound.shareAddrStrategy;
+  return strategy === 'listen' || strategy === 'custom'
+    ? strategy
+    : 'node';
+}
+
+// Orchestrators.
+// resolveAddr picks the host that goes into share/QR links. The default
+// `node` strategy keeps the previous node-address-first behavior for
+// node-managed inbounds; other strategies let a row prefer its listen address
+// or a custom endpoint.
+export function resolveAddr(inbound: Inbound, hostOverride: string, fallbackHostname: string): string {
+  const nodeAddr = normalizeShareHost(hostOverride);
+  const listenAddr = shareableListen(inbound);
+  const customAddr = normalizeShareHost(inbound.shareAddr ?? '');
+  const fallbackAddr = normalizeShareHost(fallbackHostname);
+  switch (shareAddrStrategy(inbound)) {
+    case 'listen':
+      return listenAddr || nodeAddr || fallbackAddr;
+    case 'custom':
+      return customAddr || nodeAddr || listenAddr || fallbackAddr;
+    default:
+      return nodeAddr || listenAddr || fallbackAddr;
+  }
 }
 
 // A loopback browser host means the panel was reached through a tunnel (e.g.
@@ -801,10 +865,9 @@ function isLoopbackHost(host: string): boolean {
 
 // preferPublicHost is the browser-side analog of the backend's
 // configuredPublicHost: when the panel is reached on a loopback host, prefer a
-// configured public host (Sub/Web Domain) for share/QR links so they match the
-// subscription links instead of leaking localhost. An explicit per-inbound
-// listen or node override still wins, since resolveAddr only reaches the
-// fallbackHostname after those.
+// configured public host (Sub/Web Domain) for share/QR links instead of leaking
+// localhost. An explicit per-inbound listen or node override still wins, since
+// resolveAddr only reaches the fallbackHostname after those.
 export function preferPublicHost(browserHost: string, publicHost: string): string {
   return publicHost && isLoopbackHost(browserHost) ? publicHost : browserHost;
 }
@@ -1016,11 +1079,11 @@ export function genWireguardLinks(input: GenWireguardFanoutInput): string {
   const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
   const sep = remarkModel.charAt(0);
   return inbound.settings.peers
-    .map((_p, i) => genWireguardLink({
+    .map((p, i) => genWireguardLink({
       settings: inbound.settings as WireguardInboundSettings,
       address: addr,
       port: inbound.port,
-      remark: `${remark}${sep}${i + 1}`,
+      remark: `${remark}${sep}${i + 1}${wgPeerCommentSuffix(p)}`,
       peerIndex: i,
     }))
     .join('\r\n');
@@ -1032,14 +1095,21 @@ export function genWireguardConfigs(input: GenWireguardFanoutInput): string {
   const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
   const sep = remarkModel.charAt(0);
   return inbound.settings.peers
-    .map((_p, i) => genWireguardConfig({
+    .map((p, i) => genWireguardConfig({
       settings: inbound.settings as WireguardInboundSettings,
       address: addr,
       port: inbound.port,
-      remark: `${remark}${sep}${i + 1}`,
+      remark: `${remark}${sep}${i + 1}${wgPeerCommentSuffix(p)}`,
       peerIndex: i,
     }))
     .join('\r\n');
+}
+
+// Peer comments (#5168) are panel-side annotations; when present they ride
+// along in the share remark so the device is identifiable in client apps.
+function wgPeerCommentSuffix(peer: unknown): string {
+  const comment = (peer as { comment?: unknown })?.comment;
+  return typeof comment === 'string' && comment.trim() !== '' ? ` (${comment.trim()})` : '';
 }
 
 export function isPostQuantumLink(link: string): boolean {
