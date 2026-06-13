@@ -70,6 +70,27 @@ func TestBuildURLs_EmptySubId(t *testing.T) {
 	}
 }
 
+func TestForRequestDoesNotMutateSharedService(t *testing.T) {
+	initSubDB(t)
+	base := &SubService{}
+
+	first := base.ForRequest("first.example.com")
+	second := base.ForRequest("second.example.com")
+
+	if base.address != "" || base.nodesByID != nil {
+		t.Fatalf("ForRequest mutated the shared service: address=%q nodes=%v", base.address, base.nodesByID)
+	}
+
+	firstURL, _, _ := first.BuildURLs("/sub/", "/json/", "/clash/", "ABC")
+	secondURL, _, _ := second.BuildURLs("/sub/", "/json/", "/clash/", "ABC")
+	if !strings.Contains(firstURL, "first.example.com") {
+		t.Fatalf("first request URL = %q, want first.example.com", firstURL)
+	}
+	if !strings.Contains(secondURL, "second.example.com") {
+		t.Fatalf("second request URL = %q, want second.example.com", secondURL)
+	}
+}
+
 // A subscriber arriving via a reverse proxy (subURI configured with full
 // HTTPS URL) must see the same scheme+host in the JSON and Clash Copy
 // URLs as in the main subURL — not the raw sub-server port 2096.
