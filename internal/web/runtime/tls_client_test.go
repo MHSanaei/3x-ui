@@ -72,7 +72,7 @@ func TestRemoteHonorsTLSVerifyMode(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			r := NewRemote(nodeForServer(t, srv, c.mode, c.pin))
+			r := NewRemote(nodeForServer(t, srv, c.mode, c.pin), nil)
 			_, err := r.ListInboundOptions(context.Background())
 			if c.wantErr && err == nil {
 				t.Fatalf("mode %q: expected error, got nil", c.mode)
@@ -87,7 +87,7 @@ func TestRemoteHonorsTLSVerifyMode(t *testing.T) {
 // The lazily-built client is cached for the Remote's lifetime so repeated
 // operations reuse one pooled transport rather than rebuilding TLS each call.
 func TestRemoteClientCached(t *testing.T) {
-	r := NewRemote(&model.Node{Scheme: "https", TlsVerifyMode: "skip"})
+	r := NewRemote(&model.Node{Scheme: "https", TlsVerifyMode: "skip"}, nil)
 	c1, err1 := r.httpClient()
 	c2, err2 := r.httpClient()
 	if err1 != nil || err2 != nil {
@@ -105,7 +105,7 @@ func TestHTTPClientForNodeVerifyShared(t *testing.T) {
 		{Scheme: "https", TlsVerifyMode: ""},
 		{Scheme: "http", TlsVerifyMode: "skip"},
 	} {
-		c, err := HTTPClientForNode(n)
+		c, err := HTTPClientForNode(n, "")
 		if err != nil {
 			t.Fatalf("HTTPClientForNode(%+v): %v", n, err)
 		}
@@ -116,7 +116,7 @@ func TestHTTPClientForNodeVerifyShared(t *testing.T) {
 }
 
 func TestHTTPClientForNodePinInvalid(t *testing.T) {
-	if _, err := HTTPClientForNode(&model.Node{Scheme: "https", TlsVerifyMode: "pin", PinnedCertSha256: "not-a-pin"}); err == nil {
+	if _, err := HTTPClientForNode(&model.Node{Scheme: "https", TlsVerifyMode: "pin", PinnedCertSha256: "not-a-pin"}, ""); err == nil {
 		t.Fatal("expected error for invalid pin")
 	}
 }

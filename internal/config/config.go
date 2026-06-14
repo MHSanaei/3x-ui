@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -61,6 +62,23 @@ func IsDebug() bool {
 // IsSkipHSTS returns true if skipping HSTS mode is enabled via the XUI_SKIP_HSTS environment variable.
 func IsSkipHSTS() bool {
 	return os.Getenv("XUI_SKIP_HSTS") == "true"
+}
+
+func GetPortOverride() (port int, configured bool, err error) {
+	value, ok := os.LookupEnv("XUI_PORT")
+	if !ok || strings.TrimSpace(value) == "" {
+		return 0, false, nil
+	}
+
+	port, err = strconv.Atoi(strings.TrimSpace(value))
+	if err != nil {
+		return 0, true, fmt.Errorf("parse XUI_PORT: %w", err)
+	}
+	if port < 1 || port > 65535 {
+		return 0, true, fmt.Errorf("XUI_PORT must be between 1 and 65535")
+	}
+
+	return port, true, nil
 }
 
 // GetBinFolderPath returns the path to the binary folder, defaulting to "bin" if not set via XUI_BIN_FOLDER.

@@ -16,16 +16,17 @@ import {
   Tabs,
   Tag,
   Tooltip,
+  Typography,
   message,
 } from 'antd';
-import { EyeOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { HttpUtil, RandomUtil } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
-import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
 import { ClientFormSchema, ClientCreateFormSchema } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
@@ -37,6 +38,13 @@ const MULTI_CLIENT_PROTOCOLS = new Set([
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;
 const CLIENT_IP_LOG_MODAL_Z_INDEX = CLIENT_FORM_MODAL_Z_INDEX + 1;
+
+// One editable row in the Links tab. `key` is a stable client-side id for React.
+interface ExternalLinkRow {
+  key: number;
+  kind: 'link' | 'subscription';
+  value: string;
+}
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
@@ -51,10 +59,13 @@ interface SaveMetaEdit {
   email: string;
   attach: number[];
   detach: number[];
+  externalLinks: ExternalLinkInput[];
 }
 
 interface SaveMetaCreate {
   isEdit: false;
+  email: string;
+  externalLinks: ExternalLinkInput[];
 }
 
 interface SaveCreatePayload {
@@ -67,6 +78,7 @@ interface ClientFormModalProps {
   mode: Mode;
   client: ClientRecord | null;
   inbounds: InboundOption[];
+  attachedExternalLinks?: ExternalLink[];
   attachedIds?: number[];
   tgBotEnable?: boolean;
   groups?: string[];
@@ -98,6 +110,7 @@ interface FormState {
   comment: string;
   enable: boolean;
   inboundIds: number[];
+  externalLinks: ExternalLinkRow[];
 }
 
 function emptyForm(): FormState {
@@ -121,7 +134,17 @@ function emptyForm(): FormState {
     comment: '',
     enable: true,
     inboundIds: [],
+    externalLinks: [],
   };
+}
+
+let externalLinkRowSeq = 0;
+function toExternalLinkRows(links: ExternalLink[] | undefined): ExternalLinkRow[] {
+  return (links || []).map((l) => ({
+    key: (externalLinkRowSeq += 1),
+    kind: l.kind === 'subscription' ? 'subscription' : 'link',
+    value: l.value || '',
+  }));
 }
 
 function bytesToGB(bytes: number): number {
@@ -139,6 +162,7 @@ export default function ClientFormModal({
   mode,
   client,
   inbounds,
+  attachedExternalLinks = [],
   attachedIds = [],
   tgBotEnable = false,
   groups = [],
@@ -160,6 +184,27 @@ export default function ClientFormModal({
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function addExternalLinkRow(kind: 'link' | 'subscription') {
+    setForm((prev) => ({
+      ...prev,
+      externalLinks: [...prev.externalLinks, { key: (externalLinkRowSeq += 1), kind, value: '' }],
+    }));
+  }
+
+  function updateExternalLinkRow(key: number, value: string) {
+    setForm((prev) => ({
+      ...prev,
+      externalLinks: prev.externalLinks.map((r) => (r.key === key ? { ...r, value } : r)),
+    }));
+  }
+
+  function removeExternalLinkRow(key: number) {
+    setForm((prev) => ({
+      ...prev,
+      externalLinks: prev.externalLinks.filter((r) => r.key !== key),
+    }));
   }
 
   useEffect(() => {
@@ -186,6 +231,7 @@ export default function ClientFormModal({
         comment: client.comment || '',
         enable: !!client.enable,
         inboundIds: Array.isArray(attachedIds) ? [...attachedIds] : [],
+        externalLinks: toExternalLinkRows(attachedExternalLinks),
       };
       if (et < 0) {
         next.delayedStart = true;
@@ -300,6 +346,9 @@ export default function ClientFormModal({
     [inbounds],
   );
 
+  const linkRows = useMemo(() => form.externalLinks.filter((r) => r.kind === 'link'), [form.externalLinks]);
+  const subscriptionRows = useMemo(() => form.externalLinks.filter((r) => r.kind === 'subscription'), [form.externalLinks]);
+
   async function loadIps() {
     if (!isEdit || !client?.email) return;
     setIpsLoading(true);
@@ -400,6 +449,10 @@ export default function ClientFormModal({
       clientPayload.reverse = { tag: reverseTag };
     }
 
+    const externalLinks: ExternalLinkInput[] = form.externalLinks
+      .map((r) => ({ kind: r.kind, value: r.value.trim(), remark: '' }))
+      .filter((r) => r.value !== '');
+
     setSubmitting(true);
     try {
       let msg;
@@ -413,11 +466,12 @@ export default function ClientFormModal({
           email: client.email,
           attach: toAttach,
           detach: toDetach,
+          externalLinks,
         });
       } else {
         msg = await save(
           { client: clientPayload, inboundIds: form.inboundIds },
-          { isEdit: false },
+          { isEdit: false, email: clientPayload.email as string, externalLinks },
         );
       }
       if (msg?.success) close();
@@ -689,6 +743,57 @@ export default function ClientFormModal({
                         </Col>
                       )}
                     </Row>
+                  </>
+                ),
+              },
+              {
+                key: 'links',
+                label: t('pages.clients.tabLinks'),
+                children: (
+                  <>
+                    <Typography.Paragraph type="secondary" style={{ marginTop: 4 }}>
+                      {t('pages.clients.linksHint')}
+                    </Typography.Paragraph>
+
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => addExternalLinkRow('link')}>
+                      {t('pages.clients.addExternalLink')}
+                    </Button>
+                    <div style={{ marginTop: 12, marginBottom: 24 }}>
+                      {linkRows.length === 0 ? (
+                        <Typography.Text type="secondary">{t('pages.clients.noExternalLinks')}</Typography.Text>
+                      ) : linkRows.map((row) => (
+                        <div key={row.key} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                          <Input
+                            value={row.value}
+                            onChange={(e) => updateExternalLinkRow(row.key, e.target.value)}
+                            placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                          />
+                          <Tooltip title={t('delete')}>
+                            <Button danger icon={<DeleteOutlined />} onClick={() => removeExternalLinkRow(row.key)} />
+                          </Tooltip>
+                        </div>
+                      ))}
+                    </div>
+
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => addExternalLinkRow('subscription')}>
+                      {t('pages.clients.addExternalSubscription')}
+                    </Button>
+                    <div style={{ marginTop: 12 }}>
+                      {subscriptionRows.length === 0 ? (
+                        <Typography.Text type="secondary">{t('pages.clients.noExternalSubscriptions')}</Typography.Text>
+                      ) : subscriptionRows.map((row) => (
+                        <div key={row.key} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                          <Input
+                            value={row.value}
+                            onChange={(e) => updateExternalLinkRow(row.key, e.target.value)}
+                            placeholder="https://provider.example/sub/…"
+                          />
+                          <Tooltip title={t('delete')}>
+                            <Button danger icon={<DeleteOutlined />} onClick={() => removeExternalLinkRow(row.key)} />
+                          </Tooltip>
+                        </div>
+                      ))}
+                    </div>
                   </>
                 ),
               },

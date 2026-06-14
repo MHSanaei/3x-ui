@@ -22,6 +22,7 @@ import {
   type ClientsSummary,
   type ClientPageResponse,
   type InboundOption,
+  type ExternalLink,
   type BulkAdjustResult,
   type BulkAttachResult,
   type BulkCreateResult,
@@ -30,7 +31,10 @@ import {
 } from '@/schemas/client';
 import { DefaultsPayloadSchema } from '@/schemas/defaults';
 
-export type { ClientRecord, ClientTraffic, ClientsSummary, InboundOption };
+// One row sent to POST /clients/:email/externalLinks.
+export type ExternalLinkInput = { kind: 'link' | 'subscription'; value: string; remark: string };
+
+export type { ClientRecord, ClientTraffic, ClientsSummary, InboundOption, ExternalLink };
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
 
@@ -350,6 +354,12 @@ export function useClients() {
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
+  const setExternalLinksMut = useMutation({
+    mutationFn: ({ email, externalLinks }: { email: string; externalLinks: ExternalLinkInput[] }) =>
+      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/externalLinks`, { externalLinks }, JSON_HEADERS),
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
   const bulkAttachMut = useMutation({
     mutationFn: async (payload: { emails: string[]; inboundIds: number[] }): Promise<Msg<BulkAttachResult>> => {
       const raw = await HttpUtil.post('/panel/api/clients/bulkAttach', payload, JSON_HEADERS);
@@ -363,6 +373,7 @@ export function useClients() {
       HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/detach`, { inboundIds }, JSON_HEADERS),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
+
 
   const bulkDetachMut = useMutation({
     mutationFn: async (payload: { emails: string[]; inboundIds: number[] }): Promise<Msg<BulkDetachResult>> => {
@@ -424,6 +435,10 @@ export function useClients() {
     if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return attachMut.mutateAsync({ email, inboundIds });
   }, [attachMut]);
+  const setExternalLinks = useCallback((email: string, externalLinks: ExternalLinkInput[]) => {
+    if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
+    return setExternalLinksMut.mutateAsync({ email, externalLinks });
+  }, [setExternalLinksMut]);
   const bulkAttach = useCallback((emails: string[], inboundIds: number[]) => {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkAttachResult>);
     if (!Array.isArray(inboundIds) || inboundIds.length === 0) return Promise.resolve(null as unknown as Msg<BulkAttachResult>);
@@ -553,6 +568,7 @@ export function useClients() {
     bulkAddToGroup,
     bulkRemoveFromGroup,
     attach,
+    setExternalLinks,
     bulkAttach,
     detach,
     bulkDetach,

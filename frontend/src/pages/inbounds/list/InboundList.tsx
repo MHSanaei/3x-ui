@@ -36,6 +36,7 @@ export default function InboundList({
   dbInbounds,
   clientCount,
   lastOnlineMap: _lastOnlineMap,
+  inboundSpeed,
   expireDiff,
   trafficDiff,
   pageSize,
@@ -124,6 +125,7 @@ export default function InboundList({
     hasActiveNode,
     nodesById,
     clientCount,
+    inboundSpeed,
     subEnable,
     expireDiff,
     trafficDiff,
@@ -271,6 +273,7 @@ export default function InboundList({
         hasActiveNode={hasActiveNode}
         nodesById={nodesById}
         clientCount={clientCount}
+        inboundSpeed={inboundSpeed}
         trafficDiff={trafficDiff}
         expireDiff={expireDiff}
         onClose={() => setStatsRecord(null)}
