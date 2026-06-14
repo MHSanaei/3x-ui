@@ -147,8 +147,12 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 	if err != nil {
 		return nil, nil, 0, traffic, err
 	}
+	externalLinks, err := s.getClientExternalLinksBySubId(subId)
+	if err != nil {
+		return nil, nil, 0, traffic, err
+	}
 
-	if len(inbounds) == 0 {
+	if len(inbounds) == 0 && len(externalLinks) == 0 {
 		return nil, nil, 0, traffic, nil
 	}
 
@@ -176,6 +180,18 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 			result = append(result, s.GetLink(inbound, client.Email))
 			emails = append(emails, client.Email)
 			seenEmails[client.Email] = struct{}{}
+		}
+	}
+	for _, ext := range externalLinks {
+		if ext.Enable {
+			hasEnabledClient = true
+		}
+		for _, el := range expandEntry(ext) {
+			if link := applyRemarkToLink(el.Link, el.Name); link != "" {
+				result = append(result, link)
+				emails = append(emails, ext.Email)
+				seenEmails[ext.Email] = struct{}{}
+			}
 		}
 	}
 
@@ -484,6 +500,23 @@ func vlessEncryptionEnabled(settings map[string]any) bool {
 	return false
 }
 
+// vlessFlowAllowed reports whether a client's XTLS Vision flow belongs in
+// generated links/configs. Mirrors inboundCanEnableTlsFlow in
+// internal/web/service: Vision runs on TCP with tls/reality (classic), and on
+// XHTTP whenever VLESS encryption (vlessenc / ML-KEM) is enabled — there the
+// VLESS-level encryption stands in for the transport TLS that Vision relies
+// on, regardless of the stream security layer (so XHTTP+REALITY+vlessenc
+// keeps its flow too).
+func vlessFlowAllowed(network, security string, settings map[string]any) bool {
+	switch network {
+	case "tcp":
+		return security == "tls" || security == "reality"
+	case "xhttp":
+		return vlessEncryptionEnabled(settings)
+	}
+	return false
+}
+
 func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.VLESS {
 		return ""
@@ -513,21 +546,13 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	switch security {
 	case "tls":
 		applyShareTLSParams(stream, params)
-		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
-			params["flow"] = clients[clientIndex].Flow
-		}
 	case "reality":
 		applyShareRealityParams(stream, params)
-		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
-			params["flow"] = clients[clientIndex].Flow
-		}
 	default:
 		params["security"] = "none"
-		// VLESS encryption (vlessenc / ML-KEM) carries XTLS Vision over XHTTP
-		// without transport TLS.
-		if streamNetwork == "xhttp" && len(clients[clientIndex].Flow) > 0 && vlessEncryptionEnabled(settings) {
-			params["flow"] = clients[clientIndex].Flow
-		}
+	}
+	if len(clients[clientIndex].Flow) > 0 && vlessFlowAllowed(streamNetwork, security, settings) {
+		params["flow"] = clients[clientIndex].Flow
 	}
 
 	externalProxies, _ := stream["externalProxy"].([]any)
@@ -1518,19 +1543,6 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 	}
 	if len(extra) > 0 {
 		orders['o'] = extra
-	}
-	// A node-hosted inbound usually shares its remark with the local copy it
-	// was synced from, so a multi-node subscription would list several
-	// identically-named entries differing only by address (#5035). Tag such
-	// entries with the node name unless the admin already put it in the remark.
-	if inbound.NodeID != nil && s.nodesByID != nil {
-		if n, ok := s.nodesByID[*inbound.NodeID]; ok && n != nil && n.Name != "" && !strings.Contains(orders['i'], n.Name) {
-			if orders['i'] != "" {
-				orders['i'] += "@" + n.Name
-			} else {
-				orders['i'] = n.Name
-			}
-		}
 	}
 
 	var remark []string

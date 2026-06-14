@@ -13,7 +13,8 @@ import {
   tunnelNetworkLabel,
   mixedNetworkLabel,
 } from './helpers';
-import type { ClientCountEntry, DBInboundRecord } from './types';
+import { InboundSpeedTag, isActiveSpeed } from './InboundSpeedTag';
+import type { ClientCountEntry, DBInboundRecord, InboundSpeedEntry } from './types';
 
 interface InboundStatsModalProps {
   open: boolean;
@@ -21,6 +22,7 @@ interface InboundStatsModalProps {
   hasActiveNode: boolean;
   nodesById: Map<number, NodeRecord>;
   clientCount: Record<number, ClientCountEntry>;
+  inboundSpeed: Record<number, InboundSpeedEntry>;
   trafficDiff: number;
   expireDiff: number;
   onClose: () => void;
@@ -32,6 +34,7 @@ export default function InboundStatsModal({
   hasActiveNode,
   nodesById,
   clientCount,
+  inboundSpeed,
   trafficDiff,
   expireDiff,
   onClose,
@@ -109,6 +112,16 @@ export default function InboundStatsModal({
               {record.total > 0 ? SizeFormatter.sizeFormat(record.total) : <InfinityIcon />}
             </Tag>
           </div>
+          {(() => {
+            const speed = inboundSpeed[record.id];
+            if (!isActiveSpeed(speed)) return null;
+            return (
+              <div className="stat-row">
+                <span className="stat-label">{t('pages.inbounds.speed')}</span>
+                <InboundSpeedTag speed={speed} />
+              </div>
+            );
+          })()}
           {clientCount[record.id] && (
             <div className="stat-row">
               <span className="stat-label">{t('clients')}</span>
