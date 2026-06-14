@@ -5,7 +5,7 @@ import { PlusOutlined, MinusOutlined, QuestionCircleOutlined } from '@ant-design
 import { InputAddon } from '@/components/ui';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import { RuleFormSchema, type RuleFormValues } from '@/schemas/xray';
-import { buildRemarkByTag, formatInboundTag } from './helpers';
+import { buildRemarkByTag, formatInboundTag, isApiRule } from './helpers';
 
 export interface RoutingRule {
   enabled?: boolean;
@@ -159,6 +159,7 @@ export default function RuleFormModal({
           <Select
             value={form.enabled}
             onChange={(v) => update('enabled', v)}
+            disabled={isApiRule(rule ?? {})}
             options={[
               { value: true, label: t('enable') },
               { value: false, label: t('disable') },

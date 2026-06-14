@@ -712,6 +712,11 @@ func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 	return out
 }
 
+// stripDisabledRules removes routing rules marked `enabled: false` from the
+// generated runtime config and strips the panel-only `enabled` key from the
+// rest, since xray-core has no such field. The internal api rule is always
+// kept (see isApiRule) so traffic stats can't be toggled off. The stored
+// template is untouched — only the generated config is filtered.
 func stripDisabledRules(routerCfg json_util.RawMessage) json_util.RawMessage {
 	if len(routerCfg) == 0 {
 		return routerCfg
@@ -735,8 +740,10 @@ func stripDisabledRules(routerCfg json_util.RawMessage) json_util.RawMessage {
 		}
 
 		if enabledRaw, exists := rule["enabled"]; exists {
+			// The internal api rule carries traffic stats and must never be
+			// dropped, even if it was somehow marked disabled.
 			enabled, ok := enabledRaw.(bool)
-			if ok && !enabled {
+			if ok && !enabled && !isApiRule(rule) {
 				changed = true
 				continue
 			}

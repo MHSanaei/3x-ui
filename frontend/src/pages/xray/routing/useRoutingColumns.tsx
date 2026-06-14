@@ -1,13 +1,21 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Dropdown, Tag } from 'antd';
-import { MoreOutlined, EditOutlined, DeleteOutlined, ExportOutlined, ClusterOutlined, ArrowUpOutlined, ArrowDownOutlined, HolderOutlined } from '@ant-design/icons';
+import { Button, Dropdown, Switch, Tag } from 'antd';
+import {
+  MoreOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ExportOutlined,
+  ClusterOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  HolderOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { Switch } from 'antd';
 
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import CriterionRow from './CriterionRow';
-import { buildRemarkByTag, formatInboundTagList, inboundTagsDisplayTitle } from './helpers';
+import { buildRemarkByTag, formatInboundTagList, inboundTagsDisplayTitle, isApiRule } from './helpers';
 import type { RuleRow } from './types';
 
 interface RoutingColumnsParams {
@@ -99,7 +107,7 @@ export function useRoutingColumns({
             size="small"
             checked={_r.enabled !== false}
             onChange={(checked) => toggleRule(index, checked)}
-            disabled={_r.outboundTag === 'api' && _r.inboundTag?.split(',').map((s) => s.trim()).includes('api')}
+            disabled={isApiRule(_r)}
           />
         ),
       },

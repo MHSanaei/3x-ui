@@ -13,7 +13,7 @@ import {
 } from '@ant-design/icons';
 
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
-import { buildRemarkByTag, chipPreview, inboundTagChipPreview, inboundTagsDisplayTitle, ruleCriteriaChips } from './helpers';
+import { buildRemarkByTag, chipPreview, inboundTagChipPreview, inboundTagsDisplayTitle, isApiRule, ruleCriteriaChips } from './helpers';
 import type { RuleRow } from './types';
 
 interface RuleCardListProps {
@@ -80,7 +80,7 @@ export default function RuleCardList({
                 size="small"
                 checked={rule.enabled !== false}
                 onChange={(checked) => toggleRule(index, checked)}
-                disabled={rule.outboundTag === 'api' && rule.inboundTag?.split(',').map((s) => s.trim()).includes('api')}
+                disabled={isApiRule(rule)}
                 style={{ marginLeft: 8 }}
               />
             </div>
