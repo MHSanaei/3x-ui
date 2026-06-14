@@ -18,6 +18,7 @@ import type { RemoteInboundOption } from '@/api/queries/useNodeMutations';
 import type { Msg } from '@/utils';
 import { NodeFormSchema, type NodeFormValues, type ProbeResult } from '@/schemas/node';
 import { antdRule } from '@/utils/zodForm';
+import { useOutboundTags } from '@/api/queries/useOutboundTags';
 import './NodeFormModal.css';
 
 type Mode = 'add' | 'edit';
@@ -49,6 +50,7 @@ function defaultValues(): NodeFormValues {
     pinnedCertSha256: '',
     inboundSyncMode: 'all',
     inboundTags: [],
+    outboundTag: '',
   };
 }
 
@@ -75,6 +77,7 @@ export default function NodeFormModal({
   const scheme = Form.useWatch('scheme', form) ?? 'https';
   const tlsVerifyMode = Form.useWatch('tlsVerifyMode', form) ?? 'verify';
   const inboundSyncMode = Form.useWatch('inboundSyncMode', form) ?? 'all';
+  const { data: outboundTags } = useOutboundTags({ excludeBlackhole: true });
 
   useEffect(() => {
     if (!open) return;
@@ -117,6 +120,7 @@ export default function NodeFormModal({
       pinnedCertSha256: values.tlsVerifyMode === 'pin' ? values.pinnedCertSha256.trim() : '',
       inboundSyncMode: values.inboundSyncMode,
       inboundTags: values.inboundSyncMode === 'selected' ? values.inboundTags : [],
+      outboundTag: values.outboundTag || '',
     };
   }
 
@@ -354,6 +358,19 @@ export default function NodeFormModal({
             extra={t('pages.nodes.apiTokenHint')}
           >
             <Input.Password placeholder={t('pages.nodes.apiTokenPlaceholder')} />
+          </Form.Item>
+
+          <Form.Item
+            label={t('pages.nodes.outboundTag')}
+            name="outboundTag"
+            extra={t('pages.nodes.outboundTagHint')}
+          >
+            <Select
+              allowClear
+              showSearch
+              placeholder={t('pages.nodes.outboundTagPlaceholder')}
+              options={(outboundTags ?? []).map((tag) => ({ value: tag, label: tag }))}
+            />
           </Form.Item>
 
           <Form.Item

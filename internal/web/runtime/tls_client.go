@@ -12,6 +12,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 )
 
@@ -26,19 +27,51 @@ var defaultNodeHTTPClient = &http.Client{
 	},
 }
 
-// HTTPClientForNode returns the node's HTTP client honoring its TLS verify mode
-// (verify→system CA, skip→no check, pin→leaf SHA-256). Used by both the probe
-// and every Remote op so they can't disagree on a self-signed node (#5264).
-func HTTPClientForNode(n *model.Node) (*http.Client, error) {
+func HTTPClientForNode(n *model.Node, proxyURL string) (*http.Client, error) {
 	mode := n.TlsVerifyMode
 	if mode == "" {
 		mode = "verify"
 	}
+	if proxyURL != "" {
+		client, err := netproxy.NewHTTPClient(proxyURL, remoteHTTPTimeout)
+		if err != nil {
+			return nil, err
+		}
+		if mode == "verify" || n.Scheme == "http" {
+			return client, nil
+		}
+		transport, ok := client.Transport.(*http.Transport)
+		if !ok {
+			return client, nil
+		}
+		tlsCfg, err := tlsConfigForNode(n)
+		if err != nil {
+			return nil, err
+		}
+		transport.TLSClientConfig = tlsCfg
+		return client, nil
+	}
 	if mode == "verify" || n.Scheme == "http" {
 		return defaultNodeHTTPClient, nil
 	}
+	tlsCfg, err := tlsConfigForNode(n)
+	if err != nil {
+		return nil, err
+	}
+	return &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        64,
+			MaxIdleConnsPerHost: 4,
+			IdleConnTimeout:     60 * time.Second,
+			DialContext:         netsafe.SSRFGuardedDialContext,
+			TLSClientConfig:     tlsCfg,
+		},
+	}, nil
+}
+
+func tlsConfigForNode(n *model.Node) (*tls.Config, error) {
 	tlsCfg := &tls.Config{InsecureSkipVerify: true} // lgtm[go/disabled-certificate-check]
-	if mode == "pin" {
+	if n.TlsVerifyMode == "pin" {
 		want, err := DecodeCertPin(n.PinnedCertSha256)
 		if err != nil {
 			return nil, err
@@ -54,15 +87,7 @@ func HTTPClientForNode(n *model.Node) (*http.Client, error) {
 			return nil
 		}
 	}
-	return &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConns:        64,
-			MaxIdleConnsPerHost: 4,
-			IdleConnTimeout:     60 * time.Second,
-			DialContext:         netsafe.SSRFGuardedDialContext,
-			TLSClientConfig:     tlsCfg,
-		},
-	}, nil
+	return tlsCfg, nil
 }
 
 // DecodeCertPin decodes a SHA-256 cert pin given as base64 (Xray's
