@@ -13,6 +13,7 @@ import {
   tunnelNetworkLabel,
   mixedNetworkLabel,
 } from './helpers';
+import { InboundSpeedTag, isActiveSpeed } from './InboundSpeedTag';
 import type { ClientCountEntry, DBInboundRecord, InboundSpeedEntry } from './types';
 
 interface InboundStatsModalProps {
@@ -113,15 +114,11 @@ export default function InboundStatsModal({
           </div>
           {(() => {
             const speed = inboundSpeed[record.id];
-            if (!speed || (speed.up <= 0 && speed.down <= 0)) return null;
+            if (!isActiveSpeed(speed)) return null;
             return (
               <div className="stat-row">
                 <span className="stat-label">{t('pages.inbounds.speed')}</span>
-                <Tag color="blue">
-                  ↑ {SizeFormatter.speedFormat(speed.up)}
-                  {' / '}
-                  ↓ {SizeFormatter.speedFormat(speed.down)}
-                </Tag>
+                <InboundSpeedTag speed={speed} />
               </div>
             );
           })()}

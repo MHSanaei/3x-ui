@@ -26,6 +26,13 @@ describe('SizeFormatter.speedFormat', () => {
     expect(SizeFormatter.speedFormat(undefined)).toBe('0 B/s');
   });
 
+  it('formats non-finite values as zero', () => {
+    expect(SizeFormatter.speedFormat(NaN)).toBe('0 B/s');
+    expect(SizeFormatter.speedFormat(Infinity)).toBe('0 B/s');
+    expect(SizeFormatter.sizeFormat(NaN)).toBe('0 B');
+    expect(SizeFormatter.sizeFormat(Infinity)).toBe('0 B');
+  });
+
   it('formats bytes per second', () => {
     expect(SizeFormatter.speedFormat(512)).toBe('512 B/s');
     expect(SizeFormatter.speedFormat(1023)).toBe('1023 B/s');

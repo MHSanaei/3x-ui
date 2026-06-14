@@ -9,6 +9,7 @@ import { useDatepicker } from '@/hooks/useDatepicker';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 
 import { RowActionsCell } from './RowActions';
+import { InboundSpeedTag, isActiveSpeed } from './InboundSpeedTag';
 import {
   readStreamHints,
   networkLabel,
@@ -271,24 +272,10 @@ export function useInboundColumns({
         width: 90,
         render: (_, record) => {
           const speed = inboundSpeed[record.id];
-          if (!speed || (speed.up <= 0 && speed.down <= 0)) {
+          if (!isActiveSpeed(speed)) {
             return <Tag color='default'>—</Tag>;
           }
-          return (
-            <Tooltip title={(
-              <div>
-                <div>↑ {SizeFormatter.speedFormat(speed.up)}</div>
-                <div>↓ {SizeFormatter.speedFormat(speed.down)}</div>
-              </div>
-            )}
-            >
-              <Tag color='blue'>
-                ↑ {SizeFormatter.speedFormat(speed.up)}
-                {' / '}
-                ↓ {SizeFormatter.speedFormat(speed.down)}
-              </Tag>
-            </Tooltip>
-          );
+          return <InboundSpeedTag speed={speed} withTooltip />;
         },
       },
       {

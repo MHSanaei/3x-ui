@@ -12,6 +12,8 @@ import { SlimInboundListSchema, LastOnlineMapSchema, InboundDetailSchema } from 
 import { OnlinesSchema, OnlineByNodeSchema, ActiveInboundsByNodeSchema } from '@/schemas/client';
 import { DefaultsPayloadSchema, type DefaultsPayload } from '@/schemas/defaults';
 
+import type { InboundSpeedEntry } from './list/types';
+
 export interface SubSettings {
   enable: boolean;
   subTitle: string;
@@ -35,11 +37,6 @@ interface TrafficDelta {
   Up: number;
   Down: number;
   IsInbound?: boolean;
-}
-
-interface InboundSpeed {
-  up: number;
-  down: number;
 }
 
 interface ClientRollup {
@@ -195,7 +192,7 @@ export function useInbounds() {
   const [clientCount, setClientCount] = useState<Record<number, ClientRollup>>({});
   const [statsVersion, setStatsVersion] = useState(0);
 
-  const [inboundSpeed, setInboundSpeed] = useState<Record<number, InboundSpeed>>({});
+  const [inboundSpeed, setInboundSpeed] = useState<Record<number, InboundSpeedEntry>>({});
 
   const [onlineClients, setOnlineClients] = useState<string[]>([]);
   const onlineClientsRef = useRef<string[]>([]);
@@ -421,14 +418,16 @@ export function useInbounds() {
       if (p.lastOnlineMap && typeof p.lastOnlineMap === 'object') {
         setLastOnlineMap((prev) => ({ ...prev, ...p.lastOnlineMap! }));
       }
-      if (Array.isArray(p.traffics) && p.traffics.length > 0) {
+      // Full-replace each poll so idle inbounds (and an empty array after an
+      // Xray stat reset) clear their speed instead of showing a stale value.
+      if (Array.isArray(p.traffics)) {
         const byTag = new Map<string, TrafficDelta>();
         for (const tr of p.traffics) {
           if (!tr || typeof tr.Tag !== 'string') continue;
           if (tr.IsInbound === false) continue;
           byTag.set(tr.Tag, tr);
         }
-        const nextSpeed: Record<number, InboundSpeed> = {};
+        const nextSpeed: Record<number, InboundSpeedEntry> = {};
         for (const ib of dbInboundsRef.current) {
           const delta = byTag.get(ib.tag);
           if (!delta) continue;
