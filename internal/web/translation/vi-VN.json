@@ -289,6 +289,7 @@
       "port": "Cổng",
       "portMap": "Ánh xạ cổng",
       "traffic": "Lưu lượng",
+      "speed": "Tốc độ",
       "details": "Chi tiết",
       "transportConfig": "Truyền dẫn",
       "expireDate": "Ngày hết hạn",

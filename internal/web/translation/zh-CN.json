@@ -289,6 +289,7 @@
       "port": "端口",
       "portMap": "端口映射",
       "traffic": "流量",
+      "speed": "速度",
       "details": "详细信息",
       "transportConfig": "传输",
       "expireDate": "到期时间",

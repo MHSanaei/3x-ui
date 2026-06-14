@@ -289,6 +289,7 @@
       "port": "Puerto",
       "portMap": "Asignación de puertos",
       "traffic": "Tráfico",
+      "speed": "Velocidad",
       "details": "Detalles",
       "transportConfig": "Transporte",
       "expireDate": "Fecha de Expiración",

@@ -289,6 +289,7 @@
       "port": "Порт",
       "portMap": "Відображення портів",
       "traffic": "Трафік",
+      "speed": "Швидкість",
       "details": "Деталі",
       "transportConfig": "Транспорт",
       "expireDate": "Тривалість",
