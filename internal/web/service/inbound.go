@@ -350,6 +350,15 @@ func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	return inbounds, nil
 }
 
+// UpdateInboundStreamSettings persists a new streamSettings JSON blob for a
+// single inbound without the port-conflict checks and client-traffic
+// reconciliation of the full UpdateInbound. Used by the Reality rotation job,
+// which only ever mutates the streamSettings column.
+func (s *InboundService) UpdateInboundStreamSettings(id int, streamSettings string) error {
+	db := database.GetDB()
+	return db.Model(model.Inbound{}).Where("id = ?", id).Update("stream_settings", streamSettings).Error
+}
+
 func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound

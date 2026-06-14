@@ -11,6 +11,8 @@ exports[`inbound security forms > RealityForm field structure is stable 1`] = `
   "Min Client Ver",
   "Max Client Ver",
   "Short IDs",
+  "Auto-rotate Short IDs",
+  "Auto-rotate Public Key",
   "SpiderX",
   "Public Key",
   "Private Key",
