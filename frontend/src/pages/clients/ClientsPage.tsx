@@ -53,7 +53,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { useClients } from '@/hooks/useClients';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useDatepicker } from '@/hooks/useDatepicker';
-import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
 import ClientTrafficCell from '@/components/clients/ClientTrafficCell';
 import AppSidebar from '@/layouts/AppSidebar';
 import { IntlUtil, SizeFormatter } from '@/utils';
@@ -199,7 +199,7 @@ export default function ClientsPage() {
     setQuery,
     inbounds, onlines, loading, transitioning, fetched, fetchError, subSettings,
     tgBotEnable, expireDiff, trafficDiff, pageSize,
-    create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, bulkAttach, detach, bulkDetach,
+    create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, setExternalLinks, bulkAttach, detach, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
     refresh,
@@ -220,6 +220,7 @@ export default function ClientsPage() {
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [editingClient, setEditingClient] = useState<ClientRecord | null>(null);
   const [editingAttachedIds, setEditingAttachedIds] = useState<number[]>([]);
+  const [editingExternalLinks, setEditingExternalLinks] = useState<ExternalLink[]>([]);
   const [infoOpen, setInfoOpen] = useState(false);
   const [infoClient, setInfoClient] = useState<ClientRecord | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
@@ -429,6 +430,7 @@ export default function ClientsPage() {
     setFormMode('add');
     setEditingClient(null);
     setEditingAttachedIds([]);
+    setEditingExternalLinks([]);
     setFormOpen(true);
   }
 
@@ -441,6 +443,7 @@ export default function ClientsPage() {
     setEditingClient(merged);
     const ids = full?.inboundIds ?? (Array.isArray(row.inboundIds) ? row.inboundIds : []);
     setEditingAttachedIds([...ids]);
+    setEditingExternalLinks(Array.isArray(full?.externalLinks) ? [...full.externalLinks] : []);
     setFormOpen(true);
   }
 
@@ -567,10 +570,18 @@ export default function ClientsPage() {
 
   const onSave = useCallback(async (
     payload: Record<string, unknown> | { client: Record<string, unknown>; inboundIds: number[] },
-    meta: { isEdit: false } | { isEdit: true; email: string; attach: number[]; detach: number[] },
+    meta:
+      | { isEdit: false; email: string; externalLinks: ExternalLinkInput[] }
+      | { isEdit: true; email: string; attach: number[]; detach: number[]; externalLinks: ExternalLinkInput[] },
   ) => {
     if (!meta.isEdit) {
-      return create(payload);
+      const createMsg = await create(payload);
+      if (!createMsg?.success) return createMsg;
+      if (meta.email && meta.externalLinks.length > 0) {
+        const r = await setExternalLinks(meta.email, meta.externalLinks);
+        if (!r?.success) return r;
+      }
+      return createMsg;
     }
     const updateMsg = await update(meta.email, payload);
     if (!updateMsg?.success) return updateMsg;
@@ -582,8 +593,11 @@ export default function ClientsPage() {
       const r = await detach(meta.email, meta.detach);
       if (!r?.success) return r;
     }
+    // Always replace the client's external links (an empty set clears them).
+    const r = await setExternalLinks(meta.email, meta.externalLinks);
+    if (!r?.success) return r;
     return updateMsg;
-  }, [create, update, attach, detach]);
+  }, [create, update, attach, detach, setExternalLinks]);
 
   const pageClass = useMemo(() => {
     const classes = ['clients-page'];
@@ -1243,6 +1257,7 @@ export default function ClientsPage() {
             mode={formMode}
             client={editingClient}
             attachedIds={editingAttachedIds}
+            attachedExternalLinks={editingExternalLinks}
             inbounds={inbounds}
             tgBotEnable={tgBotEnable}
             groups={allGroups}

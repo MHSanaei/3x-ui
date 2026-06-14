@@ -648,6 +648,12 @@
     "clients": {
       "tabBasics": "Basics",
       "tabCredentials": "Credentials",
+      "tabLinks": "Links",
+      "linksHint": "Add third-party share links and remote subscription URLs to include in this client's subscription.",
+      "addExternalLink": "Add External Link",
+      "addExternalSubscription": "Add External Subscription",
+      "noExternalLinks": "No external links yet.",
+      "noExternalSubscriptions": "No external subscriptions yet.",
       "add": "Add Client",
       "edit": "Edit Client",
       "submitAdd": "Add Client",

@@ -647,6 +647,12 @@
     "clients": {
       "tabBasics": "基本",
       "tabCredentials": "認証情報",
+      "tabLinks": "リンク",
+      "linksHint": "サードパーティの共有リンクやリモートのサブスクリプションURLを追加して、このクライアントのサブスクリプションに含めます。",
+      "addExternalLink": "外部リンクを追加",
+      "addExternalSubscription": "外部サブスクリプションを追加",
+      "noExternalLinks": "外部リンクはまだありません。",
+      "noExternalSubscriptions": "外部サブスクリプションはまだありません。",
       "add": "クライアントを追加",
       "edit": "クライアントを編集",
       "submitAdd": "クライアントを追加",
