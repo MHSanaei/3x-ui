@@ -23,6 +23,14 @@ import { getHeaderValue } from './headers';
 type ForceTls = 'same' | 'tls' | 'none';
 const SHARE_HOSTNAME_RE = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/;
 
+// Format a host for interpolation into a URL authority. IPv6 literals are
+// wrapped in square brackets per RFC 3986; IPv4 and hostnames are left as-is.
+// Any brackets already present are first stripped so the helper is idempotent.
+function formatUrlHost(address: string): string {
+  const bare = address.replace(/^\[|\]$/g, '');
+  return bare.includes(':') ? `[${bare}]` : bare;
+}
+
 // xHTTP headers ship as Record<string, string> on the wire (Zod schema)
 // rather than the legacy class's HeaderEntry[]. Lookup by case-folded key.
 function xhttpHostFallback(xhttp: XHttpStreamSettings | undefined): string {
@@ -400,7 +408,7 @@ export function genVlessLink(input: GenVlessLinkInput): string {
     params.set('security', 'none');
   }
 
-  const url = new URL(`vless://${clientId}@${address}:${port}`);
+  const url = new URL(`vless://${clientId}@${formatUrlHost(address)}:${port}`);
   for (const [key, value] of params) url.searchParams.set(key, value);
   url.hash = encodeURIComponent(remark);
   return url.toString();
@@ -524,7 +532,7 @@ export function genTrojanLink(input: GenTrojanLinkInput): string {
     params.set('security', 'none');
   }
 
-  const url = new URL(`trojan://${encodeURIComponent(clientPassword)}@${address}:${port}`);
+  const url = new URL(`trojan://${encodeURIComponent(clientPassword)}@${formatUrlHost(address)}:${port}`);
   for (const [key, value] of params) url.searchParams.set(key, value);
   url.hash = encodeURIComponent(remark);
   return url.toString();
@@ -583,7 +591,7 @@ export function genShadowsocksLink(input: GenShadowsocksLinkInput): string {
   if (isSSMultiUser) passwords.push(clientPassword);
 
   const userinfo = Base64.encode(`${settings.method}:${passwords.join(':')}`, true);
-  const url = new URL(`ss://${userinfo}@${address}:${port}`);
+  const url = new URL(`ss://${userinfo}@${formatUrlHost(address)}:${port}`);
   for (const [key, value] of params) url.searchParams.set(key, value);
   url.hash = encodeURIComponent(remark);
   return url.toString();
@@ -681,7 +689,7 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
     params.set('mport', hopPorts);
   }
 
-  const url = new URL(`${scheme}://${clientAuth}@${address}:${port}`);
+  const url = new URL(`${scheme}://${clientAuth}@${formatUrlHost(address)}:${port}`);
   for (const [key, value] of params) url.searchParams.set(key, value);
   url.hash = encodeURIComponent(remark);
   return url.toString();
@@ -724,7 +732,7 @@ export function genWireguardLink(input: GenWireguardLinkInput): string {
   const peer = settings.peers[peerIndex];
   if (!peer) return '';
 
-  const url = new URL(`wireguard://${address}:${port}`);
+  const url = new URL(`wireguard://${formatUrlHost(address)}:${port}`);
   url.username = peer.privateKey ?? '';
 
   const pubKey = settings.secretKey.length > 0
