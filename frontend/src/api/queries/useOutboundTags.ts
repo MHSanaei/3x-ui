@@ -34,3 +34,38 @@ export function useOutboundTags(opts?: { excludeBlackhole?: boolean }) {
     },
   });
 }
+
+export interface OutboundTagGroups {
+  outbounds: string[];
+  balancers: string[];
+}
+
+// Same data as useOutboundTags, but keeps outbound and balancer tags apart so a
+// picker can render them in labeled groups (like the panel-outbound selector)
+// instead of one flat list.
+export function useOutboundTagGroups(opts?: { excludeBlackhole?: boolean }) {
+  const excludeBlackhole = opts?.excludeBlackhole ?? false;
+  return useQuery({
+    queryKey: keys.xray.config(),
+    queryFn: fetchXrayConfig,
+    staleTime: Infinity,
+    select: (data): OutboundTagGroups => {
+      const outbounds = new Set<string>();
+      for (const o of data?.xraySetting?.outbounds ?? []) {
+        const ob = o as { tag?: string; protocol?: string } | null;
+        if (!ob?.tag) continue;
+        if (excludeBlackhole && ob.protocol === 'blackhole') continue;
+        outbounds.add(ob.tag);
+      }
+      for (const t of data?.subscriptionOutboundTags ?? []) {
+        if (t) outbounds.add(t);
+      }
+      const balancers: string[] = [];
+      const bal = (data?.xraySetting?.routing as { balancers?: Array<{ tag?: string }> } | undefined)?.balancers;
+      for (const b of bal ?? []) {
+        if (b?.tag && !outbounds.has(b.tag)) balancers.push(b.tag);
+      }
+      return { outbounds: [...outbounds], balancers };
+    },
+  });
+}

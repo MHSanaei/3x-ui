@@ -18,7 +18,7 @@ import type { RemoteInboundOption } from '@/api/queries/useNodeMutations';
 import type { Msg } from '@/utils';
 import { NodeFormSchema, type NodeFormValues, type ProbeResult } from '@/schemas/node';
 import { antdRule } from '@/utils/zodForm';
-import { useOutboundTags } from '@/api/queries/useOutboundTags';
+import { useOutboundTagGroups } from '@/api/queries/useOutboundTags';
 import './NodeFormModal.css';
 
 type Mode = 'add' | 'edit';
@@ -77,7 +77,23 @@ export default function NodeFormModal({
   const scheme = Form.useWatch('scheme', form) ?? 'https';
   const tlsVerifyMode = Form.useWatch('tlsVerifyMode', form) ?? 'verify';
   const inboundSyncMode = Form.useWatch('inboundSyncMode', form) ?? 'all';
-  const { data: outboundTags } = useOutboundTags({ excludeBlackhole: true });
+  const { data: outboundGroups } = useOutboundTagGroups({ excludeBlackhole: true });
+
+  // Outbounds and balancers share one picker (like the panel-outbound selector);
+  // when balancers exist they get a labeled group so it's clear the selection
+  // routes through a balancer. Empty falls back to the placeholder ("Direct
+  // connection") rather than a synthetic option, so it can't read as a second
+  // "direct" next to a real freedom outbound.
+  const outboundOptions = useMemo<
+    ({ label: string; value: string } | { label: string; options: { label: string; value: string }[] })[]
+  >(() => {
+    const outOpts = (outboundGroups?.outbounds ?? []).map((tag) => ({ label: tag, value: tag }));
+    if (!outboundGroups?.balancers.length) return outOpts;
+    return [
+      { label: t('pages.xray.Outbounds'), options: outOpts },
+      { label: t('pages.xray.Balancers'), options: outboundGroups.balancers.map((tag) => ({ label: tag, value: tag })) },
+    ];
+  }, [outboundGroups, t]);
 
   useEffect(() => {
     if (!open) return;
@@ -364,12 +380,13 @@ export default function NodeFormModal({
             label={t('pages.nodes.outboundTag')}
             name="outboundTag"
             extra={t('pages.nodes.outboundTagHint')}
+            getValueProps={(v) => ({ value: (v as string) || undefined })}
           >
             <Select
               allowClear
               showSearch
               placeholder={t('pages.nodes.outboundTagPlaceholder')}
-              options={(outboundTags ?? []).map((tag) => ({ value: tag, label: tag }))}
+              options={outboundOptions}
             />
           </Form.Item>
 
