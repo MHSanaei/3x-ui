@@ -110,7 +110,7 @@ export default function SubscriptionOutbounds({
           shape="circle"
           size={isMobile ? 'small' : undefined}
           loading={isTesting(subscriptionTestStates, key)}
-          disabled={!record.tag || isUntestable(record, testMode) || isTesting(subscriptionTestStates, key)}
+          disabled={!record.tag || isUntestable(record) || isTesting(subscriptionTestStates, key)}
           icon={<ThunderboltOutlined />}
           onClick={() => onTestSubscription(record as unknown as Record<string, unknown>, testMode)}
         />

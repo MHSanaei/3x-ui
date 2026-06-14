@@ -648,6 +648,12 @@
     "clients": {
       "tabBasics": "Temel",
       "tabCredentials": "Kimlik Bilgileri",
+      "tabLinks": "Bağlantılar",
+      "linksHint": "Bu istemcinin aboneliğine dahil etmek için üçüncü taraf paylaşım bağlantıları ve uzak abonelik URL'leri ekleyin.",
+      "addExternalLink": "Harici Bağlantı Ekle",
+      "addExternalSubscription": "Harici Abonelik Ekle",
+      "noExternalLinks": "Henüz harici bağlantı yok.",
+      "noExternalSubscriptions": "Henüz harici abonelik yok.",
       "add": "Kullanıcı Ekle",
       "edit": "Kullanıcıyı Düzenle",
       "submitAdd": "Kullanıcı Ekle",

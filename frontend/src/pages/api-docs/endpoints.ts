@@ -503,12 +503,12 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/clients/get/:email',
-        summary: 'Fetch one client by email, including the inbound IDs it is attached to.',
+        summary: 'Fetch one client by email, including the inbound IDs and external config IDs it is attached to.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
         ],
         response:
-          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5]\n  }\n}',
+          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5],\n    "externalLinks": [{ "kind": "link", "value": "vless://...", "remark": "DE" }]\n  }\n}',
       },
       {
         method: 'POST',
@@ -561,6 +561,17 @@ export const sections: readonly Section[] = [
           { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to detach.' },
         ],
         body: '{\n  "inboundIds": [5]\n}',
+        response: '{\n  "success": true\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/:email/externalLinks',
+        summary: 'Replace a client\'s external links (per-client share links and remote subscription URLs surfaced in their subscription). Sends the full set; the server replaces all rows.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          { name: 'externalLinks', in: 'body (json)', type: 'object[]', desc: 'Rows of { kind: "link" | "subscription", value, remark }. kind=link must be a share link; kind=subscription must be an http(s) URL.' },
+        ],
+        body: '{\n  "externalLinks": [\n    { "kind": "link", "value": "vless://uuid@host:443?...#srv", "remark": "DE" },\n    { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider" }\n  ]\n}',
         response: '{\n  "success": true\n}',
       },
       {

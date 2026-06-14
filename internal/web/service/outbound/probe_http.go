@@ -160,6 +160,10 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 			r.Error = "Blocked/blackhole outbound cannot be tested"
 		case protocol == "loopback":
 			r.Error = "Loopback outbound cannot be tested"
+		case protocol == "freedom" || protocol == "dns":
+			// Direct/DNS outbounds aren't proxies — an HTTP probe through them
+			// would only measure the host's own reachability, not a tunnel.
+			r.Error = "Direct/DNS outbound cannot be tested"
 		case seenTags[tag]:
 			r.Error = fmt.Sprintf("Duplicate outbound tag in batch: %s", tag)
 		default:

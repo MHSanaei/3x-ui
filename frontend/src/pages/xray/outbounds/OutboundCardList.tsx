@@ -110,7 +110,7 @@ export default function OutboundCardList({
                 shape="circle"
                 size="small"
                 loading={isTesting(outboundTestStates, index)}
-                disabled={isUntestable(record, testMode) || isTesting(outboundTestStates, index)}
+                disabled={isUntestable(record) || isTesting(outboundTestStates, index)}
                 icon={<ThunderboltOutlined />}
                 onClick={() => onTest(index, testMode)}
               />
