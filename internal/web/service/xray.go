@@ -120,6 +120,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	xrayConfig.LogConfig = resolveXrayLogPaths(xrayConfig.LogConfig)
 	xrayConfig.API = ensureAPIServices(xrayConfig.API)
 	xrayConfig.Policy = ensureStatsPolicy(xrayConfig.Policy)
+	xrayConfig.RouterConfig = stripDisabledRules(xrayConfig.RouterConfig)
 
 	_, _, _ = s.inboundService.AddTraffic(nil, nil)
 
@@ -707,6 +708,59 @@ func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 	out, err := json.Marshal(parsed)
 	if err != nil {
 		return logCfg
+	}
+	return out
+}
+
+// stripDisabledRules removes routing rules marked `enabled: false` from the
+// generated runtime config and strips the panel-only `enabled` key from the
+// rest, since xray-core has no such field. The internal api rule is always
+// kept (see isApiRule) so traffic stats can't be toggled off. The stored
+// template is untouched — only the generated config is filtered.
+func stripDisabledRules(routerCfg json_util.RawMessage) json_util.RawMessage {
+	if len(routerCfg) == 0 {
+		return routerCfg
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(routerCfg, &parsed); err != nil {
+		return routerCfg
+	}
+	rules, ok := parsed["rules"].([]any)
+	if !ok || len(rules) == 0 {
+		return routerCfg
+	}
+
+	var activeRules []any
+	changed := false
+	for _, rawRule := range rules {
+		rule, ok := rawRule.(map[string]any)
+		if !ok {
+			activeRules = append(activeRules, rawRule)
+			continue
+		}
+
+		if enabledRaw, exists := rule["enabled"]; exists {
+			// The internal api rule carries traffic stats and must never be
+			// dropped, even if it was somehow marked disabled.
+			enabled, ok := enabledRaw.(bool)
+			if ok && !enabled && !isApiRule(rule) {
+				changed = true
+				continue
+			}
+			delete(rule, "enabled")
+			changed = true
+		}
+		activeRules = append(activeRules, rule)
+	}
+
+	if !changed {
+		return routerCfg
+	}
+
+	parsed["rules"] = activeRules
+	out, err := json.Marshal(parsed)
+	if err != nil {
+		return routerCfg
 	}
 	return out
 }

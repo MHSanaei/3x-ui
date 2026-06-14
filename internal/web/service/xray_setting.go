@@ -237,6 +237,7 @@ func EnsureStatsRouting(raw string) (string, error) {
 			"outboundTag": "api",
 		}
 	}
+	delete(apiRule, "enabled")
 	rules = append([]map[string]any{apiRule}, rules...)
 
 	rulesJSON, err := json.Marshal(rules)
@@ -258,35 +259,43 @@ func EnsureStatsRouting(raw string) (string, error) {
 	return string(out), nil
 }
 
+// isApiRule reports whether a routing rule targets the internal api inbound
+// (inboundTag contains "api" and outboundTag is "api").
+func isApiRule(rule map[string]any) bool {
+	if outTag, _ := rule["outboundTag"].(string); outTag != "api" {
+		return false
+	}
+	raw, ok := rule["inboundTag"]
+	if !ok {
+		return false
+	}
+	// inboundTag is usually []string but can come as []any from a
+	// roundtrip through map[string]any. Accept both shapes.
+	switch tags := raw.(type) {
+	case []any:
+		for _, t := range tags {
+			if s, ok := t.(string); ok && s == "api" {
+				return true
+			}
+		}
+	case []string:
+		if slices.Contains(tags, "api") {
+			return true
+		}
+	case string:
+		if tags == "api" {
+			return true
+		}
+	}
+	return false
+}
+
 // findApiRule returns the index of the routing rule that targets the
-// internal api inbound (inboundTag contains "api" and outboundTag is
-// "api"), or -1 if no such rule exists.
+// internal api inbound, or -1 if no such rule exists.
 func findApiRule(rules []map[string]any) int {
 	for i, rule := range rules {
-		if outTag, _ := rule["outboundTag"].(string); outTag != "api" {
-			continue
-		}
-		raw, ok := rule["inboundTag"]
-		if !ok {
-			continue
-		}
-		// inboundTag is usually []string but can come as []any from a
-		// roundtrip through map[string]any. Accept both shapes.
-		switch tags := raw.(type) {
-		case []any:
-			for _, t := range tags {
-				if s, ok := t.(string); ok && s == "api" {
-					return i
-				}
-			}
-		case []string:
-			if slices.Contains(tags, "api") {
-				return i
-			}
-		case string:
-			if tags == "api" {
-				return i
-			}
+		if isApiRule(rule) {
+			return i
 		}
 	}
 	return -1
