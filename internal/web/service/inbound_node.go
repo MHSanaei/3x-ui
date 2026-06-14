@@ -153,6 +153,25 @@ func (s *InboundService) upsertNodeBaseline(tx *gorm.DB, nodeID int, email strin
 	}).Create(&model.NodeClientTraffic{NodeId: nodeID, Email: email, Up: up, Down: down}).Error
 }
 
+// mergeActivationExpiry reconciles a node-reported client expiry with the value
+// already stored on the master. "Start after first connect" persists a negative
+// duration that each node converts to an absolute deadline (now+duration) the
+// first time the client connects there. The per-email client_traffics row is
+// shared across every node, so a node that has not yet seen a first connection
+// keeps reporting the negative duration — which must never reset a deadline
+// another node already activated.
+//
+// A node may legitimately move an already-activated deadline forward (traffic
+// reset / auto-renew extends it), so any positive node value is still adopted —
+// only an un-activated (<= 0) value is rejected once an absolute deadline
+// exists. Kept in lockstep with the SQL CASE in setRemoteTrafficLocked.
+func mergeActivationExpiry(existing, node int64) int64 {
+	if existing > 0 && node <= 0 {
+		return existing
+	}
+	return node
+}
+
 func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot, dirty bool) (bool, error) {
 	var structuralChange bool
 	err := submitTrafficWrite(func() error {
@@ -544,22 +563,29 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if existing := centralCSByEmail[cs.Email]; existing != nil &&
 				(existing.Enable != cs.Enable ||
 					existing.Total != cs.Total ||
-					existing.ExpiryTime != cs.ExpiryTime ||
+					existing.ExpiryTime != mergeActivationExpiry(existing.ExpiryTime, cs.ExpiryTime) ||
 					existing.Reset != cs.Reset) {
 				structuralChange = true
 			}
 
 			enableExpr := database.ClientTrafficEnableMergeExpr()
+			// expiry_time merge mirrors mergeActivationExpiry: a node that has not
+			// yet seen the client's first connection keeps reporting the negative
+			// "start after first connect" duration, which must never reset the
+			// absolute deadline another node already activated. A positive node
+			// value is still adopted (e.g. auto-renew moves the deadline forward).
 			if err := tx.Exec(
 				fmt.Sprintf(
 					`UPDATE client_traffics
-					 SET up = up + ?, down = down + ?, enable = %s, total = ?, expiry_time = ?, reset = ?,
-					     last_online = %s
+					 SET up = up + ?, down = down + ?, enable = %s, total = ?,
+					     expiry_time = CASE WHEN expiry_time > 0 AND ? <= 0 THEN expiry_time ELSE ? END,
+					     reset = ?, last_online = %s
 					 WHERE email = ?`,
 					enableExpr,
 					database.GreatestExpr("last_online", "?"),
 				),
-				deltaUp, deltaDown, cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset,
+				deltaUp, deltaDown, cs.Enable, cs.Total,
+				cs.ExpiryTime, cs.ExpiryTime, cs.Reset,
 				cs.LastOnline, cs.Email,
 			).Error; err != nil {
 				return false, err
