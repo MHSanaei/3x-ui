@@ -15,6 +15,9 @@ on:
       - "deploy/**"
       - ".github/workflows/smoke.yml"
 
+permissions:
+  contents: read
+
 jobs:
   noninteractive-install:
     strategy:
