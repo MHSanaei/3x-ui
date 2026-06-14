@@ -4,3 +4,9 @@ DockerEntrypoint.sh text eol=lf
 frontend/src/generated/** text eol=lf
 frontend/public/openapi.json text eol=lf
 frontend/src/test/__snapshots__/** text eol=lf
+
+# Cloud-image deploy assets are consumed on Linux — force LF regardless of host.
+*.service text eol=lf
+deploy/**/*.service text eol=lf
+deploy/**/*.hcl text eol=lf
+deploy/**/*.yaml text eol=lf

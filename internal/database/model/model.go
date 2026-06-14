@@ -630,6 +630,31 @@ type ClientInbound struct {
 
 func (ClientInbound) TableName() string { return "client_inbounds" }
 
+// ClientExternalLink is a per-client entry surfaced in the client's
+// subscription. Two kinds:
+//   - "link": a single third-party share link (vless://, vmess://, trojan://,
+//     ss://, hysteria2://, wireguard://). Emitted verbatim in raw subs; parsed
+//     into an outbound/proxy for JSON and Clash.
+//   - "subscription": a remote subscription URL. The panel fetches it (cached),
+//     decodes its links, and merges them into the client's subscription.
+type ClientExternalLink struct {
+	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	ClientId  int    `json:"clientId" gorm:"index;column:client_id"`
+	Kind      string `json:"kind" gorm:"column:kind"`
+	Value     string `json:"value" gorm:"column:value"`
+	Remark    string `json:"remark" gorm:"column:remark"`
+	SortIndex int    `json:"sortIndex" gorm:"column:sort_index"`
+	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+}
+
+func (ClientExternalLink) TableName() string { return "client_external_links" }
+
+// External link kinds.
+const (
+	ExternalLinkKindLink         = "link"
+	ExternalLinkKindSubscription = "subscription"
+)
+
 type InboundFallback struct {
 	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	MasterId  int    `json:"masterId" gorm:"index;not null;column:master_id"`
