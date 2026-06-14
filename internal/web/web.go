@@ -407,6 +407,14 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	if err != nil {
 		return err
 	}
+	if envPort, configured, envErr := config.GetPortOverride(); configured {
+		if envErr != nil {
+			logger.Warning("Ignoring invalid XUI_PORT; using configured web port:", port, envErr)
+		} else {
+			port = envPort
+			logger.Info("Using XUI_PORT override for web panel port:", port)
+		}
+	}
 	listenAddr := net.JoinHostPort(listen, strconv.Itoa(port))
 	listener, err := net.Listen("tcp", listenAddr)
 	if err != nil {
