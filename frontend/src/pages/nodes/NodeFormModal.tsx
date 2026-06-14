@@ -77,7 +77,7 @@ export default function NodeFormModal({
   const scheme = Form.useWatch('scheme', form) ?? 'https';
   const tlsVerifyMode = Form.useWatch('tlsVerifyMode', form) ?? 'verify';
   const inboundSyncMode = Form.useWatch('inboundSyncMode', form) ?? 'all';
-  const { data: outboundTags } = useOutboundTags();
+  const { data: outboundTags } = useOutboundTags({ excludeBlackhole: true });
 
   useEffect(() => {
     if (!open) return;

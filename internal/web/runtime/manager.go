@@ -15,9 +15,9 @@ type NodeEgressResolver interface {
 type Manager struct {
 	local Runtime
 
-	mu              sync.RWMutex
-	remotes         map[int]*Remote
-	egressResolver  NodeEgressResolver
+	mu             sync.RWMutex
+	remotes        map[int]*Remote
+	egressResolver NodeEgressResolver
 }
 
 func NewManager(localDeps LocalDeps) *Manager {
