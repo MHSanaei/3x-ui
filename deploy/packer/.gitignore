@@ -1,0 +1,7 @@
+# Packer build artifacts (never commit images or manifests)
+output-qemu/
+*.qcow2
+*.raw
+packer-manifest.json
+packer_cache/
+crash.log
