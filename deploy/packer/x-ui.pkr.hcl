@@ -23,7 +23,12 @@ packer {
 
 locals {
   build_stamp = formatdate("YYYYMMDD-hhmmss", timestamp())
-  image_name  = "${var.ami_name_prefix}-ubuntu-${var.ubuntu_version}"
+  image_name  = "${var.ami_name_prefix}-ubuntu-${var.ubuntu_version}-${var.xui_arch}"
+  is_arm      = var.xui_arch == "arm64"
+
+  # Base images are derived from xui_arch unless explicitly overridden.
+  source_ami_name = var.source_ami_filter_name != "" ? var.source_ami_filter_name : "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${var.xui_arch}-server-*"
+  qemu_iso_url    = var.qemu_iso_url != "" ? var.qemu_iso_url : "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-${var.xui_arch}.img"
 }
 
 source "amazon-ebs" "x-ui" {
@@ -36,7 +41,7 @@ source "amazon-ebs" "x-ui" {
 
   source_ami_filter {
     filters = {
-      name                = var.source_ami_filter_name
+      name                = local.source_ami_name
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
@@ -61,7 +66,7 @@ source "amazon-ebs" "x-ui" {
 }
 
 source "qemu" "x-ui" {
-  iso_url      = var.qemu_iso_url
+  iso_url      = local.qemu_iso_url
   iso_checksum = var.qemu_iso_checksum
   disk_image   = true
   disk_size    = "10G"
@@ -73,6 +78,15 @@ source "qemu" "x-ui" {
   memory         = 2048
   net_device     = "virtio-net"
   disk_interface = "virtio"
+
+  // Arch-specific QEMU machine. amd64 uses Packer defaults (BIOS boot, x86_64);
+  // arm64 needs the aarch64 binary, the 'virt' machine and UEFI (AAVMF) firmware.
+  qemu_binary       = local.is_arm ? "qemu-system-aarch64" : null
+  machine_type      = local.is_arm ? "virt" : null
+  efi_boot          = local.is_arm
+  efi_firmware_code = local.is_arm ? var.qemu_efi_code : null
+  efi_firmware_vars = local.is_arm ? var.qemu_efi_vars : null
+  qemuargs          = local.is_arm ? [["-cpu", var.qemu_cpu]] : []
 
   output_directory = "output-qemu"
   vm_name          = "${local.image_name}.qcow2"

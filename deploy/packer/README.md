@@ -12,6 +12,8 @@ Two sources, one build:
 | `amazon-ebs` | AWS AMI | AWS / Marketplace |
 | `qemu` | `qcow2` (+ `raw`) | Hetzner, DigitalOcean, Vultr, GCP, Azure, Oracle, bare metal |
 
+Both sources build for **`amd64` and `arm64`** (select with `-var xui_arch=...`).
+
 ## Why no baked DB
 
 3x-ui seeds a hardcoded `admin/admin` user and generates its session secret +
@@ -30,8 +32,11 @@ build deliberately:
 ## Prerequisites
 
 - [Packer](https://developer.hashicorp.com/packer) ≥ 1.9
-- For `qemu`: `qemu-system-x86`, `qemu-utils` (and `/dev/kvm` for acceptable speed)
-- For `amazon-ebs`: AWS credentials with EC2 build permissions
+- For `qemu` amd64: `qemu-system-x86`, `qemu-utils` (and `/dev/kvm` for acceptable speed)
+- For `qemu` arm64: `qemu-system-arm`, `qemu-efi-aarch64`, `qemu-utils` — best built on an
+  arm64 host (native KVM); cross-building from x86 works but uses slow TCG emulation
+- For `amazon-ebs`: AWS credentials with EC2 build permissions (arm64 builds on a Graviton
+  instance such as `t4g.small`)
 
 ```bash
 cd deploy/packer
@@ -45,19 +50,23 @@ packer validate .        # both sources
 Build a specific release (recommended) or `latest`:
 
 ```bash
-# qcow2 only (no cloud account needed)
-packer build -only='qemu.x-ui' -var 'xui_version=v3.3.1' .
+# amd64 qcow2 (no cloud account needed)
+packer build -only='qemu.x-ui' -var 'xui_version=v3.3.1' -var 'xui_arch=amd64' .
 
-# AWS AMI only
+# arm64 qcow2 (run on an arm64 host for native KVM)
+packer build -only='qemu.x-ui' -var 'xui_version=v3.3.1' -var 'xui_arch=arm64' .
+
+# amd64 AWS AMI
 packer build -only='amazon-ebs.x-ui' \
-  -var 'xui_version=v3.3.1' -var 'region=us-east-1' .
+  -var 'xui_version=v3.3.1' -var 'xui_arch=amd64' -var 'instance_type=t3.small' -var 'region=us-east-1' .
 
-# both
-packer build -var 'xui_version=v3.3.1' .
+# arm64 AWS AMI (Graviton)
+packer build -only='amazon-ebs.x-ui' \
+  -var 'xui_version=v3.3.1' -var 'xui_arch=arm64' -var 'instance_type=t4g.small' -var 'region=us-east-1' .
 ```
 
-Outputs:
-- `output-qemu/3x-ui-ubuntu-24.04.qcow2` and `.raw`
+Outputs (per arch):
+- `output-qemu/3x-ui-ubuntu-24.04-<arch>.qcow2` and `.raw`
 - the AMI id (also recorded in `packer-manifest.json`)
 
 If `/dev/kvm` is unavailable, add `-var 'qemu_accelerator=tcg'` (much slower).
@@ -69,11 +78,16 @@ See [`variables.pkr.hcl`](variables.pkr.hcl) for the full list.
 | Variable | Default | Notes |
 | --- | --- | --- |
 | `xui_version` | `latest` | Release tag to install, e.g. `v3.3.1` |
-| `xui_arch` | `amd64` | `amd64` or `arm64` |
+| `xui_arch` | `amd64` | `amd64` or `arm64` (derives the base AMI / cloud image) |
 | `region` | `us-east-1` | AWS region (amazon-ebs) |
-| `instance_type` | `t3.small` | EC2 build instance |
+| `instance_type` | `t3.small` | EC2 build instance — must match the arch (`t4g.small` for arm64) |
 | `qemu_accelerator` | `kvm` | `kvm` or `tcg` |
+| `qemu_cpu` | `host` | arm64 `-cpu` model (`host` with KVM, `max` for TCG) |
 | `ubuntu_version` | `24.04` | Base Ubuntu LTS (naming/tags) |
+
+The CI workflow builds both arches automatically: amd64 qcow2 on a standard runner,
+arm64 qcow2 on a native `ubuntu-24.04-arm` runner, and both AMIs from a single runner
+(the build instance runs in AWS).
 
 ## First boot
 

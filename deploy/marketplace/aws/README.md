@@ -21,8 +21,16 @@ Build in the seller account (or share the AMI into it):
 ```bash
 cd deploy/packer
 packer init .
-packer build -only='amazon-ebs.x-ui' -var 'xui_version=vX.Y.Z' -var 'region=us-east-1' .
+# amd64
+packer build -only='amazon-ebs.x-ui' \
+  -var 'xui_version=vX.Y.Z' -var 'xui_arch=amd64' -var 'instance_type=t3.small' -var 'region=us-east-1' .
+# arm64 (Graviton)
+packer build -only='amazon-ebs.x-ui' \
+  -var 'xui_version=vX.Y.Z' -var 'xui_arch=arm64' -var 'instance_type=t4g.small' -var 'region=us-east-1' .
 ```
+
+You can list both AMIs (amd64 + arm64) as architectures of a single Marketplace
+product, or as separate products.
 
 The image already satisfies the Marketplace AMI policies enforced by `harden.sh`
 + `cleanup.sh`:

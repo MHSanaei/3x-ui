@@ -30,11 +30,13 @@ docker run --rm \
 
         echo "--- installing released x-ui binary (no DB, no systemd) ---"
         REPO=MHSanaei/3x-ui
+        ARCH=$(dpkg --print-architecture)   # amd64 | arm64
+        echo "container arch: $ARCH"
         VER=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | jq -r .tag_name)
         [ -n "$VER" ] && [ "$VER" != "null" ] || { echo "FAIL: cannot resolve version"; exit 1; }
         tmp=$(mktemp -d)
         curl -fL4 -o "${tmp}/x.tar.gz" \
-            "https://github.com/${REPO}/releases/download/${VER}/x-ui-linux-amd64.tar.gz"
+            "https://github.com/${REPO}/releases/download/${VER}/x-ui-linux-${ARCH}.tar.gz"
         tar -xzf "${tmp}/x.tar.gz" -C /usr/local/
         chmod +x /usr/local/x-ui/x-ui
         install -m 755 /root/x-ui-firstboot.sh /usr/local/x-ui/x-ui-firstboot.sh

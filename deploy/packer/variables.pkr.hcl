@@ -9,8 +9,12 @@ variable "xui_version" {
 
 variable "xui_arch" {
   type        = string
-  description = "CPU architecture of the released tarball to install (amd64 or arm64)."
+  description = "CPU architecture to build for: amd64 or arm64."
   default     = "amd64"
+  validation {
+    condition     = contains(["amd64", "arm64"], var.xui_arch)
+    error_message = "The xui_arch value must be 'amd64' or 'arm64'."
+  }
 }
 
 variable "ubuntu_version" {
@@ -29,7 +33,7 @@ variable "region" {
 
 variable "instance_type" {
   type        = string
-  description = "EC2 instance type used to build the AMI."
+  description = "EC2 instance type used to build the AMI. Must match xui_arch (e.g. t3.small for amd64, t4g.small for arm64/Graviton)."
   default     = "t3.small"
 }
 
@@ -41,8 +45,8 @@ variable "ami_name_prefix" {
 
 variable "source_ami_filter_name" {
   type        = string
-  description = "Name filter for the Canonical Ubuntu base AMI (resolves the latest patched LTS)."
-  default     = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"
+  description = "Override for the Canonical Ubuntu base AMI name filter. Empty ⇒ derived from xui_arch (latest patched 24.04 LTS for that arch)."
+  default     = ""
 }
 
 variable "ssh_username" {
@@ -55,8 +59,8 @@ variable "ssh_username" {
 
 variable "qemu_iso_url" {
   type        = string
-  description = "Ubuntu cloud image (qcow2) used as the qemu base disk."
-  default     = "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img"
+  description = "Override for the Ubuntu cloud image used as the qemu base disk. Empty ⇒ derived from xui_arch (amd64/arm64 cloud image)."
+  default     = ""
 }
 
 variable "qemu_iso_checksum" {
@@ -82,4 +86,24 @@ variable "qemu_build_password" {
   description = "Temporary password injected via cloud-init for Packer's build-time SSH. Locked/removed before the image is finalized."
   default     = "packer-build-temp-pw"
   sensitive   = true
+}
+
+# --- qemu arm64-only knobs (ignored for amd64) -------------------------------
+
+variable "qemu_cpu" {
+  type        = string
+  description = "QEMU -cpu model for arm64 builds: 'host' with KVM on an arm64 host, 'max' for TCG emulation."
+  default     = "host"
+}
+
+variable "qemu_efi_code" {
+  type        = string
+  description = "Path to the arm64 UEFI code firmware (AAVMF). Only used when xui_arch=arm64."
+  default     = "/usr/share/AAVMF/AAVMF_CODE.fd"
+}
+
+variable "qemu_efi_vars" {
+  type        = string
+  description = "Path to the arm64 UEFI vars firmware template (AAVMF). Only used when xui_arch=arm64."
+  default     = "/usr/share/AAVMF/AAVMF_VARS.fd"
 }

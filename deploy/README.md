@@ -2,7 +2,7 @@
 
 Tooling to ship the 3x-ui panel as a cloud image or via unattended install,
 with **per-instance credentials generated on first boot** (never `admin/admin`,
-never a shared session secret).
+never a shared session secret). Everything here supports **amd64 and arm64**.
 
 | Path | What it is | Use when |
 | --- | --- | --- |
