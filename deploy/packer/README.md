@@ -58,11 +58,11 @@ packer build -only='qemu.x-ui' -var 'xui_version=v3.3.1' -var 'xui_arch=arm64' .
 
 # amd64 AWS AMI
 packer build -only='amazon-ebs.x-ui' \
-  -var 'xui_version=v3.3.1' -var 'xui_arch=amd64' -var 'instance_type=t3.small' -var 'region=us-east-1' .
+  -var 'xui_version=v3.3.1' -var 'xui_arch=amd64' -var 'instance_type=t3.small' -var 'region=eu-central-1' .
 
 # arm64 AWS AMI (Graviton)
 packer build -only='amazon-ebs.x-ui' \
-  -var 'xui_version=v3.3.1' -var 'xui_arch=arm64' -var 'instance_type=t4g.small' -var 'region=us-east-1' .
+  -var 'xui_version=v3.3.1' -var 'xui_arch=arm64' -var 'instance_type=t4g.small' -var 'region=eu-central-1' .
 ```
 
 Outputs (per arch):
@@ -79,7 +79,7 @@ See [`variables.pkr.hcl`](variables.pkr.hcl) for the full list.
 | --- | --- | --- |
 | `xui_version` | `latest` | Release tag to install, e.g. `v3.3.1` |
 | `xui_arch` | `amd64` | `amd64` or `arm64` (derives the base AMI / cloud image) |
-| `region` | `us-east-1` | AWS region (amazon-ebs) |
+| `region` | `eu-central-1` | AWS region (amazon-ebs) |
 | `instance_type` | `t3.small` | EC2 build instance — must match the arch (`t4g.small` for arm64) |
 | `qemu_accelerator` | `kvm` | `kvm` or `tcg` |
 | `qemu_cpu` | `host` | arm64 `-cpu` model (`host` with KVM, `max` for TCG) |

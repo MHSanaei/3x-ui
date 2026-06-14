@@ -212,7 +212,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          aws-region: ${{ vars.AWS_REGION || 'eu-central-1' }}
 
       - name: Configure AWS credentials (access keys)
         if: needs.check-aws.outputs.use_oidc != 'true'
@@ -220,7 +220,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          aws-region: ${{ vars.AWS_REGION || 'eu-central-1' }}
 
       - name: Verify released binary asset
         env:
@@ -238,7 +238,7 @@ jobs:
       - name: Build AMI
         env:
           TAG: ${{ needs.setup.outputs.tag }}
-          REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+          REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
         run: |
           packer build -only='amazon-ebs.x-ui' \
             -var "xui_version=${TAG}" \
@@ -249,7 +249,7 @@ jobs:
 
       - name: Publish AMI id to summary
         env:
-          REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+          REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
         run: |
           AMI_ID=$(jq -r '.builds[] | select(.builder_type=="amazon-ebs") | .artifact_id' packer-manifest.json | tail -1 | cut -d: -f2)
           {

@@ -28,7 +28,7 @@ variable "ubuntu_version" {
 variable "region" {
   type        = string
   description = "AWS region the AMI is built in."
-  default     = "us-east-1"
+  default     = "eu-central-1"
 }
 
 variable "instance_type" {
