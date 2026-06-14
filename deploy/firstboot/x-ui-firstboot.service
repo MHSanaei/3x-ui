@@ -1,0 +1,22 @@
+[Unit]
+Description=3x-ui first-boot per-instance credential generation
+Documentation=https://github.com/MHSanaei/3x-ui
+# Run after the network and cloud-init are up, but BEFORE the panel starts, so
+# the panel never serves the default admin/admin account.
+After=network-online.target cloud-init.service
+Wants=network-online.target
+Before=x-ui.service
+# Skip entirely once the sentinel exists (cheap guard; the script re-checks too).
+ConditionPathExists=!/etc/x-ui/.firstboot-done
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Inherit the same DB configuration the panel uses (sqlite default / postgres).
+EnvironmentFile=-/etc/default/x-ui
+EnvironmentFile=-/etc/conf.d/x-ui
+EnvironmentFile=-/etc/sysconfig/x-ui
+ExecStart=/usr/local/x-ui/x-ui-firstboot.sh
+
+[Install]
+WantedBy=multi-user.target

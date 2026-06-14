@@ -358,6 +358,7 @@ export interface Node {
   memPct: number;
   name: string;
   onlineCount: number;
+  outboundTag: string;
   panelVersion: string;
   parentGuid?: string;
   pinnedCertSha256: string;

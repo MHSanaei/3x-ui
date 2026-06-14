@@ -426,6 +426,25 @@ func TestCloneStringMap_Empty(t *testing.T) {
 	}
 }
 
+func TestJoinHostPort(t *testing.T) {
+	cases := []struct {
+		host string
+		port int
+		want string
+	}{
+		{"example.com", 443, "example.com:443"},
+		{"1.2.3.4", 443, "1.2.3.4:443"},
+		{"2001:db8::1", 443, "[2001:db8::1]:443"},
+		{"[2001:db8::1]", 443, "[2001:db8::1]:443"},
+		{"2001:db8::1", 8080, "[2001:db8::1]:8080"},
+	}
+	for _, c := range cases {
+		if got := joinHostPort(c.host, c.port); got != c.want {
+			t.Fatalf("joinHostPort(%q, %d) = %q, want %q", c.host, c.port, got, c.want)
+		}
+	}
+}
+
 func TestGetHostFromXFH_HostOnly(t *testing.T) {
 	got, err := getHostFromXFH("example.com")
 	if err != nil {

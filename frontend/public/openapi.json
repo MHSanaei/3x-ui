@@ -1621,6 +1621,9 @@
             "example": 3,
             "type": "integer"
           },
+          "outboundTag": {
+            "type": "string"
+          },
           "panelVersion": {
             "example": "v3.x.x",
             "type": "string"
@@ -1708,6 +1711,7 @@
           "memPct",
           "name",
           "onlineCount",
+          "outboundTag",
           "panelVersion",
           "pinnedCertSha256",
           "port",
@@ -4390,7 +4394,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Fetch one client by email, including the inbound IDs it is attached to.",
+        "summary": "Fetch one client by email, including the inbound IDs and external config IDs it is attached to.",
         "operationId": "get_panel_api_clients_get_email",
         "parameters": [
           {
@@ -4688,6 +4692,74 @@
               "example": {
                 "inboundIds": [
                   5
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/{email}/externalLinks": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Replace a client's external links (per-client share links and remote subscription URLs surfaced in their subscription). Sends the full set; the server replaces all rows.",
+        "operationId": "post_panel_api_clients_email_externalLinks",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "externalLinks": [
+                  {
+                    "kind": "link",
+                    "value": "vless://uuid@host:443?...#srv",
+                    "remark": "DE"
+                  },
+                  {
+                    "kind": "subscription",
+                    "value": "https://provider.example/sub/abc",
+                    "remark": "Provider"
+                  }
                 ]
               }
             }
@@ -6050,6 +6122,7 @@
                       "memPct": 45.1,
                       "name": "de-fra-1",
                       "onlineCount": 3,
+                      "outboundTag": "",
                       "panelVersion": "v3.x.x",
                       "parentGuid": "",
                       "pinnedCertSha256": "",
