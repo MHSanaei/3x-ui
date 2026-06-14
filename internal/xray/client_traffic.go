@@ -14,5 +14,5 @@ type ClientTraffic struct {
 	ExpiryTime int64  `json:"expiryTime" form:"expiryTime" example:"1735689600000"`
 	Total      int64  `json:"total" form:"total" example:"10737418240"`
 	Reset      int    `json:"reset" form:"reset" gorm:"default:0" example:"0"`
-	LastOnline int64  `json:"lastOnline" form:"lastOnline" gorm:"default:0;index:idx_client_traffics_last_online" example:"1735680000000"`
+	LastOnline int64  `json:"lastOnline" form:"lastOnline" gorm:"default:0" example:"1735680000000"`
 }
