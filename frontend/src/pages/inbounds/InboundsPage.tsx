@@ -82,6 +82,7 @@ export default function InboundsPage() {
     clientCount,
     onlineClients,
     lastOnlineMap,
+    inboundSpeed,
     totals,
     expireDiff,
     trafficDiff,
@@ -620,6 +621,7 @@ export default function InboundsPage() {
                       clientCount={clientCount}
                       onlineClients={onlineClients}
                       lastOnlineMap={lastOnlineMap}
+                      inboundSpeed={inboundSpeed}
                       expireDiff={expireDiff}
                       trafficDiff={trafficDiff}
                       pageSize={pageSize}

@@ -40,6 +40,8 @@ type Remote struct {
 	clientOnce sync.Once
 	client     *http.Client
 	clientErr  error
+
+	egressResolver NodeEgressResolver
 }
 
 type RemoteInboundOption struct {
@@ -49,10 +51,11 @@ type RemoteInboundOption struct {
 	Port     int            `json:"port"`
 }
 
-func NewRemote(n *model.Node) *Remote {
+func NewRemote(n *model.Node, r NodeEgressResolver) *Remote {
 	return &Remote{
-		node:          n,
-		remoteIDByTag: make(map[string]int),
+		node:           n,
+		remoteIDByTag:  make(map[string]int),
+		egressResolver: r,
 	}
 }
 
@@ -62,7 +65,11 @@ func (r *Remote) Name() string { return "node:" + r.node.Name }
 // verify mode, so Remote ops don't fall back to system CA on skip/pin (#5264).
 func (r *Remote) httpClient() (*http.Client, error) {
 	r.clientOnce.Do(func() {
-		r.client, r.clientErr = HTTPClientForNode(r.node)
+		proxyURL := ""
+		if r.node.OutboundTag != "" && r.egressResolver != nil {
+			proxyURL = r.egressResolver.NodeEgressProxyURL(r.node.Id)
+		}
+		r.client, r.clientErr = HTTPClientForNode(r.node, proxyURL)
 	})
 	return r.client, r.clientErr
 }
