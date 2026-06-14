@@ -648,6 +648,12 @@
     "clients": {
       "tabBasics": "Básico",
       "tabCredentials": "Credenciales",
+      "tabLinks": "Enlaces",
+      "linksHint": "Añade enlaces de terceros y URLs de suscripción remotas para incluirlos en la suscripción de este cliente.",
+      "addExternalLink": "Añadir enlace externo",
+      "addExternalSubscription": "Añadir suscripción externa",
+      "noExternalLinks": "Aún no hay enlaces externos.",
+      "noExternalSubscriptions": "Aún no hay suscripciones externas.",
       "add": "Añadir cliente",
       "edit": "Editar cliente",
       "submitAdd": "Añadir cliente",

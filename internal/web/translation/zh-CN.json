@@ -648,6 +648,12 @@
     "clients": {
       "tabBasics": "基本",
       "tabCredentials": "凭据",
+      "tabLinks": "链接",
+      "linksHint": "添加第三方分享链接和远程订阅地址，将其包含在该客户端的订阅中。",
+      "addExternalLink": "添加外部链接",
+      "addExternalSubscription": "添加外部订阅",
+      "noExternalLinks": "暂无外部链接。",
+      "noExternalSubscriptions": "暂无外部订阅。",
       "add": "添加客户端",
       "edit": "编辑客户端",
       "submitAdd": "添加客户端",

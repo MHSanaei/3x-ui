@@ -648,6 +648,12 @@
     "clients": {
       "tabBasics": "Dasar",
       "tabCredentials": "Kredensial",
+      "tabLinks": "Tautan",
+      "linksHint": "Tambahkan tautan berbagi pihak ketiga dan URL langganan jarak jauh untuk disertakan dalam langganan klien ini.",
+      "addExternalLink": "Tambah Tautan Eksternal",
+      "addExternalSubscription": "Tambah Langganan Eksternal",
+      "noExternalLinks": "Belum ada tautan eksternal.",
+      "noExternalSubscriptions": "Belum ada langganan eksternal.",
       "add": "Tambah klien",
       "edit": "Ubah klien",
       "submitAdd": "Tambah klien",

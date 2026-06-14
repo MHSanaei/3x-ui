@@ -1,0 +1,260 @@
+name: Build Cloud Images
+
+# Build golden cloud images from a published release, for amd64 and arm64:
+#   * qemu       -> qcow2 attached to the GitHub release (always)
+#   * amazon-ebs -> AWS AMI (only when AWS credentials are configured)
+#
+# Images contain NO database and NO baked credentials; first boot generates
+# unique per-instance credentials (see deploy/firstboot + deploy/packer).
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build images for (e.g. v3.3.1)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: image-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  # Resolve the tag and wait until BOTH arch tarballs are actually published
+  # (the release matrix uploads assets one by one, so 'published' can fire
+  # before the tarballs exist).
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+    steps:
+      - name: Resolve tag
+        id: resolve
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+          else
+            TAG="${{ inputs.tag }}"
+          fi
+          [ -n "$TAG" ] || { echo "::error::no tag resolved"; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for released binary assets (amd64 + arm64)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.resolve.outputs.tag }}
+        run: |
+          want="x-ui-linux-amd64.tar.gz x-ui-linux-arm64.tar.gz"
+          for i in $(seq 1 30); do
+            names=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[].name')
+            missing=""
+            for w in $want; do
+              echo "$names" | grep -qx "$w" || missing="$missing $w"
+            done
+            if [ -z "$missing" ]; then
+              echo "All assets present on $TAG"
+              exit 0
+            fi
+            echo "Waiting for$missing on $TAG ($i/30)..."
+            sleep 20
+          done
+          echo "::error::missing release assets on $TAG after 10 minutes:$missing"
+          exit 1
+
+  # Gate the AWS AMI build so forks without secrets skip it cleanly
+  # (secrets cannot be referenced directly in job-level `if`).
+  check-aws:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.c.outputs.enabled }}
+      use_oidc: ${{ steps.c.outputs.use_oidc }}
+    steps:
+      - id: c
+        env:
+          ROLE: ${{ secrets.AWS_ROLE_ARN }}
+          KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        run: |
+          if [ -n "$ROLE" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "use_oidc=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "use_oidc=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "use_oidc=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No AWS credentials configured; skipping the AMI build."
+          fi
+
+  qemu-image:
+    needs: setup
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            qemu_pkgs: qemu-system-x86 qemu-utils
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            qemu_pkgs: qemu-system-arm qemu-efi-aarch64 qemu-utils
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ${{ matrix.qemu_pkgs }}
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@v3
+        with:
+          version: latest
+
+      - name: Verify released binary asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.setup.outputs.tag }}
+        run: |
+          mkdir -p _asset
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "x-ui-linux-${{ matrix.arch }}.tar.gz" --dir _asset
+          ls -la _asset
+
+      - name: Select accelerator
+        id: accel
+        run: |
+          if [ -e /dev/kvm ]; then echo "value=kvm" >> "$GITHUB_OUTPUT"; else echo "value=tcg" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Packer init
+        run: packer init deploy/packer/
+
+      - name: Build qcow2 image
+        env:
+          TAG: ${{ needs.setup.outputs.tag }}
+          ACCEL: ${{ steps.accel.outputs.value }}
+        run: |
+          packer build -only='qemu.x-ui' \
+            -var "xui_version=${TAG}" \
+            -var "xui_arch=${{ matrix.arch }}" \
+            -var "qemu_accelerator=${ACCEL}" \
+            deploy/packer/
+
+      - name: Compress qcow2
+        id: pack
+        env:
+          TAG: ${{ needs.setup.outputs.tag }}
+        run: |
+          cd deploy/packer/output-qemu
+          src="3x-ui-ubuntu-24.04-${{ matrix.arch }}.qcow2"
+          out="3x-ui-ubuntu-24.04-${TAG}-${{ matrix.arch }}.qcow2.xz"
+          xz -T0 -6 -c "$src" > "$out"
+          sha256sum "$out" > "${out}.sha256"
+          echo "file=deploy/packer/output-qemu/${out}" >> "$GITHUB_OUTPUT"
+          echo "sha=deploy/packer/output-qemu/${out}.sha256" >> "$GITHUB_OUTPUT"
+          ls -la
+
+      - name: Attach qcow2 to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.setup.outputs.tag }}
+        run: |
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber \
+            "${{ steps.pack.outputs.file }}" "${{ steps.pack.outputs.sha }}"
+
+      - name: Summary
+        env:
+          TAG: ${{ needs.setup.outputs.tag }}
+          ACCEL: ${{ steps.accel.outputs.value }}
+        run: |
+          {
+            echo "## QEMU image (${{ matrix.arch }})"
+            echo "- Tag: \`${TAG}\`"
+            echo "- Accelerator: \`${ACCEL}\`"
+            echo "- Attached: \`$(basename "${{ steps.pack.outputs.file }}")\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  ami-image:
+    needs: [setup, check-aws]
+    if: needs.check-aws.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            instance_type: t3.small
+          - arch: arm64
+            instance_type: t4g.small
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@v3
+        with:
+          version: latest
+
+      - name: Configure AWS credentials (OIDC)
+        if: needs.check-aws.outputs.use_oidc == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'eu-central-1' }}
+
+      - name: Configure AWS credentials (access keys)
+        if: needs.check-aws.outputs.use_oidc != 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'eu-central-1' }}
+
+      - name: Verify released binary asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.setup.outputs.tag }}
+        run: |
+          mkdir -p _asset
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "x-ui-linux-${{ matrix.arch }}.tar.gz" --dir _asset
+          ls -la _asset
+
+      - name: Packer init
+        run: packer init deploy/packer/
+
+      - name: Build AMI
+        env:
+          TAG: ${{ needs.setup.outputs.tag }}
+          REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
+        run: |
+          packer build -only='amazon-ebs.x-ui' \
+            -var "xui_version=${TAG}" \
+            -var "xui_arch=${{ matrix.arch }}" \
+            -var "instance_type=${{ matrix.instance_type }}" \
+            -var "region=${REGION}" \
+            deploy/packer/
+
+      - name: Publish AMI id to summary
+        env:
+          REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
+        run: |
+          AMI_ID=$(jq -r '.builds[] | select(.builder_type=="amazon-ebs") | .artifact_id' packer-manifest.json | tail -1 | cut -d: -f2)
+          {
+            echo "## AWS AMI (${{ matrix.arch }})"
+            echo "- Region: \`${REGION}\`"
+            echo "- Instance type: \`${{ matrix.instance_type }}\`"
+            echo "- AMI ID: \`${AMI_ID}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -25,8 +25,15 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	// Set per-request state so resolveInboundAddress sees the node map.
 	s.SubService.PrepareForRequest(host)
 	inbounds, err := s.SubService.getInboundsBySubId(subId)
-	if err != nil || len(inbounds) == 0 {
+	if err != nil {
 		return "", "", err
+	}
+	externalLinks, err := s.SubService.getClientExternalLinksBySubId(subId)
+	if err != nil {
+		return "", "", err
+	}
+	if len(inbounds) == 0 && len(externalLinks) == 0 {
+		return "", "", nil
 	}
 
 	var proxies []map[string]any
@@ -41,6 +48,18 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		for _, client := range clients {
 			seenEmails[client.Email] = struct{}{}
 			proxies = append(proxies, s.getProxies(inbound, client, host)...)
+		}
+	}
+	for _, ext := range externalLinks {
+		for _, el := range expandEntry(ext) {
+			name := el.Name
+			if name == "" {
+				name = ext.Email
+			}
+			if proxy := s.clashProxyFromExternal(el.Link, name); proxy != nil {
+				seenEmails[ext.Email] = struct{}{}
+				proxies = append(proxies, proxy)
+			}
 		}
 	}
 

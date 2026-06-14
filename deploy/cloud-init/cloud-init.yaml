@@ -1,0 +1,78 @@
+#cloud-config
+# ---------------------------------------------------------------------------
+# Generic 3x-ui unattended install via cloud-init user-data.
+#
+# Works on any cloud-init platform: Hetzner, AWS, DigitalOcean, Vultr, GCP,
+# Azure, Oracle. Paste the whole file as the instance "user data".
+#
+# It installs the latest 3x-ui release NON-INTERACTIVELY, generating unique
+# random credentials per instance. Full credentials are surfaced ONLY on the
+# serial console (owner-only); /etc/motd (world-readable) shows just the access
+# URL + username. Nothing is baked in advance — every instance is unique.
+#
+# Requires the non-interactive install.sh (3x-ui with XUI_NONINTERACTIVE support).
+# Edit the exported XUI_* knobs in /opt/xui-bootstrap.sh below to customise.
+# ---------------------------------------------------------------------------
+
+package_update: true
+package_upgrade: false
+
+write_files:
+  - path: /opt/xui-bootstrap.sh
+    permissions: '0700'
+    owner: root:root
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+
+      # --- Non-interactive install knobs --------------------------------------
+      export XUI_NONINTERACTIVE=1
+      # SSL mode: none (plain HTTP, default) | ip | domain
+      export XUI_SSL_MODE="${XUI_SSL_MODE:-none}"
+      # Pin credentials instead of random (leave unset for secure random values):
+      #   export XUI_USERNAME="admin2"
+      #   export XUI_PASSWORD="change-me-please"
+      #   export XUI_PANEL_PORT="2053"
+      #   export XUI_WEB_BASE_PATH="panel"
+      # Let's Encrypt domain certificate instead of plain HTTP:
+      #   export XUI_SSL_MODE="domain"
+      #   export XUI_DOMAIN="panel.example.com"
+      #   export XUI_ACME_EMAIL="you@example.com"
+      # PostgreSQL instead of SQLite:
+      #   export XUI_DB_TYPE="postgres"
+      #   export XUI_DB_DSN="postgres://user:pass@host:5432/db?sslmode=disable"
+      # ------------------------------------------------------------------------
+
+      curl -fsSL https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh | bash
+
+      # Surface the generated credentials. Full creds (incl. password + API token)
+      # go ONLY to the serial console (/dev/console, owner-only). /etc/motd is
+      # world-readable, so it gets just the access URL + username and a pointer
+      # to the root-only env file.
+      if [ -r /etc/x-ui/install-result.env ]; then
+        {
+          echo
+          echo "=== 3x-ui panel credentials (generated on first boot) ==="
+          cat /etc/x-ui/install-result.env
+          echo "========================================================"
+          echo "Change the password after first login."
+        } > /dev/console 2>/dev/null || true
+
+        # shellcheck disable=SC1091
+        . /etc/x-ui/install-result.env
+        {
+          echo
+          echo "=== 3x-ui panel (generated on first boot) ==="
+          echo "URL:      ${XUI_ACCESS_URL:-unknown}"
+          echo "Username: ${XUI_USERNAME:-unknown}"
+          echo "Password + API token: sudo cat /etc/x-ui/install-result.env"
+          echo "============================================="
+          echo "Change the password after first login."
+        } >> /etc/motd 2>/dev/null || true
+      fi
+
+runcmd:
+  - [bash, /opt/xui-bootstrap.sh]
+
+final_message: "3x-ui installed — full credentials in /etc/x-ui/install-result.env (sudo); /etc/motd shows the URL + username only."
