@@ -286,6 +286,12 @@ exports[`InboundSchema (full) fixtures > parses vless-tcp-reality byte-stably 1`
       "minClientVer": "",
       "mldsa65Seed": "",
       "privateKey": "wM-2_oQRWXyLcXhV5q1ifTBcS3K8mYR3wQI3PqGFK1k",
+      "rotation": {
+        "lastPublicKeyRotation": 0,
+        "lastShortIdRotation": 0,
+        "publicKeyDays": 0,
+        "shortIdDays": 0,
+      },
       "serverNames": [
         "yahoo.com",
         "www.yahoo.com",

@@ -248,6 +248,11 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 					delete(realitySettings, "settings")
 				}
 			}
+			// "rotation" is panel-only auto-rotation metadata; strip it so it
+			// never reaches xray's reality config.
+			if ok2 {
+				delete(realitySettings, "rotation")
+			}
 
 			delete(stream, "externalProxy")
 

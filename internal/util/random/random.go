@@ -74,6 +74,21 @@ func Num(n int) int {
 	return int(r.Int64())
 }
 
+// Hex generates a random lowercase hex string of length n. Used for Reality
+// shortIds, which xray expects as an even-length hex string of at most 16 chars.
+func Hex(n int) string {
+	const hexDigits = "0123456789abcdef"
+	runes := make([]rune, n)
+	for i := range n {
+		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(hexDigits))))
+		if err != nil {
+			panic("crypto/rand failed: " + err.Error())
+		}
+		runes[i] = rune(hexDigits[idx.Int64()])
+	}
+	return string(runes)
+}
+
 // Base64Bytes returns n cryptographically-random bytes encoded as standard
 // base64 (with padding). Used for ss2022 keys, which xray expects as a
 // base64-encoded key of a specific byte length per cipher.

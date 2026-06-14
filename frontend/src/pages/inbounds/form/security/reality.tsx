@@ -108,6 +108,20 @@ export default function RealityForm({
         </Space.Compact>
       </Form.Item>
       <Form.Item
+        name={['streamSettings', 'realitySettings', 'rotation', 'shortIdDays']}
+        label={t('pages.inbounds.form.shortIdRotation')}
+        extra={t('pages.inbounds.form.shortIdRotationHint')}
+      >
+        <InputNumber min={0} addonAfter={t('pages.inbounds.form.rotationDays')} />
+      </Form.Item>
+      <Form.Item
+        name={['streamSettings', 'realitySettings', 'rotation', 'publicKeyDays']}
+        label={t('pages.inbounds.form.publicKeyRotation')}
+        extra={t('pages.inbounds.form.publicKeyRotationHint')}
+      >
+        <InputNumber min={0} addonAfter={t('pages.inbounds.form.rotationDays')} />
+      </Form.Item>
+      <Form.Item
         name={['streamSettings', 'realitySettings', 'settings', 'spiderX']}
         label={t('pages.inbounds.form.spiderX')}
       >

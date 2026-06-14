@@ -313,6 +313,9 @@ func (s *Server) startTask(restartXray bool) {
 	// Outbound subscription auto-refresh (respects per-sub updateInterval)
 	s.cron.AddJob(cadenceOutboundSub, job.NewOutboundSubscriptionJob())
 
+	// Reality shortId / keypair auto-rotation (respects per-inbound interval)
+	s.cron.AddJob("@every 1h", job.NewRealityRotationJob())
+
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
 	s.cron.AddJob("@hourly", job.NewWarpIpJob())
