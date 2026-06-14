@@ -1,10 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from 'antd';
 
-interface Option {
-  value: string | number;
-}
-
 interface SelectAllClearButtonsProps<T extends string | number = number> {
   options: Array<{ value: T }>;
   value: T[];
