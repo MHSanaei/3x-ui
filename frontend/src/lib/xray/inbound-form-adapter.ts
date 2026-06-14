@@ -302,6 +302,18 @@ export function dropLegacyOptionalEmpties(
     if (hs && typeof hs === 'object' && (hs.auth === '' || hs.auth == null)) {
       delete hs.auth;
     }
+
+    // Reality auto-rotation is panel-only metadata. Drop the whole block when
+    // both intervals are disabled so a non-rotating inbound serializes exactly
+    // as before (pruneEmpty keeps 0, so this explicit drop keeps the wire — and
+    // the golden link fixtures — stable).
+    const reality = stream.realitySettings as { rotation?: { shortIdDays?: number; publicKeyDays?: number } } | undefined;
+    if (reality && typeof reality === 'object' && reality.rotation) {
+      const { shortIdDays, publicKeyDays } = reality.rotation;
+      if (!shortIdDays && !publicKeyDays) {
+        delete reality.rotation;
+      }
+    }
   }
 }
 
