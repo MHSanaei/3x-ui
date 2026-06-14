@@ -8,8 +8,9 @@ never a shared session secret). Everything here supports **amd64 and arm64**.
 | --- | --- | --- |
 | [`cloud-init/`](cloud-init/) | Generic cloud-init user-data (unattended `install.sh`) | Any cloud, no image build |
 | [`packer/`](packer/) | Packer build → AWS AMI + qcow2/raw | Reusable / Marketplace images |
-| [`firstboot/`](firstboot/) | First-boot unit + script that mints per-instance creds | Used by the Packer image |
-| [`marketplace/aws/`](marketplace/aws/) | AWS Marketplace submission checklist | Publishing an AMI |
+| [`lightsail/`](lightsail/) | Launch script + snapshot builder | Amazon Lightsail |
+| [`firstboot/`](firstboot/) | First-boot unit + script that mints per-instance creds | Used by the Packer/Lightsail images |
+| [`marketplace/aws/`](marketplace/aws/) | AWS Marketplace submission checklist | Publishing an EC2 AMI |
 | [`marketplace/hetzner/`](marketplace/hetzner/) | Hetzner Cloud notes | Hetzner deployments |
 | [`test/`](test/) | Container smoke tests | Verifying the install/firstboot paths |
 

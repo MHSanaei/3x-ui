@@ -85,7 +85,8 @@ zero prompts, generating random credentials and writing them to
 `/etc/x-ui/install-result.env`. See [`deploy/`](deploy/) for:
 
 - [Cloud-init user-data](deploy/cloud-init/) — unattended install on any cloud (Hetzner/AWS/DO/Vultr/GCP/Azure/Oracle)
-- [Packer golden image](deploy/packer/) — build an AWS AMI + qcow2 with per-instance credentials generated on first boot
+- [Packer golden image](deploy/packer/) — build an AWS EC2 AMI + qcow2 (amd64/arm64) with per-instance credentials generated on first boot
+- [Amazon Lightsail](deploy/lightsail/) — launch script + reusable snapshot builder
 - [AWS Marketplace checklist](deploy/marketplace/aws/)
 
 ## Supported Platforms
