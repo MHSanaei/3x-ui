@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
 
+import { parseGeckoPacketSize } from '@/lib/xray/forms/transport/FinalMaskForm';
 import { FinalMaskStreamSettingsSchema } from '@/schemas/protocols/stream';
 
 const fixtures = import.meta.glob<unknown>(
@@ -23,4 +24,23 @@ describe('FinalMaskStreamSettingsSchema fixtures', () => {
       expect(parsed).toMatchSnapshot();
     });
   }
+});
+
+describe('parseGeckoPacketSize', () => {
+  it('accepts positive ordered packet size ranges', () => {
+    expect(parseGeckoPacketSize('512-1200')).toEqual({ min: 512, max: 1200 });
+    expect(parseGeckoPacketSize('1200-1200')).toEqual({ min: 1200, max: 1200 });
+    expect(parseGeckoPacketSize('1-2048')).toEqual({ min: 1, max: 2048 });
+  });
+
+  it('rejects invalid packet size ranges', () => {
+    expect(parseGeckoPacketSize('')).toBeNull();
+    expect(parseGeckoPacketSize('0-1200')).toBeNull();
+    expect(parseGeckoPacketSize('1200-512')).toBeNull();
+    expect(parseGeckoPacketSize('512')).toBeNull();
+    expect(parseGeckoPacketSize('512-abc')).toBeNull();
+    // exceeds xray-core's gecko buffer (max 2048)
+    expect(parseGeckoPacketSize('512-2049')).toBeNull();
+    expect(parseGeckoPacketSize('512-9999')).toBeNull();
+  });
 });
