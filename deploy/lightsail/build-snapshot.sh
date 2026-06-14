@@ -107,8 +107,18 @@ if [ -z "$IP" ] || [ "$IP" = "None" ]; then die "no public IP"; fi
 log "instance IP: ${IP}"
 
 KEY_FILE="$(mktemp)"
-aws lightsail download-default-key-pair --region "$REGION" \
-    --query 'privateKeyBase64' --output text > "$KEY_FILE"
+# download-default-key-pair returns the key in 'privateKeyBase64'. Despite the
+# name, the CLI historically emits the plaintext PEM (-----BEGIN...); the API
+# docs describe it as base64. Handle both: write PEM as-is, else base64-decode.
+KEY_RAW="$(aws lightsail download-default-key-pair --region "$REGION" \
+    --query 'privateKeyBase64' --output text)"
+[ -n "$KEY_RAW" ] && [ "$KEY_RAW" != "None" ] || die "failed to download default key pair"
+case "$KEY_RAW" in
+    *-----BEGIN*) printf '%s\n' "$KEY_RAW" > "$KEY_FILE" ;;
+    *) printf '%s' "$KEY_RAW" | base64 -d > "$KEY_FILE" 2> /dev/null \
+        || die "private key is neither PEM nor valid base64" ;;
+esac
+grep -q -- "-----BEGIN" "$KEY_FILE" || die "downloaded key is not a valid PEM private key"
 chmod 600 "$KEY_FILE"
 
 log "waiting for provisioning to finish (this installs the panel)..."

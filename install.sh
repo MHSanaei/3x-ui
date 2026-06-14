@@ -148,8 +148,11 @@ prompt_or_default() {
 
 # write_install_result <user> <pass> <port> <webpath> <scheme> <host> <token> <dbtype>
 # Persists a parseable, root-only credentials file consumed by cloud-init/MOTD.
-# Uses printf (not a heredoc) so a password containing $ or backticks is written
-# literally. This is a DIFFERENT file from the Postgres env file (/etc/default/x-ui).
+# Values are written with printf '%q' so a pinned password/username containing
+# spaces, quotes, $(...) or backticks is shell-escaped and the file stays safely
+# source-able (consumers do '. install-result.env'). For the alphanumeric random
+# values gen_random_string emits, %q is a no-op. This is a DIFFERENT file from the
+# Postgres env file (/etc/default/x-ui).
 write_install_result() {
     local u="$1" p="$2" port="$3" wbp="$4" scheme="$5" host="$6" token="$7" dbtype="$8"
     local result_file="/etc/x-ui/install-result.env"
@@ -159,13 +162,13 @@ write_install_result() {
     prev_umask=$(umask)
     umask 077
     if ! {
-        printf 'XUI_USERNAME=%s\n' "$u"
-        printf 'XUI_PASSWORD=%s\n' "$p"
-        printf 'XUI_PANEL_PORT=%s\n' "$port"
-        printf 'XUI_WEB_BASE_PATH=%s\n' "$wbp"
-        printf 'XUI_ACCESS_URL=%s://%s:%s/%s\n' "$scheme" "$url_host" "$port" "$wbp"
-        printf 'XUI_API_TOKEN=%s\n' "$token"
-        printf 'XUI_DB_TYPE=%s\n' "$dbtype"
+        printf 'XUI_USERNAME=%q\n' "$u"
+        printf 'XUI_PASSWORD=%q\n' "$p"
+        printf 'XUI_PANEL_PORT=%q\n' "$port"
+        printf 'XUI_WEB_BASE_PATH=%q\n' "$wbp"
+        printf 'XUI_ACCESS_URL=%q\n' "${scheme}://${url_host}:${port}/${wbp}"
+        printf 'XUI_API_TOKEN=%q\n' "$token"
+        printf 'XUI_DB_TYPE=%q\n' "$dbtype"
     } > "$result_file"; then
         umask "$prev_umask"
         echo -e "${yellow}Warning: failed to write ${result_file}.${plain}" >&2

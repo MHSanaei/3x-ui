@@ -6,8 +6,9 @@
 # Azure, Oracle. Paste the whole file as the instance "user data".
 #
 # It installs the latest 3x-ui release NON-INTERACTIVELY, generating unique
-# random credentials per instance, then surfaces them on the serial console and
-# in /etc/motd. Nothing is baked in advance — every instance is unique.
+# random credentials per instance. Full credentials are surfaced ONLY on the
+# serial console (owner-only); /etc/motd (world-readable) shows just the access
+# URL + username. Nothing is baked in advance — every instance is unique.
 #
 # Requires the non-interactive install.sh (3x-ui with XUI_NONINTERACTIVE support).
 # Edit the exported XUI_* knobs in /opt/xui-bootstrap.sh below to customise.
@@ -45,7 +46,10 @@ write_files:
 
       curl -fsSL https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh | bash
 
-      # Surface the generated credentials on the serial console and login banner.
+      # Surface the generated credentials. Full creds (incl. password + API token)
+      # go ONLY to the serial console (/dev/console, owner-only). /etc/motd is
+      # world-readable, so it gets just the access URL + username and a pointer
+      # to the root-only env file.
       if [ -r /etc/x-ui/install-result.env ]; then
         {
           echo
@@ -53,10 +57,22 @@ write_files:
           cat /etc/x-ui/install-result.env
           echo "========================================================"
           echo "Change the password after first login."
-        } | tee -a /etc/motd > /dev/console 2>/dev/null || true
+        } > /dev/console 2>/dev/null || true
+
+        # shellcheck disable=SC1091
+        . /etc/x-ui/install-result.env
+        {
+          echo
+          echo "=== 3x-ui panel (generated on first boot) ==="
+          echo "URL:      ${XUI_ACCESS_URL:-unknown}"
+          echo "Username: ${XUI_USERNAME:-unknown}"
+          echo "Password + API token: sudo cat /etc/x-ui/install-result.env"
+          echo "============================================="
+          echo "Change the password after first login."
+        } >> /etc/motd 2>/dev/null || true
       fi
 
 runcmd:
   - [bash, /opt/xui-bootstrap.sh]
 
-final_message: "3x-ui installed — credentials in /etc/x-ui/install-result.env and /etc/motd."
+final_message: "3x-ui installed — full credentials in /etc/x-ui/install-result.env (sudo); /etc/motd shows the URL + username only."

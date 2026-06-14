@@ -7,8 +7,8 @@
 #   * CLI:     aws lightsail create-instances --user-data file://launch-script.sh ...
 #
 # It installs the latest 3x-ui release non-interactively and generates unique
-# random credentials for THIS instance. Credentials land in
-# /etc/x-ui/install-result.env (mode 600) and are echoed to the system log + MOTD.
+# random credentials for THIS instance. The full credentials land in
+# /etc/x-ui/install-result.env (mode 600); /etc/motd shows only the URL + username.
 #
 # IMPORTANT (Lightsail firewall): Lightsail only opens 22/80/443 by default. The
 # panel listens on a random high port, so after boot read the port from
@@ -33,13 +33,19 @@ export XUI_SSL_MODE="${XUI_SSL_MODE:-none}"
 
 curl -fsSL https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh | bash
 
-# Surface the generated credentials in the cloud-init log and the login banner.
+# /etc/motd is world-readable, so it gets ONLY non-secret info (URL + username);
+# the full credentials stay in the root-only /etc/x-ui/install-result.env
+# (mode 600) — read them with `sudo cat` over SSH.
 if [ -r /etc/x-ui/install-result.env ]; then
+    # shellcheck disable=SC1091
+    . /etc/x-ui/install-result.env
     {
         echo
-        echo "=== 3x-ui panel credentials (generated on first boot) ==="
-        cat /etc/x-ui/install-result.env
-        echo "========================================================"
-        echo "Open the panel port above in the Lightsail IPv4 firewall, then log in."
-    } | tee -a /etc/motd
+        echo "=== 3x-ui panel (generated on first boot) ==="
+        echo "URL:      ${XUI_ACCESS_URL:-unknown}"
+        echo "Username: ${XUI_USERNAME:-unknown}"
+        echo "Password + API token: sudo cat /etc/x-ui/install-result.env"
+        echo "Open the panel port in the Lightsail IPv4 firewall, then log in."
+        echo "============================================="
+    } >> /etc/motd 2>/dev/null || true
 fi

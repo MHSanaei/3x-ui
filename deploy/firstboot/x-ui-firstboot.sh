@@ -81,7 +81,15 @@ detect_ip() {
 # Detect whether the seeded admin/admin default is still in place.
 default_creds=$("$XUI_BIN" setting -show true 2> /dev/null | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
 
-if [ "$default_creds" != "true" ]; then
+# The parse MUST yield exactly "true" or "false". If the command failed or its
+# output format changed, refuse to proceed: do NOT write the sentinel, so the
+# next boot retries instead of silently leaving admin/admin in place.
+if [ "$default_creds" != "true" ] && [ "$default_creds" != "false" ]; then
+    log "ERROR: could not determine credential state (hasDefaultCredential='${default_creds}'); not writing sentinel, will retry next boot."
+    exit 1
+fi
+
+if [ "$default_creds" = "false" ]; then
     log "non-default admin already configured; skipping credential regeneration."
     {
         echo "3x-ui first-boot: a non-default admin account already exists on this"
@@ -114,20 +122,24 @@ API_TOKEN=$("$XUI_BIN" setting -getApiToken true 2> /dev/null | grep -Eo 'apiTok
 SERVER_IP=$(detect_ip)
 ACCESS_URL="http://${SERVER_IP}:${NEW_PORT}/${NEW_PATH}"
 
-# Persist credentials for the operator (root-only).
+# Persist credentials for the operator (root-only). Values are shell-escaped
+# with %q so the file stays safe to `source` even if a value contains shell
+# metacharacters (the smoke test and operators source this file).
 umask 077
 {
     echo "# 3x-ui per-instance credentials (generated on first boot)"
-    echo "XUI_USERNAME=${NEW_USER}"
-    echo "XUI_PASSWORD=${NEW_PASS}"
-    echo "XUI_PANEL_PORT=${NEW_PORT}"
-    echo "XUI_WEB_BASE_PATH=${NEW_PATH}"
-    echo "XUI_ACCESS_URL=${ACCESS_URL}"
-    echo "XUI_API_TOKEN=${API_TOKEN}"
+    printf 'XUI_USERNAME=%q\n' "$NEW_USER"
+    printf 'XUI_PASSWORD=%q\n' "$NEW_PASS"
+    printf 'XUI_PANEL_PORT=%q\n' "$NEW_PORT"
+    printf 'XUI_WEB_BASE_PATH=%q\n' "$NEW_PATH"
+    printf 'XUI_ACCESS_URL=%q\n' "$ACCESS_URL"
+    printf 'XUI_API_TOKEN=%q\n' "$API_TOKEN"
 } > "$CRED_FILE"
 chmod 600 "$CRED_FILE" 2> /dev/null || true
 
 # Friendly login banner shown on SSH / console before the panel is reachable.
+# /etc/motd is world-readable, so it MUST NOT contain the password or API token;
+# those secrets live only in ${CRED_FILE} (mode 600). Show non-secret info only.
 cat > "$MOTD_FILE" 2> /dev/null << EOF
 
 ========================================================================
@@ -135,12 +147,13 @@ cat > "$MOTD_FILE" 2> /dev/null << EOF
 ========================================================================
   Access URL : ${ACCESS_URL}
   Username   : ${NEW_USER}
-  Password   : ${NEW_PASS}
-  API token  : ${API_TOKEN}
 
-  Saved to ${CRED_FILE} (root only). Change the password after login.
-  If this server has no public IP shown above, replace <server-ip> with
-  the address you reach it on.
+  The password and API token are NOT shown here (this banner is
+  world-readable). Read them as root with:
+      sudo cat ${CRED_FILE}
+
+  Change the password after login. If no public IP is shown above,
+  replace <server-ip> with the address you reach this server on.
 ========================================================================
 
 EOF
