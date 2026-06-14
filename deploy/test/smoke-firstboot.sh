@@ -32,11 +32,22 @@ docker run --rm \
         REPO=MHSanaei/3x-ui
         ARCH=$(dpkg --print-architecture)   # amd64 | arm64
         echo "container arch: $ARCH"
-        VER=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | jq -r .tag_name)
+        VER=$(curl --fail --location --silent --show-error \
+            --retry 5 --retry-all-errors --retry-delay 3 \
+            --connect-timeout 15 --max-time 60 \
+            "https://api.github.com/repos/${REPO}/releases/latest" | jq -r .tag_name)
         [ -n "$VER" ] && [ "$VER" != "null" ] || { echo "FAIL: cannot resolve version"; exit 1; }
         tmp=$(mktemp -d)
-        curl -fL4 -o "${tmp}/x.tar.gz" \
-            "https://github.com/${REPO}/releases/download/${VER}/x-ui-linux-${ARCH}.tar.gz"
+        # 504s and other transient GitHub/CDN hiccups are retried; a real HTTP
+        # failure (e.g. missing arch asset) still aborts after the retries.
+        if ! curl -4 --fail --location --silent --show-error \
+            --retry 5 --retry-all-errors --retry-delay 3 \
+            --connect-timeout 15 --max-time 300 \
+            -o "${tmp}/x.tar.gz" \
+            "https://github.com/${REPO}/releases/download/${VER}/x-ui-linux-${ARCH}.tar.gz"; then
+            echo "FAIL: cannot download x-ui-linux-${ARCH}.tar.gz (${VER})" >&2; exit 1
+        fi
+        test -s "${tmp}/x.tar.gz" || { echo "FAIL: downloaded tarball is empty"; exit 1; }
         tar -xzf "${tmp}/x.tar.gz" -C /usr/local/
         chmod +x /usr/local/x-ui/x-ui
         install -m 755 /root/x-ui-firstboot.sh /usr/local/x-ui/x-ui-firstboot.sh
