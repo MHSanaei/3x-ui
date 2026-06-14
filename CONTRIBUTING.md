@@ -73,6 +73,7 @@ XUI_DB_FOLDER=x-ui
 XUI_LOG_FOLDER=x-ui
 XUI_BIN_FOLDER=x-ui
 XUI_INIT_WEB_BASE_PATH=/
+# XUI_PORT=8080
 ```
 
 Drop the xray binary (`xray-windows-amd64.exe` on Windows, `xray-linux-amd64` on Linux, etc.) plus the matching `geoip.dat` and `geosite.dat` files into `x-ui/`. The easiest source is a [released Xray-core build](https://github.com/XTLS/Xray-core/releases). On Windows, `wintun.dll` is also required for testing TUN inbounds.
@@ -256,8 +257,15 @@ For deeper notes on the frontend toolchain see [`frontend/README.md`](frontend/R
 | `XUI_LOG_FOLDER` | platform default | Where `3xui.log` lives |
 | `XUI_BIN_FOLDER` | `bin` | Where the xray binary, geo files, and xray `config.json` live |
 | `XUI_INIT_WEB_BASE_PATH` | `/` | The initial URI path for the web panel |
+| `XUI_PORT` | persisted `webPort` | Runtime-only web panel listener port override (`1` through `65535`) |
 | `XUI_DB_TYPE` | `sqlite` | Set to `postgres` to use PostgreSQL via `XUI_DB_DSN` |
 | `XUI_DB_DSN` | — | PostgreSQL DSN when `XUI_DB_TYPE=postgres` |
+
+A valid `XUI_PORT` takes precedence over the database-backed `webPort` for the
+current process without changing the stored setting. Unset, empty, whitespace-only,
+malformed, or out-of-range values fall back to `webPort`; invalid configured values
+also produce a warning. With Docker bridge networking, the published container port
+must match the override, for example `XUI_PORT: "8080"` with `ports: ["8080:8080"]`.
 
 ## Issues
 
