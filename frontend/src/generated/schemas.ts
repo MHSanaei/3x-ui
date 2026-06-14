@@ -1595,6 +1595,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 3,
         "type": "integer"
       },
+      "outboundTag": {
+        "type": "string"
+      },
       "panelVersion": {
         "example": "v3.x.x",
         "type": "string"
@@ -1682,6 +1685,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "memPct",
       "name",
       "onlineCount",
+      "outboundTag",
       "panelVersion",
       "pinnedCertSha256",
       "port",

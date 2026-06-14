@@ -1,5 +1,6 @@
 export interface RuleRow {
   key: number;
+  enabled?: boolean;
   domain?: string;
   ip?: string;
   port?: string;

@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -147,8 +148,12 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 	if err != nil {
 		return nil, nil, 0, traffic, err
 	}
+	externalLinks, err := s.getClientExternalLinksBySubId(subId)
+	if err != nil {
+		return nil, nil, 0, traffic, err
+	}
 
-	if len(inbounds) == 0 {
+	if len(inbounds) == 0 && len(externalLinks) == 0 {
 		return nil, nil, 0, traffic, nil
 	}
 
@@ -176,6 +181,18 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 			result = append(result, s.GetLink(inbound, client.Email))
 			emails = append(emails, client.Email)
 			seenEmails[client.Email] = struct{}{}
+		}
+	}
+	for _, ext := range externalLinks {
+		if ext.Enable {
+			hasEnabledClient = true
+		}
+		for _, el := range expandEntry(ext) {
+			if link := applyRemarkToLink(el.Link, el.Name); link != "" {
+				result = append(result, link)
+				emails = append(emails, ext.Email)
+				seenEmails[ext.Email] = struct{}{}
+			}
 		}
 	}
 
@@ -547,7 +564,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 			params,
 			security,
 			func(dest string, port int) string {
-				return fmt.Sprintf("vless://%s@%s:%d", uuid, dest, port)
+				return fmt.Sprintf("vless://%s@%s", uuid, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
 				return s.genRemark(inbound, email, ep["remark"].(string))
@@ -555,7 +572,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		)
 	}
 
-	link := fmt.Sprintf("vless://%s@%s:%d", uuid, address, port)
+	link := fmt.Sprintf("vless://%s@%s", uuid, joinHostPort(address, port))
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
 }
 
@@ -598,7 +615,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 			params,
 			security,
 			func(dest string, port int) string {
-				return fmt.Sprintf("trojan://%s@%s:%d", password, dest, port)
+				return fmt.Sprintf("trojan://%s@%s", password, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
 				return s.genRemark(inbound, email, ep["remark"].(string))
@@ -606,7 +623,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 		)
 	}
 
-	link := fmt.Sprintf("trojan://%s@%s:%d", password, address, port)
+	link := fmt.Sprintf("trojan://%s@%s", password, joinHostPort(address, port))
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
 }
 
@@ -619,6 +636,15 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 // frontend and round-trips cleanly through net/url's parser.
 func encodeUserinfo(s string) string {
 	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
+}
+
+// joinHostPort wraps an IPv6 host in square brackets the way RFC 3986
+// requires for URI authorities, while leaving IPv4 addresses and hostnames
+// untouched. It also strips any brackets already present on the input so
+// callers don't have to normalize upstream.
+func joinHostPort(host string, port int) string {
+	host = strings.Trim(host, "[]")
+	return net.JoinHostPort(host, strconv.Itoa(port))
 }
 
 func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) string {
@@ -663,7 +689,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			proxyParams,
 			security,
 			func(dest string, port int) string {
-				return fmt.Sprintf("ss://%s@%s:%d", base64.RawURLEncoding.EncodeToString([]byte(encPart)), dest, port)
+				return fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
 				return s.genRemark(inbound, email, ep["remark"].(string))
@@ -671,7 +697,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		)
 	}
 
-	link := fmt.Sprintf("ss://%s@%s:%d", base64.RawURLEncoding.EncodeToString([]byte(encPart)), address, inbound.Port)
+	link := fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(address, inbound.Port))
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
 }
 
@@ -776,7 +802,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			epParams := cloneStringMap(params)
 			applyExternalProxyHysteriaParams(ep, epParams)
 
-			link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, dest, int(portF))
+			link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(dest, int(portF)))
 			links = append(links, buildLinkWithParams(link, epParams, s.genRemark(inbound, email, epRemark)))
 		}
 		return strings.Join(links, "\n")
@@ -787,7 +813,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 	if hopPorts := hysteriaHopPorts(stream); hopPorts != "" {
 		params["mport"] = hopPorts
 	}
-	link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, s.resolveInboundAddress(inbound), inbound.Port)
+	link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(s.resolveInboundAddress(inbound), inbound.Port))
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
 }
 

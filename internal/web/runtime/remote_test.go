@@ -26,7 +26,7 @@ func TestCacheGetTag_PrefixAgnostic(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			r := NewRemote(&model.Node{Id: 1, Name: "n1"})
+			r := NewRemote(&model.Node{Id: 1, Name: "n1"}, nil)
 			r.cacheSet(c.cacheTag, 7)
 			id, ok := r.cacheGetTag(c.lookup)
 			if ok != c.wantFound || id != c.wantID {

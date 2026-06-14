@@ -69,6 +69,13 @@ export function inboundTagChipPreview(
   return chipPreviewParts(formatInboundTagList(tags, remarkByTag));
 }
 
+/** The internal api rule (stats traffic) — its enabled state must stay locked on. */
+export function isApiRule(rule: { outboundTag?: string; inboundTag?: string | string[] }): boolean {
+  if (rule.outboundTag !== 'api') return false;
+  const tags = Array.isArray(rule.inboundTag) ? rule.inboundTag : csv(rule.inboundTag);
+  return tags.includes('api');
+}
+
 export function ruleCriteriaChips(rule: RuleRow) {
   const chips: { label: string; value?: string }[] = [];
   if (rule.domain) chips.push({ label: 'Domain', value: rule.domain });

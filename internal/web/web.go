@@ -252,6 +252,25 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	return engine, nil
 }
 
+// Background-job cadences. Centralized here as the single tuning surface; the
+// values are unchanged from the historical hardcoded cron specs. Follow-up:
+// make these configurable via settings, add per-tick jitter to de-synchronize
+// fleet load, skip expensive jobs when no WebSocket clients are connected or
+// node/xray state is unchanged, and export per-job duration/skipped/error
+// counters.
+const (
+	cadenceXrayRunning   = "@every 1s"
+	cadenceXrayRestart   = "@every 30s"
+	cadenceXrayTraffic   = "@every 5s"
+	cadenceMtproto       = "@every 10s"
+	cadenceClientIPScan  = "@every 10s"
+	cadenceNodeHeartbeat = "@every 5s"
+	cadenceNodeTraffic   = "@every 5s"
+	cadenceOutboundSub   = "@every 5m"
+	cadenceCheckHash     = "@every 2m"
+	cadenceCPUAlarm      = "@every 10s"
+)
+
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
 // jobs) which the panel relies on for periodic maintenance and monitoring.
 func (s *Server) startTask(restartXray bool) {
@@ -262,10 +281,10 @@ func (s *Server) startTask(restartXray bool) {
 		}
 	}
 	// Check whether xray is running every second
-	s.cron.AddJob("@every 1s", job.NewCheckXrayRunningJob())
+	s.cron.AddJob(cadenceXrayRunning, job.NewCheckXrayRunningJob())
 
 	// Check if xray needs to be restarted every 30 seconds
-	s.cron.AddFunc("@every 30s", func() {
+	s.cron.AddFunc(cadenceXrayRestart, func() {
 		if s.xrayService.IsNeedRestartAndSetFalse() {
 			err := s.xrayService.RestartXray(false)
 			if err != nil {
@@ -276,23 +295,23 @@ func (s *Server) startTask(restartXray bool) {
 
 	go func() {
 		time.Sleep(time.Second * 5)
-		s.cron.AddJob("@every 5s", job.NewXrayTrafficJob())
+		s.cron.AddJob(cadenceXrayTraffic, job.NewXrayTrafficJob())
 	}()
 
 	// Reconcile mtproto (mtg) sidecars and scrape their traffic
 	mtJob := job.NewMtprotoJob()
-	s.cron.AddJob("@every 10s", mtJob)
+	s.cron.AddJob(cadenceMtproto, mtJob)
 	go mtJob.Run()
 
 	// check client ips from log file every 10 sec
-	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
+	s.cron.AddJob(cadenceClientIPScan, job.NewCheckClientIpJob())
 
-	s.cron.AddJob("@every 5s", job.NewNodeHeartbeatJob())
+	s.cron.AddJob(cadenceNodeHeartbeat, job.NewNodeHeartbeatJob())
 
-	s.cron.AddJob("@every 5s", job.NewNodeTrafficSyncJob())
+	s.cron.AddJob(cadenceNodeTraffic, job.NewNodeTrafficSyncJob())
 
 	// Outbound subscription auto-refresh (respects per-sub updateInterval)
-	s.cron.AddJob("@every 5m", job.NewOutboundSubscriptionJob())
+	s.cron.AddJob(cadenceOutboundSub, job.NewOutboundSubscriptionJob())
 
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
@@ -339,12 +358,12 @@ func (s *Server) startTask(restartXray bool) {
 		}
 
 		// check for Telegram bot callback query hash storage reset
-		s.cron.AddJob("@every 2m", job.NewCheckHashStorageJob())
+		s.cron.AddJob(cadenceCheckHash, job.NewCheckHashStorageJob())
 
 		// Check CPU load and alarm to TgBot if threshold passes
 		cpuThreshold, err := s.settingService.GetTgCpu()
 		if (err == nil) && (cpuThreshold > 0) {
-			s.cron.AddJob("@every 10s", job.NewCheckCpuJob())
+			s.cron.AddJob(cadenceCPUAlarm, job.NewCheckCpuJob())
 		}
 	} else {
 		s.cron.Remove(entry)
@@ -385,6 +404,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		APIPort:        func() int { return s.xrayService.GetXrayAPIPort() },
 		SetNeedRestart: func() { s.xrayService.SetToNeedRestart() },
 	}))
+	runtime.GetManager().SetNodeEgressResolver(&s.settingService)
 
 	engine, err := s.initRouter()
 	if err != nil {
@@ -406,6 +426,14 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	port, err := s.settingService.GetPort()
 	if err != nil {
 		return err
+	}
+	if envPort, configured, envErr := config.GetPortOverride(); configured {
+		if envErr != nil {
+			logger.Warning("Ignoring invalid XUI_PORT; using configured web port:", port, envErr)
+		} else {
+			port = envPort
+			logger.Info("Using XUI_PORT override for web panel port:", port)
+		}
 	}
 	listenAddr := net.JoinHostPort(listen, strconv.Itoa(port))
 	listener, err := net.Listen("tcp", listenAddr)

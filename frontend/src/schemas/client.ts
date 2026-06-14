@@ -71,9 +71,20 @@ export const ClientPageResponseSchema = z.object({
   groups: nullableStringArray.optional(),
 });
 
+// A per-client external link surfaced in the client's subscription:
+// kind=link is a single share link, kind=subscription is a remote sub URL.
+export const ExternalLinkSchema = z.object({
+  kind: z.enum(['link', 'subscription']).default('link'),
+  value: z.string(),
+  remark: z.string().optional().default(''),
+}).loose();
+
+export const ExternalLinkListSchema = z.array(ExternalLinkSchema).nullable().transform((v) => v ?? []);
+
 export const ClientHydrateSchema = z.object({
   client: ClientRecordSchema,
   inboundIds: nullableNumberArray,
+  externalLinks: ExternalLinkListSchema.optional(),
 });
 
 export const BulkAdjustResultSchema = z.object({
@@ -203,6 +214,7 @@ export const ClientBulkAddFormSchema = z.object({
 export type ClientRecord = z.infer<typeof ClientRecordSchema>;
 export type ClientTraffic = z.infer<typeof ClientTrafficSchema>;
 export type InboundOption = z.infer<typeof InboundOptionSchema>;
+export type ExternalLink = z.infer<typeof ExternalLinkSchema>;
 export type ClientsSummary = z.infer<typeof ClientsSummarySchema>;
 export type ClientPageResponse = z.infer<typeof ClientPageResponseSchema>;
 export type ClientHydrate = z.infer<typeof ClientHydrateSchema>;

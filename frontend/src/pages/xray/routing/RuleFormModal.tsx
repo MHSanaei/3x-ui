@@ -5,9 +5,10 @@ import { PlusOutlined, MinusOutlined, QuestionCircleOutlined } from '@ant-design
 import { InputAddon } from '@/components/ui';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import { RuleFormSchema, type RuleFormValues } from '@/schemas/xray';
-import { buildRemarkByTag, formatInboundTag } from './helpers';
+import { buildRemarkByTag, formatInboundTag, isApiRule } from './helpers';
 
 export interface RoutingRule {
+  enabled?: boolean;
   type?: string;
   domain?: string | string[];
   ip?: string | string[];
@@ -38,6 +39,7 @@ interface RuleFormModalProps {
 type FormState = RuleFormValues;
 
 const initialForm = (): FormState => ({
+  enabled: true,
   domain: '',
   ip: '',
   port: '',
@@ -81,6 +83,7 @@ export default function RuleFormModal({
     if (!open) return;
     if (rule) {
       setForm({
+        enabled: rule.enabled !== false,
         domain: Array.isArray(rule.domain) ? rule.domain.join(',') : rule.domain || '',
         ip: Array.isArray(rule.ip) ? rule.ip.join(',') : rule.ip || '',
         port: rule.port || '',
@@ -109,6 +112,7 @@ export default function RuleFormModal({
     const v = validated.data;
     const built: Record<string, unknown> = {
       type: 'field',
+      enabled: v.enabled,
       domain: csv(v.domain),
       ip: csv(v.ip),
       port: v.port,
@@ -151,6 +155,18 @@ export default function RuleFormModal({
       onCancel={onClose}
     >
       <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 14 } }}>
+        <Form.Item label={t('enable')}>
+          <Select
+            value={form.enabled}
+            onChange={(v) => update('enabled', v)}
+            disabled={isApiRule(rule ?? {})}
+            options={[
+              { value: true, label: t('enable') },
+              { value: false, label: t('disable') },
+            ]}
+          />
+        </Form.Item>
+
         <Form.Item
           label={
             <Tooltip title={t('pages.xray.rules.useComma')}>

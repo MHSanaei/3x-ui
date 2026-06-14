@@ -235,3 +235,7 @@
   text-align: center;
 }
 
+.rule-disabled {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
