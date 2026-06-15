@@ -433,11 +433,23 @@ func FilterNodeSnapshot(n *model.Node, snap *runtime.TrafficSnapshot) {
 
 func (s *NodeService) Delete(id int) error {
 	db := database.GetDB()
+	// Capture the node's guid before deleting the row so we can drop its per-node
+	// IP attribution (NodeClientIp is keyed by guid, not node id).
+	var guid string
+	var n model.Node
+	if err := db.Select("guid").Where("id = ?", id).First(&n).Error; err == nil {
+		guid = n.Guid
+	}
 	if err := db.Where("id = ?", id).Delete(model.Node{}).Error; err != nil {
 		return err
 	}
 	if err := db.Where("node_id = ?", id).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 		return err
+	}
+	if guid != "" {
+		if err := db.Where("node_guid = ?", guid).Delete(&model.NodeClientIp{}).Error; err != nil {
+			return err
+		}
 	}
 	if mgr := runtime.GetManager(); mgr != nil {
 		mgr.InvalidateNode(id)

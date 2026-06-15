@@ -1,11 +1,8 @@
 package controller
 
 import (
-	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -74,6 +71,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/clearIps/:email", a.clearIps)
 	g.POST("/onlines", a.onlines)
 	g.POST("/onlinesByGuid", a.onlinesByGuid)
+	g.POST("/clientIpsByGuid", a.clientIpsByGuid)
 	g.POST("/activeInbounds", a.activeInbounds)
 	g.POST("/lastOnline", a.lastOnline)
 }
@@ -402,38 +400,13 @@ func (a *ClientController) updateTrafficByEmail(c *gin.Context) {
 
 func (a *ClientController) getIps(c *gin.Context) {
 	email := c.Param("email")
-	ips, err := a.inboundService.GetInboundClientIps(email)
-	if err != nil || ips == "" {
-		jsonObj(c, "No IP Record", nil)
-		return
-	}
-	type ipWithTimestamp struct {
-		IP        string `json:"ip"`
-		Timestamp int64  `json:"timestamp"`
-	}
-	var ipsWithTime []ipWithTimestamp
-	if err := json.Unmarshal([]byte(ips), &ipsWithTime); err == nil && len(ipsWithTime) > 0 {
-		formatted := make([]string, 0, len(ipsWithTime))
-		for _, item := range ipsWithTime {
-			if item.IP == "" {
-				continue
-			}
-			if item.Timestamp > 0 {
-				ts := time.Unix(item.Timestamp, 0).Local().Format("2006-01-02 15:04:05")
-				formatted = append(formatted, fmt.Sprintf("%s (%s)", item.IP, ts))
-				continue
-			}
-			formatted = append(formatted, item.IP)
-		}
-		jsonObj(c, formatted, nil)
-		return
-	}
-	var oldIps []string
-	if err := json.Unmarshal([]byte(ips), &oldIps); err == nil && len(oldIps) > 0 {
-		jsonObj(c, oldIps, nil)
-		return
-	}
-	jsonObj(c, ips, nil)
+	infos, err := a.inboundService.GetClientIpsWithNodes(email)
+	jsonObj(c, infos, err)
+}
+
+func (a *ClientController) clientIpsByGuid(c *gin.Context) {
+	data, err := a.inboundService.GetClientIpsByGuid()
+	jsonObj(c, data, err)
 }
 
 func (a *ClientController) clearIps(c *gin.Context) {

@@ -617,3 +617,21 @@ func (r *Remote) PushAllClientIps(ctx context.Context, ips []model.InboundClient
 	_, err := r.do(ctx, http.MethodPost, "panel/api/server/clientIps", ips)
 	return err
 }
+
+// FetchClientIpsByGuid pulls the node's per-node IP attribution subtree
+// (guid -> email -> observed IPs). Unlike FetchAllClientIps (the flat union the
+// master also pushes back), this preserves which physical node each IP is on.
+// Returns an empty map for older nodes that lack the endpoint.
+func (r *Remote) FetchClientIpsByGuid(ctx context.Context) (map[string]map[string][]model.ClientIpEntry, error) {
+	env, err := r.do(ctx, http.MethodPost, "panel/api/clients/clientIpsByGuid", nil)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]map[string][]model.ClientIpEntry{}
+	if len(env.Obj) > 0 {
+		if err := json.Unmarshal(env.Obj, &out); err != nil {
+			return nil, fmt.Errorf("decode client ips by guid: %w", err)
+		}
+	}
+	return out, nil
+}

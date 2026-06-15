@@ -252,6 +252,10 @@ func (j *CheckClientIpJob) processLogFile(enforce bool) bool {
 // hours ago is still live even though its timestamp is old.
 func (j *CheckClientIpJob) processObserved(observed map[string]map[string]int64, enforce, observedAreLive bool) bool {
 	shouldCleanLog := false
+	now := time.Now().Unix()
+	// attribution accumulates this scan's local observations per email so they can
+	// be recorded under this panel's own guid for cross-node IP attribution.
+	attribution := make(map[string][]model.ClientIpEntry, len(observed))
 	for email, ipTimestamps := range observed {
 
 		// The observations can still reference a client that was just renamed
@@ -271,8 +275,20 @@ func (j *CheckClientIpJob) processObserved(observed map[string]map[string]int64,
 
 		// Convert to IPWithTimestamp slice
 		ipsWithTime := make([]IPWithTimestamp, 0, len(ipTimestamps))
+		attrEntries := make([]model.ClientIpEntry, 0, len(ipTimestamps))
 		for ip, timestamp := range ipTimestamps {
 			ipsWithTime = append(ipsWithTime, IPWithTimestamp{IP: ip, Timestamp: timestamp})
+			// Live API observations may carry an old lastSeen (connection start),
+			// so stamp attribution with now; otherwise the stale cutoff would evict
+			// an IP that is connected right now.
+			attrTs := timestamp
+			if observedAreLive {
+				attrTs = now
+			}
+			attrEntries = append(attrEntries, model.ClientIpEntry{IP: ip, Timestamp: attrTs})
+		}
+		if len(attrEntries) > 0 {
+			attribution[email] = attrEntries
 		}
 
 		clientIpsRecord, err := j.getInboundClientIps(email)
@@ -284,7 +300,25 @@ func (j *CheckClientIpJob) processObserved(observed map[string]map[string]int64,
 		shouldCleanLog = j.updateInboundClientIps(clientIpsRecord, inbound, email, ipsWithTime, enforce, observedAreLive) || shouldCleanLog
 	}
 
+	j.recordLocalAttribution(attribution)
+
 	return shouldCleanLog
+}
+
+// recordLocalAttribution stores this scan's local observations under this panel's
+// own guid so a parent panel can attribute each IP to the node it is on.
+// Best-effort: attribution is advisory and must never block IP-limit enforcement.
+func (j *CheckClientIpJob) recordLocalAttribution(attribution map[string][]model.ClientIpEntry) {
+	if len(attribution) == 0 {
+		return
+	}
+	guid, err := (&service.SettingService{}).GetPanelGuid()
+	if err != nil || guid == "" {
+		return
+	}
+	if err := (&service.InboundService{}).RecordLocalClientIps(guid, attribution); err != nil {
+		logger.Debug("[LimitIP] record local ip attribution failed:", err)
+	}
 }
 
 // mergeClientIps folds this scan's observations into the persisted set,
