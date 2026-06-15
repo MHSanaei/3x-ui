@@ -3,6 +3,7 @@ export type OnlineAPISupport = number;
 export type ProcessState = string;
 export type Protocol = string;
 export type SubLinkProvider = unknown;
+export type staticEgressResolver = string;
 export type transportBits = number;
 
 export interface AllSetting {
