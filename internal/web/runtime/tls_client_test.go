@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
 	"net/http"
@@ -13,7 +14,58 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 )
+
+// masterCertForTest builds a real CA-signed client certificate for mtls tests.
+func masterCertForTest(t *testing.T) tls.Certificate {
+	t.Helper()
+	ca, err := crypto.GenerateNodeCA("test ca")
+	if err != nil {
+		t.Fatalf("GenerateNodeCA: %v", err)
+	}
+	client, err := crypto.IssueClientCert(ca, "master")
+	if err != nil {
+		t.Fatalf("IssueClientCert: %v", err)
+	}
+	cert, err := tls.X509KeyPair(client.CertPEM, client.KeyPEM)
+	if err != nil {
+		t.Fatalf("X509KeyPair: %v", err)
+	}
+	return cert
+}
+
+// TestTLSConfigForNode_MTLS_PresentsClientCert asserts the mtls branch presents
+// the master client cert and verifies the node's server cert against system
+// roots (no InsecureSkipVerify, no custom RootCAs).
+func TestTLSConfigForNode_MTLS_PresentsClientCert(t *testing.T) {
+	cert := masterCertForTest(t)
+	SetMasterClientCertProvider(func() (tls.Certificate, error) { return cert, nil })
+	t.Cleanup(func() { SetMasterClientCertProvider(nil) })
+
+	cfg, err := tlsConfigForNode(&model.Node{TlsVerifyMode: "mtls"})
+	if err != nil {
+		t.Fatalf("tlsConfigForNode(mtls): %v", err)
+	}
+	if len(cfg.Certificates) != 1 {
+		t.Fatalf("mtls config must present exactly one client certificate, got %d", len(cfg.Certificates))
+	}
+	if cfg.InsecureSkipVerify {
+		t.Fatal("mtls must NOT skip server verification")
+	}
+	if cfg.RootCAs != nil {
+		t.Fatal("mtls verifies the node server against system roots (RootCAs must be nil)")
+	}
+}
+
+// TestTLSConfigForNode_MTLS_NoProviderFailsClosed asserts mtls fails closed when
+// no master client certificate is available, rather than silently dropping auth.
+func TestTLSConfigForNode_MTLS_NoProviderFailsClosed(t *testing.T) {
+	SetMasterClientCertProvider(nil)
+	if _, err := tlsConfigForNode(&model.Node{TlsVerifyMode: "mtls"}); err == nil {
+		t.Fatal("mtls without a configured client cert provider must fail closed")
+	}
+}
 
 // nodeForServer builds a node pointing at a loopback test server (loopback is
 // SSRF-blocked, so AllowPrivateAddress is set for the guarded dialer).
