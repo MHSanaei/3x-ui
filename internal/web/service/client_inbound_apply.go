@@ -742,15 +742,17 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 			}
 		}
 
-		if needApiDel {
-			rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
-			if perr != nil {
-				return false, perr
-			}
-			if dirty {
-				markDirty = true
-			}
-			if oldInbound.NodeID == nil {
+		if oldInbound.NodeID == nil {
+			// Local inbound: a disabled client isn't in the running Xray, so only
+			// a live one (needApiDel) needs an API removal.
+			if needApiDel {
+				rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+				if perr != nil {
+					return false, perr
+				}
+				if dirty {
+					markDirty = true
+				}
 				if !push {
 					needRestart = true
 				} else if err1 := rt.RemoveUser(context.Background(), oldInbound, email); err1 == nil {
@@ -762,7 +764,19 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 					logger.Debug("Error in deleting client on", rt.Name(), ":", email)
 					needRestart = true
 				}
-			} else if push {
+			}
+		} else {
+			// Node inbound: propagate the delete regardless of the enable flag —
+			// the node's own DB still carries a disabled client and would
+			// resurrect it on the next snapshot otherwise.
+			rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+			if perr != nil {
+				return false, perr
+			}
+			if dirty {
+				markDirty = true
+			}
+			if push {
 				if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
 					logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
 					markDirty = true

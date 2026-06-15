@@ -86,4 +86,3 @@ func TestProp_SplitLinkLines_Invariants(t *testing.T) {
 		}
 	})
 }
-
