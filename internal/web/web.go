@@ -156,9 +156,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	// Cap request bodies on state-changing requests so a stolen session/API
 	// token or a buggy client can't force large allocations or long DB
 	// transactions via bulk create/attach/import endpoints. GET/HEAD/OPTIONS
-	// carry no body and are left untouched. Follow-up: make the limit a setting.
+	// carry no body and are left untouched. importDB restores a full SQLite
+	// backup that legitimately exceeds the cap, so it's exempt. Follow-up: make
+	// the limit a setting.
 	const maxRequestBodyBytes = 10 << 20 // 10 MiB
-	engine.Use(middleware.MaxBodyBytes(maxRequestBodyBytes))
+	engine.Use(middleware.MaxBodyBytes(maxRequestBodyBytes, "/panel/api/server/importDB"))
 
 	webDomain, err := s.settingService.GetWebDomain()
 	if err != nil {
