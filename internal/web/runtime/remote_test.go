@@ -1,11 +1,19 @@
 package runtime
 
 import (
+	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
+
+type stubEgress struct{ url string }
+
+func (s stubEgress) NodeEgressProxyURL(int) string { return s.url }
 
 // cacheGetTag must resolve a remote inbound id even when the n<id>- prefix
 // sits on only one side: the node may store the bare tag while the central
@@ -47,6 +55,45 @@ func TestWireInboundIncludesShareAddressFields(t *testing.T) {
 	}
 	if got := values.Get("shareAddr"); got != "edge.example.com" {
 		t.Fatalf("shareAddr = %q, want edge.example.com", got)
+	}
+}
+
+func TestRemoteHTTPClientEgressProxy(t *testing.T) {
+	// OutboundTag + a resolver → a dedicated proxy client (not the shared default).
+	withTag := NewRemote(&model.Node{Id: 1, Scheme: "https", TlsVerifyMode: "verify", OutboundTag: "warp"}, stubEgress{url: "socks5://127.0.0.1:1080"})
+	c, err := withTag.httpClient()
+	if err != nil {
+		t.Fatalf("httpClient: %v", err)
+	}
+	if c == defaultNodeHTTPClient {
+		t.Fatal("OutboundTag + resolver must produce a dedicated egress client, not the shared default")
+	}
+	// No OutboundTag → no egress proxy → shared default client (verify mode).
+	noTag := NewRemote(&model.Node{Id: 2, Scheme: "https", TlsVerifyMode: "verify"}, stubEgress{url: "socks5://127.0.0.1:1080"})
+	c2, err := noTag.httpClient()
+	if err != nil {
+		t.Fatalf("httpClient: %v", err)
+	}
+	if c2 != defaultNodeHTTPClient {
+		t.Fatal("no OutboundTag must use the shared default client")
+	}
+}
+
+func TestRemoteDoSetsContentType(t *testing.T) {
+	var gotCT string
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotCT = r.Header.Get("Content-Type")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true}`))
+	}))
+	defer srv.Close()
+
+	r := NewRemote(nodeForServer(t, srv, "skip", ""), nil)
+	if _, err := r.do(context.Background(), http.MethodPost, "x", url.Values{"a": {"b"}}); err != nil {
+		t.Fatalf("do: %v", err)
+	}
+	if gotCT != "application/x-www-form-urlencoded" {
+		t.Fatalf("Content-Type = %q, want application/x-www-form-urlencoded", gotCT)
 	}
 }
 
