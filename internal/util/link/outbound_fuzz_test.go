@@ -2,10 +2,9 @@ package link
 
 import "testing"
 
-// FuzzParseLink asserts the share-link parser never panics on arbitrary input and
-// upholds its (result, error) contract: exactly one of them is non-nil. ParseLink
-// base64-decodes and URL-parses attacker-controllable strings and performs several
-// type assertions on decoded JSON, so malformed input is the classic panic source.
+// FuzzParseLink asserts the parser never panics and upholds its (result, error) contract
+// — exactly one non-nil. It base64-decodes and type-asserts attacker-controllable JSON,
+// the classic panic source.
 func FuzzParseLink(f *testing.F) {
 	seeds := []string{
 		"",

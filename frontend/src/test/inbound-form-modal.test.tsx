@@ -39,9 +39,8 @@ describe('InboundFormModal', () => {
     const labelsByProto: Record<string, string[]> = {};
     for (const proto of protocols) {
       chooseSelectOption('protocol', proto);
-      // antd Form.useWatch('protocol') re-renders the protocol-specific fields on a
-      // later tick; flush it before reading. Without this, every iteration reads the
-      // same pre-update DOM and the loop asserts nothing (the original bug here).
+      // Flush antd Form.useWatch('protocol') before reading — without it every iteration
+      // sees the same pre-update DOM and the loop asserts nothing (the original bug here).
       await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
       labelsByProto[proto] = fieldLabels();
     }

@@ -69,10 +69,10 @@ jobs:
       - name: Run govulncheck
         run: govulncheck ./...
 
-  # Race + shuffle hygiene gate. Currently NON-BLOCKING: it surfaces the known data
-  # race on internal/logger.logBuffer (see AUDIT.md Finding #2). Once that production
-  # bug is fixed (guard logBuffer with a mutex), drop `continue-on-error` to make this
-  # a hard gate.
+  # Race + shuffle hygiene gate. NON-BLOCKING for now: it surfaces an existing data race
+  # on the unsynchronized global internal/logger.logBuffer (written by addToBuffer, read
+  # by GetLogs). Once that is fixed (guard logBuffer with a mutex), drop
+  # `continue-on-error` to make this a hard gate.
   race:
     runs-on: ubuntu-latest
     continue-on-error: true

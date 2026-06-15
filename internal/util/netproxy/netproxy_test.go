@@ -24,9 +24,8 @@ func TestNewHTTPClient(t *testing.T) {
 		{name: "unsupported scheme errors", proxyURL: "ftp://127.0.0.1:21", wantErr: true},
 	}
 
-	// The cloned base transport already has non-nil Proxy (ProxyFromEnvironment) and
-	// DialContext, so a "!= nil" check can't prove the configured proxy/dialer was
-	// actually applied. Compare against the default DialContext pointer instead.
+	// baseTransport clones http.DefaultTransport, whose Proxy and DialContext are already
+	// non-nil — so "!= nil" can't prove our proxy/dialer was applied. Check the real values.
 	defaultDialPtr := reflect.ValueOf(http.DefaultTransport.(*http.Transport).DialContext).Pointer()
 
 	for _, tc := range tests {

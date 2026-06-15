@@ -105,10 +105,8 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 		t.Fatal("Strict-Transport-Security should be set for direct HTTPS")
 	}
 
-	// Content-Security-Policy is the highest-value header here (XSS/clickjacking).
-	// Assert it is bound to the per-request nonce and keeps its hardening directives —
-	// a regression that weakens it (unsafe-inline in script-src, dropping
-	// frame-ancestors, or breaking the nonce wiring) must fail this test.
+	// CSP is the highest-value header here: assert it stays nonce-bound with its hardening
+	// directives, so weakening it (unsafe-inline, dropped frame-ancestors, broken nonce) fails.
 	csp := headers.Get("Content-Security-Policy")
 	if csp == "" {
 		t.Fatal("Content-Security-Policy header must be set")

@@ -69,11 +69,9 @@ func TestGetSubs_DuplicateSettingsClients_Deduped(t *testing.T) {
 	}
 }
 
-// TestMatchingClients_DedupsCaseInsensitiveEmail pins the dedup KEY, not just the
-// resulting count. The two settings.clients entries differ only by email case, so
-// dropping the strings.ToLower in matchingClients (service.go:130) — or keying on
-// any other field — yields two clients instead of one. The count-only dedup test
-// above cannot catch that (its dupes are byte-identical); this one does.
+// TestMatchingClients_DedupsCaseInsensitiveEmail pins the dedup KEY, not just the count:
+// the two entries differ only by email case, so dropping strings.ToLower (or keying on
+// another field) yields two clients. The byte-identical dupes above can't catch that.
 func TestMatchingClients_DedupsCaseInsensitiveEmail(t *testing.T) {
 	const subId = "s1"
 	const uuid = "11111111-2222-4333-8444-555555555555"
