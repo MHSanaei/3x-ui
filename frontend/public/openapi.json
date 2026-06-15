@@ -140,6 +140,8 @@
           },
           "smtpCpu": {
             "description": "CPU threshold for email notifications",
+            "maximum": 100,
+            "minimum": 0,
             "type": "integer"
           },
           "smtpEnable": {
@@ -621,6 +623,8 @@
           },
           "smtpCpu": {
             "description": "CPU threshold for email notifications",
+            "maximum": 100,
+            "minimum": 0,
             "type": "integer"
           },
           "smtpEnable": {
