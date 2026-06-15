@@ -39,10 +39,10 @@ func TestPanelTLSAcceptsClientWithoutClientCert(t *testing.T) {
 	}
 }
 
-// TestApplyNodeMtls exercises the listener policy applied by web.go:
-//   - nil pool  -> listener unchanged (no client auth), browsers work
-//   - pool set  -> request-but-don't-require: no-cert clients still handshake,
-//                  a CA-signed client cert is verified, a foreign cert is rejected
+// TestApplyNodeMtls exercises the listener policy applied by web.go: a nil pool
+// leaves the listener unchanged (no client auth, browsers work); a set pool is
+// request-but-don't-require, so no-cert clients still handshake while a
+// CA-signed client cert is verified and a foreign cert is rejected.
 func TestApplyNodeMtls(t *testing.T) {
 	ca, err := crypto.GenerateNodeCA("test ca")
 	if err != nil {
