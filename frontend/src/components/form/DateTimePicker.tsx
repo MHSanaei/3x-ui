@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CloseCircleFilled } from '@ant-design/icons';
 import { DatePicker } from 'antd';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
@@ -54,6 +55,10 @@ export default function DateTimePicker({
 }: DateTimePickerProps) {
   const { datepicker } = useDatepicker();
   const { isDark, isUltra } = useTheme();
+  const jalaliRef = useRef<HTMLDivElement>(null);
+  // Bumped on clear: persian-calendar-suite reads `value` only on mount, so
+  // remounting via key is the only way to reflect an externally cleared value.
+  const [clearNonce, setClearNonce] = useState(0);
 
   const persianTheme = useMemo(() => {
     if (isUltra) return ULTRA_DARK_THEME;
@@ -61,10 +66,21 @@ export default function DateTimePicker({
     return LIGHT_THEME;
   }, [isDark, isUltra]);
 
+  // The library hardcodes a Persian placeholder and exposes no working prop to
+  // override it, so clear it (or apply the caller's) on the input directly so
+  // the empty field shows no leftover Persian text. No dep array: re-apply
+  // after every render (incl. clear-remounts).
+  useEffect(() => {
+    if (datepicker !== 'jalalian') return;
+    const input = jalaliRef.current?.querySelector('input');
+    if (input) input.placeholder = placeholder;
+  });
+
   if (datepicker === 'jalalian') {
     return (
-      <div className={`jdp-wrap${isDark ? ' jdp-dark' : ''}${isUltra ? ' jdp-ultra' : ''}${disabled ? ' jdp-disabled' : ''}`}>
+      <div ref={jalaliRef} className={`jdp-wrap${isDark ? ' jdp-dark' : ''}${isUltra ? ' jdp-ultra' : ''}${disabled ? ' jdp-disabled' : ''}`}>
         <PersianDateTimePicker
+          key={clearNonce}
           value={value ? value.valueOf() : null}
           onChange={(next: number | string | null) => {
             if (next == null || next === '') {
@@ -80,6 +96,21 @@ export default function DateTimePicker({
           rtlCalendar
           theme={persianTheme}
         />
+        {value && !disabled && (
+          <button
+            type="button"
+            className="jdp-clear"
+            aria-label="clear"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange(null);
+              setClearNonce((n) => n + 1);
+            }}
+          >
+            <CloseCircleFilled />
+          </button>
+        )}
       </div>
     );
   }

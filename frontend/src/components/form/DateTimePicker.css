@@ -1,5 +1,6 @@
 .jdp-wrap {
   width: 100%;
+  position: relative;
 }
 
 .jdp-wrap > * {
@@ -32,4 +33,39 @@
 .jdp-disabled {
   pointer-events: none;
   opacity: 0.6;
+}
+
+/* persian-calendar-suite has no allowClear; overlay our own clear button so
+   the Jalali picker matches the Gregorian AntD DatePicker's X affordance. */
+.jdp-wrap .jdp-clear {
+  position: absolute;
+  top: 50%;
+  right: 11px;
+  transform: translateY(-50%);
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.25);
+  transition: color 0.2s;
+}
+
+.jdp-wrap .jdp-clear:hover {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.jdp-dark .jdp-clear {
+  color: rgba(255, 255, 255, 0.30);
+}
+
+.jdp-dark .jdp-clear:hover,
+.jdp-ultra .jdp-clear:hover {
+  color: rgba(255, 255, 255, 0.45);
 }
