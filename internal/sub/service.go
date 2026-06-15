@@ -71,6 +71,23 @@ func (s *SubService) PrepareForRequest(host string) {
 	}
 	s.address = host
 	s.loadNodes()
+	s.loadRemarkSettings()
+}
+
+// loadRemarkSettings populates the per-request remark formatting state so
+// every subscription format — raw, JSON, Clash — renders remarks the same
+// way. genRemark reads emailInRemark and the date formatter reads datepicker;
+// loading these only in getSubs left JSON/Clash with the zero values.
+func (s *SubService) loadRemarkSettings() {
+	var err error
+	s.datepicker, err = s.settingService.GetDatepicker()
+	if err != nil {
+		s.datepicker = "gregorian"
+	}
+	s.emailInRemark, err = s.settingService.GetSubEmailInRemark()
+	if err != nil {
+		s.emailInRemark = true
+	}
 }
 
 func (s *SubService) configuredPublicHost() string {
@@ -165,16 +182,6 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 
 	if len(inbounds) == 0 && len(externalLinks) == 0 {
 		return nil, nil, 0, traffic, nil
-	}
-
-	s.datepicker, err = s.settingService.GetDatepicker()
-	if err != nil {
-		s.datepicker = "gregorian"
-	}
-
-	s.emailInRemark, err = s.settingService.GetSubEmailInRemark()
-	if err != nil {
-		s.emailInRemark = true
 	}
 
 	seenEmails := make(map[string]struct{})

@@ -60,10 +60,10 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 func (s *SubJsonService) GetJson(subId string, host string) (string, string, error) {
 	subReq := s.SubService.ForRequest(host)
 	inbounds, err := subReq.getInboundsBySubId(subId)
-	if err != nil || len(inbounds) == 0 {
+	if err != nil {
 		return "", "", err
 	}
-	externalLinks, err := s.SubService.getClientExternalLinksBySubId(subId)
+	externalLinks, err := subReq.getClientExternalLinksBySubId(subId)
 	if err != nil {
 		return "", "", err
 	}
