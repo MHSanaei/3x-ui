@@ -23,12 +23,12 @@ see §2) · `wontfix` (justified — note why).
 | # | Smell | Location | Detail | Status |
 |---|---|---|---|---|
 | S1 | Over-broad (count-only) | internal/sub/service_dedup_test.go:59-64 | asserts only `len(links)==1` / `len(emails)==1`; dedup key (`strings.ToLower(client.Email)`) is unguarded | open |
-| S2 | Over-broad (`err!=nil` only) | internal/web/runtime/tls_client_test.go:118-122 | `TestHTTPClientForNodePinInvalid` asserts only that *an* error occurred; doesn't pin the error or cover empty-pin | open |
+| S2 | Over-broad (`err!=nil` only) | internal/web/runtime/tls_client_test.go:118-122 | `TestHTTPClientForNodePinInvalid` asserts only that *an* error occurred; doesn't pin the error or cover empty-pin | **fixed** (Phase B: table-driven, asserts specific error + empty-pin case) |
 | S3 | Over-broad (key-absence only) | internal/sub/clash_service_test.go | `TestBuildProxy_VLESSNoneEncryptionOmittedForClash` checks only `proxy["encryption"]` absence, not the rest of the proxy | open |
 | S4 | Happy-path-only (substring) | internal/sub/service_flow_test.go | `TestGenVlessLink_*` only `strings.Contains(link,"flow=…")`; no full-link / field-mapping assertion exists | open |
 | S5 | t.Skip never runs in CI | internal/database/migrate_data_test.go:18,68 | both `MigrateData` tests skip without `XUI_TEST_PG_DSN` → effectively dead coverage of the migration batch loop | open |
-| S6 | Coverage gap hiding a bug | internal/web/service/inbound_migration_test.go | seeds `inbound-0.0.0.0:30002` precondition but never asserts the tag cleanup → see Finding #1 | open |
-| S7 | Untested security branch | internal/web/runtime/tls_client.go:35-53 | `HTTPClientForNode` proxy+pin path (incl. `transport.TLSClientConfig = tlsCfg` pin injection) has zero coverage | open |
+| S6 | Coverage gap hiding a bug | internal/web/service/inbound_migration_test.go | seeds `inbound-0.0.0.0:30002` precondition but never asserts the tag cleanup → see Finding #1 | **finding** (Phase B: added `TestMigrationRequirements_CleansLegacyZeroAddrTag`; witnessed RED, then `t.Skip("FINDING #1")`) |
+| S7 | Untested security branch | internal/web/runtime/tls_client.go:35-53 | `HTTPClientForNode` proxy+pin path (incl. `transport.TLSClientConfig = tlsCfg` pin injection) has zero coverage | **fixed** (Phase B: added proxy+pin & proxy+verify tests; mutation-sanity confirmed RED when pin injection dropped) |
 
 (Additional smells appended as the static scan in Phase A completes.)
 
@@ -84,6 +84,19 @@ see §2) · `wontfix` (justified — note why).
 - Static smell scan complete → inventory in §1 (S1-S7). No assertion-free, tautological, or
   mock-asserting tests found — the suite is disciplined on those axes; the real weaknesses are
   over-broad/happy-path assertions (strengthened in Phases B-C) and the two findings above.
+
+---
+
+## 2b. Phase B coverage gaps closed (error/edge paths)
+
+- **Finding #1 (migration tag cleanup):** added `TestMigrationRequirements_CleansLegacyZeroAddrTag`
+  (internal/web/service/inbound_migration_test.go). Asserts a `inbound-0.0.0.0:30002` tag becomes
+  `inbound-30002`. Witnessed RED (tag unchanged) → confirms the `tx.Raw` no-op → landed `t.Skip`.
+- **TLS proxy+pin branch (S7):** added `TestHTTPClientForNode_ProxyPinPreservesPinEnforcement` (asserts
+  the pin `VerifyConnection` is installed on the proxy transport) + `…_ProxyVerifyNoPin`. Manual
+  mutation-sanity: dropping `transport.TLSClientConfig = tlsCfg` → test RED → reverted.
+- **Pin-error specificity (S2):** `TestHTTPClientForNodePinInvalid` now table-driven, asserting the
+  exact error for garbage vs empty pin (covers the `DecodeCertPin` empty-string branch).
 
 ---
 

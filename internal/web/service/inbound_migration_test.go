@@ -90,6 +90,52 @@ func TestMigrationRequirements_BackfillsClientTrafficsWithMultiDomainInbound(t *
 	}
 }
 
+// TestMigrationRequirements_CleansLegacyZeroAddrTag guards the legacy tag-cleanup
+// step in MigrationRequirements that strips the auto-generated "0.0.0.0:" prefix from
+// inbound tags. The inbound is a MultiDomain TLS inbound so the externalProxy
+// detection query returns rows and the function runs through to the cleanup (it
+// early-returns at len(externalProxy)==0 otherwise).
+//
+// FINDING #1 (see AUDIT.md): the cleanup is written as `tx.Raw(tagCleanup).Error`,
+// which builds but never executes a non-SELECT statement, so the prefix is never
+// stripped. This asserts the real contract; it is skipped until the prod bug is fixed
+// (tx.Raw -> tx.Exec) so the failure stays visible rather than hidden.
+func TestMigrationRequirements_CleansLegacyZeroAddrTag(t *testing.T) {
+	t.Skip("FINDING #1: tag cleanup uses tx.Raw (no-op); legacy 0.0.0.0: prefix never stripped; see AUDIT.md. Remove this skip once prod swaps tx.Raw -> tx.Exec.")
+
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+	legacy := &model.Inbound{
+		UserId:         1,
+		Tag:            "inbound-0.0.0.0:30002",
+		Enable:         true,
+		Port:           30002,
+		Protocol:       model.VLESS,
+		Settings:       `{"clients":[]}`,
+		StreamSettings: `{"security":"tls","tlsSettings":{"settings":{"domains":[{"domain":"example.com"}]}}}`,
+	}
+	if err := db.Create(legacy).Error; err != nil {
+		t.Fatalf("create legacy inbound: %v", err)
+	}
+
+	svc := InboundService{}
+	svc.MigrationRequirements()
+
+	var got model.Inbound
+	if err := db.First(&got, legacy.Id).Error; err != nil {
+		t.Fatalf("reload inbound: %v", err)
+	}
+	if got.Tag != "inbound-30002" {
+		t.Fatalf("legacy 0.0.0.0: tag not stripped: got %q, want %q (FINDING #1)", got.Tag, "inbound-30002")
+	}
+}
+
 func TestMigrationRequirements_NormalizesShareAddressFields(t *testing.T) {
 	setupConflictDB(t)
 	db := database.GetDB()
