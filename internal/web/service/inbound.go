@@ -779,6 +779,14 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		return false, err
 	}
 
+	if loadErr == nil && ib.Tag != "" {
+		if routingChanged, syncErr := (&XraySettingService{}).RemoveInboundTagReferences(ib.Tag); syncErr != nil {
+			logger.Warning("DelInbound: sync routing on inbound delete failed:", syncErr)
+		} else if routingChanged {
+			needRestart = true
+		}
+	}
+
 	if err := db.Delete(model.Inbound{}, id).Error; err != nil {
 		return needRestart, err
 	}
@@ -960,12 +968,21 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	tx := db.Begin()
 
 	markDirty := false
+	needRestart := false
+	tagRenamedFrom, tagRenamedTo := "", ""
 	defer func() {
 		if err != nil {
 			tx.Rollback()
 			return
 		}
 		tx.Commit()
+		if tagRenamedFrom != "" && tagRenamedTo != "" {
+			if routingChanged, syncErr := (&XraySettingService{}).PropagateInboundTagRename(tagRenamedFrom, tagRenamedTo); syncErr != nil {
+				logger.Warning("UpdateInbound: sync routing on tag rename failed:", syncErr)
+			} else if routingChanged {
+				needRestart = true
+			}
+		}
 		if markDirty && oldInbound.NodeID != nil {
 			if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
 				logger.Warning("mark node dirty failed:", dErr)
@@ -1069,7 +1086,10 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	}
 	inbound.Tag = oldInbound.Tag
 
-	needRestart := false
+	if tag != oldInbound.Tag {
+		tagRenamedFrom, tagRenamedTo = tag, oldInbound.Tag
+	}
+
 	rt, push, dirty, perr := s.nodePushPlan(oldInbound)
 	if perr != nil {
 		err = perr
