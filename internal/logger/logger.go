@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -31,8 +32,10 @@ var (
 	logger     *logging.Logger
 	fileRotate *lumberjack.Logger // nil when file backend disabled
 
-	// logBuffer maintains recent log entries in memory for web UI retrieval
-	logBuffer []struct {
+	// logBuffer maintains recent log entries in memory for web UI retrieval;
+	// logBufferMu guards it — written from many goroutines, read by the web UI.
+	logBufferMu sync.Mutex
+	logBuffer   []struct {
 		time  string
 		level logging.Level
 		log   string
@@ -193,6 +196,8 @@ func Errorf(format string, args ...any) {
 // addToBuffer adds a log entry to the in-memory ring buffer for web UI retrieval.
 func addToBuffer(level string, newLog string) {
 	t := time.Now()
+	logBufferMu.Lock()
+	defer logBufferMu.Unlock()
 	if len(logBuffer) >= maxLogBufferSize {
 		logBuffer = logBuffer[1:]
 	}
@@ -214,9 +219,21 @@ func GetLogs(c int, level string) []string {
 	var output []string
 	logLevel, _ := logging.LogLevel(level)
 
-	for i := len(logBuffer) - 1; i >= 0 && len(output) <= c; i-- {
-		if logBuffer[i].level <= logLevel {
-			output = append(output, fmt.Sprintf("%s %s - %s", logBuffer[i].time, logBuffer[i].level, logBuffer[i].log))
+	// Snapshot (copy) under the lock, then filter/format unlocked: a UI log fetch
+	// must not block addToBuffer — and thus all logging — for the formatting loop.
+	// A copy (not a reslice) is required, since addToBuffer can append in place.
+	logBufferMu.Lock()
+	snapshot := make([]struct {
+		time  string
+		level logging.Level
+		log   string
+	}, len(logBuffer))
+	copy(snapshot, logBuffer)
+	logBufferMu.Unlock()
+
+	for i := len(snapshot) - 1; i >= 0 && len(output) < c; i-- {
+		if snapshot[i].level <= logLevel {
+			output = append(output, fmt.Sprintf("%s %s - %s", snapshot[i].time, snapshot[i].level, snapshot[i].log))
 		}
 	}
 	return output
