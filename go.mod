@@ -40,6 +40,7 @@ require (
 	github.com/pion/transport/v4 v4.0.2 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	golang.zx2c4.com/wireguard/windows v1.0.1 // indirect
+	pgregory.net/rapid v1.3.0 // indirect
 )
 
 require (
