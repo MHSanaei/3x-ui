@@ -41,6 +41,64 @@ func TestEnsureUniqueProxyNames(t *testing.T) {
 	}
 }
 
+// TestBuildProxy_VLESSRealityFieldsForClash locks the reality field mapping in
+// applySecurity (clash_service.go ~488): a regression that drops servername,
+// public-key, short-id, or client-fingerprint would hand mihomo a broken reality
+// proxy. The existing clash tests don't assert any of these.
+func TestBuildProxy_VLESSRealityFieldsForClash(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{remarkModel: "-i"}}
+	inbound := &model.Inbound{Listen: "203.0.113.1", Port: 443, Protocol: model.VLESS, Remark: "r", Settings: `{"encryption":"none"}`}
+	client := model.Client{ID: "11111111-2222-4333-8444-555555555555"}
+	stream := map[string]any{
+		"network":         "tcp",
+		"security":        "reality",
+		"tcpSettings":     map[string]any{"header": map[string]any{"type": "none"}},
+		"realitySettings": map[string]any{"serverName": "reality.example.com", "publicKey": "PBKvalue", "shortId": "ab12", "fingerprint": "chrome"},
+	}
+
+	proxy := svc.buildProxy(inbound, client, stream, "")
+	if proxy == nil {
+		t.Fatal("buildProxy returned nil for a valid reality stream")
+	}
+	if proxy["tls"] != true {
+		t.Fatalf("tls = %v, want true", proxy["tls"])
+	}
+	if proxy["servername"] != "reality.example.com" {
+		t.Fatalf("servername = %v, want reality.example.com", proxy["servername"])
+	}
+	if proxy["client-fingerprint"] != "chrome" {
+		t.Fatalf("client-fingerprint = %v, want chrome", proxy["client-fingerprint"])
+	}
+	opts, _ := proxy["reality-opts"].(map[string]any)
+	if opts == nil {
+		t.Fatal("reality-opts missing")
+	}
+	if opts["public-key"] != "PBKvalue" {
+		t.Fatalf("public-key = %v, want PBKvalue", opts["public-key"])
+	}
+	if opts["short-id"] != "ab12" {
+		t.Fatalf("short-id = %v, want ab12", opts["short-id"])
+	}
+}
+
+// TestApplyTransport_TCPHeader pins the tcp-header validation (clash_service.go ~359):
+// plain tcp and a "none" header are representable in clash; a non-none obfs header is
+// not, so applyTransport must reject it (returning false drops it from the YAML).
+func TestApplyTransport_TCPHeader(t *testing.T) {
+	svc := &SubClashService{}
+	if !svc.applyTransport(map[string]any{}, "tcp", map[string]any{}) {
+		t.Fatal("plain tcp must be buildable")
+	}
+	noneStream := map[string]any{"tcpSettings": map[string]any{"header": map[string]any{"type": "none"}}}
+	if !svc.applyTransport(map[string]any{}, "tcp", noneStream) {
+		t.Fatal("tcp + header type none must be buildable")
+	}
+	httpStream := map[string]any{"tcpSettings": map[string]any{"header": map[string]any{"type": "http"}}}
+	if svc.applyTransport(map[string]any{}, "tcp", httpStream) {
+		t.Fatal("tcp + non-none (http) header is not representable in clash and must be rejected")
+	}
+}
+
 func TestApplyTransport_XHTTP(t *testing.T) {
 	svc := &SubClashService{}
 	proxy := map[string]any{}
