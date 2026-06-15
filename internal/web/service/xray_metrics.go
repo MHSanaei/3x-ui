@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
@@ -28,6 +29,15 @@ type ObsTagSnapshot struct {
 	LastTryTime  int64  `json:"lastTryTime"`
 	UpdatedAt    int64  `json:"updatedAt"`
 }
+
+// eventBus is the shared bus for publishing observatory state-change events.
+// Set once during startup via SetEventBus; nil when no bus is configured.
+var eventBus *eventbus.Bus
+
+// SetEventBus assigns the global event bus used by applyObservatory to publish
+// outbound health transitions. Must be called once during startup before any
+// Sample tick runs.
+func SetEventBus(b *eventbus.Bus) { eventBus = b }
 
 type XrayMetricsService struct {
 	settingService SettingService
@@ -205,6 +215,35 @@ func (s *XrayMetricsService) applyObservatory(t time.Time, entries map[string]ra
 	}
 
 	s.mu.Lock()
+	// Detect transitions and publish events
+	if eventBus != nil {
+		// Check existing tags for state changes
+		for tag, old := range s.obsByTag {
+			cur, exists := next[tag]
+			if !exists {
+				// Tag disappeared from observatory — skip, not a real failure
+				continue
+			}
+			if old.Alive && !cur.Alive {
+				errMsg := ""
+				if cur.Delay < 0 {
+					errMsg = "probe failed"
+				}
+				eventBus.Publish(eventbus.Event{
+					Type:   eventbus.EventOutboundDown,
+					Source: tag,
+					Data:   &eventbus.OutboundHealthData{Delay: cur.Delay, Error: errMsg},
+				})
+			} else if !old.Alive && cur.Alive {
+				eventBus.Publish(eventbus.Event{
+					Type:   eventbus.EventOutboundUp,
+					Source: tag,
+					Data:   &eventbus.OutboundHealthData{Delay: cur.Delay},
+				})
+			}
+		}
+	}
+
 	for tag := range s.obsByTag {
 		if _, kept := next[tag]; !kept {
 			xrayMetrics.drop(obsHistoryKey(tag))

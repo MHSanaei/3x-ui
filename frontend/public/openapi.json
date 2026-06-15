@@ -138,6 +138,46 @@
             "minimum": 1,
             "type": "integer"
           },
+          "smtpCpu": {
+            "description": "CPU threshold for email notifications",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "smtpEnable": {
+            "description": "Email (SMTP) notification settings\nEnable email notifications",
+            "type": "boolean"
+          },
+          "smtpEnabledEvents": {
+            "description": "Comma-separated event types to send via email",
+            "type": "string"
+          },
+          "smtpEncryptionType": {
+            "description": "SMTP encryption: none, starttls, tls",
+            "type": "string"
+          },
+          "smtpHost": {
+            "description": "SMTP server host",
+            "type": "string"
+          },
+          "smtpPassword": {
+            "description": "SMTP password",
+            "type": "string"
+          },
+          "smtpPort": {
+            "description": "SMTP server port",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "smtpTo": {
+            "description": "Comma-separated recipient emails",
+            "type": "string"
+          },
+          "smtpUsername": {
+            "description": "SMTP username",
+            "type": "string"
+          },
           "subAnnounce": {
             "description": "Subscription announce",
             "type": "string"
@@ -277,10 +317,6 @@
             "description": "Telegram bot settings\nEnable Telegram bot notifications",
             "type": "boolean"
           },
-          "tgBotLoginNotify": {
-            "description": "Send login notifications",
-            "type": "boolean"
-          },
           "tgBotProxy": {
             "description": "Proxy URL for Telegram bot",
             "type": "string"
@@ -294,6 +330,10 @@
             "maximum": 100,
             "minimum": 0,
             "type": "integer"
+          },
+          "tgEnabledEvents": {
+            "description": "Comma-separated event types to send via Telegram",
+            "type": "string"
           },
           "tgLang": {
             "description": "Telegram bot language",
@@ -387,6 +427,15 @@
           "remarkModel",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
+          "smtpCpu",
+          "smtpEnable",
+          "smtpEnabledEvents",
+          "smtpEncryptionType",
+          "smtpHost",
+          "smtpPassword",
+          "smtpPort",
+          "smtpTo",
+          "smtpUsername",
           "subAnnounce",
           "subCertFile",
           "subClashEnable",
@@ -421,10 +470,10 @@
           "tgBotBackup",
           "tgBotChatId",
           "tgBotEnable",
-          "tgBotLoginNotify",
           "tgBotProxy",
           "tgBotToken",
           "tgCpu",
+          "tgEnabledEvents",
           "tgLang",
           "tgRunTime",
           "timeLocation",
@@ -469,6 +518,9 @@
             "type": "boolean"
           },
           "hasNordSecret": {
+            "type": "boolean"
+          },
+          "hasSmtpPassword": {
             "type": "boolean"
           },
           "hasTgBotToken": {
@@ -572,6 +624,46 @@
             "minimum": 1,
             "type": "integer"
           },
+          "smtpCpu": {
+            "description": "CPU threshold for email notifications",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "smtpEnable": {
+            "description": "Email (SMTP) notification settings\nEnable email notifications",
+            "type": "boolean"
+          },
+          "smtpEnabledEvents": {
+            "description": "Comma-separated event types to send via email",
+            "type": "string"
+          },
+          "smtpEncryptionType": {
+            "description": "SMTP encryption: none, starttls, tls",
+            "type": "string"
+          },
+          "smtpHost": {
+            "description": "SMTP server host",
+            "type": "string"
+          },
+          "smtpPassword": {
+            "description": "SMTP password",
+            "type": "string"
+          },
+          "smtpPort": {
+            "description": "SMTP server port",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "smtpTo": {
+            "description": "Comma-separated recipient emails",
+            "type": "string"
+          },
+          "smtpUsername": {
+            "description": "SMTP username",
+            "type": "string"
+          },
           "subAnnounce": {
             "description": "Subscription announce",
             "type": "string"
@@ -711,10 +803,6 @@
             "description": "Telegram bot settings\nEnable Telegram bot notifications",
             "type": "boolean"
           },
-          "tgBotLoginNotify": {
-            "description": "Send login notifications",
-            "type": "boolean"
-          },
           "tgBotProxy": {
             "description": "Proxy URL for Telegram bot",
             "type": "string"
@@ -728,6 +816,10 @@
             "maximum": 100,
             "minimum": 0,
             "type": "integer"
+          },
+          "tgEnabledEvents": {
+            "description": "Comma-separated event types to send via Telegram",
+            "type": "string"
           },
           "tgLang": {
             "description": "Telegram bot language",
@@ -799,6 +891,7 @@
           "hasApiToken",
           "hasLdapPassword",
           "hasNordSecret",
+          "hasSmtpPassword",
           "hasTgBotToken",
           "hasTwoFactorToken",
           "hasWarpSecret",
@@ -827,6 +920,15 @@
           "remarkModel",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
+          "smtpCpu",
+          "smtpEnable",
+          "smtpEnabledEvents",
+          "smtpEncryptionType",
+          "smtpHost",
+          "smtpPassword",
+          "smtpPort",
+          "smtpTo",
+          "smtpUsername",
           "subAnnounce",
           "subCertFile",
           "subClashEnable",
@@ -861,10 +963,10 @@
           "tgBotBackup",
           "tgBotChatId",
           "tgBotEnable",
-          "tgBotLoginNotify",
           "tgBotProxy",
           "tgBotToken",
           "tgCpu",
+          "tgEnabledEvents",
           "tgLang",
           "tgRunTime",
           "timeLocation",
@@ -7002,6 +7104,75 @@
                     },
                     "obj": {}
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/testSmtp": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Test SMTP connection with stage-by-stage reporting (connect, auth, send). Returns structured result with stage and message.",
+        "operationId": "post_panel_api_setting_testSmtp",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "stage": "send",
+                  "msg": "Test email sent successfully"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/testTgBot": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Test Telegram bot connection by sending a test message to the configured chat.",
+        "operationId": "post_panel_api_setting_testTgBot",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Test message sent to Telegram"
                 }
               }
             }

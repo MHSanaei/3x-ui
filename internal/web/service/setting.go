@@ -53,7 +53,6 @@ var defaultValueMap = map[string]string{
 	"tgBotChatId":                 "",
 	"tgRunTime":                   "@daily",
 	"tgBotBackup":                 "false",
-	"tgBotLoginNotify":            "true",
 	"tgCpu":                       "80",
 	"tgLang":                      "en-US",
 	"twoFactorEnable":             "false",
@@ -119,6 +118,20 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultTotalGB":    "0",
 	"ldapDefaultExpiryDays": "0",
 	"ldapDefaultLimitIP":    "0",
+
+	// Event bus — per-subscriber event filtering (empty = all disabled)
+	"tgEnabledEvents":   "login.attempt,cpu.high",
+	"smtpEnabledEvents": "login.attempt,cpu.high",
+	"smtpCpu":           "80",
+
+	// Email (SMTP) notifications
+	"smtpEnable":         "false",
+	"smtpHost":           "",
+	"smtpPort":           "587",
+	"smtpUsername":       "",
+	"smtpPassword":       "",
+	"smtpTo":             "",
+	"smtpEncryptionType": "starttls", // no, starttls, tls
 }
 
 // SettingService provides business logic for application settings management.
@@ -220,6 +233,7 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 	view.HasLdapPassword = secretConfigured(allSetting.LdapPassword)
 	view.HasWarpSecret = secretConfigured(mustString(s.GetWarp()))
 	view.HasNordSecret = secretConfigured(mustString(s.GetNord()))
+	view.HasSmtpPassword = secretConfigured(allSetting.SmtpPassword)
 	var apiTokenCount int64
 	if err := database.GetDB().Model(model.ApiToken{}).Where("enabled = ?", true).Count(&apiTokenCount).Error; err == nil {
 		view.HasApiToken = apiTokenCount > 0
@@ -227,6 +241,7 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 	view.TgBotToken = ""
 	view.TwoFactorToken = ""
 	view.LdapPassword = ""
+	view.SmtpPassword = ""
 	return view, nil
 }
 
@@ -502,10 +517,6 @@ func (s *SettingService) SetTgbotRuntime(time string) error {
 
 func (s *SettingService) GetTgBotBackup() (bool, error) {
 	return s.getBool("tgBotBackup")
-}
-
-func (s *SettingService) GetTgBotLoginNotify() (bool, error) {
-	return s.getBool("tgBotLoginNotify")
 }
 
 func (s *SettingService) GetTgCpu() (int, error) {
@@ -918,6 +929,90 @@ func (s *SettingService) GetLdapDefaultLimitIP() (int, error) {
 	return s.getInt("ldapDefaultLimitIP")
 }
 
+// Event bus — per-subscriber event filtering
+
+func (s *SettingService) GetTgEnabledEvents() (string, error) {
+	return s.getString("tgEnabledEvents")
+}
+
+func (s *SettingService) SetTgEnabledEvents(events string) error {
+	return s.setString("tgEnabledEvents", events)
+}
+
+func (s *SettingService) GetSmtpEnabledEvents() (string, error) {
+	return s.getString("smtpEnabledEvents")
+}
+
+func (s *SettingService) SetSmtpEnabledEvents(events string) error {
+	return s.setString("smtpEnabledEvents", events)
+}
+
+// Email (SMTP) settings
+
+func (s *SettingService) GetSmtpEnable() (bool, error) {
+	return s.getBool("smtpEnable")
+}
+
+func (s *SettingService) SetSmtpEnable(value bool) error {
+	return s.setBool("smtpEnable", value)
+}
+
+func (s *SettingService) GetSmtpHost() (string, error) {
+	return s.getString("smtpHost")
+}
+
+func (s *SettingService) SetSmtpHost(value string) error {
+	return s.setString("smtpHost", value)
+}
+
+func (s *SettingService) GetSmtpPort() (int, error) {
+	return s.getInt("smtpPort")
+}
+
+func (s *SettingService) SetSmtpPort(value int) error {
+	return s.setInt("smtpPort", value)
+}
+
+func (s *SettingService) GetSmtpUsername() (string, error) {
+	return s.getString("smtpUsername")
+}
+
+func (s *SettingService) SetSmtpUsername(value string) error {
+	return s.setString("smtpUsername", value)
+}
+
+func (s *SettingService) GetSmtpPassword() (string, error) {
+	return s.getString("smtpPassword")
+}
+
+func (s *SettingService) SetSmtpPassword(value string) error {
+	return s.setString("smtpPassword", value)
+}
+
+func (s *SettingService) GetSmtpTo() (string, error) {
+	return s.getString("smtpTo")
+}
+
+func (s *SettingService) SetSmtpTo(value string) error {
+	return s.setString("smtpTo", value)
+}
+
+func (s *SettingService) GetSmtpEncryptionType() (string, error) {
+	return s.getString("smtpEncryptionType")
+}
+
+func (s *SettingService) SetSmtpEncryptionType(value string) error {
+	return s.setString("smtpEncryptionType", value)
+}
+
+func (s *SettingService) GetSmtpCpu() (int, error) {
+	return s.getInt("smtpCpu")
+}
+
+func (s *SettingService) SetSmtpCpu(value int) error {
+	return s.setInt("smtpCpu", value)
+}
+
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	if err := s.preserveRedactedSecrets(allSetting); err != nil {
 		return err
@@ -966,6 +1061,13 @@ func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) 
 			return err
 		}
 		allSetting.TwoFactorToken = value
+	}
+	if strings.TrimSpace(allSetting.SmtpPassword) == "" {
+		value, err := s.GetSmtpPassword()
+		if err != nil {
+			return err
+		}
+		allSetting.SmtpPassword = value
 	}
 	return nil
 }

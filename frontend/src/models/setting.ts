@@ -17,12 +17,10 @@ export class AllSetting {
   datepicker: 'gregorian' | 'jalalian' = 'gregorian';
   tgBotEnable = false;
   tgBotToken = '';
-  tgBotProxy = '';
   tgBotAPIServer = '';
   tgBotChatId = '';
   tgRunTime = '@daily';
   tgBotBackup = false;
-  tgBotLoginNotify = true;
   tgCpu = 80;
   tgLang = 'en-US';
   twoFactorEnable = false;
@@ -84,12 +82,23 @@ export class AllSetting {
   ldapDefaultTotalGB = 0;
   ldapDefaultExpiryDays = 0;
   ldapDefaultLimitIP = 0;
+  tgEnabledEvents = '';
+  smtpEnable = false;
+  smtpHost = '';
+  smtpPort = 587;
+  smtpUsername = '';
+  smtpPassword = '';
+  smtpTo = '';
+  smtpEncryptionType = 'starttls';
+  smtpEnabledEvents = '';
+  smtpCpu = 80;
   hasTgBotToken = false;
   hasTwoFactorToken = false;
   hasLdapPassword = false;
   hasApiToken = false;
   hasWarpSecret = false;
   hasNordSecret = false;
+  hasSmtpPassword = false;
 
   constructor(data?: unknown) {
     if (data != null) {
