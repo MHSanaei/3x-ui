@@ -51,6 +51,7 @@ func migrationModels() []any {
 		&model.InboundFallback{},
 		&model.NodeClientTraffic{},
 		&model.OutboundSubscription{},
+		&model.CustomGeoResource{},
 	}
 }
 

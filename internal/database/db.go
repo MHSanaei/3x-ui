@@ -75,6 +75,7 @@ func initModels() error {
 		&model.NodeClientTraffic{},
 		&model.ClientGlobalTraffic{},
 		&model.OutboundSubscription{},
+		&model.CustomGeoResource{},
 	}
 	for _, mdl := range models {
 		if err := db.AutoMigrate(mdl); err != nil {

@@ -6,6 +6,7 @@ export type SubLinkProvider = unknown;
 export type transportBits = number;
 
 export interface AllSetting {
+  customGeoCron: string;
   datepicker: string;
   expireDiff: number;
   externalTrafficInformEnable: boolean;
@@ -90,6 +91,7 @@ export interface AllSetting {
 }
 
 export interface AllSettingView {
+  customGeoCron: string;
   datepicker: string;
   expireDiff: number;
   externalTrafficInformEnable: boolean;

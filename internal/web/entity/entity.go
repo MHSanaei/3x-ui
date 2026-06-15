@@ -116,6 +116,9 @@ type AllSetting struct {
 
 	// WARP
 	WarpUpdateInterval int `json:"warpUpdateInterval" form:"warpUpdateInterval" validate:"gte=0"`
+
+	// Custom Geo auto-update schedule (cron expression, empty = disabled)
+	CustomGeoCron string `json:"customGeoCron" form:"customGeoCron"`
 }
 
 // AllSettingView is the browser-safe settings read model. Secret values

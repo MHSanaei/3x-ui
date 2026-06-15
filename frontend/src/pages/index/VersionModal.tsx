@@ -6,6 +6,7 @@ import { ReloadOutlined } from '@ant-design/icons';
 import { HttpUtil } from '@/utils';
 import type { Status } from '@/models/status';
 import GeodataSection from './GeodataSection';
+import CustomGeoSection from './CustomGeoSection';
 import './VersionModal.css';
 
 interface BusyEvent {
@@ -169,6 +170,11 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
                   onClose={onClose}
                 />
               ),
+            },
+            {
+              key: '4',
+              label: t('pages.index.customGeoTitle'),
+              children: <CustomGeoSection active={activeKeyStr === '4'} />,
             },
           ]}
         />
