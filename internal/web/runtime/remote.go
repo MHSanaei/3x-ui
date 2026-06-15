@@ -99,7 +99,9 @@ func (r *Remote) baseURL() (string, error) {
 }
 
 func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelope, error) {
-	if r.node.ApiToken == "" {
+	// mtls nodes authenticate via the client certificate, so a bearer token is
+	// optional for them; every other mode still requires one.
+	if r.node.ApiToken == "" && r.node.TlsVerifyMode != "mtls" {
 		return nil, errors.New("node has no API token configured")
 	}
 
@@ -133,7 +135,9 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+r.node.ApiToken)
+	if r.node.ApiToken != "" {
+		req.Header.Set("Authorization", "Bearer "+r.node.ApiToken)
+	}
 	req.Header.Set("Accept", "application/json")
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
