@@ -15,9 +15,9 @@ func TestDefaultPort(t *testing.T) {
 	}{
 		{"", 443, 443},
 		{"8080", 443, 8080},
-		{"0", 443, 443},     // non-positive falls back
-		{"-1", 443, 443},    // negative falls back
-		{"abc", 443, 443},   // unparseable falls back
+		{"0", 443, 443},   // non-positive falls back
+		{"-1", 443, 443},  // negative falls back
+		{"abc", 443, 443}, // unparseable falls back
 		{"65535", 443, 65535},
 	}
 	for _, c := range cases {

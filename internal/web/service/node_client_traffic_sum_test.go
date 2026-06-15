@@ -274,6 +274,49 @@ func TestStatsUnderSiblingInbound_KeepsNodeBaseline(t *testing.T) {
 	assertUpDown(t, readTraffic(t, db, email), 70, 70, "delta accrues once baseline survives")
 }
 
+// TestMultiAttach_SameNode_DivergentSiblings reproduces #5274: a client is
+// attached to several inbounds of the SAME node. Xray reports client traffic
+// globally per email, so the node's enriched inbound list copies one shared
+// counter onto every inbound the client is on. When those copies diverge — a
+// legacy per-inbound row surviving the v3.2.x→v3.3.x upgrade, or any drift —
+// the per-inbound delta loop used to treat the lower sibling as a node-counter
+// reset and re-add its full value, inflating the client far past real usage.
+// The merge must collapse the email to its node-wide total and count it once.
+func TestMultiAttach_SameNode_DivergentSiblings(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInboundWithClient(t, db, 1, "n1-a", 41001, "multi")
+	createNodeInboundWithClient(t, db, 1, "n1-b", 41002, "multi")
+	createNodeInboundWithClient(t, db, 1, "n1-c", 41003, "multi")
+	svc := &InboundService{}
+
+	const email = "multi"
+	settings := fmt.Sprintf(`{"clients": [{"email": %q, "enable": true}]}`, email)
+
+	// The three inbounds report the same email with diverging values; the
+	// node's true per-email total is the largest (the shared global counter).
+	sync := func(a, b, c int64) {
+		t.Helper()
+		snap := &runtime.TrafficSnapshot{Inbounds: []*model.Inbound{
+			{Tag: "n1-a", Settings: settings, ClientStats: []xray.ClientTraffic{{Email: email, Up: a, Down: a, Enable: true}}},
+			{Tag: "n1-b", Settings: settings, ClientStats: []xray.ClientTraffic{{Email: email, Up: b, Down: b, Enable: true}}},
+			{Tag: "n1-c", Settings: settings, ClientStats: []xray.ClientTraffic{{Email: email, Up: c, Down: c, Enable: true}}},
+		}}
+		if _, err := svc.setRemoteTrafficLocked(1, snap, false); err != nil {
+			t.Fatalf("sync: %v", err)
+		}
+	}
+
+	sync(100, 50, 80)
+	assertUpDown(t, readTraffic(t, db, email), 100, 100, "first sync counts the node total once, not the sum")
+
+	sync(150, 60, 90)
+	assertUpDown(t, readTraffic(t, db, email), 150, 150, "second sync: grew by 50, not by every sibling")
+
+	// Equal siblings (the healthy current-schema case) must still accrue once.
+	sync(200, 200, 200)
+	assertUpDown(t, readTraffic(t, db, email), 200, 200, "equal siblings accrue the single increment")
+}
+
 func TestDelClientStat_CleansNodeBaselines(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}

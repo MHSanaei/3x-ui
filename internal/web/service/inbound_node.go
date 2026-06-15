@@ -287,13 +287,28 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	// entirely — an email whose stats moved to (or always lived under) a
 	// sibling inbound still needs its baseline for the sibling's delta
 	// computation (#5202).
+	//
+	// Xray counts traffic per email, not per inbound, so a multi-attached
+	// client's shared counter is copied onto every inbound it's on. Fold each
+	// email to its per-field max (nodeEmailTotals) so divergent copies can't make
+	// the reset clamp re-add a lower sibling as fresh traffic (#5274).
 	snapEmailsAll := make(map[string]struct{})
+	nodeEmailTotals := make(map[string]nodeTrafficCounter)
 	for _, snapIb := range snap.Inbounds {
 		if snapIb == nil {
 			continue
 		}
 		for i := range snapIb.ClientStats {
-			snapEmailsAll[snapIb.ClientStats[i].Email] = struct{}{}
+			email := snapIb.ClientStats[i].Email
+			snapEmailsAll[email] = struct{}{}
+			cur := nodeEmailTotals[email]
+			if snapIb.ClientStats[i].Up > cur.Up {
+				cur.Up = snapIb.ClientStats[i].Up
+			}
+			if snapIb.ClientStats[i].Down > cur.Down {
+				cur.Down = snapIb.ClientStats[i].Down
+			}
+			nodeEmailTotals[email] = cur
 		}
 	}
 
@@ -519,14 +534,17 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		for _, cs := range snapIb.ClientStats {
 			snapEmails[cs.Email] = struct{}{}
 
+			// Node-wide total, not this inbound's possibly-stale copy (#5274).
+			canon := nodeEmailTotals[cs.Email]
+
 			base, seen := nodeBaselines[cs.Email]
 			var deltaUp, deltaDown int64
 			if seen {
-				if deltaUp = cs.Up - base.Up; deltaUp < 0 {
-					deltaUp = cs.Up
+				if deltaUp = canon.Up - base.Up; deltaUp < 0 {
+					deltaUp = canon.Up
 				}
-				if deltaDown = cs.Down - base.Down; deltaDown < 0 {
-					deltaDown = cs.Down
+				if deltaDown = canon.Down - base.Down; deltaDown < 0 {
+					deltaDown = canon.Down
 				}
 			}
 
@@ -541,8 +559,8 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					Total:      cs.Total,
 					ExpiryTime: cs.ExpiryTime,
 					Reset:      cs.Reset,
-					Up:         cs.Up,
-					Down:       cs.Down,
+					Up:         canon.Up,
+					Down:       canon.Down,
 					LastOnline: cs.LastOnline,
 				}
 				if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "email"}}, DoNothing: true}).
@@ -553,10 +571,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				centralCSByEmail[cs.Email] = row
 				existingEmails[cs.Email] = struct{}{}
 				structuralChange = true
-				if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, cs.Up, cs.Down); err != nil {
+				if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, canon.Up, canon.Down); err != nil {
 					return false, err
 				}
-				nodeBaselines[cs.Email] = nodeTrafficCounter{Up: cs.Up, Down: cs.Down}
+				nodeBaselines[cs.Email] = nodeTrafficCounter{Up: canon.Up, Down: canon.Down}
 				continue
 			}
 
@@ -592,10 +610,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			).Error; err != nil {
 				return false, err
 			}
-			if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, cs.Up, cs.Down); err != nil {
+			if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, canon.Up, canon.Down); err != nil {
 				return false, err
 			}
-			nodeBaselines[cs.Email] = nodeTrafficCounter{Up: cs.Up, Down: cs.Down}
+			nodeBaselines[cs.Email] = nodeTrafficCounter{Up: canon.Up, Down: canon.Down}
 		}
 
 		for k, existing := range centralCS {
