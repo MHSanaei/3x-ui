@@ -49,11 +49,18 @@ func NewSubService(showInfo bool, remarkModel string) *SubService {
 	}
 }
 
-// PrepareForRequest sets per-request state (host + nodes map) on the
-// shared SubService. Called by every entry point — GetSubs, GetJson,
-// GetClash — so resolveInboundAddress sees the right host and the
-// freshly-loaded node map regardless of which sub flavour the client
-// hit.
+// ForRequest returns a shallow copy with request-scoped state populated.
+// Subscription controllers share one base SubService, so request-specific
+// fields such as address and nodesByID must live on a per-request copy.
+func (s *SubService) ForRequest(host string) *SubService {
+	req := *s
+	req.PrepareForRequest(host)
+	return &req
+}
+
+// PrepareForRequest sets per-request state (host + nodes map) on this
+// SubService instance. HTTP handlers should call ForRequest instead so the
+// controller's shared base service is never mutated by concurrent requests.
 func (s *SubService) PrepareForRequest(host string) {
 	if !isRoutableHost(host) {
 		if d := s.configuredPublicHost(); d != "" {
@@ -64,6 +71,23 @@ func (s *SubService) PrepareForRequest(host string) {
 	}
 	s.address = host
 	s.loadNodes()
+	s.loadRemarkSettings()
+}
+
+// loadRemarkSettings populates the per-request remark formatting state so
+// every subscription format — raw, JSON, Clash — renders remarks the same
+// way. genRemark reads emailInRemark and the date formatter reads datepicker;
+// loading these only in getSubs left JSON/Clash with the zero values.
+func (s *SubService) loadRemarkSettings() {
+	var err error
+	s.datepicker, err = s.settingService.GetDatepicker()
+	if err != nil {
+		s.datepicker = "gregorian"
+	}
+	s.emailInRemark, err = s.settingService.GetSubEmailInRemark()
+	if err != nil {
+		s.emailInRemark = true
+	}
 }
 
 func (s *SubService) configuredPublicHost() string {
@@ -139,7 +163,10 @@ func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []mod
 
 // GetSubs retrieves subscription links for a given subscription ID and host.
 func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int64, xray.ClientTraffic, error) {
-	s.PrepareForRequest(host)
+	return s.ForRequest(host).getSubs(subId)
+}
+
+func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.ClientTraffic, error) {
 	var result []string
 	var emails []string
 	var traffic xray.ClientTraffic
@@ -155,16 +182,6 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 
 	if len(inbounds) == 0 && len(externalLinks) == 0 {
 		return nil, nil, 0, traffic, nil
-	}
-
-	s.datepicker, err = s.settingService.GetDatepicker()
-	if err != nil {
-		s.datepicker = "gregorian"
-	}
-
-	s.emailInRemark, err = s.settingService.GetSubEmailInRemark()
-	if err != nil {
-		s.emailInRemark = true
 	}
 
 	seenEmails := make(map[string]struct{})

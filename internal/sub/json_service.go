@@ -58,14 +58,12 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 
 // GetJson generates a JSON subscription configuration for the given subscription ID and host.
 func (s *SubJsonService) GetJson(subId string, host string) (string, string, error) {
-	// Set per-request state on the shared SubService so any
-	// resolveInboundAddress call inside picks node-aware host values.
-	s.SubService.PrepareForRequest(host)
-	inbounds, err := s.SubService.getInboundsBySubId(subId)
+	subReq := s.SubService.ForRequest(host)
+	inbounds, err := subReq.getInboundsBySubId(subId)
 	if err != nil {
 		return "", "", err
 	}
-	externalLinks, err := s.SubService.getClientExternalLinksBySubId(subId)
+	externalLinks, err := subReq.getClientExternalLinksBySubId(subId)
 	if err != nil {
 		return "", "", err
 	}
@@ -79,15 +77,15 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	seenEmails := make(map[string]struct{})
 	// Prepare Inbounds
 	for _, inbound := range inbounds {
-		clients := s.SubService.matchingClients(inbound, subId)
+		clients := subReq.matchingClients(inbound, subId)
 		if len(clients) == 0 {
 			continue
 		}
-		s.SubService.projectThroughFallbackMaster(inbound)
+		subReq.projectThroughFallbackMaster(inbound)
 
 		for _, client := range clients {
 			seenEmails[client.Email] = struct{}{}
-			configArray = append(configArray, s.getConfig(inbound, client, host)...)
+			configArray = append(configArray, s.getConfig(subReq, inbound, client, host)...)
 		}
 	}
 	for _, ext := range externalLinks {
@@ -120,7 +118,7 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	for e := range seenEmails {
 		emails = append(emails, e)
 	}
-	traffic, _ := s.SubService.AggregateTrafficByEmails(emails)
+	traffic, _ := subReq.AggregateTrafficByEmails(emails)
 
 	// Combile outbounds
 	var finalJson []byte
@@ -134,7 +132,7 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	return string(finalJson), header, nil
 }
 
-func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, host string) []json_util.RawMessage {
+func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, client model.Client, host string) []json_util.RawMessage {
 	var newJsonArray []json_util.RawMessage
 	stream := s.streamData(inbound.StreamSettings)
 
@@ -143,7 +141,7 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 	// For node-managed inbounds we want the node's address — request
 	// host won't reach the right xray. resolveInboundAddress already
 	// implements the node→subscriber-host fallback chain.
-	defaultDest := s.SubService.resolveInboundAddress(inbound)
+	defaultDest := subReq.resolveInboundAddress(inbound)
 	if defaultDest == "" {
 		defaultDest = host
 	}
@@ -204,7 +202,7 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 		maps.Copy(newConfigJson, s.configJson)
 
 		newConfigJson["outbounds"] = newOutbounds
-		newConfigJson["remarks"] = s.SubService.genRemark(inbound, client.Email, extPrxy["remark"].(string))
+		newConfigJson["remarks"] = subReq.genRemark(inbound, client.Email, extPrxy["remark"].(string))
 
 		newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
 		newJsonArray = append(newJsonArray, newConfig)
