@@ -31,6 +31,7 @@ require (
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
+	pgregory.net/rapid v1.3.0
 )
 
 require (
@@ -40,7 +41,6 @@ require (
 	github.com/pion/transport/v4 v4.0.2 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	golang.zx2c4.com/wireguard/windows v1.0.1 // indirect
-	pgregory.net/rapid v1.3.0 // indirect
 )
 
 require (

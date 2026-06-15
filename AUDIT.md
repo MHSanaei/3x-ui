@@ -119,6 +119,26 @@ scoped/nightly job (Phase F) to be measured on a faster Linux CI host. No packag
 
 ---
 
+## 2d. Phase D property + fuzz reinforcement
+
+**Property tests (`pgregory.net/rapid`):**
+- `internal/sub/service_property_test.go` — `joinHostPort` bracketing (SplitHostPort round-trips
+  host+port; IPv6 bracketed exactly once); `encodeUserinfo` round-trips through `net/url` for any
+  password; `splitLinkLines` never emits empty/untrimmed lines and is a re-split fixed point.
+- `internal/web/runtime/tls_client_property_test.go` — `DecodeCertPin` is format-agnostic over any
+  32-byte pin (hex lower/upper, openssl colon-hex, base64 std/raw/url all decode equal).
+
+**Fuzz targets (native `go test -fuzz`; seed corpora committed):**
+- `FuzzParseLink` (internal/util/link) — the share-link parser. **Survived 25s / 6.2M execs, no
+  panic**; the (result,error) contract holds. No finding (the parser's type assertions are guarded).
+- `FuzzDecodeCertPin` (internal/web/runtime) — never panics; never returns a non-32-byte slice with a
+  nil error, nor bytes alongside an error.
+
+Both fuzz functions also run their seed corpus under plain `go test` (so CI exercises them green);
+the time-boxed `-fuzztime` exploration is wired as a Phase F smoke step.
+
+---
+
 ## 3. Equivalent-Mutant Ignore-List
 
 Mutants that are semantically identical to the original (unkillable) — documented, not chased.
