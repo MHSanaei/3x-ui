@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Col, ConfigProvider, Layout, Modal, Result, Row, Spin, Statistic, message } from 'antd';
+import { Button, Card, Col, ConfigProvider, Input, Layout, Modal, Result, Row, Spin, Statistic, Typography, message } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -45,6 +45,41 @@ export default function NodesPage() {
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [formNode, setFormNode] = useState<NodeRecord | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [trustCa, setTrustCa] = useState('');
+  const [copyingCa, setCopyingCa] = useState(false);
+  const [savingTrustCa, setSavingTrustCa] = useState(false);
+
+  const onCopyNodeCa = useCallback(async () => {
+    setCopyingCa(true);
+    try {
+      const msg = await HttpUtil.post<{ caCert: string }>('/panel/api/nodes/mtls/ca');
+      const ca = msg?.obj?.caCert;
+      if (msg?.success && ca) {
+        await navigator.clipboard.writeText(ca);
+        messageApi.success(t('pages.nodes.mtls.caCopied'));
+      } else {
+        messageApi.error(msg?.msg || t('pages.nodes.mtls.caFailed'));
+      }
+    } catch {
+      messageApi.error(t('pages.nodes.mtls.caFailed'));
+    } finally {
+      setCopyingCa(false);
+    }
+  }, [messageApi, t]);
+
+  const onSaveTrustCa = useCallback(async () => {
+    setSavingTrustCa(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/nodes/mtls/trustCA', { caCert: trustCa });
+      if (msg?.success) {
+        messageApi.success(t('pages.nodes.mtls.saved'));
+      } else {
+        messageApi.error(msg?.msg || t('somethingWentWrong'));
+      }
+    } finally {
+      setSavingTrustCa(false);
+    }
+  }, [trustCa, messageApi, t]);
 
   const onAdd = useCallback(() => {
     setFormMode('add');
@@ -222,6 +257,34 @@ export default function NodesPage() {
                       onUpdateNode={onUpdateNode}
                       onUpdateSelected={onUpdateSelected}
                     />
+                  </Col>
+
+                  <Col span={24}>
+                    <Card size="small" title={t('pages.nodes.mtls.title')}>
+                      <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+                        {t('pages.nodes.mtls.intro')}
+                      </Typography.Paragraph>
+                      <Button onClick={onCopyNodeCa} loading={copyingCa} style={{ marginBottom: 4 }}>
+                        {t('pages.nodes.mtls.copyCa')}
+                      </Button>
+                      <Typography.Paragraph type="secondary">
+                        {t('pages.nodes.mtls.copyCaHint')}
+                      </Typography.Paragraph>
+                      <Typography.Text strong>{t('pages.nodes.mtls.trustLabel')}</Typography.Text>
+                      <Input.TextArea
+                        rows={4}
+                        value={trustCa}
+                        onChange={(e) => setTrustCa(e.target.value)}
+                        placeholder={t('pages.nodes.mtls.trustPlaceholder')}
+                        style={{ marginTop: 4, fontFamily: 'monospace' }}
+                      />
+                      <Typography.Paragraph type="secondary" style={{ marginTop: 4 }}>
+                        {t('pages.nodes.mtls.trustHint')}
+                      </Typography.Paragraph>
+                      <Button type="primary" onClick={onSaveTrustCa} loading={savingTrustCa}>
+                        {t('pages.nodes.mtls.save')}
+                      </Button>
+                    </Card>
                   </Col>
                 </Row>
               )}

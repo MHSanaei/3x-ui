@@ -78,3 +78,34 @@ func TestNodeMtlsCaCert(t *testing.T) {
 		t.Fatal("NodeMtlsCaCert must return the CA certificate (IsCA)")
 	}
 }
+
+func TestSetNodeMtlsTrustCA(t *testing.T) {
+	_ = setupSettingMtlsDB(t)
+	ns := &NodeService{}
+	settings := SettingService{}
+
+	ca, err := settings.EnsureNodeMtlsCA()
+	if err != nil {
+		t.Fatalf("EnsureNodeMtlsCA: %v", err)
+	}
+
+	if err := ns.SetNodeMtlsTrustCA(string(ca.CertPEM)); err != nil {
+		t.Fatalf("SetNodeMtlsTrustCA(valid): %v", err)
+	}
+	pool, err := settings.NodeMtlsClientCAPool()
+	if err != nil || pool == nil {
+		t.Fatalf("valid trust CA must persist + build a pool: pool=%v err=%v", pool, err)
+	}
+
+	if err := ns.SetNodeMtlsTrustCA("not a certificate"); err == nil {
+		t.Fatal("invalid PEM must be rejected (fail closed)")
+	}
+
+	if err := ns.SetNodeMtlsTrustCA(""); err != nil {
+		t.Fatalf("clearing the trust CA must be allowed: %v", err)
+	}
+	pool, _ = settings.NodeMtlsClientCAPool()
+	if pool != nil {
+		t.Fatal("cleared trust CA must yield a nil pool (mTLS off)")
+	}
+}
