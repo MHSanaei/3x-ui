@@ -13,11 +13,12 @@ const (
 	// Xray core (local)
 	EventXrayCrash EventType = "xray.crash"
 
+	// Node health (heartbeat-driven)
+	EventNodeDown EventType = "node.down"
+	EventNodeUp   EventType = "node.up"
+
 	// System health
 	EventCPUHigh EventType = "cpu.high"
-
-	// Client lifecycle
-	EventClientDepleted EventType = "client.depleted"
 
 	// Security
 	EventLoginAttempt EventType = "login.attempt"

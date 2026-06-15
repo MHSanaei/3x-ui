@@ -18,7 +18,6 @@ type Subscriber struct {
 	settingService service.SettingService
 	emailService   *EmailService
 	limiter        *eventbus.RateLimiter
-	xrayTracker    *eventbus.XrayStateTracker
 }
 
 // NewSubscriber creates a new email event subscriber.
@@ -27,7 +26,6 @@ func NewSubscriber(settingService service.SettingService, emailService *EmailSer
 		settingService: settingService,
 		emailService:   emailService,
 		limiter:        eventbus.NewRateLimiter(1 * time.Minute),
-		xrayTracker:    eventbus.NewXrayStateTracker(),
 	}
 }
 
@@ -35,11 +33,6 @@ func NewSubscriber(settingService service.SettingService, emailService *EmailSer
 func (s *Subscriber) HandleEvent(e eventbus.Event) {
 	if !s.isEventEnabled(e.Type) {
 		return
-	}
-	if e.Type == eventbus.EventXrayCrash {
-		if !s.xrayTracker.ShouldNotify(e) {
-			return
-		}
 	}
 	if e.Type != eventbus.EventLoginAttempt {
 		if !s.limiter.Allow(e.Type, e.Source) {
@@ -123,6 +116,24 @@ func (s *Subscriber) formatMessage(e eventbus.Event) (subject, body string) {
 			content += kv(i18n("email.labelError"), fmt.Sprint(e.Data))
 		}
 		body = wrap(i18n("tgbot.messages.eventXrayCrash"), content)
+
+	case eventbus.EventNodeDown:
+		subject = host + " " + i18n("tgbot.messages.eventNodeDown", "Name=="+e.Source)
+		content := kv(i18n("email.labelStatus"), `<span style="color:red">`+i18n("email.statusDown")+`</span>`)
+		content += kv(i18n("email.labelNode"), e.Source)
+		if data, ok := e.Data.(*eventbus.NodeHealthData); ok && data.XrayError != "" {
+			content += kv(i18n("email.labelError"), data.XrayError)
+		}
+		body = wrap(i18n("tgbot.messages.eventNodeDown", "Name=="+e.Source), content)
+
+	case eventbus.EventNodeUp:
+		subject = host + " " + i18n("tgbot.messages.eventNodeUp", "Name=="+e.Source)
+		content := kv(i18n("email.labelStatus"), `<span style="color:green">`+i18n("email.statusUp")+`</span>`)
+		content += kv(i18n("email.labelNode"), e.Source)
+		if data, ok := e.Data.(*eventbus.NodeHealthData); ok && data.LatencyMs > 0 {
+			content += kv(i18n("email.labelDelay"), fmt.Sprintf("%dms", data.LatencyMs))
+		}
+		body = wrap(i18n("tgbot.messages.eventNodeUp", "Name=="+e.Source), content)
 
 	case eventbus.EventCPUHigh:
 		if data, ok := e.Data.(*eventbus.SystemMetricData); ok {

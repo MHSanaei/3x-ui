@@ -98,6 +98,7 @@ export class AllSetting {
   hasApiToken = false;
   hasWarpSecret = false;
   hasNordSecret = false;
+  hasSmtpPassword = false;
 
   constructor(data?: unknown) {
     if (data != null) {

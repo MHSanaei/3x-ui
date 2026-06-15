@@ -25,6 +25,14 @@ const EVENT_GROUPS: EventGroup[] = [
     ],
   },
   {
+    key: 'node',
+    labelKey: 'pages.settings.eventGroupNode',
+    events: [
+      { value: 'node.down', labelKey: 'pages.settings.eventNodeDown' },
+      { value: 'node.up', labelKey: 'pages.settings.eventNodeUp' },
+    ],
+  },
+  {
     key: 'system',
     labelKey: 'pages.settings.eventGroupSystem',
     events: [

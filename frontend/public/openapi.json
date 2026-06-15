@@ -520,6 +520,9 @@
           "hasNordSecret": {
             "type": "boolean"
           },
+          "hasSmtpPassword": {
+            "type": "boolean"
+          },
           "hasTgBotToken": {
             "type": "boolean"
           },
@@ -888,6 +891,7 @@
           "hasApiToken",
           "hasLdapPassword",
           "hasNordSecret",
+          "hasSmtpPassword",
           "hasTgBotToken",
           "hasTwoFactorToken",
           "hasWarpSecret",

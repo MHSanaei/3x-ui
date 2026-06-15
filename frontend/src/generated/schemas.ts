@@ -494,6 +494,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "hasNordSecret": {
         "type": "boolean"
       },
+      "hasSmtpPassword": {
+        "type": "boolean"
+      },
       "hasTgBotToken": {
         "type": "boolean"
       },
@@ -862,6 +865,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "hasApiToken",
       "hasLdapPassword",
       "hasNordSecret",
+      "hasSmtpPassword",
       "hasTgBotToken",
       "hasTwoFactorToken",
       "hasWarpSecret",

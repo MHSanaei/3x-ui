@@ -31,26 +31,3 @@ func (r *RateLimiter) Allow(eventType EventType, source string) bool {
 	r.lastSent[key] = time.Now()
 	return true
 }
-
-// XrayStateTracker tracks Xray state to prevent duplicate crash notifications.
-type XrayStateTracker struct {
-	mu    sync.Mutex
-	state string
-}
-
-// NewXrayStateTracker creates a new tracker.
-func NewXrayStateTracker() *XrayStateTracker {
-	return &XrayStateTracker{}
-}
-
-// ShouldNotify returns true if this Xray event represents a state change worth notifying.
-func (t *XrayStateTracker) ShouldNotify(e Event) bool {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	if t.state == "down" {
-		return false
-	}
-	t.state = "down"
-	return true
-}

@@ -117,6 +117,7 @@ export const AllSettingViewSchema = z.object({
   hasApiToken: z.boolean(),
   hasLdapPassword: z.boolean(),
   hasNordSecret: z.boolean(),
+  hasSmtpPassword: z.boolean(),
   hasTgBotToken: z.boolean(),
   hasTwoFactorToken: z.boolean(),
   hasWarpSecret: z.boolean(),

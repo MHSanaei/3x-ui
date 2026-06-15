@@ -56,7 +56,12 @@ func (s *EmailService) Send(subject, body string) error {
 	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
 	msg := buildMessage(from, recipients, subject, body)
 
-	auth := smtp.PlainAuth("", username, password, host)
+	// Authenticate only when credentials are set. Go's PlainAuth refuses to run
+	// over the unencrypted "none" transport, so an open relay must use nil auth.
+	var auth smtp.Auth
+	if username != "" && password != "" {
+		auth = smtp.PlainAuth("", username, password, host)
+	}
 
 	// Wrap in a channel with timeout to prevent indefinite blocking
 	type result struct{ err error }
@@ -201,8 +206,10 @@ func (s *EmailService) sendWithTLS(addr string, auth smtp.Auth, from string, to 
 	if err = client.Hello("localhost"); err != nil {
 		return err
 	}
-	if err = client.Auth(auth); err != nil {
-		return err
+	if auth != nil {
+		if err = client.Auth(auth); err != nil {
+			return err
+		}
 	}
 	if err = client.Mail(from); err != nil {
 		return err

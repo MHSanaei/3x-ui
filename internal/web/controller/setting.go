@@ -59,9 +59,10 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/testTgBot", a.testTgBot)
 }
 
-// getAllSetting retrieves all current settings.
+// getAllSetting retrieves all current settings as the browser-safe view:
+// secret values are redacted and surfaced as has* presence flags instead.
 func (a *SettingController) getAllSetting(c *gin.Context) {
-	allSetting, err := a.settingService.GetAllSetting()
+	allSetting, err := a.settingService.GetAllSettingView()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
 		return

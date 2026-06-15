@@ -100,6 +100,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "hasApiToken": false,
     "hasLdapPassword": false,
     "hasNordSecret": false,
+    "hasSmtpPassword": false,
     "hasTgBotToken": false,
     "hasTwoFactorToken": false,
     "hasWarpSecret": false,

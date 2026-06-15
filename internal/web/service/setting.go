@@ -125,12 +125,12 @@ var defaultValueMap = map[string]string{
 	"smtpCpu":           "80",
 
 	// Email (SMTP) notifications
-	"smtpEnable":   "false",
-	"smtpHost":     "",
-	"smtpPort":     "587",
-	"smtpUsername": "",
-	"smtpPassword": "",
-	"smtpTo":           "",
+	"smtpEnable":         "false",
+	"smtpHost":           "",
+	"smtpPort":           "587",
+	"smtpUsername":       "",
+	"smtpPassword":       "",
+	"smtpTo":             "",
 	"smtpEncryptionType": "starttls", // no, starttls, tls
 }
 
@@ -233,6 +233,7 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 	view.HasLdapPassword = secretConfigured(allSetting.LdapPassword)
 	view.HasWarpSecret = secretConfigured(mustString(s.GetWarp()))
 	view.HasNordSecret = secretConfigured(mustString(s.GetNord()))
+	view.HasSmtpPassword = secretConfigured(allSetting.SmtpPassword)
 	var apiTokenCount int64
 	if err := database.GetDB().Model(model.ApiToken{}).Where("enabled = ?", true).Count(&apiTokenCount).Error; err == nil {
 		view.HasApiToken = apiTokenCount > 0
@@ -240,6 +241,7 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 	view.TgBotToken = ""
 	view.TwoFactorToken = ""
 	view.LdapPassword = ""
+	view.SmtpPassword = ""
 	return view, nil
 }
 
@@ -1011,7 +1013,6 @@ func (s *SettingService) SetSmtpCpu(value int) error {
 	return s.setInt("smtpCpu", value)
 }
 
-
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	if err := s.preserveRedactedSecrets(allSetting); err != nil {
 		return err
@@ -1060,6 +1061,13 @@ func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) 
 			return err
 		}
 		allSetting.TwoFactorToken = value
+	}
+	if strings.TrimSpace(allSetting.SmtpPassword) == "" {
+		value, err := s.GetSmtpPassword()
+		if err != nil {
+			return err
+		}
+		allSetting.SmtpPassword = value
 	}
 	return nil
 }

@@ -25,21 +25,13 @@ func getHostname() string {
 	return cachedHostname
 }
 
-var (
-	tgEventLimiter = eventbus.NewRateLimiter(1 * time.Minute)
-	xrayTracker    = eventbus.NewXrayStateTracker()
-)
+var tgEventLimiter = eventbus.NewRateLimiter(1 * time.Minute)
 
 // HandleEvent is the eventbus subscriber callback. It formats incoming events
 // as Telegram messages and sends them to all admin chats.
 func (t *Tgbot) HandleEvent(e eventbus.Event) {
 	if !t.isEventEnabled(e.Type) {
 		return
-	}
-	if e.Type == eventbus.EventXrayCrash {
-		if !xrayTracker.ShouldNotify(e) {
-			return
-		}
 	}
 	if e.Type != eventbus.EventLoginAttempt {
 		if !tgEventLimiter.Allow(e.Type, e.Source) {
@@ -102,6 +94,20 @@ func (t *Tgbot) formatEventMessage(e eventbus.Event) string {
 		msg := header + "🔥 " + t.I18nBot("tgbot.messages.eventXrayCrash")
 		if errStr != "" {
 			msg += "\n" + t.I18nBot("tgbot.messages.eventXrayCrashError", "Error=="+errStr)
+		}
+		return msg
+
+	case eventbus.EventNodeDown:
+		msg := header + "🔴 " + t.I18nBot("tgbot.messages.eventNodeDown", "Name=="+e.Source)
+		if data, ok := e.Data.(*eventbus.NodeHealthData); ok && data.XrayError != "" {
+			msg += "\n" + t.I18nBot("tgbot.messages.eventErrorDetail", "Error=="+data.XrayError)
+		}
+		return msg
+
+	case eventbus.EventNodeUp:
+		msg := header + "🟢 " + t.I18nBot("tgbot.messages.eventNodeUp", "Name=="+e.Source)
+		if data, ok := e.Data.(*eventbus.NodeHealthData); ok && data.LatencyMs > 0 {
+			msg += "\n" + t.I18nBot("tgbot.messages.eventDelayDetail", "Delay=="+fmt.Sprintf("%d", data.LatencyMs))
 		}
 		return msg
 

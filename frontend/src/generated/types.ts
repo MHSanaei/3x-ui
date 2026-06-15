@@ -106,6 +106,7 @@ export interface AllSettingView {
   hasApiToken: boolean;
   hasLdapPassword: boolean;
   hasNordSecret: boolean;
+  hasSmtpPassword: boolean;
   hasTgBotToken: boolean;
   hasTwoFactorToken: boolean;
   hasWarpSecret: boolean;

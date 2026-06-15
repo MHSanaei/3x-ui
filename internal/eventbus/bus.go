@@ -17,15 +17,14 @@ type subscriber struct {
 }
 
 // Bus is a minimal in-process pub/sub event bus backed by a buffered channel.
-// Producers call Publish (non-blocking) and events are fanned out to all
-// matching subscribers. Subscribing to an empty event list means receiving
-// every event.
+// Producers call Publish (non-blocking) and every event is fanned out to all
+// subscribers; per-event filtering is the subscriber's responsibility.
 type Bus struct {
-	ch     chan Event
-	subs   []subscriber
-	mu     sync.RWMutex
-	done   chan struct{}
-	wg     sync.WaitGroup
+	ch   chan Event
+	subs []subscriber
+	mu   sync.RWMutex
+	done chan struct{}
+	wg   sync.WaitGroup
 }
 
 // New creates a Bus with the given buffer size. Use 0 for DefaultBufferSize.
@@ -116,7 +115,8 @@ func safeCall(fn func(Event), e Event) {
 	fn(e)
 }
 
-// Stop shuts down the bus, draining remaining events. Safe to call once.
+// Stop shuts down the bus: the dispatch goroutine exits, in-flight handlers
+// finish, and any events still buffered may be dropped. Safe to call once.
 func (b *Bus) Stop() {
 	close(b.done)
 	b.wg.Wait()

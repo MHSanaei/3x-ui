@@ -70,8 +70,10 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
                 onChange={(e) => updateSetting({ smtpUsername: e.target.value })} />
             </SettingListItem>
 
-            <SettingListItem paddings="small" title={t('pages.settings.smtpPassword')} description={t('pages.settings.smtpPasswordDesc')}>
+            <SettingListItem paddings="small" title={t('pages.settings.smtpPassword')}
+              description={allSetting.hasSmtpPassword ? t('pages.settings.smtpPasswordConfigured') : t('pages.settings.smtpPasswordDesc')}>
               <Input.Password value={allSetting.smtpPassword}
+                placeholder={allSetting.hasSmtpPassword ? t('pages.settings.smtpPasswordPlaceholder') : ''}
                 onChange={(e) => updateSetting({ smtpPassword: e.target.value })} />
             </SettingListItem>
 

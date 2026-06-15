@@ -282,7 +282,9 @@ const (
 	cadenceNodeTraffic   = "@every 5s"
 	cadenceOutboundSub   = "@every 5m"
 	cadenceCheckHash     = "@every 2m"
-	cadenceCPUAlarm      = "@every 10s"
+	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
+	// stacks overlapping samplers; subscribers rate-limit alerts to 1/min anyway.
+	cadenceCPUAlarm = "@every 1m"
 )
 
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
@@ -352,8 +354,7 @@ func (s *Server) startTask(restartXray bool) {
 		s.cron.AddJob(runtime, j)
 	}
 
-	// Make a traffic condition every day, 8:30
-	var entry cron.EntryID
+	// Telegram-bot–dependent jobs: periodic stats report + callback-hash cleanup.
 	isTgbotenabled, err := s.settingService.GetTgbotEnabled()
 	if (err == nil) && (isTgbotenabled) {
 		runtime, err := s.settingService.GetTgbotRuntime()
@@ -365,23 +366,50 @@ func (s *Server) startTask(restartXray bool) {
 			runtime = "@daily"
 		}
 		logger.Infof("Tg notify enabled,run at %s", runtime)
-		_, err = s.cron.AddJob(runtime, job.NewStatsNotifyJob())
-		if err != nil {
+		if _, err = s.cron.AddJob(runtime, job.NewStatsNotifyJob()); err != nil {
 			logger.Warningf("Add NewStatsNotifyJob: failed to schedule runtime %q: %v", runtime, err)
-			return
 		}
 
 		// check for Telegram bot callback query hash storage reset
 		s.cron.AddJob(cadenceCheckHash, job.NewCheckHashStorageJob())
-
-		// Check CPU load and alarm if threshold passes
-		tgCpu, err := s.settingService.GetTgCpu()
-		if (err == nil) && (tgCpu > 0) {
-			s.cron.AddJob(cadenceCPUAlarm, job.NewCheckCpuJob())
-		}
-	} else {
-		s.cron.Remove(entry)
 	}
+
+	// CPU monitor publishes cpu.high events; register it whenever any notifier
+	// (Telegram or Email) wants them, independent of the Telegram bot being on.
+	if s.cpuAlarmWanted() {
+		s.cron.AddJob(cadenceCPUAlarm, job.NewCheckCpuJob())
+	}
+}
+
+// cpuAlarmWanted reports whether any notifier is configured to receive cpu.high
+// alerts, so the minute-long blocking CPU sampler only runs when it's needed.
+func (s *Server) cpuAlarmWanted() bool {
+	wants := func(events string, threshold int) bool {
+		if threshold <= 0 {
+			return false
+		}
+		for _, e := range strings.Split(events, ",") {
+			if strings.TrimSpace(e) == string(eventbus.EventCPUHigh) {
+				return true
+			}
+		}
+		return false
+	}
+	if on, _ := s.settingService.GetTgbotEnabled(); on {
+		events, _ := s.settingService.GetTgEnabledEvents()
+		cpu, _ := s.settingService.GetTgCpu()
+		if wants(events, cpu) {
+			return true
+		}
+	}
+	if on, _ := s.settingService.GetSmtpEnable(); on {
+		events, _ := s.settingService.GetSmtpEnabledEvents()
+		cpu, _ := s.settingService.GetSmtpCpu()
+		if wants(events, cpu) {
+			return true
+		}
+	}
+	return false
 }
 
 // Start initializes and starts the web server with configured settings, routes, and background jobs.
