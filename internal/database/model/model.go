@@ -225,6 +225,49 @@ func jsonStringFieldFromRaw(r json.RawMessage) string {
 	return string(trimmed)
 }
 
+// StripInboundXhttpClientFields removes xHTTP knobs that belong on the
+// client dialer and subscription share-link extras only. xray-core's XHTTP
+// inbound listener does not consume them; the panel still stores them on
+// the inbound row so buildXhttpExtra can push defaults to clients.
+func StripInboundXhttpClientFields(streamSettings string) (string, bool) {
+	if streamSettings == "" {
+		return streamSettings, false
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return streamSettings, false
+	}
+	if stream["network"] != "xhttp" {
+		return streamSettings, false
+	}
+	xhttp, ok := stream["xhttpSettings"].(map[string]any)
+	if !ok || len(xhttp) == 0 {
+		return streamSettings, false
+	}
+	clientOnly := []string{
+		"xmux",
+		"downloadSettings",
+		"scMinPostsIntervalMs",
+		"uplinkChunkSize",
+		"noGRPCHeader",
+	}
+	changed := false
+	for _, key := range clientOnly {
+		if _, has := xhttp[key]; has {
+			delete(xhttp, key)
+			changed = true
+		}
+	}
+	if !changed {
+		return streamSettings, false
+	}
+	out, err := json.MarshalIndent(stream, "", "  ")
+	if err != nil {
+		return streamSettings, false
+	}
+	return string(out), true
+}
+
 // GenXrayInboundConfig generates an Xray inbound configuration from the Inbound model.
 func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 	listen := i.Listen
@@ -248,12 +291,16 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 			settings = stripped
 		}
 	}
+	streamSettings := i.StreamSettings
+	if stripped, ok := StripInboundXhttpClientFields(streamSettings); ok {
+		streamSettings = stripped
+	}
 	return &xray.InboundConfig{
 		Listen:         json_util.RawMessage(listen),
 		Port:           i.Port,
 		Protocol:       protocol,
 		Settings:       json_util.RawMessage(settings),
-		StreamSettings: json_util.RawMessage(i.StreamSettings),
+		StreamSettings: json_util.RawMessage(streamSettings),
 		Tag:            i.Tag,
 		Sniffing:       json_util.RawMessage(i.Sniffing),
 	}
