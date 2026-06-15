@@ -65,6 +65,48 @@ func TestSetRemoteTraffic_DirtyPreservesConfig(t *testing.T) {
 	}
 }
 
+// Deleting a *disabled* client attached to a node inbound must still propagate
+// to the node. The node's own DB carries the (disabled) client, so the central
+// panel has to mark the node dirty (→ reconcile) instead of dropping the delete
+// and letting the next traffic snapshot resurrect the client. Regression for
+// the enable-flag gate that used to skip the node path entirely (#5352).
+func TestDelInboundClientByEmail_DisabledNodeClientMarksDirty(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	// Offline node so nodePushPlan reports dirty without needing a live runtime.
+	node := &model.Node{Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true, Status: "offline"}
+	if err := db.Create(node).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+	id := node.Id
+
+	central := &model.Inbound{
+		UserId:   1,
+		NodeID:   &id,
+		Tag:      "in-443-tcp",
+		Enable:   true,
+		Port:     443,
+		Protocol: model.VLESS,
+		Settings: `{"clients":[{"email":"a@x","enable":false}]}`,
+	}
+	if err := db.Create(central).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	if _, err := clientSvc.DelInboundClientByEmail(inboundSvc, central.Id, "a@x", false); err != nil {
+		t.Fatalf("DelInboundClientByEmail: %v", err)
+	}
+
+	if _, _, dirty, _, err := (&NodeService{}).NodeSyncState(id); err != nil {
+		t.Fatalf("NodeSyncState: %v", err)
+	} else if !dirty {
+		t.Fatal("deleting a disabled node client must mark the node dirty (#5352)")
+	}
+}
+
 // ClearNodeDirty must be a compare-and-swap on config_dirty_at so a concurrent
 // edit that re-dirties the node during a reconcile is not silently cleared.
 func TestNodeDirty_ClearIsCASOnDirtyAt(t *testing.T) {

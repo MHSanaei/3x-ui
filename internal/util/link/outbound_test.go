@@ -59,4 +59,11 @@ func TestSlugAndSuggest(t *testing.T) {
 	if tag != "hk-sg-01" {
 		t.Errorf("suggest tag got %q", tag)
 	}
+	// Non-ASCII letters/digits are preserved rather than stripped.
+	if got := SlugRemark("Москва 🇷🇺 01"); got != "москва-01" {
+		t.Errorf("unicode slug got %q", got)
+	}
+	if got := SuggestTag("ru-", "Сервер 2", 0); got != "ru-сервер-2" {
+		t.Errorf("unicode suggest tag got %q", got)
+	}
 }

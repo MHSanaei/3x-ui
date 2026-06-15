@@ -339,7 +339,10 @@ func (r *Remote) DeleteUser(ctx context.Context, ib *model.Inbound, email string
 	}
 	id, err := r.resolveRemoteID(ctx, ib.Tag)
 	if err != nil {
-		return nil
+		// Can't confirm the delete reached the node — surface it so the caller
+		// marks the node dirty and a reconcile converges, instead of silently
+		// dropping the delete and letting the next snapshot resurrect the client.
+		return fmt.Errorf("remote DeleteUser: resolve tag %q: %w", ib.Tag, err)
 	}
 	body := map[string]any{"inboundIds": []int{id}}
 	_, err = r.do(ctx, http.MethodPost,
