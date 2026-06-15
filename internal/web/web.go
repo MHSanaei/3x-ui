@@ -447,6 +447,15 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		SetNeedRestart: func() { s.xrayService.SetToNeedRestart() },
 	}))
 	runtime.GetManager().SetNodeEgressResolver(&s.settingService)
+	// Supply the master client certificate for nodes in mtls mode. Issued lazily
+	// from the node CA on first use; runtime stays free of a service import.
+	runtime.SetMasterClientCertProvider(func() (tls.Certificate, error) {
+		ck, err := s.settingService.EnsureMasterClientCert()
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+		return tls.X509KeyPair(ck.CertPEM, ck.KeyPEM)
+	})
 
 	engine, err := s.initRouter()
 	if err != nil {
@@ -487,6 +496,15 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		if err == nil {
 			c := &tls.Config{
 				Certificates: []tls.Certificate{cert},
+			}
+			// Opt-in node mTLS: when a trust CA is configured, request and verify
+			// client certs (VerifyClientCertIfGiven keeps browsers working). With
+			// no CA the listener is unchanged.
+			if pool, perr := s.settingService.NodeMtlsClientCAPool(); perr != nil {
+				logger.Warning("node mTLS: failed to build client CA trust pool:", perr)
+			} else if pool != nil {
+				applyNodeMtls(c, pool)
+				logger.Info("Node mTLS enabled: verifying client certificates for the node API")
 			}
 			listener = network.NewAutoHttpsListener(listener)
 			listener = tls.NewListener(listener, c)
