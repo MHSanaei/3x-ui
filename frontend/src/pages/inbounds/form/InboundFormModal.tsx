@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { QuestionCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
   Alert,
@@ -82,6 +83,16 @@ import SniffingTab from './SniffingTab';
 import type { DBInbound } from '@/models/dbinbound';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 
+
+// Render a field label with a hover tooltip icon instead of an `extra` help line below.
+const labelWithHint = (label: string, hint: string) => (
+  <span>
+    {label}
+    <Tooltip title={hint}>
+      <QuestionCircleOutlined style={{ marginInlineStart: 4, color: 'rgba(128,128,128,0.65)' }} />
+    </Tooltip>
+  </span>
+);
 
 const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
 const TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'] as const;
@@ -538,16 +549,14 @@ export default function InboundFormModal({
 
       <Form.Item
         name="listen"
-        label={t('pages.inbounds.address')}
-        extra={t('pages.inbounds.form.listenHelp')}
+        label={labelWithHint(t('pages.inbounds.address'), t('pages.inbounds.form.listenHelp'))}
       >
         <Input placeholder={t('pages.inbounds.monitorDesc')} />
       </Form.Item>
 
       <Form.Item
         name="shareAddrStrategy"
-        label={t('pages.inbounds.form.shareAddrStrategy')}
-        extra={t('pages.inbounds.form.shareAddrStrategyHelp')}
+        label={labelWithHint(t('pages.inbounds.form.shareAddrStrategy'), t('pages.inbounds.form.shareAddrStrategyHelp'))}
       >
         <Select
           options={SHARE_ADDR_STRATEGIES
@@ -562,8 +571,7 @@ export default function InboundFormModal({
       {shareAddrStrategy === 'custom' && (
         <Form.Item
           name="shareAddr"
-          label={t('pages.inbounds.form.shareAddr')}
-          extra={t('pages.inbounds.form.shareAddrHelp')}
+          label={labelWithHint(t('pages.inbounds.form.shareAddr'), t('pages.inbounds.form.shareAddrHelp'))}
           rules={[{
             validator: (_, value) => (
               isValidShareAddrInput(String(value ?? ''))
@@ -578,8 +586,7 @@ export default function InboundFormModal({
 
       <Form.Item
         name="subSortIndex"
-        label={t('pages.inbounds.form.subSortIndex')}
-        extra={t('pages.inbounds.form.subSortIndexHelp')}
+        label={labelWithHint(t('pages.inbounds.form.subSortIndex'), t('pages.inbounds.form.subSortIndexHelp'))}
       >
         <InputNumber min={1} />
       </Form.Item>

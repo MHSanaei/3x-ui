@@ -678,71 +678,55 @@ export default function ClientFormModal({
                 label: t('pages.clients.tabCredentials'),
                 children: (
                   <>
-                    <Row gutter={16}>
-                      <Col xs={24} md={12}>
-                        <Form.Item label={t('pages.clients.uuid')}>
-                          <Space.Compact style={{ display: 'flex' }}>
-                            <Input value={form.uuid} style={{ flex: 1 }} onChange={(e) => update('uuid', e.target.value)} />
-                            <Button icon={<ReloadOutlined />} onClick={() => update('uuid', RandomUtil.randomUUID())} />
-                          </Space.Compact>
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item label={t('pages.clients.password')}>
-                          <Space.Compact style={{ display: 'flex' }}>
-                            <Input value={form.password} style={{ flex: 1 }} onChange={(e) => update('password', e.target.value)} />
-                            <Button icon={<ReloadOutlined />} onClick={regeneratePassword} />
-                          </Space.Compact>
-                        </Form.Item>
-                      </Col>
-                    </Row>
+                    <Form.Item label={t('pages.clients.uuid')}>
+                      <Space.Compact style={{ display: 'flex' }}>
+                        <Input value={form.uuid} style={{ flex: 1 }} onChange={(e) => update('uuid', e.target.value)} />
+                        <Button icon={<ReloadOutlined />} onClick={() => update('uuid', RandomUtil.randomUUID())} />
+                      </Space.Compact>
+                    </Form.Item>
 
-                    <Row gutter={16}>
-                      <Col xs={24} md={12}>
-                        <Form.Item label={t('pages.clients.subId')}>
-                          <Space.Compact style={{ display: 'flex' }}>
-                            <Input value={form.subId} style={{ flex: 1 }} onChange={(e) => update('subId', e.target.value)} />
-                            <Button icon={<ReloadOutlined />} onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))} />
-                          </Space.Compact>
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item label={t('pages.clients.hysteriaAuth')}>
-                          <Space.Compact style={{ display: 'flex' }}>
-                            <Input value={form.auth} style={{ flex: 1 }} onChange={(e) => update('auth', e.target.value)} />
-                            <Button icon={<ReloadOutlined />} onClick={() => update('auth', RandomUtil.randomLowerAndNum(16))} />
-                          </Space.Compact>
-                        </Form.Item>
-                      </Col>
-                    </Row>
+                    <Form.Item label={t('pages.clients.password')}>
+                      <Space.Compact style={{ display: 'flex' }}>
+                        <Input value={form.password} style={{ flex: 1 }} onChange={(e) => update('password', e.target.value)} />
+                        <Button icon={<ReloadOutlined />} onClick={regeneratePassword} />
+                      </Space.Compact>
+                    </Form.Item>
 
-                    <Row gutter={16}>
-                      {showFlow && (
-                        <Col xs={24} md={12}>
-                          <Form.Item label={t('pages.clients.flow')}>
-                            <Select
-                              value={form.flow}
-                              onChange={(v) => update('flow', v)}
-                              options={[
-                                { value: '', label: t('none') },
-                                ...FLOW_OPTIONS.map((k) => ({ value: k, label: k })),
-                              ]}
-                            />
-                          </Form.Item>
-                        </Col>
-                      )}
-                      {showSecurity && (
-                        <Col xs={24} md={12}>
-                          <Form.Item label={t('pages.clients.vmessSecurity')}>
-                            <Select
-                              value={form.security}
-                              onChange={(v) => update('security', v)}
-                              options={VMESS_SECURITY_OPTIONS.map((k) => ({ value: k, label: k }))}
-                            />
-                          </Form.Item>
-                        </Col>
-                      )}
-                    </Row>
+                    <Form.Item label={t('pages.clients.subId')}>
+                      <Space.Compact style={{ display: 'flex' }}>
+                        <Input value={form.subId} style={{ flex: 1 }} onChange={(e) => update('subId', e.target.value)} />
+                        <Button icon={<ReloadOutlined />} onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))} />
+                      </Space.Compact>
+                    </Form.Item>
+
+                    <Form.Item label={t('pages.clients.hysteriaAuth')}>
+                      <Space.Compact style={{ display: 'flex' }}>
+                        <Input value={form.auth} style={{ flex: 1 }} onChange={(e) => update('auth', e.target.value)} />
+                        <Button icon={<ReloadOutlined />} onClick={() => update('auth', RandomUtil.randomLowerAndNum(16))} />
+                      </Space.Compact>
+                    </Form.Item>
+
+                    {showFlow && (
+                      <Form.Item label={t('pages.clients.flow')}>
+                        <Select
+                          value={form.flow}
+                          onChange={(v) => update('flow', v)}
+                          options={[
+                            { value: '', label: t('none') },
+                            ...FLOW_OPTIONS.map((k) => ({ value: k, label: k })),
+                          ]}
+                        />
+                      </Form.Item>
+                    )}
+                    {showSecurity && (
+                      <Form.Item label={t('pages.clients.vmessSecurity')}>
+                        <Select
+                          value={form.security}
+                          onChange={(v) => update('security', v)}
+                          options={VMESS_SECURITY_OPTIONS.map((k) => ({ value: k, label: k }))}
+                        />
+                      </Form.Item>
+                    )}
                   </>
                 ),
               },
