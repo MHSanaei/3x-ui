@@ -22,10 +22,10 @@ see §2) · `wontfix` (justified — note why).
 
 | # | Smell | Location | Detail | Status |
 |---|---|---|---|---|
-| S1 | Over-broad (count-only) | internal/sub/service_dedup_test.go:59-64 | asserts only `len(links)==1` / `len(emails)==1`; dedup key (`strings.ToLower(client.Email)`) is unguarded | open |
+| S1 | Over-broad (count-only) | internal/sub/service_dedup_test.go:59-64 | asserts only `len(links)==1` / `len(emails)==1`; dedup key (`strings.ToLower(client.Email)`) is unguarded | **fixed** (Phase C: added link-identity assert + `TestMatchingClients_DedupsCaseInsensitiveEmail`; mutation-sanity RED on `ToLower` drop) |
 | S2 | Over-broad (`err!=nil` only) | internal/web/runtime/tls_client_test.go:118-122 | `TestHTTPClientForNodePinInvalid` asserts only that *an* error occurred; doesn't pin the error or cover empty-pin | **fixed** (Phase B: table-driven, asserts specific error + empty-pin case) |
-| S3 | Over-broad (key-absence only) | internal/sub/clash_service_test.go | `TestBuildProxy_VLESSNoneEncryptionOmittedForClash` checks only `proxy["encryption"]` absence, not the rest of the proxy | open |
-| S4 | Happy-path-only (substring) | internal/sub/service_flow_test.go | `TestGenVlessLink_*` only `strings.Contains(link,"flow=…")`; no full-link / field-mapping assertion exists | open |
+| S3 | Over-broad (key-absence only) | internal/sub/clash_service_test.go | `TestBuildProxy_VLESSNoneEncryptionOmittedForClash` checks only `proxy["encryption"]` absence, not the rest of the proxy | **fixed** (Phase C: now also asserts type/server/port/uuid well-formedness) |
+| S4 | Happy-path-only (substring) | internal/sub/service_flow_test.go | `TestGenVlessLink_*` only `strings.Contains(link,"flow=…")`; no full-link / field-mapping assertion exists | **fixed** (Phase C: added `service_sharelink_test.go` with full TLS + Reality field-mapping assertions; mutation-sanity RED on pbk/sid swap) |
 | S5 | t.Skip never runs in CI | internal/database/migrate_data_test.go:18,68 | both `MigrateData` tests skip without `XUI_TEST_PG_DSN` → effectively dead coverage of the migration batch loop | open |
 | S6 | Coverage gap hiding a bug | internal/web/service/inbound_migration_test.go | seeds `inbound-0.0.0.0:30002` precondition but never asserts the tag cleanup → see Finding #1 | **finding** (Phase B: added `TestMigrationRequirements_CleansLegacyZeroAddrTag`; witnessed RED, then `t.Skip("FINDING #1")`) |
 | S7 | Untested security branch | internal/web/runtime/tls_client.go:35-53 | `HTTPClientForNode` proxy+pin path (incl. `transport.TLSClientConfig = tlsCfg` pin injection) has zero coverage | **fixed** (Phase B: added proxy+pin & proxy+verify tests; mutation-sanity confirmed RED when pin injection dropped) |
@@ -97,6 +97,25 @@ see §2) · `wontfix` (justified — note why).
   mutation-sanity: dropping `transport.TLSClientConfig = tlsCfg` → test RED → reverted.
 - **Pin-error specificity (S2):** `TestHTTPClientForNodePinInvalid` now table-driven, asserting the
   exact error for garbage vs empty pin (covers the `DecodeCertPin` empty-string branch).
+
+---
+
+## 2c. Phase C mutation audit
+
+**Tooling note (gremlins on this host):** gremlins v0.6.0 is installed and runs, but is
+**impractically slow on this Windows machine** — a `--dry-run` on the small `internal/web/runtime`
+package produced no mutant list after >8 min, and a real `unleash` likewise buffers without
+streaming. This matches the documented "slow on large modules" caveat. Per the plan's *if-blocked*
+clause, the per-mutant loop is therefore driven by **manual mutation-sanity** (flip the guarded prod
+line → confirm the test goes RED → revert) for the high-value targets, and gremlins is retained as a
+scoped/nightly job (Phase F) to be measured on a faster Linux CI host. No package skipped silently.
+
+**Strengthened (each verified by a witnessed RED under a targeted mutation, then reverted):**
+- **Dedup key** (`internal/sub` `matchingClients`, service.go:130) — `TestMatchingClients_DedupsCaseInsensitiveEmail` + link-identity assert in the existing dedup test. RED when `strings.ToLower` dropped.
+- **Share-link TLS mapping** (`applyShareTLSParams`, service.go:1029) — `TestGenVlessLink_TLSParamsMapped` asserts security/sni/fp/alpn/pcs.
+- **Share-link Reality mapping** (`applyShareRealityParams`, service.go:1147) — `TestGenVlessLink_RealityParamsMapped` asserts security/sni/pbk/sid/fp/spx. RED when pbk/sid swapped.
+- **Clash proxy well-formedness** (S3) — type/server/port/uuid now asserted.
+- (Phase B already mutation-sanity'd the **TLS proxy+pin** injection.)
 
 ---
 

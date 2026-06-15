@@ -228,4 +228,18 @@ func TestBuildProxy_VLESSNoneEncryptionOmittedForClash(t *testing.T) {
 	if _, ok := proxy["encryption"]; ok {
 		t.Fatalf("plain vless encryption should be omitted for mihomo: %#v", proxy)
 	}
+	// The rest of the proxy must still be well-formed — otherwise a mutant that
+	// drops encryption *and* corrupts a core field passes the absence check alone.
+	if proxy["type"] != "vless" {
+		t.Fatalf("type = %v, want vless", proxy["type"])
+	}
+	if proxy["server"] != "203.0.113.1" {
+		t.Fatalf("server = %v, want 203.0.113.1", proxy["server"])
+	}
+	if proxy["port"] != 443 {
+		t.Fatalf("port = %v, want 443", proxy["port"])
+	}
+	if proxy["uuid"] != client.ID {
+		t.Fatalf("uuid = %v, want %v", proxy["uuid"], client.ID)
+	}
 }
