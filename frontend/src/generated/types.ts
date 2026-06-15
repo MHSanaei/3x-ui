@@ -3,6 +3,7 @@ export type OnlineAPISupport = number;
 export type ProcessState = string;
 export type Protocol = string;
 export type SubLinkProvider = unknown;
+export type staticEgressResolver = string;
 export type transportBits = number;
 
 export interface AllSetting {
@@ -35,6 +36,15 @@ export interface AllSetting {
   remarkModel: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
+  smtpCpu: number;
+  smtpEnable: boolean;
+  smtpEnabledEvents: string;
+  smtpEncryptionType: string;
+  smtpHost: string;
+  smtpPassword: string;
+  smtpPort: number;
+  smtpTo: string;
+  smtpUsername: string;
   subAnnounce: string;
   subCertFile: string;
   subClashEnable: boolean;
@@ -69,10 +79,10 @@ export interface AllSetting {
   tgBotBackup: boolean;
   tgBotChatId: string;
   tgBotEnable: boolean;
-  tgBotLoginNotify: boolean;
   tgBotProxy: string;
   tgBotToken: string;
   tgCpu: number;
+  tgEnabledEvents: string;
   tgLang: string;
   tgRunTime: string;
   timeLocation: string;
@@ -97,6 +107,7 @@ export interface AllSettingView {
   hasApiToken: boolean;
   hasLdapPassword: boolean;
   hasNordSecret: boolean;
+  hasSmtpPassword: boolean;
   hasTgBotToken: boolean;
   hasTwoFactorToken: boolean;
   hasWarpSecret: boolean;
@@ -125,6 +136,15 @@ export interface AllSettingView {
   remarkModel: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
+  smtpCpu: number;
+  smtpEnable: boolean;
+  smtpEnabledEvents: string;
+  smtpEncryptionType: string;
+  smtpHost: string;
+  smtpPassword: string;
+  smtpPort: number;
+  smtpTo: string;
+  smtpUsername: string;
   subAnnounce: string;
   subCertFile: string;
   subClashEnable: boolean;
@@ -159,10 +179,10 @@ export interface AllSettingView {
   tgBotBackup: boolean;
   tgBotChatId: string;
   tgBotEnable: boolean;
-  tgBotLoginNotify: boolean;
   tgBotProxy: string;
   tgBotToken: string;
   tgCpu: number;
+  tgEnabledEvents: string;
   tgLang: string;
   tgRunTime: string;
   timeLocation: string;

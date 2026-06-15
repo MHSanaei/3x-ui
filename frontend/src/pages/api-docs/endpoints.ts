@@ -943,6 +943,18 @@ export const sections: readonly Section[] = [
         summary: 'Restart the entire 3x-ui process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.',
       },
       {
+        method: 'POST',
+        path: '/panel/api/setting/testSmtp',
+        summary: 'Test SMTP connection with stage-by-stage reporting (connect, auth, send). Returns structured result with stage and message.',
+        response: '{\n  "success": true,\n  "stage": "send",\n  "msg": "Test email sent successfully"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/testTgBot',
+        summary: 'Test Telegram bot connection by sending a test message to the configured chat.',
+        response: '{\n  "success": true,\n  "msg": "Test message sent to Telegram"\n}',
+      },
+      {
         method: 'GET',
         path: '/panel/api/setting/getDefaultJsonConfig',
         summary: 'Return the built-in default Xray JSON config template that ships with this panel version.',

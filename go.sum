@@ -138,8 +138,8 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
-github.com/mymmrac/telego v1.9.0 h1:ZUJxZaPx/1IgRvVb5lXnUB8FgW5rNYfRe6Q2EJ4OJ+Y=
-github.com/mymmrac/telego v1.9.0/go.mod h1:tVEB7OqiOPx8elRk9+ETkwiDQrUhWSB2XmAKIY9KmWY=
+github.com/mymmrac/telego v1.10.0 h1:Upe0TqYyiK+yE5RFXXuQWVHGfLZnqvUfj4KZVjTcgWE=
+github.com/mymmrac/telego v1.10.0/go.mod h1:LsQKDA6EwssPP9XkORPXwwOFUGIRf/Wf2Wb8y3YyJdE=
 github.com/nicksnyder/go-i18n/v2 v2.6.1 h1:JDEJraFsQE17Dut9HFDHzCoAWGEQJom5s0TRd17NIEQ=
 github.com/nicksnyder/go-i18n/v2 v2.6.1/go.mod h1:Vee0/9RD3Quc/NmwEjzzD7VTZ+Ir7QbXocrkhOzmUKA=
 github.com/op/go-logging v0.0.0-20160315200505-970db520ece7 h1:lDH9UUVJtmYCjyT0CI4q8xvlXPxeZ0gYCVvWbmPlp88=

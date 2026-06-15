@@ -39,16 +39,27 @@ type AllSetting struct {
 	Datepicker  string `json:"datepicker" form:"datepicker"`                            // Date picker format
 
 	// Telegram bot settings
-	TgBotEnable      bool   `json:"tgBotEnable" form:"tgBotEnable"`              // Enable Telegram bot notifications
-	TgBotToken       string `json:"tgBotToken" form:"tgBotToken"`                // Telegram bot token
-	TgBotProxy       string `json:"tgBotProxy" form:"tgBotProxy"`                // Proxy URL for Telegram bot
-	TgBotAPIServer   string `json:"tgBotAPIServer" form:"tgBotAPIServer"`        // Custom API server for Telegram bot
-	TgBotChatId      string `json:"tgBotChatId" form:"tgBotChatId"`              // Telegram chat ID for notifications
-	TgRunTime        string `json:"tgRunTime" form:"tgRunTime"`                  // Cron schedule for Telegram notifications
-	TgBotBackup      bool   `json:"tgBotBackup" form:"tgBotBackup"`              // Enable database backup via Telegram
-	TgBotLoginNotify bool   `json:"tgBotLoginNotify" form:"tgBotLoginNotify"`    // Send login notifications
-	TgCpu            int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"` // CPU usage threshold for alerts (percent)
-	TgLang           string `json:"tgLang" form:"tgLang"`                        // Telegram bot language
+	TgBotEnable     bool   `json:"tgBotEnable" form:"tgBotEnable"`              // Enable Telegram bot notifications
+	TgBotToken      string `json:"tgBotToken" form:"tgBotToken"`                // Telegram bot token
+	TgBotProxy      string `json:"tgBotProxy" form:"tgBotProxy"`                // Proxy URL for Telegram bot
+	TgBotAPIServer  string `json:"tgBotAPIServer" form:"tgBotAPIServer"`        // Custom API server for Telegram bot
+	TgBotChatId     string `json:"tgBotChatId" form:"tgBotChatId"`              // Telegram chat ID for notifications
+	TgRunTime       string `json:"tgRunTime" form:"tgRunTime"`                  // Cron schedule for Telegram notifications
+	TgBotBackup     bool   `json:"tgBotBackup" form:"tgBotBackup"`              // Enable database backup via Telegram
+	TgCpu           int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"` // CPU usage threshold for alerts (percent)
+	TgLang          string `json:"tgLang" form:"tgLang"`                        // Telegram bot language
+	TgEnabledEvents string `json:"tgEnabledEvents" form:"tgEnabledEvents"`      // Comma-separated event types to send via Telegram
+
+	// Email (SMTP) notification settings
+	SmtpEnable         bool   `json:"smtpEnable" form:"smtpEnable"`                        // Enable email notifications
+	SmtpHost           string `json:"smtpHost" form:"smtpHost"`                            // SMTP server host
+	SmtpPort           int    `json:"smtpPort" form:"smtpPort" validate:"gte=1,lte=65535"` // SMTP server port
+	SmtpUsername       string `json:"smtpUsername" form:"smtpUsername"`                    // SMTP username
+	SmtpPassword       string `json:"smtpPassword" form:"smtpPassword"`                    // SMTP password
+	SmtpTo             string `json:"smtpTo" form:"smtpTo"`                                // Comma-separated recipient emails
+	SmtpEncryptionType string `json:"smtpEncryptionType" form:"smtpEncryptionType"`        // SMTP encryption: none, starttls, tls
+	SmtpEnabledEvents  string `json:"smtpEnabledEvents" form:"smtpEnabledEvents"`          // Comma-separated event types to send via email
+	SmtpCpu            int    `json:"smtpCpu" form:"smtpCpu" validate:"gte=0,lte=100"`     // CPU threshold for email notifications
 
 	// Security settings
 	TimeLocation    string `json:"timeLocation" form:"timeLocation"`       // Time zone location
@@ -130,6 +141,7 @@ type AllSettingView struct {
 	HasApiToken       bool `json:"hasApiToken"`
 	HasWarpSecret     bool `json:"hasWarpSecret"`
 	HasNordSecret     bool `json:"hasNordSecret"`
+	HasSmtpPassword   bool `json:"hasSmtpPassword"`
 }
 
 // CheckValid validates all settings in the AllSetting struct, checking IP addresses, ports, SSL certificates, and other configuration values.

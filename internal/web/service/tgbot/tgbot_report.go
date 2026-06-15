@@ -12,6 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -153,38 +154,33 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 	return info
 }
 
-// UserLoginNotify sends a notification about user login attempts to admins.
+// UserLoginNotify publishes a login event to the event bus.
 func (t *Tgbot) UserLoginNotify(attempt LoginAttempt) {
-	if !t.IsRunning() {
-		return
-	}
-
 	if attempt.Username == "" || attempt.IP == "" || attempt.Time == "" {
 		logger.Warning("UserLoginNotify failed, invalid info!")
 		return
 	}
 
-	loginNotifyEnabled, err := t.settingService.GetTgBotLoginNotify()
-	if err != nil || !loginNotifyEnabled {
+	if EventBus == nil {
 		return
 	}
 
-	msg := ""
-	switch attempt.Status {
-	case LoginSuccess:
-		msg += t.I18nBot("tgbot.messages.loginSuccess")
-		msg += t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
-	case LoginFail:
-		msg += t.I18nBot("tgbot.messages.loginFailed")
-		msg += t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
-		if attempt.Reason != "" {
-			msg += t.I18nBot("tgbot.messages.reason", "Reason=="+attempt.Reason)
-		}
+	status := "fail"
+	if attempt.Status == LoginSuccess {
+		status = "success"
 	}
-	msg += t.I18nBot("tgbot.messages.username", "Username=="+attempt.Username)
-	msg += t.I18nBot("tgbot.messages.ip", "IP=="+attempt.IP)
-	msg += t.I18nBot("tgbot.messages.time", "Time=="+attempt.Time)
-	go t.SendMsgToTgbotAdmins(msg)
+
+	EventBus.Publish(eventbus.Event{
+		Type:   eventbus.EventLoginAttempt,
+		Source: attempt.IP,
+		Data: &eventbus.LoginEventData{
+			Username: attempt.Username,
+			IP:       attempt.IP,
+			Time:     attempt.Time,
+			Status:   status,
+			Reason:   attempt.Reason,
+		},
+	})
 }
 
 // getExhausted retrieves and sends information about exhausted clients.

@@ -12,6 +12,9 @@ export type Protocol = z.infer<typeof ProtocolSchema>;
 export const SubLinkProviderSchema = z.unknown();
 export type SubLinkProvider = z.infer<typeof SubLinkProviderSchema>;
 
+export const staticEgressResolverSchema = z.string();
+export type staticEgressResolver = z.infer<typeof staticEgressResolverSchema>;
+
 export const transportBitsSchema = z.number().int();
 export type transportBits = z.infer<typeof transportBitsSchema>;
 
@@ -45,6 +48,15 @@ export const AllSettingSchema = z.object({
   remarkModel: z.string(),
   restartXrayOnClientDisable: z.boolean(),
   sessionMaxAge: z.number().int().min(1).max(525600),
+  smtpCpu: z.number().int().min(0).max(100),
+  smtpEnable: z.boolean(),
+  smtpEnabledEvents: z.string(),
+  smtpEncryptionType: z.string(),
+  smtpHost: z.string(),
+  smtpPassword: z.string(),
+  smtpPort: z.number().int().min(1).max(65535),
+  smtpTo: z.string(),
+  smtpUsername: z.string(),
   subAnnounce: z.string(),
   subCertFile: z.string(),
   subClashEnable: z.boolean(),
@@ -79,10 +91,10 @@ export const AllSettingSchema = z.object({
   tgBotBackup: z.boolean(),
   tgBotChatId: z.string(),
   tgBotEnable: z.boolean(),
-  tgBotLoginNotify: z.boolean(),
   tgBotProxy: z.string(),
   tgBotToken: z.string(),
   tgCpu: z.number().int().min(0).max(100),
+  tgEnabledEvents: z.string(),
   tgLang: z.string(),
   tgRunTime: z.string(),
   timeLocation: z.string(),
@@ -108,6 +120,7 @@ export const AllSettingViewSchema = z.object({
   hasApiToken: z.boolean(),
   hasLdapPassword: z.boolean(),
   hasNordSecret: z.boolean(),
+  hasSmtpPassword: z.boolean(),
   hasTgBotToken: z.boolean(),
   hasTwoFactorToken: z.boolean(),
   hasWarpSecret: z.boolean(),
@@ -136,6 +149,15 @@ export const AllSettingViewSchema = z.object({
   remarkModel: z.string(),
   restartXrayOnClientDisable: z.boolean(),
   sessionMaxAge: z.number().int().min(1).max(525600),
+  smtpCpu: z.number().int().min(0).max(100),
+  smtpEnable: z.boolean(),
+  smtpEnabledEvents: z.string(),
+  smtpEncryptionType: z.string(),
+  smtpHost: z.string(),
+  smtpPassword: z.string(),
+  smtpPort: z.number().int().min(1).max(65535),
+  smtpTo: z.string(),
+  smtpUsername: z.string(),
   subAnnounce: z.string(),
   subCertFile: z.string(),
   subClashEnable: z.boolean(),
@@ -170,10 +192,10 @@ export const AllSettingViewSchema = z.object({
   tgBotBackup: z.boolean(),
   tgBotChatId: z.string(),
   tgBotEnable: z.boolean(),
-  tgBotLoginNotify: z.boolean(),
   tgBotProxy: z.string(),
   tgBotToken: z.string(),
   tgCpu: z.number().int().min(0).max(100),
+  tgEnabledEvents: z.string(),
   tgLang: z.string(),
   tgRunTime: z.string(),
   timeLocation: z.string(),

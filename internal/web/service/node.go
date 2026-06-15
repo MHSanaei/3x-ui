@@ -357,8 +357,26 @@ func (s *NodeService) GetRemoteInboundOptions(ctx context.Context, n *model.Node
 	if err := s.normalize(n); err != nil {
 		return nil, err
 	}
-	return runtime.NewRemote(n, nil).ListInboundOptions(ctx)
+	if n.OutboundTag == "" {
+		return runtime.NewRemote(n, nil).ListInboundOptions(ctx)
+	}
+	// Mirror ProbeWithOutbound: a node being added/edited has no persistent
+	// egress bridge yet, so route the list call through a temporary one or the
+	// remote panel stays unreachable and the request times out.
+	var options []runtime.RemoteInboundOption
+	var err error
+	s.withOutboundBridge(n.Id, n.OutboundTag, func(proxyURL string) {
+		options, err = runtime.NewRemote(n, staticEgressResolver(proxyURL)).ListInboundOptions(ctx)
+	})
+	return options, err
 }
+
+// staticEgressResolver hands a fixed proxy URL to runtime.NewRemote. An empty
+// string yields a direct connection, so it doubles as the graceful fallback
+// when a temporary bridge can't be built.
+type staticEgressResolver string
+
+func (r staticEgressResolver) NodeEgressProxyURL(int) string { return string(r) }
 
 // EnsureInboundTagAllowed adds a panel-managed inbound's tag to the node's
 // selection when the node syncs in "selected" mode. Without it, the next
@@ -611,23 +629,46 @@ func (s *NodeService) ProbeWithOutbound(ctx context.Context, n *model.Node, outb
 	if outboundTag == "" {
 		return s.Probe(ctx, n)
 	}
+	var patch HeartbeatPatch
+	var err error
+	s.withOutboundBridge(n.Id, outboundTag, func(proxyURL string) {
+		if proxyURL == "" {
+			patch, err = s.Probe(ctx, n)
+			return
+		}
+		patch, err = s.probe(ctx, n, proxyURL)
+	})
+	return patch, err
+}
+
+// withOutboundBridge stands up a temporary loopback SOCKS5 inbound in the
+// running Xray, routes it through outboundTag, and runs fn with the bridge's
+// proxy URL before tearing it down. It is used to reach a node through its
+// connection outbound before the persistent egress bridge has been injected
+// into the config (e.g. while the node is still being added or edited). When
+// Xray isn't running or the bridge can't be built, fn runs with an empty
+// proxyURL so callers fall back to a direct connection.
+func (s *NodeService) withOutboundBridge(nodeID int, outboundTag string, fn func(proxyURL string)) {
 	proc := XrayProcess()
 	if proc == nil || !proc.IsRunning() {
-		return s.Probe(ctx, n)
+		fn("")
+		return
 	}
 	apiPort := proc.GetAPIPort()
 	if apiPort <= 0 {
-		return s.Probe(ctx, n)
+		fn("")
+		return
 	}
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		return s.Probe(ctx, n)
+		fn("")
+		return
 	}
 	port := listener.Addr().(*net.TCPAddr).Port
 	listener.Close()
 
-	tag := fmt.Sprintf("node-test-%d-%d", n.Id, time.Now().UnixNano())
+	tag := fmt.Sprintf("node-test-%d-%d", nodeID, time.Now().UnixNano())
 	proxyURL := fmt.Sprintf("socks5://127.0.0.1:%d", port)
 
 	inboundJSON, err := json.Marshal(xray.InboundConfig{
@@ -638,7 +679,8 @@ func (s *NodeService) ProbeWithOutbound(ctx context.Context, n *model.Node, outb
 		Tag:      tag,
 	})
 	if err != nil {
-		return s.Probe(ctx, n)
+		fn("")
+		return
 	}
 
 	cfg := proc.GetConfig()
@@ -659,31 +701,31 @@ func (s *NodeService) ProbeWithOutbound(ctx context.Context, n *model.Node, outb
 	routing["rules"] = append([]any{rule}, rules...)
 	routingJSON, err := json.Marshal(routing)
 	if err != nil {
-		return s.Probe(ctx, n)
+		fn("")
+		return
 	}
 	originalRoutingJSON := cfg.RouterConfig
 
 	api := xray.XrayAPI{}
 	if err := api.Init(apiPort); err != nil {
-		return s.Probe(ctx, n)
+		fn("")
+		return
 	}
 	defer api.Close()
 
 	if err := api.AddInbound(inboundJSON); err != nil {
-		return s.Probe(ctx, n)
+		fn("")
+		return
 	}
-	removed := false
 	defer func() {
-		if removed {
-			return
-		}
 		if err := api.DelInbound(tag); err != nil {
-			logger.Warning("remove temp node test inbound failed:", err)
+			logger.Warning("remove temp node bridge inbound failed:", err)
 		}
 	}()
 
 	if err := api.ApplyRoutingConfig(routingJSON); err != nil {
-		return s.Probe(ctx, n)
+		fn("")
+		return
 	}
 	defer func() {
 		restore := originalRoutingJSON
@@ -691,19 +733,11 @@ func (s *NodeService) ProbeWithOutbound(ctx context.Context, n *model.Node, outb
 			restore = []byte("{}")
 		}
 		if err := api.ApplyRoutingConfig(restore); err != nil {
-			logger.Warning("restore routing after node test failed:", err)
+			logger.Warning("restore routing after node bridge failed:", err)
 		}
 	}()
 
-	patch, err := s.probe(ctx, n, proxyURL)
-	removed = true
-	if delErr := api.DelInbound(tag); delErr != nil {
-		logger.Warning("remove temp node test inbound failed:", delErr)
-	}
-	if err != nil {
-		return patch, err
-	}
-	return patch, nil
+	fn(proxyURL)
 }
 
 func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string) (HeartbeatPatch, error) {

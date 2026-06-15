@@ -26,7 +26,6 @@ export const AllSettingSchema = z.object({
   tgBotChatId: z.string().optional(),
   tgRunTime: z.string().optional(),
   tgBotBackup: z.boolean().optional(),
-  tgBotLoginNotify: z.boolean().optional(),
   tgCpu: z.number().int().min(0).max(100).optional(),
   tgLang: z.string().optional(),
   twoFactorEnable: z.boolean().optional(),
@@ -91,6 +90,7 @@ export const AllSettingSchema = z.object({
   hasApiToken: z.boolean().optional(),
   hasWarpSecret: z.boolean().optional(),
   hasNordSecret: z.boolean().optional(),
+  hasSmtpPassword: z.boolean().optional(),
 }).loose();
 
 export type AllSettingInput = z.infer<typeof AllSettingSchema>;
