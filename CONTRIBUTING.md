@@ -275,7 +275,7 @@ Treat each survivor as one of: a weak test (strengthen it), dead code (remove it
 
 ### CI
 
-`.github/workflows/ci.yml` runs per PR: `go-test` (with `-shuffle -count=1`), a non-blocking `race` job, a `fuzz-smoke` job on the critical parsers, and the frontend `typecheck`/`lint`/`test`/`build`. Snapshots are regression guards — regenerate them (`npx vitest run -u`) only for intentional output changes, never to make a red test green.
+`.github/workflows/ci.yml` runs per PR: `go-test` (with `-shuffle -count=1`), a `race` job (`-race -shuffle -count=1`), a `fuzz-smoke` job on the critical parsers, and the frontend `typecheck`/`lint`/`test`/`build`. Snapshots are regression guards — regenerate them (`npx vitest run -u`) only for intentional output changes, never to make a red test green.
 
 ## Sending a pull request
 

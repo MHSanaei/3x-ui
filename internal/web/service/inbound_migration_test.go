@@ -93,14 +93,9 @@ func TestMigrationRequirements_BackfillsClientTrafficsWithMultiDomainInbound(t *
 // TestMigrationRequirements_CleansLegacyZeroAddrTag guards the legacy tag cleanup that
 // strips the auto-generated "0.0.0.0:" prefix. The inbound is MultiDomain TLS so the
 // externalProxy detection query returns rows and the cleanup is reached (it early-returns
-// at len(externalProxy)==0 otherwise).
-//
-// Known bug: the cleanup uses `tx.Raw(tagCleanup).Error`, which builds but never executes
-// a non-SELECT statement, so the prefix is never stripped. Skipped until prod swaps
-// tx.Raw -> tx.Exec, so the failure stays visible rather than hidden.
+// at len(externalProxy)==0 otherwise). The cleanup must use tx.Exec, not tx.Raw, which
+// only builds a non-SELECT statement without running it.
 func TestMigrationRequirements_CleansLegacyZeroAddrTag(t *testing.T) {
-	t.Skip("known bug: tag cleanup uses tx.Raw (no-op); legacy 0.0.0.0: prefix never stripped. Remove this skip once prod swaps tx.Raw -> tx.Exec.")
-
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
 	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {

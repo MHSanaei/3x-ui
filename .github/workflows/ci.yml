@@ -69,13 +69,9 @@ jobs:
       - name: Run govulncheck
         run: govulncheck ./...
 
-  # Race + shuffle hygiene gate. NON-BLOCKING for now: it surfaces an existing data race
-  # on the unsynchronized global internal/logger.logBuffer (written by addToBuffer, read
-  # by GetLogs). Once that is fixed (guard logBuffer with a mutex), drop
-  # `continue-on-error` to make this a hard gate.
+  # Race + shuffle hygiene gate: data races and order-dependent tests fail the build.
   race:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
