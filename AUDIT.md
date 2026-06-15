@@ -168,12 +168,19 @@ Mutants that are semantically identical to the original (unkillable) — documen
 
 Run scoped per package (see §5). `LIVED` = a fake/weak test or a gap.
 
-| Package | Before (killed %) | After (killed %) | Floor | Notes |
-|---|---|---|---|---|
-| internal/sub | TBD | TBD | 85% | highest priority |
-| internal/web/runtime | TBD | TBD | 85% | security |
-| internal/database (+ migration) | TBD | TBD | 75% | |
-| internal/web/service (node) | TBD | TBD | 75% | scoped, excludes large/scale files |
+**Measurement status:** gremlins did not complete a run on this Windows dev host (see §2c — a
+dry-run on the smallest package exceeded 8 min with no output; a concurrent real run also corrupted
+the build cache, crashing the Go linker). Numeric before/after scores are therefore **pending a run
+on a faster Linux host** (the scoped commands in §5 are ready). In the interim, the load-bearing
+branches the floors are meant to protect were each **verified by targeted manual mutation-sanity**
+(flip the prod line → witness RED → revert), which is the per-mutant loop's actual purpose:
+
+| Package | Floor | Load-bearing branches now guarded (mutation-sanity'd) |
+|---|---|---|
+| internal/sub | 85% | dedup key (`ToLower`), TLS param map, Reality param map (pbk/sid swap), clash well-formedness |
+| internal/web/runtime | 85% | TLS proxy+pin injection, pin-error specificity, DecodeCertPin (property+fuzz) |
+| internal/database (+ migration) | 75% | migration tag cleanup → **Finding #1** (witnessed RED) |
+| internal/web/service (node) | 75% | covered by existing strong reconcile/dirty/origin tests (see §2 deep-dive) |
 
 ---
 
@@ -191,3 +198,36 @@ gremlins unleash -E 'server\.go|xray\.go|inbound\.go|client_bulk\.go|inbound_tra
 
 Cheap gates that DO run in CI (see Phase F): `go test -race -shuffle=on -count=1 ./...` + a brief
 fuzz smoke (`-fuzztime=30s`) on the critical parsers.
+
+---
+
+## 6. Phase F — gates locked into CI (.github/workflows/ci.yml)
+
+- **`go-test`** (blocking) now runs `go test -shuffle=on -count=1` — order-dependence is a hard gate.
+- **`race`** (new, **non-blocking** via `continue-on-error: true`) runs `go test -race -shuffle=on
+  -count=1`. It is non-blocking *only* because of **Finding #2**; it surfaces the logger race in CI
+  loudly. **Action:** once Finding #2 is fixed in prod, remove `continue-on-error` to make race a
+  hard gate.
+- **`fuzz-smoke`** (new, blocking) runs `FuzzParseLink` + `FuzzDecodeCertPin` for 30s each.
+- **Mutation testing stays manual/nightly**, never per-commit (too slow) — run the scoped commands in
+  §5 on a Linux host and record before/after in §4.
+
+---
+
+## 7. Status summary (definition of done)
+
+- ✅ Order/shuffle hygiene: green across seeds; wired blocking into CI.
+- ⚠️ `-race`: whole-repo clean **except Finding #2** (logger global) — wired non-blocking, awaiting prod fix.
+- ✅ Over-broad/happy-path tests in scope strengthened (S1–S4, S7) and mutation-sanity'd; S6→Finding #1.
+- ✅ Error/edge coverage gaps closed where a real contract existed (TLS proxy+pin, pin errors, migration tag).
+- ✅ Property + fuzz added for link/userinfo/pin/parser; seed corpora inline; fuzz smoke in CI.
+- ✅ Frontend: rejection-assertion specificity tightened; coverage tooling wired; gate green.
+- ⏳ gremlins numeric scores: pending a run on a faster Linux host (commands ready in §5).
+- ✅ **No test weakened. No production code changed to satisfy a test.** Two prod bugs surfaced as
+  findings (#1 migration tag no-op, #2 logger data race), neither silently fixed.
+
+### Open items for the maintainer (separate PRs, out of audit scope)
+1. **Finding #1** — `internal/web/service/inbound_migration.go:247`: `tx.Raw(tagCleanup)` →
+   `tx.Exec(tagCleanup)`; then remove the `t.Skip` from `TestMigrationRequirements_CleansLegacyZeroAddrTag`.
+2. **Finding #2** — `internal/logger/logger.go`: guard `logBuffer` with a mutex in `addToBuffer` +
+   `GetLogs`; then drop `continue-on-error` from the CI `race` job.
