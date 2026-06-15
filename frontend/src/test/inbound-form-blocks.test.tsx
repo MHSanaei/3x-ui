@@ -89,7 +89,7 @@ describe('inbound transport forms', () => {
 
   it('SockoptForm field structure is stable (enabled + happy eyeballs)', () => {
     renderInForm(
-      () => <SockoptForm toggleSockopt={noop} />,
+      () => <SockoptForm toggleSockopt={noop} network="tcp" />,
       { streamSettings: { sockopt: { happyEyeballs: {} } } },
     );
     expect(fieldLabels()).toMatchSnapshot();

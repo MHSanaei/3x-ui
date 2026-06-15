@@ -80,6 +80,7 @@ exports[`inbound transport forms > RawForm field structure is stable 1`] = `
 exports[`inbound transport forms > SockoptForm field structure is stable (enabled + happy eyeballs) 1`] = `
 [
   "Sockopt",
+  "Real client IP",
   "Route Mark",
   "TCP Keep Alive Interval",
   "TCP Keep Alive Idle",
