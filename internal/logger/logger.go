@@ -219,11 +219,21 @@ func GetLogs(c int, level string) []string {
 	var output []string
 	logLevel, _ := logging.LogLevel(level)
 
+	// Snapshot (copy) under the lock, then filter/format unlocked: a UI log fetch
+	// must not block addToBuffer — and thus all logging — for the formatting loop.
+	// A copy (not a reslice) is required, since addToBuffer can append in place.
 	logBufferMu.Lock()
-	defer logBufferMu.Unlock()
-	for i := len(logBuffer) - 1; i >= 0 && len(output) < c; i-- {
-		if logBuffer[i].level <= logLevel {
-			output = append(output, fmt.Sprintf("%s %s - %s", logBuffer[i].time, logBuffer[i].level, logBuffer[i].log))
+	snapshot := make([]struct {
+		time  string
+		level logging.Level
+		log   string
+	}, len(logBuffer))
+	copy(snapshot, logBuffer)
+	logBufferMu.Unlock()
+
+	for i := len(snapshot) - 1; i >= 0 && len(output) < c; i-- {
+		if snapshot[i].level <= logLevel {
+			output = append(output, fmt.Sprintf("%s %s - %s", snapshot[i].time, snapshot[i].level, snapshot[i].log))
 		}
 	}
 	return output

@@ -259,7 +259,7 @@ Frontend: `cd frontend && npm run test` (vitest), or `npm run test -- --coverage
 
 ### Property and fuzz tests
 
-Input-heavy or pure logic (link builders, parsers, decoders) is also covered by **property tests** (`pgregory.net/rapid`) and **native fuzz targets** (`go test -fuzz`). Fuzz functions run their seed corpus under a plain `go test`, so CI exercises them; the timed exploration runs as the CI `fuzz-smoke` job.
+Input-heavy or pure logic (link builders, parsers, decoders) is also covered by **property tests** (`pgregory.net/rapid`) and **native fuzz targets** (`go test -fuzz`). A fuzz target's **seed corpus** (its inline `f.Add` cases plus any `testdata/fuzz` entries) runs as ordinary subtests under a plain `go test` — no `-fuzz` flag needed — so CI's normal test job exercises the seeds; the time-boxed *fuzzing* exploration (`-fuzz=...`) runs separately as the `fuzz-smoke` job.
 
 ### Mutation testing (optional, manual)
 
