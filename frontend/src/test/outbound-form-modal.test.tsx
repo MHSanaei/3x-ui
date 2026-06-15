@@ -53,5 +53,5 @@ describe('OutboundFormModal', () => {
     if (labelsByProto.wireguard) {
       expect(labelsByProto.wireguard).not.toContain('Encryption');
     }
-  });
+  }, 30000); // iterates every protocol, re-rendering a heavy modal each time — slow on CI runners
 });

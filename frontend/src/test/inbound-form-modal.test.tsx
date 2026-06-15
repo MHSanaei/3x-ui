@@ -54,7 +54,7 @@ describe('InboundFormModal', () => {
     if (labelsByProto.shadowsocks) {
       expect(labelsByProto.shadowsocks).toContain('Encryption method');
     }
-  });
+  }, 30000); // iterates every protocol, re-rendering a heavy modal each time — slow on CI runners
 
   it('preserves custom share address strategy when editing a local inbound', async () => {
     renderWithProviders(
