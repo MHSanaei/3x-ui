@@ -1,27 +1,23 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from 'antd';
 
-interface Option {
-  value: number;
-}
-
-interface SelectAllClearButtonsProps {
-  options: Option[];
-  value: number[];
-  onChange: (value: number[]) => void;
+interface SelectAllClearButtonsProps<T extends string | number = number> {
+  options: Array<{ value: T }>;
+  value: T[];
+  onChange: (value: T[]) => void;
   /** Override the default "Select all" label (defaults to the inbound copy). */
   selectAllLabel?: string;
   /** Override the default "Clear all" label (defaults to the inbound copy). */
   clearLabel?: string;
 }
 
-export default function SelectAllClearButtons({
+export default function SelectAllClearButtons<T extends string | number = number>({
   options,
   value,
   onChange,
   selectAllLabel,
   clearLabel,
-}: SelectAllClearButtonsProps) {
+}: SelectAllClearButtonsProps<T>) {
   const { t } = useTranslation();
 
   const optionValues = options.map((o) => o.value);

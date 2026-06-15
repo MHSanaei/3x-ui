@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 
@@ -17,6 +18,7 @@ import (
 
 type NodeController struct {
 	nodeService service.NodeService
+	xrayService service.XrayService
 }
 
 func NewNodeController(g *gin.RouterGroup) *NodeController {
@@ -96,13 +98,24 @@ func (a *NodeController) add(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := a.ensureReachable(c, n); err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.add"), err)
-		return
+	if n.OutboundTag == "" {
+		if err := a.ensureReachable(c, n); err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.add"), err)
+			return
+		}
 	}
 	if err := a.nodeService.Create(n); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.add"), err)
 		return
+	}
+	if n.OutboundTag != "" {
+		if err := a.xrayService.RestartXray(false); err != nil {
+			logger.Warning("apply node outbound bridge failed:", err)
+		}
+		if err := a.ensureReachable(c, n); err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.add"), err)
+			return
+		}
 	}
 	jsonMsgObj(c, I18nWeb(c, "pages.nodes.toasts.add"), n, nil)
 }
@@ -117,13 +130,29 @@ func (a *NodeController) update(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := a.ensureReachable(c, n); err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.update"), err)
+	old, err := a.nodeService.GetById(id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.obtain"), err)
 		return
+	}
+	if n.OutboundTag == "" && old.OutboundTag == "" {
+		if err := a.ensureReachable(c, n); err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.update"), err)
+			return
+		}
 	}
 	if err := a.nodeService.Update(id, n); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.update"), err)
 		return
+	}
+	if n.OutboundTag != old.OutboundTag {
+		if err := a.xrayService.RestartXray(false); err != nil {
+			logger.Warning("apply node outbound bridge change failed:", err)
+		}
+		if err := a.ensureReachable(c, n); err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.update"), err)
+			return
+		}
 	}
 	jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.update"), nil)
 }
@@ -154,9 +183,19 @@ func (a *NodeController) setEnable(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.update"), err)
 		return
 	}
+	n, err := a.nodeService.GetById(id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.obtain"), err)
+		return
+	}
 	if err := a.nodeService.SetEnable(id, body.Enable); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.update"), err)
 		return
+	}
+	if n.OutboundTag != "" {
+		if err := a.xrayService.RestartXray(false); err != nil {
+			logger.Warning("apply node enable change failed:", err)
+		}
 	}
 	jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.update"), nil)
 }
@@ -188,7 +227,13 @@ func (a *NodeController) test(c *gin.Context) {
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 6*time.Second)
 	defer cancel()
-	patch, err := a.nodeService.Probe(ctx, n)
+	var patch service.HeartbeatPatch
+	var err error
+	if n.OutboundTag != "" {
+		patch, err = a.nodeService.ProbeWithOutbound(ctx, n, n.OutboundTag)
+	} else {
+		patch, err = a.nodeService.Probe(ctx, n)
+	}
 	jsonObj(c, patch.ToUI(err == nil), nil)
 }
 

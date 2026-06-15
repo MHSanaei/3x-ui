@@ -646,13 +646,18 @@ export class SizeFormatter {
   static readonly ONE_PB = SizeFormatter.ONE_TB * 1024;
 
   static sizeFormat(size: number | null | undefined): string {
-    if (size == null || size <= 0) return '0 B';
+    if (size == null || !Number.isFinite(size) || size <= 0) return '0 B';
     if (size < SizeFormatter.ONE_KB) return size.toFixed(0) + ' B';
     if (size < SizeFormatter.ONE_MB) return (size / SizeFormatter.ONE_KB).toFixed(2) + ' KB';
     if (size < SizeFormatter.ONE_GB) return (size / SizeFormatter.ONE_MB).toFixed(2) + ' MB';
     if (size < SizeFormatter.ONE_TB) return (size / SizeFormatter.ONE_GB).toFixed(2) + ' GB';
     if (size < SizeFormatter.ONE_PB) return (size / SizeFormatter.ONE_TB).toFixed(2) + ' TB';
     return (size / SizeFormatter.ONE_PB).toFixed(2) + ' PB';
+  }
+
+  // Same unit ladder as sizeFormat, expressed per-second.
+  static speedFormat(bps: number | null | undefined): string {
+    return SizeFormatter.sizeFormat(bps) + '/s';
   }
 }
 

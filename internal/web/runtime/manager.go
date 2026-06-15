@@ -8,11 +8,16 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
+type NodeEgressResolver interface {
+	NodeEgressProxyURL(nodeID int) string
+}
+
 type Manager struct {
 	local Runtime
 
-	mu      sync.RWMutex
-	remotes map[int]*Remote
+	mu             sync.RWMutex
+	remotes        map[int]*Remote
+	egressResolver NodeEgressResolver
 }
 
 func NewManager(localDeps LocalDeps) *Manager {
@@ -20,6 +25,21 @@ func NewManager(localDeps LocalDeps) *Manager {
 		local:   NewLocal(localDeps),
 		remotes: make(map[int]*Remote),
 	}
+}
+
+func (m *Manager) SetNodeEgressResolver(r NodeEgressResolver) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.egressResolver = r
+}
+
+func (m *Manager) NodeEgressProxyURL(nodeID int) string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.egressResolver == nil {
+		return ""
+	}
+	return m.egressResolver.NodeEgressProxyURL(nodeID)
 }
 
 func (m *Manager) RuntimeFor(nodeID *int) (Runtime, error) {
@@ -45,7 +65,7 @@ func (m *Manager) RuntimeFor(nodeID *int) (Runtime, error) {
 	if !n.Enable {
 		return nil, errors.New("node " + n.Name + " is disabled")
 	}
-	rt := NewRemote(n)
+	rt := NewRemote(n, m.egressResolver)
 	m.remotes[*nodeID] = rt
 	return rt, nil
 }
@@ -68,7 +88,7 @@ func (m *Manager) RemoteFor(node *model.Node) (*Remote, error) {
 	if rt, ok := m.remotes[node.Id]; ok {
 		return rt, nil
 	}
-	rt := NewRemote(node)
+	rt := NewRemote(node, m.egressResolver)
 	m.remotes[node.Id] = rt
 	return rt, nil
 }

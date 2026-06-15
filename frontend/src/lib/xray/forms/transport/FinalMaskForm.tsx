@@ -4,7 +4,9 @@ import type { FormInstance } from 'antd/es/form';
 import type { NamePath } from 'antd/es/form/interface';
 
 import { RandomUtil } from '@/utils';
-import { OutboundProtocols } from '@/schemas/primitives';
+import { OutboundProtocols, UTLS_FINGERPRINT } from '@/schemas/primitives';
+
+const UTLS_FINGERPRINT_OPTIONS = Object.values(UTLS_FINGERPRINT).map((value) => ({ value, label: value }));
 
 export interface FinalMaskFormProps {
   name: NamePath;
@@ -18,6 +20,46 @@ export interface FinalMaskFormProps {
 }
 
 const TCP_NETWORKS = ['raw', 'tcp', 'httpupgrade', 'ws', 'grpc', 'xhttp'];
+const DEFAULT_GECKO_PACKET_SIZE = { min: 512, max: 1200 };
+// Xray-core caps the Gecko output packet size at its internal buffer (2048)
+// and needs 1 <= min <= max; mirror those bounds so the panel rejects what
+// core would reject at runtime (salamander/conn.go).
+const GECKO_MIN_PACKET_SIZE = 1;
+const GECKO_MAX_PACKET_SIZE = 2048;
+
+export function parseGeckoPacketSize(value: unknown): { min: number; max: number } | null {
+  const str = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+  const match = /^(\d+)-(\d+)$/.exec(str);
+  if (!match) return null;
+  const min = Number(match[1]);
+  const max = Number(match[2]);
+  if (
+    !Number.isSafeInteger(min) || !Number.isSafeInteger(max)
+    || min < GECKO_MIN_PACKET_SIZE || max < min || max > GECKO_MAX_PACKET_SIZE
+  ) {
+    return null;
+  }
+  return { min, max };
+}
+
+function formatGeckoPacketSize(min: number, max: number): string {
+  return `${min}-${max}`;
+}
+
+function splitGeckoPacketSize(value: unknown): { min: number | null; max: number | null } {
+  const str = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+  const [minRaw = '', maxRaw = ''] = str.split('-', 2);
+  const min = /^\d+$/.test(minRaw) ? Number(minRaw) : null;
+  const max = /^\d+$/.test(maxRaw) ? Number(maxRaw) : null;
+  return { min, max };
+}
+
+function validateGeckoPacketSize(_rule: unknown, value: unknown): Promise<void> {
+  if (parseGeckoPacketSize(value)) return Promise.resolve();
+  return Promise.reject(new Error(
+    `Use a range like 512-1200 (${GECKO_MIN_PACKET_SIZE}-${GECKO_MAX_PACKET_SIZE}, max ≥ min)`,
+  ));
+}
 
 function asPath(name: NamePath): (string | number)[] {
   return Array.isArray(name) ? [...name] : [name];
@@ -470,22 +512,7 @@ function UdpMaskItem({
         {({ getFieldValue }) => {
           const type = getFieldValue([...absolutePath, 'type']) as string | undefined;
           if (type === 'salamander') {
-            return (
-              <Form.Item label="Password">
-                <Space.Compact block>
-                  <Form.Item name={[fieldName, 'settings', 'password']} noStyle>
-                    <Input placeholder="Obfuscation password" style={{ width: 'calc(100% - 32px)' }} />
-                  </Form.Item>
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={() => form.setFieldValue(
-                      [...absolutePath, 'settings', 'password'],
-                      RandomUtil.randomLowerAndNum(16),
-                    )}
-                  />
-                </Space.Compact>
-              </Form.Item>
-            );
+            return <SalamanderUdpMaskSettings fieldName={fieldName} form={form} absolutePath={absolutePath} />;
           }
           if (type === 'mkcp-legacy') {
             return (
@@ -537,6 +564,35 @@ function UdpMaskItem({
                 <Form.Item label="STUN Servers" name={[fieldName, 'settings', 'stunServers']}>
                   <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} placeholder="host:port" />
                 </Form.Item>
+                <Divider plain style={{ margin: '8px 0' }}>TLS (optional)</Divider>
+                <Form.Item label="Server Name" name={[fieldName, 'settings', 'tlsConfig', 'serverName']}>
+                  <Input placeholder="SNI for the realm server (leave empty to skip TLS)" />
+                </Form.Item>
+                <Form.Item label="ALPN" name={[fieldName, 'settings', 'tlsConfig', 'alpn']}>
+                  <Select
+                    mode="multiple"
+                    style={{ width: '100%' }}
+                    options={[
+                      { value: 'h3', label: 'h3' },
+                      { value: 'h2', label: 'h2' },
+                      { value: 'http/1.1', label: 'http/1.1' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="Fingerprint" name={[fieldName, 'settings', 'tlsConfig', 'fingerprint']}>
+                  <Select
+                    allowClear
+                    style={{ width: '100%' }}
+                    options={UTLS_FINGERPRINT_OPTIONS}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label="Allow Insecure"
+                  name={[fieldName, 'settings', 'tlsConfig', 'allowInsecure']}
+                  valuePropName="checked"
+                >
+                  <Switch />
+                </Form.Item>
               </>
             );
           }
@@ -562,6 +618,111 @@ function UdpMaskItem({
         }}
       </Form.Item>
     </div>
+  );
+}
+
+function SalamanderUdpMaskSettings({
+  fieldName, form, absolutePath,
+}: {
+  fieldName: number;
+  form: FormInstance;
+  absolutePath: (string | number)[];
+}) {
+  const packetSizePath = [...absolutePath, 'settings', 'packetSize'];
+  const packetSize = Form.useWatch(packetSizePath, { form, preserve: true });
+  const mode = typeof packetSize === 'string' && packetSize.trim() !== '' ? 'gecko' : 'salamander';
+
+  return (
+    <>
+      <Form.Item
+        label="Mode"
+        extra={mode === 'gecko'
+          ? 'Salamander plus Gecko: splits each packet into random-padded fragments sized within the range below, defeating packet-length fingerprinting. Stored as Salamander with packetSize.'
+          : 'Scrambles each packet into random-looking bytes.'}
+      >
+        <Select
+          value={mode}
+          onChange={(next) => {
+            if (next === 'gecko') {
+              const current = form.getFieldValue(packetSizePath);
+              form.setFieldValue(
+                packetSizePath,
+                parseGeckoPacketSize(current)
+                  ? current
+                  : formatGeckoPacketSize(DEFAULT_GECKO_PACKET_SIZE.min, DEFAULT_GECKO_PACKET_SIZE.max),
+              );
+            } else {
+              form.setFieldValue(packetSizePath, undefined);
+            }
+          }}
+          options={[
+            { value: 'salamander', label: 'Salamander' },
+            { value: 'gecko', label: 'Gecko experimental' },
+          ]}
+        />
+      </Form.Item>
+
+      <Form.Item label="Password">
+        <Space.Compact block>
+          <Form.Item name={[fieldName, 'settings', 'password']} noStyle>
+            <Input placeholder="Obfuscation password" style={{ width: 'calc(100% - 32px)' }} />
+          </Form.Item>
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => form.setFieldValue(
+              [...absolutePath, 'settings', 'password'],
+              RandomUtil.randomLowerAndNum(16),
+            )}
+          />
+        </Space.Compact>
+      </Form.Item>
+
+      {mode === 'gecko' && (
+        <Form.Item
+          label="Packet size"
+          name={[fieldName, 'settings', 'packetSize']}
+          rules={[{ validator: validateGeckoPacketSize }]}
+          extra="Serialized as a string range, for example 512-1200."
+        >
+          <GeckoPacketSizeInput />
+        </Form.Item>
+      )}
+    </>
+  );
+}
+
+function GeckoPacketSizeInput({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange?: (value: string) => void;
+}) {
+  const { min, max } = splitGeckoPacketSize(value);
+
+  return (
+    <Space.Compact block>
+      <InputNumber
+        addonBefore="Min"
+        min={GECKO_MIN_PACKET_SIZE}
+        max={GECKO_MAX_PACKET_SIZE}
+        precision={0}
+        value={min}
+        placeholder={String(DEFAULT_GECKO_PACKET_SIZE.min)}
+        onChange={(next) => onChange?.(`${next ?? ''}-${max ?? ''}`)}
+        style={{ width: '50%' }}
+      />
+      <InputNumber
+        addonBefore="Max"
+        min={GECKO_MIN_PACKET_SIZE}
+        max={GECKO_MAX_PACKET_SIZE}
+        precision={0}
+        value={max}
+        placeholder={String(DEFAULT_GECKO_PACKET_SIZE.max)}
+        onChange={(next) => onChange?.(`${min ?? ''}-${next ?? ''}`)}
+        style={{ width: '50%' }}
+      />
+    </Space.Compact>
   );
 }
 

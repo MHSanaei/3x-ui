@@ -1,0 +1,17 @@
+{
+  "udp": [
+    {
+      "type": "realm",
+      "settings": {
+        "url": "realm://public@example.com/my-realm",
+        "stunServers": ["stun.l.google.com:19302"],
+        "tlsConfig": {
+          "serverName": "example.com",
+          "allowInsecure": false,
+          "alpn": ["h3"],
+          "fingerprint": "chrome"
+        }
+      }
+    }
+  ]
+}

@@ -407,6 +407,9 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 	if err := db.Where("client_id = ?", id).Delete(&model.ClientInbound{}).Error; err != nil {
 		return needRestart, err
 	}
+	if err := db.Where("client_id = ?", id).Delete(&model.ClientExternalLink{}).Error; err != nil {
+		return needRestart, err
+	}
 	if !keepTraffic && existing.Email != "" {
 		if err := db.Where("email = ?", existing.Email).Delete(&xray.ClientTraffic{}).Error; err != nil {
 			return needRestart, err

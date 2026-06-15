@@ -1,0 +1,5 @@
+{
+  "udp": [
+    { "type": "salamander", "settings": { "password": "swordfish", "packetSize": "100-200" } }
+  ]
+}

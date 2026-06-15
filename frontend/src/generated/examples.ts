@@ -354,6 +354,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "memPct": 45.1,
     "name": "de-fra-1",
     "onlineCount": 3,
+    "outboundTag": "",
     "panelVersion": "v3.x.x",
     "parentGuid": "",
     "pinnedCertSha256": "",
