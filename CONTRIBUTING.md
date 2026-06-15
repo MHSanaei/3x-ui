@@ -273,6 +273,8 @@ gremlins unleash -E 'server\.go|xray\.go|inbound\.go|client_bulk\.go|inbound_tra
 
 Treat each survivor as one of: a weak test (strengthen it), dead code (remove it), or an equivalent mutant (unkillable — leave it). Don't write a test purely to kill a mutant if it doesn't reflect real behavior.
 
+CI runs this for you nightly (and on demand) via `.github/workflows/mutation.yml` — scoped per package, results uploaded as artifacts. It is **informational**, not a gate (no thresholds), so check the reports when hardening a suite rather than waiting for a red build.
+
 ### CI
 
 `.github/workflows/ci.yml` runs per PR: `go-test` (with `-shuffle -count=1`), a `race` job (`-race -shuffle -count=1`), a `fuzz-smoke` job on the critical parsers, and the frontend `typecheck`/`lint`/`test`/`build`. Snapshots are regression guards — regenerate them (`npx vitest run -u`) only for intentional output changes, never to make a red test green.
