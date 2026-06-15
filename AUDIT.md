@@ -52,6 +52,39 @@ see §2) · `wontfix` (justified — note why).
   so it's visible and not hidden.
 - **Status:** confirmed; test-strengthening + skip pending (Phase B).
 
+### Finding #2 — global log ring buffer is an unsynchronized data race
+- **Prod location:** [internal/logger/logger.go](internal/logger/logger.go) — the package-global
+  `logBuffer` (decl ~line 34), written by `addToBuffer` (append/slice at lines 196-209) and read by
+  `GetLogs` (lines 213-220). **No mutex anywhere** in the file.
+- **Bug:** `addToBuffer` is called by every `logger.Info/Debugf/Warningf/Error*` and the global logger
+  is used concurrently across the whole app (cron jobs, the websocket `Hub.Run` goroutine, HTTP
+  handlers, the xray log writer). Concurrent `append`/reslice on `logBuffer` (and concurrent reads in
+  `GetLogs`) is a classic Go data race → undefined behavior (lost/corrupted entries, torn reads).
+- **How it surfaced:** `go test -race -shuffle=on` — the `internal/web/websocket` Hub tests each run
+  `go h.Run()`, and `Hub.runOnce`/`shutdown` log from that goroutine; two Hubs logging concurrently
+  trip the detector on `logBuffer`. All 5 websocket failures share this single root cause; the rest of
+  the repo is race-clean and order-independent.
+- **The tests are correct** — they exercise real concurrent Hub behaviour and the detector flags the
+  genuine prod defect. They are **not** weakened or skipped (cardinal rule 2).
+- **Suggested fix (separate PR, NOT this audit):** guard `logBuffer` with a `sync.Mutex` (lock in
+  `addToBuffer` and `GetLogs`). Small and safe.
+- **Impact on deliverables:** the full `go test -race ./...` gate (Phase A) and the "-race in CI" gate
+  (Phase F) **cannot be green until this prod fix lands.** Phase F therefore stages the `-race` CI gate
+  as blocked-on-Finding-#2 rather than weakening it.
+- **Status:** confirmed; awaiting a prod fix decision from the maintainer.
+
+---
+
+## 2a. Phase A hygiene result
+
+- `go test -shuffle=on -count=1 ./...` — **green** across two independent seeds → no order/state
+  dependence anywhere in the audited tree.
+- `go test -race -shuffle=on -count=1 ./...` — **one failing package**, `internal/web/websocket`, all
+  failures = the single Finding #2 race. No other races. No `-race`-only flakes elsewhere.
+- Static smell scan complete → inventory in §1 (S1-S7). No assertion-free, tautological, or
+  mock-asserting tests found — the suite is disciplined on those axes; the real weaknesses are
+  over-broad/happy-path assertions (strengthened in Phases B-C) and the two findings above.
+
 ---
 
 ## 3. Equivalent-Mutant Ignore-List
