@@ -244,7 +244,7 @@ func (s *InboundService) MigrationRequirements() {
 			SET tag = REPLACE(tag, '0.0.0.0:', '')
 			WHERE position('0.0.0.0:' in tag) > 0;`
 	}
-	err = tx.Raw(tagCleanup).Error
+	err = tx.Exec(tagCleanup).Error
 	if err != nil {
 		return
 	}

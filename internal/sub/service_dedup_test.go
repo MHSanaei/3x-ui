@@ -3,6 +3,7 @@ package sub
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -61,5 +62,36 @@ func TestGetSubs_DuplicateSettingsClients_Deduped(t *testing.T) {
 	}
 	if len(emails) != 1 {
 		t.Fatalf("emails = %d, want 1, got %v", len(emails), emails)
+	}
+	// Identity, not just count: the single surviving link must be for this client.
+	if !strings.Contains(links[0], uuid) {
+		t.Fatalf("surviving link must carry the client uuid %q, got %q", uuid, links[0])
+	}
+}
+
+// TestMatchingClients_DedupsCaseInsensitiveEmail pins the dedup KEY, not just the count:
+// the two entries differ only by email case, so dropping strings.ToLower (or keying on
+// another field) yields two clients. The byte-identical dupes above can't catch that.
+func TestMatchingClients_DedupsCaseInsensitiveEmail(t *testing.T) {
+	const subId = "s1"
+	const uuid = "11111111-2222-4333-8444-555555555555"
+	ib := &model.Inbound{
+		Protocol: model.VLESS,
+		Settings: `{"clients":[
+			{"id":"` + uuid + `","email":"Dup@Example.com","subId":"` + subId + `","enable":true},
+			{"id":"` + uuid + `","email":"dup@example.com","subId":"` + subId + `","enable":true}
+		]}`,
+	}
+	s := &SubService{}
+	got := s.matchingClients(ib, subId)
+	if len(got) != 1 {
+		t.Fatalf("case-differing duplicate emails must dedup to 1 client, got %d", len(got))
+	}
+	if got[0].Email != "Dup@Example.com" {
+		t.Fatalf("first occurrence must be kept, got %q", got[0].Email)
+	}
+	// A wrong subId must still be excluded (guards the subId filter at service.go:127).
+	if other := s.matchingClients(ib, "nope"); len(other) != 0 {
+		t.Fatalf("non-matching subId must yield 0 clients, got %d", len(other))
 	}
 }

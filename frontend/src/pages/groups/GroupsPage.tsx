@@ -407,10 +407,10 @@ export default function GroupsPage() {
       render: (_v, row) => (
         <Space size={4}>
           <Dropdown trigger={['click']} menu={{ items: rowActions(row) }}>
-            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<MoreOutlined />} />
+            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<MoreOutlined />} />
           </Dropdown>
           <Tooltip title={t('pages.groups.rename')}>
-            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<EditOutlined />} onClick={() => openRename(row)} />
+            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<EditOutlined />} onClick={() => openRename(row)} />
           </Tooltip>
         </Space>
       ),

@@ -35,7 +35,7 @@ jobs:
       - name: Test
         run: |
           go list ./... | grep -v '/frontend/node_modules/' > /tmp/go-packages.txt
-          go test $(cat /tmp/go-packages.txt)
+          go test -shuffle=on -count=1 $(cat /tmp/go-packages.txt)
 
   codegen:
     runs-on: ubuntu-latest
@@ -68,6 +68,39 @@ jobs:
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - name: Run govulncheck
         run: govulncheck ./...
+
+  # Race + shuffle hygiene gate: data races and order-dependent tests fail the build.
+  race:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Stub internal/web/dist for go:embed
+        run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
+      - name: Race + shuffle
+        run: |
+          go list ./... | grep -v '/frontend/node_modules/' > /tmp/go-packages.txt
+          go test -race -shuffle=on -count=1 $(cat /tmp/go-packages.txt)
+
+  # Brief native-fuzz smoke on the security-/parser-critical decoders. Each runs the
+  # generated corpus plus 30s of exploration; a crash here is a real input-handling bug.
+  fuzz-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Stub internal/web/dist for go:embed
+        run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
+      - name: Fuzz critical parsers (smoke)
+        run: |
+          go test -run '^$' -fuzz 'FuzzParseLink$' -fuzztime=30s ./internal/util/link/
+          go test -run '^$' -fuzz 'FuzzDecodeCertPin$' -fuzztime=30s ./internal/web/runtime/
 
   frontend:
     runs-on: ubuntu-latest

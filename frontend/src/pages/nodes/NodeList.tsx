@@ -241,18 +241,18 @@ export default function NodeList({
       ) : (
         <Space>
           <Tooltip title={t('pages.nodes.probe')}>
-            <Button type="text" size="small" style={{ fontSize: 18 }} icon={<ThunderboltOutlined />} onClick={() => onProbe(record)} />
+            <Button type="text" size="small" style={{ fontSize: 16 }} icon={<ThunderboltOutlined />} onClick={() => onProbe(record)} />
           </Tooltip>
           {isUpdateEligible(record) && (
             <Tooltip title={t('pages.nodes.updatePanel')}>
-              <Button type="text" size="small" style={{ fontSize: 18 }} icon={<CloudDownloadOutlined />} onClick={() => onUpdateNode(record)} />
+              <Button type="text" size="small" style={{ fontSize: 16 }} icon={<CloudDownloadOutlined />} onClick={() => onUpdateNode(record)} />
             </Tooltip>
           )}
           <Tooltip title={t('edit')}>
-            <Button type="text" size="small" style={{ fontSize: 18 }} icon={<EditOutlined />} onClick={() => onEdit(record)} />
+            <Button type="text" size="small" style={{ fontSize: 16 }} icon={<EditOutlined />} onClick={() => onEdit(record)} />
           </Tooltip>
           <Tooltip title={t('delete')}>
-            <Button type="text" size="small" danger style={{ fontSize: 18 }} icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
+            <Button type="text" size="small" danger style={{ fontSize: 16 }} icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
           </Tooltip>
         </Space>
       ),
