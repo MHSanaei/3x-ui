@@ -879,6 +879,80 @@ export const sections: readonly Section[] = [
   },
 
   {
+    id: 'custom-geo',
+    title: 'Custom Geo',
+    description:
+      'Manage custom geoip/geosite sources with user-supplied URLs and aliases (referenced in routing as ext:geoip_alias.dat:tag). All endpoints live under /panel/api/custom-geo and require a logged-in session or Bearer token.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/custom-geo/list',
+        summary: 'Return all custom geo resources.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/custom-geo/aliases',
+        summary: 'Return aliases available for use in routing rules.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/custom-geo/schedule',
+        summary: 'Return the current cron schedule for automatic geo updates.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/custom-geo/add',
+        summary: 'Create a new custom geo resource.',
+        params: [
+          { name: 'type', in: 'body', type: 'string', desc: 'Geo type: geoip or geosite.' },
+          { name: 'alias', in: 'body', type: 'string', desc: 'Alias used in routing rules.' },
+          { name: 'url', in: 'body', type: 'string', desc: 'URL to download the geo file from.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/custom-geo/update/:id',
+        summary: 'Update an existing custom geo resource by ID.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Custom geo resource ID.' },
+          { name: 'type', in: 'body', type: 'string', desc: 'Geo type: geoip or geosite.' },
+          { name: 'alias', in: 'body', type: 'string', desc: 'Alias used in routing rules.' },
+          { name: 'url', in: 'body', type: 'string', desc: 'URL to download the geo file from.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/custom-geo/delete/:id',
+        summary: 'Delete a custom geo resource and its downloaded file.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Custom geo resource ID.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/custom-geo/download/:id',
+        summary: 'Trigger an immediate download/update of a single custom geo resource.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Custom geo resource ID.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/custom-geo/update-all',
+        summary: 'Trigger an immediate update of all custom geo resources.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/custom-geo/schedule',
+        summary: 'Set the cron schedule for automatic geo updates. Pass an empty string to disable.',
+        params: [
+          { name: 'cron', in: 'body', type: 'string', desc: 'Cron expression (e.g. "0 3 * * *"). Empty string disables the schedule.' },
+        ],
+      },
+    ],
+  },
+
+  {
     id: 'backup',
     title: 'Backup',
     description: 'Operations that interact with the configured Telegram bot.',

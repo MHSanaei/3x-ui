@@ -634,7 +634,18 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "Get New Seed",
-        "listenHelp": "You can also enter a Unix socket path (e.g. /run/xray/in.sock) to listen on a socket instead of a TCP port — set Port to 0 in that case."
+        "listenHelp": "You can also enter a Unix socket path (e.g. /run/xray/in.sock) to listen on a socket instead of a TCP port — set Port to 0 in that case.",
+        "shareAddrStrategy": "Share address strategy",
+        "shareAddrStrategyHelp": "Controls which address is written into exported share links, QR codes, and subscription output.",
+        "shareAddr": "Custom share address",
+        "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme or port.",
+        "subSortIndex": "Subscription sort order",
+        "subSortIndexHelp": "Position of this inbound's links in subscription output (sub page and client apps). Lower values come first; equal values keep creation order. Does not affect the panel inbound list.",
+        "shareAddrStrategyOptions": {
+          "node": "Node address",
+          "listen": "Inbound listen",
+          "custom": "Custom"
+        }
       },
       "info": {
         "mode": "Mode",

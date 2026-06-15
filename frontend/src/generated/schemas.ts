@@ -3,6 +3,10 @@ export const SCHEMAS: Record<string, unknown> = {
   "AllSetting": {
     "description": "AllSetting contains all configuration settings for the 3x-ui panel including web server, Telegram bot, and subscription settings.",
     "properties": {
+      "customGeoCron": {
+        "description": "Custom Geo auto-update schedule (cron expression, empty = disabled)",
+        "type": "string"
+      },
       "datepicker": {
         "description": "Date picker format",
         "type": "string"
@@ -332,6 +336,7 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "customGeoCron",
       "datepicker",
       "expireDiff",
       "externalTrafficInformEnable",
@@ -419,6 +424,10 @@ export const SCHEMAS: Record<string, unknown> = {
   "AllSettingView": {
     "description": "AllSettingView is the browser-safe settings read model. Secret values\nare redacted from the embedded write model and represented by presence\nflags so the UI can show configured/not configured state.",
     "properties": {
+      "customGeoCron": {
+        "description": "Custom Geo auto-update schedule (cron expression, empty = disabled)",
+        "type": "string"
+      },
       "datepicker": {
         "description": "Date picker format",
         "type": "string"
@@ -766,6 +775,7 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "customGeoCron",
       "datepicker",
       "expireDiff",
       "externalTrafficInformEnable",
