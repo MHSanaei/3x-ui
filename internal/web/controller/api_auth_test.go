@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -86,6 +88,46 @@ func TestCheckAPIAuth_BearerSuccess(t *testing.T) {
 	}
 	if got := w.Body.String(); got != `{"api_authed":true}` {
 		t.Fatalf("body = %s, want api_authed true", got)
+	}
+}
+
+// TestCheckAPIAuth_AcceptsVerifiedClientCert asserts that a completed mTLS
+// handshake (a non-empty verified client chain) authenticates the request even
+// with no bearer token and no session — the equivalent of a valid token — and
+// sets api_authed so the CSRF middleware lets mutations through.
+func TestCheckAPIAuth_AcceptsVerifiedClientCert(t *testing.T) {
+	engine, _ := newAPIAuthTestEngine(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/panel/api/ping", nil)
+	req.TLS = &tls.ConnectionState{
+		VerifiedChains: [][]*x509.Certificate{{&x509.Certificate{}}},
+	}
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body=%s", w.Code, w.Body.String())
+	}
+	if got := w.Body.String(); got != `{"api_authed":true}` {
+		t.Fatalf("body = %s, want api_authed true", got)
+	}
+}
+
+// TestCheckAPIAuth_EmptyVerifiedChainsFallsThrough asserts a TLS request with no
+// verified client chain is NOT treated as authenticated (it falls through to the
+// bearer/session paths) — so the cert branch can't accidentally authorize plain
+// browser HTTPS.
+func TestCheckAPIAuth_EmptyVerifiedChainsFallsThrough(t *testing.T) {
+	engine, _ := newAPIAuthTestEngine(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/panel/api/ping", nil)
+	req.TLS = &tls.ConnectionState{} // handshake done, but no client cert verified
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401 (unauthenticated, no verified chain)", w.Code)
 	}
 }
 
