@@ -12,6 +12,7 @@ import type { FinalMaskStreamSettings } from '@/schemas/protocols/stream/finalma
 import type { XHttpStreamSettings } from '@/schemas/protocols/stream/xhttp';
 
 import { getHeaderValue } from './headers';
+import { canEnableTlsFlow } from './protocol-capabilities';
 
 // Share-link generators. Each per-protocol fn takes a typed inbound plus
 // client overrides and returns a URL (or '' when the protocol doesn't
@@ -186,7 +187,7 @@ export function genVmessLink(input: GenVmessLinkInput): string {
   const stream = inbound.streamSettings;
   if (!stream) return '';
 
-  const tls = forceTls === 'same' ? stream.security : forceTls;
+  const tls = forceTls === 'same' ? (stream.security ?? 'none') : forceTls;
   const obj: Record<string, unknown> = {
     v: '2',
     ps: remark,
@@ -382,7 +383,6 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       if (tls.settings.pinnedPeerCertSha256.length > 0) {
         params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
       }
-      if (stream.network === 'tcp' && flow.length > 0) params.set('flow', flow);
     }
     applyExternalProxyTLSParams(externalProxy, params, security);
   } else if (security === 'reality') {
@@ -402,10 +402,21 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       if (reality.shortIds.length > 0) params.set('sid', reality.shortIds[0]);
       if (reality.settings.spiderX.length > 0) params.set('spx', reality.settings.spiderX);
       if (reality.settings.mldsa65Verify.length > 0) params.set('pqv', reality.settings.mldsa65Verify);
-      if (stream.network === 'tcp' && flow.length > 0) params.set('flow', flow);
     }
   } else {
     params.set('security', 'none');
+  }
+
+  // XTLS Vision flow: TCP over tls/reality (classic) or XHTTP+vlessenc (the
+  // VLESS-level encryption stands in for transport TLS). Mirrors the backend's
+  // vlessFlowAllowed and the form's flow-field gating so panel link, share
+  // link and subscription agree.
+  if (flow.length > 0 && canEnableTlsFlow({
+    protocol: inbound.protocol,
+    settings: inbound.settings,
+    streamSettings: stream,
+  })) {
+    params.set('flow', flow);
   }
 
   const url = new URL(`vless://${clientId}@${formatUrlHost(address)}:${port}`);

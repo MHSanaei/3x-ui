@@ -567,3 +567,94 @@ describe('external proxy pinned cert (pcs)', () => {
     expect(new URL(link).searchParams.has('pcs')).toBe(false);
   });
 });
+
+// #5322: the panel copy-link must carry XTLS Vision `flow` for VLESS+XHTTP
+// when VLESS encryption (vlessenc) is on, matching the form's flow display
+// and the backend subscription. Gating is via canEnableTlsFlow.
+describe('genVlessLink flow gating (#5322)', () => {
+  function vlessXhttp(encryption: string) {
+    return InboundSchema.parse({
+      id: 1,
+      up: 0,
+      down: 0,
+      total: 0,
+      remark: 'vlessenc',
+      enable: true,
+      expiryTime: 0,
+      listen: '',
+      port: 443,
+      tag: 'inbound-vless-xhttp',
+      sniffing: {
+        enabled: false,
+        destOverride: [],
+        metadataOnly: false,
+        routeOnly: false,
+        ipsExcluded: [],
+        domainsExcluded: [],
+      },
+      protocol: 'vless',
+      settings: {
+        clients: [
+          {
+            id: '11111111-2222-3333-4444-555555555555',
+            email: 'a@example.test',
+            flow: 'xtls-rprx-vision',
+            limitIp: 0,
+            totalGB: 0,
+            expiryTime: 0,
+            enable: true,
+            tgId: 0,
+            subId: 's1',
+            comment: '',
+            reset: 0,
+          },
+        ],
+        decryption: 'none',
+        encryption,
+        fallbacks: [],
+      },
+      streamSettings: {
+        network: 'xhttp',
+        xhttpSettings: {},
+        security: 'none',
+      },
+    });
+  }
+
+  const clientId = '11111111-2222-3333-4444-555555555555';
+
+  it('emits flow for VLESS+XHTTP when vless encryption is enabled', () => {
+    const link = genVlessLink({
+      inbound: vlessXhttp('mlkem768x25519plus.native.0rtt.SGVsbG8'),
+      address: 'example.test',
+      port: 443,
+      clientId,
+      flow: 'xtls-rprx-vision',
+    });
+    expect(new URL(link).searchParams.get('flow')).toBe('xtls-rprx-vision');
+  });
+
+  it('omits flow for VLESS+XHTTP without vless encryption', () => {
+    const link = genVlessLink({
+      inbound: vlessXhttp('none'),
+      address: 'example.test',
+      port: 443,
+      clientId,
+      flow: 'xtls-rprx-vision',
+    });
+    expect(new URL(link).searchParams.has('flow')).toBe(false);
+  });
+
+  it('still emits flow for classic TCP+REALITY Vision', () => {
+    const [, raw] = fixturesForProtocol('vless').find(([name]) => name === 'vless-tcp-reality')!;
+    const typed = InboundSchema.parse(raw);
+    const link = genVlessLink({
+      inbound: typed,
+      address: 'example.test',
+      port: 443,
+      clientId: (raw as { settings: { clients: Array<{ id: string }> } }).settings.clients[0].id,
+      flow: 'xtls-rprx-vision',
+    });
+    expect(new URL(link).searchParams.get('flow')).toBe('xtls-rprx-vision');
+  });
+});

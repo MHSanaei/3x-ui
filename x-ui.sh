@@ -2409,8 +2409,8 @@ EOF
 
     # Ports to exempt from the ban so an over-limit proxy client can never lock
     # the administrator out of SSH or the panel. The ban still covers every other
-    # TCP port (including all Xray inbounds), so IP-limit keeps working for inbounds
-    # added later without regenerating these files.
+    # TCP and UDP port (including all Xray inbounds, e.g. UDP-based Hysteria2), so
+    # IP-limit keeps working for inbounds added later without regenerating these files.
     local ssh_ports
     ssh_ports=$(grep -oP '^[[:space:]]*Port[[:space:]]+\K[0-9]+' /etc/ssh/sshd_config 2>/dev/null | paste -sd, -)
     [[ -z "${ssh_ports}" ]] && ssh_ports="22"
@@ -2426,23 +2426,24 @@ before = iptables-allports.conf
 [Definition]
 actionstart = <iptables> -N f2b-<name>
               <iptables> -A f2b-<name> -j <returntype>
-              <iptables> -I <chain> -p <protocol> -j f2b-<name>
+              <iptables> -I <chain> -j f2b-<name>
 
-actionstop = <iptables> -D <chain> -p <protocol> -j f2b-<name>
+actionstop = <iptables> -D <chain> -j f2b-<name>
              <actionflush>
              <iptables> -X f2b-<name>
 
 actioncheck = <iptables> -n -L <chain> | grep -q 'f2b-<name>[ \t]'
 
-actionban = <iptables> -I f2b-<name> 1 -s <ip> -p <protocol> -m multiport ! --dports <exemptports> -j <blocktype>
+actionban = <iptables> -I f2b-<name> 1 -s <ip> -p tcp -m multiport ! --dports <exemptports> -j <blocktype>
+            <iptables> -I f2b-<name> 1 -s <ip> -p udp -m multiport ! --dports <exemptports> -j <blocktype>
             echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned for <bantime> seconds." >> ${iplimit_banned_log_path}
 
-actionunban = <iptables> -D f2b-<name> -s <ip> -p <protocol> -m multiport ! --dports <exemptports> -j <blocktype>
+actionunban = <iptables> -D f2b-<name> -s <ip> -p tcp -m multiport ! --dports <exemptports> -j <blocktype>
+              <iptables> -D f2b-<name> -s <ip> -p udp -m multiport ! --dports <exemptports> -j <blocktype>
               echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
 
 [Init]
 name = default
-protocol = tcp
 chain = INPUT
 exemptports = ${exempt_ports}
 EOF

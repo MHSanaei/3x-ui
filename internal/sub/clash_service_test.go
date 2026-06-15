@@ -56,7 +56,7 @@ func TestBuildProxy_VLESSRealityFieldsForClash(t *testing.T) {
 		"realitySettings": map[string]any{"serverName": "reality.example.com", "publicKey": "PBKvalue", "shortId": "ab12", "fingerprint": "chrome"},
 	}
 
-	proxy := svc.buildProxy(inbound, client, stream, "")
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, "")
 	if proxy == nil {
 		t.Fatal("buildProxy returned nil for a valid reality stream")
 	}
@@ -199,7 +199,7 @@ func TestBuildProxy_VLESSPostQuantumEncryptionUsesMihomoEncryptionField(t *testi
 		},
 	}
 
-	proxy := svc.buildProxy(inbound, client, stream, "")
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, "")
 
 	if proxy["encryption"] != encryption {
 		t.Fatalf("encryption = %v, want %q", proxy["encryption"], encryption)
@@ -231,7 +231,7 @@ func TestBuildProxy_VLESSFlowXhttpRealityVlessenc(t *testing.T) {
 		},
 	}
 
-	proxy := svc.buildProxy(inbound, client, stream, "")
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, "")
 
 	if proxy["flow"] != "xtls-rprx-vision" {
 		t.Fatalf("xhttp+reality+vlessenc Clash proxy must carry the vision flow (#5232): %#v", proxy)
@@ -256,7 +256,7 @@ func TestBuildProxy_VLESSFlowDroppedWithoutVisionSupport(t *testing.T) {
 		},
 	}
 
-	proxy := svc.buildProxy(inbound, client, stream, "")
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, "")
 
 	if _, ok := proxy["flow"]; ok {
 		t.Fatalf("tcp without tls/reality must not carry a flow: %#v", proxy)
@@ -281,7 +281,7 @@ func TestBuildProxy_VLESSNoneEncryptionOmittedForClash(t *testing.T) {
 		},
 	}
 
-	proxy := svc.buildProxy(inbound, client, stream, "")
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, "")
 
 	if _, ok := proxy["encryption"]; ok {
 		t.Fatalf("plain vless encryption should be omitted for mihomo: %#v", proxy)

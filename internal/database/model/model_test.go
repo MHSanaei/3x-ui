@@ -188,3 +188,85 @@ func TestInboundClientIpsUnmarshalJSONAcceptsBothShapes(t *testing.T) {
 		})
 	}
 }
+
+func TestStripInboundXhttpClientFields_RemovesClientOnlyKnobs(t *testing.T) {
+	stream := `{
+		"network": "xhttp",
+		"security": "reality",
+		"xhttpSettings": {
+			"path": "/app",
+			"host": "example.com",
+			"mode": "stream-one",
+			"xmux": { "maxConcurrency": "16-32" },
+			"downloadSettings": { "network": "xhttp" },
+			"scMinPostsIntervalMs": "20-40",
+			"uplinkChunkSize": 4096,
+			"noGRPCHeader": true
+		}
+	}`
+	out, changed := StripInboundXhttpClientFields(stream)
+	if !changed {
+		t.Fatal("expected client-only xhttp fields to be stripped")
+	}
+	if strings.Contains(out, `"xmux"`) {
+		t.Fatalf("xmux should be removed from xray config stream: %s", out)
+	}
+	for _, key := range []string{"downloadSettings", "scMinPostsIntervalMs", "uplinkChunkSize", "noGRPCHeader"} {
+		if strings.Contains(out, `"`+key+`"`) {
+			t.Fatalf("%s should be removed from xray config stream: %s", key, out)
+		}
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	xhttp := parsed["xhttpSettings"].(map[string]any)
+	if xhttp["path"] != "/app" || xhttp["host"] != "example.com" {
+		t.Fatalf("server fields must survive: %#v", xhttp)
+	}
+}
+
+func TestStripInboundXhttpClientFields_UnchangedWithoutClientFields(t *testing.T) {
+	stream := `{"network":"xhttp","xhttpSettings":{"path":"/app","mode":"stream-one"}}`
+	out, changed := StripInboundXhttpClientFields(stream)
+	if changed {
+		t.Fatalf("expected no change, got: %s", out)
+	}
+	if out != stream {
+		t.Fatalf("unchanged stream must be returned verbatim")
+	}
+}
+
+func TestStripInboundXhttpClientFields_NonXhttpPassthrough(t *testing.T) {
+	stream := `{"network":"ws","wsSettings":{"path":"/"}}`
+	out, changed := StripInboundXhttpClientFields(stream)
+	if changed || out != stream {
+		t.Fatalf("non-xhttp stream must pass through unchanged, got changed=%v out=%s", changed, out)
+	}
+}
+
+func TestGenXrayInboundConfig_OmitsInboundXmuxButDbRowUnchanged(t *testing.T) {
+	stream := `{
+		"network": "xhttp",
+		"xhttpSettings": {
+			"path": "/app",
+			"mode": "stream-one",
+			"xmux": { "maxConcurrency": "16-32", "hMaxRequestTimes": "600-900" }
+		}
+	}`
+	in := Inbound{
+		Protocol:       VLESS,
+		Port:           443,
+		Listen:         "0.0.0.0",
+		Tag:            "in-xhttp",
+		Settings:       `{"clients":[],"decryption":"none"}`,
+		StreamSettings: stream,
+	}
+	cfg := in.GenXrayInboundConfig()
+	if strings.Contains(string(cfg.StreamSettings), `"xmux"`) {
+		t.Fatalf("GenXrayInboundConfig must not emit xmux: %s", cfg.StreamSettings)
+	}
+	if strings.Contains(in.StreamSettings, `"xmux"`) == false {
+		t.Fatal("inbound row streamSettings must still carry xmux for subscriptions")
+	}
+}

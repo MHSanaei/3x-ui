@@ -66,7 +66,7 @@ describe('normalizeXhttpForWire stream-one', () => {
     expect(out).not.toHaveProperty('scMaxEachPostBytes');
   });
 
-  it('keeps inbound xmux when enableXmux is on (for the share-link extra)', () => {
+  it('keeps inbound xmux when enableXmux is on (stored for subscription extra; stripped from xray config on Go side)', () => {
     const out = normalizeXhttpForWire({
       path: '/app',
       mode: 'auto',

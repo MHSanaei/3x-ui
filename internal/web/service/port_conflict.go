@@ -115,8 +115,11 @@ func (d *portConflictDetail) String() string {
 	}
 	if name == "" {
 		name = fmt.Sprintf("#%d", d.InboundID)
-	} else {
+	} else if d.InboundID > 0 {
 		name = fmt.Sprintf("'%s' (#%d)", name, d.InboundID)
+	} else {
+		// reserved/system inbounds (e.g. the Xray API) have no DB id.
+		name = fmt.Sprintf("'%s'", name)
 	}
 	listen := d.Listen
 	if isAnyListen(listen) {
@@ -126,7 +129,52 @@ func (d *portConflictDetail) String() string {
 		d.Port, transportTagSuffix(d.Transports), name, listen)
 }
 
+// defaultXrayAPIPort is the loopback port of the internal Xray API inbound
+// (tag "api") seeded into the config template. Used as a fallback when the
+// template can't be parsed.
+const defaultXrayAPIPort = 62789
+
+// reservedAPIPort returns the port of the internal Xray API inbound declared
+// in the config template, falling back to defaultXrayAPIPort.
+func reservedAPIPort() int {
+	tmpl, err := (&SettingService{}).GetXrayConfigTemplate()
+	if err != nil || tmpl == "" {
+		return defaultXrayAPIPort
+	}
+	var parsed struct {
+		Inbounds []struct {
+			Port int    `json:"port"`
+			Tag  string `json:"tag"`
+		} `json:"inbounds"`
+	}
+	if json.Unmarshal([]byte(tmpl), &parsed) != nil {
+		return defaultXrayAPIPort
+	}
+	for _, in := range parsed.Inbounds {
+		if in.Tag == "api" && in.Port > 0 {
+			return in.Port
+		}
+	}
+	return defaultXrayAPIPort
+}
+
 func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int) (*portConflictDetail, error) {
+	newBits := inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings)
+
+	// The internal Xray API inbound (tag "api", loopback TCP) isn't a DB row,
+	// so a local user inbound reusing its port would leave Xray binding the
+	// port twice (#5304). Nodes run their own Xray, so this only applies to
+	// the local panel.
+	if inbound.NodeID == nil && inbound.Port == reservedAPIPort() &&
+		newBits&transportTCP != 0 && listenOverlaps("127.0.0.1", inbound.Listen) {
+		return &portConflictDetail{
+			Tag:        "api",
+			Listen:     "127.0.0.1",
+			Port:       inbound.Port,
+			Transports: transportTCP,
+		}, nil
+	}
+
 	db := database.GetDB()
 
 	var candidates []*model.Inbound
@@ -138,7 +186,6 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 		return nil, err
 	}
 
-	newBits := inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings)
 	for _, c := range candidates {
 		if !sameNode(c.NodeID, inbound.NodeID) {
 			continue
