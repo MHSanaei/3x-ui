@@ -275,8 +275,11 @@ func (s *NodeService) normalize(n *model.Node) error {
 	if n.Scheme != "http" && n.Scheme != "https" {
 		n.Scheme = "https"
 	}
-	if n.TlsVerifyMode != "skip" && n.TlsVerifyMode != "pin" {
+	if n.TlsVerifyMode != "skip" && n.TlsVerifyMode != "pin" && n.TlsVerifyMode != "mtls" {
 		n.TlsVerifyMode = "verify"
+	}
+	if n.TlsVerifyMode == "mtls" && n.Scheme != "https" {
+		return common.NewError("mtls requires the node scheme to be https")
 	}
 	n.PinnedCertSha256 = strings.TrimSpace(n.PinnedCertSha256)
 	if n.InboundSyncMode != "selected" {

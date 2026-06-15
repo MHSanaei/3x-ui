@@ -797,6 +797,12 @@ export const sections: readonly Section[] = [
         responseSchemaArray: true,
       },
       {
+        method: 'POST',
+        path: '/panel/api/nodes/mtls/ca',
+        summary: "This panel's node-auth CA certificate (public, PEM) to paste into a node's mTLS trust setting. Lazily mints the CA and the master client cert on first call. Pair with setting tlsVerifyMode=mtls on the node.",
+        response: '{\n  "success": true,\n  "obj": {\n    "caCert": "-----BEGIN CERTIFICATE-----\\n...\\n-----END CERTIFICATE-----\\n"\n  }\n}',
+      },
+      {
         method: 'GET',
         path: '/panel/api/nodes/get/:id',
         summary: 'Fetch a single node by ID.',

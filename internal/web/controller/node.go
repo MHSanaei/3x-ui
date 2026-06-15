@@ -43,6 +43,19 @@ func (a *NodeController) initRouter(g *gin.RouterGroup) {
 	g.POST("/probe/:id", a.probe)
 	g.POST("/updatePanel", a.updatePanel)
 	g.GET("/history/:id/:metric/:bucket", a.history)
+	g.POST("/mtls/ca", a.mtlsCa)
+}
+
+// mtlsCa returns this panel's node-auth CA certificate (public) to paste into a
+// node's mTLS trust setting. It lazily mints the CA + master client cert on
+// first call.
+func (a *NodeController) mtlsCa(c *gin.Context) {
+	caCert, err := a.nodeService.NodeMtlsCaCert()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, gin.H{"caCert": caCert}, nil)
 }
 
 func (a *NodeController) list(c *gin.Context) {
