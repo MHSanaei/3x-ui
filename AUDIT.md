@@ -231,3 +231,30 @@ fuzz smoke (`-fuzztime=30s`) on the critical parsers.
    `tx.Exec(tagCleanup)`; then remove the `t.Skip` from `TestMigrationRequirements_CleansLegacyZeroAddrTag`.
 2. **Finding #2** — `internal/logger/logger.go`: guard `logBuffer` with a mutex in `addToBuffer` +
    `GetLogs`; then drop `continue-on-error` from the CI `race` job.
+
+---
+
+## 8. Exhaustive whole-repo pass (every test file)
+
+After the scoped audit, a second pass covered **all 141 test files** (93 Go + 48 frontend incl.
+snapshots) — fan-out over 13 batches, each candidate then handed to an **adversarial verifier** that
+tried to refute it. Result: **18 candidates → 5 confirmed, 13 refuted.** All 5 are weak/fake TESTS
+(no new prod bugs); all 5 strengthened (each Go fix mutation-sanity'd). The 13 refutations were
+correct rejections — mostly "snapshot-only" flags where the committed `.snap` genuinely pins values
+or a sibling test already value-asserts the behavior.
+
+| # | File / test | Smell | Fix (strengthened) |
+|---|---|---|---|
+| E1 | `internal/util/netproxy/netproxy_test.go` `TestNewHTTPClient` | over-broad (**high**) | asserted only `Proxy!=nil`/`DialContext!=nil`, but `baseTransport()` clones `http.DefaultTransport` which already has both non-nil → the test passed even if the proxy/dialer assignment were deleted. Now asserts `transport.Proxy(req)` returns the configured URL and the socks5 `DialContext` differs from the default pointer; empty proxy → nil transport. Mutation-sanity'd. |
+| E2 | `internal/web/middleware/security_test.go` `TestSecurityHeadersMiddleware` | happy-path-only | never asserted the **Content-Security-Policy** header. Now asserts CSP is nonce-bound (`script-src 'self' 'nonce-<csp_nonce>'`), keeps `object-src 'none'`/`frame-ancestors 'none'`/`base-uri`/`form-action`, and that script-src has **no** `unsafe-inline`. Mutation-sanity'd. |
+| E3 | `frontend/.../inbound-form-modal.test.tsx` "field structure is stable for every protocol" | snapshot-only (**fake**) | the per-protocol loop read `fieldLabels()` synchronously before antd `Form.useWatch('protocol')` re-rendered → all 10 protocol snapshots were byte-identical (vacuous). Now flushes the watch, asserts field sets **differ** across protocols, and spot-checks shadowsocks shows "Encryption method". Obsolete snapshots pruned. |
+| E4 | `frontend/.../outbound-form-modal.test.tsx` "field structure is stable for every protocol" | snapshot-only | same vacuous-loop defect (all 11 snapshots = default vless view). Same fix; spot-checks vless has / wireguard lacks "Encryption". Obsolete snapshots pruned. |
+| E5 | `frontend/.../protocols.test.ts` fixture parse | snapshot-only | coercions were pinned only by a regenerable snapshot. Added explicit `InboundSettingsSchema` coercion asserts (vmess `alterId` default 0, `tgId` string→number incl. non-numeric→0, vless `decryption`/`encryption`→"none"). |
+
+**Refuted (13, summary):** snapshot-only flags on `inbound-full`, `dns`, `balancer`,
+`inbound-form-blocks`, `protocol-capabilities`, `rule`, `sockopt`, `stream` — each `.snap` genuinely
+pins the transformed values and/or a sibling test (`inbound-from-db`, `stream-wire-normalize`,
+`security`, `inbound-defaults`) value-asserts the behavior; `outbound_subscription_test`
+(`outboundsContainTag` mirror) is covered by `TestBuildBatchTestConfig`; `check_hash_storage` nil-case
+test is adequately scoped; `cadence_test` value-pinning is a style preference; two modal smoke tests
+are covered by their sibling field-structure tests.
