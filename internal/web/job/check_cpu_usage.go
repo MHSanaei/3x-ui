@@ -1,18 +1,16 @@
 package job
 
 import (
-	"strconv"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
 
 	"github.com/shirou/gopsutil/v4/cpu"
 )
 
-// CheckCpuJob monitors CPU usage and sends Telegram notifications when usage exceeds the configured threshold.
+// CheckCpuJob monitors CPU usage and publishes events when threshold is exceeded.
 type CheckCpuJob struct {
-	tgbotService   tgbot.Tgbot
 	settingService service.SettingService
 }
 
@@ -21,21 +19,19 @@ func NewCheckCpuJob() *CheckCpuJob {
 	return new(CheckCpuJob)
 }
 
-// Run checks CPU usage over the last minute and sends a Telegram alert if it exceeds the threshold.
+// Run checks CPU usage and publishes a cpu.high event with raw metric data.
 func (j *CheckCpuJob) Run() {
-	threshold, err := j.settingService.GetTgCpu()
-	if err != nil || threshold <= 0 {
-		// If threshold cannot be retrieved or is not set, skip sending notifications
+	percent, err := cpu.Percent(1*time.Minute, false)
+	if err != nil || len(percent) == 0 {
 		return
 	}
 
-	// get latest status of server
-	percent, err := cpu.Percent(1*time.Minute, false)
-	if err == nil && percent[0] > float64(threshold) {
-		msg := j.tgbotService.I18nBot("tgbot.messages.cpuThreshold",
-			"Percent=="+strconv.FormatFloat(percent[0], 'f', 2, 64),
-			"Threshold=="+strconv.Itoa(threshold))
-
-		j.tgbotService.SendMsgToTgbotAdmins(msg)
+	if EventBus != nil {
+		EventBus.Publish(eventbus.Event{
+			Type: eventbus.EventCPUHigh,
+			Data: &eventbus.SystemMetricData{
+				Percent: percent[0],
+			},
+		})
 	}
 }

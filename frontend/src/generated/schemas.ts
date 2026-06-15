@@ -112,6 +112,46 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 1,
         "type": "integer"
       },
+      "smtpCpu": {
+        "description": "CPU threshold for email notifications",
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "smtpEnable": {
+        "description": "Email (SMTP) notification settings\nEnable email notifications",
+        "type": "boolean"
+      },
+      "smtpEnabledEvents": {
+        "description": "Comma-separated event types to send via email",
+        "type": "string"
+      },
+      "smtpEncryptionType": {
+        "description": "SMTP encryption: none, starttls, tls",
+        "type": "string"
+      },
+      "smtpHost": {
+        "description": "SMTP server host",
+        "type": "string"
+      },
+      "smtpPassword": {
+        "description": "SMTP password",
+        "type": "string"
+      },
+      "smtpPort": {
+        "description": "SMTP server port",
+        "maximum": 65535,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "smtpTo": {
+        "description": "Comma-separated recipient emails",
+        "type": "string"
+      },
+      "smtpUsername": {
+        "description": "SMTP username",
+        "type": "string"
+      },
       "subAnnounce": {
         "description": "Subscription announce",
         "type": "string"
@@ -251,10 +291,6 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Telegram bot settings\nEnable Telegram bot notifications",
         "type": "boolean"
       },
-      "tgBotLoginNotify": {
-        "description": "Send login notifications",
-        "type": "boolean"
-      },
       "tgBotProxy": {
         "description": "Proxy URL for Telegram bot",
         "type": "string"
@@ -268,6 +304,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 100,
         "minimum": 0,
         "type": "integer"
+      },
+      "tgEnabledEvents": {
+        "description": "Comma-separated event types to send via Telegram",
+        "type": "string"
       },
       "tgLang": {
         "description": "Telegram bot language",
@@ -361,6 +401,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "remarkModel",
       "restartXrayOnClientDisable",
       "sessionMaxAge",
+      "smtpCpu",
+      "smtpEnable",
+      "smtpEnabledEvents",
+      "smtpEncryptionType",
+      "smtpHost",
+      "smtpPassword",
+      "smtpPort",
+      "smtpTo",
+      "smtpUsername",
       "subAnnounce",
       "subCertFile",
       "subClashEnable",
@@ -395,10 +444,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "tgBotBackup",
       "tgBotChatId",
       "tgBotEnable",
-      "tgBotLoginNotify",
       "tgBotProxy",
       "tgBotToken",
       "tgCpu",
+      "tgEnabledEvents",
       "tgLang",
       "tgRunTime",
       "timeLocation",
@@ -546,6 +595,46 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 1,
         "type": "integer"
       },
+      "smtpCpu": {
+        "description": "CPU threshold for email notifications",
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "smtpEnable": {
+        "description": "Email (SMTP) notification settings\nEnable email notifications",
+        "type": "boolean"
+      },
+      "smtpEnabledEvents": {
+        "description": "Comma-separated event types to send via email",
+        "type": "string"
+      },
+      "smtpEncryptionType": {
+        "description": "SMTP encryption: none, starttls, tls",
+        "type": "string"
+      },
+      "smtpHost": {
+        "description": "SMTP server host",
+        "type": "string"
+      },
+      "smtpPassword": {
+        "description": "SMTP password",
+        "type": "string"
+      },
+      "smtpPort": {
+        "description": "SMTP server port",
+        "maximum": 65535,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "smtpTo": {
+        "description": "Comma-separated recipient emails",
+        "type": "string"
+      },
+      "smtpUsername": {
+        "description": "SMTP username",
+        "type": "string"
+      },
       "subAnnounce": {
         "description": "Subscription announce",
         "type": "string"
@@ -685,10 +774,6 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Telegram bot settings\nEnable Telegram bot notifications",
         "type": "boolean"
       },
-      "tgBotLoginNotify": {
-        "description": "Send login notifications",
-        "type": "boolean"
-      },
       "tgBotProxy": {
         "description": "Proxy URL for Telegram bot",
         "type": "string"
@@ -702,6 +787,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 100,
         "minimum": 0,
         "type": "integer"
+      },
+      "tgEnabledEvents": {
+        "description": "Comma-separated event types to send via Telegram",
+        "type": "string"
       },
       "tgLang": {
         "description": "Telegram bot language",
@@ -801,6 +890,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "remarkModel",
       "restartXrayOnClientDisable",
       "sessionMaxAge",
+      "smtpCpu",
+      "smtpEnable",
+      "smtpEnabledEvents",
+      "smtpEncryptionType",
+      "smtpHost",
+      "smtpPassword",
+      "smtpPort",
+      "smtpTo",
+      "smtpUsername",
       "subAnnounce",
       "subCertFile",
       "subClashEnable",
@@ -835,10 +933,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "tgBotBackup",
       "tgBotChatId",
       "tgBotEnable",
-      "tgBotLoginNotify",
       "tgBotProxy",
       "tgBotToken",
       "tgCpu",
+      "tgEnabledEvents",
       "tgLang",
       "tgRunTime",
       "timeLocation",

@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"embed"
+	"fmt"
 	"io"
 	"io/fs"
 	"net"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
+	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
@@ -26,9 +28,11 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/network"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/email"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sessions"
@@ -112,6 +116,7 @@ type Server struct {
 
 	wsHub *websocket.Hub
 
+	bus  *eventbus.Bus
 	cron *cron.Cron
 
 	ctx    context.Context
@@ -369,9 +374,9 @@ func (s *Server) startTask(restartXray bool) {
 		// check for Telegram bot callback query hash storage reset
 		s.cron.AddJob(cadenceCheckHash, job.NewCheckHashStorageJob())
 
-		// Check CPU load and alarm to TgBot if threshold passes
-		cpuThreshold, err := s.settingService.GetTgCpu()
-		if (err == nil) && (cpuThreshold > 0) {
+		// Check CPU load and alarm if threshold passes
+		tgCpu, err := s.settingService.GetTgCpu()
+		if (err == nil) && (tgCpu > 0) {
 			s.cron.AddJob(cadenceCPUAlarm, job.NewCheckCpuJob())
 		}
 	} else {
@@ -479,6 +484,42 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		s.httpServer.Serve(listener)
 	}()
 
+	// Create event bus before startTask so jobs can use it
+	s.bus = eventbus.New(eventbus.DefaultBufferSize)
+	service.SetEventBus(s.bus)
+	job.EventBus = s.bus
+	tgbot.EventBus = s.bus
+
+	// Wire xray crash callback BEFORE startTask so it's ready
+	xray.OnCrash = func(err error) {
+		if s.bus != nil {
+			s.bus.Publish(eventbus.Event{
+				Type: eventbus.EventXrayCrash,
+				Data: err.Error(),
+			})
+		}
+	}
+
+	// Register email subscriber (always — it checks smtpEnable at runtime)
+	emailService := email.NewEmailService(s.settingService)
+	emailSub := email.NewSubscriber(s.settingService, emailService)
+	s.bus.Subscribe("email-notifier", emailSub.HandleEvent)
+
+	// Wire email service to controller for test endpoint
+	controller.SetEmailService(emailService)
+
+	// Wire Telegram test function to controller
+	controller.SetTestTgFunc(func() error {
+		if !s.tgbotService.IsRunning() {
+			return fmt.Errorf("telegram bot is not running (check token and chat ID)")
+		}
+		if err := s.tgbotService.TestConnection(); err != nil {
+			return fmt.Errorf("telegram API test failed: %w", err)
+		}
+		s.tgbotService.SendMsgToTgbotAdmins("✅ Test message from 3x-ui")
+		return nil
+	})
+
 	s.startTask(restartXray)
 
 	if startTgBot {
@@ -486,6 +527,8 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		if (err == nil) && (isTgbotenabled) {
 			tgBot := s.tgbotService.NewTgbot()
 			tgBot.Start(i18nFS)
+			// Subscribe Telegram notifications for event bus
+			s.bus.Subscribe("tg-notifier", s.tgbotService.HandleEvent)
 		}
 	}
 
@@ -509,6 +552,9 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	}
 	if s.cron != nil {
 		s.cron.Stop()
+	}
+	if s.bus != nil {
+		s.bus.Stop()
 	}
 	if err := service.PersistSystemMetrics(); err != nil {
 		logger.Warning("persist system metrics on shutdown failed:", err)

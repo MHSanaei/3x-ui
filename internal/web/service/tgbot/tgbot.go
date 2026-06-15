@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
@@ -42,6 +43,9 @@ var (
 	isRunning   bool
 	hostname    string
 	hashStorage *global.HashStorage
+
+	// EventBus is set from web layer to publish login/security events.
+	EventBus *eventbus.Bus
 
 	// Performance improvements
 	messageWorkerPool   chan struct{} // Semaphore for limiting concurrent message processing
