@@ -221,7 +221,7 @@ func GetLogs(c int, level string) []string {
 
 	logBufferMu.Lock()
 	defer logBufferMu.Unlock()
-	for i := len(logBuffer) - 1; i >= 0 && len(output) <= c; i-- {
+	for i := len(logBuffer) - 1; i >= 0 && len(output) < c; i-- {
 		if logBuffer[i].level <= logLevel {
 			output = append(output, fmt.Sprintf("%s %s - %s", logBuffer[i].time, logBuffer[i].level, logBuffer[i].log))
 		}
