@@ -486,7 +486,7 @@ func HealMtprotoSecret(settings string) (string, bool) {
 // Setting stores key-value configuration settings for the 3x-ui panel.
 type Setting struct {
 	Id    int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	Key   string `json:"key" form:"key"`
+	Key   string `json:"key" form:"key" gorm:"index:idx_settings_key"`
 	Value string `json:"value" form:"value"`
 }
 
