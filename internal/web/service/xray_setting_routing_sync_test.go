@@ -242,12 +242,15 @@ func TestUpdateInbound_PropagatesRoutingRuleOnPortChange(t *testing.T) {
 	update := existing
 	update.Port = 33000
 	update.Tag = "in-22435-tcp"
-	got, _, err := svc.UpdateInbound(&update)
+	got, needRestart, err := svc.UpdateInbound(&update)
 	if err != nil {
 		t.Fatalf("UpdateInbound: %v", err)
 	}
 	if got.Tag != "in-33000-tcp" {
 		t.Fatalf("returned tag = %q, want in-33000-tcp", got.Tag)
+	}
+	if !needRestart {
+		t.Fatal("expected needRestart after routing template sync on tag rename")
 	}
 
 	xraySvc := &XraySettingService{}
