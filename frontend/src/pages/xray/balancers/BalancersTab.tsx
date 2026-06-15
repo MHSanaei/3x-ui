@@ -265,7 +265,7 @@ export default function BalancersTab({
       align: 'center',
       render: (_v, record) =>
         (record.selector || []).map((sel) => (
-          <Tag key={sel} className="info-large-tag">
+          <Tag key={sel} className="info-large-tag" style={{ margin: 0, marginRight: 4 }}>
             {sel}
           </Tag>
         )),

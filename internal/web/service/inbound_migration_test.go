@@ -90,6 +90,45 @@ func TestMigrationRequirements_BackfillsClientTrafficsWithMultiDomainInbound(t *
 	}
 }
 
+// TestMigrationRequirements_CleansLegacyZeroAddrTag guards the legacy tag cleanup that
+// strips the auto-generated "0.0.0.0:" prefix. The inbound is MultiDomain TLS so the
+// externalProxy detection query returns rows and the cleanup is reached (it early-returns
+// at len(externalProxy)==0 otherwise). The cleanup must use tx.Exec, not tx.Raw, which
+// only builds a non-SELECT statement without running it.
+func TestMigrationRequirements_CleansLegacyZeroAddrTag(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+	legacy := &model.Inbound{
+		UserId:         1,
+		Tag:            "inbound-0.0.0.0:30002",
+		Enable:         true,
+		Port:           30002,
+		Protocol:       model.VLESS,
+		Settings:       `{"clients":[]}`,
+		StreamSettings: `{"security":"tls","tlsSettings":{"settings":{"domains":[{"domain":"example.com"}]}}}`,
+	}
+	if err := db.Create(legacy).Error; err != nil {
+		t.Fatalf("create legacy inbound: %v", err)
+	}
+
+	svc := InboundService{}
+	svc.MigrationRequirements()
+
+	var got model.Inbound
+	if err := db.First(&got, legacy.Id).Error; err != nil {
+		t.Fatalf("reload inbound: %v", err)
+	}
+	if got.Tag != "inbound-30002" {
+		t.Fatalf("legacy 0.0.0.0: tag not stripped: got %q, want %q", got.Tag, "inbound-30002")
+	}
+}
+
 func TestMigrationRequirements_NormalizesShareAddressFields(t *testing.T) {
 	setupConflictDB(t)
 	db := database.GetDB()
