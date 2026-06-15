@@ -248,7 +248,10 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
               <EventBusCheckboxes
                 value={allSetting.tgEnabledEvents}
                 onChange={(v) => updateSetting({ tgEnabledEvents: v })}
-                extra={{ 'cpu.high': { key: 'tgCpu', value: allSetting.tgCpu } }}
+                extra={{
+                  'cpu.high': { key: 'tgCpu', value: allSetting.tgCpu },
+                  'memory.high': { key: 'tgMemory', value: allSetting.tgMemory },
+                }}
                 onExtraChange={(key, v) => updateSetting({ [key]: Number(v) || 0 })}
               />
             </SettingListItem>

@@ -125,7 +125,10 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
               <EventBusCheckboxes
                 value={allSetting.smtpEnabledEvents}
                 onChange={(v) => updateSetting({ smtpEnabledEvents: v })}
-                extra={{ 'cpu.high': { key: 'smtpCpu', value: allSetting.smtpCpu } }}
+                extra={{
+                  'cpu.high': { key: 'smtpCpu', value: allSetting.smtpCpu },
+                  'memory.high': { key: 'smtpMemory', value: allSetting.smtpMemory },
+                }}
                 onExtraChange={(key, v) => updateSetting({ [key]: Number(v) || 0 })}
               />
             </SettingListItem>

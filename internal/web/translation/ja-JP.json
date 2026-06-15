@@ -1290,7 +1290,8 @@
       "smtpErrorTimeout": "接続がタイムアウトしました — ホストに到達できません",
       "smtpErrorRelay": "サーバーはこのアドレスからの送信を拒否しています",
       "smtpErrorEof": "サーバーによって接続が閉じられました",
-      "smtpErrorUnknown": "SMTPエラー: {{ .Error }}"
+      "smtpErrorUnknown": "SMTPエラー: {{ .Error }}",
+      "eventMemoryHigh": "メモリ使用率が高い (%)"
     },
     "xray": {
       "title": "Xray 設定",
@@ -1804,7 +1805,8 @@
       "eventNodeUp": "ノード {{ .Name }} が復旧しました",
       "eventCPUHigh": "CPU高負荷",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "{{ .Source }} からのログインに失敗しました"
+      "eventLoginFallback": "{{ .Source }} からのログインに失敗しました",
+      "memoryThreshold": "メモリ使用率 {{ .Percent }}% がしきい値 {{ .Threshold }}% を超えました"
     },
     "buttons": {
       "closeKeyboard": "❌ キーボードを閉じる",

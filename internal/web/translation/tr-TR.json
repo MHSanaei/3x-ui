@@ -1290,7 +1290,8 @@
       "smtpErrorTimeout": "Bağlantı zaman aşımına uğradı — sunucuya ulaşılamıyor",
       "smtpErrorRelay": "Sunucu bu adresten gönderimi reddediyor",
       "smtpErrorEof": "Bağlantı sunucu tarafından kapatıldı",
-      "smtpErrorUnknown": "SMTP hatası: {{ .Error }}"
+      "smtpErrorUnknown": "SMTP hatası: {{ .Error }}",
+      "eventMemoryHigh": "Bellek kullanımı yüksek (%)"
     },
     "xray": {
       "title": "Xray Yapılandırmaları",
@@ -1804,7 +1805,8 @@
       "eventNodeUp": "{{ .Name }} düğümü ÇEVRİMİÇİ",
       "eventCPUHigh": "Yüksek CPU",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "{{ .Source }} adresinden oturum açma başarısız"
+      "eventLoginFallback": "{{ .Source }} adresinden oturum açma başarısız",
+      "memoryThreshold": "Bellek kullanımı {{ .Percent }}% eşiği {{ .Threshold }}% aşıyor"
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",

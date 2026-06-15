@@ -1290,7 +1290,8 @@
       "smtpErrorTimeout": "انتهت مهلة الاتصال — تعذّر الوصول إلى الخادم",
       "smtpErrorRelay": "الخادم يرفض الإرسال من هذا العنوان",
       "smtpErrorEof": "تم إغلاق الاتصال من قبل الخادم",
-      "smtpErrorUnknown": "خطأ SMTP: {{ .Error }}"
+      "smtpErrorUnknown": "خطأ SMTP: {{ .Error }}",
+      "eventMemoryHigh": "ارتفاع استخدام الذاكرة (%)"
     },
     "xray": {
       "title": "إعدادات Xray",
@@ -1804,7 +1805,8 @@
       "eventNodeUp": "العقدة {{ .Name }} متصلة",
       "eventCPUHigh": "ارتفاع استخدام المعالج",
       "eventCPUHighDetail": "المعالج: {{ .Detail }}",
-      "eventLoginFallback": "فشل تسجيل الدخول من {{ .Source }}"
+      "eventLoginFallback": "فشل تسجيل الدخول من {{ .Source }}",
+      "memoryThreshold": "استخدام الذاكرة {{ .Percent }}% يتجاوز الحد {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",

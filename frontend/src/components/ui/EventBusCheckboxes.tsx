@@ -37,6 +37,7 @@ const EVENT_GROUPS: EventGroup[] = [
     labelKey: 'pages.settings.eventGroupSystem',
     events: [
       { value: 'cpu.high', labelKey: 'pages.settings.eventCPUHigh' },
+      { value: 'memory.high', labelKey: 'pages.settings.eventMemoryHigh' },
     ],
   },
   {

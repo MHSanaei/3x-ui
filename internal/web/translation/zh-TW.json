@@ -1290,7 +1290,8 @@
       "smtpErrorTimeout": "連線逾時 — 無法連線至主機",
       "smtpErrorRelay": "伺服器拒絕從此地址傳送",
       "smtpErrorEof": "連線已被伺服器關閉",
-      "smtpErrorUnknown": "SMTP 錯誤：{{ .Error }}"
+      "smtpErrorUnknown": "SMTP 錯誤：{{ .Error }}",
+      "eventMemoryHigh": "記憶體使用率高 (%)"
     },
     "xray": {
       "title": "Xray 配置",
@@ -1804,7 +1805,8 @@
       "eventNodeUp": "節點 {{ .Name }} 已上線",
       "eventCPUHigh": "CPU 偏高",
       "eventCPUHighDetail": "CPU：{{ .Detail }}",
-      "eventLoginFallback": "來自 {{ .Source }} 的登入失敗"
+      "eventLoginFallback": "來自 {{ .Source }} 的登入失敗",
+      "memoryThreshold": "記憶體使用率 {{ .Percent }}% 超過閾值 {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ 關閉鍵盤",

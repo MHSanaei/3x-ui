@@ -1290,7 +1290,8 @@
       "smtpErrorTimeout": "Tempo de conexão esgotado — host inacessível",
       "smtpErrorRelay": "O servidor rejeita o envio a partir deste endereço",
       "smtpErrorEof": "Conexão encerrada pelo servidor",
-      "smtpErrorUnknown": "Erro de SMTP: {{ .Error }}"
+      "smtpErrorUnknown": "Erro de SMTP: {{ .Error }}",
+      "eventMemoryHigh": "Uso de memória alto (%)"
     },
     "xray": {
       "title": "Configurações Xray",
@@ -1804,7 +1805,8 @@
       "eventNodeUp": "O nó {{ .Name }} está ATIVO",
       "eventCPUHigh": "CPU alta",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "Falha de login a partir de {{ .Source }}"
+      "eventLoginFallback": "Falha de login a partir de {{ .Source }}",
+      "memoryThreshold": "Uso de memória {{ .Percent }}% excede o limite de {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ Fechar teclado",

@@ -1290,7 +1290,8 @@
       "smtpErrorTimeout": "Hết thời gian kết nối — không thể truy cập máy chủ",
       "smtpErrorRelay": "Máy chủ từ chối gửi từ địa chỉ này",
       "smtpErrorEof": "Kết nối đã bị máy chủ đóng",
-      "smtpErrorUnknown": "Lỗi SMTP: {{ .Error }}"
+      "smtpErrorUnknown": "Lỗi SMTP: {{ .Error }}",
+      "eventMemoryHigh": "Sử dụng bộ nhớ cao (%)"
     },
     "xray": {
       "title": "Cài đặt Xray",
@@ -1804,7 +1805,8 @@
       "eventNodeUp": "Node {{ .Name }} đã HOẠT ĐỘNG",
       "eventCPUHigh": "CPU cao",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "Đăng nhập thất bại từ {{ .Source }}"
+      "eventLoginFallback": "Đăng nhập thất bại từ {{ .Source }}",
+      "memoryThreshold": "Sử dụng bộ nhớ {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",

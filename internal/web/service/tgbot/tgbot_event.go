@@ -123,6 +123,18 @@ func (t *Tgbot) formatEventMessage(e eventbus.Event) string {
 		}
 		return ""
 
+	case eventbus.EventMemoryHigh:
+		if data, ok := e.Data.(*eventbus.SystemMetricData); ok {
+			tgMemory, err := t.settingService.GetTgMemory()
+			if err != nil || tgMemory <= 0 || data.Percent <= float64(tgMemory) {
+				return ""
+			}
+			return header + "🔴 " + t.I18nBot("tgbot.messages.memoryThreshold",
+				"Percent=="+strconv.FormatFloat(data.Percent, 'f', 2, 64),
+				"Threshold=="+strconv.Itoa(tgMemory))
+		}
+		return ""
+
 	case eventbus.EventLoginAttempt:
 		if data, ok := e.Data.(*eventbus.LoginEventData); ok {
 			if data.Status == "success" {

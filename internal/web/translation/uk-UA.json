@@ -1290,7 +1290,8 @@
       "smtpErrorTimeout": "Час очікування з'єднання вичерпано — хост недоступний",
       "smtpErrorRelay": "Сервер відхиляє надсилання з цієї адреси",
       "smtpErrorEof": "З'єднання закрито сервером",
-      "smtpErrorUnknown": "Помилка SMTP: {{ .Error }}"
+      "smtpErrorUnknown": "Помилка SMTP: {{ .Error }}",
+      "eventMemoryHigh": "Високе використання пам'яті (%)"
     },
     "xray": {
       "title": "Xray конфігурації",
@@ -1804,7 +1805,8 @@
       "eventNodeUp": "Вузол {{ .Name }} ДОСТУПНИЙ",
       "eventCPUHigh": "Високе навантаження на CPU",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "Невдала спроба входу з {{ .Source }}"
+      "eventLoginFallback": "Невдала спроба входу з {{ .Source }}",
+      "memoryThreshold": "Використання пам'яті {{ .Percent }}% перевищує порогове значення {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ Закрити клавіатуру",
