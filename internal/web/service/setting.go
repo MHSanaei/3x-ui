@@ -119,6 +119,8 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultTotalGB":    "0",
 	"ldapDefaultExpiryDays": "0",
 	"ldapDefaultLimitIP":    "0",
+
+	"customGeoCron": "",
 }
 
 // SettingService provides business logic for application settings management.
@@ -1099,4 +1101,12 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 	}
 
 	return result, nil
+}
+
+func (s *SettingService) GetCustomGeoCron() (string, error) {
+	return s.getString("customGeoCron")
+}
+
+func (s *SettingService) SetCustomGeoCron(cron string) error {
+	return s.setString("customGeoCron", cron)
 }

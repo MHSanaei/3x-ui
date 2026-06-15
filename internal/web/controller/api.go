@@ -6,6 +6,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
@@ -28,9 +29,9 @@ type APIController struct {
 }
 
 // NewAPIController creates a new APIController instance and initializes its routes.
-func NewAPIController(g *gin.RouterGroup) *APIController {
+func NewAPIController(g *gin.RouterGroup, customGeo *integration.CustomGeoService) *APIController {
 	a := &APIController{}
-	a.initRouter(g)
+	a.initRouter(g, customGeo)
 	return a
 }
 
@@ -59,7 +60,7 @@ func (a *APIController) checkAPIAuth(c *gin.Context) {
 }
 
 // initRouter sets up the API routes for inbounds, server, and other endpoints.
-func (a *APIController) initRouter(g *gin.RouterGroup) {
+func (a *APIController) initRouter(g *gin.RouterGroup, customGeo *integration.CustomGeoService) {
 	// Main API group
 	api := g.Group("/panel/api")
 	api.Use(a.checkAPIAuth)
@@ -86,6 +87,9 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	// /panel/api/xray/*.
 	a.settingController = NewSettingController(api)
 	a.xraySettingController = NewXraySettingController(api)
+
+	// Custom Geo manager
+	NewCustomGeoController(api.Group("/custom-geo"), customGeo)
 
 	// Extra routes
 	api.POST("/backuptotgbot", a.BackuptoTgbot)

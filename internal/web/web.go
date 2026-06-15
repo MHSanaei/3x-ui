@@ -26,6 +26,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/network"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
@@ -106,13 +107,15 @@ type Server struct {
 	api   *controller.APIController
 	ws    *controller.WebSocketController
 
-	xrayService    service.XrayService
-	settingService service.SettingService
-	tgbotService   tgbot.Tgbot
+	xrayService      service.XrayService
+	settingService   service.SettingService
+	tgbotService     tgbot.Tgbot
+	customGeoService *integration.CustomGeoService
 
 	wsHub *websocket.Hub
 
-	cron *cron.Cron
+	cron            *cron.Cron
+	customGeoCronID cron.EntryID
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -227,7 +230,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
 	g.GET("/panel/api/openapi.json", controller.ServeOpenAPISpec)
-	s.api = controller.NewAPIController(g)
+	s.api = controller.NewAPIController(g, s.customGeoService)
 
 	// Initialize WebSocket hub
 	s.wsHub = websocket.NewHub()
@@ -349,6 +352,42 @@ func (s *Server) startTask(restartXray bool) {
 	} else {
 		s.cron.Remove(entry)
 	}
+
+	s.customGeoService.EnsureOnStartup()
+	if cronExpr, err := s.settingService.GetCustomGeoCron(); err == nil {
+		s.rescheduleCustomGeo(cronExpr)
+	}
+}
+
+// rescheduleCustomGeo removes any existing custom geo cron entry and registers
+// a new one for the given cron expression. An empty expression disables the job.
+func (s *Server) rescheduleCustomGeo(newCron string) {
+	if s.customGeoCronID != 0 {
+		s.cron.Remove(s.customGeoCronID)
+		s.customGeoCronID = 0
+	}
+	newCron = strings.TrimSpace(newCron)
+	if newCron == "" {
+		return
+	}
+	id, err := s.cron.AddFunc(newCron, func() {
+		logger.Info("custom geo: scheduled update started")
+		res, err := s.customGeoService.TriggerUpdateAll()
+		if err != nil {
+			logger.Warning("custom geo: scheduled update failed:", err)
+			return
+		}
+		logger.Infof("custom geo: scheduled update done — ok: %d, failed: %d", len(res.Succeeded), len(res.Failed))
+		for _, f := range res.Failed {
+			logger.Warningf("custom geo: failed to update %s: %s", f.FileName, f.Err)
+		}
+	})
+	if err != nil {
+		logger.Warningf("custom geo: invalid cron %q: %v", newCron, err)
+		return
+	}
+	s.customGeoCronID = id
+	logger.Infof("custom geo auto-update scheduled: %s", newCron)
 }
 
 // Start initializes and starts the web server with configured settings, routes, and background jobs.
@@ -385,6 +424,9 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		APIPort:        func() int { return s.xrayService.GetXrayAPIPort() },
 		SetNeedRestart: func() { s.xrayService.SetToNeedRestart() },
 	}))
+
+	s.customGeoService = integration.NewCustomGeoService()
+	s.customGeoService.Reschedule = s.rescheduleCustomGeo
 
 	engine, err := s.initRouter()
 	if err != nil {

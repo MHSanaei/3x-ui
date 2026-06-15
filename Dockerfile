@@ -12,7 +12,7 @@ RUN npm run build
 # ========================================================
 # Stage: Builder
 # ========================================================
-FROM golang:1.26-alpine AS builder
+FROM golang:1.26.4-alpine AS builder
 WORKDIR /app
 ARG TARGETARCH
 
