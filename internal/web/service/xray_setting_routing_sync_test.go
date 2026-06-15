@@ -220,34 +220,36 @@ func TestPropagateInboundTagRename_WorksWithConflictDB(t *testing.T) {
 	}
 }
 
-func TestUpdateInbound_PropagatesRoutingRuleOnPortChange(t *testing.T) {
+func TestUpdateInbound_PropagatesRoutingRuleOnTagRename(t *testing.T) {
 	setupConflictDB(t)
 	seedXrayTemplate(t, `{
 		"routing": {
 			"rules": [
 				{"type":"field","inboundTag":["api"],"outboundTag":"api"},
-				{"type":"field","inboundTag":["in-22435-tcp"],"outboundTag":"direct"}
+				{"type":"field","inboundTag":["route-src"],"outboundTag":"direct"}
 			]
 		},
 		"outbounds": [{"tag":"direct","protocol":"freedom"}]
 	}`)
-	seedInboundConflict(t, "in-22435-tcp", "0.0.0.0", 22435, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`)
+	seedInboundConflict(t, "route-src", "0.0.0.0", 22435, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`)
 
 	var existing model.Inbound
-	if err := database.GetDB().Where("tag = ?", "in-22435-tcp").First(&existing).Error; err != nil {
+	if err := database.GetDB().Where("tag = ?", "route-src").First(&existing).Error; err != nil {
 		t.Fatalf("read seeded row: %v", err)
 	}
 
 	svc := &InboundService{}
 	update := existing
-	update.Port = 33000
-	update.Tag = "in-22435-tcp"
-	got, _, err := svc.UpdateInbound(&update)
+	update.Tag = "route-dst"
+	got, needRestart, err := svc.UpdateInbound(&update)
 	if err != nil {
 		t.Fatalf("UpdateInbound: %v", err)
 	}
-	if got.Tag != "in-33000-tcp" {
-		t.Fatalf("returned tag = %q, want in-33000-tcp", got.Tag)
+	if got.Tag != "route-dst" {
+		t.Fatalf("returned tag = %q, want route-dst", got.Tag)
+	}
+	if !needRestart {
+		t.Fatal("expected needRestart after routing template sync on tag rename")
 	}
 
 	xraySvc := &XraySettingService{}
@@ -256,8 +258,8 @@ func TestUpdateInbound_PropagatesRoutingRuleOnPortChange(t *testing.T) {
 		t.Fatalf("GetXrayConfigTemplate: %v", err)
 	}
 	rule := findRuleByOutbound(t, template, "direct")
-	if tags := readInboundTags(rule["inboundTag"]); tags[0] != "in-33000-tcp" {
-		t.Fatalf("routing inboundTag = %v, want [in-33000-tcp]", tags)
+	if tags := readInboundTags(rule["inboundTag"]); tags[0] != "route-dst" {
+		t.Fatalf("routing inboundTag = %v, want [route-dst]", tags)
 	}
 }
 

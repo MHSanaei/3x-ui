@@ -933,7 +933,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	return needRestart, nil
 }
 
-func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+func (s *InboundService) UpdateInbound(inbound *model.Inbound) (result *model.Inbound, needRestart bool, err error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
@@ -968,7 +968,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	tx := db.Begin()
 
 	markDirty := false
-	needRestart := false
 	tagRenamedFrom, tagRenamedTo := "", ""
 	defer func() {
 		if err != nil {
