@@ -223,11 +223,6 @@ export default function InboundFormModal({
   const wSsNetwork = Form.useWatch(['settings', 'network'], form);
   const wTunnelNetwork = Form.useWatch(['settings', 'allowedNetwork'], form);
   const [autoTagPreview, setAutoTagPreview] = useState('');
-  const tagIsAuto = useMemo(() => {
-    const trimmed = wTag.trim();
-    if (trimmed === '') return true;
-    return isAutoInboundTag(trimmed, currentTagInput());
-  }, [wTag, wPort, wNodeId, protocol, network, mixedUdpOn, wSsNetwork, wTunnelNetwork]);
   const currentTagInput = (): InboundTagInput => ({
     port: typeof wPort === 'number' ? wPort : 0,
     nodeId: typeof wNodeId === 'number' ? wNodeId : null,
@@ -235,6 +230,11 @@ export default function InboundFormModal({
     streamSettings: { network },
     settings: { network: wSsNetwork, allowedNetwork: wTunnelNetwork, udp: mixedUdpOn },
   });
+  const tagIsAuto = useMemo(() => {
+    const trimmed = wTag.trim();
+    if (trimmed === '') return true;
+    return isAutoInboundTag(trimmed, currentTagInput());
+  }, [wTag, wPort, wNodeId, protocol, network, mixedUdpOn, wSsNetwork, wTunnelNetwork]);
   const duplicateTag = useMemo(() => {
     const myTag = wTag.trim();
     if (!myTag || tagIsAuto) return false;
