@@ -139,6 +139,21 @@ the time-boxed `-fuzztime` exploration is wired as a Phase F smoke step.
 
 ---
 
+## 2e. Phase E frontend audit (lighter)
+
+- **Coverage tooling wired:** `@vitest/coverage-v8` installed; `npx vitest run --coverage` works
+  (overall ~53% stmts, dominated by untested UI components — not the audit's pure-logic target).
+- **Assertion specificity:** frontend rejection tests use `safeParse().success`, not the
+  "throws-anything" pattern (only one `.not.toThrow()`, which is legitimate). Most negative cases
+  already pin a specific path. The clearest over-broad one — `InboundDbFieldsSchema` `subSortIndex`
+  rejection (inbound-form-adapter.test.ts) — now asserts the error path is `subSortIndex` and adds a
+  positive case (so a schema that rejects everything no longer passes).
+- **StrykerJS:** skipped — the pure TS surface is trivial and the schema source is generated from Go
+  (audited on the Go side); per plan this is optional.
+- **Gate:** `npm run test` (534 passed) + `typecheck` + `lint` all green.
+
+---
+
 ## 3. Equivalent-Mutant Ignore-List
 
 Mutants that are semantically identical to the original (unkillable) — documented, not chased.
