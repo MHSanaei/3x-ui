@@ -574,11 +574,13 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			// "start after first connect" duration, which must never reset the
 			// absolute deadline another node already activated. A positive node
 			// value is still adopted (e.g. auto-renew moves the deadline forward).
+			// CAST(? AS BIGINT): in the `<= 0` comparison Postgres would otherwise
+			// infer int4 from the literal and overflow on real expiry values.
 			if err := tx.Exec(
 				fmt.Sprintf(
 					`UPDATE client_traffics
 					 SET up = up + ?, down = down + ?, enable = %s, total = ?,
-					     expiry_time = CASE WHEN expiry_time > 0 AND ? <= 0 THEN expiry_time ELSE ? END,
+					     expiry_time = CASE WHEN expiry_time > 0 AND CAST(? AS BIGINT) <= 0 THEN expiry_time ELSE CAST(? AS BIGINT) END,
 					     reset = ?, last_online = %s
 					 WHERE email = ?`,
 					enableExpr,
