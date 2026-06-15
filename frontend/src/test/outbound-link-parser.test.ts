@@ -392,6 +392,23 @@ describe('parseVlessLink — extra / fm / x_padding_bytes (B20)', () => {
     expect(xhttp.xPaddingBytes).toBe('900-9000');
   });
 
+  it('extracts the nested xmux object from the extra JSON blob', () => {
+    // The inbound link bundles xmux into `extra` as a nested object
+    // (sub/service.go). It must survive import so the outbound form's
+    // XMUX sub-form populates rather than silently dropping it (#5353).
+    const extra = encodeURIComponent(JSON.stringify({
+      xmux: { maxConcurrency: '8-16', hMaxRequestTimes: '700-1000' },
+    }));
+    const link = 'vless://u@h:1?type=xhttp&security=none&path=%2F&host=&mode=auto'
+      + '&extra=' + extra + '#t';
+    const parsed = parseVlessLink(link);
+    const xhttp = (parsed!.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    const xmux = xhttp.xmux as Record<string, unknown>;
+    expect(xmux).toBeDefined();
+    expect(xmux.maxConcurrency).toBe('8-16');
+    expect(xmux.hMaxRequestTimes).toBe('700-1000');
+  });
+
   it('ignores malformed extra JSON without breaking the rest of the link', () => {
     const link = 'vless://u@h:1?type=xhttp&security=none&path=%2F&host=&mode=auto'
       + '&extra=not-json&fp=chrome#t';

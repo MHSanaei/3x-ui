@@ -9,8 +9,9 @@ import { Base64 } from '@/utils';
 // fields the common vmess:// / vless:// links carry as query params.
 // XHTTP advanced fields (xPaddingBytes, scMaxEachPostBytes,
 // scMinPostsIntervalMs, uplinkChunkSize, noGRPCHeader) round-trip when
-// present in either the JSON or URL params. xmux, reality shortIds,
-// padding obfs key/header/placement, hysteria udphop are still left
+// present in either the JSON or URL params. xmux and downloadSettings
+// round-trip through the `extra` JSON blob. reality shortIds, padding
+// obfs key/header/placement, hysteria udphop are still left
 // to the user to fill in after import — the legacy Outbound.fromLink
 // was ~250 lines of dense edge-case handling we don't need to
 // replicate verbatim for the common phone-to-panel workflow.
@@ -33,6 +34,10 @@ const XHTTP_NUMBER_KEYS = [
 const XHTTP_BOOL_KEYS = [
   'xPaddingObfsMode', 'noSSEHeader', 'noGRPCHeader',
 ] as const;
+// Nested objects the inbound link bundles into the `extra` JSON blob
+// (and vmess JSON carries inline). The outbound form adapter expands
+// xmux into the XMUX sub-form (enableXmux) on load.
+const XHTTP_OBJECT_KEYS = ['xmux', 'downloadSettings'] as const;
 
 function asBool(s: string | null): boolean | undefined {
   if (s === null) return undefined;
@@ -87,6 +92,10 @@ function applyXhttpStringFromJson(xhttp: Raw, json: Record<string, unknown>): vo
   }
   for (const k of XHTTP_BOOL_KEYS) {
     if (typeof json[k] === 'boolean') xhttp[k] = json[k];
+  }
+  for (const k of XHTTP_OBJECT_KEYS) {
+    const v = json[k];
+    if (v && typeof v === 'object' && !Array.isArray(v)) xhttp[k] = v;
   }
 }
 
