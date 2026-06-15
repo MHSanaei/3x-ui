@@ -27,3 +27,35 @@ describe('InboundSettingsSchema fixtures', () => {
     });
   }
 });
+
+// The fixture tests above pin coerced values only via regenerable snapshots. These
+// assert the load-bearing transforms directly, so a broken coercion fails independently
+// of the snapshot baseline.
+describe('InboundSettingsSchema coercions', () => {
+  it('vmess: defaults alterId to 0 and coerces a string tgId to a number', () => {
+    const parsed = InboundSettingsSchema.parse({
+      protocol: 'vmess',
+      settings: { clients: [{ id: 'u1', email: 'a@b.c', tgId: '12345' }] },
+    });
+    if (parsed.protocol !== 'vmess') throw new Error('discriminator narrowed to the wrong protocol');
+    const client = parsed.settings.clients[0];
+    expect(client.alterId).toBe(0); // .default(0) injected for omitted field
+    expect(client.tgId).toBe(12345); // string -> number transform
+  });
+
+  it('vmess: a non-numeric tgId coerces to 0', () => {
+    const parsed = InboundSettingsSchema.parse({
+      protocol: 'vmess',
+      settings: { clients: [{ id: 'u1', email: 'a@b.c', tgId: 'not-a-number' }] },
+    });
+    if (parsed.protocol !== 'vmess') throw new Error('wrong protocol');
+    expect(parsed.settings.clients[0].tgId).toBe(0); // Number(v) || 0
+  });
+
+  it('vless: defaults decryption and encryption to "none"', () => {
+    const parsed = InboundSettingsSchema.parse({ protocol: 'vless', settings: { clients: [] } });
+    if (parsed.protocol !== 'vless') throw new Error('wrong protocol');
+    expect(parsed.settings.decryption).toBe('none');
+    expect(parsed.settings.encryption).toBe('none');
+  });
+});

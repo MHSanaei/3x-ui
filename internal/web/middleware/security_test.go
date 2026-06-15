@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
@@ -80,7 +81,9 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.Use(SecurityHeadersMiddleware(true))
+	var capturedNonce string
 	router.GET("/", func(c *gin.Context) {
+		capturedNonce = c.GetString("csp_nonce")
 		c.String(http.StatusOK, "ok")
 	})
 
@@ -100,6 +103,33 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 	}
 	if got := headers.Get("Strict-Transport-Security"); got == "" {
 		t.Fatal("Strict-Transport-Security should be set for direct HTTPS")
+	}
+
+	// CSP is the highest-value header here: assert it stays nonce-bound with its hardening
+	// directives, so weakening it (unsafe-inline, dropped frame-ancestors, broken nonce) fails.
+	csp := headers.Get("Content-Security-Policy")
+	if csp == "" {
+		t.Fatal("Content-Security-Policy header must be set")
+	}
+	if capturedNonce == "" {
+		t.Fatal("csp_nonce context value must be set (the injected inline script reads it)")
+	}
+	if want := "script-src 'self' 'nonce-" + capturedNonce + "'"; !strings.Contains(csp, want) {
+		t.Fatalf("CSP script-src must be bound to the per-request nonce %q; got %q", want, csp)
+	}
+	for _, directive := range []string{"object-src 'none'", "frame-ancestors 'none'", "base-uri 'self'", "form-action 'self'"} {
+		if !strings.Contains(csp, directive) {
+			t.Errorf("CSP missing hardening directive %q; got %q", directive, csp)
+		}
+	}
+	// script-src must NOT allow 'unsafe-inline' (it would defeat the nonce). Check the
+	// script-src directive in isolation, since style-src legitimately uses unsafe-inline.
+	scriptDir := csp[strings.Index(csp, "script-src"):]
+	if i := strings.Index(scriptDir, ";"); i >= 0 {
+		scriptDir = scriptDir[:i]
+	}
+	if strings.Contains(scriptDir, "unsafe-inline") {
+		t.Errorf("CSP script-src must not allow 'unsafe-inline': %q", scriptDir)
 	}
 }
 

@@ -1,0 +1,62 @@
+name: Mutation testing
+
+# Mutation testing (gremlins) is the objective check for "fake" tests: it mutates the
+# source and a surviving (LIVED) mutant means no test caught the change. It is SLOW, so it
+# runs nightly / on demand and scoped per package — never per-commit. It is informational:
+# no thresholds are set, so it reports survivors as artifacts without failing the build.
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gremlins:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: sub
+            path: ./internal/sub/
+            exclude: ""
+          - name: runtime
+            path: ./internal/web/runtime/
+            exclude: ""
+          - name: link
+            path: ./internal/util/link/
+            exclude: ""
+          - name: database
+            path: ./internal/database/
+            exclude: 'dump_sqlite\.go'
+          - name: service
+            path: ./internal/web/service/
+            exclude: 'server\.go|xray\.go|inbound\.go|client_bulk\.go|inbound_traffic\.go|.*_postgres_test\.go'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Stub internal/web/dist for go:embed
+        run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
+      - name: Install gremlins
+        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
+      - name: Run gremlins on ${{ matrix.name }}
+        run: |
+          OUT="mutation-${{ matrix.name }}.json"
+          if [ -n "${{ matrix.exclude }}" ]; then
+            gremlins unleash -E '${{ matrix.exclude }}' -o "$OUT" ${{ matrix.path }}
+          else
+            gremlins unleash -o "$OUT" ${{ matrix.path }}
+          fi
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-${{ matrix.name }}
+          path: mutation-${{ matrix.name }}.json
+          if-no-files-found: ignore

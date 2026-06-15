@@ -87,9 +87,6 @@ func (r *Remote) baseURL() (string, error) {
 		return "", fmt.Errorf("invalid node port %d", r.node.Port)
 	}
 	bp := r.node.BasePath
-	if bp == "" {
-		bp = "/"
-	}
 	if !strings.HasSuffix(bp, "/") {
 		bp += "/"
 	}
