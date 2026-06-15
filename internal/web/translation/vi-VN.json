@@ -613,6 +613,11 @@
         "shareAddrHelp": "Chỉ dùng khi chiến lược địa chỉ chia sẻ là Tùy chỉnh. Nhập host hoặc IP không kèm giao thức hoặc cổng.",
         "subSortIndex": "Thứ tự trong gói đăng ký",
         "subSortIndexHelp": "Vị trí liên kết của inbound này trong nội dung gói đăng ký (trang đăng ký và ứng dụng khách). Giá trị nhỏ hơn xếp trước; giá trị bằng nhau giữ thứ tự tạo. Không ảnh hưởng đến danh sách inbound trong bảng điều khiển.",
+        "tag": "Tag",
+        "tagHelp": "Optional Xray inbound tag used by routing rules. Leave empty to let the panel assign one automatically (e.g. in-443-tcp).",
+        "tagPlaceholder": "Leave empty for auto",
+        "tagDuplicate": "Tag already used by another inbound",
+        "tagAutoPreview": "Auto: {{tag}}",
         "shareAddrStrategyOptions": {
           "node": "Địa chỉ node",
           "listen": "Địa chỉ listen inbound",

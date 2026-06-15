@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -222,8 +222,12 @@ export default function InboundFormModal({
   const wTag = Form.useWatch('tag', form) ?? '';
   const wSsNetwork = Form.useWatch(['settings', 'network'], form);
   const wTunnelNetwork = Form.useWatch(['settings', 'allowedNetwork'], form);
-  const autoTagRef = useRef(true);
-  const lastWrittenTagRef = useRef('');
+  const [autoTagPreview, setAutoTagPreview] = useState('');
+  const tagIsAuto = useMemo(() => {
+    const trimmed = wTag.trim();
+    if (trimmed === '') return true;
+    return isAutoInboundTag(trimmed, currentTagInput());
+  }, [wTag, wPort, wNodeId, protocol, network, mixedUdpOn, wSsNetwork, wTunnelNetwork]);
   const currentTagInput = (): InboundTagInput => ({
     port: typeof wPort === 'number' ? wPort : 0,
     nodeId: typeof wNodeId === 'number' ? wNodeId : null,
@@ -231,6 +235,12 @@ export default function InboundFormModal({
     streamSettings: { network },
     settings: { network: wSsNetwork, allowedNetwork: wTunnelNetwork, udp: mixedUdpOn },
   });
+  const duplicateTag = useMemo(() => {
+    const myTag = wTag.trim();
+    if (!myTag || tagIsAuto) return false;
+    if (mode === 'edit' && dbInbound?.tag === myTag) return false;
+    return dbInbounds.some((ib) => ib.tag === myTag);
+  }, [wTag, tagIsAuto, dbInbounds, mode, dbInbound]);
   const isFallbackHost =
     (protocol === Protocols.VLESS || protocol === Protocols.TROJAN)
     && network === 'tcp'
@@ -348,14 +358,16 @@ export default function InboundFormModal({
     form.resetFields();
     form.setFieldsValue(initial);
     const initialTag = (initial.tag ?? '') as string;
-    autoTagRef.current = isAutoInboundTag(initialTag, {
+    const initialTagInput = {
       port: initial.port ?? 0,
       nodeId: initial.nodeId ?? null,
-      protocol: initial.protocol,
+      protocol: initial.protocol as string,
       streamSettings: (initial.streamSettings ?? {}) as Record<string, unknown>,
       settings: (initial.settings ?? {}) as Record<string, unknown>,
-    });
-    lastWrittenTagRef.current = initialTag;
+    };
+    const isAuto = isAutoInboundTag(initialTag, initialTagInput);
+    form.setFieldValue('tag', isAuto ? '' : initialTag);
+    setAutoTagPreview(isAuto ? (initialTag || composeInboundTag(initialTagInput)) : '');
     if (
       mode === 'edit'
       && dbInbound
@@ -371,20 +383,24 @@ export default function InboundFormModal({
 
   useEffect(() => {
     if (!open) return;
-    if (wTag === lastWrittenTagRef.current) return;
-    autoTagRef.current = isAutoInboundTag(wTag, currentTagInput());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, wTag]);
-
-  useEffect(() => {
-    if (!open || !autoTagRef.current) return;
-    const next = composeInboundTag(currentTagInput());
-    if (next !== (form.getFieldValue('tag') ?? '')) {
-      lastWrittenTagRef.current = next;
-      form.setFieldValue('tag', next);
+    if (!tagIsAuto) {
+      setAutoTagPreview('');
+      return;
     }
+    const composed = composeInboundTag(currentTagInput());
+    if (
+      mode === 'edit'
+      && dbInbound?.tag
+      && dbInbound.port === wPort
+      && dbInbound.tag.startsWith(`${composed}-`)
+      && /^[0-9]+$/.test(dbInbound.tag.slice(composed.length + 1))
+    ) {
+      setAutoTagPreview(dbInbound.tag);
+      return;
+    }
+    setAutoTagPreview(composed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, wPort, wNodeId, protocol, network, mixedUdpOn, wSsNetwork, wTunnelNetwork]);
+  }, [open, tagIsAuto, wPort, wNodeId, protocol, network, mixedUdpOn, wSsNetwork, wTunnelNetwork]);
 
   // Keep the strategy value inside the visible option set: when `node` isn't
   // offered (no node, or a protocol that can't deploy to one) fall back to
@@ -479,9 +495,19 @@ export default function InboundFormModal({
       );
       return;
     }
+    const rawTag = (parsed.data.tag ?? '').trim();
+    if (!tagIsAuto) {
+      if (duplicateTag) {
+        messageApi.error(t('pages.inbounds.form.tagDuplicate'));
+        return;
+      }
+    }
     setSaving(true);
     try {
-      const payload = formValuesToWirePayload(parsed.data);
+      const payload = formValuesToWirePayload({
+        ...parsed.data,
+        tag: tagIsAuto ? '' : rawTag,
+      });
       const url = mode === 'edit' && dbInbound
         ? `/panel/api/inbounds/update/${dbInbound.id}`
         : '/panel/api/inbounds/add';
@@ -512,7 +538,6 @@ export default function InboundFormModal({
 
   const basicTab = (
     <>
-      <Form.Item name="tag" hidden noStyle><Input /></Form.Item>
       <Form.Item name="up" hidden noStyle><InputNumber /></Form.Item>
       <Form.Item name="down" hidden noStyle><InputNumber /></Form.Item>
       <Form.Item name="total" hidden noStyle><InputNumber /></Form.Item>
@@ -526,6 +551,21 @@ export default function InboundFormModal({
 
       <Form.Item name="remark" label={t('pages.inbounds.remark')}>
         <Input />
+      </Form.Item>
+
+      <Form.Item
+        name="tag"
+        label={labelWithHint(t('pages.inbounds.form.tag'), t('pages.inbounds.form.tagHelp'))}
+        validateStatus={duplicateTag ? 'warning' : undefined}
+        help={
+          duplicateTag
+            ? t('pages.inbounds.form.tagDuplicate')
+            : (tagIsAuto && autoTagPreview
+              ? t('pages.inbounds.form.tagAutoPreview', { tag: autoTagPreview })
+              : undefined)
+        }
+      >
+        <Input placeholder={t('pages.inbounds.form.tagPlaceholder')} />
       </Form.Item>
 
       {selectableNodes.length > 0 && isNodeEligible && (

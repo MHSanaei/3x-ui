@@ -56,6 +56,47 @@ describe('InboundFormModal', () => {
     }
   }, 30000); // iterates every protocol, re-rendering a heavy modal each time — slow on CI runners
 
+  it('shows optional tag field below remark in add mode', () => {
+    renderModal();
+    const labels = fieldLabels();
+    const remarkIdx = labels.indexOf('Remark');
+    const tagIdx = labels.indexOf('Tag');
+    expect(remarkIdx).toBeGreaterThanOrEqual(0);
+    expect(tagIdx).toBeGreaterThan(remarkIdx);
+  });
+
+  it('shows auto tag preview when tag field is left empty', async () => {
+    renderModal();
+    expect(await screen.findByText(/Auto: in-/)).toBeTruthy();
+  });
+
+  it('shows stored custom tag when editing a manually tagged inbound', async () => {
+    renderWithProviders(
+      <InboundFormModal
+        open
+        mode="edit"
+        dbInbound={new DBInbound({
+          id: 2,
+          port: 8443,
+          listen: '',
+          protocol: 'vless',
+          remark: 'custom',
+          tag: 'my-vless-in',
+          enable: true,
+          settings: { clients: [], decryption: 'none', fallbacks: [] },
+          streamSettings: { network: 'tcp', security: 'none', tcpSettings: {} },
+          sniffing: { enabled: false },
+          nodeId: null,
+        })}
+        dbInbounds={[]}
+        availableNodes={[]}
+        onClose={() => {}}
+        onSaved={() => {}}
+      />,
+    );
+    expect(await screen.findByDisplayValue('my-vless-in')).toBeTruthy();
+  });
+
   it('preserves custom share address strategy when editing a local inbound', async () => {
     renderWithProviders(
       <InboundFormModal

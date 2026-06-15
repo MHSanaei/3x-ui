@@ -614,6 +614,11 @@
         "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme or port.",
         "subSortIndex": "Subscription sort order",
         "subSortIndexHelp": "Position of this inbound's links in subscription output (sub page and client apps). Lower values come first; equal values keep creation order. Does not affect the panel inbound list.",
+        "tag": "Tag",
+        "tagHelp": "Optional Xray inbound tag used by routing rules. Leave empty to let the panel assign one automatically (e.g. in-443-tcp).",
+        "tagPlaceholder": "Leave empty for auto",
+        "tagDuplicate": "Tag already used by another inbound",
+        "tagAutoPreview": "Auto: {{tag}}",
         "shareAddrStrategyOptions": {
           "node": "Node address",
           "listen": "Inbound listen",

@@ -613,6 +613,11 @@
         "shareAddrHelp": "僅在分享地址策略為自訂時使用。填寫不帶協定和連接埠的網域或 IP。",
         "subSortIndex": "訂閱排序",
         "subSortIndexHelp": "此入站的連結在訂閱輸出（訂閱頁面和客戶端應用）中的位置。數值越小越靠前；數值相同時保持建立順序。不影響面板中的入站清單。",
+        "tag": "Tag",
+        "tagHelp": "Optional Xray inbound tag used by routing rules. Leave empty to let the panel assign one automatically (e.g. in-443-tcp).",
+        "tagPlaceholder": "Leave empty for auto",
+        "tagDuplicate": "Tag already used by another inbound",
+        "tagAutoPreview": "Auto: {{tag}}",
         "shareAddrStrategyOptions": {
           "node": "節點地址",
           "listen": "入站監聽地址",

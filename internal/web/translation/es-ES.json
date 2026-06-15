@@ -613,6 +613,11 @@
         "shareAddrHelp": "Solo se usa cuando la estrategia de dirección para compartir es Personalizada. Introduce un host o IP sin esquema ni puerto.",
         "subSortIndex": "Orden en la suscripción",
         "subSortIndexHelp": "Posición de los enlaces de esta entrada en la salida de la suscripción (página de suscripción y apps cliente). Los valores más bajos van primero; con valores iguales se mantiene el orden de creación. No afecta a la lista de entradas del panel.",
+        "tag": "Tag",
+        "tagHelp": "Optional Xray inbound tag used by routing rules. Leave empty to let the panel assign one automatically (e.g. in-443-tcp).",
+        "tagPlaceholder": "Leave empty for auto",
+        "tagDuplicate": "Tag already used by another inbound",
+        "tagAutoPreview": "Auto: {{tag}}",
         "shareAddrStrategyOptions": {
           "node": "Dirección del nodo",
           "listen": "Dirección de escucha del inbound",

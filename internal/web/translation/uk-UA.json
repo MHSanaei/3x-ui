@@ -613,6 +613,11 @@
         "shareAddrHelp": "Використовується лише коли стратегія адреси поширення — користувацька. Введіть хост або IP без схеми та порту.",
         "subSortIndex": "Порядок у підписці",
         "subSortIndexHelp": "Позиція посилань цього вхідного у виводі підписки (сторінка підписки та клієнтські застосунки). Менші значення йдуть першими; за однакових значень зберігається порядок створення. Не впливає на список вхідних у панелі.",
+        "tag": "Tag",
+        "tagHelp": "Optional Xray inbound tag used by routing rules. Leave empty to let the panel assign one automatically (e.g. in-443-tcp).",
+        "tagPlaceholder": "Leave empty for auto",
+        "tagDuplicate": "Tag already used by another inbound",
+        "tagAutoPreview": "Auto: {{tag}}",
         "shareAddrStrategyOptions": {
           "node": "Адреса вузла",
           "listen": "Адреса прослуховування inbound",

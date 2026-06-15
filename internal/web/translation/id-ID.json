@@ -613,6 +613,11 @@
         "shareAddrHelp": "Hanya digunakan saat strategi alamat berbagi adalah Kustom. Masukkan host atau IP tanpa skema atau port.",
         "subSortIndex": "Urutan dalam langganan",
         "subSortIndexHelp": "Posisi tautan inbound ini dalam keluaran langganan (halaman langganan dan aplikasi klien). Nilai lebih kecil tampil lebih dulu; nilai sama mempertahankan urutan pembuatan. Tidak memengaruhi daftar inbound di panel.",
+        "tag": "Tag",
+        "tagHelp": "Optional Xray inbound tag used by routing rules. Leave empty to let the panel assign one automatically (e.g. in-443-tcp).",
+        "tagPlaceholder": "Leave empty for auto",
+        "tagDuplicate": "Tag already used by another inbound",
+        "tagAutoPreview": "Auto: {{tag}}",
         "shareAddrStrategyOptions": {
           "node": "Alamat node",
           "listen": "Alamat listen inbound",

@@ -614,6 +614,11 @@
         "shareAddrHelp": "Yalnızca paylaşım adresi stratejisi Özel olduğunda kullanılır. Şema veya port olmadan bir ana makine ya da IP girin.",
         "subSortIndex": "Abonelikte sıralama",
         "subSortIndexHelp": "Bu gelen bağlantının linklerinin abonelik çıktısındaki (abonelik sayfası ve istemci uygulamaları) konumu. Küçük değerler önce gelir; eşit değerlerde oluşturulma sırası korunur. Paneldeki gelen bağlantı listesini etkilemez.",
+        "tag": "Tag",
+        "tagHelp": "Optional Xray inbound tag used by routing rules. Leave empty to let the panel assign one automatically (e.g. in-443-tcp).",
+        "tagPlaceholder": "Leave empty for auto",
+        "tagDuplicate": "Tag already used by another inbound",
+        "tagAutoPreview": "Auto: {{tag}}",
         "shareAddrStrategyOptions": {
           "node": "Düğüm adresi",
           "listen": "Inbound dinleme adresi",

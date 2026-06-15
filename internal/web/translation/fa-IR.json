@@ -613,6 +613,11 @@
         "shareAddrHelp": "فقط زمانی استفاده می‌شود که راهبرد آدرس اشتراک‌گذاری روی سفارشی باشد. میزبان یا IP را بدون طرح و پورت وارد کنید.",
         "subSortIndex": "ترتیب در اشتراک",
         "subSortIndexHelp": "جایگاه لینک‌های این ورودی در خروجی اشتراک (صفحه اشتراک و برنامه‌های کلاینت). مقدار کمتر اول می‌آید و مقدارهای برابر ترتیب ایجاد را حفظ می‌کنند. روی فهرست ورودی‌های پنل تأثیری ندارد.",
+        "tag": "Tag",
+        "tagHelp": "Optional Xray inbound tag used by routing rules. Leave empty to let the panel assign one automatically (e.g. in-443-tcp).",
+        "tagPlaceholder": "Leave empty for auto",
+        "tagDuplicate": "Tag already used by another inbound",
+        "tagAutoPreview": "Auto: {{tag}}",
         "shareAddrStrategyOptions": {
           "node": "آدرس نود",
           "listen": "آدرس شنود ورودی",
