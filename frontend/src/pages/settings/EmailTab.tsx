@@ -95,7 +95,7 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
               />
             </SettingListItem>
 
-            <Space direction="vertical" size={8} style={{ width: '100%', marginTop: 16 }}>
+            <Space orientation="vertical" size={8} style={{ width: '100%', marginTop: 16 }}>
               <Button type="primary" icon={<SendOutlined />} loading={testLoading} onClick={handleTestSmtp}>
                 {t('pages.settings.testSmtp')}
               </Button>

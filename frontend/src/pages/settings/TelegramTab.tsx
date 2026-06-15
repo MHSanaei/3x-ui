@@ -108,7 +108,7 @@ function NotifyTimeField({ value, onChange }: { value: string; onChange: (v: str
   ];
 
   return (
-    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="small" style={{ width: '100%' }}>
       <Select<Mode>
         style={{ width: '100%' }}
         value={state.mode}
@@ -215,7 +215,7 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
                 onChange={(e) => updateSetting({ tgBotAPIServer: e.target.value })} />
             </SettingListItem>
 
-            <Space direction="vertical" size={8} style={{ width: '100%', marginTop: 16 }}>
+            <Space orientation="vertical" size={8} style={{ width: '100%', marginTop: 16 }}>
               <Button type="primary" icon={<SendOutlined />} loading={testLoading} onClick={handleTestTgBot}>
                 {t('pages.settings.testTgBot')}
               </Button>
