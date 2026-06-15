@@ -50,6 +50,76 @@ func TestWireInboundIncludesShareAddressFields(t *testing.T) {
 	}
 }
 
+func TestRemoteBaseURL(t *testing.T) {
+	cases := []struct {
+		name    string
+		scheme  string
+		port    int
+		bp      string
+		want    string
+		wantErr bool
+	}{
+		{"https default path", "https", 443, "", "https://example.com:443/", false},
+		{"http custom path gets trailing slash", "http", 8080, "/panel", "http://example.com:8080/panel/", false},
+		{"empty scheme defaults to https", "", 2096, "/", "https://example.com:2096/", false},
+		{"invalid scheme defaults to https", "ftp", 2096, "/", "https://example.com:2096/", false},
+		{"port zero rejected", "https", 0, "/", "", true},
+		{"port above range rejected", "https", 65536, "/", "", true},
+		{"negative port rejected", "https", -1, "/", "", true},
+		{"max port accepted", "https", 65535, "/", "https://example.com:65535/", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			r := NewRemote(&model.Node{Address: "example.com", Scheme: c.scheme, Port: c.port, BasePath: c.bp}, nil)
+			got, err := r.baseURL()
+			if c.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for scheme=%q port=%d", c.scheme, c.port)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != c.want {
+				t.Fatalf("baseURL = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+func TestIsNonEmptySlice(t *testing.T) {
+	cases := []struct {
+		name string
+		in   any
+		want bool
+	}{
+		{"non-empty slice", []any{1}, true},
+		{"empty slice", []any{}, false},
+		{"nil slice", []any(nil), false},
+		{"not a slice", "x", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := isNonEmptySlice(c.in); got != c.want {
+				t.Fatalf("isNonEmptySlice(%#v) = %v, want %v", c.in, got, c.want)
+			}
+		})
+	}
+}
+
+func TestWireInboundTrafficReset(t *testing.T) {
+	with := wireInbound(&model.Inbound{TrafficReset: "daily"})
+	if got := with.Get("trafficReset"); got != "daily" {
+		t.Fatalf("trafficReset = %q, want daily", got)
+	}
+	// Empty TrafficReset must be omitted entirely, not sent as an empty field.
+	without := wireInbound(&model.Inbound{})
+	if without.Has("trafficReset") {
+		t.Fatalf("trafficReset must be omitted when empty, got %q", without.Get("trafficReset"))
+	}
+}
+
 func TestWireInboundDefaultsShareAddressStrategy(t *testing.T) {
 	values := wireInbound(&model.Inbound{})
 
