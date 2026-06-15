@@ -180,6 +180,34 @@ func TestHTTPClientForNode_ProxyVerifyNoPin(t *testing.T) {
 	}
 }
 
+// TestTLSConfigForNode_CurrentContract locks the pre-mTLS behavior of
+// tlsConfigForNode so the "mtls" branch added later cannot silently regress the
+// existing skip/pin modes (characterization — passes on unchanged code).
+func TestTLSConfigForNode_CurrentContract(t *testing.T) {
+	t.Run("skip disables verification with no VerifyConnection", func(t *testing.T) {
+		cfg, err := tlsConfigForNode(&model.Node{TlsVerifyMode: "skip"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !cfg.InsecureSkipVerify {
+			t.Fatal("skip mode must set InsecureSkipVerify")
+		}
+		if cfg.VerifyConnection != nil {
+			t.Fatal("skip mode must not install a VerifyConnection")
+		}
+	})
+	t.Run("pin installs a VerifyConnection", func(t *testing.T) {
+		pin := base64.StdEncoding.EncodeToString(make([]byte, sha256.Size))
+		cfg, err := tlsConfigForNode(&model.Node{TlsVerifyMode: "pin", PinnedCertSha256: pin})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if cfg.VerifyConnection == nil {
+			t.Fatal("pin mode must install a VerifyConnection")
+		}
+	})
+}
+
 func TestDecodeCertPin(t *testing.T) {
 	raw := sha256.Sum256([]byte("cert"))
 	hexColon := strings.ToUpper(hex.EncodeToString(raw[:]))
