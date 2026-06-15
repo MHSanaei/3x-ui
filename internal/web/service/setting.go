@@ -29,15 +29,24 @@ import (
 var xrayTemplateConfig string
 
 var defaultValueMap = map[string]string{
-	"xrayTemplateConfig":          xrayTemplateConfig,
-	"webListen":                   "",
-	"webDomain":                   "",
-	"webPort":                     "2053",
-	"webCertFile":                 "",
-	"webKeyFile":                  "",
-	"secret":                      random.Seq(32),
-	"panelGuid":                   uuid.NewString(),
-	"apiToken":                    "",
+	"xrayTemplateConfig": xrayTemplateConfig,
+	"webListen":          "",
+	"webDomain":          "",
+	"webPort":            "2053",
+	"webCertFile":        "",
+	"webKeyFile":         "",
+	"secret":             random.Seq(32),
+	"panelGuid":          uuid.NewString(),
+	"apiToken":           "",
+	// Node mTLS material (opt-in). All default empty: the CA + master client
+	// cert are minted lazily on first use, and the node-side trust CA is pasted
+	// in by the operator. Kept out of entity.AllSetting so private keys never
+	// reach the settings UI/export.
+	"nodeMtlsCaCertPem":           "",
+	"nodeMtlsCaKeyPem":            "",
+	"nodeMtlsClientCertPem":       "",
+	"nodeMtlsClientKeyPem":        "",
+	"nodeMtlsClientCAPem":         "",
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
