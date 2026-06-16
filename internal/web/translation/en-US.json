@@ -893,6 +893,7 @@
       "deleteConfirmTitle": "Delete host \"{name}\"?",
       "sections": {
         "basic": "Basic",
+        "security": "Security",
         "advanced": "Advanced",
         "clash": "Clash (mihomo)",
         "subScope": "Subscription scope"
@@ -916,9 +917,6 @@
         "pins": "Pinned cert SHA-256",
         "verifyPeerCertByName": "Verify peer cert by name",
         "echConfigList": "ECH config list",
-        "muxParams": "Mux params (JSON)",
-        "sockoptParams": "Sockopt params (JSON)",
-        "xhttpExtraParams": "XHTTP extra params (JSON)",
         "mihomoIpVersion": "IP version",
         "shuffleHost": "Shuffle host",
         "tags": "Tags",

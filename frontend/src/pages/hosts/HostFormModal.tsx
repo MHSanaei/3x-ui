@@ -18,8 +18,6 @@ interface HostFormModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
-
 function defaultsFor(host: HostRecord | null): FormShape {
   return {
     inboundId: host?.inboundId ?? 0,
@@ -41,9 +39,6 @@ function defaultsFor(host: HostRecord | null): FormShape {
     pinnedPeerCertSha256: host?.pinnedPeerCertSha256 ?? [],
     verifyPeerCertByName: host?.verifyPeerCertByName ?? false,
     echConfigList: host?.echConfigList ?? '',
-    muxParams: asString(host?.muxParams),
-    sockoptParams: asString(host?.sockoptParams),
-    xhttpExtraParams: asString(host?.xhttpExtraParams),
     excludeFromSubTypes: (host?.excludeFromSubTypes as HostFormValues['excludeFromSubTypes']) ?? [],
     mihomoIpVersion: host?.mihomoIpVersion as HostFormValues['mihomoIpVersion'],
     shuffleHost: host?.shuffleHost ?? false,
@@ -133,9 +128,9 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
               ),
             },
             {
-              key: 'advanced',
+              key: 'security',
               forceRender: true,
-              label: t('pages.hosts.sections.advanced'),
+              label: t('pages.hosts.sections.security'),
               children: (
                 <>
                   <Form.Item name="security" label={t('pages.hosts.fields.security')}>
@@ -152,12 +147,6 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                   <Form.Item name="keepSniBlank" label={t('pages.hosts.fields.keepSniBlank')} valuePropName="checked">
                     <Switch />
                   </Form.Item>
-                  <Form.Item name="hostHeader" label={t('pages.hosts.fields.hostHeader')}>
-                    <Input />
-                  </Form.Item>
-                  <Form.Item name="path" label={t('pages.hosts.fields.path')}>
-                    <Input />
-                  </Form.Item>
                   <Form.Item name="alpn" label={t('pages.hosts.fields.alpn')}>
                     <Select mode="multiple" allowClear options={alpnOptions} />
                   </Form.Item>
@@ -173,14 +162,20 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                   <Form.Item name="echConfigList" label={t('pages.hosts.fields.echConfigList')}>
                     <Input.TextArea rows={2} />
                   </Form.Item>
-                  <Form.Item name="muxParams" label={t('pages.hosts.fields.muxParams')}>
-                    <Input.TextArea rows={2} placeholder="{}" />
+                </>
+              ),
+            },
+            {
+              key: 'advanced',
+              forceRender: true,
+              label: t('pages.hosts.sections.advanced'),
+              children: (
+                <>
+                  <Form.Item name="hostHeader" label={t('pages.hosts.fields.hostHeader')}>
+                    <Input />
                   </Form.Item>
-                  <Form.Item name="sockoptParams" label={t('pages.hosts.fields.sockoptParams')}>
-                    <Input.TextArea rows={2} placeholder="{}" />
-                  </Form.Item>
-                  <Form.Item name="xhttpExtraParams" label={t('pages.hosts.fields.xhttpExtraParams')}>
-                    <Input.TextArea rows={2} placeholder="{}" />
+                  <Form.Item name="path" label={t('pages.hosts.fields.path')}>
+                    <Input />
                   </Form.Item>
                 </>
               ),
