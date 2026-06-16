@@ -900,6 +900,7 @@
       },
       "fields": {
         "remark": "Remark",
+        "serverDescription": "Description",
         "inbound": "Inbound",
         "address": "Address",
         "port": "Port",
@@ -916,11 +917,14 @@
         "fingerprint": "Fingerprint",
         "pins": "Pinned cert SHA-256",
         "verifyPeerCertByName": "Verify peer cert by name",
+        "allowInsecure": "Allow insecure",
         "echConfigList": "ECH config list",
         "muxParams": "Mux params (JSON)",
         "sockoptParams": "Sockopt params (JSON)",
         "xhttpExtraParams": "XHTTP extra params (JSON)",
+        "vlessRouteId": "VLESS route id",
         "mihomoIpVersion": "IP version",
+        "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "Shuffle host",
         "tags": "Tags",
         "excludeFromSubTypes": "Exclude from formats"
@@ -928,7 +932,10 @@
       "hints": {
         "address": "Leave blank to inherit the inbound's own address.",
         "port": "0 inherits the inbound's port.",
-        "tags": "Uppercase letters, digits, _ and : only."
+        "tags": "Uppercase letters, digits, _ and : only.",
+        "serverDescription": "Optional note shown under the remark.",
+        "allowInsecure": "Skip TLS certificate verification (allowInsecure / skip-cert-verify).",
+        "vlessRouteId": "Optional routing id (0 = none)."
       },
       "toasts": {
         "list": "Failed to load hosts",

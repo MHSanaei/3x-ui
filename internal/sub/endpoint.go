@@ -89,6 +89,7 @@ func (s *SubService) buildEndpointLinks(
 		nextParams := cloneStringMap(params)
 		applyEndpointTLSParams(e, nextParams, securityToApply)
 		applyEndpointHostPath(e, nextParams)
+		applyEndpointAllowInsecure(e, nextParams, securityToApply)
 		links = append(links, buildLinkWithParamsAndSecurity(
 			makeLink(e.Address, e.Port),
 			nextParams,

@@ -1333,6 +1333,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "cdn.example.com",
         "type": "string"
       },
+      "allowInsecure": {
+        "type": "boolean"
+      },
       "alpn": {
         "items": {
           "type": "string"
@@ -1384,6 +1387,9 @@ export const SCHEMAS: Record<string, unknown> = {
         ],
         "type": "string"
       },
+      "mihomoX25519": {
+        "type": "boolean"
+      },
       "muxParams": {},
       "nodeGuids": {
         "items": {
@@ -1424,6 +1430,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "same",
         "type": "string"
       },
+      "serverDescription": {
+        "maxLength": 64,
+        "type": "string"
+      },
       "shuffleHost": {
         "type": "boolean"
       },
@@ -1446,10 +1456,16 @@ export const SCHEMAS: Record<string, unknown> = {
       "verifyPeerCertByName": {
         "type": "boolean"
       },
+      "vlessRouteId": {
+        "maximum": 65535,
+        "minimum": 0,
+        "type": "integer"
+      },
       "xhttpExtraParams": {}
     },
     "required": [
       "address",
+      "allowInsecure",
       "alpn",
       "createdAt",
       "echConfigList",
@@ -1462,6 +1478,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "isHidden",
       "keepSniBlank",
       "mihomoIpVersion",
+      "mihomoX25519",
       "muxParams",
       "overrideSniFromAddress",
       "path",
@@ -1469,6 +1486,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "port",
       "remark",
       "security",
+      "serverDescription",
       "shuffleHost",
       "sni",
       "sockoptParams",
@@ -1476,6 +1494,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tags",
       "updatedAt",
       "verifyPeerCertByName",
+      "vlessRouteId",
       "xhttpExtraParams"
     ],
     "type": "object"

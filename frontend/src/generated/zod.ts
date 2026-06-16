@@ -319,6 +319,7 @@ export type HistoryOfSeeders = z.infer<typeof HistoryOfSeedersSchema>;
 
 export const HostSchema = z.object({
   address: z.string(),
+  allowInsecure: z.boolean(),
   alpn: z.array(z.string()),
   createdAt: z.number().int(),
   echConfigList: z.string(),
@@ -331,6 +332,7 @@ export const HostSchema = z.object({
   isHidden: z.boolean(),
   keepSniBlank: z.boolean(),
   mihomoIpVersion: z.enum(['dual', 'ipv4', 'ipv6', 'ipv4-prefer', 'ipv6-prefer']),
+  mihomoX25519: z.boolean(),
   muxParams: z.unknown(),
   nodeGuids: z.array(z.string()).optional(),
   overrideSniFromAddress: z.boolean(),
@@ -339,6 +341,7 @@ export const HostSchema = z.object({
   port: z.number().int().min(0).max(65535),
   remark: z.string().max(40),
   security: z.enum(['same', 'tls', 'none', 'reality']),
+  serverDescription: z.string().max(64),
   shuffleHost: z.boolean(),
   sni: z.string(),
   sockoptParams: z.unknown(),
@@ -346,6 +349,7 @@ export const HostSchema = z.object({
   tags: z.array(z.string()),
   updatedAt: z.number().int(),
   verifyPeerCertByName: z.boolean(),
+  vlessRouteId: z.number().int().min(0).max(65535),
   xhttpExtraParams: z.unknown(),
 });
 export type Host = z.infer<typeof HostSchema>;

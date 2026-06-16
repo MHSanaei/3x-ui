@@ -1335,6 +1335,14 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 		}
 		settings["echConfigList"] = ech
 	}
+	if ai, ok := ep["allowInsecure"].(bool); ok && ai {
+		settings, _ := tlsSettings["settings"].(map[string]any)
+		if settings == nil {
+			settings = map[string]any{}
+			tlsSettings["settings"] = settings
+		}
+		settings["allowInsecure"] = true
+	}
 }
 
 func externalProxySNI(ep map[string]any) (string, bool) {

@@ -75,6 +75,9 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 	if h.EchConfigList != "" {
 		ep["echConfigList"] = h.EchConfigList
 	}
+	if h.AllowInsecure {
+		ep["allowInsecure"] = true
+	}
 	if h.HostHeader != "" {
 		ep["hostHeader"] = h.HostHeader
 	}
@@ -156,6 +159,18 @@ func applyEndpointHostPath(e ShareEndpoint, params map[string]string) {
 		if _, exists := params["path"]; exists {
 			params["path"] = p
 		}
+	}
+}
+
+// applyEndpointAllowInsecure adds allowInsecure=1 to a TLS/Reality link when the
+// host opts into skipping cert verification. No-op for legacy externalProxy
+// entries (which never carry the key) and for plaintext (none) endpoints.
+func applyEndpointAllowInsecure(e ShareEndpoint, params map[string]string, security string) {
+	if e.ep == nil || security == "none" {
+		return
+	}
+	if ai, ok := e.ep["allowInsecure"].(bool); ok && ai {
+		params["allowInsecure"] = "1"
 	}
 }
 

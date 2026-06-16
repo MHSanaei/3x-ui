@@ -723,13 +723,14 @@ func (InboundFallback) TableName() string { return "inbound_fallbacks" }
 // superseding the legacy externalProxy array. Free-JSON fields are stored as
 // text and parsed in the sub layer; slice fields use the json serializer.
 type Host struct {
-	Id         int      `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
-	InboundId  int      `json:"inboundId" form:"inboundId" gorm:"index;not null;column:inbound_id" validate:"required" example:"1"`
-	SortOrder  int      `json:"sortOrder" form:"sortOrder" gorm:"default:0;column:sort_order"`
-	Remark     string   `json:"remark" form:"remark" validate:"required,max=40" example:"cdn-front"`
-	IsDisabled bool     `json:"isDisabled" form:"isDisabled" gorm:"default:false;column:is_disabled"`
-	IsHidden   bool     `json:"isHidden" form:"isHidden" gorm:"default:false;column:is_hidden"`
-	Tags       []string `json:"tags" form:"tags" gorm:"serializer:json"`
+	Id                int      `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
+	InboundId         int      `json:"inboundId" form:"inboundId" gorm:"index;not null;column:inbound_id" validate:"required" example:"1"`
+	SortOrder         int      `json:"sortOrder" form:"sortOrder" gorm:"default:0;column:sort_order"`
+	Remark            string   `json:"remark" form:"remark" validate:"required,max=40" example:"cdn-front"`
+	ServerDescription string   `json:"serverDescription" form:"serverDescription" gorm:"column:server_description" validate:"omitempty,max=64"`
+	IsDisabled        bool     `json:"isDisabled" form:"isDisabled" gorm:"default:false;column:is_disabled"`
+	IsHidden          bool     `json:"isHidden" form:"isHidden" gorm:"default:false;column:is_hidden"`
+	Tags              []string `json:"tags" form:"tags" gorm:"serializer:json"`
 
 	Address string `json:"address" form:"address" example:"cdn.example.com"`
 	Port    int    `json:"port" form:"port" gorm:"default:0" validate:"gte=0,lte=65535" example:"8443"`
@@ -744,15 +745,19 @@ type Host struct {
 	KeepSniBlank           bool     `json:"keepSniBlank" form:"keepSniBlank" gorm:"column:keep_sni_blank"`
 	PinnedPeerCertSha256   []string `json:"pinnedPeerCertSha256" form:"pinnedPeerCertSha256" gorm:"serializer:json;column:pinned_peer_cert_sha256"`
 	VerifyPeerCertByName   bool     `json:"verifyPeerCertByName" form:"verifyPeerCertByName" gorm:"column:verify_peer_cert_by_name"`
+	AllowInsecure          bool     `json:"allowInsecure" form:"allowInsecure" gorm:"column:allow_insecure"`
 	EchConfigList          string   `json:"echConfigList" form:"echConfigList" gorm:"column:ech_config_list"`
 
 	MuxParams        string `json:"muxParams" form:"muxParams" gorm:"type:text;column:mux_params"`
 	SockoptParams    string `json:"sockoptParams" form:"sockoptParams" gorm:"type:text;column:sockopt_params"`
 	XhttpExtraParams string `json:"xhttpExtraParams" form:"xhttpExtraParams" gorm:"type:text;column:xhttp_extra_params"`
 
+	VlessRouteId int `json:"vlessRouteId" form:"vlessRouteId" gorm:"column:vless_route_id" validate:"omitempty,gte=0,lte=65535"`
+
 	ExcludeFromSubTypes []string `json:"excludeFromSubTypes" form:"excludeFromSubTypes" gorm:"serializer:json;column:exclude_from_sub_types"`
 
 	MihomoIpVersion string `json:"mihomoIpVersion" form:"mihomoIpVersion" gorm:"column:mihomo_ip_version" validate:"omitempty,oneof=dual ipv4 ipv6 ipv4-prefer ipv6-prefer"`
+	MihomoX25519    bool   `json:"mihomoX25519" form:"mihomoX25519" gorm:"column:mihomo_x25519"`
 	ShuffleHost     bool   `json:"shuffleHost" form:"shuffleHost" gorm:"column:shuffle_host"`
 
 	NodeGuids []string `json:"nodeGuids,omitempty" form:"nodeGuids" gorm:"serializer:json;column:node_guids"`

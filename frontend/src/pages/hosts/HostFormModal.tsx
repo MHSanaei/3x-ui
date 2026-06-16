@@ -25,6 +25,7 @@ function defaultsFor(host: HostRecord | null): FormShape {
     inboundId: host?.inboundId ?? 0,
     sortOrder: host?.sortOrder ?? 0,
     remark: host?.remark ?? '',
+    serverDescription: host?.serverDescription ?? '',
     enable: host ? !host.isDisabled : true,
     isHidden: host?.isHidden ?? false,
     tags: host?.tags ?? [],
@@ -40,12 +41,15 @@ function defaultsFor(host: HostRecord | null): FormShape {
     keepSniBlank: host?.keepSniBlank ?? false,
     pinnedPeerCertSha256: host?.pinnedPeerCertSha256 ?? [],
     verifyPeerCertByName: host?.verifyPeerCertByName ?? false,
+    allowInsecure: host?.allowInsecure ?? false,
     echConfigList: host?.echConfigList ?? '',
     muxParams: asString(host?.muxParams),
     sockoptParams: asString(host?.sockoptParams),
     xhttpExtraParams: asString(host?.xhttpExtraParams),
+    vlessRouteId: host?.vlessRouteId ?? 0,
     excludeFromSubTypes: (host?.excludeFromSubTypes as HostFormValues['excludeFromSubTypes']) ?? [],
     mihomoIpVersion: host?.mihomoIpVersion as HostFormValues['mihomoIpVersion'],
+    mihomoX25519: host?.mihomoX25519 ?? false,
     shuffleHost: host?.shuffleHost ?? false,
   };
 }
@@ -111,6 +115,9 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                   <Form.Item name="remark" label={t('pages.hosts.fields.remark')} rules={[{ required: true, max: 40 }]}>
                     <Input maxLength={40} />
                   </Form.Item>
+                  <Form.Item name="serverDescription" label={t('pages.hosts.fields.serverDescription')} tooltip={t('pages.hosts.hints.serverDescription')}>
+                    <Input maxLength={64} />
+                  </Form.Item>
                   <Form.Item name="inboundId" label={t('pages.hosts.fields.inbound')} rules={[{ required: true }]}>
                     <Select
                       options={inboundSelectOptions}
@@ -164,6 +171,9 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                   <Form.Item name="verifyPeerCertByName" label={t('pages.hosts.fields.verifyPeerCertByName')} valuePropName="checked">
                     <Switch />
                   </Form.Item>
+                  <Form.Item name="allowInsecure" label={t('pages.hosts.fields.allowInsecure')} tooltip={t('pages.hosts.hints.allowInsecure')} valuePropName="checked">
+                    <Switch />
+                  </Form.Item>
                   <Form.Item name="echConfigList" label={t('pages.hosts.fields.echConfigList')}>
                     <Input.TextArea rows={2} />
                   </Form.Item>
@@ -191,6 +201,9 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                   <Form.Item name="xhttpExtraParams" label={t('pages.hosts.fields.xhttpExtraParams')}>
                     <Input.TextArea rows={2} placeholder="{}" />
                   </Form.Item>
+                  <Form.Item name="vlessRouteId" label={t('pages.hosts.fields.vlessRouteId')} tooltip={t('pages.hosts.hints.vlessRouteId')}>
+                    <InputNumber min={0} max={65535} style={{ width: '100%' }} />
+                  </Form.Item>
                 </>
               ),
             },
@@ -205,6 +218,9 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                       allowClear
                       options={['dual', 'ipv4', 'ipv6', 'ipv4-prefer', 'ipv6-prefer'].map((v) => ({ value: v, label: v }))}
                     />
+                  </Form.Item>
+                  <Form.Item name="mihomoX25519" label={t('pages.hosts.fields.mihomoX25519')} valuePropName="checked">
+                    <Switch />
                   </Form.Item>
                   <Form.Item name="shuffleHost" label={t('pages.hosts.fields.shuffleHost')} valuePropName="checked">
                     <Switch />

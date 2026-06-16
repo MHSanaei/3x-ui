@@ -279,6 +279,7 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "Host": {
     "address": "cdn.example.com",
+    "allowInsecure": false,
     "alpn": [
       ""
     ],
@@ -295,6 +296,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "isHidden": false,
     "keepSniBlank": false,
     "mihomoIpVersion": "dual",
+    "mihomoX25519": false,
     "muxParams": null,
     "nodeGuids": [
       ""
@@ -307,6 +309,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "port": 8443,
     "remark": "cdn-front",
     "security": "same",
+    "serverDescription": "",
     "shuffleHost": false,
     "sni": "",
     "sockoptParams": null,
@@ -316,6 +319,7 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "updatedAt": 0,
     "verifyPeerCertByName": false,
+    "vlessRouteId": 0,
     "xhttpExtraParams": null
   },
   "Inbound": {

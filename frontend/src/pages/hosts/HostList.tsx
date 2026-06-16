@@ -110,7 +110,12 @@ export default function HostList(props: HostListProps) {
       title: t('pages.hosts.fields.remark'),
       dataIndex: 'remark',
       key: 'remark',
-      render: (remark: string) => <span className="host-remark">{remark}</span>,
+      render: (_, h) => (
+        <div className="host-remark-cell">
+          <span className="host-remark">{h.remark}</span>
+          {h.serverDescription ? <span className="host-desc">{h.serverDescription}</span> : null}
+        </div>
+      ),
     },
     {
       title: t('pages.hosts.fields.endpoint'),

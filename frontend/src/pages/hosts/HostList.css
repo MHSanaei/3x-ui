@@ -2,8 +2,19 @@
   width: 100%;
 }
 
+.host-remark-cell {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
 .host-remark {
   font-weight: 500;
+}
+
+.host-desc {
+  font-size: 0.82em;
+  color: var(--ant-color-text-secondary);
 }
 
 .host-endpoint {

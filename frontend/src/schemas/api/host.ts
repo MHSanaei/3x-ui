@@ -24,6 +24,7 @@ export const HostFormSchema = z.object({
   inboundId: z.number().int().positive(),
   sortOrder: z.number().int().default(0),
   remark: z.string().trim().min(1).max(40),
+  serverDescription: z.string().max(64).default(''),
   isDisabled: z.boolean().default(false),
   isHidden: z.boolean().default(false),
   tags: z.array(HostTagSchema).max(10).default([]),
@@ -44,11 +45,13 @@ export const HostFormSchema = z.object({
   keepSniBlank: z.boolean().default(false),
   pinnedPeerCertSha256: z.array(z.string()).default([]),
   verifyPeerCertByName: z.boolean().default(false),
+  allowInsecure: z.boolean().default(false),
   echConfigList: z.string().default(''),
 
   muxParams: z.string().default(''),
   sockoptParams: z.string().default(''),
   xhttpExtraParams: z.string().default(''),
+  vlessRouteId: z.number().int().min(0).max(65535).default(0),
 
   excludeFromSubTypes: z.array(SubTypeSchema).default([]),
 
@@ -56,6 +59,7 @@ export const HostFormSchema = z.object({
     (val) => (val === '' ? undefined : val),
     MihomoIpVersionSchema.optional(),
   ),
+  mihomoX25519: z.boolean().default(false),
   shuffleHost: z.boolean().default(false),
 });
 export type HostFormValues = z.infer<typeof HostFormSchema>;
@@ -67,6 +71,7 @@ export const HostRecordSchema = z.object({
   inboundId: z.number(),
   sortOrder: z.number().optional(),
   remark: z.string().optional(),
+  serverDescription: z.string().optional(),
   isDisabled: z.boolean().optional(),
   isHidden: z.boolean().optional(),
   tags: z.array(z.string()).nullish(),
@@ -82,12 +87,15 @@ export const HostRecordSchema = z.object({
   keepSniBlank: z.boolean().optional(),
   pinnedPeerCertSha256: z.array(z.string()).nullish(),
   verifyPeerCertByName: z.boolean().optional(),
+  allowInsecure: z.boolean().optional(),
   echConfigList: z.string().optional(),
   muxParams: z.unknown().optional(),
   sockoptParams: z.unknown().optional(),
   xhttpExtraParams: z.unknown().optional(),
+  vlessRouteId: z.number().optional(),
   excludeFromSubTypes: z.array(z.string()).nullish(),
   mihomoIpVersion: z.string().optional(),
+  mihomoX25519: z.boolean().optional(),
   shuffleHost: z.boolean().optional(),
 }).loose();
 export type HostRecord = z.infer<typeof HostRecordSchema>;

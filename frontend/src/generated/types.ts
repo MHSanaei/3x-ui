@@ -296,6 +296,7 @@ export interface HistoryOfSeeders {
 
 export interface Host {
   address: string;
+  allowInsecure: boolean;
   alpn: string[];
   createdAt: number;
   echConfigList: string;
@@ -308,6 +309,7 @@ export interface Host {
   isHidden: boolean;
   keepSniBlank: boolean;
   mihomoIpVersion: string;
+  mihomoX25519: boolean;
   muxParams: unknown;
   nodeGuids?: string[];
   overrideSniFromAddress: boolean;
@@ -316,6 +318,7 @@ export interface Host {
   port: number;
   remark: string;
   security: string;
+  serverDescription: string;
   shuffleHost: boolean;
   sni: string;
   sockoptParams: unknown;
@@ -323,6 +326,7 @@ export interface Host {
   tags: string[];
   updatedAt: number;
   verifyPeerCertByName: boolean;
+  vlessRouteId: number;
   xhttpExtraParams: unknown;
 }
 

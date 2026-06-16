@@ -245,6 +245,31 @@ func TestSub_HostsResolveViaClientInbounds(t *testing.T) {
 	}
 }
 
+// allowInsecure renders as allowInsecure=1 in the raw link and
+// skip-cert-verify: true in the Clash proxy.
+func TestSub_HostAllowInsecure(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "ai", 4450, 1, wsTLSStream)
+	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 0, Remark: "AI", Address: "ai.cdn.com", Port: 8443, Security: "tls", AllowInsecure: true})
+
+	links, _, _, _, err := NewSubService(false, "-ieo").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	if !strings.Contains(strings.Join(links, "\n"), "allowInsecure=1") {
+		t.Fatalf("raw link should carry allowInsecure=1: %s", strings.Join(links, "\n"))
+	}
+
+	clash := NewSubClashService(false, "", NewSubService(false, "-ieo"))
+	yaml, _, err := clash.GetClash("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if !strings.Contains(yaml, "skip-cert-verify: true") {
+		t.Fatalf("clash proxy should carry skip-cert-verify: true:\n%s", yaml)
+	}
+}
+
 // #9 — ExcludeFromSubTypes is honored per format: a host excluded from clash is
 // absent from GetClash but present in the raw GetSubs output.
 func TestSub_ExcludeFromSubTypes(t *testing.T) {

@@ -1359,6 +1359,9 @@
             "example": "cdn.example.com",
             "type": "string"
           },
+          "allowInsecure": {
+            "type": "boolean"
+          },
           "alpn": {
             "items": {
               "type": "string"
@@ -1410,6 +1413,9 @@
             ],
             "type": "string"
           },
+          "mihomoX25519": {
+            "type": "boolean"
+          },
           "muxParams": {},
           "nodeGuids": {
             "items": {
@@ -1450,6 +1456,10 @@
             "example": "same",
             "type": "string"
           },
+          "serverDescription": {
+            "maxLength": 64,
+            "type": "string"
+          },
           "shuffleHost": {
             "type": "boolean"
           },
@@ -1472,10 +1482,16 @@
           "verifyPeerCertByName": {
             "type": "boolean"
           },
+          "vlessRouteId": {
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
+          },
           "xhttpExtraParams": {}
         },
         "required": [
           "address",
+          "allowInsecure",
           "alpn",
           "createdAt",
           "echConfigList",
@@ -1488,6 +1504,7 @@
           "isHidden",
           "keepSniBlank",
           "mihomoIpVersion",
+          "mihomoX25519",
           "muxParams",
           "overrideSniFromAddress",
           "path",
@@ -1495,6 +1512,7 @@
           "port",
           "remark",
           "security",
+          "serverDescription",
           "shuffleHost",
           "sni",
           "sockoptParams",
@@ -1502,6 +1520,7 @@
           "tags",
           "updatedAt",
           "verifyPeerCertByName",
+          "vlessRouteId",
           "xhttpExtraParams"
         ],
         "type": "object"
@@ -7208,6 +7227,7 @@
                   "obj": [
                     {
                       "address": "cdn.example.com",
+                      "allowInsecure": false,
                       "alpn": [
                         ""
                       ],
@@ -7224,6 +7244,7 @@
                       "isHidden": false,
                       "keepSniBlank": false,
                       "mihomoIpVersion": "dual",
+                      "mihomoX25519": false,
                       "muxParams": null,
                       "nodeGuids": [
                         ""
@@ -7236,6 +7257,7 @@
                       "port": 8443,
                       "remark": "cdn-front",
                       "security": "same",
+                      "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
                       "sockoptParams": null,
@@ -7245,6 +7267,7 @@
                       ],
                       "updatedAt": 0,
                       "verifyPeerCertByName": false,
+                      "vlessRouteId": 0,
                       "xhttpExtraParams": null
                     }
                   ]
@@ -7296,6 +7319,7 @@
                   "success": true,
                   "obj": {
                     "address": "cdn.example.com",
+                    "allowInsecure": false,
                     "alpn": [
                       ""
                     ],
@@ -7312,6 +7336,7 @@
                     "isHidden": false,
                     "keepSniBlank": false,
                     "mihomoIpVersion": "dual",
+                    "mihomoX25519": false,
                     "muxParams": null,
                     "nodeGuids": [
                       ""
@@ -7324,6 +7349,7 @@
                     "port": 8443,
                     "remark": "cdn-front",
                     "security": "same",
+                    "serverDescription": "",
                     "shuffleHost": false,
                     "sni": "",
                     "sockoptParams": null,
@@ -7333,6 +7359,7 @@
                     ],
                     "updatedAt": 0,
                     "verifyPeerCertByName": false,
+                    "vlessRouteId": 0,
                     "xhttpExtraParams": null
                   }
                 }
@@ -7387,6 +7414,7 @@
                   "obj": [
                     {
                       "address": "cdn.example.com",
+                      "allowInsecure": false,
                       "alpn": [
                         ""
                       ],
@@ -7403,6 +7431,7 @@
                       "isHidden": false,
                       "keepSniBlank": false,
                       "mihomoIpVersion": "dual",
+                      "mihomoX25519": false,
                       "muxParams": null,
                       "nodeGuids": [
                         ""
@@ -7415,6 +7444,7 @@
                       "port": 8443,
                       "remark": "cdn-front",
                       "security": "same",
+                      "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
                       "sockoptParams": null,
@@ -7424,6 +7454,7 @@
                       ],
                       "updatedAt": 0,
                       "verifyPeerCertByName": false,
+                      "vlessRouteId": 0,
                       "xhttpExtraParams": null
                     }
                   ]
@@ -7523,6 +7554,7 @@
                   "success": true,
                   "obj": {
                     "address": "cdn.example.com",
+                    "allowInsecure": false,
                     "alpn": [
                       ""
                     ],
@@ -7539,6 +7571,7 @@
                     "isHidden": false,
                     "keepSniBlank": false,
                     "mihomoIpVersion": "dual",
+                    "mihomoX25519": false,
                     "muxParams": null,
                     "nodeGuids": [
                       ""
@@ -7551,6 +7584,7 @@
                     "port": 8443,
                     "remark": "cdn-front",
                     "security": "same",
+                    "serverDescription": "",
                     "shuffleHost": false,
                     "sni": "",
                     "sockoptParams": null,
@@ -7560,6 +7594,7 @@
                     ],
                     "updatedAt": 0,
                     "verifyPeerCertByName": false,
+                    "vlessRouteId": 0,
                     "xhttpExtraParams": null
                   }
                 }
@@ -7631,6 +7666,7 @@
                   "success": true,
                   "obj": {
                     "address": "cdn.example.com",
+                    "allowInsecure": false,
                     "alpn": [
                       ""
                     ],
@@ -7647,6 +7683,7 @@
                     "isHidden": false,
                     "keepSniBlank": false,
                     "mihomoIpVersion": "dual",
+                    "mihomoX25519": false,
                     "muxParams": null,
                     "nodeGuids": [
                       ""
@@ -7659,6 +7696,7 @@
                     "port": 8443,
                     "remark": "cdn-front",
                     "security": "same",
+                    "serverDescription": "",
                     "shuffleHost": false,
                     "sni": "",
                     "sockoptParams": null,
@@ -7668,6 +7706,7 @@
                     ],
                     "updatedAt": 0,
                     "verifyPeerCertByName": false,
+                    "vlessRouteId": 0,
                     "xhttpExtraParams": null
                   }
                 }

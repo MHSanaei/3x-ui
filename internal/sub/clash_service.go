@@ -490,6 +490,11 @@ func (s *SubClashService) applySecurity(proxy map[string]any, security string, s
 					proxy["alpn"] = out
 				}
 			}
+			if inner, ok := tlsSettings["settings"].(map[string]any); ok {
+				if insecure, ok := inner["allowInsecure"].(bool); ok && insecure {
+					proxy["skip-cert-verify"] = true
+				}
+			}
 		}
 		return true
 	case "reality":

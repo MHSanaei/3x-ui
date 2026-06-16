@@ -12,13 +12,13 @@ import (
 // hostColumns is the set of columns initModels must create for the hosts table.
 func hostColumns() []string {
 	return []string{
-		"id", "inbound_id", "sort_order", "remark", "is_disabled", "is_hidden", "tags",
+		"id", "inbound_id", "sort_order", "remark", "server_description", "is_disabled", "is_hidden", "tags",
 		"address", "port",
 		"security", "sni", "host_header", "path", "alpn", "fingerprint",
 		"override_sni_from_address", "keep_sni_blank", "pinned_peer_cert_sha256",
-		"verify_peer_cert_by_name", "ech_config_list",
-		"mux_params", "sockopt_params", "xhttp_extra_params",
-		"exclude_from_sub_types", "mihomo_ip_version", "shuffle_host", "node_guids",
+		"verify_peer_cert_by_name", "allow_insecure", "ech_config_list",
+		"mux_params", "sockopt_params", "xhttp_extra_params", "vless_route_id",
+		"exclude_from_sub_types", "mihomo_ip_version", "mihomo_x25519", "shuffle_host", "node_guids",
 		"created_at", "updated_at",
 	}
 }
