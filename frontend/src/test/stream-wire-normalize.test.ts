@@ -53,6 +53,28 @@ describe('normalizeXhttpForWire stream-one', () => {
     expect(out).not.toHaveProperty('headers');
   });
 
+  it('preserves non-default scMinPostsIntervalMs on inbound for subscriptions', () => {
+    const out = normalizeXhttpForWire({
+      path: '/app',
+      mode: 'packet-up',
+      scMinPostsIntervalMs: '50-150',
+      enableXmux: false,
+    }, 'inbound');
+
+    expect(out.scMinPostsIntervalMs).toBe('50-150');
+  });
+
+  it('strips empty scMinPostsIntervalMs on inbound', () => {
+    const out = normalizeXhttpForWire({
+      path: '/app',
+      mode: 'packet-up',
+      scMinPostsIntervalMs: '',
+      enableXmux: false,
+    }, 'inbound');
+
+    expect(out).not.toHaveProperty('scMinPostsIntervalMs');
+  });
+
   it('keeps xmux on outbound stream-one', () => {
     const out = normalizeXhttpForWire({
       path: '/app',
