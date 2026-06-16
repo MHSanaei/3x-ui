@@ -46,6 +46,7 @@ function defaultsFor(host: HostRecord | null): FormShape {
     muxParams: asString(host?.muxParams),
     sockoptParams: asString(host?.sockoptParams),
     xhttpExtraParams: asString(host?.xhttpExtraParams),
+    xrayJsonTemplate: host?.xrayJsonTemplate ?? '',
     vlessRouteId: host?.vlessRouteId ?? 0,
     excludeFromSubTypes: (host?.excludeFromSubTypes as HostFormValues['excludeFromSubTypes']) ?? [],
     mihomoIpVersion: host?.mihomoIpVersion as HostFormValues['mihomoIpVersion'],
@@ -57,6 +58,14 @@ function defaultsFor(host: HostRecord | null): FormShape {
 export default function HostFormModal({ open, mode, host, inboundOptions, save, onOpenChange }: HostFormModalProps) {
   const { t } = useTranslation();
   const [form] = Form.useForm<FormShape>();
+
+  // Drive conditional field visibility off the selected security, like the
+  // legacy externalProxy form: same/none inherit fully and hide every TLS/cert
+  // field; reality shows only the reality-relevant subset (its keys are
+  // inherited from the inbound); tls shows the full TLS override set.
+  const security = (Form.useWatch('security', form) ?? 'same') as string;
+  const showTls = security === 'tls' || security === 'reality';
+  const showTlsExtras = security === 'tls';
 
   useEffect(() => {
     if (open) form.setFieldsValue(defaultsFor(host));
@@ -150,33 +159,41 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                       options={['same', 'tls', 'none', 'reality'].map((v) => ({ value: v, label: v }))}
                     />
                   </Form.Item>
-                  <Form.Item name="sni" label={t('pages.hosts.fields.sni')}>
-                    <Input />
-                  </Form.Item>
-                  <Form.Item name="overrideSniFromAddress" label={t('pages.hosts.fields.overrideSniFromAddress')} valuePropName="checked">
-                    <Switch />
-                  </Form.Item>
-                  <Form.Item name="keepSniBlank" label={t('pages.hosts.fields.keepSniBlank')} valuePropName="checked">
-                    <Switch />
-                  </Form.Item>
-                  <Form.Item name="alpn" label={t('pages.hosts.fields.alpn')}>
-                    <Select mode="multiple" allowClear options={alpnOptions} />
-                  </Form.Item>
-                  <Form.Item name="fingerprint" label={t('pages.hosts.fields.fingerprint')}>
-                    <Select allowClear options={fpOptions} />
-                  </Form.Item>
-                  <Form.Item name="pinnedPeerCertSha256" label={t('pages.hosts.fields.pins')}>
-                    <Select mode="tags" allowClear tokenSeparators={[',']} />
-                  </Form.Item>
-                  <Form.Item name="verifyPeerCertByName" label={t('pages.hosts.fields.verifyPeerCertByName')} valuePropName="checked">
-                    <Switch />
-                  </Form.Item>
-                  <Form.Item name="allowInsecure" label={t('pages.hosts.fields.allowInsecure')} tooltip={t('pages.hosts.hints.allowInsecure')} valuePropName="checked">
-                    <Switch />
-                  </Form.Item>
-                  <Form.Item name="echConfigList" label={t('pages.hosts.fields.echConfigList')}>
-                    <Input.TextArea rows={2} />
-                  </Form.Item>
+                  {showTls && (
+                    <>
+                      <Form.Item name="sni" label={t('pages.hosts.fields.sni')}>
+                        <Input />
+                      </Form.Item>
+                      <Form.Item name="overrideSniFromAddress" label={t('pages.hosts.fields.overrideSniFromAddress')} valuePropName="checked">
+                        <Switch />
+                      </Form.Item>
+                      <Form.Item name="keepSniBlank" label={t('pages.hosts.fields.keepSniBlank')} valuePropName="checked">
+                        <Switch />
+                      </Form.Item>
+                      <Form.Item name="fingerprint" label={t('pages.hosts.fields.fingerprint')}>
+                        <Select allowClear options={fpOptions} />
+                      </Form.Item>
+                    </>
+                  )}
+                  {showTlsExtras && (
+                    <>
+                      <Form.Item name="alpn" label={t('pages.hosts.fields.alpn')}>
+                        <Select mode="multiple" allowClear options={alpnOptions} />
+                      </Form.Item>
+                      <Form.Item name="pinnedPeerCertSha256" label={t('pages.hosts.fields.pins')}>
+                        <Select mode="tags" allowClear tokenSeparators={[',']} />
+                      </Form.Item>
+                      <Form.Item name="verifyPeerCertByName" label={t('pages.hosts.fields.verifyPeerCertByName')} valuePropName="checked">
+                        <Switch />
+                      </Form.Item>
+                      <Form.Item name="allowInsecure" label={t('pages.hosts.fields.allowInsecure')} tooltip={t('pages.hosts.hints.allowInsecure')} valuePropName="checked">
+                        <Switch />
+                      </Form.Item>
+                      <Form.Item name="echConfigList" label={t('pages.hosts.fields.echConfigList')}>
+                        <Input.TextArea rows={2} />
+                      </Form.Item>
+                    </>
+                  )}
                 </>
               ),
             },
@@ -203,6 +220,9 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                   </Form.Item>
                   <Form.Item name="vlessRouteId" label={t('pages.hosts.fields.vlessRouteId')} tooltip={t('pages.hosts.hints.vlessRouteId')}>
                     <InputNumber min={0} max={65535} style={{ width: '100%' }} />
+                  </Form.Item>
+                  <Form.Item name="xrayJsonTemplate" label={t('pages.hosts.fields.xrayJsonTemplate')} tooltip={t('pages.hosts.hints.xrayJsonTemplate')}>
+                    <Input.TextArea rows={4} placeholder='{"protocol":"vless","tag":"proxy","settings":{"address":"{{ADDRESS}}","port":{{PORT}}}}' />
                   </Form.Item>
                 </>
               ),

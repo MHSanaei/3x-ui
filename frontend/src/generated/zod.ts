@@ -351,6 +351,7 @@ export const HostSchema = z.object({
   verifyPeerCertByName: z.boolean(),
   vlessRouteId: z.number().int().min(0).max(65535),
   xhttpExtraParams: z.unknown(),
+  xrayJsonTemplate: z.string(),
 });
 export type Host = z.infer<typeof HostSchema>;
 

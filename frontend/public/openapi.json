@@ -1487,7 +1487,11 @@
             "minimum": 0,
             "type": "integer"
           },
-          "xhttpExtraParams": {}
+          "xhttpExtraParams": {},
+          "xrayJsonTemplate": {
+            "description": "XrayJsonTemplate, when set, replaces the auto-generated proxy outbound in\nthe JSON subscription for this host. Supports {{ADDRESS}} {{PORT}} {{ID}}\n{{PASSWORD}} {{EMAIL}} {{REMARK}} {{SNI}} {{HOST}} {{PATH}} placeholders.",
+            "type": "string"
+          }
         },
         "required": [
           "address",
@@ -1521,7 +1525,8 @@
           "updatedAt",
           "verifyPeerCertByName",
           "vlessRouteId",
-          "xhttpExtraParams"
+          "xhttpExtraParams",
+          "xrayJsonTemplate"
         ],
         "type": "object"
       },
@@ -7268,7 +7273,8 @@
                       "updatedAt": 0,
                       "verifyPeerCertByName": false,
                       "vlessRouteId": 0,
-                      "xhttpExtraParams": null
+                      "xhttpExtraParams": null,
+                      "xrayJsonTemplate": ""
                     }
                   ]
                 }
@@ -7360,7 +7366,8 @@
                     "updatedAt": 0,
                     "verifyPeerCertByName": false,
                     "vlessRouteId": 0,
-                    "xhttpExtraParams": null
+                    "xhttpExtraParams": null,
+                    "xrayJsonTemplate": ""
                   }
                 }
               }
@@ -7455,7 +7462,8 @@
                       "updatedAt": 0,
                       "verifyPeerCertByName": false,
                       "vlessRouteId": 0,
-                      "xhttpExtraParams": null
+                      "xhttpExtraParams": null,
+                      "xrayJsonTemplate": ""
                     }
                   ]
                 }
@@ -7595,7 +7603,8 @@
                     "updatedAt": 0,
                     "verifyPeerCertByName": false,
                     "vlessRouteId": 0,
-                    "xhttpExtraParams": null
+                    "xhttpExtraParams": null,
+                    "xrayJsonTemplate": ""
                   }
                 }
               }
@@ -7707,7 +7716,8 @@
                     "updatedAt": 0,
                     "verifyPeerCertByName": false,
                     "vlessRouteId": 0,
-                    "xhttpExtraParams": null
+                    "xhttpExtraParams": null,
+                    "xrayJsonTemplate": ""
                   }
                 }
               }

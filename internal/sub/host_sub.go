@@ -96,6 +96,9 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 	if h.MuxParams != "" {
 		ep["muxParams"] = h.MuxParams
 	}
+	if h.XrayJsonTemplate != "" {
+		ep["xrayJsonTemplate"] = h.XrayJsonTemplate
+	}
 	return ep
 }
 

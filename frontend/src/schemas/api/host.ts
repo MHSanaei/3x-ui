@@ -51,6 +51,7 @@ export const HostFormSchema = z.object({
   muxParams: z.string().default(''),
   sockoptParams: z.string().default(''),
   xhttpExtraParams: z.string().default(''),
+  xrayJsonTemplate: z.string().default(''),
   vlessRouteId: z.number().int().min(0).max(65535).default(0),
 
   excludeFromSubTypes: z.array(SubTypeSchema).default([]),
@@ -92,6 +93,7 @@ export const HostRecordSchema = z.object({
   muxParams: z.unknown().optional(),
   sockoptParams: z.unknown().optional(),
   xhttpExtraParams: z.unknown().optional(),
+  xrayJsonTemplate: z.string().optional(),
   vlessRouteId: z.number().optional(),
   excludeFromSubTypes: z.array(z.string()).nullish(),
   mihomoIpVersion: z.string().optional(),

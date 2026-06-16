@@ -312,6 +312,54 @@ func TestSub_HostMuxJSON(t *testing.T) {
 	}
 }
 
+// A host's xrayJsonTemplate replaces the auto-generated proxy outbound in the
+// JSON subscription, with placeholders substituted.
+func TestSub_HostXrayJsonTemplate(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "tpl", 4480, 1, wsTLSStream)
+	tmpl := `{"protocol":"vless","tag":"proxy","settings":{"address":"{{ADDRESS}}","port":{{PORT}},"id":"{{ID}}","note":"{{REMARK}}"}}`
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "TPL", Address: "tpl.cdn.com", Port: 8443, Security: "tls",
+		XrayJsonTemplate: tmpl,
+	})
+	js := NewSubJsonService("", "", "", NewSubService(false, "-ieo"))
+	out, _, err := js.GetJson("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	// "note" only exists in the template (the auto-generated outbound has no such
+	// field), so its presence proves the template path ran. The host remark TPL
+	// must appear inside it (REMARK substituted), and address/port substituted.
+	if !strings.Contains(out, `"note":`) || !strings.Contains(out, "TPL") {
+		t.Fatalf("template not applied / REMARK not substituted:\n%s", out)
+	}
+	if !strings.Contains(out, `"address": "tpl.cdn.com"`) || !strings.Contains(out, `"port": 8443`) {
+		t.Fatalf("ADDRESS/PORT placeholders not substituted:\n%s", out)
+	}
+	if strings.Contains(out, "{{ADDRESS}}") || strings.Contains(out, "{{PORT}}") || strings.Contains(out, "{{REMARK}}") {
+		t.Fatalf("raw placeholders leaked into output:\n%s", out)
+	}
+}
+
+// An invalid xrayJsonTemplate falls back to the auto-generated outbound (the
+// subscription must not break).
+func TestSub_HostXrayJsonTemplate_InvalidFallsBack(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "bad", 4481, 1, wsTLSStream)
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "BAD", Address: "bad.cdn.com", Port: 8443, Security: "tls",
+		XrayJsonTemplate: `{not valid json`,
+	})
+	js := NewSubJsonService("", "", "", NewSubService(false, "-ieo"))
+	out, _, err := js.GetJson("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if !strings.Contains(out, "bad.cdn.com") {
+		t.Fatalf("invalid template should fall back to auto-generation:\n%s", out)
+	}
+}
+
 // #9 — ExcludeFromSubTypes is honored per format: a host excluded from clash is
 // absent from GetClash but present in the raw GetSubs output.
 func TestSub_ExcludeFromSubTypes(t *testing.T) {

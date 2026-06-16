@@ -922,6 +922,7 @@
         "muxParams": "Mux params (JSON)",
         "sockoptParams": "Sockopt params (JSON)",
         "xhttpExtraParams": "XHTTP extra params (JSON)",
+        "xrayJsonTemplate": "Xray JSON template",
         "vlessRouteId": "VLESS route id",
         "mihomoIpVersion": "IP version",
         "mihomoX25519": "Mihomo X25519",
@@ -935,7 +936,8 @@
         "tags": "Uppercase letters, digits, _ and : only.",
         "serverDescription": "Optional note shown under the remark.",
         "allowInsecure": "Skip TLS certificate verification (allowInsecure / skip-cert-verify).",
-        "vlessRouteId": "Optional routing id (0 = none)."
+        "vlessRouteId": "Optional routing id (0 = none).",
+        "xrayJsonTemplate": "Replaces the JSON-subscription outbound for this host. Placeholders: {{ADDRESS}} {{PORT}} {{ID}} {{PASSWORD}} {{EMAIL}} {{REMARK}} {{SNI}} {{HOST}} {{PATH}}."
       },
       "toasts": {
         "list": "Failed to load hosts",

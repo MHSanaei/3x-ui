@@ -1461,7 +1461,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
-      "xhttpExtraParams": {}
+      "xhttpExtraParams": {},
+      "xrayJsonTemplate": {
+        "description": "XrayJsonTemplate, when set, replaces the auto-generated proxy outbound in\nthe JSON subscription for this host. Supports {{ADDRESS}} {{PORT}} {{ID}}\n{{PASSWORD}} {{EMAIL}} {{REMARK}} {{SNI}} {{HOST}} {{PATH}} placeholders.",
+        "type": "string"
+      }
     },
     "required": [
       "address",
@@ -1495,7 +1499,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "updatedAt",
       "verifyPeerCertByName",
       "vlessRouteId",
-      "xhttpExtraParams"
+      "xhttpExtraParams",
+      "xrayJsonTemplate"
     ],
     "type": "object"
   },

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"strconv"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -191,15 +192,19 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 
 		var newOutbounds []json_util.RawMessage
 
-		switch inbound.Protocol {
-		case "vmess":
-			newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client, hostMux))
-		case "vless":
-			newOutbounds = append(newOutbounds, s.genVless(inbound, streamSettings, client, hostMux))
-		case "trojan", "shadowsocks":
-			newOutbounds = append(newOutbounds, s.genServer(inbound, streamSettings, client, hostMux))
-		case "hysteria":
-			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client))
+		if tmplOut := s.hostTemplateOutbound(extPrxy, subReq, inbound, client); tmplOut != nil {
+			newOutbounds = append(newOutbounds, tmplOut)
+		} else {
+			switch inbound.Protocol {
+			case "vmess":
+				newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client, hostMux))
+			case "vless":
+				newOutbounds = append(newOutbounds, s.genVless(inbound, streamSettings, client, hostMux))
+			case "trojan", "shadowsocks":
+				newOutbounds = append(newOutbounds, s.genServer(inbound, streamSettings, client, hostMux))
+			case "hysteria":
+				newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client))
+			}
 		}
 
 		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
@@ -324,6 +329,56 @@ func (s *SubJsonService) realityData(rData map[string]any) map[string]any {
 	}
 
 	return rltyData
+}
+
+// hostTemplateOutbound renders a host's xrayJsonTemplate into a proxy outbound
+// with placeholders substituted. Returns nil when there is no template or the
+// substituted result isn't valid JSON — the caller then falls back to the
+// auto-generated outbound so the subscription never breaks.
+func (s *SubJsonService) hostTemplateOutbound(ep map[string]any, subReq *SubService, inbound *model.Inbound, client model.Client) json_util.RawMessage {
+	tmpl, ok := ep["xrayJsonTemplate"].(string)
+	if !ok || strings.TrimSpace(tmpl) == "" {
+		return nil
+	}
+	dest, _ := ep["dest"].(string)
+	port := 0
+	if p, ok := ep["port"].(float64); ok {
+		port = int(p)
+	}
+	sni, _ := ep["sni"].(string)
+	host, _ := ep["hostHeader"].(string)
+	path, _ := ep["path"].(string)
+	remarkExtra, _ := ep["remark"].(string)
+	repl := map[string]string{
+		"{{ADDRESS}}":  jsonStringInner(dest),
+		"{{PORT}}":     strconv.Itoa(port),
+		"{{ID}}":       jsonStringInner(client.ID),
+		"{{PASSWORD}}": jsonStringInner(client.Password),
+		"{{EMAIL}}":    jsonStringInner(client.Email),
+		"{{REMARK}}":   jsonStringInner(subReq.genRemark(inbound, client.Email, remarkExtra)),
+		"{{SNI}}":      jsonStringInner(sni),
+		"{{HOST}}":     jsonStringInner(host),
+		"{{PATH}}":     jsonStringInner(path),
+	}
+	out := tmpl
+	for k, v := range repl {
+		out = strings.ReplaceAll(out, k, v)
+	}
+	if !json.Valid([]byte(out)) {
+		return nil
+	}
+	return json_util.RawMessage(out)
+}
+
+// jsonStringInner escapes s for embedding inside a JSON string literal (without
+// the surrounding quotes), so a placeholder can sit inside template quotes like
+// "id":"{{ID}}".
+func jsonStringInner(s string) string {
+	b, err := json.Marshal(s)
+	if err != nil || len(b) < 2 {
+		return s
+	}
+	return string(b[1 : len(b)-1])
 }
 
 // jsonMux picks the per-host mux override when present, else the global mux.

@@ -752,6 +752,11 @@ type Host struct {
 	SockoptParams    string `json:"sockoptParams" form:"sockoptParams" gorm:"type:text;column:sockopt_params"`
 	XhttpExtraParams string `json:"xhttpExtraParams" form:"xhttpExtraParams" gorm:"type:text;column:xhttp_extra_params"`
 
+	// XrayJsonTemplate, when set, replaces the auto-generated proxy outbound in
+	// the JSON subscription for this host. Supports {{ADDRESS}} {{PORT}} {{ID}}
+	// {{PASSWORD}} {{EMAIL}} {{REMARK}} {{SNI}} {{HOST}} {{PATH}} placeholders.
+	XrayJsonTemplate string `json:"xrayJsonTemplate" form:"xrayJsonTemplate" gorm:"type:text;column:xray_json_template"`
+
 	VlessRouteId int `json:"vlessRouteId" form:"vlessRouteId" gorm:"column:vless_route_id" validate:"omitempty,gte=0,lte=65535"`
 
 	ExcludeFromSubTypes []string `json:"excludeFromSubTypes" form:"excludeFromSubTypes" gorm:"serializer:json;column:exclude_from_sub_types"`
