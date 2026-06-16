@@ -115,18 +115,6 @@ export default function SockoptForm({
                   <Input />
                 </Form.Item>
                 <Form.Item
-                  label="TProxy"
-                  name={['streamSettings', 'sockopt', 'tproxy']}
-                >
-                  <Select
-                    options={[
-                      { value: 'off', label: 'off' },
-                      { value: 'redirect', label: 'redirect' },
-                      { value: 'tproxy', label: 'tproxy' },
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item
                   label={t('pages.inbounds.form.tcpCongestion')}
                   name={['streamSettings', 'sockopt', 'tcpcongestion']}
                 >
@@ -136,20 +124,6 @@ export default function SockoptForm({
                       label: v,
                     }))}
                   />
-                </Form.Item>
-                <Form.Item
-                  label={t('pages.xray.outboundForm.ipv6Only')}
-                  name={['streamSettings', 'sockopt', 'V6Only']}
-                  valuePropName="checked"
-                >
-                  <Switch />
-                </Form.Item>
-                <Form.Item
-                  label={t('pages.xray.outboundForm.acceptProxyProtocol')}
-                  name={['streamSettings', 'sockopt', 'acceptProxyProtocol']}
-                  valuePropName="checked"
-                >
-                  <Switch />
                 </Form.Item>
                 <Form.Item
                   label={t('pages.xray.outboundForm.tcpUserTimeoutMs')}
@@ -175,16 +149,6 @@ export default function SockoptForm({
                   tooltip={t('pages.inbounds.form.tcpWindowClampHint')}
                 >
                   <InputNumber min={0} />
-                </Form.Item>
-                <Form.Item
-                  label={t('pages.inbounds.form.trustedXForwardedFor')}
-                  name={['streamSettings', 'sockopt', 'trustedXForwardedFor']}
-                >
-                  <Select
-                    mode="tags"
-                    tokenSeparators={[',', ' ']}
-                    placeholder="trusted-proxy.example,10.0.0.0/8"
-                  />
                 </Form.Item>
                 <Form.Item shouldUpdate noStyle>
                   {() => {
