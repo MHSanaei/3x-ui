@@ -188,6 +188,7 @@ func (s *SubClashService) getProxies(subReq *SubService, inbound *model.Inbound,
 		if hasExternalProxy {
 			applyExternalProxyTLSToStream(extPrxy, workingStream, security)
 		}
+		applyHostStreamOverrides(extPrxy, workingStream)
 
 		proxy := s.buildProxy(subReq, &workingInbound, client, workingStream, extPrxy["remark"].(string))
 		if len(proxy) > 0 {

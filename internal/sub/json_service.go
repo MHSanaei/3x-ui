@@ -185,6 +185,7 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		if hasExternalProxy {
 			applyExternalProxyTLSToStream(extPrxy, newStream, security)
 		}
+		applyHostStreamOverrides(extPrxy, newStream)
 		streamSettings, _ := json.MarshalIndent(newStream, "", "  ")
 
 		var newOutbounds []json_util.RawMessage

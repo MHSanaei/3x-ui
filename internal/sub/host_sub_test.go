@@ -270,6 +270,30 @@ func TestSub_HostAllowInsecure(t *testing.T) {
 	}
 }
 
+// A host's sockoptParams / xhttpExtraParams are injected into the JSON output
+// stream (sockopt is stripped from the base stream, re-added per host).
+func TestSub_HostSockoptXhttpJSON(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "so", 4460, 1,
+		`{"network":"xhttp","security":"tls","xhttpSettings":{"path":"/x","mode":"auto"},"tlsSettings":{"serverName":"base.sni"}}`)
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "SO", Address: "so.cdn.com", Port: 8443, Security: "tls",
+		SockoptParams:    `{"tcpFastOpen":true}`,
+		XhttpExtraParams: `{"scMaxEachPostBytes":1000000}`,
+	})
+	js := NewSubJsonService("", "", "", NewSubService(false, "-ieo"))
+	out, _, err := js.GetJson("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if !strings.Contains(out, "sockopt") || !strings.Contains(out, "tcpFastOpen") {
+		t.Fatalf("json should include the host sockopt:\n%s", out)
+	}
+	if !strings.Contains(out, "scMaxEachPostBytes") {
+		t.Fatalf("json should include the host xhttp extra params:\n%s", out)
+	}
+}
+
 // #9 — ExcludeFromSubTypes is honored per format: a host excluded from clash is
 // absent from GetClash but present in the raw GetSubs output.
 func TestSub_ExcludeFromSubTypes(t *testing.T) {

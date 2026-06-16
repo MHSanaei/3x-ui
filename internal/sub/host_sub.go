@@ -87,7 +87,40 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 	if h.MihomoIpVersion != "" {
 		ep["mihomoIpVersion"] = h.MihomoIpVersion
 	}
+	if h.SockoptParams != "" {
+		ep["sockoptParams"] = h.SockoptParams
+	}
+	if h.XhttpExtraParams != "" {
+		ep["xhttpExtraParams"] = h.XhttpExtraParams
+	}
 	return ep
+}
+
+// applyHostStreamOverrides injects a host's free-JSON stream overrides into the
+// per-host stream the JSON/Clash renderers build: sockoptParams (re-added since
+// the base stream strips sockopt) and xhttpExtraParams (merged into the xhttp
+// settings). No-op for legacy externalProxy entries (which never carry these
+// keys), so existing output is unchanged.
+func applyHostStreamOverrides(ep map[string]any, stream map[string]any) {
+	if sp, ok := ep["sockoptParams"].(string); ok && sp != "" {
+		var sockopt map[string]any
+		if json.Unmarshal([]byte(sp), &sockopt) == nil && len(sockopt) > 0 {
+			stream["sockopt"] = sockopt
+		}
+	}
+	if xp, ok := ep["xhttpExtraParams"].(string); ok && xp != "" {
+		var extra map[string]any
+		if json.Unmarshal([]byte(xp), &extra) == nil && len(extra) > 0 {
+			xhttp, _ := stream["xhttpSettings"].(map[string]any)
+			if xhttp == nil {
+				xhttp = map[string]any{}
+				stream["xhttpSettings"] = xhttp
+			}
+			for k, v := range extra {
+				xhttp[k] = v
+			}
+		}
+	}
 }
 
 // hostSecurityToForceTls maps Host.Security onto the externalProxy forceTls
