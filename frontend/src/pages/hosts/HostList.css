@@ -14,3 +14,20 @@
 .host-muted {
   color: var(--ant-color-text-quaternary);
 }
+
+/* card-toolbar is shared with the Clients/Inbounds list cards, but its rules
+   live in a lazily-loaded page stylesheet — re-declare here so the Hosts page
+   renders correctly when opened directly. */
+.hosts-card .card-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 0;
+}
+
+@media (min-width: 769px) and (max-width: 920px) {
+  .hosts-card .card-toolbar {
+    gap: 6px;
+  }
+}

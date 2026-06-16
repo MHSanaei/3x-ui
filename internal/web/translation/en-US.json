@@ -877,6 +877,12 @@
     "hosts": {
       "addHost": "Add Host",
       "editHost": "Edit Host",
+      "selectedCount": "{count} selected",
+      "summary": {
+        "total": "Total",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
       "empty": "No hosts yet. Add one to publish an alternate endpoint for an inbound.",
       "moveUp": "Move up",
       "moveDown": "Move down",

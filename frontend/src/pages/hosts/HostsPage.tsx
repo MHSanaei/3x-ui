@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, ConfigProvider, Layout, Modal, Result, Row, Col, Spin, message } from 'antd';
+import { Button, Card, Col, ConfigProvider, Layout, Modal, Result, Row, Spin, Statistic, message } from 'antd';
+import { CheckCircleOutlined, GlobalOutlined, StopOutlined } from '@ant-design/icons';
 
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -111,6 +112,12 @@ export default function HostsPage() {
     });
   }, [selectedIds, modal, t, bulkDel, messageApi]);
 
+  const summary = useMemo(() => {
+    const total = hosts.length;
+    const enabled = hosts.filter((h) => !h.isDisabled).length;
+    return { total, enabled, disabled: total - enabled };
+  }, [hosts]);
+
   const pageClass = useMemo(() => {
     const classes = ['hosts-page'];
     if (isDark) classes.push('is-dark');
@@ -139,10 +146,39 @@ export default function HostsPage() {
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
                   <Col span={24}>
+                    <Card size="small" hoverable className="summary-card">
+                      <Row gutter={[16, 12]}>
+                        <Col xs={8} sm={8} md={8}>
+                          <Statistic
+                            title={t('pages.hosts.summary.total')}
+                            value={String(summary.total)}
+                            prefix={<GlobalOutlined />}
+                          />
+                        </Col>
+                        <Col xs={8} sm={8} md={8}>
+                          <Statistic
+                            title={t('pages.hosts.summary.enabled')}
+                            value={String(summary.enabled)}
+                            prefix={<CheckCircleOutlined style={{ color: 'var(--ant-color-success)' }} />}
+                          />
+                        </Col>
+                        <Col xs={8} sm={8} md={8}>
+                          <Statistic
+                            title={t('pages.hosts.summary.disabled')}
+                            value={String(summary.disabled)}
+                            prefix={<StopOutlined style={{ color: 'var(--ant-color-text-quaternary)' }} />}
+                          />
+                        </Col>
+                      </Row>
+                    </Card>
+                  </Col>
+
+                  <Col span={24}>
                     <HostList
                       hosts={hosts}
                       inboundOptions={inboundOptions}
                       loading={loading}
+                      isMobile={isMobile}
                       selectedIds={selectedIds}
                       onSelectionChange={setSelectedIds}
                       onAdd={onAdd}

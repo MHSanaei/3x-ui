@@ -18,6 +18,7 @@ interface HostListProps {
   hosts: HostRecord[];
   inboundOptions: InboundOption[];
   loading?: boolean;
+  isMobile?: boolean;
   selectedIds: number[];
   onSelectionChange: (ids: number[]) => void;
   onAdd: () => void;
@@ -44,7 +45,7 @@ function sortHosts(hosts: HostRecord[]): HostRecord[] {
 export default function HostList(props: HostListProps) {
   const { t } = useTranslation();
   const {
-    hosts, inboundOptions, loading, selectedIds, onSelectionChange,
+    hosts, inboundOptions, loading, isMobile, selectedIds, onSelectionChange,
     onAdd, onEdit, onDelete, onToggleEnable, onMove, onBulkEnable, onBulkDelete,
   } = props;
 
@@ -58,10 +59,10 @@ export default function HostList(props: HostListProps) {
 
   // Move is bounded to neighbours within the same inbound (sort_order is per-inbound).
   const movable = useMemo(() => {
-    const byInbound = new Map<number, number>(); // inboundId -> count
-    for (const h of sorted) byInbound.set(h.inboundId, (byInbound.get(h.inboundId) ?? 0) + 1);
+    const byInbound = new Map<number, number>();
     const idxInGroup = new Map<number, number>();
     const counters = new Map<number, number>();
+    for (const h of sorted) byInbound.set(h.inboundId, (byInbound.get(h.inboundId) ?? 0) + 1);
     for (const h of sorted) {
       const c = counters.get(h.inboundId) ?? 0;
       idxInGroup.set(h.id, c);
@@ -70,7 +71,41 @@ export default function HostList(props: HostListProps) {
     return { byInbound, idxInGroup };
   }, [sorted]);
 
+  // Column order requested: Actions, Enable, then the rest.
   const columns: ColumnsType<HostRecord> = [
+    {
+      title: t('pages.hosts.fields.actions'),
+      key: 'actions',
+      width: 168,
+      render: (_, h) => {
+        const idx = movable.idxInGroup.get(h.id) ?? 0;
+        const count = movable.byInbound.get(h.inboundId) ?? 1;
+        return (
+          <Space size={2}>
+            <Tooltip title={t('pages.hosts.moveUp')}>
+              <Button size="small" type="text" icon={<ArrowUpOutlined />} disabled={idx === 0} onClick={() => onMove(h, 'up')} />
+            </Tooltip>
+            <Tooltip title={t('pages.hosts.moveDown')}>
+              <Button size="small" type="text" icon={<ArrowDownOutlined />} disabled={idx >= count - 1} onClick={() => onMove(h, 'down')} />
+            </Tooltip>
+            <Tooltip title={t('edit')}>
+              <Button size="small" type="text" icon={<EditOutlined />} onClick={() => onEdit(h)} />
+            </Tooltip>
+            <Tooltip title={t('delete')}>
+              <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onDelete(h)} />
+            </Tooltip>
+          </Space>
+        );
+      },
+    },
+    {
+      title: t('pages.hosts.fields.enable'),
+      key: 'enable',
+      width: 90,
+      render: (_, h) => (
+        <Switch size="small" checked={!h.isDisabled} onChange={(next) => onToggleEnable(h, next)} />
+      ),
+    },
     {
       title: t('pages.hosts.fields.remark'),
       dataIndex: 'remark',
@@ -100,55 +135,34 @@ export default function HostList(props: HostListProps) {
         ? <Space size={[0, 4]} wrap>{h.tags.map((tag) => <Tag key={tag} color="blue">{tag}</Tag>)}</Space>
         : <span className="host-muted">—</span>),
     },
-    {
-      title: t('pages.hosts.fields.enable'),
-      key: 'enable',
-      render: (_, h) => (
-        <Switch
-          size="small"
-          checked={!h.isDisabled}
-          onChange={(next) => onToggleEnable(h, next)}
-        />
-      ),
-    },
-    {
-      title: t('pages.hosts.fields.actions'),
-      key: 'actions',
-      width: 180,
-      render: (_, h) => {
-        const idx = movable.idxInGroup.get(h.id) ?? 0;
-        const count = movable.byInbound.get(h.inboundId) ?? 1;
-        return (
-          <Space size="small">
-            <Tooltip title={t('pages.hosts.moveUp')}>
-              <Button size="small" type="text" icon={<ArrowUpOutlined />} disabled={idx === 0} onClick={() => onMove(h, 'up')} />
-            </Tooltip>
-            <Tooltip title={t('pages.hosts.moveDown')}>
-              <Button size="small" type="text" icon={<ArrowDownOutlined />} disabled={idx >= count - 1} onClick={() => onMove(h, 'down')} />
-            </Tooltip>
-            <Tooltip title={t('edit')}>
-              <Button size="small" type="text" icon={<EditOutlined />} onClick={() => onEdit(h)} />
-            </Tooltip>
-            <Tooltip title={t('delete')}>
-              <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onDelete(h)} />
-            </Tooltip>
-          </Space>
-        );
-      },
-    },
   ];
 
   const toolbar = (
-    <Space wrap>
-      <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>{t('pages.hosts.addHost')}</Button>
-      <Button disabled={selectedIds.length === 0} onClick={() => onBulkEnable(true)}>{t('pages.hosts.bulkEnable')}</Button>
-      <Button disabled={selectedIds.length === 0} onClick={() => onBulkEnable(false)}>{t('pages.hosts.bulkDisable')}</Button>
-      <Button danger disabled={selectedIds.length === 0} onClick={onBulkDelete}>{t('pages.hosts.bulkDelete')}</Button>
-    </Space>
+    <div className="card-toolbar">
+      {selectedIds.length === 0 ? (
+        <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
+          {!isMobile && t('pages.hosts.addHost')}
+        </Button>
+      ) : (
+        <>
+          <Tag
+            color="blue"
+            closable
+            onClose={() => onSelectionChange([])}
+            style={{ marginInlineEnd: 0, padding: '4px 8px', fontSize: 13 }}
+          >
+            {t('pages.hosts.selectedCount', { count: selectedIds.length })}
+          </Tag>
+          <Button onClick={() => onBulkEnable(true)}>{t('pages.hosts.bulkEnable')}</Button>
+          <Button onClick={() => onBulkEnable(false)}>{t('pages.hosts.bulkDisable')}</Button>
+          <Button danger icon={<DeleteOutlined />} onClick={onBulkDelete}>{t('pages.hosts.bulkDelete')}</Button>
+        </>
+      )}
+    </div>
   );
 
   return (
-    <Card size="small" title={t('menu.hosts')} extra={toolbar} className="hosts-card">
+    <Card size="small" hoverable title={toolbar} className="hosts-card">
       <Table<HostRecord>
         rowKey="id"
         size="small"
@@ -156,6 +170,7 @@ export default function HostList(props: HostListProps) {
         columns={columns}
         dataSource={sorted}
         pagination={false}
+        scroll={{ x: 'max-content' }}
         rowSelection={{
           selectedRowKeys: selectedIds,
           onChange: (keys) => onSelectionChange(keys as number[]),
