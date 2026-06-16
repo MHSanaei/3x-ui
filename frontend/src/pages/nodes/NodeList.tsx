@@ -27,6 +27,7 @@ import {
   MoreOutlined,
   PlusOutlined,
   RightOutlined,
+  SafetyCertificateOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
 
@@ -43,6 +44,7 @@ interface NodeListProps {
   selectedIds: number[];
   onSelectionChange: (ids: number[]) => void;
   onAdd: () => void;
+  onMtls: () => void;
   onEdit: (node: NodeRecord) => void;
   onDelete: (node: NodeRecord) => void;
   onProbe: (node: NodeRecord) => void;
@@ -163,6 +165,7 @@ export default function NodeList({
   selectedIds,
   onSelectionChange,
   onAdd,
+  onMtls,
   onEdit,
   onDelete,
   onProbe,
@@ -416,6 +419,9 @@ export default function NodeList({
       <div className="toolbar">
         <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
           {t('pages.nodes.addNode')}
+        </Button>
+        <Button icon={<SafetyCertificateOutlined />} onClick={onMtls}>
+          {t('pages.nodes.mtls.title')}
         </Button>
         {selectedIds.length > 0 && (
           <Button icon={<CloudDownloadOutlined />} onClick={onUpdateSelected}>

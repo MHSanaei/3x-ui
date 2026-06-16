@@ -45,6 +45,7 @@ export default function NodesPage() {
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [formNode, setFormNode] = useState<NodeRecord | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [mtlsOpen, setMtlsOpen] = useState(false);
   const [trustCa, setTrustCa] = useState('');
   const [copyingCa, setCopyingCa] = useState(false);
   const [savingTrustCa, setSavingTrustCa] = useState(false);
@@ -73,6 +74,7 @@ export default function NodesPage() {
       const msg = await HttpUtil.post('/panel/api/nodes/mtls/trustCA', { caCert: trustCa });
       if (msg?.success) {
         messageApi.success(t('pages.nodes.mtls.saved'));
+        setMtlsOpen(false);
       } else {
         messageApi.error(msg?.msg || t('somethingWentWrong'));
       }
@@ -250,6 +252,7 @@ export default function NodesPage() {
                       selectedIds={selectedIds}
                       onSelectionChange={setSelectedIds}
                       onAdd={onAdd}
+                      onMtls={() => setMtlsOpen(true)}
                       onEdit={onEdit}
                       onDelete={onDelete}
                       onProbe={onProbe}
@@ -257,34 +260,6 @@ export default function NodesPage() {
                       onUpdateNode={onUpdateNode}
                       onUpdateSelected={onUpdateSelected}
                     />
-                  </Col>
-
-                  <Col span={24}>
-                    <Card size="small" title={t('pages.nodes.mtls.title')}>
-                      <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
-                        {t('pages.nodes.mtls.intro')}
-                      </Typography.Paragraph>
-                      <Button onClick={onCopyNodeCa} loading={copyingCa} style={{ marginBottom: 4 }}>
-                        {t('pages.nodes.mtls.copyCa')}
-                      </Button>
-                      <Typography.Paragraph type="secondary">
-                        {t('pages.nodes.mtls.copyCaHint')}
-                      </Typography.Paragraph>
-                      <Typography.Text strong>{t('pages.nodes.mtls.trustLabel')}</Typography.Text>
-                      <Input.TextArea
-                        rows={4}
-                        value={trustCa}
-                        onChange={(e) => setTrustCa(e.target.value)}
-                        placeholder={t('pages.nodes.mtls.trustPlaceholder')}
-                        style={{ marginTop: 4, fontFamily: 'monospace' }}
-                      />
-                      <Typography.Paragraph type="secondary" style={{ marginTop: 4 }}>
-                        {t('pages.nodes.mtls.trustHint')}
-                      </Typography.Paragraph>
-                      <Button type="primary" onClick={onSaveTrustCa} loading={savingTrustCa}>
-                        {t('pages.nodes.mtls.save')}
-                      </Button>
-                    </Card>
                   </Col>
                 </Row>
               )}
@@ -302,6 +277,38 @@ export default function NodesPage() {
           save={onSave}
           onOpenChange={setFormOpen}
         />
+
+        <Modal
+          open={mtlsOpen}
+          title={t('pages.nodes.mtls.title')}
+          footer={null}
+          onCancel={() => setMtlsOpen(false)}
+          destroyOnHidden
+        >
+          <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+            {t('pages.nodes.mtls.intro')}
+          </Typography.Paragraph>
+          <Button onClick={onCopyNodeCa} loading={copyingCa} style={{ marginBottom: 4 }}>
+            {t('pages.nodes.mtls.copyCa')}
+          </Button>
+          <Typography.Paragraph type="secondary">
+            {t('pages.nodes.mtls.copyCaHint')}
+          </Typography.Paragraph>
+          <Typography.Text strong>{t('pages.nodes.mtls.trustLabel')}</Typography.Text>
+          <Input.TextArea
+            rows={5}
+            value={trustCa}
+            onChange={(e) => setTrustCa(e.target.value)}
+            placeholder={t('pages.nodes.mtls.trustPlaceholder')}
+            style={{ marginTop: 4, fontFamily: 'monospace' }}
+          />
+          <Typography.Paragraph type="secondary" style={{ marginTop: 4 }}>
+            {t('pages.nodes.mtls.trustHint')}
+          </Typography.Paragraph>
+          <Button type="primary" onClick={onSaveTrustCa} loading={savingTrustCa} block>
+            {t('pages.nodes.mtls.save')}
+          </Button>
+        </Modal>
       </Layout>
     </ConfigProvider>
   );
