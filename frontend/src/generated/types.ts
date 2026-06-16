@@ -328,8 +328,6 @@ export interface Host {
   updatedAt: number;
   verifyPeerCertByName: boolean;
   vlessRoute: string;
-  xhttpExtraParams: unknown;
-  xrayJsonTemplate: string;
 }
 
 export interface Inbound {

@@ -7,7 +7,8 @@ import type { HostFormValues } from '@/schemas/api/host';
 import type { InboundOption } from '@/schemas/client';
 import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
-import { HostFinalMaskForm, HostMuxForm, HostSockoptForm, HostXhttpForm } from './json-forms';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { HostFinalMaskForm, HostMuxForm, HostSockoptForm } from './json-forms';
 
 // inboundId is optional in the form so a new host starts unselected (the Select
 // shows its placeholder instead of 0); the required rule enforces it on submit.
@@ -49,9 +50,7 @@ function defaultsFor(host: HostRecord | null): FormShape {
     echConfigList: host?.echConfigList ?? '',
     muxParams: asString(host?.muxParams),
     sockoptParams: asString(host?.sockoptParams),
-    xhttpExtraParams: asString(host?.xhttpExtraParams),
     finalMask: host?.finalMask ?? '',
-    xrayJsonTemplate: host?.xrayJsonTemplate ?? '',
     vlessRoute: host?.vlessRoute ?? '',
     excludeFromSubTypes: (host?.excludeFromSubTypes as HostFormValues['excludeFromSubTypes']) ?? [],
     nodeGuids: host?.nodeGuids ?? [],
@@ -63,6 +62,7 @@ function defaultsFor(host: HostRecord | null): FormShape {
 
 export default function HostFormModal({ open, mode, host, inboundOptions, save, onOpenChange }: HostFormModalProps) {
   const { t } = useTranslation();
+  const { isMobile } = useMediaQuery();
   const [form] = Form.useForm<FormShape>();
 
   // Drive conditional field visibility off the selected security, like the
@@ -124,7 +124,8 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
       okText={t('save')}
       cancelText={t('cancel')}
       destroyOnHidden
-      width={760}
+      width={isMobile ? '95vw' : 760}
+      styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
     >
       <Form form={form} layout="vertical" initialValues={defaultsFor(host)} preserve={false}>
         <Tabs
@@ -242,9 +243,6 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                           <Form.Item name="vlessRoute" label={t('pages.hosts.fields.vlessRoute')} tooltip={t('pages.hosts.hints.vlessRoute')}>
                             <Input placeholder="53,443,1000-2000" />
                           </Form.Item>
-                          <Form.Item name="xrayJsonTemplate" label={t('pages.hosts.fields.xrayJsonTemplate')} tooltip={t('pages.hosts.hints.xrayJsonTemplate')}>
-                            <Input.TextArea rows={4} placeholder='{"protocol":"vless","tag":"proxy","settings":{"address":"{{ADDRESS}}","port":{{PORT}}}}' />
-                          </Form.Item>
                         </>
                       ),
                     },
@@ -265,16 +263,6 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                       children: (
                         <Form.Item name="sockoptParams" noStyle>
                           <HostSockoptForm />
-                        </Form.Item>
-                      ),
-                    },
-                    {
-                      key: 'adv-xhttp',
-                      forceRender: true,
-                      label: t('pages.hosts.fields.xhttpExtraParams'),
-                      children: (
-                        <Form.Item name="xhttpExtraParams" noStyle>
-                          <HostXhttpForm />
                         </Form.Item>
                       ),
                     },

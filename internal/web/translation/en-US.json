@@ -923,9 +923,7 @@
         "echConfigList": "ECH config list",
         "muxParams": "Mux",
         "sockoptParams": "Sockopt",
-        "xhttpExtraParams": "XHTTP",
         "finalMask": "Final Mask",
-        "xrayJsonTemplate": "Xray JSON template",
         "vlessRoute": "VLESS route",
         "mihomoIpVersion": "IP version",
         "mihomoX25519": "Mihomo X25519",
@@ -941,8 +939,7 @@
         "nodeGuids": "Pick nodes which resolved from this host. Only visual assignment.",
         "serverDescription": "Optional note shown under the remark.",
         "allowInsecure": "Skip TLS certificate verification (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "Ports/ranges routed via VLESS, e.g. 53,443,1000-2000. Leave blank for none.",
-        "xrayJsonTemplate": "Replaces the JSON-subscription outbound for this host. Placeholders: {{ADDRESS}} {{PORT}} {{ID}} {{PASSWORD}} {{EMAIL}} {{REMARK}} {{SNI}} {{HOST}} {{PATH}}."
+        "vlessRoute": "Ports/ranges routed via VLESS, e.g. 53,443,1000-2000. Leave blank for none."
       },
       "toasts": {
         "list": "Failed to load hosts",

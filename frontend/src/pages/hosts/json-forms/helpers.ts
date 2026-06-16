@@ -1,7 +1,7 @@
 // Shared helpers for the host's structured JSON-override editors. Each host
 // override is persisted as a JSON string (muxParams / sockoptParams /
-// xhttpExtraParams / finalMask); these convert between that string and the
-// object the reused outbound/sub-JSON forms edit.
+// finalMask); these convert between that string and the object the reused
+// outbound/sub-JSON forms edit.
 
 export function parseJsonObject(raw: string): Record<string, unknown> {
   if (!raw) return {};

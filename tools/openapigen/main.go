@@ -56,7 +56,6 @@ func run(root, outDir string) error {
 				"Host": {
 					{Field: "MuxParams", Kind: KindAny},
 					{Field: "SockoptParams", Kind: KindAny},
-					{Field: "XhttpExtraParams", Kind: KindAny},
 				},
 			},
 		},

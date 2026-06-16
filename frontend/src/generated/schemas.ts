@@ -1463,11 +1463,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "vlessRoute": {
         "description": "VlessRoute is a free-form port/range routing spec (e.g. \"53,443,1000-2000\");\nstored verbatim, format-validated on the frontend.",
         "type": "string"
-      },
-      "xhttpExtraParams": {},
-      "xrayJsonTemplate": {
-        "description": "XrayJsonTemplate, when set, replaces the auto-generated proxy outbound in\nthe JSON subscription for this host. Supports {{ADDRESS}} {{PORT}} {{ID}}\n{{PASSWORD}} {{EMAIL}} {{REMARK}} {{SNI}} {{HOST}} {{PATH}} placeholders.",
-        "type": "string"
       }
     },
     "required": [
@@ -1502,9 +1497,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tags",
       "updatedAt",
       "verifyPeerCertByName",
-      "vlessRoute",
-      "xhttpExtraParams",
-      "xrayJsonTemplate"
+      "vlessRoute"
     ],
     "type": "object"
   },
