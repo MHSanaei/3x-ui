@@ -46,6 +46,10 @@ export const HostFormSchema = z.object({
   verifyPeerCertByName: z.boolean().default(false),
   echConfigList: z.string().default(''),
 
+  muxParams: z.string().default(''),
+  sockoptParams: z.string().default(''),
+  xhttpExtraParams: z.string().default(''),
+
   excludeFromSubTypes: z.array(SubTypeSchema).default([]),
 
   mihomoIpVersion: z.preprocess(
