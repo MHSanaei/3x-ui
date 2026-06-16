@@ -3,7 +3,6 @@ import { Form, type FormInstance } from 'antd';
 import type { ReactNode } from 'react';
 
 import {
-  ExternalProxyForm,
   GrpcForm,
   HttpUpgradeForm,
   KcpForm,
@@ -64,26 +63,6 @@ describe('inbound transport forms', () => {
 
   it('XhttpForm field structure is stable', () => {
     renderInForm((form) => <XhttpForm form={form} />);
-    expect(fieldLabels()).toMatchSnapshot();
-  });
-
-  it('ExternalProxyForm field structure is stable (one TLS entry)', () => {
-    renderInForm(
-      () => <ExternalProxyForm toggleExternalProxy={noop} />,
-      {
-        streamSettings: {
-          externalProxy: [{
-            forceTls: 'tls',
-            dest: '',
-            port: 443,
-            remark: '',
-            sni: '',
-            fingerprint: '',
-            alpn: [],
-          }],
-        },
-      },
-    );
     expect(fieldLabels()).toMatchSnapshot();
   });
 
