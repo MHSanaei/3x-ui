@@ -1352,6 +1352,160 @@
         ],
         "type": "object"
       },
+      "Host": {
+        "description": "Host is an override endpoint attached to an inbound: at subscription time each\nenabled host renders one share link/proxy with its own address/port/TLS/etc.,\nsuperseding the legacy externalProxy array. Free-JSON fields are stored as\ntext and parsed in the sub layer; slice fields use the json serializer.",
+        "properties": {
+          "address": {
+            "example": "cdn.example.com",
+            "type": "string"
+          },
+          "alpn": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "echConfigList": {
+            "type": "string"
+          },
+          "excludeFromSubTypes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "hostHeader": {
+            "type": "string"
+          },
+          "id": {
+            "example": 1,
+            "type": "integer"
+          },
+          "inboundId": {
+            "example": 1,
+            "type": "integer"
+          },
+          "isDisabled": {
+            "type": "boolean"
+          },
+          "isHidden": {
+            "type": "boolean"
+          },
+          "keepSniBlank": {
+            "type": "boolean"
+          },
+          "mihomoIpVersion": {
+            "enum": [
+              "dual",
+              "ipv4",
+              "ipv6",
+              "ipv4-prefer",
+              "ipv6-prefer"
+            ],
+            "type": "string"
+          },
+          "muxParams": {},
+          "nodeGuids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "overrideSniFromAddress": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "pinnedPeerCertSha256": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "port": {
+            "example": 8443,
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "remark": {
+            "example": "cdn-front",
+            "maxLength": 40,
+            "type": "string"
+          },
+          "security": {
+            "enum": [
+              "same",
+              "tls",
+              "none",
+              "reality"
+            ],
+            "example": "same",
+            "type": "string"
+          },
+          "shuffleHost": {
+            "type": "boolean"
+          },
+          "sni": {
+            "type": "string"
+          },
+          "sockoptParams": {},
+          "sortOrder": {
+            "type": "integer"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "type": "integer"
+          },
+          "verifyPeerCertByName": {
+            "type": "boolean"
+          },
+          "xhttpExtraParams": {}
+        },
+        "required": [
+          "address",
+          "alpn",
+          "createdAt",
+          "echConfigList",
+          "excludeFromSubTypes",
+          "fingerprint",
+          "hostHeader",
+          "id",
+          "inboundId",
+          "isDisabled",
+          "isHidden",
+          "keepSniBlank",
+          "mihomoIpVersion",
+          "muxParams",
+          "overrideSniFromAddress",
+          "path",
+          "pinnedPeerCertSha256",
+          "port",
+          "remark",
+          "security",
+          "shuffleHost",
+          "sni",
+          "sockoptParams",
+          "sortOrder",
+          "tags",
+          "updatedAt",
+          "verifyPeerCertByName",
+          "xhttpExtraParams"
+        ],
+        "type": "object"
+      },
       "Inbound": {
         "description": "Inbound represents an Xray inbound configuration with traffic statistics and settings.",
         "properties": {

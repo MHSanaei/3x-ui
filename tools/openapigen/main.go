@@ -38,6 +38,7 @@ func run(root, outDir string) error {
 				"ClientRecord",
 				"ClientInbound",
 				"InboundFallback",
+				"Host",
 			),
 			AliasAllow: setOf("Protocol"),
 			Overrides: map[string][]walkOverride{
@@ -51,6 +52,11 @@ func run(root, outDir string) error {
 				},
 				"InboundClientIps": {
 					{Field: "Ips", Kind: KindAny},
+				},
+				"Host": {
+					{Field: "MuxParams", Kind: KindAny},
+					{Field: "SockoptParams", Kind: KindAny},
+					{Field: "XhttpExtraParams", Kind: KindAny},
 				},
 			},
 		},

@@ -317,6 +317,39 @@ export const HistoryOfSeedersSchema = z.object({
 });
 export type HistoryOfSeeders = z.infer<typeof HistoryOfSeedersSchema>;
 
+export const HostSchema = z.object({
+  address: z.string(),
+  alpn: z.array(z.string()),
+  createdAt: z.number().int(),
+  echConfigList: z.string(),
+  excludeFromSubTypes: z.array(z.string()),
+  fingerprint: z.string(),
+  hostHeader: z.string(),
+  id: z.number().int(),
+  inboundId: z.number().int(),
+  isDisabled: z.boolean(),
+  isHidden: z.boolean(),
+  keepSniBlank: z.boolean(),
+  mihomoIpVersion: z.enum(['dual', 'ipv4', 'ipv6', 'ipv4-prefer', 'ipv6-prefer']),
+  muxParams: z.unknown(),
+  nodeGuids: z.array(z.string()).optional(),
+  overrideSniFromAddress: z.boolean(),
+  path: z.string(),
+  pinnedPeerCertSha256: z.array(z.string()),
+  port: z.number().int().min(0).max(65535),
+  remark: z.string().max(40),
+  security: z.enum(['same', 'tls', 'none', 'reality']),
+  shuffleHost: z.boolean(),
+  sni: z.string(),
+  sockoptParams: z.unknown(),
+  sortOrder: z.number().int(),
+  tags: z.array(z.string()),
+  updatedAt: z.number().int(),
+  verifyPeerCertByName: z.boolean(),
+  xhttpExtraParams: z.unknown(),
+});
+export type Host = z.infer<typeof HostSchema>;
+
 export const InboundSchema = z.object({
   clientStats: z.array(z.lazy(() => ClientTrafficSchema)),
   down: z.number().int(),

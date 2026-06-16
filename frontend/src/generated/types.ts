@@ -294,6 +294,38 @@ export interface HistoryOfSeeders {
   seederName: string;
 }
 
+export interface Host {
+  address: string;
+  alpn: string[];
+  createdAt: number;
+  echConfigList: string;
+  excludeFromSubTypes: string[];
+  fingerprint: string;
+  hostHeader: string;
+  id: number;
+  inboundId: number;
+  isDisabled: boolean;
+  isHidden: boolean;
+  keepSniBlank: boolean;
+  mihomoIpVersion: string;
+  muxParams: unknown;
+  nodeGuids?: string[];
+  overrideSniFromAddress: boolean;
+  path: string;
+  pinnedPeerCertSha256: string[];
+  port: number;
+  remark: string;
+  security: string;
+  shuffleHost: boolean;
+  sni: string;
+  sockoptParams: unknown;
+  sortOrder: number;
+  tags: string[];
+  updatedAt: number;
+  verifyPeerCertByName: boolean;
+  xhttpExtraParams: unknown;
+}
+
 export interface Inbound {
   clientStats: ClientTraffic[];
   down: number;

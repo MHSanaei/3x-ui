@@ -72,6 +72,7 @@ func initModels() error {
 		&model.ClientExternalLink{},
 		&model.ClientGroup{},
 		&model.InboundFallback{},
+		&model.Host{},
 		&model.NodeClientTraffic{},
 		&model.NodeClientIp{},
 		&model.ClientGlobalTraffic{},
@@ -93,6 +94,9 @@ func initModels() error {
 	if err := pruneOrphanedClientInbounds(); err != nil {
 		return err
 	}
+	if err := pruneOrphanedHosts(); err != nil {
+		return err
+	}
 	if err := normalizeInboundSubSortIndex(); err != nil {
 		return err
 	}
@@ -112,6 +116,18 @@ func dropLegacyForeignKeys() error {
 	if err := db.Exec("ALTER TABLE client_traffics DROP CONSTRAINT IF EXISTS fk_inbounds_client_stats").Error; err != nil {
 		log.Printf("Error dropping legacy foreign key fk_inbounds_client_stats: %v", err)
 		return err
+	}
+	return nil
+}
+
+func pruneOrphanedHosts() error {
+	res := db.Exec("DELETE FROM hosts WHERE inbound_id NOT IN (SELECT id FROM inbounds)")
+	if res.Error != nil {
+		log.Printf("Error pruning orphaned hosts rows: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Pruned %d orphaned hosts row(s)", res.RowsAffected)
 	}
 	return nil
 }

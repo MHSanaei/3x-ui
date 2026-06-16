@@ -277,6 +277,47 @@ export const EXAMPLES: Record<string, unknown> = {
     "id": 0,
     "seederName": ""
   },
+  "Host": {
+    "address": "cdn.example.com",
+    "alpn": [
+      ""
+    ],
+    "createdAt": 0,
+    "echConfigList": "",
+    "excludeFromSubTypes": [
+      ""
+    ],
+    "fingerprint": "",
+    "hostHeader": "",
+    "id": 1,
+    "inboundId": 1,
+    "isDisabled": false,
+    "isHidden": false,
+    "keepSniBlank": false,
+    "mihomoIpVersion": "dual",
+    "muxParams": null,
+    "nodeGuids": [
+      ""
+    ],
+    "overrideSniFromAddress": false,
+    "path": "",
+    "pinnedPeerCertSha256": [
+      ""
+    ],
+    "port": 8443,
+    "remark": "cdn-front",
+    "security": "same",
+    "shuffleHost": false,
+    "sni": "",
+    "sockoptParams": null,
+    "sortOrder": 0,
+    "tags": [
+      ""
+    ],
+    "updatedAt": 0,
+    "verifyPeerCertByName": false,
+    "xhttpExtraParams": null
+  },
   "Inbound": {
     "clientStats": [
       {
