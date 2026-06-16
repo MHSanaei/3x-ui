@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Form, Input, InputNumber, Segmented, Select, Space, Switch } from 'antd';
+import { Alert, Form, Input, InputNumber, Segmented, Select, Switch } from 'antd';
 
+import { CustomSockoptList } from '@/components/form';
 import {
   Address_Port_Strategy,
   DOMAIN_STRATEGY_OPTION,
@@ -352,56 +353,7 @@ export default function SockoptForm({
                     );
                   }}
                 </Form.Item>
-                <Form.List name={['streamSettings', 'sockopt', 'customSockopt']}>
-                  {(fields, { add, remove }) => (
-                    <>
-                      <Form.Item label={t('pages.inbounds.form.customSockopt')}>
-                        <Button
-                          type="dashed"
-                          size="small"
-                          onClick={() => add({ type: 'int', level: '6', opt: '', value: '' })}
-                        >
-                          + {t('pages.inbounds.form.addCustomOption')}
-                        </Button>
-                      </Form.Item>
-                      {fields.map((field) => (
-                        <Space.Compact key={field.key} style={{ display: 'flex', marginBottom: 8 }}>
-                          <Form.Item name={[field.name, 'system']} noStyle>
-                            <Select
-                              placeholder="all"
-                              allowClear
-                              style={{ width: 100 }}
-                              options={[
-                                { value: 'linux', label: 'linux' },
-                                { value: 'windows', label: 'windows' },
-                                { value: 'darwin', label: 'darwin' },
-                              ]}
-                            />
-                          </Form.Item>
-                          <Form.Item name={[field.name, 'type']} noStyle>
-                            <Select
-                              style={{ width: 80 }}
-                              options={[
-                                { value: 'int', label: 'int' },
-                                { value: 'str', label: 'str' },
-                              ]}
-                            />
-                          </Form.Item>
-                          <Form.Item name={[field.name, 'level']} noStyle>
-                            <Input placeholder="level (6=TCP)" style={{ width: 100 }} />
-                          </Form.Item>
-                          <Form.Item name={[field.name, 'opt']} noStyle>
-                            <Input placeholder="opt" style={{ width: 120 }} />
-                          </Form.Item>
-                          <Form.Item name={[field.name, 'value']} noStyle>
-                            <Input placeholder="value" style={{ flex: 1 }} />
-                          </Form.Item>
-                          <Button danger onClick={() => remove(field.name)}>−</Button>
-                        </Space.Compact>
-                      ))}
-                    </>
-                  )}
-                </Form.List>
+                <CustomSockoptList />
               </>
             )}
           </>
