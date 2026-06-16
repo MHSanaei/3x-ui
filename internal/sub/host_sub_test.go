@@ -294,6 +294,24 @@ func TestSub_HostSockoptXhttpJSON(t *testing.T) {
 	}
 }
 
+// A host's muxParams override the JSON outbound's mux.
+func TestSub_HostMuxJSON(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "mx", 4470, 1, wsTLSStream)
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "MX", Address: "mx.cdn.com", Port: 8443, Security: "tls",
+		MuxParams: `{"enabled":true,"concurrency":8}`,
+	})
+	js := NewSubJsonService("", "", "", NewSubService(false, "-ieo"))
+	out, _, err := js.GetJson("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if !strings.Contains(out, "concurrency") {
+		t.Fatalf("json should include the host mux override:\n%s", out)
+	}
+}
+
 // #9 — ExcludeFromSubTypes is honored per format: a host excluded from clash is
 // absent from GetClash but present in the raw GetSubs output.
 func TestSub_ExcludeFromSubTypes(t *testing.T) {

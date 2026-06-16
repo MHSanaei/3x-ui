@@ -93,7 +93,20 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 	if h.XhttpExtraParams != "" {
 		ep["xhttpExtraParams"] = h.XhttpExtraParams
 	}
+	if h.MuxParams != "" {
+		ep["muxParams"] = h.MuxParams
+	}
 	return ep
+}
+
+// hostMuxOverride returns a host's muxParams when it is valid JSON, else "".
+// Used to override the JSON outbound's mux for that host.
+func hostMuxOverride(ep map[string]any) string {
+	mp, ok := ep["muxParams"].(string)
+	if ok && mp != "" && json.Valid([]byte(mp)) {
+		return mp
+	}
+	return ""
 }
 
 // applyHostStreamOverrides injects a host's free-JSON stream overrides into the

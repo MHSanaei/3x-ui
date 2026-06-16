@@ -106,7 +106,7 @@ func TestSubJsonServiceVlessFlattened(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
 	client := model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVless(inbound, nil, client))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVless(inbound, nil, client, ""))
 	if _, ok := settings["vnext"]; ok {
 		t.Fatal("vless outbound must not use vnext")
 	}
@@ -119,7 +119,7 @@ func TestSubJsonServiceVmessFlattened(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VMESS, Settings: `{}`}
 	client := model.Client{ID: "uuid-2"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVnext(inbound, nil, client))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVnext(inbound, nil, client, ""))
 	if _, ok := settings["vnext"]; ok {
 		t.Fatal("vmess outbound must not use vnext")
 	}
@@ -132,7 +132,7 @@ func TestSubJsonServiceServerFlattened(t *testing.T) {
 	trojan := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.Trojan, Settings: `{}`}
 	client := model.Client{Password: "p4ss"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(trojan, nil, client))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(trojan, nil, client, ""))
 	if _, ok := settings["servers"]; ok {
 		t.Fatal("trojan outbound must not use servers array")
 	}
@@ -141,7 +141,7 @@ func TestSubJsonServiceServerFlattened(t *testing.T) {
 	}
 
 	ss := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.Shadowsocks, Settings: `{"method":"aes-256-gcm"}`}
-	ssSettings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(ss, nil, client))
+	ssSettings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(ss, nil, client, ""))
 	if ssSettings["method"] != "aes-256-gcm" {
 		t.Fatalf("flat shadowsocks must carry method: %#v", ssSettings)
 	}
