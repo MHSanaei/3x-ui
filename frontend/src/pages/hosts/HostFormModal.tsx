@@ -7,7 +7,9 @@ import type { HostFormValues } from '@/schemas/api/host';
 import type { InboundOption } from '@/schemas/client';
 import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
 
-type FormShape = Omit<HostFormValues, 'isDisabled'> & { enable: boolean };
+// inboundId is optional in the form so a new host starts unselected (the Select
+// shows its placeholder instead of 0); the required rule enforces it on submit.
+type FormShape = Omit<HostFormValues, 'isDisabled' | 'inboundId'> & { enable: boolean; inboundId?: number };
 
 interface HostFormModalProps {
   open: boolean;
@@ -22,7 +24,7 @@ const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 function defaultsFor(host: HostRecord | null): FormShape {
   return {
-    inboundId: host?.inboundId ?? 0,
+    inboundId: host?.inboundId,
     sortOrder: host?.sortOrder ?? 0,
     remark: host?.remark ?? '',
     serverDescription: host?.serverDescription ?? '',
@@ -133,7 +135,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                       showSearch
                       optionFilterProp="label"
                       disabled={mode === 'edit'}
-                      placeholder={t('pages.hosts.fields.inbound')}
+                      placeholder={t('pages.hosts.selectInbound')}
                     />
                   </Form.Item>
                   <Form.Item name="address" label={t('pages.hosts.fields.address')} tooltip={t('pages.hosts.hints.address')}>

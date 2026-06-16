@@ -877,6 +877,7 @@
     "hosts": {
       "addHost": "Add Host",
       "editHost": "Edit Host",
+      "selectInbound": "Select an inbound",
       "selectedCount": "{count} selected",
       "summary": {
         "total": "Total",
