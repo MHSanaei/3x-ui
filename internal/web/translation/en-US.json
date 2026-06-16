@@ -913,6 +913,8 @@
       "status": "Status",
       "cpu": "CPU",
       "mem": "Memory",
+      "netUp": "Net Up (KB/s)",
+      "netDown": "Net Down (KB/s)",
       "uptime": "Uptime",
       "latency": "Latency",
       "lastHeartbeat": "Last Heartbeat",

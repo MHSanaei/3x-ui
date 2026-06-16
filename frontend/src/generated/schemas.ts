@@ -1693,6 +1693,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "de-fra-1",
         "type": "string"
       },
+      "netDown": {
+        "example": 2097152,
+        "type": "integer"
+      },
+      "netUp": {
+        "example": 1048576,
+        "type": "integer"
+      },
       "onlineCount": {
         "example": 3,
         "type": "integer"
@@ -1737,7 +1745,8 @@ export const SCHEMAS: Record<string, unknown> = {
         "enum": [
           "verify",
           "skip",
-          "pin"
+          "pin",
+          "mtls"
         ],
         "type": "string"
       },
@@ -1786,6 +1795,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "latencyMs",
       "memPct",
       "name",
+      "netDown",
+      "netUp",
       "onlineCount",
       "outboundTag",
       "panelVersion",

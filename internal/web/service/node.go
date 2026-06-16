@@ -35,7 +35,11 @@ type HeartbeatPatch struct {
 	CpuPct        float64
 	MemPct        float64
 	UptimeSecs    uint64
-	LastError     string
+	// NetUp/NetDown are the node's current interface throughput (bytes/sec),
+	// summed over non-virtual interfaces, read from its status response.
+	NetUp     uint64
+	NetDown   uint64
+	LastError string
 	// XrayState and XrayError come from the remote /panel/api/server/status when the
 	// panel API is reachable. They allow distinguishing panel connectivity from
 	// Xray core health on the node.
@@ -558,6 +562,8 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 		"cpu_pct":        p.CpuPct,
 		"mem_pct":        p.MemPct,
 		"uptime_secs":    p.UptimeSecs,
+		"net_up":         p.NetUp,
+		"net_down":       p.NetDown,
 		"last_error":     p.LastError,
 		"xray_state":     p.XrayState,
 		"xray_error":     p.XrayError,
@@ -574,6 +580,8 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 		now := time.Unix(p.LastHeartbeat, 0)
 		nodeMetrics.append(nodeMetricKey(id, "cpu"), now, p.CpuPct)
 		nodeMetrics.append(nodeMetricKey(id, "mem"), now, p.MemPct)
+		nodeMetrics.append(nodeMetricKey(id, "netUp"), now, float64(p.NetUp))
+		nodeMetrics.append(nodeMetricKey(id, "netDown"), now, float64(p.NetDown))
 	}
 	return nil
 }
@@ -826,6 +834,10 @@ func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string)
 			PanelVersion string `json:"panelVersion"`
 			PanelGuid    string `json:"panelGuid"`
 			Uptime       uint64 `json:"uptime"`
+			NetIO        struct {
+				Up   uint64 `json:"up"`
+				Down uint64 `json:"down"`
+			} `json:"netIO"`
 		} `json:"obj"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&envelope); err != nil {
@@ -847,6 +859,8 @@ func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string)
 	patch.PanelVersion = o.PanelVersion
 	patch.Guid = o.PanelGuid
 	patch.UptimeSecs = o.Uptime
+	patch.NetUp = o.NetIO.Up
+	patch.NetDown = o.NetIO.Down
 	return patch, nil
 }
 

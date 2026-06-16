@@ -1719,6 +1719,14 @@
             "example": "de-fra-1",
             "type": "string"
           },
+          "netDown": {
+            "example": 2097152,
+            "type": "integer"
+          },
+          "netUp": {
+            "example": 1048576,
+            "type": "integer"
+          },
           "onlineCount": {
             "example": 3,
             "type": "integer"
@@ -1763,7 +1771,8 @@
             "enum": [
               "verify",
               "skip",
-              "pin"
+              "pin",
+              "mtls"
             ],
             "type": "string"
           },
@@ -1812,6 +1821,8 @@
           "latencyMs",
           "memPct",
           "name",
+          "netDown",
+          "netUp",
           "onlineCount",
           "outboundTag",
           "panelVersion",
@@ -6266,6 +6277,8 @@
                       "latencyMs": 42,
                       "memPct": 45.1,
                       "name": "de-fra-1",
+                      "netDown": 2097152,
+                      "netUp": 1048576,
                       "onlineCount": 3,
                       "outboundTag": "",
                       "panelVersion": "v3.x.x",
