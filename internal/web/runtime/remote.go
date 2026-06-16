@@ -18,10 +18,15 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/wirecodec"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 const remoteHTTPTimeout = 10 * time.Second
+
+// zstdMinBodyBytes is the smallest body worth compressing; below it the framing
+// overhead can outweigh the savings.
+const zstdMinBodyBytes = 1024
 
 type envelope struct {
 	Success bool            `json:"success"`
@@ -34,6 +39,10 @@ type Remote struct {
 
 	mu            sync.RWMutex
 	remoteIDByTag map[string]int
+	// supportsZstd is learned from the node's X-3x-Node-Caps response header; once
+	// seen, config pushes to this node are zstd-compressed. Old nodes never set
+	// it, so they keep receiving plain bodies (mixed-version safe).
+	supportsZstd bool
 
 	// Per-node client honoring the TLS verify mode, built once and reused; a
 	// node config change drops the cached Remote so the next one rebuilds it.
@@ -60,6 +69,23 @@ func NewRemote(n *model.Node, r NodeEgressResolver) *Remote {
 }
 
 func (r *Remote) Name() string { return "node:" + r.node.Name }
+
+func (r *Remote) nodeSupportsZstd() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.supportsZstd
+}
+
+// recordCaps learns the node's capabilities from a response header so later
+// pushes can use the negotiated envelope.
+func (r *Remote) recordCaps(h http.Header) {
+	if !strings.Contains(h.Get(wirecodec.CapsHeader), wirecodec.CapZstd) {
+		return
+	}
+	r.mu.Lock()
+	r.supportsZstd = true
+	r.mu.Unlock()
+}
 
 // httpClient lazily builds and caches the per-node client honoring the TLS
 // verify mode, so Remote ops don't fall back to system CA on skip/pin (#5264).
@@ -99,7 +125,9 @@ func (r *Remote) baseURL() (string, error) {
 }
 
 func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelope, error) {
-	if r.node.ApiToken == "" {
+	// mtls nodes authenticate via the client certificate, so a bearer token is
+	// optional for them; every other mode still requires one.
+	if r.node.ApiToken == "" && r.node.TlsVerifyMode != "mtls" {
 		return nil, errors.New("node has no API token configured")
 	}
 
@@ -110,21 +138,38 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 	target := base + strings.TrimPrefix(path, "/")
 
 	var (
-		reqBody     io.Reader
+		bodyBytes   []byte
 		contentType string
 	)
 	switch b := body.(type) {
 	case nil:
 	case url.Values:
-		reqBody = strings.NewReader(b.Encode())
+		bodyBytes = []byte(b.Encode())
 		contentType = "application/x-www-form-urlencoded"
 	default:
 		buf, jerr := json.Marshal(b)
 		if jerr != nil {
 			return nil, fmt.Errorf("marshal body: %w", jerr)
 		}
-		reqBody = bytes.NewReader(buf)
+		bodyBytes = buf
 		contentType = "application/json"
+	}
+
+	// Attach the integrity hash of the uncompressed body unconditionally (a new
+	// node verifies it, an old one ignores it), and zstd-compress only when the
+	// node advertised support and the body is worth it.
+	var (
+		reqBody     io.Reader
+		hashHex     string
+		zstdEncoded bool
+	)
+	if bodyBytes != nil {
+		hashHex = wirecodec.Sha256Hex(bodyBytes)
+		if len(bodyBytes) >= zstdMinBodyBytes && r.nodeSupportsZstd() {
+			bodyBytes = wirecodec.Compress(bodyBytes)
+			zstdEncoded = true
+		}
+		reqBody = bytes.NewReader(bodyBytes)
 	}
 
 	cctx, cancel := context.WithTimeout(netsafe.ContextWithAllowPrivate(ctx, r.node.AllowPrivateAddress), remoteHTTPTimeout)
@@ -133,10 +178,18 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+r.node.ApiToken)
+	if r.node.ApiToken != "" {
+		req.Header.Set("Authorization", "Bearer "+r.node.ApiToken)
+	}
 	req.Header.Set("Accept", "application/json")
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
+	}
+	if hashHex != "" {
+		req.Header.Set(wirecodec.HashHeader, hashHex)
+	}
+	if zstdEncoded {
+		req.Header.Set("Content-Encoding", wirecodec.EncodingZstd)
 	}
 
 	client, err := r.httpClient()
@@ -148,6 +201,7 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 		return nil, fmt.Errorf("%s %s: %w", method, path, err)
 	}
 	defer resp.Body.Close()
+	r.recordCaps(resp.Header)
 
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {

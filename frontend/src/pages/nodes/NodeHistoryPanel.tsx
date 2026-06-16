@@ -31,6 +31,10 @@ export default function NodeHistoryPanel({ node, bucket = 30 }: NodeHistoryPanel
   const [cpuLabels, setCpuLabels] = useState<string[]>([]);
   const [memPoints, setMemPoints] = useState<number[]>([]);
   const [memLabels, setMemLabels] = useState<string[]>([]);
+  const [netUpPoints, setNetUpPoints] = useState<number[]>([]);
+  const [netUpLabels, setNetUpLabels] = useState<string[]>([]);
+  const [netDownPoints, setNetDownPoints] = useState<number[]>([]);
+  const [netDownLabels, setNetDownLabels] = useState<string[]>([]);
 
   const lastNodeId = useRef<number>(node.id);
 
@@ -46,7 +50,9 @@ export default function NodeHistoryPanel({ node, bucket = 30 }: NodeHistoryPanel
       return `${hh}:${mm}:${ss}`;
     };
 
-    const fetchSeries = async (metric: 'cpu' | 'mem') => {
+    // cpu/mem are percentages (clamp 0-100); net throughput is bytes/sec shown
+    // as KB/s (no upper clamp, the sparkline auto-scales).
+    const fetchSeries = async (metric: string, kind: 'pct' | 'rate') => {
       try {
         const url = `/panel/api/nodes/history/${node.id}/${metric}/${bucket}`;
         const msg = await HttpUtil.get(url) as ApiMsg<SeriesPoint[]>;
@@ -55,7 +61,8 @@ export default function NodeHistoryPanel({ node, bucket = 30 }: NodeHistoryPanel
           const labs: string[] = [];
           for (const p of msg.obj) {
             labs.push(bucketLabel(p.t));
-            vals.push(Math.max(0, Math.min(100, Number(p.v) || 0)));
+            const n = Number(p.v) || 0;
+            vals.push(kind === 'pct' ? Math.max(0, Math.min(100, n)) : Math.max(0, n / 1024));
           }
           return { vals, labs };
         }
@@ -66,12 +73,21 @@ export default function NodeHistoryPanel({ node, bucket = 30 }: NodeHistoryPanel
     };
 
     const refresh = async () => {
-      const [cpu, mem] = await Promise.all([fetchSeries('cpu'), fetchSeries('mem')]);
+      const [cpu, mem, netUp, netDown] = await Promise.all([
+        fetchSeries('cpu', 'pct'),
+        fetchSeries('mem', 'pct'),
+        fetchSeries('netUp', 'rate'),
+        fetchSeries('netDown', 'rate'),
+      ]);
       if (cancelled) return;
       setCpuPoints(cpu.vals);
       setCpuLabels(cpu.labs);
       setMemPoints(mem.vals);
       setMemLabels(mem.labs);
+      setNetUpPoints(netUp.vals);
+      setNetUpLabels(netUp.labs);
+      setNetDownPoints(netDown.vals);
+      setNetDownLabels(netDown.labs);
     };
 
     refresh();
@@ -113,6 +129,38 @@ export default function NodeHistoryPanel({ node, bucket = 30 }: NodeHistoryPanel
           showAxes
           tickCountX={4}
           maxPoints={memPoints.length || 1}
+          fillOpacity={0.18}
+          markerRadius={2.6}
+          showTooltip
+        />
+      </div>
+      <div className="series">
+        <div className="series-title">{t('pages.nodes.netUp')}</div>
+        <Sparkline
+          data={netUpPoints}
+          labels={netUpLabels}
+          height={120}
+          stroke="#1677ff"
+          showGrid
+          showAxes
+          tickCountX={4}
+          maxPoints={netUpPoints.length || 1}
+          fillOpacity={0.18}
+          markerRadius={2.6}
+          showTooltip
+        />
+      </div>
+      <div className="series">
+        <div className="series-title">{t('pages.nodes.netDown')}</div>
+        <Sparkline
+          data={netDownPoints}
+          labels={netDownLabels}
+          height={120}
+          stroke="#fa8c16"
+          showGrid
+          showAxes
+          tickCountX={4}
+          maxPoints={netDownPoints.length || 1}
           fillOpacity={0.18}
           markerRadius={2.6}
           showTooltip

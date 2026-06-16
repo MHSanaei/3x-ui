@@ -372,6 +372,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "latencyMs": 42,
     "memPct": 45.1,
     "name": "de-fra-1",
+    "netDown": 2097152,
+    "netUp": 1048576,
     "onlineCount": 3,
     "outboundTag": "",
     "panelVersion": "v3.x.x",

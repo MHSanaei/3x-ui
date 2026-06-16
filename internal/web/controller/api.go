@@ -35,6 +35,17 @@ func NewAPIController(g *gin.RouterGroup) *APIController {
 }
 
 func (a *APIController) checkAPIAuth(c *gin.Context) {
+	// A verified client certificate (a completed mTLS handshake) authenticates
+	// the caller, equivalent to a valid bearer token. api_authed must be set so
+	// the CSRF middleware lets cert-authed mutations through.
+	if c.Request.TLS != nil && len(c.Request.TLS.VerifiedChains) > 0 {
+		if u, err := a.userService.GetFirstUser(); err == nil {
+			session.SetAPIAuthUser(c, u)
+		}
+		c.Set("api_authed", true)
+		c.Next()
+		return
+	}
 	auth := c.GetHeader("Authorization")
 	if after, ok := strings.CutPrefix(auth, "Bearer "); ok {
 		tok := after
@@ -63,6 +74,9 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	// Main API group
 	api := g.Group("/panel/api")
 	api.Use(a.checkAPIAuth)
+	// Decode + verify the node config envelope (zstd + X-Config-Sha256) and
+	// advertise support, before CSRF/handlers read the body.
+	api.Use(middleware.ConfigEnvelopeMiddleware())
 	api.Use(middleware.CSRFMiddleware())
 
 	// Inbounds API

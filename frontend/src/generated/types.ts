@@ -377,6 +377,8 @@ export interface Node {
   latencyMs: number;
   memPct: number;
   name: string;
+  netDown: number;
+  netUp: number;
   onlineCount: number;
   outboundTag: string;
   panelVersion: string;

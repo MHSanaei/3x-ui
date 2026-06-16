@@ -502,10 +502,10 @@ type Node struct {
 	Address             string   `json:"address" form:"address" validate:"required" example:"node1.example.com"`
 	Port                int      `json:"port" form:"port" validate:"gte=1,lte=65535" example:"2053"`
 	BasePath            string   `json:"basePath" form:"basePath" example:"/"`
-	ApiToken            string   `json:"apiToken" form:"apiToken" validate:"required" example:"abcdef0123456789"`
+	ApiToken            string   `json:"apiToken" form:"apiToken" validate:"required_unless=TlsVerifyMode mtls" example:"abcdef0123456789"`
 	Enable              bool     `json:"enable" form:"enable" gorm:"default:true" example:"true"`
 	AllowPrivateAddress bool     `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
-	TlsVerifyMode       string   `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin"`
+	TlsVerifyMode       string   `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin mtls"`
 	PinnedCertSha256    string   `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
 	InboundSyncMode     string   `json:"inboundSyncMode" form:"inboundSyncMode" gorm:"column:inbound_sync_mode;default:all" validate:"omitempty,oneof=all selected"`
 	InboundTags         []string `json:"inboundTags" form:"inboundTags" gorm:"serializer:json;column:inbound_tags"`
@@ -529,6 +529,8 @@ type Node struct {
 	CpuPct        float64 `json:"cpuPct" example:"23.5"`
 	MemPct        float64 `json:"memPct" example:"45.1"`
 	UptimeSecs    uint64  `json:"uptimeSecs" example:"86400"`
+	NetUp         uint64  `json:"netUp" gorm:"column:net_up" example:"1048576"`
+	NetDown       uint64  `json:"netDown" gorm:"column:net_down" example:"2097152"`
 	LastError     string  `json:"lastError"`
 
 	// XrayState and XrayError are captured from the remote node's /panel/api/server/status

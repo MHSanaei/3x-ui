@@ -733,6 +733,12 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/clients/clientIpsByGuid',
+        summary: 'Per-client source IPs grouped by the panelGuid of the node that observed them. Lets the central panel attribute and enforce per-client IP limits using the real visitor IPs each node sees, instead of the address of the intermediate panel it syncs through.',
+        response: '{\n  "success": true,\n  "obj": {\n    "a1b2-...": {\n      "user1": [\n        { "ip": "1.2.3.4", "timestamp": 1700000000 }\n      ]\n    }\n  }\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/clients/activeInbounds',
         summary: 'Inbound tags that carried traffic within the heartbeat window, grouped by the hosting node\'s panelGuid. Pairs with onlinesByGuid so the inbounds page only marks a multi-inbound client online on the inbounds it actually used. Nodes that do not report per-inbound activity are absent.',
         response: '{\n  "success": true,\n  "obj": {\n    "a1b2-...": ["in-443-tcp", "in-8443-tcp"]\n  }\n}',
@@ -789,6 +795,18 @@ export const sections: readonly Section[] = [
         summary: 'List every configured node with its connection details, health, and last heartbeat patch.',
         responseSchema: 'Node',
         responseSchemaArray: true,
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/nodes/mtls/ca',
+        summary: "This panel's node-auth CA certificate (public, PEM) to paste into a node's mTLS trust setting. Lazily mints the CA and the master client cert on first call. Pair with setting tlsVerifyMode=mtls on the node.",
+        response: '{\n  "success": true,\n  "obj": {\n    "caCert": "-----BEGIN CERTIFICATE-----\\n...\\n-----END CERTIFICATE-----\\n"\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/nodes/mtls/trustCA',
+        summary: "Set the CA certificate this panel trusts for incoming node-API client certificates (this panel acting as a node). Paste the managing panel's CA (from nodes/mtls/ca). An empty caCert disables it. A non-empty value must be a PEM certificate. Applied on the next panel restart.",
+        body: '{\n  "caCert": "-----BEGIN CERTIFICATE-----\\n...\\n-----END CERTIFICATE-----\\n"\n}',
       },
       {
         method: 'GET',
