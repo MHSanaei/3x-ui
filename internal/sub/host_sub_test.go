@@ -360,6 +360,35 @@ func TestSub_HostXrayJsonTemplate_InvalidFallsBack(t *testing.T) {
 	}
 }
 
+// A reality host overrides SNI + fingerprint while inheriting pbk/sid from the
+// inbound (reality keys can't be host-supplied).
+func TestSub_HostRealitySniOverride(t *testing.T) {
+	seedSubDB(t)
+	realityStream := `{"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},"realitySettings":{"serverNames":["base.reality.com"],"shortIds":["abcd"],"settings":{"publicKey":"PBK","fingerprint":"chrome"}}}`
+	ib := seedSubInbound(t, "s1", "rl", 4490, 1, realityStream)
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "RL", Address: "rl.cdn.com", Port: 8443,
+		Security: "reality", Sni: "host.reality.com", Fingerprint: "firefox",
+	})
+	links, _, _, _, err := NewSubService(false, "-ieo").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	if !strings.Contains(joined, "rl.cdn.com:8443") || !strings.Contains(joined, "security=reality") {
+		t.Fatalf("reality host base wrong: %s", joined)
+	}
+	if !strings.Contains(joined, "sni=host.reality.com") || !strings.Contains(joined, "fp=firefox") {
+		t.Fatalf("reality host sni/fp override not applied: %s", joined)
+	}
+	if strings.Contains(joined, "sni=base.reality.com") {
+		t.Fatalf("base reality sni must be overridden: %s", joined)
+	}
+	if !strings.Contains(joined, "pbk=PBK") || !strings.Contains(joined, "sid=abcd") {
+		t.Fatalf("reality pbk/sid must be inherited from the inbound: %s", joined)
+	}
+}
+
 // #9 — ExcludeFromSubTypes is honored per format: a host excluded from clash is
 // absent from GetClash but present in the raw GetSubs output.
 func TestSub_ExcludeFromSubTypes(t *testing.T) {

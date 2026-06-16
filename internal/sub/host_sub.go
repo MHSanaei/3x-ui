@@ -55,6 +55,10 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 		"dest":     dest,
 		"port":     float64(port),
 		"remark":   h.Remark,
+		// Marks this as a host (not a legacy externalProxy) entry so host-only
+		// behaviors (e.g. reality SNI/fp override) apply without touching the
+		// legacy externalProxy path. Not emitted into output.
+		"isHost": true,
 	}
 	sni := h.Sni
 	if h.OverrideSniFromAddress {
@@ -137,6 +141,18 @@ func applyHostStreamOverrides(ep map[string]any, stream map[string]any) {
 			}
 		}
 	}
+	// Reality SNI override (host only): JSON realityData reads serverNames and
+	// clash reads serverName, so set both forms.
+	if isHostEndpoint(ep) {
+		if sec, _ := stream["security"].(string); sec == "reality" {
+			if rs, ok := stream["realitySettings"].(map[string]any); ok && rs != nil {
+				if sni, ok := externalProxySNI(ep); ok {
+					rs["serverName"] = sni
+					rs["serverNames"] = []any{sni}
+				}
+			}
+		}
+	}
 }
 
 // hostSecurityToForceTls maps Host.Security onto the externalProxy forceTls
@@ -208,6 +224,28 @@ func applyEndpointHostPath(e ShareEndpoint, params map[string]string) {
 		if _, exists := params["path"]; exists {
 			params["path"] = p
 		}
+	}
+}
+
+// isHostEndpoint reports whether ep was synthesized from a Host (vs a legacy
+// externalProxy entry), so host-only overrides stay off the legacy path.
+func isHostEndpoint(ep map[string]any) bool {
+	v, _ := ep["isHost"].(bool)
+	return v
+}
+
+// applyEndpointRealityParams overrides a reality link's SNI + fingerprint from a
+// host (reality's pbk/sid are inherited from the inbound, so they aren't touched).
+// Host-only: legacy externalProxy reality links are unchanged.
+func applyEndpointRealityParams(e ShareEndpoint, params map[string]string, security string) {
+	if security != "reality" || e.ep == nil || !isHostEndpoint(e.ep) {
+		return
+	}
+	if sni, ok := externalProxySNI(e.ep); ok {
+		params["sni"] = sni
+	}
+	if fp, ok := e.ep["fingerprint"].(string); ok && fp != "" {
+		params["fp"] = fp
 	}
 }
 
