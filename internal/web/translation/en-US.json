@@ -108,6 +108,7 @@
     "clients": "Clients",
     "groups": "Groups",
     "nodes": "Nodes",
+    "hosts": "Hosts",
     "settings": "Panel Settings",
     "xray": "Xray Configs",
     "apiDocs": "API Docs",
@@ -874,12 +875,61 @@
       "removeFromGroupResult": "Removed {count} client(s) from {name}."
     },
     "hosts": {
+      "addHost": "Add Host",
+      "editHost": "Edit Host",
+      "empty": "No hosts yet. Add one to publish an alternate endpoint for an inbound.",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "bulkEnable": "Enable",
+      "bulkDisable": "Disable",
+      "bulkDelete": "Delete",
+      "bulkDeleteConfirm": "Delete {count} selected host(s)?",
+      "deleteConfirmTitle": "Delete host \"{name}\"?",
+      "sections": {
+        "basic": "Basic",
+        "advanced": "Advanced",
+        "clash": "Clash (mihomo)",
+        "subScope": "Subscription scope"
+      },
+      "fields": {
+        "remark": "Remark",
+        "inbound": "Inbound",
+        "address": "Address",
+        "port": "Port",
+        "endpoint": "Endpoint",
+        "enable": "Enable",
+        "actions": "Actions",
+        "security": "Security",
+        "sni": "SNI",
+        "overrideSniFromAddress": "Use address as SNI",
+        "keepSniBlank": "Keep SNI blank",
+        "hostHeader": "Host header",
+        "path": "Path",
+        "alpn": "ALPN",
+        "fingerprint": "Fingerprint",
+        "pins": "Pinned cert SHA-256",
+        "verifyPeerCertByName": "Verify peer cert by name",
+        "echConfigList": "ECH config list",
+        "muxParams": "Mux params (JSON)",
+        "sockoptParams": "Sockopt params (JSON)",
+        "xhttpExtraParams": "XHTTP extra params (JSON)",
+        "mihomoIpVersion": "IP version",
+        "shuffleHost": "Shuffle host",
+        "tags": "Tags",
+        "excludeFromSubTypes": "Exclude from formats"
+      },
+      "hints": {
+        "address": "Leave blank to inherit the inbound's own address.",
+        "port": "0 inherits the inbound's port.",
+        "tags": "Uppercase letters, digits, _ and : only."
+      },
       "toasts": {
         "list": "Failed to load hosts",
         "obtain": "Failed to load host",
         "add": "Add host",
         "update": "Update host",
-        "delete": "Delete host"
+        "delete": "Delete host",
+        "badTag": "Invalid tag"
       }
     },
     "nodes": {

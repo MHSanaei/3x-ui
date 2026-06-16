@@ -1,0 +1,226 @@
+import { useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Collapse, Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
+
+import type { HostRecord } from '@/api/queries/useHostsQuery';
+import type { HostFormValues } from '@/schemas/api/host';
+import type { InboundOption } from '@/schemas/client';
+import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
+
+type FormShape = Omit<HostFormValues, 'isDisabled'> & { enable: boolean };
+
+interface HostFormModalProps {
+  open: boolean;
+  mode: 'add' | 'edit';
+  host: HostRecord | null;
+  inboundOptions: InboundOption[];
+  save: (payload: Partial<HostFormValues>) => Promise<{ success?: boolean; msg?: string } | undefined>;
+  onOpenChange: (open: boolean) => void;
+}
+
+const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
+
+function defaultsFor(host: HostRecord | null): FormShape {
+  return {
+    inboundId: host?.inboundId ?? 0,
+    sortOrder: host?.sortOrder ?? 0,
+    remark: host?.remark ?? '',
+    enable: host ? !host.isDisabled : true,
+    isHidden: host?.isHidden ?? false,
+    tags: host?.tags ?? [],
+    address: host?.address ?? '',
+    port: host?.port ?? 0,
+    security: (host?.security as HostFormValues['security']) ?? 'same',
+    sni: host?.sni ?? '',
+    hostHeader: host?.hostHeader ?? '',
+    path: host?.path ?? '',
+    alpn: (host?.alpn as HostFormValues['alpn']) ?? [],
+    fingerprint: host?.fingerprint as HostFormValues['fingerprint'],
+    overrideSniFromAddress: host?.overrideSniFromAddress ?? false,
+    keepSniBlank: host?.keepSniBlank ?? false,
+    pinnedPeerCertSha256: host?.pinnedPeerCertSha256 ?? [],
+    verifyPeerCertByName: host?.verifyPeerCertByName ?? false,
+    echConfigList: host?.echConfigList ?? '',
+    muxParams: asString(host?.muxParams),
+    sockoptParams: asString(host?.sockoptParams),
+    xhttpExtraParams: asString(host?.xhttpExtraParams),
+    excludeFromSubTypes: (host?.excludeFromSubTypes as HostFormValues['excludeFromSubTypes']) ?? [],
+    mihomoIpVersion: host?.mihomoIpVersion as HostFormValues['mihomoIpVersion'],
+    shuffleHost: host?.shuffleHost ?? false,
+  };
+}
+
+export default function HostFormModal({ open, mode, host, inboundOptions, save, onOpenChange }: HostFormModalProps) {
+  const { t } = useTranslation();
+  const [form] = Form.useForm<FormShape>();
+
+  useEffect(() => {
+    if (open) form.setFieldsValue(defaultsFor(host));
+  }, [open, host, form]);
+
+  const inboundSelectOptions = useMemo(
+    () => inboundOptions.map((ib) => ({
+      value: ib.id,
+      label: `${ib.remark || ib.tag || `#${ib.id}`}${ib.port ? ` :${ib.port}` : ''}`,
+    })),
+    [inboundOptions],
+  );
+
+  const alpnOptions = useMemo(() => Object.values(ALPN_OPTION).map((v) => ({ value: v, label: v })), []);
+  const fpOptions = useMemo(() => Object.values(UTLS_FINGERPRINT).map((v) => ({ value: v, label: v })), []);
+
+  const onOk = async () => {
+    let values: FormShape;
+    try {
+      values = await form.validateFields();
+    } catch {
+      return;
+    }
+    const { enable, ...rest } = values;
+    const payload: Partial<HostFormValues> = { ...rest, isDisabled: !enable };
+    const res = await save(payload);
+    if (res?.success) {
+      message.success(t(mode === 'add' ? 'pages.hosts.toasts.add' : 'pages.hosts.toasts.update'));
+      onOpenChange(false);
+    } else if (res?.msg) {
+      message.error(res.msg);
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      title={t(mode === 'add' ? 'pages.hosts.addHost' : 'pages.hosts.editHost')}
+      onOk={onOk}
+      onCancel={() => onOpenChange(false)}
+      okText={t('save')}
+      cancelText={t('cancel')}
+      destroyOnHidden
+      width={640}
+    >
+      <Form form={form} layout="vertical" initialValues={defaultsFor(host)} preserve={false}>
+        <Collapse
+          defaultActiveKey={['basic']}
+          items={[
+            {
+              key: 'basic',
+              label: t('pages.hosts.sections.basic'),
+              children: (
+                <>
+                  <Form.Item name="remark" label={t('pages.hosts.fields.remark')} rules={[{ required: true, max: 40 }]}>
+                    <Input maxLength={40} />
+                  </Form.Item>
+                  <Form.Item name="inboundId" label={t('pages.hosts.fields.inbound')} rules={[{ required: true }]}>
+                    <Select
+                      options={inboundSelectOptions}
+                      showSearch
+                      optionFilterProp="label"
+                      disabled={mode === 'edit'}
+                      placeholder={t('pages.hosts.fields.inbound')}
+                    />
+                  </Form.Item>
+                  <Form.Item name="address" label={t('pages.hosts.fields.address')} tooltip={t('pages.hosts.hints.address')}>
+                    <Input placeholder="cdn.example.com" />
+                  </Form.Item>
+                  <Form.Item name="port" label={t('pages.hosts.fields.port')} tooltip={t('pages.hosts.hints.port')}>
+                    <InputNumber min={0} max={65535} style={{ width: '100%' }} />
+                  </Form.Item>
+                  <Form.Item name="enable" label={t('pages.hosts.fields.enable')} valuePropName="checked">
+                    <Switch />
+                  </Form.Item>
+                </>
+              ),
+            },
+            {
+              key: 'advanced',
+              label: t('pages.hosts.sections.advanced'),
+              children: (
+                <>
+                  <Form.Item name="security" label={t('pages.hosts.fields.security')}>
+                    <Select
+                      options={['same', 'tls', 'none', 'reality'].map((v) => ({ value: v, label: v }))}
+                    />
+                  </Form.Item>
+                  <Form.Item name="sni" label={t('pages.hosts.fields.sni')}>
+                    <Input />
+                  </Form.Item>
+                  <Form.Item name="overrideSniFromAddress" label={t('pages.hosts.fields.overrideSniFromAddress')} valuePropName="checked">
+                    <Switch />
+                  </Form.Item>
+                  <Form.Item name="keepSniBlank" label={t('pages.hosts.fields.keepSniBlank')} valuePropName="checked">
+                    <Switch />
+                  </Form.Item>
+                  <Form.Item name="hostHeader" label={t('pages.hosts.fields.hostHeader')}>
+                    <Input />
+                  </Form.Item>
+                  <Form.Item name="path" label={t('pages.hosts.fields.path')}>
+                    <Input />
+                  </Form.Item>
+                  <Form.Item name="alpn" label={t('pages.hosts.fields.alpn')}>
+                    <Select mode="multiple" allowClear options={alpnOptions} />
+                  </Form.Item>
+                  <Form.Item name="fingerprint" label={t('pages.hosts.fields.fingerprint')}>
+                    <Select allowClear options={fpOptions} />
+                  </Form.Item>
+                  <Form.Item name="pinnedPeerCertSha256" label={t('pages.hosts.fields.pins')}>
+                    <Select mode="tags" allowClear tokenSeparators={[',']} />
+                  </Form.Item>
+                  <Form.Item name="verifyPeerCertByName" label={t('pages.hosts.fields.verifyPeerCertByName')} valuePropName="checked">
+                    <Switch />
+                  </Form.Item>
+                  <Form.Item name="echConfigList" label={t('pages.hosts.fields.echConfigList')}>
+                    <Input.TextArea rows={2} />
+                  </Form.Item>
+                  <Form.Item name="muxParams" label={t('pages.hosts.fields.muxParams')}>
+                    <Input.TextArea rows={2} placeholder="{}" />
+                  </Form.Item>
+                  <Form.Item name="sockoptParams" label={t('pages.hosts.fields.sockoptParams')}>
+                    <Input.TextArea rows={2} placeholder="{}" />
+                  </Form.Item>
+                  <Form.Item name="xhttpExtraParams" label={t('pages.hosts.fields.xhttpExtraParams')}>
+                    <Input.TextArea rows={2} placeholder="{}" />
+                  </Form.Item>
+                </>
+              ),
+            },
+            {
+              key: 'clash',
+              label: t('pages.hosts.sections.clash'),
+              children: (
+                <>
+                  <Form.Item name="mihomoIpVersion" label={t('pages.hosts.fields.mihomoIpVersion')}>
+                    <Select
+                      allowClear
+                      options={['dual', 'ipv4', 'ipv6', 'ipv4-prefer', 'ipv6-prefer'].map((v) => ({ value: v, label: v }))}
+                    />
+                  </Form.Item>
+                  <Form.Item name="shuffleHost" label={t('pages.hosts.fields.shuffleHost')} valuePropName="checked">
+                    <Switch />
+                  </Form.Item>
+                </>
+              ),
+            },
+            {
+              key: 'sub',
+              label: t('pages.hosts.sections.subScope'),
+              children: (
+                <>
+                  <Form.Item name="tags" label={t('pages.hosts.fields.tags')} tooltip={t('pages.hosts.hints.tags')}>
+                    <Select mode="tags" allowClear tokenSeparators={[',']} />
+                  </Form.Item>
+                  <Form.Item name="excludeFromSubTypes" label={t('pages.hosts.fields.excludeFromSubTypes')}>
+                    <Select
+                      mode="multiple"
+                      allowClear
+                      options={['raw', 'json', 'clash'].map((v) => ({ value: v, label: v }))}
+                    />
+                  </Form.Item>
+                </>
+              ),
+            },
+          ]}
+        />
+      </Form>
+    </Modal>
+  );
+}
