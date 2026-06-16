@@ -40,7 +40,14 @@ export default function HostFinalMaskForm({ value = '', onChange }: { value?: st
   }, [finalmask, value]);
 
   return (
-    <Form form={form} layout="vertical" initialValues={{ finalmask: initial }}>
+    <Form
+      form={form}
+      colon={false}
+      labelCol={{ sm: { span: 8 } }}
+      wrapperCol={{ sm: { span: 14 } }}
+      labelWrap
+      initialValues={{ finalmask: initial }}
+    >
       <FinalMaskForm name="finalmask" network="" protocol="" form={form} showAll />
     </Form>
   );

@@ -7,6 +7,7 @@ import {
   ArrowUpOutlined,
   DeleteOutlined,
   EditOutlined,
+  GlobalOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 
@@ -180,7 +181,14 @@ export default function HostList(props: HostListProps) {
           selectedRowKeys: selectedIds,
           onChange: (keys) => onSelectionChange(keys as number[]),
         }}
-        locale={{ emptyText: t('pages.hosts.empty') }}
+        locale={{
+          emptyText: (
+            <div className="card-empty">
+              <GlobalOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+              <div>{t('noData')}</div>
+            </div>
+          ),
+        }}
       />
     </Card>
   );

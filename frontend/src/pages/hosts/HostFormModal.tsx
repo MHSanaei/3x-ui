@@ -127,7 +127,15 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
       width={isMobile ? '95vw' : 760}
       styles={{ body: { maxHeight: '70vh', overflowY: 'auto', overflowX: 'hidden' } }}
     >
-      <Form form={form} layout="vertical" initialValues={defaultsFor(host)} preserve={false}>
+      <Form
+        form={form}
+        colon={false}
+        labelCol={{ sm: { span: 8 } }}
+        wrapperCol={{ sm: { span: 14 } }}
+        labelWrap
+        initialValues={defaultsFor(host)}
+        preserve={false}
+      >
         <Tabs
           defaultActiveKey="basic"
           items={[

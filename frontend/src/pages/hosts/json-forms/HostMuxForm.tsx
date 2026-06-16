@@ -1,13 +1,13 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Col, InputNumber, Row, Select, Switch } from 'antd';
+import { Form, InputNumber, Select, Switch } from 'antd';
 
 import { parseJsonObject } from './helpers';
 
-// Mirrors the sub-JSON settings Mux editor: an enable Switch plus concurrency /
-// xudpConcurrency / xudpProxyUDP443. Serialized to the host's muxParams JSON
-// string ('' = disabled). Label/control stack on mobile (xs) and sit side by
-// side from sm up.
+// Mirrors the sub-JSON settings Mux editor (enable + concurrency /
+// xudpConcurrency / xudpProxyUDP443), serialized to the host's muxParams JSON
+// string ('' = disabled). Uses the same responsive horizontal layout as the
+// inbound form: label beside the input on desktop, stacked on mobile.
 const DEFAULT_MUX = {
   enabled: true,
   concurrency: 8,
@@ -17,57 +17,52 @@ const DEFAULT_MUX = {
 
 type MuxObject = typeof DEFAULT_MUX;
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <Row align="middle" gutter={[8, 4]} style={{ marginBottom: 8 }}>
-      <Col xs={24} sm={8}>{label}</Col>
-      <Col xs={24} sm={16}>{children}</Col>
-    </Row>
-  );
-}
-
 export default function HostMuxForm({ value = '', onChange }: { value?: string; onChange?: (next: string) => void }) {
   const { t } = useTranslation();
-  const enabled = value !== '';
-  const obj = { ...DEFAULT_MUX, ...(enabled ? parseJsonObject(value) : {}) } as MuxObject;
+  const [form] = Form.useForm();
+  const [initial] = useState<MuxObject | undefined>(() =>
+    value ? ({ ...DEFAULT_MUX, ...parseJsonObject(value) } as MuxObject) : undefined,
+  );
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
-  const setEnabled = (v: boolean) => onChange?.(v ? JSON.stringify(DEFAULT_MUX) : '');
-  const setField = <K extends keyof MuxObject>(key: K, fieldValue: MuxObject[K]) =>
-    onChange?.(JSON.stringify({ ...obj, [key]: fieldValue }));
+  const mux = Form.useWatch('mux', form) as MuxObject | undefined;
+
+  useEffect(() => {
+    const next = mux ? JSON.stringify(mux) : '';
+    if (next !== value) onChangeRef.current?.(next);
+  }, [mux, value]);
+
+  const enabled = mux != null;
 
   return (
-    <>
-      <Switch checked={enabled} onChange={setEnabled} />
+    <Form
+      form={form}
+      colon={false}
+      labelCol={{ sm: { span: 8 } }}
+      wrapperCol={{ sm: { span: 14 } }}
+      labelWrap
+      initialValues={{ mux: initial }}
+    >
+      <Form.Item label={t('pages.settings.mux')}>
+        <Switch
+          checked={enabled}
+          onChange={(v) => form.setFieldValue('mux', v ? { ...DEFAULT_MUX } : undefined)}
+        />
+      </Form.Item>
       {enabled && (
-        <div style={{ marginTop: 12 }}>
-          <Field label={t('pages.settings.subFormats.concurrency')}>
-            <InputNumber
-              value={obj.concurrency}
-              min={-1}
-              max={1024}
-              style={{ width: '100%' }}
-              onChange={(v) => setField('concurrency', Number(v) || 0)}
-            />
-          </Field>
-          <Field label={t('pages.settings.subFormats.xudpConcurrency')}>
-            <InputNumber
-              value={obj.xudpConcurrency}
-              min={-1}
-              max={1024}
-              style={{ width: '100%' }}
-              onChange={(v) => setField('xudpConcurrency', Number(v) || 0)}
-            />
-          </Field>
-          <Field label={t('pages.settings.subFormats.xudpUdp443')}>
-            <Select
-              value={obj.xudpProxyUDP443}
-              style={{ width: '100%' }}
-              onChange={(v) => setField('xudpProxyUDP443', v)}
-              options={['reject', 'allow', 'skip'].map((p) => ({ value: p, label: p }))}
-            />
-          </Field>
-        </div>
+        <>
+          <Form.Item label={t('pages.settings.subFormats.concurrency')} name={['mux', 'concurrency']}>
+            <InputNumber min={-1} max={1024} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item label={t('pages.settings.subFormats.xudpConcurrency')} name={['mux', 'xudpConcurrency']}>
+            <InputNumber min={-1} max={1024} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item label={t('pages.settings.subFormats.xudpUdp443')} name={['mux', 'xudpProxyUDP443']}>
+            <Select options={['reject', 'allow', 'skip'].map((p) => ({ value: p, label: p }))} />
+          </Form.Item>
+        </>
       )}
-    </>
+    </Form>
   );
 }

@@ -56,7 +56,14 @@ export default function OutboundSubtreeJsonForm({
   };
 
   return (
-    <Form form={form} layout="vertical" initialValues={initialValues}>
+    <Form
+      form={form}
+      colon={false}
+      labelCol={{ sm: { span: 8 } }}
+      wrapperCol={{ sm: { span: 14 } }}
+      labelWrap
+      initialValues={initialValues}
+    >
       {enableSwitch && (
         <Form.Item label={enableLabel ?? t('enable')}>
           <Switch checked={enabled} onChange={toggle} />
