@@ -12,6 +12,7 @@ import {
   CodeOutlined,
   DashboardOutlined,
   DatabaseOutlined,
+  ExportOutlined,
   GithubOutlined,
   GlobalOutlined,
   HeartOutlined,
@@ -29,7 +30,6 @@ import {
   TagsOutlined,
   TeamOutlined,
   ToolOutlined,
-  UploadOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -55,7 +55,7 @@ const iconByName: Record<IconName, ComponentType> = {
   hosts: GlobalOutlined,
   logout: LogoutOutlined,
   apidocs: ApiOutlined,
-  outbound: UploadOutlined,
+  outbound: ExportOutlined,
 };
 
 function readCollapsed(): boolean {
