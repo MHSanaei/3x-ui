@@ -24,6 +24,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { HttpUtil, RandomUtil } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
+import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
@@ -177,7 +178,7 @@ export default function ClientFormModal({
   const [form, setForm] = useState<FormState>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [resetting, setResetting] = useState(false);
-  const [clientIps, setClientIps] = useState<string[]>([]);
+  const [clientIps, setClientIps] = useState<ClientIpInfo[]>([]);
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
@@ -355,8 +356,7 @@ export default function ClientFormModal({
     try {
       const msg = await HttpUtil.post(`/panel/api/clients/ips/${encodeURIComponent(client.email)}`) as ApiMsg<unknown[]>;
       if (!msg?.success) { setClientIps([]); return; }
-      const arr = Array.isArray(msg.obj) ? msg.obj : [];
-      setClientIps(arr.filter((x): x is string => typeof x === 'string' && x.length > 0));
+      setClientIps(normalizeClientIps(msg.obj));
     } finally {
       setIpsLoading(false);
     }
@@ -806,7 +806,7 @@ export default function ClientFormModal({
       >
         {clientIps.length > 0 ? (
           <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-            {clientIps.map((ip, idx) => (
+            {clientIps.map((entry, idx) => (
               <Tag
                 key={idx}
                 color="blue"
@@ -819,7 +819,10 @@ export default function ClientFormModal({
                   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
                 }}
               >
-                {ip}
+                {entry.ip}{entry.time ? ` (${entry.time})` : ''}
+                {entry.node ? (
+                  <span style={{ marginInlineStart: 6, opacity: 0.85, fontWeight: 600 }}>@ {entry.node}</span>
+                ) : null}
               </Tag>
             ))}
           </div>

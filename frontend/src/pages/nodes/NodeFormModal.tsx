@@ -339,6 +339,7 @@ export default function NodeFormModal({
                 { value: 'verify', label: t('pages.nodes.tlsVerify') },
                 { value: 'pin', label: t('pages.nodes.tlsPin') },
                 { value: 'skip', label: t('pages.nodes.tlsSkip') },
+                { value: 'mtls', label: t('pages.nodes.tlsMtls') },
               ]}
             />
           </Form.Item>
@@ -349,6 +350,15 @@ export default function NodeFormModal({
               showIcon
               style={{ marginBottom: 16 }}
               title={t('pages.nodes.tlsSkipWarning')}
+            />
+          )}
+
+          {tlsVerifyMode === 'mtls' && (
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+              title={t('pages.nodes.mtlsFormHint')}
             />
           )}
 

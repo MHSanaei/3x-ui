@@ -818,7 +818,7 @@ export default function InboundFormModal({
         <ExternalProxyForm toggleExternalProxy={toggleExternalProxy} />
       )}
 
-      <SockoptForm toggleSockopt={toggleSockopt} />
+      <SockoptForm toggleSockopt={toggleSockopt} network={network as string} />
 
       {/* Transport masks don't apply to tunnel (a transparent forwarder), so
           its stream tab is just sockopt + TProxy. */}

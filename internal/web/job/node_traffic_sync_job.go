@@ -294,4 +294,15 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 			logger.Warning("node traffic sync: push client ips to", n.Name, "failed:", err)
 		}
 	}
+
+	// Per-node IP attribution: pull the node's guid-keyed subtree (its own
+	// observations plus any descendants) so the master can tell which node each
+	// IP is on. Old nodes without the endpoint just return an error — skip them.
+	if guidTrees, err := rt.FetchClientIpsByGuid(ctx); err != nil {
+		logger.Debug("node traffic sync: fetch client ip attribution from", n.Name, "failed:", err)
+	} else if len(guidTrees) > 0 {
+		if err := j.inboundService.MergeClientIpsByGuid(guidTrees); err != nil {
+			logger.Warning("node traffic sync: merge client ip attribution from", n.Name, "failed:", err)
+		}
+	}
 }

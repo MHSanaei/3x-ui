@@ -35,7 +35,11 @@ type HeartbeatPatch struct {
 	CpuPct        float64
 	MemPct        float64
 	UptimeSecs    uint64
-	LastError     string
+	// NetUp/NetDown are the node's current interface throughput (bytes/sec),
+	// summed over non-virtual interfaces, read from its status response.
+	NetUp     uint64
+	NetDown   uint64
+	LastError string
 	// XrayState and XrayError come from the remote /panel/api/server/status when the
 	// panel API is reachable. They allow distinguishing panel connectivity from
 	// Xray core health on the node.
@@ -275,8 +279,11 @@ func (s *NodeService) normalize(n *model.Node) error {
 	if n.Scheme != "http" && n.Scheme != "https" {
 		n.Scheme = "https"
 	}
-	if n.TlsVerifyMode != "skip" && n.TlsVerifyMode != "pin" {
+	if n.TlsVerifyMode != "skip" && n.TlsVerifyMode != "pin" && n.TlsVerifyMode != "mtls" {
 		n.TlsVerifyMode = "verify"
+	}
+	if n.TlsVerifyMode == "mtls" && n.Scheme != "https" {
+		return common.NewError("mtls requires the node scheme to be https")
 	}
 	n.PinnedCertSha256 = strings.TrimSpace(n.PinnedCertSha256)
 	if n.InboundSyncMode != "selected" {
@@ -433,11 +440,23 @@ func FilterNodeSnapshot(n *model.Node, snap *runtime.TrafficSnapshot) {
 
 func (s *NodeService) Delete(id int) error {
 	db := database.GetDB()
+	// Capture the node's guid before deleting the row so we can drop its per-node
+	// IP attribution (NodeClientIp is keyed by guid, not node id).
+	var guid string
+	var n model.Node
+	if err := db.Select("guid").Where("id = ?", id).First(&n).Error; err == nil {
+		guid = n.Guid
+	}
 	if err := db.Where("id = ?", id).Delete(model.Node{}).Error; err != nil {
 		return err
 	}
 	if err := db.Where("node_id = ?", id).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 		return err
+	}
+	if guid != "" {
+		if err := db.Where("node_guid = ?", guid).Delete(&model.NodeClientIp{}).Error; err != nil {
+			return err
+		}
 	}
 	if mgr := runtime.GetManager(); mgr != nil {
 		mgr.InvalidateNode(id)
@@ -543,6 +562,8 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 		"cpu_pct":        p.CpuPct,
 		"mem_pct":        p.MemPct,
 		"uptime_secs":    p.UptimeSecs,
+		"net_up":         p.NetUp,
+		"net_down":       p.NetDown,
 		"last_error":     p.LastError,
 		"xray_state":     p.XrayState,
 		"xray_error":     p.XrayError,
@@ -559,6 +580,8 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 		now := time.Unix(p.LastHeartbeat, 0)
 		nodeMetrics.append(nodeMetricKey(id, "cpu"), now, p.CpuPct)
 		nodeMetrics.append(nodeMetricKey(id, "mem"), now, p.MemPct)
+		nodeMetrics.append(nodeMetricKey(id, "netUp"), now, float64(p.NetUp))
+		nodeMetrics.append(nodeMetricKey(id, "netDown"), now, float64(p.NetDown))
 	}
 	return nil
 }
@@ -811,6 +834,10 @@ func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string)
 			PanelVersion string `json:"panelVersion"`
 			PanelGuid    string `json:"panelGuid"`
 			Uptime       uint64 `json:"uptime"`
+			NetIO        struct {
+				Up   uint64 `json:"up"`
+				Down uint64 `json:"down"`
+			} `json:"netIO"`
 		} `json:"obj"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&envelope); err != nil {
@@ -832,6 +859,8 @@ func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string)
 	patch.PanelVersion = o.PanelVersion
 	patch.Guid = o.PanelGuid
 	patch.UptimeSecs = o.Uptime
+	patch.NetUp = o.NetIO.Up
+	patch.NetDown = o.NetIO.Down
 	return patch, nil
 }
 

@@ -5,6 +5,7 @@ import { CopyOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-
 
 import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
+import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
@@ -80,7 +81,7 @@ export default function ClientInfoModal({
   const dateLabel = (ts?: number) => (!ts || ts <= 0 ? '-' : IntlUtil.formatDate(ts, datepicker));
   const [messageApi, messageContextHolder] = message.useMessage();
   const [links, setLinks] = useState<string[]>([]);
-  const [clientIps, setClientIps] = useState<string[]>([]);
+  const [clientIps, setClientIps] = useState<ClientIpInfo[]>([]);
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
@@ -144,8 +145,7 @@ export default function ClientInfoModal({
     try {
       const msg = await HttpUtil.post(`/panel/api/clients/ips/${encodeURIComponent(client.email)}`) as ApiMsg<unknown[]>;
       if (!msg?.success) { setClientIps([]); return; }
-      const arr = Array.isArray(msg.obj) ? msg.obj : [];
-      setClientIps(arr.filter((x): x is string => typeof x === 'string' && x.length > 0));
+      setClientIps(normalizeClientIps(msg.obj));
     } finally {
       setIpsLoading(false);
     }
@@ -503,7 +503,7 @@ export default function ClientInfoModal({
       >
         {clientIps.length > 0 ? (
           <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-            {clientIps.map((ip, idx) => (
+            {clientIps.map((entry, idx) => (
               <Tag
                 key={idx}
                 color="blue"
@@ -516,7 +516,10 @@ export default function ClientInfoModal({
                   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
                 }}
               >
-                {ip}
+                {entry.ip}{entry.time ? ` (${entry.time})` : ''}
+                {entry.node ? (
+                  <span style={{ marginInlineStart: 6, opacity: 0.85, fontWeight: 600 }}>@ {entry.node}</span>
+                ) : null}
               </Tag>
             ))}
           </div>
