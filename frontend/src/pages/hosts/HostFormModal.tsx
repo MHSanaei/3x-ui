@@ -6,7 +6,6 @@ import {
   SafetyCertificateOutlined,
   ControlOutlined,
   NodeIndexOutlined,
-  FilterOutlined,
   SettingOutlined,
   PartitionOutlined,
   DeploymentUnitOutlined,
@@ -263,6 +262,13 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                           <Form.Item name="vlessRoute" label={t('pages.hosts.fields.vlessRoute')} tooltip={t('pages.hosts.hints.vlessRoute')}>
                             <Input placeholder="53,443,1000-2000" />
                           </Form.Item>
+                          <Form.Item name="excludeFromSubTypes" label={t('pages.hosts.fields.excludeFromSubTypes')}>
+                            <Select
+                              mode="multiple"
+                              allowClear
+                              options={['raw', 'json', 'clash'].map((v) => ({ value: v, label: v }))}
+                            />
+                          </Form.Item>
                         </>
                       ),
                     },
@@ -317,22 +323,6 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                   </Form.Item>
                   <Form.Item name="shuffleHost" label={t('pages.hosts.fields.shuffleHost')} valuePropName="checked">
                     <Switch />
-                  </Form.Item>
-                </>
-              ),
-            },
-            {
-              key: 'sub',
-              forceRender: true,
-              label: catTabLabel(<FilterOutlined />, t('pages.hosts.sections.subScope'), isMobile),
-              children: (
-                <>
-                  <Form.Item name="excludeFromSubTypes" label={t('pages.hosts.fields.excludeFromSubTypes')}>
-                    <Select
-                      mode="multiple"
-                      allowClear
-                      options={['raw', 'json', 'clash'].map((v) => ({ value: v, label: v }))}
-                    />
                   </Form.Item>
                 </>
               ),

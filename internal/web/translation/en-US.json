@@ -896,8 +896,7 @@
         "security": "Security",
         "advanced": "Advanced",
         "general": "General",
-        "clash": "Clash (mihomo)",
-        "subScope": "Subscription scope"
+        "clash": "Clash (mihomo)"
       },
       "fields": {
         "remark": "Remark",
