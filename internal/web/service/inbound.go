@@ -782,6 +782,10 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	if err := db.Delete(model.Inbound{}, id).Error; err != nil {
 		return needRestart, err
 	}
+	// Hosts have no hard FK; drop the inbound's hosts alongside it.
+	if err := db.Where("inbound_id = ?", id).Delete(&model.Host{}).Error; err != nil {
+		return needRestart, err
+	}
 	if markDirty && ib.NodeID != nil {
 		if dErr := (&NodeService{}).MarkNodeDirty(*ib.NodeID); dErr != nil {
 			logger.Warning("mark node dirty failed:", dErr)

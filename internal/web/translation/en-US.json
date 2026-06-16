@@ -873,6 +873,15 @@
       "removeFromGroupDesc": "Select members to remove from this group. Clients themselves are kept (use \"Delete clients in group\" to remove them entirely).",
       "removeFromGroupResult": "Removed {count} client(s) from {name}."
     },
+    "hosts": {
+      "toasts": {
+        "list": "Failed to load hosts",
+        "obtain": "Failed to load host",
+        "add": "Add host",
+        "update": "Update host",
+        "delete": "Delete host"
+      }
+    },
     "nodes": {
       "title": "Nodes",
       "addNode": "Add Node",
