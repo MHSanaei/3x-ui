@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Collapse, Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
+import { Form, Input, InputNumber, Modal, Select, Switch, Tabs, message } from 'antd';
 
 import type { HostRecord } from '@/api/queries/useHostsQuery';
 import type { HostFormValues } from '@/schemas/api/host';
@@ -99,11 +99,12 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
       width={640}
     >
       <Form form={form} layout="vertical" initialValues={defaultsFor(host)} preserve={false}>
-        <Collapse
-          defaultActiveKey={['basic']}
+        <Tabs
+          defaultActiveKey="basic"
           items={[
             {
               key: 'basic',
+              forceRender: true,
               label: t('pages.hosts.sections.basic'),
               children: (
                 <>
@@ -133,6 +134,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
             },
             {
               key: 'advanced',
+              forceRender: true,
               label: t('pages.hosts.sections.advanced'),
               children: (
                 <>
@@ -185,6 +187,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
             },
             {
               key: 'clash',
+              forceRender: true,
               label: t('pages.hosts.sections.clash'),
               children: (
                 <>
@@ -202,6 +205,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
             },
             {
               key: 'sub',
+              forceRender: true,
               label: t('pages.hosts.sections.subScope'),
               children: (
                 <>
