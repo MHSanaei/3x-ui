@@ -76,7 +76,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
   const inboundSelectOptions = useMemo(
     () => inboundOptions.map((ib) => ({
       value: ib.id,
-      label: `${ib.remark || ib.tag || `#${ib.id}`}${ib.port ? ` :${ib.port}` : ''}`,
+      label: ib.remark || ib.tag || `#${ib.id}`,
     })),
     [inboundOptions],
   );
