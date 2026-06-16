@@ -8,32 +8,45 @@ import { parseJsonObject } from './helpers';
 // xudpConcurrency / xudpProxyUDP443), serialized to the host's muxParams JSON
 // string ('' = disabled). Uses the same responsive horizontal layout as the
 // inbound form: label beside the input on desktop, stacked on mobile.
+//
+// The fields are flat (not a nested `mux` object) and the enable Switch is a
+// real `name="enabled"` field — antd then drives its checked state directly, so
+// the toggle works. The sub-fields stay registered (hidden when off) so their
+// watches fire reliably.
 const DEFAULT_MUX = {
-  enabled: true,
   concurrency: 8,
   xudpConcurrency: 16,
   xudpProxyUDP443: 'reject',
 };
 
-type MuxObject = typeof DEFAULT_MUX;
+interface MuxFields {
+  enabled: boolean;
+  concurrency: number;
+  xudpConcurrency: number;
+  xudpProxyUDP443: string;
+}
 
 export default function HostMuxForm({ value = '', onChange }: { value?: string; onChange?: (next: string) => void }) {
   const { t } = useTranslation();
-  const [form] = Form.useForm();
-  const [initial] = useState<MuxObject | undefined>(() =>
-    value ? ({ ...DEFAULT_MUX, ...parseJsonObject(value) } as MuxObject) : undefined,
-  );
+  const [form] = Form.useForm<MuxFields>();
+  const [initial] = useState<MuxFields>(() => {
+    const parsed = value ? { ...DEFAULT_MUX, ...parseJsonObject(value) } : DEFAULT_MUX;
+    return { ...(parsed as Omit<MuxFields, 'enabled'>), enabled: value !== '' };
+  });
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
-  const mux = Form.useWatch('mux', form) as MuxObject | undefined;
+  const enabled = Form.useWatch('enabled', form);
+  const concurrency = Form.useWatch('concurrency', form);
+  const xudpConcurrency = Form.useWatch('xudpConcurrency', form);
+  const xudpProxyUDP443 = Form.useWatch('xudpProxyUDP443', form);
 
   useEffect(() => {
-    const next = mux ? JSON.stringify(mux) : '';
+    const next = enabled
+      ? JSON.stringify({ enabled: true, concurrency, xudpConcurrency, xudpProxyUDP443 })
+      : '';
     if (next !== value) onChangeRef.current?.(next);
-  }, [mux, value]);
-
-  const enabled = mux != null;
+  }, [enabled, concurrency, xudpConcurrency, xudpProxyUDP443, value]);
 
   return (
     <Form
@@ -43,27 +56,20 @@ export default function HostMuxForm({ value = '', onChange }: { value?: string; 
       labelCol={{ sm: { span: 8 } }}
       wrapperCol={{ sm: { span: 14 } }}
       labelWrap
-      initialValues={{ mux: initial }}
+      initialValues={initial}
     >
-      <Form.Item label={t('pages.settings.mux')}>
-        <Switch
-          checked={enabled}
-          onChange={(v) => form.setFieldValue('mux', v ? { ...DEFAULT_MUX } : undefined)}
-        />
+      <Form.Item label={t('pages.settings.mux')} name="enabled" valuePropName="checked">
+        <Switch />
       </Form.Item>
-      {enabled && (
-        <>
-          <Form.Item label={t('pages.settings.subFormats.concurrency')} name={['mux', 'concurrency']}>
-            <InputNumber min={-1} max={1024} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item label={t('pages.settings.subFormats.xudpConcurrency')} name={['mux', 'xudpConcurrency']}>
-            <InputNumber min={-1} max={1024} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item label={t('pages.settings.subFormats.xudpUdp443')} name={['mux', 'xudpProxyUDP443']}>
-            <Select options={['reject', 'allow', 'skip'].map((p) => ({ value: p, label: p }))} />
-          </Form.Item>
-        </>
-      )}
+      <Form.Item label={t('pages.settings.subFormats.concurrency')} name="concurrency" hidden={!enabled}>
+        <InputNumber min={-1} max={1024} style={{ width: '100%' }} />
+      </Form.Item>
+      <Form.Item label={t('pages.settings.subFormats.xudpConcurrency')} name="xudpConcurrency" hidden={!enabled}>
+        <InputNumber min={-1} max={1024} style={{ width: '100%' }} />
+      </Form.Item>
+      <Form.Item label={t('pages.settings.subFormats.xudpUdp443')} name="xudpProxyUDP443" hidden={!enabled}>
+        <Select options={['reject', 'allow', 'skip'].map((p) => ({ value: p, label: p }))} />
+      </Form.Item>
     </Form>
   );
 }
