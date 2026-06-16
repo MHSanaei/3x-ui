@@ -88,6 +88,7 @@ func (s *SubService) buildEndpointLinks(
 		}
 		nextParams := cloneStringMap(params)
 		applyEndpointTLSParams(e, nextParams, securityToApply)
+		applyEndpointHostPath(e, nextParams)
 		links = append(links, buildLinkWithParamsAndSecurity(
 			makeLink(e.Address, e.Port),
 			nextParams,
@@ -115,6 +116,7 @@ func (s *SubService) buildEndpointVmessLinks(eps []ShareEndpoint, baseObj map[st
 			newObj["tls"] = e.ForceTls
 		}
 		applyEndpointTLSObj(e, newObj, securityToApply)
+		applyEndpointHostPathObj(e, newObj)
 		if index > 0 {
 			links.WriteString("\n")
 		}

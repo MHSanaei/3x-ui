@@ -44,6 +44,9 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 			continue
 		}
 		subReq.projectThroughFallbackMaster(inbound)
+		if hostEps := subReq.hostEndpoints(inbound, "clash"); len(hostEps) > 0 {
+			injectExternalProxy(inbound, hostEps)
+		}
 		for _, client := range clients {
 			seenEmails[client.Email] = struct{}{}
 			proxies = append(proxies, s.getProxies(subReq, inbound, client, host)...)
@@ -188,6 +191,11 @@ func (s *SubClashService) getProxies(subReq *SubService, inbound *model.Inbound,
 
 		proxy := s.buildProxy(subReq, &workingInbound, client, workingStream, extPrxy["remark"].(string))
 		if len(proxy) > 0 {
+			// Host-only mihomo knob: ip-version is a top-level proxy field, set
+			// last so it cannot be clobbered. Absent for legacy externalProxy.
+			if v, _ := extPrxy["mihomoIpVersion"].(string); v != "" {
+				proxy["ip-version"] = v
+			}
 			proxies = append(proxies, proxy)
 		}
 	}

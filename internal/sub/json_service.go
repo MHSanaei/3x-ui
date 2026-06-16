@@ -82,6 +82,9 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 			continue
 		}
 		subReq.projectThroughFallbackMaster(inbound)
+		if hostEps := subReq.hostEndpoints(inbound, "json"); len(hostEps) > 0 {
+			injectExternalProxy(inbound, hostEps)
+		}
 
 		for _, client := range clients {
 			seenEmails[client.Email] = struct{}{}
