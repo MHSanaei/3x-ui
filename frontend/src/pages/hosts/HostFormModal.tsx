@@ -1,6 +1,17 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, InputNumber, Modal, Select, Switch, Tabs, message } from 'antd';
+import {
+  ProfileOutlined,
+  SafetyCertificateOutlined,
+  ControlOutlined,
+  NodeIndexOutlined,
+  FilterOutlined,
+  SettingOutlined,
+  PartitionOutlined,
+  DeploymentUnitOutlined,
+  RocketOutlined,
+} from '@ant-design/icons';
 
 import type { HostRecord } from '@/api/queries/useHostsQuery';
 import type { HostFormValues } from '@/schemas/api/host';
@@ -8,6 +19,7 @@ import type { InboundOption } from '@/schemas/client';
 import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { catTabLabel } from '@/pages/settings/catTabLabel';
 import { HostFinalMaskForm, HostMuxForm, HostSockoptForm } from './json-forms';
 
 // inboundId is optional in the form so a new host starts unselected (the Select
@@ -142,7 +154,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
             {
               key: 'basic',
               forceRender: true,
-              label: t('pages.hosts.sections.basic'),
+              label: catTabLabel(<ProfileOutlined />, t('pages.hosts.sections.basic'), isMobile),
               children: (
                 <>
                   <Form.Item name="remark" label={t('pages.hosts.fields.remark')} rules={[{ required: true, max: 40 }]}>
@@ -181,7 +193,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
             {
               key: 'security',
               forceRender: true,
-              label: t('pages.hosts.sections.security'),
+              label: catTabLabel(<SafetyCertificateOutlined />, t('pages.hosts.sections.security'), isMobile),
               children: (
                 <>
                   <Form.Item name="security" label={t('pages.hosts.fields.security')}>
@@ -230,7 +242,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
             {
               key: 'advanced',
               forceRender: true,
-              label: t('pages.hosts.sections.advanced'),
+              label: catTabLabel(<ControlOutlined />, t('pages.hosts.sections.advanced'), isMobile),
               children: (
                 <Tabs
                   size="small"
@@ -239,7 +251,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                     {
                       key: 'adv-general',
                       forceRender: true,
-                      label: t('pages.hosts.sections.general'),
+                      label: catTabLabel(<SettingOutlined />, t('pages.hosts.sections.general'), isMobile),
                       children: (
                         <>
                           <Form.Item name="hostHeader" label={t('pages.hosts.fields.hostHeader')}>
@@ -257,7 +269,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                     {
                       key: 'adv-mux',
                       forceRender: true,
-                      label: t('pages.hosts.fields.muxParams'),
+                      label: catTabLabel(<PartitionOutlined />, t('pages.hosts.fields.muxParams'), isMobile),
                       children: (
                         <Form.Item name="muxParams" noStyle>
                           <HostMuxForm />
@@ -267,7 +279,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                     {
                       key: 'adv-sockopt',
                       forceRender: true,
-                      label: t('pages.hosts.fields.sockoptParams'),
+                      label: catTabLabel(<DeploymentUnitOutlined />, t('pages.hosts.fields.sockoptParams'), isMobile),
                       children: (
                         <Form.Item name="sockoptParams" noStyle>
                           <HostSockoptForm />
@@ -277,7 +289,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                     {
                       key: 'adv-finalmask',
                       forceRender: true,
-                      label: t('pages.hosts.fields.finalMask'),
+                      label: catTabLabel(<RocketOutlined />, t('pages.hosts.fields.finalMask'), isMobile),
                       children: (
                         <Form.Item name="finalMask" noStyle>
                           <HostFinalMaskForm />
@@ -291,7 +303,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
             {
               key: 'clash',
               forceRender: true,
-              label: t('pages.hosts.sections.clash'),
+              label: catTabLabel(<NodeIndexOutlined />, t('pages.hosts.sections.clash'), isMobile),
               children: (
                 <>
                   <Form.Item name="mihomoIpVersion" label={t('pages.hosts.fields.mihomoIpVersion')}>
@@ -312,7 +324,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
             {
               key: 'sub',
               forceRender: true,
-              label: t('pages.hosts.sections.subScope'),
+              label: catTabLabel(<FilterOutlined />, t('pages.hosts.sections.subScope'), isMobile),
               children: (
                 <>
                   <Form.Item name="excludeFromSubTypes" label={t('pages.hosts.fields.excludeFromSubTypes')}>
