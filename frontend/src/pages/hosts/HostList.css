@@ -42,3 +42,17 @@
     gap: 6px;
   }
 }
+
+/* Empty-table state. The shared .card-empty rule otherwise lives only in the
+   lazily-loaded Clients/Inbounds/Nodes stylesheets, so a direct /hosts refresh
+   would render it unstyled (faint + uncentered) until another page is visited.
+   Re-declare it here so it's correct on first load. */
+.card-empty {
+  text-align: center;
+  color: var(--ant-color-text-secondary);
+  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}

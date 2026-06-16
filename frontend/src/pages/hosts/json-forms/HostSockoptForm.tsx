@@ -1,5 +1,5 @@
 import { SockoptForm } from '@/pages/xray/outbounds/transport';
-import { useOutboundTags } from '@/api/queries/useOutboundTags';
+import { useOutboundTagGroups } from '@/api/queries/useOutboundTags';
 
 import OutboundSubtreeJsonForm from './OutboundSubtreeJsonForm';
 import { serializeOverride } from './helpers';
@@ -25,9 +25,12 @@ function serializeClientSockopt(sockopt: unknown): string {
 
 export default function HostSockoptForm({ value, onChange }: { value?: string; onChange?: (next: string) => void }) {
   // Populate the dialerProxy dropdown with the panel's outbound tags (a host can
-  // chain through one of the subscription's outbounds by tag). Blackhole is
-  // excluded — chaining through it would just drop the traffic.
-  const { data: outboundTags = [] } = useOutboundTags({ excludeBlackhole: true });
+  // chain through one of the subscription's outbounds by tag). dialerProxy chains
+  // through a single outbound, so balancers (routing targets) are excluded — only
+  // the outbound group is used; blackhole is dropped too (chaining to it just
+  // drops the traffic).
+  const { data: tagGroups } = useOutboundTagGroups({ excludeBlackhole: true });
+  const outboundTags = tagGroups?.outbounds ?? [];
   return (
     <OutboundSubtreeJsonForm
       value={value}
