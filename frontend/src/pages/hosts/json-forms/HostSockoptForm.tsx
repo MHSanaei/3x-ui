@@ -8,11 +8,12 @@ import { serializeOverride } from './helpers';
 // sockoptParams JSON string.
 //
 // A host is the client/dialer side, so the inbound-only sockopt keys are dropped
-// from the output (xray ignores them on an outbound anyway). The outbound form
-// no longer shows them, but its default object still seeds them, so strip on
-// serialize to keep the host's override honest to the server/client split.
-// Ref: https://xtls.github.io/config/transports/sockopt.html#sockoptobject
-const INBOUND_ONLY_SOCKOPT = ['tproxy', 'acceptProxyProtocol', 'V6Only', 'trustedXForwardedFor'];
+// from the output. Verified against xray-core transport/internet/sockopt_*.go:
+// only V6Only and the handler-level acceptProxyProtocol / trustedXForwardedFor
+// are inbound-only — tproxy (IP_TRANSPARENT) and keepalive/interface ARE applied
+// on the outbound/dialer socket, so they stay. The outbound form no longer shows
+// the inbound-only keys, but its default object still seeds them, so strip here.
+const INBOUND_ONLY_SOCKOPT = ['acceptProxyProtocol', 'V6Only', 'trustedXForwardedFor'];
 
 function serializeClientSockopt(sockopt: unknown): string {
   if (!sockopt || typeof sockopt !== 'object') return serializeOverride(sockopt);

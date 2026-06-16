@@ -115,6 +115,18 @@ export default function SockoptForm({
                   <Input />
                 </Form.Item>
                 <Form.Item
+                  label="TProxy"
+                  name={['streamSettings', 'sockopt', 'tproxy']}
+                >
+                  <Select
+                    options={[
+                      { value: 'off', label: 'off' },
+                      { value: 'redirect', label: 'redirect' },
+                      { value: 'tproxy', label: 'tproxy' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item
                   label={t('pages.inbounds.form.tcpCongestion')}
                   name={['streamSettings', 'sockopt', 'tcpcongestion']}
                 >

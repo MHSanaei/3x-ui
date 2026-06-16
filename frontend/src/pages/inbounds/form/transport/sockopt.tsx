@@ -1,13 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { Alert, Form, Input, InputNumber, Segmented, Select, Switch } from 'antd';
+import { Alert, Form, InputNumber, Segmented, Select, Switch } from 'antd';
 
 import { CustomSockoptList } from '@/components/form';
-import {
-  Address_Port_Strategy,
-  DOMAIN_STRATEGY_OPTION,
-  TCP_CONGESTION_OPTION,
-} from '@/schemas/primitives';
-import { HappyEyeballsSchema } from '@/schemas/protocols/stream/sockopt';
+import { TCP_CONGESTION_OPTION } from '@/schemas/primitives';
 
 // Transport key that carries its own acceptProxyProtocol field (mirrored
 // alongside the sockopt-level one so the PROXY preset never silently no-ops).
@@ -220,13 +215,6 @@ export default function SockoptForm({
                   <Switch />
                 </Form.Item>
                 <Form.Item
-                  name={['streamSettings', 'sockopt', 'tcpMptcp']}
-                  label={t('pages.inbounds.form.multipathTcp')}
-                  valuePropName="checked"
-                >
-                  <Switch />
-                </Form.Item>
-                <Form.Item
                   name={['streamSettings', 'sockopt', 'penetrate']}
                   label={t('pages.inbounds.form.penetrate')}
                   valuePropName="checked"
@@ -239,15 +227,6 @@ export default function SockoptForm({
                   valuePropName="checked"
                 >
                   <Switch />
-                </Form.Item>
-                <Form.Item
-                  name={['streamSettings', 'sockopt', 'domainStrategy']}
-                  label={t('pages.xray.wireguard.domainStrategy')}
-                >
-                  <Select
-                    style={{ width: '50%' }}
-                    options={Object.values(DOMAIN_STRATEGY_OPTION).map((d) => ({ value: d, label: d }))}
-                  />
                 </Form.Item>
                 <Form.Item
                   name={['streamSettings', 'sockopt', 'tcpcongestion']}
@@ -268,15 +247,6 @@ export default function SockoptForm({
                     ]}
                   />
                 </Form.Item>
-                <Form.Item name={['streamSettings', 'sockopt', 'dialerProxy']} label={t('pages.inbounds.form.dialerProxy')}>
-                  <Input />
-                </Form.Item>
-                <Form.Item
-                  name={['streamSettings', 'sockopt', 'interface']}
-                  label={t('pages.inbounds.info.interfaceName')}
-                >
-                  <Input />
-                </Form.Item>
                 <Form.Item
                   name={['streamSettings', 'sockopt', 'trustedXForwardedFor']}
                   label={t('pages.inbounds.form.trustedXForwardedFor')}
@@ -293,65 +263,6 @@ export default function SockoptForm({
                       { value: 'X-Client-IP', label: 'X-Client-IP' },
                     ]}
                   />
-                </Form.Item>
-                <Form.Item
-                  name={['streamSettings', 'sockopt', 'addressPortStrategy']}
-                  label={t('pages.inbounds.form.addressPortStrategy')}
-                >
-                  <Select
-                    style={{ width: '50%' }}
-                    options={Object.values(Address_Port_Strategy).map((v) => ({ value: v, label: v }))}
-                  />
-                </Form.Item>
-                <Form.Item shouldUpdate noStyle>
-                  {({ getFieldValue, setFieldValue }) => {
-                    const he = getFieldValue(['streamSettings', 'sockopt', 'happyEyeballs']);
-                    const hasHe = he != null;
-                    return (
-                      <>
-                        <Form.Item label="Happy Eyeballs">
-                          <Switch
-                            checked={hasHe}
-                            onChange={(v) => {
-                              setFieldValue(
-                                ['streamSettings', 'sockopt', 'happyEyeballs'],
-                                v ? HappyEyeballsSchema.parse({}) : undefined,
-                              );
-                            }}
-                          />
-                        </Form.Item>
-                        {hasHe && (
-                          <>
-                            <Form.Item
-                              name={['streamSettings', 'sockopt', 'happyEyeballs', 'tryDelayMs']}
-                              label={t('pages.inbounds.form.tryDelayMs')}
-                            >
-                              <InputNumber min={0} placeholder="0 disabled — 250 recommended" />
-                            </Form.Item>
-                            <Form.Item
-                              name={['streamSettings', 'sockopt', 'happyEyeballs', 'prioritizeIPv6']}
-                              label={t('pages.inbounds.form.prioritizeIPv6')}
-                              valuePropName="checked"
-                            >
-                              <Switch />
-                            </Form.Item>
-                            <Form.Item
-                              name={['streamSettings', 'sockopt', 'happyEyeballs', 'interleave']}
-                              label={t('pages.inbounds.form.interleave')}
-                            >
-                              <InputNumber min={1} />
-                            </Form.Item>
-                            <Form.Item
-                              name={['streamSettings', 'sockopt', 'happyEyeballs', 'maxConcurrentTry']}
-                              label={t('pages.inbounds.form.maxConcurrentTry')}
-                            >
-                              <InputNumber min={0} />
-                            </Form.Item>
-                          </>
-                        )}
-                      </>
-                    );
-                  }}
                 </Form.Item>
                 <CustomSockoptList />
               </>
