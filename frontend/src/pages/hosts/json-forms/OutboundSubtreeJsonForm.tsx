@@ -58,6 +58,7 @@ export default function OutboundSubtreeJsonForm({
   return (
     <Form
       form={form}
+      component={false}
       colon={false}
       labelCol={{ sm: { span: 8 } }}
       wrapperCol={{ sm: { span: 14 } }}
