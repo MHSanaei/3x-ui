@@ -125,7 +125,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
       cancelText={t('cancel')}
       destroyOnHidden
       width={isMobile ? '95vw' : 760}
-      styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
+      styles={{ body: { maxHeight: '70vh', overflowY: 'auto', overflowX: 'hidden' } }}
     >
       <Form form={form} layout="vertical" initialValues={defaultsFor(host)} preserve={false}>
         <Tabs
