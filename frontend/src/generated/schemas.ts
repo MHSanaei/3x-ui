@@ -1456,10 +1456,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "verifyPeerCertByName": {
         "type": "boolean"
       },
-      "vlessRouteId": {
-        "maximum": 65535,
-        "minimum": 0,
-        "type": "integer"
+      "vlessRoute": {
+        "description": "VlessRoute is a free-form port/range routing spec (e.g. \"53,443,1000-2000\");\nstored verbatim, format-validated on the frontend.",
+        "type": "string"
       },
       "xhttpExtraParams": {},
       "xrayJsonTemplate": {
@@ -1498,7 +1497,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tags",
       "updatedAt",
       "verifyPeerCertByName",
-      "vlessRouteId",
+      "vlessRoute",
       "xhttpExtraParams",
       "xrayJsonTemplate"
     ],

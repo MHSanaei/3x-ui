@@ -924,20 +924,22 @@
         "sockoptParams": "Sockopt params (JSON)",
         "xhttpExtraParams": "XHTTP extra params (JSON)",
         "xrayJsonTemplate": "Xray JSON template",
-        "vlessRouteId": "VLESS route id",
+        "vlessRoute": "VLESS route",
         "mihomoIpVersion": "IP version",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "Shuffle host",
         "tags": "Tags",
+        "nodeGuids": "Nodes",
         "excludeFromSubTypes": "Exclude from formats"
       },
       "hints": {
         "address": "Leave blank to inherit the inbound's own address.",
         "port": "0 inherits the inbound's port.",
-        "tags": "Uppercase letters, digits, _ and : only.",
+        "tags": "Not visible to end users; sent with RAW subscription only. Uppercase letters, digits, _ and : only.",
+        "nodeGuids": "Pick nodes which resolved from this host. Only visual assignment.",
         "serverDescription": "Optional note shown under the remark.",
         "allowInsecure": "Skip TLS certificate verification (allowInsecure / skip-cert-verify).",
-        "vlessRouteId": "Optional routing id (0 = none).",
+        "vlessRoute": "Ports/ranges routed via VLESS, e.g. 53,443,1000-2000. Leave blank for none.",
         "xrayJsonTemplate": "Replaces the JSON-subscription outbound for this host. Placeholders: {{ADDRESS}} {{PORT}} {{ID}} {{PASSWORD}} {{EMAIL}} {{REMARK}} {{SNI}} {{HOST}} {{PATH}}."
       },
       "toasts": {
@@ -946,7 +948,8 @@
         "add": "Add host",
         "update": "Update host",
         "delete": "Delete host",
-        "badTag": "Invalid tag"
+        "badTag": "Invalid tag",
+        "badVlessRoute": "Use ports/ranges like 53,443,1000-2000"
       }
     },
     "nodes": {

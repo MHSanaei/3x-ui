@@ -6,6 +6,7 @@ import type { HostRecord } from '@/api/queries/useHostsQuery';
 import type { HostFormValues } from '@/schemas/api/host';
 import type { InboundOption } from '@/schemas/client';
 import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
+import { useNodesQuery } from '@/api/queries/useNodesQuery';
 
 // inboundId is optional in the form so a new host starts unselected (the Select
 // shows its placeholder instead of 0); the required rule enforces it on submit.
@@ -49,8 +50,9 @@ function defaultsFor(host: HostRecord | null): FormShape {
     sockoptParams: asString(host?.sockoptParams),
     xhttpExtraParams: asString(host?.xhttpExtraParams),
     xrayJsonTemplate: host?.xrayJsonTemplate ?? '',
-    vlessRouteId: host?.vlessRouteId ?? 0,
+    vlessRoute: host?.vlessRoute ?? '',
     excludeFromSubTypes: (host?.excludeFromSubTypes as HostFormValues['excludeFromSubTypes']) ?? [],
+    nodeGuids: host?.nodeGuids ?? [],
     mihomoIpVersion: host?.mihomoIpVersion as HostFormValues['mihomoIpVersion'],
     mihomoX25519: host?.mihomoX25519 ?? false,
     shuffleHost: host?.shuffleHost ?? false,
@@ -73,12 +75,21 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
     if (open) form.setFieldsValue(defaultsFor(host));
   }, [open, host, form]);
 
+  const { nodes } = useNodesQuery();
+
   const inboundSelectOptions = useMemo(
     () => inboundOptions.map((ib) => ({
       value: ib.id,
       label: ib.remark || ib.tag || `#${ib.id}`,
     })),
     [inboundOptions],
+  );
+
+  const nodeSelectOptions = useMemo(
+    () => nodes
+      .filter((n) => n.guid)
+      .map((n) => ({ value: n.guid as string, label: n.name || n.remark || (n.guid as string) })),
+    [nodes],
   );
 
   const alpnOptions = useMemo(() => Object.values(ALPN_OPTION).map((v) => ({ value: v, label: v })), []);
@@ -143,6 +154,12 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                   </Form.Item>
                   <Form.Item name="port" label={t('pages.hosts.fields.port')} tooltip={t('pages.hosts.hints.port')}>
                     <InputNumber min={0} max={65535} style={{ width: '100%' }} />
+                  </Form.Item>
+                  <Form.Item name="tags" label={t('pages.hosts.fields.tags')} tooltip={t('pages.hosts.hints.tags')}>
+                    <Select mode="tags" allowClear tokenSeparators={[',']} />
+                  </Form.Item>
+                  <Form.Item name="nodeGuids" label={t('pages.hosts.fields.nodeGuids')} tooltip={t('pages.hosts.hints.nodeGuids')}>
+                    <Select mode="multiple" allowClear options={nodeSelectOptions} optionFilterProp="label" />
                   </Form.Item>
                   <Form.Item name="enable" label={t('pages.hosts.fields.enable')} valuePropName="checked">
                     <Switch />
@@ -220,8 +237,8 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                   <Form.Item name="xhttpExtraParams" label={t('pages.hosts.fields.xhttpExtraParams')}>
                     <Input.TextArea rows={2} placeholder="{}" />
                   </Form.Item>
-                  <Form.Item name="vlessRouteId" label={t('pages.hosts.fields.vlessRouteId')} tooltip={t('pages.hosts.hints.vlessRouteId')}>
-                    <InputNumber min={0} max={65535} style={{ width: '100%' }} />
+                  <Form.Item name="vlessRoute" label={t('pages.hosts.fields.vlessRoute')} tooltip={t('pages.hosts.hints.vlessRoute')}>
+                    <Input placeholder="53,443,1000-2000" />
                   </Form.Item>
                   <Form.Item name="xrayJsonTemplate" label={t('pages.hosts.fields.xrayJsonTemplate')} tooltip={t('pages.hosts.hints.xrayJsonTemplate')}>
                     <Input.TextArea rows={4} placeholder='{"protocol":"vless","tag":"proxy","settings":{"address":"{{ADDRESS}}","port":{{PORT}}}}' />
@@ -256,9 +273,6 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
               label: t('pages.hosts.sections.subScope'),
               children: (
                 <>
-                  <Form.Item name="tags" label={t('pages.hosts.fields.tags')} tooltip={t('pages.hosts.hints.tags')}>
-                    <Select mode="tags" allowClear tokenSeparators={[',']} />
-                  </Form.Item>
                   <Form.Item name="excludeFromSubTypes" label={t('pages.hosts.fields.excludeFromSubTypes')}>
                     <Select
                       mode="multiple"

@@ -319,7 +319,7 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "updatedAt": 0,
     "verifyPeerCertByName": false,
-    "vlessRouteId": 0,
+    "vlessRoute": "",
     "xhttpExtraParams": null,
     "xrayJsonTemplate": ""
   },

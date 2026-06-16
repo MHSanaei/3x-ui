@@ -326,7 +326,7 @@ export interface Host {
   tags: string[];
   updatedAt: number;
   verifyPeerCertByName: boolean;
-  vlessRouteId: number;
+  vlessRoute: string;
   xhttpExtraParams: unknown;
   xrayJsonTemplate: string;
 }

@@ -52,9 +52,19 @@ export const HostFormSchema = z.object({
   sockoptParams: z.string().default(''),
   xhttpExtraParams: z.string().default(''),
   xrayJsonTemplate: z.string().default(''),
-  vlessRouteId: z.number().int().min(0).max(65535).default(0),
+  // A comma-separated list of ports/ranges (e.g. "53,443,1000-2000"). Empty = none.
+  vlessRoute: z
+    .string()
+    .trim()
+    .regex(/^(\d{1,5}(-\d{1,5})?)(\s*,\s*\d{1,5}(-\d{1,5})?)*$/, 'pages.hosts.toasts.badVlessRoute')
+    .or(z.literal(''))
+    .default(''),
 
   excludeFromSubTypes: z.array(SubTypeSchema).default([]),
+
+  // Visual-only assignment of nodes that resolve from this host (stored, not yet
+  // wired into routing).
+  nodeGuids: z.array(z.string()).default([]),
 
   mihomoIpVersion: z.preprocess(
     (val) => (val === '' ? undefined : val),
@@ -94,8 +104,9 @@ export const HostRecordSchema = z.object({
   sockoptParams: z.unknown().optional(),
   xhttpExtraParams: z.unknown().optional(),
   xrayJsonTemplate: z.string().optional(),
-  vlessRouteId: z.number().optional(),
+  vlessRoute: z.string().optional(),
   excludeFromSubTypes: z.array(z.string()).nullish(),
+  nodeGuids: z.array(z.string()).nullish(),
   mihomoIpVersion: z.string().optional(),
   mihomoX25519: z.boolean().optional(),
   shuffleHost: z.boolean().optional(),

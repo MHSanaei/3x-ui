@@ -349,7 +349,7 @@ export const HostSchema = z.object({
   tags: z.array(z.string()),
   updatedAt: z.number().int(),
   verifyPeerCertByName: z.boolean(),
-  vlessRouteId: z.number().int().min(0).max(65535),
+  vlessRoute: z.string(),
   xhttpExtraParams: z.unknown(),
   xrayJsonTemplate: z.string(),
 });

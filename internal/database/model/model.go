@@ -757,7 +757,9 @@ type Host struct {
 	// {{PASSWORD}} {{EMAIL}} {{REMARK}} {{SNI}} {{HOST}} {{PATH}} placeholders.
 	XrayJsonTemplate string `json:"xrayJsonTemplate" form:"xrayJsonTemplate" gorm:"type:text;column:xray_json_template"`
 
-	VlessRouteId int `json:"vlessRouteId" form:"vlessRouteId" gorm:"column:vless_route_id" validate:"omitempty,gte=0,lte=65535"`
+	// VlessRoute is a free-form port/range routing spec (e.g. "53,443,1000-2000");
+	// stored verbatim, format-validated on the frontend.
+	VlessRoute string `json:"vlessRoute" form:"vlessRoute" gorm:"column:vless_route"`
 
 	ExcludeFromSubTypes []string `json:"excludeFromSubTypes" form:"excludeFromSubTypes" gorm:"serializer:json;column:exclude_from_sub_types"`
 
