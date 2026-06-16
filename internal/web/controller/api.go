@@ -74,6 +74,9 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	// Main API group
 	api := g.Group("/panel/api")
 	api.Use(a.checkAPIAuth)
+	// Decode + verify the node config envelope (zstd + X-Config-Sha256) and
+	// advertise support, before CSRF/handlers read the body.
+	api.Use(middleware.ConfigEnvelopeMiddleware())
 	api.Use(middleware.CSRFMiddleware())
 
 	// Inbounds API
