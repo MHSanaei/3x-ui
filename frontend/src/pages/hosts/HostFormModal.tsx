@@ -164,7 +164,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                     <Input placeholder="cdn.example.com" />
                   </Form.Item>
                   <Form.Item name="port" label={t('pages.hosts.fields.port')} tooltip={t('pages.hosts.hints.port')}>
-                    <InputNumber min={0} max={65535} style={{ width: '100%' }} />
+                    <InputNumber min={0} max={65535} />
                   </Form.Item>
                   <Form.Item name="tags" label={t('pages.hosts.fields.tags')} tooltip={t('pages.hosts.hints.tags')}>
                     <Select mode="tags" allowClear tokenSeparators={[',']} />
