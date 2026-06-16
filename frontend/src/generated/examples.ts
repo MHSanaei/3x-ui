@@ -288,6 +288,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "excludeFromSubTypes": [
       ""
     ],
+    "finalMask": "",
     "fingerprint": "",
     "hostHeader": "",
     "id": 1,

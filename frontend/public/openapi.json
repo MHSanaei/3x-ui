@@ -1380,6 +1380,10 @@
             },
             "type": "array"
           },
+          "finalMask": {
+            "description": "FinalMask is a JSON object of xray finalmask masks (tcp/udp/quicParams),\nmerged into this host's JSON-subscription stream. Empty = no override.",
+            "type": "string"
+          },
           "fingerprint": {
             "type": "string"
           },
@@ -1499,6 +1503,7 @@
           "createdAt",
           "echConfigList",
           "excludeFromSubTypes",
+          "finalMask",
           "fingerprint",
           "hostHeader",
           "id",
@@ -7240,6 +7245,7 @@
                       "excludeFromSubTypes": [
                         ""
                       ],
+                      "finalMask": "",
                       "fingerprint": "",
                       "hostHeader": "",
                       "id": 1,
@@ -7333,6 +7339,7 @@
                     "excludeFromSubTypes": [
                       ""
                     ],
+                    "finalMask": "",
                     "fingerprint": "",
                     "hostHeader": "",
                     "id": 1,
@@ -7429,6 +7436,7 @@
                       "excludeFromSubTypes": [
                         ""
                       ],
+                      "finalMask": "",
                       "fingerprint": "",
                       "hostHeader": "",
                       "id": 1,
@@ -7570,6 +7578,7 @@
                     "excludeFromSubTypes": [
                       ""
                     ],
+                    "finalMask": "",
                     "fingerprint": "",
                     "hostHeader": "",
                     "id": 1,
@@ -7683,6 +7692,7 @@
                     "excludeFromSubTypes": [
                       ""
                     ],
+                    "finalMask": "",
                     "fingerprint": "",
                     "hostHeader": "",
                     "id": 1,

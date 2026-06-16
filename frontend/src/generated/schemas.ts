@@ -1354,6 +1354,10 @@ export const SCHEMAS: Record<string, unknown> = {
         },
         "type": "array"
       },
+      "finalMask": {
+        "description": "FinalMask is a JSON object of xray finalmask masks (tcp/udp/quicParams),\nmerged into this host's JSON-subscription stream. Empty = no override.",
+        "type": "string"
+      },
       "fingerprint": {
         "type": "string"
       },
@@ -1473,6 +1477,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "createdAt",
       "echConfigList",
       "excludeFromSubTypes",
+      "finalMask",
       "fingerprint",
       "hostHeader",
       "id",

@@ -301,6 +301,7 @@ export interface Host {
   createdAt: number;
   echConfigList: string;
   excludeFromSubTypes: string[];
+  finalMask: string;
   fingerprint: string;
   hostHeader: string;
   id: number;

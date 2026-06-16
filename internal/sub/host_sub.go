@@ -103,6 +103,9 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 	if h.XrayJsonTemplate != "" {
 		ep["xrayJsonTemplate"] = h.XrayJsonTemplate
 	}
+	if h.FinalMask != "" {
+		ep["finalMask"] = h.FinalMask
+	}
 	return ep
 }
 
@@ -138,6 +141,17 @@ func applyHostStreamOverrides(ep map[string]any, stream map[string]any) {
 			}
 			for k, v := range extra {
 				xhttp[k] = v
+			}
+		}
+	}
+	// Host finalmask: merge the host's masks into the stream's finalmask (the
+	// JSON renderer consumes streamSettings["finalmask"]; clash ignores it).
+	if fm, ok := ep["finalMask"].(string); ok && fm != "" {
+		var masks map[string]any
+		if json.Unmarshal([]byte(fm), &masks) == nil && len(masks) > 0 {
+			merged := mergeFinalMask(stream["finalmask"], masks)
+			if len(merged) > 0 {
+				stream["finalmask"] = merged
 			}
 		}
 	}

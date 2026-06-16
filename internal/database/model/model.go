@@ -751,6 +751,9 @@ type Host struct {
 	MuxParams        string `json:"muxParams" form:"muxParams" gorm:"type:text;column:mux_params"`
 	SockoptParams    string `json:"sockoptParams" form:"sockoptParams" gorm:"type:text;column:sockopt_params"`
 	XhttpExtraParams string `json:"xhttpExtraParams" form:"xhttpExtraParams" gorm:"type:text;column:xhttp_extra_params"`
+	// FinalMask is a JSON object of xray finalmask masks (tcp/udp/quicParams),
+	// merged into this host's JSON-subscription stream. Empty = no override.
+	FinalMask string `json:"finalMask" form:"finalMask" gorm:"type:text;column:final_mask"`
 
 	// XrayJsonTemplate, when set, replaces the auto-generated proxy outbound in
 	// the JSON subscription for this host. Supports {{ADDRESS}} {{PORT}} {{ID}}

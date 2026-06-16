@@ -51,6 +51,7 @@ export const HostFormSchema = z.object({
   muxParams: z.string().default(''),
   sockoptParams: z.string().default(''),
   xhttpExtraParams: z.string().default(''),
+  finalMask: z.string().default(''),
   xrayJsonTemplate: z.string().default(''),
   // A comma-separated list of ports/ranges (e.g. "53,443,1000-2000"). Empty = none.
   vlessRoute: z
@@ -103,6 +104,7 @@ export const HostRecordSchema = z.object({
   muxParams: z.unknown().optional(),
   sockoptParams: z.unknown().optional(),
   xhttpExtraParams: z.unknown().optional(),
+  finalMask: z.string().optional(),
   xrayJsonTemplate: z.string().optional(),
   vlessRoute: z.string().optional(),
   excludeFromSubTypes: z.array(z.string()).nullish(),

@@ -7,6 +7,7 @@ import type { HostFormValues } from '@/schemas/api/host';
 import type { InboundOption } from '@/schemas/client';
 import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
+import { HostFinalMaskForm, HostMuxForm, HostSockoptForm, HostXhttpForm } from './json-forms';
 
 // inboundId is optional in the form so a new host starts unselected (the Select
 // shows its placeholder instead of 0); the required rule enforces it on submit.
@@ -49,6 +50,7 @@ function defaultsFor(host: HostRecord | null): FormShape {
     muxParams: asString(host?.muxParams),
     sockoptParams: asString(host?.sockoptParams),
     xhttpExtraParams: asString(host?.xhttpExtraParams),
+    finalMask: host?.finalMask ?? '',
     xrayJsonTemplate: host?.xrayJsonTemplate ?? '',
     vlessRoute: host?.vlessRoute ?? '',
     excludeFromSubTypes: (host?.excludeFromSubTypes as HostFormValues['excludeFromSubTypes']) ?? [],
@@ -122,7 +124,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
       okText={t('save')}
       cancelText={t('cancel')}
       destroyOnHidden
-      width={640}
+      width={760}
     >
       <Form form={form} layout="vertical" initialValues={defaultsFor(host)} preserve={false}>
         <Tabs
@@ -221,29 +223,73 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
               forceRender: true,
               label: t('pages.hosts.sections.advanced'),
               children: (
-                <>
-                  <Form.Item name="hostHeader" label={t('pages.hosts.fields.hostHeader')}>
-                    <Input />
-                  </Form.Item>
-                  <Form.Item name="path" label={t('pages.hosts.fields.path')}>
-                    <Input />
-                  </Form.Item>
-                  <Form.Item name="muxParams" label={t('pages.hosts.fields.muxParams')}>
-                    <Input.TextArea rows={2} placeholder="{}" />
-                  </Form.Item>
-                  <Form.Item name="sockoptParams" label={t('pages.hosts.fields.sockoptParams')}>
-                    <Input.TextArea rows={2} placeholder="{}" />
-                  </Form.Item>
-                  <Form.Item name="xhttpExtraParams" label={t('pages.hosts.fields.xhttpExtraParams')}>
-                    <Input.TextArea rows={2} placeholder="{}" />
-                  </Form.Item>
-                  <Form.Item name="vlessRoute" label={t('pages.hosts.fields.vlessRoute')} tooltip={t('pages.hosts.hints.vlessRoute')}>
-                    <Input placeholder="53,443,1000-2000" />
-                  </Form.Item>
-                  <Form.Item name="xrayJsonTemplate" label={t('pages.hosts.fields.xrayJsonTemplate')} tooltip={t('pages.hosts.hints.xrayJsonTemplate')}>
-                    <Input.TextArea rows={4} placeholder='{"protocol":"vless","tag":"proxy","settings":{"address":"{{ADDRESS}}","port":{{PORT}}}}' />
-                  </Form.Item>
-                </>
+                <Tabs
+                  size="small"
+                  defaultActiveKey="adv-general"
+                  items={[
+                    {
+                      key: 'adv-general',
+                      forceRender: true,
+                      label: t('pages.hosts.sections.general'),
+                      children: (
+                        <>
+                          <Form.Item name="hostHeader" label={t('pages.hosts.fields.hostHeader')}>
+                            <Input />
+                          </Form.Item>
+                          <Form.Item name="path" label={t('pages.hosts.fields.path')}>
+                            <Input />
+                          </Form.Item>
+                          <Form.Item name="vlessRoute" label={t('pages.hosts.fields.vlessRoute')} tooltip={t('pages.hosts.hints.vlessRoute')}>
+                            <Input placeholder="53,443,1000-2000" />
+                          </Form.Item>
+                          <Form.Item name="xrayJsonTemplate" label={t('pages.hosts.fields.xrayJsonTemplate')} tooltip={t('pages.hosts.hints.xrayJsonTemplate')}>
+                            <Input.TextArea rows={4} placeholder='{"protocol":"vless","tag":"proxy","settings":{"address":"{{ADDRESS}}","port":{{PORT}}}}' />
+                          </Form.Item>
+                        </>
+                      ),
+                    },
+                    {
+                      key: 'adv-mux',
+                      forceRender: true,
+                      label: t('pages.hosts.fields.muxParams'),
+                      children: (
+                        <Form.Item name="muxParams" noStyle>
+                          <HostMuxForm />
+                        </Form.Item>
+                      ),
+                    },
+                    {
+                      key: 'adv-sockopt',
+                      forceRender: true,
+                      label: t('pages.hosts.fields.sockoptParams'),
+                      children: (
+                        <Form.Item name="sockoptParams" noStyle>
+                          <HostSockoptForm />
+                        </Form.Item>
+                      ),
+                    },
+                    {
+                      key: 'adv-xhttp',
+                      forceRender: true,
+                      label: t('pages.hosts.fields.xhttpExtraParams'),
+                      children: (
+                        <Form.Item name="xhttpExtraParams" noStyle>
+                          <HostXhttpForm />
+                        </Form.Item>
+                      ),
+                    },
+                    {
+                      key: 'adv-finalmask',
+                      forceRender: true,
+                      label: t('pages.hosts.fields.finalMask'),
+                      children: (
+                        <Form.Item name="finalMask" noStyle>
+                          <HostFinalMaskForm />
+                        </Form.Item>
+                      ),
+                    },
+                  ]}
+                />
               ),
             },
             {

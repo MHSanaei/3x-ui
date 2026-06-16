@@ -324,6 +324,7 @@ export const HostSchema = z.object({
   createdAt: z.number().int(),
   echConfigList: z.string(),
   excludeFromSubTypes: z.array(z.string()),
+  finalMask: z.string(),
   fingerprint: z.string(),
   hostHeader: z.string(),
   id: z.number().int(),
