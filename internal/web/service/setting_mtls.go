@@ -30,6 +30,12 @@ func (s *SettingService) EnsureNodeMtlsCA() (crypto.CertKeyPEM, error) {
 	if certPem != "" && keyPem != "" {
 		return crypto.CertKeyPEM{CertPEM: []byte(certPem), KeyPEM: []byte(keyPem)}, nil
 	}
+	// Fail closed on a half-present pair: regenerating here would silently rotate
+	// the CA and break trust on nodes that already hold the old cert. Only mint
+	// when neither half exists (first use).
+	if certPem != "" || keyPem != "" {
+		return crypto.CertKeyPEM{}, common.NewError("node mTLS CA is incomplete: one of cert/key is missing; refusing to regenerate")
+	}
 	ca, err := crypto.GenerateNodeCA("3x-ui node mTLS CA")
 	if err != nil {
 		return crypto.CertKeyPEM{}, err
@@ -57,6 +63,11 @@ func (s *SettingService) EnsureMasterClientCert() (crypto.CertKeyPEM, error) {
 	}
 	if certPem != "" && keyPem != "" {
 		return crypto.CertKeyPEM{CertPEM: []byte(certPem), KeyPEM: []byte(keyPem)}, nil
+	}
+	// Half a stored pair signals corrupted settings; reissuing would rotate the
+	// master client credential (and indirectly the CA). Only mint on first use.
+	if certPem != "" || keyPem != "" {
+		return crypto.CertKeyPEM{}, common.NewError("master client cert is incomplete: one of cert/key is missing; refusing to reissue")
 	}
 	ca, err := s.EnsureNodeMtlsCA()
 	if err != nil {

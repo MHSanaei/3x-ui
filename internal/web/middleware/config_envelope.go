@@ -31,6 +31,14 @@ func ConfigEnvelopeMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// On the envelope path, zstd is the only encoding we understand. Reject any
+		// other Content-Encoding rather than hashing/forwarding a still-encoded body
+		// the downstream handler can't read.
+		if enc != "" && enc != wirecodec.EncodingZstd {
+			c.AbortWithStatus(http.StatusUnsupportedMediaType)
+			return
+		}
+
 		raw, err := io.ReadAll(c.Request.Body)
 		if err != nil {
 			c.AbortWithStatus(http.StatusBadRequest)

@@ -62,7 +62,9 @@ export const NodeFormSchema = z.object({
   address: z.string().trim().min(1, 'pages.nodes.toasts.fillRequired'),
   port: z.number().int().min(1).max(65535),
   basePath: z.string(),
-  apiToken: z.string().trim().min(1, 'pages.nodes.toasts.fillRequired'),
+  // mTLS nodes authenticate via the client certificate, so the token is optional
+  // there; every other verify mode still requires one (matches remote.do()).
+  apiToken: z.string().trim(),
   enable: z.boolean(),
   allowPrivateAddress: z.boolean(),
   tlsVerifyMode: z.enum(['verify', 'skip', 'pin', 'mtls']),
@@ -72,6 +74,14 @@ export const NodeFormSchema = z.object({
   // serialized as null by the backend for a nil slice — tolerate both.
   inboundTags: z.array(z.string()).nullish().transform((tags) => tags ?? []),
   outboundTag: z.string().optional(),
+}).superRefine((val, ctx) => {
+  if (val.tlsVerifyMode !== 'mtls' && val.apiToken.length === 0) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['apiToken'],
+      message: 'pages.nodes.toasts.fillRequired',
+    });
+  }
 });
 
 export type NodeRecord = z.infer<typeof NodeRecordSchema>;

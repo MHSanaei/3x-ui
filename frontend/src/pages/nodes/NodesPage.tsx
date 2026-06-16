@@ -78,6 +78,8 @@ export default function NodesPage() {
       } else {
         messageApi.error(msg?.msg || t('somethingWentWrong'));
       }
+    } catch {
+      messageApi.error(t('somethingWentWrong'));
     } finally {
       setSavingTrustCa(false);
     }
