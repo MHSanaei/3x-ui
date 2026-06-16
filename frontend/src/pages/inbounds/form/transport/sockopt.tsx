@@ -157,7 +157,7 @@ export default function SockoptForm({
                             type="warning"
                             showIcon
                             style={{ marginBottom: 16 }}
-                            message={t('pages.inbounds.form.realClientIpTrustedHeaderTransportWarn')}
+                            title={t('pages.inbounds.form.realClientIpTrustedHeaderTransportWarn')}
                           />
                         )}
                         {proxyMismatch && (
@@ -165,7 +165,7 @@ export default function SockoptForm({
                             type="warning"
                             showIcon
                             style={{ marginBottom: 16 }}
-                            message={t('pages.inbounds.form.realClientIpProxyProtocolTransportWarn')}
+                            title={t('pages.inbounds.form.realClientIpProxyProtocolTransportWarn')}
                           />
                         )}
                       </>

@@ -685,7 +685,7 @@ export default function InboundFormModal({
             className="mt-12"
             type="info"
             showIcon
-            message={t('pages.inbounds.fallbacks.needsTls')}
+            title={t('pages.inbounds.fallbacks.needsTls')}
           />
         )}
     </>
