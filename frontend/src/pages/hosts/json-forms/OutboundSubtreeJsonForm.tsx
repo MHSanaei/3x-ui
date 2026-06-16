@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Form, Switch, type FormInstance } from 'antd';
-import { useTranslation } from 'react-i18next';
+import { Form, type FormInstance } from 'antd';
 
 import type { OutboundFormValues } from '@/schemas/forms/outbound-form';
 
@@ -9,51 +8,49 @@ import { nestAtPath, parseJsonObject, serializeOverride } from './helpers';
 interface OutboundSubtreeJsonFormProps {
   value?: string;
   onChange?: (next: string) => void;
-  // Form path the inner form edits, e.g. ['streamSettings', 'sockopt'].
+  // Form path the inner form edits, e.g. ['streamSettings', 'sockopt'] or ['mux'].
   path: (string | number)[];
   // Renders the reused outbound form given this wrapper's own form instance.
   render: (form: FormInstance<OutboundFormValues>) => ReactNode;
-  // When true the wrapper owns an enable Switch (xhttp, which has no built-in
-  // toggle); when false the inner form provides its own (sockopt's Switch).
-  enableSwitch?: boolean;
-  enableLabel?: string;
+  // Seeds the form when the stored value is empty, so toggling a section on
+  // pre-fills sensible defaults instead of blanks (used by Mux).
+  defaultSubtree?: Record<string, unknown>;
+  // Turns the edited subtree into the stored JSON string (default: prune empties).
+  // Mux overrides this to store '' (= inherit) when its enable flag is off.
+  serialize?: (subtree: unknown) => string;
 }
 
-// Hosts the reused outbound transport forms (which bind to fixed
-// streamSettings.* paths) inside an isolated antd Form, mirroring
-// SubJsonFinalMaskForm: seed the inner form from the JSON string, watch the
-// edited subtree, and report a pruned JSON string back to the parent host form.
+// Hosts the reused outbound transport forms (which bind to fixed form paths)
+// inside an isolated antd Form, mirroring SubJsonFinalMaskForm: seed the form
+// from the JSON string, watch the edited subtree, and report a JSON string back
+// to the parent host form. component={false} avoids a nested <form> DOM node.
 export default function OutboundSubtreeJsonForm({
   value = '',
   onChange,
   path,
   render,
-  enableSwitch = false,
-  enableLabel,
+  defaultSubtree,
+  serialize = serializeOverride,
 }: OutboundSubtreeJsonFormProps) {
-  const { t } = useTranslation();
   const [form] = Form.useForm();
-  const [initial] = useState(() => parseJsonObject(value));
-  const [enabled, setEnabled] = useState(() => value !== '');
+  const [initial] = useState<Record<string, unknown>>(() => {
+    const parsed = parseJsonObject(value);
+    return Object.keys(parsed).length ? parsed : (defaultSubtree ?? {});
+  });
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
   const subtree = Form.useWatch(path, form);
 
   useEffect(() => {
-    if (enableSwitch && !enabled) return;
-    const next = serializeOverride(subtree);
+    const next = serialize(subtree);
     if (next !== value) onChangeRef.current?.(next);
-  }, [subtree, value, enabled, enableSwitch]);
+    // serialize is logically stable; re-run only when the edited subtree changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtree, value]);
 
   const hasInitial = Object.keys(initial).length > 0;
   const initialValues = nestAtPath(path, hasInitial ? initial : undefined);
-
-  const toggle = (v: boolean) => {
-    setEnabled(v);
-    if (!v) onChangeRef.current?.('');
-    else onChangeRef.current?.(serializeOverride(form.getFieldValue(path)));
-  };
 
   return (
     <Form
@@ -65,12 +62,7 @@ export default function OutboundSubtreeJsonForm({
       labelWrap
       initialValues={initialValues}
     >
-      {enableSwitch && (
-        <Form.Item label={enableLabel ?? t('enable')}>
-          <Switch checked={enabled} onChange={toggle} />
-        </Form.Item>
-      )}
-      {(!enableSwitch || enabled) && render(form as unknown as FormInstance<OutboundFormValues>)}
+      {render(form as unknown as FormInstance<OutboundFormValues>)}
     </Form>
   );
 }
