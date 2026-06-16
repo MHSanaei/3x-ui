@@ -1432,30 +1432,16 @@ func joinAnyStrings(items []any) string {
 	return strings.Join(parts, ",")
 }
 
+// buildVmessExternalProxyLinks is a thin adapter: it maps the legacy
+// externalProxy entries to []ShareEndpoint and renders them through the unified
+// endpoint path. Kept so genVmessLink's call site is unchanged.
 func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string) string {
-	var links strings.Builder
-	for index, externalProxy := range externalProxies {
+	eps := make([]ShareEndpoint, 0, len(externalProxies))
+	for _, externalProxy := range externalProxies {
 		ep, _ := externalProxy.(map[string]any)
-		newSecurity, _ := ep["forceTls"].(string)
-		securityToApply := baseObj["tls"].(string)
-		if newSecurity != "same" {
-			securityToApply = newSecurity
-		}
-		newObj := cloneVmessShareObj(baseObj, newSecurity)
-		newObj["ps"] = s.genRemark(inbound, email, ep["remark"].(string))
-		newObj["add"] = ep["dest"].(string)
-		newObj["port"] = int(ep["port"].(float64))
-
-		if newSecurity != "same" {
-			newObj["tls"] = newSecurity
-		}
-		applyExternalProxyTLSObj(ep, newObj, securityToApply)
-		if index > 0 {
-			links.WriteString("\n")
-		}
-		links.WriteString(buildVmessLink(newObj))
+		eps = append(eps, externalProxyToEndpoint(ep))
 	}
-	return links.String()
+	return s.buildEndpointVmessLinks(eps, baseObj, inbound, email)
 }
 
 // buildLinkWithParams appends ?query and #fragment to a pre-built
@@ -1512,6 +1498,9 @@ func appendQueryAndFragment(link string, params map[string]string, fragment, sec
 	return sb.String()
 }
 
+// buildExternalProxyURLLinks is a thin adapter: it maps the legacy externalProxy
+// entries to []ShareEndpoint and renders them through the unified endpoint path.
+// Kept so the genVless/genTrojan/genShadowsocks call sites are unchanged.
 func (s *SubService) buildExternalProxyURLLinks(
 	externalProxies []any,
 	params map[string]string,
@@ -1519,33 +1508,14 @@ func (s *SubService) buildExternalProxyURLLinks(
 	makeLink func(dest string, port int) string,
 	makeRemark func(ep map[string]any) string,
 ) string {
-	links := make([]string, 0, len(externalProxies))
+	eps := make([]ShareEndpoint, 0, len(externalProxies))
 	for _, externalProxy := range externalProxies {
 		ep, _ := externalProxy.(map[string]any)
-		newSecurity, _ := ep["forceTls"].(string)
-		dest, _ := ep["dest"].(string)
-		port := int(ep["port"].(float64))
-
-		securityToApply := baseSecurity
-		if newSecurity != "same" {
-			securityToApply = newSecurity
-		}
-
-		nextParams := cloneStringMap(params)
-		applyExternalProxyTLSParams(ep, nextParams, securityToApply)
-
-		links = append(
-			links,
-			buildLinkWithParamsAndSecurity(
-				makeLink(dest, port),
-				nextParams,
-				makeRemark(ep),
-				securityToApply,
-				newSecurity == "none",
-			),
-		)
+		eps = append(eps, externalProxyToEndpoint(ep))
 	}
-	return strings.Join(links, "\n")
+	return s.buildEndpointLinks(eps, params, baseSecurity, makeLink, func(e ShareEndpoint) string {
+		return makeRemark(e.ep)
+	})
 }
 
 func cloneStringMap(source map[string]string) map[string]string {
