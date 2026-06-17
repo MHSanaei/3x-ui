@@ -545,8 +545,9 @@ func (s *ClientService) bulkAdjustInboundClients(
 		}
 	}
 
-	db := database.GetDB()
-	txErr := db.Transaction(func(tx *gorm.DB) error {
+	// Serialize against the traffic poll to avoid the cross-transaction
+	// lock-order deadlock on inbounds/client_records (runSerializedTx).
+	txErr := runSerializedTx(func(tx *gorm.DB) error {
 		if err := tx.Save(oldInbound).Error; err != nil {
 			return err
 		}
@@ -685,25 +686,32 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 	}
 
 	if len(successIds) > 0 {
-		for _, batch := range chunkInts(successIds, sqlInChunk) {
-			if err := db.Where("client_id IN ?", batch).Delete(&model.ClientInbound{}).Error; err != nil {
-				return result, needRestart, err
-			}
-		}
-		if !keepTraffic && len(successEmails) > 0 {
-			for _, batch := range chunkStrings(successEmails, sqlInChunk) {
-				if err := db.Where("email IN ?", batch).Delete(&xray.ClientTraffic{}).Error; err != nil {
-					return result, needRestart, err
-				}
-				if err := db.Where("client_email IN ?", batch).Delete(&model.InboundClientIps{}).Error; err != nil {
-					return result, needRestart, err
+		// Serialize the row cleanup against the traffic poll to avoid the
+		// cross-transaction lock-order deadlock on client_traffics/inbounds.
+		if err := runSerializedTx(func(tx *gorm.DB) error {
+			for _, batch := range chunkInts(successIds, sqlInChunk) {
+				if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientInbound{}).Error; e != nil {
+					return e
 				}
 			}
-		}
-		for _, batch := range chunkInts(successIds, sqlInChunk) {
-			if err := db.Where("id IN ?", batch).Delete(&model.ClientRecord{}).Error; err != nil {
-				return result, needRestart, err
+			if !keepTraffic && len(successEmails) > 0 {
+				for _, batch := range chunkStrings(successEmails, sqlInChunk) {
+					if e := tx.Where("email IN ?", batch).Delete(&xray.ClientTraffic{}).Error; e != nil {
+						return e
+					}
+					if e := tx.Where("client_email IN ?", batch).Delete(&model.InboundClientIps{}).Error; e != nil {
+						return e
+					}
+				}
 			}
+			for _, batch := range chunkInts(successIds, sqlInChunk) {
+				if e := tx.Where("id IN ?", batch).Delete(&model.ClientRecord{}).Error; e != nil {
+					return e
+				}
+			}
+			return nil
+		}); err != nil {
+			return result, needRestart, err
 		}
 	}
 
@@ -850,14 +858,19 @@ func (s *ClientService) bulkDelInboundClients(
 			}
 		}
 		if len(purge) > 0 {
-			if delErr := inboundSvc.delClientIPsByEmails(db, purge); delErr != nil {
-				logger.Error("Error in delete client IPs")
-				for _, email := range purge {
-					res.perEmailSkipped[email] = delErr.Error()
-					delete(foundEmails, email)
+			// Serialize the IP/stat purge against the traffic poll to avoid the
+			// cross-transaction lock-order deadlock on client_traffics.
+			if delErr := runSerializedTx(func(tx *gorm.DB) error {
+				if e := inboundSvc.delClientIPsByEmails(tx, purge); e != nil {
+					logger.Error("Error in delete client IPs")
+					return e
 				}
-			} else if delErr := inboundSvc.delClientStatsByEmails(db, purge); delErr != nil {
-				logger.Error("Delete stats Data Error")
+				if e := inboundSvc.delClientStatsByEmails(tx, purge); e != nil {
+					logger.Error("Delete stats Data Error")
+					return e
+				}
+				return nil
+			}); delErr != nil {
 				for _, email := range purge {
 					res.perEmailSkipped[email] = delErr.Error()
 					delete(foundEmails, email)
@@ -909,7 +922,9 @@ func (s *ClientService) bulkDelInboundClients(
 		}
 	}
 
-	txErr := db.Transaction(func(tx *gorm.DB) error {
+	// Serialize against the traffic poll to avoid the cross-transaction
+	// lock-order deadlock on inbounds/client_records (runSerializedTx).
+	txErr := runSerializedTx(func(tx *gorm.DB) error {
 		if err := tx.Save(oldInbound).Error; err != nil {
 			return err
 		}

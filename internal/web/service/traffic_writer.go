@@ -7,7 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+
+	"gorm.io/gorm"
 )
 
 const (
@@ -107,6 +110,23 @@ func runTrafficWriter(ctx context.Context, queue chan *trafficWriteRequest, done
 			}
 		}
 	}
+}
+
+// runSerializedTx runs fn inside one DB transaction on the shared serial
+// traffic-writer goroutine, so it can never execute concurrently with the
+// @every 5s traffic poll (AddTraffic). Both touch the hot client_traffics and
+// inbounds rows, and they acquire them in opposite order (the poll locks
+// inbounds then client_traffics; an admin client/inbound mutation does the
+// reverse), which Postgres aborts as a deadlock (SQLSTATE 40P01). Routing every
+// such mutation through this single writer removes that contention entirely.
+//
+// Keep network I/O (node pushes) OUT of fn: holding the single writer across a
+// remote node call would stall all traffic accounting for up to the remote
+// timeout. Apply runtime changes after this returns.
+func runSerializedTx(fn func(tx *gorm.DB) error) error {
+	return submitTrafficWrite(func() error {
+		return database.GetDB().Transaction(fn)
+	})
 }
 
 func safeApply(fn func() error) (err error) {

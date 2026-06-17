@@ -12,7 +12,10 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+
+	"gorm.io/gorm"
 )
 
 // delInboundClients removes several clients from a single inbound in one pass:
@@ -105,40 +108,79 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 
 	needRestart := false
 	markDirty := false
+
+	// Read each client's live state before the DB write (DelClientStat would
+	// erase the enable flag we need to decide on a runtime removal).
+	type delTarget struct {
+		email       string
+		emailShared bool
+		notDepleted bool
+		needApiDel  bool
+	}
+	targets := make([]delTarget, 0, len(removed))
 	for _, r := range removed {
 		email := r.email
 		emailShared := sharedSet[strings.ToLower(strings.TrimSpace(email))]
-		if !emailShared && !keepTraffic {
-			if err := inboundSvc.DelClientIPs(db, email); err != nil {
-				logger.Error("Error in delete client IPs")
-				return needRestart, err
-			}
-		}
+		notDepleted := false
 		if len(email) > 0 {
 			var enables []bool
 			if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).Limit(1).Pluck("enable", &enables).Error; err != nil {
 				logger.Error("Get stats error")
 				return needRestart, err
 			}
-			notDepleted := len(enables) > 0 && enables[0]
-			if !emailShared && !keepTraffic {
-				if err := inboundSvc.DelClientStat(db, email); err != nil {
+			notDepleted = len(enables) > 0 && enables[0]
+		}
+		targets = append(targets, delTarget{email: email, emailShared: emailShared, notDepleted: notDepleted, needApiDel: r.needApiDel})
+	}
+
+	// Persist the batch deletion atomically, serialized against the traffic poll
+	// to avoid the cross-transaction lock-order deadlock (runSerializedTx).
+	if txErr := runSerializedTx(func(tx *gorm.DB) error {
+		for _, t := range targets {
+			if t.emailShared || keepTraffic {
+				continue
+			}
+			if e := inboundSvc.DelClientIPs(tx, t.email); e != nil {
+				logger.Error("Error in delete client IPs")
+				return e
+			}
+			if len(t.email) > 0 {
+				if e := inboundSvc.DelClientStat(tx, t.email); e != nil {
 					logger.Error("Delete stats Data Error")
-					return needRestart, err
+					return e
 				}
 			}
-			if r.needApiDel && notDepleted && oldInbound.NodeID == nil {
+		}
+		if e := tx.Save(oldInbound).Error; e != nil {
+			return e
+		}
+		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
+		if gcErr != nil {
+			return gcErr
+		}
+		return s.SyncInbound(tx, inboundId, finalClients)
+	}); txErr != nil {
+		return needRestart, txErr
+	}
+
+	// Apply runtime deletes after commit — outside the serialized writer so a
+	// slow node call can't stall traffic accounting.
+	for _, t := range targets {
+		if len(t.email) == 0 {
+			continue
+		}
+		if oldInbound.NodeID == nil {
+			if t.needApiDel && t.notDepleted {
 				rt, rterr := inboundSvc.runtimeFor(oldInbound)
 				if rterr != nil {
 					needRestart = true
-				} else if err1 := rt.RemoveUser(context.Background(), oldInbound, email); err1 != nil {
-					if !strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+				} else if err1 := rt.RemoveUser(context.Background(), oldInbound, t.email); err1 != nil {
+					if !strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", t.email)) {
 						needRestart = true
 					}
 				}
 			}
-		}
-		if oldInbound.NodeID != nil && len(email) > 0 {
+		} else {
 			rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
 			if perr != nil {
 				return needRestart, perr
@@ -147,7 +189,7 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 				markDirty = true
 			}
 			if push {
-				if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
+				if err1 := rt.DeleteUser(context.Background(), oldInbound, t.email); err1 != nil {
 					logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
 					markDirty = true
 				}
@@ -155,16 +197,6 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		}
 	}
 
-	if err := db.Save(oldInbound).Error; err != nil {
-		return needRestart, err
-	}
-	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-	if gcErr != nil {
-		return needRestart, gcErr
-	}
-	if err := s.SyncInbound(db, inboundId, finalClients); err != nil {
-		return needRestart, err
-	}
 	if markDirty && oldInbound.NodeID != nil {
 		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
 			logger.Warning("mark node dirty failed:", dErr)
@@ -300,32 +332,42 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 
 	oldInbound.Settings = string(newSettings)
 
-	db := database.GetDB()
-	tx := db.Begin()
-
-	markDirty := false
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-			return
-		}
-		tx.Commit()
-		if markDirty && oldInbound.NodeID != nil {
-			if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
-				logger.Warning("mark node dirty failed:", dErr)
-			}
-		}
-	}()
-
 	needRestart := false
+	markDirty := false
+
 	rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
 	if perr != nil {
-		err = perr
-		return false, err
+		return false, perr
 	}
 	if dirty {
 		markDirty = true
 	}
+
+	// Persist client stats + inbound atomically, serialized against the traffic
+	// poll to avoid the cross-transaction lock-order deadlock (runSerializedTx).
+	if txErr := runSerializedTx(func(tx *gorm.DB) error {
+		for i := range clients {
+			if len(clients[i].Email) == 0 {
+				continue
+			}
+			if e := inboundSvc.AddClientStat(tx, data.Id, &clients[i]); e != nil {
+				return e
+			}
+		}
+		if e := tx.Save(oldInbound).Error; e != nil {
+			return e
+		}
+		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
+		if gcErr != nil {
+			return gcErr
+		}
+		return s.SyncInbound(tx, oldInbound.Id, finalClients)
+	}); txErr != nil {
+		return false, txErr
+	}
+
+	// Apply to the running runtime after commit — outside the serialized writer
+	// so a slow node call can't stall traffic accounting.
 	if oldInbound.NodeID == nil {
 		if !push {
 			needRestart = true
@@ -335,7 +377,6 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 					needRestart = true
 					continue
 				}
-				inboundSvc.AddClientStat(tx, data.Id, &client)
 				if !client.Enable {
 					continue
 				}
@@ -362,9 +403,6 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		}
 	} else {
 		for _, client := range clients {
-			if len(client.Email) > 0 {
-				inboundSvc.AddClientStat(tx, data.Id, &client)
-			}
 			if push {
 				if err1 := rt.AddClient(context.Background(), oldInbound, client); err1 != nil {
 					logger.Warning("Error in adding client on", rt.Name(), ":", err1)
@@ -375,16 +413,10 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		}
 	}
 
-	if err = tx.Save(oldInbound).Error; err != nil {
-		return false, err
-	}
-	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-	if gcErr != nil {
-		err = gcErr
-		return false, err
-	}
-	if err = s.SyncInbound(tx, oldInbound.Id, finalClients); err != nil {
-		return false, err
+	if markDirty && oldInbound.NodeID != nil {
+		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
+			logger.Warning("mark node dirty failed:", dErr)
+		}
 	}
 	return needRestart, nil
 }
@@ -519,87 +551,98 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	}
 
 	oldInbound.Settings = string(newSettings)
-	db := database.GetDB()
-	tx := db.Begin()
 
-	markDirty := false
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-			return
-		}
-		tx.Commit()
-		if markDirty && oldInbound.NodeID != nil {
-			if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
-				logger.Warning("mark node dirty failed:", dErr)
-			}
-		}
-	}()
-
-	if len(clients[0].Email) > 0 {
-		if len(oldEmail) > 0 {
-			emailUnchanged := strings.EqualFold(oldEmail, clients[0].Email)
-			targetExists := int64(0)
-			if !emailUnchanged {
-				if err = tx.Model(xray.ClientTraffic{}).Where("email = ?", clients[0].Email).Count(&targetExists).Error; err != nil {
-					return false, err
-				}
-			}
-			if emailUnchanged || targetExists == 0 {
-				err = inboundSvc.UpdateClientStat(tx, oldEmail, &clients[0])
-				if err != nil {
-					return false, err
-				}
-				err = inboundSvc.UpdateClientIPs(tx, oldEmail, clients[0].Email)
-				if err != nil {
-					return false, err
-				}
-			} else {
-				stillUsed, sErr := inboundSvc.emailUsedByOtherInbounds(oldEmail, data.Id)
-				if sErr != nil {
-					return false, sErr
-				}
-				if !stillUsed {
-					if err = inboundSvc.DelClientStat(tx, oldEmail); err != nil {
-						return false, err
-					}
-					if err = inboundSvc.DelClientIPs(tx, oldEmail); err != nil {
-						return false, err
-					}
-				}
-				if err = inboundSvc.UpdateClientStat(tx, clients[0].Email, &clients[0]); err != nil {
-					return false, err
-				}
-			}
-		} else {
-			inboundSvc.AddClientStat(tx, data.Id, &clients[0])
-		}
-	} else {
-		stillUsed, err := inboundSvc.emailUsedByOtherInbounds(oldEmail, data.Id)
-		if err != nil {
-			return false, err
-		}
-		if !stillUsed {
-			err = inboundSvc.DelClientStat(tx, oldEmail)
-			if err != nil {
-				return false, err
-			}
-			err = inboundSvc.DelClientIPs(tx, oldEmail)
-			if err != nil {
-				return false, err
-			}
-		}
-	}
 	needRestart := false
+	markDirty := false
+
+	// Resolve the push plan before the DB write so a node-state lookup failure
+	// still aborts the whole update without committing anything (it used to roll
+	// the transaction back). nodePushPlan only reads, so order doesn't matter.
+	var rt runtime.Runtime
+	var push bool
 	if len(oldEmail) > 0 {
-		rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+		var dirty bool
+		var perr error
+		rt, push, dirty, perr = inboundSvc.nodePushPlan(oldInbound)
 		if perr != nil {
-			err = perr
-			return false, err
+			return false, perr
 		}
 		if dirty {
 			markDirty = true
 		}
+	}
+
+	// Persist client stats + inbound atomically, serialized against the traffic
+	// poll to avoid the cross-transaction lock-order deadlock (runSerializedTx).
+	if txErr := runSerializedTx(func(tx *gorm.DB) error {
+		if len(clients[0].Email) > 0 {
+			if len(oldEmail) > 0 {
+				emailUnchanged := strings.EqualFold(oldEmail, clients[0].Email)
+				targetExists := int64(0)
+				if !emailUnchanged {
+					if e := tx.Model(xray.ClientTraffic{}).Where("email = ?", clients[0].Email).Count(&targetExists).Error; e != nil {
+						return e
+					}
+				}
+				if emailUnchanged || targetExists == 0 {
+					if e := inboundSvc.UpdateClientStat(tx, oldEmail, &clients[0]); e != nil {
+						return e
+					}
+					if e := inboundSvc.UpdateClientIPs(tx, oldEmail, clients[0].Email); e != nil {
+						return e
+					}
+				} else {
+					stillUsed, sErr := inboundSvc.emailUsedByOtherInbounds(oldEmail, data.Id)
+					if sErr != nil {
+						return sErr
+					}
+					if !stillUsed {
+						if e := inboundSvc.DelClientStat(tx, oldEmail); e != nil {
+							return e
+						}
+						if e := inboundSvc.DelClientIPs(tx, oldEmail); e != nil {
+							return e
+						}
+					}
+					if e := inboundSvc.UpdateClientStat(tx, clients[0].Email, &clients[0]); e != nil {
+						return e
+					}
+				}
+			} else {
+				if e := inboundSvc.AddClientStat(tx, data.Id, &clients[0]); e != nil {
+					return e
+				}
+			}
+		} else {
+			stillUsed, sErr := inboundSvc.emailUsedByOtherInbounds(oldEmail, data.Id)
+			if sErr != nil {
+				return sErr
+			}
+			if !stillUsed {
+				if e := inboundSvc.DelClientStat(tx, oldEmail); e != nil {
+					return e
+				}
+				if e := inboundSvc.DelClientIPs(tx, oldEmail); e != nil {
+					return e
+				}
+			}
+		}
+
+		if e := tx.Save(oldInbound).Error; e != nil {
+			return e
+		}
+		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
+		if gcErr != nil {
+			return gcErr
+		}
+		return s.SyncInbound(tx, oldInbound.Id, finalClients)
+	}); txErr != nil {
+		return false, txErr
+	}
+
+	// Apply to the running runtime after the DB is committed — outside the
+	// serialized writer so a slow node call can't stall traffic accounting.
+	if len(oldEmail) > 0 {
 		if oldInbound.NodeID == nil {
 			if !push {
 				needRestart = true
@@ -647,16 +690,11 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		logger.Debug("Client old email not found")
 		needRestart = true
 	}
-	if err = tx.Save(oldInbound).Error; err != nil {
-		return false, err
-	}
-	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-	if gcErr != nil {
-		err = gcErr
-		return false, err
-	}
-	if err = s.SyncInbound(tx, oldInbound.Id, finalClients); err != nil {
-		return false, err
+
+	if markDirty && oldInbound.NodeID != nil {
+		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
+			logger.Warning("mark node dirty failed:", dErr)
+		}
 	}
 	return needRestart, nil
 }
@@ -718,41 +756,67 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		return false, err
 	}
 
-	if !emailShared && !keepTraffic {
-		if err := inboundSvc.DelClientIPs(db, email); err != nil {
-			logger.Error("Error in delete client IPs")
-			return false, err
-		}
-	}
-
 	needRestart := false
 	markDirty := false
 
-	if len(email) > 0 && !emailShared {
-		if !keepTraffic {
-			traffic, err := inboundSvc.GetClientTrafficByEmail(email)
-			if err != nil {
-				return false, err
-			}
-			if traffic != nil {
-				if err := inboundSvc.DelClientStat(db, email); err != nil {
-					logger.Error("Delete stats Data Error")
-					return false, err
-				}
+	// Decide what to delete and the push plan before the serialized DB write —
+	// these are reads, and nodePushPlan failing should abort before committing.
+	delStat := false
+	if len(email) > 0 && !emailShared && !keepTraffic {
+		traffic, tErr := inboundSvc.GetClientTrafficByEmail(email)
+		if tErr != nil {
+			return false, tErr
+		}
+		delStat = traffic != nil
+	}
+
+	var rt runtime.Runtime
+	var push bool
+	if len(email) > 0 && !emailShared && (oldInbound.NodeID != nil || needApiDel) {
+		r, p, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+		if perr != nil {
+			return false, perr
+		}
+		rt, push = r, p
+		if dirty {
+			markDirty = true
+		}
+	}
+
+	// Persist the deletion atomically, serialized against the traffic poll to
+	// avoid the cross-transaction lock-order deadlock (runSerializedTx).
+	if txErr := runSerializedTx(func(tx *gorm.DB) error {
+		if !emailShared && !keepTraffic {
+			if e := inboundSvc.DelClientIPs(tx, email); e != nil {
+				logger.Error("Error in delete client IPs")
+				return e
 			}
 		}
+		if delStat {
+			if e := inboundSvc.DelClientStat(tx, email); e != nil {
+				logger.Error("Delete stats Data Error")
+				return e
+			}
+		}
+		if e := tx.Save(oldInbound).Error; e != nil {
+			return e
+		}
+		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
+		if gcErr != nil {
+			return gcErr
+		}
+		return s.SyncInbound(tx, inboundId, finalClients)
+	}); txErr != nil {
+		return false, txErr
+	}
 
+	// Apply the runtime delete after commit — outside the serialized writer so a
+	// slow node call can't stall traffic accounting.
+	if len(email) > 0 && !emailShared {
 		if oldInbound.NodeID == nil {
 			// Local inbound: a disabled client isn't in the running Xray, so only
 			// a live one (needApiDel) needs an API removal.
 			if needApiDel {
-				rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
-				if perr != nil {
-					return false, perr
-				}
-				if dirty {
-					markDirty = true
-				}
 				if !push {
 					needRestart = true
 				} else if err1 := rt.RemoveUser(context.Background(), oldInbound, email); err1 == nil {
@@ -769,13 +833,6 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 			// Node inbound: propagate the delete regardless of the enable flag —
 			// the node's own DB still carries a disabled client and would
 			// resurrect it on the next snapshot otherwise.
-			rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
-			if perr != nil {
-				return false, perr
-			}
-			if dirty {
-				markDirty = true
-			}
 			if push {
 				if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
 					logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
@@ -785,16 +842,6 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		}
 	}
 
-	if err := db.Save(oldInbound).Error; err != nil {
-		return false, err
-	}
-	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-	if gcErr != nil {
-		return false, gcErr
-	}
-	if err := s.SyncInbound(db, inboundId, finalClients); err != nil {
-		return false, err
-	}
 	if markDirty && oldInbound.NodeID != nil {
 		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
 			logger.Warning("mark node dirty failed:", dErr)
