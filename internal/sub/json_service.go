@@ -297,8 +297,10 @@ func (s *SubJsonService) tlsData(tData map[string]any) map[string]any {
 	if ech, ok := tlsClientSettings["echConfigList"].(string); ok && ech != "" {
 		tlsData["echConfigList"] = ech
 	}
-	if pins, ok := tlsClientSettings["pinnedPeerCertSha256"].([]any); ok && len(pins) > 0 {
-		tlsData["pinnedPeerCertSha256"] = pins
+	// xray-core now parses pinnedPeerCertSha256 as a comma-separated string, not
+	// an array; emit the joined form so v2ray clients can import the config (#5401).
+	if pins, ok := pinnedSha256List(tlsClientSettings); ok {
+		tlsData["pinnedPeerCertSha256"] = strings.Join(pins, ",")
 	}
 	return tlsData
 }

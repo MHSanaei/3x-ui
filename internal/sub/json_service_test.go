@@ -102,6 +102,22 @@ func TestSubJsonServiceNoFinalMaskWhenEmpty(t *testing.T) {
 	}
 }
 
+// xray-core parses tlsSettings.pinnedPeerCertSha256 as a comma-separated string;
+// the JSON subscription must emit that form, not an array, or v2ray clients fail
+// to import the config (#5401).
+func TestSubJsonServicePinnedCertJoinedToString(t *testing.T) {
+	svc := NewSubJsonService("", "", "", nil)
+	stream := svc.streamData(`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"a.example.com","settings":{"pinnedPeerCertSha256":["aa11","bb22"]}}}`)
+
+	tls, _ := stream["tlsSettings"].(map[string]any)
+	if tls == nil {
+		t.Fatalf("tlsSettings missing: %#v", stream)
+	}
+	if got := tls["pinnedPeerCertSha256"]; got != "aa11,bb22" {
+		t.Fatalf("pinnedPeerCertSha256 = %#v, want comma-separated string \"aa11,bb22\"", got)
+	}
+}
+
 func TestSubJsonServiceVlessFlattened(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
 	client := model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}
