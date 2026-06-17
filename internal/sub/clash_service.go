@@ -350,6 +350,128 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 	return proxy
 }
 
+// buildXhttpClashOpts converts xhttpSettings from 3x-ui's camelCase JSON
+// storage into the kebab-case map that Mihomo expects under xhttp-opts.
+//
+// Only client-relevant fields are included (allowlist approach).
+// Server-only fields (noSSEHeader, scMaxBufferedPosts, scStreamUpServerSecs,
+// serverMaxHeaderBytes) are automatically excluded because they are not in
+// the mapping. This is intentional — when Mihomo adds new fields, the mapping
+// must be updated explicitly rather than leaking unverified fields to clients.
+//
+// Returns nil if no non-trivial fields are present.
+func buildXhttpClashOpts(xhttp map[string]any) map[string]any {
+	if xhttp == nil {
+		return nil
+	}
+	opts := map[string]any{}
+
+	// Direct fields: path, mode
+	if v, ok := xhttp["path"].(string); ok && v != "" {
+		opts["path"] = v
+	}
+	if v, ok := xhttp["mode"].(string); ok && v != "" {
+		opts["mode"] = v
+	}
+
+	// Host: explicit host field wins, then fall back to headers.Host
+	host := ""
+	if v, ok := xhttp["host"].(string); ok && v != "" {
+		host = v
+	} else if headers, ok := xhttp["headers"].(map[string]any); ok {
+		host = searchHost(headers)
+	}
+	if host != "" {
+		opts["host"] = host
+	}
+
+	type xhttpStringField struct{ src, dst, skipValue string }
+
+	stringFields := []xhttpStringField{
+		{"xPaddingBytes", "x-padding-bytes", ""},
+		{"uplinkHTTPMethod", "uplink-http-method", ""},
+		{"sessionPlacement", "session-placement", ""},
+		{"sessionKey", "session-key", ""},
+		{"seqPlacement", "seq-placement", ""},
+		{"seqKey", "seq-key", ""},
+		{"uplinkDataPlacement", "uplink-data-placement", ""},
+		{"uplinkDataKey", "uplink-data-key", ""},
+		{"scMaxEachPostBytes", "sc-max-each-post-bytes", "1000000"},
+		{"scMinPostsIntervalMs", "sc-min-posts-interval-ms", "30"},
+	}
+
+	for _, f := range stringFields {
+		if v, ok := xhttp[f.src].(string); ok && v != "" && v != f.skipValue {
+			opts[f.dst] = v
+		}
+	}
+
+	// Bool fields (truthy only)
+	if v, ok := xhttp["noGRPCHeader"].(bool); ok && v {
+		opts["no-grpc-header"] = true
+	}
+	if v, ok := xhttp["xPaddingObfsMode"].(bool); ok && v {
+		opts["x-padding-obfs-mode"] = true
+		// Padding obfs gated fields
+		for _, field := range []struct{ src, dst string }{
+			{"xPaddingKey", "x-padding-key"},
+			{"xPaddingHeader", "x-padding-header"},
+			{"xPaddingPlacement", "x-padding-placement"},
+			{"xPaddingMethod", "x-padding-method"},
+		} {
+			if v, ok := xhttp[field.src].(string); ok && v != "" {
+				opts[field.dst] = v
+			}
+		}
+	}
+
+	// Non-zero value fields
+	if v, ok := nonZeroShareValue(xhttp["uplinkChunkSize"]); ok {
+		opts["uplink-chunk-size"] = v
+	}
+
+	// Nested object: xmux → reuse-settings
+	if xmux, ok := xhttp["xmux"].(map[string]any); ok && len(xmux) > 0 {
+		reuse := map[string]any{}
+		for _, f := range []struct{ src, dst string }{
+			{"maxConcurrency", "max-concurrency"},
+			{"maxConnections", "max-connections"},
+			{"cMaxReuseTimes", "c-max-reuse-times"},
+			{"hMaxRequestTimes", "h-max-request-times"},
+			{"hMaxReusableSecs", "h-max-reusable-secs"},
+		} {
+			if v, ok := xmux[f.src].(string); ok && v != "" {
+				reuse[f.dst] = v
+			}
+		}
+		if v, ok := nonZeroShareValue(xmux["hKeepAlivePeriod"]); ok {
+			reuse["h-keep-alive-period"] = v
+		}
+		if len(reuse) > 0 {
+			opts["reuse-settings"] = reuse
+		}
+	}
+
+	// Headers (drop Host key)
+	if rawHeaders, ok := xhttp["headers"].(map[string]any); ok && len(rawHeaders) > 0 {
+		out := map[string]any{}
+		for k, v := range rawHeaders {
+			if strings.EqualFold(k, "host") {
+				continue
+			}
+			out[k] = v
+		}
+		if len(out) > 0 {
+			opts["headers"] = out
+		}
+	}
+
+	if len(opts) == 0 {
+		return nil
+	}
+	return opts
+}
+
 func (s *SubClashService) applyTransport(proxy map[string]any, network string, stream map[string]any) bool {
 	switch network {
 	case "", "tcp":
@@ -425,25 +547,8 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 	case "xhttp":
 		proxy["network"] = "xhttp"
 		xhttp, _ := stream["xhttpSettings"].(map[string]any)
-		opts := map[string]any{}
-		if xhttp != nil {
-			if path, ok := xhttp["path"].(string); ok && path != "" {
-				opts["path"] = path
-			}
-			host := ""
-			if v, ok := xhttp["host"].(string); ok && v != "" {
-				host = v
-			} else if headers, ok := xhttp["headers"].(map[string]any); ok {
-				host = searchHost(headers)
-			}
-			if host != "" {
-				opts["host"] = host
-			}
-			if mode, ok := xhttp["mode"].(string); ok && mode != "" {
-				opts["mode"] = mode
-			}
-		}
-		if len(opts) > 0 {
+		opts := buildXhttpClashOpts(xhttp)
+		if opts != nil {
 			proxy["xhttp-opts"] = opts
 		}
 		return true
